@@ -2,7 +2,7 @@
 #define ORM_CMS_SITEINFOBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 18 Jun 2026 12:31:02 GMT
+*本文件为自动生成 Fri, 19 Jun 2026 00:17:08 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -1028,7 +1028,7 @@ break;
         return temp;
    }  
 
-   std::string _makeinsertsql(){
+   std::string make_data_insert_sql(){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -1114,7 +1114,7 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql(const siteinfo_info::meta &insert_data){
+      std::string make_data_insert_sql(const siteinfo_info::meta &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -1200,7 +1200,7 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makerecordinsertsql(const std::vector<siteinfo_info::meta> &insert_data){
+    std::string make_vector_insert_sql(const std::vector<siteinfo_info::meta> &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -1296,7 +1296,7 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makeupdatesql(std::string_view fileld){
+    std::string make_update_sql(std::string_view fileld){
         std::ostringstream tempsql;
         tempsql<<"UPDATE ";
         tempsql<<tablename;
@@ -1585,7 +1585,7 @@ if(data.enddate==0){
         return tempsql.str();
    } 
    
-    std::string _make_replace_into_sql()
+    std::string make_record_replace_sql()
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
@@ -1684,7 +1684,7 @@ if(data.enddate==0){
  return tempsql.str();
 }
 
-    std::string _make_insert_into_sql(std::string_view fileld)
+    std::string make_record_into_sql(std::string_view fileld)
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
@@ -2460,10 +2460,9 @@ if(data.enddate==0){
    {
         record.clear();
         siteinfo_info::meta metatemp; 
-        data=metatemp;
+        data = metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
-        //std::vector<std::string> list_content;
         for(;json_offset<json_content.size();json_offset++)
         {
             if(json_content[json_offset]=='{')
@@ -2482,19 +2481,16 @@ if(data.enddate==0){
             std::string json_key_name,json_value_name; 
             for(;json_offset<json_content.size();json_offset++)
             {
-                for(;json_offset<json_content.size();json_offset++)
+                if(json_content[json_offset]!='{')
                 {
-                    if(json_content[json_offset]=='{')
-                    {
-                        json_offset+=1;
-                        break;
-                    }
+                    continue;
                 }
                 if(record.size()>0)
                 {
-                    data=metatemp;
+                    data = metatemp;
                 }
-                if(json_offset>=json_content.size())
+                json_offset++;
+                if(json_offset >= json_content.size())
                 {
                     break;
                 }
@@ -2525,10 +2521,11 @@ if(data.enddate==0){
                                         }
                                         break;
                                     }       
-                                    if(json_content[json_offset]!=':')
+                                    if(json_offset < json_content.size() && json_content[json_offset]!=':')
                                     {
                                         break;
                                     }
+                                    json_offset+=1;
                                     for(;json_offset<json_content.size();json_offset++)
                                     {
                                         if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
@@ -2537,7 +2534,7 @@ if(data.enddate==0){
                                         }
                                         break;
                                     } 
-                                    json_offset+=1;
+                                    
                                     if(json_offset>=json_content.size())
                                     {
                                         break;
@@ -2584,12 +2581,7 @@ if(data.enddate==0){
     
                 }
                 record.emplace_back(data);
-                
-                json_offset+=1;
-            }
-            if(record.size()>1)
-            {
-                data=record[0];
+
             }
         }
         else
@@ -2599,10 +2591,8 @@ if(data.enddate==0){
                 json_offset+=1; 
                 std::string json_key_name,json_value_name; 
                  
-                
                 for(;json_offset<json_content.size();json_offset++)
                 {
- 
                         if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
                         {
                             continue;
@@ -2620,7 +2610,6 @@ if(data.enddate==0){
                                  }
                                 for(;json_offset<json_content.size();json_offset++)
                                 {
-                                
                                     if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
                                     {
                                         continue;
@@ -2631,6 +2620,7 @@ if(data.enddate==0){
                                 {
                                     break;
                                 }
+                                json_offset+=1;
                                 for(;json_offset<json_content.size();json_offset++)
                                 {
                                     if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
@@ -2639,15 +2629,14 @@ if(data.enddate==0){
                                     }
                                     break;
                                 } 
-                                json_offset+=1;
-                                if(json_offset>=json_content.size())
+                                
+                                if(json_offset >= json_content.size())
                                 {
                                     break;
                                 }
                                 json_value_name.clear();
                                 if(json_content[json_offset]==0x22)
                                 {
-                                    
                                     temp_offset=json_offset;
                                     json_value_name=http::jsonstring_to_utf8(&json_content[json_offset],json_content.size()-json_offset,temp_offset);
                                     json_offset=temp_offset;
@@ -2685,733 +2674,152 @@ if(data.enddate==0){
                         }
  
                 }
-                record.emplace_back(data);
-            } 
+                if(isarray)
+                {
+                    record.emplace_back(data);
+                }
+            }
         }
-   }   
+    }
     
     void set_val(const std::string& set_key_name,const std::string& set_value_name)
     {
         switch(findcolpos(set_key_name))
         {
-    		case 0:
-		 try{
-			data.sid=std::stoi(set_value_name);
-		}catch (...) { 
-			data.sid=0;
-			 }
-			break;
-		case 1:
-		 try{
-			data.userid=std::stoi(set_value_name);
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
-		case 2:
-		 try{
-			data.agentid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.agentid=0;
-			 }
-			break;
-		case 3:
-		 try{
-			data.languagetype=std::stoul(set_value_name);
-		}catch (...) { 
-			data.languagetype=0;
-			 }
-			break;
-		case 4:
-		 try{
-			data.sitename.append(set_value_name);
-		}catch (...) { 
-			data.sitename.clear();
-			 }
-			break;
-		case 5:
-		 try{
-			data.sitedomain.append(set_value_name);
-		}catch (...) { 
-			data.sitedomain.clear();
-			 }
-			break;
-		case 6:
-		 try{
-			data.metakeys.append(set_value_name);
-		}catch (...) { 
-			data.metakeys.clear();
-			 }
-			break;
-		case 7:
-		 try{
-			data.metadesc.append(set_value_name);
-		}catch (...) { 
-			data.metadesc.clear();
-			 }
-			break;
-		case 8:
-		 try{
-			data.copyright.append(set_value_name);
-		}catch (...) { 
-			data.copyright.clear();
-			 }
-			break;
-		case 9:
-		 try{
-			data.beiansn.append(set_value_name);
-		}catch (...) { 
-			data.beiansn.clear();
-			 }
-			break;
-		case 10:
-		 try{
-			data.footscript.append(set_value_name);
-		}catch (...) { 
-			data.footscript.clear();
-			 }
-			break;
-		case 11:
-		 try{
-			data.headscript.append(set_value_name);
-		}catch (...) { 
-			data.headscript.clear();
-			 }
-			break;
-		case 12:
-		 try{
-			data.introduce.append(set_value_name);
-		}catch (...) { 
-			data.introduce.clear();
-			 }
-			break;
-		case 13:
-		 try{
-			data.sitelogo.append(set_value_name);
-		}catch (...) { 
-			data.sitelogo.clear();
-			 }
-			break;
-		case 14:
-		 try{
-			data.sitebanner.append(set_value_name);
-		}catch (...) { 
-			data.sitebanner.clear();
-			 }
-			break;
-		case 15:
-		 try{
-			data.contactman.append(set_value_name);
-		}catch (...) { 
-			data.contactman.clear();
-			 }
-			break;
-		case 16:
-		 try{
-			data.phone.append(set_value_name);
-		}catch (...) { 
-			data.phone.clear();
-			 }
-			break;
-		case 17:
-		 try{
-			data.mobile.append(set_value_name);
-		}catch (...) { 
-			data.mobile.clear();
-			 }
-			break;
-		case 18:
-		 try{
-			data.email.append(set_value_name);
-		}catch (...) { 
-			data.email.clear();
-			 }
-			break;
-		case 19:
-		 try{
-			data.bankname.append(set_value_name);
-		}catch (...) { 
-			data.bankname.clear();
-			 }
-			break;
-		case 20:
-		 try{
-			data.banksn.append(set_value_name);
-		}catch (...) { 
-			data.banksn.clear();
-			 }
-			break;
-		case 21:
-		 try{
-			data.address.append(set_value_name);
-		}catch (...) { 
-			data.address.clear();
-			 }
-			break;
-		case 22:
-		 try{
-			data.zipnum.append(set_value_name);
-		}catch (...) { 
-			data.zipnum.clear();
-			 }
-			break;
-		case 23:
-		 try{
-			data.taxsn.append(set_value_name);
-		}catch (...) { 
-			data.taxsn.clear();
-			 }
-			break;
-		case 24:
-		 try{
-			data.companyname.append(set_value_name);
-		}catch (...) { 
-			data.companyname.clear();
-			 }
-			break;
-		case 25:
-		 try{
-			data.linkname.append(set_value_name);
-		}catch (...) { 
-			data.linkname.clear();
-			 }
-			break;
-		case 26:
-		 try{
-			data.linkmobile.append(set_value_name);
-		}catch (...) { 
-			data.linkmobile.clear();
-			 }
-			break;
-		case 27:
-		 try{
-			data.linkaddress.append(set_value_name);
-		}catch (...) { 
-			data.linkaddress.clear();
-			 }
-			break;
-		case 28:
-		 try{
-			data.theme.append(set_value_name);
-		}catch (...) { 
-			data.theme.clear();
-			 }
-			break;
-		case 29:
-		 try{
-			data.sitepath.append(set_value_name);
-		}catch (...) { 
-			data.sitepath.clear();
-			 }
-			break;
-		case 30:
-		 try{
-			data.isopen=std::stoi(set_value_name);
-		}catch (...) { 
-			data.isopen=0;
-			 }
-			break;
-		case 31:
-		 try{
-			data.created_at=std::stoul(set_value_name);
-		}catch (...) { 
-			data.created_at=0;
-			 }
-			break;
-		case 32:
-		 try{
-			data.enddate=std::stoul(set_value_name);
-		}catch (...) { 
-			data.enddate=0;
-			 }
-			break;
-	default:
-		 { }
-			
-
-
-        }
-   } 
     
-    void set_val(const std::string& set_key_name,const long long set_value_name)
-    {
-        switch(findcolpos(set_key_name))
-        {
-    		case 0:
-		 try{
-			data.sid=set_value_name;
-		}catch (...) { 
-			data.sid=0;
-			 }
-			break;
+		case 0:
+		  http::json_set_val(data.sid,set_value_name);
+		 break;
+		
 		case 1:
-		 try{
-			data.userid=set_value_name;
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
+		  http::json_set_val(data.userid,set_value_name);
+		 break;
+		
 		case 2:
-		 try{
-			data.agentid=set_value_name;
-		}catch (...) { 
-			data.agentid=0;
-			 }
-			break;
+		  http::json_set_val(data.agentid,set_value_name);
+		 break;
+		
 		case 3:
-		 try{
-			data.languagetype=set_value_name;
-		}catch (...) { 
-			data.languagetype=0;
-			 }
-			break;
+		  http::json_set_val(data.languagetype,set_value_name);
+		 break;
+		
 		case 4:
-		 try{
-			data.sitename=std::to_string(set_value_name);
-		}catch (...) { 
-			data.sitename.clear();
-			 }
-			break;
+		  http::json_set_val(data.sitename,set_value_name);
+		 break;
+		
 		case 5:
-		 try{
-			data.sitedomain=std::to_string(set_value_name);
-		}catch (...) { 
-			data.sitedomain.clear();
-			 }
-			break;
+		  http::json_set_val(data.sitedomain,set_value_name);
+		 break;
+		
 		case 6:
-		 try{
-			data.metakeys=std::to_string(set_value_name);
-		}catch (...) { 
-			data.metakeys.clear();
-			 }
-			break;
+		  http::json_set_val(data.metakeys,set_value_name);
+		 break;
+		
 		case 7:
-		 try{
-			data.metadesc=std::to_string(set_value_name);
-		}catch (...) { 
-			data.metadesc.clear();
-			 }
-			break;
+		  http::json_set_val(data.metadesc,set_value_name);
+		 break;
+		
 		case 8:
-		 try{
-			data.copyright=std::to_string(set_value_name);
-		}catch (...) { 
-			data.copyright.clear();
-			 }
-			break;
+		  http::json_set_val(data.copyright,set_value_name);
+		 break;
+		
 		case 9:
-		 try{
-			data.beiansn=std::to_string(set_value_name);
-		}catch (...) { 
-			data.beiansn.clear();
-			 }
-			break;
+		  http::json_set_val(data.beiansn,set_value_name);
+		 break;
+		
 		case 10:
-		 try{
-			data.footscript=std::to_string(set_value_name);
-		}catch (...) { 
-			data.footscript.clear();
-			 }
-			break;
+		  http::json_set_val(data.footscript,set_value_name);
+		 break;
+		
 		case 11:
-		 try{
-			data.headscript=std::to_string(set_value_name);
-		}catch (...) { 
-			data.headscript.clear();
-			 }
-			break;
+		  http::json_set_val(data.headscript,set_value_name);
+		 break;
+		
 		case 12:
-		 try{
-			data.introduce=std::to_string(set_value_name);
-		}catch (...) { 
-			data.introduce.clear();
-			 }
-			break;
+		  http::json_set_val(data.introduce,set_value_name);
+		 break;
+		
 		case 13:
-		 try{
-			data.sitelogo=std::to_string(set_value_name);
-		}catch (...) { 
-			data.sitelogo.clear();
-			 }
-			break;
+		  http::json_set_val(data.sitelogo,set_value_name);
+		 break;
+		
 		case 14:
-		 try{
-			data.sitebanner=std::to_string(set_value_name);
-		}catch (...) { 
-			data.sitebanner.clear();
-			 }
-			break;
+		  http::json_set_val(data.sitebanner,set_value_name);
+		 break;
+		
 		case 15:
-		 try{
-			data.contactman=std::to_string(set_value_name);
-		}catch (...) { 
-			data.contactman.clear();
-			 }
-			break;
+		  http::json_set_val(data.contactman,set_value_name);
+		 break;
+		
 		case 16:
-		 try{
-			data.phone=std::to_string(set_value_name);
-		}catch (...) { 
-			data.phone.clear();
-			 }
-			break;
+		  http::json_set_val(data.phone,set_value_name);
+		 break;
+		
 		case 17:
-		 try{
-			data.mobile=std::to_string(set_value_name);
-		}catch (...) { 
-			data.mobile.clear();
-			 }
-			break;
+		  http::json_set_val(data.mobile,set_value_name);
+		 break;
+		
 		case 18:
-		 try{
-			data.email=std::to_string(set_value_name);
-		}catch (...) { 
-			data.email.clear();
-			 }
-			break;
+		  http::json_set_val(data.email,set_value_name);
+		 break;
+		
 		case 19:
-		 try{
-			data.bankname=std::to_string(set_value_name);
-		}catch (...) { 
-			data.bankname.clear();
-			 }
-			break;
+		  http::json_set_val(data.bankname,set_value_name);
+		 break;
+		
 		case 20:
-		 try{
-			data.banksn=std::to_string(set_value_name);
-		}catch (...) { 
-			data.banksn.clear();
-			 }
-			break;
+		  http::json_set_val(data.banksn,set_value_name);
+		 break;
+		
 		case 21:
-		 try{
-			data.address=std::to_string(set_value_name);
-		}catch (...) { 
-			data.address.clear();
-			 }
-			break;
+		  http::json_set_val(data.address,set_value_name);
+		 break;
+		
 		case 22:
-		 try{
-			data.zipnum=std::to_string(set_value_name);
-		}catch (...) { 
-			data.zipnum.clear();
-			 }
-			break;
+		  http::json_set_val(data.zipnum,set_value_name);
+		 break;
+		
 		case 23:
-		 try{
-			data.taxsn=std::to_string(set_value_name);
-		}catch (...) { 
-			data.taxsn.clear();
-			 }
-			break;
+		  http::json_set_val(data.taxsn,set_value_name);
+		 break;
+		
 		case 24:
-		 try{
-			data.companyname=std::to_string(set_value_name);
-		}catch (...) { 
-			data.companyname.clear();
-			 }
-			break;
+		  http::json_set_val(data.companyname,set_value_name);
+		 break;
+		
 		case 25:
-		 try{
-			data.linkname=std::to_string(set_value_name);
-		}catch (...) { 
-			data.linkname.clear();
-			 }
-			break;
+		  http::json_set_val(data.linkname,set_value_name);
+		 break;
+		
 		case 26:
-		 try{
-			data.linkmobile=std::to_string(set_value_name);
-		}catch (...) { 
-			data.linkmobile.clear();
-			 }
-			break;
+		  http::json_set_val(data.linkmobile,set_value_name);
+		 break;
+		
 		case 27:
-		 try{
-			data.linkaddress=std::to_string(set_value_name);
-		}catch (...) { 
-			data.linkaddress.clear();
-			 }
-			break;
+		  http::json_set_val(data.linkaddress,set_value_name);
+		 break;
+		
 		case 28:
-		 try{
-			data.theme=std::to_string(set_value_name);
-		}catch (...) { 
-			data.theme.clear();
-			 }
-			break;
+		  http::json_set_val(data.theme,set_value_name);
+		 break;
+		
 		case 29:
-		 try{
-			data.sitepath=std::to_string(set_value_name);
-		}catch (...) { 
-			data.sitepath.clear();
-			 }
-			break;
+		  http::json_set_val(data.sitepath,set_value_name);
+		 break;
+		
 		case 30:
-		 try{
-			data.isopen=set_value_name;
-		}catch (...) { 
-			data.isopen=0;
-			 }
-			break;
+		  http::json_set_val(data.isopen,set_value_name);
+		 break;
+		
 		case 31:
-		 try{
-			data.created_at=set_value_name;
-		}catch (...) { 
-			data.created_at=0;
-			 }
-			break;
+		  http::json_set_val(data.created_at,set_value_name);
+		 break;
+		
 		case 32:
-		 try{
-			data.enddate=set_value_name;
-		}catch (...) { 
-			data.enddate=0;
-			 }
-			break;
-	default:
-		 { }
-			
-
-
-        }
-   } 
-    
-    void set_val(const std::string& set_key_name,const double set_value_name)
-    {
-        switch(findcolpos(set_key_name))
-        {
-    		case 0:
-		 try{
-			data.sid=(int)set_value_name;
-		}catch (...) { 
-			data.sid=0;
-			 }
-			break;
-		case 1:
-		 try{
-			data.userid=(int)set_value_name;
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
-		case 2:
-		 try{
-			data.agentid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.agentid=0;
-			 }
-			break;
-		case 3:
-		 try{
-			data.languagetype=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.languagetype=0;
-			 }
-			break;
-		case 4:
-		 try{
-			data.sitename=std::to_string(set_value_name);
-		}catch (...) { 
-			data.sitename.clear();
-			 }
-			break;
-		case 5:
-		 try{
-			data.sitedomain=std::to_string(set_value_name);
-		}catch (...) { 
-			data.sitedomain.clear();
-			 }
-			break;
-		case 6:
-		 try{
-			data.metakeys=std::to_string(set_value_name);
-		}catch (...) { 
-			data.metakeys.clear();
-			 }
-			break;
-		case 7:
-		 try{
-			data.metadesc=std::to_string(set_value_name);
-		}catch (...) { 
-			data.metadesc.clear();
-			 }
-			break;
-		case 8:
-		 try{
-			data.copyright=std::to_string(set_value_name);
-		}catch (...) { 
-			data.copyright.clear();
-			 }
-			break;
-		case 9:
-		 try{
-			data.beiansn=std::to_string(set_value_name);
-		}catch (...) { 
-			data.beiansn.clear();
-			 }
-			break;
-		case 10:
-		 try{
-			data.footscript=std::to_string(set_value_name);
-		}catch (...) { 
-			data.footscript.clear();
-			 }
-			break;
-		case 11:
-		 try{
-			data.headscript=std::to_string(set_value_name);
-		}catch (...) { 
-			data.headscript.clear();
-			 }
-			break;
-		case 12:
-		 try{
-			data.introduce=std::to_string(set_value_name);
-		}catch (...) { 
-			data.introduce.clear();
-			 }
-			break;
-		case 13:
-		 try{
-			data.sitelogo=std::to_string(set_value_name);
-		}catch (...) { 
-			data.sitelogo.clear();
-			 }
-			break;
-		case 14:
-		 try{
-			data.sitebanner=std::to_string(set_value_name);
-		}catch (...) { 
-			data.sitebanner.clear();
-			 }
-			break;
-		case 15:
-		 try{
-			data.contactman=std::to_string(set_value_name);
-		}catch (...) { 
-			data.contactman.clear();
-			 }
-			break;
-		case 16:
-		 try{
-			data.phone=std::to_string(set_value_name);
-		}catch (...) { 
-			data.phone.clear();
-			 }
-			break;
-		case 17:
-		 try{
-			data.mobile=std::to_string(set_value_name);
-		}catch (...) { 
-			data.mobile.clear();
-			 }
-			break;
-		case 18:
-		 try{
-			data.email=std::to_string(set_value_name);
-		}catch (...) { 
-			data.email.clear();
-			 }
-			break;
-		case 19:
-		 try{
-			data.bankname=std::to_string(set_value_name);
-		}catch (...) { 
-			data.bankname.clear();
-			 }
-			break;
-		case 20:
-		 try{
-			data.banksn=std::to_string(set_value_name);
-		}catch (...) { 
-			data.banksn.clear();
-			 }
-			break;
-		case 21:
-		 try{
-			data.address=std::to_string(set_value_name);
-		}catch (...) { 
-			data.address.clear();
-			 }
-			break;
-		case 22:
-		 try{
-			data.zipnum=std::to_string(set_value_name);
-		}catch (...) { 
-			data.zipnum.clear();
-			 }
-			break;
-		case 23:
-		 try{
-			data.taxsn=std::to_string(set_value_name);
-		}catch (...) { 
-			data.taxsn.clear();
-			 }
-			break;
-		case 24:
-		 try{
-			data.companyname=std::to_string(set_value_name);
-		}catch (...) { 
-			data.companyname.clear();
-			 }
-			break;
-		case 25:
-		 try{
-			data.linkname=std::to_string(set_value_name);
-		}catch (...) { 
-			data.linkname.clear();
-			 }
-			break;
-		case 26:
-		 try{
-			data.linkmobile=std::to_string(set_value_name);
-		}catch (...) { 
-			data.linkmobile.clear();
-			 }
-			break;
-		case 27:
-		 try{
-			data.linkaddress=std::to_string(set_value_name);
-		}catch (...) { 
-			data.linkaddress.clear();
-			 }
-			break;
-		case 28:
-		 try{
-			data.theme=std::to_string(set_value_name);
-		}catch (...) { 
-			data.theme.clear();
-			 }
-			break;
-		case 29:
-		 try{
-			data.sitepath=std::to_string(set_value_name);
-		}catch (...) { 
-			data.sitepath.clear();
-			 }
-			break;
-		case 30:
-		 try{
-			data.isopen=(int)set_value_name;
-		}catch (...) { 
-			data.isopen=0;
-			 }
-			break;
-		case 31:
-		 try{
-			data.created_at=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.created_at=0;
-			 }
-			break;
-		case 32:
-		 try{
-			data.enddate=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.enddate=0;
-			 }
-			break;
-	default:
+		  http::json_set_val(data.enddate,set_value_name);
+		 break;
+		
+		default:
 		 { }
 			
 

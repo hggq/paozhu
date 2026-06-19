@@ -7959,7 +7959,7 @@ headtxt += R"(::meta data;
          }
          else
          {
-            temp=_makeupdatesql(fieldsql);
+            temp=make_update_sql(fieldsql);
             if(temp.size()>2)
             {
                 if(temp.back()==0x20&&temp[temp.size()-2]=='T')
@@ -8021,7 +8021,7 @@ headtxt += R"(::meta data;
         return temp;
    }  
 
-   std::string _makeinsertsql(){
+   std::string make_data_insert_sql(){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -8185,7 +8185,7 @@ headtxt += R"(::meta data;
     headtxt.clear();
     // insert mate
     headtxt = R"(   
-      std::string _makerecordinsertsql(const )";
+      std::string make_data_insert_sql(const )";
     headtxt += model_info_name;
     headtxt += R"(::meta &insert_data){
         unsigned int j=0;
@@ -8354,7 +8354,7 @@ headtxt += R"(::meta data;
     insertstrem.str("");
     // insert mate array
     headtxt += R"(   
-    std::string _makerecordinsertsql(const std::vector<)";
+    std::string make_vector_insert_sql(const std::vector<)";
     headtxt += model_info_name;
 
     headtxt += R"(::meta> &insert_data){
@@ -8535,7 +8535,7 @@ headtxt += R"(::meta data;
     // update sql
     headtxt.clear();
     headtxt = R"(   
-    std::string _makeupdatesql(std::string_view fileld){
+    std::string make_update_sql(std::string_view fileld){
         std::ostringstream tempsql;
         tempsql<<"UPDATE ";
         tempsql<<tablename;
@@ -8755,7 +8755,7 @@ headtxt += R"(::meta data;
     headtxt.clear();
     update2strem.str("");
     headtxt = R"(
-    std::string _make_replace_into_sql()
+    std::string make_record_replace_sql()
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
@@ -8923,7 +8923,7 @@ headtxt += R"(::meta data;
     headtxt.clear();
     update2strem.str("");
     headtxt = R"(
-    std::string _make_insert_into_sql(std::string_view fileld)
+    std::string make_record_into_sql(std::string_view fileld)
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
@@ -9576,10 +9576,9 @@ headtxt += R"(::meta data;
         )";
     headtxt += model_info_name;
     headtxt += R"(::meta metatemp; 
-        data=metatemp;
+        data = metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
-        //std::vector<std::string> list_content;
         for(;json_offset<json_content.size();json_offset++)
         {
             if(json_content[json_offset]=='{')
@@ -9598,19 +9597,16 @@ headtxt += R"(::meta data;
             std::string json_key_name,json_value_name; 
             for(;json_offset<json_content.size();json_offset++)
             {
-                for(;json_offset<json_content.size();json_offset++)
+                if(json_content[json_offset]!='{')
                 {
-                    if(json_content[json_offset]=='{')
-                    {
-                        json_offset+=1;
-                        break;
-                    }
+                    continue;
                 }
                 if(record.size()>0)
                 {
-                    data=metatemp;
+                    data = metatemp;
                 }
-                if(json_offset>=json_content.size())
+                json_offset++;
+                if(json_offset >= json_content.size())
                 {
                     break;
                 }
@@ -9641,10 +9637,11 @@ headtxt += R"(::meta data;
                                         }
                                         break;
                                     }       
-                                    if(json_content[json_offset]!=':')
+                                    if(json_offset < json_content.size() && json_content[json_offset]!=':')
                                     {
                                         break;
                                     }
+                                    json_offset+=1;
                                     for(;json_offset<json_content.size();json_offset++)
                                     {
                                         if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
@@ -9653,7 +9650,7 @@ headtxt += R"(::meta data;
                                         }
                                         break;
                                     } 
-                                    json_offset+=1;
+                                    
                                     if(json_offset>=json_content.size())
                                     {
                                         break;
@@ -9700,12 +9697,7 @@ headtxt += R"(::meta data;
     
                 }
                 record.emplace_back(data);
-                
-                json_offset+=1;
-            }
-            if(record.size()>1)
-            {
-                data=record[0];
+
             }
         }
         else
@@ -9715,10 +9707,8 @@ headtxt += R"(::meta data;
                 json_offset+=1; 
                 std::string json_key_name,json_value_name; 
                  
-                
                 for(;json_offset<json_content.size();json_offset++)
                 {
- 
                         if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
                         {
                             continue;
@@ -9736,7 +9726,6 @@ headtxt += R"(::meta data;
                                  }
                                 for(;json_offset<json_content.size();json_offset++)
                                 {
-                                
                                     if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
                                     {
                                         continue;
@@ -9747,6 +9736,7 @@ headtxt += R"(::meta data;
                                 {
                                     break;
                                 }
+                                json_offset+=1;
                                 for(;json_offset<json_content.size();json_offset++)
                                 {
                                     if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
@@ -9755,15 +9745,14 @@ headtxt += R"(::meta data;
                                     }
                                     break;
                                 } 
-                                json_offset+=1;
-                                if(json_offset>=json_content.size())
+                                
+                                if(json_offset >= json_content.size())
                                 {
                                     break;
                                 }
                                 json_value_name.clear();
                                 if(json_content[json_offset]==0x22)
                                 {
-                                    
                                     temp_offset=json_offset;
                                     json_value_name=http::jsonstring_to_utf8(&json_content[json_offset],json_content.size()-json_offset,temp_offset);
                                     json_offset=temp_offset;
@@ -9801,127 +9790,27 @@ headtxt += R"(::meta data;
                         }
  
                 }
-                record.emplace_back(data);
-            } 
+                if(isarray)
+                {
+                    record.emplace_back(data);
+                }
+            }
         }
-   }   
+    }
     )";
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
     //////////////////////////////////////////////
     // set_val
     filemodelstrem.str("");
-
     for (unsigned int j = 0; j < tablecollist.size(); j++)
     {
-        if (table_type[j] < 10)
-        {
-            switch (table_type[j])
-            {
-            case 0:
-                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                               << "=std::stof(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                               << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
-                break;
-            case 1:
-                if (table_type_unsigned[j] == 1)
-                {
-                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                                   << "=std::stoi(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                                   << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                }
-                else
-                {
-                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                                   << "=std::stoi(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                                   << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                }
-
-                break;
-            case 2:
-
-                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                               << "=std::stoi(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                               << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
-
-                break;
-            case 3:
-                if (table_type_unsigned[j] == 1)
-                {
-                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                                   << "=std::stoul(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."
-                                   << tablecollist[j] << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                }
-                else
-                {
-                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                                   << "=std::stoi(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                                   << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                }
-                break;
-
-            case 4:
-                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                               << "=std::stof(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                               << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
-
-                break;
-            case 5:
-                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                               << "=std::stod(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                               << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
-
-                break;
-            case 7:
-                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                               << ".append(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                               << ".clear();\n\t\t\t }\n\t\t\tbreak;\n";
-
-                break;
-            case 8:
-                if (table_type_unsigned[j] == 1)
-                {
-                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                                   << "=std::stoull(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."
-                                   << tablecollist[j] << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                }
-                else
-                {
-                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                                   << "=std::stoll(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."
-                                   << tablecollist[j] << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                }
-                break;
-            case 9:
-                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                               << "=std::stoi(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                               << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
-            }
-        }
-        else if (table_type[j] == 12)
-        {
-            // filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t
-            // try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stoul(set_value_name);\n\t\t}catch (...) {
-            // \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-            filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                           << ".append(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                           << ".clear();\n\t\t\t }\n\t\t\tbreak;\n";
-        }
-        else if (table_type[j] == 246)
-        {
-            filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                           << "=std::stof(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                           << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
-        }
-        else
-        {
-            filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                           << ".append(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                           << ".clear();\n\t\t\t }\n\t\t\tbreak;\n";
-        }
+        filemodelstrem << "\n\t\tcase " << std::to_string(j) << ":\n\t\t  http::json_set_val(data." << tablecollist[j]
+                               << ",set_value_name);\n\t\t break;\n\t\t";
     }
+ 
 
-    filemodelstrem << "\tdefault:\n\t\t { }\n\t\t\t\n";
+    filemodelstrem << "\n\t\tdefault:\n\t\t { }\n\t\t\t\n";
 
     headtxt = R"(
     void set_val(const std::string& set_key_name,const std::string& set_value_name)
@@ -9947,273 +9836,7 @@ headtxt += R"(::meta data;
     //////////////////////////////////////////////
     // set_val long long
     filemodelstrem.str("");
-
-    for (unsigned int j = 0; j < tablecollist.size(); j++)
-    {
-        if (table_type[j] < 10)
-        {
-            switch (table_type[j])
-            {
-            case 0:
-                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                               << "=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                               << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
-                break;
-            case 1:
-                if (table_type_unsigned[j] == 1)
-                {
-                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                                   << "=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                                   << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                }
-                else
-                {
-                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                                   << "=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                                   << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                }
-
-                break;
-            case 2:
-
-                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                               << "=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                               << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
-
-                break;
-            case 3:
-                if (table_type_unsigned[j] == 1)
-                {
-                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                                   << "=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                                   << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                }
-                else
-                {
-                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                                   << "=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                                   << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                }
-                break;
-
-            case 4:
-                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                               << "=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                               << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
-
-                break;
-            case 5:
-                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                               << "=(double)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                               << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
-
-                break;
-            case 7:
-                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                               << "=std::to_string(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."
-                               << tablecollist[j] << ".clear();\n\t\t\t }\n\t\t\tbreak;\n";
-
-                break;
-            case 8:
-                if (table_type_unsigned[j] == 1)
-                {
-                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                                   << "=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                                   << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                }
-                else
-                {
-                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                                   << "=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                                   << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                }
-                break;
-            case 9:
-                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                               << "=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                               << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
-            }
-        }
-        else if (table_type[j] == 12)
-        {
-            // filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t
-            // try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stoul(set_value_name);\n\t\t}catch (...) {
-            // \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-            filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                           << "=std::to_string(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                           << ".clear();\n\t\t\t }\n\t\t\tbreak;\n";
-        }
-        else if (table_type[j] == 246)
-        {
-            filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                           << "=(float)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                           << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
-        }
-        else
-        {
-            filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                           << "=std::to_string(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                           << ".clear();\n\t\t\t }\n\t\t\tbreak;\n";
-        }
-    }
-
-    filemodelstrem << "\tdefault:\n\t\t { }\n\t\t\t\n";
-
-    headtxt = R"(
-    void set_val(const std::string& set_key_name,const long long set_value_name)
-    {
-        switch(findcolpos(set_key_name))
-        {
-    )";
-    headtxt.append(filemodelstrem.str());
-
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    filemodelstrem.str("");
-    headtxt.clear();
-
-    headtxt = R"(
-
-        }
-   } 
-    )";
-
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    headtxt.clear();
-
-    //////////////////////////////////////////////
-    // set_val
-    filemodelstrem.str("");
-
-    for (unsigned int j = 0; j < tablecollist.size(); j++)
-    {
-        if (table_type[j] < 10)
-        {
-            switch (table_type[j])
-            {
-            case 0:
-                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                               << "=(float)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                               << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
-                break;
-            case 1:
-                if (table_type_unsigned[j] == 1)
-                {
-                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                                   << "=(int)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                                   << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                }
-                else
-                {
-                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                                   << "=(int)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                                   << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                }
-
-                break;
-            case 2:
-
-                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                               << "=(int)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                               << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
-
-                break;
-            case 3:
-                if (table_type_unsigned[j] == 1)
-                {
-                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                                   << "=(unsigned int)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."
-                                   << tablecollist[j] << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                }
-                else
-                {
-                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                                   << "=(int)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                                   << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                }
-                break;
-
-            case 4:
-                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                               << "=(float)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                               << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
-
-                break;
-            case 5:
-                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                               << "=set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                               << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
-
-                break;
-            case 7:
-                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                               << "=std::to_string(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata."
-                               << tablecollist[j] << ".clear();\n\t\t\t }\n\t\t\tbreak;\n";
-
-                break;
-            case 8:
-                if (table_type_unsigned[j] == 1)
-                {
-                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                                   << "=(unsigned long long)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata."
-                                   << tablecollist[j] << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                }
-                else
-                {
-                    filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                                   << "=(long long)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                                   << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
-                }
-                break;
-            case 9:
-                filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                               << "=(int)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                               << "=0;\n\t\t\t }\n\t\t\tbreak;\n";
-            }
-        }
-        else if (table_type[j] == 12)
-        {
-            // filemodelstrem<<"\tcase "<<std::to_string(j)<<":\n\t\t
-            // try{\n\t\t\tdata."<<tablecollist[j]<<"=std::stoul(set_value_name);\n\t\t}catch (...) {
-            // \n\t\t\tdata."<<tablecollist[j]<<"=0;\n\t\t\t }\n\t\t\tbreak;\n";
-            filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                           << "=std::to_string(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                           << ".clear();\n\t\t\t }\n\t\t\tbreak;\n";
-        }
-        else if (table_type[j] == 246)
-        {
-            filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                           << "=(float)set_value_name;\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                           << "=0.0;\n\t\t\t }\n\t\t\tbreak;\n";
-        }
-        else
-        {
-            filemodelstrem << "\t\tcase " << std::to_string(j) << ":\n\t\t try{\n\t\t\tdata." << tablecollist[j]
-                           << "=std::to_string(set_value_name);\n\t\t}catch (...) { \n\t\t\tdata." << tablecollist[j]
-                           << ".clear();\n\t\t\t }\n\t\t\tbreak;\n";
-        }
-    }
-
-    filemodelstrem << "\tdefault:\n\t\t { }\n\t\t\t\n";
-
-    headtxt = R"(
-    void set_val(const std::string& set_key_name,const double set_value_name)
-    {
-        switch(findcolpos(set_key_name))
-        {
-    )";
-    headtxt.append(filemodelstrem.str());
-
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
-    filemodelstrem.str("");
-    headtxt.clear();
-
-    headtxt = R"(
-
-        }
-   } 
-    )";
-
-    fwrite(&headtxt[0], headtxt.size(), 1, f);
+  
     headtxt.clear();
     ///////////////////////////////////////////////
     headtxt = R"(

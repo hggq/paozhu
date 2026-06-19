@@ -2,7 +2,7 @@
 #define ORM_CMS_DEPARTMENTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 18 Jun 2026 12:31:02 GMT
+*本文件为自动生成 Fri, 19 Jun 2026 00:17:08 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -840,7 +840,7 @@ case 12:
         return temp;
    }  
 
-   std::string _makeinsertsql(){
+   std::string make_data_insert_sql(){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -929,7 +929,7 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql(const department_info::meta &insert_data){
+      std::string make_data_insert_sql(const department_info::meta &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -1018,7 +1018,7 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makerecordinsertsql(const std::vector<department_info::meta> &insert_data){
+    std::string make_vector_insert_sql(const std::vector<department_info::meta> &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -1117,7 +1117,7 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makeupdatesql(std::string_view fileld){
+    std::string make_update_sql(std::string_view fileld){
         std::ostringstream tempsql;
         tempsql<<"UPDATE ";
         tempsql<<tablename;
@@ -1361,7 +1361,7 @@ tempsql<<"`linkdpid`='"<<stringaddslash(data.linkdpid)<<"'";
         return tempsql.str();
    } 
    
-    std::string _make_replace_into_sql()
+    std::string make_record_replace_sql()
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
@@ -1463,7 +1463,7 @@ tempsql<<"`linkdpid`='"<<stringaddslash(data.linkdpid)<<"'";
  return tempsql.str();
 }
 
-    std::string _make_insert_into_sql(std::string_view fileld)
+    std::string make_record_into_sql(std::string_view fileld)
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
@@ -2113,10 +2113,9 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(data.linkdpid)<<"\"";
    {
         record.clear();
         department_info::meta metatemp; 
-        data=metatemp;
+        data = metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
-        //std::vector<std::string> list_content;
         for(;json_offset<json_content.size();json_offset++)
         {
             if(json_content[json_offset]=='{')
@@ -2135,19 +2134,16 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(data.linkdpid)<<"\"";
             std::string json_key_name,json_value_name; 
             for(;json_offset<json_content.size();json_offset++)
             {
-                for(;json_offset<json_content.size();json_offset++)
+                if(json_content[json_offset]!='{')
                 {
-                    if(json_content[json_offset]=='{')
-                    {
-                        json_offset+=1;
-                        break;
-                    }
+                    continue;
                 }
                 if(record.size()>0)
                 {
-                    data=metatemp;
+                    data = metatemp;
                 }
-                if(json_offset>=json_content.size())
+                json_offset++;
+                if(json_offset >= json_content.size())
                 {
                     break;
                 }
@@ -2178,10 +2174,11 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(data.linkdpid)<<"\"";
                                         }
                                         break;
                                     }       
-                                    if(json_content[json_offset]!=':')
+                                    if(json_offset < json_content.size() && json_content[json_offset]!=':')
                                     {
                                         break;
                                     }
+                                    json_offset+=1;
                                     for(;json_offset<json_content.size();json_offset++)
                                     {
                                         if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
@@ -2190,7 +2187,7 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(data.linkdpid)<<"\"";
                                         }
                                         break;
                                     } 
-                                    json_offset+=1;
+                                    
                                     if(json_offset>=json_content.size())
                                     {
                                         break;
@@ -2237,12 +2234,7 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(data.linkdpid)<<"\"";
     
                 }
                 record.emplace_back(data);
-                
-                json_offset+=1;
-            }
-            if(record.size()>1)
-            {
-                data=record[0];
+
             }
         }
         else
@@ -2252,10 +2244,8 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(data.linkdpid)<<"\"";
                 json_offset+=1; 
                 std::string json_key_name,json_value_name; 
                  
-                
                 for(;json_offset<json_content.size();json_offset++)
                 {
- 
                         if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
                         {
                             continue;
@@ -2273,7 +2263,6 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(data.linkdpid)<<"\"";
                                  }
                                 for(;json_offset<json_content.size();json_offset++)
                                 {
-                                
                                     if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
                                     {
                                         continue;
@@ -2284,6 +2273,7 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(data.linkdpid)<<"\"";
                                 {
                                     break;
                                 }
+                                json_offset+=1;
                                 for(;json_offset<json_content.size();json_offset++)
                                 {
                                     if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
@@ -2292,15 +2282,14 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(data.linkdpid)<<"\"";
                                     }
                                     break;
                                 } 
-                                json_offset+=1;
-                                if(json_offset>=json_content.size())
+                                
+                                if(json_offset >= json_content.size())
                                 {
                                     break;
                                 }
                                 json_value_name.clear();
                                 if(json_content[json_offset]==0x22)
                                 {
-                                    
                                     temp_offset=json_offset;
                                     json_value_name=http::jsonstring_to_utf8(&json_content[json_offset],json_content.size()-json_offset,temp_offset);
                                     json_offset=temp_offset;
@@ -2338,376 +2327,84 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(data.linkdpid)<<"\"";
                         }
  
                 }
-                record.emplace_back(data);
-            } 
+                if(isarray)
+                {
+                    record.emplace_back(data);
+                }
+            }
         }
-   }   
+    }
     
     void set_val(const std::string& set_key_name,const std::string& set_value_name)
     {
         switch(findcolpos(set_key_name))
         {
-    		case 0:
-		 try{
-			data.dpid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.dpid=0;
-			 }
-			break;
-		case 1:
-		 try{
-			data.userid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
-		case 2:
-		 try{
-			data.parentid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.parentid=0;
-			 }
-			break;
-		case 3:
-		 try{
-			data.name.append(set_value_name);
-		}catch (...) { 
-			data.name.clear();
-			 }
-			break;
-		case 4:
-		 try{
-			data.depart_code.append(set_value_name);
-		}catch (...) { 
-			data.depart_code.clear();
-			 }
-			break;
-		case 5:
-		 try{
-			data.bianzhi_num=std::stoi(set_value_name);
-		}catch (...) { 
-			data.bianzhi_num=0;
-			 }
-			break;
-		case 6:
-		 try{
-			data.real_num=std::stoi(set_value_name);
-		}catch (...) { 
-			data.real_num=0;
-			 }
-			break;
-		case 7:
-		 try{
-			data.quan_weight=std::stoi(set_value_name);
-		}catch (...) { 
-			data.quan_weight=0;
-			 }
-			break;
-		case 8:
-		 try{
-			data.isopen=std::stoi(set_value_name);
-		}catch (...) { 
-			data.isopen=0;
-			 }
-			break;
-		case 9:
-		 try{
-			data.memo.append(set_value_name);
-		}catch (...) { 
-			data.memo.clear();
-			 }
-			break;
-		case 10:
-		 try{
-			data.created_time=std::stoul(set_value_name);
-		}catch (...) { 
-			data.created_time=0;
-			 }
-			break;
-		case 11:
-		 try{
-			data.created_user=std::stoul(set_value_name);
-		}catch (...) { 
-			data.created_user=0;
-			 }
-			break;
-		case 12:
-		 try{
-			data.updated_time=std::stoul(set_value_name);
-		}catch (...) { 
-			data.updated_time=0;
-			 }
-			break;
-		case 13:
-		 try{
-			data.updated_user=std::stoul(set_value_name);
-		}catch (...) { 
-			data.updated_user=0;
-			 }
-			break;
-		case 14:
-		 try{
-			data.isvirtual=std::stoi(set_value_name);
-		}catch (...) { 
-			data.isvirtual=0;
-			 }
-			break;
-		case 15:
-		 try{
-			data.linkdpid.append(set_value_name);
-		}catch (...) { 
-			data.linkdpid.clear();
-			 }
-			break;
-	default:
-		 { }
-			
-
-
-        }
-   } 
     
-    void set_val(const std::string& set_key_name,const long long set_value_name)
-    {
-        switch(findcolpos(set_key_name))
-        {
-    		case 0:
-		 try{
-			data.dpid=set_value_name;
-		}catch (...) { 
-			data.dpid=0;
-			 }
-			break;
+		case 0:
+		  http::json_set_val(data.dpid,set_value_name);
+		 break;
+		
 		case 1:
-		 try{
-			data.userid=set_value_name;
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
+		  http::json_set_val(data.userid,set_value_name);
+		 break;
+		
 		case 2:
-		 try{
-			data.parentid=set_value_name;
-		}catch (...) { 
-			data.parentid=0;
-			 }
-			break;
+		  http::json_set_val(data.parentid,set_value_name);
+		 break;
+		
 		case 3:
-		 try{
-			data.name=std::to_string(set_value_name);
-		}catch (...) { 
-			data.name.clear();
-			 }
-			break;
+		  http::json_set_val(data.name,set_value_name);
+		 break;
+		
 		case 4:
-		 try{
-			data.depart_code=std::to_string(set_value_name);
-		}catch (...) { 
-			data.depart_code.clear();
-			 }
-			break;
+		  http::json_set_val(data.depart_code,set_value_name);
+		 break;
+		
 		case 5:
-		 try{
-			data.bianzhi_num=set_value_name;
-		}catch (...) { 
-			data.bianzhi_num=0;
-			 }
-			break;
+		  http::json_set_val(data.bianzhi_num,set_value_name);
+		 break;
+		
 		case 6:
-		 try{
-			data.real_num=set_value_name;
-		}catch (...) { 
-			data.real_num=0;
-			 }
-			break;
+		  http::json_set_val(data.real_num,set_value_name);
+		 break;
+		
 		case 7:
-		 try{
-			data.quan_weight=set_value_name;
-		}catch (...) { 
-			data.quan_weight=0;
-			 }
-			break;
+		  http::json_set_val(data.quan_weight,set_value_name);
+		 break;
+		
 		case 8:
-		 try{
-			data.isopen=set_value_name;
-		}catch (...) { 
-			data.isopen=0;
-			 }
-			break;
+		  http::json_set_val(data.isopen,set_value_name);
+		 break;
+		
 		case 9:
-		 try{
-			data.memo=std::to_string(set_value_name);
-		}catch (...) { 
-			data.memo.clear();
-			 }
-			break;
+		  http::json_set_val(data.memo,set_value_name);
+		 break;
+		
 		case 10:
-		 try{
-			data.created_time=set_value_name;
-		}catch (...) { 
-			data.created_time=0;
-			 }
-			break;
+		  http::json_set_val(data.created_time,set_value_name);
+		 break;
+		
 		case 11:
-		 try{
-			data.created_user=set_value_name;
-		}catch (...) { 
-			data.created_user=0;
-			 }
-			break;
+		  http::json_set_val(data.created_user,set_value_name);
+		 break;
+		
 		case 12:
-		 try{
-			data.updated_time=set_value_name;
-		}catch (...) { 
-			data.updated_time=0;
-			 }
-			break;
+		  http::json_set_val(data.updated_time,set_value_name);
+		 break;
+		
 		case 13:
-		 try{
-			data.updated_user=set_value_name;
-		}catch (...) { 
-			data.updated_user=0;
-			 }
-			break;
+		  http::json_set_val(data.updated_user,set_value_name);
+		 break;
+		
 		case 14:
-		 try{
-			data.isvirtual=set_value_name;
-		}catch (...) { 
-			data.isvirtual=0;
-			 }
-			break;
+		  http::json_set_val(data.isvirtual,set_value_name);
+		 break;
+		
 		case 15:
-		 try{
-			data.linkdpid=std::to_string(set_value_name);
-		}catch (...) { 
-			data.linkdpid.clear();
-			 }
-			break;
-	default:
-		 { }
-			
-
-
-        }
-   } 
-    
-    void set_val(const std::string& set_key_name,const double set_value_name)
-    {
-        switch(findcolpos(set_key_name))
-        {
-    		case 0:
-		 try{
-			data.dpid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.dpid=0;
-			 }
-			break;
-		case 1:
-		 try{
-			data.userid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
-		case 2:
-		 try{
-			data.parentid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.parentid=0;
-			 }
-			break;
-		case 3:
-		 try{
-			data.name=std::to_string(set_value_name);
-		}catch (...) { 
-			data.name.clear();
-			 }
-			break;
-		case 4:
-		 try{
-			data.depart_code=std::to_string(set_value_name);
-		}catch (...) { 
-			data.depart_code.clear();
-			 }
-			break;
-		case 5:
-		 try{
-			data.bianzhi_num=(int)set_value_name;
-		}catch (...) { 
-			data.bianzhi_num=0;
-			 }
-			break;
-		case 6:
-		 try{
-			data.real_num=(int)set_value_name;
-		}catch (...) { 
-			data.real_num=0;
-			 }
-			break;
-		case 7:
-		 try{
-			data.quan_weight=(int)set_value_name;
-		}catch (...) { 
-			data.quan_weight=0;
-			 }
-			break;
-		case 8:
-		 try{
-			data.isopen=(int)set_value_name;
-		}catch (...) { 
-			data.isopen=0;
-			 }
-			break;
-		case 9:
-		 try{
-			data.memo=std::to_string(set_value_name);
-		}catch (...) { 
-			data.memo.clear();
-			 }
-			break;
-		case 10:
-		 try{
-			data.created_time=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.created_time=0;
-			 }
-			break;
-		case 11:
-		 try{
-			data.created_user=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.created_user=0;
-			 }
-			break;
-		case 12:
-		 try{
-			data.updated_time=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.updated_time=0;
-			 }
-			break;
-		case 13:
-		 try{
-			data.updated_user=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.updated_user=0;
-			 }
-			break;
-		case 14:
-		 try{
-			data.isvirtual=(int)set_value_name;
-		}catch (...) { 
-			data.isvirtual=0;
-			 }
-			break;
-		case 15:
-		 try{
-			data.linkdpid=std::to_string(set_value_name);
-		}catch (...) { 
-			data.linkdpid.clear();
-			 }
-			break;
-	default:
+		  http::json_set_val(data.linkdpid,set_value_name);
+		 break;
+		
+		default:
 		 { }
 			
 

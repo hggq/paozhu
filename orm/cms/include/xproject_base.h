@@ -2,7 +2,7 @@
 #define ORM_CMS_XPROJECTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 18 Jun 2026 12:31:02 GMT
+*本文件为自动生成 Fri, 19 Jun 2026 00:17:09 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -938,7 +938,7 @@ case 6:
         return temp;
    }  
 
-   std::string _makeinsertsql(){
+   std::string make_data_insert_sql(){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -1056,7 +1056,7 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql(const xproject_info::meta &insert_data){
+      std::string make_data_insert_sql(const xproject_info::meta &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -1174,7 +1174,7 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makerecordinsertsql(const std::vector<xproject_info::meta> &insert_data){
+    std::string make_vector_insert_sql(const std::vector<xproject_info::meta> &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -1302,7 +1302,7 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makeupdatesql(std::string_view fileld){
+    std::string make_update_sql(std::string_view fileld){
         std::ostringstream tempsql;
         tempsql<<"UPDATE ";
         tempsql<<tablename;
@@ -1631,7 +1631,7 @@ if(data.realday==0){
         return tempsql.str();
    } 
    
-    std::string _make_replace_into_sql()
+    std::string make_record_replace_sql()
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
@@ -1762,7 +1762,7 @@ if(data.realday==0){
  return tempsql.str();
 }
 
-    std::string _make_insert_into_sql(std::string_view fileld)
+    std::string make_record_into_sql(std::string_view fileld)
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
@@ -2624,10 +2624,9 @@ if(data.realday==0){
    {
         record.clear();
         xproject_info::meta metatemp; 
-        data=metatemp;
+        data = metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
-        //std::vector<std::string> list_content;
         for(;json_offset<json_content.size();json_offset++)
         {
             if(json_content[json_offset]=='{')
@@ -2646,19 +2645,16 @@ if(data.realday==0){
             std::string json_key_name,json_value_name; 
             for(;json_offset<json_content.size();json_offset++)
             {
-                for(;json_offset<json_content.size();json_offset++)
+                if(json_content[json_offset]!='{')
                 {
-                    if(json_content[json_offset]=='{')
-                    {
-                        json_offset+=1;
-                        break;
-                    }
+                    continue;
                 }
                 if(record.size()>0)
                 {
-                    data=metatemp;
+                    data = metatemp;
                 }
-                if(json_offset>=json_content.size())
+                json_offset++;
+                if(json_offset >= json_content.size())
                 {
                     break;
                 }
@@ -2689,10 +2685,11 @@ if(data.realday==0){
                                         }
                                         break;
                                     }       
-                                    if(json_content[json_offset]!=':')
+                                    if(json_offset < json_content.size() && json_content[json_offset]!=':')
                                     {
                                         break;
                                     }
+                                    json_offset+=1;
                                     for(;json_offset<json_content.size();json_offset++)
                                     {
                                         if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
@@ -2701,7 +2698,7 @@ if(data.realday==0){
                                         }
                                         break;
                                     } 
-                                    json_offset+=1;
+                                    
                                     if(json_offset>=json_content.size())
                                     {
                                         break;
@@ -2748,12 +2745,7 @@ if(data.realday==0){
     
                 }
                 record.emplace_back(data);
-                
-                json_offset+=1;
-            }
-            if(record.size()>1)
-            {
-                data=record[0];
+
             }
         }
         else
@@ -2763,10 +2755,8 @@ if(data.realday==0){
                 json_offset+=1; 
                 std::string json_key_name,json_value_name; 
                  
-                
                 for(;json_offset<json_content.size();json_offset++)
                 {
- 
                         if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
                         {
                             continue;
@@ -2784,7 +2774,6 @@ if(data.realday==0){
                                  }
                                 for(;json_offset<json_content.size();json_offset++)
                                 {
-                                
                                     if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
                                     {
                                         continue;
@@ -2795,6 +2784,7 @@ if(data.realday==0){
                                 {
                                     break;
                                 }
+                                json_offset+=1;
                                 for(;json_offset<json_content.size();json_offset++)
                                 {
                                     if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
@@ -2803,15 +2793,14 @@ if(data.realday==0){
                                     }
                                     break;
                                 } 
-                                json_offset+=1;
-                                if(json_offset>=json_content.size())
+                                
+                                if(json_offset >= json_content.size())
                                 {
                                     break;
                                 }
                                 json_value_name.clear();
                                 if(json_content[json_offset]==0x22)
                                 {
-                                    
                                     temp_offset=json_offset;
                                     json_value_name=http::jsonstring_to_utf8(&json_content[json_offset],json_content.size()-json_offset,temp_offset);
                                     json_offset=temp_offset;
@@ -2849,565 +2838,120 @@ if(data.realday==0){
                         }
  
                 }
-                record.emplace_back(data);
-            } 
+                if(isarray)
+                {
+                    record.emplace_back(data);
+                }
+            }
         }
-   }   
+    }
     
     void set_val(const std::string& set_key_name,const std::string& set_value_name)
     {
         switch(findcolpos(set_key_name))
         {
-    		case 0:
-		 try{
-			data.xpjid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.xpjid=0;
-			 }
-			break;
-		case 1:
-		 try{
-			data.userid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
-		case 2:
-		 try{
-			data.prexpjid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.prexpjid=0;
-			 }
-			break;
-		case 3:
-		 try{
-			data.dpid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.dpid=0;
-			 }
-			break;
-		case 4:
-		 try{
-			data.grouptype=std::stoul(set_value_name);
-		}catch (...) { 
-			data.grouptype=0;
-			 }
-			break;
-		case 5:
-		 try{
-			data.title.append(set_value_name);
-		}catch (...) { 
-			data.title.clear();
-			 }
-			break;
-		case 6:
-		 try{
-			data.adminuserid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.adminuserid=0;
-			 }
-			break;
-		case 7:
-		 try{
-			data.regdate=std::stoul(set_value_name);
-		}catch (...) { 
-			data.regdate=0;
-			 }
-			break;
-		case 8:
-		 try{
-			data.begindate=std::stoul(set_value_name);
-		}catch (...) { 
-			data.begindate=0;
-			 }
-			break;
-		case 9:
-		 try{
-			data.expiredate=std::stoul(set_value_name);
-		}catch (...) { 
-			data.expiredate=0;
-			 }
-			break;
-		case 10:
-		 try{
-			data.isopen=std::stoi(set_value_name);
-		}catch (...) { 
-			data.isopen=0;
-			 }
-			break;
-		case 11:
-		 try{
-			data.clientid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.clientid=0;
-			 }
-			break;
-		case 12:
-		 try{
-			data.totalnum=std::stoul(set_value_name);
-		}catch (...) { 
-			data.totalnum=0;
-			 }
-			break;
-		case 13:
-		 try{
-			data.referdocverion=std::stoul(set_value_name);
-		}catch (...) { 
-			data.referdocverion=0;
-			 }
-			break;
-		case 14:
-		 try{
-			data.xtheme=std::stoul(set_value_name);
-		}catch (...) { 
-			data.xtheme=0;
-			 }
-			break;
-		case 15:
-		 try{
-			data.xlogo.append(set_value_name);
-		}catch (...) { 
-			data.xlogo.clear();
-			 }
-			break;
-		case 16:
-		 try{
-			data.introduce.append(set_value_name);
-		}catch (...) { 
-			data.introduce.clear();
-			 }
-			break;
-		case 17:
-		 try{
-			data.giturl.append(set_value_name);
-		}catch (...) { 
-			data.giturl.clear();
-			 }
-			break;
-		case 18:
-		 try{
-			data.gitname.append(set_value_name);
-		}catch (...) { 
-			data.gitname.clear();
-			 }
-			break;
-		case 19:
-		 try{
-			data.gitpwd.append(set_value_name);
-		}catch (...) { 
-			data.gitpwd.clear();
-			 }
-			break;
-		case 20:
-		 try{
-			data.xcolor.append(set_value_name);
-		}catch (...) { 
-			data.xcolor.clear();
-			 }
-			break;
-		case 21:
-		 try{
-			data.fupan.append(set_value_name);
-		}catch (...) { 
-			data.fupan.clear();
-			 }
-			break;
-		case 22:
-		 try{
-			data.totalvalue=std::stod(set_value_name);
-		}catch (...) { 
-			data.totalvalue=0.0;
-			 }
-			break;
-		case 23:
-		 try{
-			data.expectday=std::stof(set_value_name);
-		}catch (...) { 
-			data.expectday=0.0;
-			 }
-			break;
-		case 24:
-		 try{
-			data.realday=std::stof(set_value_name);
-		}catch (...) { 
-			data.realday=0.0;
-			 }
-			break;
-	default:
-		 { }
-			
-
-
-        }
-   } 
     
-    void set_val(const std::string& set_key_name,const long long set_value_name)
-    {
-        switch(findcolpos(set_key_name))
-        {
-    		case 0:
-		 try{
-			data.xpjid=set_value_name;
-		}catch (...) { 
-			data.xpjid=0;
-			 }
-			break;
+		case 0:
+		  http::json_set_val(data.xpjid,set_value_name);
+		 break;
+		
 		case 1:
-		 try{
-			data.userid=set_value_name;
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
+		  http::json_set_val(data.userid,set_value_name);
+		 break;
+		
 		case 2:
-		 try{
-			data.prexpjid=set_value_name;
-		}catch (...) { 
-			data.prexpjid=0;
-			 }
-			break;
+		  http::json_set_val(data.prexpjid,set_value_name);
+		 break;
+		
 		case 3:
-		 try{
-			data.dpid=set_value_name;
-		}catch (...) { 
-			data.dpid=0;
-			 }
-			break;
+		  http::json_set_val(data.dpid,set_value_name);
+		 break;
+		
 		case 4:
-		 try{
-			data.grouptype=set_value_name;
-		}catch (...) { 
-			data.grouptype=0;
-			 }
-			break;
+		  http::json_set_val(data.grouptype,set_value_name);
+		 break;
+		
 		case 5:
-		 try{
-			data.title=std::to_string(set_value_name);
-		}catch (...) { 
-			data.title.clear();
-			 }
-			break;
+		  http::json_set_val(data.title,set_value_name);
+		 break;
+		
 		case 6:
-		 try{
-			data.adminuserid=set_value_name;
-		}catch (...) { 
-			data.adminuserid=0;
-			 }
-			break;
+		  http::json_set_val(data.adminuserid,set_value_name);
+		 break;
+		
 		case 7:
-		 try{
-			data.regdate=set_value_name;
-		}catch (...) { 
-			data.regdate=0;
-			 }
-			break;
+		  http::json_set_val(data.regdate,set_value_name);
+		 break;
+		
 		case 8:
-		 try{
-			data.begindate=set_value_name;
-		}catch (...) { 
-			data.begindate=0;
-			 }
-			break;
+		  http::json_set_val(data.begindate,set_value_name);
+		 break;
+		
 		case 9:
-		 try{
-			data.expiredate=set_value_name;
-		}catch (...) { 
-			data.expiredate=0;
-			 }
-			break;
+		  http::json_set_val(data.expiredate,set_value_name);
+		 break;
+		
 		case 10:
-		 try{
-			data.isopen=set_value_name;
-		}catch (...) { 
-			data.isopen=0;
-			 }
-			break;
+		  http::json_set_val(data.isopen,set_value_name);
+		 break;
+		
 		case 11:
-		 try{
-			data.clientid=set_value_name;
-		}catch (...) { 
-			data.clientid=0;
-			 }
-			break;
+		  http::json_set_val(data.clientid,set_value_name);
+		 break;
+		
 		case 12:
-		 try{
-			data.totalnum=set_value_name;
-		}catch (...) { 
-			data.totalnum=0;
-			 }
-			break;
+		  http::json_set_val(data.totalnum,set_value_name);
+		 break;
+		
 		case 13:
-		 try{
-			data.referdocverion=set_value_name;
-		}catch (...) { 
-			data.referdocverion=0;
-			 }
-			break;
+		  http::json_set_val(data.referdocverion,set_value_name);
+		 break;
+		
 		case 14:
-		 try{
-			data.xtheme=set_value_name;
-		}catch (...) { 
-			data.xtheme=0;
-			 }
-			break;
+		  http::json_set_val(data.xtheme,set_value_name);
+		 break;
+		
 		case 15:
-		 try{
-			data.xlogo=std::to_string(set_value_name);
-		}catch (...) { 
-			data.xlogo.clear();
-			 }
-			break;
+		  http::json_set_val(data.xlogo,set_value_name);
+		 break;
+		
 		case 16:
-		 try{
-			data.introduce=std::to_string(set_value_name);
-		}catch (...) { 
-			data.introduce.clear();
-			 }
-			break;
+		  http::json_set_val(data.introduce,set_value_name);
+		 break;
+		
 		case 17:
-		 try{
-			data.giturl=std::to_string(set_value_name);
-		}catch (...) { 
-			data.giturl.clear();
-			 }
-			break;
+		  http::json_set_val(data.giturl,set_value_name);
+		 break;
+		
 		case 18:
-		 try{
-			data.gitname=std::to_string(set_value_name);
-		}catch (...) { 
-			data.gitname.clear();
-			 }
-			break;
+		  http::json_set_val(data.gitname,set_value_name);
+		 break;
+		
 		case 19:
-		 try{
-			data.gitpwd=std::to_string(set_value_name);
-		}catch (...) { 
-			data.gitpwd.clear();
-			 }
-			break;
+		  http::json_set_val(data.gitpwd,set_value_name);
+		 break;
+		
 		case 20:
-		 try{
-			data.xcolor=std::to_string(set_value_name);
-		}catch (...) { 
-			data.xcolor.clear();
-			 }
-			break;
+		  http::json_set_val(data.xcolor,set_value_name);
+		 break;
+		
 		case 21:
-		 try{
-			data.fupan=std::to_string(set_value_name);
-		}catch (...) { 
-			data.fupan.clear();
-			 }
-			break;
+		  http::json_set_val(data.fupan,set_value_name);
+		 break;
+		
 		case 22:
-		 try{
-			data.totalvalue=(double)set_value_name;
-		}catch (...) { 
-			data.totalvalue=0.0;
-			 }
-			break;
+		  http::json_set_val(data.totalvalue,set_value_name);
+		 break;
+		
 		case 23:
-		 try{
-			data.expectday=set_value_name;
-		}catch (...) { 
-			data.expectday=0.0;
-			 }
-			break;
+		  http::json_set_val(data.expectday,set_value_name);
+		 break;
+		
 		case 24:
-		 try{
-			data.realday=set_value_name;
-		}catch (...) { 
-			data.realday=0.0;
-			 }
-			break;
-	default:
-		 { }
-			
-
-
-        }
-   } 
-    
-    void set_val(const std::string& set_key_name,const double set_value_name)
-    {
-        switch(findcolpos(set_key_name))
-        {
-    		case 0:
-		 try{
-			data.xpjid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.xpjid=0;
-			 }
-			break;
-		case 1:
-		 try{
-			data.userid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
-		case 2:
-		 try{
-			data.prexpjid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.prexpjid=0;
-			 }
-			break;
-		case 3:
-		 try{
-			data.dpid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.dpid=0;
-			 }
-			break;
-		case 4:
-		 try{
-			data.grouptype=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.grouptype=0;
-			 }
-			break;
-		case 5:
-		 try{
-			data.title=std::to_string(set_value_name);
-		}catch (...) { 
-			data.title.clear();
-			 }
-			break;
-		case 6:
-		 try{
-			data.adminuserid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.adminuserid=0;
-			 }
-			break;
-		case 7:
-		 try{
-			data.regdate=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.regdate=0;
-			 }
-			break;
-		case 8:
-		 try{
-			data.begindate=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.begindate=0;
-			 }
-			break;
-		case 9:
-		 try{
-			data.expiredate=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.expiredate=0;
-			 }
-			break;
-		case 10:
-		 try{
-			data.isopen=(int)set_value_name;
-		}catch (...) { 
-			data.isopen=0;
-			 }
-			break;
-		case 11:
-		 try{
-			data.clientid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.clientid=0;
-			 }
-			break;
-		case 12:
-		 try{
-			data.totalnum=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.totalnum=0;
-			 }
-			break;
-		case 13:
-		 try{
-			data.referdocverion=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.referdocverion=0;
-			 }
-			break;
-		case 14:
-		 try{
-			data.xtheme=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.xtheme=0;
-			 }
-			break;
-		case 15:
-		 try{
-			data.xlogo=std::to_string(set_value_name);
-		}catch (...) { 
-			data.xlogo.clear();
-			 }
-			break;
-		case 16:
-		 try{
-			data.introduce=std::to_string(set_value_name);
-		}catch (...) { 
-			data.introduce.clear();
-			 }
-			break;
-		case 17:
-		 try{
-			data.giturl=std::to_string(set_value_name);
-		}catch (...) { 
-			data.giturl.clear();
-			 }
-			break;
-		case 18:
-		 try{
-			data.gitname=std::to_string(set_value_name);
-		}catch (...) { 
-			data.gitname.clear();
-			 }
-			break;
-		case 19:
-		 try{
-			data.gitpwd=std::to_string(set_value_name);
-		}catch (...) { 
-			data.gitpwd.clear();
-			 }
-			break;
-		case 20:
-		 try{
-			data.xcolor=std::to_string(set_value_name);
-		}catch (...) { 
-			data.xcolor.clear();
-			 }
-			break;
-		case 21:
-		 try{
-			data.fupan=std::to_string(set_value_name);
-		}catch (...) { 
-			data.fupan.clear();
-			 }
-			break;
-		case 22:
-		 try{
-			data.totalvalue=set_value_name;
-		}catch (...) { 
-			data.totalvalue=0.0;
-			 }
-			break;
-		case 23:
-		 try{
-			data.expectday=(float)set_value_name;
-		}catch (...) { 
-			data.expectday=0.0;
-			 }
-			break;
-		case 24:
-		 try{
-			data.realday=(float)set_value_name;
-		}catch (...) { 
-			data.realday=0.0;
-			 }
-			break;
-	default:
+		  http::json_set_val(data.realday,set_value_name);
+		 break;
+		
+		default:
 		 { }
 			
 

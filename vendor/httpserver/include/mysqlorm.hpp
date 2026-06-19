@@ -7514,7 +7514,7 @@ namespace orm
                     return 0;
                 }
             }
-            sqlstring = B_BASE::_makeupdatesql("");
+            sqlstring = B_BASE::make_update_sql("");
             sqlstring.append(" where ");
             if (wheresql.empty())
             {
@@ -7653,7 +7653,7 @@ namespace orm
                 }
             }
 
-            sqlstring = B_BASE::_makeupdatesql(fieldname);
+            sqlstring = B_BASE::make_update_sql(fieldname);
             sqlstring.append(" where ");
             if (wheresql.empty())
             {
@@ -7791,7 +7791,7 @@ namespace orm
                 }
             }
 
-            sqlstring = B_BASE::_makeupdatesql(fieldname);
+            sqlstring = B_BASE::make_update_sql(fieldname);
             sqlstring.append(" where ");
             if (wheresql.empty())
             {
@@ -7927,7 +7927,7 @@ namespace orm
                 }
             }
 
-            sqlstring = B_BASE::_makeupdatesql("");
+            sqlstring = B_BASE::make_update_sql("");
             sqlstring.append(" where ");
             if (wheresql.empty())
             {
@@ -8051,11 +8051,11 @@ namespace orm
             }
             if (fieldname.size() > 0)
             {
-                sqlstring = B_BASE::_make_insert_into_sql(fieldname);
+                sqlstring = B_BASE::make_record_into_sql(fieldname);
             }
             else
             {
-                sqlstring = B_BASE::_make_replace_into_sql();
+                sqlstring = B_BASE::make_record_replace_sql();
             }
 
             if (iserror)
@@ -8916,7 +8916,7 @@ namespace orm
         std::tuple<unsigned int, unsigned long long> insert(typename B_BASE::meta &insert_data)
         {
             effect_num = 0;
-            sqlstring  = B_BASE::_makerecordinsertsql(insert_data);
+            sqlstring  = B_BASE::make_data_insert_sql(insert_data);
             if (iscommit)
             {
                 iscommit = false;
@@ -9016,7 +9016,7 @@ namespace orm
         asio::awaitable<std::tuple<unsigned int, unsigned long long>> async_insert(typename B_BASE::meta &insert_data)
         {
             effect_num = 0;
-            sqlstring  = B_BASE::_makerecordinsertsql(insert_data);
+            sqlstring  = B_BASE::make_data_insert_sql(insert_data);
             if (iscommit)
             {
                 iscommit = false;
@@ -9114,7 +9114,7 @@ namespace orm
         std::tuple<unsigned int, unsigned long long> insert(std::vector<typename B_BASE::meta> &insert_data)
         {
             effect_num = 0;
-            sqlstring  = B_BASE::_makerecordinsertsql(insert_data);
+            sqlstring  = B_BASE::make_vector_insert_sql(insert_data);
             if (iscommit)
             {
                 iscommit = false;
@@ -9213,7 +9213,7 @@ namespace orm
         asio::awaitable<std::tuple<unsigned int, unsigned long long>> async_insert(std::vector<typename B_BASE::meta> &insert_data)
         {
             effect_num = 0;
-            sqlstring  = B_BASE::_makerecordinsertsql(insert_data);
+            sqlstring  = B_BASE::make_vector_insert_sql(insert_data);
             if (iscommit)
             {
                 iscommit = false;
@@ -9310,7 +9310,7 @@ namespace orm
         std::tuple<unsigned int, unsigned long long> insert()
         {
             effect_num = 0;
-            sqlstring  = B_BASE::_makeinsertsql();
+            sqlstring  = B_BASE::make_data_insert_sql();
             if (iscommit)
             {
                 iscommit = false;
@@ -9408,7 +9408,7 @@ namespace orm
         asio::awaitable<std::tuple<unsigned int, unsigned long long>> async_insert()
         {
             effect_num = 0;
-            sqlstring  = B_BASE::_makeinsertsql();
+            sqlstring  = B_BASE::make_data_insert_sql();
             if (iscommit)
             {
                 iscommit = false;
@@ -9518,7 +9518,7 @@ namespace orm
                     tempsql << "' ";
                     wheresql = tempsql.str();
                 }
-                sqlstring = B_BASE::_makeupdatesql("");
+                sqlstring = B_BASE::make_update_sql("");
                 sqlstring.append(" where ");
                 if (wheresql.empty())
                 {
@@ -9617,7 +9617,7 @@ namespace orm
             }
             else
             {
-                sqlstring = B_BASE::_makeinsertsql();
+                sqlstring = B_BASE::make_data_insert_sql();
                 if (conn_empty())
                 {
                     return std::make_tuple(0, 0);
@@ -9704,7 +9704,7 @@ namespace orm
                     tempsql << "' ";
                     wheresql = tempsql.str();
                 }
-                sqlstring = B_BASE::_makeupdatesql("");
+                sqlstring = B_BASE::make_update_sql("");
                 sqlstring.append(" where ");
                 if (wheresql.empty())
                 {
@@ -9821,7 +9821,7 @@ namespace orm
             }
             else
             {
-                sqlstring = B_BASE::_makeinsertsql();
+                sqlstring = B_BASE::make_data_insert_sql();
                 try
                 {
                     if (conn_empty())

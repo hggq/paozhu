@@ -20,7 +20,7 @@ std::string articleloginpost(std::shared_ptr<httppeer> peer)
     // step2
     // get login/login post field
     httppeer &client     = peer->get_peer();
-    std::string username = client.post["username"].to_string();
+    std::string username = client.post["username"].to_escape();
     std::string password = client.post["password"].to_string();
 
     auto users = orm::cms::Sysuser();

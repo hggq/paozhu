@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSPERMSBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 18 Jun 2026 12:31:02 GMT
+*本文件为自动生成 Fri, 19 Jun 2026 00:17:08 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -806,7 +806,7 @@ case 12:
         return temp;
    }  
 
-   std::string _makeinsertsql(){
+   std::string make_data_insert_sql(){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -884,7 +884,7 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql(const sysperms_info::meta &insert_data){
+      std::string make_data_insert_sql(const sysperms_info::meta &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -962,7 +962,7 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makerecordinsertsql(const std::vector<sysperms_info::meta> &insert_data){
+    std::string make_vector_insert_sql(const std::vector<sysperms_info::meta> &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -1050,7 +1050,7 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makeupdatesql(std::string_view fileld){
+    std::string make_update_sql(std::string_view fileld){
         std::ostringstream tempsql;
         tempsql<<"UPDATE ";
         tempsql<<tablename;
@@ -1263,7 +1263,7 @@ if(data.updated_user==0){
         return tempsql.str();
    } 
    
-    std::string _make_replace_into_sql()
+    std::string make_record_replace_sql()
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
@@ -1354,7 +1354,7 @@ if(data.updated_user==0){
  return tempsql.str();
 }
 
-    std::string _make_insert_into_sql(std::string_view fileld)
+    std::string make_record_into_sql(std::string_view fileld)
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
@@ -1927,10 +1927,9 @@ if(data.updated_user==0){
    {
         record.clear();
         sysperms_info::meta metatemp; 
-        data=metatemp;
+        data = metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
-        //std::vector<std::string> list_content;
         for(;json_offset<json_content.size();json_offset++)
         {
             if(json_content[json_offset]=='{')
@@ -1949,19 +1948,16 @@ if(data.updated_user==0){
             std::string json_key_name,json_value_name; 
             for(;json_offset<json_content.size();json_offset++)
             {
-                for(;json_offset<json_content.size();json_offset++)
+                if(json_content[json_offset]!='{')
                 {
-                    if(json_content[json_offset]=='{')
-                    {
-                        json_offset+=1;
-                        break;
-                    }
+                    continue;
                 }
                 if(record.size()>0)
                 {
-                    data=metatemp;
+                    data = metatemp;
                 }
-                if(json_offset>=json_content.size())
+                json_offset++;
+                if(json_offset >= json_content.size())
                 {
                     break;
                 }
@@ -1992,10 +1988,11 @@ if(data.updated_user==0){
                                         }
                                         break;
                                     }       
-                                    if(json_content[json_offset]!=':')
+                                    if(json_offset < json_content.size() && json_content[json_offset]!=':')
                                     {
                                         break;
                                     }
+                                    json_offset+=1;
                                     for(;json_offset<json_content.size();json_offset++)
                                     {
                                         if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
@@ -2004,7 +2001,7 @@ if(data.updated_user==0){
                                         }
                                         break;
                                     } 
-                                    json_offset+=1;
+                                    
                                     if(json_offset>=json_content.size())
                                     {
                                         break;
@@ -2051,12 +2048,7 @@ if(data.updated_user==0){
     
                 }
                 record.emplace_back(data);
-                
-                json_offset+=1;
-            }
-            if(record.size()>1)
-            {
-                data=record[0];
+
             }
         }
         else
@@ -2066,10 +2058,8 @@ if(data.updated_user==0){
                 json_offset+=1; 
                 std::string json_key_name,json_value_name; 
                  
-                
                 for(;json_offset<json_content.size();json_offset++)
                 {
- 
                         if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
                         {
                             continue;
@@ -2087,7 +2077,6 @@ if(data.updated_user==0){
                                  }
                                 for(;json_offset<json_content.size();json_offset++)
                                 {
-                                
                                     if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
                                     {
                                         continue;
@@ -2098,6 +2087,7 @@ if(data.updated_user==0){
                                 {
                                     break;
                                 }
+                                json_offset+=1;
                                 for(;json_offset<json_content.size();json_offset++)
                                 {
                                     if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
@@ -2106,15 +2096,14 @@ if(data.updated_user==0){
                                     }
                                     break;
                                 } 
-                                json_offset+=1;
-                                if(json_offset>=json_content.size())
+                                
+                                if(json_offset >= json_content.size())
                                 {
                                     break;
                                 }
                                 json_value_name.clear();
                                 if(json_content[json_offset]==0x22)
                                 {
-                                    
                                     temp_offset=json_offset;
                                     json_value_name=http::jsonstring_to_utf8(&json_content[json_offset],json_content.size()-json_offset,temp_offset);
                                     json_offset=temp_offset;
@@ -2152,313 +2141,72 @@ if(data.updated_user==0){
                         }
  
                 }
-                record.emplace_back(data);
-            } 
+                if(isarray)
+                {
+                    record.emplace_back(data);
+                }
+            }
         }
-   }   
+    }
     
     void set_val(const std::string& set_key_name,const std::string& set_value_name)
     {
         switch(findcolpos(set_key_name))
         {
-    		case 0:
-		 try{
-			data.permsid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.permsid=0;
-			 }
-			break;
-		case 1:
-		 try{
-			data.parentid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.parentid=0;
-			 }
-			break;
-		case 2:
-		 try{
-			data.userid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
-		case 3:
-		 try{
-			data.urlpath.append(set_value_name);
-		}catch (...) { 
-			data.urlpath.clear();
-			 }
-			break;
-		case 4:
-		 try{
-			data.urlname.append(set_value_name);
-		}catch (...) { 
-			data.urlname.clear();
-			 }
-			break;
-		case 5:
-		 try{
-			data.name.append(set_value_name);
-		}catch (...) { 
-			data.name.clear();
-			 }
-			break;
-		case 6:
-		 try{
-			data.status=std::stoi(set_value_name);
-		}catch (...) { 
-			data.status=0;
-			 }
-			break;
-		case 7:
-		 try{
-			data.permscode=std::stoul(set_value_name);
-		}catch (...) { 
-			data.permscode=0;
-			 }
-			break;
-		case 8:
-		 try{
-			data.readonly=std::stoi(set_value_name);
-		}catch (...) { 
-			data.readonly=0;
-			 }
-			break;
-		case 9:
-		 try{
-			data.created_time=std::stoul(set_value_name);
-		}catch (...) { 
-			data.created_time=0;
-			 }
-			break;
-		case 10:
-		 try{
-			data.updated_time=std::stoul(set_value_name);
-		}catch (...) { 
-			data.updated_time=0;
-			 }
-			break;
-		case 11:
-		 try{
-			data.created_user=std::stoul(set_value_name);
-		}catch (...) { 
-			data.created_user=0;
-			 }
-			break;
-		case 12:
-		 try{
-			data.updated_user=std::stoul(set_value_name);
-		}catch (...) { 
-			data.updated_user=0;
-			 }
-			break;
-	default:
-		 { }
-			
-
-
-        }
-   } 
     
-    void set_val(const std::string& set_key_name,const long long set_value_name)
-    {
-        switch(findcolpos(set_key_name))
-        {
-    		case 0:
-		 try{
-			data.permsid=set_value_name;
-		}catch (...) { 
-			data.permsid=0;
-			 }
-			break;
+		case 0:
+		  http::json_set_val(data.permsid,set_value_name);
+		 break;
+		
 		case 1:
-		 try{
-			data.parentid=set_value_name;
-		}catch (...) { 
-			data.parentid=0;
-			 }
-			break;
+		  http::json_set_val(data.parentid,set_value_name);
+		 break;
+		
 		case 2:
-		 try{
-			data.userid=set_value_name;
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
+		  http::json_set_val(data.userid,set_value_name);
+		 break;
+		
 		case 3:
-		 try{
-			data.urlpath=std::to_string(set_value_name);
-		}catch (...) { 
-			data.urlpath.clear();
-			 }
-			break;
+		  http::json_set_val(data.urlpath,set_value_name);
+		 break;
+		
 		case 4:
-		 try{
-			data.urlname=std::to_string(set_value_name);
-		}catch (...) { 
-			data.urlname.clear();
-			 }
-			break;
+		  http::json_set_val(data.urlname,set_value_name);
+		 break;
+		
 		case 5:
-		 try{
-			data.name=std::to_string(set_value_name);
-		}catch (...) { 
-			data.name.clear();
-			 }
-			break;
+		  http::json_set_val(data.name,set_value_name);
+		 break;
+		
 		case 6:
-		 try{
-			data.status=set_value_name;
-		}catch (...) { 
-			data.status=0;
-			 }
-			break;
+		  http::json_set_val(data.status,set_value_name);
+		 break;
+		
 		case 7:
-		 try{
-			data.permscode=set_value_name;
-		}catch (...) { 
-			data.permscode=0;
-			 }
-			break;
+		  http::json_set_val(data.permscode,set_value_name);
+		 break;
+		
 		case 8:
-		 try{
-			data.readonly=set_value_name;
-		}catch (...) { 
-			data.readonly=0;
-			 }
-			break;
+		  http::json_set_val(data.readonly,set_value_name);
+		 break;
+		
 		case 9:
-		 try{
-			data.created_time=set_value_name;
-		}catch (...) { 
-			data.created_time=0;
-			 }
-			break;
+		  http::json_set_val(data.created_time,set_value_name);
+		 break;
+		
 		case 10:
-		 try{
-			data.updated_time=set_value_name;
-		}catch (...) { 
-			data.updated_time=0;
-			 }
-			break;
+		  http::json_set_val(data.updated_time,set_value_name);
+		 break;
+		
 		case 11:
-		 try{
-			data.created_user=set_value_name;
-		}catch (...) { 
-			data.created_user=0;
-			 }
-			break;
+		  http::json_set_val(data.created_user,set_value_name);
+		 break;
+		
 		case 12:
-		 try{
-			data.updated_user=set_value_name;
-		}catch (...) { 
-			data.updated_user=0;
-			 }
-			break;
-	default:
-		 { }
-			
-
-
-        }
-   } 
-    
-    void set_val(const std::string& set_key_name,const double set_value_name)
-    {
-        switch(findcolpos(set_key_name))
-        {
-    		case 0:
-		 try{
-			data.permsid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.permsid=0;
-			 }
-			break;
-		case 1:
-		 try{
-			data.parentid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.parentid=0;
-			 }
-			break;
-		case 2:
-		 try{
-			data.userid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
-		case 3:
-		 try{
-			data.urlpath=std::to_string(set_value_name);
-		}catch (...) { 
-			data.urlpath.clear();
-			 }
-			break;
-		case 4:
-		 try{
-			data.urlname=std::to_string(set_value_name);
-		}catch (...) { 
-			data.urlname.clear();
-			 }
-			break;
-		case 5:
-		 try{
-			data.name=std::to_string(set_value_name);
-		}catch (...) { 
-			data.name.clear();
-			 }
-			break;
-		case 6:
-		 try{
-			data.status=(int)set_value_name;
-		}catch (...) { 
-			data.status=0;
-			 }
-			break;
-		case 7:
-		 try{
-			data.permscode=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.permscode=0;
-			 }
-			break;
-		case 8:
-		 try{
-			data.readonly=(int)set_value_name;
-		}catch (...) { 
-			data.readonly=0;
-			 }
-			break;
-		case 9:
-		 try{
-			data.created_time=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.created_time=0;
-			 }
-			break;
-		case 10:
-		 try{
-			data.updated_time=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.updated_time=0;
-			 }
-			break;
-		case 11:
-		 try{
-			data.created_user=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.created_user=0;
-			 }
-			break;
-		case 12:
-		 try{
-			data.updated_user=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.updated_user=0;
-			 }
-			break;
-	default:
+		  http::json_set_val(data.updated_user,set_value_name);
+		 break;
+		
+		default:
 		 { }
 			
 

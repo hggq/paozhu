@@ -2,7 +2,7 @@
 #define ORM_CMS_HOMEBLOCKBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 18 Jun 2026 12:31:02 GMT
+*本文件为自动生成 Fri, 19 Jun 2026 00:17:08 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -792,7 +792,7 @@ break;
         return temp;
    }  
 
-   std::string _makeinsertsql(){
+   std::string make_data_insert_sql(){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -865,7 +865,7 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql(const homeblock_info::meta &insert_data){
+      std::string make_data_insert_sql(const homeblock_info::meta &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -938,7 +938,7 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makerecordinsertsql(const std::vector<homeblock_info::meta> &insert_data){
+    std::string make_vector_insert_sql(const std::vector<homeblock_info::meta> &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -1021,7 +1021,7 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makeupdatesql(std::string_view fileld){
+    std::string make_update_sql(std::string_view fileld){
         std::ostringstream tempsql;
         tempsql<<"UPDATE ";
         tempsql<<tablename;
@@ -1221,7 +1221,7 @@ if(data.sortid==0){
         return tempsql.str();
    } 
    
-    std::string _make_replace_into_sql()
+    std::string make_record_replace_sql()
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
@@ -1307,7 +1307,7 @@ if(data.sortid==0){
  return tempsql.str();
 }
 
-    std::string _make_insert_into_sql(std::string_view fileld)
+    std::string make_record_into_sql(std::string_view fileld)
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
@@ -1848,10 +1848,9 @@ if(data.sortid==0){
    {
         record.clear();
         homeblock_info::meta metatemp; 
-        data=metatemp;
+        data = metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
-        //std::vector<std::string> list_content;
         for(;json_offset<json_content.size();json_offset++)
         {
             if(json_content[json_offset]=='{')
@@ -1870,19 +1869,16 @@ if(data.sortid==0){
             std::string json_key_name,json_value_name; 
             for(;json_offset<json_content.size();json_offset++)
             {
-                for(;json_offset<json_content.size();json_offset++)
+                if(json_content[json_offset]!='{')
                 {
-                    if(json_content[json_offset]=='{')
-                    {
-                        json_offset+=1;
-                        break;
-                    }
+                    continue;
                 }
                 if(record.size()>0)
                 {
-                    data=metatemp;
+                    data = metatemp;
                 }
-                if(json_offset>=json_content.size())
+                json_offset++;
+                if(json_offset >= json_content.size())
                 {
                     break;
                 }
@@ -1913,10 +1909,11 @@ if(data.sortid==0){
                                         }
                                         break;
                                     }       
-                                    if(json_content[json_offset]!=':')
+                                    if(json_offset < json_content.size() && json_content[json_offset]!=':')
                                     {
                                         break;
                                     }
+                                    json_offset+=1;
                                     for(;json_offset<json_content.size();json_offset++)
                                     {
                                         if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
@@ -1925,7 +1922,7 @@ if(data.sortid==0){
                                         }
                                         break;
                                     } 
-                                    json_offset+=1;
+                                    
                                     if(json_offset>=json_content.size())
                                     {
                                         break;
@@ -1972,12 +1969,7 @@ if(data.sortid==0){
     
                 }
                 record.emplace_back(data);
-                
-                json_offset+=1;
-            }
-            if(record.size()>1)
-            {
-                data=record[0];
+
             }
         }
         else
@@ -1987,10 +1979,8 @@ if(data.sortid==0){
                 json_offset+=1; 
                 std::string json_key_name,json_value_name; 
                  
-                
                 for(;json_offset<json_content.size();json_offset++)
                 {
- 
                         if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
                         {
                             continue;
@@ -2008,7 +1998,6 @@ if(data.sortid==0){
                                  }
                                 for(;json_offset<json_content.size();json_offset++)
                                 {
-                                
                                     if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
                                     {
                                         continue;
@@ -2019,6 +2008,7 @@ if(data.sortid==0){
                                 {
                                     break;
                                 }
+                                json_offset+=1;
                                 for(;json_offset<json_content.size();json_offset++)
                                 {
                                     if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
@@ -2027,15 +2017,14 @@ if(data.sortid==0){
                                     }
                                     break;
                                 } 
-                                json_offset+=1;
-                                if(json_offset>=json_content.size())
+                                
+                                if(json_offset >= json_content.size())
                                 {
                                     break;
                                 }
                                 json_value_name.clear();
                                 if(json_content[json_offset]==0x22)
                                 {
-                                    
                                     temp_offset=json_offset;
                                     json_value_name=http::jsonstring_to_utf8(&json_content[json_offset],json_content.size()-json_offset,temp_offset);
                                     json_offset=temp_offset;
@@ -2073,292 +2062,68 @@ if(data.sortid==0){
                         }
  
                 }
-                record.emplace_back(data);
-            } 
+                if(isarray)
+                {
+                    record.emplace_back(data);
+                }
+            }
         }
-   }   
+    }
     
     void set_val(const std::string& set_key_name,const std::string& set_value_name)
     {
         switch(findcolpos(set_key_name))
         {
-    		case 0:
-		 try{
-			data.hbid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.hbid=0;
-			 }
-			break;
-		case 1:
-		 try{
-			data.userid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
-		case 2:
-		 try{
-			data.title.append(set_value_name);
-		}catch (...) { 
-			data.title.clear();
-			 }
-			break;
-		case 3:
-		 try{
-			data.content.append(set_value_name);
-		}catch (...) { 
-			data.content.clear();
-			 }
-			break;
-		case 4:
-		 try{
-			data.jsonconfig.append(set_value_name);
-		}catch (...) { 
-			data.jsonconfig.clear();
-			 }
-			break;
-		case 5:
-		 try{
-			data.viewtype=std::stoi(set_value_name);
-		}catch (...) { 
-			data.viewtype=0;
-			 }
-			break;
-		case 6:
-		 try{
-			data.gettype=std::stoi(set_value_name);
-		}catch (...) { 
-			data.gettype=0;
-			 }
-			break;
-		case 7:
-		 try{
-			data.rownum=std::stoul(set_value_name);
-		}catch (...) { 
-			data.rownum=0;
-			 }
-			break;
-		case 8:
-		 try{
-			data.width=std::stoul(set_value_name);
-		}catch (...) { 
-			data.width=0;
-			 }
-			break;
-		case 9:
-		 try{
-			data.height=std::stoul(set_value_name);
-		}catch (...) { 
-			data.height=0;
-			 }
-			break;
-		case 10:
-		 try{
-			data.strlength=std::stoul(set_value_name);
-		}catch (...) { 
-			data.strlength=0;
-			 }
-			break;
-		case 11:
-		 try{
-			data.sortid=std::stoi(set_value_name);
-		}catch (...) { 
-			data.sortid=0;
-			 }
-			break;
-	default:
-		 { }
-			
-
-
-        }
-   } 
     
-    void set_val(const std::string& set_key_name,const long long set_value_name)
-    {
-        switch(findcolpos(set_key_name))
-        {
-    		case 0:
-		 try{
-			data.hbid=set_value_name;
-		}catch (...) { 
-			data.hbid=0;
-			 }
-			break;
+		case 0:
+		  http::json_set_val(data.hbid,set_value_name);
+		 break;
+		
 		case 1:
-		 try{
-			data.userid=set_value_name;
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
+		  http::json_set_val(data.userid,set_value_name);
+		 break;
+		
 		case 2:
-		 try{
-			data.title=std::to_string(set_value_name);
-		}catch (...) { 
-			data.title.clear();
-			 }
-			break;
+		  http::json_set_val(data.title,set_value_name);
+		 break;
+		
 		case 3:
-		 try{
-			data.content=std::to_string(set_value_name);
-		}catch (...) { 
-			data.content.clear();
-			 }
-			break;
+		  http::json_set_val(data.content,set_value_name);
+		 break;
+		
 		case 4:
-		 try{
-			data.jsonconfig=std::to_string(set_value_name);
-		}catch (...) { 
-			data.jsonconfig.clear();
-			 }
-			break;
+		  http::json_set_val(data.jsonconfig,set_value_name);
+		 break;
+		
 		case 5:
-		 try{
-			data.viewtype=set_value_name;
-		}catch (...) { 
-			data.viewtype=0;
-			 }
-			break;
+		  http::json_set_val(data.viewtype,set_value_name);
+		 break;
+		
 		case 6:
-		 try{
-			data.gettype=set_value_name;
-		}catch (...) { 
-			data.gettype=0;
-			 }
-			break;
+		  http::json_set_val(data.gettype,set_value_name);
+		 break;
+		
 		case 7:
-		 try{
-			data.rownum=set_value_name;
-		}catch (...) { 
-			data.rownum=0;
-			 }
-			break;
+		  http::json_set_val(data.rownum,set_value_name);
+		 break;
+		
 		case 8:
-		 try{
-			data.width=set_value_name;
-		}catch (...) { 
-			data.width=0;
-			 }
-			break;
+		  http::json_set_val(data.width,set_value_name);
+		 break;
+		
 		case 9:
-		 try{
-			data.height=set_value_name;
-		}catch (...) { 
-			data.height=0;
-			 }
-			break;
+		  http::json_set_val(data.height,set_value_name);
+		 break;
+		
 		case 10:
-		 try{
-			data.strlength=set_value_name;
-		}catch (...) { 
-			data.strlength=0;
-			 }
-			break;
+		  http::json_set_val(data.strlength,set_value_name);
+		 break;
+		
 		case 11:
-		 try{
-			data.sortid=set_value_name;
-		}catch (...) { 
-			data.sortid=0;
-			 }
-			break;
-	default:
-		 { }
-			
-
-
-        }
-   } 
-    
-    void set_val(const std::string& set_key_name,const double set_value_name)
-    {
-        switch(findcolpos(set_key_name))
-        {
-    		case 0:
-		 try{
-			data.hbid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.hbid=0;
-			 }
-			break;
-		case 1:
-		 try{
-			data.userid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
-		case 2:
-		 try{
-			data.title=std::to_string(set_value_name);
-		}catch (...) { 
-			data.title.clear();
-			 }
-			break;
-		case 3:
-		 try{
-			data.content=std::to_string(set_value_name);
-		}catch (...) { 
-			data.content.clear();
-			 }
-			break;
-		case 4:
-		 try{
-			data.jsonconfig=std::to_string(set_value_name);
-		}catch (...) { 
-			data.jsonconfig.clear();
-			 }
-			break;
-		case 5:
-		 try{
-			data.viewtype=(int)set_value_name;
-		}catch (...) { 
-			data.viewtype=0;
-			 }
-			break;
-		case 6:
-		 try{
-			data.gettype=(int)set_value_name;
-		}catch (...) { 
-			data.gettype=0;
-			 }
-			break;
-		case 7:
-		 try{
-			data.rownum=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.rownum=0;
-			 }
-			break;
-		case 8:
-		 try{
-			data.width=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.width=0;
-			 }
-			break;
-		case 9:
-		 try{
-			data.height=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.height=0;
-			 }
-			break;
-		case 10:
-		 try{
-			data.strlength=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.strlength=0;
-			 }
-			break;
-		case 11:
-		 try{
-			data.sortid=(int)set_value_name;
-		}catch (...) { 
-			data.sortid=0;
-			 }
-			break;
-	default:
+		  http::json_set_val(data.sortid,set_value_name);
+		 break;
+		
+		default:
 		 { }
 			
 

@@ -2,7 +2,7 @@
 #define ORM_CMS_XTASKBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 18 Jun 2026 12:31:02 GMT
+*本文件为自动生成 Fri, 19 Jun 2026 00:17:09 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -988,7 +988,7 @@ break;
         return temp;
    }  
 
-   std::string _makeinsertsql(){
+   std::string make_data_insert_sql(){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -1127,7 +1127,7 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql(const xtask_info::meta &insert_data){
+      std::string make_data_insert_sql(const xtask_info::meta &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -1266,7 +1266,7 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makerecordinsertsql(const std::vector<xtask_info::meta> &insert_data){
+    std::string make_vector_insert_sql(const std::vector<xtask_info::meta> &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -1415,7 +1415,7 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makeupdatesql(std::string_view fileld){
+    std::string make_update_sql(std::string_view fileld){
         std::ostringstream tempsql;
         tempsql<<"UPDATE ";
         tempsql<<tablename;
@@ -1801,7 +1801,7 @@ tempsql<<"`itemnote`='"<<stringaddslash(data.itemnote)<<"'";
         return tempsql.str();
    } 
    
-    std::string _make_replace_into_sql()
+    std::string make_record_replace_sql()
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
@@ -1953,7 +1953,7 @@ tempsql<<"`itemnote`='"<<stringaddslash(data.itemnote)<<"'";
  return tempsql.str();
 }
 
-    std::string _make_insert_into_sql(std::string_view fileld)
+    std::string make_record_into_sql(std::string_view fileld)
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
@@ -2956,10 +2956,9 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(data.itemnote)<<"\"";
    {
         record.clear();
         xtask_info::meta metatemp; 
-        data=metatemp;
+        data = metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
-        //std::vector<std::string> list_content;
         for(;json_offset<json_content.size();json_offset++)
         {
             if(json_content[json_offset]=='{')
@@ -2978,19 +2977,16 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(data.itemnote)<<"\"";
             std::string json_key_name,json_value_name; 
             for(;json_offset<json_content.size();json_offset++)
             {
-                for(;json_offset<json_content.size();json_offset++)
+                if(json_content[json_offset]!='{')
                 {
-                    if(json_content[json_offset]=='{')
-                    {
-                        json_offset+=1;
-                        break;
-                    }
+                    continue;
                 }
                 if(record.size()>0)
                 {
-                    data=metatemp;
+                    data = metatemp;
                 }
-                if(json_offset>=json_content.size())
+                json_offset++;
+                if(json_offset >= json_content.size())
                 {
                     break;
                 }
@@ -3021,10 +3017,11 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(data.itemnote)<<"\"";
                                         }
                                         break;
                                     }       
-                                    if(json_content[json_offset]!=':')
+                                    if(json_offset < json_content.size() && json_content[json_offset]!=':')
                                     {
                                         break;
                                     }
+                                    json_offset+=1;
                                     for(;json_offset<json_content.size();json_offset++)
                                     {
                                         if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
@@ -3033,7 +3030,7 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(data.itemnote)<<"\"";
                                         }
                                         break;
                                     } 
-                                    json_offset+=1;
+                                    
                                     if(json_offset>=json_content.size())
                                     {
                                         break;
@@ -3080,12 +3077,7 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(data.itemnote)<<"\"";
     
                 }
                 record.emplace_back(data);
-                
-                json_offset+=1;
-            }
-            if(record.size()>1)
-            {
-                data=record[0];
+
             }
         }
         else
@@ -3095,10 +3087,8 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(data.itemnote)<<"\"";
                 json_offset+=1; 
                 std::string json_key_name,json_value_name; 
                  
-                
                 for(;json_offset<json_content.size();json_offset++)
                 {
- 
                         if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
                         {
                             continue;
@@ -3116,7 +3106,6 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(data.itemnote)<<"\"";
                                  }
                                 for(;json_offset<json_content.size();json_offset++)
                                 {
-                                
                                     if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
                                     {
                                         continue;
@@ -3127,6 +3116,7 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(data.itemnote)<<"\"";
                                 {
                                     break;
                                 }
+                                json_offset+=1;
                                 for(;json_offset<json_content.size();json_offset++)
                                 {
                                     if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
@@ -3135,15 +3125,14 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(data.itemnote)<<"\"";
                                     }
                                     break;
                                 } 
-                                json_offset+=1;
-                                if(json_offset>=json_content.size())
+                                
+                                if(json_offset >= json_content.size())
                                 {
                                     break;
                                 }
                                 json_value_name.clear();
                                 if(json_content[json_offset]==0x22)
                                 {
-                                    
                                     temp_offset=json_offset;
                                     json_value_name=http::jsonstring_to_utf8(&json_content[json_offset],json_content.size()-json_offset,temp_offset);
                                     json_offset=temp_offset;
@@ -3181,670 +3170,140 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(data.itemnote)<<"\"";
                         }
  
                 }
-                record.emplace_back(data);
-            } 
+                if(isarray)
+                {
+                    record.emplace_back(data);
+                }
+            }
         }
-   }   
+    }
     
     void set_val(const std::string& set_key_name,const std::string& set_value_name)
     {
         switch(findcolpos(set_key_name))
         {
-    		case 0:
-		 try{
-			data.xtaskid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.xtaskid=0;
-			 }
-			break;
-		case 1:
-		 try{
-			data.userid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
-		case 2:
-		 try{
-			data.xpjid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.xpjid=0;
-			 }
-			break;
-		case 3:
-		 try{
-			data.adminid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.adminid=0;
-			 }
-			break;
-		case 4:
-		 try{
-			data.parentid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.parentid=0;
-			 }
-			break;
-		case 5:
-		 try{
-			data.begindate=std::stoul(set_value_name);
-		}catch (...) { 
-			data.begindate=0;
-			 }
-			break;
-		case 6:
-		 try{
-			data.enddate=std::stoul(set_value_name);
-		}catch (...) { 
-			data.enddate=0;
-			 }
-			break;
-		case 7:
-		 try{
-			data.expectbegindate=std::stoul(set_value_name);
-		}catch (...) { 
-			data.expectbegindate=0;
-			 }
-			break;
-		case 8:
-		 try{
-			data.expectenddate=std::stoul(set_value_name);
-		}catch (...) { 
-			data.expectenddate=0;
-			 }
-			break;
-		case 9:
-		 try{
-			data.milestone=std::stoul(set_value_name);
-		}catch (...) { 
-			data.milestone=0;
-			 }
-			break;
-		case 10:
-		 try{
-			data.subxpjid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.subxpjid=0;
-			 }
-			break;
-		case 11:
-		 try{
-			data.depxtaskid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.depxtaskid=0;
-			 }
-			break;
-		case 12:
-		 try{
-			data.referdocid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.referdocid=0;
-			 }
-			break;
-		case 13:
-		 try{
-			data.isfinish=std::stoi(set_value_name);
-		}catch (...) { 
-			data.isfinish=0;
-			 }
-			break;
-		case 14:
-		 try{
-			data.updatedate=std::stoul(set_value_name);
-		}catch (...) { 
-			data.updatedate=0;
-			 }
-			break;
-		case 15:
-		 try{
-			data.finishdate=std::stoul(set_value_name);
-		}catch (...) { 
-			data.finishdate=0;
-			 }
-			break;
-		case 16:
-		 try{
-			data.iscore=std::stoul(set_value_name);
-		}catch (...) { 
-			data.iscore=0;
-			 }
-			break;
-		case 17:
-		 try{
-			data.xvalue=std::stod(set_value_name);
-		}catch (...) { 
-			data.xvalue=0.0;
-			 }
-			break;
-		case 18:
-		 try{
-			data.expectday=std::stof(set_value_name);
-		}catch (...) { 
-			data.expectday=0.0;
-			 }
-			break;
-		case 19:
-		 try{
-			data.realday=std::stof(set_value_name);
-		}catch (...) { 
-			data.realday=0.0;
-			 }
-			break;
-		case 20:
-		 try{
-			data.pricevalue=std::stof(set_value_name);
-		}catch (...) { 
-			data.pricevalue=0.0;
-			 }
-			break;
-		case 21:
-		 try{
-			data.title.append(set_value_name);
-		}catch (...) { 
-			data.title.clear();
-			 }
-			break;
-		case 22:
-		 try{
-			data.introduce.append(set_value_name);
-		}catch (...) { 
-			data.introduce.clear();
-			 }
-			break;
-		case 23:
-		 try{
-			data.xlogo.append(set_value_name);
-		}catch (...) { 
-			data.xlogo.clear();
-			 }
-			break;
-		case 24:
-		 try{
-			data.xcolor.append(set_value_name);
-		}catch (...) { 
-			data.xcolor.clear();
-			 }
-			break;
-		case 25:
-		 try{
-			data.pullurl.append(set_value_name);
-		}catch (...) { 
-			data.pullurl.clear();
-			 }
-			break;
-		case 26:
-		 try{
-			data.pulltitle.append(set_value_name);
-		}catch (...) { 
-			data.pulltitle.clear();
-			 }
-			break;
-		case 27:
-		 try{
-			data.pullauthor.append(set_value_name);
-		}catch (...) { 
-			data.pullauthor.clear();
-			 }
-			break;
-		case 28:
-		 try{
-			data.note.append(set_value_name);
-		}catch (...) { 
-			data.note.clear();
-			 }
-			break;
-		case 29:
-		 try{
-			data.itemnote.append(set_value_name);
-		}catch (...) { 
-			data.itemnote.clear();
-			 }
-			break;
-	default:
-		 { }
-			
-
-
-        }
-   } 
     
-    void set_val(const std::string& set_key_name,const long long set_value_name)
-    {
-        switch(findcolpos(set_key_name))
-        {
-    		case 0:
-		 try{
-			data.xtaskid=set_value_name;
-		}catch (...) { 
-			data.xtaskid=0;
-			 }
-			break;
+		case 0:
+		  http::json_set_val(data.xtaskid,set_value_name);
+		 break;
+		
 		case 1:
-		 try{
-			data.userid=set_value_name;
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
+		  http::json_set_val(data.userid,set_value_name);
+		 break;
+		
 		case 2:
-		 try{
-			data.xpjid=set_value_name;
-		}catch (...) { 
-			data.xpjid=0;
-			 }
-			break;
+		  http::json_set_val(data.xpjid,set_value_name);
+		 break;
+		
 		case 3:
-		 try{
-			data.adminid=set_value_name;
-		}catch (...) { 
-			data.adminid=0;
-			 }
-			break;
+		  http::json_set_val(data.adminid,set_value_name);
+		 break;
+		
 		case 4:
-		 try{
-			data.parentid=set_value_name;
-		}catch (...) { 
-			data.parentid=0;
-			 }
-			break;
+		  http::json_set_val(data.parentid,set_value_name);
+		 break;
+		
 		case 5:
-		 try{
-			data.begindate=set_value_name;
-		}catch (...) { 
-			data.begindate=0;
-			 }
-			break;
+		  http::json_set_val(data.begindate,set_value_name);
+		 break;
+		
 		case 6:
-		 try{
-			data.enddate=set_value_name;
-		}catch (...) { 
-			data.enddate=0;
-			 }
-			break;
+		  http::json_set_val(data.enddate,set_value_name);
+		 break;
+		
 		case 7:
-		 try{
-			data.expectbegindate=set_value_name;
-		}catch (...) { 
-			data.expectbegindate=0;
-			 }
-			break;
+		  http::json_set_val(data.expectbegindate,set_value_name);
+		 break;
+		
 		case 8:
-		 try{
-			data.expectenddate=set_value_name;
-		}catch (...) { 
-			data.expectenddate=0;
-			 }
-			break;
+		  http::json_set_val(data.expectenddate,set_value_name);
+		 break;
+		
 		case 9:
-		 try{
-			data.milestone=set_value_name;
-		}catch (...) { 
-			data.milestone=0;
-			 }
-			break;
+		  http::json_set_val(data.milestone,set_value_name);
+		 break;
+		
 		case 10:
-		 try{
-			data.subxpjid=set_value_name;
-		}catch (...) { 
-			data.subxpjid=0;
-			 }
-			break;
+		  http::json_set_val(data.subxpjid,set_value_name);
+		 break;
+		
 		case 11:
-		 try{
-			data.depxtaskid=set_value_name;
-		}catch (...) { 
-			data.depxtaskid=0;
-			 }
-			break;
+		  http::json_set_val(data.depxtaskid,set_value_name);
+		 break;
+		
 		case 12:
-		 try{
-			data.referdocid=set_value_name;
-		}catch (...) { 
-			data.referdocid=0;
-			 }
-			break;
+		  http::json_set_val(data.referdocid,set_value_name);
+		 break;
+		
 		case 13:
-		 try{
-			data.isfinish=set_value_name;
-		}catch (...) { 
-			data.isfinish=0;
-			 }
-			break;
+		  http::json_set_val(data.isfinish,set_value_name);
+		 break;
+		
 		case 14:
-		 try{
-			data.updatedate=set_value_name;
-		}catch (...) { 
-			data.updatedate=0;
-			 }
-			break;
+		  http::json_set_val(data.updatedate,set_value_name);
+		 break;
+		
 		case 15:
-		 try{
-			data.finishdate=set_value_name;
-		}catch (...) { 
-			data.finishdate=0;
-			 }
-			break;
+		  http::json_set_val(data.finishdate,set_value_name);
+		 break;
+		
 		case 16:
-		 try{
-			data.iscore=set_value_name;
-		}catch (...) { 
-			data.iscore=0;
-			 }
-			break;
+		  http::json_set_val(data.iscore,set_value_name);
+		 break;
+		
 		case 17:
-		 try{
-			data.xvalue=(double)set_value_name;
-		}catch (...) { 
-			data.xvalue=0.0;
-			 }
-			break;
+		  http::json_set_val(data.xvalue,set_value_name);
+		 break;
+		
 		case 18:
-		 try{
-			data.expectday=set_value_name;
-		}catch (...) { 
-			data.expectday=0.0;
-			 }
-			break;
+		  http::json_set_val(data.expectday,set_value_name);
+		 break;
+		
 		case 19:
-		 try{
-			data.realday=set_value_name;
-		}catch (...) { 
-			data.realday=0.0;
-			 }
-			break;
+		  http::json_set_val(data.realday,set_value_name);
+		 break;
+		
 		case 20:
-		 try{
-			data.pricevalue=set_value_name;
-		}catch (...) { 
-			data.pricevalue=0.0;
-			 }
-			break;
+		  http::json_set_val(data.pricevalue,set_value_name);
+		 break;
+		
 		case 21:
-		 try{
-			data.title=std::to_string(set_value_name);
-		}catch (...) { 
-			data.title.clear();
-			 }
-			break;
+		  http::json_set_val(data.title,set_value_name);
+		 break;
+		
 		case 22:
-		 try{
-			data.introduce=std::to_string(set_value_name);
-		}catch (...) { 
-			data.introduce.clear();
-			 }
-			break;
+		  http::json_set_val(data.introduce,set_value_name);
+		 break;
+		
 		case 23:
-		 try{
-			data.xlogo=std::to_string(set_value_name);
-		}catch (...) { 
-			data.xlogo.clear();
-			 }
-			break;
+		  http::json_set_val(data.xlogo,set_value_name);
+		 break;
+		
 		case 24:
-		 try{
-			data.xcolor=std::to_string(set_value_name);
-		}catch (...) { 
-			data.xcolor.clear();
-			 }
-			break;
+		  http::json_set_val(data.xcolor,set_value_name);
+		 break;
+		
 		case 25:
-		 try{
-			data.pullurl=std::to_string(set_value_name);
-		}catch (...) { 
-			data.pullurl.clear();
-			 }
-			break;
+		  http::json_set_val(data.pullurl,set_value_name);
+		 break;
+		
 		case 26:
-		 try{
-			data.pulltitle=std::to_string(set_value_name);
-		}catch (...) { 
-			data.pulltitle.clear();
-			 }
-			break;
+		  http::json_set_val(data.pulltitle,set_value_name);
+		 break;
+		
 		case 27:
-		 try{
-			data.pullauthor=std::to_string(set_value_name);
-		}catch (...) { 
-			data.pullauthor.clear();
-			 }
-			break;
+		  http::json_set_val(data.pullauthor,set_value_name);
+		 break;
+		
 		case 28:
-		 try{
-			data.note=std::to_string(set_value_name);
-		}catch (...) { 
-			data.note.clear();
-			 }
-			break;
+		  http::json_set_val(data.note,set_value_name);
+		 break;
+		
 		case 29:
-		 try{
-			data.itemnote=std::to_string(set_value_name);
-		}catch (...) { 
-			data.itemnote.clear();
-			 }
-			break;
-	default:
-		 { }
-			
-
-
-        }
-   } 
-    
-    void set_val(const std::string& set_key_name,const double set_value_name)
-    {
-        switch(findcolpos(set_key_name))
-        {
-    		case 0:
-		 try{
-			data.xtaskid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.xtaskid=0;
-			 }
-			break;
-		case 1:
-		 try{
-			data.userid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
-		case 2:
-		 try{
-			data.xpjid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.xpjid=0;
-			 }
-			break;
-		case 3:
-		 try{
-			data.adminid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.adminid=0;
-			 }
-			break;
-		case 4:
-		 try{
-			data.parentid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.parentid=0;
-			 }
-			break;
-		case 5:
-		 try{
-			data.begindate=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.begindate=0;
-			 }
-			break;
-		case 6:
-		 try{
-			data.enddate=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.enddate=0;
-			 }
-			break;
-		case 7:
-		 try{
-			data.expectbegindate=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.expectbegindate=0;
-			 }
-			break;
-		case 8:
-		 try{
-			data.expectenddate=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.expectenddate=0;
-			 }
-			break;
-		case 9:
-		 try{
-			data.milestone=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.milestone=0;
-			 }
-			break;
-		case 10:
-		 try{
-			data.subxpjid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.subxpjid=0;
-			 }
-			break;
-		case 11:
-		 try{
-			data.depxtaskid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.depxtaskid=0;
-			 }
-			break;
-		case 12:
-		 try{
-			data.referdocid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.referdocid=0;
-			 }
-			break;
-		case 13:
-		 try{
-			data.isfinish=(int)set_value_name;
-		}catch (...) { 
-			data.isfinish=0;
-			 }
-			break;
-		case 14:
-		 try{
-			data.updatedate=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.updatedate=0;
-			 }
-			break;
-		case 15:
-		 try{
-			data.finishdate=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.finishdate=0;
-			 }
-			break;
-		case 16:
-		 try{
-			data.iscore=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.iscore=0;
-			 }
-			break;
-		case 17:
-		 try{
-			data.xvalue=set_value_name;
-		}catch (...) { 
-			data.xvalue=0.0;
-			 }
-			break;
-		case 18:
-		 try{
-			data.expectday=(float)set_value_name;
-		}catch (...) { 
-			data.expectday=0.0;
-			 }
-			break;
-		case 19:
-		 try{
-			data.realday=(float)set_value_name;
-		}catch (...) { 
-			data.realday=0.0;
-			 }
-			break;
-		case 20:
-		 try{
-			data.pricevalue=(float)set_value_name;
-		}catch (...) { 
-			data.pricevalue=0.0;
-			 }
-			break;
-		case 21:
-		 try{
-			data.title=std::to_string(set_value_name);
-		}catch (...) { 
-			data.title.clear();
-			 }
-			break;
-		case 22:
-		 try{
-			data.introduce=std::to_string(set_value_name);
-		}catch (...) { 
-			data.introduce.clear();
-			 }
-			break;
-		case 23:
-		 try{
-			data.xlogo=std::to_string(set_value_name);
-		}catch (...) { 
-			data.xlogo.clear();
-			 }
-			break;
-		case 24:
-		 try{
-			data.xcolor=std::to_string(set_value_name);
-		}catch (...) { 
-			data.xcolor.clear();
-			 }
-			break;
-		case 25:
-		 try{
-			data.pullurl=std::to_string(set_value_name);
-		}catch (...) { 
-			data.pullurl.clear();
-			 }
-			break;
-		case 26:
-		 try{
-			data.pulltitle=std::to_string(set_value_name);
-		}catch (...) { 
-			data.pulltitle.clear();
-			 }
-			break;
-		case 27:
-		 try{
-			data.pullauthor=std::to_string(set_value_name);
-		}catch (...) { 
-			data.pullauthor.clear();
-			 }
-			break;
-		case 28:
-		 try{
-			data.note=std::to_string(set_value_name);
-		}catch (...) { 
-			data.note.clear();
-			 }
-			break;
-		case 29:
-		 try{
-			data.itemnote=std::to_string(set_value_name);
-		}catch (...) { 
-			data.itemnote.clear();
-			 }
-			break;
-	default:
+		  http::json_set_val(data.itemnote,set_value_name);
+		 break;
+		
+		default:
 		 { }
 			
 

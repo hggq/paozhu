@@ -2,7 +2,7 @@
 #define ORM_CMS_SUPERADMINBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 18 Jun 2026 12:31:02 GMT
+*本文件为自动生成 Fri, 19 Jun 2026 00:17:08 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -816,7 +816,7 @@ break;
         return temp;
    }  
 
-   std::string _makeinsertsql(){
+   std::string make_data_insert_sql(){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -879,7 +879,7 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql(const superadmin_info::meta &insert_data){
+      std::string make_data_insert_sql(const superadmin_info::meta &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -942,7 +942,7 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makerecordinsertsql(const std::vector<superadmin_info::meta> &insert_data){
+    std::string make_vector_insert_sql(const std::vector<superadmin_info::meta> &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -1015,7 +1015,7 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makeupdatesql(std::string_view fileld){
+    std::string make_update_sql(std::string_view fileld){
         std::ostringstream tempsql;
         tempsql<<"UPDATE ";
         tempsql<<tablename;
@@ -1201,7 +1201,7 @@ tempsql<<"`basesitepath`='"<<stringaddslash(data.basesitepath)<<"'";
         return tempsql.str();
    } 
    
-    std::string _make_replace_into_sql()
+    std::string make_record_replace_sql()
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
@@ -1277,7 +1277,7 @@ tempsql<<"`basesitepath`='"<<stringaddslash(data.basesitepath)<<"'";
  return tempsql.str();
 }
 
-    std::string _make_insert_into_sql(std::string_view fileld)
+    std::string make_record_into_sql(std::string_view fileld)
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
@@ -1787,10 +1787,9 @@ tempsql<<"\"basesitepath\":\""<<http::utf8_to_jsonstring(data.basesitepath)<<"\"
    {
         record.clear();
         superadmin_info::meta metatemp; 
-        data=metatemp;
+        data = metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
-        //std::vector<std::string> list_content;
         for(;json_offset<json_content.size();json_offset++)
         {
             if(json_content[json_offset]=='{')
@@ -1809,19 +1808,16 @@ tempsql<<"\"basesitepath\":\""<<http::utf8_to_jsonstring(data.basesitepath)<<"\"
             std::string json_key_name,json_value_name; 
             for(;json_offset<json_content.size();json_offset++)
             {
-                for(;json_offset<json_content.size();json_offset++)
+                if(json_content[json_offset]!='{')
                 {
-                    if(json_content[json_offset]=='{')
-                    {
-                        json_offset+=1;
-                        break;
-                    }
+                    continue;
                 }
                 if(record.size()>0)
                 {
-                    data=metatemp;
+                    data = metatemp;
                 }
-                if(json_offset>=json_content.size())
+                json_offset++;
+                if(json_offset >= json_content.size())
                 {
                     break;
                 }
@@ -1852,10 +1848,11 @@ tempsql<<"\"basesitepath\":\""<<http::utf8_to_jsonstring(data.basesitepath)<<"\"
                                         }
                                         break;
                                     }       
-                                    if(json_content[json_offset]!=':')
+                                    if(json_offset < json_content.size() && json_content[json_offset]!=':')
                                     {
                                         break;
                                     }
+                                    json_offset+=1;
                                     for(;json_offset<json_content.size();json_offset++)
                                     {
                                         if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
@@ -1864,7 +1861,7 @@ tempsql<<"\"basesitepath\":\""<<http::utf8_to_jsonstring(data.basesitepath)<<"\"
                                         }
                                         break;
                                     } 
-                                    json_offset+=1;
+                                    
                                     if(json_offset>=json_content.size())
                                     {
                                         break;
@@ -1911,12 +1908,7 @@ tempsql<<"\"basesitepath\":\""<<http::utf8_to_jsonstring(data.basesitepath)<<"\"
     
                 }
                 record.emplace_back(data);
-                
-                json_offset+=1;
-            }
-            if(record.size()>1)
-            {
-                data=record[0];
+
             }
         }
         else
@@ -1926,10 +1918,8 @@ tempsql<<"\"basesitepath\":\""<<http::utf8_to_jsonstring(data.basesitepath)<<"\"
                 json_offset+=1; 
                 std::string json_key_name,json_value_name; 
                  
-                
                 for(;json_offset<json_content.size();json_offset++)
                 {
- 
                         if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
                         {
                             continue;
@@ -1947,7 +1937,6 @@ tempsql<<"\"basesitepath\":\""<<http::utf8_to_jsonstring(data.basesitepath)<<"\"
                                  }
                                 for(;json_offset<json_content.size();json_offset++)
                                 {
-                                
                                     if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
                                     {
                                         continue;
@@ -1958,6 +1947,7 @@ tempsql<<"\"basesitepath\":\""<<http::utf8_to_jsonstring(data.basesitepath)<<"\"
                                 {
                                     break;
                                 }
+                                json_offset+=1;
                                 for(;json_offset<json_content.size();json_offset++)
                                 {
                                     if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
@@ -1966,15 +1956,14 @@ tempsql<<"\"basesitepath\":\""<<http::utf8_to_jsonstring(data.basesitepath)<<"\"
                                     }
                                     break;
                                 } 
-                                json_offset+=1;
-                                if(json_offset>=json_content.size())
+                                
+                                if(json_offset >= json_content.size())
                                 {
                                     break;
                                 }
                                 json_value_name.clear();
                                 if(json_content[json_offset]==0x22)
                                 {
-                                    
                                     temp_offset=json_offset;
                                     json_value_name=http::jsonstring_to_utf8(&json_content[json_offset],json_content.size()-json_offset,temp_offset);
                                     json_offset=temp_offset;
@@ -2012,334 +2001,76 @@ tempsql<<"\"basesitepath\":\""<<http::utf8_to_jsonstring(data.basesitepath)<<"\"
                         }
  
                 }
-                record.emplace_back(data);
-            } 
+                if(isarray)
+                {
+                    record.emplace_back(data);
+                }
+            }
         }
-   }   
+    }
     
     void set_val(const std::string& set_key_name,const std::string& set_value_name)
     {
         switch(findcolpos(set_key_name))
         {
-    		case 0:
-		 try{
-			data.adminid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.adminid=0;
-			 }
-			break;
-		case 1:
-		 try{
-			data.name.append(set_value_name);
-		}catch (...) { 
-			data.name.clear();
-			 }
-			break;
-		case 2:
-		 try{
-			data.password.append(set_value_name);
-		}catch (...) { 
-			data.password.clear();
-			 }
-			break;
-		case 3:
-		 try{
-			data.nickname.append(set_value_name);
-		}catch (...) { 
-			data.nickname.clear();
-			 }
-			break;
-		case 4:
-		 try{
-			data.isopen=std::stoi(set_value_name);
-		}catch (...) { 
-			data.isopen=0;
-			 }
-			break;
-		case 5:
-		 try{
-			data.begindate=std::stoul(set_value_name);
-		}catch (...) { 
-			data.begindate=0;
-			 }
-			break;
-		case 6:
-		 try{
-			data.enddate=std::stoul(set_value_name);
-		}catch (...) { 
-			data.enddate=0;
-			 }
-			break;
-		case 7:
-		 try{
-			data.regdate.append(set_value_name);
-		}catch (...) { 
-			data.regdate.clear();
-			 }
-			break;
-		case 8:
-		 try{
-			data.mobile.append(set_value_name);
-		}catch (...) { 
-			data.mobile.clear();
-			 }
-			break;
-		case 9:
-		 try{
-			data.email.append(set_value_name);
-		}catch (...) { 
-			data.email.clear();
-			 }
-			break;
-		case 10:
-		 try{
-			data.loginnum=std::stoul(set_value_name);
-		}catch (...) { 
-			data.loginnum=0;
-			 }
-			break;
-		case 11:
-		 try{
-			data.qrtemp=std::stoul(set_value_name);
-		}catch (...) { 
-			data.qrtemp=0;
-			 }
-			break;
-		case 12:
-		 try{
-			data.wxuuid.append(set_value_name);
-		}catch (...) { 
-			data.wxuuid.clear();
-			 }
-			break;
-		case 13:
-		 try{
-			data.basesitepath.append(set_value_name);
-		}catch (...) { 
-			data.basesitepath.clear();
-			 }
-			break;
-	default:
-		 { }
-			
-
-
-        }
-   } 
     
-    void set_val(const std::string& set_key_name,const long long set_value_name)
-    {
-        switch(findcolpos(set_key_name))
-        {
-    		case 0:
-		 try{
-			data.adminid=set_value_name;
-		}catch (...) { 
-			data.adminid=0;
-			 }
-			break;
+		case 0:
+		  http::json_set_val(data.adminid,set_value_name);
+		 break;
+		
 		case 1:
-		 try{
-			data.name=std::to_string(set_value_name);
-		}catch (...) { 
-			data.name.clear();
-			 }
-			break;
+		  http::json_set_val(data.name,set_value_name);
+		 break;
+		
 		case 2:
-		 try{
-			data.password=std::to_string(set_value_name);
-		}catch (...) { 
-			data.password.clear();
-			 }
-			break;
+		  http::json_set_val(data.password,set_value_name);
+		 break;
+		
 		case 3:
-		 try{
-			data.nickname=std::to_string(set_value_name);
-		}catch (...) { 
-			data.nickname.clear();
-			 }
-			break;
+		  http::json_set_val(data.nickname,set_value_name);
+		 break;
+		
 		case 4:
-		 try{
-			data.isopen=set_value_name;
-		}catch (...) { 
-			data.isopen=0;
-			 }
-			break;
+		  http::json_set_val(data.isopen,set_value_name);
+		 break;
+		
 		case 5:
-		 try{
-			data.begindate=set_value_name;
-		}catch (...) { 
-			data.begindate=0;
-			 }
-			break;
+		  http::json_set_val(data.begindate,set_value_name);
+		 break;
+		
 		case 6:
-		 try{
-			data.enddate=set_value_name;
-		}catch (...) { 
-			data.enddate=0;
-			 }
-			break;
+		  http::json_set_val(data.enddate,set_value_name);
+		 break;
+		
 		case 7:
-		 try{
-			data.regdate=std::to_string(set_value_name);
-		}catch (...) { 
-			data.regdate.clear();
-			 }
-			break;
+		  http::json_set_val(data.regdate,set_value_name);
+		 break;
+		
 		case 8:
-		 try{
-			data.mobile=std::to_string(set_value_name);
-		}catch (...) { 
-			data.mobile.clear();
-			 }
-			break;
+		  http::json_set_val(data.mobile,set_value_name);
+		 break;
+		
 		case 9:
-		 try{
-			data.email=std::to_string(set_value_name);
-		}catch (...) { 
-			data.email.clear();
-			 }
-			break;
+		  http::json_set_val(data.email,set_value_name);
+		 break;
+		
 		case 10:
-		 try{
-			data.loginnum=set_value_name;
-		}catch (...) { 
-			data.loginnum=0;
-			 }
-			break;
+		  http::json_set_val(data.loginnum,set_value_name);
+		 break;
+		
 		case 11:
-		 try{
-			data.qrtemp=set_value_name;
-		}catch (...) { 
-			data.qrtemp=0;
-			 }
-			break;
+		  http::json_set_val(data.qrtemp,set_value_name);
+		 break;
+		
 		case 12:
-		 try{
-			data.wxuuid=std::to_string(set_value_name);
-		}catch (...) { 
-			data.wxuuid.clear();
-			 }
-			break;
+		  http::json_set_val(data.wxuuid,set_value_name);
+		 break;
+		
 		case 13:
-		 try{
-			data.basesitepath=std::to_string(set_value_name);
-		}catch (...) { 
-			data.basesitepath.clear();
-			 }
-			break;
-	default:
-		 { }
-			
-
-
-        }
-   } 
-    
-    void set_val(const std::string& set_key_name,const double set_value_name)
-    {
-        switch(findcolpos(set_key_name))
-        {
-    		case 0:
-		 try{
-			data.adminid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.adminid=0;
-			 }
-			break;
-		case 1:
-		 try{
-			data.name=std::to_string(set_value_name);
-		}catch (...) { 
-			data.name.clear();
-			 }
-			break;
-		case 2:
-		 try{
-			data.password=std::to_string(set_value_name);
-		}catch (...) { 
-			data.password.clear();
-			 }
-			break;
-		case 3:
-		 try{
-			data.nickname=std::to_string(set_value_name);
-		}catch (...) { 
-			data.nickname.clear();
-			 }
-			break;
-		case 4:
-		 try{
-			data.isopen=(int)set_value_name;
-		}catch (...) { 
-			data.isopen=0;
-			 }
-			break;
-		case 5:
-		 try{
-			data.begindate=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.begindate=0;
-			 }
-			break;
-		case 6:
-		 try{
-			data.enddate=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.enddate=0;
-			 }
-			break;
-		case 7:
-		 try{
-			data.regdate=std::to_string(set_value_name);
-		}catch (...) { 
-			data.regdate.clear();
-			 }
-			break;
-		case 8:
-		 try{
-			data.mobile=std::to_string(set_value_name);
-		}catch (...) { 
-			data.mobile.clear();
-			 }
-			break;
-		case 9:
-		 try{
-			data.email=std::to_string(set_value_name);
-		}catch (...) { 
-			data.email.clear();
-			 }
-			break;
-		case 10:
-		 try{
-			data.loginnum=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.loginnum=0;
-			 }
-			break;
-		case 11:
-		 try{
-			data.qrtemp=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.qrtemp=0;
-			 }
-			break;
-		case 12:
-		 try{
-			data.wxuuid=std::to_string(set_value_name);
-		}catch (...) { 
-			data.wxuuid.clear();
-			 }
-			break;
-		case 13:
-		 try{
-			data.basesitepath=std::to_string(set_value_name);
-		}catch (...) { 
-			data.basesitepath.clear();
-			 }
-			break;
-	default:
+		  http::json_set_val(data.basesitepath,set_value_name);
+		 break;
+		
+		default:
 		 { }
 			
 

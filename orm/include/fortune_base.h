@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_FORTUNEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 18 Jun 2026 12:30:57 GMT
+*本文件为自动生成 Fri, 19 Jun 2026 00:14:14 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -683,7 +683,7 @@ break;
         return temp;
    }  
 
-   std::string _makeinsertsql(){
+   std::string make_data_insert_sql(){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -714,7 +714,7 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql(const fortune_info::meta &insert_data){
+      std::string make_data_insert_sql(const fortune_info::meta &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -745,7 +745,7 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makerecordinsertsql(const std::vector<fortune_info::meta> &insert_data){
+    std::string make_vector_insert_sql(const std::vector<fortune_info::meta> &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -786,7 +786,7 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makeupdatesql(std::string_view fileld){
+    std::string make_update_sql(std::string_view fileld){
         std::ostringstream tempsql;
         tempsql<<"UPDATE ";
         tempsql<<tablename;
@@ -872,7 +872,7 @@ tempsql<<"`message`='"<<stringaddslash(data.message)<<"'";
         return tempsql.str();
    } 
    
-    std::string _make_replace_into_sql()
+    std::string make_record_replace_sql()
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
@@ -916,7 +916,7 @@ tempsql<<"`message`='"<<stringaddslash(data.message)<<"'";
  return tempsql.str();
 }
 
-    std::string _make_insert_into_sql(std::string_view fileld)
+    std::string make_record_into_sql(std::string_view fileld)
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
@@ -1175,10 +1175,9 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(data.message)<<"\"";
    {
         record.clear();
         fortune_info::meta metatemp; 
-        data=metatemp;
+        data = metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
-        //std::vector<std::string> list_content;
         for(;json_offset<json_content.size();json_offset++)
         {
             if(json_content[json_offset]=='{')
@@ -1197,19 +1196,16 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(data.message)<<"\"";
             std::string json_key_name,json_value_name; 
             for(;json_offset<json_content.size();json_offset++)
             {
-                for(;json_offset<json_content.size();json_offset++)
+                if(json_content[json_offset]!='{')
                 {
-                    if(json_content[json_offset]=='{')
-                    {
-                        json_offset+=1;
-                        break;
-                    }
+                    continue;
                 }
                 if(record.size()>0)
                 {
-                    data=metatemp;
+                    data = metatemp;
                 }
-                if(json_offset>=json_content.size())
+                json_offset++;
+                if(json_offset >= json_content.size())
                 {
                     break;
                 }
@@ -1240,10 +1236,11 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(data.message)<<"\"";
                                         }
                                         break;
                                     }       
-                                    if(json_content[json_offset]!=':')
+                                    if(json_offset < json_content.size() && json_content[json_offset]!=':')
                                     {
                                         break;
                                     }
+                                    json_offset+=1;
                                     for(;json_offset<json_content.size();json_offset++)
                                     {
                                         if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
@@ -1252,7 +1249,7 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(data.message)<<"\"";
                                         }
                                         break;
                                     } 
-                                    json_offset+=1;
+                                    
                                     if(json_offset>=json_content.size())
                                     {
                                         break;
@@ -1299,12 +1296,7 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(data.message)<<"\"";
     
                 }
                 record.emplace_back(data);
-                
-                json_offset+=1;
-            }
-            if(record.size()>1)
-            {
-                data=record[0];
+
             }
         }
         else
@@ -1314,10 +1306,8 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(data.message)<<"\"";
                 json_offset+=1; 
                 std::string json_key_name,json_value_name; 
                  
-                
                 for(;json_offset<json_content.size();json_offset++)
                 {
- 
                         if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
                         {
                             continue;
@@ -1335,7 +1325,6 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(data.message)<<"\"";
                                  }
                                 for(;json_offset<json_content.size();json_offset++)
                                 {
-                                
                                     if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
                                     {
                                         continue;
@@ -1346,6 +1335,7 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(data.message)<<"\"";
                                 {
                                     break;
                                 }
+                                json_offset+=1;
                                 for(;json_offset<json_content.size();json_offset++)
                                 {
                                     if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
@@ -1354,15 +1344,14 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(data.message)<<"\"";
                                     }
                                     break;
                                 } 
-                                json_offset+=1;
-                                if(json_offset>=json_content.size())
+                                
+                                if(json_offset >= json_content.size())
                                 {
                                     break;
                                 }
                                 json_value_name.clear();
                                 if(json_content[json_offset]==0x22)
                                 {
-                                    
                                     temp_offset=json_offset;
                                     json_value_name=http::jsonstring_to_utf8(&json_content[json_offset],json_content.size()-json_offset,temp_offset);
                                     json_offset=temp_offset;
@@ -1400,82 +1389,28 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(data.message)<<"\"";
                         }
  
                 }
-                record.emplace_back(data);
-            } 
+                if(isarray)
+                {
+                    record.emplace_back(data);
+                }
+            }
         }
-   }   
+    }
     
     void set_val(const std::string& set_key_name,const std::string& set_value_name)
     {
         switch(findcolpos(set_key_name))
         {
-    		case 0:
-		 try{
-			data.id=std::stoul(set_value_name);
-		}catch (...) { 
-			data.id=0;
-			 }
-			break;
-		case 1:
-		 try{
-			data.message.append(set_value_name);
-		}catch (...) { 
-			data.message.clear();
-			 }
-			break;
-	default:
-		 { }
-			
-
-
-        }
-   } 
     
-    void set_val(const std::string& set_key_name,const long long set_value_name)
-    {
-        switch(findcolpos(set_key_name))
-        {
-    		case 0:
-		 try{
-			data.id=set_value_name;
-		}catch (...) { 
-			data.id=0;
-			 }
-			break;
+		case 0:
+		  http::json_set_val(data.id,set_value_name);
+		 break;
+		
 		case 1:
-		 try{
-			data.message=std::to_string(set_value_name);
-		}catch (...) { 
-			data.message.clear();
-			 }
-			break;
-	default:
-		 { }
-			
-
-
-        }
-   } 
-    
-    void set_val(const std::string& set_key_name,const double set_value_name)
-    {
-        switch(findcolpos(set_key_name))
-        {
-    		case 0:
-		 try{
-			data.id=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.id=0;
-			 }
-			break;
-		case 1:
-		 try{
-			data.message=std::to_string(set_value_name);
-		}catch (...) { 
-			data.message.clear();
-			 }
-			break;
-	default:
+		  http::json_set_val(data.message,set_value_name);
+		 break;
+		
+		default:
 		 { }
 			
 

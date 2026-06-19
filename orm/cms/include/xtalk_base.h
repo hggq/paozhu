@@ -2,7 +2,7 @@
 #define ORM_CMS_XTALKBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 18 Jun 2026 12:31:02 GMT
+*本文件为自动生成 Fri, 19 Jun 2026 00:17:09 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -760,7 +760,7 @@ break;
          }
          else
          {
-            temp=_makeupdatesql(fieldsql);
+            temp=make_update_sql(fieldsql);
             if(temp.size()>2)
             {
                 if(temp.back()==0x20&&temp[temp.size()-2]=='T')
@@ -818,7 +818,7 @@ break;
         return temp;
    }  
 
-   std::string _makeinsertsql(){
+   std::string make_data_insert_sql(){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -894,7 +894,7 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql(const xtalk_info::meta &insert_data){
+      std::string make_data_insert_sql(const xtalk_info::meta &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -970,7 +970,7 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makerecordinsertsql(const std::vector<xtalk_info::meta> &insert_data){
+    std::string make_vector_insert_sql(const std::vector<xtalk_info::meta> &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -1056,7 +1056,7 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makeupdatesql(std::string_view fileld){
+    std::string make_update_sql(std::string_view fileld){
         std::ostringstream tempsql;
         tempsql<<"UPDATE ";
         tempsql<<tablename;
@@ -1259,7 +1259,7 @@ if(data.replyid==0){
         return tempsql.str();
    } 
    
-    std::string _make_replace_into_sql()
+    std::string make_record_replace_sql()
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
@@ -1348,7 +1348,7 @@ if(data.replyid==0){
  return tempsql.str();
 }
 
-    std::string _make_insert_into_sql(std::string_view fileld)
+    std::string make_record_into_sql(std::string_view fileld)
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
@@ -1895,10 +1895,9 @@ if(data.replyid==0){
    {
         record.clear();
         xtalk_info::meta metatemp; 
-        data=metatemp;
+        data = metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
-        //std::vector<std::string> list_content;
         for(;json_offset<json_content.size();json_offset++)
         {
             if(json_content[json_offset]=='{')
@@ -1917,19 +1916,16 @@ if(data.replyid==0){
             std::string json_key_name,json_value_name; 
             for(;json_offset<json_content.size();json_offset++)
             {
-                for(;json_offset<json_content.size();json_offset++)
+                if(json_content[json_offset]!='{')
                 {
-                    if(json_content[json_offset]=='{')
-                    {
-                        json_offset+=1;
-                        break;
-                    }
+                    continue;
                 }
                 if(record.size()>0)
                 {
-                    data=metatemp;
+                    data = metatemp;
                 }
-                if(json_offset>=json_content.size())
+                json_offset++;
+                if(json_offset >= json_content.size())
                 {
                     break;
                 }
@@ -1960,10 +1956,11 @@ if(data.replyid==0){
                                         }
                                         break;
                                     }       
-                                    if(json_content[json_offset]!=':')
+                                    if(json_offset < json_content.size() && json_content[json_offset]!=':')
                                     {
                                         break;
                                     }
+                                    json_offset+=1;
                                     for(;json_offset<json_content.size();json_offset++)
                                     {
                                         if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
@@ -1972,7 +1969,7 @@ if(data.replyid==0){
                                         }
                                         break;
                                     } 
-                                    json_offset+=1;
+                                    
                                     if(json_offset>=json_content.size())
                                     {
                                         break;
@@ -2019,12 +2016,7 @@ if(data.replyid==0){
     
                 }
                 record.emplace_back(data);
-                
-                json_offset+=1;
-            }
-            if(record.size()>1)
-            {
-                data=record[0];
+
             }
         }
         else
@@ -2034,10 +2026,8 @@ if(data.replyid==0){
                 json_offset+=1; 
                 std::string json_key_name,json_value_name; 
                  
-                
                 for(;json_offset<json_content.size();json_offset++)
                 {
- 
                         if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
                         {
                             continue;
@@ -2055,7 +2045,6 @@ if(data.replyid==0){
                                  }
                                 for(;json_offset<json_content.size();json_offset++)
                                 {
-                                
                                     if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
                                     {
                                         continue;
@@ -2066,6 +2055,7 @@ if(data.replyid==0){
                                 {
                                     break;
                                 }
+                                json_offset+=1;
                                 for(;json_offset<json_content.size();json_offset++)
                                 {
                                     if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
@@ -2074,15 +2064,14 @@ if(data.replyid==0){
                                     }
                                     break;
                                 } 
-                                json_offset+=1;
-                                if(json_offset>=json_content.size())
+                                
+                                if(json_offset >= json_content.size())
                                 {
                                     break;
                                 }
                                 json_value_name.clear();
                                 if(json_content[json_offset]==0x22)
                                 {
-                                    
                                     temp_offset=json_offset;
                                     json_value_name=http::jsonstring_to_utf8(&json_content[json_offset],json_content.size()-json_offset,temp_offset);
                                     json_offset=temp_offset;
@@ -2120,271 +2109,64 @@ if(data.replyid==0){
                         }
  
                 }
-                record.emplace_back(data);
-            } 
+                if(isarray)
+                {
+                    record.emplace_back(data);
+                }
+            }
         }
-   }   
+    }
     
     void set_val(const std::string& set_key_name,const std::string& set_value_name)
     {
         switch(findcolpos(set_key_name))
         {
-    		case 0:
-		 try{
-			data.talkid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.talkid=0;
-			 }
-			break;
-		case 1:
-		 try{
-			data.userid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
-		case 2:
-		 try{
-			data.adminid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.adminid=0;
-			 }
-			break;
-		case 3:
-		 try{
-			data.taskid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.taskid=0;
-			 }
-			break;
-		case 4:
-		 try{
-			data.projectid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.projectid=0;
-			 }
-			break;
-		case 5:
-		 try{
-			data.content.append(set_value_name);
-		}catch (...) { 
-			data.content.clear();
-			 }
-			break;
-		case 6:
-		 try{
-			data.isdelete=std::stoi(set_value_name);
-		}catch (...) { 
-			data.isdelete=0;
-			 }
-			break;
-		case 7:
-		 try{
-			data.addtime=std::stoul(set_value_name);
-		}catch (...) { 
-			data.addtime=0;
-			 }
-			break;
-		case 8:
-		 try{
-			data.update_at=std::stoul(set_value_name);
-		}catch (...) { 
-			data.update_at=0;
-			 }
-			break;
-		case 9:
-		 try{
-			data.islock=std::stoi(set_value_name);
-		}catch (...) { 
-			data.islock=0;
-			 }
-			break;
-		case 10:
-		 try{
-			data.replyid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.replyid=0;
-			 }
-			break;
-	default:
-		 { }
-			
-
-
-        }
-   } 
     
-    void set_val(const std::string& set_key_name,const long long set_value_name)
-    {
-        switch(findcolpos(set_key_name))
-        {
-    		case 0:
-		 try{
-			data.talkid=set_value_name;
-		}catch (...) { 
-			data.talkid=0;
-			 }
-			break;
+		case 0:
+		  http::json_set_val(data.talkid,set_value_name);
+		 break;
+		
 		case 1:
-		 try{
-			data.userid=set_value_name;
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
+		  http::json_set_val(data.userid,set_value_name);
+		 break;
+		
 		case 2:
-		 try{
-			data.adminid=set_value_name;
-		}catch (...) { 
-			data.adminid=0;
-			 }
-			break;
+		  http::json_set_val(data.adminid,set_value_name);
+		 break;
+		
 		case 3:
-		 try{
-			data.taskid=set_value_name;
-		}catch (...) { 
-			data.taskid=0;
-			 }
-			break;
+		  http::json_set_val(data.taskid,set_value_name);
+		 break;
+		
 		case 4:
-		 try{
-			data.projectid=set_value_name;
-		}catch (...) { 
-			data.projectid=0;
-			 }
-			break;
+		  http::json_set_val(data.projectid,set_value_name);
+		 break;
+		
 		case 5:
-		 try{
-			data.content=std::to_string(set_value_name);
-		}catch (...) { 
-			data.content.clear();
-			 }
-			break;
+		  http::json_set_val(data.content,set_value_name);
+		 break;
+		
 		case 6:
-		 try{
-			data.isdelete=set_value_name;
-		}catch (...) { 
-			data.isdelete=0;
-			 }
-			break;
+		  http::json_set_val(data.isdelete,set_value_name);
+		 break;
+		
 		case 7:
-		 try{
-			data.addtime=set_value_name;
-		}catch (...) { 
-			data.addtime=0;
-			 }
-			break;
+		  http::json_set_val(data.addtime,set_value_name);
+		 break;
+		
 		case 8:
-		 try{
-			data.update_at=set_value_name;
-		}catch (...) { 
-			data.update_at=0;
-			 }
-			break;
+		  http::json_set_val(data.update_at,set_value_name);
+		 break;
+		
 		case 9:
-		 try{
-			data.islock=set_value_name;
-		}catch (...) { 
-			data.islock=0;
-			 }
-			break;
+		  http::json_set_val(data.islock,set_value_name);
+		 break;
+		
 		case 10:
-		 try{
-			data.replyid=set_value_name;
-		}catch (...) { 
-			data.replyid=0;
-			 }
-			break;
-	default:
-		 { }
-			
-
-
-        }
-   } 
-    
-    void set_val(const std::string& set_key_name,const double set_value_name)
-    {
-        switch(findcolpos(set_key_name))
-        {
-    		case 0:
-		 try{
-			data.talkid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.talkid=0;
-			 }
-			break;
-		case 1:
-		 try{
-			data.userid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
-		case 2:
-		 try{
-			data.adminid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.adminid=0;
-			 }
-			break;
-		case 3:
-		 try{
-			data.taskid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.taskid=0;
-			 }
-			break;
-		case 4:
-		 try{
-			data.projectid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.projectid=0;
-			 }
-			break;
-		case 5:
-		 try{
-			data.content=std::to_string(set_value_name);
-		}catch (...) { 
-			data.content.clear();
-			 }
-			break;
-		case 6:
-		 try{
-			data.isdelete=(int)set_value_name;
-		}catch (...) { 
-			data.isdelete=0;
-			 }
-			break;
-		case 7:
-		 try{
-			data.addtime=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.addtime=0;
-			 }
-			break;
-		case 8:
-		 try{
-			data.update_at=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.update_at=0;
-			 }
-			break;
-		case 9:
-		 try{
-			data.islock=(int)set_value_name;
-		}catch (...) { 
-			data.islock=0;
-			 }
-			break;
-		case 10:
-		 try{
-			data.replyid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.replyid=0;
-			 }
-			break;
-	default:
+		  http::json_set_val(data.replyid,set_value_name);
+		 break;
+		
+		default:
 		 { }
 			
 

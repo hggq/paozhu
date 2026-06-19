@@ -2,7 +2,7 @@
 #define ORM_CMS_XMEETBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 18 Jun 2026 12:31:02 GMT
+*本文件为自动生成 Fri, 19 Jun 2026 00:17:09 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -886,7 +886,7 @@ break;
         return temp;
    }  
 
-   std::string _makeinsertsql(){
+   std::string make_data_insert_sql(){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -963,7 +963,7 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql(const xmeet_info::meta &insert_data){
+      std::string make_data_insert_sql(const xmeet_info::meta &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -1040,7 +1040,7 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makerecordinsertsql(const std::vector<xmeet_info::meta> &insert_data){
+    std::string make_vector_insert_sql(const std::vector<xmeet_info::meta> &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -1127,7 +1127,7 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makeupdatesql(std::string_view fileld){
+    std::string make_update_sql(std::string_view fileld){
         std::ostringstream tempsql;
         tempsql<<"UPDATE ";
         tempsql<<tablename;
@@ -1359,7 +1359,7 @@ tempsql<<"`jiluphoto`='"<<stringaddslash(data.jiluphoto)<<"'";
         return tempsql.str();
    } 
    
-    std::string _make_replace_into_sql()
+    std::string make_record_replace_sql()
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
@@ -1449,7 +1449,7 @@ tempsql<<"`jiluphoto`='"<<stringaddslash(data.jiluphoto)<<"'";
  return tempsql.str();
 }
 
-    std::string _make_insert_into_sql(std::string_view fileld)
+    std::string make_record_into_sql(std::string_view fileld)
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
@@ -2075,10 +2075,9 @@ tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(data.jiluphoto)<<"\"";
    {
         record.clear();
         xmeet_info::meta metatemp; 
-        data=metatemp;
+        data = metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
-        //std::vector<std::string> list_content;
         for(;json_offset<json_content.size();json_offset++)
         {
             if(json_content[json_offset]=='{')
@@ -2097,19 +2096,16 @@ tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(data.jiluphoto)<<"\"";
             std::string json_key_name,json_value_name; 
             for(;json_offset<json_content.size();json_offset++)
             {
-                for(;json_offset<json_content.size();json_offset++)
+                if(json_content[json_offset]!='{')
                 {
-                    if(json_content[json_offset]=='{')
-                    {
-                        json_offset+=1;
-                        break;
-                    }
+                    continue;
                 }
                 if(record.size()>0)
                 {
-                    data=metatemp;
+                    data = metatemp;
                 }
-                if(json_offset>=json_content.size())
+                json_offset++;
+                if(json_offset >= json_content.size())
                 {
                     break;
                 }
@@ -2140,10 +2136,11 @@ tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(data.jiluphoto)<<"\"";
                                         }
                                         break;
                                     }       
-                                    if(json_content[json_offset]!=':')
+                                    if(json_offset < json_content.size() && json_content[json_offset]!=':')
                                     {
                                         break;
                                     }
+                                    json_offset+=1;
                                     for(;json_offset<json_content.size();json_offset++)
                                     {
                                         if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
@@ -2152,7 +2149,7 @@ tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(data.jiluphoto)<<"\"";
                                         }
                                         break;
                                     } 
-                                    json_offset+=1;
+                                    
                                     if(json_offset>=json_content.size())
                                     {
                                         break;
@@ -2199,12 +2196,7 @@ tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(data.jiluphoto)<<"\"";
     
                 }
                 record.emplace_back(data);
-                
-                json_offset+=1;
-            }
-            if(record.size()>1)
-            {
-                data=record[0];
+
             }
         }
         else
@@ -2214,10 +2206,8 @@ tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(data.jiluphoto)<<"\"";
                 json_offset+=1; 
                 std::string json_key_name,json_value_name; 
                  
-                
                 for(;json_offset<json_content.size();json_offset++)
                 {
- 
                         if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
                         {
                             continue;
@@ -2235,7 +2225,6 @@ tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(data.jiluphoto)<<"\"";
                                  }
                                 for(;json_offset<json_content.size();json_offset++)
                                 {
-                                
                                     if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
                                     {
                                         continue;
@@ -2246,6 +2235,7 @@ tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(data.jiluphoto)<<"\"";
                                 {
                                     break;
                                 }
+                                json_offset+=1;
                                 for(;json_offset<json_content.size();json_offset++)
                                 {
                                     if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
@@ -2254,15 +2244,14 @@ tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(data.jiluphoto)<<"\"";
                                     }
                                     break;
                                 } 
-                                json_offset+=1;
-                                if(json_offset>=json_content.size())
+                                
+                                if(json_offset >= json_content.size())
                                 {
                                     break;
                                 }
                                 json_value_name.clear();
                                 if(json_content[json_offset]==0x22)
                                 {
-                                    
                                     temp_offset=json_offset;
                                     json_value_name=http::jsonstring_to_utf8(&json_content[json_offset],json_content.size()-json_offset,temp_offset);
                                     json_offset=temp_offset;
@@ -2300,460 +2289,100 @@ tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(data.jiluphoto)<<"\"";
                         }
  
                 }
-                record.emplace_back(data);
-            } 
+                if(isarray)
+                {
+                    record.emplace_back(data);
+                }
+            }
         }
-   }   
+    }
     
     void set_val(const std::string& set_key_name,const std::string& set_value_name)
     {
         switch(findcolpos(set_key_name))
         {
-    		case 0:
-		 try{
-			data.xmeetid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.xmeetid=0;
-			 }
-			break;
-		case 1:
-		 try{
-			data.userid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
-		case 2:
-		 try{
-			data.xpjid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.xpjid=0;
-			 }
-			break;
-		case 3:
-		 try{
-			data.xtaskid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.xtaskid=0;
-			 }
-			break;
-		case 4:
-		 try{
-			data.adminid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.adminid=0;
-			 }
-			break;
-		case 5:
-		 try{
-			data.title.append(set_value_name);
-		}catch (...) { 
-			data.title.clear();
-			 }
-			break;
-		case 6:
-		 try{
-			data.zhuchi.append(set_value_name);
-		}catch (...) { 
-			data.zhuchi.clear();
-			 }
-			break;
-		case 7:
-		 try{
-			data.jilu.append(set_value_name);
-		}catch (...) { 
-			data.jilu.clear();
-			 }
-			break;
-		case 8:
-		 try{
-			data.meetnotice.append(set_value_name);
-		}catch (...) { 
-			data.meetnotice.clear();
-			 }
-			break;
-		case 9:
-		 try{
-			data.meetfiles.append(set_value_name);
-		}catch (...) { 
-			data.meetfiles.clear();
-			 }
-			break;
-		case 10:
-		 try{
-			data.address.append(set_value_name);
-		}catch (...) { 
-			data.address.clear();
-			 }
-			break;
-		case 11:
-		 try{
-			data.meettime.append(set_value_name);
-		}catch (...) { 
-			data.meettime.clear();
-			 }
-			break;
-		case 12:
-		 try{
-			data.regdate=std::stoul(set_value_name);
-		}catch (...) { 
-			data.regdate=0;
-			 }
-			break;
-		case 13:
-		 try{
-			data.expecttime=std::stoul(set_value_name);
-		}catch (...) { 
-			data.expecttime=0;
-			 }
-			break;
-		case 14:
-		 try{
-			data.endtime=std::stoul(set_value_name);
-		}catch (...) { 
-			data.endtime=0;
-			 }
-			break;
-		case 15:
-		 try{
-			data.presents.append(set_value_name);
-		}catch (...) { 
-			data.presents.clear();
-			 }
-			break;
-		case 16:
-		 try{
-			data.content.append(set_value_name);
-		}catch (...) { 
-			data.content.clear();
-			 }
-			break;
-		case 17:
-		 try{
-			data.postresult.append(set_value_name);
-		}catch (...) { 
-			data.postresult.clear();
-			 }
-			break;
-		case 18:
-		 try{
-			data.postfiles.append(set_value_name);
-		}catch (...) { 
-			data.postfiles.clear();
-			 }
-			break;
-		case 19:
-		 try{
-			data.jiluphoto.append(set_value_name);
-		}catch (...) { 
-			data.jiluphoto.clear();
-			 }
-			break;
-	default:
-		 { }
-			
-
-
-        }
-   } 
     
-    void set_val(const std::string& set_key_name,const long long set_value_name)
-    {
-        switch(findcolpos(set_key_name))
-        {
-    		case 0:
-		 try{
-			data.xmeetid=set_value_name;
-		}catch (...) { 
-			data.xmeetid=0;
-			 }
-			break;
+		case 0:
+		  http::json_set_val(data.xmeetid,set_value_name);
+		 break;
+		
 		case 1:
-		 try{
-			data.userid=set_value_name;
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
+		  http::json_set_val(data.userid,set_value_name);
+		 break;
+		
 		case 2:
-		 try{
-			data.xpjid=set_value_name;
-		}catch (...) { 
-			data.xpjid=0;
-			 }
-			break;
+		  http::json_set_val(data.xpjid,set_value_name);
+		 break;
+		
 		case 3:
-		 try{
-			data.xtaskid=set_value_name;
-		}catch (...) { 
-			data.xtaskid=0;
-			 }
-			break;
+		  http::json_set_val(data.xtaskid,set_value_name);
+		 break;
+		
 		case 4:
-		 try{
-			data.adminid=set_value_name;
-		}catch (...) { 
-			data.adminid=0;
-			 }
-			break;
+		  http::json_set_val(data.adminid,set_value_name);
+		 break;
+		
 		case 5:
-		 try{
-			data.title=std::to_string(set_value_name);
-		}catch (...) { 
-			data.title.clear();
-			 }
-			break;
+		  http::json_set_val(data.title,set_value_name);
+		 break;
+		
 		case 6:
-		 try{
-			data.zhuchi=std::to_string(set_value_name);
-		}catch (...) { 
-			data.zhuchi.clear();
-			 }
-			break;
+		  http::json_set_val(data.zhuchi,set_value_name);
+		 break;
+		
 		case 7:
-		 try{
-			data.jilu=std::to_string(set_value_name);
-		}catch (...) { 
-			data.jilu.clear();
-			 }
-			break;
+		  http::json_set_val(data.jilu,set_value_name);
+		 break;
+		
 		case 8:
-		 try{
-			data.meetnotice=std::to_string(set_value_name);
-		}catch (...) { 
-			data.meetnotice.clear();
-			 }
-			break;
+		  http::json_set_val(data.meetnotice,set_value_name);
+		 break;
+		
 		case 9:
-		 try{
-			data.meetfiles=std::to_string(set_value_name);
-		}catch (...) { 
-			data.meetfiles.clear();
-			 }
-			break;
+		  http::json_set_val(data.meetfiles,set_value_name);
+		 break;
+		
 		case 10:
-		 try{
-			data.address=std::to_string(set_value_name);
-		}catch (...) { 
-			data.address.clear();
-			 }
-			break;
+		  http::json_set_val(data.address,set_value_name);
+		 break;
+		
 		case 11:
-		 try{
-			data.meettime=std::to_string(set_value_name);
-		}catch (...) { 
-			data.meettime.clear();
-			 }
-			break;
+		  http::json_set_val(data.meettime,set_value_name);
+		 break;
+		
 		case 12:
-		 try{
-			data.regdate=set_value_name;
-		}catch (...) { 
-			data.regdate=0;
-			 }
-			break;
+		  http::json_set_val(data.regdate,set_value_name);
+		 break;
+		
 		case 13:
-		 try{
-			data.expecttime=set_value_name;
-		}catch (...) { 
-			data.expecttime=0;
-			 }
-			break;
+		  http::json_set_val(data.expecttime,set_value_name);
+		 break;
+		
 		case 14:
-		 try{
-			data.endtime=set_value_name;
-		}catch (...) { 
-			data.endtime=0;
-			 }
-			break;
+		  http::json_set_val(data.endtime,set_value_name);
+		 break;
+		
 		case 15:
-		 try{
-			data.presents=std::to_string(set_value_name);
-		}catch (...) { 
-			data.presents.clear();
-			 }
-			break;
+		  http::json_set_val(data.presents,set_value_name);
+		 break;
+		
 		case 16:
-		 try{
-			data.content=std::to_string(set_value_name);
-		}catch (...) { 
-			data.content.clear();
-			 }
-			break;
+		  http::json_set_val(data.content,set_value_name);
+		 break;
+		
 		case 17:
-		 try{
-			data.postresult=std::to_string(set_value_name);
-		}catch (...) { 
-			data.postresult.clear();
-			 }
-			break;
+		  http::json_set_val(data.postresult,set_value_name);
+		 break;
+		
 		case 18:
-		 try{
-			data.postfiles=std::to_string(set_value_name);
-		}catch (...) { 
-			data.postfiles.clear();
-			 }
-			break;
+		  http::json_set_val(data.postfiles,set_value_name);
+		 break;
+		
 		case 19:
-		 try{
-			data.jiluphoto=std::to_string(set_value_name);
-		}catch (...) { 
-			data.jiluphoto.clear();
-			 }
-			break;
-	default:
-		 { }
-			
-
-
-        }
-   } 
-    
-    void set_val(const std::string& set_key_name,const double set_value_name)
-    {
-        switch(findcolpos(set_key_name))
-        {
-    		case 0:
-		 try{
-			data.xmeetid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.xmeetid=0;
-			 }
-			break;
-		case 1:
-		 try{
-			data.userid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
-		case 2:
-		 try{
-			data.xpjid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.xpjid=0;
-			 }
-			break;
-		case 3:
-		 try{
-			data.xtaskid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.xtaskid=0;
-			 }
-			break;
-		case 4:
-		 try{
-			data.adminid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.adminid=0;
-			 }
-			break;
-		case 5:
-		 try{
-			data.title=std::to_string(set_value_name);
-		}catch (...) { 
-			data.title.clear();
-			 }
-			break;
-		case 6:
-		 try{
-			data.zhuchi=std::to_string(set_value_name);
-		}catch (...) { 
-			data.zhuchi.clear();
-			 }
-			break;
-		case 7:
-		 try{
-			data.jilu=std::to_string(set_value_name);
-		}catch (...) { 
-			data.jilu.clear();
-			 }
-			break;
-		case 8:
-		 try{
-			data.meetnotice=std::to_string(set_value_name);
-		}catch (...) { 
-			data.meetnotice.clear();
-			 }
-			break;
-		case 9:
-		 try{
-			data.meetfiles=std::to_string(set_value_name);
-		}catch (...) { 
-			data.meetfiles.clear();
-			 }
-			break;
-		case 10:
-		 try{
-			data.address=std::to_string(set_value_name);
-		}catch (...) { 
-			data.address.clear();
-			 }
-			break;
-		case 11:
-		 try{
-			data.meettime=std::to_string(set_value_name);
-		}catch (...) { 
-			data.meettime.clear();
-			 }
-			break;
-		case 12:
-		 try{
-			data.regdate=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.regdate=0;
-			 }
-			break;
-		case 13:
-		 try{
-			data.expecttime=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.expecttime=0;
-			 }
-			break;
-		case 14:
-		 try{
-			data.endtime=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.endtime=0;
-			 }
-			break;
-		case 15:
-		 try{
-			data.presents=std::to_string(set_value_name);
-		}catch (...) { 
-			data.presents.clear();
-			 }
-			break;
-		case 16:
-		 try{
-			data.content=std::to_string(set_value_name);
-		}catch (...) { 
-			data.content.clear();
-			 }
-			break;
-		case 17:
-		 try{
-			data.postresult=std::to_string(set_value_name);
-		}catch (...) { 
-			data.postresult.clear();
-			 }
-			break;
-		case 18:
-		 try{
-			data.postfiles=std::to_string(set_value_name);
-		}catch (...) { 
-			data.postfiles.clear();
-			 }
-			break;
-		case 19:
-		 try{
-			data.jiluphoto=std::to_string(set_value_name);
-		}catch (...) { 
-			data.jiluphoto.clear();
-			 }
-			break;
-	default:
+		  http::json_set_val(data.jiluphoto,set_value_name);
+		 break;
+		
+		default:
 		 { }
 			
 

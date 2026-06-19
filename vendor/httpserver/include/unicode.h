@@ -189,5 +189,99 @@ namespace http
             }
         }
     }
+
+    ///json 
+     // 整数赋值重载
+    template <typename T>
+    inline auto json_set_val(T& field, const std::string &buf)
+        -> std::enable_if_t<std::is_integral_v<T>>
+    {
+        auto result = std::from_chars(
+            buf.data(),
+            buf.data() + buf.size(),
+            field);
+        if (result.ec != std::errc{}) {
+            field = 0;
+        }
+    }
+
+    // 浮点赋值重载
+    template <typename T>
+    inline auto json_set_val(T& field, const std::string &buf)
+        -> std::enable_if_t<std::is_floating_point_v<T>>
+    {
+        #if defined(_LIBCPP_VERSION) && \
+            (!defined(__cpp_lib_to_chars) || __cpp_lib_to_chars < 201611L || \
+            (defined(__apple_build_version__) && __clang_major__ < 21))
+
+            field = 0.0;
+            try {
+                const char* p = buf.data();
+                size_t length = buf.size();   // 从 string 获取长度
+
+                if (length == 0 || *p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') {
+                    field = 0.0;
+                } else {
+                    std::string tmp(p, length);
+                    size_t idx = 0;
+                    long double parsed = std::stold(tmp, &idx);
+                    if (idx > 0 && idx <= length) {
+                        field = static_cast<double>(parsed);
+                    } else {
+                        field = 0.0;
+                    }
+                }
+            } catch (...) {
+                field = 0.0;
+            }
+
+        #else
+            // 使用 std::from_chars（C++17）
+            auto result = std::from_chars(
+                buf.data(),
+                buf.data() + buf.size(),
+                field);
+            if (result.ec != std::errc{}) {
+                field = 0.0;
+            }
+        #endif
+    }
+
+    // 字符串赋值重载
+    template <typename T>
+    inline auto json_set_val(T& field, const std::string &buf) 
+        -> std::enable_if_t<std::is_same_v<std::decay_t<T>, std::string>> 
+    {
+        field = buf;
+    }
+
+    // 字符串赋值重载
+    template <typename T>
+    inline auto json_set_val(T& field,const std::string &buf) 
+        -> std::enable_if_t<std::is_same_v<std::decay_t<T>, bool>> 
+    {
+        if(buf.size() > 0 && buf.size() < 4)
+        {
+            if(buf[0] != '0')
+            {
+                field = true;
+            }
+            else
+            {
+                field = false;
+            }
+        }
+        else if(buf.size() > 2)
+        {
+            if(buf[0] == 'F' || buf[0] == 'f')
+            {
+                field = false;
+            }
+            else
+            {
+                field = true;
+            }
+        }
+    }
 }
 #endif

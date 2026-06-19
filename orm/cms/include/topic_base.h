@@ -2,7 +2,7 @@
 #define ORM_CMS_TOPICBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 18 Jun 2026 12:31:02 GMT
+*本文件为自动生成 Fri, 19 Jun 2026 00:17:08 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -858,7 +858,7 @@ break;
         return temp;
    }  
 
-   std::string _makeinsertsql(){
+   std::string make_data_insert_sql(){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -941,7 +941,7 @@ tempsql<<")";
        return tempsql.str();
    } 
       
-      std::string _makerecordinsertsql(const topic_info::meta &insert_data){
+      std::string make_data_insert_sql(const topic_info::meta &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -1024,7 +1024,7 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makerecordinsertsql(const std::vector<topic_info::meta> &insert_data){
+    std::string make_vector_insert_sql(const std::vector<topic_info::meta> &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
@@ -1117,7 +1117,7 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string _makeupdatesql(std::string_view fileld){
+    std::string make_update_sql(std::string_view fileld){
         std::ostringstream tempsql;
         tempsql<<"UPDATE ";
         tempsql<<tablename;
@@ -1355,7 +1355,7 @@ if(data.accesscode==0){
         return tempsql.str();
    } 
    
-    std::string _make_replace_into_sql()
+    std::string make_record_replace_sql()
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
@@ -1451,7 +1451,7 @@ if(data.accesscode==0){
  return tempsql.str();
 }
 
-    std::string _make_insert_into_sql(std::string_view fileld)
+    std::string make_record_into_sql(std::string_view fileld)
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
@@ -2089,10 +2089,9 @@ if(data.accesscode==0){
    {
         record.clear();
         topic_info::meta metatemp; 
-        data=metatemp;
+        data = metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
-        //std::vector<std::string> list_content;
         for(;json_offset<json_content.size();json_offset++)
         {
             if(json_content[json_offset]=='{')
@@ -2111,19 +2110,16 @@ if(data.accesscode==0){
             std::string json_key_name,json_value_name; 
             for(;json_offset<json_content.size();json_offset++)
             {
-                for(;json_offset<json_content.size();json_offset++)
+                if(json_content[json_offset]!='{')
                 {
-                    if(json_content[json_offset]=='{')
-                    {
-                        json_offset+=1;
-                        break;
-                    }
+                    continue;
                 }
                 if(record.size()>0)
                 {
-                    data=metatemp;
+                    data = metatemp;
                 }
-                if(json_offset>=json_content.size())
+                json_offset++;
+                if(json_offset >= json_content.size())
                 {
                     break;
                 }
@@ -2154,10 +2150,11 @@ if(data.accesscode==0){
                                         }
                                         break;
                                     }       
-                                    if(json_content[json_offset]!=':')
+                                    if(json_offset < json_content.size() && json_content[json_offset]!=':')
                                     {
                                         break;
                                     }
+                                    json_offset+=1;
                                     for(;json_offset<json_content.size();json_offset++)
                                     {
                                         if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
@@ -2166,7 +2163,7 @@ if(data.accesscode==0){
                                         }
                                         break;
                                     } 
-                                    json_offset+=1;
+                                    
                                     if(json_offset>=json_content.size())
                                     {
                                         break;
@@ -2213,12 +2210,7 @@ if(data.accesscode==0){
     
                 }
                 record.emplace_back(data);
-                
-                json_offset+=1;
-            }
-            if(record.size()>1)
-            {
-                data=record[0];
+
             }
         }
         else
@@ -2228,10 +2220,8 @@ if(data.accesscode==0){
                 json_offset+=1; 
                 std::string json_key_name,json_value_name; 
                  
-                
                 for(;json_offset<json_content.size();json_offset++)
                 {
- 
                         if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
                         {
                             continue;
@@ -2249,7 +2239,6 @@ if(data.accesscode==0){
                                  }
                                 for(;json_offset<json_content.size();json_offset++)
                                 {
-                                
                                     if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
                                     {
                                         continue;
@@ -2260,6 +2249,7 @@ if(data.accesscode==0){
                                 {
                                     break;
                                 }
+                                json_offset+=1;
                                 for(;json_offset<json_content.size();json_offset++)
                                 {
                                     if(json_content[json_offset]==0x20||json_content[json_offset]==0x0A||json_content[json_offset]==0x0D||json_content[json_offset]=='\t')
@@ -2268,15 +2258,14 @@ if(data.accesscode==0){
                                     }
                                     break;
                                 } 
-                                json_offset+=1;
-                                if(json_offset>=json_content.size())
+                                
+                                if(json_offset >= json_content.size())
                                 {
                                     break;
                                 }
                                 json_value_name.clear();
                                 if(json_content[json_offset]==0x22)
                                 {
-                                    
                                     temp_offset=json_offset;
                                     json_value_name=http::jsonstring_to_utf8(&json_content[json_offset],json_content.size()-json_offset,temp_offset);
                                     json_offset=temp_offset;
@@ -2314,418 +2303,92 @@ if(data.accesscode==0){
                         }
  
                 }
-                record.emplace_back(data);
-            } 
+                if(isarray)
+                {
+                    record.emplace_back(data);
+                }
+            }
         }
-   }   
+    }
     
     void set_val(const std::string& set_key_name,const std::string& set_value_name)
     {
         switch(findcolpos(set_key_name))
         {
-    		case 0:
-		 try{
-			data.topicid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.topicid=0;
-			 }
-			break;
-		case 1:
-		 try{
-			data.userid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
-		case 2:
-		 try{
-			data.parentid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.parentid=0;
-			 }
-			break;
-		case 3:
-		 try{
-			data.cateid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.cateid=0;
-			 }
-			break;
-		case 4:
-		 try{
-			data.sorttype=std::stoi(set_value_name);
-		}catch (...) { 
-			data.sorttype=0;
-			 }
-			break;
-		case 5:
-		 try{
-			data.languagetype=std::stoul(set_value_name);
-		}catch (...) { 
-			data.languagetype=0;
-			 }
-			break;
-		case 6:
-		 try{
-			data.isview=std::stoi(set_value_name);
-		}catch (...) { 
-			data.isview=0;
-			 }
-			break;
-		case 7:
-		 try{
-			data.isside=std::stoi(set_value_name);
-		}catch (...) { 
-			data.isside=0;
-			 }
-			break;
-		case 8:
-		 try{
-			data.sortid=std::stoul(set_value_name);
-		}catch (...) { 
-			data.sortid=0;
-			 }
-			break;
-		case 9:
-		 try{
-			data.title.append(set_value_name);
-		}catch (...) { 
-			data.title.clear();
-			 }
-			break;
-		case 10:
-		 try{
-			data.twotitle.append(set_value_name);
-		}catch (...) { 
-			data.twotitle.clear();
-			 }
-			break;
-		case 11:
-		 try{
-			data.memo.append(set_value_name);
-		}catch (...) { 
-			data.memo.clear();
-			 }
-			break;
-		case 12:
-		 try{
-			data.templatename.append(set_value_name);
-		}catch (...) { 
-			data.templatename.clear();
-			 }
-			break;
-		case 13:
-		 try{
-			data.url.append(set_value_name);
-		}catch (...) { 
-			data.url.clear();
-			 }
-			break;
-		case 14:
-		 try{
-			data.urlpath.append(set_value_name);
-		}catch (...) { 
-			data.urlpath.clear();
-			 }
-			break;
-		case 15:
-		 try{
-			data.imgurl.append(set_value_name);
-		}catch (...) { 
-			data.imgurl.clear();
-			 }
-			break;
-		case 16:
-		 try{
-			data.topimg.append(set_value_name);
-		}catch (...) { 
-			data.topimg.clear();
-			 }
-			break;
-		case 17:
-		 try{
-			data.accesscode=std::stoul(set_value_name);
-		}catch (...) { 
-			data.accesscode=0;
-			 }
-			break;
-	default:
-		 { }
-			
-
-
-        }
-   } 
     
-    void set_val(const std::string& set_key_name,const long long set_value_name)
-    {
-        switch(findcolpos(set_key_name))
-        {
-    		case 0:
-		 try{
-			data.topicid=set_value_name;
-		}catch (...) { 
-			data.topicid=0;
-			 }
-			break;
+		case 0:
+		  http::json_set_val(data.topicid,set_value_name);
+		 break;
+		
 		case 1:
-		 try{
-			data.userid=set_value_name;
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
+		  http::json_set_val(data.userid,set_value_name);
+		 break;
+		
 		case 2:
-		 try{
-			data.parentid=set_value_name;
-		}catch (...) { 
-			data.parentid=0;
-			 }
-			break;
+		  http::json_set_val(data.parentid,set_value_name);
+		 break;
+		
 		case 3:
-		 try{
-			data.cateid=set_value_name;
-		}catch (...) { 
-			data.cateid=0;
-			 }
-			break;
+		  http::json_set_val(data.cateid,set_value_name);
+		 break;
+		
 		case 4:
-		 try{
-			data.sorttype=set_value_name;
-		}catch (...) { 
-			data.sorttype=0;
-			 }
-			break;
+		  http::json_set_val(data.sorttype,set_value_name);
+		 break;
+		
 		case 5:
-		 try{
-			data.languagetype=set_value_name;
-		}catch (...) { 
-			data.languagetype=0;
-			 }
-			break;
+		  http::json_set_val(data.languagetype,set_value_name);
+		 break;
+		
 		case 6:
-		 try{
-			data.isview=set_value_name;
-		}catch (...) { 
-			data.isview=0;
-			 }
-			break;
+		  http::json_set_val(data.isview,set_value_name);
+		 break;
+		
 		case 7:
-		 try{
-			data.isside=set_value_name;
-		}catch (...) { 
-			data.isside=0;
-			 }
-			break;
+		  http::json_set_val(data.isside,set_value_name);
+		 break;
+		
 		case 8:
-		 try{
-			data.sortid=set_value_name;
-		}catch (...) { 
-			data.sortid=0;
-			 }
-			break;
+		  http::json_set_val(data.sortid,set_value_name);
+		 break;
+		
 		case 9:
-		 try{
-			data.title=std::to_string(set_value_name);
-		}catch (...) { 
-			data.title.clear();
-			 }
-			break;
+		  http::json_set_val(data.title,set_value_name);
+		 break;
+		
 		case 10:
-		 try{
-			data.twotitle=std::to_string(set_value_name);
-		}catch (...) { 
-			data.twotitle.clear();
-			 }
-			break;
+		  http::json_set_val(data.twotitle,set_value_name);
+		 break;
+		
 		case 11:
-		 try{
-			data.memo=std::to_string(set_value_name);
-		}catch (...) { 
-			data.memo.clear();
-			 }
-			break;
+		  http::json_set_val(data.memo,set_value_name);
+		 break;
+		
 		case 12:
-		 try{
-			data.templatename=std::to_string(set_value_name);
-		}catch (...) { 
-			data.templatename.clear();
-			 }
-			break;
+		  http::json_set_val(data.templatename,set_value_name);
+		 break;
+		
 		case 13:
-		 try{
-			data.url=std::to_string(set_value_name);
-		}catch (...) { 
-			data.url.clear();
-			 }
-			break;
+		  http::json_set_val(data.url,set_value_name);
+		 break;
+		
 		case 14:
-		 try{
-			data.urlpath=std::to_string(set_value_name);
-		}catch (...) { 
-			data.urlpath.clear();
-			 }
-			break;
+		  http::json_set_val(data.urlpath,set_value_name);
+		 break;
+		
 		case 15:
-		 try{
-			data.imgurl=std::to_string(set_value_name);
-		}catch (...) { 
-			data.imgurl.clear();
-			 }
-			break;
+		  http::json_set_val(data.imgurl,set_value_name);
+		 break;
+		
 		case 16:
-		 try{
-			data.topimg=std::to_string(set_value_name);
-		}catch (...) { 
-			data.topimg.clear();
-			 }
-			break;
+		  http::json_set_val(data.topimg,set_value_name);
+		 break;
+		
 		case 17:
-		 try{
-			data.accesscode=set_value_name;
-		}catch (...) { 
-			data.accesscode=0;
-			 }
-			break;
-	default:
-		 { }
-			
-
-
-        }
-   } 
-    
-    void set_val(const std::string& set_key_name,const double set_value_name)
-    {
-        switch(findcolpos(set_key_name))
-        {
-    		case 0:
-		 try{
-			data.topicid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.topicid=0;
-			 }
-			break;
-		case 1:
-		 try{
-			data.userid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.userid=0;
-			 }
-			break;
-		case 2:
-		 try{
-			data.parentid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.parentid=0;
-			 }
-			break;
-		case 3:
-		 try{
-			data.cateid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.cateid=0;
-			 }
-			break;
-		case 4:
-		 try{
-			data.sorttype=(int)set_value_name;
-		}catch (...) { 
-			data.sorttype=0;
-			 }
-			break;
-		case 5:
-		 try{
-			data.languagetype=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.languagetype=0;
-			 }
-			break;
-		case 6:
-		 try{
-			data.isview=(int)set_value_name;
-		}catch (...) { 
-			data.isview=0;
-			 }
-			break;
-		case 7:
-		 try{
-			data.isside=(int)set_value_name;
-		}catch (...) { 
-			data.isside=0;
-			 }
-			break;
-		case 8:
-		 try{
-			data.sortid=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.sortid=0;
-			 }
-			break;
-		case 9:
-		 try{
-			data.title=std::to_string(set_value_name);
-		}catch (...) { 
-			data.title.clear();
-			 }
-			break;
-		case 10:
-		 try{
-			data.twotitle=std::to_string(set_value_name);
-		}catch (...) { 
-			data.twotitle.clear();
-			 }
-			break;
-		case 11:
-		 try{
-			data.memo=std::to_string(set_value_name);
-		}catch (...) { 
-			data.memo.clear();
-			 }
-			break;
-		case 12:
-		 try{
-			data.templatename=std::to_string(set_value_name);
-		}catch (...) { 
-			data.templatename.clear();
-			 }
-			break;
-		case 13:
-		 try{
-			data.url=std::to_string(set_value_name);
-		}catch (...) { 
-			data.url.clear();
-			 }
-			break;
-		case 14:
-		 try{
-			data.urlpath=std::to_string(set_value_name);
-		}catch (...) { 
-			data.urlpath.clear();
-			 }
-			break;
-		case 15:
-		 try{
-			data.imgurl=std::to_string(set_value_name);
-		}catch (...) { 
-			data.imgurl.clear();
-			 }
-			break;
-		case 16:
-		 try{
-			data.topimg=std::to_string(set_value_name);
-		}catch (...) { 
-			data.topimg.clear();
-			 }
-			break;
-		case 17:
-		 try{
-			data.accesscode=(unsigned int)set_value_name;
-		}catch (...) { 
-			data.accesscode=0;
-			 }
-			break;
-	default:
+		  http::json_set_val(data.accesscode,set_value_name);
+		 break;
+		
+		default:
 		 { }
 			
 

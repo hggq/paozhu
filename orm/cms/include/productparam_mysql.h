@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Thu, 18 Jun 2026 12:31:02 GMT
+ *  Creation time Fri, 19 Jun 2026 00:17:08 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -23612,7 +23612,7 @@ M_MODEL& or_leFileext(T val)
                     return 0;
                 }
             }
-            sqlstring = B_BASE::_makeupdatesql("");
+            sqlstring = B_BASE::make_update_sql("");
             sqlstring.append(" where ");
             if (wheresql.empty())
             {
@@ -23751,7 +23751,7 @@ M_MODEL& or_leFileext(T val)
                 }
             }
 
-            sqlstring = B_BASE::_makeupdatesql(fieldname);
+            sqlstring = B_BASE::make_update_sql(fieldname);
             sqlstring.append(" where ");
             if (wheresql.empty())
             {
@@ -23889,7 +23889,7 @@ M_MODEL& or_leFileext(T val)
                 }
             }
 
-            sqlstring = B_BASE::_makeupdatesql(fieldname);
+            sqlstring = B_BASE::make_update_sql(fieldname);
             sqlstring.append(" where ");
             if (wheresql.empty())
             {
@@ -24025,7 +24025,7 @@ M_MODEL& or_leFileext(T val)
                 }
             }
 
-            sqlstring = B_BASE::_makeupdatesql("");
+            sqlstring = B_BASE::make_update_sql("");
             sqlstring.append(" where ");
             if (wheresql.empty())
             {
@@ -24149,11 +24149,11 @@ M_MODEL& or_leFileext(T val)
             }
             if (fieldname.size() > 0)
             {
-                sqlstring = B_BASE::_make_insert_into_sql(fieldname);
+                sqlstring = B_BASE::make_record_into_sql(fieldname);
             }
             else
             {
-                sqlstring = B_BASE::_make_replace_into_sql();
+                sqlstring = B_BASE::make_record_replace_sql();
             }
 
             if (iserror)
@@ -25014,7 +25014,7 @@ M_MODEL& or_leFileext(T val)
         std::tuple<unsigned int, unsigned long long> insert(productparam_info::meta &insert_data)
         {
             effect_num = 0;
-            sqlstring  = B_BASE::_makerecordinsertsql(insert_data);
+            sqlstring  = B_BASE::make_data_insert_sql(insert_data);
             if (iscommit)
             {
                 iscommit = false;
@@ -25114,7 +25114,7 @@ M_MODEL& or_leFileext(T val)
         asio::awaitable<std::tuple<unsigned int, unsigned long long>> async_insert(productparam_info::meta &insert_data)
         {
             effect_num = 0;
-            sqlstring  = B_BASE::_makerecordinsertsql(insert_data);
+            sqlstring  = B_BASE::make_data_insert_sql(insert_data);
             if (iscommit)
             {
                 iscommit = false;
@@ -25212,7 +25212,7 @@ M_MODEL& or_leFileext(T val)
         std::tuple<unsigned int, unsigned long long> insert(std::vector<productparam_info::meta> &insert_data)
         {
             effect_num = 0;
-            sqlstring  = B_BASE::_makerecordinsertsql(insert_data);
+            sqlstring  = B_BASE::make_vector_insert_sql(insert_data);
             if (iscommit)
             {
                 iscommit = false;
@@ -25311,7 +25311,7 @@ M_MODEL& or_leFileext(T val)
         asio::awaitable<std::tuple<unsigned int, unsigned long long>> async_insert(std::vector<productparam_info::meta> &insert_data)
         {
             effect_num = 0;
-            sqlstring  = B_BASE::_makerecordinsertsql(insert_data);
+            sqlstring  = B_BASE::make_vector_insert_sql(insert_data);
             if (iscommit)
             {
                 iscommit = false;
@@ -25408,7 +25408,7 @@ M_MODEL& or_leFileext(T val)
         std::tuple<unsigned int, unsigned long long> insert()
         {
             effect_num = 0;
-            sqlstring  = B_BASE::_makeinsertsql();
+            sqlstring  = B_BASE::make_data_insert_sql();
             if (iscommit)
             {
                 iscommit = false;
@@ -25506,7 +25506,7 @@ M_MODEL& or_leFileext(T val)
         asio::awaitable<std::tuple<unsigned int, unsigned long long>> async_insert()
         {
             effect_num = 0;
-            sqlstring  = B_BASE::_makeinsertsql();
+            sqlstring  = B_BASE::make_data_insert_sql();
             if (iscommit)
             {
                 iscommit = false;
@@ -25616,7 +25616,7 @@ M_MODEL& or_leFileext(T val)
                     tempsql << "' ";
                     wheresql = tempsql.str();
                 }
-                sqlstring = B_BASE::_makeupdatesql("");
+                sqlstring = B_BASE::make_update_sql("");
                 sqlstring.append(" where ");
                 if (wheresql.empty())
                 {
@@ -25715,7 +25715,7 @@ M_MODEL& or_leFileext(T val)
             }
             else
             {
-                sqlstring = B_BASE::_makeinsertsql();
+                sqlstring = B_BASE::make_data_insert_sql();
                 if (conn_empty())
                 {
                     return std::make_tuple(0, 0);
@@ -25802,7 +25802,7 @@ M_MODEL& or_leFileext(T val)
                     tempsql << "' ";
                     wheresql = tempsql.str();
                 }
-                sqlstring = B_BASE::_makeupdatesql("");
+                sqlstring = B_BASE::make_update_sql("");
                 sqlstring.append(" where ");
                 if (wheresql.empty())
                 {
@@ -25919,7 +25919,7 @@ M_MODEL& or_leFileext(T val)
             }
             else
             {
-                sqlstring = B_BASE::_makeinsertsql();
+                sqlstring = B_BASE::make_data_insert_sql();
                 try
                 {
                     if (conn_empty())
