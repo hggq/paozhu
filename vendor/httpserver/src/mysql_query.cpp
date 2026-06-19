@@ -45,53 +45,97 @@ void db_conn::select_db(std::string_view tag)
     }
 }
 
-void db_conn::begin_commit()
+bool db_conn::begin_commit()
 {
     if (iscommit)
     {
         error_msg = "not begin_commit";
         iserror   = true;
-        return;
+        return false;
     }
-    iscommit = true;
+    islock_conn = true;
+    iscommit    = true;
     if (conn_obj == nullptr)
     {
         error_msg = "Please select_db() tag";
-        return;
+        return false;
     }
 
-    edit_conn = conn_obj->get_edit_conn();
+    if (islock_conn)
+    {
+        if (!edit_conn)
+        {
+            edit_conn = conn_obj->get_edit_conn();
+        }
+    }
+    else
+    {
+        edit_conn = conn_obj->get_edit_conn();
+    }
 
     std::string sqlstring = "start transaction";
     edit_conn->write_sql(sqlstring);
-}
-
-void db_conn::commit()
-{
-    if (iscommit)
-    {
-        error_msg = "not commit";
-        iserror   = true;
-        return;
-    }
-    if (conn_obj == nullptr)
-    {
-        error_msg = "Please select_db() tag";
-        return;
-    }
-
-    edit_conn = conn_obj->get_edit_conn();
-
-    std::string sqlstring = "commit";
-    edit_conn->write_sql(sqlstring);
-
     unsigned int offset = 0;
     auto n              = edit_conn->read_loop();
     if (n == 0)
     {
         error_msg = edit_conn->error_msg;
         edit_conn.reset();
-        return;
+        return false;
+    }
+    pack_info_t temp_pack_data;
+    temp_pack_data.seq_id = 1;
+    edit_conn->read_field_pack(edit_conn->_cache_data, n, offset, temp_pack_data);
+
+    if ((unsigned char)temp_pack_data.data[0] == 0xFF)
+    {
+        error_msg   = temp_pack_data.data.substr(3);
+        islock_conn = false;
+        iscommit    = false;
+        edit_conn.reset();
+        return false;
+    }
+    else if ((unsigned char)temp_pack_data.data[0] == 0x00)
+    {
+        unsigned int d_offset = 1;
+        effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+    }
+    return true;
+}
+
+bool db_conn::commit()
+{
+    effect_num = 0;
+    if (!iscommit)
+    {
+        error_msg = "not commit";
+        iserror   = true;
+        return false;
+    }
+    if (conn_obj == nullptr)
+    {
+        error_msg = "Please select_db() tag";
+        iserror   = true;
+        return false;
+    }
+
+    if (edit_conn == nullptr)
+    {
+        error_msg = "edit_conn error, must begin_commit() first";
+        iserror   = true;
+        return false;
+    }
+
+    std::string sqlstring = "commit";
+    edit_conn->write_sql(sqlstring);
+
+    unsigned int offset = 0;
+    auto n = edit_conn->read_loop();
+    if (n == 0)
+    {
+        error_msg = edit_conn->error_msg;
+        edit_conn.reset();
+        return false;
     }
     pack_info_t temp_pack_data;
     temp_pack_data.seq_id = 1;
@@ -101,21 +145,25 @@ void db_conn::commit()
     {
         error_msg = temp_pack_data.data.substr(3);
         rollback();
+        iscommit    = false;
+        islock_conn = false;
+        return false;
     }
     else if ((unsigned char)temp_pack_data.data[0] == 0x00)
     {
-
         unsigned int d_offset = 1;
         effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
         conn_obj->back_edit_conn(std::move(edit_conn));
         edit_conn = nullptr;
     }
-    iscommit = false;
+    iscommit    = false;
+    islock_conn = false;
+    return true;
 }
 
 void db_conn::rollback()
 {
-    if (iscommit)
+    if (!iscommit)
     {
         error_msg = "not begin_commit";
         iserror   = true;
@@ -127,7 +175,11 @@ void db_conn::rollback()
         return;
     }
 
-    edit_conn = conn_obj->get_edit_conn();
+    if (edit_conn == nullptr)
+    {
+        error_msg = "edit_conn error, must begin_commit() first";
+        return;
+    }
 
     std::string sqlstring = "rollback";
     edit_conn->write_sql(sqlstring);
@@ -152,14 +204,182 @@ void db_conn::rollback()
         unsigned int d_offset = 1;
         effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
     }
-    iscommit = false;
+    iscommit    = false;
+    islock_conn = false;
+    edit_conn.reset();
+}
+
+asio::awaitable<bool> db_conn::async_begin_commit()
+{
+    if (iscommit)
+    {
+        error_msg = "begin_commit has begin";
+        iserror   = true;
+        co_return false;
+    }
+    islock_conn = true;
+    iscommit    = true;
+    if (conn_obj == nullptr)
+    {
+        error_msg = "Please select_db() tag";
+        iserror   = true;
+        co_return false;
+    }
+
+    if (islock_conn)
+    {
+        if (!edit_conn)
+        {
+            edit_conn = conn_obj->get_edit_conn();
+        }
+    }
+    else
+    {
+        edit_conn = conn_obj->get_edit_conn();
+    }
+
+    std::string sqlstring = "start transaction";
+    co_await edit_conn->async_write_sql(sqlstring);
+    unsigned int offset = 0;
+    auto n              = co_await edit_conn->async_read_loop();
+    if (n == 0)
+    {
+        error_msg = edit_conn->error_msg;
+        edit_conn.reset();
+        co_return false;
+    }
+    pack_info_t temp_pack_data;
+    temp_pack_data.seq_id = 1;
+    edit_conn->read_field_pack(edit_conn->_cache_data, n, offset, temp_pack_data);
+
+    if ((unsigned char)temp_pack_data.data[0] == 0xFF)
+    {
+        error_msg = temp_pack_data.data.substr(3);
+        edit_conn.reset();
+        islock_conn = false;
+        iscommit    = false;
+        co_return false;
+    }
+    else if ((unsigned char)temp_pack_data.data[0] == 0x00)
+    {
+        unsigned int d_offset = 1;
+        effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+    }
+    co_return true;
+}
+
+asio::awaitable<bool> db_conn::async_commit()
+{
+    effect_num = 0;
+    if (!iscommit)
+    {
+        error_msg = "not commit";
+        iserror   = true;
+        co_return false;
+    }
+    if (conn_obj == nullptr)
+    {
+        error_msg = "Please select_db() tag";
+        iserror   = true;
+        co_return false;
+    }
+
+    if (edit_conn == nullptr)
+    {
+        error_msg = "edit_conn error, must begin_commit() first";
+        iserror   = true;
+        co_return false;
+    }
+
+    std::string sqlstring = "commit";
+    co_await edit_conn->async_write_sql(sqlstring);
+
+    unsigned int offset = 0;
+    auto n              = co_await edit_conn->async_read_loop();
+    if (n == 0)
+    {
+        error_msg = edit_conn->error_msg;
+        edit_conn.reset();
+        co_return false;
+    }
+    pack_info_t temp_pack_data;
+    temp_pack_data.seq_id = 1;
+    edit_conn->read_field_pack(edit_conn->_cache_data, n, offset, temp_pack_data);
+
+    if ((unsigned char)temp_pack_data.data[0] == 0xFF)
+    {
+        error_msg = temp_pack_data.data.substr(3);
+        co_await async_rollback();
+        iserror = true;
+        co_return false;
+    }
+    else if ((unsigned char)temp_pack_data.data[0] == 0x00)
+    {
+        unsigned int d_offset = 1;
+        effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+        conn_obj->back_edit_conn(std::move(edit_conn));
+        edit_conn = nullptr;
+    }
+    iscommit    = false;
+    islock_conn = false;
+    co_return true;
+}
+
+asio::awaitable<void> db_conn::async_rollback()
+{
+    if (!iscommit)
+    {
+        error_msg = "not begin_commit";
+        iserror   = true;
+        co_return;
+    }
+    if (conn_obj == nullptr)
+    {
+        error_msg = "Please select_db() tag";
+        co_return;
+    }
+
+    if (edit_conn == nullptr)
+    {
+        error_msg = "edit_conn error, must begin_commit() first";
+        co_return;
+    }
+
+    std::string sqlstring = "rollback";
+    co_await edit_conn->async_write_sql(sqlstring);
+    unsigned int offset = 0;
+    auto n              = co_await edit_conn->async_read_loop();
+    if (n == 0)
+    {
+        error_msg = edit_conn->error_msg;
+        edit_conn.reset();
+        co_return;
+    }
+    pack_info_t temp_pack_data;
+    temp_pack_data.seq_id = 1;
+    edit_conn->read_field_pack(edit_conn->_cache_data, n, offset, temp_pack_data);
+
+    if ((unsigned char)temp_pack_data.data[0] == 0xFF)
+    {
+        error_msg   = temp_pack_data.data.substr(3);
+        islock_conn = false;
+        iscommit    = false;
+        iserror = true;
+    }
+    else if ((unsigned char)temp_pack_data.data[0] == 0x00)
+    {
+        unsigned int d_offset = 1;
+        effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+    }
+
+    iscommit    = false;
+    islock_conn = false;
     edit_conn.reset();
 }
 
 unsigned int db_conn::edit_query(const std::string &rawsql)
 {
     effect_num = 0;
-
     if (iserror)
     {
         return 0;
@@ -177,11 +397,13 @@ unsigned int db_conn::edit_query(const std::string &rawsql)
         {
             if (!edit_conn)
             {
+                std::cout<<"new edit1"<<std::endl;
                 edit_conn = conn_obj->get_edit_conn();
             }
         }
         else
         {
+            std::cout<<"new edit2"<<std::endl;
             edit_conn = conn_obj->get_edit_conn();
         }
 
@@ -220,6 +442,7 @@ unsigned int db_conn::edit_query(const std::string &rawsql)
         if ((unsigned char)temp_pack_data.data[0] == 0xFF)
         {
             error_msg = temp_pack_data.data.substr(3);
+            iserror = true;
         }
         else if ((unsigned char)temp_pack_data.data[0] == 0x00)
         {
@@ -310,6 +533,7 @@ asio::awaitable<unsigned int> db_conn::async_edit_query(const std::string &rawsq
         if ((unsigned char)temp_pack_data.data[0] == 0xFF)
         {
             error_msg = temp_pack_data.data.substr(3);
+            iserror = true;
         }
         else if ((unsigned char)temp_pack_data.data[0] == 0x00)
         {

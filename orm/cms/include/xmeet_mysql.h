@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Fri, 19 Jun 2026 00:17:09 GMT
+ *  Creation time Fri, 19 Jun 2026 13:17:55 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -628,11 +628,6 @@ namespace cms
             {
                 countsql.append(limitsql);
             }
-            if (iscommit)
-            {
-                iscommit = false;
-                return 0;
-            }
 
             if (iserror)
             {
@@ -693,17 +688,19 @@ namespace cms
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
+                    iserror = true;
+                    edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
-
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_edit_conn(std::move(edit_conn));
+                    }
                 }
-                if (!islock_conn)
-                {
-                    conn_obj->back_edit_conn(std::move(edit_conn));
-                }
+
                 return effect_num;
             }
             catch (const std::exception &e)
@@ -778,11 +775,6 @@ namespace cms
             {
                 countsql.append(limitsql);
             }
-            if (iscommit)
-            {
-                iscommit = false;
-                co_return 0;
-            }
 
             if (iserror)
             {
@@ -842,16 +834,18 @@ namespace cms
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
+                    iserror = true;
+                    edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
 
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
-                }
-                if (!islock_conn)
-                {
-                    conn_obj->back_edit_conn(std::move(edit_conn));
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_edit_conn(std::move(edit_conn));
+                    }
                 }
                 co_return effect_num;
             }
@@ -917,11 +911,6 @@ namespace cms
             {
                 countsql.append(limitsql);
             }
-            if (iscommit)
-            {
-                iscommit = false;
-                return 0;
-            }
 
             if (iserror)
             {
@@ -983,16 +972,18 @@ namespace cms
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
+                    iserror = true;
+                    edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
 
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
-                }
-                if (!islock_conn)
-                {
-                    conn_obj->back_edit_conn(std::move(edit_conn));
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_edit_conn(std::move(edit_conn));
+                    }
                 }
                 return effect_num;
             }
@@ -1058,11 +1049,6 @@ namespace cms
             {
                 countsql.append(limitsql);
             }
-            if (iscommit)
-            {
-                iscommit = false;
-                co_return 0;
-            }
 
             if (iserror)
             {
@@ -1124,16 +1110,17 @@ namespace cms
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
+                    iserror = true;
+                    edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
-
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
-                }
-                if (!islock_conn)
-                {
-                    conn_obj->back_edit_conn(std::move(edit_conn));
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_edit_conn(std::move(edit_conn));
+                    }
                 }
                 co_return effect_num;
             }
@@ -32160,7 +32147,7 @@ M_MODEL& or_leJiluphoto(T val)
                 wheresql.append(") ");
                 return *mod;
             }
-            else if (opwq == orm::wq::like) 
+            else if (opwq == orm::wq::like)
             {
                 wheresql.append(" like '%");
                 if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
@@ -32170,7 +32157,6 @@ M_MODEL& or_leJiluphoto(T val)
                 wheresql.append("%' ");
                 return *mod;
             }
-
 
             switch (opwq)
             {
@@ -32236,7 +32222,7 @@ M_MODEL& or_leJiluphoto(T val)
                 wheresql.append(") ");
                 return *mod;
             }
-            else if (opwq == orm::wq::like) 
+            else if (opwq == orm::wq::like)
             {
                 wheresql.append(" like '%");
                 if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
@@ -32377,7 +32363,7 @@ M_MODEL& or_leJiluphoto(T val)
                 wheresql.append(") ");
                 return *mod;
             }
-            else if (opwq == orm::wq::like) 
+            else if (opwq == orm::wq::like)
             {
                 wheresql.append(" like '%");
                 if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
@@ -32508,7 +32494,6 @@ M_MODEL& or_leJiluphoto(T val)
                 break;
             }
 
-
             if (opwq == orm::wq::in)
             {
                 wheresql.append(" IN (");
@@ -32519,7 +32504,7 @@ M_MODEL& or_leJiluphoto(T val)
                 wheresql.append(") ");
                 return *mod;
             }
-            else if (opwq == orm::wq::like) 
+            else if (opwq == orm::wq::like)
             {
                 wheresql.append(" like '%");
                 if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
@@ -37265,12 +37250,6 @@ M_MODEL& or_leJiluphoto(T val)
                 sqlstring.append(limitsql);
             }
 
-            if (iscommit)
-            {
-                iscommit = false;
-                return 0;
-            }
-
             if (iserror)
             {
                 return 0;
@@ -37332,16 +37311,18 @@ M_MODEL& or_leJiluphoto(T val)
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
+                    iserror = true;
+                    edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
 
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
-                }
-                if (!islock_conn)
-                {
-                    conn_obj->back_edit_conn(std::move(edit_conn));
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_edit_conn(std::move(edit_conn));
+                    }
                 }
                 return effect_num;
             }
@@ -37404,12 +37385,6 @@ M_MODEL& or_leJiluphoto(T val)
                 sqlstring.append(limitsql);
             }
 
-            if (iscommit)
-            {
-                iscommit = false;
-                return 0;
-            }
-
             if (iserror)
             {
                 return 0;
@@ -37469,16 +37444,18 @@ M_MODEL& or_leJiluphoto(T val)
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
+                    iserror = true;
+                    edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
 
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
-                }
-                if (!islock_conn)
-                {
-                    conn_obj->back_edit_conn(std::move(edit_conn));
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_edit_conn(std::move(edit_conn));
+                    }
                 }
                 return effect_num;
             }
@@ -37542,12 +37519,6 @@ M_MODEL& or_leJiluphoto(T val)
                 sqlstring.append(limitsql);
             }
 
-            if (iscommit)
-            {
-                iscommit = false;
-                co_return 0;
-            }
-
             if (iserror)
             {
                 co_return 0;
@@ -37606,16 +37577,17 @@ M_MODEL& or_leJiluphoto(T val)
                 {
                     error_msg = temp_pack_data.data.substr(3);
                     iserror   = true;
+                    edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
 
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
-                }
-                if (!islock_conn)
-                {
-                    conn_obj->back_edit_conn(std::move(edit_conn));
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_edit_conn(std::move(edit_conn));
+                    }
                 }
                 co_return effect_num;
             }
@@ -37678,12 +37650,6 @@ M_MODEL& or_leJiluphoto(T val)
                 sqlstring.append(limitsql);
             }
 
-            if (iscommit)
-            {
-                iscommit = false;
-                co_return 0;
-            }
-
             if (iserror)
             {
                 co_return 0;
@@ -37742,16 +37708,16 @@ M_MODEL& or_leJiluphoto(T val)
                 {
                     error_msg = temp_pack_data.data.substr(3);
                     iserror   = true;
+                    edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
-
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
-                }
-                if (!islock_conn)
-                {
-                    conn_obj->back_edit_conn(std::move(edit_conn));
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_edit_conn(std::move(edit_conn));
+                    }
                 }
                 co_return effect_num;
             }
@@ -37845,16 +37811,17 @@ M_MODEL& or_leJiluphoto(T val)
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
+                    iserror = true;
+                    edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
-
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
-                }
-                if (!islock_conn)
-                {
-                    conn_obj->back_edit_conn(std::move(edit_conn));
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_edit_conn(std::move(edit_conn));
+                    }
                 }
                 return effect_num;
             }
@@ -37918,12 +37885,6 @@ M_MODEL& or_leJiluphoto(T val)
                 sqlstring.append(limitsql);
             }
 
-            if (iscommit)
-            {
-                iscommit = false;
-                return 0;
-            }
-
             if (iserror)
             {
                 return 0;
@@ -37982,16 +37943,17 @@ M_MODEL& or_leJiluphoto(T val)
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
+                    iserror = true;
+                    edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
-
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
-                }
-                if (!islock_conn)
-                {
-                    conn_obj->back_edit_conn(std::move(edit_conn));
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_edit_conn(std::move(edit_conn));
+                    }
                 }
                 return effect_num;
             }
@@ -38056,12 +38018,6 @@ M_MODEL& or_leJiluphoto(T val)
                 sqlstring.append(limitsql);
             }
 
-            if (iscommit)
-            {
-                iscommit = false;
-                co_return 0;
-            }
-
             if (iserror)
             {
                 co_return 0;
@@ -38119,16 +38075,17 @@ M_MODEL& or_leJiluphoto(T val)
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
+                    iserror = true;
+                    edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
-
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
-                }
-                if (!islock_conn)
-                {
-                    conn_obj->back_edit_conn(std::move(edit_conn));
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_edit_conn(std::move(edit_conn));
+                    }
                 }
                 co_return effect_num;
             }
@@ -38157,12 +38114,6 @@ M_MODEL& or_leJiluphoto(T val)
             sqlstring.append(B_BASE::getPKname());
             sqlstring.append("=");
             sqlstring.append(std::to_string(id));
-
-            if (iscommit)
-            {
-                iscommit = false;
-                return 0;
-            }
 
             if (iserror)
             {
@@ -38222,16 +38173,17 @@ M_MODEL& or_leJiluphoto(T val)
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
+                    iserror = true;
+                    edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
-
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
-                }
-                if (!islock_conn)
-                {
-                    conn_obj->back_edit_conn(std::move(edit_conn));
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_edit_conn(std::move(edit_conn));
+                    }
                 }
                 return effect_num;
             }
@@ -38260,12 +38212,6 @@ M_MODEL& or_leJiluphoto(T val)
             sqlstring.append(B_BASE::getPKname());
             sqlstring.append("=");
             sqlstring.append(std::to_string(id));
-
-            if (iscommit)
-            {
-                iscommit = false;
-                co_return 0;
-            }
 
             if (iserror)
             {
@@ -38324,16 +38270,17 @@ M_MODEL& or_leJiluphoto(T val)
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
+                    iserror = true;
+                    edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
-
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
-                }
-                if (!islock_conn)
-                {
-                    conn_obj->back_edit_conn(std::move(edit_conn));
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_edit_conn(std::move(edit_conn));
+                    }
                 }
                 co_return effect_num;
             }
@@ -38401,12 +38348,6 @@ M_MODEL& or_leJiluphoto(T val)
                 sqlstring.append(limitsql);
             }
 
-            if (iscommit)
-            {
-                iscommit = false;
-                return 0;
-            }
-
             if (iserror)
             {
                 return 0;
@@ -38465,16 +38406,17 @@ M_MODEL& or_leJiluphoto(T val)
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
+                    iserror = true;
+                    edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
-
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
-                }
-                if (!islock_conn)
-                {
-                    conn_obj->back_edit_conn(std::move(edit_conn));
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_edit_conn(std::move(edit_conn));
+                    }
                 }
                 return effect_num;
             }
@@ -38549,12 +38491,6 @@ M_MODEL& or_leJiluphoto(T val)
                 sqlstring.append(limitsql);
             }
 
-            if (iscommit)
-            {
-                iscommit = false;
-                return 0;
-            }
-
             if (iserror)
             {
                 return 0;
@@ -38614,16 +38550,17 @@ M_MODEL& or_leJiluphoto(T val)
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
+                    iserror = true;
+                    edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
-
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
-                }
-                if (!islock_conn)
-                {
-                    conn_obj->back_edit_conn(std::move(edit_conn));
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_edit_conn(std::move(edit_conn));
+                    }
                 }
                 return effect_num;
             }
@@ -38645,11 +38582,6 @@ M_MODEL& or_leJiluphoto(T val)
         {
             effect_num = 0;
             sqlstring  = B_BASE::make_data_insert_sql(insert_data);
-            if (iscommit)
-            {
-                iscommit = false;
-                return std::make_tuple(0, 0);
-            }
 
             if (iserror)
             {
@@ -38711,18 +38643,19 @@ M_MODEL& or_leJiluphoto(T val)
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
+                    iserror = true;
+                    edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
-
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
                     insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
                     B_BASE::setPK(insert_last_id);
-                }
-                if (!islock_conn)
-                {
-                    conn_obj->back_edit_conn(std::move(edit_conn));
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_edit_conn(std::move(edit_conn));
+                    }
                 }
                 //return insert_last_id;
                 return std::make_tuple(effect_num, insert_last_id);
@@ -38745,11 +38678,6 @@ M_MODEL& or_leJiluphoto(T val)
         {
             effect_num = 0;
             sqlstring  = B_BASE::make_data_insert_sql(insert_data);
-            if (iscommit)
-            {
-                iscommit = false;
-                co_return std::make_tuple(0, 0);
-            }
 
             if (iserror)
             {
@@ -38809,18 +38737,19 @@ M_MODEL& or_leJiluphoto(T val)
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
+                    iserror = true;
+                    edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
-
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
                     insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
                     B_BASE::setPK(insert_last_id);
-                }
-                if (!islock_conn)
-                {
-                    conn_obj->back_edit_conn(std::move(edit_conn));
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_edit_conn(std::move(edit_conn));
+                    }
                 }
                 //co_return insert_last_id;
                 co_return std::make_tuple(effect_num, insert_last_id);
@@ -38843,11 +38772,6 @@ M_MODEL& or_leJiluphoto(T val)
         {
             effect_num = 0;
             sqlstring  = B_BASE::make_vector_insert_sql(insert_data);
-            if (iscommit)
-            {
-                iscommit = false;
-                return std::make_tuple(0, 0);
-            }
 
             if (iserror)
             {
@@ -38908,18 +38832,19 @@ M_MODEL& or_leJiluphoto(T val)
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
+                    iserror = true;
+                    edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
-
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
                     insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
                     B_BASE::setPK(insert_last_id);
-                }
-                if (!islock_conn)
-                {
-                    conn_obj->back_edit_conn(std::move(edit_conn));
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_edit_conn(std::move(edit_conn));
+                    }
                 }
                 //return insert_last_id;
                 return std::make_tuple(effect_num, insert_last_id);
@@ -38942,11 +38867,6 @@ M_MODEL& or_leJiluphoto(T val)
         {
             effect_num = 0;
             sqlstring  = B_BASE::make_vector_insert_sql(insert_data);
-            if (iscommit)
-            {
-                iscommit = false;
-                co_return std::make_tuple(0, 0);
-            }
 
             if (iserror)
             {
@@ -39006,6 +38926,8 @@ M_MODEL& or_leJiluphoto(T val)
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
+                    iserror = true;
+                    edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
@@ -39013,10 +38935,10 @@ M_MODEL& or_leJiluphoto(T val)
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
                     insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
                     B_BASE::setPK(insert_last_id);
-                }
-                if (!islock_conn)
-                {
-                    conn_obj->back_edit_conn(std::move(edit_conn));
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_edit_conn(std::move(edit_conn));
+                    }
                 }
                 //co_return insert_last_id;
                 co_return std::make_tuple(effect_num, insert_last_id);
@@ -39039,11 +38961,6 @@ M_MODEL& or_leJiluphoto(T val)
         {
             effect_num = 0;
             sqlstring  = B_BASE::make_data_insert_sql();
-            if (iscommit)
-            {
-                iscommit = false;
-                return std::make_tuple(0, 0);
-            }
 
             if (iserror)
             {
@@ -39104,6 +39021,8 @@ M_MODEL& or_leJiluphoto(T val)
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
+                    iserror = true;
+                    edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
@@ -39111,10 +39030,10 @@ M_MODEL& or_leJiluphoto(T val)
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
                     insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
                     B_BASE::setPK(insert_last_id);
-                }
-                if (!islock_conn)
-                {
-                    conn_obj->back_edit_conn(std::move(edit_conn));
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_edit_conn(std::move(edit_conn));
+                    }
                 }
                 //return insert_last_id;
                 return std::make_tuple(effect_num, insert_last_id);
@@ -39137,11 +39056,6 @@ M_MODEL& or_leJiluphoto(T val)
         {
             effect_num = 0;
             sqlstring  = B_BASE::make_data_insert_sql();
-            if (iscommit)
-            {
-                iscommit = false;
-                co_return std::make_tuple(0, 0);
-            }
 
             if (iserror)
             {
@@ -39201,6 +39115,8 @@ M_MODEL& or_leJiluphoto(T val)
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
+                    iserror = true;
+                    edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
@@ -39209,10 +39125,10 @@ M_MODEL& or_leJiluphoto(T val)
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
                     insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
                     B_BASE::setPK(insert_last_id);
-                }
-                if (!islock_conn)
-                {
-                    conn_obj->back_edit_conn(std::move(edit_conn));
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_edit_conn(std::move(edit_conn));
+                    }
                 }
                 //co_return insert_last_id;
                 co_return std::make_tuple(effect_num, insert_last_id);
@@ -39267,11 +39183,6 @@ M_MODEL& or_leJiluphoto(T val)
                 if (!limitsql.empty())
                 {
                     sqlstring.append(limitsql);
-                }
-                if (iscommit)
-                {
-                    iscommit = false;
-                    return std::make_tuple(0, 0);
                 }
 
                 if (iserror)
@@ -39329,16 +39240,17 @@ M_MODEL& or_leJiluphoto(T val)
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
+                    iserror = true;
+                    edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
-
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
-                }
-                if (!islock_conn)
-                {
-                    conn_obj->back_edit_conn(std::move(edit_conn));
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_edit_conn(std::move(edit_conn));
+                    }
                 }
                 //return effect_num;
                 return std::make_tuple(effect_num, 0);
@@ -39398,18 +39310,19 @@ M_MODEL& or_leJiluphoto(T val)
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
+                    iserror = true;
+                    edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
-
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
                     insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
                     B_BASE::setPK(insert_last_id);
-                }
-                if (!islock_conn)
-                {
-                    conn_obj->back_edit_conn(std::move(edit_conn));
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_edit_conn(std::move(edit_conn));
+                    }
                 }
                 //return insert_last_id;
                 return std::make_tuple(effect_num, insert_last_id);
@@ -39453,11 +39366,6 @@ M_MODEL& or_leJiluphoto(T val)
                 if (!limitsql.empty())
                 {
                     sqlstring.append(limitsql);
-                }
-                if (iscommit)
-                {
-                    iscommit = false;
-                    co_return std::make_tuple(0, 0);
                 }
 
                 if (iserror)
@@ -39518,16 +39426,16 @@ M_MODEL& or_leJiluphoto(T val)
                     {
                         error_msg = temp_pack_data.data.substr(3);
                         iserror   = true;
+                        edit_conn.reset();
                     }
                     else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                     {
-
                         unsigned int d_offset = 1;
                         effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
-                    }
-                    if (!islock_conn)
-                    {
-                        conn_obj->back_edit_conn(std::move(edit_conn));
+                        if (!islock_conn)
+                        {
+                            conn_obj->back_edit_conn(std::move(edit_conn));
+                        }
                     }
                     co_return std::make_tuple(effect_num, 0);
                     //co_return effect_num;
@@ -39602,6 +39510,8 @@ M_MODEL& or_leJiluphoto(T val)
                     if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                     {
                         error_msg = temp_pack_data.data.substr(3);
+                        iserror   = true;
+                        edit_conn.reset();
                     }
                     else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                     {
@@ -39610,10 +39520,10 @@ M_MODEL& or_leJiluphoto(T val)
                         effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
                         insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
                         B_BASE::setPK(insert_last_id);
-                    }
-                    if (!islock_conn)
-                    {
-                        conn_obj->back_edit_conn(std::move(edit_conn));
+                        if (!islock_conn)
+                        {
+                            conn_obj->back_edit_conn(std::move(edit_conn));
+                        }
                     }
                     co_return std::make_tuple(effect_num, insert_last_id);
                     //co_return insert_last_id;
@@ -40122,12 +40032,6 @@ M_MODEL& or_leJiluphoto(T val)
         {
             effect_num = 0;
 
-            if (iscommit)
-            {
-                iscommit = false;
-                return 0;
-            }
-
             if (iserror)
             {
                 return 0;
@@ -40187,16 +40091,17 @@ M_MODEL& or_leJiluphoto(T val)
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
+                    iserror = true;
+                    edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
-
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
-                }
-                if (!islock_conn)
-                {
-                    conn_obj->back_edit_conn(std::move(edit_conn));
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_edit_conn(std::move(edit_conn));
+                    }
                 }
                 return effect_num;
             }
@@ -40218,13 +40123,6 @@ M_MODEL& or_leJiluphoto(T val)
         asio::awaitable<unsigned int> async_edit_query(const std::string &rawsql)
         {
             effect_num = 0;
-
-            if (iscommit)
-            {
-                iscommit = false;
-                co_return 0;
-            }
-
             if (iserror)
             {
                 co_return 0;
@@ -40284,17 +40182,19 @@ M_MODEL& or_leJiluphoto(T val)
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
+                    iserror = true;
+                    edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
-
                     unsigned int d_offset = 1;
                     effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_edit_conn(std::move(edit_conn));
+                    }
                 }
-                if (!islock_conn)
-                {
-                    conn_obj->back_edit_conn(std::move(edit_conn));
-                }
+
                 co_return effect_num;
             }
             catch (const std::exception &e)
@@ -41412,6 +41312,108 @@ M_MODEL& or_leJiluphoto(T val)
             return *mod;
         }
 
+        std::string commit_insert(xmeet_info::meta &insert_data)
+        {
+            return B_BASE::make_data_insert_sql(insert_data);
+        }
+
+        std::string commit_insert()
+        {
+            return B_BASE::make_data_insert_sql();
+        }
+        std::string commit_update(const std::string &fieldname)
+        {
+            if (wheresql.empty())
+            {
+                if (B_BASE::getPK() > 0)
+                {
+                    std::ostringstream tempsql;
+                    tempsql << " ";
+                    tempsql << B_BASE::getPKname();
+                    tempsql << " = '";
+                    tempsql << B_BASE::getPK();
+                    tempsql << "' ";
+                    wheresql = tempsql.str();
+                }
+                else
+                {
+                    error_msg = "warning empty where sql!";
+                    return "";
+                }
+            }
+
+            sqlstring = B_BASE::make_update_sql(fieldname);
+            sqlstring.append(" WHERE ");
+            if (wheresql.empty())
+            {
+                return "";
+            }
+            else
+            {
+                sqlstring.append(wheresql);
+            }
+            if (!groupsql.empty())
+            {
+                sqlstring.append(groupsql);
+            }
+            if (!ordersql.empty())
+            {
+                sqlstring.append(ordersql);
+            }
+            if (!limitsql.empty())
+            {
+                sqlstring.append(limitsql);
+            }
+            return sqlstring;
+        }
+
+        std::string commit_remove()
+        {
+            if (wheresql.empty())
+            {
+                if (B_BASE::getPK() > 0)
+                {
+                    std::ostringstream tempsql;
+                    tempsql << " ";
+                    tempsql << B_BASE::getPKname();
+                    tempsql << " = '";
+                    tempsql << B_BASE::getPK();
+                    tempsql << "' ";
+                    wheresql = tempsql.str();
+                }
+                else
+                {
+                    return "";
+                }
+            }
+
+            sqlstring = "DELETE FROM  ";
+            sqlstring.append(B_BASE::tablename);
+            sqlstring.append(" WHERE ");
+
+            if (wheresql.empty())
+            {
+                return "";
+            }
+            else
+            {
+                sqlstring.append(wheresql);
+            }
+            if (!groupsql.empty())
+            {
+                sqlstring.append(groupsql);
+            }
+            if (!ordersql.empty())
+            {
+                sqlstring.append(ordersql);
+            }
+            if (!limitsql.empty())
+            {
+                sqlstring.append(limitsql);
+            }
+            return sqlstring;
+        }
+
         M_MODEL &clear(bool both = true)
         {
             selectsql.clear();
@@ -41426,7 +41428,6 @@ M_MODEL& or_leJiluphoto(T val)
 
             iskuohao     = false;
             ishascontent = false;
-            iscommit     = false;
             iscache      = false;
             iserror      = false;
             effect_num   = 0;
@@ -41449,7 +41450,6 @@ M_MODEL& or_leJiluphoto(T val)
 
             iskuohao     = false;
             ishascontent = false;
-            iscommit     = false;
             iscache      = false;
             iserror      = false;
             effect_num   = 0;
@@ -41463,179 +41463,6 @@ M_MODEL& or_leJiluphoto(T val)
         }
         M_MODEL &get() { return *mod; }
         std::string get_query() { return sqlstring; }
-
-        M_MODEL &begin_commit()
-        {
-            if (!conn_empty())
-            {
-                return *mod;
-            }
-            islock_conn = true;
-
-            if (islock_conn)
-            {
-                if (!edit_conn)
-                {
-                    edit_conn = conn_obj->get_edit_conn();
-                }
-            }
-            else
-            {
-                edit_conn = conn_obj->get_edit_conn();
-            }
-            sqlstring = "start transaction";
-            edit_conn->write_sql(sqlstring);
-            iscommit = true;
-
-            return *mod;
-        }
-        M_MODEL &rollback()
-        {
-            if (iscommit == false)
-            {
-                error_msg = "not begin_commit";
-                iserror   = true;
-                return *mod;
-            }
-            if (!conn_empty())
-            {
-                return *mod;
-            }
-            if (islock_conn)
-            {
-                if (!edit_conn)
-                {
-                    edit_conn = conn_obj->get_edit_conn();
-                }
-            }
-            else
-            {
-                edit_conn = conn_obj->get_edit_conn();
-            }
-            sqlstring = "rollback";
-            edit_conn->write_sql(sqlstring);
-
-            iscommit    = false;
-            islock_conn = false;
-            return *mod;
-        }
-        M_MODEL &commit()
-        {
-            if (iscommit == false)
-            {
-                error_msg = "not begin_commit";
-                iserror   = true;
-                return *mod;
-            }
-            if (!conn_empty())
-            {
-                return *mod;
-            }
-            if (islock_conn)
-            {
-                if (!edit_conn)
-                {
-                    edit_conn = conn_obj->get_edit_conn();
-                }
-            }
-            else
-            {
-                edit_conn = conn_obj->get_edit_conn();
-            }
-            sqlstring = "commit";
-            edit_conn->write_sql(sqlstring);
-
-            iscommit    = false;
-            islock_conn = false;
-            return *mod;
-        }
-
-        asio::awaitable<bool> async_begin_commit()
-        {
-            if (!conn_empty())
-            {
-                co_return false;
-            }
-            islock_conn = true;
-
-            if (islock_conn)
-            {
-                if (!edit_conn)
-                {
-                    edit_conn = co_await conn_obj->async_get_edit_conn();
-                }
-            }
-            else
-            {
-                edit_conn = co_await conn_obj->async_get_edit_conn();
-            }
-            sqlstring = "start transaction";
-            co_await edit_conn->async_write_sql(sqlstring);
-            iscommit = true;
-
-            co_return false;
-        }
-        asio::awaitable<bool> async_rollback()
-        {
-            if (iscommit == false)
-            {
-                error_msg = "not begin_commit";
-                iserror   = true;
-                co_return false;
-            }
-            if (!conn_empty())
-            {
-                co_return false;
-            }
-            if (islock_conn)
-            {
-                if (!edit_conn)
-                {
-                    edit_conn = co_await conn_obj->async_get_edit_conn();
-                }
-            }
-            else
-            {
-                edit_conn = co_await conn_obj->async_get_edit_conn();
-            }
-            sqlstring = "rollback";
-            co_await edit_conn->async_write_sql(sqlstring);
-
-            iscommit    = false;
-            islock_conn = false;
-            co_return true;
-        }
-
-        asio::awaitable<bool> async_commit()
-        {
-            if (iscommit == false)
-            {
-                error_msg = "not begin_commit";
-                iserror   = true;
-                co_return false;
-            }
-            if (!conn_empty())
-            {
-                co_return false;
-            }
-            if (islock_conn)
-            {
-                if (!edit_conn)
-                {
-                    edit_conn = co_await conn_obj->async_get_edit_conn();
-                }
-            }
-            else
-            {
-                edit_conn = co_await conn_obj->async_get_edit_conn();
-            }
-            sqlstring = "commit";
-            co_await edit_conn->async_write_sql(sqlstring);
-
-            iscommit    = false;
-            islock_conn = false;
-            co_return true;
-        }
 
         unsigned int effect()
         {
@@ -41683,7 +41510,6 @@ M_MODEL& or_leJiluphoto(T val)
 
         // std::list<std::string> commit_sqllist;
         bool iskuohao           = false;
-        bool iscommit           = false;
         bool ishascontent       = false;
         bool iscache            = false;
         bool iserror            = false;

@@ -15,6 +15,7 @@
 #include "testrestfulpath.h"
 #include "testdownloadauth.h"
 #include "testmodelfromjson.h"
+#include "test_sql_commit.h"
 #include "techempower.h"
 #include "teststrip_html.h"
 #include "testsoft_remove.h"
@@ -106,6 +107,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testmodelfromjson;
 		methodcallback.emplace("mfromjson",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_sql_commit;
+		methodcallback.emplace("test_sql_commit",temp);
 		temp.pre = nullptr;
 		temp.regfun = teststrip_html;
 		methodcallback.emplace("teststrip_html",temp);
