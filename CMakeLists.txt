@@ -628,6 +628,6 @@ target_link_libraries(paozhu  m  dl)
 endif ()
 
 if (CMAKE_SYSTEM_NAME MATCHES "Windows")
-   target_link_libraries(paozhu PRIVATE ws2_32 psapi)
+   target_link_libraries(paozhu ws2_32 psapi)
    target_link_libraries(paozhu_cli ws2_32)
 endif ()
