@@ -43,33 +43,6 @@ void _inithttpmethodregto(std::map<std::string, regmethold_t> &methodcallback)
     temp.regfun = testmysqlconnect;
     methodcallback.emplace("testmysql", temp);
 
-    temp.regfun = articlelogin;
-    methodcallback.emplace("cms/login", temp);
-
-    temp.regfun = articleloginpost;
-    methodcallback.emplace("cms/loginpost", temp);
-
-    temp.regfun = articlelist;
-    methodcallback.emplace("cms/list", temp);
-
-    temp.regfun = articleshow;
-    methodcallback.emplace("cms/show", temp);
-
-    temp.regfun = articleedit;
-    methodcallback.emplace("cms/edit", temp);
-
-    temp.regfun = articleeditpost;
-    methodcallback.emplace("cms/editpost", temp);
-
-    temp.regfun = articledelete;
-    methodcallback.emplace("cms/delete", temp);
-
-    temp.regfun = articleadd;
-    methodcallback.emplace("cms/add", temp);
-
-    temp.regfun = articleaddpost;
-    methodcallback.emplace("cms/addpost", temp);
-
     temp.regfun = [](std::shared_ptr<httppeer> peer) -> std::string
     {
         peer->output = "Hello, World!";

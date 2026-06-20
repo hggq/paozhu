@@ -52,6 +52,7 @@
 #include "testsitepath.h"
 #include "testto_tree.h"
 #include "testcmake.h"
+#include "testcrud.h"
 #include "testjsonreflect.h"
 #include "testaddclienttask.h"
 #include "testormclient.h"
@@ -569,6 +570,36 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testcauto;
 		methodcallback.emplace("ccauto",temp);
+		temp.pre = nullptr;
+		temp.regfun = articlelogin;
+		methodcallback.emplace("cms/login",temp);
+		temp.pre = nullptr;
+		temp.regfun = articleislogin;
+		methodcallback.emplace("cms/islogin",temp);
+		temp.pre = nullptr;
+		temp.regfun = articleloginpost;
+		methodcallback.emplace("cms/loginpost",temp);
+		temp.pre = nullptr;
+		temp.regfun = articlelist;
+		methodcallback.emplace("cms/list",temp);
+		temp.pre = nullptr;
+		temp.regfun = articleshow;
+		methodcallback.emplace("cms/show",temp);
+		temp.pre = articleislogin;
+		temp.regfun = articleedit;
+		methodcallback.emplace("cms/edit",temp);
+		temp.pre = articleislogin;
+		temp.regfun = articleeditpost;
+		methodcallback.emplace("cms/editpost",temp);
+		temp.pre = articleislogin;
+		temp.regfun = articleadd;
+		methodcallback.emplace("cms/add",temp);
+		temp.pre = articleislogin;
+		temp.regfun = articleaddpost;
+		methodcallback.emplace("cms/addpost",temp);
+		temp.pre = articleislogin;
+		temp.regfun = articledelete;
+		methodcallback.emplace("cms/delete",temp);
 		temp.pre = nullptr;
 		temp.regfun = testjsonreflect;
 		methodcallback.emplace("testjsonreflect",temp);

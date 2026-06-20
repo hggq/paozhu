@@ -4,6 +4,7 @@
 #include <cstring>
 #include "version.h"
 #include "terminal_color.h"
+#include "get_rss_memory.h"
 #include "atomic_count.h"
 #include "sendqueue.h"
 #include "http_socket.h"
@@ -4578,6 +4579,8 @@ void httpserver::httpwatch()
     unsigned char plan_http1_exit = 0x00;
     unsigned char plan_http2_exit = 0x00;
 
+    unsigned long long self_rss_num = 0;
+
     bool is_clear_sock = false;
 
     // reboot server
@@ -4793,6 +4796,22 @@ void httpserver::httpwatch()
                     updatetimetemp = 0;
                 }
             }
+
+
+            if((mysqlpool_time % 2) ==0)
+            {
+                self_rss_num = get_rss_kb();
+                self_rss_num = self_rss_num / 1024;
+                if(self_rss_num > 1600)
+                {
+                    //1.6G
+                    std::unique_lock<std::mutex> loglock(log_mutex);
+                    error_loglist.push_back("-- rss memory MB "+std::to_string(self_rss_num));
+                    loglock.unlock();
+                }
+
+            }
+
             if (clientrunpool.error_message.size() > 0)
             {
                 std::unique_lock<std::mutex> loglock(log_mutex);
@@ -4800,6 +4819,8 @@ void httpserver::httpwatch()
                 loglock.unlock();
                 clientrunpool.error_message.clear();
             }
+
+
 
             DEBUG_LOG("pool thread tasknum:%d %d", clientrunpool.gettasknum(), clientrunpool.getlivenum());
 
@@ -5233,7 +5254,6 @@ void httpserver::httpwatch()
                 error_msg_loop.append(std::to_string(http2_minute_count.load()));
                 error_msg_loop.append(" L:");
                 error_msg_loop.append(std::to_string(live_link_count.load()));
-                
 
                 error_msg_loop.append(" --\n");
                 std::unique_lock<std::mutex> loglock(log_mutex);
