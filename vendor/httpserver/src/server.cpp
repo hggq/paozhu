@@ -4,7 +4,6 @@
 #include <cstring>
 #include "version.h"
 #include "terminal_color.h"
-#include "get_rss_memory.h"
 #include "atomic_count.h"
 #include "sendqueue.h"
 #include "http_socket.h"
@@ -40,6 +39,9 @@
 #include "fastcgi.h"
 
 #ifdef _WIN32
+    #ifndef WIN32_LEAN_AND_MEAN
+    #define WIN32_LEAN_AND_MEAN
+    #endif
 #include <windows.h>
 #else
 #include <pthread.h>
@@ -60,6 +62,7 @@
 
 #include "http_rpcserver.h"
 #include "sockets_method_reg.hpp"
+#include "get_rss_memory.h"
 
 namespace fs = std::filesystem;
 
