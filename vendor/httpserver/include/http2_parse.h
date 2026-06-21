@@ -154,6 +154,7 @@ class http2parse
     std::atomic<unsigned int> window_update_recv_num;
     std::map<unsigned int, std::shared_ptr<http2_data_t>> data_info;
     std::map<unsigned int, std::shared_ptr<httppeer>> http_data;
+    std::map<unsigned int, std::weak_ptr<httppeer>> http_data_weak;
     // std::map<unsigned int, struct http2_priority_t> priority_data;
     std::map<unsigned int, std::shared_ptr<std::string>> stream_data;
 

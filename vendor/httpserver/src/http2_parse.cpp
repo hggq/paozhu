@@ -49,7 +49,7 @@
 
 namespace http
 {
-void http2parse::setsession(std::shared_ptr<client_session> peer) { peer_session = peer->get_ptr(); }
+void http2parse::setsession(std::shared_ptr<client_session> peer_sock) { peer_session = peer_sock; }
 
 void http2parse::processblockheader(const unsigned char *buffer, unsigned int buffersize)
 {
@@ -2838,9 +2838,15 @@ void http2parse::readrst_stream([[maybe_unused]] const unsigned char *buffer, [[
 
     readoffset += blocklength;
     processheader = 0;
-    if (http_data.contains(block_steamid))
+    auto iter = http_data_weak.find(block_steamid);
+    if (iter != http_data_weak.end())
     {
-        http_data[block_steamid]->isclose = true;
+        std::shared_ptr<httppeer> temp_peer = iter->second.lock();
+        if(temp_peer)
+        {
+            temp_peer->isclose = true;
+        }
+        http_data_weak.erase(iter);
     }
 }
 void http2parse::procssxformurlencoded()

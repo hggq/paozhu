@@ -2352,7 +2352,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                 auto stream_ptr = std::move(node.mapped());
    
                 if (stream_ptr->socket_session == nullptr)
-                    stream_ptr->socket_session = peer_session->get_ptr();
+                    stream_ptr->socket_session = peer_session;
 
                 if (hook_host_http2(stream_ptr))
                 {
@@ -2399,6 +2399,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                     access_loglist.emplace_back(log_item);
                 }
 #endif
+                http2pre->http_data_weak.insert_or_assign(block_steamid,stream_ptr);
             }
             if (error_state > 0)
             {
