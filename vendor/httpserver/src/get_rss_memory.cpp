@@ -13,6 +13,8 @@
     #include <psapi.h>
 #elif defined(__APPLE__)
     #include <mach/mach.h>
+    #include <sys/types.h>
+    #include <sys/sysctl.h> 
 #else
     // Linux / FreeBSD 等类 Unix 系统
     #include <unistd.h>
@@ -55,4 +57,30 @@ size_t get_rss_kb() {
     return static_cast<size_t>(resident_pages * page_size_kb);
 #endif
 }
+
+size_t get_total_memory_kb() {
+#ifdef _WIN32
+    MEMORYSTATUSEX mem_status;
+    mem_status.dwLength = sizeof(mem_status);
+    if (!GlobalMemoryStatusEx(&mem_status)) {
+        return 0;
+    }
+    return static_cast<size_t>(mem_status.ullTotalPhys / 1024);
+
+#elif defined(__APPLE__)
+    uint64_t total_mem = 0;
+    size_t length = sizeof(total_mem);
+    if (sysctlbyname("hw.memsize", &total_mem, &length, nullptr, 0) != 0) {
+        return 0;
+    }
+    return static_cast<size_t>(total_mem / 1024);
+
+#else
+    long pages = sysconf(_SC_PHYS_PAGES);
+    long page_size = sysconf(_SC_PAGESIZE);
+    if (pages <= 0 || page_size <= 0) return 0;
+    return static_cast<size_t>((pages * page_size) / 1024);
+#endif
+}
+
 }

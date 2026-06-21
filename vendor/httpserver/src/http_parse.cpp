@@ -115,6 +115,12 @@ void httpparse::procssparamter()
         error = 400;
         return;
     }
+    get_param_count++;
+    if (get_param_count > 512)
+    {
+        error = 400;
+        return;
+    }
     for (unsigned int j = 0; j < header_temp.length(); j++)
     {
         if (header_temp[j] == '[')
@@ -356,6 +362,12 @@ void httpparse::procssxformurlencoded()
     std::string objname;
     bool isgroup = true;
     if (header_temp.length() > 72)
+    {
+        error = 400;
+        return;
+    }
+    post_param_count++;
+    if (post_param_count > 512)
     {
         error = 400;
         return;
@@ -3093,8 +3105,9 @@ void httpparse::readformjson(const unsigned char *buffer, unsigned int buffersiz
     if ((buffer_value.size() + 2) >= content_length)
     {
         headerfinish = 2;
-        peer->json.from_json(buffer_value);
-        peer->rawcontent = buffer_value;
+        peer->rawcontent = std::move(buffer_value);
+        peer->json.from_json(peer->rawcontent);
+        buffer_value.clear();
     }
 }
 void httpparse::readformurlencoded(const unsigned char *buffer, unsigned int buffersize)
@@ -3446,7 +3459,21 @@ void httpparse::clear()
  
     method                            = HEAD_METHOD::UNKNOW;
     headerfinish                      = 0;
-    
+
+    contentline.clear();
+    header_key.clear();
+    header_value.clear();
+    header_temp.clear();
+    header_input.clear();
+    buffer_key.clear();
+    buffer_value.clear();
+
+    get_param_count  = 0;
+    post_param_count = 0;
+
+    poststate.reset(nullptr);
+    upfile.reset(nullptr);
+
     if(websocket !=nullptr)
     {
         websocket->deflate           = false;

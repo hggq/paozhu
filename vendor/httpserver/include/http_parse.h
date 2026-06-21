@@ -102,6 +102,8 @@ class httpparse
     unsigned int readoffset = 0;
     unsigned int changetype = 0;
     unsigned int port       = 0;
+    unsigned int get_param_count  = 0;
+    unsigned int post_param_count = 0;
 
     unsigned long long content_length;
     //std::FILE *uprawfile = NULL;

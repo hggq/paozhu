@@ -10,5 +10,6 @@
 namespace http
 {
 size_t get_rss_kb();
+size_t get_total_memory_kb();
 }
 #endif

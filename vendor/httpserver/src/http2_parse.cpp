@@ -824,6 +824,12 @@ void http2parse::procssparamter()
 {
     std::string objname;
     bool isgroup = true;
+    block_data_info_ptr->get_param_count++;
+    if (block_data_info_ptr->get_param_count > 128)
+    {
+        error = 40010;
+        return;
+    }
     if (block_data_info_ptr->buffer_key.length() > 72)
     {
         error = 40011;
@@ -2837,6 +2843,12 @@ void http2parse::procssxformurlencoded()
 {
     std::string objname;
     bool isgroup = true;
+    block_data_info_ptr->post_param_count++;
+    if (block_data_info_ptr->post_param_count > 128)
+    {
+        error = 40010;
+        return;
+    }
     if (block_data_info_ptr->buffer_key.length() > 72)
     {
         error = 40011;
@@ -4420,6 +4432,7 @@ void http2parse::data_process()
             block_data_info_ptr->postfieldtype = 0;
             stream_list.emplace(block_steamid);
         }
+        block_data_info_ptr->reset();
     }
 }
 

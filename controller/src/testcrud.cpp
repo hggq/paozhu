@@ -82,11 +82,6 @@ std::string articlelist(std::shared_ptr<httppeer> peer)
     try
     {
         httppeer &client = peer->get_peer();
-        int userid       = client.session["userid"].to_int();
-        if (userid == 0)
-        {
-            return "";
-        }
         auto articles = orm::cms::Article();
         int page      = client.get["page"].to_int();
         if (page < 0)

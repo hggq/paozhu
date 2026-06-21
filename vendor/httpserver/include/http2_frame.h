@@ -101,6 +101,9 @@ struct http2_data_t
     unsigned long long curnum         = 0;// now block length
     unsigned long long content_length = 0;// post length
 
+    unsigned int get_param_count  = 0;
+    unsigned int post_param_count = 0;
+
     //std::FILE *uprawfile = NULL;
     std::unique_ptr<std::FILE, int (*)(FILE *)> uprawfile;
 
@@ -112,6 +115,24 @@ struct http2_data_t
     std::list<unsigned int> priority_lists;
     //struct uploadfile_t upfile;
     std::unique_ptr<uploadfile_t> upfile;
+
+    void reset()
+    {
+        buffer_key.clear();
+        buffer_value.clear();
+        buffer_value.shrink_to_fit();
+        field_value.clear();
+        boundary.clear();
+        fieldname.clear();
+        priority_lists.clear();
+        upfile.reset(nullptr);
+        uprawfile.reset(nullptr);
+        match_offset   = 0;
+        curnum         = 0;
+        content_length = 0;
+        get_param_count  = 0;
+        post_param_count = 0;
+    }
 };
 
 // header code

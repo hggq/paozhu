@@ -680,6 +680,15 @@ asio::awaitable<bool> httpserver::http2_static_file_authority(std::shared_ptr<ht
 
             peer->output.clear();
             peer->output.shrink_to_fit();
+            peer->get.clear();
+            peer->post.clear();
+            peer->files.clear();
+            peer->json.clear();
+            peer->rawcontent.clear();
+            peer->rawcontent.shrink_to_fit();
+            peer->val.clear();
+            peer->cookie.clear();
+            peer->session.clear();
 
             co_return false;
         }
@@ -782,6 +791,15 @@ asio::awaitable<bool> httpserver::http2_static_file_authority(std::shared_ptr<ht
 
                     peer->output.clear();
                     peer->output.shrink_to_fit();
+                    peer->get.clear();
+                    peer->post.clear();
+                    peer->files.clear();
+                    peer->json.clear();
+                    peer->rawcontent.clear();
+                    peer->rawcontent.shrink_to_fit();
+                    peer->val.clear();
+                    peer->cookie.clear();
+                    peer->session.clear();
 
                     co_return false;
                 }
@@ -877,6 +895,15 @@ asio::awaitable<void> httpserver::http2_fastcgi(std::shared_ptr<httppeer> peer)
 
     peer->output.clear();
     peer->output.shrink_to_fit();
+    peer->get.clear();
+    peer->post.clear();
+    peer->files.clear();
+    peer->json.clear();
+    peer->rawcontent.clear();
+    peer->rawcontent.shrink_to_fit();
+    peer->val.clear();
+    peer->cookie.clear();
+    peer->session.clear();
 
     co_return;
 }
@@ -1009,6 +1036,15 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
 
             peer->output.clear();
             peer->output.shrink_to_fit();
+            peer->get.clear();
+            peer->post.clear();
+            peer->files.clear();
+            peer->json.clear();
+            peer->rawcontent.clear();
+            peer->rawcontent.shrink_to_fit();
+            peer->val.clear();
+            peer->cookie.clear();
+            peer->session.clear();
             co_return;
         }
         else
@@ -1152,6 +1188,15 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
 
             peer->output.clear();
             peer->output.shrink_to_fit();
+            peer->get.clear();
+            peer->post.clear();
+            peer->files.clear();
+            peer->json.clear();
+            peer->rawcontent.clear();
+            peer->rawcontent.shrink_to_fit();
+            peer->val.clear();
+            peer->cookie.clear();
+            peer->session.clear();
             co_return;
         }
         co_return;
@@ -1680,6 +1725,16 @@ asio::awaitable<void> httpserver::http1_fastcgi(std::shared_ptr<httppeer> peer)
     co_await peer->socket_session->async_send_writer(htmlcontent);
     co_await peer->socket_session->async_send_writer(peer->output);
     peer->output.clear();
+    peer->output.shrink_to_fit();
+    peer->get.clear();
+    peer->post.clear();
+    peer->files.clear();
+    peer->json.clear();
+    peer->rawcontent.clear();
+    peer->rawcontent.shrink_to_fit();
+    peer->val.clear();
+    peer->cookie.clear();
+    peer->session.clear();
     co_return;
 }
 asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
@@ -1772,7 +1827,17 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
         htmlcontent.append("\r\n");
         co_await peer_session->async_send_writer(htmlcontent);
         co_await peer_session->async_send_writer(peer->output);
-
+        peer->output.clear();
+        peer->output.shrink_to_fit();
+        peer->get.clear();
+        peer->post.clear();
+        peer->files.clear();
+        peer->json.clear();
+        peer->rawcontent.clear();
+        peer->rawcontent.shrink_to_fit();
+        peer->val.clear();
+        peer->cookie.clear();
+        peer->session.clear();
         co_return;
     }
     else
@@ -3986,8 +4051,11 @@ void httpserver::listeners()
                     error_loglist.emplace_back(logtemp);
                     lock.unlock();
 
-                    hard_kill_old_link = true;
-                    std::this_thread::sleep_for(std::chrono::seconds(3));
+                    if ((error_count % 6) > 4)
+                    {
+                        hard_kill_old_link = true;
+                    }
+                    std::this_thread::sleep_for(std::chrono::seconds(2));
 
                     error_count++;
                     if (error_count > 128)
@@ -4229,8 +4297,11 @@ void httpserver::listener()
                     error_loglist.emplace_back(logtemp);
                     lock.unlock();
 
-                    hard_kill_old_link = true;
-                    std::this_thread::sleep_for(std::chrono::seconds(3));
+                    if ((error_count % 6) > 4)
+                    {
+                        hard_kill_old_link = true;
+                    }
+                    std::this_thread::sleep_for(std::chrono::seconds(2));
 
                     error_count++;
                     if (error_count > 128)
@@ -4582,8 +4653,6 @@ void httpserver::httpwatch()
     unsigned char plan_http1_exit = 0x00;
     unsigned char plan_http2_exit = 0x00;
 
-    unsigned long long self_rss_num = 0;
-
     bool is_clear_sock = false;
 
     // reboot server
@@ -4803,16 +4872,62 @@ void httpserver::httpwatch()
 
             if((mysqlpool_time % 2) ==0)
             {
-                self_rss_num = get_rss_kb();
-                self_rss_num = self_rss_num / 1024;
-                if(self_rss_num > 1600)
+                unsigned long long self_rss_num = get_rss_kb();
+                unsigned long long total_memory_kb = get_total_memory_kb();
+
+                DEBUG_LOG("memory info:total:%llu process:%llu, live:%d", total_memory_kb, self_rss_num, live_link_count.load());
+                if(self_rss_num > (total_memory_kb /2))
                 {
                     //1.6G
+                    std::string temp_l = "-- memory info -- total:"+ std::to_string(total_memory_kb) + " process:"+std::to_string(self_rss_num) + " live:" + std::to_string(live_link_count.load());
                     std::unique_lock<std::mutex> loglock(log_mutex);
-                    error_loglist.push_back("-- rss memory MB "+std::to_string(self_rss_num));
+                    error_loglist.push_back(temp_l);
                     loglock.unlock();
                 }
 
+                if(total_memory_kb > 100)
+                {
+                    //如果占用内存超过总内存75%
+                    //If the memory usage exceeds 75% of the total memory
+                    if(self_rss_num > ((total_memory_kb / 100) * 75))
+                    {
+                        //启动杀死3分钟之前的连接
+                        //Kill connections older than 3 minutes upon startup
+                        unsigned int nowtimeid = timeid() - 180;
+                        std::unique_lock<std::mutex> lock_sock_c(socket_session_lists_mutex);
+
+                        for (auto iter = socket_session_lists.begin(); iter != socket_session_lists.end();)
+                        {
+                            std::shared_ptr<client_session> p_session = iter->lock();
+                            if (p_session)
+                            {
+                                if (p_session->time_limit.load() < nowtimeid)
+                                {
+                                    DEBUG_LOG("clear nowtimeid pre session");
+                                    asio::co_spawn(p_session->strand_, clientpeerstop(p_session), asio::detached);
+                                    if(p_session->half_close)
+                                    {
+                                        socket_session_lists.erase(iter++);
+                                    }
+                                    else
+                                    {
+                                        ++iter;
+                                    }
+                                }
+                                else
+                                {
+                                    ++iter;
+                                }
+                            }
+                            else
+                            {
+                                ++iter;
+                            }
+                        }
+                        lock_sock_c.unlock();
+
+                    }
+                }
             }
 
             if (clientrunpool.error_message.size() > 0)
