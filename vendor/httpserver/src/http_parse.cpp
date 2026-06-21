@@ -900,7 +900,11 @@ void httpparse::methodprocess()
     if (peer->pathinfos.size() > 0)
     {
         peer->urlpath.clear();
-        peer->urlpath.reserve(p_pos_offset);
+        if(p_pos_offset > 64 && p_pos_offset < 10000)
+        {
+            peer->urlpath.reserve(p_pos_offset);
+        }
+        
         for (unsigned int nn = 0; nn < peer->pathinfos.size(); nn++)
         {
             peer->urlpath.push_back('/');
