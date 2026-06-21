@@ -2298,7 +2298,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
         peer_session->httpv = 2;
         peer->httpv         = 2;
 
-        unsigned int error_state = 0;
+        unsigned int error_state       = 0;
         unsigned int single_link_count = 0;
         std::string log_item;
         for (;;)
@@ -2340,62 +2340,65 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
             }
             peer_session->time_limit.store(timeid());
 
-            if (http2pre->stream_list.size() > 0)
+            while (!http2pre->stream_list.empty())
             {
-                for (; http2pre->stream_list.size() > 0;)
+                unsigned int block_steamid = http2pre->stream_list.front();
+                http2pre->stream_list.pop();
+
+                auto node = http2pre->http_data.extract(block_steamid);
+                if (node.empty())
+                    continue;
+
+                auto stream_ptr = std::move(node.mapped());
+   
+                if (stream_ptr->socket_session == nullptr)
+                    stream_ptr->socket_session = peer_session->get_ptr();
+
+                if (hook_host_http2(stream_ptr))
                 {
-                    unsigned int block_steamid = http2pre->stream_list.front();
-                    if (http2pre->http_data[block_steamid]->socket_session == nullptr)
-                    {
-                        http2pre->http_data[block_steamid]->socket_session = peer_session->get_ptr();
-                    }
+                    error_state = 1;
+                    break;
+                }
 
-                    if (hook_host_http2(http2pre->http_data[block_steamid]))
-                    {
-                        http2pre->stream_list.pop();
-                        error_state = 1;
-                        break;
-                    }
-                    // http2pre->http_data[block_steamid]->linktype    = 0;
-                    if (http2pre->http_data[block_steamid]->server_port == 0)
-                    {
-                        http2pre->http_data[block_steamid]->server_ip   = peer_session->getlocalip();
-                        http2pre->http_data[block_steamid]->client_ip   = peer_session->getremoteip();
-                        http2pre->http_data[block_steamid]->client_port = peer_session->getremoteport();
-                        http2pre->http_data[block_steamid]->server_port = peer_session->getlocalport();
-                    }
+                if (stream_ptr->server_port == 0)
+                {
+                    stream_ptr->server_ip   = peer_session->getlocalip();
+                    stream_ptr->client_ip   = peer_session->getremoteip();
+                    stream_ptr->client_port = peer_session->getremoteport();
+                    stream_ptr->server_port = peer_session->getlocalport();
+                }
 
-                    asio::co_spawn(peer_session->strand_, http2loop(http2pre->http_data[block_steamid]), asio::detached);
-                    single_link_count++;
-                    http2pre->block_steam_httppeer = nullptr;
-                    http2pre->stream_list.pop();
-                    http2pre->steam_count += 1;
+                asio::co_spawn(peer_session->strand_, [this, sp = stream_ptr]() -> asio::awaitable<void>
+                               { co_await http2loop(sp); },
+                               asio::detached);
+
+                single_link_count++;
+                http2pre->block_steam_httppeer = nullptr;
+                http2pre->steam_count += 1;
 
 #ifndef BENCHMARK
-                    {
-                        log_item.clear();
-                        log_item.append(http2pre->http_data[block_steamid]->client_ip);
-                        log_item.push_back(0x20);
-                        log_item.append(get_date("%Y-%m-%d %X"));
-                        log_item.push_back(0x20);
-                        log_item.append(std::to_string(single_link_count));
-                        log_item.push_back(0x20);
-                        log_item.append(std::to_string(http2pre->http_data[block_steamid]->server_port));
-                        log_item.push_back(0x20);
-                        log_item.append("H2");
-                        log_item.push_back(0x20);
-                        log_item.append(http2pre->http_data[block_steamid]->host);
-                        log_item.push_back(0x20);
-                        log_item.append(std::to_string(http2pre->http_data[block_steamid]->method));
-                        log_item.push_back(0x20);
-                        log_item.append(http2pre->http_data[block_steamid]->url);
-                        log_item.push_back('\n');
-                        std::unique_lock<std::mutex> lock(log_mutex);
-                        access_loglist.emplace_back(log_item);
-                        lock.unlock();
-                    }
-#endif
+                log_item.clear();
+                log_item.append(stream_ptr->client_ip);
+                log_item.push_back(0x20);
+                log_item.append(get_date("%Y-%m-%d %X"));
+                log_item.push_back(0x20);
+                log_item.append(std::to_string(single_link_count));
+                log_item.push_back(0x20);
+                log_item.append(std::to_string(stream_ptr->server_port));
+                log_item.push_back(0x20);
+                log_item.append("H2");
+                log_item.push_back(0x20);
+                log_item.append(stream_ptr->host);
+                log_item.push_back(0x20);
+                log_item.append(std::to_string(stream_ptr->method));
+                log_item.push_back(0x20);
+                log_item.append(stream_ptr->url);
+                log_item.push_back('\n');
+                {
+                    std::unique_lock<std::mutex> lock(log_mutex);
+                    access_loglist.emplace_back(log_item);
                 }
+#endif
             }
             if (error_state > 0)
             {

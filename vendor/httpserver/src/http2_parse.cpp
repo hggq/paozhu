@@ -4452,8 +4452,13 @@ void http2parse::data_process()
             block_steam_httppeer->isfinish     = true;
             block_data_info_ptr->postfieldtype = 0;
             stream_list.emplace(block_steamid);
+            
         }
         block_data_info_ptr->reset();
+        //流结束，peer已经开始，中间数据变量没有用了
+        data_info.erase(block_steamid);
+        stream_data.erase(block_steamid);
+
     }
 }
 
