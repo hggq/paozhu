@@ -88,6 +88,45 @@ void http2parse::processblockheader(const unsigned char *buffer, unsigned int bu
     block_steamid = block_steamid << 8 | (unsigned char)buffer[j];
     j++;
 
+    DEBUG_LOG("processblockheader %u\n", block_steamid);
+
+    if (frame_type == 0x03 || frame_type == 0x08)
+    {
+        if (blocklength != 4)
+        {
+            error = 40009; // FRAME_SIZE_ERROR
+            return;
+        }
+        readoffset    = readoffset + 9;
+        processheader = 1;
+        return;
+    }
+
+    if (frame_type != 0x00 && frame_type != 0x01 && frame_type != 0x09)
+    {
+        readoffset = readoffset + 9;
+        processheader = 1;
+        return;
+    }
+
+    if (frame_type == 0x09)
+    {
+        auto dataiter = data_info.find(block_steamid);
+        readoffset = readoffset + 9;
+        processheader = 1;
+        if (dataiter == data_info.end())
+        {
+            error = 40012; // FRAME_SIZE_ERROR
+            return;
+        }
+        
+        if (block_data_info_ptr->stream_id != block_steamid)
+        {
+            block_data_info_ptr = dataiter->second;
+        }
+        return;
+    }
+    
     auto dataiter = data_info.find(block_steamid);
     if (dataiter == data_info.end())
     {
@@ -104,6 +143,13 @@ void http2parse::processblockheader(const unsigned char *buffer, unsigned int bu
             block_data_info_ptr = dataiter->second;
         }
     }
+
+    if(data_info.size()>513)
+    {
+        error = 40011; // FRAME_SIZE_ERROR
+        return;
+    }
+    //怎么处理09
 
     if (frame_type == 0x00)
     {
@@ -184,6 +230,7 @@ void http2parse::processblockheader(const unsigned char *buffer, unsigned int bu
     readoffset    = readoffset + 9;
     processheader = 1;
 }
+
 void http2parse::clsoesend()
 {
     for (auto iter = http_data.begin(); iter != http_data.end();)
@@ -2081,13 +2128,12 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
 
         header_process(name_key, value, 0);
         dynamic_lists.push_front({name_key, std::move(value)});
-
-        begin -= 1;
         if(dynamic_lists.size() > 256)
         {
-            error = 122;
-            return;
+            dynamic_lists.pop_back();
         }
+        begin -= 1;
+
     }
     else
     {
@@ -2184,7 +2230,10 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
 
         header_process(name_key, value, c);
         dynamic_lists.push_front({name_key, std::move(value)});
-
+        if(dynamic_lists.size() > 256)
+        {
+            dynamic_lists.pop_back();
+        }
         begin -= 1;
     }
 }
@@ -2686,7 +2735,11 @@ void http2parse::readpriority(const unsigned char *buffer, [[maybe_unused]] unsi
         // priority_data[block_steamid] = temp;
         block_data_info_ptr->priority_lists.push_back(ident_stream);
     }
-
+    if(block_data_info_ptr->priority_lists.size() > 512)
+    {
+        error = 40003;
+        return;
+    }
     readoffset += blocklength;
     processheader = 0;
 }
@@ -2772,7 +2825,7 @@ void http2parse::readwinupdate(const unsigned char *buffer, [[maybe_unused]] uns
         error = 40006;
         return;
     }
-    ident_stream = buffer[j];
+    ident_stream = buffer[j] & 0x7F;
     ident_stream = ident_stream << 8 | buffer[j + 1];
     ident_stream = ident_stream << 8 | buffer[j + 2];
     ident_stream = ident_stream << 8 | buffer[j + 3];
@@ -3672,7 +3725,6 @@ void http2parse::readformfieldcontent(const unsigned char *buffer, unsigned int 
             ib  = 0;
         }
 
-        block_data_info_ptr->match_offset = 0;
         for (; ib < block_data_info_ptr->boundary.size(); ib++)
         {
             if (buffer[pmi] != block_data_info_ptr->boundary[ib])
@@ -3685,6 +3737,7 @@ void http2parse::readformfieldcontent(const unsigned char *buffer, unsigned int 
                 break;
             }
         }
+        block_data_info_ptr->match_offset = 0;
         if (ib == block_data_info_ptr->boundary.size())
         {
             if (buffer[pmi] == '-' && buffer[pmi + 1] == '-')
@@ -3729,13 +3782,15 @@ void http2parse::readformfieldcontent(const unsigned char *buffer, unsigned int 
             }
             begin                              = pmi;
             block_data_info_ptr->postfieldtype = 2;
+            block_data_info_ptr->buffer_key.clear();
+            block_data_info_ptr->field_value.clear();
+            procssxformurlencoded();
             return;
         }
-
         block_data_info_ptr->field_value.append(block_data_info_ptr->buffer_key);
         block_data_info_ptr->buffer_key.clear();
     }
-    unsigned baseoffset = begin;
+    unsigned int baseoffset = begin;
     // bool islastmatch = false;
     pmi = 0, ib = 0;
     for (; begin < buffersize; begin++)
@@ -3832,6 +3887,15 @@ void http2parse::readformfieldcontent(const unsigned char *buffer, unsigned int 
                     begin                              = pmi;
                     block_data_info_ptr->postfieldtype = 2;
                     return;
+                }
+                else
+                {
+                    if (pmi >= buffersize)
+                    {
+                        block_data_info_ptr->field_value.append((char *)&buffer[baseoffset], (begin - baseoffset));
+                        begin = buffersize;
+                        return;
+                    }
                 }
             }
             // doubtful mactch
@@ -4080,6 +4144,7 @@ void http2parse::readformfilename(const unsigned char *buffer, unsigned int &beg
             block_data_info_ptr->buffer_key.push_back(buffer[i]);
         }
     }
+
     begin = i;
     if (isbound == 1)
     {

@@ -11555,7 +11555,7 @@ dbtype=mysql
         std::cout << "select db index:";
         indexsdb = 0;
         std::cin >> command;
-        if (command[0] < '0' || command[0] >= '9')
+        if (command[0] < '0' || command[0] > '9')
         {
             return 0;
         }
