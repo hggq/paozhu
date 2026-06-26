@@ -3780,11 +3780,12 @@ void http2parse::readformfieldcontent(const unsigned char *buffer, unsigned int 
             {
                 pmi++;
             }
+            block_data_info_ptr->buffer_key = block_data_info_ptr->fieldname;
+            procssxformurlencoded();
             begin                              = pmi;
             block_data_info_ptr->postfieldtype = 2;
             block_data_info_ptr->buffer_key.clear();
             block_data_info_ptr->field_value.clear();
-            procssxformurlencoded();
             return;
         }
         block_data_info_ptr->field_value.append(block_data_info_ptr->buffer_key);
