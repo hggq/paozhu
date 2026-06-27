@@ -2519,7 +2519,8 @@ void httpparse::readformfielditem(const unsigned char *buffer, unsigned int buff
                             {
                                 changetype = nnn + 1;
                                 isbound    = 1;
-                                break;
+                                header_input.append((char *)&buffer[readoffset], (i - readoffset));
+                                return;
                             }
                         }
                         if (isbound == 0)
