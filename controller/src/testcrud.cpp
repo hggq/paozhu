@@ -238,28 +238,27 @@ std::string articleaddpost(std::shared_ptr<httppeer> peer)
     // articles.setTitle("直接标题");
     articles.setContent(content);
 
-    int effectnum = 0;
     try
     {
         auto[effectnum,last_id] = articles.save();
         aid       = articles.getAid();
         client << "<p>新(new)id " << aid << " 或 新(new)id " << effectnum << "</p>";
+        if (effectnum > 0)
+        {
+
+            client.goto_url("/cms/list", 3, "内容已经添加");
+            return "";
+        }
+        else
+        {
+            client.goto_url("/cms/list", 3, "添加出错(error)");
+            return "";
+        }
     }
     catch (std::exception &e)
     {
         client << "<p>" << articles.sqlstring << "</p>";
         client << "<p>" << e.what() << "</p>";
-        return "";
-    }
-    if (effectnum > 0)
-    {
-
-        client.goto_url("/cms/list", 3, "内容已经添加");
-        return "";
-    }
-    else
-    {
-        client.goto_url("/cms/list", 3, "添加出错(error)");
         return "";
     }
 

@@ -238,10 +238,10 @@ std::string displaydirectory(std::string localpath, std::string urlpath, std::st
                   { return a.filename < b.filename; });
     }
 
-    for (unsigned int i = 0; i < fileslists.size(); i++)
+    for (unsigned int ii = 0; ii < fileslists.size(); ii++)
     {
         senddatastring.append("<li class=\"directoryrow\">");
-        if (fileslists[i].time.size() < 3)
+        if (fileslists[ii].time.size() < 3)
         {
             senddatastring.append("<div class=\"filename\"><i class=\"bi bi-folder");
             senddatastring.append("\"></i> <a href=\"");
@@ -251,35 +251,35 @@ std::string displaydirectory(std::string localpath, std::string urlpath, std::st
             senddatastring.append(
                 "<div class=\"filename\"><i class=\"bi bi-filetype-");
 
-            if (fileslists[i].ext.size() > 0 && fileslists[i].ext[0] == '.')
+            if (fileslists[ii].ext.size() > 0 && fileslists[ii].ext[0] == '.')
             {
-                senddatastring.append(fileslists[i].ext.substr(1));
+                senddatastring.append(fileslists[ii].ext.substr(1));
             }
             else
             {
-                senddatastring.append(fileslists[i].ext);
+                senddatastring.append(fileslists[ii].ext);
             }
             senddatastring.append("\"></i> <a href=\"");
         }
 
         senddatastring.append(httpquestpath);
-        senddatastring.append(fileslists[i].filename);
+        senddatastring.append(fileslists[ii].filename);
 
         senddatastring.append("\">");
-        senddatastring.append(fileslists[i].filename);
+        senddatastring.append(fileslists[ii].filename);
         senddatastring.append("</a></div>");
         senddatastring.append("<div class=\"filesize\">");
-        if (fileslists[i].time.size() < 3)
+        if (fileslists[ii].time.size() < 3)
         {
             senddatastring.push_back('-');
         }
         else
         {
-            senddatastring.append(std::to_string(fileslists[i].size));
+            senddatastring.append(std::to_string(fileslists[ii].size));
         }
         senddatastring.append("</div>");
         senddatastring.append("<div class=\"time\">");
-        senddatastring.append(fileslists[i].time);
+        senddatastring.append(fileslists[ii].time);
         senddatastring.append("</div>");
         senddatastring.append("</li>");
     }
@@ -452,9 +452,9 @@ std::vector<directory_file_info_t> displaydirectory_attachfilejson(std::string l
                   { return a.filename < b.filename; });
     }
     //begin 1
-    for (unsigned int i = 1; i < fileslists.size(); i++)
+    for (unsigned int ii = 1; ii < fileslists.size(); ii++)
     {
-        fileslists[i].url = realurlpath;
+        fileslists[ii].url = realurlpath;
     }
 
     return fileslists;
@@ -627,9 +627,9 @@ std::string displaydirectory_attachfile(std::string localpath, std::string urlpa
                   { return a.filename < b.filename; });
     }
 
-    for (unsigned int i = 0; i < fileslists.size(); i++)
+    for (unsigned int ii = 0; ii < fileslists.size(); ii++)
     {
-        if (fileslists[i].time.size() < 3)
+        if (fileslists[ii].time.size() < 3)
         {
             senddatastring.append("<li class=\"directoryrowfolder\">");
             senddatastring.append("<div class=\"filename\"><i class=\"bi bi-folder");
@@ -643,41 +643,41 @@ std::string displaydirectory_attachfile(std::string localpath, std::string urlpa
             senddatastring.append("<a href=\"");
         }
 
-        if (fileslists[i].size > 0)
+        if (fileslists[ii].size > 0)
         {
             senddatastring.append(realurlpath);
-            senddatastring.append(fileslists[i].filename);
+            senddatastring.append(fileslists[ii].filename);
             senddatastring.append("\" target=_blank>");
         }
         else
         {
             senddatastring.append(httpquestpath);
-            senddatastring.append(fileslists[i].filename);
+            senddatastring.append(fileslists[ii].filename);
             senddatastring.append("\">");
         }
 
-        senddatastring.append(fileslists[i].filename);
+        senddatastring.append(fileslists[ii].filename);
         senddatastring.append("</a></div>");
         senddatastring.append("<div class=\"filesize\">");
-        if (fileslists[i].time.size() < 3)
+        if (fileslists[ii].time.size() < 3)
         {
             senddatastring.push_back('-');
         }
         else
         {
-            senddatastring.append(std::to_string(fileslists[i].size));
+            senddatastring.append(std::to_string(fileslists[ii].size));
         }
         senddatastring.append("</div>");
         senddatastring.append("<div class=\"time\">");
-        senddatastring.append(fileslists[i].time);
+        senddatastring.append(fileslists[ii].time);
         senddatastring.append("</div>");
 
-        if (fileslists[i].size > 0)
+        if (fileslists[ii].size > 0)
         {
             senddatastring.append("<div class=\"editfile\"> <a href=\"");
             senddatastring.append(deleteurlpath);
             senddatastring.append("?file=");
-            senddatastring.append(fileslists[i].filename);
+            senddatastring.append(fileslists[ii].filename);
             senddatastring.append("\" onclick=\"return confirm('Delete this image?')\">Delete</a></div>");
         }
         else
@@ -873,14 +873,14 @@ std::string displaydirectory_attachimg(std::string localpath, std::string urlpat
                   { return a.filename < b.filename; });
     }
 
-    for (unsigned int i = 0; i < fileslists.size(); i++)
+    for (unsigned int ii = 0; ii < fileslists.size(); ii++)
     {
 
-        if (fileslists[i].filename.size() > 0 && fileslists[i].filename[0] == '.')
+        if (fileslists[ii].filename.size() > 0 && fileslists[ii].filename[0] == '.')
         {
             continue;
         }
-        if (fileslists[i].time.size() < 3 || (fileslists[i].filename.size() > 0 && fileslists[i].filename[0] == '.'))
+        if (fileslists[ii].time.size() < 3 || (fileslists[ii].filename.size() > 0 && fileslists[ii].filename[0] == '.'))
         {
             senddatastring.append("<li class=\"directoryrowfolder\">");
             senddatastring.append("<div class=\"filename\"><i class=\"bi bi-folder");
@@ -894,53 +894,53 @@ std::string displaydirectory_attachimg(std::string localpath, std::string urlpat
             senddatastring.append("<a href=\"");
         }
 
-        if (fileslists[i].size > 0)
+        if (fileslists[ii].size > 0)
         {
-            if (str_casecmp(fileslists[i].ext, ".png") || str_casecmp(fileslists[i].ext, ".jpg") || str_casecmp(fileslists[i].ext, ".gif") || str_casecmp(fileslists[i].ext, ".jpeg"))
+            if (str_casecmp(fileslists[ii].ext, ".png") || str_casecmp(fileslists[ii].ext, ".jpg") || str_casecmp(fileslists[ii].ext, ".gif") || str_casecmp(fileslists[ii].ext, ".jpeg"))
             {
                 senddatastring.append(realurlpath);
-                senddatastring.append(fileslists[i].filename);
+                senddatastring.append(fileslists[ii].filename);
                 senddatastring.append("\" target=_blank><img src=\"");
                 senddatastring.append(realurlpath);
-                senddatastring.append(fileslists[i].filename);
+                senddatastring.append(fileslists[ii].filename);
                 senddatastring.append("\" width=\"60\" height=\"60\"/>");
             }
             else
             {
                 senddatastring.append(httpquestpath);
-                senddatastring.append(fileslists[i].filename);
+                senddatastring.append(fileslists[ii].filename);
                 senddatastring.append("\">");
             }
         }
         else
         {
             senddatastring.append(httpquestpath);
-            senddatastring.append(fileslists[i].filename);
+            senddatastring.append(fileslists[ii].filename);
             senddatastring.append("\">");
         }
 
-        senddatastring.append(fileslists[i].filename);
+        senddatastring.append(fileslists[ii].filename);
         senddatastring.append("</a></div>");
         senddatastring.append("<div class=\"filesize\">");
-        if (fileslists[i].time.size() < 3)
+        if (fileslists[ii].time.size() < 3)
         {
             senddatastring.push_back('-');
         }
         else
         {
-            senddatastring.append(std::to_string(fileslists[i].size));
+            senddatastring.append(std::to_string(fileslists[ii].size));
         }
         senddatastring.append("</div>");
         senddatastring.append("<div class=\"time\">");
-        senddatastring.append(fileslists[i].time);
+        senddatastring.append(fileslists[ii].time);
         senddatastring.append("</div>");
 
-        if (fileslists[i].size > 0)
+        if (fileslists[ii].size > 0)
         {
             senddatastring.append("<div class=\"editfile\"> <a href=\"");
             senddatastring.append(deleteurlpath);
             senddatastring.append("?file=");
-            senddatastring.append(fileslists[i].filename);
+            senddatastring.append(fileslists[ii].filename);
             senddatastring.append("\" onclick=\"return confirm('Delete this image?')\">Delete</a></div>");
         }
         else

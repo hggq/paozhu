@@ -512,10 +512,10 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
                 //直到引号
                 if(_json_data[_offset]==0x22)
                 {
-                    unsigned int temp_offset=_offset;
+                    unsigned int temp_offset_a=_offset;
                     _json_value_name.clear();
-                    _json_key_name=http::jsonstring_to_utf8(&_json_data[_offset],_json_data.size()-_offset,temp_offset);
-                    _offset=temp_offset;
+                    _json_key_name=http::jsonstring_to_utf8(&_json_data[_offset],_json_data.size()-_offset,temp_offset_a);
+                    _offset=temp_offset_a;
                     if(_json_data[_offset]==0x22)
                     {
                         if((_offset+1)<_json_data.size())

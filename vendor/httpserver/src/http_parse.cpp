@@ -2971,7 +2971,7 @@ void httpparse::readformfilecotent(const unsigned char *buffer, unsigned int buf
             headerstep = 1;
             header_input.clear();
             header_input.push_back(0x0D);
-            unsigned int j = i + 1;
+            j = i + 1;
             if (j < buffersize && buffer[j] == 0x0A)
             {
                 j++;

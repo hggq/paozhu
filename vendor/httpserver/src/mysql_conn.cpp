@@ -1841,9 +1841,9 @@ void mysql_conn_base::read_field_pack(unsigned char *data, unsigned int total_nu
     }
 }
 
-unsigned int mysql_conn_base::pack_real_num(const unsigned char *data, unsigned int &offset)
+unsigned long long mysql_conn_base::pack_real_num(const unsigned char *data, unsigned int &offset)
 {
-    unsigned int pack_length = 0;
+    unsigned long long pack_length = 0;
 
     pack_length = (data[offset] & 0xFF);
     if (pack_length < 251)

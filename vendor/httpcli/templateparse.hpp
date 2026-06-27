@@ -75,7 +75,7 @@ class viewtemplate
             auto lead = std::string(level * 3, ' ');
             for (const auto &entry : fs::directory_iterator(pathToShow))
             {
-                auto filename = entry.path().filename();
+                //auto filename = entry.path().filename();
                 if (fs::is_directory(entry.status()))
                 {
 

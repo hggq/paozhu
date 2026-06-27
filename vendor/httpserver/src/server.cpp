@@ -2082,30 +2082,24 @@ asio::awaitable<void> httpserver::http2_ring_client_server(std::shared_ptr<clien
             for (;;)
             {
                 DEBUG_LOG("http2_ring_client_server for loop ");
-                std::unique_lock lk(peer_session->http2_ring_queue->http2_queue_send_mutex);
-                unsigned char head = peer_session->http2_ring_queue->head_.load(std::memory_order_acquire);
-                if (head == peer_session->http2_ring_queue->tail_.load(std::memory_order_acquire))
+                std::unique_lock for_lk(peer_session->http2_ring_queue->http2_queue_send_mutex);
+                unsigned char for_head = peer_session->http2_ring_queue->head_.load(std::memory_order_acquire);
+                if (for_head == peer_session->http2_ring_queue->tail_.load(std::memory_order_acquire))
                 {
-                    lk.unlock();
+                    for_lk.unlock();
                     break;
                 }
+                for_lk.unlock();
 
-                // peer_session->http2_ring_queue_temp = peer_session->http2_ring_queue->data[head];
-                // peer_session->http2_ring_queue->head_.store((head + 1) & (peer_session->http2_ring_queue->capacity_ - 1), std::memory_order_release);
-                lk.unlock();
-
-                std::unique_lock lck(peer_session->http2_sock_mutex);
-                // co_await peer_session->async_send_writer(peer_session->http2_ring_queue_temp);
                 if (peer_session->isssl)
                 {
-                    co_await asio::async_write(*peer_session->sslsocket, asio::buffer(peer_session->http2_ring_queue->data[head]), asio::use_awaitable);
+                    co_await asio::async_write(*peer_session->sslsocket, asio::buffer(peer_session->http2_ring_queue->data[for_head]), asio::use_awaitable);
                 }
                 else
                 {
-                    co_await asio::async_write(*peer_session->socket, asio::buffer(peer_session->http2_ring_queue->data[head]), asio::use_awaitable);
+                    co_await asio::async_write(*peer_session->socket, asio::buffer(peer_session->http2_ring_queue->data[for_head]), asio::use_awaitable);
                 }
-                lck.unlock();
-                peer_session->http2_ring_queue->head_.store((head + 1) & (peer_session->http2_ring_queue->capacity_ - 1), std::memory_order_release);
+                peer_session->http2_ring_queue->head_.store((for_head + 1) & (peer_session->http2_ring_queue->capacity_ - 1), std::memory_order_release);
             }
         }
         co_return;
@@ -3096,7 +3090,7 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                 {
                     //need handshake
                     readnum       = 0;
-                    bool is_error = co_await peer_session->read_first(readnum);
+                    is_error = co_await peer_session->read_first(readnum);
                     if (is_error)
                     {
 #ifndef BENCHMARK
@@ -4912,9 +4906,9 @@ void httpserver::httpwatch()
                     temp_l.append(std::to_string(live_link_count.load()));
                     temp_l.append("\n");
 
-                    std::unique_lock<std::mutex> loglock(log_mutex);
+                    std::unique_lock<std::mutex> logmilock(log_mutex);
                     error_loglist.push_back(temp_l);
-                    loglock.unlock();
+                    logmilock.unlock();
                 }
 
                 if (total_memory_kb > 100)
@@ -4963,9 +4957,9 @@ void httpserver::httpwatch()
 
             if (clientrunpool.error_message.size() > 0)
             {
-                std::unique_lock<std::mutex> loglock(log_mutex);
+                std::unique_lock<std::mutex> logthoollock(log_mutex);
                 error_loglist.push_back(clientrunpool.error_message);
-                loglock.unlock();
+                logthoollock.unlock();
                 clientrunpool.error_message.clear();
             }
 
@@ -5007,13 +5001,13 @@ void httpserver::httpwatch()
                     continue;
                 }
 #endif
-                std::unique_lock<std::mutex> loglock(log_mutex);
+                std::unique_lock<std::mutex> logacclock(log_mutex);
                 while (!access_loglist.empty())
                 {
                     n_write = write(fd, access_loglist.front().data(), access_loglist.front().size());
                     access_loglist.pop_front();
                 }
-                loglock.unlock();
+                logacclock.unlock();
 
 #ifndef _WIN32
                 lockstr.l_type = F_UNLCK;
@@ -5066,13 +5060,13 @@ void httpserver::httpwatch()
                 }
 #endif
 
-                std::unique_lock<std::mutex> loglock(log_mutex);
+                std::unique_lock<std::mutex> logerrlock(log_mutex);
                 while (!error_loglist.empty())
                 {
                     n_write = write(fd, error_loglist.front().data(), error_loglist.front().size());
                     error_loglist.pop_front();
                 }
-                loglock.unlock();
+                logerrlock.unlock();
 
 #ifndef _WIN32
                 lockstr.l_type = F_UNLCK;
@@ -5212,12 +5206,12 @@ void httpserver::httpwatch()
                     logstr.append(std::to_string(cron_hour));
                     logstr.append(" ---\n");
                     DEBUG_LOG("exit now:%s", logstr.c_str());
-                    std::unique_lock<std::mutex> loglock(log_mutex);
+                    std::unique_lock<std::mutex> logvlock(log_mutex);
                     for (unsigned int i = 0; i < 10; i++)
                     {
                         error_loglist.push_back(logstr);
                     }
-                    loglock.unlock();
+                    logvlock.unlock();
                     cron_type = 0x00;
 
                     continue;
@@ -5410,9 +5404,9 @@ void httpserver::httpwatch()
                 error_msg_loop.append(std::to_string(self_rss_num));
 
                 error_msg_loop.append(" --\n");
-                std::unique_lock<std::mutex> loglock(log_mutex);
+                std::unique_lock<std::mutex> logvvlock(log_mutex);
                 error_loglist.push_back(error_msg_loop);
-                loglock.unlock();
+                logvvlock.unlock();
 
                 //clear mysql connect
                 std::map<std::string, std::shared_ptr<orm::orm_conn_pool>> &mysqldbpoolglobal = orm::get_orm_conn_pool_obj();
@@ -5449,9 +5443,9 @@ void httpserver::httpwatch()
                 error_msg_loop.append(std::to_string(clean_cron_min));
 
                 error_msg_loop.append(" --\n");
-                std::unique_lock<std::mutex> loglock(log_mutex);
+                std::unique_lock<std::mutex> logwlock(log_mutex);
                 error_loglist.push_back(error_msg_loop);
-                loglock.unlock();
+                logwlock.unlock();
             }
 
             if (mysqlpool_time % (CONST_ORM_QUERY_LOG_TIME + 1) == 0)
@@ -5522,9 +5516,9 @@ void httpserver::httpwatch()
                 plan_http2_exit++;
                 if (plan_http2_exit > 2)
                 {
-                    std::unique_lock<std::mutex> loglock(log_mutex);
+                    std::unique_lock<std::mutex> logh2lock(log_mutex);
                     error_loglist.push_back(error_msg_loop);
-                    loglock.unlock();
+                    logh2lock.unlock();
                     if (old_ten_total_count == total_count.load())
                     {
                         isstop = true;
@@ -5564,9 +5558,9 @@ void httpserver::httpwatch()
                 plan_http1_exit++;
                 if (plan_http1_exit > 2)
                 {
-                    std::unique_lock<std::mutex> loglock(log_mutex);
+                    std::unique_lock<std::mutex> logh1lock(log_mutex);
                     error_loglist.push_back(error_msg_loop);
-                    loglock.unlock();
+                    logh1lock.unlock();
 
                     if (old_ten_total_count == total_count.load())
                     {
@@ -5594,9 +5588,9 @@ void httpserver::httpwatch()
                 {
                     if (old_total_count > restart_process_num && total_count.load() == old_total_count)
                     {
-                        std::unique_lock<std::mutex> loglock(log_mutex);
+                        std::unique_lock<std::mutex> logrblock(log_mutex);
                         error_loglist.push_back("--restart_process_time_start--\n");
-                        loglock.unlock();
+                        logrblock.unlock();
                         isstop = true;
                         continue;
                     }
@@ -5786,25 +5780,22 @@ void httpserver::run(const std::string &sysconfpath)
             runthreads.emplace_back(
                 [this]()
                 {
+#ifdef DEBUG
                     std::ostringstream oss;
                     oss << std::this_thread::get_id();
                     std::string tempthread = oss.str();
                     DEBUG_LOG("frame thread:%s", tempthread.c_str());
-                    tempthread.append(" io_context.run() ");
+ #endif
                     do
                     {
                         try
                         {
                             this->io_context.run();
-                            tempthread.append(" nornal; ----\n");
                         }
                         catch (...)
                         {
-                            tempthread.append(" throw exit; ----\n");
+                            
                         }
-                        std::unique_lock<std::mutex> loglock(log_mutex);
-                        error_loglist.push_back(tempthread);
-                        loglock.unlock();
                     } while (!isstop);
                 });
         }

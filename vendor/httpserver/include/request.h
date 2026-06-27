@@ -263,7 +263,7 @@ struct obj_val
     bool is_long() const { return _val_type == obj_type::LONG; }
     bool is_ulong() const { return _val_type == obj_type::ULONG; }
 
-    bool is_integer() const { return _val_type == obj_type::INT || _val_type == obj_type::INT || _val_type == obj_type::UINT || _val_type == obj_type::LONG || _val_type == obj_type::ULONG; }
+    bool is_integer() const { return _val_type == obj_type::INT || _val_type == obj_type::UINT || _val_type == obj_type::LONG || _val_type == obj_type::ULONG; }
 
     bool is_float() const { return _val_type == obj_type::FLOAT; }
     bool is_double() const { return _val_type == obj_type::DOUBLE; }

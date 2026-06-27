@@ -1331,7 +1331,7 @@ void httppeer::set_header(const std::string &a, const std::string &v)
     }
 }
 void httppeer::set_cookie(std::string key,
-                          std::string val,
+                          std::string value,
                           long long exptime,
                           std::string domain,
                           std::string path,
@@ -1339,13 +1339,13 @@ void httppeer::set_cookie(std::string key,
                           bool httponly,
                           std::string issamesite)
 {
-    cookie.set(key, val, exptime, domain, path, secure, httponly, issamesite);
+    cookie.set(key, value, exptime, domain, path, secure, httponly, issamesite);
     //send_cookie.set(key, val, exptime, domain, path, secure, httponly, issamesite);
 
     std::string temph;
     temph.append(url_encode(key.data(), key.size()));
     temph.push_back('=');
-    temph.append(url_encode(val.data(), val.size()));
+    temph.append(url_encode(value.data(), value.size()));
 
     if (exptime > 0 && exptime < 63072000)
     {
@@ -1593,12 +1593,12 @@ std::string httppeer::make_http2_header(unsigned char flag_code)
     DEBUG_LOG("make_http2_header end");
     return http2header;
 }
-void httppeer::goto_url(const std::string &url, unsigned char second, const std::string &msg)
+void httppeer::goto_url(const std::string &gourl, unsigned char second, const std::string &msg)
 {
     output.append("<!DOCTYPE html><html><head><meta http-equiv=\"refresh\" content=\"");
     output.append(std::to_string(second));
     output.append(";url=");
-    output.append(url);
+    output.append(gourl);
     output.append("\"></head><body>");
     if (msg.size() > 0)
     {

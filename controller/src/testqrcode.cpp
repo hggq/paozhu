@@ -1,7 +1,7 @@
 #include <chrono>
 #include <thread>
 #include "httppeer.h"
-
+#include <filesystem>
 #ifdef ENABLE_GD
 #include "qrcode.h"
 #endif
@@ -21,7 +21,7 @@ std::string testqrcode(std::shared_ptr<httppeer> peer)
     client << "<p>"<<atxt<<"</p>";
 
 #ifdef ENABLE_GD
-
+    namespace fs      = std::filesystem;
     qrcode a(atxt, 5);
     std::string wwwpath;
     wwwpath.append(client.get_sitepath());

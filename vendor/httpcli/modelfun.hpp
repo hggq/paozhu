@@ -110,7 +110,7 @@ struct table_columns_info_t
 };
 //Field 	Type 	Collation 	Null 	Key 	Default 	Extra 	Privileges 	Comment
 const static std::array<std::string, 9> table_columns_fields = {"field", "type", "collation", "null", "key", "default", "extra", "privileges", "comment"};
-void assign_field_value(unsigned char index_pos, unsigned char *result_temp_data, unsigned int value_size, table_columns_info_t &data_temp)
+void assign_field_value(unsigned char index_pos, unsigned char *result_temp_data, unsigned long long value_size, table_columns_info_t &data_temp)
 {
     switch (index_pos)
     {
@@ -5078,7 +5078,7 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
         n = string_replace(template_content, "} /*tagnamespace_replace*/", "//} /*tagnamespace_replace*/");
     }
 
-    append_content +=R"(void assign_field_value(unsigned char index_pos, unsigned char *result_temp_data, unsigned int value_size, )";
+    append_content +=R"(void assign_field_value(unsigned char index_pos, unsigned char *result_temp_data, unsigned long long value_size, )";
     append_content += model_name_info;
     append_content +=R"( &data_temp)
     {
@@ -11744,10 +11744,9 @@ dbtype=mysql
                 }
                 else if (action_setup == 2)
                 {
-                    unsigned int column_num = field_array.size();
                     unsigned int tempnum    = 0;
 
-                    for (unsigned int ij = 0; ij < column_num; ij++)
+                    for (unsigned int ij = 0; ij < field_array.size(); ij++)
                     {
                         unsigned long long name_length = 0;// temp_pack_data.data[tempnum] & 0xff;
                         name_length                    = db_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
@@ -11844,10 +11843,9 @@ dbtype=mysql
                     }
                     else if (action_setup == 2)
                     {
-                        unsigned int column_num = field_array.size();
                         unsigned int tempnum    = 0;
 
-                        for (unsigned int ij = 0; ij < column_num; ij++)
+                        for (unsigned int ij = 0; ij < field_array.size(); ij++)
                         {
                             unsigned long long name_length = 0;// temp_pack_data.data[tempnum] & 0xff;
                             name_length                    = db_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
@@ -11878,22 +11876,22 @@ dbtype=mysql
                 ormsqlfile.push_back('/');
             }
             ormsqlfile.append("/_rawsqlfile");
-            fs::path paths = ormsqlfile;
-            if (!fs::exists(paths))
+            fs::path paths_a = ormsqlfile;
+            if (!fs::exists(paths_a))
             {
-                fs::create_directories(paths);
-                fs::permissions(paths,
+                fs::create_directories(paths_a);
+                fs::permissions(paths_a,
                                 fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                                 fs::perm_options::add);
             }
             ormsqlfile.push_back('/');
             ormsqlfile.append(rmstag);
 
-            paths = ormsqlfile;
-            if (!fs::exists(paths))
+            paths_a = ormsqlfile;
+            if (!fs::exists(paths_a))
             {
-                fs::create_directories(paths);
-                fs::permissions(paths,
+                fs::create_directories(paths_a);
+                fs::permissions(paths_a,
                                 fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                                 fs::perm_options::add);
             }
@@ -12004,11 +12002,10 @@ dbtype=mysql
                         }
                         else if (action_setup == 2)
                         {
-                            unsigned int column_num = field_array.size();
                             unsigned int tempnum    = 0;
                             table_columns_info_t temp_tb_info;
 
-                            for (unsigned int ij = 0; ij < column_num; ij++)
+                            for (unsigned int ij = 0; ij < field_array.size(); ij++)
                             {
                                 unsigned long long name_length = 0;// temp_pack_data.data[tempnum] & 0xff;
                                 name_length                    = db_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
@@ -12114,10 +12111,9 @@ dbtype=mysql
                         }
                         else if (action_setup == 2)
                         {
-                            unsigned int column_num = field_array.size();
                             unsigned int tempnum    = 0;
 
-                            for (unsigned int ij = 0; ij < column_num; ij++)
+                            for (unsigned int ij = 0; ij < field_array.size(); ij++)
                             {
                                 unsigned long long name_length = 0;// temp_pack_data.data[tempnum] & 0xff;
                                 name_length                    = db_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);

@@ -71,7 +71,7 @@ class viewtemplatefile
             auto lead = std::string(level * 3, ' ');
             for (const auto &entry : fs::directory_iterator(pathToShow))
             {
-                auto filename = entry.path().filename();
+                //auto filename = entry.path().filename();
                 if (fs::is_directory(entry.status()))
                 {
 
@@ -110,7 +110,7 @@ class viewtemplatefile
         {
             fs::path paths       = iter->first;
             std::string extfile  = paths.extension().string();
-            std::string filename = iter->first;
+            std::string filename_a = iter->first;
 
             if (stringcasecmp(extfile, ".html"))
             {
@@ -119,13 +119,13 @@ class viewtemplatefile
                 regtemp.clear();
                 pathlists.clear();
 
-                for (unsigned int ii = 0; ii < filename.size(); ii++)
+                for (unsigned int ii = 0; ii < filename_a.size(); ii++)
                 {
-                    if (filename[ii] == '.')
+                    if (filename_a[ii] == '.')
                     {
                         break;
                     }
-                    if (filename[ii] == '/')
+                    if (filename_a[ii] == '/')
                     {
                         if (filename_methold.size() > 0)
                         {
@@ -137,7 +137,7 @@ class viewtemplatefile
                         filename_methold.clear();
                         continue;
                     }
-                    filename_methold.push_back(filename[ii]);
+                    filename_methold.push_back(filename_a[ii]);
                 }
                 filename_namespace.append(" ");
                 for (unsigned int i = 0; i < pathlists.size(); i++)
@@ -155,15 +155,15 @@ class viewtemplatefile
 
                 regtemp.append(filename_methold);
 
-                filename = "\n\tstd::string ";
-                filename.append(filename_methold);
-                filename.append("(const struct view_param &vinfo,http::obj_val &obj);");
+                filename_a = "\n\tstd::string ";
+                filename_a.append(filename_methold);
+                filename_a.append("(const struct view_param &vinfo,http::obj_val &obj);");
 
-                includelist[filename_namespace].push_back(filename);
+                includelist[filename_namespace].push_back(filename_a);
 
-                filename = "\n\t_viewmetholdreg.emplace(\"";
-                filename.append(regtemp);
-                filename.append("\",http::view::");
+                filename_a = "\n\t_viewmetholdreg.emplace(\"";
+                filename_a.append(regtemp);
+                filename_a.append("\",http::view::");
 
                 filename_namespace.clear();
                 for (unsigned int i = 0; i < pathlists.size(); i++)
@@ -173,9 +173,9 @@ class viewtemplatefile
                 }
                 filename_namespace.append(filename_methold);
 
-                filename.append(filename_namespace);
-                filename.append(");");
-                regitem.append(filename);
+                filename_a.append(filename_namespace);
+                filename_a.append(");");
+                regitem.append(filename_a);
             }
         }
 

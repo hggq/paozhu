@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Fri, 19 Jun 2026 13:17:54 GMT
+ *  Creation time Sat, 27 Jun 2026 04:40:19 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -1139,7 +1139,7 @@ namespace cms
             co_return 0;
         }
 
-        void assign_field_value(unsigned char index_pos, unsigned char *result_temp_data, unsigned int value_size, superadmin_info::meta &data_temp)
+        void assign_field_value(unsigned char index_pos, unsigned char *result_temp_data, unsigned long long value_size, superadmin_info::meta &data_temp)
     {
         switch(index_pos)
         {
@@ -23866,7 +23866,7 @@ M_MODEL& or_leBasesitepath(T val)
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 std::map<std::string, std::string> data_temp;
@@ -24113,7 +24113,7 @@ M_MODEL& or_leBasesitepath(T val)
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 std::vector<std::string> temp_v_record;
@@ -24340,7 +24340,7 @@ M_MODEL& or_leBasesitepath(T val)
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 T data_temp;
@@ -24546,7 +24546,7 @@ M_MODEL& or_leBasesitepath(T val)
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 T data_temp;
@@ -24750,7 +24750,7 @@ M_MODEL& or_leBasesitepath(T val)
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 T data_temp;
@@ -24957,7 +24957,7 @@ M_MODEL& or_leBasesitepath(T val)
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 T data_temp;
@@ -25177,7 +25177,7 @@ M_MODEL& or_leBasesitepath(T val)
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 superadmin_info::meta data_temp;
@@ -25398,7 +25398,7 @@ M_MODEL& or_leBasesitepath(T val)
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 superadmin_info::meta data_temp;
@@ -25616,7 +25616,7 @@ M_MODEL& or_leBasesitepath(T val)
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 superadmin_info::meta data_temp;
@@ -25839,7 +25839,7 @@ M_MODEL& or_leBasesitepath(T val)
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 superadmin_info::meta data_temp;
@@ -26043,7 +26043,7 @@ M_MODEL& or_leBasesitepath(T val)
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 for (unsigned int ij = 0; ij < column_num; ij++)
@@ -26250,7 +26250,7 @@ M_MODEL& or_leBasesitepath(T val)
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 for (unsigned int ij = 0; ij < column_num; ij++)
@@ -26454,7 +26454,7 @@ M_MODEL& or_leBasesitepath(T val)
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 for (unsigned int ij = 0; ij < column_num; ij++)
@@ -26661,7 +26661,7 @@ M_MODEL& or_leBasesitepath(T val)
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 for (unsigned int ij = 0; ij < column_num; ij++)
@@ -26878,7 +26878,7 @@ M_MODEL& or_leBasesitepath(T val)
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 if (isappend)
@@ -27118,7 +27118,7 @@ M_MODEL& or_leBasesitepath(T val)
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 if (isappend)
@@ -27551,7 +27551,7 @@ M_MODEL& or_leBasesitepath(T val)
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 http::obj_val json_temp_v;
@@ -27755,7 +27755,7 @@ M_MODEL& or_leBasesitepath(T val)
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 http::obj_val json_temp_v;
@@ -27959,7 +27959,7 @@ M_MODEL& or_leBasesitepath(T val)
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 for (unsigned int ij = 0; ij < column_num; ij++)
@@ -28160,7 +28160,7 @@ M_MODEL& or_leBasesitepath(T val)
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 for (unsigned int ij = 0; ij < column_num; ij++)
@@ -30782,7 +30782,7 @@ M_MODEL& or_leBasesitepath(T val)
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 T data_temp;
@@ -30982,7 +30982,7 @@ M_MODEL& or_leBasesitepath(T val)
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 T data_temp;

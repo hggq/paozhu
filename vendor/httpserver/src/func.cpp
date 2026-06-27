@@ -2243,7 +2243,7 @@ void get_directory_all_file(std::map<unsigned long long, std::string> &listobj,
     {
         for (const auto &entry : std::filesystem::directory_iterator(tagetpath))
         {
-            auto filename = entry.path().filename().string();
+            filename = entry.path().filename().string();
             if (std::filesystem::is_regular_file(entry.status()))
             {
                 extname = entry.path().extension().string();

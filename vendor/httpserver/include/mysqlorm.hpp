@@ -3118,7 +3118,7 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 std::map<std::string, std::string> data_temp;
@@ -3365,7 +3365,7 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 std::vector<std::string> temp_v_record;
@@ -3592,7 +3592,7 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 T data_temp;
@@ -3798,7 +3798,7 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 T data_temp;
@@ -4002,7 +4002,7 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 T data_temp;
@@ -4209,7 +4209,7 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 T data_temp;
@@ -4429,7 +4429,7 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 typename B_BASE::meta data_temp;
@@ -4650,7 +4650,7 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 typename B_BASE::meta data_temp;
@@ -4868,7 +4868,7 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 typename B_BASE::meta data_temp;
@@ -5091,7 +5091,7 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 typename B_BASE::meta data_temp;
@@ -5295,7 +5295,7 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 for (unsigned int ij = 0; ij < column_num; ij++)
@@ -5502,7 +5502,7 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 for (unsigned int ij = 0; ij < column_num; ij++)
@@ -5706,7 +5706,7 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 for (unsigned int ij = 0; ij < column_num; ij++)
@@ -5913,7 +5913,7 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 for (unsigned int ij = 0; ij < column_num; ij++)
@@ -6130,7 +6130,7 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 if (isappend)
@@ -6370,7 +6370,7 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 if (isappend)
@@ -6803,7 +6803,7 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 http::obj_val json_temp_v;
@@ -7007,7 +7007,7 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 http::obj_val json_temp_v;
@@ -7211,7 +7211,7 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 for (unsigned int ij = 0; ij < column_num; ij++)
@@ -7412,7 +7412,7 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 for (unsigned int ij = 0; ij < column_num; ij++)
@@ -10034,7 +10034,7 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 T data_temp;
@@ -10234,7 +10234,7 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int column_num = field_array.size();
+                                column_num = field_array.size();
                                 unsigned int tempnum    = 0;
 
                                 T data_temp;

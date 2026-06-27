@@ -334,7 +334,7 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
             }
             mythread_info->url[offsetnum] = 0x00;
             {
-                unsigned int offsetnum = peer->client_ip.size();
+                offsetnum = peer->client_ip.size();
                 if (offsetnum < 61)
                 {
                     memcpy(mythread_info->ip, peer->client_ip.data(), offsetnum);

@@ -297,9 +297,9 @@ asio::awaitable<bool> websocket_client::async_init_http_sock()
     }
     co_return true;
 }
-asio::awaitable<bool> websocket_client::async_connect(std::string_view url,unsigned int time_out_num)
+asio::awaitable<bool> websocket_client::async_connect(std::string_view url_,unsigned int time_out_num)
 {
-    set_url(url);
+    set_url(url_);
     exptime = time_out_num;
     co_return co_await async_connect();
 }
@@ -458,7 +458,7 @@ asio::awaitable<unsigned int> websocket_client::async_read(std::string &read_dat
     co_return 0;
 }
 
-asio::awaitable<unsigned int> websocket_client::async_write(unsigned char *data, unsigned int buffersize)
+asio::awaitable<unsigned int> websocket_client::async_write(unsigned char *data_out, unsigned int buffersize)
 {
     if(iserror)
     {
@@ -473,11 +473,11 @@ asio::awaitable<unsigned int> websocket_client::async_write(unsigned char *data,
     {
         if (isssl)
         {
-            n = co_await asio::async_write(*sslsock, asio::buffer(data, buffersize), asio::use_awaitable);
+            n = co_await asio::async_write(*sslsock, asio::buffer(data_out, buffersize), asio::use_awaitable);
         }
         else
         {
-            n = co_await asio::async_write(*sock, asio::buffer(data, buffersize), asio::use_awaitable);
+            n = co_await asio::async_write(*sock, asio::buffer(data_out, buffersize), asio::use_awaitable);
         }
         co_return n;
     }
@@ -526,7 +526,7 @@ asio::awaitable<unsigned int> websocket_client::async_write(std::string_view val
     co_return 0;
 }
 //synchronous
-unsigned int websocket_client::write(unsigned char *data, unsigned int buffersize)
+unsigned int websocket_client::write(unsigned char *data_out, unsigned int buffersize)
 {
     if(iserror)
     {
@@ -541,11 +541,11 @@ unsigned int websocket_client::write(unsigned char *data, unsigned int buffersiz
     {
         if (isssl)
         {
-            n = asio::write(*sslsock, asio::buffer(data, buffersize));
+            n = asio::write(*sslsock, asio::buffer(data_out, buffersize));
         }
         else
         {
-            n = asio::write(*sock, asio::buffer(data, buffersize));
+            n = asio::write(*sock, asio::buffer(data_out, buffersize));
         }
         return n;
     }
@@ -719,7 +719,6 @@ void websocket_client::run_loop()
             reset_timeout();
         }
         unsigned int n = 0;
-        unsigned char data[512];
         try
         {
 

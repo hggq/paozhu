@@ -395,7 +395,6 @@ asio::awaitable<bool> client::async_init_http_sock()
     asio::ip::tcp::resolver resolver(strand_);
  
     sock = std::make_shared<asio::ip::tcp::socket>(strand_);
-    asio::error_code ec;
     constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
     auto endpoints                 = co_await resolver.async_resolve(host, port, asio::use_awaitable);
 
@@ -429,7 +428,6 @@ asio::awaitable<bool> client::async_init_https_sock()
     asio::ip::tcp::resolver resolver(strand_);
 
     SSL_set_tlsext_host_name(sslsock->native_handle(), host.c_str());
-    asio::error_code ec;
 
     constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
     auto endpoints                 = co_await resolver.async_resolve(host, port, asio::use_awaitable);
@@ -560,7 +558,7 @@ asio::awaitable<void> client::async_send_data()
         co_await asio::async_write(*sock, asio::buffer(request), asio::use_awaitable);
 
         timeout_total = timeid() + timeout_total;
-        char data[2051];
+        char read_data[2051];
         unsigned int n;
         if (requesttype == 1)
         {
@@ -581,9 +579,9 @@ asio::awaitable<void> client::async_send_data()
                     std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(p.filename.c_str(), "rb"), std::fclose);
                     if (!fp)
                     {
-                        data[0] = 0x0D;
-                        data[1] = 0x0A;
-                        co_await asio::async_write(*sock, asio::buffer(data, 2), asio::use_awaitable);
+                        read_data[0] = 0x0D;
+                        read_data[1] = 0x0A;
+                        co_await asio::async_write(*sock, asio::buffer(read_data, 2), asio::use_awaitable);
                         break;
                     }
 
@@ -591,19 +589,19 @@ asio::awaitable<void> client::async_send_data()
                     n = ftell(fp.get());
                     fseek(fp.get(), 0, SEEK_SET);
 
-                    data[2048] = 0x00;
+                    read_data[2048] = 0x00;
                     while (readnum < n)
                     {
-                        auto nread = fread(data, 1, 2048, fp.get());
+                        auto nread = fread(read_data, 1, 2048, fp.get());
                         readnum += nread;
                         if (readnum >= n)
                         {
-                            data[nread] = 0x0D;
+                            read_data[nread] = 0x0D;
                             nread += 1;
-                            data[nread] = 0x0A;
+                            read_data[nread] = 0x0A;
                             nread += 1;
                         }
-                        co_await asio::async_write(*sock, asio::buffer(data, nread), asio::use_awaitable);
+                        co_await asio::async_write(*sock, asio::buffer(read_data, nread), asio::use_awaitable);
                         if (upload_process != nullptr)
                         {
                             upload_process(readnum, n);
@@ -642,9 +640,9 @@ asio::awaitable<void> client::async_send_data()
                     std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(p.filename.c_str(), "rb"), std::fclose);
                     if (!fp)
                     {
-                        data[0] = 0x0D;
-                        data[1] = 0x0A;
-                        co_await asio::async_write(*sock, asio::buffer(data, 2), asio::use_awaitable);
+                        read_data[0] = 0x0D;
+                        read_data[1] = 0x0A;
+                        co_await asio::async_write(*sock, asio::buffer(read_data, 2), asio::use_awaitable);
                         break;
                     }
 
@@ -652,12 +650,12 @@ asio::awaitable<void> client::async_send_data()
                     n = ftell(fp.get());
                     fseek(fp.get(), 0, SEEK_SET);
 
-                    data[2048] = 0x00;
+                    read_data[2048] = 0x00;
                     while (readnum < n)
                     {
-                        auto nread = fread(data, 1, 2048, fp.get());
+                        auto nread = fread(read_data, 1, 2048, fp.get());
                         readnum += nread;
-                        co_await asio::async_write(*sock, asio::buffer(data, nread), asio::use_awaitable);
+                        co_await asio::async_write(*sock, asio::buffer(read_data, nread), asio::use_awaitable);
                         if (upload_process != nullptr)
                         {
                             upload_process(readnum, n);
@@ -699,23 +697,23 @@ asio::awaitable<void> client::async_send_data()
 
         while (true)
         {
-            memset(data, 0x00, 2048);
+            memset(read_data, 0x00, 2048);
             //BUG Not considering the file state
             if (page.file.size > 0 && (page.file.size - page.content.size() < 2048))
             {
-                n = co_await sock->async_read_some(asio::buffer(data, page.file.size - page.content.size()), asio::use_awaitable);
+                n = co_await sock->async_read_some(asio::buffer(read_data, page.file.size - page.content.size()), asio::use_awaitable);
             }
             else
             {
-                n = co_await sock->async_read_some(asio::buffer(data, 2048), asio::use_awaitable);
+                n = co_await sock->async_read_some(asio::buffer(read_data, 2048), asio::use_awaitable);
             }
-            data[2048] = 0x00;
+            read_data[2048] = 0x00;
             if (n == 0)
             {
                 break;
             }
             readoffset = 0;
-            if (process(data, n))
+            if (process(read_data, n))
             {
                 break;
             }
@@ -847,7 +845,7 @@ client &client::send_data()
         sock->write_some(asio::buffer(request));
 
         timeout_total = timeid() + timeout_total;
-        char data[2051];
+        char read_data[2051];
         unsigned int n;
         if (requesttype == 1)
         {
@@ -865,9 +863,9 @@ client &client::send_data()
                     std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(p.filename.c_str(), "rb"), std::fclose);
                     if (!fp)
                     {
-                        data[0] = 0x0D;
-                        data[1] = 0x0A;
-                        asio::write(*sock, asio::buffer(data, 2));
+                        read_data[0] = 0x0D;
+                        read_data[1] = 0x0A;
+                        asio::write(*sock, asio::buffer(read_data, 2));
                         break;
                     }
 
@@ -875,19 +873,19 @@ client &client::send_data()
                     n = ftell(fp.get());
                     fseek(fp.get(), 0, SEEK_SET);
 
-                    data[2048] = 0x00;
+                    read_data[2048] = 0x00;
                     while (readnum < n)
                     {
-                        auto nread = fread(data, 1, 2048, fp.get());
+                        auto nread = fread(read_data, 1, 2048, fp.get());
                         readnum += nread;
                         if (readnum >= n)
                         {
-                            data[nread] = 0x0D;
+                            read_data[nread] = 0x0D;
                             nread += 1;
-                            data[nread] = 0x0A;
+                            read_data[nread] = 0x0A;
                             nread += 1;
                         }
-                        asio::write(*sock, asio::buffer(data, nread));
+                        asio::write(*sock, asio::buffer(read_data, nread));
                         if (upload_process != nullptr)
                         {
                             upload_process(readnum, n);
@@ -926,9 +924,9 @@ client &client::send_data()
                     std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(p.filename.c_str(), "rb"), std::fclose);
                     if (!fp)
                     {
-                        data[0] = 0x0D;
-                        data[1] = 0x0A;
-                        asio::write(*sock, asio::buffer(data, 2));
+                        read_data[0] = 0x0D;
+                        read_data[1] = 0x0A;
+                        asio::write(*sock, asio::buffer(read_data, 2));
                         break;
                     }
 
@@ -936,12 +934,12 @@ client &client::send_data()
                     n = ftell(fp.get());
                     fseek(fp.get(), 0, SEEK_SET);
 
-                    data[2048] = 0x00;
+                    read_data[2048] = 0x00;
                     while (readnum < n)
                     {
-                        auto nread = fread(data, 1, 2048, fp.get());
+                        auto nread = fread(read_data, 1, 2048, fp.get());
                         readnum += nread;
-                        asio::write(*sock, asio::buffer(data, nread));
+                        asio::write(*sock, asio::buffer(read_data, nread));
                         if (upload_process != nullptr)
                         {
                             upload_process(readnum, n);
@@ -982,23 +980,23 @@ client &client::send_data()
 
         while (true)
         {
-            memset(data, 0x00, 2048);
+            memset(read_data, 0x00, 2048);
             //BUG Not considering the file state
             if (page.file.size > 0 && (page.file.size - page.content.size() < 2048))
             {
-                n = sock->read_some(asio::buffer(data, page.file.size - page.content.size()), ec);
+                n = sock->read_some(asio::buffer(read_data, page.file.size - page.content.size()), ec);
             }
             else
             {
-                n = sock->read_some(asio::buffer(data, 2048), ec);
+                n = sock->read_some(asio::buffer(read_data, 2048), ec);
             }
-            data[2048] = 0x00;
+            read_data[2048] = 0x00;
             if (n == 0)
             {
                 break;
             }
             readoffset = 0;
-            if (process(data, n))
+            if (process(read_data, n))
             {
                 break;
             }
@@ -1193,7 +1191,7 @@ asio::awaitable<void> client::async_send_ssl_data()
         n = co_await asio::async_write(*sslsock, asio::buffer(request), asio::use_awaitable);
 
         timeout_total = timeid() + timeout_total;
-        char data[2051];
+        char read_data[2051];
         if (requesttype == 1)
         {
             for (auto &p : senddata)
@@ -1214,9 +1212,9 @@ asio::awaitable<void> client::async_send_ssl_data()
                     std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(p.filename.c_str(), "rb"), std::fclose);
                     if (!fp)
                     {
-                        data[0] = 0x0D;
-                        data[1] = 0x0A;
-                        co_await asio::async_write(*sslsock, asio::buffer(data, 2), asio::use_awaitable);
+                        read_data[0] = 0x0D;
+                        read_data[1] = 0x0A;
+                        co_await asio::async_write(*sslsock, asio::buffer(read_data, 2), asio::use_awaitable);
                         break;
                     }
 
@@ -1224,19 +1222,19 @@ asio::awaitable<void> client::async_send_ssl_data()
                     n = ftell(fp.get());
                     fseek(fp.get(), 0, SEEK_SET);
 
-                    data[2048] = 0x00;
+                    read_data[2048] = 0x00;
                     while (readnum < n)
                     {
-                        auto nread = fread(data, 1, 2048, fp.get());
+                        auto nread = fread(read_data, 1, 2048, fp.get());
                         readnum += nread;
                         if (readnum >= n)
                         {
-                            data[nread] = 0x0D;
+                            read_data[nread] = 0x0D;
                             nread += 1;
-                            data[nread] = 0x0A;
+                            read_data[nread] = 0x0A;
                             nread += 1;
                         }
-                        co_await asio::async_write(*sslsock, asio::buffer(data, nread), asio::use_awaitable);
+                        co_await asio::async_write(*sslsock, asio::buffer(read_data, nread), asio::use_awaitable);
                         if (upload_process != nullptr)
                         {
                             upload_process(readnum, n);
@@ -1275,9 +1273,9 @@ asio::awaitable<void> client::async_send_ssl_data()
                     std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(p.filename.c_str(), "rb"), std::fclose);
                     if (!fp)
                     {
-                        data[0] = 0x0D;
-                        data[1] = 0x0A;
-                        co_await asio::async_write(*sslsock, asio::buffer(data, 2), asio::use_awaitable);
+                        read_data[0] = 0x0D;
+                        read_data[1] = 0x0A;
+                        co_await asio::async_write(*sslsock, asio::buffer(read_data, 2), asio::use_awaitable);
                         break;
                     }
 
@@ -1285,12 +1283,12 @@ asio::awaitable<void> client::async_send_ssl_data()
                     n = ftell(fp.get());
                     fseek(fp.get(), 0, SEEK_SET);
 
-                    data[2048] = 0x00;
+                    read_data[2048] = 0x00;
                     while (readnum < n)
                     {
-                        auto nread = fread(data, 1, 2048, fp.get());
+                        auto nread = fread(read_data, 1, 2048, fp.get());
                         readnum += nread;
-                        co_await asio::async_write(*sslsock, asio::buffer(data, nread), asio::use_awaitable);
+                        co_await asio::async_write(*sslsock, asio::buffer(read_data, nread), asio::use_awaitable);
                         if (upload_process != nullptr)
                         {
                             upload_process(readnum, n);
@@ -1330,23 +1328,23 @@ asio::awaitable<void> client::async_send_ssl_data()
 
         while (true)
         {
-            memset(data, 0x00, 2048);
+            memset(read_data, 0x00, 2048);
             //BUG Not considering the file state
             if (page.file.size > 0 && (page.file.size - page.content.size() < 2048))
             {
-                n = co_await sslsock->async_read_some(asio::buffer(data, page.file.size - page.content.size()), asio::use_awaitable);
+                n = co_await sslsock->async_read_some(asio::buffer(read_data, page.file.size - page.content.size()), asio::use_awaitable);
             }
             else
             {
-                n = co_await sslsock->async_read_some(asio::buffer(data, 2048), asio::use_awaitable);
+                n = co_await sslsock->async_read_some(asio::buffer(read_data, 2048), asio::use_awaitable);
             }
-            data[2048] = 0x00;
+            read_data[2048] = 0x00;
             if (n == 0)
             {
                 break;
             }
             readoffset = 0;
-            if (process(data, n))
+            if (process(read_data, n))
             {
                 break;
             }
@@ -1477,7 +1475,7 @@ client &client::send_ssl_data()
         n = sslsock->write_some(asio::buffer(request));
 
         timeout_total = timeid() + timeout_total;
-        char data[2051];
+        char read_data[2051];
         if (requesttype == 1)
         {
             for (auto &p : senddata)
@@ -1495,9 +1493,9 @@ client &client::send_ssl_data()
                     std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(p.filename.c_str(), "rb"), std::fclose);
                     if (!fp)
                     {
-                        data[0] = 0x0D;
-                        data[1] = 0x0A;
-                        asio::write(*sslsock, asio::buffer(data, 2));
+                        read_data[0] = 0x0D;
+                        read_data[1] = 0x0A;
+                        asio::write(*sslsock, asio::buffer(read_data, 2));
                         break;
                     }
 
@@ -1505,19 +1503,19 @@ client &client::send_ssl_data()
                     n = ftell(fp.get());
                     fseek(fp.get(), 0, SEEK_SET);
 
-                    data[2048] = 0x00;
+                    read_data[2048] = 0x00;
                     while (readnum < n)
                     {
-                        auto nread = fread(data, 1, 2048, fp.get());
+                        auto nread = fread(read_data, 1, 2048, fp.get());
                         readnum += nread;
                         if (readnum >= n)
                         {
-                            data[nread] = 0x0D;
+                            read_data[nread] = 0x0D;
                             nread += 1;
-                            data[nread] = 0x0A;
+                            read_data[nread] = 0x0A;
                             nread += 1;
                         }
-                        asio::write(*sslsock, asio::buffer(data, nread));
+                        asio::write(*sslsock, asio::buffer(read_data, nread));
                         if (upload_process != nullptr)
                         {
                             upload_process(readnum, n);
@@ -1556,9 +1554,9 @@ client &client::send_ssl_data()
                     std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(p.filename.c_str(), "rb"), std::fclose);
                     if (!fp)
                     {
-                        data[0] = 0x0D;
-                        data[1] = 0x0A;
-                        asio::write(*sslsock, asio::buffer(data, 2));
+                        read_data[0] = 0x0D;
+                        read_data[1] = 0x0A;
+                        asio::write(*sslsock, asio::buffer(read_data, 2));
                         break;
                     }
 
@@ -1566,12 +1564,12 @@ client &client::send_ssl_data()
                     n = ftell(fp.get());
                     fseek(fp.get(), 0, SEEK_SET);
 
-                    data[2048] = 0x00;
+                    read_data[2048] = 0x00;
                     while (readnum < n)
                     {
-                        auto nread = fread(data, 1, 2048, fp.get());
+                        auto nread = fread(read_data, 1, 2048, fp.get());
                         readnum += nread;
-                        asio::write(*sslsock, asio::buffer(data, nread));
+                        asio::write(*sslsock, asio::buffer(read_data, nread));
                         if (upload_process != nullptr)
                         {
                             upload_process(readnum, n);
@@ -1611,23 +1609,23 @@ client &client::send_ssl_data()
 
         while (true)
         {
-            memset(data, 0x00, 2048);
+            memset(read_data, 0x00, 2048);
             //BUG Not considering the file state
             if (page.file.size > 0 && (page.file.size - page.content.size() < 2048))
             {
-                n = sslsock->read_some(asio::buffer(data, page.file.size - page.content.size()), ec);
+                n = sslsock->read_some(asio::buffer(read_data, page.file.size - page.content.size()), ec);
             }
             else
             {
-                n = sslsock->read_some(asio::buffer(data, 2048), ec);
+                n = sslsock->read_some(asio::buffer(read_data, 2048), ec);
             }
-            data[2048] = 0x00;
+            read_data[2048] = 0x00;
             if (n == 0)
             {
                 break;
             }
             readoffset = 0;
-            if (process(data, n))
+            if (process(read_data, n))
             {
                 break;
             }
@@ -2474,7 +2472,7 @@ bool client::process(const char *buffer, unsigned int buffersize)
     }
     return false;
 }
-client &client::data_type(std::string str = "")
+client &client::data_type(std::string str)
 {
 
     if (str.empty())
@@ -2490,7 +2488,7 @@ client &client::data_type(std::string str = "")
     }
     return *this;
 }
-client &client::post_type(std::string str = "")
+client &client::post_type(std::string str)
 {
 
     if (str.empty())
@@ -2503,13 +2501,13 @@ client &client::post_type(std::string str = "")
     }
     return *this;
 }
-client &client::save(std::string path = "")
+client &client::save(std::string path_file)
 {
 
     // fix prepath safe path
-    if (path.empty())
+    if (path_file.empty())
     {
-        path.append("./");
+        path_file.append("./");
         if (page.file.filename.empty())
         {
             unsigned long long tetime = time((time_t *)NULL);
@@ -2517,30 +2515,30 @@ client &client::save(std::string path = "")
         }
         else
         {
-            path.append(page.file.filename);
+            path_file.append(page.file.filename);
         }
     }
 
-    struct stat s;
-    if (stat(path.c_str(), &s) == 0)
+    struct stat s_f;
+    if (stat(path_file.c_str(), &s_f) == 0)
     {
 
-        if (s.st_mode & S_IFDIR)
+        if (s_f.st_mode & S_IFDIR)
         {
-            if (path.back() == '/')
+            if (path_file.back() == '/')
             {
-                path.append(page.file.filename);
+                path_file.append(page.file.filename);
             }
             else
             {
-                path.push_back('/');
-                path.append(page.file.filename);
+                path_file.push_back('/');
+                path_file.append(page.file.filename);
             }
         }
     }
     if (page.file.tempfile.size() > 0 && page.file.tempfile.size() < 138)
     {
-        rename(page.file.tempfile.c_str(), path.c_str());
+        rename(page.file.tempfile.c_str(), path_file.c_str());
     }
 
     return *this;
@@ -3803,7 +3801,7 @@ asio::awaitable<unsigned int> client::async_read(std::string &buffer_data)
     co_return 0;
 }
 
-asio::awaitable<unsigned int> client::async_write(unsigned char *data, unsigned int buffersize)
+asio::awaitable<unsigned int> client::async_write(unsigned char *send_data_p, unsigned int buffersize)
 {
 
     if(iserror)
@@ -3819,11 +3817,11 @@ asio::awaitable<unsigned int> client::async_write(unsigned char *data, unsigned 
     {
         if (isssl)
         {
-            n = co_await asio::async_write(*sslsock, asio::buffer(data, buffersize), asio::use_awaitable);
+            n = co_await asio::async_write(*sslsock, asio::buffer(send_data_p, buffersize), asio::use_awaitable);
         }
         else
         {
-            n = co_await asio::async_write(*sock, asio::buffer(data, buffersize), asio::use_awaitable);
+            n = co_await asio::async_write(*sock, asio::buffer(send_data_p, buffersize), asio::use_awaitable);
         }
         co_return n;
     }
@@ -3873,7 +3871,7 @@ asio::awaitable<unsigned int> client::async_write(std::string_view value)
 
  
 
-unsigned int client::write(unsigned char *data, unsigned int buffersize)
+unsigned int client::write(unsigned char *send_data_p, unsigned int buffersize)
 {
     if(iserror)
     {
@@ -3888,11 +3886,11 @@ unsigned int client::write(unsigned char *data, unsigned int buffersize)
     {
         if (isssl)
         {
-            n = asio::write(*sslsock, asio::buffer(data, buffersize));
+            n = asio::write(*sslsock, asio::buffer(send_data_p, buffersize));
         }
         else
         {
-            n = asio::write(*sock, asio::buffer(data, buffersize));
+            n = asio::write(*sock, asio::buffer(send_data_p, buffersize));
         }
         return n;
     }

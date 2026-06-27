@@ -519,7 +519,7 @@ asio::awaitable<unsigned int> socket_client::async_read(std::string &buffer_data
     co_return 0;
 }
 
-asio::awaitable<unsigned int> socket_client::async_write(unsigned char *data, unsigned int buffersize)
+asio::awaitable<unsigned int> socket_client::async_write(unsigned char *data_out, unsigned int buffersize)
 {
 
     if(iserror)
@@ -535,11 +535,11 @@ asio::awaitable<unsigned int> socket_client::async_write(unsigned char *data, un
     {
         if (isssl)
         {
-            n = co_await asio::async_write(*sslsock, asio::buffer(data, buffersize), asio::use_awaitable);
+            n = co_await asio::async_write(*sslsock, asio::buffer(data_out, buffersize), asio::use_awaitable);
         }
         else
         {
-            n = co_await asio::async_write(*sock, asio::buffer(data, buffersize), asio::use_awaitable);
+            n = co_await asio::async_write(*sock, asio::buffer(data_out, buffersize), asio::use_awaitable);
         }
         co_return n;
     }
@@ -589,7 +589,7 @@ asio::awaitable<unsigned int> socket_client::async_write(std::string_view value)
 }
 
 //synchronous
-unsigned int socket_client::write(unsigned char *data, unsigned int buffersize)
+unsigned int socket_client::write(unsigned char *data_out, unsigned int buffersize)
 {
     if(iserror)
     {
@@ -604,11 +604,11 @@ unsigned int socket_client::write(unsigned char *data, unsigned int buffersize)
     {
         if (isssl)
         {
-            n = asio::write(*sslsock, asio::buffer(data, buffersize));
+            n = asio::write(*sslsock, asio::buffer(data_out, buffersize));
         }
         else
         {
-            n = asio::write(*sock, asio::buffer(data, buffersize));
+            n = asio::write(*sock, asio::buffer(data_out, buffersize));
         }
         return n;
     }
@@ -785,7 +785,6 @@ void socket_client::run_loop()
             reset_timeout();
         }
         unsigned int n = 0;
-        unsigned char data[512];
         try
         {
 

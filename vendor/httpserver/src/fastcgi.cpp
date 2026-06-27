@@ -23,13 +23,13 @@
 #include "serverconfig.h"
 namespace http
 {
-void fastcgi::make_Header(FASTCGI_Header &header_temp, int type, int request_id, int contentLength, int paddingLength)
+void fastcgi::make_Header(FASTCGI_Header &header_temp, int type, int request_id_, int contentLength, int paddingLength)
 {
     header_temp.version = FASTCGI_VERSION;
     header_temp.type    = (unsigned char)type;
 
-    header_temp.requestIdB1 = (unsigned char)((request_id >> 8) & 0xff);
-    header_temp.requestIdB0 = (unsigned char)(request_id & 0xff);
+    header_temp.requestIdB1 = (unsigned char)((request_id_ >> 8) & 0xff);
+    header_temp.requestIdB0 = (unsigned char)(request_id_ & 0xff);
 
     header_temp.contentLengthB1 = (unsigned char)((contentLength >> 8) & 0xff);
     header_temp.contentLengthB0 = (unsigned char)((contentLength & 0xff));
@@ -51,7 +51,6 @@ asio::awaitable<bool> fastcgi::co_init_http_sock()
     error_msg.clear();
     auto executor                  = co_await asio::this_coro::executor;
     constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
-    asio::error_code ec;
     //.sock
     if (host.size() > 0 && host.back() == 'k')
     {

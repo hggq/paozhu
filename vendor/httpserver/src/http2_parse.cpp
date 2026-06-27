@@ -2093,7 +2093,7 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
         if (item_length == 0x7F)
         {
 
-            bool iscontinue = false;
+            iscontinue = false;
             if (header_data[begin] & 0x80)
             {
                 iscontinue = true;
@@ -2292,7 +2292,7 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
         }
 
         begin                = begin + item_length;
-        bool ishuffman_value = false;
+        ishuffman_value = false;
         if (header_data[begin] & 0x80)
         {
             ishuffman_value = true;
@@ -2302,7 +2302,7 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
         begin += 1;
         if (item_length == 0x7F)
         {
-            bool iscontinue = false;
+            iscontinue = false;
             if (header_data[begin] & 0x80)
             {
                 iscontinue = true;
@@ -2502,7 +2502,7 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
         if (item_length == 0x7F)
         {
 
-            bool iscontinue = false;
+            iscontinue = false;
             if (header_data[begin] & 0x80)
             {
                 iscontinue = true;

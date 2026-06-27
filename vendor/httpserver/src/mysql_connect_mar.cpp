@@ -173,7 +173,7 @@ void orm_connect_mar_t::clear_connect()
     for (unsigned int i = 0; i < total_connect; i++)
     {
         unsigned int j = 0;
-        std::unique_lock lk(connect_mutex);
+        std::unique_lock lka(connect_mutex);
         for (auto iter = conn_list.begin(); iter != conn_list.end();)
         {
             std::shared_ptr<mysql_conn_base> p_session = iter->lock();
@@ -209,7 +209,7 @@ void orm_connect_mar_t::clear_connect()
                 break;
             }
         }
-        lk.unlock();
+        lka.unlock();
         std::this_thread::sleep_for(std::chrono::nanoseconds(200));
     }
     DEBUG_LOG("clear_connect:%d", total_connect);

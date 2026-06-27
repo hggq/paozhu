@@ -53,10 +53,17 @@ add_library(project_warnings INTERFACE)
 if(MSVC)
   target_compile_options(project_warnings INTERFACE /W4 /utf-8 /EHsc)
 else()
-  target_compile_options(project_warnings INTERFACE -Wall -Wextra)
-  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    target_compile_options(project_warnings INTERFACE -Wno-misleading-indentation -flarge-source-files)
-  endif()
+  target_compile_options(project_warnings INTERFACE
+    -Wall
+    -Wextra
+    -Wpedantic
+    -Wshadow
+    -Wnon-virtual-dtor
+    -Wno-gnu-anonymous-struct
+    -Wno-nested-anon-types
+    $<$<CXX_COMPILER_ID:GNU>:-Wno-misleading-indentation>
+    $<$<CXX_COMPILER_ID:GNU>:-flarge-source-files>
+  )
 endif()
 
 # ---- Output directories ----
@@ -186,6 +193,10 @@ target_include_directories(paozhu PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/websockets"
   "${CMAKE_CURRENT_SOURCE_DIR}/sockets"
 )
+
+# Additional global includes from original script
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpcli")
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/controller")
 
 # ===== 代码生成：paozhu_pre（每次构建都运行） =====
 add_custom_target(paozhu_codegen ALL

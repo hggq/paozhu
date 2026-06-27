@@ -171,13 +171,13 @@ asio::awaitable<void> rpc_client::async_send()
     send_content.push_back(0x0A);
     send_content.append("HOST ");
     
-    unsigned short value_size = host.size();
-    unsigned char a = value_size & 0xFF;
+    unsigned short value_size_h = host.size();
+    unsigned char aa = value_size_h & 0xFF;
     
-    value_size = value_size & 0xFF00;
-    unsigned char b = value_size >> 8;
-    send_content.push_back(b);
-    send_content.push_back(a);
+    value_size_h = value_size_h & 0xFF00;
+    unsigned char bb = value_size_h >> 8;
+    send_content.push_back(bb);
+    send_content.push_back(aa);
 
     send_content.append(host);
     send_content.push_back(0x0A);
@@ -310,13 +310,13 @@ void rpc_client::send()
     send_content.push_back(0x0A);
     send_content.append("HOST ");
     
-    unsigned short value_size = host.size();
-    unsigned char a = value_size & 0xFF;
+    unsigned short value_size_h = host.size();
+    unsigned char aa = value_size_h & 0xFF;
     
-    value_size = value_size & 0xFF00;
-    unsigned char b = value_size >> 8;
-    send_content.push_back(b);
-    send_content.push_back(a);
+    value_size_h = value_size_h & 0xFF00;
+    unsigned char bb = value_size_h >> 8;
+    send_content.push_back(bb);
+    send_content.push_back(aa);
 
     send_content.append(host);
     send_content.push_back(0x0A);
@@ -552,7 +552,7 @@ asio::awaitable<void> rpc_client::async_ssl_send_data(std::string_view send_cont
 
             unsigned int n=0;
             n = co_await asio::async_write(*sslsock, asio::buffer(send_content), asio::use_awaitable);
-            unsigned char data[2052];
+            unsigned char read_data[2052];
             
             bool begin_data=true;
             isbody = false;
@@ -565,11 +565,11 @@ asio::awaitable<void> rpc_client::async_ssl_send_data(std::string_view send_cont
                 }
                 if (isbody && page.read_size < 2048)
                 {
-                    n = co_await sslsock->async_read_some(asio::buffer(data, page.read_size), asio::use_awaitable);
+                    n = co_await sslsock->async_read_some(asio::buffer(read_data, page.read_size), asio::use_awaitable);
                 }
                 else
                 {
-                    n = co_await sslsock->async_read_some(asio::buffer(data, 2048), asio::use_awaitable);
+                    n = co_await sslsock->async_read_some(asio::buffer(read_data, 2048), asio::use_awaitable);
                 }
                 offsetnum = 0;
                 if (n == 0)
@@ -579,11 +579,11 @@ asio::awaitable<void> rpc_client::async_ssl_send_data(std::string_view send_cont
                 if(begin_data)
                 {
                     begin_data = false;
-                    process(data,n);
+                    process(read_data,n);
                 }
                 else
                 {
-                    process_append(data,n);
+                    process_append(read_data,n);
                 }
 
                 if (isfinish)
@@ -646,24 +646,24 @@ asio::awaitable<void> rpc_client::async_send_data(std::string_view send_content)
             }
 
             co_await asio::async_write(*sock, asio::buffer(send_content), asio::use_awaitable);
-            unsigned char data[2052];
+            unsigned char read_data[2052];
             unsigned int n=0;
             bool begin_data=true;
             isbody = false;
             while (true)
             {
-                memset(data, 0x00, 2048);
+                memset(read_data, 0x00, 2048);
                 if (exptime > 0)
                 {
                     reset_timeout();
                 }
                 if (isbody && page.read_size < 2048)
                 {
-                    n = co_await sock->async_read_some(asio::buffer(data, page.read_size), asio::use_awaitable);
+                    n = co_await sock->async_read_some(asio::buffer(read_data, page.read_size), asio::use_awaitable);
                 }
                 else
                 {
-                    n = co_await sock->async_read_some(asio::buffer(data, 2048), asio::use_awaitable);
+                    n = co_await sock->async_read_some(asio::buffer(read_data, 2048), asio::use_awaitable);
                 }
                 offsetnum = 0;
                 if (n == 0)
@@ -673,11 +673,11 @@ asio::awaitable<void> rpc_client::async_send_data(std::string_view send_content)
                 if(begin_data)
                 {
                     begin_data = false;
-                    process(data,n);
+                    process(read_data,n);
                 }
                 else
                 {
-                    process_append(data,n);
+                    process_append(read_data,n);
                 }
 
                 if (isfinish)
@@ -1524,7 +1524,7 @@ asio::awaitable<unsigned int> rpc_client::async_read(std::string &buffer_data)
     co_return 0;
 }
 
-asio::awaitable<unsigned int> rpc_client::async_write(unsigned char *data, unsigned int buffersize)
+asio::awaitable<unsigned int> rpc_client::async_write(unsigned char *data_out, unsigned int buffersize)
 {
     if(iserror)
     {
@@ -1545,11 +1545,11 @@ asio::awaitable<unsigned int> rpc_client::async_write(unsigned char *data, unsig
     {
         if (isssl)
         {
-            n = co_await asio::async_write(*sslsock, asio::buffer(data, buffersize), asio::use_awaitable);
+            n = co_await asio::async_write(*sslsock, asio::buffer(data_out, buffersize), asio::use_awaitable);
         }
         else
         {
-            n = co_await asio::async_write(*sock, asio::buffer(data, buffersize), asio::use_awaitable);
+            n = co_await asio::async_write(*sock, asio::buffer(data_out, buffersize), asio::use_awaitable);
         }
         co_return n;
     }
@@ -1604,7 +1604,7 @@ asio::awaitable<unsigned int> rpc_client::async_write(std::string_view value)
 }
 
 //synchronous
-unsigned int rpc_client::write(unsigned char *data, unsigned int buffersize)
+unsigned int rpc_client::write(unsigned char *data_out, unsigned int buffersize)
 {
     if(iserror)
     {
@@ -1625,11 +1625,11 @@ unsigned int rpc_client::write(unsigned char *data, unsigned int buffersize)
     {
         if (isssl)
         {
-            n = asio::write(*sslsock, asio::buffer(data, buffersize));
+            n = asio::write(*sslsock, asio::buffer(data_out, buffersize));
         }
         else
         {
-            n = asio::write(*sock, asio::buffer(data, buffersize));
+            n = asio::write(*sock, asio::buffer(data_out, buffersize));
         }
         return n;
     }
@@ -1792,13 +1792,13 @@ bool rpc_client::connect(std::string_view rpcurl,unsigned int time_out_num)
     send_content.push_back(0x0A);
     send_content.append("HOST ");
     
-    unsigned short value_size = host.size();
-    unsigned char a = value_size & 0xFF;
+    unsigned short value_size_h = host.size();
+    unsigned char aa = value_size_h & 0xFF;
     
-    value_size = value_size & 0xFF00;
-    unsigned char b = value_size >> 8;
-    send_content.push_back(b);
-    send_content.push_back(a);
+    value_size_h = value_size_h & 0xFF00;
+    unsigned char bb = value_size_h >> 8;
+    send_content.push_back(bb);
+    send_content.push_back(aa);
 
     send_content.append(host);
     send_content.push_back(0x0A);
@@ -1949,13 +1949,13 @@ bool rpc_client::connect()
     send_content.push_back(0x0A);
     send_content.append("HOST ");
 
-    unsigned short value_size = host.size();
-    unsigned char a = value_size & 0xFF;
+    unsigned short value_size_h = host.size();
+    unsigned char aa = value_size_h & 0xFF;
 
-    value_size = value_size & 0xFF00;
-    unsigned char b = value_size >> 8;
-    send_content.push_back(b);
-    send_content.push_back(a);
+    value_size_h = value_size_h & 0xFF00;
+    unsigned char bb = value_size_h >> 8;
+    send_content.push_back(bb);
+    send_content.push_back(aa);
 
     send_content.append(host);
     send_content.push_back(0x0A);
@@ -2106,13 +2106,13 @@ asio::awaitable<bool> rpc_client::async_connect(std::string_view rpcurl,unsigned
     send_content.push_back(0x0A);
     send_content.append("HOST ");
     
-    unsigned short value_size = host.size();
-    unsigned char a = value_size & 0xFF;
+    unsigned short value_size_h = host.size();
+    unsigned char aa = value_size_h & 0xFF;
     
-    value_size = value_size & 0xFF00;
-    unsigned char b = value_size >> 8;
-    send_content.push_back(b);
-    send_content.push_back(a);
+    value_size_h = value_size_h & 0xFF00;
+    unsigned char bb = value_size_h >> 8;
+    send_content.push_back(bb);
+    send_content.push_back(aa);
 
     send_content.append(host);
     send_content.push_back(0x0A);
@@ -2263,13 +2263,13 @@ asio::awaitable<bool> rpc_client::async_connect()
     send_content.push_back(0x0A);
     send_content.append("HOST ");
     
-    unsigned short value_size = host.size();
-    unsigned char a = value_size & 0xFF;
+    unsigned short value_size_h = host.size();
+    unsigned char aa = value_size_h & 0xFF;
     
-    value_size = value_size & 0xFF00;
-    unsigned char b = value_size >> 8;
-    send_content.push_back(b);
-    send_content.push_back(a);
+    value_size_h = value_size_h & 0xFF00;
+    unsigned char bb = value_size_h >> 8;
+    send_content.push_back(bb);
+    send_content.push_back(aa);
 
     send_content.append(host);
     send_content.push_back(0x0A);
@@ -2504,7 +2504,7 @@ void rpc_client::send_data(std::string_view send_content)
 
             unsigned int n=0;
             n = asio::write(*sock, asio::buffer(send_content));
-            unsigned char data[2052];
+            unsigned char read_data[2052];
             if(n == 0)
             {
                 return;
@@ -2514,18 +2514,18 @@ void rpc_client::send_data(std::string_view send_content)
             isbody = false;
             while (true)
             {
-                memset(data, 0x00, 2048);
+                memset(read_data, 0x00, 2048);
                 if (exptime > 0)
                 {
                     reset_timeout();
                 }
                 if (isbody && page.read_size < 2048)
                 {
-                    n =  sock->read_some(asio::buffer(data, page.read_size));
+                    n =  sock->read_some(asio::buffer(read_data, page.read_size));
                 }
                 else
                 {
-                    n = sock->read_some(asio::buffer(data, 2048));
+                    n = sock->read_some(asio::buffer(read_data, 2048));
                 }
                 offsetnum = 0;
                 if (n == 0)
@@ -2535,11 +2535,11 @@ void rpc_client::send_data(std::string_view send_content)
                 if(begin_data)
                 {
                     begin_data = false;
-                    process(data,n);
+                    process(read_data,n);
                 }
                 else
                 {
-                    process_append(data,n);
+                    process_append(read_data,n);
                 }
 
                 if (isfinish)
@@ -2600,24 +2600,24 @@ void rpc_client::ssl_send_data(std::string_view send_content)
 
             unsigned int n=0;
             n = asio::write(*sslsock, asio::buffer(send_content));
-            unsigned char data[2052];
+            unsigned char read_data[2052];
             
             bool begin_data=true;
             isbody = false;
             while (true)
             {
-                memset(data, 0x00, 2048);
+                memset(read_data, 0x00, 2048);
                 if (exptime > 0)
                 {
                     reset_timeout();
                 }
                 if (isbody && page.read_size < 2048)
                 {
-                    n = sslsock->read_some(asio::buffer(data, page.read_size));
+                    n = sslsock->read_some(asio::buffer(read_data, page.read_size));
                 }
                 else
                 {
-                    n = sslsock->read_some(asio::buffer(data, 2048));
+                    n = sslsock->read_some(asio::buffer(read_data, 2048));
                 }
                 offsetnum = 0;
                 if (n == 0)
@@ -2627,11 +2627,11 @@ void rpc_client::ssl_send_data(std::string_view send_content)
                 if(begin_data)
                 {
                     begin_data = false;
-                    process(data,n);
+                    process(read_data,n);
                 }
                 else
                 {
-                    process_append(data,n);
+                    process_append(read_data,n);
                 }
 
                 if (isfinish)

@@ -449,12 +449,12 @@ class typejsonfiles
                         {
                             temp.children.push_back(a);
                         }
-                        unsigned a = isfunc;
+                        unsigned int aa = isfunc;
                         if (isfunc < 0)
                         {
-                            a = 0;
+                            aa = 0;
                         }
-                        if (a < linecontent.size())
+                        if (aa < linecontent.size())
                         {
 
                             // offset=newoffset - ( linecontent.size() -   isfunc );

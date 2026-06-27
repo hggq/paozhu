@@ -119,8 +119,7 @@ namespace http
     sendqueue_t *sendqueue::get_cache_ptr()
     {
         struct sendqueue_t *data_ptr = nullptr;
-        unsigned int cache_size=cache_data.size();
-        for (unsigned int i = 0; i < cache_size; i++)
+        for (unsigned int i = 0; i < cache_data.size(); i++)
         {
             if (cache_data[i].type == 0)
             {

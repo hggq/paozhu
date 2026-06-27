@@ -148,7 +148,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
                         }
                         else if (action_setup == 2)
                         {
-                            unsigned int column_num = field_array.size();
+                            column_num = field_array.size();
                             unsigned int tempnum    = 0;
 
                             T data_temp;
@@ -311,7 +311,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
                         }
                         else if (action_setup == 2)
                         {
-                            unsigned int column_num = field_array.size();
+                            column_num = field_array.size();
                             unsigned int tempnum    = 0;
 
                             T data_temp;
@@ -474,7 +474,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
                         }
                         else if (action_setup == 2)
                         {
-                            unsigned int column_num = field_array.size();
+                            column_num = field_array.size();
                             unsigned int tempnum    = 0;
 
                             for (unsigned int ij = 0; ij < column_num; ij++)
@@ -635,7 +635,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
                         }
                         else if (action_setup == 2)
                         {
-                            unsigned int column_num = field_array.size();
+                            column_num = field_array.size();
                             unsigned int tempnum    = 0;
 
                             for (unsigned int ij = 0; ij < column_num; ij++)
@@ -798,11 +798,10 @@ class db_conn : std::enable_shared_from_this<db_conn>
                         }
                         else if (action_setup == 2)
                         {
-                            unsigned char column_num = field_array.size();
                             unsigned int tempnum     = 0;
 
                             T data_temp;
-                            for (unsigned char ij = 0; ij < column_num; ij++)
+                            for (unsigned int ij = 0; ij < field_array.size(); ij++)
                             {
                                 unsigned long long name_length = 0;
                                 name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
@@ -813,11 +812,11 @@ class db_conn : std::enable_shared_from_this<db_conn>
                                 // }
                                 if (field_array[ij].name.size() > 0)
                                 {
-                                    std::invoke(std::forward<Callback>(callback), data_temp, field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, ij, 1);
+                                    std::invoke(std::forward<Callback>(callback), data_temp, field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, ij%255, 1);
                                 }
                                 else if (field_array[ij].org_name.size() > 0)
                                 {
-                                    std::invoke(std::forward<Callback>(callback), data_temp, field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, ij, 1);
+                                    std::invoke(std::forward<Callback>(callback), data_temp, field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, ij%255, 1);
                                 }
                                 tempnum = tempnum + name_length;
                             }
@@ -961,11 +960,10 @@ class db_conn : std::enable_shared_from_this<db_conn>
                         }
                         else if (action_setup == 2)
                         {
-                            unsigned char column_num = field_array.size();
                             unsigned int tempnum     = 0;
 
                             T data_temp;
-                            for (unsigned char ij = 0; ij < column_num; ij++)
+                            for (unsigned int ij = 0; ij < field_array.size(); ij++)
                             {
                                 unsigned long long name_length = 0;
                                 name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
@@ -976,11 +974,11 @@ class db_conn : std::enable_shared_from_this<db_conn>
                                 // }
                                 if (field_array[ij].name.size() > 0)
                                 {
-                                    std::invoke(std::forward<Callback>(callback), data_temp, field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, ij, 1);
+                                    std::invoke(std::forward<Callback>(callback), data_temp, field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, ij%255, 1);
                                 }
                                 else if (field_array[ij].org_name.size() > 0)
                                 {
-                                    std::invoke(std::forward<Callback>(callback), data_temp, field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, ij, 1);
+                                    std::invoke(std::forward<Callback>(callback), data_temp, field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, ij%255, 1);
                                 }
                                 tempnum = tempnum + name_length;
                             }
@@ -1124,10 +1122,9 @@ class db_conn : std::enable_shared_from_this<db_conn>
                         }
                         else if (action_setup == 2)
                         {
-                            unsigned char column_num = field_array.size();
                             unsigned int tempnum     = 0;
 
-                            for (unsigned char ij = 0; ij < column_num; ij++)
+                            for (unsigned int ij = 0; ij < field_array.size(); ij++)
                             {
                                 unsigned long long name_length = 0;
                                 name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
@@ -1138,11 +1135,11 @@ class db_conn : std::enable_shared_from_this<db_conn>
                                 // }
                                 if (field_array[ij].name.size() > 0)
                                 {
-                                    std::invoke(std::forward<Callback>(callback), result_record, field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, ij, 1);
+                                    std::invoke(std::forward<Callback>(callback), result_record, field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, ij%255, 1);
                                 }
                                 else if (field_array[ij].org_name.size() > 0)
                                 {
-                                    std::invoke(std::forward<Callback>(callback), result_record, field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, ij, 1);
+                                    std::invoke(std::forward<Callback>(callback), result_record, field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, ij%255, 1);
                                 }
                                 tempnum = tempnum + name_length;
                             }
@@ -1285,10 +1282,9 @@ class db_conn : std::enable_shared_from_this<db_conn>
                         }
                         else if (action_setup == 2)
                         {
-                            unsigned char column_num = field_array.size();
                             unsigned int tempnum     = 0;
 
-                            for (unsigned char ij = 0; ij < column_num; ij++)
+                            for (unsigned int ij = 0; ij < field_array.size(); ij++)
                             {
                                 unsigned long long name_length = 0;
                                 name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
@@ -1299,11 +1295,11 @@ class db_conn : std::enable_shared_from_this<db_conn>
                                 // }
                                 if (field_array[ij].name.size() > 0)
                                 {
-                                    std::invoke(std::forward<Callback>(callback), result_record, field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, ij, 1);
+                                    std::invoke(std::forward<Callback>(callback), result_record, field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, ij%255, 1);
                                 }
                                 else if (field_array[ij].org_name.size() > 0)
                                 {
-                                    std::invoke(std::forward<Callback>(callback), result_record, field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, ij, 1);
+                                    std::invoke(std::forward<Callback>(callback), result_record, field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, ij%255, 1);
                                 }
                                 tempnum = tempnum + name_length;
                             }
@@ -1451,7 +1447,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
                         }
                         else if (action_setup == 2)
                         {
-                            unsigned int column_num = field_array.size();
+                            column_num = field_array.size();
                             unsigned int tempnum    = 0;
 
                             T data_temp;
@@ -1615,7 +1611,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
                         }
                         else if (action_setup == 2)
                         {
-                            unsigned int column_num = field_array.size();
+                            column_num = field_array.size();
                             unsigned int tempnum    = 0;
 
                             T data_temp;
@@ -1779,7 +1775,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
                         }
                         else if (action_setup == 2)
                         {
-                            unsigned int column_num = field_array.size();
+                            column_num = field_array.size();
                             unsigned int tempnum    = 0;
 
                             for (unsigned int ij = 0; ij < column_num; ij++)
@@ -1942,7 +1938,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
                         }
                         else if (action_setup == 2)
                         {
-                            unsigned int column_num = field_array.size();
+                            column_num = field_array.size();
                             unsigned int tempnum    = 0;
 
                             for (unsigned int ij = 0; ij < column_num; ij++)

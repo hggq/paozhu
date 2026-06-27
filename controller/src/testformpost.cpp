@@ -154,7 +154,7 @@ std::string testuploadpostfile(std::shared_ptr<httppeer> peer)
                 bool is_success = false;
                 if (!fs::exists(paths))
                 {
-                    bool is_success = fs::create_directories(paths);
+                    is_success = fs::create_directories(paths);
                     if (is_success)
                     {
                         fs::permissions(paths,

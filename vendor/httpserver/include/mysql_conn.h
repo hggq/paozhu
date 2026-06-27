@@ -498,7 +498,7 @@ class mysql_conn_base
     void read_field_pack(unsigned char *data, unsigned int total_num, unsigned int &offset, pack_info_t &pack_info);
     bool pack_eof_check(const pack_info_t &temp_pack_data);
     void read_col_info(const std::string &pack_info, field_info_t &temp_field_data);
-    unsigned int pack_real_num(const unsigned char *data, unsigned int &offset);
+    unsigned long long pack_real_num(const unsigned char *data, unsigned int &offset);
 
     bool ping();
     bool close();
