@@ -5766,9 +5766,9 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
     }
     filemodelstremcpp << " ";
     filemodelstremcpp << "\n\t\t\t " << model_name_obj << "::" << model_name_obj
-                      << "(std::string dbtag):";
+                      << "(std::string dbtag_):";
     filemodelstremcpp << model_name;
-    filemodelstremcpp << "_mysql(dbtag){ mod=this; }\n";
+    filemodelstremcpp << "_mysql(dbtag_){ mod=this; }\n";
     filemodelstremcpp << "\t\t\t " << model_name_obj << "::" << model_name_obj << "():";
     filemodelstremcpp << model_name;
     filemodelstremcpp << "_mysql(){ mod=this; }\n";
@@ -5851,7 +5851,7 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
                       << tablenamebase << "_base>{\n";
 
     filemodelstremcpp << "\t\t public:\n";
-    filemodelstremcpp << "\t\t " << model_name_obj << "(std::string dbtag);\n";
+    filemodelstremcpp << "\t\t " << model_name_obj << "(std::string dbtag_);\n";
     filemodelstremcpp << "\t\t " << model_name_obj << "();\n";
     filemodelstremcpp << "\t\t};\n";
     if (rmstag != "default")

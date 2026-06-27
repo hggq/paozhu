@@ -31,7 +31,7 @@ namespace fs = std::filesystem;
 class viewtemplate
 {
   public:
-    viewtemplate(std::string filename) : filename(std::move(filename))
+    viewtemplate(std::string filename_) : filename(std::move(filename_))
     {
     }
     viewtemplate()

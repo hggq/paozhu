@@ -31,7 +31,7 @@ namespace fs = std::filesystem;
 class viewtemplatefile
 {
   public:
-    viewtemplatefile(std::string filename) : filename(std::move(filename)) {}
+    viewtemplatefile(std::string filename_) : filename(std::move(filename_)) {}
     viewtemplatefile() {}
     std::map<std::string, time_t> contrasttime(std::string tagetpath)
     {

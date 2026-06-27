@@ -10,7 +10,7 @@
 	 
  namespace orm{
 	 namespace cms{  
-			 Sysuser::Sysuser(std::string dbtag):sysuser_mysql(dbtag){ mod=this; }
+			 Sysuser::Sysuser(std::string dbtag_):sysuser_mysql(dbtag_){ mod=this; }
 			 Sysuser::Sysuser():sysuser_mysql(){ mod=this; }
 
 			 std::vector<orm::cms::article_info::meta> Sysuser::gettoparticle(int userid)

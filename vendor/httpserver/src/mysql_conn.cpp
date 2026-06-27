@@ -353,9 +353,9 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
     send_data.push_back((client_flags >> 16 & 0xFF));
     send_data.push_back((client_flags >> 24 & 0xFF));
 
-    send_data.push_back(0xFF);// max pack
-    send_data.push_back(0xFF);
-    send_data.push_back(0xFF);
+    send_data.push_back(static_cast<char>(0xFF));// max pack
+    send_data.push_back(static_cast<char>(0xFF));
+    send_data.push_back(static_cast<char>(0xFF));
 
     send_data.push_back(0x00);
     if (conn_config.charset_val > 0)
@@ -905,9 +905,9 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
     send_data.push_back((client_flags >> 16 & 0xFF));
     send_data.push_back((client_flags >> 24 & 0xFF));
 
-    send_data.push_back(0xFF);// max pack
-    send_data.push_back(0xFF);
-    send_data.push_back(0xFF);
+    send_data.push_back(static_cast<char>(0xFF));// max pack
+    send_data.push_back(static_cast<char>(0xFF));
+    send_data.push_back(static_cast<char>(0xFF));
 
     send_data.push_back(0x00);
     if (conn_config.charset_val > 0)

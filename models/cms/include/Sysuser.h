@@ -11,7 +11,7 @@
 	namespace cms { 
 		class Sysuser : public sysuser_mysql<Sysuser,sysuser_base>{
 		 public:
-		 Sysuser(std::string dbtag);
+		 Sysuser(std::string dbtag_);
 		 Sysuser();
 		 std::vector<orm::cms::article_info::meta> gettoparticle(int userid);
 		};

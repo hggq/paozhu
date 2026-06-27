@@ -6,6 +6,10 @@ if(POLICY CMP0077)
   cmake_policy(SET CMP0077 NEW)
 endif()
 
+if(POLICY CMP0092)
+  cmake_policy(SET CMP0092 NEW)
+endif()
+
 # ---- Project ----
 project(Paozhu_web_framework
   VERSION 1.0.0
@@ -16,7 +20,6 @@ project(Paozhu_web_framework
 option(ENABLE_VCPKG "Use vcpkg toolchain" OFF)
 option(ENABLE_BOOST "Enable Boost support" OFF)
 option(ENABLE_GD "Enable GD graphics and QR" OFF)
-option(ENABLE_WIN_VCPKG "Windows specific vcpkg integration" OFF)
 option(ENABLE_BENCHMARK "Enable benchmarks" OFF)
 
 # ---- Vcpkg toolchain ----
@@ -59,8 +62,8 @@ else()
     -Wpedantic
     -Wshadow
     -Wnon-virtual-dtor
-    -Wno-gnu-anonymous-struct
-    -Wno-nested-anon-types
+    $<$<CXX_COMPILER_ID:Clang,AppleClang>:-Wno-gnu-anonymous-struct>
+    $<$<CXX_COMPILER_ID:Clang,AppleClang>:-Wno-nested-anon-types>
     $<$<CXX_COMPILER_ID:GNU>:-Wno-misleading-indentation>
     $<$<CXX_COMPILER_ID:GNU>:-flarge-source-files>
   )
@@ -70,20 +73,37 @@ endif()
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin")
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/temp")
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/log")
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/cache")
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/orm")
 
 # ---- Export compile commands ----
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # ---- Helper: recursive include directories (kept for compatibility) ----
-function(include_sub_directories_recursively root_dir)
+# 用于系统/第三方库目录（忽略内部警告）
+function(include_system_dirs_recursively root_dir)
   if(IS_DIRECTORY ${root_dir})
-    message(STATUS "include dir: ${root_dir}")
-    include_directories(${root_dir})
+    message(STATUS "include dir (system): ${root_dir}")
+    include_directories(SYSTEM ${root_dir})
   endif()
   file(GLOB_RECURSE subdirs LIST_DIRECTORIES true RELATIVE ${root_dir} ${root_dir}/*)
   foreach(sub IN LISTS subdirs)
     if(IS_DIRECTORY ${root_dir}/${sub})
-      include_sub_directories_recursively(${root_dir}/${sub})
+      include_system_dirs_recursively(${root_dir}/${sub})
+    endif()
+  endforeach()
+endfunction()
+
+# 用于项目业务代码（保持严格警告）
+function(include_project_dirs_recursively root_dir)
+  if(IS_DIRECTORY ${root_dir})
+    message(STATUS "include dir (project): ${root_dir}")
+    include_directories(${root_dir})   # 不加 SYSTEM
+  endif()
+  file(GLOB_RECURSE subdirs LIST_DIRECTORIES true RELATIVE ${root_dir} ${root_dir}/*)
+  foreach(sub IN LISTS subdirs)
+    if(IS_DIRECTORY ${root_dir}/${sub})
+      include_project_dirs_recursively(${root_dir}/${sub})
     endif()
   endforeach()
 endfunction()
@@ -171,13 +191,14 @@ target_compile_definitions(paozhu PRIVATE
 )
 
 # ---- Include directories (recursive legacy includes) ----
-include_sub_directories_recursively("${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver")
-include_sub_directories_recursively("${CMAKE_CURRENT_SOURCE_DIR}/orm")
-include_sub_directories_recursively("${CMAKE_CURRENT_SOURCE_DIR}/models")
-include_sub_directories_recursively("${CMAKE_CURRENT_SOURCE_DIR}/controller/include")
-include_sub_directories_recursively("${CMAKE_CURRENT_SOURCE_DIR}/libs")
-include_sub_directories_recursively("${CMAKE_CURRENT_SOURCE_DIR}/include")
-include_sub_directories_recursively("${CMAKE_CURRENT_SOURCE_DIR}/common")
+include_system_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver")
+include_system_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/orm")
+include_system_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/models")
+
+include_project_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/controller/include")
+include_project_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/libs")
+include_project_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/include")
+include_project_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/common")
 
 if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_pre)
   file(REMOVE ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_pre)
@@ -427,7 +448,12 @@ endif()
 
 # ---- Final common libraries ----
 if(UNIX)
-  target_link_libraries(paozhu PRIVATE m dl pthread)
+  find_package(Threads REQUIRED)
+  target_link_libraries(paozhu PRIVATE Threads::Threads)
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_link_libraries(paozhu PRIVATE m dl)
+  endif()
+  target_link_libraries(paozhu_cli PRIVATE Threads::Threads)
 endif()
 
 # ---- Copy config files (Unix only) ----

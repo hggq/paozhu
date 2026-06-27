@@ -8948,7 +8948,7 @@ std::string obj_val::JSON_UTF8_TO_ASCII(const char *text, unsigned int text_leng
 {
     std::string ptext;
     unsigned char c, t = 0;
-    unsigned char str[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+    static constexpr unsigned char str_[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 
     ptext.reserve(text_length * 2 + 4);
 
@@ -9026,10 +9026,10 @@ std::string obj_val::JSON_UTF8_TO_ASCII(const char *text, unsigned int text_leng
                 // numtohex(temp,cp);
 
                 t     = temp & 0xF;
-                cp[1] = str[t];
+                cp[1] = str_[t];
                 temp  = temp >> 4;
                 t     = temp & 0xF;
-                cp[0] = str[t];
+                cp[0] = str_[t];
 
                 ptext.push_back(cp[0]);
                 ptext.push_back(cp[1]);
@@ -9037,10 +9037,10 @@ std::string obj_val::JSON_UTF8_TO_ASCII(const char *text, unsigned int text_leng
                 temp = (b1 << 6) + (b2 & 0x3F);
                 // numtohex(temp,cp);
                 t     = temp & 0xF;
-                cp[1] = str[t];
+                cp[1] = str_[t];
                 temp  = temp >> 4;
                 t     = temp & 0xF;
-                cp[0] = str[t];
+                cp[0] = str_[t];
 
                 ptext.push_back(cp[0]);
                 ptext.push_back(cp[1]);
@@ -9070,10 +9070,10 @@ std::string obj_val::JSON_UTF8_TO_ASCII(const char *text, unsigned int text_leng
                 temp = (b1 << 4) + ((b2 >> 2) & 0x0F);
                 // numtohex(temp,cp);
                 t     = temp & 0xF;
-                cp[1] = str[t];
+                cp[1] = str_[t];
                 temp  = temp >> 4;
                 t     = temp & 0xF;
-                cp[0] = str[t];
+                cp[0] = str_[t];
 
                 ptext.push_back(cp[0]);
                 ptext.push_back(cp[1]);
@@ -9081,10 +9081,10 @@ std::string obj_val::JSON_UTF8_TO_ASCII(const char *text, unsigned int text_leng
                 temp = (b2 << 6) + (b3 & 0x3F);
                 // numtohex(temp,cp);
                 t     = temp & 0xF;
-                cp[1] = str[t];
+                cp[1] = str_[t];
                 temp  = temp >> 4;
                 t     = temp & 0xF;
-                cp[0] = str[t];
+                cp[0] = str_[t];
 
                 ptext.push_back(cp[0]);
                 ptext.push_back(cp[1]);
@@ -9125,10 +9125,10 @@ std::string obj_val::JSON_UTF8_TO_ASCII(const char *text, unsigned int text_leng
                 temp = pOutput[3];
                 // numtohex(temp,cp);
                 t     = temp & 0xF;
-                cp[1] = str[t];
+                cp[1] = str_[t];
                 temp  = temp >> 4;
                 t     = temp & 0xF;
-                cp[0] = str[t];
+                cp[0] = str_[t];
 
                 ptext.push_back(cp[0]);
                 ptext.push_back(cp[1]);
@@ -9136,10 +9136,10 @@ std::string obj_val::JSON_UTF8_TO_ASCII(const char *text, unsigned int text_leng
                 temp = pOutput[2];
                 // numtohex(temp,cp);
                 t     = temp & 0xF;
-                cp[1] = str[t];
+                cp[1] = str_[t];
                 temp  = temp >> 4;
                 t     = temp & 0xF;
-                cp[0] = str[t];
+                cp[0] = str_[t];
 
                 ptext.push_back(cp[0]);
                 ptext.push_back(cp[1]);
@@ -9151,10 +9151,10 @@ std::string obj_val::JSON_UTF8_TO_ASCII(const char *text, unsigned int text_leng
                 temp = pOutput[1];
                 // numtohex(temp,cp);
                 t     = temp & 0xF;
-                cp[1] = str[t];
+                cp[1] = str_[t];
                 temp  = temp >> 4;
                 t     = temp & 0xF;
-                cp[0] = str[t];
+                cp[0] = str_[t];
 
                 ptext.push_back(cp[0]);
                 ptext.push_back(cp[1]);
@@ -9163,10 +9163,10 @@ std::string obj_val::JSON_UTF8_TO_ASCII(const char *text, unsigned int text_leng
 
                 // numtohex(temp,cp);
                 t     = temp & 0xF;
-                cp[1] = str[t];
+                cp[1] = str_[t];
                 temp  = temp >> 4;
                 t     = temp & 0xF;
-                cp[0] = str[t];
+                cp[0] = str_[t];
 
                 ptext.push_back(cp[0]);
                 ptext.push_back(cp[1]);

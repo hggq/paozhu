@@ -1653,21 +1653,21 @@ void httpserver::add_error_lists(const std::string &log_item)
 asio::awaitable<size_t> httpserver::co_user_task(std::shared_ptr<httppeer> peer, asio::use_awaitable_t<> h)
 {
     auto initiate = [self = this](asio::detail::awaitable_handler<asio::any_io_executor, size_t> &&handler,
-                                  std::shared_ptr<httppeer> peer) mutable
+                                  std::shared_ptr<httppeer> in_peer) mutable
     {
-        peer->user_code_handler_call.push_back(std::move(handler));
-        self->clientrunpool.addclient(peer);
+        in_peer->user_code_handler_call.push_back(std::move(handler));
+        self->clientrunpool.addclient(in_peer);
     };
     return asio::async_initiate<asio::use_awaitable_t<>, void(size_t)>(initiate, h, peer);
 }
 asio::awaitable<size_t> httpserver::co_client_session_task(std::shared_ptr<client_session> peer_session, asio::use_awaitable_t<> h)
 {
     auto initiate = [](asio::detail::awaitable_handler<asio::any_io_executor, size_t> &&handler,
-                       std::shared_ptr<client_session> peer_session) mutable
+                       std::shared_ptr<client_session> in_session) mutable
     {
         //std::unique_lock lk(peer_session->waituphttp2_mutex);
-        peer_session->user_code_handler_call.push_back(std::move(handler));
-        peer_session->http2_need_wakeup = true;
+        in_session->user_code_handler_call.push_back(std::move(handler));
+        in_session->http2_need_wakeup = true;
         //lk.unlock();
     };
     return asio::async_initiate<asio::use_awaitable_t<>, void(size_t)>(initiate, h, peer_session);
@@ -1676,14 +1676,14 @@ asio::awaitable<size_t> httpserver::co_client_session_task(std::shared_ptr<clien
 asio::awaitable<size_t> httpserver::co_user_fastcgi_task(std::shared_ptr<httppeer> peer, asio::use_awaitable_t<> h)
 {
     auto initiate = [self = this](asio::detail::awaitable_handler<asio::any_io_executor, size_t> &&handler,
-                                  std::shared_ptr<httppeer> peer) mutable
+                                  std::shared_ptr<httppeer> in_peer) mutable
     {
         serverconfig &sysconfigpath = getserversysconfig();
-        peer->user_code_handler_call.push_back(std::move(handler));
+        in_peer->user_code_handler_call.push_back(std::move(handler));
         std::shared_ptr<http::fastcgi> fcgi = std::make_shared<http::fastcgi>();
-        fcgi->peer_ptr                      = peer;
-        fcgi->host                          = sysconfigpath.sitehostinfos[peer->host_index].fastcgi_host;// "127.0.0.1";
-        fcgi->port                          = sysconfigpath.sitehostinfos[peer->host_index].fastcgi_port;// 9000
+        fcgi->peer_ptr                      = in_peer;
+        fcgi->host                          = sysconfigpath.sitehostinfos[in_peer->host_index].fastcgi_host;// "127.0.0.1";
+        fcgi->port                          = sysconfigpath.sitehostinfos[in_peer->host_index].fastcgi_port;// 9000
         fcgi->add_error_msg                 = std::bind(&httpserver::add_error_lists, self, std::placeholders::_1);
         fcgi->server_ioc                    = &self->io_context;
         client_context &fcgi_content        = get_client_context_obj();
