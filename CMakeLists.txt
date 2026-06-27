@@ -1,634 +1,427 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 3.20)
+cmake_minimum_required(VERSION 3.20)
 
+# ---- Policies ----
 cmake_policy(SET CMP0048 NEW)
-
-set(ENABLE_VCPKG OFF CACHE BOOL "choose ON to enable")
-set(ENABLE_BOOST OFF CACHE BOOL "choose ON to enable")
-set(ENABLE_GD OFF CACHE BOOL "choose ON to enable")
-set(ENABLE_WIN_VCPKG OFF CACHE BOOL "choose ON to enable")
-
-if(ENABLE_VCPKG)
-    set(vcpkg_root $ENV{VCPKG_ROOT})
-    if(NOT DEFINED CMAKE_TOOLCHAIN_FILE AND vcpkg_root)
-        set(CMAKE_TOOLCHAIN_FILE "${vcpkg_root}/scripts/buildsystems/vcpkg.cmake")
-    endif()
+if(POLICY CMP0077)
+  cmake_policy(SET CMP0077 NEW)
 endif()
 
-macro(auto_enable_vcpkg_feature opt feature)
-    if(${opt})
-        list(FIND VCPKG_MANIFEST_FEATURES ${feature} index)
-        if(index EQUAL -1)
-            message(STATUS "Auto append features: ${feature}")
-            list(APPEND VCPKG_MANIFEST_FEATURES ${feature})
-        endif()
-    endif()
-endmacro()
+# ---- Project ----
+project(Paozhu_web_framework
+  VERSION 1.0.0
+  LANGUAGES CXX
+)
 
+# ---- Options ----
+option(ENABLE_VCPKG "Use vcpkg toolchain" OFF)
+option(ENABLE_BOOST "Enable Boost support" OFF)
+option(ENABLE_GD "Enable GD graphics and QR" OFF)
+option(ENABLE_WIN_VCPKG "Windows specific vcpkg integration" OFF)
+option(ENABLE_BENCHMARK "Enable benchmarks" OFF)
+
+# ---- Vcpkg toolchain ----
 if(ENABLE_VCPKG)
+  if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    if(DEFINED ENV{VCPKG_ROOT})
+      set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+          CACHE STRING "Vcpkg toolchain file")
+    else()
+      message(FATAL_ERROR "ENABLE_VCPKG is ON but VCPKG_ROOT environment variable is not set")
+    endif()
+  endif()
+
+  macro(auto_enable_vcpkg_feature opt feature)
+    if(${opt})
+      if(NOT ";${VCPKG_MANIFEST_FEATURES};" MATCHES ";${feature};")
+        message(STATUS "Auto append vcpkg feature: ${feature}")
+        list(APPEND VCPKG_MANIFEST_FEATURES ${feature})
+      endif()
+    endif()
+  endmacro()
+
   auto_enable_vcpkg_feature(ENABLE_GD "gd")
   auto_enable_vcpkg_feature(ENABLE_BOOST "boost")
 endif()
 
-PROJECT(Paozhu_web_framework)
+# ---- C++ standard ----
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(mode "CMAKE_BUILD_TYPE")
-
-set(BOOST_OPEN "  ")
-set(GD_OPEN " ")
-set(BENCHMARK_OPEN " ")
-
-if(ENABLE_BOOST STREQUAL "ON")
-  message("ENABLE_BOOST")
-  set(BOOST_OPEN " -DENABLE_BOOST ")
-endif()
-
-if(ENABLE_GD STREQUAL "ON")
-    message("ENABLE_GD")
-    set(GD_OPEN " -DENABLE_GD ")
-endif()
-
-if(ENABLE_BENCHMARK STREQUAL "ON")
-    message("ENABLE_BENCHMARK")
-    set(BENCHMARK_OPEN " -DBENCHMARK ")
-endif()
-
-
-set(sys_so_path "/usr/lib64")
-
-if (IS_DIRECTORY "/usr/lib/x86_64-linux-gnu")
-  set(sys_so_path "/usr/lib/x86_64-linux-gnu")
-endif()
-
-if (CMAKE_SYSTEM_NAME MATCHES "Windows")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_WIN32_WINNT=0x0601")
-endif()
-
-if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /utf-8 /EHsc")
-endif ()
-
-IF (CMAKE_SYSTEM_NAME MATCHES "Linux")
-  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-misleading-indentation -flarge-source-files ")
-  endif ()
-endif ()
-
-if(${mode} AND (CMAKE_BUILD_TYPE STREQUAL "Debug"))
-
-    if(CMAKE_SYSTEM_NAME MATCHES "Windows")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DASIO_STANDALONE -DDEBUG ${BOOST_OPEN} ${GD_OPEN} ${BENCHMARK_OPEN}")
-        if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /fsanitize=address")
-        elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pthread -g")
-        endif ()
-    else()
-        set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pthread -g -fsanitize=address -fno-omit-frame-pointer -DASIO_STANDALONE -DDEBUG ${BOOST_OPEN} ${GD_OPEN} -I/usr/local/include -I/usr/include" )
-    endif ()
-    message("Debug mode:${CMAKE_CXX_FLAGS_DEBUG}")
-
-elseif(${mode} AND (CMAKE_BUILD_TYPE STREQUAL "Release"))
-
-    if (CMAKE_SYSTEM_NAME MATCHES "Windows")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DASIO_STANDALONE ${BOOST_OPEN} ${GD_OPEN} ${BENCHMARK_OPEN} -O3")
-        if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pthread")
-        endif ()
-    else ()
-        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Wall -Wextra -O3")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread  -DASIO_STANDALONE ${BOOST_OPEN} ${GD_OPEN} ${BENCHMARK_OPEN} -I/usr/local/include -I/usr/include" )
-        file(MAKE_DIRECTORY /usr/local/etc/paozhu)
-        file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/conf/ DESTINATION /usr/local/etc/paozhu/)
-    endif ()
-    message("Release mode:${CMAKE_CXX_FLAGS_RELEASE}")
-
+# ---- Common compiler options (interface library) ----
+add_library(project_warnings INTERFACE)
+if(MSVC)
+  target_compile_options(project_warnings INTERFACE /W4 /utf-8 /EHsc)
 else()
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -Wextra")
-    message("Debug mode:${CMAKE_CXX_FLAGS_DEBUG}")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pthread -g -fsanitize=address -fno-omit-frame-pointer -DASIO_STANDALONE -DDEBUG ${BOOST_OPEN} ${GD_OPEN} ${BENCHMARK_OPEN} -I/usr/local/include -I/usr/include" )
-
-    if(NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address")
-    endif ()
+  target_compile_options(project_warnings INTERFACE -Wall -Wextra)
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(project_warnings INTERFACE -Wno-misleading-indentation -flarge-source-files)
+  endif()
 endif()
 
+# ---- Output directories ----
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin")
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/temp")
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/log")
 
-
-file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/temp)
-file(MAKE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/log)
-set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/bin)
-set(USE_STANDALONE_ASIO ON)
+# ---- Export compile commands ----
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-message(STATUS "SOURCE dir ${CMAKE_CURRENT_SOURCE_DIR}")
+# ---- Helper: recursive include directories (kept for compatibility) ----
+function(include_sub_directories_recursively root_dir)
+  if(IS_DIRECTORY ${root_dir})
+    message(STATUS "include dir: ${root_dir}")
+    include_directories(${root_dir})
+  endif()
+  file(GLOB_RECURSE subdirs LIST_DIRECTORIES true RELATIVE ${root_dir} ${root_dir}/*)
+  foreach(sub IN LISTS subdirs)
+    if(IS_DIRECTORY ${root_dir}/${sub})
+      include_sub_directories_recursively(${root_dir}/${sub})
+    endif()
+  endforeach()
+endfunction()
+
+# ---- Source files (with CONFIGURE_DEPENDS for automatic update) ----
+file(GLOB_RECURSE orm_list        CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/orm/*.cpp")
+file(GLOB_RECURSE source_list     CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/models/*.cpp")
+file(GLOB_RECURSE framework_cpps  CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/*.cpp")
+file(GLOB_RECURSE common_list     CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/common/*.cpp")
+file(GLOB_RECURSE controller_list CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/controller/src/*.cpp")
+file(GLOB_RECURSE viewsrc_list    CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/viewsrc/view/*.cpp")
+file(GLOB_RECURSE reflect_list    CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/libs/*.cpp")
+file(GLOB_RECURSE src_list        CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+
+# Auto-generate missing header stubs for controllers
+foreach(cppfile IN LISTS controller_list)
+  string(REGEX REPLACE "${CMAKE_CURRENT_SOURCE_DIR}/controller/src/" "" rel_path "${cppfile}")
+  string(FIND "${rel_path}" "/" pos)
+  if(pos GREATER_EQUAL 0)
+    string(REGEX MATCHALL "([A-Za-z0-9._-]+)/" dirs "${rel_path}")
+    set(fullpath "${CMAKE_CURRENT_SOURCE_DIR}/controller/include/")
+    foreach(dir IN LISTS dirs)
+      string(REPLACE "/" "" dirname "${dir}")
+      string(APPEND fullpath "${dirname}")
+      if(NOT IS_DIRECTORY "${fullpath}")
+        file(MAKE_DIRECTORY "${fullpath}")
+      endif()
+      string(APPEND fullpath "/")
+    endforeach()
+  endif()
+  string(REGEX REPLACE ".cpp$" "" basename "${rel_path}")
+  if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/controller/include/${basename}.h")
+    file(TOUCH "${CMAKE_CURRENT_SOURCE_DIR}/controller/include/${basename}.h")
+  endif()
+endforeach()
 
 
-set(CMAKE_BUILD_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/build)
-set(CMAKE_CACHEFILE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/build)
-set(CMAKE_CURRENT_BINARY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/build)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/common)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/controller)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpcli)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/viewsrc/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/websockets)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/sockets)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/orm)
+# CLI tool
+add_executable(paozhu_cli
+  "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpcli/http_cli.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/mysql_conn.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/mysql_conn_pool.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/clientdatacache.cpp"
+)
+
+# Main target
+set(paozhu_srcs
+  ${common_list}
+  ${viewsrc_list}
+  ${framework_cpps}
+  ${orm_list}
+  ${reflect_list}
+  ${src_list}
+  ${source_list}
+  ${controller_list}
+)
+
+add_executable(paozhu
+  $<IF:$<CONFIG:Release>,
+    ${CMAKE_CURRENT_SOURCE_DIR}/startup/main_daemon.cpp,
+    ${CMAKE_CURRENT_SOURCE_DIR}/startup/main_dev.cpp>
+  ${paozhu_srcs}
+)
+
+# ---- Compile definitions & common options ----
+target_compile_definitions(paozhu PRIVATE ASIO_STANDALONE)
+if(ENABLE_BENCHMARK)
+  target_compile_definitions(paozhu PRIVATE BENCHMARK)
+endif()
+
+target_link_libraries(paozhu PRIVATE project_warnings)
+target_link_libraries(paozhu_cli PRIVATE project_warnings)
+
+# Debug options
+target_compile_options(paozhu PRIVATE
+  $<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:GNU>>:-g -fsanitize=address -fno-omit-frame-pointer>
+  $<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:/fsanitize=address>
+)
+target_link_options(paozhu PRIVATE
+  $<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:GNU>>:-fsanitize=address>
+)
+
+target_compile_definitions(paozhu PRIVATE
+  $<$<CONFIG:Debug>:DEBUG>
+)
+
+# ---- Include directories (recursive legacy includes) ----
+include_sub_directories_recursively("${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver")
+include_sub_directories_recursively("${CMAKE_CURRENT_SOURCE_DIR}/orm")
+include_sub_directories_recursively("${CMAKE_CURRENT_SOURCE_DIR}/models")
+include_sub_directories_recursively("${CMAKE_CURRENT_SOURCE_DIR}/controller/include")
+include_sub_directories_recursively("${CMAKE_CURRENT_SOURCE_DIR}/libs")
+include_sub_directories_recursively("${CMAKE_CURRENT_SOURCE_DIR}/include")
+include_sub_directories_recursively("${CMAKE_CURRENT_SOURCE_DIR}/common")
 
 if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_pre)
-  file(REMOVE_RECURSE ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_pre)
+  file(REMOVE ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_pre)
 endif()
 set(PAOZHU_PRE paozhu_pre)
 add_executable(${PAOZHU_PRE} ${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpcli/autopickmethod.cpp ${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/md5.cpp)
 
 
+# Non-recursive include directories from original script
+target_include_directories(paozhu PRIVATE
+  "${CMAKE_CURRENT_SOURCE_DIR}/viewsrc/include"
+  "${CMAKE_CURRENT_SOURCE_DIR}/viewsrc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/websockets"
+  "${CMAKE_CURRENT_SOURCE_DIR}/sockets"
+)
 
-file(GLOB_RECURSE orm_list ${CMAKE_CURRENT_SOURCE_DIR}/orm/*.cpp)
-file(GLOB_RECURSE source_list ${CMAKE_CURRENT_SOURCE_DIR}/models/*.cpp)
-file(GLOB_RECURSE FRAMEWORK_CPP_PATH ${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/*.cpp)
-file(GLOB_RECURSE common_list ${CMAKE_CURRENT_SOURCE_DIR}/common/*.cpp)
-file(GLOB_RECURSE controller_list ${CMAKE_CURRENT_SOURCE_DIR}/controller/src/*.cpp)
-file(GLOB_RECURSE viewsrc_list ${CMAKE_CURRENT_SOURCE_DIR}/viewsrc/view/*.cpp)
-file(GLOB_RECURSE reflect_list ${CMAKE_CURRENT_SOURCE_DIR}/libs/*.cpp)
-file(GLOB_RECURSE src_list ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+# ===== 代码生成：paozhu_pre（每次构建都运行） =====
+add_custom_target(paozhu_codegen ALL
+    COMMAND $<TARGET_FILE:paozhu_pre> "${CMAKE_CURRENT_SOURCE_DIR}"
+    DEPENDS paozhu_pre
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    COMMENT "Running paozhu_pre to generate controller stubs..."
+)
 
-foreach(cppfile IN LISTS controller_list)
-  string(REGEX REPLACE "${CMAKE_CURRENT_SOURCE_DIR}/controller/src/" "" cppfilename ${cppfile})
-  string(FIND ${cppfilename} "/" strpos)
-  if(${strpos} GREATER_EQUAL "0" )
-      string(REGEX MATCHALL "([A-Za-z0-9._-]+)/" npaths ${cppfilename} )
-      set(fullpaths "")
-      string(APPEND fullpaths "${CMAKE_CURRENT_SOURCE_DIR}/controller/include/")
-      foreach(onepathname ${npaths})
-            string(REPLACE "/" "" toucpath ${onepathname})
-            string(APPEND fullpaths ${toucpath})
-            if (IS_DIRECTORY "${fullpaths}") 
-            else()
-                  message("mkdir ${fullpaths}") 
-                  file(MAKE_DIRECTORY "${fullpaths}")
-            endif()
-            string(APPEND fullpaths "/")
-      endforeach()
-  endif()
-  string(REGEX REPLACE ".cpp" "" cppbasename ${cppfilename})
-#  message(${cppbasename})
-  if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/controller/include/${cppbasename}.h")
-  else()
-      file(TOUCH "${CMAKE_CURRENT_SOURCE_DIR}/controller/include/${cppbasename}.h")
-  endif()
-endforeach()
+# ===== 让 paozhu 主目标等待代码生成完毕 =====
+add_dependencies(paozhu paozhu_codegen)
 
-function(include_sub_directories_recursively root_dir)
-    if (IS_DIRECTORY ${root_dir})               # 当前路径是一个目录吗，是的话就加入到包含目录
-        #        if (${root_dir} MATCHES "include")
-        message("include dir: " ${root_dir})
-        include_directories(${root_dir})
-        #        endif()
-    endif()
-
-    file(GLOB ALL_SUB RELATIVE ${root_dir} ${root_dir}/*) # 获得当前目录下的所有文件，让如ALL_SUB列表中
-
-    foreach(sub ${ALL_SUB})
-        if (IS_DIRECTORY ${root_dir}/${sub})
-            include_sub_directories_recursively(${root_dir}/${sub}) # 对子目录递归调用，包含
-        endif()
-    endforeach()
-endfunction()
-
-include_sub_directories_recursively(${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver)
-include_sub_directories_recursively(${CMAKE_CURRENT_SOURCE_DIR}/orm)
-include_sub_directories_recursively(${CMAKE_CURRENT_SOURCE_DIR}/models)
-include_sub_directories_recursively(${CMAKE_CURRENT_SOURCE_DIR}/controller/include)
-include_sub_directories_recursively(${CMAKE_CURRENT_SOURCE_DIR}/libs)
-include_sub_directories_recursively(${CMAKE_CURRENT_SOURCE_DIR}/include)
-include_sub_directories_recursively(${CMAKE_CURRENT_SOURCE_DIR}/common)
-
-add_executable(paozhu_cli ${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpcli/http_cli.cpp ${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/mysql_conn.cpp ${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/mysql_conn_pool.cpp ${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/clientdatacache.cpp)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/bin)
-
-
-if(${mode} AND (CMAKE_BUILD_TYPE STREQUAL "Release"))
-  add_executable(paozhu ${CMAKE_CURRENT_SOURCE_DIR}/startup/main_daemon.cpp ${common_list} ${viewsrc_list} ${FRAMEWORK_CPP_PATH} ${orm_list} ${reflect_list} ${src_list} ${source_list} ${controller_list})
-else()
-  add_executable(paozhu ${CMAKE_CURRENT_SOURCE_DIR}/startup/main_dev.cpp ${common_list} ${viewsrc_list} ${FRAMEWORK_CPP_PATH} ${orm_list} ${reflect_list} ${src_list} ${source_list} ${controller_list})
+# ---- Platform specific settings ----
+if(WIN32)
+  target_compile_definitions(paozhu PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX _WIN32_WINNT=0x0601)
+  target_link_libraries(paozhu PRIVATE ws2_32 psapi)
+  target_link_libraries(paozhu_cli PRIVATE ws2_32)
 endif()
 
-if (ENABLE_WIN_VCPKG STREQUAL "ON")
-else()
-add_custom_command(
-    TARGET paozhu_pre POST_BUILD
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
-    COMMAND echo "-- controls method --"
-    COMMAND ${PAOZHU_PRE} ${CMAKE_CURRENT_SOURCE_DIR}/
+# ---- ASAN runtime DLL auto-copy for MSVC Debug (64-bit only) ----
+if(MSVC AND WIN32)
+  # Get the directory of cl.exe (compiler), ASAN DLL typically lives next to it
+  get_filename_component(CL_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
+
+  # Try to find the ASAN dynamic runtime (64-bit)
+  find_file(ASAN_DLL_SOURCE
+    NAMES clang_rt.asan_dynamic-x86_64.dll
+    PATHS "${CL_DIR}"
+    NO_DEFAULT_PATH
+  )
+
+  if(NOT ASAN_DLL_SOURCE)
+    set(ASAN_DLL_SOURCE "" CACHE FILEPATH "Full path to clang_rt.asan_dynamic-x86_64.dll (set manually if needed)")
+    if(NOT ASAN_DLL_SOURCE)
+      message(WARNING
+        "ASAN runtime DLL not found automatically.\n"
+        "  Please locate clang_rt.asan_dynamic-x86_64.dll (typically in your Visual Studio installation,\n"
+        "  e.g., VC/Tools/MSVC/<version>/bin/Hostx64/x64/) and set ASAN_DLL_SOURCE to its full path:\n"
+        "    cmake -DASAN_DLL_SOURCE=\"C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/MSVC/14.40.33807/bin/Hostx64/x64/clang_rt.asan_dynamic-x86_64.dll\" ..\n"
+        "  The DLL will then be automatically copied to the executable directory (e.g., bin/Debug/)."
+      )
+    endif()
+  endif()
+
+  # Only copy in Debug mode (ASAN is usually enabled there)
+  if(ASAN_DLL_SOURCE AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_custom_command(TARGET paozhu POST_BUILD
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different
+              "${ASAN_DLL_SOURCE}"
+              "$<TARGET_FILE_DIR:paozhu>"
+      COMMENT "Copying ASAN runtime DLL to output directory"
     )
+  endif()
 endif()
 
-if (ENABLE_VCPKG)
-    add_compile_definitions(ENABLE_VCPKG)
-    find_package(asio CONFIG REQUIRED)
-    target_link_libraries(paozhu asio::asio)
+# ---- Dependency handling ----
+if(ENABLE_VCPKG)
+  # Using vcpkg
+  target_compile_definitions(paozhu PRIVATE ENABLE_VCPKG)
+  find_package(asio CONFIG REQUIRED)
+  target_link_libraries(paozhu PRIVATE asio::asio)
+  target_link_libraries(paozhu_cli PRIVATE asio::asio)
 
-    if (ENABLE_BOOST)
-        add_compile_definitions(ENABLE_BOOST)
-        set(Boost_NO_WARN_NEW_VERSIONS ON)
-        find_package(Boost REQUIRED COMPONENTS filesystem coroutine)
-        target_link_libraries(paozhu Boost::boost Boost::filesystem Boost::coroutine)
-    endif ()
+  find_package(OpenSSL REQUIRED)
+  target_link_libraries(paozhu PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+  target_link_libraries(paozhu_cli PRIVATE OpenSSL::SSL OpenSSL::Crypto)
 
-    find_package(OpenSSL REQUIRED)
-    target_link_libraries(paozhu OpenSSL::Crypto OpenSSL::SSL)
+  find_package(ZLIB REQUIRED)
+  target_link_libraries(paozhu PRIVATE ZLIB::ZLIB)
 
-    find_package(ZLIB REQUIRED)
-    target_link_libraries(paozhu ZLIB::ZLIB)
+  find_package(unofficial-brotli CONFIG REQUIRED)
+  target_link_libraries(paozhu PRIVATE unofficial::brotli::brotlidec unofficial::brotli::brotlienc)
 
-    # find_package(libmysql REQUIRED)
-    # find_package(unofficial-libmariadb CONFIG REQUIRED)
-    # find_path(MYSQL_ROOT_DIR mysql)
-    # target_link_libraries(paozhu ${MYSQL_LIBRARIES})
-    # target_link_libraries(paozhu_cli ${MYSQL_LIBRARIES})
-    # target_link_libraries(paozhu unofficial::libmariadb)
-    # target_link_libraries(paozhu_cli unofficial::libmariadb)
-    # target_include_directories(paozhu PUBLIC ${MYSQL_ROOT_DIR}/mysql)
-    # target_include_directories(paozhu_cli PUBLIC ${MYSQL_ROOT_DIR}/mysql)
+  if(ENABLE_BOOST)
+    target_compile_definitions(paozhu PRIVATE ENABLE_BOOST)
+    set(Boost_NO_WARN_NEW_VERSIONS ON)
+    find_package(Boost REQUIRED COMPONENTS filesystem coroutine)
+    target_link_libraries(paozhu PRIVATE Boost::boost Boost::filesystem Boost::coroutine)
+  endif()
 
-    target_link_libraries(paozhu_cli asio::asio)
-    target_link_libraries(paozhu_cli OpenSSL::Crypto OpenSSL::SSL)
+  if(ENABLE_GD)
+    find_package(PkgConfig)
+    pkg_check_modules(LIBGD REQUIRED IMPORTED_TARGET gdlib)
+    target_link_libraries(paozhu PRIVATE PkgConfig::LIBGD)
 
-    if (ENABLE_GD STREQUAL "ON")
-        find_package(PkgConfig)
-        pkg_check_modules(LIBGD REQUIRED IMPORTED_TARGET gdlib)
-        target_link_libraries(paozhu PkgConfig::LIBGD)
+    find_path(QRENCODE_INCLUDE_DIR NAMES qrencode.h)
+    find_library(QRENCODE_LIBRARY_RELEASE qrencode)
+    target_include_directories(paozhu PRIVATE ${QRENCODE_INCLUDE_DIR})
+    target_link_libraries(paozhu PRIVATE ${QRENCODE_LIBRARY_RELEASE})
 
-        find_path(QRENCODE_INCLUDE_DIR NAMES qrencode.h)
-        find_library(QRENCODE_LIBRARY_RELEASE qrencode)
-        # find_library(QRENCODE_LIBRARY_DEBUG qrencoded)
-        # set(QRENCODE_LIBRARIES optimized ${QRENCODE_LIBRARY_RELEASE} debug ${QRENCODE_LIBRARY_DEBUG})
-        target_include_directories(paozhu PRIVATE ${QRENCODE_INCLUDE_DIR})
-        target_link_libraries(paozhu ${QRENCODE_LIBRARY_RELEASE})
-        # MESSAGE(STATUS ${QRENCODE_LIBRARY_RELEASE})
+    find_package(PNG REQUIRED)
+    target_link_libraries(paozhu PRIVATE PNG::PNG)
 
-        # warning: Fixed an issue where ports/libqrencode would not automatically
-        #          copy dll files to the bin directory
-        if (CMAKE_SYSTEM_NAME MATCHES "Windows")
-            set(PATH_TO_QRENCODE_DLL "")
-            if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-                set(PATH_TO_QRENCODE_DLL "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin/qrencode.dll")
-            elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-                set(PATH_TO_QRENCODE_DLL "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib/libqrencode.dll")
-            endif ()
-            message(STATUS "Selected libqrencode.dll: ${PATH_TO_QRENCODE_DLL}")
+    find_package(Freetype REQUIRED)
+    target_link_libraries(paozhu PRIVATE Freetype::Freetype)
 
-            add_custom_command(
-                    TARGET paozhu POST_BUILD
-                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                    ${PATH_TO_QRENCODE_DLL} ${CMAKE_CURRENT_SOURCE_DIR}/bin/
-            )
-        endif ()
-
-        find_package(PNG REQUIRED)
-        target_link_libraries(paozhu PNG::PNG)
-
-        find_package(Freetype REQUIRED)
-        target_link_libraries(paozhu Freetype::Freetype)
-    endif ()
-
-    find_package(unofficial-brotli CONFIG REQUIRED)
-    target_link_libraries(paozhu unofficial::brotli::brotlidec unofficial::brotli::brotlienc)
-else ()
-
-if(USE_STANDALONE_ASIO)
-if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-set(ASIO_PATH "/usr/local/opt/asio/include" "/usr/local/include" "/opt/homebrew/opt/asio" ${CMAKE_CURRENT_SOURCE_DIR}/asio)
-else()
-set(ASIO_PATH ${CMAKE_CURRENT_SOURCE_DIR}/asio "/usr/include")
-endif()
-
-    target_compile_definitions(paozhu INTERFACE ASIO_STANDALONE)
-    find_path(ASIO_PATH asio.hpp)
-    message(state " Standalone Asio found: " ${ASIO_PATH})
-    if(NOT ASIO_PATH)
-        message(FATAL_ERROR "Standalone Asio not found")
-    else()
-        target_include_directories(paozhu INTERFACE ${ASIO_PATH})
+    if(WIN32)
+      # Copy qrencode.dll to bin
+      if(MSVC)
+        set(qrencode_dll "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin/qrencode.dll")
+      elseif(MINGW)
+        set(qrencode_dll "${_VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/lib/libqrencode.dll")
+      endif()
+      add_custom_command(TARGET paozhu POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${qrencode_dll}" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
+      )
     endif()
-
-    include_directories(${ASIO_PATH})
-
-endif()
-
-
-if(ENABLE_BOOST STREQUAL "ON")
-message("---ENABLE_BOOST-----")
-find_package(Boost REQUIRED
-             COMPONENTS system filesystem)
-if(Boost_FOUND)
-    add_compile_definitions(ENABLE_BOOST)
-    include_directories("${Boost_INCLUDE_DIRS}/boost")
-
-    MESSAGE( STATUS "Boost_INCLUDE_DIRS = ${Boost_INCLUDE_DIRS}")
-    MESSAGE( STATUS "Boost_LIBRARIES = ${Boost_LIBRARY_DIRS}")
-    MESSAGE( STATUS "Boost_LIB_VERSION = ${Boost_LIB_VERSION}")
-    link_directories(${Boost_LIBRARY_DIRS})
-    target_link_libraries (paozhu ${Boost_LIBRARIES})
-endif()
-
-endif()
-
-
-find_package(OpenSSL REQUIRED)
-
-if(OPENSSL_FOUND)
-
-  message(STATUS "OPENSSL_VERSION = ${OPENSSL_VERSION}")
-  message(STATUS "OPENSSL_SSL_LIBRARY = ${OPENSSL_SSL_LIBRARY}")
-  message(STATUS "OPENSSL_CRYPTO_LIBRARY = ${OPENSSL_CRYPTO_LIBRARY}")
-  message(STATUS "OPENSSL_INCLUDE_DIR = ${OPENSSL_INCLUDE_DIR}")
-  INCLUDE_DIRECTORIES("${OPENSSL_INCLUDE_DIR}")
-  target_link_libraries (paozhu ${OPENSSL_SSL_LIBRARY})
-  target_link_libraries (paozhu ${OPENSSL_CRYPTO_LIBRARY})
-  
-  target_link_libraries (paozhu_cli ${OPENSSL_SSL_LIBRARY})
-  target_link_libraries (paozhu_cli ${OPENSSL_CRYPTO_LIBRARY})
-endif()
-
-
-find_package(ZLIB REQUIRED)
-if(ZLIB_FOUND)
-  message(STATUS "Zlib Found! ${ZLIB_LIBRARIES}")
-  include_directories(${ZLIB_INCLUDE_DIR})
-  set(zlib_library ${ZLIB_LIBRARIES})
-  target_link_libraries(paozhu z)
-endif()
-
-
-#if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-#  if (IS_DIRECTORY "/usr/local/mysql/include")
-# MESSAGE( STATUS "/usr/local/mysql")
-#     set(MYSQL_INCLUDE_DIR "/usr/local/mysql/include")
-#     include_sub_directories_recursively(/usr/local/mysql/include)
-# endif()
-#
-# if (IS_DIRECTORY "/usr/local/opt/mysql-client")
-#       MESSAGE( STATUS "/usr/local/opt/mysql-client")
-#     set(MYSQL_INCLUDE_DIR "/usr/local/opt/mysql-client/include")
-#     include_sub_directories_recursively(/usr/local/opt/mysql-client/include)
-# endif()
-# 
-# if (IS_DIRECTORY "/opt/homebrew/opt/mysql")
-#       MESSAGE( STATUS "/opt/homebrew/opt/mysql")
-#     set(MYSQL_INCLUDE_DIR "/opt/homebrew/opt/mysql/include")
-#     include_sub_directories_recursively(/opt/homebrew/opt/mysql/include)
-# endif()
-#   
-#   
-#   if (IS_DIRECTORY "/opt/homebrew/opt/mysql-client")
-#         MESSAGE( STATUS "/opt/homebrew/opt/mysql-client")
-#       set(MYSQL_INCLUDE_DIR "/opt/homebrew/opt/mysql-client/include")
-#       include_sub_directories_recursively(/opt/homebrew/opt/mysql-client/include)
-#   endif()
-#   MESSAGE( STATUS "MYSQL_ROOT_DIR = ${MYSQL_ROOT_DIR} ")
-#else()  
-#  find_path(MYSQL_ROOT_DIR mysql)
-#endif()
-# 
-# 
-# FIND_PATH(MYSQL_INCLUDE_DIR NAMES mysql.h
-#   PATHS /usr/local/include/mysql /usr/include/mysql /opt/homebrew/opt/mysql/include /usr/local/opt/mysql-client/include /opt/homebrew/opt/mysql-client/include
-# )
-# 
-# MESSAGE( STATUS "MYSQL_ROOT_DIR = ${MYSQL_ROOT_DIR} ")
-# find_package_handle_standard_args(mysql REQUIRED_VARS MYSQL_ROOT_DIR)
-# 
-# 
-# if(NOT MYSQL_INCLUDE_DIR)
-#   message(STATUS "Could not find \"mysql.h\" from searching ")
-# endif()
-# 
-# SET(MYSQL_NAMES mysqlclient)
-# FIND_LIBRARY(MYSQL_LIBRARY
-#   NAMES ${MYSQL_NAMES}
-#   PATHS /usr/lib /usr/local/lib /usr/local/mysql/lib /usr/local/opt/mysql/lib /opt/homebrew/opt/mysql/lib /opt/homebrew/opt/mysql-client/lib
-#   PATH_SUFFIXES mysql
-# )
-# 
-# IF (MYSQL_INCLUDE_DIR AND MYSQL_LIBRARY)
-#   SET(MYSQL_FOUND TRUE)
-#   SET( MYSQL_LIBRARIES ${MYSQL_LIBRARY} )
-# ELSE (MYSQL_INCLUDE_DIR AND MYSQL_LIBRARY)
-#   SET(MYSQL_FOUND FALSE)
-#   SET( MYSQL_LIBRARIES )
-# ENDIF (MYSQL_INCLUDE_DIR AND MYSQL_LIBRARY)
-# 
-# IF (MYSQL_FOUND)
-#   IF (NOT MYSQL_FIND_QUIETLY)
-#     MESSAGE(STATUS "Found MySQL: ${MYSQL_LIBRARY}")
-#   ENDIF (NOT MYSQL_FIND_QUIETLY)
-# ELSE (MYSQL_FOUND)
-#   IF (MYSQL_FIND_REQUIRED)
-#     MESSAGE(STATUS "Looked for MySQL libraries named ${MYSQL_NAMES}.")
-#     MESSAGE(FATAL_ERROR "Could NOT find MySQL library")
-#   ENDIF (MYSQL_FIND_REQUIRED)
-# ENDIF (MYSQL_FOUND)
-# 
-# target_include_directories(paozhu PUBLIC ${MYSQL_INCLUDE_DIR})
-# target_link_libraries(paozhu ${MYSQL_LIBRARY})
-# 
-# target_include_directories(paozhu_cli PUBLIC ${MYSQL_INCLUDE_DIR})
-# target_link_libraries(paozhu_cli ${MYSQL_LIBRARY})
-
-
-
-if(ENABLE_GD STREQUAL "ON")
-message("---ENABLE_GD-----")
-
-if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-  
-  if (IS_DIRECTORY "/usr/local/opt/gd/lib")
-        MESSAGE( STATUS "/usr/local/opt/gd/lib")
-      set(GD_ROOT_DIR "/usr/local/opt/gd/lib")
-      include_sub_directories_recursively(/usr/local/opt/gd/include)
-  endif()
-  if (IS_DIRECTORY "/opt/homebrew/opt/gd/lib")
-        MESSAGE( STATUS "/opt/homebrew/opt/gd/lib")
-      set(GD_ROOT_DIR "/opt/homebrew/opt/gd/lib")
-      include_sub_directories_recursively(/opt/homebrew/opt/gd/include)
   endif()
 else()
-  set(GD_ROOT_DIR "${sys_so_path}")
-endif()
-
-set(find_gdname gd)
-
-find_library(GD_LIB_DIR
-  NAMES ${find_gdname}
-  PATHS "${GD_ROOT_DIR}"
-  NO_DEFAULT_PATH
-)
-
-if(NOT GD_LIB_DIR)
-message(FATAL_ERROR
-"GD Graphics Library NOT FOUND! please install . "
-)
-endif()
-
-message(STATUS "GD Graphics Library  at: ${GD_LIB_DIR}")
-
-if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-
-  if (IS_DIRECTORY "/usr/local/opt/qrencode/lib")
-        MESSAGE( STATUS "/usr/local/opt/qrencode/lib")
-      set(QR_ROOT_DIR "/usr/local/opt/qrencode/lib")
-      include_sub_directories_recursively(/usr/local/opt/qrencode/include)
+  # Not using vcpkg: system libraries
+  # On Windows, we highly recommend using vcpkg; exit with a helpful message if not.
+  if(WIN32)
+    message(FATAL_ERROR
+      "On Windows, ENABLE_VCPKG must be ON. "
+      "Please install vcpkg and set VCPKG_ROOT, or enable ENABLE_VCPKG."
+    )
   endif()
-  if (IS_DIRECTORY "/opt/homebrew/opt/qrencode/lib")
-        MESSAGE( STATUS "/opt/homebrew/opt/qrencode/lib")
-      set(QR_ROOT_DIR "/opt/homebrew/opt/qrencode/lib")
-      include_sub_directories_recursively(/opt/homebrew/opt/qrencode/include)
+
+  # ASIO
+  add_library(asio INTERFACE)
+  target_compile_definitions(asio INTERFACE ASIO_STANDALONE)
+  if(APPLE)
+    find_path(ASIO_INCLUDE_DIR asio.hpp
+      PATHS /usr/local/opt/asio/include /usr/local/include /opt/homebrew/opt/asio
+            "${CMAKE_CURRENT_SOURCE_DIR}/asio"
+    )
+  else()
+    find_path(ASIO_INCLUDE_DIR asio.hpp
+      PATHS "${CMAKE_CURRENT_SOURCE_DIR}/asio" /usr/include
+    )
   endif()
-  
-else()
-set(QR_ROOT_DIR "${sys_so_path}")
-endif()
-
-set(find_qrname qrencode)
-
-find_library(QR_LIB_DIR
-  NAMES ${find_qrname}
-  PATHS "${QR_ROOT_DIR}"
-  NO_DEFAULT_PATH
-)
-
-if(NOT QR_LIB_DIR)
-message(FATAL_ERROR
-"qrencode Library  NOT FOUND! please install . "
-)
-endif()
-
-message(STATUS "qrencode at: ${QR_LIB_DIR}")
-
-INCLUDE_DIRECTORIES("${GD_ROOT_DIR}/include")
-INCLUDE_DIRECTORIES("${QR_ROOT_DIR}/include")
-link_directories("${QR_ROOT_DIR}/lib")
-link_directories("${GD_ROOT_DIR}/lib")
-target_link_libraries(paozhu ${GD_LIB_DIR})
-target_link_libraries(paozhu ${QR_LIB_DIR})
-
-if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-
-  if (IS_DIRECTORY "/usr/local/opt/libpng/lib")
-        MESSAGE( STATUS "/usr/local/opt/libpng/lib")
-      set(PNG_ROOT_DIR "/usr/local/opt/libpng/lib")
-      include_sub_directories_recursively(/usr/local/opt/libpng/include)
+  if(NOT ASIO_INCLUDE_DIR)
+    message(FATAL_ERROR "Standalone Asio not found")
   endif()
-  if (IS_DIRECTORY "/opt/homebrew/opt/libpng/lib")
-        MESSAGE( STATUS "/opt/homebrew/opt/libpng/lib")
-      set(PNG_ROOT_DIR "/opt/homebrew/opt/libpng/lib")
-      include_sub_directories_recursively(/opt/homebrew/opt/libpng/include)
+  target_include_directories(asio INTERFACE ${ASIO_INCLUDE_DIR})
+  target_link_libraries(paozhu PRIVATE asio)
+  target_link_libraries(paozhu_cli PRIVATE asio)
+
+  # OpenSSL
+  find_package(OpenSSL REQUIRED)
+  target_link_libraries(paozhu PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+  target_link_libraries(paozhu_cli PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+
+  # ZLIB
+  find_package(ZLIB REQUIRED)
+  target_link_libraries(paozhu PRIVATE ZLIB::ZLIB)
+
+  # Boost
+  if(ENABLE_BOOST)
+    target_compile_definitions(paozhu PRIVATE ENABLE_BOOST)
+    find_package(Boost REQUIRED COMPONENTS system filesystem)
+    target_link_libraries(paozhu PRIVATE Boost::boost Boost::system Boost::filesystem)
   endif()
-  
-else()
-set(PNG_ROOT_DIR "${sys_so_path}")
-endif()
 
-find_library(PNG_LIB_DIR
-  NAMES png
-  PATHS "${PNG_ROOT_DIR}"
-  NO_DEFAULT_PATH
-)
-target_link_libraries(paozhu ${PNG_LIB_DIR})
+  # GD, qrencode, PNG, Freetype
+  if(ENABLE_GD)
+    target_compile_definitions(paozhu PRIVATE ENABLE_GD)
 
-if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-  
-    if (IS_DIRECTORY "/usr/local/opt/freetype/lib")
-        MESSAGE( STATUS "/usr/local/opt/freetype/lib")
-      set(FREETYPE_ROOT_DIR "/usr/local/opt/freetype/lib")
-      include_sub_directories_recursively(/usr/local/opt/freetype/include)
+    # ---- GD (library + header) ----
+    find_library(GD_LIBRARY gd
+      PATHS /usr/local/opt/gd/lib /opt/homebrew/opt/gd/lib
+            /usr/lib64 /usr/lib/x86_64-linux-gnu /usr/lib
+    )
+    if(NOT GD_LIBRARY)
+      message(FATAL_ERROR "GD library not found")
+    endif()
+    find_path(GD_INCLUDE_DIR gd.h
+      PATHS /usr/local/opt/gd/include /opt/homebrew/opt/gd/include
+            /usr/include /usr/local/include
+    )
+    if(NOT GD_INCLUDE_DIR)
+      message(FATAL_ERROR "GD header not found")
+    endif()
+    target_link_libraries(paozhu PRIVATE ${GD_LIBRARY})
+    target_include_directories(paozhu PRIVATE ${GD_INCLUDE_DIR})
+    message(STATUS "Found GD: ${GD_LIBRARY} (include: ${GD_INCLUDE_DIR})")
+
+    # ---- qrencode (library + header) ----
+    find_library(QRENCODE_LIBRARY qrencode
+      PATHS /usr/local/opt/qrencode/lib /opt/homebrew/opt/qrencode/lib
+            /usr/lib64 /usr/lib/x86_64-linux-gnu /usr/lib
+    )
+    if(NOT QRENCODE_LIBRARY)
+      message(FATAL_ERROR "qrencode library not found")
+    endif()
+    find_path(QRENCODE_INCLUDE_DIR qrencode.h
+      PATHS /usr/local/opt/qrencode/include /opt/homebrew/opt/qrencode/include
+            /usr/include /usr/local/include
+    )
+    if(NOT QRENCODE_INCLUDE_DIR)
+      message(FATAL_ERROR "qrencode header not found")
+    endif()
+    target_link_libraries(paozhu PRIVATE ${QRENCODE_LIBRARY})
+    target_include_directories(paozhu PRIVATE ${QRENCODE_INCLUDE_DIR})
+    message(STATUS "Found qrencode: ${QRENCODE_LIBRARY} (include: ${QRENCODE_INCLUDE_DIR})")
+
+    # ---- PNG and Freetype via CMake modules ----
+    find_package(PNG REQUIRED)
+    target_link_libraries(paozhu PRIVATE PNG::PNG)
+
+    find_package(Freetype REQUIRED)
+    target_link_libraries(paozhu PRIVATE Freetype::Freetype)
   endif()
-  if (IS_DIRECTORY "/opt/homebrew/opt/freetype/lib")
-        MESSAGE( STATUS "/opt/homebrew/opt/freetype/lib")
-      set(FREETYPE_ROOT_DIR "/opt/homebrew/opt/freetype/lib")
-      include_sub_directories_recursively(/opt/homebrew/opt/freetype/include)
+
+  # Brotli
+  find_library(BROTLI_ENC brotlienc
+    PATHS /usr/lib64 /usr/lib/x86_64-linux-gnu /usr/lib
+          /usr/local/opt/brotli/lib /opt/homebrew/opt/brotli/lib
+  )
+  find_library(BROTLI_DEC brotlidec
+    PATHS /usr/lib64 /usr/lib/x86_64-linux-gnu /usr/lib
+          /usr/local/opt/brotli/lib /opt/homebrew/opt/brotli/lib
+  )
+  if(NOT BROTLI_ENC OR NOT BROTLI_DEC)
+    message(FATAL_ERROR "Brotli libraries not found")
   endif()
-  
-else()
-  set(FREETYPE_ROOT_DIR "${sys_so_path}")
-endif()
-
-find_library(FREETYPE_LIB_DIR
-  NAMES freetype
-  PATHS "${FREETYPE_ROOT_DIR}"
-  NO_DEFAULT_PATH
-)
-target_link_libraries(paozhu ${FREETYPE_LIB_DIR})
-#end ENABLE_GD
-endif()
-
-if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-  if (IS_DIRECTORY "/usr/local/opt/brotli/lib")
-      set(BROTLI_ROOT_DIR "/usr/local/opt/brotli/lib")
-      INCLUDE_DIRECTORIES("/usr/local/opt/brotli/include")
+  message(STATUS "Found Brotli encoder: ${BROTLI_ENC}")
+  message(STATUS "Found Brotli decoder: ${BROTLI_DEC}")
+  target_link_libraries(paozhu PRIVATE ${BROTLI_ENC} ${BROTLI_DEC})
+  if(APPLE)
+    foreach(prefix /usr/local/opt /opt/homebrew/opt)
+      if(IS_DIRECTORY "${prefix}/brotli/include")
+        target_include_directories(paozhu PRIVATE "${prefix}/brotli/include")
+      endif()
+    endforeach()
   endif()
-#  set(BROTLI_ROOT_DIR "/usr/local/opt/brotli/lib")
-  if (IS_DIRECTORY "/opt/homebrew/opt/brotli/lib")
-      set(BROTLI_ROOT_DIR "/opt/homebrew/opt/brotli/lib")
-      INCLUDE_DIRECTORIES("/opt/homebrew/opt/brotli/include")
-  endif()
-else()
-  set(BROTLI_ROOT_DIR "${sys_so_path}")
 endif()
 
-
-
-#find_package(Brotli COMPONENTS encoder decoder common REQUIRED)
-
-message(STATUS "Brotli at: ${BROTLI_ROOT_DIR}")
-
-set(find_brname brotlienc)
-set(find_brdename brotlidec)
-find_library(BR_LIB_DIR
-  NAMES ${find_brname}
-  PATHS "${BROTLI_ROOT_DIR}"
-  NO_DEFAULT_PATH
-)
-find_library(BRDEC_LIB_DIR
-  NAMES ${find_brdename}
-  PATHS "${BROTLI_ROOT_DIR}"
-  NO_DEFAULT_PATH
-)
-INCLUDE_DIRECTORIES("${BROTLI_ROOT_DIR}/include")
-link_directories("${BROTLI_ROOT_DIR}/lib")
-
-if(NOT BR_LIB_DIR)
-message(FATAL_ERROR
-"Brotli Library  NOT FOUND! please install . "
-)
+# ---- Final common libraries ----
+if(UNIX)
+  target_link_libraries(paozhu PRIVATE m dl pthread)
 endif()
 
-message(STATUS "Brotli at: ${BR_LIB_DIR}")
-target_link_libraries(paozhu ${BR_LIB_DIR})
-
-
-if(NOT BRDEC_LIB_DIR)
-message(FATAL_ERROR
-"Brotli Library  NOT FOUND! please install . "
-)
+# ---- Copy config files (Unix only) ----
+if(CMAKE_BUILD_TYPE STREQUAL "Release" AND UNIX)
+  file(MAKE_DIRECTORY /usr/local/etc/paozhu)
+  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/conf/" DESTINATION /usr/local/etc/paozhu/)
+  message(STATUS "Configuration files copied to /usr/local/etc/paozhu")
 endif()
-
-message(STATUS "Brotli at: ${BRDEC_LIB_DIR}")
-target_link_libraries(paozhu ${BRDEC_LIB_DIR})
-
-
-message("Compile framework mode")
-
-target_link_libraries(paozhu  m  dl)
-
-endif ()
-
-if (CMAKE_SYSTEM_NAME MATCHES "Windows")
-   target_compile_definitions(paozhu PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX) 
-   target_link_libraries(paozhu ws2_32 psapi)
-   target_link_libraries(paozhu_cli ws2_32)
-endif ()
