@@ -1258,19 +1258,19 @@ int websocket_client::make_ws_header(unsigned int len, std::string &header, unsi
     switch (t)
     {
     case 0x01:
-        header.push_back(0x81);
+        header.push_back(static_cast<char>(0x81));
         break;
     case 0x02:
-        header.push_back(0x82);
+        header.push_back(static_cast<char>(0x82));
         break;
     case 0x80:
-        header.push_back(0x80);
+        header.push_back(static_cast<char>(0x80));
         break;
     case 0x81:
-        header.push_back(0x81);
+        header.push_back(static_cast<char>(0x81));
         break;
     case 0x82:
-        header.push_back(0x82);
+        header.push_back(static_cast<char>(0x82));
         break;
     default:
         header.push_back(t);
@@ -1282,13 +1282,13 @@ int websocket_client::make_ws_header(unsigned int len, std::string &header, unsi
     }
     else if (len <= 65535)
     {
-        header.push_back(0xFE);                // 16 bit length follows
+        header.push_back(static_cast<char>(0xFE));                // 16 bit length follows
         header.push_back(((len >> 8) & 0xFF));// leftmost first
         header.push_back((len & 0xFF));
     }
     else// >2^16-1 (   )
     {
-        header.push_back(0xFF);// 64 bit length follows
+        header.push_back(static_cast<char>(0xFF));// 64 bit length follows
         unsigned long long real_length = len;
  
         for (int i = 8; i > 0; i--)

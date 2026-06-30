@@ -16,6 +16,13 @@ project(Paozhu_web_framework
   LANGUAGES CXX
 )
 
+# ---- 设置默认构建类型为 Debug ----
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type" FORCE)
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release")
+  message(STATUS "No build type specified, defaulting to Debug")
+endif()
+
 # ---- Options ----
 option(ENABLE_VCPKG "Use vcpkg toolchain" OFF)
 option(ENABLE_BOOST "Enable Boost support" OFF)
