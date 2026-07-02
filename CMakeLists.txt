@@ -186,11 +186,11 @@ target_link_libraries(paozhu_cli PRIVATE project_warnings)
 
 # Debug options
 target_compile_options(paozhu PRIVATE
-  $<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:GNU>>:-g -fsanitize=address -fno-omit-frame-pointer>
+  $<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:GNU,Clang,AppleClang>>:-g -fsanitize=address -fno-omit-frame-pointer>
   $<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:MSVC>>:/fsanitize=address>
 )
 target_link_options(paozhu PRIVATE
-  $<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:GNU>>:-fsanitize=address>
+  $<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:GNU,Clang,AppleClang>>:-fsanitize=address>
 )
 
 target_compile_definitions(paozhu PRIVATE
