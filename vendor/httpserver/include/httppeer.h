@@ -166,6 +166,9 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     bool keepalive    = true;
     bool isso         = false;
 
+    bool accept_json  = false;
+    bool accept_xml   = false;
+
     unsigned char posttype     = 0;
     unsigned char compress     = 0;
     unsigned int host_index    = 0;

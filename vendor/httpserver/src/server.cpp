@@ -2333,7 +2333,6 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                 break;
             }
             peer_session->time_limit.store(timeid());
-
             while (!http2pre->stream_list.empty())
             {
                 unsigned int block_steamid = http2pre->stream_list.front();
@@ -2367,7 +2366,6 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                                asio::detached);
 
                 single_link_count++;
-                http2pre->block_steam_httppeer = nullptr;
                 http2pre->steam_count += 1;
 
 #ifndef BENCHMARK
@@ -2395,6 +2393,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
 #endif
                 http2pre->http_data_weak.insert_or_assign(block_steamid,stream_ptr);
             }
+
             if (error_state > 0)
             {
                 co_await peer_session->async_send_goway();

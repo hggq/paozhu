@@ -56,7 +56,7 @@ unsigned long long httpparse::header_valuetoint()
 {
     unsigned long long temp = 0;
 
-    if(header_value.size() > 12)
+    if (header_value.size() > 12)
     {
         error = 400;
         return 0;
@@ -900,11 +900,11 @@ void httpparse::methodprocess()
     if (peer->pathinfos.size() > 0)
     {
         peer->urlpath.clear();
-        if(p_pos_offset > 64 && p_pos_offset < 10000)
+        if (p_pos_offset > 64 && p_pos_offset < 10000)
         {
             peer->urlpath.reserve(p_pos_offset);
         }
-        
+
         for (unsigned int nn = 0; nn < peer->pathinfos.size(); nn++)
         {
             peer->urlpath.push_back('/');
@@ -1120,7 +1120,7 @@ void httpparse::callposttype()
             peer->posttype  = 4;
             return;
         }
-        break;        
+        break;
     case 6:
         if (str_casecmp(buffer_value, "binary"))
         {
@@ -1372,9 +1372,9 @@ void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffers
                     case 24:
                         if (str_casecmp(header_key, "Sec-WebSocket-Extensions"))
                         {
-                            if(websocket == nullptr)
+                            if (websocket == nullptr)
                             {
-                               websocket = std::make_unique<websocket_t>();
+                                websocket = std::make_unique<websocket_t>();
                             }
                             getwebsocketextensions();
                         }
@@ -1382,9 +1382,9 @@ void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffers
                     case 21:
                         if (str_casecmp(header_key, "Sec-WebSocket-Version"))
                         {
-                             if(websocket == nullptr)
+                            if (websocket == nullptr)
                             {
-                               websocket = std::make_unique<websocket_t>();
+                                websocket = std::make_unique<websocket_t>();
                             }
                             websocket->version = (unsigned char)header_valuetoint();
                         }
@@ -1403,7 +1403,7 @@ void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffers
                         case 'S':
                             if (str_casecmp(header_key, "Sec-WebSocket-Key"))
                             {
-                                 if(websocket == nullptr)
+                                if (websocket == nullptr)
                                 {
                                     websocket = std::make_unique<websocket_t>();
                                 }
@@ -1629,6 +1629,34 @@ void httpparse::getaccept()
                 peer->state.webp = true;
             }
             break;
+        case 16:
+            //application/json
+            if (str_casecmp(buffer_value, "application/json"))
+            {
+                peer->accept_json = true;
+            }
+            break;
+        case 15:
+            //application/xml
+            if (str_casecmp(buffer_value, "application/xml"))
+            {
+                peer->accept_xml = true;
+            }
+            break;
+        case 9:
+            //text/json
+            if (str_casecmp(buffer_value, "text/json"))
+            {
+                peer->accept_xml = true;
+            }
+            break;
+        case 8:
+            //text/xml
+            if (str_casecmp(buffer_value, "text/xml"))
+            {
+                peer->accept_xml = true;
+            }
+            break;
         default:;
         }
     }
@@ -1715,27 +1743,27 @@ void httpparse::getwebsocketextensions()
     if (header_value.find("server_max_window_bits") != std::string::npos)
     {
         unsigned int pos_b = header_value.find("server_max_window_bits") + 20;
-        unsigned int j=pos_b;
-        websocket->bits = 0;
-        for( ;pos_b < header_value.size(); pos_b++)
+        unsigned int j     = pos_b;
+        websocket->bits    = 0;
+        for (; pos_b < header_value.size(); pos_b++)
         {
-            if(header_value[pos_b] == '=')
+            if (header_value[pos_b] == '=')
             {
                 pos_b++;
-                for( ;pos_b < header_value.size(); pos_b++)
+                for (; pos_b < header_value.size(); pos_b++)
                 {
-                    if(header_value[pos_b] == 0x20)
+                    if (header_value[pos_b] == 0x20)
                     {
                         continue;
                     }
                     break;
                 }
 
-                for( ;pos_b < header_value.size(); pos_b++)
+                for (; pos_b < header_value.size(); pos_b++)
                 {
-                    if(header_value[pos_b] >= '0' && header_value[pos_b] <= '9')
+                    if (header_value[pos_b] >= '0' && header_value[pos_b] <= '9')
                     {
-                        websocket->bits = websocket->bits *10 +(header_value[pos_b]-'0');
+                        websocket->bits = websocket->bits * 10 + (header_value[pos_b] - '0');
                         continue;
                     }
                     break;
@@ -1743,13 +1771,13 @@ void httpparse::getwebsocketextensions()
                 break;
             }
             j++;
-            if(j>5)
+            if (j > 5)
             {
                 break;
             }
         }
         //has server_max_window_bits
-        if(websocket->bits == 0)
+        if (websocket->bits == 0)
         {
             websocket->bits = 1;
         }
@@ -1990,25 +2018,25 @@ void httpparse::getheaderhost()
             ioffset++;
             break;
         }
-        else if(header_value[ioffset]>='0' && header_value[ioffset]<='9')
+        else if (header_value[ioffset] >= '0' && header_value[ioffset] <= '9')
         {
             peer->host.push_back(header_value[ioffset]);
         }
-        else if(header_value[ioffset]>='a' && header_value[ioffset]<='z')
+        else if (header_value[ioffset] >= 'a' && header_value[ioffset] <= 'z')
         {
             peer->host.push_back(header_value[ioffset]);
         }
-        else if(header_value[ioffset]>='A' && header_value[ioffset]<='Z')
+        else if (header_value[ioffset] >= 'A' && header_value[ioffset] <= 'Z')
         {
-            peer->host.push_back(header_value[ioffset]+32);
-        }      
-        else if(header_value[ioffset]=='.' || header_value[ioffset]=='-')
+            peer->host.push_back(header_value[ioffset] + 32);
+        }
+        else if (header_value[ioffset] == '.' || header_value[ioffset] == '-')
         {
             peer->host.push_back(header_value[ioffset]);
-        } 
-        else if(header_value[ioffset]=='[')
+        }
+        else if (header_value[ioffset] == '[')
         {
-            if(peer->host.size()>0)
+            if (peer->host.size() > 0)
             {
                 error = 414;
                 return;
@@ -2017,26 +2045,26 @@ void httpparse::getheaderhost()
             ioffset++;
             for (; ioffset < linesize; ioffset++)
             {
-                if(header_value[ioffset]>='0' && header_value[ioffset]<='9')
+                if (header_value[ioffset] >= '0' && header_value[ioffset] <= '9')
                 {
                     peer->host.push_back(header_value[ioffset]);
                 }
-                else if(header_value[ioffset]>='a' && header_value[ioffset]<='f')
+                else if (header_value[ioffset] >= 'a' && header_value[ioffset] <= 'f')
                 {
                     peer->host.push_back(header_value[ioffset]);
                 }
-                else if(header_value[ioffset]>='A' && header_value[ioffset]<='F')
+                else if (header_value[ioffset] >= 'A' && header_value[ioffset] <= 'F')
                 {
-                    peer->host.push_back(header_value[ioffset]+32);
-                }      
-                else if(header_value[ioffset]==':')
+                    peer->host.push_back(header_value[ioffset] + 32);
+                }
+                else if (header_value[ioffset] == ':')
                 {
                     peer->host.push_back(header_value[ioffset]);
-                } 
-                else if(header_value[ioffset]==']')
+                }
+                else if (header_value[ioffset] == ']')
                 {
                     ioffset++;
-                    if(ioffset < linesize && header_value[ioffset] == 0x3A)
+                    if (ioffset < linesize && header_value[ioffset] == 0x3A)
                     {
                         ishasport = 1;
                         ioffset++;
@@ -2050,12 +2078,12 @@ void httpparse::getheaderhost()
                     return;
                 }
             }
-        } 
+        }
         else
         {
             error = 414;
             return;
-        }         
+        }
     }
     if (peer->host.size() > 72)
     {
@@ -2457,7 +2485,7 @@ void httpparse::readformfielditem(const unsigned char *buffer, unsigned int buff
             headerstep    = 0;
             headendhitnum = 0;
 
-            if ((i+1) < buffersize && buffer[i] == 0x2D && buffer[i + 1] == 0x2D)
+            if ((i + 1) < buffersize && buffer[i] == 0x2D && buffer[i + 1] == 0x2D)
             {
                 headerfinish = 2;
                 i += 2;
@@ -3109,7 +3137,7 @@ void httpparse::readformjson(const unsigned char *buffer, unsigned int buffersiz
     readoffset = i;
     if ((buffer_value.size() + 2) >= content_length)
     {
-        headerfinish = 2;
+        headerfinish     = 2;
         peer->rawcontent = std::move(buffer_value);
         peer->json.from_json(peer->rawcontent);
         buffer_value.clear();
@@ -3450,7 +3478,7 @@ bool httpparse::getfinish()
 }
 
 void httpparse::clear()
-{ 
+{
     readoffset     = 0;
     headendhitnum  = 0;
     postfieldtype  = 0;
@@ -3461,9 +3489,9 @@ void httpparse::clear()
 
     uprawfile.reset(nullptr);
     error = 0;
- 
-    method                            = HEAD_METHOD::UNKNOW;
-    headerfinish                      = 0;
+
+    method       = HEAD_METHOD::UNKNOW;
+    headerfinish = 0;
 
     contentline.clear();
     header_key.clear();
@@ -3479,7 +3507,7 @@ void httpparse::clear()
     poststate.reset(nullptr);
     upfile.reset(nullptr);
 
-    if(websocket !=nullptr)
+    if (websocket != nullptr)
     {
         websocket->deflate           = false;
         websocket->permessagedeflate = false;

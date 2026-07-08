@@ -134,7 +134,7 @@ std::string testuploadpostfile(std::shared_ptr<httppeer> peer)
         client << "<p>fileField:filename:" << client.files["fileField"]["filename"] << "</p>";
         client << "<p>fileField:tempfile:" << client.files["fileField"]["tempfile"] << "</p>";
         client << "<p>fileField:size:" << client.files["fileField"]["size"] << "</p>";
-        client << "<p>fileField:error:" << client.files["fileField"]["error"] << "</p>";
+        client << "<p>title:" << client.post["title"] << "</p>";
 
         std::string sitepath = client.get_sitepath();
 

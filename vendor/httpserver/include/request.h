@@ -130,9 +130,7 @@ struct obj_val
     unsigned int str_to_uint();
     unsigned long long str_to_ulong();
 
-    obj_val &operator[](const std::string &key);
-    obj_val &operator[](std::string &&key);
-
+    obj_val &operator[](std::string_view key);
     obj_val &operator[](unsigned int index);
 
     unsigned int size();

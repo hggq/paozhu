@@ -18,6 +18,7 @@
 #include <list>
 #include <cmath>
 #include <functional>
+#include <charconv>
 #include "request.h"
 
 namespace http
@@ -2039,31 +2040,18 @@ obj_val &obj_val::operator[](unsigned int index)
     throw "Out of range operator[] index";
 }
 
-obj_val &obj_val::operator[](const std::string &key)
+obj_val &obj_val::operator[](std::string_view key)
 {
     if (_val_type == obj_type::ARRAY)
     {
-        unsigned int i_pos = 0xFFFFFFFF;
-        try
+        unsigned int i_pos = 0;
+        auto [ptr, ec] = std::from_chars(key.data(), key.data() + key.size(), i_pos);
+
+        if (ec == std::errc{} && ptr == key.data() + key.size() && i_pos < array_val->_data.size())
         {
-            i_pos = std::stoul(key);
+            return array_val->_data[i_pos];
         }
-        catch (const std::invalid_argument &e)
-        {
-            i_pos = 0xFFFFFFFF;
-        }
-        catch (const std::out_of_range &e)
-        {
-            i_pos = 0xFFFFFFFF;
-        }
-        if (i_pos != 0xFFFFFFFF)
-        {
-            if (i_pos < array_val->_data.size())
-            {
-                return array_val->_data[i_pos];
-            }
-        }
-        throw "Out of range operator[] &key";
+        throw std::out_of_range("obj_val::operator[]: array index out of range");
     }
 
     if (_val_type != obj_type::OBJECT)
@@ -2085,56 +2073,7 @@ obj_val &obj_val::operator[](const std::string &key)
     obj->_data.back().second.set_type(obj_type::NIL);
     return obj->_data.back().second;
 }
-obj_val &obj_val::operator[](std::string &&key)
-{
-    if (_val_type == obj_type::ARRAY)
-    {
-        if (array_val->_data.size() > 0)
-        {
-            unsigned int i_pos = 0xFFFFFFFF;
-            try
-            {
-                i_pos = std::stoul(key);
-            }
-            catch (const std::invalid_argument &e)
-            {
-                i_pos = 0xFFFFFFFF;
-            }
-            catch (const std::out_of_range &e)
-            {
-                i_pos = 0xFFFFFFFF;
-            }
-            if (i_pos != 0xFFFFFFFF)
-            {
-                if (i_pos < array_val->_data.size())
-                {
-                    return array_val->_data[i_pos];
-                }
-            }
-            throw "Out of range operator &&key";
-        }
-    }
-
-    if (_val_type != obj_type::OBJECT)
-    {
-        clear();
-        obj       = new obj_t;
-        _val_type = obj_type::OBJECT;
-    }
-
-    for (auto iter = obj->_data.begin(); iter != obj->_data.end();)
-    {
-        if (iter->first == key)
-        {
-            return iter->second;
-        }
-        iter++;
-    }
-    obj->_data.emplace_back(std::move(key), nullptr);
-    obj->_data.back().second.set_type(obj_type::NIL);
-    return obj->_data.back().second;
-}
-
+ 
 void obj_val::clear()
 {
     if (_val_type == obj_type::OBJECT)
