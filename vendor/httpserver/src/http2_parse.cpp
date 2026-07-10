@@ -208,7 +208,7 @@ void http2parse::headers_parse(const HTTP2_HEADER_FRAME_T &header_block_obj, std
         }
     }
 
-    if (steam_httppeer->method == 2)
+    if (steam_httppeer->method == 2 || steam_httppeer->method == 4)
     {
         DEBUG_LOG("http2 post client: %s %ud", steam_httppeer->url.c_str(), header_stream_id);
         window_update_recv_num = RECV_WINDOW_UPDATE_NUM;
@@ -238,14 +238,14 @@ void http2parse::cookie_process([[maybe_unused]] const std::string &header_name,
     std::string buffer_key;
     std::string buffer_value;
 
-    if (steam_httppeer->header["Cookie"].empty())
+    if (steam_httppeer->header["cookie"].empty())
     {
     }
     else
     {
-        steam_httppeer->header["Cookie"].append("; ");
+        steam_httppeer->header["cookie"].append("; ");
     }
-    steam_httppeer->header["Cookie"].append(header_value);
+    steam_httppeer->header["cookie"].append(header_value);
     for (; i < linesize; i++)
     {
         if (header_value[i] == 0x3D)
@@ -418,11 +418,10 @@ void http2parse::path_process([[maybe_unused]] const std::string &header_name, c
             break;
         }
         headerstep = 0;
-
+        steam_httppeer->querystring.clear();
         steam_httppeer->header["querystring"].clear();
-        steam_httppeer->header["querystring"].append(&header_value[ioffset], (linesize - ioffset));
-        steam_httppeer->querystring = http::url_decode(&header_value[ioffset], (linesize - ioffset));
-
+        steam_httppeer->querystring.append(&header_value[ioffset], (linesize - ioffset));// http::url_decode(&header_value[ioffset], (linesize - ioffset));
+        steam_httppeer->header["querystring"].append(steam_httppeer->querystring);
         steam_httppeer->url.push_back(0x3F);
         steam_httppeer->url.append(steam_httppeer->querystring);
         buffer_key.clear();
@@ -528,7 +527,7 @@ void http2parse::path_process([[maybe_unused]] const std::string &header_name, c
             buffer_value.clear();
             if (buffer_key.size() > 48)
             {
-                error = 158;
+                error = 157;
                 return;
             }
             procssparamter(buffer_key, buffer_value, steam_httppeer);
@@ -537,14 +536,29 @@ void http2parse::path_process([[maybe_unused]] const std::string &header_name, c
 }
 void http2parse::procssparamter(std::string_view buffer_key, std::string_view buffer_value, std::shared_ptr<httppeer> steam_httppeer)
 {
-    std::string objname;
     bool isgroup = true;
-
     if (buffer_key.length() > 72)
     {
         error = 40011;
         return;
     }
+
+    for (unsigned int j = 0; j < buffer_key.length(); j++)
+    {
+        if (buffer_key[j] == '[')
+        {
+            isgroup = false;
+        }
+    }
+
+    if (isgroup)
+    {
+        steam_httppeer->get[buffer_key] = buffer_value;
+        return;
+    }
+
+    isgroup = true;
+    std::string objname;
     for (unsigned int j = 0; j < buffer_key.length(); j++)
     {
         if (buffer_key[j] == '[')
@@ -960,7 +974,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             }
             if (header_host_process(header_value, steam_httppeer))
             {
-                steam_httppeer->header["Host"]       = header_value;
+                steam_httppeer->header["host"]       = header_value;
                 steam_httppeer->header[":authority"] = header_value;
                 steam_httppeer->find_host_index();
             }
@@ -988,15 +1002,19 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             }
             else if (str_casecmp(header_value, "head"))
             {
-                steam_httppeer->method = 4;
+                steam_httppeer->method = 5;
             }
             else if (str_casecmp(header_value, "put"))
             {
-                steam_httppeer->method = 5;
+                steam_httppeer->method = 6;
             }
             else if (str_casecmp(header_value, "delete"))
             {
-                steam_httppeer->method = 6;
+                steam_httppeer->method = 7;
+            }
+            else if (str_casecmp(header_value, "QUERY"))
+            {
+                steam_httppeer->method = 4;
             }
             steam_httppeer->header["method"] = header_value;
             break;
@@ -1015,15 +1033,19 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             }
             else if (str_casecmp(header_value, "head"))
             {
-                steam_httppeer->method = 4;
+                steam_httppeer->method = 5;
             }
             else if (str_casecmp(header_value, "put"))
             {
-                steam_httppeer->method = 5;
+                steam_httppeer->method = 6;
             }
             else if (str_casecmp(header_value, "delete"))
             {
-                steam_httppeer->method = 6;
+                steam_httppeer->method = 7;
+            }
+            else if (str_casecmp(header_value, "QUERY"))
+            {
+                steam_httppeer->method = 4;
             }
             steam_httppeer->header["method"] = header_value;
             break;
@@ -1167,15 +1189,19 @@ void http2parse::header_process(const std::string &header_name, const std::strin
                 }
                 else if (str_casecmp(header_value, "head"))
                 {
-                    steam_httppeer->method = 4;
+                    steam_httppeer->method = 5;
                 }
                 else if (str_casecmp(header_value, "put"))
                 {
-                    steam_httppeer->method = 5;
+                    steam_httppeer->method = 6;
                 }
                 else if (str_casecmp(header_value, "delete"))
                 {
-                    steam_httppeer->method = 6;
+                    steam_httppeer->method = 7;
+                }
+                else if (str_casecmp(header_value, "QUERY"))
+                {
+                    steam_httppeer->method = 4;
                 }
                 steam_httppeer->header["method"]  = header_value;
                 steam_httppeer->header[":method"] = header_value;
@@ -1290,14 +1316,18 @@ void http2parse::header_process(const std::string &header_name, const std::strin
 
             break;
         default:
-            steam_httppeer->header[header_name] = header_value;
+            std::string key;
+            key.resize(header_name.size());
+            std::transform(header_name.begin(), header_name.end(), key.begin(), [](unsigned char c)
+                           { return std::tolower(c); });
+            steam_httppeer->header[key] = header_value;
         }
     }
 }
 
 void http2parse::getacceptlanguage([[maybe_unused]] const std::string &header_name, const std::string &header_value, std::shared_ptr<httppeer> steam_httppeer)
 {
-    steam_httppeer->header["Accept-Language"] = header_value;
+    steam_httppeer->header["accept-language"] = header_value;
     unsigned int i                            = 0;
     for (; i < header_value.size(); i++)
     {
@@ -1319,7 +1349,7 @@ void http2parse::getacceptlanguage([[maybe_unused]] const std::string &header_na
 void http2parse::getacceptencoding([[maybe_unused]] const std::string &header_name, const std::string &header_value, std::shared_ptr<httppeer> steam_httppeer)
 {
     unsigned int i = 0, linesize = header_value.size();
-    steam_httppeer->header["Accept-Encoding"] = header_value;
+    steam_httppeer->header["accept-encoding"] = header_value;
     std::string buffer_value;
     for (; i < linesize; i++)
     {
@@ -1395,7 +1425,7 @@ void http2parse::getacceptencoding([[maybe_unused]] const std::string &header_na
 void http2parse::getifnonematch([[maybe_unused]] const std::string &header_name, const std::string &header_value, std::shared_ptr<httppeer> steam_httppeer)
 {
     unsigned int i                          = 0;
-    steam_httppeer->header["If-None-Match"] = header_value;
+    steam_httppeer->header["if-none-match"] = header_value;
     steam_httppeer->etag.clear();
     if (header_value[i] == 'W' || header_value[i] == 'w')
     {
@@ -1448,7 +1478,7 @@ void http2parse::callposttype(const std::string &buffer_value, std::shared_ptr<h
         if (str_casecmp(buffer_value, "application/json"))
         {
             steam_httppeer->content_type = "application/json";
-            pd.posttype                        = 3;
+            pd.posttype                  = 3;
             steam_httppeer->posttype     = 3;
             return;
         }
@@ -1495,7 +1525,7 @@ void http2parse::callposttype(const std::string &buffer_value, std::shared_ptr<h
 void http2parse::getcontenttype([[maybe_unused]] const std::string &header_name, const std::string &header_value, std::shared_ptr<httppeer> steam_httppeer)
 {
     unsigned int i = 0, linesize = header_value.size();
-    steam_httppeer->header["Content-Type"] = header_value;
+    steam_httppeer->header["content-type"] = header_value;
     std::string buffer_value;
     unsigned char statetemp = 0;
     auto iter               = http_post_data.find(steam_httppeer->stream_id);
@@ -1575,7 +1605,7 @@ void http2parse::getcontenttype([[maybe_unused]] const std::string &header_name,
 void http2parse::getaccept([[maybe_unused]] const std::string &header_name, const std::string &header_value, std::shared_ptr<httppeer> steam_httppeer)
 {
     unsigned int i = 0, linesize = header_value.size();
-    steam_httppeer->header["Accept"] = header_value;
+    steam_httppeer->header["accept"] = header_value;
     std::string buffer_value;
 
     for (; i < linesize; i++)
@@ -1584,6 +1614,34 @@ void http2parse::getaccept([[maybe_unused]] const std::string &header_name, cons
         {
             switch (buffer_value.length())
             {
+            case 16:
+                //application/json
+                if (str_casecmp(buffer_value, "application/json"))
+                {
+                    steam_httppeer->state.accept_json = true;
+                }
+                break;
+            case 15:
+                //application/xml
+                if (str_casecmp(buffer_value, "application/xml"))
+                {
+                    steam_httppeer->state.accept_xml = true;
+                }
+                break;
+            case 9:
+                //text/json
+                if (str_casecmp(buffer_value, "text/json"))
+                {
+                    steam_httppeer->state.accept_xml = true;
+                }
+                break;
+            case 8:
+                //text/xml
+                if (str_casecmp(buffer_value, "text/xml"))
+                {
+                    steam_httppeer->state.accept_xml = true;
+                }
+                break;
             case 10:
                 if (buffer_value[6] == 'a' &&
                     buffer_value[7] == 'v' &&
@@ -1598,7 +1656,7 @@ void http2parse::getaccept([[maybe_unused]] const std::string &header_name, cons
                 {
                     steam_httppeer->state.webp = true;
                 }
-                break; 
+                break;
             default:;
             }
             buffer_value.clear();
@@ -1628,33 +1686,33 @@ void http2parse::getaccept([[maybe_unused]] const std::string &header_name, cons
             }
             break;
         case 16:
-            //application/json     
+            //application/json
             if (str_casecmp(buffer_value, "application/json"))
             {
-                steam_httppeer->accept_json = true;
+                steam_httppeer->state.accept_json = true;
             }
             break;
         case 15:
-            //application/xml     
+            //application/xml
             if (str_casecmp(buffer_value, "application/xml"))
             {
-                steam_httppeer->accept_xml = true;
+                steam_httppeer->state.accept_xml = true;
             }
             break;
         case 9:
-            //text/json     
+            //text/json
             if (str_casecmp(buffer_value, "text/json"))
             {
-                steam_httppeer->accept_xml = true;
+                steam_httppeer->state.accept_xml = true;
             }
-            break;   
+            break;
         case 8:
-            //text/xml     
+            //text/xml
             if (str_casecmp(buffer_value, "text/xml"))
             {
-                steam_httppeer->accept_xml = true;
+                steam_httppeer->state.accept_xml = true;
             }
-            break;              
+            break;
         default:;
         }
     }
@@ -1766,7 +1824,7 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
                 iscontinue = true;
             }
 
-            item_length = item_length + (header_data[begin] & 0x7F);
+            item_length = item_length + (unsigned int)(header_data[begin] & 0x7F);
             begin += 1;
             if (begin >= header_data.size())
             {
@@ -1775,7 +1833,7 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
             }
             if (iscontinue)
             {
-                item_length = item_length + (header_data[begin] & 0x7F) * 128;
+                item_length = item_length + (unsigned int)(header_data[begin] & 0x7F) * 128;
                 begin += 1;
             }
         }
@@ -1823,7 +1881,7 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
                 iscontinue = true;
             }
 
-            item_length = item_length + (header_data[begin] & 0x7F);
+            item_length = item_length + (unsigned int)(header_data[begin] & 0x7F);
             begin += 1;
             if (begin >= header_data.size())
             {
@@ -1832,7 +1890,7 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
             }
             if (iscontinue)
             {
-                item_length = item_length + (header_data[begin] & 0x7F) * 128;
+                item_length = item_length + (unsigned int)(header_data[begin] & 0x7F) * 128;
                 begin += 1;
             }
         }
@@ -1939,7 +1997,7 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
                 iscontinue = true;
             }
 
-            item_length = item_length + (header_data[begin] & 0x7F);
+            item_length = item_length + (unsigned int)(header_data[begin] & 0x7F);
             begin += 1;
             if (begin >= header_data.size())
             {
@@ -1948,7 +2006,7 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
             }
             if (iscontinue)
             {
-                item_length = item_length + (header_data[begin] & 0x7F) * 128;
+                item_length = item_length + (unsigned int)(header_data[begin] & 0x7F) * 128;
                 if (header_data[begin] & 0x80)
                 {
                     error = 126;
@@ -2030,7 +2088,7 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
             }
             else
             {
-                item_length = item_length + (header_data[begin] & 0x7F);
+                item_length = item_length + (unsigned int)(header_data[begin] & 0x7F);
                 begin += 1;
             }
         }
@@ -2076,7 +2134,7 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
                 iscontinue = true;
             }
 
-            item_length = item_length + (header_data[begin] & 0x7F);
+            item_length = item_length + (unsigned int)(header_data[begin] & 0x7F);
             begin += 1;
             if (begin >= header_data.size())
             {
@@ -2085,7 +2143,7 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
             }
             if (iscontinue)
             {
-                item_length = item_length + (header_data[begin] & 0x7F) * 128;
+                item_length = item_length + (unsigned int)(header_data[begin] & 0x7F) * 128;
                 if (header_data[begin] & 0x80)
                 {
                     error = 136;
@@ -2185,7 +2243,7 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
                 iscontinue = true;
             }
 
-            item_length = item_length + (header_data[begin] & 0x7F);
+            item_length = item_length + (unsigned int)(header_data[begin] & 0x7F);
             begin += 1;
             if (begin >= header_data.size())
             {
@@ -2194,7 +2252,7 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
             }
             if (iscontinue)
             {
-                item_length = item_length + (header_data[begin] & 0x7F) * 128;
+                item_length = item_length + (unsigned int)(header_data[begin] & 0x7F) * 128;
                 if (header_data[begin] & 0x80)
                 {
                     error = 136;
@@ -2272,7 +2330,7 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
             }
             else
             {
-                item_length = item_length + (header_data[begin] & 0x7F);
+                item_length = item_length + (unsigned int)(header_data[begin] & 0x7F);
                 begin += 1;
             }
         }
@@ -2320,7 +2378,7 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
                 iscontinue = true;
             }
 
-            item_length = item_length + (header_data[begin] & 0x7F);
+            item_length = item_length + (unsigned int)(header_data[begin] & 0x7F);
             begin += 1;
             if (begin >= header_data.size())
             {
@@ -2329,7 +2387,7 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
             }
             if (iscontinue)
             {
-                item_length = item_length + (header_data[begin] & 0x7F) * 128;
+                item_length = item_length + (unsigned int)(header_data[begin] & 0x7F) * 128;
                 if (header_data[begin] & 0x80)
                 {
                     error = 146;
@@ -2428,7 +2486,7 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
                 iscontinue = true;
             }
 
-            item_length = item_length + (header_data[begin] & 0x7F);
+            item_length = item_length + (unsigned int)(header_data[begin] & 0x7F);
             begin += 1;
 
             if (iscontinue)
@@ -2438,7 +2496,7 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
                     error = 143;
                     return;
                 }
-                item_length = item_length + (header_data[begin] & 0x7F) * 128;
+                item_length = item_length + (unsigned int)(header_data[begin] & 0x7F) * 128;
                 if (header_data[begin] & 0x80)
                 {
                     error = 146;
@@ -2491,12 +2549,12 @@ void http2parse::readsetting(const HTTP2_PACK_DATA_T &temp_pack_data)
             break;
         }
         ident_type = temp_pack_data.payload[n];
-        ident_type = ident_type << 8 | temp_pack_data.payload[n + 1];
+        ident_type = ident_type << 8 | (unsigned char)temp_pack_data.payload[n + 1];
 
         ident_value = temp_pack_data.payload[n + 2];
-        ident_value = ident_value << 8 | temp_pack_data.payload[n + 3];
-        ident_value = ident_value << 8 | temp_pack_data.payload[n + 4];
-        ident_value = ident_value << 8 | temp_pack_data.payload[n + 5];
+        ident_value = ident_value << 8 | (unsigned char)temp_pack_data.payload[n + 3];
+        ident_value = ident_value << 8 | (unsigned char)temp_pack_data.payload[n + 4];
+        ident_value = ident_value << 8 | (unsigned char)temp_pack_data.payload[n + 5];
 
         switch (ident_type)
         {
@@ -2533,7 +2591,7 @@ void http2parse::readsetting(const HTTP2_PACK_DATA_T &temp_pack_data)
 
     peer_session->send_recv_setting();
     window_update_recv_num = setting_data.initial_window_size;
-    need_wakeup_send_data = true;
+    need_wakeup_send_data  = true;
 }
 void http2parse::readpriority(const HTTP2_PACK_DATA_T &temp_pack_data)
 {
@@ -2557,7 +2615,6 @@ void http2parse::readgoaway(const HTTP2_PACK_DATA_T &temp_pack_data)
         error = 40044;
         return;
     }
- 
 
     peer_session->isgoway = true;
 }
@@ -2687,14 +2744,29 @@ void http2parse::readrawfileformdata(HTTP2_POST_DATA_T &temp_post_data, unsigned
 
 void http2parse::post_form_to_postfield(std::string_view form_post_name, std::string_view form_post_value, std::shared_ptr<httppeer> steam_httppeer)
 {
-    std::string objname;
     bool isgroup = true;
-
     if (form_post_name.length() > 72)
     {
         error = 40011;
         return;
     }
+
+    for (unsigned int j = 0; j < form_post_name.length(); j++)
+    {
+        if (form_post_name[j] == '[')
+        {
+            isgroup = false;
+        }
+    }
+
+    if (isgroup)
+    {
+        steam_httppeer->post[form_post_name] = form_post_value;
+        return;
+    }
+
+    isgroup = true;
+    std::string objname;
     for (unsigned int j = 0; j < form_post_name.length(); j++)
     {
         if (form_post_name[j] == '[')
@@ -3240,7 +3312,7 @@ void http2parse::post_www_form_urlencoded(HTTP2_POST_DATA_T &temp_post_data)
         else if (temp_post_data.peer->rawcontent[j] == 0x26)
         {
             field_value = http::url_decode(temp_value.data(), temp_value.length());
-            if (buffer_key.size() > 48)
+            if (buffer_key.size() > 72)
             {
                 error = 40001;
                 return;
@@ -3268,7 +3340,7 @@ void http2parse::post_www_form_urlencoded(HTTP2_POST_DATA_T &temp_post_data)
     if (partype == 1)
     {
         field_value = http::url_decode(temp_value.data(), temp_value.length());
-        if (buffer_key.size() > 48)
+        if (buffer_key.size() > 72)
         {
             error = 40001;
             return;
@@ -3279,7 +3351,7 @@ void http2parse::post_www_form_urlencoded(HTTP2_POST_DATA_T &temp_post_data)
     {
         buffer_key = http::url_decode(temp_value.data(), temp_value.length());
         field_value.clear();
-        if (buffer_key.size() > 48)
+        if (buffer_key.size() > 72)
         {
             error = 40001;
             return;
@@ -3290,7 +3362,7 @@ void http2parse::post_www_form_urlencoded(HTTP2_POST_DATA_T &temp_post_data)
     {
         buffer_key = http::url_decode(temp_value.data(), temp_value.length());
         field_value.clear();
-        if (buffer_key.size() > 48)
+        if (buffer_key.size() > 72)
         {
             error = 40001;
             return;
@@ -3299,7 +3371,7 @@ void http2parse::post_www_form_urlencoded(HTTP2_POST_DATA_T &temp_post_data)
     }
 }
 
-void http2parse::post_multipart_itemcontent(HTTP2_POST_DATA_T &temp_post_data)
+void http2parse::post_multipart_itemcontent_append(HTTP2_POST_DATA_T &temp_post_data)
 {
     //only process upload file
     if (temp_post_data.temp_filename.size() > 0)
@@ -3324,7 +3396,9 @@ void http2parse::post_multipart_itemcontent(HTTP2_POST_DATA_T &temp_post_data)
             return;
         }
     }
-
+}
+void http2parse::post_multipart_itemcontent(HTTP2_POST_DATA_T &temp_post_data, bool isfilefull)
+{
     if (temp_post_data.field_item.size() == 0)
     {
         return;
@@ -3633,7 +3707,15 @@ void http2parse::post_multipart_itemcontent(HTTP2_POST_DATA_T &temp_post_data)
                 return;
             }
         }
-        multipart_post_file_field(temp_post_data);
+        if (isfilefull)
+        {
+            multipart_post_file_field(temp_post_data);
+            temp_post_data.isfile = false;
+            temp_post_data.temp_filename.clear();
+            temp_post_data.field_name.clear();
+            temp_post_data.filename.clear();
+            temp_post_data.fp.reset();
+        }
     }
     else
     {
@@ -3646,7 +3728,8 @@ void http2parse::reset_uploadfile(HTTP2_POST_DATA_T &temp_post_data)
     {
         if (temp_post_data.fp)
         {
-            post_multipart_itemcontent(temp_post_data);
+            post_multipart_itemcontent_append(temp_post_data);
+            multipart_post_file_field(temp_post_data);
         }
     }
     temp_post_data.isfile = false;
@@ -3706,7 +3789,7 @@ void http2parse::post_multipart_formdata(HTTP2_POST_DATA_T &temp_post_data, [[ma
                     temp_post_data.field_item.resize(temp_post_data.field_item.size() - 2);
                 }
                 reset_uploadfile(temp_post_data);
-                post_multipart_itemcontent(temp_post_data);
+                post_multipart_itemcontent(temp_post_data, true);
                 temp_post_data.field_item.clear();
                 if ((pos_m + 1) < temp_post_data.content.size())
                 {
@@ -3776,7 +3859,7 @@ void http2parse::post_multipart_formdata(HTTP2_POST_DATA_T &temp_post_data, [[ma
                     temp_post_data.field_item.resize(temp_post_data.field_item.size() - 2);
                 }
                 reset_uploadfile(temp_post_data);
-                post_multipart_itemcontent(temp_post_data);
+                post_multipart_itemcontent(temp_post_data, true);
                 temp_post_data.field_item.clear();
                 if ((pos_m + 1) < temp_post_data.content.size())
                 {
@@ -3848,7 +3931,7 @@ void http2parse::post_multipart_formdata(HTTP2_POST_DATA_T &temp_post_data, [[ma
                     temp_post_data.field_item.resize(temp_post_data.field_item.size() - 2);
                 }
                 reset_uploadfile(temp_post_data);
-                post_multipart_itemcontent(temp_post_data);
+                post_multipart_itemcontent(temp_post_data, true);
                 temp_post_data.field_item.clear();
                 if ((pos_m + 1) < temp_post_data.content.size())
                 {
@@ -3916,7 +3999,7 @@ void http2parse::post_multipart_formdata(HTTP2_POST_DATA_T &temp_post_data, [[ma
                                 temp_post_data.field_item.resize(temp_post_data.field_item.size() - 2);
                             }
                             reset_uploadfile(temp_post_data);
-                            post_multipart_itemcontent(temp_post_data);
+                            post_multipart_itemcontent(temp_post_data, true);
                             temp_post_data.field_offset = j;
                             temp_post_data.field_item.clear();
 
@@ -4026,8 +4109,6 @@ void http2parse::post_data_process(HTTP2_POST_DATA_T &temp_post_data, unsigned c
             if (islast_pack)
             {
                 post_www_form_urlencoded(temp_post_data);
-                temp_post_data.peer->rawcontent.clear();
-                temp_post_data.peer->rawcontent.shrink_to_fit();
             }
             if (error > 0)
             {
@@ -4044,13 +4125,14 @@ void http2parse::post_data_process(HTTP2_POST_DATA_T &temp_post_data, unsigned c
 
             if (islast_pack)
             {
+                reset_uploadfile(temp_post_data);
             }
             else
             {
                 if (temp_post_data.isfile && temp_post_data.field_item.size() > 2097152)
                 {
                     //及时消化掉大文件中间内容，尽快保存到文件
-                    post_multipart_itemcontent(temp_post_data);
+                    post_multipart_itemcontent_append(temp_post_data);
                     temp_post_data.field_item.clear();
                 }
                 else if (temp_post_data.field_item.size() > 2097152)
@@ -4063,7 +4145,7 @@ void http2parse::post_data_process(HTTP2_POST_DATA_T &temp_post_data, unsigned c
                         if (pos != std::string::npos)
                         {
                             reset_uploadfile(temp_post_data);
-                            post_multipart_itemcontent(temp_post_data);
+                            post_multipart_itemcontent(temp_post_data, false);
                             temp_post_data.field_item.clear();
                         }
                     }
@@ -4279,7 +4361,6 @@ void http2parse::read_pack_data(const unsigned char *buffer, unsigned int buffer
         if (pack_data.subpad.size() > 0)
         {
             j = pack_data.subpad.size();
-
             for (; j < 9; j++)
             {
                 pack_data.subpad.push_back(buffer[readoffset]);
@@ -4291,9 +4372,9 @@ void http2parse::read_pack_data(const unsigned char *buffer, unsigned int buffer
                 }
             }
             j                = 0;
-            pack_data.length = pack_data.subpad[j++];
-            pack_data.length = (pack_data.length << 8) + pack_data.subpad[j++];
-            pack_data.length = (pack_data.length << 8) + pack_data.subpad[j++];
+            pack_data.length = (unsigned char)pack_data.subpad[j++];
+            pack_data.length = (pack_data.length << 8) | (unsigned char)pack_data.subpad[j++];
+            pack_data.length = (pack_data.length << 8) | (unsigned char)pack_data.subpad[j++];
 
             pack_data.frame_type = pack_data.subpad[j++];
             pack_data.flags      = pack_data.subpad[j++];
@@ -4305,9 +4386,9 @@ void http2parse::read_pack_data(const unsigned char *buffer, unsigned int buffer
             }
 
             pack_data.stream_id = pack_data.subpad[j++] & 0x7F;
-            pack_data.stream_id = (pack_data.stream_id << 8) + pack_data.subpad[j++];
-            pack_data.stream_id = (pack_data.stream_id << 8) + pack_data.subpad[j++];
-            pack_data.stream_id = (pack_data.stream_id << 8) + pack_data.subpad[j++];
+            pack_data.stream_id = (pack_data.stream_id << 8) | (unsigned char)pack_data.subpad[j++];
+            pack_data.stream_id = (pack_data.stream_id << 8) | (unsigned char)pack_data.subpad[j++];
+            pack_data.stream_id = (pack_data.stream_id << 8) | (unsigned char)pack_data.subpad[j++];
             j                   = readoffset;
         }
         else
@@ -4320,8 +4401,8 @@ void http2parse::read_pack_data(const unsigned char *buffer, unsigned int buffer
             }
 
             pack_data.length = buffer[j++];
-            pack_data.length = (pack_data.length << 8) + buffer[j++];
-            pack_data.length = (pack_data.length << 8) + buffer[j++];
+            pack_data.length = (pack_data.length << 8) | (unsigned char)buffer[j++];
+            pack_data.length = (pack_data.length << 8) | (unsigned char)buffer[j++];
 
             pack_data.frame_type = buffer[j++];
             pack_data.flags      = buffer[j++];
@@ -4339,9 +4420,9 @@ void http2parse::read_pack_data(const unsigned char *buffer, unsigned int buffer
             }
 
             pack_data.stream_id = buffer[j++] & 0x7F;
-            pack_data.stream_id = (pack_data.stream_id << 8) + buffer[j++];
-            pack_data.stream_id = (pack_data.stream_id << 8) + buffer[j++];
-            pack_data.stream_id = (pack_data.stream_id << 8) + buffer[j++];
+            pack_data.stream_id = (pack_data.stream_id << 8) | (unsigned char)buffer[j++];
+            pack_data.stream_id = (pack_data.stream_id << 8) | (unsigned char)buffer[j++];
+            pack_data.stream_id = (pack_data.stream_id << 8) | (unsigned char)buffer[j++];
         }
 
         for (; j < buffersize; j++)
@@ -4403,7 +4484,6 @@ void http2parse::process(const unsigned char *buffer, unsigned int buffersize)
     readoffset = 0;
     for (; readoffset < buffersize;)
     {
-        //readblock(buffer, buffersize);
         read_pack_data(buffer, buffersize);
         if (error > 0)
         {

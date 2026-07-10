@@ -2,6 +2,7 @@
 #include <ctime>
 #include <array>
 #include <string>
+#include <string_view>
 //#include <sys/time.h>
 //#include <unistd.h>
 #include <cstdlib>
@@ -155,7 +156,7 @@ std::string get_date(const std::string &format, unsigned int inputtime)
 }
 
 // Sat, 02 Jan 2021 00:12:45 GMT to sec
-unsigned int strgmttotime(const std::string &gmtstr)
+unsigned int strgmttotime(std::string_view gmtstr)
 {
     unsigned int temp = 0;
     tm timeInfo;
@@ -309,7 +310,7 @@ unsigned int strgmttotime(const std::string &gmtstr)
 }
 
 // 2022-02-09 08:12:45 to sec
-unsigned int strtotime(const std::string &str)
+unsigned int strtotime(std::string_view str)
 {
     unsigned int temp = 0;
     unsigned char i   = 0x00;

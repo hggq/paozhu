@@ -38,11 +38,15 @@ struct headstate_t
     bool websocket         = false;
     bool upgradeconnection = false;
     bool rangebytes        = false;
+    bool accept_json       = false;
+    bool accept_xml        = false;
+    bool accept_html       = false;
 
     unsigned char version;
     unsigned int port;
     unsigned char language[8]          = {0};
-    unsigned long long ifmodifiedsince = 0;
+    unsigned int ifmodifiedsince = 0;
+    unsigned int ifunmodifiedsince = 0;
     unsigned long long rangebegin      = 0;
     unsigned long long rangeend        = 0;
 };
@@ -56,8 +60,8 @@ struct websocket_t
     bool gzip              = false;
     bool zstd              = false;
     bool br                = false;
-    
-    unsigned char bits = 0;
+
+    unsigned char bits    = 0;
     unsigned char version = 0;
     std::string key;
     std::string ext;
@@ -89,6 +93,7 @@ enum HEAD_METHOD
     GET,
     POST,
     OPTIONS,
+    QUERY,
     HEAD,
     PUT,
     DELETE,

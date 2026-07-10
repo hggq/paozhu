@@ -47,16 +47,12 @@ namespace http
 {
 
 httpparse::httpparse() : uprawfile(nullptr, std::fclose) { error = 0; }
-// void httpparse::setsession(std::shared_ptr<client_session> peer)
-// {
-//       peer_session = peer->get_ptr();
-// }
 void httpparse::setpeer(std::shared_ptr<httppeer> hpeer) { peer = hpeer->get_ptr(); }
-unsigned long long httpparse::header_valuetoint()
+unsigned long long httpparse::header_valuetoint(std::string_view header_value)
 {
     unsigned long long temp = 0;
 
-    if (header_value.size() > 12)
+    if (header_value.size() > 14)
     {
         error = 400;
         return 0;
@@ -70,57 +66,32 @@ unsigned long long httpparse::header_valuetoint()
     }
     return temp;
 }
-unsigned int httpparse::checkheadend(const unsigned char *buffer, unsigned int buffersize)
+
+void httpparse::procssparamter(std::string_view header_temp, std::string_view header_input)
 {
-    unsigned int i = readoffset;
-    if (headendhitnum == 2)
-    {
-        if (buffer[i] == 0x0D && i < buffersize)
-        {
-            i++;
-            headendhitnum++;
-            if (buffer[i] == 0x0A && i < buffersize)
-            {
-                i++;
-                headendhitnum++;
-            }
-        }
-    }
-    else
-    {
-        if (buffer[i] == 0x0A && i < buffersize)
-        {
-            i++;
-            headendhitnum++;
-            if (buffer[i] == 0x0D && i < buffersize)
-            {
-                i++;
-                headendhitnum++;
-                if (buffer[i] == 0x0A && i < buffersize)
-                {
-                    i++;
-                    headendhitnum++;
-                }
-            }
-        }
-    }
-    return headendhitnum;
-}
-void httpparse::procssparamter()
-{
-    std::string objname;
     bool isgroup = true;
     if (header_temp.length() > 72)
     {
         error = 400;
         return;
     }
-    get_param_count++;
-    if (get_param_count > 512)
+
+    for (unsigned int j = 0; j < header_temp.length(); j++)
     {
-        error = 400;
+        if (header_temp[j] == '[')
+        {
+            isgroup = false;
+        }
+    }
+
+    if (isgroup)
+    {
+        peer->get[header_temp] = header_input;
         return;
     }
+
+    isgroup = true;
+    std::string objname;
     for (unsigned int j = 0; j < header_temp.length(); j++)
     {
         if (header_temp[j] == '[')
@@ -357,357 +328,16 @@ void httpparse::procssparamter()
         peer->get[header_temp] = header_input;
     }
 }
-void httpparse::procssxformurlencoded()
+
+void httpparse::methodprocess(std::string_view contentline)
 {
-    std::string objname;
-    bool isgroup = true;
-    if (header_temp.length() > 72)
-    {
-        error = 400;
-        return;
-    }
-    post_param_count++;
-    if (post_param_count > 512)
-    {
-        error = 400;
-        return;
-    }
-
-    for (unsigned int j = 0; j < header_temp.length(); j++)
-    {
-        if (header_temp[j] == '[')
-        {
-            std::string key1name;
-            unsigned int n = j;
-            n++;
-            bool ishaskey  = false;
-            bool ishaskey2 = false;
-            for (; n < header_temp.length(); n++)
-            {
-                if (header_temp[n] == ']')
-                {
-                    ishaskey = true;
-                    n++;
-                    break;
-                }
-                else if (header_temp[n] == '[')
-                {
-
-                    break;
-                }
-                if (header_temp[n] != 0x22)
-                {
-                    key1name.push_back(header_temp[n]);
-                }
-            }
-
-            std::string key2name;
-            if (ishaskey)
-            {
-
-                unsigned int m = n;
-                if (n < header_temp.length())
-                {
-                    if (header_temp[m] == '[')
-                    {
-                        m += 1;
-                        for (; m < header_temp.length(); m++)
-                        {
-                            if (header_temp[m] == ']')
-                            {
-                                ishaskey2 = true;
-                                m++;
-                                break;
-                            }
-                            else if (header_temp[m] == '[')
-                            {
-
-                                break;
-                            }
-                            if (header_temp[m] != 0x22)
-                            {
-                                key2name.push_back(header_temp[m]);
-                            }
-                        }
-
-                        if (ishaskey2 && m == header_temp.length())
-                        {
-                        }
-                        else
-                        {
-                            ishaskey2 = false;
-                        }
-                    }
-                }
-
-                if (ishaskey2)
-                {
-                    // 双数组
-                    if (key1name.empty())
-                    {
-                        if (key2name.empty())
-                        {
-                            if (objname.size() > 48)
-                            {
-                                error = 400000;
-                                return;
-                            }
-
-                            peer->post[objname].set_object();
-                            unsigned int iii = peer->post[objname].size();
-                            key1name         = std::to_string(iii);
-                            peer->post[objname][key1name].set_object();
-
-                            iii      = peer->post[objname][key1name].size();
-                            key2name = std::to_string(iii);
-
-                            http::obj_val objtemp;
-                            objtemp = header_input;
-
-                            peer->post[objname][key1name].push(key2name, std::move(objtemp));
-                        }
-                        else
-                        {
-                            if (objname.size() > 48)
-                            {
-                                error = 400000;
-                                return;
-                            }
-
-                            if (key2name.size() > 48)
-                            {
-                                error = 400000;
-                                return;
-                            }
-
-                            peer->post[objname].set_object();
-                            unsigned int iii = peer->post[objname].size();
-                            key1name         = std::to_string(iii);
-                            peer->post[objname][key1name].set_object();
-
-                            http::obj_val objtemp;
-                            objtemp = header_input;
-                            peer->post[objname][key1name].push(key2name, std::move(objtemp));
-                        }
-                    }
-                    else
-                    {
-                        if (key2name.empty())
-                        {
-                            if (objname.size() > 48)
-                            {
-                                error = 400000;
-                                return;
-                            }
-
-                            if (key1name.size() > 48)
-                            {
-                                error = 400000;
-                                return;
-                            }
-
-                            peer->post[objname].set_object();
-                            peer->post[objname][key1name].set_object();
-                            unsigned int iii = peer->post[objname][key1name].size();
-                            key2name         = std::to_string(iii);
-
-                            http::obj_val objtemp;
-                            objtemp = header_input;
-                            peer->post[objname][key1name].push(key2name, std::move(objtemp));
-                        }
-                        else
-                        {
-                            if (objname.size() > 48)
-                            {
-                                error = 400000;
-                                return;
-                            }
-
-                            if (key1name.size() > 48)
-                            {
-                                error = 400000;
-                                return;
-                            }
-                            if (key2name.size() > 48)
-                            {
-                                error = 400000;
-                                return;
-                            }
-
-                            http::obj_val objtemp;
-                            objtemp = header_input;
-                            peer->post[objname][key1name].push(key2name, std::move(objtemp));
-                        }
-                    }
-                    j       = m;
-                    isgroup = false;
-                }
-                else if (n == header_temp.length())
-                {
-                    // 只有一个
-                    if (key1name.empty())
-                    {
-                        if (objname.size() > 48)
-                        {
-                            error = 400000;
-                            return;
-                        }
-
-                        peer->post[objname].set_object();
-                        unsigned int iii = peer->post[objname].size();
-                        key1name         = std::to_string(iii);
-
-                        http::obj_val objtemp;
-                        objtemp = header_input;
-                        peer->post[objname].push(key1name, std::move(objtemp));
-                    }
-                    else
-                    {
-                        if (objname.size() > 48)
-                        {
-                            error = 400000;
-                            return;
-                        }
-                        if (key1name.size() > 48)
-                        {
-                            error = 400000;
-                            return;
-                        }
-                        peer->post[objname].set_object();
-                        http::obj_val objtemp;
-                        objtemp = header_input;
-                        peer->post[objname].push(key1name, std::move(objtemp));
-                    }
-                    j       = n;
-                    isgroup = false;
-                }
-                else
-                {
-
-                    // 没有数组
-                }
-            }
-            if (isgroup)
-            {
-                objname.push_back(header_temp[j]);
-            }
-        }
-        else
-        {
-            objname.push_back(header_temp[j]);
-        }
-    }
-    if (isgroup)
-    {
-        peer->post[header_temp] = header_input;
-    }
-}
-bool httpparse::checkmethod()
-{
-    unsigned int ioffset = 0, linesize;
-    unsigned int j       = 0;
-    linesize             = contentline.size();
-    header_key.clear();
-    for (; ioffset < linesize; ioffset++)
-    {
-        if (contentline[ioffset] == 0x20)
-        {
-            break;
-        }
-        header_key.push_back(contentline[ioffset]);
-        j++;
-        if (j > 9)
-        {
-            return false;
-        }
-    }
-    switch (header_key[0])
-    {
-    case 'c':
-    case 'C':
-        if (str_casecmp(header_key, "CONNECT"))
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-        break;
-    case 'h':
-    case 'H':
-        if (str_casecmp(header_key, "HEAD"))
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-        break;
-    case 'g':
-    case 'G':
-        if (str_casecmp(header_key, "GET"))
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-        break;
-    case 'p':
-    case 'P':
-
-        if (str_casecmp(header_key, "POST"))
-        {
-            return true;
-        }
-        else if (str_casecmp(header_key, "PUT"))
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-
-        break;
-    case 'o':
-    case 'O':
-        if (str_casecmp(header_key, "OPTIONS"))
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-        break;
-    case 't':
-    case 'T':
-        if (str_casecmp(header_key, "TRACE"))
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-        break;
-    default:
-        return false;
-    }
-    return true;
-}
-void httpparse::methodprocess()
-{
-    unsigned int ioffset = 0, linesize;
-    unsigned int j       = 0;
-    linesize             = contentline.size();
-    header_key.clear();
-    header_value.clear();
-
+    unsigned char headerstep = 0;
+    unsigned int ioffset     = 0, linesize;
+    unsigned int j           = 0;
+    linesize                 = contentline.size();
+    std::string header_key;
+    std::string header_value;
+    std::string header_temp;
     for (; ioffset < linesize; ioffset++)
     {
         if (contentline[ioffset] == 0x20)
@@ -791,6 +421,17 @@ void httpparse::methodprocess()
             error = 6;
         }
         break;
+    case 'q':
+    case 'Q':
+        if (str_casecmp(header_key, "QUERY"))
+        {
+            method = HEAD_METHOD::QUERY;
+        }
+        else
+        {
+            error = 6;
+        }
+        break;
     case 't':
     case 'T':
         if (str_casecmp(header_key, "TRACE"))
@@ -822,7 +463,7 @@ void httpparse::methodprocess()
     }
     header_value.clear();
     header_key.clear();
-    buffer_key.clear();
+    header_temp.clear();
     // pathinfo.clear();
     //  url.clear();
     peer->pathinfos.clear();
@@ -844,55 +485,55 @@ void httpparse::methodprocess()
         }
         if (contentline[ioffset] == 0x2F)
         {
-            if (buffer_key.size() > 255)
+            if (header_temp.size() > 255)
             {
                 error = 40007;
                 return;
             }
-            if (buffer_key.size() > 0)
+            if (header_temp.size() > 0)
             {
-                if (buffer_key.size() == 2 && buffer_key[0] == '.' && buffer_key[1] == '.')
+                if (header_temp.size() == 2 && header_temp[0] == '.' && header_temp[1] == '.')
                 {
                     if (peer->pathinfos.size() > 0)
                     {
                         peer->pathinfos.pop_back();
                     }
                 }
-                else if (buffer_key.size() == 1 && buffer_key[0] == '.')
+                else if (header_temp.size() == 1 && header_temp[0] == '.')
                 {
                 }
                 else
                 {
-                    peer->pathinfos.emplace_back(http::url_decode(buffer_key.data(), buffer_key.length()));
+                    peer->pathinfos.emplace_back(http::url_decode(header_temp.data(), header_temp.length()));
                 }
-                buffer_key.clear();
+                header_temp.clear();
             }
         }
         else
         {
-            buffer_key.push_back(contentline[ioffset]);
+            header_temp.push_back(contentline[ioffset]);
         }
     }
-    if (buffer_key.size() > 0)
+    if (header_temp.size() > 0)
     {
-        if (buffer_key.size() > 255)
+        if (header_temp.size() > 255)
         {
             error = 40007;
             return;
         }
-        if (buffer_key.size() == 2 && buffer_key[0] == '.' && buffer_key[1] == '.')
+        if (header_temp.size() == 2 && header_temp[0] == '.' && header_temp[1] == '.')
         {
             if (peer->pathinfos.size() > 0)
             {
                 peer->pathinfos.pop_back();
             }
         }
-        else if (buffer_key.size() == 1 && buffer_key[0] == '.')
+        else if (header_temp.size() == 1 && header_temp[0] == '.')
         {
         }
         else
         {
-            peer->pathinfos.emplace_back(http::url_decode(buffer_key.data(), buffer_key.length()));
+            peer->pathinfos.emplace_back(http::url_decode(header_temp.data(), header_temp.length()));
         }
     }
     unsigned int p_pos_offset = ioffset - p_begin;
@@ -947,8 +588,8 @@ void httpparse::methodprocess()
         header_key = contentline.substr(p_pos_offset, ioffset - p_pos_offset);
         peer->url  = peer->urlpath;
         peer->url.push_back(0x3F);
-        peer->querystring = http::url_decode(header_key.data(), header_key.length());
-        peer->url.append(peer->querystring);
+        peer->url.append(header_key);
+        peer->querystring = header_key;
     }
     else
     {
@@ -961,10 +602,10 @@ void httpparse::methodprocess()
         // parameter
         header_value.clear();
         header_temp.clear();
-        header_input.clear();
+        header_temp.clear();
+        std::string url_keyname;
         unsigned int qsize    = header_key.size();
         unsigned char partype = 0;
-        unsigned int jj       = 0;
         for (j = 0; j < qsize; j++)
         {
             if (header_key[j] == 0x3D)
@@ -981,10 +622,9 @@ void httpparse::methodprocess()
                         break;
                     }
                 }
-                header_temp = http::url_decode(header_value.data(), header_value.length());
+                url_keyname = http::url_decode(header_value.data(), header_value.length());
                 header_value.clear();
                 partype = 1;
-                jj      = 0;
                 continue;
             }
             else if (header_key[j] == 0x26)
@@ -1001,156 +641,152 @@ void httpparse::methodprocess()
                         break;
                     }
                 }
-                header_input = http::url_decode(header_value.data(), header_value.length());
+                header_temp = http::url_decode(header_value.data(), header_value.length());
 
-                if (header_temp.size() > 48)
+                if (url_keyname.size() > 72)
                 {
                     error = 6;
                     return;
                 }
-                procssparamter();
+                procssparamter(url_keyname, header_temp);
                 header_value.clear();
+                url_keyname.clear();
                 partype = 2;
-                jj      = 0;
                 continue;
             }
             header_value.push_back(header_key[j]);
-
-            if (partype == 0 || partype == 2)
-            {
-                //key name too long
-                if (jj > 72)
-                {
-                    error = 40001;
-                    return;
-                }
-            }
-            jj++;
         }
         if (partype == 1)
         {
-            header_input = http::url_decode(header_value.data(), header_value.length());
-            if (header_temp.size() > 48)
+            header_temp = http::url_decode(header_value.data(), header_value.length());
+            if (url_keyname.size() > 72)
             {
                 error = 7;
                 return;
             }
-            procssparamter();
+            procssparamter(url_keyname, header_temp);
         }
         else if (partype == 2)
         {
-            header_temp = http::url_decode(header_value.data(), header_value.length());
-            header_input.clear();
-            if (header_temp.size() > 48)
+            url_keyname = http::url_decode(header_value.data(), header_value.length());
+
+            if (url_keyname.size() > 72)
             {
                 error = 8;
                 return;
             }
-            procssparamter();
+            procssparamter(url_keyname, "");
         }
         else if (header_value.size() > 0)
         {
-            header_temp = http::url_decode(header_value.data(), header_value.length());
-            header_input.clear();
-            if (header_temp.size() > 48)
+            url_keyname = http::url_decode(header_value.data(), header_value.length());
+            if (url_keyname.size() > 72)
             {
-                error = 9;
+                error = 8;
                 return;
             }
-            procssparamter();
+            procssparamter(url_keyname, "");
         }
     }
 
     headerstep = 8;
 }
-void httpparse::callposttype()
+
+void httpparse::callposttype(std::string_view buffer_value)
 {
     switch (buffer_value.size())
     {
     case 33:
         if (str_casecmp(buffer_value, "application/x-www-form-urlencoded"))
         {
-            poststate->type = "application/x-www-form-urlencoded";
-            posttype        = 1;
-            peer->posttype  = 1;
+            peer->accept_type = "application/x-www-form-urlencoded";
+            posttype          = 1;
+            peer->posttype    = 1;
             return;
         }
         break;
     case 24:
         if (str_casecmp(buffer_value, "application/octet-stream"))
         {
-            poststate->type = "application/octet-stream";
-            posttype        = 5;
-            peer->posttype  = 5;
+            peer->accept_type = "application/octet-stream";
+            posttype          = 5;
+            peer->posttype    = 5;
             return;
         }
         break;
     case 19:
         if (str_casecmp(buffer_value, "multipart/form-data"))
         {
-            poststate->type = "multipart/form-data";
-            posttype        = 2;
-            peer->posttype  = 2;
+            peer->accept_type = "multipart/form-data";
+            peer->posttype    = 2;
+            posttype          = 2;
+            return;
+        }
+        break;
+    case 20:
+        if (str_casecmp(buffer_value, "application/xslt+xml"))
+        {
+            peer->accept_type = "application/xslt+xml";
+            peer->posttype    = 4;
+            posttype          = 4;
             return;
         }
         break;
     case 16:
         if (str_casecmp(buffer_value, "application/json"))
         {
-            poststate->type = "application/json";
-            posttype        = 3;
-            peer->posttype  = 3;
+            peer->accept_type = "application/json";
+            peer->posttype    = 3;
+            posttype          = 3;
             return;
         }
         break;
     case 15:
         if (str_casecmp(buffer_value, "application/xml"))
         {
-            poststate->type = "application/xml";
-            posttype        = 4;
-            peer->posttype  = 4;
+            peer->accept_type = "application/xml";
+            peer->posttype    = 4;
+            posttype          = 4;
             return;
         }
         break;
     case 8:
         if (str_casecmp(buffer_value, "text/xml"))
         {
-            poststate->type = "text/xml";
-            posttype        = 4;
-            peer->posttype  = 4;
+            peer->accept_type = "text/xml";
+            peer->posttype    = 4;
+            posttype          = 4;
             return;
         }
         break;
     case 6:
         if (str_casecmp(buffer_value, "binary"))
         {
-            poststate->type = "binary";
-            posttype        = 5;
-            peer->posttype  = 5;
+            peer->accept_type = "binary";
+            peer->posttype    = 5;
+            posttype          = 5;
             return;
         }
         break;
     default:
-        poststate->type = "raw";
-        posttype        = 5;
-        peer->posttype  = 5;
+        peer->accept_type = buffer_value;
+        peer->posttype    = 5;
+        posttype          = 5;
         return;
     }
-    poststate->type = "raw";
-    posttype        = 5;
-    peer->posttype  = 5;
+
     return;
 }
-void httpparse::getcontenttype()
+void httpparse::getcontenttype(std::string_view header_value)
 {
     unsigned int i = 0, linesize;
     linesize       = header_value.size();
-    buffer_value.clear();
+    std::string buffer_value;
     unsigned char statetemp = 0;
 
-    if (poststate == nullptr)
+    if (temp_post_data == nullptr)
     {
-        poststate = std::make_unique<poststate_t>();
+        temp_post_data = std::make_shared<HTTP_POST_DATA_T>();
     }
 
     for (; i < linesize; i++)
@@ -1161,18 +797,17 @@ void httpparse::getcontenttype()
 
             if (statetemp == 0)
             {
-                callposttype();
+                callposttype(buffer_value);
             }
             else if (statetemp == 1)
             {
-                poststate->chartset = buffer_value;
-                peer->chartset      = buffer_value;
-                statetemp           = 0;
+                peer->chartset = buffer_value;
+                statetemp      = 0;
             }
             else if (statetemp == 2)
             {
-                poststate->boundary = buffer_value;
-                statetemp           = 0;
+                temp_post_data->boundary = buffer_value;
+                statetemp                = 0;
             }
             /////////////////////
             buffer_value.clear();
@@ -1203,24 +838,24 @@ void httpparse::getcontenttype()
     {
         if (statetemp == 1)
         {
-            poststate->chartset = buffer_value;
-            peer->chartset      = buffer_value;
+            peer->chartset = buffer_value;
         }
         else if (statetemp == 2)
         {
-            poststate->boundary = buffer_value;
+            temp_post_data->boundary = buffer_value;
         }
         else
         {
-            callposttype();
+            callposttype(buffer_value);
         }
     }
 }
-void httpparse::getrange()
+
+void httpparse::getrange(std::string_view header_value)
 {
     unsigned int j = 0, linesize;
     linesize       = header_value.size();
-    buffer_value.clear();
+    std::string buffer_value;
     for (; j < linesize; j++)
     {
         if (header_value[j] == 0x3D)
@@ -1279,311 +914,227 @@ void httpparse::getrange()
         peer->state.rangeend = tm;
     }
 }
-void httpparse::readheaderline(const unsigned char *buffer, unsigned int buffersize)
+
+void httpparse::process_header_line(std::string_view line_str)
 {
-    unsigned int i = readoffset;
-    if (headendhitnum > 0)
+    if (!isfinish_url)
     {
-        headendhitnum = checkheadend(buffer, buffersize);
-    }
-    if (headendhitnum > 3)
-    {
-        headerfinish = 1;
-        readoffset   = i;
-        buffer_value.clear();
-        header_key.clear();
-        header_value.clear();
-        header_temp.clear();
-        header_input.clear();
-        buffer_key.clear();
-        headendhitnum = 0;
-        return;
-    }
-    headendhitnum = 0;
-
-    int lineend = 0;
-    for (; i < buffersize; i++)
-    {
-        if (buffer[i] == 0x0D)
+        methodprocess(line_str);
+        isfinish_url = true;
+        if (error > 0)
         {
-            lineend = 1;
-            break;
-        }
-        contentline.push_back(buffer[i]);
-    }
-    if (lineend == 1)
-    {
-
-        if (contentline.size() > 0)
-        {
-
-            // headerrawcontent.emplace_back(contentline);
-            if (headerstep == 0 && checkmethod())
-            {
-                methodprocess();
-                if (error > 0)
-                {
-                    return;
-                }
-            }
-            else
-            {
-
-                header_key.clear();
-                header_value.clear();
-                bool isfirst;
-                isfirst = true;
-                for (unsigned int j = 0; j < contentline.size(); j++)
-                {
-                    if (isfirst && contentline[j] == ':')
-                    {
-                        header_key = header_value;
-                        j++;
-                        for (; j < contentline.size(); j++)
-                        {
-                            if (contentline[j] != 0x20)
-                            {
-                                j -= 1;
-                                break;
-                            }
-                        }
-                        header_value.clear();
-                        isfirst = false;
-                        continue;
-                    }
-                    if (isfirst && contentline[j] == 0x20)
-                    {
-                        continue;
-                    }
-                    header_value.push_back(contentline[j]);
-                }
-                if (header_key.size() > 0)
-                {
-
-                    if (header_key.size() > 48)
-                    {
-                        error = 414;
-                        return;
-                    }
-                    // header[header_key] = header_value;
-                    peer->header[header_key] = header_value;
-                    switch (header_key.size())
-                    {
-                    case 24:
-                        if (str_casecmp(header_key, "Sec-WebSocket-Extensions"))
-                        {
-                            if (websocket == nullptr)
-                            {
-                                websocket = std::make_unique<websocket_t>();
-                            }
-                            getwebsocketextensions();
-                        }
-                        break;
-                    case 21:
-                        if (str_casecmp(header_key, "Sec-WebSocket-Version"))
-                        {
-                            if (websocket == nullptr)
-                            {
-                                websocket = std::make_unique<websocket_t>();
-                            }
-                            websocket->version = (unsigned char)header_valuetoint();
-                        }
-                        break;
-                    case 19:
-                        if (str_casecmp(header_key, "If-Unmodified-Since"))
-                        {
-                            getifunmodifiedsince();
-                        }
-                        break;
-                    case 17:
-
-                        switch (header_key[0])
-                        {
-                        case 's':
-                        case 'S':
-                            if (str_casecmp(header_key, "Sec-WebSocket-Key"))
-                            {
-                                if (websocket == nullptr)
-                                {
-                                    websocket = std::make_unique<websocket_t>();
-                                }
-                                websocket->key = header_value;
-                            }
-                            break;
-                        case 'i':
-                        case 'I':
-                            if (str_casecmp(header_key, "If-Modified-Since"))
-                            {
-
-                                getifmodifiedsince();
-                            }
-                            break;
-                        default:;
-                        }
-                        break;
-                    case 15:
-                        if (header_key[7] == 'E')
-                        {
-                            if (str_casecmp(header_key, "Accept-Encoding"))
-                            {
-                                getacceptencoding();
-                                break;
-                            }
-                        }
-                        else if (header_key[7] == 'L')
-                        {
-                            if (str_casecmp(header_key, "Accept-Language"))
-                            {
-                                getacceptlanguage();
-                                break;
-                            }
-                        }
-
-                        if (str_casecmp(header_key, "Accept-Encoding"))
-                        {
-                            getacceptencoding();
-                        }
-                        if (str_casecmp(header_key, "Accept-Language"))
-                        {
-                            getacceptlanguage();
-                        }
-                        // Accept-Language
-
-                        break;
-                    case 14:
-                        if (str_casecmp(header_key, "Content-Length"))
-                        {
-                            content_length       = header_valuetoint();
-                            peer->content_length = content_length;
-                        }
-                        break;
-                    case 13:
-                        if (str_casecmp(header_key, "If-None-Match"))
-                        {
-                            getifnonematch();
-                        }
-                        break;
-                    case 12:
-                        if (str_casecmp(header_key, "Content-Type"))
-                        {
-
-                            getcontenttype();
-                        }
-                        break;
-                    case 10:
-                        switch (header_key[0])
-                        {
-                        case 'c':
-                        case 'C':
-                            if (str_casecmp(header_key, "Connection"))
-                            {
-                                getconnection();
-                                peer->keepalive = peer->state.keepalive;
-                            }
-                            break;
-                        case 'u':
-                        case 'U':
-                            // if (str_casecmp(header_key, "User-Agent"))
-                            {
-                                // useragent = header_value;
-                                // peer->header["User-Agent"] = header_value;
-                            }
-                            break;
-                        }
-                        break;
-                    case 8:
-                        if (str_casecmp(header_key, "If-Match"))
-                        {
-
-                            getifnonematch();
-                        }
-                        break;
-                    case 7:
-                        if (str_casecmp(header_key, "Upgrade"))
-                        {
-
-                            getupgrade();
-                        }
-                        break;
-                    case 6:
-
-                        switch (header_key[0])
-                        {
-                        case 'c':
-                        case 'C':
-                            if (str_casecmp(header_key, "Cookie"))
-                            {
-
-                                getcookie();
-                            }
-                            break;
-                        case 'a':
-                        case 'A':
-                            if (str_casecmp(header_key, "Accept"))
-                            {
-
-                                getaccept();
-                            }
-                            break;
-                        }
-                        break;
-                    case 5:
-                        if (str_casecmp(header_key, "Range"))
-                        {
-                            getrange();
-                        }
-                        break;
-                    case 4:
-                        if (str_casecmp(header_key, "Host"))
-                        {
-                            getheaderhost();
-                        }
-                        break;
-                    }
-                }
-            }
-        }
-        contentline.clear();
-        headendhitnum++;
-        i++;
-        if (buffer[i] == 0x0A && i < buffersize)
-        {
-            i++;
-            headendhitnum++;
-            if (buffer[i] == 0x0D && i < buffersize)
-            {
-                i++;
-                headendhitnum++;
-                if (buffer[i] == 0x0A && i < buffersize)
-                {
-                    i++;
-                    headendhitnum++;
-                }
-            }
-        }
-
-        if (headendhitnum > 3)
-        {
-            headerfinish = 1;
-            readoffset   = i;
-            buffer_value.clear();
-            header_key.clear();
-            header_value.clear();
-            header_temp.clear();
-            header_input.clear();
-            buffer_key.clear();
-            headendhitnum = 0;
             return;
         }
+        return;
     }
-    readoffset = i;
+    std::string_view header_key;
+    std::string_view header_value;
+    for (unsigned int j = 0; j < line_str.size(); j++)
+    {
+        if (line_str[j] == ':')
+        {
+            header_key = line_str.substr(0, j);
+            j          = j + 1;
+            while (j < line_str.size() && line_str[j] == ' ')
+                ++j;
+            header_value = line_str.substr(j);
+            break;
+        }
+    }
+    if (header_key.size() == 0)
+    {
+        error = 40003;
+        return;
+    }
+
+    if (header_key.size() > 72)
+    {
+        error = 40004;
+        return;
+    }
+
+    std::string key;
+    key.resize(header_key.size());
+    std::transform(header_key.begin(), header_key.end(), key.begin(), [](unsigned char c)
+                   { return std::tolower(c); });
+    peer->header.insert_or_assign(std::string(key), header_value);
+
+    switch (header_key.size())
+    {
+    case 24:
+        if (str_casecmp(header_key, "Sec-WebSocket-Extensions"))
+        {
+            if (websocket == nullptr)
+            {
+                websocket = std::make_unique<websocket_t>();
+            }
+            getwebsocketextensions(header_value);
+        }
+        break;
+    case 21:
+        if (str_casecmp(header_key, "Sec-WebSocket-Version"))
+        {
+            if (websocket == nullptr)
+            {
+                websocket = std::make_unique<websocket_t>();
+            }
+            websocket->version = (unsigned char)header_valuetoint(header_value);
+        }
+        break;
+    case 19:
+        if (str_casecmp(header_key, "If-Unmodified-Since"))
+        {
+            getifunmodifiedsince(header_value);
+        }
+        break;
+    case 17:
+
+        switch (header_key[0])
+        {
+        case 's':
+        case 'S':
+            if (str_casecmp(header_key, "Sec-WebSocket-Key"))
+            {
+                if (websocket == nullptr)
+                {
+                    websocket = std::make_unique<websocket_t>();
+                }
+                websocket->key = header_value;
+            }
+            break;
+        case 'i':
+        case 'I':
+            if (str_casecmp(header_key, "If-Modified-Since"))
+            {
+                getifmodifiedsince(header_value);
+            }
+            break;
+        default:;
+        }
+        break;
+    case 15:
+        if (header_key[7] == 'E')
+        {
+            if (str_casecmp(header_key, "Accept-Encoding"))
+            {
+                getacceptencoding(header_value);
+                break;
+            }
+        }
+        else if (header_key[7] == 'L')
+        {
+            if (str_casecmp(header_key, "Accept-Language"))
+            {
+                getacceptlanguage(header_value);
+                break;
+            }
+        }
+
+        if (str_casecmp(header_key, "Accept-Encoding"))
+        {
+            getacceptencoding(header_value);
+        }
+        if (str_casecmp(header_key, "Accept-Language"))
+        {
+            getacceptlanguage(header_value);
+        }
+        // Accept-Language
+
+        break;
+    case 14:
+        if (str_casecmp(header_key, "Content-Length"))
+        {
+            peer->content_length = header_valuetoint(header_value);
+        }
+        break;
+    case 13:
+        if (str_casecmp(header_key, "If-None-Match"))
+        {
+            getifnonematch(header_value);
+        }
+        break;
+    case 12:
+        if (str_casecmp(header_key, "Content-Type"))
+        {
+
+            getcontenttype(header_value);
+        }
+        break;
+    case 10:
+        switch (header_key[0])
+        {
+        case 'c':
+        case 'C':
+            if (str_casecmp(header_key, "Connection"))
+            {
+                getconnection(header_value);
+                peer->keepalive = peer->state.keepalive;
+            }
+            break;
+        case 'u':
+        case 'U':
+            // if (str_casecmp(header_key, "User-Agent"))
+            {
+                // useragent = header_value;
+                // peer->header["User-Agent"] = header_value;
+            }
+            break;
+        }
+        break;
+    case 8:
+        if (str_casecmp(header_key, "If-Match"))
+        {
+            getifnonematch(header_value);
+        }
+        break;
+    case 7:
+        if (str_casecmp(header_key, "Upgrade"))
+        {
+            getupgrade(header_value);
+        }
+        break;
+    case 6:
+
+        switch (header_key[0])
+        {
+        case 'c':
+        case 'C':
+            if (str_casecmp(header_key, "Cookie"))
+            {
+                getcookie(header_value);
+            }
+            break;
+        case 'a':
+        case 'A':
+            if (str_casecmp(header_key, "Accept"))
+            {
+
+                getaccept(header_value);
+            }
+            break;
+        }
+        break;
+    case 5:
+        if (str_casecmp(header_key, "Range"))
+        {
+            getrange(header_value);
+        }
+        break;
+    case 4:
+        if (str_casecmp(header_key, "Host"))
+        {
+            getheaderhost(header_value);
+        }
+        break;
+    }
 }
-void httpparse::getaccept()
+
+void httpparse::getaccept(std::string_view header_value)
 {
     unsigned int i = 0, linesize;
     linesize       = header_value.size();
 
-    buffer_value.clear();
+    std::string buffer_value;
 
     for (; i < linesize; i++)
     {
@@ -1601,6 +1152,34 @@ void httpparse::getaccept()
                          buffer_value[9] == 'p')
                 {
                     peer->state.webp = true;
+                }
+                break;
+            case 16:
+                //application/json
+                if (str_casecmp(buffer_value, "application/json"))
+                {
+                    peer->state.accept_json = true;
+                }
+                break;
+            case 15:
+                //application/xml
+                if (str_casecmp(buffer_value, "application/xml"))
+                {
+                    peer->state.accept_xml = true;
+                }
+                break;
+            case 9:
+                //text/json
+                if (str_casecmp(buffer_value, "text/json"))
+                {
+                    peer->state.accept_xml = true;
+                }
+                break;
+            case 8:
+                //text/xml
+                if (str_casecmp(buffer_value, "text/xml"))
+                {
+                    peer->state.accept_xml = true;
                 }
                 break;
             default:;
@@ -1633,35 +1212,36 @@ void httpparse::getaccept()
             //application/json
             if (str_casecmp(buffer_value, "application/json"))
             {
-                peer->accept_json = true;
+                peer->state.accept_json = true;
             }
             break;
         case 15:
             //application/xml
             if (str_casecmp(buffer_value, "application/xml"))
             {
-                peer->accept_xml = true;
+                peer->state.accept_xml = true;
             }
             break;
         case 9:
             //text/json
             if (str_casecmp(buffer_value, "text/json"))
             {
-                peer->accept_xml = true;
+                peer->state.accept_xml = true;
             }
             break;
         case 8:
             //text/xml
             if (str_casecmp(buffer_value, "text/xml"))
             {
-                peer->accept_xml = true;
+                peer->state.accept_xml = true;
             }
             break;
         default:;
         }
     }
 }
-void httpparse::getacceptlanguage()
+
+void httpparse::getacceptlanguage(std::string_view header_value)
 {
     unsigned int i = 0;
     for (; i < header_value.size(); i++)
@@ -1681,9 +1261,9 @@ void httpparse::getacceptlanguage()
         peer->state.language[i] = 0x00;
     }
 }
-void httpparse::getifunmodifiedsince() { peer->state.ifmodifiedsince = strgmttotime(header_value); }
-void httpparse::getifmodifiedsince() { peer->state.ifmodifiedsince = strgmttotime(header_value); }
-void httpparse::getifnonematch()
+void httpparse::getifunmodifiedsince(std::string_view header_value) { peer->state.ifunmodifiedsince = strgmttotime(header_value); }
+void httpparse::getifmodifiedsince(std::string_view header_value) { peer->state.ifmodifiedsince = strgmttotime(header_value); }
+void httpparse::getifnonematch(std::string_view header_value)
 {
     unsigned int i = 0;
     peer->etag.clear();
@@ -1707,8 +1287,13 @@ void httpparse::getifnonematch()
         }
     }
 }
-void httpparse::getwebsocketextensions()
+void httpparse::getwebsocketextensions(std::string_view header_value)
 {
+    if (websocket == nullptr)
+    {
+        return;
+    }
+
     switch (header_value.length())
     {
     case 22:
@@ -1802,14 +1387,15 @@ void httpparse::getwebsocketextensions()
         return;
     }
 }
-void httpparse::getupgrade()
+
+void httpparse::getupgrade(std::string_view header_value)
 {
 
     if (header_value.size() > 9)
     {
         if (header_value.back() == 0x20)
         {
-            header_value.pop_back();
+            header_value.remove_suffix(1);
         }
     }
 
@@ -1824,7 +1410,8 @@ void httpparse::getupgrade()
         peer->state.h2c = true;
     }
 }
-void httpparse::getconnection()
+
+void httpparse::getconnection(std::string_view header_value)
 {
     if (header_value.size() < 2)
     {
@@ -1857,12 +1444,12 @@ void httpparse::getconnection()
         }
     }
 }
-void httpparse::getacceptencoding()
+
+void httpparse::getacceptencoding(std::string_view header_value)
 {
     unsigned int i = 0, linesize;
     linesize       = header_value.size();
-    buffer_key.clear();
-    buffer_value.clear();
+    std::string buffer_value;
 
     for (; i < linesize; i++)
     {
@@ -1942,12 +1529,13 @@ void httpparse::getacceptencoding()
         buffer_value.clear();
     }
 }
-void httpparse::getcookie()
+
+void httpparse::getcookie(std::string_view header_value)
 {
     unsigned int i = 0, linesize;
     linesize       = header_value.size();
-    buffer_key.clear();
-    buffer_value.clear();
+    std::string buffer_key;
+    std::string buffer_value;
     for (; i < linesize; i++)
     {
         if (header_value[i] == 0x3D)
@@ -1960,7 +1548,7 @@ void httpparse::getcookie()
         {
             buffer_value = http::url_decode(buffer_value.data(), buffer_value.length());
             // cookie[buffer_key] = buffer_value;
-            if (buffer_key.size() > 48)
+            if (buffer_key.size() > 72)
             {
                 error = 414;
                 return;
@@ -1980,7 +1568,7 @@ void httpparse::getcookie()
     {
         buffer_value = http::url_decode(buffer_value.data(), buffer_value.length());
         // cookie[buffer_key] = buffer_value;
-        if (buffer_key.size() > 48)
+        if (buffer_key.size() > 72)
         {
             error = 414;
             return;
@@ -1989,7 +1577,7 @@ void httpparse::getcookie()
     }
     else
     {
-        if (buffer_key.size() > 48)
+        if (buffer_key.size() > 72)
         {
             error = 414;
             return;
@@ -2002,7 +1590,8 @@ void httpparse::getcookie()
         buffer_key.clear();
     }
 }
-void httpparse::getheaderhost()
+
+void httpparse::getheaderhost(std::string_view header_value)
 {
     unsigned int ioffset    = 0, linesize;
     linesize                = header_value.size();
@@ -2104,554 +1693,119 @@ void httpparse::getheaderhost()
     // state.port = port;
     peer->state.port = port;
 }
-void httpparse::readboundaryline(const unsigned char *buffer, unsigned int buffersize)
+
+void httpparse::read_http_header_block(const unsigned char *buffer, unsigned int buffersize)
 {
-    unsigned int i       = readoffset;
-    unsigned int isbound = 0;
-    for (; i < buffersize; i++)
-    {
-        if ((buffer[i] != 0x0D) && (buffer[i] != 0x0A))
-        {
+    unsigned int pos_m = readoffset;
 
-            break;
-        }
-    }
-    for (; i < buffersize; i++)
+    if (pre_http_header.size() > 0)
     {
-        if (buffer[i] == 0x0D)
+        pre_http_header.clear();
+        if (readoffset < buffersize && buffer[readoffset] == '\n')
         {
-            isbound = 1;
-            break;
-        }
-        buffer_key.push_back(buffer[i]);
-    }
-    if (isbound == 1)
-    {
-        std::string bi;
-
-        bi = buffer_key.substr(2);
-        if (poststate == nullptr)
-        {
-            poststate = std::make_unique<poststate_t>();
-        }
-        if (bi == poststate->boundary)
-        {
-
-            postfieldtype = 2;
-        }
-        i++;
-        if (i < buffersize && buffer[i] == 0x0A)
-        {
-            i++;
-        }
-    }
-    readoffset = i;
-}
-void httpparse::readformfilename(const unsigned char *buffer, unsigned int buffersize)
-{
-    unsigned int i       = readoffset;
-    unsigned int isbound = 0;
-    if (headendhitnum > 0)
-    {
-        if (headendhitnum == 2)
-        {
-            if (i < buffersize && buffer[i] == 0x0D && headendhitnum < 4)
+            pos_m++;
+            readoffset = pos_m;
+            if (header_line.size() == 0)
             {
-                i++;
-                headendhitnum++;
-                if (i < buffersize && buffer[i] == 0x0A && headendhitnum < 4)
-                {
-                    i++;
-                    headendhitnum++;
-                }
+                isfinish_header = true;
+                return;
             }
+            process_header_line(header_line);
+            header_line.clear();
         }
         else
         {
-            if (i < buffersize && buffer[i] == 0x0A && headendhitnum < 4)
-            {
-                i++;
-                headendhitnum++;
-                if (i < buffersize && buffer[i] == 0x0D && headendhitnum < 4)
-                {
-                    i++;
-                    headendhitnum++;
-                    if (i < buffersize && buffer[i] == 0x0A && headendhitnum < 4)
-                    {
-                        i++;
-                        headendhitnum++;
-                    }
-                }
-            }
-        }
-    }
-    else
-    {
-        for (; i < buffersize; i++)
-        {
-            if ((buffer[i] != 0x0D) && (buffer[i] != 0x0A))
-            {
-
-                break;
-            }
-        }
-    }
-
-    if (headendhitnum > 3)
-    {
-        isbound = 1;
-    }
-    else
-    {
-        i = readoffset;
-    }
-    headendhitnum = 0;
-
-    if (isbound != 1)
-    {
-
-        for (; i < buffersize; i++)
-        {
-            if (buffer[i] == 0x0D)
-            {
-                headendhitnum = 1;
-                if ((i + 1) < buffersize && buffer[i + 1] == 0x0A)
-                {
-
-                    headendhitnum++;
-                    if ((i + 2) < buffersize && buffer[i + 2] == 0x0D)
-                    {
-
-                        headendhitnum++;
-                        if ((i + 3) < buffersize && buffer[i + 3] == 0x0A)
-                        {
-
-                            headendhitnum++;
-                        }
-                    }
-                }
-
-                if (headendhitnum == 4)
-                {
-                    isbound       = 1;
-                    i             = i + 4;
-                    headendhitnum = 0;
-                    break;
-                }
-                else
-                {
-                    headendhitnum = 0;
-                }
-            }
-
-            buffer_key.push_back(buffer[i]);
-        }
-    }
-    readoffset = i;
-    if (isbound == 1)
-    {
-        // std::string fieldname;
-
-        header_temp.clear();
-        unsigned int jj = 0;
-        for (; jj < buffer_key.size(); jj++)
-        {
-            if (buffer_key[jj] == 0x0D || buffer_key[jj] == 0x0A)
-            {
-                header_temp.clear();
-                continue;
-            }
-            if (buffer_key[jj] == ';')
-            {
-                header_temp.clear();
-                continue;
-            }
-            if (buffer_key[jj] == 0x20)
-            {
-                header_temp.clear();
-                continue;
-            }
-            if (buffer_key[jj] == ':')
-            {
-                if (str_casecmp(header_temp, "Content-Type"))
-                {
-                    unsigned int nmpp = jj + 1;
-                    for (; nmpp < buffer_key.size(); nmpp++)
-                    {
-                        if (buffer_key[nmpp] != 0x20)
-                        {
-
-                            break;
-                        }
-                    }
-                    // Content-Type is only available when uploading files
-                    // but some non-standard clients may also be possible
-                    if (upfile == nullptr)
-                    {
-                        upfile = std::make_unique<uploadfile_t>();
-                    }
-                    upfile->type.clear();
-                    for (; nmpp < buffer_key.size(); nmpp++)
-                    {
-                        if (buffer_key[nmpp] == 0x20 || buffer_key[nmpp] == 0x0D)
-                        {
-                            break;
-                        }
-                        upfile->type.push_back(buffer_key[nmpp]);
-                    }
-                    jj = nmpp;
-                }
-                header_temp.clear();
-                continue;
-            }
-            if (buffer_key[jj] == 0x3D)
-            {
-                if (header_temp == "name")
-                {
-                    unsigned int mm = jj;
-                    mm += 1;
-                    if (buffer_key[mm] == '"')
-                    {
-                        mm += 1;
-                    }
-                    header_key.clear();
-                    for (; mm < buffer_key.size(); mm++)
-                    {
-                        if (buffer_key[mm] == '"')
-                        {
-                            break;
-                        }
-                        header_key.push_back(buffer_key[mm]);
-
-                        // check if form the name is too long
-                        if (header_key.size() > 48)
-                        {
-                            error = 400;
-                            return;
-                        }
-                    }
-                    if (header_key.size() > 0)
-                    {
-                        if (postfieldtype < 7)
-                        {
-                            postfieldtype = 7;
-                        }
-                    }
-                    else
-                    {
-                        if (postfieldtype < 7)
-                        {
-                            postfieldtype = 7;
-                        }
-                        header_key = std::to_string(timeid()) + std::to_string(rand_range(100, 999));
-                        header_key = std::to_string(std::hash<std::string>{}(header_key));
-                    }
-
-                    if (buffer_key[mm] == '"')
-                    {
-                        mm += 1;
-                    }
-                    jj = mm;
-                }
-                else if (header_temp == "filename")
-                {
-                    unsigned int mm = jj;
-                    mm += 1;
-                    if (buffer_key[mm] == '"')
-                    {
-                        mm += 1;
-                    }
-                    header_value.clear();
-                    for (; mm < buffer_key.size(); mm++)
-                    {
-                        if (buffer_key[mm] == '"')
-                        {
-                            break;
-                        }
-                        header_value.push_back(buffer_key[mm]);
-                    }
-
-                    if (postfieldtype < 8)
-                    {
-                        postfieldtype = 9;
-                        if (upfile == nullptr)
-                        {
-                            upfile = std::make_unique<uploadfile_t>();
-                        }
-                        else
-                        {
-                            upfile->name.clear();
-                            upfile->filename.clear();
-                            upfile->tempfile.clear();
-                            upfile->type.clear();
-                            upfile->size  = 0;
-                            upfile->error = 0;
-                        }
-                    }
-
-                    if (buffer_key[mm] == '"')
-                    {
-                        mm += 1;
-                    }
-                    jj = mm;
-                }
-                header_temp.clear();
-                continue;
-            }
-            header_temp.push_back(buffer_key[jj]);
-        }
-        header_temp.clear();
-        if (postfieldtype == 9)
-        {
-            server_loaclvar &localvar = get_server_global_var();
-            upfile->filename          = header_value;
-            upfile->name              = header_key;
-
-            header_temp =
-                upfile->filename + std::to_string(timeid()) + header_key + std::to_string(rand_range(100, 999));
-
-            upfile->tempfile = localvar.temp_path;
-            upfile->tempfile.append(std::to_string(std::hash<std::string>{}(header_temp)));
-
-            // uprawfile = fopen(upfile.tempfile.c_str(), "wb");
-            uprawfile.reset(fopen(upfile->tempfile.c_str(), "wb"));
-            if (!uprawfile)
-            {
-                upfile->tempfile.append("_t");
-                // uprawfile = fopen(upfile.tempfile.c_str(), "wb");
-                uprawfile.reset(fopen(upfile->tempfile.c_str(), "wb"));
-                if (!uprawfile)
-                {
-                    error         = 3;
-                    postfieldtype = 12;
-                }
-            }
-            upfile->size = 0;
-            header_temp.clear();
-        }
-        changetype = 0;
-
-        header_input.clear();
-        buffer_key.clear();
-    }
-}
-
-void httpparse::readformfielditem(const unsigned char *buffer, unsigned int buffersize)
-{
-    unsigned int i       = readoffset;
-    unsigned int isbound = 0;
-    unsigned int j       = 0;
-    if (poststate == nullptr)
-    {
-        return;
-    }
-    if (changetype > 0 || buffer_key.size() > 0)
-    {
-        j = i;
-        // algin pre match
-        if (buffer_key.size() < 5)
-        {
-            j          = j + (4 - buffer_key.size());
-            changetype = 0;
-        }
-
-        for (; changetype < poststate->boundary.size(); changetype++)
-        {
-            if (buffer[j] != poststate->boundary[changetype])
-            {
-                isbound = 2;
-                break;
-            }
-            j++;
-        }
-        if (isbound == 0)
-        {
-            changetype    = 0;
-            postfieldtype = 2;
-            i             = j;
-            header_temp   = header_key;
-            if (header_temp.size() > 48)
-            {
-                error = 400;
-                return;
-            }
-            procssxformurlencoded();
-            header_key.clear();
-            header_value.clear();
-            header_temp.clear();
-            header_input.clear();
-            buffer_key.clear();
-
-            headerstep    = 0;
-            headendhitnum = 0;
-
-            if ((i + 1) < buffersize && buffer[i] == 0x2D && buffer[i + 1] == 0x2D)
-            {
-                headerfinish = 2;
-                i += 2;
-                readoffset = i;
-
-                return;
-            }
-            if (i < buffersize && buffer[i] == 0x0D)
-            {
-                i++;
-            }
-            if (i < buffersize && buffer[i] == 0x0A)
-            {
-                i++;
-            }
-
-            readoffset = i;
+            error = 40001;
             return;
         }
-        // header_input.append((char *)&buffer_key[0], buffer_key.size());
-        header_input.append(buffer_key);
-        buffer_key.clear();
     }
-    changetype = 0;
-    j          = 0;
-    for (; i < buffersize; i++)
+
+    for (; pos_m < buffersize; pos_m++)
     {
-        if (buffer[i] == 0x0D)
+        if (buffer[pos_m] == '\r')
         {
-
-            buffer_key.clear();
-            buffer_key.push_back(0x0D);
-            j = i + 1;
-            if (j < buffersize && buffer[j] == 0x0A)
+            unsigned int j = pos_m;
+            j++;
+            if (j < buffersize && buffer[j] == '\n')
             {
-                j++;
-
-                buffer_key.push_back(0x0A);
-                if (j < buffersize && buffer[j] == 0x2D)
+                header_line.append((char *)&buffer[readoffset], pos_m - readoffset);
+                readoffset = j + 1;
+                if (header_line.size() == 0)
                 {
-                    j++;
-
-                    buffer_key.push_back(0x2D);
-                    if (j < buffersize && buffer[j] == 0x2D)
-                    {
-                        j++;
-
-                        buffer_key.push_back(0x2D);
-                        for (unsigned int nnn = 0; nnn < poststate->boundary.size(); nnn++)
-                        {
-                            if (buffer[j] != poststate->boundary[nnn])
-                            {
-                                isbound = 2;
-                                break;
-                            }
-                            buffer_key.push_back(buffer[j]);
-                            j += 1;
-                            if (j >= buffersize)
-                            {
-                                changetype = nnn + 1;
-                                isbound    = 1;
-                                header_input.append((char *)&buffer[readoffset], (i - readoffset));
-                                return;
-                            }
-                        }
-                        if (isbound == 0)
-                        {
-                            changetype    = 0;
-                            postfieldtype = 2;
-
-                            header_input.append((char *)&buffer[readoffset], (i - readoffset));
-                            i           = j;
-                            header_temp = header_key;
-                            if (header_temp.size() > 48)
-                            {
-                                error = 400;
-                                return;
-                            }
-                            procssxformurlencoded();
-                            header_key.clear();
-                            header_value.clear();
-                            header_temp.clear();
-                            header_input.clear();
-                            buffer_key.clear();
-
-                            headerstep    = 0;
-                            headendhitnum = 0;
-                            if (buffer[i] == 0x2D && buffer[i + 1] == 0x2D)
-                            {
-                                headerfinish = 2;
-                                i += 2;
-
-                                if (buffer[i] == 0x0D && i < buffersize)
-                                {
-                                    i++;
-                                }
-                                if (buffer[i] == 0x0A)
-                                {
-                                    i++;
-                                }
-                                readoffset = i;
-                                return;
-                            }
-                            if (buffer[i] == 0x0D && i < buffersize)
-                            {
-                                i++;
-                            }
-                            if (buffer[i] == 0x0A)
-                            {
-                                i++;
-                            }
-
-                            readoffset = i;
-                            return;
-                        }
-                    }
+                    isfinish_header = true;
+                    return;
                 }
+                http_content_length += header_line.size();
+
+                process_header_line(header_line);
+                header_line.clear();
+                return;
             }
-            if (j >= buffersize)
+            else
             {
-                // i += 1;
-                break;
+                pre_http_header = "\r";
+                header_line.append((char *)&buffer[readoffset], pos_m - readoffset);
+                readoffset = buffersize;
+                http_content_length += header_line.size();
+                return;
             }
-            headerstep = 0;
-            changetype = 0;
-            buffer_key.clear();
+        }
+    }
+    header_line.append((char *)&buffer[readoffset], pos_m - readoffset);
+    readoffset = buffersize;
+}
+
+void httpparse::post_form_to_postfield(std::string_view form_post_name, std::string_view form_post_value)
+{
+    bool isgroup = true;
+
+    if (form_post_name.length() > 72)
+    {
+        error = 40011;
+        return;
+    }
+
+    for (unsigned int j = 0; j < form_post_name.length(); j++)
+    {
+        if (form_post_name[j] == '[')
+        {
+            isgroup = false;
         }
     }
 
-    header_input.append((char *)&buffer[readoffset], (i - readoffset));
-    readoffset = buffersize;
-}
-void httpparse::procssformfile()
-{
-    std::string objname;
-    bool isgroup = true;
-    if (upfile == nullptr)
+    if (isgroup)
     {
+        peer->post[form_post_name] = form_post_value;
         return;
     }
-    for (unsigned int j = 0; j < upfile->name.length(); j++)
+
+    isgroup = true;
+    std::string objname;
+    for (unsigned int j = 0; j < form_post_name.length(); j++)
     {
-        if (upfile->name[j] == '[')
+        if (form_post_name[j] == '[')
         {
             std::string key1name;
-
             unsigned int n = j;
             n++;
             bool ishaskey  = false;
             bool ishaskey2 = false;
-            for (; n < upfile->name.length(); n++)
+            for (; n < form_post_name.length(); n++)
             {
-                if (upfile->name[n] == ']')
+                if (form_post_name[n] == ']')
                 {
                     ishaskey = true;
                     n++;
                     break;
                 }
-                else if (upfile->name[n] == '[')
+                else if (form_post_name[n] == '[')
                 {
 
                     break;
                 }
-                if (upfile->name[n] != 0x22)
+                if (form_post_name[n] != 0x22)
                 {
-                    key1name.push_back(upfile->name[n]);
+                    key1name.push_back(form_post_name[n]);
                 }
             }
 
@@ -2660,31 +1814,31 @@ void httpparse::procssformfile()
             {
 
                 unsigned int m = n;
-                if (n < upfile->name.length())
+                if (n < form_post_name.length())
                 {
-                    if (upfile->name[m] == '[')
+                    if (form_post_name[m] == '[')
                     {
                         m += 1;
-                        for (; m < upfile->name.length(); m++)
+                        for (; m < form_post_name.length(); m++)
                         {
-                            if (upfile->name[m] == ']')
+                            if (form_post_name[m] == ']')
                             {
                                 ishaskey2 = true;
                                 m++;
                                 break;
                             }
-                            else if (upfile->name[m] == '[')
+                            else if (form_post_name[m] == '[')
                             {
 
                                 break;
                             }
-                            if (upfile->name[m] != 0x22)
+                            if (form_post_name[m] != 0x22)
                             {
-                                key2name.push_back(upfile->name[m]);
+                                key2name.push_back(form_post_name[m]);
                             }
                         }
 
-                        if (ishaskey2 && m == upfile->name.length())
+                        if (ishaskey2 && m == form_post_name.length())
                         {
                         }
                         else
@@ -2707,130 +1861,101 @@ void httpparse::procssformfile()
                                 return;
                             }
 
-                            http::obj_val objtemp;
-                            objtemp.set_object();
-                            objtemp["name"]     = upfile->name;
-                            objtemp["filename"] = upfile->filename;
-                            objtemp["tempfile"] = upfile->tempfile;
-                            objtemp["type"]     = upfile->type;
-                            objtemp["size"]     = upfile->size;
-                            objtemp["error"]    = upfile->error;
-
-                            peer->files[objname].set_object();
-                            unsigned int iii = peer->files[objname].size();
+                            peer->post[objname].set_object();
+                            unsigned int iii = peer->post[objname].size();
                             key1name         = std::to_string(iii);
-                            peer->files[objname][key1name].set_object();
+                            peer->post[objname][key1name].set_object();
 
-                            iii      = peer->files[objname][key1name].size();
+                            iii      = peer->post[objname][key1name].size();
                             key2name = std::to_string(iii);
 
-                            peer->files[objname][key1name].push(key2name, std::move(objtemp));
+                            http::obj_val objtemp;
+                            objtemp = form_post_value;
+
+                            peer->post[objname][key1name].push(key2name, std::move(objtemp));
                         }
                         else
                         {
-
                             if (objname.size() > 48)
                             {
                                 error = 400000;
                                 return;
                             }
-
                             if (key2name.size() > 48)
                             {
                                 error = 400000;
                                 return;
                             }
 
-                            http::obj_val objtemp;
-                            objtemp.set_object();
-                            objtemp["name"]     = upfile->name;
-                            objtemp["filename"] = upfile->filename;
-                            objtemp["tempfile"] = upfile->tempfile;
-                            objtemp["type"]     = upfile->type;
-                            objtemp["size"]     = upfile->size;
-                            objtemp["error"]    = upfile->error;
-
-                            peer->files[objname].set_object();
-                            unsigned int iii = peer->files[objname].size();
+                            peer->post[objname].set_object();
+                            unsigned int iii = peer->post[objname].size();
                             key1name         = std::to_string(iii);
-                            peer->files[objname][key1name].set_object();
+                            peer->post[objname][key1name].set_object();
 
-                            peer->files[objname][key1name].push(key2name, std::move(objtemp));
+                            http::obj_val objtemp;
+                            objtemp = form_post_value;
+
+                            peer->post[objname][key1name].push(key2name, std::move(objtemp));
                         }
                     }
                     else
                     {
                         if (key2name.empty())
                         {
-
                             if (objname.size() > 48)
                             {
                                 error = 400000;
                                 return;
                             }
-
                             if (key1name.size() > 48)
                             {
                                 error = 400000;
                                 return;
                             }
 
-                            http::obj_val objtemp;
-                            objtemp.set_object();
-                            objtemp["name"]     = upfile->name;
-                            objtemp["filename"] = upfile->filename;
-                            objtemp["tempfile"] = upfile->tempfile;
-                            objtemp["type"]     = upfile->type;
-                            objtemp["size"]     = upfile->size;
-                            objtemp["error"]    = upfile->error;
+                            peer->post[objname].set_object();
+                            peer->post[objname][key1name].set_object();
 
-                            peer->files[objname].set_object();
-                            peer->files[objname][key1name].set_object();
-
-                            unsigned int iii = peer->files[objname][key1name].size();
+                            unsigned int iii = peer->post[objname][key1name].size();
                             key2name         = std::to_string(iii);
 
-                            peer->files[objname][key1name].push(key2name, std::move(objtemp));
+                            http::obj_val objtemp;
+                            objtemp = form_post_value;
+
+                            peer->post[objname][key1name].push(key2name, std::move(objtemp));
                         }
                         else
                         {
+
                             if (objname.size() > 48)
                             {
                                 error = 400000;
                                 return;
                             }
-
                             if (key1name.size() > 48)
                             {
                                 error = 400000;
                                 return;
                             }
-
                             if (key2name.size() > 48)
                             {
                                 error = 400000;
                                 return;
                             }
 
+                            peer->post[objname].set_object();
+                            peer->post[objname][key1name].set_object();
+
                             http::obj_val objtemp;
-                            objtemp.set_object();
-                            objtemp["name"]     = upfile->name;
-                            objtemp["filename"] = upfile->filename;
-                            objtemp["tempfile"] = upfile->tempfile;
-                            objtemp["type"]     = upfile->type;
-                            objtemp["size"]     = upfile->size;
-                            objtemp["error"]    = upfile->error;
+                            objtemp = form_post_value;
 
-                            peer->files[objname].set_object();
-                            peer->files[objname][key1name].set_object();
-
-                            peer->files[objname][key1name].push(key2name, std::move(objtemp));
+                            peer->post[objname][key1name].push(key2name, std::move(objtemp));
                         }
                     }
                     j       = m;
                     isgroup = false;
                 }
-                else if (n == upfile->name.length())
+                else if (n == form_post_name.length())
                 {
                     // 只有一个
                     if (key1name.empty())
@@ -2841,18 +1966,416 @@ void httpparse::procssformfile()
                             return;
                         }
 
+                        peer->post[objname].set_object();
+                        unsigned int iii = peer->post[objname].size();
+                        key1name         = std::to_string(iii);
+
                         http::obj_val objtemp;
-                        objtemp.set_object();
-                        objtemp["name"]     = upfile->name;
-                        objtemp["filename"] = upfile->filename;
-                        objtemp["tempfile"] = upfile->tempfile;
-                        objtemp["type"]     = upfile->type;
-                        objtemp["size"]     = upfile->size;
-                        objtemp["error"]    = upfile->error;
+                        objtemp = form_post_value;
+
+                        peer->post[objname].push(key1name, std::move(objtemp));
+                    }
+                    else
+                    {
+                        if (objname.size() > 48)
+                        {
+                            error = 400000;
+                            return;
+                        }
+                        if (key1name.size() > 48)
+                        {
+                            error = 400000;
+                            return;
+                        }
+                        peer->post[objname].set_object();
+
+                        http::obj_val objtemp;
+                        objtemp = form_post_value;
+
+                        peer->post[objname].push(key1name, std::move(objtemp));
+                    }
+                    j       = n;
+                    isgroup = false;
+                }
+                else
+                {
+
+                    // 没有数组
+                }
+            }
+            if (isgroup)
+            {
+                objname.push_back(form_post_name[j]);
+            }
+        }
+        else
+        {
+            objname.push_back(form_post_name[j]);
+        }
+    }
+    if (isgroup)
+    {
+        peer->post[form_post_name] = form_post_value;
+    }
+}
+
+void httpparse::post_www_form_urlencoded(std::string_view raw_post_urlencode_content)
+{
+    std::string temp_value;
+    std::string buffer_key;
+    std::string field_value;
+    unsigned int qsize    = raw_post_urlencode_content.size();
+    unsigned char partype = 0;
+    unsigned int j        = 0;
+    unsigned int jj       = 0;
+    for (j = 0; j < qsize; j++)
+    {
+        if (raw_post_urlencode_content[j] == 0x3D)
+        {
+            buffer_key = http::url_decode(temp_value.data(), temp_value.length());
+            temp_value.clear();
+            partype = 1;
+            jj      = 0;
+            continue;
+        }
+        else if (raw_post_urlencode_content[j] == 0x26)
+        {
+            field_value = http::url_decode(temp_value.data(), temp_value.length());
+            if (buffer_key.size() > 72)
+            {
+                error = 40001;
+                return;
+            }
+            post_form_to_postfield(buffer_key, field_value);
+            temp_value.clear();
+            field_value.clear();
+            partype = 2;
+            jj      = 0;
+            continue;
+        }
+        temp_value.push_back(raw_post_urlencode_content[j]);
+
+        if (partype == 0 || partype == 2)
+        {
+            //key name too long
+            if (jj > 72)
+            {
+                error = 40001;
+                return;
+            }
+        }
+        jj++;
+    }
+    if (partype == 1)
+    {
+        field_value = http::url_decode(temp_value.data(), temp_value.length());
+        if (buffer_key.size() > 72)
+        {
+            error = 40001;
+            return;
+        }
+        post_form_to_postfield(buffer_key, field_value);
+    }
+    else if (partype == 2)
+    {
+        buffer_key = http::url_decode(temp_value.data(), temp_value.length());
+        field_value.clear();
+        if (buffer_key.size() > 72)
+        {
+            error = 40001;
+            return;
+        }
+        post_form_to_postfield(buffer_key, field_value);
+    }
+    else if (temp_value.size() > 0)
+    {
+        buffer_key = http::url_decode(temp_value.data(), temp_value.length());
+        field_value.clear();
+        if (buffer_key.size() > 72)
+        {
+            error = 40001;
+            return;
+        }
+        post_form_to_postfield(buffer_key, field_value);
+    }
+}
+
+void httpparse::read_rawfile_formdata(std::string_view raw_http_post_data)
+{
+    if (!uprawfile)
+    {
+        server_loaclvar &localvar    = get_server_global_var();
+        std::string fieldheader_temp = "rawcontent" + std::to_string(http::timeid()) + rand_string(6, 0);
+
+        std::string temp_filename = localvar.temp_path;// + "temp/";
+        temp_filename.append(std::to_string(std::hash<std::string>{}(fieldheader_temp)));
+
+        std::unique_ptr<std::FILE, int (*)(FILE *)> fpa(std::fopen(temp_filename.c_str(), "wb"), std::fclose);
+        if (fpa)
+        {
+            uprawfile = std::move(fpa);
+        }
+        else
+        {
+            error = 400026;
+            return;
+        }
+        peer->files["rawcontent"].set_object();
+        peer->files["rawcontent"]["filename"] = "rawcontent";
+        peer->files["rawcontent"]["name"]     = "rawcontent";
+        peer->files["rawcontent"]["tempfile"] = temp_filename;
+        peer->files["rawcontent"]["type"]     = "";
+        peer->files["rawcontent"]["size"]     = 0;
+        peer->files["rawcontent"]["error"]    = 0;
+    }
+
+    if (uprawfile == nullptr)
+    {
+        return;
+    }
+    if (uprawfile)
+    {
+        size_t n = fwrite(raw_http_post_data.data(), 1, raw_http_post_data.size(), uprawfile.get());
+        if (n != raw_http_post_data.size())
+        {
+            uprawfile.reset();
+            error = 400026;
+        }
+    }
+
+    if (http_content_length >= peer->content_length)
+    {
+        uprawfile.reset();
+        peer->files["rawcontent"]["size"] = http_content_length;
+        peer->isfinish                    = true;
+    }
+}
+
+void httpparse::multipart_post_file_field()
+{
+    std::string objname;
+    bool isgroup = true;
+
+    for (unsigned int j = 0; j < temp_post_data->field_name.length(); j++)
+    {
+        if (temp_post_data->field_name[j] == '[')
+        {
+            std::string key1name;
+            unsigned int n = j;
+            n++;
+            bool ishaskey  = false;
+            bool ishaskey2 = false;
+            for (; n < temp_post_data->field_name.length(); n++)
+            {
+                if (temp_post_data->field_name[n] == ']')
+                {
+                    ishaskey = true;
+                    n++;
+                    break;
+                }
+                else if (temp_post_data->field_name[n] == '[')
+                {
+
+                    break;
+                }
+                if (temp_post_data->field_name[n] != 0x22)
+                {
+                    key1name.push_back(temp_post_data->field_name[n]);
+                }
+            }
+
+            std::string key2name;
+            if (ishaskey)
+            {
+                unsigned int m = n;
+                if (n < temp_post_data->field_name.length())
+                {
+                    if (temp_post_data->field_name[m] == '[')
+                    {
+                        m += 1;
+                        for (; m < temp_post_data->field_name.length(); m++)
+                        {
+                            if (temp_post_data->field_name[m] == ']')
+                            {
+                                ishaskey2 = true;
+                                m++;
+                                break;
+                            }
+                            else if (temp_post_data->field_name[m] == '[')
+                            {
+
+                                break;
+                            }
+                            if (temp_post_data->field_name[m] != 0x22)
+                            {
+                                key2name.push_back(temp_post_data->field_name[m]);
+                            }
+                        }
+
+                        if (ishaskey2 && m == temp_post_data->field_name.length())
+                        {
+                        }
+                        else
+                        {
+                            ishaskey2 = false;
+                        }
+                    }
+                }
+
+                if (ishaskey2)
+                {
+                    // 双数组
+                    if (key1name.empty())
+                    {
+                        if (key2name.empty())
+                        {
+                            if (objname.size() > 48)
+                            {
+                                error = 400000;
+                                return;
+                            }
+
+                            peer->files[objname].set_object();
+                            unsigned int iii = peer->files[objname].size();
+                            key1name         = std::to_string(iii);
+                            peer->files[objname][key1name].set_object();
+
+                            iii      = peer->files[objname][key1name].size();
+                            key2name = std::to_string(iii);
+
+                            http::obj_val objtemp;
+                            objtemp.set_object();
+                            objtemp["filename"] = temp_post_data->filename;
+                            objtemp["name"]     = temp_post_data->field_name;
+                            objtemp["tempfile"] = temp_post_data->temp_filename;
+                            objtemp["type"]     = temp_post_data->mimetype;
+                            objtemp["size"]     = temp_post_data->cur_length;
+                            objtemp["error"]    = 0;
+
+                            peer->files[objname][key1name].push(key2name, std::move(objtemp));
+                        }
+                        else
+                        {
+                            if (objname.size() > 48)
+                            {
+                                error = 400000;
+                                return;
+                            }
+                            if (key2name.size() > 48)
+                            {
+                                error = 400000;
+                                return;
+                            }
+
+                            peer->files[objname].set_object();
+                            unsigned int iii = peer->files[objname].size();
+                            key1name         = std::to_string(iii);
+                            peer->files[objname][key1name].set_object();
+
+                            http::obj_val objtemp;
+                            objtemp.set_object();
+                            objtemp["filename"] = temp_post_data->filename;
+                            objtemp["name"]     = temp_post_data->field_name;
+                            objtemp["tempfile"] = temp_post_data->temp_filename;
+                            objtemp["type"]     = temp_post_data->mimetype;
+                            objtemp["size"]     = temp_post_data->cur_length;
+                            objtemp["error"]    = 0;
+
+                            peer->files[objname][key1name].push(key2name, std::move(objtemp));
+                        }
+                    }
+                    else
+                    {
+                        if (key2name.empty())
+                        {
+                            if (objname.size() > 48)
+                            {
+                                error = 400000;
+                                return;
+                            }
+                            if (key1name.size() > 48)
+                            {
+                                error = 400000;
+                                return;
+                            }
+
+                            peer->files[objname].set_object();
+                            peer->files[objname][key1name].set_object();
+
+                            unsigned iii = peer->files[objname][key1name].size();
+                            key2name     = std::to_string(iii);
+
+                            http::obj_val objtemp;
+                            objtemp.set_object();
+                            objtemp["filename"] = temp_post_data->filename;
+                            objtemp["name"]     = temp_post_data->field_name;
+                            objtemp["tempfile"] = temp_post_data->temp_filename;
+                            objtemp["type"]     = temp_post_data->mimetype;
+                            objtemp["size"]     = temp_post_data->cur_length;
+                            objtemp["error"]    = 0;
+
+                            peer->files[objname][key1name].push(key2name, std::move(objtemp));
+                        }
+                        else
+                        {
+
+                            if (objname.size() > 48)
+                            {
+                                error = 400000;
+                                return;
+                            }
+                            if (key1name.size() > 48)
+                            {
+                                error = 400000;
+                                return;
+                            }
+                            if (key2name.size() > 48)
+                            {
+                                error = 400000;
+                                return;
+                            }
+
+                            peer->files[objname].set_object();
+                            peer->files[objname][key1name].set_object();
+
+                            http::obj_val objtemp;
+                            objtemp.set_object();
+                            objtemp["filename"] = temp_post_data->filename;
+                            objtemp["name"]     = temp_post_data->field_name;
+                            objtemp["tempfile"] = temp_post_data->temp_filename;
+                            objtemp["type"]     = temp_post_data->mimetype;
+                            objtemp["size"]     = temp_post_data->cur_length;
+                            objtemp["error"]    = 0;
+
+                            peer->files[objname][key1name].push(key2name, std::move(objtemp));
+                        }
+                    }
+                    j       = m;
+                    isgroup = false;
+                }
+                else if (n == temp_post_data->field_name.length())
+                {
+                    // 只有一个
+                    if (key1name.empty())
+                    {
+                        if (objname.size() > 48)
+                        {
+                            error = 400000;
+                            return;
+                        }
 
                         peer->files[objname].set_object();
-                        unsigned int iii = peer->files[objname].size();
-                        key1name         = std::to_string(iii);
+                        unsigned iii = peer->files[objname].size();
+                        key1name     = std::to_string(iii);
+
+                        http::obj_val objtemp;
+                        objtemp.set_object();
+                        objtemp["filename"] = temp_post_data->filename;
+                        objtemp["name"]     = temp_post_data->field_name;
+                        objtemp["tempfile"] = temp_post_data->temp_filename;
+                        objtemp["type"]     = temp_post_data->mimetype;
+                        objtemp["size"]     = temp_post_data->cur_length;
+                        objtemp["error"]    = 0;
 
                         peer->files[objname].push(key1name, std::move(objtemp));
                     }
@@ -2868,16 +2391,17 @@ void httpparse::procssformfile()
                             error = 400000;
                             return;
                         }
+                        peer->files[objname].set_object();
+
                         http::obj_val objtemp;
                         objtemp.set_object();
-                        objtemp["name"]     = upfile->name;
-                        objtemp["filename"] = upfile->filename;
-                        objtemp["tempfile"] = upfile->tempfile;
-                        objtemp["type"]     = upfile->type;
-                        objtemp["size"]     = upfile->size;
-                        objtemp["error"]    = upfile->error;
+                        objtemp["filename"] = temp_post_data->filename;
+                        objtemp["name"]     = temp_post_data->field_name;
+                        objtemp["tempfile"] = temp_post_data->temp_filename;
+                        objtemp["type"]     = temp_post_data->mimetype;
+                        objtemp["size"]     = temp_post_data->cur_length;
+                        objtemp["error"]    = 0;
 
-                        peer->files[objname].set_object();
                         peer->files[objname].push(key1name, std::move(objtemp));
                     }
                     j       = n;
@@ -2891,621 +2415,947 @@ void httpparse::procssformfile()
             }
             if (isgroup)
             {
-                objname.push_back(upfile->name[j]);
+                objname.push_back(temp_post_data->field_name[j]);
             }
         }
         else
         {
-            objname.push_back(upfile->name[j]);
+            objname.push_back(temp_post_data->field_name[j]);
         }
     }
     if (isgroup)
     {
-        // files[upfile.name]=buffer_value;
-        peer->files[upfile->name].set_object();
-        peer->files[upfile->name]["name"]     = upfile->name;
-        peer->files[upfile->name]["filename"] = upfile->filename;
-        peer->files[upfile->name]["tempfile"] = upfile->tempfile;
-        peer->files[upfile->name]["type"]     = upfile->type;
-        peer->files[upfile->name]["size"]     = upfile->size;
-        peer->files[upfile->name]["error"]    = upfile->error;
+        peer->files[temp_post_data->field_name].set_object();
+        peer->files[temp_post_data->field_name]["filename"] = temp_post_data->filename;
+        peer->files[temp_post_data->field_name]["name"]     = temp_post_data->field_name;
+        peer->files[temp_post_data->field_name]["tempfile"] = temp_post_data->temp_filename;
+        peer->files[temp_post_data->field_name]["type"]     = temp_post_data->mimetype;
+        peer->files[temp_post_data->field_name]["size"]     = temp_post_data->cur_length;
+        peer->files[temp_post_data->field_name]["error"]    = 0;
     }
-    upfile->name.clear();
-    upfile->filename.clear();
-    upfile->tempfile.clear();
-    upfile->type.clear();
-    upfile->size  = 0;
-    upfile->error = 0;
 }
-void httpparse::readformfilecotent(const unsigned char *buffer, unsigned int buffersize)
+
+void httpparse::post_multipart_itemcontent_append()
 {
-    unsigned int i       = readoffset;
-    unsigned int isbound = 0;
-    unsigned int j       = 0;
-    if (poststate == nullptr)
+    //only process upload file
+    if (temp_post_data->temp_filename.size() > 0)
+    {
+        if (temp_post_data->fp)
+        {
+            if (temp_post_data->field_item.size() == 0)
+            {
+                return;
+            }
+            temp_post_data->cur_length += temp_post_data->field_item.size();
+            size_t n = fwrite(&temp_post_data->field_item[0], 1, temp_post_data->field_item.size(), temp_post_data->fp.get());
+            if (n != temp_post_data->field_item.size())
+            {
+                error = 40038;
+                temp_post_data->fp.reset();
+                std::remove(temp_post_data->temp_filename.c_str());// 再删除孤儿文件
+                temp_post_data->field_item.clear();
+                return;
+            }
+            temp_post_data->field_item.clear();
+            return;
+        }
+    }
+}
+void httpparse::post_multipart_itemcontent(bool isfilefull)
+{
+    if (temp_post_data->field_item.size() == 0)
     {
         return;
     }
-    if (changetype > 0 || header_input.size() > 0)
+
+    unsigned int pos_m = 0;
+    for (; pos_m < temp_post_data->field_item.size(); pos_m++)
     {
-        j = i;
-        // algin pre match
-        if (header_input.size() < 5)
+        if (temp_post_data->field_item[pos_m] == '\r' || temp_post_data->field_item[pos_m] == '\n' || temp_post_data->field_item[pos_m] == '-')
         {
-            j          = j + (4 - header_input.size());
-            changetype = 0;
+            continue;
         }
-        for (; changetype < poststate->boundary.size(); changetype++)
+        break;
+    }
+    //Content-Disposition
+    std::string keyname_field;
+    for (; pos_m < temp_post_data->field_item.size(); pos_m++)
+    {
+        if (temp_post_data->field_item[pos_m] == ':')
         {
-            if (buffer[j] != poststate->boundary[changetype])
+            break;
+        }
+        keyname_field.push_back(temp_post_data->field_item[pos_m]);
+        if (keyname_field.size() > 64)
+        {
+            error = 40045;
+            return;
+        }
+    }
+
+    if (pos_m >= temp_post_data->field_item.size())
+    {
+        return;
+    }
+
+    if (!str_casecmp(keyname_field, "Content-Disposition"))
+    {
+        error = 40026;
+        return;
+    }
+
+    for (; pos_m < temp_post_data->field_item.size(); pos_m++)
+    {
+        if (temp_post_data->field_item[pos_m] == ';')
+        {
+            pos_m++;
+            break;
+        }
+    }
+
+    for (; pos_m < temp_post_data->field_item.size(); pos_m++)
+    {
+        if (temp_post_data->field_item[pos_m] != ' ')
+        {
+            break;
+        }
+    }
+    keyname_field.clear();
+    for (; pos_m < temp_post_data->field_item.size(); pos_m++)
+    {
+        if (temp_post_data->field_item[pos_m] == '=')
+        {
+            pos_m++;
+            break;
+        }
+        keyname_field.push_back(temp_post_data->field_item[pos_m]);
+        if (keyname_field.size() > 72)
+        {
+            error = 40027;
+            return;
+        }
+    }
+    if (!str_casecmp(keyname_field, "name"))
+    {
+        error = 40026;
+        return;
+    }
+    //fieldname
+    for (; pos_m < temp_post_data->field_item.size(); pos_m++)
+    {
+        if (temp_post_data->field_item[pos_m] == ' ' || temp_post_data->field_item[pos_m] == '"')
+        {
+            continue;
+        }
+        else if (temp_post_data->field_item[pos_m] == '=')
+        {
+            continue;
+        }
+        break;
+    }
+
+    for (; pos_m < temp_post_data->field_item.size(); pos_m++)
+    {
+        if (temp_post_data->field_item[pos_m] == '"')
+        {
+            pos_m++;
+            break;
+        }
+        temp_post_data->field_name.push_back(temp_post_data->field_item[pos_m]);
+        if (temp_post_data->field_name.size() > 512)
+        {
+            error = 40028;
+            return;
+        }
+    }
+
+    //filename
+    for (; pos_m < temp_post_data->field_item.size(); pos_m++)
+    {
+        if (temp_post_data->field_item[pos_m] != ' ')
+        {
+            break;
+        }
+    }
+    if (pos_m >= temp_post_data->field_item.size())
+    {
+        error = 40029;
+        return;
+    }
+
+    if (temp_post_data->field_item[pos_m] == ';')
+    {
+        temp_post_data->isfile = true;
+        pos_m++;
+        keyname_field.clear();
+        for (; pos_m < temp_post_data->field_item.size(); pos_m++)
+        {
+            if (temp_post_data->field_item[pos_m] != ' ')
             {
-                isbound = 2;
                 break;
             }
-            j++;
         }
-        if (isbound == 0)
+
+        for (; pos_m < temp_post_data->field_item.size(); pos_m++)
         {
-            changetype    = 0;
-            postfieldtype = 2;
-            header_input.clear();
-            i = j;
-            if (uprawfile)
+            if (temp_post_data->field_item[pos_m] == '=')
             {
-                // fclose(uprawfile);
-                // uprawfile = NULL;
-                uprawfile.reset(nullptr);
+                pos_m++;
+                break;
             }
-            procssformfile();
-            header_key.clear();
-            header_value.clear();
-            header_temp.clear();
-            header_input.clear();
-            buffer_key.clear();
-
-            headerstep = 0;
-
-            if (buffer[i] == 0x2D && buffer[i + 1] == 0x2D)
+            keyname_field.push_back(temp_post_data->field_item[pos_m]);
+            if (keyname_field.size() > 64)
             {
-                headerfinish = 2;
-                i += 2;
-                readoffset    = i;
-                headendhitnum = 0;
+                error = 40030;
                 return;
             }
-            if (buffer[i] == 0x0D && i < buffersize)
-            {
-                i++;
-                headendhitnum++;
-            }
-            if (buffer[i] == 0x0A && i < buffersize)
-            {
-                i++;
-                headendhitnum++;
-            }
+        }
 
-            readoffset = i;
+        if (!str_casecmp(keyname_field, "filename"))
+        {
+            error = 40031;
             return;
         }
 
-        upfile->size += header_input.size();
-        fwrite(&header_input[0], header_input.size(), 1, uprawfile.get());
-        header_input.clear();
-    }
-    changetype = 0;
-    for (; i < buffersize; i++)
-    {
-        if (buffer[i] == 0x0D)
+        if (pos_m >= temp_post_data->field_item.size())
         {
-            headerstep = 1;
-            header_input.clear();
-            header_input.push_back(0x0D);
-            j = i + 1;
-            if (j < buffersize && buffer[j] == 0x0A)
+            error = 40032;
+            return;
+        }
+
+        for (; pos_m < temp_post_data->field_item.size(); pos_m++)
+        {
+            if (temp_post_data->field_item[pos_m] != ' ')
             {
-                j++;
-                headerstep += 1;
-                header_input.push_back(0x0A);
-                if (j < buffersize && buffer[j] == 0x2D)
+                break;
+            }
+        }
+
+        for (; pos_m < temp_post_data->field_item.size(); pos_m++)
+        {
+            if (temp_post_data->field_item[pos_m] == '"')
+            {
+                pos_m++;
+                break;
+            }
+        }
+
+        for (; pos_m < temp_post_data->field_item.size(); pos_m++)
+        {
+            if (temp_post_data->field_item[pos_m] == '"')
+            {
+                pos_m++;
+                break;
+            }
+            temp_post_data->filename.push_back(temp_post_data->field_item[pos_m]);
+            if (temp_post_data->filename.size() > 512)
+            {
+                error = 40034;
+                return;
+            }
+        }
+        for (; pos_m < temp_post_data->field_item.size(); pos_m++)
+        {
+            if (temp_post_data->field_item[pos_m] == '\r')
+            {
+                pos_m++;
+                if (pos_m < temp_post_data->field_item.size())
                 {
-                    j++;
-                    headerstep += 1;
-                    header_input.push_back(0x2D);
-                    if (j < buffersize && buffer[j] == 0x2D)
+                    if (temp_post_data->field_item[pos_m] == '\n')
                     {
-                        j++;
-                        headerstep += 1;
-                        header_input.push_back(0x2D);
-                        for (unsigned int nnn = 0; nnn < poststate->boundary.size(); nnn++)
+                        pos_m++;
+                    }
+                }
+                break;
+            }
+        }
+        keyname_field.clear();
+        for (; pos_m < temp_post_data->field_item.size(); pos_m++)
+        {
+            if (temp_post_data->field_item[pos_m] == '\r')
+            {
+                pos_m++;
+                if (pos_m < temp_post_data->field_item.size())
+                {
+                    if (temp_post_data->field_item[pos_m] == '\n')
+                    {
+                        pos_m++;
+                    }
+                }
+                break;
+            }
+            keyname_field.push_back(temp_post_data->field_item[pos_m]);
+            if (keyname_field.size() > 128)
+            {
+                error = 40035;
+                return;
+            }
+        }
+        if (!keyname_field.empty())
+        {
+            unsigned int i = 0;
+            for (; i < keyname_field.size(); i++)
+            {
+                if (keyname_field[i] == ':')
+                {
+                    i++;
+                    for (; i < keyname_field.size(); i++)
+                    {
+                        if (keyname_field[i] != ' ')
                         {
-                            if (buffer[j] != poststate->boundary[nnn])
-                            {
-                                isbound = 2;
-                                break;
-                            }
-                            header_input.push_back(buffer[j]);
-                            j += 1;
-                            if (j >= buffersize)
-                            {
-                                changetype = nnn + 1;
-                                isbound    = 1;
-                                break;
-                            }
+                            break;
                         }
-                        if (isbound == 0)
+                    }
+                    break;
+                }
+            }
+            for (; i < keyname_field.size(); i++)
+            {
+                temp_post_data->mimetype.push_back(keyname_field[i]);
+            }
+        }
+    }
+    else
+    {
+        if (temp_post_data->field_item[pos_m] == '\r')
+        {
+            pos_m++;
+            if (pos_m < temp_post_data->field_item.size())
+            {
+                if (temp_post_data->field_item[pos_m] == '\n')
+                {
+                    pos_m++;
+                }
+            }
+        }
+    }
+    keyname_field.clear();
+    for (; pos_m < temp_post_data->field_item.size(); pos_m++)
+    {
+        if (temp_post_data->field_item[pos_m] == '\r')
+        {
+            pos_m++;
+            if (pos_m < temp_post_data->field_item.size())
+            {
+                if (temp_post_data->field_item[pos_m] == '\n')
+                {
+                    pos_m++;
+                }
+            }
+            break;
+        }
+    }
+
+    std::string_view keyvalue_field(&temp_post_data->field_item[pos_m], temp_post_data->field_item.size() - pos_m);
+    if (temp_post_data->isfile)
+    {
+        server_loaclvar &localvar     = get_server_global_var();
+        temp_post_data->temp_filename = localvar.temp_path;
+        if (temp_post_data->temp_filename.size() > 0 && temp_post_data->temp_filename.back() != '/')
+        {
+            temp_post_data->temp_filename.push_back('/');
+        }
+
+        temp_post_data->temp_filename = temp_post_data->temp_filename + std::to_string(http::timeid()) + rand_string(6, 0) + "_" + std::to_string(peer->content_length);
+        std::unique_ptr<std::FILE, int (*)(FILE *)> fpa(std::fopen(temp_post_data->temp_filename.c_str(), "wb"), std::fclose);
+        if (fpa)
+        {
+            temp_post_data->fp         = std::move(fpa);
+            temp_post_data->cur_length = keyvalue_field.size();
+            size_t n                   = fwrite(&keyvalue_field[0], 1, keyvalue_field.size(), temp_post_data->fp.get());
+            if (n != keyvalue_field.size())
+            {
+                error = 40036;
+                temp_post_data->fp.reset();
+                std::remove(temp_post_data->temp_filename.c_str());// 再删除孤儿文件
+                return;
+            }
+        }
+        if (isfilefull)
+        {
+            multipart_post_file_field();
+            temp_post_data->fp.reset();
+            temp_post_data->isfile = false;
+            temp_post_data->temp_filename.clear();
+            temp_post_data->filename.clear();
+        }
+    }
+    else
+    {
+        post_form_to_postfield(temp_post_data->field_name, keyvalue_field);
+    }
+}
+
+void httpparse::reset_uploadfile()
+{
+    if (temp_post_data->temp_filename.size() > 0)
+    {
+        if (temp_post_data->fp)
+        {
+            post_multipart_itemcontent_append();
+            multipart_post_file_field();
+        }
+    }
+    temp_post_data->isfile = false;
+    temp_post_data->temp_filename.clear();
+    temp_post_data->field_name.clear();
+    temp_post_data->filename.clear();
+    temp_post_data->fp.reset();
+}
+
+void httpparse::post_multipart_formdata()
+{
+    unsigned int pos_m = temp_post_data->field_offset;
+
+    //处理上次剩余的
+    if (temp_post_data->pre_content.size() > 0)
+    {
+        if (temp_post_data->pre_content.size() == 1)
+        {
+            bool isnotmatch = true;
+            if (temp_post_data->content[pos_m] == '-')
+            {
+                //说明已经命中两个，接着直接匹配boundary
+                pos_m++;
+                if ((pos_m + temp_post_data->boundary.size()) > temp_post_data->content.size())
+                {
+                    //两次数量小于boundary.size()
+                    temp_post_data->field_offset = temp_post_data->content.size();
+                    return;
+                }
+                unsigned int i = 0;
+                for (; i < temp_post_data->boundary.size(); i++)
+                {
+                    if (temp_post_data->content[pos_m] != temp_post_data->boundary[i])
+                    {
+                        pos_m = temp_post_data->field_offset;
+                        break;
+                    }
+                    pos_m++;
+                }
+                if (i == temp_post_data->boundary.size())
+                {
+                    isnotmatch = false;
+                }
+            }
+            //说明是假匹配
+            temp_post_data->pre_content.clear();
+            if (isnotmatch)
+            {
+                temp_post_data->field_item.push_back('-');
+                //重新开始当作没有发生过
+                pos_m = temp_post_data->field_offset;
+            }
+            else
+            {
+                temp_post_data->field_offset = pos_m;
+                if (temp_post_data->field_item.size() > 1)
+                {
+                    temp_post_data->field_item.resize(temp_post_data->field_item.size() - 2);
+                }
+                reset_uploadfile();
+                post_multipart_itemcontent(true);
+                temp_post_data->field_item.clear();
+                if ((pos_m + 1) < temp_post_data->content.size())
+                {
+                    if (temp_post_data->content[pos_m] == '-')
+                    {
+                        if (temp_post_data->content[pos_m + 1] == '-')
                         {
-
-                            changetype    = 0;
-                            postfieldtype = 2;
-                            header_input.clear();
-
-                            fwrite(&buffer[readoffset], (i - readoffset), 1, uprawfile.get());
-                            upfile->size += (i - readoffset);
-                            i = j;
-                            if (uprawfile)
-                            {
-                                // fclose(uprawfile);
-                                // uprawfile = NULL;
-                                uprawfile.reset(nullptr);
-                            }
-                            procssformfile();
-                            header_key.clear();
-                            header_value.clear();
-                            header_temp.clear();
-                            header_input.clear();
-                            buffer_key.clear();
-
-                            headerstep = 0;
-                            // i++;
-                            if (buffer[i] == 0x2D && buffer[i + 1] == 0x2D)
-                            {
-                                headerfinish = 2;
-                                i += 2;
-                                readoffset    = i;
-                                headendhitnum = 0;
-                                return;
-                            }
-                            if (buffer[i] == 0x0D && i < buffersize)
-                            {
-                                i++;
-                                headendhitnum++;
-                            }
-                            if (buffer[i] == 0x0A)
-                            {
-                                i++;
-                                headendhitnum++;
-                            }
-
-                            readoffset = i;
-                            return;
+                            peer->isfinish = true;
+                            //post body end
+                            pos_m = pos_m + 1;
+                            //next char
+                            temp_post_data->field_offset = pos_m + 1;
+                        }
+                    }
+                    else if (temp_post_data->content[pos_m] == '\r')
+                    {
+                        if (temp_post_data->content[pos_m + 1] == '\n')
+                        {
+                            pos_m = pos_m + 1;
+                            //next char
+                            temp_post_data->field_offset = pos_m + 1;
                         }
                     }
                 }
+                return;
             }
-            if (j >= buffersize)
-            {
-                // i += 1;
-                break;
-            }
-            header_input.clear();
-            headerstep = 0;
-            changetype = 0;
         }
-    }
-    fwrite(&buffer[readoffset], (i - readoffset), 1, uprawfile.get());
-    upfile->size += (i - readoffset);
-    readoffset = buffersize;
-}
-void httpparse::readmultipartformdata(const unsigned char *buffer, unsigned int buffersize)
-{
-
-    for (; readoffset < buffersize;)
-    {
-        switch (postfieldtype)
+        else if (temp_post_data->pre_content.size() == 2)
         {
-        case 0:
-            // 开头
-            readboundaryline(buffer, buffersize);
-            headendhitnum = 0;
-            header_key.clear();
-            header_value.clear();
-            header_temp.clear();
-            header_input.clear();
-            buffer_key.clear();
-            break;
-        case 2:
-            readformfilename(buffer, buffersize);
-            break;
-        case 7:
-            readformfielditem(buffer, buffersize);
-            break;
-        case 9:
-            readformfilecotent(buffer, buffersize);
-            break;
-        default:
-            readoffset++;
-        }
-    }
-}
-void httpparse::readformjson(const unsigned char *buffer, unsigned int buffersize)
-{
-    unsigned int i = readoffset;
-    for (; i < buffersize; i++)
-    {
-        buffer_value.push_back(buffer[i]);
-    }
-    readoffset = i;
-    if ((buffer_value.size() + 2) >= content_length)
-    {
-        headerfinish     = 2;
-        peer->rawcontent = std::move(buffer_value);
-        peer->json.from_json(peer->rawcontent);
-        buffer_value.clear();
-    }
-}
-void httpparse::readformurlencoded(const unsigned char *buffer, unsigned int buffersize)
-{
-    unsigned int i = readoffset;
-    for (; i < buffersize; i++)
-    {
-        buffer_value.push_back(buffer[i]);
-    }
-    readoffset = i;
-    if ((buffer_value.size() + 2) >= content_length)
-    {
-        headerfinish = 2;
-
-        header_key.clear();
-        header_value.clear();
-        header_temp.clear();
-        header_input.clear();
-        unsigned int qsize    = buffer_value.size();
-        unsigned char partype = 0;
-        unsigned int j        = 0;
-        unsigned int jj       = 0;
-        for (j = 0; j < qsize; j++)
-        {
-            if (buffer_value[j] == 0x3D)
+            bool isnotmatch = true;
+            if ((pos_m + temp_post_data->boundary.size()) > temp_post_data->content.size())
             {
-                header_temp = http::url_decode(header_value.data(), header_value.length());
-                header_value.clear();
-                partype = 1;
-                jj      = 0;
-                continue;
+                //两次数量小于boundary.size()
+                temp_post_data->field_offset = temp_post_data->content.size();
+                return;
             }
-            else if (buffer_value[j] == 0x26)
+            unsigned int i = 0;
+            for (; i < temp_post_data->boundary.size(); i++)
             {
-                header_input = http::url_decode(header_value.data(), header_value.length());
-                if (header_temp.size() > 48)
+                if (temp_post_data->content[pos_m] != temp_post_data->boundary[i])
                 {
-                    error = 400;
-                    return;
+                    pos_m = temp_post_data->field_offset;
+                    break;
                 }
-                procssxformurlencoded();
-                header_value.clear();
-                partype = 2;
-                jj      = 0;
-                continue;
+                pos_m++;
             }
-            header_value.push_back(buffer_value[j]);
-
-            if (partype == 0 || partype == 2)
+            if (i == temp_post_data->boundary.size())
             {
-                //key name too long
-                if (jj > 72)
+                isnotmatch = false;
+            }
+
+            //说明是假匹配
+            temp_post_data->pre_content.clear();
+            if (isnotmatch)
+            {
+                //需要恢复2个
+                temp_post_data->field_item.push_back('-');
+                temp_post_data->field_item.push_back('-');
+                //重新开始当作没有发生过
+                pos_m = temp_post_data->field_offset;
+            }
+            else
+            {
+                temp_post_data->field_offset = pos_m;
+                if (temp_post_data->field_item.size() > 1)
                 {
-                    error = 4001;
-                    return;
+                    temp_post_data->field_item.resize(temp_post_data->field_item.size() - 2);
                 }
-            }
-            jj++;
-        }
-        if (partype == 1)
-        {
-            header_input = http::url_decode(header_value.data(), header_value.length());
-            if (header_temp.size() > 48)
-            {
-                error = 400;
+
+                reset_uploadfile();
+                post_multipart_itemcontent(true);
+                temp_post_data->field_item.clear();
+                if ((pos_m + 1) < temp_post_data->content.size())
+                {
+                    if (temp_post_data->content[pos_m] == '-')
+                    {
+                        if (temp_post_data->content[pos_m + 1] == '-')
+                        {
+                            peer->isfinish = true;
+                            //post body end
+                            pos_m = pos_m + 1;
+                            //next char
+                            temp_post_data->field_offset = pos_m + 1;
+                        }
+                    }
+                    else if (temp_post_data->content[pos_m] == '\r')
+                    {
+                        if (temp_post_data->content[pos_m + 1] == '\n')
+                        {
+                            pos_m = pos_m + 1;
+                            //next char
+                            temp_post_data->field_offset = pos_m + 1;
+                        }
+                    }
+                }
                 return;
             }
-            procssxformurlencoded();
-        }
-        else if (partype == 2)
-        {
-            header_temp = http::url_decode(header_value.data(), header_value.length());
-            header_input.clear();
-            if (header_temp.size() > 48)
-            {
-                error = 400;
-                return;
-            }
-            procssxformurlencoded();
-        }
-        else if (header_value.size() > 0)
-        {
-            header_temp = http::url_decode(header_value.data(), header_value.length());
-            header_input.clear();
-            if (header_temp.size() > 48)
-            {
-                error = 400;
-                return;
-            }
-            procssxformurlencoded();
-        }
-    }
-}
-void httpparse::readformxml(const unsigned char *buffer, unsigned int buffersize)
-{
-    unsigned int i = readoffset;
-    for (; i < buffersize; i++)
-    {
-        buffer_value.push_back(buffer[i]);
-    }
-    readoffset = i;
-    if ((buffer_value.size() + 2) >= content_length)
-    {
-        headerfinish     = 2;
-        peer->rawcontent = buffer_value;
-    }
-}
-void httpparse::readformraw(const unsigned char *buffer, unsigned int buffersize)
-{
-    unsigned int i = readoffset;
-
-    if (!uprawfile)
-    {
-        server_loaclvar &localvar = get_server_global_var();
-
-        srand((int)time(0));
-        header_temp = "application/octet-stream" + std::to_string(timeid()) + std::to_string(rand());
-
-        if (upfile == nullptr)
-        {
-            upfile = std::make_unique<uploadfile_t>();
         }
         else
         {
-            upfile->name.clear();
-            upfile->filename.clear();
-            upfile->tempfile.clear();
-            upfile->type.clear();
-            upfile->size  = 0;
-            upfile->error = 0;
-        }
+            //3个字符，进入boundary 匹配
+            bool isnotmatch = true;
 
-        upfile->tempfile = localvar.temp_path;
-        upfile->tempfile.append(std::to_string(std::hash<std::string>{}(header_temp)));
-
-        // uprawfile = fopen(upfile.tempfile.c_str(), "wb");
-        uprawfile.reset(fopen(upfile->tempfile.c_str(), "wb"));
-        if (!uprawfile)
-        {
-            upfile->tempfile.append("_t");
-            // uprawfile = fopen(upfile.tempfile.c_str(), "wb");
-            uprawfile.reset(fopen(upfile->tempfile.c_str(), "wb"));
-            if (!uprawfile)
+            if ((pos_m + temp_post_data->boundary.size()) > temp_post_data->content.size())
             {
-                error = 3;
+                temp_post_data->field_offset = temp_post_data->content.size();
+                return;
+            }
+            unsigned int i = temp_post_data->pre_content.size() - 2;
+            for (; i < temp_post_data->boundary.size(); i++)
+            {
+                if (temp_post_data->content[pos_m] != temp_post_data->boundary[i])
+                {
+                    pos_m = temp_post_data->field_offset;
+                    break;
+                }
+                pos_m++;
+            }
+            if (i == temp_post_data->boundary.size())
+            {
+                isnotmatch = false;
+            }
+
+            //说明是假匹配
+            if (isnotmatch)
+            {
+                //恢复所有temp_post_data->pre_content
+                temp_post_data->field_item.append(temp_post_data->pre_content);
+                //重新开始当作没有发生过
+                pos_m = temp_post_data->field_offset;
+                temp_post_data->pre_content.clear();
+            }
+            else
+            {
+                temp_post_data->pre_content.clear();
+                temp_post_data->field_offset = pos_m;
+
+                if (temp_post_data->field_item.size() > 1)
+                {
+                    temp_post_data->field_item.resize(temp_post_data->field_item.size() - 2);
+                }
+
+                reset_uploadfile();
+                post_multipart_itemcontent(true);
+                temp_post_data->field_item.clear();
+                if ((pos_m + 1) < temp_post_data->content.size())
+                {
+                    if (temp_post_data->content[pos_m] == '-')
+                    {
+                        if (temp_post_data->content[pos_m + 1] == '-')
+                        {
+                            peer->isfinish = true;
+                            //post body end
+                            pos_m = pos_m + 1;
+                            //next char
+                            temp_post_data->field_offset = pos_m + 1;
+                        }
+                    }
+                    else if (temp_post_data->content[pos_m] == '\r')
+                    {
+                        if (temp_post_data->content[pos_m + 1] == '\n')
+                        {
+                            pos_m = pos_m + 1;
+                            //next char
+                            temp_post_data->field_offset = pos_m + 1;
+                        }
+                    }
+                }
+                return;
             }
         }
-        upfile->size = 0;
     }
-    if (i < buffersize && uprawfile)
+
+    temp_post_data->pre_content.clear();
+    for (; pos_m < temp_post_data->content.size(); pos_m++)
     {
-        unsigned int tempnum = buffersize - i;
-        fwrite(&buffer[i], tempnum, 1, uprawfile.get());
-        upfile->size += tempnum;
-    }
-    if (upfile == nullptr)
-    {
-        return;
-    }
-    if ((upfile->size + 2) >= content_length)
-    {
-        if (uprawfile)
+        if (temp_post_data->content[pos_m] == '-')
         {
-            // fclose(uprawfile);
-            uprawfile.reset(nullptr);
+            unsigned int j = pos_m;
+            j++;
+            if (j < temp_post_data->content.size())
+            {
+                if (temp_post_data->content[j] == '-')
+                {
+                    j++;
+                    if (j < temp_post_data->content.size())
+                    {
+                        //主要是检查是否匹配或最后
+                        unsigned int i = 0;
+                        for (; i < temp_post_data->boundary.size();)
+                        {
+                            if (temp_post_data->content[j] != temp_post_data->boundary[i])
+                            {
+                                break;
+                            }
+                            j++;
+                            i++;
+                            if (j >= temp_post_data->content.size())
+                            {
+                                break;
+                            }
+                        }
+                        if (i == temp_post_data->boundary.size())
+                        {
+
+                            temp_post_data->field_item.append(&temp_post_data->content[temp_post_data->field_offset], pos_m - temp_post_data->field_offset);
+
+                            if (temp_post_data->field_item.size() > 1)
+                            {
+                                temp_post_data->field_item.resize(temp_post_data->field_item.size() - 2);
+                            }
+
+                            reset_uploadfile();
+                            post_multipart_itemcontent(true);
+                            temp_post_data->field_offset = j;
+                            temp_post_data->field_item.clear();
+
+                            if (j + 1 < temp_post_data->content.size())
+                            {
+                                if (temp_post_data->content[j] == '-' && temp_post_data->content[j + 1] == '-')
+                                {
+                                    temp_post_data->field_offset = j + 1;
+                                    peer->isfinish               = true;
+                                }
+                                else if (temp_post_data->content[j] == '\r' && temp_post_data->content[j + 1] == '\n')
+                                {
+                                    temp_post_data->field_offset = j + 1;
+                                }
+                            }
+
+                            return;
+                        }
+                        if (j >= temp_post_data->content.size())
+                        {
+                            //例外已经到头了
+                            //让进入下一轮
+                            temp_post_data->pre_content.append(&temp_post_data->content[pos_m], temp_post_data->content.size() - pos_m);
+                            temp_post_data->field_item.append(&temp_post_data->content[temp_post_data->field_offset], pos_m - temp_post_data->field_offset);
+                            temp_post_data->field_offset = temp_post_data->content.size();
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        temp_post_data->pre_content.push_back('-');
+                        temp_post_data->pre_content.push_back('-');
+                        temp_post_data->field_item.append(&temp_post_data->content[temp_post_data->field_offset], pos_m - temp_post_data->field_offset);
+                        temp_post_data->field_offset = temp_post_data->content.size();
+                        return;
+                    }
+                }
+            }
+            else
+            {
+                temp_post_data->pre_content.push_back('-');
+                temp_post_data->field_item.append(&temp_post_data->content[temp_post_data->field_offset], pos_m - temp_post_data->field_offset);
+                temp_post_data->field_offset = temp_post_data->content.size();
+                return;
+            }
         }
-        // uprawfile = NULL;
-        peer->files["tempraw"].set_object();
-        peer->files["tempraw"]["name"]     = "tempraw";
-        peer->files["tempraw"]["filename"] = "";
-        peer->files["tempraw"]["tempfile"] = upfile->tempfile;
-        peer->files["tempraw"]["type"]     = "application/octet-stream";
-        peer->files["tempraw"]["size"]     = upfile->size;
-        peer->files["tempraw"]["error"]    = upfile->error;
-        headerfinish                       = 2;
+    }
+    temp_post_data->field_item.append(&temp_post_data->content[temp_post_data->field_offset], pos_m - temp_post_data->field_offset);
+    temp_post_data->field_offset = pos_m;
+}
+
+void httpparse::read_http_post_block(const unsigned char *buffer, unsigned int buffersize)
+{
+    if (peer->compress == 10)
+    {
+        if (peer->content_length > CONST_PHP_BODY_POST_SIZE)
+        {
+            error = 40005;
+            return;
+        }
+        if (peer->output.size() > peer->content_length)
+        {
+            error = 40006;
+            return;
+        }
+
+        peer->output.append((char *)&buffer[readoffset], (buffersize - readoffset));
+        readoffset = buffersize;
+        if (peer->output.size() >= peer->content_length)
+        {
+            peer->isfinish = true;
+        }
+    }
+    else
+    {
+        http_content_length += (buffersize - readoffset);
+
+        if (posttype == 0)
+        {
+            //fix weixin browser
+            if (readoffset < buffersize)
+            {
+                char first = buffer[readoffset];
+                if (first == '-')
+                {
+                    posttype = 2;// multipart
+                }
+                else if (first == '{' || first == '[')
+                {
+                    posttype = 3;// json
+                }
+                else if (first == '<')
+                {
+                    posttype = 4;// xml
+                }
+                else
+                {
+                    posttype = 5;// fallback: raw
+                }
+            }
+        }
+
+        switch (posttype)
+        {
+        case 1:
+            // x-www-form-urlencoded
+            peer->rawcontent.append((char *)&buffer[readoffset], (buffersize - readoffset));
+            readoffset = buffersize;
+            if (peer->rawcontent.size() >= peer->content_length)
+            {
+                post_www_form_urlencoded(peer->rawcontent);
+                peer->isfinish = true;
+            }
+
+            if (error > 0)
+            {
+                return;
+            }
+            break;
+        case 2:
+            // multipart/form-data
+            if (temp_post_data == nullptr)
+            {
+                temp_post_data = std::make_shared<HTTP_POST_DATA_T>();
+            }
+
+            temp_post_data->content      = std::string_view((const char *)&buffer[readoffset], buffersize - readoffset);
+            readoffset                   = buffersize;
+            temp_post_data->field_offset = 0;
+            for (; temp_post_data->field_offset < temp_post_data->content.size();)
+            {
+                post_multipart_formdata();
+            }
+
+            if (temp_post_data->isfile && temp_post_data->field_item.size() > 3145728)
+            {
+                //及时消化掉大文件中间内容，尽快保存到文件
+                post_multipart_itemcontent_append();
+                temp_post_data->field_item.clear();
+            }
+            else if (temp_post_data->field_item.size() > 3145728)
+            {
+                if (!temp_post_data->isfile)
+                {
+                    std::string_view check_filename = std::string_view(temp_post_data->field_item.data(), 80);
+                    size_t pos                      = check_filename.find("filename");
+                    if (pos != std::string::npos)
+                    {
+                        reset_uploadfile();
+                        post_multipart_itemcontent(false);
+                        temp_post_data->field_item.clear();
+                    }
+                }
+            }
+
+            if (peer->isfinish)
+            {
+                reset_uploadfile();
+            }
+
+            if (error > 0)
+            {
+                return;
+            }
+            break;
+        case 3:
+            // json
+            peer->rawcontent.append((char *)&buffer[readoffset], (buffersize - readoffset));
+            readoffset = buffersize;
+            if (peer->rawcontent.size() >= peer->content_length)
+            {
+                peer->json.from_json(peer->rawcontent);
+                peer->isfinish = true;
+            }
+
+            if (error > 0)
+            {
+                return;
+            }
+
+            if (peer->rawcontent.size() > CONST_HTTP_JSON_POST_SIZE)
+            {
+                error = 403;
+                return;
+            }
+            break;
+        case 4:
+            // xml
+            peer->rawcontent.append((char *)&buffer[readoffset], (buffersize - readoffset));
+            readoffset = buffersize;
+            if (error > 0)
+            {
+                return;
+            }
+            if (peer->rawcontent.size() >= peer->content_length)
+            {
+                peer->isfinish = true;
+            }
+            if (peer->rawcontent.size() > CONST_HTTP_JSON_POST_SIZE)
+            {
+                error = 403;
+                return;
+            }
+            break;
+        case 5:
+            // octet-stream
+            read_rawfile_formdata(std::string_view((const char *)&buffer[readoffset], buffersize - readoffset));
+            readoffset = buffersize;
+            if (http_content_length >= peer->content_length)
+            {
+                peer->isfinish = true;
+            }
+            break;
+        }
+
+        if (http_content_length > CONST_HTTP_BODY_POST_SIZE)
+        {
+            error = 40004;
+            return;
+        }
     }
 }
 
 void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
 {
     readoffset = 0;
-    if (headerfinish == 0)
+    for (; readoffset < buffersize;)
     {
-        for (; readoffset < buffersize;)
+        if (isfinish_header)
         {
-            readheaderline(buffer, buffersize);
-            if (error > 0)
-            {
-                break;
-            }
-            if (headerfinish == 1)
-            {
-                if (method == HEAD_METHOD::POST)
-                {
-                    error = peer->check_upload_limit();
-                }
-                peer->isuse_fastcgi();
-                changetype = 0;
-                break;
-            }
-            changetype = changetype + readoffset;
-            if (changetype > CONST_HTTP_HEADER_BODY_SIZE)
-            {
-                DEBUG_LOG("changetype > CONST_HTTP_HEADER_BODY_SIZE %u %d", changetype, CONST_HTTP_HEADER_BODY_SIZE);
-                error = 403;
-                return;
-            }
-        }
-    }
-    if (error > 0)
-    {
-        return;
-    }
-    if (headerfinish == 1)
-    {
-        if (method == HEAD_METHOD::POST)
-        {
-            if (peer->compress == 10)
-            {
-                if (peer->content_length > CONST_PHP_BODY_POST_SIZE)
-                {
-                    error = 403;
-                    return;
-                }
-                if (peer->output.size() > peer->content_length)
-                {
-                    error = 403;
-                    return;
-                }
-                peer->output.append((char *)&buffer[readoffset], (buffersize - readoffset));
-                if (peer->output.size() == peer->content_length)
-                {
-                    headerfinish = 2;
-                }
-            }
-            else
-            {
-                if (peer->content_length > CONST_HTTP_BODY_POST_SIZE)
-                {
-                    error = 403;
-                    return;
-                }
-                if (peer->upload_length > CONST_HTTP_BODY_POST_SIZE)
-                {
-                    error = 403;
-                    return;
-                }
-                peer->upload_length = peer->upload_length + buffersize - readoffset;
-                if (peer->upload_length > peer->content_length)
-                {
-                    DEBUG_LOG("upload_length > content_length %llu %llu", peer->upload_length, peer->content_length);
-                    error = 403;
-                    return;
-                }
-                switch (posttype)
-                {
-                case 1:
-                    // x-www-form-urlencoded
-                    readformurlencoded(buffer, buffersize);
-                    if (error > 0)
-                    {
-                        return;
-                    }
-                    break;
-                case 2:
-                    // multipart/form-data-
-                    readmultipartformdata(buffer, buffersize);
-                    if (error > 0)
-                    {
-                        return;
-                    }
-                    break;
-                case 3:
-                    // json
-                    readformjson(buffer, buffersize);
-                    if (peer->content_length > CONST_HTTP_JSON_POST_SIZE)
-                    {
-                        error = 403;
-                        return;
-                    }
-                    if (peer->upload_length > CONST_HTTP_JSON_POST_SIZE)
-                    {
-                        error = 403;
-                        return;
-                    }
-                    break;
-                case 4:
-                    // xml
-                    readformxml(buffer, buffersize);
-                    if (peer->content_length > CONST_HTTP_JSON_POST_SIZE)
-                    {
-                        error = 403;
-                        return;
-                    }
-                    if (peer->upload_length > CONST_HTTP_JSON_POST_SIZE)
-                    {
-                        error = 403;
-                        return;
-                    }
-                    break;
-                case 5:
-                    // octet-stream
-                    readformraw(buffer, buffersize);
-                    break;
-                }
-            }
-            if (readoffset < buffersize)
-            {
-                readoffset = buffersize;
-            }
-        }
-    }
-}
-bool httpparse::getfinish()
-{
-    if (method == HEAD_METHOD::POST)
-    {
-        if (headerfinish == 2)
-        {
-            return true;
+            read_http_post_block(buffer, buffersize);
         }
         else
         {
-            return false;
+            //full http header block
+            read_http_header_block(buffer, buffersize);
+            if (http_content_length > CONST_HTTP_HEADER_BODY_SIZE)
+            {
+                error = 40002;
+                return;
+            }
+            if (isfinish_header)
+            {
+                if (method == HEAD_METHOD::POST || method == HEAD_METHOD::QUERY)
+                {
+                    error = peer->check_upload_limit();
+                }
+                else
+                {
+                    peer->isfinish = true;
+                }
+                peer->isuse_fastcgi();
+                http_content_length = 0;
+            }
+        }
+
+        if (error > 0)
+        {
+            break;
         }
     }
-    if (headerfinish == 1)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
+}
+
+bool httpparse::getfinish()
+{
+    return peer->isfinish;
 }
 
 void httpparse::clear()
 {
-    readoffset     = 0;
-    headendhitnum  = 0;
-    postfieldtype  = 0;
-    changetype     = 0;
-    headerstep     = 0;
-    posttype       = 0;
-    content_length = 0;
+    isfinish_header = false;
+    isfinish_url    = false;
 
+    posttype          = 0;
+    http_action_setup = 0;
+    headerfinish      = 0;
+    port              = 0;
+
+    http_content_length = 0;
+    header_line.clear();
+    raw_header_content.clear();
+    pre_http_header.clear();
+
+    readoffset = 0;
     uprawfile.reset(nullptr);
-    error = 0;
-
-    method       = HEAD_METHOD::UNKNOW;
-    headerfinish = 0;
-
-    contentline.clear();
-    header_key.clear();
-    header_value.clear();
-    header_temp.clear();
-    header_input.clear();
-    buffer_key.clear();
-    buffer_value.clear();
-
-    get_param_count  = 0;
-    post_param_count = 0;
-
-    poststate.reset(nullptr);
-    upfile.reset(nullptr);
+    error  = 0;
+    method = HEAD_METHOD::UNKNOW;
 
     if (websocket != nullptr)
     {
@@ -3517,6 +3367,23 @@ void httpparse::clear()
         websocket->version           = 0x00;
         websocket->key.clear();
         websocket->ext.clear();
+    }
+
+    if (temp_post_data != nullptr)
+    {
+        temp_post_data->isfile     = false;
+        temp_post_data->exp_length = 0;//需要的长度
+        temp_post_data->cur_length = 0;//当前长度
+        temp_post_data->content    = std::string_view();
+        temp_post_data->chartset.clear();
+        temp_post_data->mimetype.clear();
+        temp_post_data->boundary.clear();
+        temp_post_data->pre_content.clear();
+        temp_post_data->filename.clear();
+        temp_post_data->field_name.clear();
+        temp_post_data->field_item.clear();
+        temp_post_data->temp_filename.clear();
+        temp_post_data->fp.reset();
     }
 }
 

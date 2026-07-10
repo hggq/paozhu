@@ -284,7 +284,7 @@ void httppeer::parse_session()
 {
     if (cookie.check(COOKIE_SESSION_NAME))
     {
-        std::string sessionfile   = cookie.get(COOKIE_SESSION_NAME);
+        std::string sessionfile = cookie.get(COOKIE_SESSION_NAME);
         if (sessionfile.empty())
         {
             return;
@@ -523,17 +523,17 @@ void httppeer::theme_view(const std::string &a)
     {
         view_name = a;
     }
-    else 
+    else
     {
-        if(sysconfigpath.sitehostinfos[host_index].themes.size()>0)
+        if (sysconfigpath.sitehostinfos[host_index].themes.size() > 0)
         {
             view_name = sysconfigpath.sitehostinfos[host_index].themes;
             view_name.push_back('/');
         }
-        
+
         view_name.append(a);
     }
-    
+
     struct view_param tempvp(get, post, cookie, session);
     if (!isso)
     {
@@ -1330,6 +1330,21 @@ void httppeer::set_header(const std::string &a, const std::string &v)
         send_header[a] = v;
     }
 }
+
+std::string httppeer::get_header(std::string_view key_name)
+{
+    std::string key;
+    key.resize(key_name.size());
+    std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+
+    auto iter = header.find(key);
+    if (iter != header.end())
+    {
+        return iter->second;
+    }
+    return "";
+}
+
 void httppeer::set_cookie(std::string key,
                           std::string value,
                           long long exptime,
@@ -2158,17 +2173,21 @@ void httppeer::clsoesend()
 
 void httppeer::clear()
 {
-    host.clear();;
-    url.clear();;
-    urlpath.clear();;
-    querystring.clear();;
+    host.clear();
+    ;
+    url.clear();
+    ;
+    urlpath.clear();
+    ;
+    querystring.clear();
+    ;
 
-    content_type.clear();;
-    etag.clear();;
+    content_type.clear();
+    ;
+    etag.clear();
+    ;
 
     chartset.clear();
-    accept_language.clear();
-    rawheader.clear();
     rawcontent.clear();
     rawcontent.shrink_to_fit();
     header.clear();
@@ -2188,8 +2207,8 @@ void httppeer::clear()
     keepalive    = true;
     isso         = false;
 
-    posttype     = 0;
-    compress     = 0;
+    posttype = 0;
+    compress = 0;
 
     stream_id     = 0;
     status_code   = 0;
@@ -2229,11 +2248,11 @@ void httppeer::clear()
     output.shrink_to_fit();
     sitepath.clear();
     sendfilename.clear();
-    
+
     sendfiletype = 0;
-    linktype = 0;
-    method = 0;
-    httpv = 0;
+    linktype     = 0;
+    method       = 0;
+    httpv        = 0;
 
     user_code_handler_call.clear();
     flow_method.reset();

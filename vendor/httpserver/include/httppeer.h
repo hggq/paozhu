@@ -46,7 +46,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     std::string make_http2_header(unsigned char flag_code = 0);
     std::string make_http1_header();
     void set_header(const std::string &, const std::string &);
-    void get_header(const std::string &);
+    std::string get_header(std::string_view);
     void get_cookie(const std::string &);
 
     void flush_out();
@@ -145,8 +145,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     std::string etag;
 
     std::string chartset;
-    std::string accept_language;
-    std::string rawheader;
+    std::string accept_type;
     std::string rawcontent;
     std::map<std::string, std::string> header;
     http::obj_val get;
@@ -154,7 +153,9 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     http::obj_val files;
     http::obj_val json;
     http::obj_val val;
+    http::obj_val session;
     http::cookie cookie;
+    
     std::vector<std::string> pathinfos;
 
     bool issendheader = false;
@@ -165,9 +166,6 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     bool isssl        = false;
     bool keepalive    = true;
     bool isso         = false;
-
-    bool accept_json  = false;
-    bool accept_xml   = false;
 
     unsigned char posttype     = 0;
     unsigned char compress     = 0;
@@ -185,8 +183,6 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     //std::atomic_uint time_limit  = 0;
     struct headstate_t state;
     
-    http::obj_val session;
-
     //cookie send_cookie;
     std::list<std::string> send_cookie_lists;
     std::map<std::string, std::string> send_header;

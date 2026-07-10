@@ -5,6 +5,7 @@
 #include <ctime>
 #include <array>
 #include <string>
+#include <string_view>
 #ifndef _MSC_VER
 #include <sys/time.h>
 #include <unistd.h>
@@ -20,10 +21,10 @@ std::string rand_string(unsigned int a, unsigned char b = 0);
 std::string get_date(const std::string &format, unsigned int inputtime = 0);
 
 // Sat, 02 Jan 2021 00:12:45 GMT to sec
-unsigned int strgmttotime(const std::string &gmtstr);
+unsigned int strgmttotime(std::string_view gmtstr);
 
 // 2022-02-09 08:12:45 to sec
-unsigned int strtotime(const std::string &str);
+unsigned int strtotime(std::string_view str);
 std::string get_uuid();
 }// namespace http
 #endif
