@@ -242,7 +242,7 @@ asio::awaitable<void> httpserver::http2_co_send_compress(std::shared_ptr<httppee
     }
 
     send_file_obj->file_name.push_back('/');
-    send_file_obj->file_name.push_back(send_file_obj->etag[0]);
+    send_file_obj->file_name.push_back(send_file_obj->etag.size() > 0 ? send_file_obj->etag[0]:'0');
     paths = send_file_obj->file_name;
     if (!fs::exists(paths))
     {
@@ -299,7 +299,12 @@ asio::awaitable<void> httpserver::http2_co_send_compress(std::shared_ptr<httppee
         // create content
         std::string tempcompress;
         long long filesize = 0;
-        //一次性读入需要压缩的内容
+        //一次性读入需要压缩的内容，不大于16M
+        if(send_file_obj->content_length > 16877216)
+        {
+            peer->compress = 0;
+            co_return;
+        }
         tempcompress.resize(send_file_obj->content_length);
         filesize = fread(&tempcompress[0], 1, send_file_obj->content_length, send_file_obj->fp.get());
         tempcompress.resize(filesize);
@@ -2900,6 +2905,11 @@ asio::awaitable<unsigned int> httpserver::client_tcp_loop(unsigned int readnum, 
                 if (peer_session->_cache_data[offsetnum] >= '0' && peer_session->_cache_data[offsetnum] <= '9')
                 {
                     peer_session->window_update_num = peer_session->window_update_num * 10 + (peer_session->_cache_data[offsetnum] - '0');
+                    if (peer_session->window_update_num > 0xFFFFFFFE)
+                    {
+                        peer_session->isclose = true;
+                        co_return 0;
+                    }
                 }
             }
             else if (peer_session->httpv == 10)
@@ -2907,6 +2917,11 @@ asio::awaitable<unsigned int> httpserver::client_tcp_loop(unsigned int readnum, 
                 if (peer_session->_cache_data[offsetnum] >= '0' && peer_session->_cache_data[offsetnum] <= '9')
                 {
                     peer_session->old_window_update_num = peer_session->old_window_update_num * 10 + (peer_session->_cache_data[offsetnum] - '0');
+                }
+                if (peer_session->old_window_update_num > 0xFFFFFFFE)
+                {
+                    peer_session->isclose = true;
+                    co_return 0;
                 }
             }
         }
@@ -3225,10 +3240,7 @@ bool httpserver::http2_loop_send_sequence(std::shared_ptr<http2_send_data_t> sq_
         return false;
     }
     std::shared_ptr<httppeer> peer = sq_obj->peer;
-    if (sq_obj->peer.use_count() == 0)
-    {
-        return false;
-    }
+
     if (sq_obj->peer->socket_session.use_count() == 0)
     {
         peer->issend = true;
@@ -4585,6 +4597,7 @@ void httpserver::httpwatch()
                         isintask = false;
                         break;
                     }
+                    ++iter;
                 }
                 if (isintask)
                 {
@@ -5005,6 +5018,11 @@ void httpserver::httpwatch()
                 {
                     n_write = write(fd, access_loglist.front().data(), access_loglist.front().size());
                     access_loglist.pop_front();
+                    if (n_write < 1)
+                    {
+                        access_loglist.clear();
+                        break;
+                    }
                 }
                 logacclock.unlock();
 
