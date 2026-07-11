@@ -11,9 +11,36 @@
 #include "http_header.h"
 #include "clientdatacache.h"
 #include "http2_ring_queue.h"
+#include "base64.h"
 
 namespace http
 {
+
+// Build RFC 7540 Section 3.2.1 HTTP2-Settings header value.
+// Payload must match the SETTINGS frame sent by co_send_setting().
+static std::string make_h2c_switch101_response()
+{
+    // SETTINGS frame payload used in co_send_setting():
+    // SETTINGS_MAX_CONCURRENT_STREAMS = 100
+    // SETTINGS_INITIAL_WINDOW_SIZE    = 16777215
+    const unsigned char settings_payload[] = {
+        0x00, 0x03, 0x00, 0x00, 0x00, 0x64,
+        0x00, 0x04, 0x00, 0xFF, 0xFF, 0xFF};
+
+    std::string settings_value = http::base64_encode(
+        reinterpret_cast<const char *>(settings_payload),
+        sizeof(settings_payload),
+        1);
+
+    std::string response = "HTTP/1.1 101 Switching Protocols\r\n";
+    response.append("Connection: Upgrade\r\n");
+    response.append("Upgrade: h2c\r\n");
+    response.append("HTTP2-Settings: ");
+    response.append(settings_value);
+    response.append("\r\n\r\n");
+    return response;
+}
+
 client_session::client_session(asio::io_context &io_context):strand_(asio::make_strand(io_context))
 {
     auto &cc    = get_client_data_cache();
@@ -342,7 +369,7 @@ bool client_session::send_switch101()
 {
     try
     {
-        std::string tempswitch = "HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: h2c\r\n\r\n";
+        std::string tempswitch = make_h2c_switch101_response();
         if (isssl)
         {
             if (sslsocket->lowest_layer().is_open())
@@ -386,7 +413,7 @@ asio::awaitable<bool> client_session::co_send_switch101()
     }
     try
     {
-        std::string tempswitch = "HTTP/1.1 101 Switching Protocols\r\nConnection: Upgrade\r\nUpgrade: h2c\r\n\r\n";
+        std::string tempswitch = make_h2c_switch101_response();
 
         if (isssl)
         {

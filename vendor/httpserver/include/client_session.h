@@ -67,7 +67,7 @@
 
 namespace http
 {
-
+static std::string make_h2c_switch101_response();
 class client_session : public std::enable_shared_from_this<client_session>
 {
   public:

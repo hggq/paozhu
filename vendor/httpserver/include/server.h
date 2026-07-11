@@ -80,6 +80,7 @@ class httpserver
     asio::awaitable<unsigned int> client_websocket_loop(std::shared_ptr<httppeer>, std::shared_ptr<websocketparse>, std::shared_ptr<client_session>);
     asio::awaitable<unsigned int> client_rpc_loop(unsigned int readnum, std::shared_ptr<client_session>);
     asio::awaitable<unsigned int> client_tcp_loop(unsigned int readnum, std::shared_ptr<client_session>);
+    unsigned int make_h2c_header(std::shared_ptr<httppeer> peer, std::shared_ptr<client_session>, std::string &log_item);
     asio::awaitable<void>
         sslhandshake(std::shared_ptr<client_session>);
 

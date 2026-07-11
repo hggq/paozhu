@@ -1335,7 +1335,7 @@ std::string httppeer::get_header(std::string_view key_name)
 {
     std::string key;
     key.resize(key_name.size());
-    std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+    std::transform(key_name.begin(), key_name.end(), key.begin(), ::tolower);
 
     auto iter = header.find(key);
     if (iter != header.end())

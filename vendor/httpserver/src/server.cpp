@@ -242,7 +242,7 @@ asio::awaitable<void> httpserver::http2_co_send_compress(std::shared_ptr<httppee
     }
 
     send_file_obj->file_name.push_back('/');
-    send_file_obj->file_name.push_back(send_file_obj->etag.size() > 0 ? send_file_obj->etag[0]:'0');
+    send_file_obj->file_name.push_back(send_file_obj->etag.size() > 0 ? send_file_obj->etag[0] : '0');
     paths = send_file_obj->file_name;
     if (!fs::exists(paths))
     {
@@ -300,7 +300,7 @@ asio::awaitable<void> httpserver::http2_co_send_compress(std::shared_ptr<httppee
         std::string tempcompress;
         long long filesize = 0;
         //一次性读入需要压缩的内容，不大于16M
-        if(send_file_obj->content_length > 16877216)
+        if (send_file_obj->content_length > 16877216)
         {
             peer->compress = 0;
             co_return;
@@ -2137,9 +2137,55 @@ asio::awaitable<void> httpserver::orm_connect_clear(std::shared_ptr<orm::orm_con
     co_return;
 }
 
+unsigned int httpserver::make_h2c_header(std::shared_ptr<httppeer> peer, std::shared_ptr<client_session> peer_session, std::string &log_item)
+{
+    const static unsigned char pre_fix_char[] = {0x00, 0x00, 0x00, 0x01, 0x05, 0x00, 0x00, 0x00, 0x01, 0x82, 0x86, 0x44};
+    std::memcpy(peer_session->_cache_data, pre_fix_char, sizeof(pre_fix_char));
+
+    unsigned char url_length = peer->url.size();
+
+    peer_session->_cache_data[12] = url_length;
+    unsigned int i                = 13;
+    for (unsigned int j = 0; j < peer->url.size(); j++)
+    {
+        peer_session->_cache_data[i] = peer->url[j];
+        i++;
+    }
+    peer_session->_cache_data[i] = 0x41;
+    i++;
+    url_length                   = peer->host.size();
+    peer_session->_cache_data[i] = url_length;
+    i++;
+    for (unsigned int j = 0; j < peer->host.size(); j++)
+    {
+        peer_session->_cache_data[i] = peer->host[j];
+        i++;
+    }
+
+    log_item   = peer->get_header("User-Agent");
+    url_length = log_item.size();
+
+    if (url_length > 0)
+    {
+        peer_session->_cache_data[i] = 0x7A;
+        i++;
+        peer_session->_cache_data[i] = url_length;
+        i++;
+        for (unsigned int j = 0; j < log_item.size(); j++)
+        {
+            peer_session->_cache_data[i] = log_item[j];
+            i++;
+        }
+    }
+
+    url_length                   = i - 9;
+    peer_session->_cache_data[2] = url_length;
+
+    return i;
+}
+
 asio::awaitable<unsigned int> httpserver::client_http1_loop(bool isssl, unsigned int readnum, std::shared_ptr<client_session> peer_session)
 {
-
     try
     {
         std::shared_ptr<httppeer> peer = std::make_shared<httppeer>();
@@ -2199,12 +2245,19 @@ asio::awaitable<unsigned int> httpserver::client_http1_loop(bool isssl, unsigned
                     peer->httpv         = 2;
                     peer->isfinish      = true;
                     peer->issend        = false;
+                    bool isok           = co_await peer_session->co_send_switch101();
+                    peer->stream_id     = 1;
+                    peer->isssl         = isssl ? true : false;
 
-                    peer_session->send_switch101();
-                    peer->stream_id = 1;
-                    peer->isssl     = isssl ? true : false;
-
-                    co_return 2;
+                    if (isok)
+                    {
+                        readnum = make_h2c_header(peer, peer_session, log_item);
+                        co_return readnum;
+                    }
+                    else
+                    {
+                        co_return 3;
+                    }
                 }
 
                 if (hook_host_http1(peer))
@@ -2333,6 +2386,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
             }
             if (http2pre->error > 0)
             {
+                DEBUG_LOG("http2 error:%d;", http2pre->error);
                 co_await http2_send_status_content(peer, 403, "client request error %d;");
                 co_await peer_session->async_send_goway();
                 break;
@@ -2348,7 +2402,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                     continue;
 
                 auto stream_ptr = std::move(node.mapped());
-   
+
                 if (stream_ptr->socket_session == nullptr)
                     stream_ptr->socket_session = peer_session;
 
@@ -2396,7 +2450,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                     access_loglist.emplace_back(log_item);
                 }
 #endif
-                http2pre->http_data_weak.insert_or_assign(block_steamid,stream_ptr);
+                http2pre->http_data_weak.insert_or_assign(block_steamid, stream_ptr);
             }
 
             if (error_state > 0)
@@ -3100,10 +3154,27 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
             if (client_type_num == 1)
             {
                 client_type_num = co_await client_http1_loop(isssl, readnum, peer_session);
-                if (client_type_num == 2)
+                if (client_type_num > 9)
                 {
+                    if (client_type_num > 256)
+                    {
+                        co_return;
+                    }
                     //need handshake
-                    readnum       = 0;
+                    auto &cc = get_http2_ring_queue_obj();
+
+                    peer_session->http2_ring_queue = cc.get_cache_ptr();
+                    asio::co_spawn(peer_session->strand_, http2_ring_client_server(peer_session), asio::detached);
+
+                    std::string request_content;
+                    request_content.resize(client_type_num);
+
+                    for (unsigned int i = 0; i < client_type_num; i++)
+                    {
+                        request_content[i] = peer_session->_cache_data[i];
+                    }
+
+                    readnum  = 0;
                     is_error = co_await peer_session->read_first(readnum);
                     if (is_error)
                     {
@@ -3134,10 +3205,16 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                     {
                         co_return;
                     }
-                    int j = 0;
-                    for (int i = 0; i < 24; i++, j++)
+                    
+                    if (readnum > 256)
                     {
-                        if (peer_session->_cache_data[j] != magicstr[i])
+                        co_return;
+                    }
+
+                    int j = 0;
+                    for (; j < 24; j++)
+                    {
+                        if (peer_session->_cache_data[j] != magicstr[j])
                         {
                             break;
                         }
@@ -3146,9 +3223,13 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                     {
                         co_return;
                     }
-                    auto &cc                       = get_http2_ring_queue_obj();
-                    peer_session->http2_ring_queue = cc.get_cache_ptr();
-                    asio::co_spawn(peer_session->strand_, http2_ring_client_server(peer_session), asio::detached);
+
+                    for (unsigned int i = 0; i < request_content.size(); i++)
+                    {
+                        peer_session->_cache_data[readnum] = request_content[i];
+                        readnum++;
+                    }
+
                     co_await peer_session->co_send_setting();
 
                     client_type_num = co_await client_http2_loop(24, readnum, peer_session);
@@ -3167,9 +3248,9 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                     co_return;
                 }
                 int j = 0;
-                for (int i = 0; i < 24; i++, j++)
+                for (; j < 24; j++)
                 {
-                    if (peer_session->_cache_data[j] != magicstr[i])
+                    if (peer_session->_cache_data[j] != magicstr[j])
                     {
                         break;
                     }
@@ -5802,7 +5883,7 @@ void httpserver::run(const std::string &sysconfpath)
                     oss << std::this_thread::get_id();
                     std::string tempthread = oss.str();
                     DEBUG_LOG("frame thread:%s", tempthread.c_str());
- #endif
+#endif
                     do
                     {
                         try
@@ -5811,7 +5892,6 @@ void httpserver::run(const std::string &sysconfpath)
                         }
                         catch (...)
                         {
-                            
                         }
                     } while (!isstop);
                 });
