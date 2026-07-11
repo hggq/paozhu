@@ -22,6 +22,7 @@
 #include <list>
 #include <filesystem>
 #include <string_view>
+#include <utility>
 #include <vector>
 #include <cmath>
 #include <thread>
@@ -54,7 +55,7 @@ unsigned long long httpparse::header_valuetoint(std::string_view header_value)
 
     if (header_value.size() > 14)
     {
-        error = 400;
+        error = 40008;
         return 0;
     }
     for (unsigned int qi = 0; qi < header_value.size(); qi++)
@@ -72,7 +73,7 @@ void httpparse::procssparamter(std::string_view header_temp, std::string_view he
     bool isgroup = true;
     if (header_temp.length() > 72)
     {
-        error = 400;
+        error = 40009;
         return;
     }
 
@@ -168,7 +169,7 @@ void httpparse::procssparamter(std::string_view header_temp, std::string_view he
                         {
                             if (objname.size() > 48)
                             {
-                                error = 400000;
+                                error = 40010;
                                 return;
                             }
 
@@ -189,13 +190,13 @@ void httpparse::procssparamter(std::string_view header_temp, std::string_view he
                         {
                             if (objname.size() > 48)
                             {
-                                error = 400000;
+                                error = 40012;
                                 return;
                             }
 
                             if (key2name.size() > 48)
                             {
-                                error = 400000;
+                                error = 40013;
                                 return;
                             }
 
@@ -216,13 +217,13 @@ void httpparse::procssparamter(std::string_view header_temp, std::string_view he
                         {
                             if (objname.size() > 48)
                             {
-                                error = 400000;
+                                error = 40014;
                                 return;
                             }
 
                             if (key1name.size() > 48)
                             {
-                                error = 400000;
+                                error = 40015;
                                 return;
                             }
 
@@ -241,19 +242,19 @@ void httpparse::procssparamter(std::string_view header_temp, std::string_view he
                         {
                             if (objname.size() > 48)
                             {
-                                error = 400000;
+                                error = 40016;
                                 return;
                             }
 
                             if (key1name.size() > 48)
                             {
-                                error = 400000;
+                                error = 40017;
                                 return;
                             }
 
                             if (key2name.size() > 48)
                             {
-                                error = 400000;
+                                error = 40018;
                                 return;
                             }
 
@@ -275,7 +276,7 @@ void httpparse::procssparamter(std::string_view header_temp, std::string_view he
                     {
                         if (objname.size() > 48)
                         {
-                            error = 400000;
+                            error = 40019;
                             return;
                         }
 
@@ -291,12 +292,12 @@ void httpparse::procssparamter(std::string_view header_temp, std::string_view he
                     {
                         if (objname.size() > 48)
                         {
-                            error = 400000;
+                            error = 40020;
                             return;
                         }
                         if (key1name.size() > 48)
                         {
-                            error = 400000;
+                            error = 40021;
                             return;
                         }
                         peer->get[objname].set_object();
@@ -348,13 +349,13 @@ void httpparse::methodprocess(std::string_view contentline)
         j++;
         if (j > 9)
         {
-            error = 6;
+            error = 40057;
             return;
         }
     }
     if (header_key.size() > 8)
     {
-        error = 6;
+        error = 40058;
         return;
     }
     method = HEAD_METHOD::UNKNOW;
@@ -368,7 +369,7 @@ void httpparse::methodprocess(std::string_view contentline)
         }
         else
         {
-            error = 6;
+            error = 40059;
         }
         break;
     case 'h':
@@ -379,7 +380,7 @@ void httpparse::methodprocess(std::string_view contentline)
         }
         else
         {
-            error = 6;
+            error = 40060;
         }
         break;
     case 'g':
@@ -390,7 +391,7 @@ void httpparse::methodprocess(std::string_view contentline)
         }
         else
         {
-            error = 6;
+            error = 40061;
         }
         break;
     case 'p':
@@ -406,7 +407,7 @@ void httpparse::methodprocess(std::string_view contentline)
         }
         else
         {
-            error = 6;
+            error = 40062;
         }
 
         break;
@@ -418,7 +419,7 @@ void httpparse::methodprocess(std::string_view contentline)
         }
         else
         {
-            error = 6;
+            error = 40063;
         }
         break;
     case 'q':
@@ -429,7 +430,7 @@ void httpparse::methodprocess(std::string_view contentline)
         }
         else
         {
-            error = 6;
+            error = 40064;
         }
         break;
     case 't':
@@ -440,12 +441,12 @@ void httpparse::methodprocess(std::string_view contentline)
         }
         else
         {
-            error = 6;
+            error = 40065;
         }
         break;
     default:
         method = HEAD_METHOD::UNKNOW;
-        error  = 6;
+        error  = 40066;
     }
     if (error > 0)
     {
@@ -518,7 +519,7 @@ void httpparse::methodprocess(std::string_view contentline)
     {
         if (header_temp.size() > 255)
         {
-            error = 40007;
+            error = 40090;
             return;
         }
         if (header_temp.size() == 2 && header_temp[0] == '.' && header_temp[1] == '.')
@@ -645,7 +646,7 @@ void httpparse::methodprocess(std::string_view contentline)
 
                 if (url_keyname.size() > 72)
                 {
-                    error = 6;
+                    error = 40067;
                     return;
                 }
                 procssparamter(url_keyname, header_temp);
@@ -661,7 +662,7 @@ void httpparse::methodprocess(std::string_view contentline)
             header_temp = http::url_decode(header_value.data(), header_value.length());
             if (url_keyname.size() > 72)
             {
-                error = 7;
+                error = 40068;
                 return;
             }
             procssparamter(url_keyname, header_temp);
@@ -672,7 +673,7 @@ void httpparse::methodprocess(std::string_view contentline)
 
             if (url_keyname.size() > 72)
             {
-                error = 8;
+                error = 40069;
                 return;
             }
             procssparamter(url_keyname, "");
@@ -682,7 +683,7 @@ void httpparse::methodprocess(std::string_view contentline)
             url_keyname = http::url_decode(header_value.data(), header_value.length());
             if (url_keyname.size() > 72)
             {
-                error = 8;
+                error = 40070;
                 return;
             }
             procssparamter(url_keyname, "");
@@ -786,7 +787,7 @@ void httpparse::getcontenttype(std::string_view header_value)
 
     if (temp_post_data == nullptr)
     {
-        temp_post_data = std::make_shared<HTTP_POST_DATA_T>();
+        temp_post_data = std::make_unique<HTTP_POST_DATA_T>();
     }
 
     for (; i < linesize; i++)
@@ -891,6 +892,11 @@ void httpparse::getrange(std::string_view header_value)
                 {
                     tm = tm * 10 + (buffer_value[qi] - 0x30);
                 }
+                if (qi >= 14)
+                {
+                    error = 40024;
+                    return;
+                }
             }
             // state.rangebegin = tm;
             peer->state.rangebegin = tm;
@@ -908,6 +914,11 @@ void httpparse::getrange(std::string_view header_value)
             if (buffer_value[qi] < 0x3A && buffer_value[qi] > 0x2F)
             {
                 tm = tm * 10 + (buffer_value[qi] - 0x30);
+            }
+            if (qi >= 14)
+            {
+                error = 40091;
+                return;
             }
         }
         // state.rangeend = tm;
@@ -957,7 +968,7 @@ void httpparse::process_header_line(std::string_view line_str)
     key.resize(header_key.size());
     std::transform(header_key.begin(), header_key.end(), key.begin(), [](unsigned char c)
                    { return std::tolower(c); });
-    peer->header.insert_or_assign(std::string(key), header_value);
+    peer->header.insert_or_assign(std::move(key), header_value);
 
     switch (header_key.size())
     {
@@ -1013,7 +1024,7 @@ void httpparse::process_header_line(std::string_view line_str)
         }
         break;
     case 15:
-        if (header_key[7] == 'E')
+        if (header_key[7] == 'E' || header_key[7] == 'e')
         {
             if (str_casecmp(header_key, "Accept-Encoding"))
             {
@@ -1021,7 +1032,7 @@ void httpparse::process_header_line(std::string_view line_str)
                 break;
             }
         }
-        else if (header_key[7] == 'L')
+        else if (header_key[7] == 'L' || header_key[7] == 'l')
         {
             if (str_casecmp(header_key, "Accept-Language"))
             {
@@ -1244,17 +1255,13 @@ void httpparse::getaccept(std::string_view header_value)
 void httpparse::getacceptlanguage(std::string_view header_value)
 {
     unsigned int i = 0;
-    for (; i < header_value.size(); i++)
+    for (; i < header_value.size() && i < 7; i++)
     {
         if (header_value[i] == 0x2C)
         {
             break;
         }
         peer->state.language[i] = header_value[i];
-        if (i > 6)
-        {
-            break;
-        }
     }
     for (; i < 8; i++)
     {
@@ -1269,7 +1276,7 @@ void httpparse::getifnonematch(std::string_view header_value)
     peer->etag.clear();
     if (header_value.size() < 2)
     {
-        error = 414;
+        error = 40071;
         return;
     }
     if (header_value[i] == 'W' || header_value[i] == 'w')
@@ -1348,6 +1355,10 @@ void httpparse::getwebsocketextensions(std::string_view header_value)
                 {
                     if (header_value[pos_b] >= '0' && header_value[pos_b] <= '9')
                     {
+                        if (websocket->bits > 15)
+                        {
+                            break;
+                        }
                         websocket->bits = websocket->bits * 10 + (header_value[pos_b] - '0');
                         continue;
                     }
@@ -1415,7 +1426,7 @@ void httpparse::getconnection(std::string_view header_value)
 {
     if (header_value.size() < 2)
     {
-        error = 414;
+        error = 40072;
         return;
     }
     if (header_value[0] == 'K' || header_value[0] == 'k')
@@ -1550,7 +1561,7 @@ void httpparse::getcookie(std::string_view header_value)
             // cookie[buffer_key] = buffer_value;
             if (buffer_key.size() > 72)
             {
-                error = 414;
+                error = 40073;
                 return;
             }
             peer->cookie[buffer_key] = buffer_value;
@@ -1570,7 +1581,7 @@ void httpparse::getcookie(std::string_view header_value)
         // cookie[buffer_key] = buffer_value;
         if (buffer_key.size() > 72)
         {
-            error = 414;
+            error = 40074;
             return;
         }
         peer->cookie[buffer_key] = buffer_value;
@@ -1579,7 +1590,7 @@ void httpparse::getcookie(std::string_view header_value)
     {
         if (buffer_key.size() > 72)
         {
-            error = 414;
+            error = 40075;
             return;
         }
         if (buffer_key.size() > 0)
@@ -1627,7 +1638,7 @@ void httpparse::getheaderhost(std::string_view header_value)
         {
             if (peer->host.size() > 0)
             {
-                error = 414;
+                error = 40076;
                 return;
             }
 
@@ -1663,20 +1674,20 @@ void httpparse::getheaderhost(std::string_view header_value)
                 }
                 else
                 {
-                    error = 414;
+                    error = 40077;
                     return;
                 }
             }
         }
         else
         {
-            error = 414;
+            error = 40078;
             return;
         }
     }
     if (peer->host.size() > 72)
     {
-        error = 414;
+        error = 40079;
         return;
     }
     peer->find_host_index();
@@ -1687,6 +1698,11 @@ void httpparse::getheaderhost(std::string_view header_value)
             if (header_value[ioffset] < 0x3A && header_value[ioffset] > 0x2F)
             {
                 port = port * 10 + (header_value[ioffset] - 0x30);
+            }
+            if (port > 65535)
+            {
+                error = 40080;
+                return;
             }
         }
     }
@@ -1753,6 +1769,12 @@ void httpparse::read_http_header_block(const unsigned char *buffer, unsigned int
     }
     header_line.append((char *)&buffer[readoffset], pos_m - readoffset);
     readoffset = buffersize;
+
+    if (header_line.size() > CONST_HTTP_HEADER_BODY_SIZE)
+    {
+        error = 40002;
+        return;
+    }
 }
 
 void httpparse::post_form_to_postfield(std::string_view form_post_name, std::string_view form_post_value)
@@ -1857,7 +1879,7 @@ void httpparse::post_form_to_postfield(std::string_view form_post_name, std::str
                         {
                             if (objname.size() > 48)
                             {
-                                error = 400000;
+                                error = 40022;
                                 return;
                             }
 
@@ -1878,12 +1900,12 @@ void httpparse::post_form_to_postfield(std::string_view form_post_name, std::str
                         {
                             if (objname.size() > 48)
                             {
-                                error = 400000;
+                                error = 40023;
                                 return;
                             }
                             if (key2name.size() > 48)
                             {
-                                error = 400000;
+                                error = 40025;
                                 return;
                             }
 
@@ -1904,12 +1926,12 @@ void httpparse::post_form_to_postfield(std::string_view form_post_name, std::str
                         {
                             if (objname.size() > 48)
                             {
-                                error = 400000;
+                                error = 40033;
                                 return;
                             }
                             if (key1name.size() > 48)
                             {
-                                error = 400000;
+                                error = 40037;
                                 return;
                             }
 
@@ -1929,17 +1951,17 @@ void httpparse::post_form_to_postfield(std::string_view form_post_name, std::str
 
                             if (objname.size() > 48)
                             {
-                                error = 400000;
+                                error = 40039;
                                 return;
                             }
                             if (key1name.size() > 48)
                             {
-                                error = 400000;
+                                error = 40040;
                                 return;
                             }
                             if (key2name.size() > 48)
                             {
-                                error = 400000;
+                                error = 40041;
                                 return;
                             }
 
@@ -1962,7 +1984,7 @@ void httpparse::post_form_to_postfield(std::string_view form_post_name, std::str
                     {
                         if (objname.size() > 48)
                         {
-                            error = 400000;
+                            error = 40042;
                             return;
                         }
 
@@ -1979,12 +2001,12 @@ void httpparse::post_form_to_postfield(std::string_view form_post_name, std::str
                     {
                         if (objname.size() > 48)
                         {
-                            error = 400000;
+                            error = 40043;
                             return;
                         }
                         if (key1name.size() > 48)
                         {
-                            error = 400000;
+                            error = 40044;
                             return;
                         }
                         peer->post[objname].set_object();
@@ -2043,7 +2065,7 @@ void httpparse::post_www_form_urlencoded(std::string_view raw_post_urlencode_con
             field_value = http::url_decode(temp_value.data(), temp_value.length());
             if (buffer_key.size() > 72)
             {
-                error = 40001;
+                error = 40083;
                 return;
             }
             post_form_to_postfield(buffer_key, field_value);
@@ -2060,7 +2082,7 @@ void httpparse::post_www_form_urlencoded(std::string_view raw_post_urlencode_con
             //key name too long
             if (jj > 72)
             {
-                error = 40001;
+                error = 40084;
                 return;
             }
         }
@@ -2071,7 +2093,7 @@ void httpparse::post_www_form_urlencoded(std::string_view raw_post_urlencode_con
         field_value = http::url_decode(temp_value.data(), temp_value.length());
         if (buffer_key.size() > 72)
         {
-            error = 40001;
+            error = 40085;
             return;
         }
         post_form_to_postfield(buffer_key, field_value);
@@ -2082,7 +2104,7 @@ void httpparse::post_www_form_urlencoded(std::string_view raw_post_urlencode_con
         field_value.clear();
         if (buffer_key.size() > 72)
         {
-            error = 40001;
+            error = 40086;
             return;
         }
         post_form_to_postfield(buffer_key, field_value);
@@ -2093,7 +2115,7 @@ void httpparse::post_www_form_urlencoded(std::string_view raw_post_urlencode_con
         field_value.clear();
         if (buffer_key.size() > 72)
         {
-            error = 40001;
+            error = 40087;
             return;
         }
         post_form_to_postfield(buffer_key, field_value);
@@ -2117,7 +2139,7 @@ void httpparse::read_rawfile_formdata(std::string_view raw_http_post_data)
         }
         else
         {
-            error = 400026;
+            error = 40093;
             return;
         }
         peer->files["rawcontent"].set_object();
@@ -2139,7 +2161,7 @@ void httpparse::read_rawfile_formdata(std::string_view raw_http_post_data)
         if (n != raw_http_post_data.size())
         {
             uprawfile.reset();
-            error = 400026;
+            error = 40094;
         }
     }
 
@@ -2231,7 +2253,7 @@ void httpparse::multipart_post_file_field()
                         {
                             if (objname.size() > 48)
                             {
-                                error = 400000;
+                                error = 40046;
                                 return;
                             }
 
@@ -2258,12 +2280,12 @@ void httpparse::multipart_post_file_field()
                         {
                             if (objname.size() > 48)
                             {
-                                error = 400000;
+                                error = 40047;
                                 return;
                             }
                             if (key2name.size() > 48)
                             {
-                                error = 400000;
+                                error = 40048;
                                 return;
                             }
 
@@ -2290,12 +2312,12 @@ void httpparse::multipart_post_file_field()
                         {
                             if (objname.size() > 48)
                             {
-                                error = 400000;
+                                error = 40049;
                                 return;
                             }
                             if (key1name.size() > 48)
                             {
-                                error = 400000;
+                                error = 40050;
                                 return;
                             }
 
@@ -2321,17 +2343,17 @@ void httpparse::multipart_post_file_field()
 
                             if (objname.size() > 48)
                             {
-                                error = 400000;
+                                error = 40051;
                                 return;
                             }
                             if (key1name.size() > 48)
                             {
-                                error = 400000;
+                                error = 40052;
                                 return;
                             }
                             if (key2name.size() > 48)
                             {
-                                error = 400000;
+                                error = 40053;
                                 return;
                             }
 
@@ -2360,7 +2382,7 @@ void httpparse::multipart_post_file_field()
                     {
                         if (objname.size() > 48)
                         {
-                            error = 400000;
+                            error = 40054;
                             return;
                         }
 
@@ -2383,12 +2405,12 @@ void httpparse::multipart_post_file_field()
                     {
                         if (objname.size() > 48)
                         {
-                            error = 400000;
+                            error = 40055;
                             return;
                         }
                         if (key1name.size() > 48)
                         {
-                            error = 400000;
+                            error = 40056;
                             return;
                         }
                         peer->files[objname].set_object();
@@ -2537,7 +2559,7 @@ void httpparse::post_multipart_itemcontent(bool isfilefull)
     }
     if (!str_casecmp(keyname_field, "name"))
     {
-        error = 40026;
+        error = 40092;
         return;
     }
     //fieldname
@@ -3192,7 +3214,7 @@ void httpparse::read_http_post_block(const unsigned char *buffer, unsigned int b
             // multipart/form-data
             if (temp_post_data == nullptr)
             {
-                temp_post_data = std::make_shared<HTTP_POST_DATA_T>();
+                temp_post_data = std::make_unique<HTTP_POST_DATA_T>();
             }
 
             temp_post_data->content      = std::string_view((const char *)&buffer[readoffset], buffersize - readoffset);
@@ -3251,7 +3273,7 @@ void httpparse::read_http_post_block(const unsigned char *buffer, unsigned int b
 
             if (peer->rawcontent.size() > CONST_HTTP_JSON_POST_SIZE)
             {
-                error = 403;
+                error = 40081;
                 return;
             }
             break;
@@ -3269,7 +3291,7 @@ void httpparse::read_http_post_block(const unsigned char *buffer, unsigned int b
             }
             if (peer->rawcontent.size() > CONST_HTTP_JSON_POST_SIZE)
             {
-                error = 403;
+                error = 40082;
                 return;
             }
             break;
@@ -3286,7 +3308,7 @@ void httpparse::read_http_post_block(const unsigned char *buffer, unsigned int b
 
         if (http_content_length > CONST_HTTP_BODY_POST_SIZE)
         {
-            error = 40004;
+            error = 40089;
             return;
         }
     }
@@ -3307,7 +3329,7 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
             read_http_header_block(buffer, buffersize);
             if (http_content_length > CONST_HTTP_HEADER_BODY_SIZE)
             {
-                error = 40002;
+                error = 40088;
                 return;
             }
             if (isfinish_header)
@@ -3349,7 +3371,6 @@ void httpparse::clear()
 
     http_content_length = 0;
     header_line.clear();
-    raw_header_content.clear();
     pre_http_header.clear();
 
     readoffset = 0;

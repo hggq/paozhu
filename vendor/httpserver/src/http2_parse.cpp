@@ -198,7 +198,7 @@ void http2parse::headers_parse(const HTTP2_HEADER_FRAME_T &header_block_obj, std
         }
         else
         {
-            error = 40014;
+            error = 40205;
             return;
         }
 
@@ -259,7 +259,7 @@ void http2parse::cookie_process([[maybe_unused]] const std::string &header_name,
             buffer_value = http::url_decode(buffer_value.data(), buffer_value.length());
             if (buffer_key.size() > 48)
             {
-                error = 4140;
+                error = 40157;
                 return;
             }
 
@@ -280,7 +280,7 @@ void http2parse::cookie_process([[maybe_unused]] const std::string &header_name,
                                         buffer_value.length());
         if (buffer_key.size() > 48)
         {
-            error = 4140;
+            error = 40158;
             return;
         }
         steam_httppeer->cookie[buffer_key] = buffer_value;
@@ -289,7 +289,7 @@ void http2parse::cookie_process([[maybe_unused]] const std::string &header_name,
     {
         if (buffer_key.size() > 48)
         {
-            error = 4140;
+            error = 40159;
             return;
         }
         if (buffer_key.size() > 0)
@@ -356,7 +356,7 @@ void http2parse::path_process([[maybe_unused]] const std::string &header_name, c
     {
         if (buffer_key.size() > 255)
         {
-            error = 40007;
+            error = 40201;
             return;
         }
         if (buffer_key.size() == 2 && buffer_key[0] == '.' &&
@@ -470,7 +470,7 @@ void http2parse::path_process([[maybe_unused]] const std::string &header_name, c
                                      buffer_value.length());
                 if (buffer_key.size() > 48)
                 {
-                    error = 155;
+                    error = 40173;
                     return;
                 }
                 procssparamter(buffer_key, buffer_value, steam_httppeer);
@@ -487,7 +487,7 @@ void http2parse::path_process([[maybe_unused]] const std::string &header_name, c
                 //key name too long
                 if (jj > 72)
                 {
-                    error = 159;
+                    error = 40174;
                     return;
                 }
             }
@@ -501,7 +501,7 @@ void http2parse::path_process([[maybe_unused]] const std::string &header_name, c
                                             buffer_value.length());
             if (buffer_key.size() > 48)
             {
-                error = 156;
+                error = 40175;
                 return;
             }
             procssparamter(buffer_key, buffer_value, steam_httppeer);
@@ -514,7 +514,7 @@ void http2parse::path_process([[maybe_unused]] const std::string &header_name, c
             buffer_value.clear();
             if (buffer_key.size() > 48)
             {
-                error = 157;
+                error = 40176;
                 return;
             }
             procssparamter(buffer_key, buffer_value, steam_httppeer);
@@ -527,7 +527,7 @@ void http2parse::path_process([[maybe_unused]] const std::string &header_name, c
             buffer_value.clear();
             if (buffer_key.size() > 48)
             {
-                error = 157;
+                error = 40177;
                 return;
             }
             procssparamter(buffer_key, buffer_value, steam_httppeer);
@@ -635,7 +635,7 @@ void http2parse::procssparamter(std::string_view buffer_key, std::string_view bu
                         {
                             if (objname.size() > 48)
                             {
-                                error = 400000;
+                                error = 40095;
                                 return;
                             }
 
@@ -656,12 +656,12 @@ void http2parse::procssparamter(std::string_view buffer_key, std::string_view bu
                         {
                             if (objname.size() > 48)
                             {
-                                error = 400000;
+                                error = 40096;
                                 return;
                             }
                             if (key2name.size() > 48)
                             {
-                                error = 400000;
+                                error = 40097;
                                 return;
                             }
 
@@ -682,12 +682,12 @@ void http2parse::procssparamter(std::string_view buffer_key, std::string_view bu
                         {
                             if (objname.size() > 48)
                             {
-                                error = 400000;
+                                error = 40098;
                                 return;
                             }
                             if (key1name.size() > 48)
                             {
-                                error = 400000;
+                                error = 40099;
                                 return;
                             }
 
@@ -705,17 +705,17 @@ void http2parse::procssparamter(std::string_view buffer_key, std::string_view bu
                         {
                             if (objname.size() > 48)
                             {
-                                error = 400000;
+                                error = 40100;
                                 return;
                             }
                             if (key1name.size() > 48)
                             {
-                                error = 400000;
+                                error = 40101;
                                 return;
                             }
                             if (key2name.size() > 48)
                             {
-                                error = 400000;
+                                error = 40102;
                                 return;
                             }
                             steam_httppeer->get[objname].set_object();
@@ -737,7 +737,7 @@ void http2parse::procssparamter(std::string_view buffer_key, std::string_view bu
                     {
                         if (objname.size() > 48)
                         {
-                            error = 400000;
+                            error = 40103;
                             return;
                         }
 
@@ -754,12 +754,12 @@ void http2parse::procssparamter(std::string_view buffer_key, std::string_view bu
                     {
                         if (objname.size() > 48)
                         {
-                            error = 400000;
+                            error = 40104;
                             return;
                         }
                         if (key1name.size() > 48)
                         {
-                            error = 400000;
+                            error = 40105;
                             return;
                         }
 
@@ -834,6 +834,10 @@ void http2parse::range_process([[maybe_unused]] const std::string &header_name, 
             long long tm = 0;
             for (unsigned int qi = 0; qi < buffer_value.size(); qi++)
             {
+                if (qi >= 14)
+                {
+                    break;
+                }
                 if (buffer_value[qi] < 0x3A &&
                     buffer_value[qi] > 0x2F)
                 {
@@ -852,6 +856,10 @@ void http2parse::range_process([[maybe_unused]] const std::string &header_name, 
         long long tm = 0;
         for (unsigned int qi = 0; qi < buffer_value.size(); qi++)
         {
+            if (qi >= 14)
+            {
+                break;
+            }
             if (buffer_value[qi] < 0x3A && buffer_value[qi] > 0x2F)
             {
                 tm = tm * 10 + (buffer_value[qi] - 0x30);
@@ -894,7 +902,7 @@ bool http2parse::header_host_process(const std::string &header_value, std::share
         {
             if (steam_httppeer->host.size() > 0)
             {
-                error = 4140;
+                error = 40160;
                 return false;
             }
 
@@ -930,14 +938,14 @@ bool http2parse::header_host_process(const std::string &header_value, std::share
                 }
                 else
                 {
-                    error = 4140;
+                    error = 40161;
                     return false;
                 }
             }
         }
         else
         {
-            error = 4140;
+            error = 40162;
             return false;
         }
     }
@@ -950,6 +958,10 @@ bool http2parse::header_host_process(const std::string &header_value, std::share
             if (header_value[i] < 0x3A && header_value[i] > 0x2F)
             {
                 port_temp = port_temp * 10 + (header_value[i] - 0x30);
+                if (port_temp > 65535)
+                {
+                    break;
+                }
             }
         }
     }
@@ -969,7 +981,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
         case 1:
             if (header_value.size() > 72)
             {
-                error = 4140;
+                error = 40163;
                 return;
             }
             if (header_host_process(header_value, steam_httppeer))
@@ -1119,7 +1131,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
     {
         if (header_name.size() > 48)
         {
-            error = 4140;
+            error = 40164;
             return;
         }
         switch (header_name.size())
@@ -1216,7 +1228,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             {
                 if (header_value.size() > 72)
                 {
-                    error = 4140;
+                    error = 40165;
                     return;
                 }
 
@@ -1276,7 +1288,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             }
             break;
         case 15:
-            if (header_name[7] == 'e')
+            if (header_name[7] == 'e' || header_name[7] == 'E')
             {
                 if (str_casecmp(header_name, "accept-encoding"))
                 {
@@ -1288,7 +1300,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
                     steam_httppeer->header[header_name] = header_value;
                 }
             }
-            else if (header_name[7] == 'L')
+            else if (header_name[7] == 'L' || header_name[7] == 'l')
             {
                 if (str_casecmp(header_name, "Accept-Language"))
                 {
@@ -1427,6 +1439,10 @@ void http2parse::getifnonematch([[maybe_unused]] const std::string &header_name,
     unsigned int i                          = 0;
     steam_httppeer->header["if-none-match"] = header_value;
     steam_httppeer->etag.clear();
+    if (header_value.size() < 2)
+    {
+        return;
+    }
     if (header_value[i] == 'W' || header_value[i] == 'w')
     {
         if (header_value[i + 1] == 0x2F)
@@ -1793,7 +1809,7 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
         begin += 1;
         if (begin >= header_data.size())
         {
-            error = 143;
+            error = 40128;
             return;
         }
         item_length = header_data[begin] & 0x7F;
@@ -1815,7 +1831,7 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
         {
             if (begin >= header_data.size())
             {
-                error = 143;
+                error = 40129;
                 return;
             }
             iscontinue = false;
@@ -1828,7 +1844,7 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
             begin += 1;
             if (begin >= header_data.size())
             {
-                error = 143;
+                error = 40130;
                 return;
             }
             if (iscontinue)
@@ -1840,7 +1856,7 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
 
         if ((begin + item_length) > header_data.size())
         {
-            error = 121;
+            error = 40178;
             return;
         }
 
@@ -1856,7 +1872,7 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
         begin = begin + item_length;
         if (begin >= header_data.size())
         {
-            error = 143;
+            error = 40131;
             return;
         }
         // huffman
@@ -1872,7 +1888,7 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
         {
             if (begin >= header_data.size())
             {
-                error = 143;
+                error = 40132;
                 return;
             }
             iscontinue = false;
@@ -1885,7 +1901,7 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
             begin += 1;
             if (begin >= header_data.size())
             {
-                error = 143;
+                error = 40133;
                 return;
             }
             if (iscontinue)
@@ -1897,7 +1913,7 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
 
         if ((begin + item_length) > header_data.size())
         {
-            error = 122;
+            error = 40179;
             return;
         }
 
@@ -1939,14 +1955,14 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
                 begin += 1;
                 if (begin >= header_data.size())
                 {
-                    error = 143;
+                    error = 40134;
                     return;
                 }
 
                 a = a + (header_data[begin] & 0x7F);
                 if (header_data[begin] & 0x80)
                 {
-                    error = 125;
+                    error = 40181;
                     return;
                 }
             }
@@ -1974,7 +1990,7 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
         begin += 1;
         if (begin >= header_data.size())
         {
-            error = 143;
+            error = 40135;
             return;
         }
         ishuffman_value = false;
@@ -1988,7 +2004,7 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
         {
             if (begin >= header_data.size())
             {
-                error = 143;
+                error = 40136;
                 return;
             }
             bool iscontinue = false;
@@ -2001,7 +2017,7 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
             begin += 1;
             if (begin >= header_data.size())
             {
-                error = 143;
+                error = 40137;
                 return;
             }
             if (iscontinue)
@@ -2009,7 +2025,7 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
                 item_length = item_length + (unsigned int)(header_data[begin] & 0x7F) * 128;
                 if (header_data[begin] & 0x80)
                 {
-                    error = 126;
+                    error = 40182;
                     return;
                 }
                 begin += 1;
@@ -2017,7 +2033,7 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
         }
         if ((begin + item_length) > header_data.size())
         {
-            error = 123;
+            error = 40180;
             return;
         }
 
@@ -2058,7 +2074,7 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
         begin += 1;
         if (begin >= header_data.size())
         {
-            error = 143;
+            error = 40138;
             return;
         }
         item_length = header_data[begin] & 0x7F;
@@ -2078,12 +2094,12 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
         {
             if (begin >= header_data.size())
             {
-                error = 143;
+                error = 40139;
                 return;
             }
             if (header_data[begin] & 0x80)
             {
-                error = 135;
+                error = 40186;
                 return;
             }
             else
@@ -2095,7 +2111,7 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
 
         if ((begin + item_length) > header_data.size())
         {
-            error = 131;
+            error = 40183;
             return;
         }
         if (ishuffman_value)
@@ -2111,7 +2127,7 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
         ishuffman_value = false;
         if (begin >= header_data.size())
         {
-            error = 143;
+            error = 40140;
             return;
         }
         if (header_data[begin] & 0x80)
@@ -2125,7 +2141,7 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
         {
             if (begin >= header_data.size())
             {
-                error = 143;
+                error = 40141;
                 return;
             }
             iscontinue = false;
@@ -2138,7 +2154,7 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
             begin += 1;
             if (begin >= header_data.size())
             {
-                error = 143;
+                error = 40142;
                 return;
             }
             if (iscontinue)
@@ -2146,7 +2162,7 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
                 item_length = item_length + (unsigned int)(header_data[begin] & 0x7F) * 128;
                 if (header_data[begin] & 0x80)
                 {
-                    error = 136;
+                    error = 40188;
                     return;
                 }
                 begin += 1;
@@ -2155,7 +2171,7 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
 
         if ((begin + item_length) > header_data.size())
         {
-            error = 132;
+            error = 40184;
             return;
         }
 
@@ -2187,13 +2203,13 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
             begin += 1;
             if (begin >= header_data.size())
             {
-                error = 143;
+                error = 40143;
                 return;
             }
             a += header_data[begin];
             if (header_data[begin] & 0x80)
             {
-                error = 135;
+                error = 40187;
                 return;
             }
             if (a < 62)
@@ -2221,7 +2237,7 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
         begin += 1;
         if (begin >= header_data.size())
         {
-            error = 143;
+            error = 40144;
             return;
         }
         if (header_data[begin] & 0x80)
@@ -2234,7 +2250,7 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
         {
             if (begin >= header_data.size())
             {
-                error = 143;
+                error = 40145;
                 return;
             }
             bool iscontinue = false;
@@ -2247,7 +2263,7 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
             begin += 1;
             if (begin >= header_data.size())
             {
-                error = 143;
+                error = 40146;
                 return;
             }
             if (iscontinue)
@@ -2255,7 +2271,7 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
                 item_length = item_length + (unsigned int)(header_data[begin] & 0x7F) * 128;
                 if (header_data[begin] & 0x80)
                 {
-                    error = 136;
+                    error = 40189;
                     return;
                 }
                 begin += 1;
@@ -2264,7 +2280,7 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
 
         if ((begin + item_length) > header_data.size())
         {
-            error = 133;
+            error = 40185;
             return;
         }
 
@@ -2298,7 +2314,7 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
         begin += 1;
         if (begin >= header_data.size())
         {
-            error = 143;
+            error = 40147;
             return;
         }
 
@@ -2319,13 +2335,13 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
         {
             if (begin >= header_data.size())
             {
-                error = 143;
+                error = 40148;
                 return;
             }
 
             if (header_data[begin] & 0x80)
             {
-                error = 145;
+                error = 40192;
                 return;
             }
             else
@@ -2337,7 +2353,7 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
 
         if ((begin + item_length) > header_data.size())
         {
-            error = 141;
+            error = 40190;
             return;
         }
 
@@ -2353,7 +2369,7 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
         begin = begin + item_length;
         if (begin >= header_data.size())
         {
-            error = 143;
+            error = 40149;
             return;
         }
         ishuffman_value = false;
@@ -2369,7 +2385,7 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
 
             if (begin >= header_data.size())
             {
-                error = 143;
+                error = 40150;
                 return;
             }
             iscontinue = false;
@@ -2382,7 +2398,7 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
             begin += 1;
             if (begin >= header_data.size())
             {
-                error = 143;
+                error = 40151;
                 return;
             }
             if (iscontinue)
@@ -2390,7 +2406,7 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
                 item_length = item_length + (unsigned int)(header_data[begin] & 0x7F) * 128;
                 if (header_data[begin] & 0x80)
                 {
-                    error = 146;
+                    error = 40194;
                     return;
                 }
                 begin += 1;
@@ -2399,7 +2415,7 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
 
         if ((begin + item_length) > header_data.size())
         {
-            error = 142;
+            error = 40191;
             return;
         }
 
@@ -2425,13 +2441,13 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
             begin += 1;
             if (begin >= header_data.size())
             {
-                error = 143;
+                error = 40152;
                 return;
             }
             a = a + (header_data[begin] & 0x7F);
             if (header_data[begin] & 0x80)
             {
-                error = 145;
+                error = 40193;
                 return;
             }
         }
@@ -2461,7 +2477,7 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
         ishuffman_value = false;
         if (begin >= header_data.size())
         {
-            error = 143;
+            error = 40153;
             return;
         }
 
@@ -2477,7 +2493,7 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
         {
             if (begin >= header_data.size())
             {
-                error = 143;
+                error = 40154;
                 return;
             }
             bool iscontinue = false;
@@ -2493,13 +2509,13 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
             {
                 if (begin >= header_data.size())
                 {
-                    error = 143;
+                    error = 40155;
                     return;
                 }
                 item_length = item_length + (unsigned int)(header_data[begin] & 0x7F) * 128;
                 if (header_data[begin] & 0x80)
                 {
-                    error = 146;
+                    error = 40195;
                     return;
                 }
                 begin += 1;
@@ -2508,7 +2524,7 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
 
         if ((begin + item_length) > header_data.size())
         {
-            error = 143;
+            error = 40156;
             return;
         }
 
@@ -2612,7 +2628,7 @@ void http2parse::readgoaway(const HTTP2_PACK_DATA_T &temp_pack_data)
     }
     if (temp_pack_data.flags != 0)
     {
-        error = 40044;
+        error = 40203;
         return;
     }
 
@@ -2708,7 +2724,7 @@ void http2parse::readrawfileformdata(HTTP2_POST_DATA_T &temp_post_data, unsigned
         }
         else
         {
-            error = 400026;
+            error = 40167;
             return;
         }
         temp_post_data.peer->files["rawcontent"].set_object();
@@ -2731,7 +2747,7 @@ void http2parse::readrawfileformdata(HTTP2_POST_DATA_T &temp_post_data, unsigned
         if (n != temp_post_data.content.size())
         {
             temp_post_data.fp.reset();
-            error = 400026;
+            error = 40168;
         }
     }
 
@@ -2747,7 +2763,7 @@ void http2parse::post_form_to_postfield(std::string_view form_post_name, std::st
     bool isgroup = true;
     if (form_post_name.length() > 72)
     {
-        error = 40011;
+        error = 40207;
         return;
     }
 
@@ -2843,7 +2859,7 @@ void http2parse::post_form_to_postfield(std::string_view form_post_name, std::st
                         {
                             if (objname.size() > 48)
                             {
-                                error = 400000;
+                                error = 40106;
                                 return;
                             }
 
@@ -2864,12 +2880,12 @@ void http2parse::post_form_to_postfield(std::string_view form_post_name, std::st
                         {
                             if (objname.size() > 48)
                             {
-                                error = 400000;
+                                error = 40107;
                                 return;
                             }
                             if (key2name.size() > 48)
                             {
-                                error = 400000;
+                                error = 40108;
                                 return;
                             }
 
@@ -2890,12 +2906,12 @@ void http2parse::post_form_to_postfield(std::string_view form_post_name, std::st
                         {
                             if (objname.size() > 48)
                             {
-                                error = 400000;
+                                error = 40109;
                                 return;
                             }
                             if (key1name.size() > 48)
                             {
-                                error = 400000;
+                                error = 40110;
                                 return;
                             }
 
@@ -2915,17 +2931,17 @@ void http2parse::post_form_to_postfield(std::string_view form_post_name, std::st
 
                             if (objname.size() > 48)
                             {
-                                error = 400000;
+                                error = 40111;
                                 return;
                             }
                             if (key1name.size() > 48)
                             {
-                                error = 400000;
+                                error = 40112;
                                 return;
                             }
                             if (key2name.size() > 48)
                             {
-                                error = 400000;
+                                error = 40113;
                                 return;
                             }
 
@@ -2948,7 +2964,7 @@ void http2parse::post_form_to_postfield(std::string_view form_post_name, std::st
                     {
                         if (objname.size() > 48)
                         {
-                            error = 400000;
+                            error = 40114;
                             return;
                         }
 
@@ -2965,12 +2981,12 @@ void http2parse::post_form_to_postfield(std::string_view form_post_name, std::st
                     {
                         if (objname.size() > 48)
                         {
-                            error = 400000;
+                            error = 40115;
                             return;
                         }
                         if (key1name.size() > 48)
                         {
-                            error = 400000;
+                            error = 40116;
                             return;
                         }
                         steam_httppeer->post[objname].set_object();
@@ -3086,7 +3102,7 @@ void http2parse::multipart_post_file_field(HTTP2_POST_DATA_T &temp_post_data)
                         {
                             if (objname.size() > 48)
                             {
-                                error = 400000;
+                                error = 40117;
                                 return;
                             }
 
@@ -3113,12 +3129,12 @@ void http2parse::multipart_post_file_field(HTTP2_POST_DATA_T &temp_post_data)
                         {
                             if (objname.size() > 48)
                             {
-                                error = 400000;
+                                error = 40118;
                                 return;
                             }
                             if (key2name.size() > 48)
                             {
-                                error = 400000;
+                                error = 40119;
                                 return;
                             }
 
@@ -3145,12 +3161,12 @@ void http2parse::multipart_post_file_field(HTTP2_POST_DATA_T &temp_post_data)
                         {
                             if (objname.size() > 48)
                             {
-                                error = 400000;
+                                error = 40120;
                                 return;
                             }
                             if (key1name.size() > 48)
                             {
-                                error = 400000;
+                                error = 40121;
                                 return;
                             }
 
@@ -3176,17 +3192,17 @@ void http2parse::multipart_post_file_field(HTTP2_POST_DATA_T &temp_post_data)
 
                             if (objname.size() > 48)
                             {
-                                error = 400000;
+                                error = 40122;
                                 return;
                             }
                             if (key1name.size() > 48)
                             {
-                                error = 400000;
+                                error = 40123;
                                 return;
                             }
                             if (key2name.size() > 48)
                             {
-                                error = 400000;
+                                error = 40124;
                                 return;
                             }
 
@@ -3215,7 +3231,7 @@ void http2parse::multipart_post_file_field(HTTP2_POST_DATA_T &temp_post_data)
                     {
                         if (objname.size() > 48)
                         {
-                            error = 400000;
+                            error = 40125;
                             return;
                         }
 
@@ -3238,12 +3254,12 @@ void http2parse::multipart_post_file_field(HTTP2_POST_DATA_T &temp_post_data)
                     {
                         if (objname.size() > 48)
                         {
-                            error = 400000;
+                            error = 40126;
                             return;
                         }
                         if (key1name.size() > 48)
                         {
-                            error = 400000;
+                            error = 40127;
                             return;
                         }
                         temp_post_data.peer->files[objname].set_object();
@@ -3314,7 +3330,7 @@ void http2parse::post_www_form_urlencoded(HTTP2_POST_DATA_T &temp_post_data)
             field_value = http::url_decode(temp_value.data(), temp_value.length());
             if (buffer_key.size() > 72)
             {
-                error = 40001;
+                error = 40196;
                 return;
             }
             post_form_to_postfield(buffer_key, field_value, temp_post_data.peer);
@@ -3331,7 +3347,7 @@ void http2parse::post_www_form_urlencoded(HTTP2_POST_DATA_T &temp_post_data)
             //key name too long
             if (jj > 72)
             {
-                error = 40001;
+                error = 40197;
                 return;
             }
         }
@@ -3342,7 +3358,7 @@ void http2parse::post_www_form_urlencoded(HTTP2_POST_DATA_T &temp_post_data)
         field_value = http::url_decode(temp_value.data(), temp_value.length());
         if (buffer_key.size() > 72)
         {
-            error = 40001;
+            error = 40198;
             return;
         }
         post_form_to_postfield(buffer_key, field_value, temp_post_data.peer);
@@ -3353,7 +3369,7 @@ void http2parse::post_www_form_urlencoded(HTTP2_POST_DATA_T &temp_post_data)
         field_value.clear();
         if (buffer_key.size() > 72)
         {
-            error = 40001;
+            error = 40199;
             return;
         }
         post_form_to_postfield(buffer_key, field_value, temp_post_data.peer);
@@ -3364,7 +3380,7 @@ void http2parse::post_www_form_urlencoded(HTTP2_POST_DATA_T &temp_post_data)
         field_value.clear();
         if (buffer_key.size() > 72)
         {
-            error = 40001;
+            error = 40200;
             return;
         }
         post_form_to_postfield(buffer_key, field_value, temp_post_data.peer);
@@ -3473,7 +3489,7 @@ void http2parse::post_multipart_itemcontent(HTTP2_POST_DATA_T &temp_post_data, b
     }
     if (!str_casecmp(keyname_field, "name"))
     {
-        error = 40026;
+        error = 40204;
         return;
     }
     //fieldname
@@ -4065,7 +4081,7 @@ void http2parse::post_data_process(HTTP2_POST_DATA_T &temp_post_data, unsigned c
         }
         else
         {
-            error = 403;
+            error = 40172;
             return;
         }
     }
@@ -4103,7 +4119,7 @@ void http2parse::post_data_process(HTTP2_POST_DATA_T &temp_post_data, unsigned c
             temp_post_data.peer->rawcontent.append(temp_post_data.content);
             if (temp_post_data.peer->rawcontent.size() > CONST_HTTP_JSON_POST_SIZE)
             {
-                error = 4140;
+                error = 40166;
                 return;
             }
             if (islast_pack)
@@ -4162,7 +4178,7 @@ void http2parse::post_data_process(HTTP2_POST_DATA_T &temp_post_data, unsigned c
             temp_post_data.peer->rawcontent.append(temp_post_data.content);
             if (temp_post_data.peer->rawcontent.size() > CONST_HTTP_JSON_POST_SIZE)
             {
-                error = 41403;
+                error = 40170;
                 return;
             }
             if (islast_pack)
@@ -4175,7 +4191,7 @@ void http2parse::post_data_process(HTTP2_POST_DATA_T &temp_post_data, unsigned c
             temp_post_data.peer->rawcontent.append(temp_post_data.content);
             if (temp_post_data.peer->rawcontent.size() > CONST_HTTP_JSON_POST_SIZE)
             {
-                error = 41404;
+                error = 40171;
                 return;
             }
             break;
@@ -4237,7 +4253,7 @@ void http2parse::readpostdata(const HTTP2_PACK_DATA_T &temp_pack_data)
     {
         if (new_size_num >= temp_pack_data.payload.size())
         {
-            error = 40013;
+            error = 40206;
             return;
         }
         new_size_num = temp_pack_data.payload.size() - new_size_num;
@@ -4282,7 +4298,7 @@ void http2parse::readpostdata(const HTTP2_PACK_DATA_T &temp_pack_data)
     {
         if (post_iter->second.exp_length != iter->second->content_length)
         {
-            error = 40007;
+            error = 40202;
             return;
         }
 
@@ -4338,7 +4354,7 @@ void http2parse::process_pack()
         readheaders(pack_data);
         break;
     default:
-        error = 400018;
+        error = 40169;
     }
 }
 
@@ -4409,7 +4425,7 @@ void http2parse::read_pack_data(const unsigned char *buffer, unsigned int buffer
 
             if (j < buffersize && (buffer[j] & 0x7F) > 0)
             {
-                error = 40002;
+                error = 40208;
                 return;
             }
 

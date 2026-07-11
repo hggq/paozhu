@@ -42,7 +42,7 @@ namespace http
 struct HTTP_POST_DATA_T
 {
     bool isfile = false;
-    unsigned int field_offset;
+    unsigned int field_offset = 0;
     unsigned long long exp_length = 0;//需要的长度
     unsigned long long cur_length = 0;//当前长度
     std::string_view content;
@@ -112,9 +112,8 @@ class httpparse
     std::unique_ptr<std::FILE, int (*)(FILE *)> uprawfile;
     std::shared_ptr<httppeer> peer;
     std::unique_ptr<websocket_t> websocket{nullptr};
-    std::shared_ptr<HTTP_POST_DATA_T> temp_post_data{nullptr};
+    std::unique_ptr<HTTP_POST_DATA_T> temp_post_data{nullptr};
     std::string header_line;
-    std::string raw_header_content;
     std::string pre_http_header;
 };
 }// namespace http
