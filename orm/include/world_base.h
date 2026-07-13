@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_WORLDBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 27 Jun 2026 11:17:52 GMT
+*本文件为自动生成 Mon, 13 Jul 2026 09:10:56 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -63,7 +63,7 @@ namespace world_info
 		 return m.randomnumber;
 		
         } else {
-            static_assert(false, "Unsupported column type");
+            //static_assert(false, "Unsupported column type");
         }
     }
     

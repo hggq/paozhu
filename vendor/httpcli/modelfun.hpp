@@ -6032,7 +6032,7 @@ headtxt += R"(
 
 headtxt += R"(
         } else {
-            static_assert(false, "Unsupported column type");
+            //static_assert(false, "Unsupported column type");
         }
     }
     )";

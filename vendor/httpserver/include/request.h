@@ -113,6 +113,7 @@ struct obj_val
 
   public:
     std::string to_string();
+    std::string_view to_string_view() const;
     std::string to_escape();
     std::string to_trim();
     void trim();

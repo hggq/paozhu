@@ -76,7 +76,7 @@ class httpserver
     httpserver() {}
     asio::awaitable<void> clientpeerfun(std::shared_ptr<client_session>, bool isssl);
     asio::awaitable<unsigned int> client_http1_loop(bool isssl, unsigned int readnum, std::shared_ptr<client_session>);
-    asio::awaitable<unsigned int> client_http2_loop(unsigned int offset,unsigned int readnum, std::shared_ptr<client_session>);
+    asio::awaitable<unsigned int> client_http2_loop(unsigned int offset, unsigned int readnum, std::shared_ptr<client_session>);
     asio::awaitable<unsigned int> client_websocket_loop(std::shared_ptr<httppeer>, std::shared_ptr<websocketparse>, std::shared_ptr<client_session>);
     asio::awaitable<unsigned int> client_rpc_loop(unsigned int readnum, std::shared_ptr<client_session>);
     asio::awaitable<unsigned int> client_tcp_loop(unsigned int readnum, std::shared_ptr<client_session>);
@@ -110,7 +110,7 @@ class httpserver
     void http2_send_queue_loop(unsigned char index_id);
 
     asio::awaitable<void> http2_ring_client_server(std::shared_ptr<client_session> peer_session);
- 
+
     void websocket_loop(int myid);
     asio::awaitable<void> clientpeerstop(std::shared_ptr<client_session> peer_session);
     asio::awaitable<void> orm_connect_clear(std::shared_ptr<orm::orm_conn_pool> peer_connect);
@@ -146,15 +146,16 @@ class httpserver
     asio::awaitable<void> http1_send_file_range(std::shared_ptr<httppeer> peer,
                                                 std::shared_ptr<client_session> peer_session);
 
-    void set_thread_priority(std::thread& thread, int priority);
+    void set_thread_priority(std::thread &thread, int priority);
     void run(const std::string &);
 
     void add_nullptrlog(const std::string &logstrb);
     void httpwatch();
 
+    void acme_update();
     void save_traffic_arrays();
     void stop();
-    asio::io_context& get_ctx();
+    asio::io_context &get_ctx();
     ~httpserver()
     {
         std::printf("~httpserver\n");
@@ -183,21 +184,21 @@ class httpserver
     std::list<std::pair<std::size_t, std::shared_ptr<httppeer>>> clientlooptasks;
 
     std::string traffic_arrays;
- 
-    bool isstop                  = false;
-    bool istraffic               = false;
-    bool hard_kill_old_link = false;
-    bool rate_limit_status = false;
-    bool server_ip6_listen = false;
 
-    std::atomic_uint total_count = 0;
-    std::atomic_uint live_link_count = 0;
+    bool isstop             = false;
+    bool istraffic          = false;
+    bool hard_kill_old_link = false;
+    bool rate_limit_status  = false;
+    bool server_ip6_listen  = false;
+
+    std::atomic_uint total_count        = 0;
+    std::atomic_uint live_link_count    = 0;
     std::atomic_uint http2_minute_count = 0;
 
     std::atomic_uint total_http2_count = 0;
     std::atomic_uint total_http1_count = 0;
 
-    std::atomic_uint rate_limit_new_wait_num       = 300;
+    std::atomic_uint rate_limit_new_wait_num    = 300;
     std::atomic_uint rate_limit_accept_wait_num = 600;
     std::atomic_uint rate_limit_accept_time     = 500;
 

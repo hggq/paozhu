@@ -121,9 +121,9 @@ std::string testhttpclient_cowait_post(std::shared_ptr<httppeer> peer)
         std::cout << "http://www.xxxxxx.net/login.php" << std::endl;
         a->post("http://www.xxxxxx.net/login.php");
         a->add_header("Connection", "keep-alive");
-        a->data["user_name"] = "admin";
-        a->data["user_pass"] = "123456";
-        a->data["action"]    = "login";
+        a->add_post("user_name", "admin");
+        a->add_post("user_pass", "123456");
+        a->add_post("action", "login");
         a->send();
         if (a->get_status() == 200)
         {

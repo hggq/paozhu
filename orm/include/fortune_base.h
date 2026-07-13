@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_FORTUNEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 27 Jun 2026 11:17:52 GMT
+*本文件为自动生成 Mon, 13 Jul 2026 09:10:56 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -63,7 +63,7 @@ namespace fortune_info
 		 return m.message;
 		
         } else {
-            static_assert(false, "Unsupported column type");
+            //static_assert(false, "Unsupported column type");
         }
     }
     

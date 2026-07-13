@@ -22,6 +22,7 @@
 #include "test_escape_str.h"
 #include "test_customstruct.h"
 #include "teststr_join.h"
+#include "test_acme.h"
 #include "testjson.h"
 #include "test_reverse.h"
 #include "test_co_handle.h"
@@ -40,6 +41,7 @@
 #include "admin/marhome.h"
 #include "admin/main.h"
 #include "testformpost.h"
+#include "test_parse_ini.h"
 #include "test_socket_handle.h"
 #include "teststr2int.h"
 #include "testfield_num.h"
@@ -123,6 +125,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = teststrjoin;
 		methodcallback.emplace("teststr_join",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_acme;
+		methodcallback.emplace("test_acme",temp);
 		temp.pre = nullptr;
 		temp.regfun = testjson;
 		methodcallback.emplace("testjson",temp);
@@ -516,6 +521,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testuploadpostfile;
 		methodcallback.emplace("addpostfile",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_parse_ini;
+		methodcallback.emplace("test_parse_ini",temp);
 		temp.pre = nullptr;
 		temp.regfun = teststr2int;
 		methodcallback.emplace("teststr2int",temp);

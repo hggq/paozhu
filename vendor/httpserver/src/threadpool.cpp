@@ -147,7 +147,7 @@ void ThreadPool::threadloop(std::shared_ptr<threadinfo_t> mythread_info)
                 mythread_info->busy = true;
 
                 this->http_websocketsrun(std::move(task), mythread_info);
-            }     
+            }
 
             livethreadcount -= 1;
             mythread_info->busy = false;
@@ -685,6 +685,10 @@ void ThreadPool::http_clientrun(std::shared_ptr<httppeer> peer, std::shared_ptr<
     catch (std::exception &e)
     {
         DEBUG_LOG("catch exception");
+        peer->status(500);
+        peer->output = "Internal Server Error <hr />";
+        peer->output.append(e.what());
+
         if (peer->user_code_handler_call.size() > 0)
         {
             auto handle = std::move(peer->user_code_handler_call.front());
@@ -757,7 +761,7 @@ void ThreadPool::http_websocketsrun(std::shared_ptr<websockets_api> peer, std::s
             }
             mythread_info->url[offsetnum] = 0x00;
         }
-        
+
         peer->onmessage();
     }
     catch (std::exception &e)
@@ -765,7 +769,6 @@ void ThreadPool::http_websocketsrun(std::shared_ptr<websockets_api> peer, std::s
     }
     catch (...)
     {
-        
     }
 }
 void ThreadPool::timetasks_run(std::shared_ptr<httppeer> peer, std::shared_ptr<threadinfo_t> mythread_info)

@@ -106,7 +106,7 @@ client &client::requst_clear()
 {
     senddata.clear();
     header.clear();
-    data.clear();
+    postdata.clear();
     iserror = 0;
     return *this;
 }
@@ -114,7 +114,11 @@ client &client::clear()
 {
     senddata.clear();
     header.clear();
-    data.clear();
+    postdata.clear();
+    query_.clear();
+    path.clear();
+    host.clear();
+    port.clear();
     iserror = 0;
     headerfinish  = 0;
     timeout_count = 0;
@@ -138,6 +142,7 @@ client &client::clear()
     page.file.type.clear();
     page.file.size  = 0;
     page.file.error = 0;
+    page.padd = 0; 
     page.json.clear();
     close_connect();
     return *this;
@@ -152,6 +157,22 @@ client &client::get(std::string_view url, unsigned int time_out_num)
         parse();
     }
     return *this;
+}
+
+void client::query(std::string_view url)
+{
+    requesttype = 2;
+    // senddata.clear();
+    // header.clear();
+    if (url.length() > 0)
+    {
+        _url = url;
+        parse();
+    }
+    else if (_url.length() > 0)
+    {
+        parse();
+    }
 }
 
 client &client::get(std::string_view url)
@@ -175,7 +196,7 @@ client &client::get(std::string_view url, http::obj_val param)
     requesttype = 0;
     // senddata.clear();
     // header.clear();
-    data = std::move(param);
+    parameter = std::move(param);
     if (url.length() > 0)
     {
         _url = url;
@@ -243,7 +264,7 @@ client &client::get_json(std::string_view url, http::obj_val param)
     parsetojson = 1;
     // header.clear();
     // senddata.clear();
-    data = std::move(param);
+    parameter = std::move(param);
     if (url.length() > 0)
     {
         _url = url;
@@ -282,7 +303,6 @@ client &client::post_json(std::string_view url, http::obj_val param)
     header["Content-Type"] = "application/json";
 
     parsetojson = 1;
-
     parameter = std::move(param);
     if (url.length() > 0)
     {
@@ -299,7 +319,7 @@ client &client::post_json(std::string_view url, http::obj_val param)
 client &client::send()
 {
 
-    if (requesttype == 1)
+    if (requesttype > 0)
     {
         buildcontent();
         buildheader();
@@ -324,7 +344,7 @@ client &client::send()
 asio::awaitable<void> client::async_send()
 {
 
-    if (requesttype == 1)
+    if (requesttype > 0)
     {
         buildcontent();
         buildheader();
@@ -344,51 +364,7 @@ asio::awaitable<void> client::async_send()
 
     co_return;
 }
-asio::awaitable<void> client::async_send(http::obj_val param)
-{
-    data = std::move(param);
-    if (requesttype == 1)
-    {
-        buildcontent();
-        buildheader();
-    }
-    else
-    {
-        buildheader();
-    }
-    if (scheme == "https")
-    {
-        co_await async_send_ssl_data();
-    }
-    else
-    {
-        co_await async_send_data();
-    }
-    co_return;
-}
 
-client &client::send(http::obj_val param)
-{
-    data = std::move(param);
-    if (requesttype == 1)
-    {
-        buildcontent();
-        buildheader();
-    }
-    else
-    {
-        buildheader();
-    }
-    if (scheme == "https")
-    {
-        send_ssl_data();
-    }
-    else
-    {
-        send_data();
-    }
-    return *this;
-}
 asio::awaitable<bool> client::async_init_http_sock()
 {
     error_msg.clear();
@@ -525,6 +501,7 @@ asio::awaitable<void> client::async_send_data()
         page.file.type.clear();
         page.file.size  = 0;
         page.file.error = 0;
+        page.padd = 0; 
         page.json.clear();
 
         if (!sock)
@@ -560,7 +537,7 @@ asio::awaitable<void> client::async_send_data()
         timeout_total = timeid() + timeout_total;
         char read_data[2051];
         unsigned int n;
-        if (requesttype == 1)
+        if (requesttype > 0)
         {
             for (auto &p : senddata)
             {
@@ -784,6 +761,7 @@ client &client::send_data()
         page.file.type.clear();
         page.file.size  = 0;
         page.file.error = 0;
+        page.padd = 0; 
         page.json.clear();
 
         //asio::io_context clientio_context(1);
@@ -847,7 +825,7 @@ client &client::send_data()
         timeout_total = timeid() + timeout_total;
         char read_data[2051];
         unsigned int n;
-        if (requesttype == 1)
+        if (requesttype > 0)
         {
             for (auto &p : senddata)
             {
@@ -1107,6 +1085,7 @@ asio::awaitable<void> client::async_send_ssl_data()
         page.file.type.clear();
         page.file.size  = 0;
         page.file.error = 0;
+        page.padd = 0; 
         page.json.clear();
 
         if (!sslsock)
@@ -1192,7 +1171,7 @@ asio::awaitable<void> client::async_send_ssl_data()
 
         timeout_total = timeid() + timeout_total;
         char read_data[2051];
-        if (requesttype == 1)
+        if (requesttype > 0)
         {
             for (auto &p : senddata)
             {
@@ -1417,6 +1396,7 @@ client &client::send_ssl_data()
         page.file.type.clear();
         page.file.size  = 0;
         page.file.error = 0;
+        page.padd = 0; 
         page.json.clear();
 
         //asio::io_context io_context;
@@ -1476,7 +1456,7 @@ client &client::send_ssl_data()
 
         timeout_total = timeid() + timeout_total;
         char read_data[2051];
-        if (requesttype == 1)
+        if (requesttype > 0)
         {
             for (auto &p : senddata)
             {
@@ -1708,6 +1688,11 @@ void client::processcode()
         {
             code = code * 10 + (contentline[j] - '0');
         }
+        if(code > 1000)
+        {
+            iserror = 1;
+            return;
+        }
     }
     page.code = code;
     if (code == 0)
@@ -1715,149 +1700,183 @@ void client::processcode()
         iserror = 1;
         return;
     }
-    j++;
+
+    for (; j < contentline.size(); j++)
+    {
+        if (contentline[j] != 0x20)
+        {
+            break;
+        }
+    }
     for (; j < contentline.size(); j++)
     {
         page.codemessage.push_back(contentline[j]);
     }
 }
+
+bool client::parse_header_fields(const std::string& line_temp)
+{
+    if(page.code==0)
+    {
+        processcode();
+        if (page.code == 0)
+        {
+            iserror      = 1;
+            return false;
+        }
+    }
+    else
+    {
+        std::string key,value;
+        unsigned int k = 0;
+        for (; k < line_temp.size(); k++)
+        {
+            if (line_temp[k] != 0x20)
+            {
+                break;
+            }
+        }
+
+        for (; k < line_temp.size(); k++)
+        {
+            if (line_temp[k] == ':')
+            {
+                break;
+            }
+            key.push_back(line_temp[k]);
+        }
+        
+        if(key.size() > 0)
+        {
+            if(key.back() == 0x20)
+            {
+                key.pop_back();
+            }
+        }
+
+        for (; k < line_temp.size(); k++)
+        {
+            if (line_temp[k] != 0x20 && line_temp[k] != ':')
+            {
+                break;
+            }
+        }
+
+        for (; k < line_temp.size(); k++)
+        {
+            value.push_back(line_temp[k]);
+        }
+
+        if(value.size() > 0)
+        {
+            if(value.back() == 0x20)
+            {
+                value.pop_back();
+            }
+        }
+
+        if (key.size() > 0)
+        {
+            if (key.size() == 10 && str_casecmp(key,"Set-Cookie"))
+            {
+                respcookieprocess(value);
+            }
+            else
+            {
+                page.header[key] = value;
+                responseheader(key, value);
+            }
+        }
+    }
+    return true;
+}
+
 void client::readheaderline(const char *buffer, unsigned int buffersize)
 {
     unsigned int i = readoffset;
-    if (machnum > 0)
-    {
-        if (machnum % 2 == 0)
-        {
-            if (buffer[i] == 0x0D && i < buffersize)
-            {
-                i++;
-                machnum++;
-                if (buffer[i] == 0x0A && i < buffersize)
-                {
-                    i++;
-                    machnum++;
-                }
-            }
-        }
-        else
-        {
-            if (buffer[i] == 0x0A && i < buffersize)
-            {
-                i++;
-                machnum++;
-                if (buffer[i] == 0x0D && i < buffersize)
-                {
-                    i++;
-                    machnum++;
-                    if (buffer[i] == 0x0A && i < buffersize)
-                    {
-                        i++;
-                        machnum++;
-                    }
-                }
-            }
-        }
-    }
-    if (machnum > 3)
-    {
-        headerfinish = 1;
-        readoffset   = i;
-        return;
-    }
-    machnum     = 0;
-    int lineend = 0;
-    for (; i < buffersize; i++)
-    {
-        if (buffer[i] == 0x0D)
-        {
-            lineend = 1;
-            break;
-        }
-        contentline.push_back(buffer[i]);
-    }
-    if (lineend == 1)
-    {
 
-        if (contentline.size() > 0)
+    if(contentline.size() > 0)
+    {
+        if(i < buffersize)
         {
-            response_header.append(contentline);
-            response_header.append("\r\n");
-            if (page.code == 0)
+            if(buffer[i] != '\n')
             {
-                processcode();
-                if (page.code == 0)
+                iserror      = 1;
+                readoffset = buffersize;
+                return;
+            }
+            readoffset++;
+            i++;
+        }
+
+        if(contentline.size() == 0)
+        {
+            //这样不用+1，因为上面已经加了
+            headerfinish = 1;
+            return;
+        }
+        page.rawheader.append(contentline);
+        page.rawheader.append("\r\n");
+        if(!parse_header_fields(contentline))
+        {
+            iserror      = 1;
+            readoffset = buffersize;
+            return;
+        }
+        contentline.clear();
+    }
+
+    for(; i < buffersize; i++)
+    {
+        if(buffer[i] == '\r')
+        {
+            unsigned int j = i;
+            j++;
+            if(j < buffersize)
+            {
+                if(buffer[j] == '\n')
                 {
+                    i = j;
+                    if(contentline.size() == 0)
+                    {
+                        //如果是头部结束需要下一位，不让头部信息到body
+                        i++;
+                        readoffset = i;
+                        headerfinish = 1;
+                        return;
+                    }
+                    page.rawheader.append(contentline);
+                    page.rawheader.append("\r\n");
+                    if(!parse_header_fields(contentline))
+                    {
+                        iserror      = 1;
+                        readoffset = buffersize;
+                        return;
+                    }
+                    contentline.clear();
+                    //下一行
+                    continue;
+                }
+                else
+                {
+                    //必须是\r\n
                     iserror      = 1;
-                    readoffset = i;
+                    readoffset = buffersize;
                     return;
                 }
             }
             else
             {
-                std::string key, value;
-                bool isfirst;
-                isfirst = true;
-                for (unsigned int j = 0; j < contentline.size(); j++)
-                {
-                    if (isfirst && contentline[j] == ':')
-                    {
-                        key = value;
-                        j++;
-                        for (; j < contentline.size(); j++)
-                        {
-                            if (contentline[j] != 0x20)
-                            {
-                                j -= 1;
-                                break;
-                            }
-                        }
-                        value.clear();
-                        isfirst = false;
-                        continue;
-                    }
-                    value.push_back(contentline[j]);
-                }
-                if (key.size() > 0)
-                {
-                    if (key.size() == 10 && key == "Set-Cookie")
-                    {
-                        respcookieprocess(value);
-                    }
-                    else
-                    {
-                        page.header[key] = value;
-                        responseheader(key, value);
-                    }
-                }
+                //跨包
+                readoffset = buffersize;
+                return;
             }
         }
-        contentline.clear();
-        machnum++;
-        i++;
-        if (buffer[i] == 0x0A && i < buffersize)
-        {
-            i++;
-            machnum++;
-            if (buffer[i] == 0x0D && i < buffersize)
-            {
-                i++;
-                machnum++;
-                if (buffer[i] == 0x0A && i < buffersize)
-                {
-                    i++;
-                    machnum++;
-                }
-            }
-        }
-        if (machnum > 3)
-        {
-            headerfinish = 1;
-            readoffset   = i;
-            return;
-        }
+        contentline.push_back(buffer[i]);
     }
     readoffset = i;
 }
+
 void client::respcookieprocess(std::string_view str)
 {
     // Set-Cookie: name=aabb; expires=Mon, 28-Mar-2022 12:10:55 GMT; Max-Age=3600; path=/; domain=localhost; secure;
@@ -2103,12 +2122,56 @@ void client::responseheader(std::string_view key, std::string_view value)
         }
         break;
     case 17:
-
         if (str_casecmp(key, "Transfer-Encoding"))
         {
-            if (value.size() > 0 && str_casecmp(value, "chunked"))
+            std::string temp_str;
+            for(unsigned int k=0; k < value.size(); k++)
             {
-                page.chunked = true;
+                if(value[k] == ',')
+                {
+                    if (str_casecmp(temp_str, "chunked"))
+                    {
+                        page.chunked = true;
+                    }
+                    else if (str_casecmp(temp_str, "gzip"))
+                    {
+                        page.encode = 'g';
+                    }
+                    else if (str_casecmp(temp_str, "zstd"))
+                    {
+                        page.encode = 'z';
+                    }
+                    else if (str_casecmp(temp_str, "deflate"))
+                    {
+                        page.encode = 'd';
+                    }
+                    temp_str.clear();
+                    continue;
+                }
+                else if(value[k] == ' ')
+                {
+                    continue;
+                }
+                temp_str.push_back(value[k]);
+            }
+            if(temp_str.size() > 0)
+            {
+                if (str_casecmp(temp_str, "chunked"))
+                {
+                    page.chunked = true;
+                }
+                else if (str_casecmp(temp_str, "gzip"))
+                {
+                    page.encode = 'g';
+                }
+                else if (str_casecmp(temp_str, "zstd"))
+                {
+                    page.encode = 'z';
+                }
+                else if (str_casecmp(temp_str, "deflate"))
+                {
+                    page.encode = 'd';
+                }
             }
         }
         break;
@@ -2194,9 +2257,24 @@ std::string client::get_header() { return response_header; }
 std::string client::get_tempfile() { return page.file.tempfile; }
 std::map<std::string, std::string> client::get_headers() { return page.header; }
 std::string client::get_type() { return page.file.type; }
-client &client::set_body(const std::string &a)
+client &client::add_post(std::string_view key, std::string_view value)
 {
-    page.content = a;
+    postdata.emplace_back(key,value);
+    return *this;
+}
+client &client::set_body(std::string_view value)
+{
+    page.content = value;
+    return *this;
+}
+client &client::set_body(const std::string &value)
+{
+    page.content = value;
+    return *this;
+}
+client &client::set_body(std::string &&value)
+{
+    page.content = std::move(value);
     return *this;
 }
 std::string client::get_body()
@@ -2259,12 +2337,21 @@ void client::respreadtocontent(const char *buffer, unsigned int buffersize)
 {
     unsigned int i = readoffset;
     // unsigned int offset = buffersize - i;
-
-    if (page.chunked)
+    if (!page.chunked)
     {
-        if (page.length == 0)
+        for (; i < buffersize; i++)
         {
-            int n = 0;
+            page.content.push_back(buffer[i]);
+        }
+        return;
+    }
+
+    while(i < buffersize)
+    {
+       if (page.length == 0)
+       {
+            //是尾部或一个块开始
+            unsigned int n = 0;
             for (; i < buffersize; i++)
             {
                 if (buffer[i] == 0x0D || buffer[i] == 0x0A)
@@ -2287,59 +2374,113 @@ void client::respreadtocontent(const char *buffer, unsigned int buffersize)
                     n = n + (unsigned char)(buffer[i] - 'a') + 10;
                 }
             }
-
             page.length = n;
-
-            if (buffer[i] == 0x0D)
+            if(page.length == 0)
             {
-                i++;
-                if (buffer[i] == 0x0A && i < buffersize)
-                {
-                    i++;
-                }
-            }
-            else if (buffer[i] == 0x0A && i < buffersize)
-            {
-                i++;
-            }
-
-            if (page.length == 0)
-            {
+                //尾部了
                 page.file.size = page.content.size();
-                if (buffer[i] == 0x0D)
+                for (; i < buffersize; i++)
                 {
-                    i++;
-                    if (buffer[i] == 0x0A && i < buffersize)
+                    if (buffer[i] == 0x0D || buffer[i] == 0x0A)
                     {
-                        i++;
+                        continue;
                     }
+                    break;
                 }
-                else if (buffer[i] == 0x0A && i < buffersize)
-                {
-                    i++;
-                }
+                readoffset = i;
                 return;
             }
-            readoffset = i;
+
+            //后面必须是\r\n
+            if (i < buffersize &&  buffer[i] == 0x0D)
+            {
+                i++;
+                if (i < buffersize &&  buffer[i] == 0x0A)
+                {
+                    i++;
+                }
+                else
+                {
+                    if(i < buffersize)
+                    {
+                        iserror = 1;
+                    }
+                    page.padd = 1;
+                    break;
+                }
+            }
+            else
+            {
+                if(i < buffersize)
+                {
+                    iserror = 1;
+                    break;
+                }
+                page.padd = 2;
+                break;
+            }
         }
-        for (; i < buffersize && page.length > 0; i++, page.length -= 1)
+
+        if(page.padd == 2)
         {
-            page.content.push_back(buffer[i]);
+            //跨包
+            if (i < buffersize &&  buffer[i] == 0x0D)
+            {
+                i++;
+                if (i < buffersize &&  buffer[i] == 0x0A)
+                {
+                    i++;
+                }
+                else
+                {
+                    iserror = 1;
+                    return;
+                } 
+            }
+            else
+            {
+                iserror = 1;
+                return;
+            }
+            page.padd = 0;
         }
-        readoffset = i;
-        if (readoffset < buffersize)
+        else if(page.padd == 1)
         {
-            respreadtocontent(buffer, buffersize);
+            //跨包
+            if (i < buffersize &&  buffer[i] == 0x0A)
+            {
+                i++;
+            }
+            else
+            {
+                iserror = 1;
+                return;
+            } 
+            page.padd = 0;
         }
-    }
-    else
-    {
-        for (; i < buffersize; i++)
+
+
+        if(page.length > 0)
         {
-            page.content.push_back(buffer[i]);
+            for (; i < buffersize; i++)
+            {
+                page.content.push_back(buffer[i]);
+                page.length--;
+                if(page.length == 0)
+                {
+                    //下一个循环，消化下一个块
+                    break;
+                }
+            }
+        }
+        else
+        {
+            //防止死循环
+            i++;
         }
     }
 }
+
 void client::respreadtofile(const char *buffer, unsigned int buffersize)
 {
 
@@ -2609,7 +2750,7 @@ bool client::parse()
     host.clear();
     port.clear();
     path.clear();
-    query.clear();
+    query_.clear();
 
     if (_url[i] == 'h' && _url[i + 1] == 't' && _url[i + 2] == 't' && _url[i + 3] == 'p' && _url[i + 4] == ':')
     {
@@ -2670,7 +2811,7 @@ bool client::parse()
         i++;
         for (; i < _url.length(); i++)
         {
-            query.push_back(_url[i]);
+            query_.push_back(_url[i]);
         }
     }
     else if (_url[i] != 0x2F)
@@ -2693,7 +2834,7 @@ bool client::parse()
             i++;
             for (; i < _url.length(); i++)
             {
-                query.push_back(_url[i]);
+                query_.push_back(_url[i]);
             }
         }
     }
@@ -2722,21 +2863,21 @@ client &client::build_query(const std::map<std::string, std::string> &param)
         if (isfirst)
         {
             isfirst = false;
-            if (query.size() > 0)
+            if (query_.size() > 0)
             {
-                query.push_back('&');
+                query_.push_back('&');
             }
         }
         else
         {
-            query.push_back('&');
+            query_.push_back('&');
         }
         {
             tempport = url_encode(first.data(), first.size());
-            query.append(tempport);
+            query_.append(tempport);
             tempport = url_encode(second.data(), second.size());
-            query.push_back('=');
-            query.append(tempport);
+            query_.push_back('=');
+            query_.append(tempport);
         }
     }
     return *this;
@@ -2751,25 +2892,25 @@ client &client::build_query(http::obj_val param)
         if (isfirst)
         {
             isfirst = false;
-            if (query.size() > 0)
+            if (query_.size() > 0)
             {
-                query.push_back('&');
+                query_.push_back('&');
             }
         }
         else
         {
-            query.push_back('&');
+            query_.push_back('&');
         }
         if (!second.is_array())
         {
             tempport = first;
             tempport = url_encode(tempport.data(), tempport.size());
-            query.append(tempport);
+            query_.append(tempport);
             tempport = second.to_string();
             tempport = url_encode(tempport.data(), tempport.size());
-            query.push_back('=');
+            query_.push_back('=');
 
-            query.append(tempport);
+            query_.append(tempport);
         }
     }
     return *this;
@@ -2777,13 +2918,13 @@ client &client::build_query(http::obj_val param)
 
 client &client::build_query(const std::string &a)
 {
-    query.append(url_encode(a.data(), a.size()));
+    query_.append(url_encode(a.data(), a.size()));
     return *this;
 }
 
 std::string client::get_query()
 {
-    return query;
+    return query_;
 }
 
 void client::buildheader()
@@ -2795,68 +2936,33 @@ void client::buildheader()
     {
         request.append("GET ");
         request.append(path);
-        if (query.empty())
-        {
-
-            bool isfirst = true;
-            for (auto &[first, second] : data.as_object())
-            {
-                if (isfirst)
-                {
-                    request.push_back('?');
-                    isfirst = false;
-                }
-                else
-                {
-                    request.push_back('&');
-                }
-                if (!second.is_array())
-                {
-                    tempport = first;
-                    tempport = url_encode(tempport.data(), tempport.size());
-                    request.append(tempport);
-                    tempport = second.to_string();
-                    tempport = url_encode(tempport.data(), tempport.size());
-                    request.push_back('=');
-
-                    request.append(tempport);
-                }
-            }
-        }
-        else
+        if (!query_.empty())
         {
             request.push_back('?');
-            request.append(query);
-            for (auto &[first, second] : data.as_object())
-            {
-                request.push_back('&');
-                if (!second.is_array())
-                {
-                    tempport = first;
-                    tempport = url_encode(tempport.data(), tempport.size());
-                    request.append(tempport);
-                    tempport = second.to_string();
-                    request.push_back('=');
-                    tempport = url_encode(tempport.data(), tempport.size());
-                    request.append(tempport);
-                }
-            }
+            request.append(query_);
+ 
         }
         request.append(" HTTP/1.1\r\n");
     }
     else
     {
-        request.append("POST ");
+        if(requesttype > 1)
+        {
+            request.append("QUERY ");
+        }
+        else
+        {
+            request.append("POST ");
+        }
         request.append(path);
-        if (query.empty())
+        if (query_.empty())
         {
             request.append(" HTTP/1.1\r\n");
         }
         else
         {
-
             request.append("?");
-            request.append(query);
+            request.append(query_);
             request.append(" HTTP/1.1\r\n");
         }
     }
@@ -2965,7 +3071,6 @@ client &client::add_file(std::string filename)
 }
 client &client::add_file(std::string key, std::string filename)
 {
-
     assign_file(std::move(key), std::move(filename));
     return *this;
 }
@@ -3019,6 +3124,7 @@ void client::buildcontent()
         if (files.size() == 0)
         {
             contenttype = "application/x-www-form-urlencoded";
+            header["Content-Type"] = "application/x-www-form-urlencoded";
         }
         else
         {
@@ -3028,7 +3134,6 @@ void client::buildcontent()
     else
     {
         contenttype = header["Content-Type"].as_string();
-        header.unset("Content-Type");
     }
 
     if (contenttype == "multipart/form-data")
@@ -3044,22 +3149,16 @@ void client::buildcontent()
  
         boundary= "----------paozhuhttpclient" + std::to_string(randnum) + std::to_string(rdnum);
 
-        header["Content-Type"] = (contenttype + "; boundary=" + boundary);
+        header["Content-Type"] = "multipart/form-data; boundary=" + boundary;
     }
-    else
-    {
-
-        header["Content-Type"] = contenttype;
-    }
+ 
 
     unsigned int beginpos      = 0;
     unsigned int contentlength = 0;
-    std::string tempstr;
     upload_file ptemp;
     // FILE *fp;
-    switch (contenttype.length())
+    if(str_casecmp(contenttype,"application/x-www-form-urlencoded"))
     {
-    case 33:
         beginpos      = 0;
         contentlength = 0;
         ptemp.error   = 3;
@@ -3069,265 +3168,146 @@ void client::buildcontent()
         ptemp.size = 0;
         ptemp.type.clear();
 
-        for (auto &[first, second] : data.as_object())
+        if(postdata.size() > 0)
         {
-
-            // ptemp.error=3;
-            // ptemp.tempfile.clear();
-            // ptemp.filename.clear();
-            // ptemp.name.clear();
-            // ptemp.size=0;
-            // ptemp.type.clear();
-            if (beginpos > 0)
+            for (auto &[first, second] : postdata)
             {
-                ptemp.tempfile.push_back('&');
+                if (beginpos > 0)
+                {
+                    ptemp.tempfile.push_back('&');
+                }
+                ptemp.tempfile.append(url_encode(first.data(), first.size()));
+                ptemp.tempfile.push_back('=');
+                ptemp.tempfile.append(url_encode(second.data(), second.size()));
+                beginpos++;
             }
-            tempstr = first;
-            tempstr = url_encode(tempstr.data(), tempstr.size());
-            // ptemp.name=tempstr;
-            ptemp.tempfile.append(tempstr);
-            tempstr = second.to_string();
-            tempstr = url_encode(tempstr.data(), tempstr.size());
-            ptemp.tempfile.push_back('=');
-            ptemp.tempfile.append(tempstr);
-            // ptemp.tempfile=tempstr;
-            // contentlength+=ptemp.name.size()+1+ptemp.tempfile.size();
-            // senddata.push_back(ptemp);
-            beginpos++;
         }
-        beginpos = 0;
-
-        for (auto &[first, second] : parameter.as_object())
+        else
         {
-            if (beginpos > 0)
+            if(page.content.size() > 0)
             {
-                ptemp.tempfile.push_back('&');
+                ptemp.tempfile.append(page.content);
             }
-            tempstr = first;
-            tempstr = url_encode(tempstr.data(), tempstr.size());
-
-            ptemp.tempfile.append(tempstr);
-            tempstr = second.to_string();
-            tempstr = url_encode(tempstr.data(), tempstr.size());
-            ptemp.tempfile.push_back('=');
-            ptemp.tempfile.append(tempstr);
-            beginpos++;
         }
         contentlength            = ptemp.tempfile.size();
-        header["Content-Length"] = contentlength;
         senddata.push_back(ptemp);
-
-        break;
-    case 24:
-        if (contenttype == "application/octet-stream")
+    }
+    else if(str_casecmp(contenttype,"multipart/form-data"))
+    {
+        beginpos      = 0;
+        contentlength = 0;
+        ptemp.error   = 0;
+        ptemp.tempfile.clear();
+        ptemp.filename.clear();
+        ptemp.name.clear();
+        ptemp.size = 0;
+        ptemp.type.clear();
+        for (auto &[first, second] : postdata)
         {
+            ptemp.error = 0;
+            ptemp.tempfile.clear();
+            ptemp.filename.clear();
+            ptemp.name.clear();
+            ptemp.size = 0;
+            ptemp.type.clear();
+            ptemp.tempfile.append("--");
+            ptemp.tempfile.append(boundary);
+            ptemp.tempfile.append("\r\n");
 
-            if (files.size() > 0)
+            ptemp.tempfile.append("Content-Disposition: form-data; name=\"");
+            ptemp.tempfile.append(first);
+            ptemp.tempfile.append("\"\r\n\r\n");
+
+            ptemp.tempfile.append(second);
+            ptemp.tempfile.append("\r\n");
+            contentlength += ptemp.tempfile.size();
+            senddata.push_back(ptemp);
+        }
+
+        if (files.size() > 0)
+        {
+            for (auto finfo : files)
             {
-
                 ptemp.error = 0;
                 ptemp.tempfile.clear();
                 ptemp.filename.clear();
                 ptemp.name.clear();
                 ptemp.size = 0;
                 ptemp.type.clear();
-
-                ptemp.size = files.front().size;
-                if (ptemp.size < 32768)
+                if (finfo.size > 16384)
                 {
-                    // fp = fopen(files.front().filename.c_str(), "rb");
-                    std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(files.front().filename.c_str(), "rb"), std::fclose);
+                    ptemp.error    = 1;
+                    ptemp.filename = finfo.filename;
+                    ptemp.name     = finfo.name;
+                    ptemp.size     = finfo.size;
+                    ptemp.type     = finfo.type;
+
+                    ptemp.tempfile.append("--");
+                    ptemp.tempfile.append(boundary);
+                    ptemp.tempfile.append("\r\n");
+
+                    ptemp.tempfile.append("Content-Disposition: form-data; name=\"");
+                    ptemp.tempfile.append(finfo.name);
+                    ptemp.tempfile.append("\"; filename=\"");
+                    ptemp.tempfile.append(finfo.filename);
+                    ptemp.tempfile.append("\"\r\nContent-Type: ");
+                    ptemp.tempfile.append(finfo.type);
+                    ptemp.tempfile.append("\r\n\r\n");
+                    contentlength += ptemp.tempfile.size() + finfo.size + 2;
+                }
+                else
+                {
+                    ptemp.error    = 0;
+                    ptemp.filename = finfo.filename;
+                    ptemp.name     = finfo.name;
+                    ptemp.size     = finfo.size;
+                    ptemp.type     = finfo.type;
+
+                    ptemp.tempfile.append("--");
+                    ptemp.tempfile.append(boundary);
+                    ptemp.tempfile.append("\r\n");
+
+                    ptemp.tempfile.append("Content-Disposition: form-data; name=\"");
+                    ptemp.tempfile.append(finfo.name);
+                    ptemp.tempfile.append("\"; filename=\"");
+                    ptemp.tempfile.append(finfo.filename);
+                    ptemp.tempfile.append("\"\r\nContent-Type: ");
+                    ptemp.tempfile.append(finfo.type);
+                    ptemp.tempfile.append("\r\n\r\n");
+                    std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(finfo.filename.c_str(), "rb"), std::fclose);
                     if (fp)
                     {
-                        ptemp.tempfile.resize(ptemp.size);
-                        unsigned int n = fread(&ptemp.tempfile[0], 1, ptemp.size, fp.get());
-                        ptemp.tempfile.resize(n);
+                        unsigned int n = ptemp.tempfile.size();
+                        ptemp.tempfile.resize(n + ptemp.size);
+                        n = fread(&ptemp.tempfile[n], 1, ptemp.size, fp.get());
+
                         // fclose(fp);
                     }
-
-                    contentlength = ptemp.tempfile.size();
+                    ptemp.tempfile.append("\r\n");
+                    contentlength += ptemp.tempfile.size();
                 }
-                else
-                {
-                    ptemp.error    = 2;
-                    ptemp.filename = files.front().filename;
-                    contentlength  = ptemp.size;
-                }
-                senddata.push_back(ptemp);
-
-                header["Content-Length"] = contentlength;
-            }
-            else
-            {
-
-                ptemp.error = 0;
-                ptemp.tempfile.clear();
-                ptemp.filename.clear();
-                ptemp.name.clear();
-                ptemp.size = 0;
-                ptemp.type.clear();
-                if (!data.is_array())
-                {
-                    ptemp.tempfile = data.to_string();
-                }
-                else
-                {
-                    for (auto &[first, second] : data.as_object())
-                    {
-                        if (!second.is_array())
-                        {
-                            ptemp.tempfile = second.to_string();
-                            break;
-                        }
-                    }
-                }
-
-                contentlength            = ptemp.tempfile.size();
-                header["Content-Length"] = contentlength;
                 senddata.push_back(ptemp);
             }
         }
-        break;
-    case 19:
 
-        if (contenttype == "multipart/form-data")
+        ptemp.error = 0;
+        ptemp.tempfile.clear();
+        ptemp.filename.clear();
+        ptemp.name.clear();
+        ptemp.size = 0;
+        ptemp.type.clear();
+
+        ptemp.tempfile.append("--");
+        ptemp.tempfile.append(boundary);
+        ptemp.tempfile.append("--");
+        ptemp.size = ptemp.tempfile.size();
+        contentlength += ptemp.size;
+        senddata.push_back(ptemp);
+    }
+    else if(str_casecmp(contenttype,"application/octet-stream"))
+    {
+        if (files.size() > 0)
         {
-
-            contentlength = 0;
-            for (auto &[first, second] : data.as_object())
-            {
-
-                ptemp.error = 0;
-                ptemp.tempfile.clear();
-                ptemp.filename.clear();
-                ptemp.name.clear();
-                ptemp.size = 0;
-                ptemp.type.clear();
-                ptemp.tempfile.append("--");
-                ptemp.tempfile.append(boundary);
-                ptemp.tempfile.append("\r\n");
-
-                ptemp.tempfile.append("Content-Disposition: form-data; name=\"");
-                ptemp.tempfile.append(first);
-                ptemp.tempfile.append("\"\r\n\r\n");
-
-                if (!second.is_array())
-                {
-                    if (second.is_num())
-                    {
-                        ptemp.tempfile.append(second.to_string());
-                    }
-                    else if (second.is_string())
-                    {
-                        ptemp.tempfile.append(second.as_string());
-                    }
-                }
-                ptemp.tempfile.append("\r\n");
-                contentlength += ptemp.tempfile.size();
-                senddata.push_back(ptemp);
-            }
-
-            for (auto &[first, second] : parameter.as_object())
-            {
-
-                ptemp.error = 0;
-                ptemp.tempfile.clear();
-                ptemp.filename.clear();
-                ptemp.name.clear();
-                ptemp.size = 0;
-                ptemp.type.clear();
-                ptemp.tempfile.append("--");
-                ptemp.tempfile.append(boundary);
-                ptemp.tempfile.append("\r\n");
-
-                ptemp.tempfile.append("Content-Disposition: form-data; name=\"");
-                ptemp.tempfile.append(first);
-                ptemp.tempfile.append("\"\r\n\r\n");
-
-                if (!second.is_array())
-                {
-                    if (second.is_num())
-                    {
-                        ptemp.tempfile.append(second.to_string());
-                    }
-                    else if (second.is_string())
-                    {
-                        ptemp.tempfile.append(second.as_string());
-                    }
-                }
-                ptemp.tempfile.append("\r\n");
-                contentlength += ptemp.tempfile.size();
-                senddata.push_back(ptemp);
-            }
-            if (files.size() > 0)
-            {
-
-                for (auto finfo : files)
-                {
-                    ptemp.error = 0;
-                    ptemp.tempfile.clear();
-                    ptemp.filename.clear();
-                    ptemp.name.clear();
-                    ptemp.size = 0;
-                    ptemp.type.clear();
-                    if (finfo.size > 16384)
-                    {
-                        ptemp.error    = 1;
-                        ptemp.filename = finfo.filename;
-                        ptemp.name     = finfo.name;
-                        ptemp.size     = finfo.size;
-                        ptemp.type     = finfo.type;
-
-                        ptemp.tempfile.append("--");
-                        ptemp.tempfile.append(boundary);
-                        ptemp.tempfile.append("\r\n");
-
-                        ptemp.tempfile.append("Content-Disposition: form-data; name=\"");
-                        ptemp.tempfile.append(finfo.name);
-                        ptemp.tempfile.append("\"; filename=\"");
-                        ptemp.tempfile.append(finfo.filename);
-                        ptemp.tempfile.append("\"\r\nContent-Type: ");
-                        ptemp.tempfile.append(finfo.type);
-                        ptemp.tempfile.append("\r\n\r\n");
-                        contentlength += ptemp.tempfile.size() + finfo.size + 2;
-                    }
-                    else
-                    {
-                        ptemp.error    = 0;
-                        ptemp.filename = finfo.filename;
-                        ptemp.name     = finfo.name;
-                        ptemp.size     = finfo.size;
-                        ptemp.type     = finfo.type;
-
-                        ptemp.tempfile.append("--");
-                        ptemp.tempfile.append(boundary);
-                        ptemp.tempfile.append("\r\n");
-
-                        ptemp.tempfile.append("Content-Disposition: form-data; name=\"");
-                        ptemp.tempfile.append(finfo.name);
-                        ptemp.tempfile.append("\"; filename=\"");
-                        ptemp.tempfile.append(finfo.filename);
-                        ptemp.tempfile.append("\"\r\nContent-Type: ");
-                        ptemp.tempfile.append(finfo.type);
-                        ptemp.tempfile.append("\r\n\r\n");
-                        // fp = fopen(finfo.filename.c_str(), "rb");
-                        std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(finfo.filename.c_str(), "rb"), std::fclose);
-                        if (fp)
-                        {
-                            unsigned int n = ptemp.tempfile.size();
-                            ptemp.tempfile.resize(n + ptemp.size);
-                            n = fread(&ptemp.tempfile[n], 1, ptemp.size, fp.get());
-
-                            // fclose(fp);
-                        }
-                        ptemp.tempfile.append("\r\n");
-                        contentlength += ptemp.tempfile.size();
-                    }
-
-                    senddata.push_back(ptemp);
-                }
-            }
-
             ptemp.error = 0;
             ptemp.tempfile.clear();
             ptemp.filename.clear();
@@ -3335,81 +3315,32 @@ void client::buildcontent()
             ptemp.size = 0;
             ptemp.type.clear();
 
-            ptemp.tempfile.append("--");
-            ptemp.tempfile.append(boundary);
-            ptemp.tempfile.append("--");
-            ptemp.size = ptemp.tempfile.size();
-            contentlength += ptemp.size;
+            ptemp.size = files.front().size;
+            if (ptemp.size < 32768)
+            {
+                // fp = fopen(files.front().filename.c_str(), "rb");
+                std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(files.front().filename.c_str(), "rb"), std::fclose);
+                if (fp)
+                {
+                    ptemp.tempfile.resize(ptemp.size);
+                    unsigned int n = fread(&ptemp.tempfile[0], 1, ptemp.size, fp.get());
+                    ptemp.tempfile.resize(n);
+                    // fclose(fp);
+                }
+
+                contentlength = ptemp.tempfile.size();
+            }
+            else
+            {
+                ptemp.error    = 2;
+                ptemp.filename = files.front().filename;
+                contentlength  = ptemp.size;
+            }
             senddata.push_back(ptemp);
-            header["Content-Length"] = contentlength;
         }
-        break;
-    case 16:
-        if (contenttype == "application/json")
+        else
         {
-            if (data.size() > 0)
-            {
-
-                ptemp.error = 0;
-                ptemp.tempfile.clear();
-                ptemp.filename.clear();
-                ptemp.name.clear();
-                ptemp.size = 0;
-                ptemp.type.clear();
-
-                ptemp.tempfile.append(data.to_json());
-
-                ptemp.size = ptemp.tempfile.size();
-                contentlength += ptemp.size;
-                senddata.push_back(ptemp);
-            }
-            else if (parameter.size() > 0)
-            {
-                ptemp.error = 0;
-                ptemp.tempfile.clear();
-                ptemp.filename.clear();
-                ptemp.name.clear();
-                ptemp.size = 0;
-                ptemp.type.clear();
-
-                ptemp.tempfile.append(parameter.to_json());
-
-                ptemp.size = ptemp.tempfile.size();
-                contentlength += ptemp.size;
-                senddata.push_back(ptemp);
-            }
-            else if (files.size() > 0)
-            {
-                ptemp.error = 0;
-                ptemp.tempfile.clear();
-                ptemp.filename.clear();
-                ptemp.name.clear();
-                ptemp.size = 0;
-                ptemp.type.clear();
-
-                ptemp.size = files.front().size;
-                if (ptemp.size < 32768)
-                {
-                    // fp = fopen(files.front().filename.c_str(), "rb");
-                    std::unique_ptr<std::FILE, int (*)(FILE *)> fp(fopen(files.front().filename.c_str(), "rb"), std::fclose);
-                    if (fp)
-                    {
-                        ptemp.tempfile.resize(ptemp.size);
-                        unsigned int n = fread(&ptemp.tempfile[0], 1, ptemp.size, fp.get());
-                        ptemp.tempfile.resize(n);
-                        // fclose(fp);
-                    }
-                    contentlength = ptemp.tempfile.size();
-                }
-                else
-                {
-                    ptemp.error    = 2;
-                    ptemp.filename = files.front().filename;
-                    contentlength  = ptemp.size;
-                }
-                senddata.push_back(ptemp);
-            }
-            else if (page.content.size() > 0)
+            if (page.content.size() > 0)
             {
                 ptemp.error = 0;
                 ptemp.tempfile.clear();
@@ -3421,56 +3352,56 @@ void client::buildcontent()
                 ptemp.size     = page.content.size();
                 ptemp.tempfile = page.content;
                 contentlength  = page.content.size();
-
-                page.content.clear();
                 senddata.push_back(ptemp);
             }
-            header["Content-Length"] = contentlength;
         }
+    }
+    else if(str_casecmp(contenttype,"application/json"))
+    {
+        ptemp.error = 0;
+        ptemp.tempfile.clear();
+        ptemp.filename.clear();
+        ptemp.name.clear();
+        ptemp.size = 0;
+        ptemp.type.clear();
 
-        break;
-    case 15:
-        if (contenttype == "application/xml")
-        {
-            ptemp.error = 0;
-            ptemp.tempfile.clear();
-            ptemp.filename.clear();
-            ptemp.name.clear();
-            ptemp.size = 0;
-            ptemp.type.clear();
+        ptemp.size     = page.content.size();
+        ptemp.tempfile = page.content;
+        contentlength  = page.content.size();
+        senddata.push_back(ptemp);
+    }
+    else if(str_casecmp(contenttype,"application/xml"))
+    {
+        ptemp.error = 0;
+        ptemp.tempfile.clear();
+        ptemp.filename.clear();
+        ptemp.name.clear();
+        ptemp.size = 0;
+        ptemp.type.clear();
 
-            ptemp.size     = page.content.size();
-            ptemp.tempfile = page.content;
-            contentlength  = page.content.size();
+        ptemp.size     = page.content.size();
+        ptemp.tempfile = page.content;
+        contentlength  = page.content.size();
+        senddata.push_back(ptemp);
+    }
+    else if(str_casecmp(contenttype,"text/xml"))
+    {
+        ptemp.error = 0;
+        ptemp.tempfile.clear();
+        ptemp.filename.clear();
+        ptemp.name.clear();
+        ptemp.size = 0;
+        ptemp.type.clear();
 
-            page.content.clear();
-            senddata.push_back(ptemp);
-            header["Content-Length"] = contentlength;
-        }
-        break;   
-    case 8:
-        if (contenttype == "text/xml")
-        {
-            ptemp.error = 0;
-            ptemp.tempfile.clear();
-            ptemp.filename.clear();
-            ptemp.name.clear();
-            ptemp.size = 0;
-            ptemp.type.clear();
-
-            ptemp.size     = page.content.size();
-            ptemp.tempfile = page.content;
-            contentlength  = page.content.size();
-
-            page.content.clear();
-            senddata.push_back(ptemp);
-            header["Content-Length"] = contentlength;
-        }
-        break;     
-    default:
+        ptemp.size     = page.content.size();
+        ptemp.tempfile = page.content;
+        contentlength  = page.content.size();
+        senddata.push_back(ptemp);
+    }
+    else
+    {
         if (files.size() > 0)
         {
-
             ptemp.error = 0;
             ptemp.tempfile.clear();
             ptemp.filename.clear();
@@ -3499,8 +3430,6 @@ void client::buildcontent()
                 contentlength  = ptemp.size;
             }
             senddata.push_back(ptemp);
-
-            header["Content-Length"] = contentlength;
         }
         else
         {
@@ -3510,30 +3439,14 @@ void client::buildcontent()
             ptemp.name.clear();
             ptemp.size = 0;
             ptemp.type.clear();
-            if (!data.is_array() && !data.is_object())
-            {
-                ptemp.tempfile = data.to_string();
-            }
-            else
-            {
-                for (auto [first, second] : data.as_object())
-                {
-                    if (!second.is_array() && !second.is_object())
-                    {
-                        ptemp.tempfile = second.to_string();
-                        break;
-                    }
-                }
-            }
 
-            contentlength = ptemp.tempfile.size();
-
-            header["Content-Length"] = contentlength;
+            ptemp.size     = page.content.size();
+            ptemp.tempfile = page.content;
+            contentlength  = page.content.size();
             senddata.push_back(ptemp);
         }
-
-        ;
     }
+    header["Content-Length"] = contentlength;
 }
 
 bool client::connect(std::string_view url,unsigned int time_out_num)

@@ -52,6 +52,25 @@ std::string get_utctime(time_t inputtime)
     std::string temp(timestr);
     return temp;
 }
+
+std::string get_utc(time_t t)
+{
+    if(t == 0)
+    {
+       t = time((time_t *)NULL);
+    }
+    
+    struct tm tm_val{};
+#ifdef _WIN32
+    gmtime_s(&tm_val, &t);
+#else
+    gmtime_r(&t, &tm_val);
+#endif
+    char buf[64];
+    strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S UTC", &tm_val);
+    return std::string(buf);
+}
+
 unsigned int rand_range(unsigned int a, unsigned int b)
 {
     std::random_device rd;
@@ -536,4 +555,5 @@ std::string get_uuid()
     }
     return res;
 }
+
 }// namespace http

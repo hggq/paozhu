@@ -53,6 +53,7 @@ struct site_host_info_t
     bool is_limit_upload   = false;
     bool is_close          = false;
     bool is_proxy          = false;
+    bool is_acme           = false;
 };
 class serverconfig
 {
@@ -75,6 +76,7 @@ class serverconfig
     SSL_CTX *getdefaultctx();
     unsigned int get_hostindex(const std::string &host);
     void clearctx();
+
   public:
     std::string serverpath;
     std::string wwwpath;
@@ -85,18 +87,18 @@ class serverconfig
     std::string configfile;
     std::string configpath;
     std::map<std::string, std::map<std::string, std::string>> map_value;
-    bool clear_ctx = false;
+    bool clear_ctx                     = false;
     bool reloadmysql                   = true;
     bool reloadserverconfig            = true;
     bool siteusehtmlchache             = false;
     bool isallnothttp2                 = true;
     bool is_limit_upload               = false;
-    bool ip6_enable        = false;
+    bool ip6_enable                    = false;
     unsigned int siteusehtmlchachetime = 0;
     unsigned int upload_max_size       = 0;
     unsigned int http_header_max_size  = 0;
 
-    unsigned int rate_limit_new_wait_num       = 300;
+    unsigned int rate_limit_new_wait_num    = 300;
     unsigned int rate_limit_accept_wait_num = 600;
     unsigned int rate_limit_accept_time     = 500;
 

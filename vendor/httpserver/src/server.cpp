@@ -64,6 +64,11 @@
 #include "sockets_method_reg.hpp"
 #include "get_rss_memory.h"
 
+#include "acme_config.h"
+#include "acme_client.h"
+#include "acme_crypto.hpp"
+#include "acme_run.h"
+
 namespace fs = std::filesystem;
 
 namespace http
@@ -2514,6 +2519,10 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
                 {
                     peer_session->window_update_num = peer_session->window_update_num * 10 + (peer->pathinfos[1][i] - '0');
                 }
+                if (peer_session->window_update_num.load() > 0xFFFFFFFE)
+                {
+                    co_return 0;
+                }
             }
         }
         if (peer->pathinfos.size() > 2)
@@ -2523,6 +2532,10 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
                 if (peer->pathinfos[2][i] >= '0' && peer->pathinfos[2][i] <= '9')
                 {
                     peer_session->old_window_update_num = peer_session->old_window_update_num * 10 + (peer->pathinfos[2][i] - '0');
+                }
+                if (peer_session->old_window_update_num.load() > 0xFFFFFFFE)
+                {
+                    co_return 0;
                 }
             }
         }
@@ -3205,7 +3218,7 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                     {
                         co_return;
                     }
-                    
+
                     if (readnum > 256)
                     {
                         co_return;
@@ -4765,6 +4778,7 @@ void httpserver::httpwatch()
     unsigned char plan_http2_exit = 0x00;
 
     bool is_clear_sock = false;
+    bool is_run_acme   = false;
 
     // reboot server
     if (sysconfigpath.map_value["default"]["reboot_cron"].size() > 1)
@@ -5190,6 +5204,10 @@ void httpserver::httpwatch()
 
             std::time_t t = std::time(nullptr);
             std::tm *now  = std::localtime(&t);
+            /*
+            std::tm now;
+            localtime_r(&t, &now);  // 线程安全
+            */
 
             if (now->tm_min == 2 && now->tm_sec < 9)
             {
@@ -5230,6 +5248,18 @@ void httpserver::httpwatch()
                 //     iter->second->clearpool();
                 // }
                 mysqlpool_time = 1;
+            }
+
+            if (now->tm_hour == 7 && is_run_acme)
+            {
+                is_run_acme = false;
+                //every day
+                std::thread t_acme(&httpserver::acme_update, this);
+                t_acme.detach();
+            }
+            if (now->tm_hour == 6)
+            {
+                is_run_acme = true;
             }
 
             mysqlpool_time += 1;
@@ -5708,6 +5738,436 @@ void httpserver::httpwatch()
     }
     // std::abort();
     std::terminate();
+}
+
+void httpserver::acme_update()
+{
+    serverconfig &sysconfigpath        = getserversysconfig();
+    server_loaclvar &static_server_var = get_server_global_var();
+
+    std::string acme_path;
+    std::string conf_path;
+    std::string webroot;
+    std::vector<std::string> domains;
+    std::string primary_domain;
+    std::string domain;
+    std::string error_message;
+    conf_path               = static_server_var.config_path;
+    unsigned int per_number = 0;
+
+    if (!std::filesystem::exists(conf_path))
+    {
+        conf_path = "--[acme] The conf_path directory does not exist:" + conf_path + "--\n";
+        //--begin save acme log --
+        std::string domain_log = static_server_var.log_path;
+        if (domain_log.size() > 0 && domain_log.back() != '/')
+        {
+            domain_log.push_back('/');
+        }
+        domain_log.append("acme_log");
+
+        bool is_success = std::filesystem::create_directories(domain_log);
+        if (is_success)
+        {
+            fs::permissions(domain_log,
+                            fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+                            fs::perm_options::add);
+        }
+        domain_log.append("/acme");
+
+        std::ofstream out_acme_log(domain_log, std::ios::app);
+        if (out_acme_log.is_open())
+        {
+            out_acme_log << conf_path;
+            out_acme_log.close();
+        }
+        //--end save acme log --
+        return;
+    }
+
+    if (conf_path.size() > 0 && conf_path.back() != '/')
+    {
+        conf_path.push_back('/');
+    }
+    std::string acme_conf_file = conf_path + "acme.conf";
+    acme_run acme;
+    try
+    {
+        // 设置配置路径
+        acme.set_acme_config_path(conf_path);
+
+        if (!acme.load_acme_config(acme_conf_file))
+        {
+            conf_path = "--[acme] Unable to load configuration file:" + acme_conf_file + "--\n";
+            //--begin save acme log --
+            std::string domain_log = static_server_var.log_path;
+            if (domain_log.size() > 0 && domain_log.back() != '/')
+            {
+                domain_log.push_back('/');
+            }
+            domain_log.append("acme_log");
+
+            bool is_success = std::filesystem::create_directories(domain_log);
+            if (is_success)
+            {
+                fs::permissions(domain_log,
+                                fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+                                fs::perm_options::add);
+            }
+            domain_log.append("/acme");
+
+            std::ofstream out_acme_log(domain_log, std::ios::app);
+            if (out_acme_log.is_open())
+            {
+                out_acme_log << conf_path;
+                out_acme_log.close();
+            }
+            //--end save acme log --
+            return;
+        }
+
+        // 检查邮箱
+        if (acme.email.empty())
+        {
+            conf_path = "--[acme] email is empty:" + acme_conf_file + "--\n";
+            //--begin save acme log --
+            std::string domain_log = static_server_var.log_path;
+            if (domain_log.size() > 0 && domain_log.back() != '/')
+            {
+                domain_log.push_back('/');
+            }
+            domain_log.append("acme_log");
+
+            bool is_success = std::filesystem::create_directories(domain_log);
+            if (is_success)
+            {
+                fs::permissions(domain_log,
+                                fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+                                fs::perm_options::add);
+            }
+            domain_log.append("/acme");
+
+            std::ofstream out_acme_log(domain_log, std::ios::app);
+            if (out_acme_log.is_open())
+            {
+                out_acme_log << conf_path;
+                out_acme_log.close();
+            }
+            //--end save acme log --
+            return;
+        }
+
+        for (unsigned int domain_num = 0; domain_num < sysconfigpath.sitehostinfos.size(); domain_num++)
+        {
+            if (!sysconfigpath.sitehostinfos[domain_num].is_acme)
+            {
+                //is not auto get ssl
+                continue;
+            }
+            domains.clear();
+            domain = sysconfigpath.sitehostinfos[domain_num].mainhost;
+            if (domain.size() > 5 && domain[0] == 'w' && domain[1] == 'w' && domain[2] == 'w' && domain[3] == '.')
+            {
+                primary_domain = domain.substr(4);
+                domains.push_back(primary_domain);
+                domains.push_back(domain);
+            }
+            else
+            {
+                primary_domain = domain;
+                domains.push_back(primary_domain);
+                unsigned char pos_n    = domain.size() - 1;
+                unsigned int dou_count = 0;
+
+                //测试有几个点
+                for (unsigned int k = 0; k < domain.size(); k++)
+                {
+                    if (domain[k] == '.')
+                    {
+                        dou_count++;
+                    }
+                }
+
+                if (dou_count == 1)
+                {
+                    //可以加上www.一起申请
+                    std::string wwwdomain = "www." + domain;
+                    domains.push_back(wwwdomain);
+                    domain = wwwdomain;
+                }
+                else if (dou_count == 2)
+                {
+                    //查看倒数第二个是不是　com net org gov edu
+                    std::string subdomain;
+                    pos_n = domain.size() - 1;
+                    for (unsigned int k = pos_n; k > 0; k--)
+                    {
+                        if (domain[k] == '.')
+                        {
+                            unsigned int nn = k;
+                            k--;
+                            subdomain.clear();
+
+                            for (; k > 0; k--)
+                            {
+                                if (domain[k] == '.')
+                                {
+                                    //回退一个
+                                    k++;
+                                    break;
+                                }
+                            }
+                            if (k < nn)
+                            {
+                                for (; k < nn; k++)
+                                {
+                                    subdomain.push_back(domain[k]);
+                                }
+                            }
+                            if (subdomain == "com" || subdomain == "net" || subdomain == "org" || subdomain == "gov" || subdomain == "edu")
+                            {
+                                std::string wwwdomain = "www." + domain;
+                                domains.push_back(wwwdomain);
+                                domain = wwwdomain;
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+            //介绍域名检查
+            //输出cert证书目录
+            acme.output_dir = acme.acme_path + "/" + primary_domain;
+            if (!std::filesystem::exists(acme.acme_path))
+            {
+                conf_path = "--[acme] The acme_path directory does not exist:" + acme.acme_path + "--\n";
+                //--begin save acme log --
+                std::string domain_log = static_server_var.log_path;
+                if (domain_log.size() > 0 && domain_log.back() != '/')
+                {
+                    domain_log.push_back('/');
+                }
+                domain_log.append("acme_log");
+
+                bool is_success = std::filesystem::create_directories(domain_log);
+                if (is_success)
+                {
+                    fs::permissions(domain_log,
+                                    fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+                                    fs::perm_options::add);
+                }
+                domain_log.append("/acme");
+
+                std::ofstream out_acme_log(domain_log, std::ios::app);
+                if (out_acme_log.is_open())
+                {
+                    out_acme_log << conf_path;
+                    out_acme_log.close();
+                }
+                //--end save acme log --
+                return;
+            }
+            // 创建输出目录
+            bool is_success = std::filesystem::create_directories(acme.output_dir);
+            if (is_success)
+            {
+                fs::permissions(acme.output_dir,
+                                fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+                                fs::perm_options::add);
+            }
+            webroot = sysconfigpath.sitehostinfos[domain_num].wwwpath;
+            acme.set_webroot(webroot);
+            acme.domains = domains;
+
+            cert_validity_t cv = acme.check_domain_cert_pem(primary_domain);
+
+            std::ostringstream oss;
+            oss << "--[acme] domain: " << primary_domain << "\n";
+            if (!cv.is_expired)
+            {
+                oss << "--[acme] days remain: " << cv.days_remaining << " save path:" << acme.output_dir << "\n";
+                if (cv.days_remaining > acme.days_remain)
+                {
+                    oss << "\nThe certificate is still within its validity period (days remain " << cv.days_remaining << " day)\n";
+                    error_message.append(oss.str());
+                    continue;
+                }
+                oss << "The certificate is about to expire, starting the reapplication process ..\n";
+            }
+            else
+            {
+                oss << "--[acme] The certificate does not exist or has expired. Initiating application ..\n";
+            }
+
+            bool ok = acme.run();
+
+            if (ok)
+            {
+                oss << "--[acme] Certificate application successful!\n";
+            }
+            else
+            {
+                oss << "--[acme] failed!\n";
+            }
+
+            error_message = oss.str();
+            oss.str("");
+
+            //--begin save acme log --
+            std::string domain_log = static_server_var.log_path;
+            if (domain_log.size() > 0 && domain_log.back() != '/')
+            {
+                domain_log.push_back('/');
+            }
+            domain_log.append("acme_log");
+
+            is_success = std::filesystem::create_directories(domain_log);
+            if (is_success)
+            {
+                fs::permissions(domain_log,
+                                fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+                                fs::perm_options::add);
+            }
+            domain_log.append("/");
+            domain_log.append(primary_domain);
+
+            std::ofstream out_acme_log(domain_log, std::ios::app);
+            if (out_acme_log.is_open())
+            {
+                out_acme_log << acme.message_debug;
+                out_acme_log.close();
+                error_message.append("--[acme] save acme log ok\n");
+            }
+            else
+            {
+                error_message.append("--[acme] save acme log faild\n");
+            }
+            //--end save acme log --
+
+            try
+            {
+                // 如果目标已存在则覆盖（注意：copy_file 默认不会覆盖，需指定选项）
+
+                std::string fullchain = acme.output_dir;
+                if (fullchain.size() > 0 && fullchain.back() != '/')
+                {
+                    fullchain.push_back('/');
+                }
+                fullchain.append("fullchain.pem");
+                std::string fullchain_target = conf_path;
+                if (fullchain_target.size() > 0 && fullchain_target.back() != '/')
+                {
+                    fullchain_target.push_back('/');
+                }
+                fullchain_target.append(primary_domain);
+                fullchain_target.append(".pem");
+
+                std::filesystem::copy_file(fullchain, fullchain_target, fs::copy_options::overwrite_existing);
+
+                //privkey.pem
+                fullchain = acme.output_dir;
+                if (fullchain.size() > 0 && fullchain.back() != '/')
+                {
+                    fullchain.push_back('/');
+                }
+                fullchain.append("privkey.pem");
+
+                fullchain_target = conf_path;
+                if (fullchain_target.size() > 0 && fullchain_target.back() != '/')
+                {
+                    fullchain_target.push_back('/');
+                }
+                fullchain_target.append(primary_domain);
+                fullchain_target.append(".key");
+
+                std::filesystem::copy_file(fullchain, fullchain_target, fs::copy_options::overwrite_existing);
+
+                //cert.pem
+                fullchain = acme.output_dir;
+                if (fullchain.size() > 0 && fullchain.back() != '/')
+                {
+                    fullchain.push_back('/');
+                }
+                fullchain.append("cert.pem");
+
+                fullchain_target = conf_path;
+                if (fullchain_target.size() > 0 && fullchain_target.back() != '/')
+                {
+                    fullchain_target.push_back('/');
+                }
+                fullchain_target.append(primary_domain);
+                fullchain_target.append(".crt");
+
+                std::filesystem::copy_file(fullchain, fullchain_target, fs::copy_options::overwrite_existing);
+
+                fullchain_target = static_server_var.log_path;
+
+                if (fullchain_target.size() > 0 && fullchain_target.back() != '/')
+                {
+                    fullchain_target.push_back('/');
+                }
+                fullchain_target.append("restart_ssl_config");
+
+                std::ofstream outFile(fullchain_target, std::ios::trunc);
+                if (outFile.is_open())
+                {
+                    outFile << primary_domain;
+                    outFile.close();
+                    error_message.append("--[acme] ssl_config restart\n");
+                }
+                else
+                {
+                    error_message.append("--[acme] create restart_ssl_config file faild\n");
+                }
+
+                //only process on domain
+                break;
+            }
+            catch (const fs::filesystem_error &e)
+            {
+                error_message.append("--[acme] filesystem_error ");
+                error_message.append(e.what());
+                error_message.append("\n");
+            }
+            std::this_thread::sleep_for(std::chrono::seconds(3));
+            per_number++;
+            if (per_number > 3)
+            {
+                break;
+            }
+        }
+    }
+    catch (const std::exception &e)
+    {
+        error_message.append("--[acme] exception ");
+        error_message.append(e.what());
+        error_message.append("\n");
+    }
+
+    //--begin save acme log --
+    std::string domain_log = static_server_var.log_path;
+    if (domain_log.size() > 0 && domain_log.back() != '/')
+    {
+        domain_log.push_back('/');
+    }
+    domain_log.append("acme_log");
+
+    bool is_success = std::filesystem::create_directories(domain_log);
+    if (is_success)
+    {
+        fs::permissions(domain_log,
+                        fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+                        fs::perm_options::add);
+    }
+    domain_log.append("/acme");
+
+    std::ofstream out_acme_log(domain_log, std::ios::app);
+    if (out_acme_log.is_open())
+    {
+        out_acme_log << error_message;
+        out_acme_log.close();
+    }
+    //--end save acme log --
 }
 
 void httpserver::save_traffic_arrays()

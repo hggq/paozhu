@@ -2681,7 +2681,7 @@ namespace orm
             {
             /*cols_name_where*/
             default:
-                static_assert(false, "not find column name ");
+                return *mod; 
                 break;
             }
 
@@ -2762,7 +2762,7 @@ namespace orm
             {
             /*cols_name_where*/
             default:
-                static_assert(false, "not find column name ");
+                return *mod;
                 break;
             }
 

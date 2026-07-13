@@ -1,3 +1,4 @@
+#include <net/if.h>
 #include <string>
 #include <map>
 #include <memory>
@@ -10,7 +11,7 @@
 
 namespace http
 {
-namespace fs = std::filesystem;    
+namespace fs = std::filesystem;
 serverconfig &getserversysconfig()
 {
     static serverconfig instance;
@@ -938,6 +939,32 @@ bool serverconfig::loadserverglobalconfig()
         tempinfo_default.action_after_lists.clear();
     }
 
+    if (map_value["default"]["acme_auto"].size() > 0)
+    {
+        std::string itemval;
+        itemval = map_value["default"]["acme_auto"];
+
+        if (itemval.size() > 0)
+        {
+            if (itemval[0] == '1' || itemval[0] == 'T')
+            {
+                tempinfo_default.is_acme = true;
+            }
+            else
+            {
+                tempinfo_default.is_acme = false;
+            }
+        }
+        else
+        {
+            tempinfo_default.is_acme = false;
+        }
+    }
+    else
+    {
+        tempinfo_default.is_acme = false;
+    }
+
     if (map_value["default"]["rate_limit_new_wait_num"].size() > 0)
     {
         rate_limit_new_wait_num = 0;
@@ -997,7 +1024,6 @@ bool serverconfig::loadserverglobalconfig()
         rate_limit_accept_wait_num = 600;
     }
 
-
     if (map_value["default"]["rate_limit_accept_time"].size() > 0)
     {
         rate_limit_accept_time = 0;
@@ -1032,38 +1058,38 @@ bool serverconfig::loadserverglobalconfig()
 
     if (map_value["default"]["ip6_listen_enable"].size() > 0)
     {
-        for(unsigned int j=0;j<map_value["default"]["ip6_listen_enable"].size();j++)
+        for (unsigned int j = 0; j < map_value["default"]["ip6_listen_enable"].size(); j++)
         {
-            if(map_value["default"]["ip6_listen_enable"][j]==' ')
+            if (map_value["default"]["ip6_listen_enable"][j] == ' ')
             {
                 continue;
             }
-            else if(map_value["default"]["ip6_listen_enable"][j]=='1')
+            else if (map_value["default"]["ip6_listen_enable"][j] == '1')
             {
                 ip6_enable = true;
                 break;
             }
-            else if(map_value["default"]["ip6_listen_enable"][j]=='T')
+            else if (map_value["default"]["ip6_listen_enable"][j] == 'T')
             {
                 ip6_enable = true;
                 break;
             }
-            else if(map_value["default"]["ip6_listen_enable"][j]=='t')
+            else if (map_value["default"]["ip6_listen_enable"][j] == 't')
             {
                 ip6_enable = true;
                 break;
             }
-            else if(map_value["default"]["ip6_listen_enable"][j]=='0')
+            else if (map_value["default"]["ip6_listen_enable"][j] == '0')
             {
                 ip6_enable = false;
                 break;
             }
-            else if(map_value["default"]["ip6_listen_enable"][j]=='F')
+            else if (map_value["default"]["ip6_listen_enable"][j] == 'F')
             {
                 ip6_enable = false;
                 break;
             }
-            else if(map_value["default"]["ip6_listen_enable"][j]=='f')
+            else if (map_value["default"]["ip6_listen_enable"][j] == 'f')
             {
                 ip6_enable = false;
                 break;
@@ -1656,6 +1682,17 @@ bool serverconfig::loadserverglobalconfig()
                             {
                                 tempinfo.themes_url.push_back(itemval[i]);
                             }
+                        }
+                    }
+                    else if (itemname == "acme_auto")
+                    {
+                        if (itemval.size() > 0 && (itemval[0] == '1' || itemval[0] == 'T' || itemval[0] == 't'))
+                        {
+                            tempinfo.is_acme = true;
+                        }
+                        else
+                        {
+                            tempinfo.is_acme = false;
                         }
                     }
                 }

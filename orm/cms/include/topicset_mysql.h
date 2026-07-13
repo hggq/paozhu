@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sat, 27 Jun 2026 11:17:55 GMT
+ *  Creation time Mon, 13 Jul 2026 09:10:59 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -15492,7 +15492,7 @@ M_MODEL& or_leSort(T val)
 				wheresql.append("sort");
 				break;
             default:
-                static_assert(false, "not find column name ");
+                return *mod; 
                 break;
             }
 
@@ -15600,7 +15600,7 @@ M_MODEL& or_leSort(T val)
 				wheresql.append("sort");
 				break;
             default:
-                static_assert(false, "not find column name ");
+                return *mod;
                 break;
             }
 

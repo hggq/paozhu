@@ -2,7 +2,7 @@
 #define ORM_CMS_TOPICSETBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 27 Jun 2026 11:17:55 GMT
+*本文件为自动生成 Mon, 13 Jul 2026 09:10:59 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -106,7 +106,7 @@ namespace topicset_info
 		 return m.sort;
 		
         } else {
-            static_assert(false, "Unsupported column type");
+            //static_assert(false, "Unsupported column type");
         }
     }
     

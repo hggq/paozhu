@@ -15,6 +15,7 @@ namespace http
 
 std::string get_gmttime(time_t inputtime = 0);
 std::string get_utctime(time_t inputtime = 0);
+std::string get_utc(time_t inputtime = 0);
 unsigned int timeid();
 unsigned int rand_range(unsigned int a, unsigned int b);
 std::string rand_string(unsigned int a, unsigned char b = 0);
