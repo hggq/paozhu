@@ -221,8 +221,16 @@ cert_validity_t get_cert_validity(const std::string &cert_path)
     }
 
     // Use timegm() because ASN1_TIME is always UTC
+    // time_t t_before = timegm(&tm_before);
+    // time_t t_after  = timegm(&tm_after);
+
+#ifdef WIN32
+    time_t t_before = _mkgmtime(&tm_before);
+    time_t t_after  = _mkgmtime(&tm_after);
+#else
     time_t t_before = timegm(&tm_before);
     time_t t_after  = timegm(&tm_after);
+#endif
 
     // 5. Calculate remaining days and expiration status
     time_t now          = time(nullptr);
