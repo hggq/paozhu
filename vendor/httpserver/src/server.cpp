@@ -4780,6 +4780,18 @@ void httpserver::httpwatch()
 
     bool is_clear_sock = false;
     bool is_run_acme   = false;
+    int acme_every_day_time = sysconfigpath.acme_every_day_time;
+    int acme_every_day_time_reset = 1;
+
+    if(acme_every_day_time < 2)
+    {
+        acme_every_day_time = 2;
+    }
+    if(acme_every_day_time > 23)
+    {
+        acme_every_day_time = 23;
+    }
+    acme_every_day_time_reset = acme_every_day_time - 1;
 
     // reboot server
     if (sysconfigpath.map_value["default"]["reboot_cron"].size() > 1)
@@ -5251,15 +5263,14 @@ void httpserver::httpwatch()
                 mysqlpool_time = 1;
             }
 
-            //if (now->tm_hour == 10 && is_run_acme)
-            if (!is_run_acme)
+            if (now->tm_hour == acme_every_day_time && is_run_acme)
             {
-                is_run_acme = true;
+                is_run_acme = false;
                 //every day
                 std::thread t_acme(&httpserver::acme_task, this);
                 t_acme.detach();
             }
-            if (now->tm_hour == 9)
+            if (now->tm_hour == acme_every_day_time_reset)
             {
                 is_run_acme = true;
             }
@@ -5775,9 +5786,18 @@ void httpserver::acme_task()
     site_num = site_num / 10;
     if (site_num < 5)
     {
-        site_num = 5;
+        site_num = sysconfigpath.acme_every_num;
+        if (site_num < 1)
+        {
+            site_num = 1;
+        }
     }
-    for (unsigned i = 0; i < site_num; i++)
+    if (site_num > 30)
+    {
+        site_num = 30;
+    }
+    
+    for (unsigned int i = 0; i < site_num; i++)
     {
         acme_update();
         std::this_thread::sleep_for(std::chrono::seconds(10));
@@ -5795,7 +5815,7 @@ void httpserver::acme_task()
     std::ofstream outFile(fullchain_target, std::ios::trunc);
     if (outFile.is_open())
     {
-        outFile << "11";
+        outFile << site_num;
         outFile.close();
     }
 }

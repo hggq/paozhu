@@ -1055,6 +1055,62 @@ bool serverconfig::loadserverglobalconfig()
         rate_limit_accept_time = 500;
     }
 
+    if (map_value["default"]["acme_every_day"].size() > 0)
+    {
+        acme_every_day_time = 0;
+        for (unsigned int i = 0; i < map_value["default"]["acme_every_day"].size(); i++)
+        {
+            if (map_value["default"]["acme_every_day"][i] >= '0' && map_value["default"]["acme_every_day"][i] <= '9')
+            {
+                acme_every_day_time = acme_every_day_time * 10 + (map_value["default"]["acme_every_day"][i] - '0');
+                continue;
+            }
+            break;
+        }
+
+        if (acme_every_day_time > 23)
+        {
+            acme_every_day_time = 23;
+        }
+
+        if (acme_every_day_time < 2)
+        {
+            acme_every_day_time = 2;
+        }
+    }
+    else
+    {
+        acme_every_day_time = 7;
+    }
+
+    if (map_value["default"]["acme_every_num"].size() > 0)
+    {
+        acme_every_num = 0;
+        for (unsigned int i = 0; i < map_value["default"]["acme_every_num"].size(); i++)
+        {
+            if (map_value["default"]["acme_every_num"][i] >= '0' && map_value["default"]["acme_every_num"][i] <= '9')
+            {
+                acme_every_num = acme_every_num * 10 + (map_value["default"]["acme_every_num"][i] - '0');
+                continue;
+            }
+            break;
+        }
+
+        if (acme_every_num > 30)
+        {
+            acme_every_num = 30;
+        }
+
+        if (acme_every_num < 1)
+        {
+            acme_every_num = 1;
+        }
+    }
+    else
+    {
+        acme_every_num = 5;
+    }
+
     if (map_value["default"]["ip6_listen_enable"].size() > 0)
     {
         for (unsigned int j = 0; j < map_value["default"]["ip6_listen_enable"].size(); j++)
@@ -1104,6 +1160,8 @@ bool serverconfig::loadserverglobalconfig()
     {
         ip6_enable = false;
     }
+
+
 
     tempinfo_default.php_root_document = tempinfo_default.wwwpath;
     sitehostinfos.push_back(std::move(tempinfo_default));

@@ -359,8 +359,6 @@ void acme_client::respond_challenge(const std::string &challenge_url)
         account_key_.get(),
         kid_);
 
-    // auto url = parse_url(challenge_url);
-    // auto res = https_.post(url.host, url.port, url.target, body);
     std::shared_ptr<http::client> https = std::make_shared<http::client>();
     https->post(challenge_url);
     https->add_header("Content-Type", "application/jose+json");
@@ -609,11 +607,22 @@ EVP_PKEY_ptr acme_client::finalize_order(const std::vector<std::string> &domains
 
 void acme_client::write_file(const std::string &path, const std::string &content)
 {
-    fs::create_directories(fs::path(path).parent_path());
+    auto parent = fs::path(path).parent_path();
+    if (!parent.empty() && !fs::exists(parent)) {
+        fs::create_directories(parent);
+        fs::permissions(parent, 
+            fs::perms::owner_all | fs::perms::group_all | fs::perms::others_all,
+            fs::perm_options::replace);
+    }
+
     std::ofstream ofs(path);
     if (!ofs)
         throw std::runtime_error("无法写入文件: " + path);
     ofs << content;
+
+    fs::permissions(path, 
+            fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+            fs::perm_options::replace);
 }
 
 // 从 PEM 链中提取 CA 证书 (去掉第一个叶子证书)

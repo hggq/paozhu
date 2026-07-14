@@ -5,6 +5,7 @@
 #include <cctype>
 #include <stdexcept>
 #include <cstdio>
+#include <filesystem>
 #include "parse_ini.h"
 
 namespace http
@@ -179,6 +180,12 @@ bool parse_ini::atomic_write_file(const std::string &filename, const std::vector
         return false;
     }
     outFile.close();
+
+    std::filesystem::permissions(tmp_file,
+            std::filesystem::perms::owner_all |
+            std::filesystem::perms::group_read | std::filesystem::perms::group_write | 
+            std::filesystem::perms::others_read,
+            std::filesystem::perm_options::replace);
 
     // 2. 备份原文件（先删除旧备份，兼容 Windows rename 行为）
     std::remove(bak_file.c_str());

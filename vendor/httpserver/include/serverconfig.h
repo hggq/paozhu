@@ -102,6 +102,9 @@ class serverconfig
     unsigned int rate_limit_accept_wait_num = 600;
     unsigned int rate_limit_accept_time     = 500;
 
+    unsigned int acme_every_day_time  = 7;
+    unsigned int acme_every_num   = 5;
+
     std::map<std::string, SSL_CTX *> g_ctxMap;
     std::map<unsigned long long, bool> domain_http2;
     std::vector<struct site_host_info_t> sitehostinfos;
