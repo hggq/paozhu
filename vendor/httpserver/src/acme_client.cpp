@@ -608,11 +608,12 @@ EVP_PKEY_ptr acme_client::finalize_order(const std::vector<std::string> &domains
 void acme_client::write_file(const std::string &path, const std::string &content)
 {
     auto parent = fs::path(path).parent_path();
-    if (!parent.empty() && !fs::exists(parent)) {
+    if (!parent.empty() && !fs::exists(parent))
+    {
         fs::create_directories(parent);
-        fs::permissions(parent, 
-            fs::perms::owner_all | fs::perms::group_all | fs::perms::others_all,
-            fs::perm_options::replace);
+        fs::permissions(parent,
+                        fs::perms::owner_all | fs::perms::group_all | fs::perms::others_all,
+                        fs::perm_options::replace);
     }
 
     std::ofstream ofs(path);
@@ -620,9 +621,9 @@ void acme_client::write_file(const std::string &path, const std::string &content
         throw std::runtime_error("无法写入文件: " + path);
     ofs << content;
 
-    fs::permissions(path, 
-            fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
-            fs::perm_options::replace);
+    fs::permissions(path,
+                    fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+                    fs::perm_options::replace);
 }
 
 // 从 PEM 链中提取 CA 证书 (去掉第一个叶子证书)
@@ -658,9 +659,6 @@ void acme_client::download_certificate(const std::string &output_dir, int max_re
             account_key_.get(),
             kid_);
 
-        // auto url = parse_url(order_url_);
-        // auto res = https_.post(url.host, url.port, url.target, body);
-
         std::shared_ptr<http::client> https = std::make_shared<http::client>();
         https->post(order_url_);
         https->add_header("Content-Type", "application/jose+json");
@@ -675,13 +673,12 @@ void acme_client::download_certificate(const std::string &output_dir, int max_re
 
         if (https->page.isjson == 1)
         {
-            //std::string status = json_util::get_string(res.body, "status");
             std::string status = https->page.json["status"].to_string();
 
             if (status == "valid")
             {
 
-                cert_url = https->page.json["certificate"].to_string();// json_util::get_string(res.body, "certificate");
+                cert_url = https->page.json["certificate"].to_string();
                 oss << " 证书已签发!\n";
                 break;
             }
@@ -708,14 +705,8 @@ void acme_client::download_certificate(const std::string &output_dir, int max_re
         account_key_.get(),
         kid_);
 
-    // auto url = parse_url(cert_url);
-    // oss<<" host: "<< url.host<<std::endl;
-    // oss<<" port: "<< url.port<<std::endl;
     oss << " cert_url: " << cert_url << std::endl;
     oss << " body: " << body << std::endl;
-
-    // auto res = https_.post(url.host, url.port, url.target, body,
-    //                        "application/jose+json");
 
     std::shared_ptr<http::client> https_down = std::make_shared<http::client>();
     https_down->post(cert_url);

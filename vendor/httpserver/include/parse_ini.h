@@ -38,9 +38,10 @@ class parse_ini
 
     // ---------- 删除文件中的某个值（保留注释和格式） ----------
     bool delete_value(const std::string &section, const std::string &name);
+    bool delete_section(const std::string &section);
     //保存config到文件
     bool save_file(const std::string &filename);
-
+    unsigned int fix_file(const std::string &filename);
   public:
     std::unordered_map<std::string, std::unordered_map<std::string, std::string>> config;
     std::string filename_;//文件名

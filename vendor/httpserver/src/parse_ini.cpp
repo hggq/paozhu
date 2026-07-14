@@ -182,10 +182,10 @@ bool parse_ini::atomic_write_file(const std::string &filename, const std::vector
     outFile.close();
 
     std::filesystem::permissions(tmp_file,
-            std::filesystem::perms::owner_all |
-            std::filesystem::perms::group_read | std::filesystem::perms::group_write | 
-            std::filesystem::perms::others_read,
-            std::filesystem::perm_options::replace);
+                                 std::filesystem::perms::owner_all |
+                                     std::filesystem::perms::group_read | std::filesystem::perms::group_write |
+                                     std::filesystem::perms::others_read,
+                                 std::filesystem::perm_options::replace);
 
     // 2. 备份原文件（先删除旧备份，兼容 Windows rename 行为）
     std::remove(bak_file.c_str());
@@ -308,7 +308,7 @@ bool parse_ini::save_value(const std::string &section, const std::string &name, 
                                 {
                                     comment_start--;
                                 }
-                                if(comment_start == j)
+                                if (comment_start == j)
                                 {
                                     line.push_back(' ');
                                 }
@@ -372,7 +372,7 @@ bool parse_ini::save_value(const std::string &section, const std::string &name, 
                                     {
                                         comment_start--;
                                     }
-                                    if(comment_start == j)
+                                    if (comment_start == j)
                                     {
                                         line.push_back(' ');
                                     }
@@ -467,6 +467,15 @@ bool parse_ini::add_value(const std::string &section, const std::string &name, c
                     if (!t.empty() && t.front() == '[' && t.back() == ']')
                     {
                         next_sec = j;
+                        if (j > (i + 1))
+                        {
+                            //保留 下一个节的标题 前一行，可能是 下一个节的标题的注释
+                            t = line_trim(lines[j - 1]);
+                            if (t.empty() || t.front() == ';' || t.front() == '#')
+                            {
+                                next_sec = next_sec - 1;
+                            }
+                        }
                         break;
                     }
                 }
@@ -572,6 +581,84 @@ bool parse_ini::delete_value(const std::string &section, const std::string &name
     return true;
 }
 
+// ---------- 删除文件中的某个section（注释也删除） ----------
+bool parse_ini::delete_section(const std::string &section)
+{
+    if (filename_.empty())
+        return false;
+
+    // 1. 读取整个文件到内存
+    std::ifstream inFile(filename_);
+    if (!inFile.is_open())
+        return false;
+
+    std::vector<std::string> lines;
+    std::string line;
+    while (std::getline(inFile, line))
+        lines.push_back(line);
+    inFile.close();
+
+    // 2. 定位目标节的起始和结束区间（左闭右开）
+    size_t start_idx = lines.size();// 未找到时使用最大索引
+    size_t end_idx   = lines.size();
+
+    for (size_t i = 0; i < lines.size(); ++i)
+    {
+        std::string trimmed = line_trim(lines[i]);
+
+        // 跳过空行和注释行（它们不可能是节标题，但不会影响索引记录）
+        if (trimmed.empty() || trimmed.front() == ';' || trimmed.front() == '#')
+            continue;
+
+        // 检测节标题 [section]
+        if (trimmed.front() == '[' && trimmed.back() == ']')
+        {
+            std::string cur_section = trimmed.substr(1, trimmed.size() - 2);
+            if (cur_section == section)
+            {
+                start_idx = i;// 节标题行本身的索引
+                // 向后查找下一个节标题（或文件末尾）
+                for (size_t j = i + 1; j < lines.size(); ++j)
+                {
+                    std::string t2 = line_trim(lines[j]);
+                    if (!t2.empty() && t2.front() == '[' && t2.back() == ']')
+                    {
+                        end_idx = j;// 下一个节的标题行索引
+                        if (j > (start_idx + 1))
+                        {
+                            //保留 下一个节的标题 前一行，可能是 下一个节的标题的注释
+                            t2 = line_trim(lines[j - 1]);
+                            if (!t2.empty() && (t2.front() == ';' || t2.front() == '#'))
+                            {
+                                end_idx = end_idx - 1;
+                            }
+                        }
+                        break;
+                    }
+                }
+                if (end_idx == lines.size())// 未找到下一个节，则到文件末尾
+                    end_idx = lines.size();
+                break;// 找到目标节，退出外层循环
+            }
+        }
+    }
+
+    if (start_idx == lines.size())
+        return false;// 未找到该节
+
+    // 3. 删除区间 [start_idx, end_idx) —— 包含节标题及其后所有行，直到下一个节前
+    lines.erase(lines.begin() + start_idx, lines.begin() + end_idx);
+
+    // 4. 原子写入（使用您已有的 atomic_write_file）
+    if (!atomic_write_file(filename_, lines))
+        return false;
+
+    // 5. 同步内存中的 config
+    config.erase(section);
+
+    return true;
+}
+
 // ---------- 将内存中的配置保存到文件（无注释，纯格式） ----------
 bool parse_ini::save_file(const std::string &filename)
 {
@@ -594,4 +681,214 @@ bool parse_ini::save_file(const std::string &filename)
     filename_ = filename;
     return true;
 }
+
+// ---------- 规范化ini文件，不删内容，只是格式化 ----------
+//section 除了第一个，每个前面有一个空行，= 号两边都有一个空格，value后面注释都有一个空格隔开, ; #一行注释必须顶尽开头
+unsigned int parse_ini::fix_file(const std::string &filename)
+{
+    if (filename.empty())
+        return false;
+
+    // 1. 读取文件并去除每行首尾空白
+    std::ifstream inFile(filename);
+    if (!inFile.is_open())
+        return false;
+
+    std::vector<std::string> lines;
+    std::string line;
+    while (std::getline(inFile, line))
+        lines.push_back(line_trim(line));// 去除首尾空白
+    inFile.close();
+
+    // 2. 删除多余空行：只保留每个 [section] 前一个空行（第一个 section 前无空行）
+    for (size_t i = 0; i < lines.size(); ++i)
+    {
+        if (lines[i].empty())
+        {
+            // 若下一行是 section，且当前空行不是第一个 section 前的空行，则保留
+            if (i + 1 < lines.size() && !lines[i + 1].empty() && lines[i + 1][0] == '[')
+            {
+                //下一行是section，非常标准
+                continue;
+            }
+            else if (i + 1 < lines.size() && lines[i + 1].empty())
+            {
+                // i后一行
+                lines.erase(lines.begin() + i + 1);
+                --i;
+            }
+        }
+    }
+
+    // 3. 计算所有 key 的最大长度（仅针对包含 '=' 的有效行，忽略空行、section、注释）
+    size_t max_key_len = 0;
+    for (const auto &l : lines)
+    {
+        if (l.empty() || l[0] == '[' || l[0] == ';' || l[0] == '#')
+            continue;
+
+        unsigned int kk = 0;
+        for (; kk < l.size(); kk++)
+        {
+            if (l[kk] == '"' || l[kk] == ';' || l[kk] == '#')
+            {
+                //废行，不统计，因为没有=号
+                kk = 0;
+                break;
+            }
+            else if (l[kk] == '=')
+            {
+                //回退到字符
+                while (kk > 0 && l[kk - 1] == ' ')
+                {
+                    kk--;
+                }
+                break;
+            }
+        }
+
+        if (max_key_len < kk)
+        {
+            max_key_len = kk;
+        }
+    }
+
+    // 4. 重构每一行
+    std::vector<std::string> new_lines;
+    for (const auto &l : lines)
+    {
+        // 空行、section、注释行直接保留原样（不进行对齐处理）
+        if (l.empty() || l[0] == '[' || l[0] == ';' || l[0] == '#')
+        {
+            if (l[0] == '[')
+            {
+                if (!new_lines.empty() && !new_lines.back().empty())
+                {
+                    new_lines.push_back("");
+                }
+            }
+            new_lines.push_back(l);
+            continue;
+        }
+
+        // 处理普通 key=value 行
+        size_t eq_pos    = std::string::npos;
+        bool is_continue = false;
+        for (unsigned int kk = 0; kk < l.size(); kk++)
+        {
+            if (l[kk] == '"' || l[kk] == ';' || l[kk] == '#')
+            {
+                new_lines.push_back(l);
+                is_continue = true;
+                break;
+            }
+            else if (l[kk] == '=')
+            {
+                eq_pos = kk;
+                break;
+            }
+        }
+        if (is_continue)
+        {
+            continue;
+        }
+
+        if (eq_pos == std::string::npos)
+        {
+            // 没有等号的行（可能是格式错误），原样保留
+            new_lines.push_back(l);
+            continue;
+        }
+
+        // 提取 key（去除尾部空格）
+        std::string key = l.substr(0, eq_pos);
+        while (!key.empty() && key.back() == ' ')
+            key.pop_back();
+
+        // 提取等号后的部分，分离 value 和注释
+        std::string rest = l.substr(eq_pos + 1);
+        // 去除 rest 前导空格
+        while (!rest.empty() && rest.front() == ' ')
+            rest.erase(rest.begin());
+
+        std::string value, comment;
+        //分离出值和注释
+        // " 引号开头，里面可能有; # 之类
+        if (rest.size() > 0 && rest[0] == '"')
+        {
+            unsigned int j = 1;
+            for (; j < rest.size(); j++)
+            {
+                if (rest[j] == '"')
+                {
+                    // 统计前面的连续反斜杠数量，奇数表示转义引号
+                    size_t backslash_count = 0;
+                    size_t k               = j;
+                    while (k > 0 && rest[k - 1] == '\\')
+                    {
+                        backslash_count++;
+                        k--;
+                    }
+                    if (backslash_count % 2 == 1)
+                    {
+                        value.push_back(rest[j]);
+                        continue;// 转义引号，跳过
+                    }
+                    break;
+                }
+                value.push_back(rest[j]);
+            }
+            for (; j < rest.size(); j++)
+            {
+                if (rest[j] == ';' || rest[j] == '#')
+                {
+                    comment = rest.substr(j);
+                    break;
+                }
+            }
+        }
+        else
+        {
+            size_t comment_pos = rest.find_first_of(";#");
+            if (comment_pos != std::string::npos)
+            {
+                value = rest.substr(0, comment_pos);
+                while (!value.empty() && value.back() == ' ')
+                    value.pop_back();
+                comment = rest.substr(comment_pos);
+                // 确保注释前有一个空格（如果原注释前已有空格则保留，否则添加）
+            }
+            else
+            {
+                value = rest;
+                while (!value.empty() && value.back() == ' ')
+                    value.pop_back();
+                comment.clear();
+            }
+        }
+
+        // 重构：key 左对齐补空格，然后 " = "，然后 value
+        std::string new_line = key;
+        if (key.size() < max_key_len)
+            new_line.append(max_key_len - key.size(), ' ');
+        new_line += " = " + value;
+
+        // 添加注释（确保前面有一个空格）
+        if (!comment.empty())
+        {
+            if (comment.front() != ' ')
+                new_line += " ";
+            new_line += comment;
+        }
+
+        new_lines.push_back(new_line);
+    }
+
+    // 5. 原子写入（临时文件 + rename，保留 .bak）
+    if (!atomic_write_file(filename, new_lines))
+        return false;
+
+    return true;
+}
+
 }// namespace http

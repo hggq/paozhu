@@ -529,6 +529,15 @@ namespace http
 		temp.regfun = test_parse_ini;
 		methodcallback.emplace("test_parse_ini",temp);
 		temp.pre = nullptr;
+		temp.regfun = test_parse_fix;
+		methodcallback.emplace("test_parse_fix",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_fix_server_conf;
+		methodcallback.emplace("test_fix_server_conf",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_fix_orm_conf;
+		methodcallback.emplace("test_fix_orm_conf",temp);
+		temp.pre = nullptr;
 		temp.regfun = teststr2int;
 		methodcallback.emplace("teststr2int",temp);
 		temp.pre = nullptr;

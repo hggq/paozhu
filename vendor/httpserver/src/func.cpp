@@ -14,7 +14,7 @@
 #include <string_view>
 #include <sys/types.h>
 #include <sys/stat.h>
-
+#include <cctype>
 #include "datetime.h"
 #include "urlcode.h"
 
@@ -2348,50 +2348,52 @@ std::string numstr_to_sql(const char *source, unsigned int str_length, char b)
     return tempt;
 }
 
-std::string dir_name(std::string_view name)
+std::string dir_name(std::string_view name) 
 {
-    if (name.empty())
-        return ".";
+    using namespace std::filesystem;
 
-    std::string path(name);
+    if (name.empty()) return ".";
 
-    // 根据平台定义分隔符集
-#ifdef WIN32
+    std::string path_str(name);
+
+    // 1. 根据平台去除末尾分隔符
+#ifdef _WIN32
     const std::string separators = "/\\";
 #else
     const std::string separators = "/";
 #endif
+    while (!path_str.empty() && separators.find(path_str.back()) != std::string::npos) {
+        path_str.pop_back();
+    }
 
-    // 去除路径末尾的所有分隔符
-    while (!path.empty() && separators.find(path.back()) != std::string::npos)
-        path.pop_back();
-
-    // 如果只剩分隔符（例如 "/" 或 "\\"），返回根目录
-    if (path.empty())
-    {
-#ifdef WIN32
-        return "\\";
-#else
+    if (path_str.empty()) {
+        // 根目录情况
+        if (name.size() >= 2 && std::isalpha(name[0]) && name[1] == ':') {
+            return std::string(name.substr(0, 2)) + "\\";
+        }
         return "/";
+    }
+
+    // 2. 统一分隔符为 '/'
+    std::replace(path_str.begin(), path_str.end(), '\\', '/');
+
+    // 3. 构造 path，识别绝对路径（含 Windows 盘符）
+    path p(path_str);
+    bool is_absolute = p.is_absolute();
+#ifndef _WIN32
+    if (!is_absolute && path_str.size() >= 2 && std::isalpha(path_str[0]) && path_str[1] == ':') {
+        is_absolute = true;
+    }
 #endif
-    }
 
-    // 查找最后一个分隔符
-    size_t pos = path.find_last_of(separators);
-    if (pos == std::string::npos)
-    {
-        // 没有分隔符，说明是当前目录下的文件/目录，返回 "."
-        return ".";
-    }
+    // 4. 绝对化（相对路径加当前工作目录）
+    path abs_path = is_absolute ? p : absolute(p);
 
-    if (pos == 0)
-    {
-        // 根目录下的文件/目录，返回根目录（"/" 或 "\"）
-        return path.substr(0, 1);
-    }
+    // 5. 词法规范化（解析 . 和 ..）
+    path norm = abs_path.lexically_normal();
 
-    // 返回最后一个分隔符之前的部分
-    return path.substr(0, pos);
+    // 6. 返回父目录（PHP dirname 语义）
+    return norm.parent_path().string();
 }
 
 double money_get_num(long long a)
