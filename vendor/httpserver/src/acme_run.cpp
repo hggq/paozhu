@@ -102,6 +102,7 @@ bool acme_run::load_acme_config(const std::string &filename)
     oss << "  server_url: " << acme_ini.get_server_url() << "\n";
     oss << "  eab_kid:    " << (acme_ini.has_eab_credentials() ? "(已配置)" : "(未配置)") << "\n";
     message_debug.append(oss.str());
+    oss.str("");
     return true;
 }
 
@@ -129,6 +130,26 @@ cert_validity_t acme_run::check_domain_cert_pem(const std::string &domainname)
         if (domainname.size() > 4 && domainname.substr(0, 4) != "www.")
         {
             std::string www_path = path + "/www." + domainname + "/cert.pem";
+            if (std::filesystem::exists(www_path))
+            {
+                cert_save_path = www_path;
+            }
+            else
+            {
+                // 都不存在，返回已过期的占位值
+                cert_validity_t cv;
+                cv.not_before     = 0;
+                cv.not_after      = 0;
+                cv.days_remaining = 0;
+                cv.is_expired     = true;
+                return cv;
+            }
+        }
+        else if (domainname.size() > 5 && domainname.substr(0, 4) == "www.")
+        {
+            std::string www_path = path + "/";
+            www_path.append(domainname.substr(4));
+            www_path.append("/cert.pem");
             if (std::filesystem::exists(www_path))
             {
                 cert_save_path = www_path;
@@ -289,85 +310,100 @@ bool acme_run::run()
             acme_ini.get_server_url(),
             eab_kid,
             eab_hmac_key,
-            email);
+            email,
+            oss);
+
+        // 尝试加载已有账号密钥，避免每次都生成新密钥
+        std::string account_key_path = acme_path + "/account_key.pem";
+        bool has_existing_key        = acme.load_account_key(account_key_path);
+        if (has_existing_key)
+        {
+            oss << "[ACME] 复用已有账号密钥\n";
+        }
+        else
+        {
+            oss << "[ACME] 将生成新账号密钥\n";
+        }
 
         // ====================================================
         //  Step 2: 获取 ACME 目录
         // ====================================================
         oss << "[ACME] Step 2: 获取 ACME 目录...\n";
         acme.fetch_directory();
-        oss << acme.message_debug;
-        acme.message_debug.clear();
 
         // ====================================================
         //  Step 3: 创建账号 (带 EAB 绑定)
+        //  新密钥 → 注册新账号并保存; 已有密钥 → 复用账号
         // ====================================================
         oss << "[ACME] Step 3: 创建 ACME 账号...\n";
         acme.create_account();
-        acme.save_account_key(acme_path + "/account_key.pem");
-        oss << acme.message_debug;
-        acme.message_debug.clear();
+        if (!has_existing_key)
+        {
+            acme.save_account_key(account_key_path);
+        }
 
         // ====================================================
         //  Step 4: 新建证书订单
         // ====================================================
         oss << "[ACME] Step 4: 新建证书订单...\n";
         acme.new_order(domains);
-        oss << acme.message_debug;
-        acme.message_debug.clear();
 
         // ====================================================
-        //  Step 5: 获取 HTTP-01 挑战
+        //  🔑 Step 5-8: 验证所有域名 (替代原来的单域名四步调用)
         // ====================================================
-        oss << "[ACME] Step 5: 获取 HTTP-01 挑战...\n";
-        auto challenge = acme.get_http01_challenge();
-        oss << acme.message_debug;
-        acme.message_debug.clear();
+        oss << "[ACME] Step 5-8: 验证所有域名...\n";
+        acme.verify_all_domains(webroot, 30, 10);// 最多等 30×10=300秒
 
         // ====================================================
-        //  Step 6: 准备验证文件
+        //  Step 9: 生成 CSR + finalize (保持不变)
         // ====================================================
-        oss << "[ACME] Step 6: 写入 HTTP-01 验证文件...\n";
-        acme.prepare_http01(webroot, challenge.token);
-        oss << acme.message_debug;
-        acme.message_debug.clear();
-
-        oss << "\n";
-        oss << "[ACME] 请确保 Web 服务器可访问验证文件:\n";
-        oss << "  curl http://" << primary_domain
-            << "/.well-known/acme-challenge/" << challenge.token << "\n\n";
-
-        // ====================================================
-        //  Step 7: 响应挑战
-        // ====================================================
-        oss << "[ACME] Step 7: 通知 ACME 服务器验证...\n";
-        acme.respond_challenge(challenge.url);
-        oss << acme.message_debug;
-        acme.message_debug.clear();
-
-        // ====================================================
-        //  Step 8: 等待授权验证通过
-        // ====================================================
-        oss << "[ACME] Step 8: 等待域名验证...\n";
-        acme.poll_authorization(60, 5);
-        oss << acme.message_debug;
-        acme.message_debug.clear();
-
-        // ====================================================
-        //  Step 9: 生成 CSR + finalize
-        // ====================================================
+        std::this_thread::sleep_for(std::chrono::seconds(10));
         oss << "[ACME] Step 9: 生成 CSR 并提交...\n";
         acme.finalize_order(domains, output_dir);
-        oss << acme.message_debug;
-        acme.message_debug.clear();
+        std::this_thread::sleep_for(std::chrono::seconds(10));
 
+        // // ====================================================
+        // //  Step 5: 获取 HTTP-01 挑战
+        // // ====================================================
+        // oss << "[ACME] Step 5: 获取 HTTP-01 挑战...\n";
+        // auto challenge = acme.get_http01_challenge();
+
+        // // ====================================================
+        // //  Step 6: 准备验证文件
+        // // ====================================================
+        // oss << "[ACME] Step 6: 写入 HTTP-01 验证文件...\n";
+        // acme.prepare_http01(webroot, challenge.token);
+
+        // oss << "\n";
+        // oss << "[ACME] 请确保 Web 服务器可访问验证文件:\n";
+        // oss << "  curl http://" << primary_domain
+        //     << "/.well-known/acme-challenge/" << challenge.token << "\n\n";
+
+        // // ====================================================
+        // //  Step 7: 响应挑战
+        // // ====================================================
+        // oss << "[ACME] Step 7: 通知 ACME 服务器验证...\n";
+        // acme.is_order = false;
+        // acme.respond_challenge(challenge.url);
+        // std::this_thread::sleep_for(std::chrono::seconds(20));
+
+        // // ====================================================
+        // //  Step 8: 等待授权验证通过
+        // // ====================================================
+        // oss << "[ACME] Step 8: 等待域名验证...\n";
+        // acme.poll_authorization(20, 10);
+        // std::this_thread::sleep_for(std::chrono::seconds(15));
+        // // ====================================================
+        // //  Step 9: 生成 CSR + finalize
+        // // ====================================================
+        // oss << "[ACME] Step 9: 生成 CSR 并提交...\n";
+        // acme.finalize_order(domains, output_dir);
+        //std::this_thread::sleep_for(std::chrono::seconds(10));
         // ====================================================
         //  Step 10: 下载证书
         // ====================================================
         oss << "[ACME] Step 10: 下载证书...\n";
         acme.download_certificate(output_dir, 20, 10);
-        oss << acme.message_debug;
-        acme.message_debug.clear();
 
         // ====================================================
         //  保存 EAB 凭证到 acme.conf (如果是新获取的)
@@ -377,8 +413,6 @@ bool acme_run::run()
             oss << "\n[ACME] 保存 EAB 凭证到 acme.conf...\n";
             acme_ini.save_eab_credentials(eab_kid, eab_hmac_key);
         }
-        oss << acme.message_debug;
-        acme.message_debug.clear();
 
         // ====================================================
         //  完成
@@ -396,11 +430,13 @@ bool acme_run::run()
         oss << "    " << output_dir << "/fullchain.pem    - 证书 + CA 链\n";
         oss << "\n";
         message_debug.append(oss.str());
+        oss.str("");
         return true;
     }
     catch (std::exception const &e)
     {
-        oss << message_debug;
+        message_debug.append(oss.str());
+        oss.str("");
         oss << "[ACME] 程序异常: " << e.what() << "\n";
 
         // 打印 OpenSSL 错误栈
@@ -412,6 +448,7 @@ bool acme_run::run()
             oss << "[ACME] OpenSSL: " << buf << "\n";
         }
         message_debug.append(oss.str());
+        oss.str("");
         return false;
     }
 }

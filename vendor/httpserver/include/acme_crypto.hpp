@@ -219,6 +219,19 @@ inline std::string export_pem(const EVP_PKEY *key)
     return std::string(data, static_cast<size_t>(len));
 }
 
+// 从 PEM 私钥字符串加载 EVP_PKEY
+inline EVP_PKEY_ptr import_pem(const std::string &pem)
+{
+    BIO_ptr bio(BIO_new_mem_buf(pem.data(), static_cast<int>(pem.size())));
+    if (!bio)
+        throw std::runtime_error("BIO_new_mem_buf failed");
+
+    EVP_PKEY *raw = PEM_read_bio_PrivateKey(bio.get(), nullptr, nullptr, nullptr);
+    if (!raw)
+        throw std::runtime_error("PEM_read_bio_PrivateKey failed");
+    return EVP_PKEY_ptr(raw);
+}
+
 }// namespace ec_crypto
 
 // ============================================================

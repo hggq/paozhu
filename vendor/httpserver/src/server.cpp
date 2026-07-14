@@ -1,3 +1,4 @@
+#include <datetime.h>
 #include <string>
 #include <zlib.h>
 #include <functional>
@@ -5250,14 +5251,15 @@ void httpserver::httpwatch()
                 mysqlpool_time = 1;
             }
 
-            if (now->tm_hour == 7 && is_run_acme)
+            //if (now->tm_hour == 10 && is_run_acme)
+            if (!is_run_acme)
             {
-                is_run_acme = false;
+                is_run_acme = true;
                 //every day
-                std::thread t_acme(&httpserver::acme_update, this);
+                std::thread t_acme(&httpserver::acme_task, this);
                 t_acme.detach();
             }
-            if (now->tm_hour == 6)
+            if (now->tm_hour == 9)
             {
                 is_run_acme = true;
             }
@@ -5739,7 +5741,64 @@ void httpserver::httpwatch()
     // std::abort();
     std::terminate();
 }
+void httpserver::acme_task()
+{
+    serverconfig &sysconfigpath        = getserversysconfig();
+    unsigned int site_num              = sysconfigpath.sitehostinfos.size();
+    server_loaclvar &static_server_var = get_server_global_var();
+    std::this_thread::sleep_for(std::chrono::seconds(12));
+    //--begin save acme log --
+    std::string domain_log = static_server_var.log_path;
+    if (domain_log.size() > 0 && domain_log.back() != '/')
+    {
+        domain_log.push_back('/');
+    }
+    domain_log.append("acme_log");
 
+    bool is_success = std::filesystem::create_directories(domain_log);
+    if (is_success)
+    {
+        fs::permissions(domain_log,
+                        fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+                        fs::perm_options::add);
+    }
+    domain_log.append("/acme");
+
+    std::ofstream out_acme_log(domain_log, std::ios::app);
+    if (out_acme_log.is_open())
+    {
+        out_acme_log << " begin acme task :" << get_date("%Y-%m-%d %X", timeid()) << "\n";
+        out_acme_log.close();
+    }
+    //--end save acme log --
+
+    site_num = site_num / 10;
+    if (site_num < 5)
+    {
+        site_num = 5;
+    }
+    for (unsigned i = 0; i < site_num; i++)
+    {
+        acme_update();
+        std::this_thread::sleep_for(std::chrono::seconds(10));
+    }
+
+    std::string fullchain_target;
+    fullchain_target = static_server_var.log_path;
+
+    if (fullchain_target.size() > 0 && fullchain_target.back() != '/')
+    {
+        fullchain_target.push_back('/');
+    }
+    fullchain_target.append("restart_ssl_config");
+
+    std::ofstream outFile(fullchain_target, std::ios::trunc);
+    if (outFile.is_open())
+    {
+        outFile << "11";
+        outFile.close();
+    }
+}
 void httpserver::acme_update()
 {
     serverconfig &sysconfigpath        = getserversysconfig();
@@ -5752,12 +5811,10 @@ void httpserver::acme_update()
     std::string primary_domain;
     std::string domain;
     std::string error_message;
-    conf_path               = static_server_var.config_path;
-    unsigned int per_number = 0;
+    conf_path = static_server_var.config_path;
 
     if (!std::filesystem::exists(conf_path))
     {
-        conf_path = "--[acme] The conf_path directory does not exist:" + conf_path + "--\n";
         //--begin save acme log --
         std::string domain_log = static_server_var.log_path;
         if (domain_log.size() > 0 && domain_log.back() != '/')
@@ -5778,7 +5835,7 @@ void httpserver::acme_update()
         std::ofstream out_acme_log(domain_log, std::ios::app);
         if (out_acme_log.is_open())
         {
-            out_acme_log << conf_path;
+            out_acme_log << "--[acme] The conf_path directory does not exist:" << conf_path << "--\n";
             out_acme_log.close();
         }
         //--end save acme log --
@@ -5798,7 +5855,6 @@ void httpserver::acme_update()
 
         if (!acme.load_acme_config(acme_conf_file))
         {
-            conf_path = "--[acme] Unable to load configuration file:" + acme_conf_file + "--\n";
             //--begin save acme log --
             std::string domain_log = static_server_var.log_path;
             if (domain_log.size() > 0 && domain_log.back() != '/')
@@ -5819,7 +5875,7 @@ void httpserver::acme_update()
             std::ofstream out_acme_log(domain_log, std::ios::app);
             if (out_acme_log.is_open())
             {
-                out_acme_log << conf_path;
+                out_acme_log << "--[acme] Unable to load configuration file:" << acme_conf_file << "--\n";
                 out_acme_log.close();
             }
             //--end save acme log --
@@ -5829,7 +5885,6 @@ void httpserver::acme_update()
         // 检查邮箱
         if (acme.email.empty())
         {
-            conf_path = "--[acme] email is empty:" + acme_conf_file + "--\n";
             //--begin save acme log --
             std::string domain_log = static_server_var.log_path;
             if (domain_log.size() > 0 && domain_log.back() != '/')
@@ -5850,7 +5905,7 @@ void httpserver::acme_update()
             std::ofstream out_acme_log(domain_log, std::ios::app);
             if (out_acme_log.is_open())
             {
-                out_acme_log << conf_path;
+                out_acme_log << "--[acme] email is empty:" << acme_conf_file << "--\n";
                 out_acme_log.close();
             }
             //--end save acme log --
@@ -5865,7 +5920,8 @@ void httpserver::acme_update()
                 continue;
             }
             domains.clear();
-            domain = sysconfigpath.sitehostinfos[domain_num].mainhost;
+            domain  = sysconfigpath.sitehostinfos[domain_num].mainhost;
+            webroot = sysconfigpath.sitehostinfos[domain_num].wwwpath;
             if (domain.size() > 5 && domain[0] == 'w' && domain[1] == 'w' && domain[2] == 'w' && domain[3] == '.')
             {
                 primary_domain = domain.substr(4);
@@ -5953,8 +6009,8 @@ void httpserver::acme_update()
                 if (is_success)
                 {
                     fs::permissions(domain_log,
-                                    fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
-                                    fs::perm_options::add);
+                                    fs::perms::owner_all | fs::perms::group_all | fs::perms::others_all,
+                                    fs::perm_options::replace);
                 }
                 domain_log.append("/acme");
 
@@ -5972,10 +6028,10 @@ void httpserver::acme_update()
             if (is_success)
             {
                 fs::permissions(acme.output_dir,
-                                fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
-                                fs::perm_options::add);
+                                fs::perms::owner_all | fs::perms::group_all | fs::perms::others_all,
+                                fs::perm_options::replace);
             }
-            webroot = sysconfigpath.sitehostinfos[domain_num].wwwpath;
+
             acme.set_webroot(webroot);
             acme.domains = domains;
 
@@ -6008,6 +6064,39 @@ void httpserver::acme_update()
             else
             {
                 oss << "--[acme] failed!\n";
+                error_message = oss.str();
+
+                //--begin save acme log --
+                std::string domain_log = static_server_var.log_path;
+                if (domain_log.size() > 0 && domain_log.back() != '/')
+                {
+                    domain_log.push_back('/');
+                }
+                domain_log.append("acme_log");
+
+                is_success = std::filesystem::create_directories(domain_log);
+                if (is_success)
+                {
+                    fs::permissions(domain_log,
+                                    fs::perms::owner_all | fs::perms::group_all | fs::perms::others_all,
+                                    fs::perm_options::replace);
+                }
+                domain_log.append("/");
+                domain_log.append(primary_domain);
+
+                std::ofstream out_acme_log(domain_log, std::ios::app);
+                if (out_acme_log.is_open())
+                {
+                    out_acme_log << acme.message_debug;
+                    out_acme_log.close();
+                    error_message.append("--[acme] save acme log ok\n");
+                }
+                else
+                {
+                    error_message.append("--[acme] save acme log faild\n");
+                }
+                //--end save acme log --
+                break;
             }
 
             error_message = oss.str();
@@ -6025,8 +6114,8 @@ void httpserver::acme_update()
             if (is_success)
             {
                 fs::permissions(domain_log,
-                                fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
-                                fs::perm_options::add);
+                                fs::perms::owner_all | fs::perms::group_all | fs::perms::others_all,
+                                fs::perm_options::replace);
             }
             domain_log.append("/");
             domain_log.append(primary_domain);
@@ -6063,6 +6152,20 @@ void httpserver::acme_update()
                 fullchain_target.append(".pem");
 
                 std::filesystem::copy_file(fullchain, fullchain_target, fs::copy_options::overwrite_existing);
+                //项目目录也复制一份
+                fullchain_target = dir_name(static_server_var.log_path);
+                if (fullchain_target.size() > 0 && fullchain_target.back() != '/')
+                {
+                    fullchain_target.push_back('/');
+                }
+                fullchain_target.append("conf");
+                if (std::filesystem::exists(fullchain_target))
+                {
+                    fullchain_target.append("/");
+                    fullchain_target.append(primary_domain);
+                    fullchain_target.append(".pem");
+                    std::filesystem::copy_file(fullchain, fullchain_target, fs::copy_options::overwrite_existing);
+                }
 
                 //privkey.pem
                 fullchain = acme.output_dir;
@@ -6081,6 +6184,20 @@ void httpserver::acme_update()
                 fullchain_target.append(".key");
 
                 std::filesystem::copy_file(fullchain, fullchain_target, fs::copy_options::overwrite_existing);
+                //项目目录也复制一份
+                fullchain_target = dir_name(static_server_var.log_path);
+                if (fullchain_target.size() > 0 && fullchain_target.back() != '/')
+                {
+                    fullchain_target.push_back('/');
+                }
+                fullchain_target.append("conf");
+                if (std::filesystem::exists(fullchain_target))
+                {
+                    fullchain_target.append("/");
+                    fullchain_target.append(primary_domain);
+                    fullchain_target.append(".key");
+                    std::filesystem::copy_file(fullchain, fullchain_target, fs::copy_options::overwrite_existing);
+                }
 
                 //cert.pem
                 fullchain = acme.output_dir;
@@ -6099,26 +6216,22 @@ void httpserver::acme_update()
                 fullchain_target.append(".crt");
 
                 std::filesystem::copy_file(fullchain, fullchain_target, fs::copy_options::overwrite_existing);
-
-                fullchain_target = static_server_var.log_path;
-
+                //项目目录也复制一份
+                fullchain_target = dir_name(static_server_var.log_path);
                 if (fullchain_target.size() > 0 && fullchain_target.back() != '/')
                 {
                     fullchain_target.push_back('/');
                 }
-                fullchain_target.append("restart_ssl_config");
+                fullchain_target.append("conf");
+                if (std::filesystem::exists(fullchain_target))
+                {
+                    fullchain_target.append("/");
+                    fullchain_target.append(primary_domain);
+                    fullchain_target.append(".crt");
+                    std::filesystem::copy_file(fullchain, fullchain_target, fs::copy_options::overwrite_existing);
+                }
 
-                std::ofstream outFile(fullchain_target, std::ios::trunc);
-                if (outFile.is_open())
-                {
-                    outFile << primary_domain;
-                    outFile.close();
-                    error_message.append("--[acme] ssl_config restart\n");
-                }
-                else
-                {
-                    error_message.append("--[acme] create restart_ssl_config file faild\n");
-                }
+                break;
             }
             catch (const fs::filesystem_error &e)
             {
@@ -6127,11 +6240,8 @@ void httpserver::acme_update()
                 error_message.append("\n");
             }
             std::this_thread::sleep_for(std::chrono::seconds(3));
-            per_number++;
-            if (per_number > 3)
-            {
-                break;
-            }
+
+            break;
         }
     }
     catch (const std::exception &e)
@@ -6153,8 +6263,8 @@ void httpserver::acme_update()
     if (is_success)
     {
         fs::permissions(domain_log,
-                        fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
-                        fs::perm_options::add);
+                        fs::perms::owner_all | fs::perms::group_all | fs::perms::others_all,
+                        fs::perm_options::replace);
     }
     domain_log.append("/acme");
 

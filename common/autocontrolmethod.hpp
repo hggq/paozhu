@@ -27,6 +27,7 @@
 #include "test_reverse.h"
 #include "test_co_handle.h"
 #include "testrand.h"
+#include "test_dir_name.h"
 #include "testormcache.h"
 #include "teststr_trim.h"
 #include "test_leftjoin.h"
@@ -140,6 +141,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testrand;
 		methodcallback.emplace("testrand",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_dir_name;
+		methodcallback.emplace("test_dir_name",temp);
 		temp.pre = nullptr;
 		temp.regfun = testormcache;
 		methodcallback.emplace("testormcache",temp);

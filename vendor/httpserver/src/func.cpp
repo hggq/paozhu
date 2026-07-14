@@ -196,7 +196,7 @@ std::string mb_reverse(std::string_view str)
     {
         return temp;
     }
-    int i = str.size() - 1;
+    int i          = str.size() - 1;
     unsigned int j = 0;
     for (; i >= 0; i--)
     {
@@ -255,25 +255,25 @@ std::string mb_reverse(std::string_view str)
                             // }
                             continue;
                         }
-                        else if (ff == 0xE2 && ee == 0x80 && dd == 0x8B) 
+                        else if (ff == 0xE2 && ee == 0x80 && dd == 0x8B)
                         {
                             //Used for separating longer words with line breaks
                             i = i - 3;
                             continue;
                         }
-                        else if (ff == 0xE2 && ee == 0x80 && dd == 0x8C) 
+                        else if (ff == 0xE2 && ee == 0x80 && dd == 0x8C)
                         {
                             //Arabic, German, Hindi
                             i = i - 3;
                             continue;
                         }
-                        else if (ff == 0xE2 && ee == 0x80 && dd == 0x8E) 
+                        else if (ff == 0xE2 && ee == 0x80 && dd == 0x8E)
                         {
                             //Right to Left
                             i = i - 3;
                             continue;
                         }
-                        else if (ff == 0xE2 && ee == 0x80 && dd == 0x8F) 
+                        else if (ff == 0xE2 && ee == 0x80 && dd == 0x8F)
                         {
                             //Right to Left
                             i = i - 3;
@@ -1467,7 +1467,7 @@ std::string str_trim(std::string_view str)
 std::string str_nl2br(std::string_view str)
 {
     std::string temp;
- 
+
     unsigned int i = 0;
     for (; i < str.size(); i++)
     {
@@ -1478,7 +1478,7 @@ std::string str_nl2br(std::string_view str)
         }
         temp.push_back(str[i]);
     }
- 
+
     return temp;
 }
 
@@ -1550,9 +1550,9 @@ std::string html_encode(std::string_view str)
 }
 unsigned long long str2uint(std::string_view source)
 {
-    unsigned long long temp     = 0;
-    unsigned int qi     = 0;
-    unsigned int length = source.size();
+    unsigned long long temp = 0;
+    unsigned int qi         = 0;
+    unsigned int length     = source.size();
     for (; qi < length; qi++)
     {
         if (source[qi] != 0x20)
@@ -1572,8 +1572,8 @@ unsigned long long str2uint(std::string_view source)
 
 unsigned long long str2uint(const char *source, unsigned int str_length)
 {
-    unsigned long long temp  = 0;
-    unsigned int qi = 0;
+    unsigned long long temp = 0;
+    unsigned int qi         = 0;
     for (; qi < str_length; qi++)
     {
         if (source[qi] != 0x20)
@@ -1581,7 +1581,7 @@ unsigned long long str2uint(const char *source, unsigned int str_length)
             break;
         }
     }
- 
+
     for (; qi < str_length; qi++)
     {
         if (source[qi] < 0x3A && source[qi] > 0x2F)
@@ -1589,7 +1589,7 @@ unsigned long long str2uint(const char *source, unsigned int str_length)
             temp = temp * 10 + (source[qi] - 0x30);
         }
     }
- 
+
     return temp;
 }
 
@@ -1676,21 +1676,21 @@ std::string char2hex(const unsigned char *source, unsigned int str_length, unsig
     return obj;
 }
 
-std::string str2hex(std::string_view source,bool is_space)
+std::string str2hex(std::string_view source, bool is_space)
 {
     std::string hexchar;
     for (unsigned char i = 0; i < source.size(); i++)
     {
         unsigned char a, b;
         a = source[i];
-        if(is_space)
+        if (is_space)
         {
-            if(a == 0x20 || a == '\t')
+            if (a == 0x20 || a == '\t')
             {
                 continue;
             }
         }
-        
+
         if (a >= '0' && a <= '9')
         {
             a = a - '0';
@@ -1725,7 +1725,7 @@ std::string str2hex(std::string_view source,bool is_space)
         }
         else
         {
-            b= 0;
+            b = 0;
         }
 
         a = a << 4;
@@ -1736,12 +1736,12 @@ std::string str2hex(std::string_view source,bool is_space)
     }
     return hexchar;
 }
-std::string hex2str(std::string_view source,unsigned char is_space)
+std::string hex2str(std::string_view source, unsigned char is_space)
 {
     static const unsigned char str[] = "0123456789ABCDEF";
     std::string obj;
     unsigned int qi = 0;
-    
+
     for (; qi < source.size(); qi++)
     {
         unsigned char tmc = source[qi];
@@ -2346,6 +2346,52 @@ std::string numstr_to_sql(const char *source, unsigned int str_length, char b)
         tempt.append(tempstr);
     }
     return tempt;
+}
+
+std::string dir_name(std::string_view name)
+{
+    if (name.empty())
+        return ".";
+
+    std::string path(name);
+
+    // 根据平台定义分隔符集
+#ifdef WIN32
+    const std::string separators = "/\\";
+#else
+    const std::string separators = "/";
+#endif
+
+    // 去除路径末尾的所有分隔符
+    while (!path.empty() && separators.find(path.back()) != std::string::npos)
+        path.pop_back();
+
+    // 如果只剩分隔符（例如 "/" 或 "\\"），返回根目录
+    if (path.empty())
+    {
+#ifdef WIN32
+        return "\\";
+#else
+        return "/";
+#endif
+    }
+
+    // 查找最后一个分隔符
+    size_t pos = path.find_last_of(separators);
+    if (pos == std::string::npos)
+    {
+        // 没有分隔符，说明是当前目录下的文件/目录，返回 "."
+        return ".";
+    }
+
+    if (pos == 0)
+    {
+        // 根目录下的文件/目录，返回根目录（"/" 或 "\"）
+        return path.substr(0, 1);
+    }
+
+    // 返回最后一个分隔符之前的部分
+    return path.substr(0, pos);
 }
 
 double money_get_num(long long a)

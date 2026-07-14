@@ -40,7 +40,8 @@ class acme_client
     acme_client(const std::string &acme_server_url,
                 const std::string &eab_kid,
                 const std::string &eab_hmac_key,
-                const std::string &email);
+                const std::string &email,
+                std::ostringstream &oss_);
 
     // ========================================================
     //  Step 1: 获取 ACME 目录
@@ -65,7 +66,9 @@ class acme_client
     // ========================================================
     //  Step 5: 获取授权 & 提取 HTTP-01 挑战
     // ========================================================
-    http01_challenge get_http01_challenge();
+    // http01_challenge get_http01_challenge();
+    // 🔑 新增方法声明
+    void verify_all_domains(const std::string &webroot, int max_retries = 30, int interval_sec = 10);
 
     // ========================================================
     //  Step 6: 准备 HTTP-01 验证文件
@@ -80,7 +83,7 @@ class acme_client
     // ========================================================
     //  Step 8: 轮询授权状态
     // ========================================================
-    void poll_authorization(int max_retries = 30, int interval_sec = 5);
+    // void poll_authorization(int max_retries = 30, int interval_sec = 5);
 
     // ========================================================
     //  Step 9: 生成私钥 + CSR 提交 finalize
@@ -97,12 +100,14 @@ class acme_client
     // ========================================================
     void save_account_key(const std::string &path);
 
+    // ========================================================
+    //  从文件加载已有账号密钥
+    // ========================================================
+    bool load_account_key(const std::string &path);
+
     void write_file(const std::string &path, const std::string &content);
     // 从 PEM 链中提取 CA 证书 (去掉第一个叶子证书)
     std::string extract_chain(const std::string &pem);
-
-  public:
-    std::string message_debug;
 
   private:
     std::string server_url_;
@@ -113,8 +118,14 @@ class acme_client
     acme_directory_t dir_;
     std::string kid_;
     std::string order_url_;
-    std::string authz_url_;
+    //std::string authz_url_;
+    //多域名情况，保存每个域名挑战
+    std::vector<std::string> authz_urls_;
     std::string finalize_url_;
+
+  public:
+    std::ostringstream &oss;
+    bool is_order = false;
 };
 }// namespace http
 #endif

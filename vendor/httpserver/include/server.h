@@ -151,7 +151,8 @@ class httpserver
 
     void add_nullptrlog(const std::string &logstrb);
     void httpwatch();
-
+    
+    void acme_task();
     void acme_update();
     void save_traffic_arrays();
     void stop();

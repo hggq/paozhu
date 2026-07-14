@@ -34,8 +34,9 @@
 
 namespace http
 {
-client::client() :strand_(asio::make_strand(*(get_client_context_obj().ioc))),rawfile(nullptr, std::fclose) {};
-client::client(std::string_view url) :_url(url), strand_(asio::make_strand(*(get_client_context_obj().ioc))), rawfile(nullptr, std::fclose){
+client::client() : strand_(asio::make_strand(*(get_client_context_obj().ioc))), rawfile(nullptr, std::fclose) {};
+client::client(std::string_view url) : _url(url), strand_(asio::make_strand(*(get_client_context_obj().ioc))), rawfile(nullptr, std::fclose)
+{
     requesttype = 0;
     if (url.length() > 0)
     {
@@ -119,7 +120,7 @@ client &client::clear()
     path.clear();
     host.clear();
     port.clear();
-    iserror = 0;
+    iserror       = 0;
     headerfinish  = 0;
     timeout_count = 0;
     machnum       = 0;
@@ -142,7 +143,7 @@ client &client::clear()
     page.file.type.clear();
     page.file.size  = 0;
     page.file.error = 0;
-    page.padd = 0; 
+    page.padd       = 0;
     page.json.clear();
     close_connect();
     return *this;
@@ -150,7 +151,7 @@ client &client::clear()
 client &client::get(std::string_view url, unsigned int time_out_num)
 {
     requesttype = 0;
-    exptime = time_out_num;
+    exptime     = time_out_num;
     if (url.length() > 0)
     {
         _url = url;
@@ -303,7 +304,7 @@ client &client::post_json(std::string_view url, http::obj_val param)
     header["Content-Type"] = "application/json";
 
     parsetojson = 1;
-    parameter = std::move(param);
+    parameter   = std::move(param);
     if (url.length() > 0)
     {
         _url = url;
@@ -369,8 +370,8 @@ asio::awaitable<bool> client::async_init_http_sock()
 {
     error_msg.clear();
     asio::ip::tcp::resolver resolver(strand_);
- 
-    sock = std::make_shared<asio::ip::tcp::socket>(strand_);
+
+    sock                           = std::make_shared<asio::ip::tcp::socket>(strand_);
     constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
     auto endpoints                 = co_await resolver.async_resolve(host, port, asio::use_awaitable);
 
@@ -438,7 +439,7 @@ bool client::init_http_sock()
 {
     error_msg.clear();
     //client_context &temp_io_context = get_client_context_obj();
-    sock                            = std::make_shared<asio::ip::tcp::socket>(strand_);
+    sock = std::make_shared<asio::ip::tcp::socket>(strand_);
     asio::ip::tcp::resolver resolver(strand_);
     auto endpoints = resolver.resolve(host, port);
     //socket->connect(endpoints, ec);
@@ -501,7 +502,7 @@ asio::awaitable<void> client::async_send_data()
         page.file.type.clear();
         page.file.size  = 0;
         page.file.error = 0;
-        page.padd = 0; 
+        page.padd       = 0;
         page.json.clear();
 
         if (!sock)
@@ -594,8 +595,8 @@ asio::awaitable<void> client::async_send_data()
                                     if (timeout_count > timeout_total)
                                     {
                                         page.code = 0;
-                                        iserror      = 2;
-                                        error_msg  = "time out";
+                                        iserror   = 2;
+                                        error_msg = "time out";
                                         close_connect();
                                         break;
                                     }
@@ -649,8 +650,8 @@ asio::awaitable<void> client::async_send_data()
                                     if (timeout_count > timeout_total)
                                     {
                                         page.code = 0;
-                                        iserror      = 2;
-                                        error_msg  = "time out";
+                                        iserror   = 2;
+                                        error_msg = "time out";
                                         close_connect();
                                         break;
                                     }
@@ -709,8 +710,8 @@ asio::awaitable<void> client::async_send_data()
                         if (timeout_count > timeout_total)
                         {
                             page.code = 0;
-                            iserror      = 2;
-                            error_msg  = "time out";
+                            iserror   = 2;
+                            error_msg = "time out";
                             close_connect();
                             break;
                         }
@@ -727,9 +728,9 @@ asio::awaitable<void> client::async_send_data()
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
+        error_msg = e.what();
         page.code = 0;
-        iserror      = 3;
+        iserror   = 3;
     }
 
     co_return;
@@ -761,7 +762,7 @@ client &client::send_data()
         page.file.type.clear();
         page.file.size  = 0;
         page.file.error = 0;
-        page.padd = 0; 
+        page.padd       = 0;
         page.json.clear();
 
         //asio::io_context clientio_context(1);
@@ -879,8 +880,8 @@ client &client::send_data()
                                     if (timeout_count > timeout_total)
                                     {
                                         page.code = 0;
-                                        iserror      = 2;
-                                        error_msg  = "time out";
+                                        iserror   = 2;
+                                        error_msg = "time out";
                                         close_connect();
                                         break;
                                     }
@@ -933,8 +934,8 @@ client &client::send_data()
                                     if (timeout_count > timeout_total)
                                     {
                                         page.code = 0;
-                                        iserror      = 2;
-                                        error_msg  = "time out";
+                                        iserror   = 2;
+                                        error_msg = "time out";
                                         close_connect();
                                         break;
                                     }
@@ -993,8 +994,8 @@ client &client::send_data()
                         if (timeout_count > timeout_total)
                         {
                             page.code = 0;
-                            iserror      = 2;
-                            error_msg  = "time out";
+                            iserror   = 2;
+                            error_msg = "time out";
                             close_connect();
                             break;
                         }
@@ -1010,9 +1011,9 @@ client &client::send_data()
         // std::printf("Exception: %s\n", e.what());
         //std::cerr << "Exception:  " << e.what() << "\r\n";
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
+        error_msg = e.what();
         page.code = 0;
-        iserror      = 3;
+        iserror   = 3;
     }
 
     return *this;
@@ -1085,15 +1086,15 @@ asio::awaitable<void> client::async_send_ssl_data()
         page.file.type.clear();
         page.file.size  = 0;
         page.file.error = 0;
-        page.padd = 0; 
+        page.padd       = 0;
         page.json.clear();
 
         if (!sslsock)
         {
             error_msg.clear();
             //auto executor = co_await asio::this_coro::executor;
-            ssl_context   = std::make_shared<asio::ssl::context>(asio::ssl::context::sslv23);
-            sslsock       = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(strand_, *ssl_context);
+            ssl_context = std::make_shared<asio::ssl::context>(asio::ssl::context::sslv23);
+            sslsock     = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(strand_, *ssl_context);
             ssl_context->set_default_verify_paths();
 
             asio::ip::tcp::resolver resolver(strand_);
@@ -1229,8 +1230,8 @@ asio::awaitable<void> client::async_send_ssl_data()
                                     if (timeout_count > timeout_total)
                                     {
                                         page.code = 0;
-                                        iserror      = 2;
-                                        error_msg  = "time out";
+                                        iserror   = 2;
+                                        error_msg = "time out";
                                         close_connect();
                                         break;
                                     }
@@ -1283,8 +1284,8 @@ asio::awaitable<void> client::async_send_ssl_data()
                                     if (timeout_count > timeout_total)
                                     {
                                         page.code = 0;
-                                        iserror      = 2;
-                                        error_msg  = "time out";
+                                        iserror   = 2;
+                                        error_msg = "time out";
                                         close_connect();
                                         break;
                                     }
@@ -1343,8 +1344,8 @@ asio::awaitable<void> client::async_send_ssl_data()
                         if (timeout_count > timeout_total)
                         {
                             page.code = 0;
-                            iserror      = 2;
-                            error_msg  = "time out";
+                            iserror   = 2;
+                            error_msg = "time out";
                             close_connect();
                             break;
                         }
@@ -1363,9 +1364,9 @@ asio::awaitable<void> client::async_send_ssl_data()
     {
         //std::printf("Exception: %s\n", e.what());
         DEBUG_LOG("Exception co ssl: %s", e.what());
-        error_msg  = std::string(e.what());
+        error_msg = std::string(e.what());
         page.code = 0;
-        iserror      = 3;
+        iserror   = 3;
     }
     co_return;
 }
@@ -1396,7 +1397,7 @@ client &client::send_ssl_data()
         page.file.type.clear();
         page.file.size  = 0;
         page.file.error = 0;
-        page.padd = 0; 
+        page.padd       = 0;
         page.json.clear();
 
         //asio::io_context io_context;
@@ -1511,8 +1512,8 @@ client &client::send_ssl_data()
                                     if (timeout_count > timeout_total)
                                     {
                                         page.code = 0;
-                                        iserror      = 2;
-                                        error_msg  = "time out";
+                                        iserror   = 2;
+                                        error_msg = "time out";
                                         close_connect();
                                         break;
                                     }
@@ -1566,8 +1567,8 @@ client &client::send_ssl_data()
                                     if (timeout_count > timeout_total)
                                     {
                                         page.code = 0;
-                                        iserror      = 2;
-                                        error_msg  = "time out";
+                                        iserror   = 2;
+                                        error_msg = "time out";
                                         close_connect();
                                         break;
                                     }
@@ -1624,8 +1625,8 @@ client &client::send_ssl_data()
                         if (timeout_count > timeout_total)
                         {
                             page.code = 0;
-                            iserror      = 2;
-                            error_msg  = "time out";
+                            iserror   = 2;
+                            error_msg = "time out";
                             close_connect();
                             break;
                         }
@@ -1641,9 +1642,9 @@ client &client::send_ssl_data()
     {
         //std::printf("Exception: %s\n", e.what());
         DEBUG_LOG("Exception ssl: %s", e.what());
-        error_msg  = e.what();
+        error_msg = e.what();
         page.code = 0;
-        iserror      = 3;
+        iserror   = 3;
     }
 
     return *this;
@@ -1664,7 +1665,7 @@ void client::processcode()
     if (value[0] != 'H' && value[0] != 'h')
     {
         page.code = 0;
-        iserror      = 1;
+        iserror   = 1;
 
         return;
     }
@@ -1688,7 +1689,7 @@ void client::processcode()
         {
             code = code * 10 + (contentline[j] - '0');
         }
-        if(code > 1000)
+        if (code > 1000)
         {
             iserror = 1;
             return;
@@ -1714,20 +1715,20 @@ void client::processcode()
     }
 }
 
-bool client::parse_header_fields(const std::string& line_temp)
+bool client::parse_header_fields(const std::string &line_temp)
 {
-    if(page.code==0)
+    if (page.code == 0)
     {
         processcode();
         if (page.code == 0)
         {
-            iserror      = 1;
+            iserror = 1;
             return false;
         }
     }
     else
     {
-        std::string key,value;
+        std::string key, value;
         unsigned int k = 0;
         for (; k < line_temp.size(); k++)
         {
@@ -1745,10 +1746,10 @@ bool client::parse_header_fields(const std::string& line_temp)
             }
             key.push_back(line_temp[k]);
         }
-        
-        if(key.size() > 0)
+
+        if (key.size() > 0)
         {
-            if(key.back() == 0x20)
+            if (key.back() == 0x20)
             {
                 key.pop_back();
             }
@@ -1767,9 +1768,9 @@ bool client::parse_header_fields(const std::string& line_temp)
             value.push_back(line_temp[k]);
         }
 
-        if(value.size() > 0)
+        if (value.size() > 0)
         {
-            if(value.back() == 0x20)
+            if (value.back() == 0x20)
             {
                 value.pop_back();
             }
@@ -1777,7 +1778,7 @@ bool client::parse_header_fields(const std::string& line_temp)
 
         if (key.size() > 0)
         {
-            if (key.size() == 10 && str_casecmp(key,"Set-Cookie"))
+            if (key.size() == 10 && str_casecmp(key, "Set-Cookie"))
             {
                 respcookieprocess(value);
             }
@@ -1795,13 +1796,13 @@ void client::readheaderline(const char *buffer, unsigned int buffersize)
 {
     unsigned int i = readoffset;
 
-    if(contentline.size() > 0)
+    if (contentline.size() > 0)
     {
-        if(i < buffersize)
+        if (i < buffersize)
         {
-            if(buffer[i] != '\n')
+            if (buffer[i] != '\n')
             {
-                iserror      = 1;
+                iserror    = 1;
                 readoffset = buffersize;
                 return;
             }
@@ -1809,7 +1810,7 @@ void client::readheaderline(const char *buffer, unsigned int buffersize)
             i++;
         }
 
-        if(contentline.size() == 0)
+        if (contentline.size() == 0)
         {
             //这样不用+1，因为上面已经加了
             headerfinish = 1;
@@ -1817,39 +1818,39 @@ void client::readheaderline(const char *buffer, unsigned int buffersize)
         }
         page.rawheader.append(contentline);
         page.rawheader.append("\r\n");
-        if(!parse_header_fields(contentline))
+        if (!parse_header_fields(contentline))
         {
-            iserror      = 1;
+            iserror    = 1;
             readoffset = buffersize;
             return;
         }
         contentline.clear();
     }
 
-    for(; i < buffersize; i++)
+    for (; i < buffersize; i++)
     {
-        if(buffer[i] == '\r')
+        if (buffer[i] == '\r')
         {
             unsigned int j = i;
             j++;
-            if(j < buffersize)
+            if (j < buffersize)
             {
-                if(buffer[j] == '\n')
+                if (buffer[j] == '\n')
                 {
                     i = j;
-                    if(contentline.size() == 0)
+                    if (contentline.size() == 0)
                     {
                         //如果是头部结束需要下一位，不让头部信息到body
                         i++;
-                        readoffset = i;
+                        readoffset   = i;
                         headerfinish = 1;
                         return;
                     }
                     page.rawheader.append(contentline);
                     page.rawheader.append("\r\n");
-                    if(!parse_header_fields(contentline))
+                    if (!parse_header_fields(contentline))
                     {
-                        iserror      = 1;
+                        iserror    = 1;
                         readoffset = buffersize;
                         return;
                     }
@@ -1860,7 +1861,7 @@ void client::readheaderline(const char *buffer, unsigned int buffersize)
                 else
                 {
                     //必须是\r\n
-                    iserror      = 1;
+                    iserror    = 1;
                     readoffset = buffersize;
                     return;
                 }
@@ -2048,7 +2049,7 @@ void client::respcontenttypeprocess(std::string_view str)
             page.istxt = true;
             page.issse = true;
         }
-        break;    
+        break;
     case 16:
         if (page.file.type == "application/json")
         {
@@ -2125,9 +2126,9 @@ void client::responseheader(std::string_view key, std::string_view value)
         if (str_casecmp(key, "Transfer-Encoding"))
         {
             std::string temp_str;
-            for(unsigned int k=0; k < value.size(); k++)
+            for (unsigned int k = 0; k < value.size(); k++)
             {
-                if(value[k] == ',')
+                if (value[k] == ',')
                 {
                     if (str_casecmp(temp_str, "chunked"))
                     {
@@ -2148,13 +2149,13 @@ void client::responseheader(std::string_view key, std::string_view value)
                     temp_str.clear();
                     continue;
                 }
-                else if(value[k] == ' ')
+                else if (value[k] == ' ')
                 {
                     continue;
                 }
                 temp_str.push_back(value[k]);
             }
-            if(temp_str.size() > 0)
+            if (temp_str.size() > 0)
             {
                 if (str_casecmp(temp_str, "chunked"))
                 {
@@ -2259,7 +2260,7 @@ std::map<std::string, std::string> client::get_headers() { return page.header; }
 std::string client::get_type() { return page.file.type; }
 client &client::add_post(std::string_view key, std::string_view value)
 {
-    postdata.emplace_back(key,value);
+    postdata.emplace_back(key, value);
     return *this;
 }
 client &client::set_body(std::string_view value)
@@ -2346,10 +2347,10 @@ void client::respreadtocontent(const char *buffer, unsigned int buffersize)
         return;
     }
 
-    while(i < buffersize)
+    while (i < buffersize)
     {
-       if (page.length == 0)
-       {
+        if (page.length == 0)
+        {
             //是尾部或一个块开始
             unsigned int n = 0;
             for (; i < buffersize; i++)
@@ -2375,7 +2376,7 @@ void client::respreadtocontent(const char *buffer, unsigned int buffersize)
                 }
             }
             page.length = n;
-            if(page.length == 0)
+            if (page.length == 0)
             {
                 //尾部了
                 page.file.size = page.content.size();
@@ -2392,16 +2393,16 @@ void client::respreadtocontent(const char *buffer, unsigned int buffersize)
             }
 
             //后面必须是\r\n
-            if (i < buffersize &&  buffer[i] == 0x0D)
+            if (i < buffersize && buffer[i] == 0x0D)
             {
                 i++;
-                if (i < buffersize &&  buffer[i] == 0x0A)
+                if (i < buffersize && buffer[i] == 0x0A)
                 {
                     i++;
                 }
                 else
                 {
-                    if(i < buffersize)
+                    if (i < buffersize)
                     {
                         iserror = 1;
                     }
@@ -2411,7 +2412,7 @@ void client::respreadtocontent(const char *buffer, unsigned int buffersize)
             }
             else
             {
-                if(i < buffersize)
+                if (i < buffersize)
                 {
                     iserror = 1;
                     break;
@@ -2421,13 +2422,13 @@ void client::respreadtocontent(const char *buffer, unsigned int buffersize)
             }
         }
 
-        if(page.padd == 2)
+        if (page.padd == 2)
         {
             //跨包
-            if (i < buffersize &&  buffer[i] == 0x0D)
+            if (i < buffersize && buffer[i] == 0x0D)
             {
                 i++;
-                if (i < buffersize &&  buffer[i] == 0x0A)
+                if (i < buffersize && buffer[i] == 0x0A)
                 {
                     i++;
                 }
@@ -2435,7 +2436,7 @@ void client::respreadtocontent(const char *buffer, unsigned int buffersize)
                 {
                     iserror = 1;
                     return;
-                } 
+                }
             }
             else
             {
@@ -2444,10 +2445,10 @@ void client::respreadtocontent(const char *buffer, unsigned int buffersize)
             }
             page.padd = 0;
         }
-        else if(page.padd == 1)
+        else if (page.padd == 1)
         {
             //跨包
-            if (i < buffersize &&  buffer[i] == 0x0A)
+            if (i < buffersize && buffer[i] == 0x0A)
             {
                 i++;
             }
@@ -2455,18 +2456,17 @@ void client::respreadtocontent(const char *buffer, unsigned int buffersize)
             {
                 iserror = 1;
                 return;
-            } 
+            }
             page.padd = 0;
         }
 
-
-        if(page.length > 0)
+        if (page.length > 0)
         {
             for (; i < buffersize; i++)
             {
                 page.content.push_back(buffer[i]);
                 page.length--;
-                if(page.length == 0)
+                if (page.length == 0)
                 {
                     //下一个循环，消化下一个块
                     break;
@@ -2652,7 +2652,7 @@ client &client::save(std::string path_file)
         if (page.file.filename.empty())
         {
             unsigned long long tetime = time((time_t *)NULL);
-            page.file.filename       = std::to_string(tetime);
+            page.file.filename        = std::to_string(tetime);
         }
         else
         {
@@ -2940,13 +2940,12 @@ void client::buildheader()
         {
             request.push_back('?');
             request.append(query_);
- 
         }
         request.append(" HTTP/1.1\r\n");
     }
     else
     {
-        if(requesttype > 1)
+        if (requesttype > 1)
         {
             request.append("QUERY ");
         }
@@ -3123,7 +3122,7 @@ void client::buildcontent()
     {
         if (files.size() == 0)
         {
-            contenttype = "application/x-www-form-urlencoded";
+            contenttype            = "application/x-www-form-urlencoded";
             header["Content-Type"] = "application/x-www-form-urlencoded";
         }
         else
@@ -3138,26 +3137,25 @@ void client::buildcontent()
 
     if (contenttype == "multipart/form-data")
     {
-        std::random_device rd; 
-        std::mt19937 gen(rd()); 
+        std::random_device rd;
+        std::mt19937 gen(rd());
         std::uniform_int_distribution<> dis(1000000, 1999999);
-        unsigned int rdnum = dis(gen);
+        unsigned int rdnum         = dis(gen);
         unsigned long long randnum = rdnum * 1000000;
-        rdnum = dis(gen);
-        randnum = randnum + rdnum;
-        rdnum = time((time_t *)NULL);
- 
-        boundary= "----------paozhuhttpclient" + std::to_string(randnum) + std::to_string(rdnum);
+        rdnum                      = dis(gen);
+        randnum                    = randnum + rdnum;
+        rdnum                      = time((time_t *)NULL);
+
+        boundary = "----------paozhuhttpclient" + std::to_string(randnum) + std::to_string(rdnum);
 
         header["Content-Type"] = "multipart/form-data; boundary=" + boundary;
     }
- 
 
     unsigned int beginpos      = 0;
     unsigned int contentlength = 0;
     upload_file ptemp;
     // FILE *fp;
-    if(str_casecmp(contenttype,"application/x-www-form-urlencoded"))
+    if (str_casecmp(contenttype, "application/x-www-form-urlencoded"))
     {
         beginpos      = 0;
         contentlength = 0;
@@ -3168,7 +3166,7 @@ void client::buildcontent()
         ptemp.size = 0;
         ptemp.type.clear();
 
-        if(postdata.size() > 0)
+        if (postdata.size() > 0)
         {
             for (auto &[first, second] : postdata)
             {
@@ -3184,15 +3182,15 @@ void client::buildcontent()
         }
         else
         {
-            if(page.content.size() > 0)
+            if (page.content.size() > 0)
             {
                 ptemp.tempfile.append(page.content);
             }
         }
-        contentlength            = ptemp.tempfile.size();
+        contentlength = ptemp.tempfile.size();
         senddata.push_back(ptemp);
     }
-    else if(str_casecmp(contenttype,"multipart/form-data"))
+    else if (str_casecmp(contenttype, "multipart/form-data"))
     {
         beginpos      = 0;
         contentlength = 0;
@@ -3304,7 +3302,7 @@ void client::buildcontent()
         contentlength += ptemp.size;
         senddata.push_back(ptemp);
     }
-    else if(str_casecmp(contenttype,"application/octet-stream"))
+    else if (str_casecmp(contenttype, "application/octet-stream"))
     {
         if (files.size() > 0)
         {
@@ -3356,7 +3354,7 @@ void client::buildcontent()
             }
         }
     }
-    else if(str_casecmp(contenttype,"application/json"))
+    else if (str_casecmp(contenttype, "application/json"))
     {
         ptemp.error = 0;
         ptemp.tempfile.clear();
@@ -3370,7 +3368,7 @@ void client::buildcontent()
         contentlength  = page.content.size();
         senddata.push_back(ptemp);
     }
-    else if(str_casecmp(contenttype,"application/xml"))
+    else if (str_casecmp(contenttype, "application/xml"))
     {
         ptemp.error = 0;
         ptemp.tempfile.clear();
@@ -3384,7 +3382,7 @@ void client::buildcontent()
         contentlength  = page.content.size();
         senddata.push_back(ptemp);
     }
-    else if(str_casecmp(contenttype,"text/xml"))
+    else if (str_casecmp(contenttype, "text/xml"))
     {
         ptemp.error = 0;
         ptemp.tempfile.clear();
@@ -3449,19 +3447,19 @@ void client::buildcontent()
     header["Content-Length"] = contentlength;
 }
 
-bool client::connect(std::string_view url,unsigned int time_out_num)
+bool client::connect(std::string_view url, unsigned int time_out_num)
 {
     requesttype = 0;
     if (url.length() < 3)
     {
-        iserror = true;
+        iserror   = true;
         error_msg = "url to short";
         return false;
     }
     exptime = time_out_num;
-    _url = url;
+    _url    = url;
     parse();
- 
+
     buildheader();
 
     if (exptime > 30)
@@ -3485,14 +3483,14 @@ bool client::connect(std::string_view url,unsigned int time_out_num)
             return false;
         }
     }
-    
+
     if (scheme == "https")
     {
-       return init_https_sock();
+        return init_https_sock();
     }
     else
     {
-       return init_http_sock();
+        return init_http_sock();
     }
 
     return false;
@@ -3502,7 +3500,7 @@ bool client::connect()
     requesttype = 0;
     if (_url.length() < 3)
     {
-        iserror = true;
+        iserror   = true;
         error_msg = "url to short";
         return false;
     }
@@ -3533,35 +3531,35 @@ bool client::connect()
 
     if (scheme == "https")
     {
-       return init_https_sock();
+        return init_https_sock();
     }
     else
     {
-       return init_http_sock();
+        return init_http_sock();
     }
 
     return false;
 }
-asio::awaitable<bool> client::async_connect(std::string_view url,unsigned int time_out_num)
+asio::awaitable<bool> client::async_connect(std::string_view url, unsigned int time_out_num)
 {
     requesttype = 0;
     if (url.length() < 3)
     {
-        iserror = true;
+        iserror   = true;
         error_msg = "url to short";
         co_return false;
     }
     exptime = time_out_num;
-    _url = url;
+    _url    = url;
     parse();
- 
+
     buildheader();
 
     if (exptime > 30)
     {
         exptime = 30;
     }
-    
+
     if (exptime > 0)
     {
         set_timeout(exptime);
@@ -3581,12 +3579,12 @@ asio::awaitable<bool> client::async_connect(std::string_view url,unsigned int ti
 
     if (scheme == "https")
     {
-       co_return co_await async_init_https_sock();
+        co_return co_await async_init_https_sock();
     }
     else
     {
-       co_return co_await async_init_http_sock();
-    }    
+        co_return co_await async_init_http_sock();
+    }
     co_return false;
 }
 asio::awaitable<bool> client::async_connect()
@@ -3594,7 +3592,7 @@ asio::awaitable<bool> client::async_connect()
     requesttype = 0;
     if (_url.length() < 3)
     {
-        iserror = true;
+        iserror   = true;
         error_msg = "url to short";
         co_return false;
     }
@@ -3625,11 +3623,11 @@ asio::awaitable<bool> client::async_connect()
 
     if (scheme == "https")
     {
-       co_return co_await async_init_https_sock();
+        co_return co_await async_init_https_sock();
     }
     else
     {
-       co_return co_await async_init_http_sock();
+        co_return co_await async_init_http_sock();
     }
 
     co_return false;
@@ -3637,14 +3635,14 @@ asio::awaitable<bool> client::async_connect()
 
 asio::awaitable<unsigned int> client::async_read(unsigned char *buffer_data, unsigned int buffersize)
 {
-    if (socket_read_lock.test_and_set()) 
+    if (socket_read_lock.test_and_set())
     {
         error_msg = "Other socket read is set";
-        iserror = true;
+        iserror   = true;
         co_return 0;
     }
     atomic_guard guard{socket_read_lock};
-    if(iserror)
+    if (iserror)
     {
         co_return 0;
     }
@@ -3668,8 +3666,8 @@ asio::awaitable<unsigned int> client::async_read(unsigned char *buffer_data, uns
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
     socket_read_lock.clear();
     co_return 0;
@@ -3677,14 +3675,14 @@ asio::awaitable<unsigned int> client::async_read(unsigned char *buffer_data, uns
 
 asio::awaitable<unsigned int> client::async_read(std::string &buffer_data)
 {
-    if (socket_read_lock.test_and_set()) 
+    if (socket_read_lock.test_and_set())
     {
         error_msg = "Other socket read is set";
-        iserror = true;
+        iserror   = true;
         co_return 0;
     }
     atomic_guard guard{socket_read_lock};
-    if(iserror)
+    if (iserror)
     {
         co_return 0;
     }
@@ -3708,8 +3706,8 @@ asio::awaitable<unsigned int> client::async_read(std::string &buffer_data)
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
     co_return 0;
 }
@@ -3717,7 +3715,7 @@ asio::awaitable<unsigned int> client::async_read(std::string &buffer_data)
 asio::awaitable<unsigned int> client::async_write(unsigned char *send_data_p, unsigned int buffersize)
 {
 
-    if(iserror)
+    if (iserror)
     {
         co_return 0;
     }
@@ -3741,8 +3739,8 @@ asio::awaitable<unsigned int> client::async_write(unsigned char *send_data_p, un
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
 
     co_return 0;
@@ -3750,7 +3748,7 @@ asio::awaitable<unsigned int> client::async_write(unsigned char *send_data_p, un
 
 asio::awaitable<unsigned int> client::async_write(std::string_view value)
 {
-    if(iserror)
+    if (iserror)
     {
         co_return 0;
     }
@@ -3775,18 +3773,16 @@ asio::awaitable<unsigned int> client::async_write(std::string_view value)
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
 
     co_return 0;
 }
 
- 
-
 unsigned int client::write(unsigned char *send_data_p, unsigned int buffersize)
 {
-    if(iserror)
+    if (iserror)
     {
         return 0;
     }
@@ -3810,8 +3806,8 @@ unsigned int client::write(unsigned char *send_data_p, unsigned int buffersize)
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
 
     return 0;
@@ -3819,7 +3815,7 @@ unsigned int client::write(unsigned char *send_data_p, unsigned int buffersize)
 
 unsigned int client::write(std::string_view value)
 {
-    if(iserror)
+    if (iserror)
     {
         return 0;
     }
@@ -3844,8 +3840,8 @@ unsigned int client::write(std::string_view value)
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
 
     return 0;
@@ -3853,14 +3849,14 @@ unsigned int client::write(std::string_view value)
 
 unsigned int client::read(unsigned char *buffer_data, unsigned int buffersize)
 {
-    if (socket_read_lock.test_and_set()) 
+    if (socket_read_lock.test_and_set())
     {
         error_msg = "Other socket read is set";
-        iserror = true;
+        iserror   = true;
         return 0;
     }
     atomic_guard guard{socket_read_lock};
-    if(iserror)
+    if (iserror)
     {
         return 0;
     }
@@ -3884,22 +3880,22 @@ unsigned int client::read(unsigned char *buffer_data, unsigned int buffersize)
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
     return 0;
 }
 
 unsigned int client::read(std::string &buffer_data)
 {
-    if (socket_read_lock.test_and_set()) 
+    if (socket_read_lock.test_and_set())
     {
         error_msg = "Other socket read is set";
-        iserror = true;
+        iserror   = true;
         return 0;
     }
     atomic_guard guard{socket_read_lock};
-    if(iserror)
+    if (iserror)
     {
         return 0;
     }
@@ -3923,11 +3919,10 @@ unsigned int client::read(std::string &buffer_data)
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
     return 0;
 }
-
 
 }// namespace http
