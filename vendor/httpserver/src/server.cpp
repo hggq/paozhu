@@ -5940,7 +5940,7 @@ void httpserver::acme_update()
             acme.output_dir = acme.acme_path + "/" + primary_domain;
             if (!std::filesystem::exists(acme.acme_path))
             {
-                conf_path = "--[acme] The acme_path directory does not exist:" + acme.acme_path + "--\n";
+                error_message = error_message + "--[acme] The acme_path directory does not exist:" + acme.acme_path + "--\n";
                 //--begin save acme log --
                 std::string domain_log = static_server_var.log_path;
                 if (domain_log.size() > 0 && domain_log.back() != '/')
@@ -5961,7 +5961,7 @@ void httpserver::acme_update()
                 std::ofstream out_acme_log(domain_log, std::ios::app);
                 if (out_acme_log.is_open())
                 {
-                    out_acme_log << conf_path;
+                    out_acme_log << error_message;
                     out_acme_log.close();
                 }
                 //--end save acme log --
@@ -6119,9 +6119,6 @@ void httpserver::acme_update()
                 {
                     error_message.append("--[acme] create restart_ssl_config file faild\n");
                 }
-
-                //only process on domain
-                break;
             }
             catch (const fs::filesystem_error &e)
             {

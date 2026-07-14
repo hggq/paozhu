@@ -73,9 +73,58 @@ void parse_ini::parse_file(const std::string &filename)
             {
                 std::string key   = line_trim(trimmed.substr(0, eqPos));
                 std::string value = line_trim(trimmed.substr(eqPos + 1));
+
+                std::string value_temp;
+                if (value.size() > 0 && value[0] == '"')
+                {
+                    unsigned int j = 1;
+                    for (; j < value.size(); j++)
+                    {
+                        if (value[j] == '"')
+                        {
+                            // 统计前面的连续反斜杠数量，奇数表示转义引号
+                            size_t backslash_count = 0;
+                            size_t k               = j;
+                            while (k > 0 && value[k - 1] == '\\')
+                            {
+                                backslash_count++;
+                                k--;
+                            }
+                            if (backslash_count % 2 == 1)
+                            {
+                                value_temp.push_back(value[j]);
+                                continue;// 转义引号，跳过
+                            }
+                            break;
+                        }
+                        value_temp.push_back(value[j]);
+                    }
+                }
+                else
+                {
+                    unsigned int j = 0;
+                    for (; j < value.size(); j++)
+                    {
+                        if (value[j] == '#' || value[j] == ';')
+                        {
+                            // 去除分割之前的空格
+                            while (j > 0 && value[j - 1] == ' ')
+                            {
+                                j--;
+                            }
+                            break;
+                        }
+                    }
+
+                    if (j > 0)
+                    {
+                        value_temp = value.substr(0, j);
+                    }
+                }
+
                 if (!key.empty())
                 {
-                    config[current_section][key] = value;
+                    config[current_section][key] = value_temp;
                 }
             }
         }
@@ -252,6 +301,10 @@ bool parse_ini::save_value(const std::string &section, const std::string &name, 
                                 {
                                     comment_start--;
                                 }
+                                if(comment_start == j)
+                                {
+                                    line.push_back(' ');
+                                }
                                 break;
                             }
                         }
@@ -311,6 +364,10 @@ bool parse_ini::save_value(const std::string &section, const std::string &name, 
                                     while (comment_start > 0 && sub_str[comment_start - 1] == ' ')
                                     {
                                         comment_start--;
+                                    }
+                                    if(comment_start == j)
+                                    {
+                                        line.push_back(' ');
                                     }
                                     break;
                                 }

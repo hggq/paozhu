@@ -101,6 +101,20 @@ std::string test_parse_ini(std::shared_ptr<httppeer> peer)
     client << "www.abc.com::themes = " << ini.get_value("www.abc.com", "themes") << "\n<br>";
     client << "www.abc.com::csspath = " << ini.get_value("www.abc.com", "csspath", "(not found)") << "\n<br>";
 
+    client << "<p>----raw key name-----</p>";
+    for(auto[first,second]:ini.config)
+    {
+        client << "<p>----begin-----</p>";
+        client << "<p>|"<<first<<"|</p>";
+        client << "<p>------------begin-2----</p>";
+        for(auto[aaaa,bbbb]:second)
+        {
+            client << "<p>|"<<aaaa<<":"<<bbbb<<"|</p>";
+        }
+        client << "<p>------------end-2----</p>";
+        client << "<p>----end-----</p>";
+    }
+
     return "";
 }
 
