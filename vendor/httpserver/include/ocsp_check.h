@@ -18,13 +18,13 @@ enum class OCSPStatus
     GOOD,
     REVOKED,
     UNKNOWN,
-    ERROR
+    OCSP_ERROR
 };
 
 // OCSP 证书吊销检查结果
 struct OCSPResult
 {
-    OCSPStatus status = OCSPStatus::ERROR;
+    OCSPStatus status = OCSPStatus::OCSP_ERROR;
     std::string error_msg;
     int reason = -1;        // 吊销原因（仅 REVOKED 时有效）
     std::string this_update;// OCSP 响应的 thisUpdate

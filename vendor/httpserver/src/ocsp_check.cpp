@@ -57,7 +57,7 @@ OCSPResult ocsp_checker::parse_ocsp_response(const std::vector<uint8_t> &raw,
                                              std::string *debug_log)
 {
     OCSPResult result;
-    result.status = OCSPStatus::ERROR;
+    result.status = OCSPStatus::OCSP_ERROR;
     std::ostringstream oss;
 
     oss << "[OCSP_PARSE] ENTER, raw size=" << raw.size() << "\n";
@@ -280,7 +280,7 @@ OCSPResult ocsp_checker::parse_ocsp_response(const std::vector<uint8_t> &raw,
             if (time(nullptr) < t_this)
             {
                 result.error_msg = "OCSP thisUpdate is in the future";
-                result.status    = OCSPStatus::ERROR;
+                result.status    = OCSPStatus::OCSP_ERROR;
                 oss << "[OCSP_PARSE] FAIL: thisUpdate is in the future\n";
                 if (debug_log)
                     debug_log->append(oss.str());
@@ -302,7 +302,7 @@ OCSPResult ocsp_checker::parse_ocsp_response(const std::vector<uint8_t> &raw,
             if (time(nullptr) >= t_next)
             {
                 result.error_msg = "OCSP nextUpdate has expired";
-                result.status    = OCSPStatus::ERROR;
+                result.status    = OCSPStatus::OCSP_ERROR;
                 oss << "[OCSP_PARSE] FAIL: nextUpdate has expired\n";
                 if (debug_log)
                     debug_log->append(oss.str());
