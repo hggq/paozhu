@@ -4787,6 +4787,12 @@ void httpserver::httpwatch()
     bool is_run_acme   = false;
     int acme_every_day_time = sysconfigpath.acme_every_day_time;
     int acme_every_day_time_reset = 1;
+    int ocsp_interval_time = sysconfigpath.ocsp_interval_time;
+
+    if(ocsp_interval_time < 3600)
+    {
+        ocsp_interval_time = 3600;
+    }
 
     if(acme_every_day_time < 2)
     {
@@ -5250,7 +5256,7 @@ void httpserver::httpwatch()
                 }
             }
 
-            if (now->tm_hour < 3 && mysqlpool_time > 82800)
+            if (now->tm_hour < 3 && mysqlpool_time > 172800)
             {
                 std::map<std::string, std::shared_ptr<orm::orm_conn_pool>> &mysqldbpoolglobal = orm::get_orm_conn_pool_obj();
                 for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
@@ -5281,9 +5287,8 @@ void httpserver::httpwatch()
             }
 
             // OCSP Stapling 刷新
-            if (mysqlpool_time % 14400 == 0)
+            if (mysqlpool_time % ocsp_interval_time == 9)
             {
-                is_run_acme = true;
                 std::thread t_ocsp([]()
                 {
                     refresh_all_ocsp_staples();

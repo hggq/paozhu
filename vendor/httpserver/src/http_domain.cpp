@@ -33,7 +33,7 @@
 #include "crypto_ptr.h"
 #include "httpclient.h"
 #include "datetime.h"
-
+#include "func.h"
 namespace http
 {
 namespace fs = std::filesystem;
@@ -307,7 +307,8 @@ eab_credentials_t fetch_eab_by_email(std::string_view url, std::string_view emai
 // ============================================================
 void refresh_all_ocsp_staples()
 {
-    auto &cfg = getserversysconfig();
+    auto &cfg                          = getserversysconfig();
+    server_loaclvar &static_server_var = get_server_global_var();
     std::string ocsp_debug;
     std::ostringstream oss;
     oss << " begin ocsp refresh task :" << get_date("%Y-%m-%d %X", timeid()) << "\n";
@@ -438,7 +439,14 @@ void refresh_all_ocsp_staples()
         }
         if (safe_domain.empty())
             continue;
-        std::string cache_dir  = "temp";
+
+        std::string cache_dir = dir_name(static_server_var.log_path);
+
+        if (cache_dir.size() > 0 && cache_dir.back() != '/')
+        {
+            cache_dir.append("/");
+        }
+        cache_dir.append("temp");
         std::string cache_path = cache_dir + "/ocsp_" + safe_domain + ".der";
         std::string etag_path  = cache_dir + "/ocsp_" + safe_domain + ".etag";
         // 最大缓存文件大小 64KB
@@ -701,8 +709,7 @@ void refresh_all_ocsp_staples()
     // 保存日志到 log 目录
     try
     {
-        server_loaclvar &static_server_var = get_server_global_var();
-        std::string log_dir                = static_server_var.log_path;
+        std::string log_dir = static_server_var.log_path;
         if (log_dir.size() > 0 && log_dir.back() != '/')
             log_dir.push_back('/');
         log_dir.append("ocsp_log");

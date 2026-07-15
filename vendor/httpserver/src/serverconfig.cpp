@@ -1112,6 +1112,34 @@ bool serverconfig::loadserverglobalconfig()
         acme_every_num = 5;
     }
 
+    if (map_value["default"]["ocsp_intv_time"].size() > 0)
+    {
+        ocsp_interval_time = 0;
+        for (unsigned int i = 0; i < map_value["default"]["ocsp_intv_time"].size(); i++)
+        {
+            if (map_value["default"]["ocsp_intv_time"][i] >= '0' && map_value["default"]["ocsp_intv_time"][i] <= '9')
+            {
+                ocsp_interval_time = ocsp_interval_time * 10 + (map_value["default"]["ocsp_intv_time"][i] - '0');
+                continue;
+            }
+            break;
+        }
+
+        if (ocsp_interval_time > 86400)
+        {
+            ocsp_interval_time = 86400;
+        }
+
+        if (ocsp_interval_time < 500)
+        {
+            ocsp_interval_time = 500;
+        }
+    }
+    else
+    {
+        ocsp_interval_time = 14400;
+    }
+
     if (map_value["default"]["ip6_listen_enable"].size() > 0)
     {
         for (unsigned int j = 0; j < map_value["default"]["ip6_listen_enable"].size(); j++)
