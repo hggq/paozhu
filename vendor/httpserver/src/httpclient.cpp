@@ -514,9 +514,9 @@ asio::awaitable<void> client::async_send_data()
             }
         }
 
-        if (exptime > 30)
+        if (exptime > 90)
         {
-            exptime = 30;
+            exptime = 90;
         }
         if (exptime > 0)
         {
@@ -802,9 +802,9 @@ client &client::send_data()
             }
         }
 
-        if (exptime > 30)
+        if (exptime > 90)
         {
-            exptime = 30;
+            exptime = 90;
         }
         if (exptime > 0)
         {
@@ -1147,9 +1147,9 @@ asio::awaitable<void> client::async_send_ssl_data()
                 co_return;
             }
         }
-        if (exptime > 30)
+        if (exptime > 90)
         {
-            exptime = 30;
+            exptime = 90;
         }
         if (exptime > 0)
         {
@@ -1433,9 +1433,9 @@ client &client::send_ssl_data()
                 return *this;
             }
         }
-        if (exptime > 30)
+        if (exptime > 90)
         {
-            exptime = 30;
+            exptime = 90;
         }
         if (exptime > 0)
         {
@@ -3462,9 +3462,9 @@ bool client::connect(std::string_view url, unsigned int time_out_num)
 
     buildheader();
 
-    if (exptime > 30)
+    if (exptime > 90)
     {
-        exptime = 30;
+        exptime = 90;
     }
 
     if (exptime > 0)
@@ -3507,9 +3507,9 @@ bool client::connect()
 
     buildheader();
 
-    if (exptime > 30)
+    if (exptime > 90)
     {
-        exptime = 30;
+        exptime = 90;
     }
 
     if (exptime > 0)
@@ -3555,9 +3555,9 @@ asio::awaitable<bool> client::async_connect(std::string_view url, unsigned int t
 
     buildheader();
 
-    if (exptime > 30)
+    if (exptime > 90)
     {
-        exptime = 30;
+        exptime = 90;
     }
 
     if (exptime > 0)
@@ -3599,9 +3599,9 @@ asio::awaitable<bool> client::async_connect()
 
     buildheader();
 
-    if (exptime > 30)
+    if (exptime > 90)
     {
-        exptime = 30;
+        exptime = 90;
     }
 
     if (exptime > 0)

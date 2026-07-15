@@ -3,10 +3,15 @@
 #define FRAME_SERVERCONFIG_H
 #include <string>
 #include <map>
+#include <mutex>
 #include <tuple>
 #include <vector>
+#include <atomic>
+#include <memory>
+#include <unordered_map>
 #include "request.h"
 #include "client_session.h"
+#include "ocsp_check.h"
 // #include "Websockets_api.h"
 
 namespace http
@@ -77,6 +82,20 @@ class serverconfig
     unsigned int get_hostindex(const std::string &host);
     void clearctx();
 
+    // OCSP Stapling 支持
+    // 设置指定域名的 OCSP 装订响应（DER 格式）
+    void set_ocsp_staple(const std::string &domain, std::vector<uint8_t> ocsp_der);
+    // 获取指定域名的 OCSP 装订响应
+    std::vector<uint8_t> get_ocsp_staple(const std::string &domain);
+    // 从缓存设置 OCSP staple 到 SSL 对象（用于 SNI 回调，提前设置）
+    void set_ocsp_staple_to_ssl(SSL *ssl, const std::string &domain);
+    // 启用 SSL_CTX 的 OCSP Stapling 回调
+    void enable_ocsp_stapling(SSL_CTX *ctx);
+
+  private:
+    // OCSP stapling 回调：OpenSSL 在 TLS 握手时调用，返回预取的 OCSP 响应
+    static int ocsp_stapling_cb(SSL *ssl, void *arg);
+
   public:
     std::string serverpath;
     std::string wwwpath;
@@ -109,6 +128,11 @@ class serverconfig
     std::map<unsigned long long, bool> domain_http2;
     std::vector<struct site_host_info_t> sitehostinfos;
     std::map<std::string, unsigned int> host_toint;
+
+    // OCSP Stapling: 域名 -> DER 编码的 OCSP 响应
+    // 使用 shared_ptr<const unordered_map> + atomic_load/store 实现无锁读写分离
+    // 读路径（SNI 回调）完全无锁，写路径（刷新线程）copy-on-write
+    std::shared_ptr<const std::unordered_map<std::string, std::vector<uint8_t>>> ocsp_cache_;
 };
 
 }// namespace http

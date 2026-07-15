@@ -4139,6 +4139,11 @@ void httpserver::listeners()
     unsigned long long temp_domain = 0;
     SSL_CTX_set_alpn_select_cb(context_.native_handle(), alpn_cb, (void *)temp_domain);
 
+    // 在默认 SSL_CTX 上注册最小化 OCSP Stapling 回调
+    // OpenSSL 3.x 的 tls_construct_certificate_status 要求 tlsext_status_cb 存在
+    // 才会发送 OCSP response。实际 OCSP 响应由 SNI 回调设置。
+    sysconfigpath.enable_ocsp_stapling(context_.native_handle());
+
     unsigned int error_count            = 0;
     unsigned int clear_error_count_time = 0;
 
@@ -5266,13 +5271,24 @@ void httpserver::httpwatch()
             if (now->tm_hour == acme_every_day_time && is_run_acme)
             {
                 is_run_acme = false;
-                //every day
+                //every day 
                 std::thread t_acme(&httpserver::acme_task, this);
                 t_acme.detach();
             }
             if (now->tm_hour == acme_every_day_time_reset)
             {
                 is_run_acme = true;
+            }
+
+            // OCSP Stapling 刷新
+            if (mysqlpool_time % 14400 == 0)
+            {
+                is_run_acme = true;
+                std::thread t_ocsp([]()
+                {
+                    refresh_all_ocsp_staples();
+                });
+                t_ocsp.detach();
             }
 
             mysqlpool_time += 1;

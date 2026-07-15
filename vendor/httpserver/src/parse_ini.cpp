@@ -760,7 +760,7 @@ unsigned int parse_ini::fix_file(const std::string &filename)
         // 空行、section、注释行直接保留原样（不进行对齐处理）
         if (l.empty() || l[0] == '[' || l[0] == ';' || l[0] == '#')
         {
-            if (l[0] == '[')
+            if (l.size() > 0 && l[0] == '[')
             {
                 if (!new_lines.empty() && !new_lines.back().empty())
                 {

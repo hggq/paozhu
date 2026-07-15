@@ -36,7 +36,8 @@ Discussing the joy of C++ web development with community developers.
 ✅23. Supports Socket server and client, supports Socket SSL connection  
 ✅24. Supports RPC server and client, uses HTTP registered URL functions  
 ✅25. Traffic limiting, with a two-stage limit based on a 60-second moving average of traffic  
-
+✅26. Integrates the ACME protocol to automatically renew and validate SSL certificates  
+✅27. Integrate server-side OCSP staples  
 
 ### 2.Runtime environment
 

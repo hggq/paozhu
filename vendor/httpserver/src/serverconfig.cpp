@@ -1,6 +1,7 @@
 #include <string>
 #include <map>
 #include <memory>
+#include <climits>
 #include "serverconfig.h"
 #include "server_localvar.h"
 #include <cstring>
@@ -1161,8 +1162,6 @@ bool serverconfig::loadserverglobalconfig()
         ip6_enable = false;
     }
 
-
-
     tempinfo_default.php_root_document = tempinfo_default.wwwpath;
     sitehostinfos.push_back(std::move(tempinfo_default));
     for (auto [first, second] : map_value)
@@ -1967,6 +1966,10 @@ SSL_CTX *serverconfig::getctx(std::string filename)
             //     static_cast<int>(::ERR_get_error()),
             //     boost::asio::error::get_ssl_category());
         }
+
+        // 在 per-domain SSL_CTX 上注册最小化 OCSP Stapling 回调
+        // OpenSSL 3.x 要求 tlsext_status_cb 存在才会发送 OCSP response
+        enable_ocsp_stapling(ctx);
     }
     return ctx;
 }
@@ -1979,6 +1982,111 @@ void serverconfig::clearctx()
     }
     g_ctxMap.clear();
     clear_ctx = false;
+}
+
+// ============================================================
+//  OCSP Stapling 实现
+// ============================================================
+
+// OCSP stapling 回调：OpenSSL 在 TLS 握手构造 CertificateStatus 时调用。
+// 负责从缓存中查找当前域名的 OCSP 响应并设置到 SSL 对象。
+// 返回值使用 SSL_TLSEXT_ERR_* 系列常量（与 SNI 回调相同）：
+//   SSL_TLSEXT_ERR_OK(0)    = 发送已设置的 OCSP response
+//   SSL_TLSEXT_ERR_NOACK(3) = 不发送（缓存无数据或未请求）
+// 注意: 返回 1(ALERT_WARNING) 或 2(ALERT_FATAL) 会导致 TLS alert 80
+int serverconfig::ocsp_stapling_cb(SSL *ssl, void *arg)
+{
+    if (!ssl || !arg)
+        return SSL_TLSEXT_ERR_NOACK;
+
+    auto *self             = static_cast<serverconfig *>(arg);
+    const char *servername = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
+    if (!servername || servername[0] == '\0')
+        return SSL_TLSEXT_ERR_NOACK;
+
+    auto resp = self->get_ocsp_staple(servername);
+    if (resp.empty())
+        return SSL_TLSEXT_ERR_NOACK;
+
+    // OCSP 响应通常不超过几 KB，检查防溢出
+    if (resp.size() > static_cast<size_t>(INT_MAX))
+        return SSL_TLSEXT_ERR_NOACK;
+
+    uint8_t *resp_copy = static_cast<uint8_t *>(OPENSSL_malloc(resp.size()));
+    if (!resp_copy)
+        return SSL_TLSEXT_ERR_NOACK;
+
+    memcpy(resp_copy, resp.data(), resp.size());
+
+    if (SSL_set_tlsext_status_ocsp_resp(ssl, resp_copy, static_cast<int>(resp.size())) != 1)
+    {
+        OPENSSL_free(resp_copy);
+        return SSL_TLSEXT_ERR_NOACK;
+    }
+
+    return SSL_TLSEXT_ERR_OK;
+}
+
+void serverconfig::set_ocsp_staple(const std::string &domain, std::vector<uint8_t> ocsp_der)
+{
+    // Copy-on-write: 拷贝旧 map，修改，原子替换
+    auto old           = std::atomic_load(&ocsp_cache_);
+    auto new_map       = old ? std::make_shared<std::unordered_map<std::string, std::vector<uint8_t>>>(*old) : std::make_shared<std::unordered_map<std::string, std::vector<uint8_t>>>();
+    (*new_map)[domain] = std::move(ocsp_der);
+    std::atomic_store(&ocsp_cache_, std::shared_ptr<const std::unordered_map<std::string, std::vector<uint8_t>>>(std::move(new_map)));
+}
+
+std::vector<uint8_t> serverconfig::get_ocsp_staple(const std::string &domain)
+{
+    // 无锁读取：加载 shared_ptr 快照，直接读取
+    auto cache = std::atomic_load(&ocsp_cache_);
+    if (cache)
+    {
+        auto it = cache->find(domain);
+        if (it != cache->end())
+            return it->second;
+    }
+    return {};
+}
+
+void serverconfig::set_ocsp_staple_to_ssl(SSL *ssl, const std::string &domain)
+{
+    if (!ssl)
+        return;
+
+    auto cache = std::atomic_load(&ocsp_cache_);
+    if (!cache)
+        return;
+
+    auto it = cache->find(domain);
+    if (it == cache->end() || it->second.empty())
+        return;
+
+    // OCSP 响应通常不超过几 KB，检查防溢出
+    if (it->second.size() > static_cast<size_t>(INT_MAX))
+        return;
+
+    // SSL_set_tlsext_status_ocsp_resp 接管缓冲区所有权（握手结束后自动 free）
+    uint8_t *resp_copy = static_cast<uint8_t *>(OPENSSL_malloc(it->second.size()));
+    if (!resp_copy)
+        return;
+
+    memcpy(resp_copy, it->second.data(), it->second.size());
+
+    if (SSL_set_tlsext_status_ocsp_resp(ssl, resp_copy, static_cast<int>(it->second.size())) != 1)
+    {
+        OPENSSL_free(resp_copy);
+    }
+}
+
+void serverconfig::enable_ocsp_stapling(SSL_CTX *ctx)
+{
+    if (!ctx)
+        return;
+
+    // 注册 OCSP stapling 回调，传入 this 指针作为参数
+    SSL_CTX_set_tlsext_status_cb(ctx, ocsp_stapling_cb);
+    SSL_CTX_set_tlsext_status_arg(ctx, this);
 }
 
 }// namespace http

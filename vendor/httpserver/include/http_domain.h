@@ -49,5 +49,8 @@ struct eab_credentials_t
 };
 cert_validity_t get_cert_validity(const std::string &cert_path);
 eab_credentials_t fetch_eab_by_email(std::string_view url, std::string_view email);
+
+// OCSP Stapling: 刷新所有域名的 OCSP 响应（从证书中提取 OCSP URL 并获取响应）
+void refresh_all_ocsp_staples();
 }// namespace http
 #endif
