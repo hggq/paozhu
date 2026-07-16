@@ -24,6 +24,7 @@
 #include "teststr_join.h"
 #include "test_acme.h"
 #include "testjson.h"
+#include "test_pzexcel.h"
 #include "test_reverse.h"
 #include "test_co_handle.h"
 #include "testrand.h"
@@ -135,6 +136,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = test_requst;
 		methodcallback.emplace("test_requst",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_pzexcel;
+		methodcallback.emplace("test_pzexcel",temp);
 		temp.pre = nullptr;
 		temp.regfun = testmb_reverse;
 		methodcallback.emplace("testmb_reverse",temp);

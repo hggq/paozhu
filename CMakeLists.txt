@@ -28,6 +28,7 @@ option(ENABLE_VCPKG "Use vcpkg toolchain" OFF)
 option(ENABLE_BOOST "Enable Boost support" OFF)
 option(ENABLE_GD "Enable GD graphics and QR" OFF)
 option(ENABLE_BENCHMARK "Enable benchmarks" OFF)
+option(ENABLE_MINIZIP "Enable minizip support" OFF)
 
 # ---- Vcpkg toolchain ----
 if(ENABLE_VCPKG)
@@ -51,6 +52,7 @@ if(ENABLE_VCPKG)
 
   auto_enable_vcpkg_feature(ENABLE_GD "gd")
   auto_enable_vcpkg_feature(ENABLE_BOOST "boost")
+  auto_enable_vcpkg_feature(ENABLE_MINIZIP "minizip")
 endif()
 
 # ---- C++ standard ----
@@ -125,6 +127,11 @@ file(GLOB_RECURSE viewsrc_list    CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}
 file(GLOB_RECURSE reflect_list    CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/libs/*.cpp")
 file(GLOB_RECURSE src_list        CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
+if(ENABLE_MINIZIP)
+  file(GLOB_RECURSE pzexcel_list CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/vendor/pzexcel/src/*.cpp")
+endif()
+
+
 # Auto-generate missing header stubs for controllers
 foreach(cppfile IN LISTS controller_list)
   string(REGEX REPLACE "${CMAKE_CURRENT_SOURCE_DIR}/controller/src/" "" rel_path "${cppfile}")
@@ -168,6 +175,10 @@ set(paozhu_srcs
   ${controller_list}
 )
 
+if(ENABLE_MINIZIP)
+  list(APPEND paozhu_srcs ${pzexcel_list})
+endif()
+
 add_executable(paozhu
   $<IF:$<CONFIG:Release>,
     ${CMAKE_CURRENT_SOURCE_DIR}/startup/main_daemon.cpp,
@@ -179,6 +190,9 @@ add_executable(paozhu
 target_compile_definitions(paozhu PRIVATE ASIO_STANDALONE)
 if(ENABLE_BENCHMARK)
   target_compile_definitions(paozhu PRIVATE BENCHMARK)
+endif()
+if(ENABLE_MINIZIP)
+  target_compile_definitions(paozhu PRIVATE ENABLE_MINIZIP)
 endif()
 
 target_link_libraries(paozhu PRIVATE project_warnings)
@@ -206,6 +220,10 @@ include_project_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/controller/include
 include_project_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/libs")
 include_project_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/include")
 include_project_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/common")
+
+if(ENABLE_MINIZIP)
+  include_system_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/vendor/pzexcel/include")
+endif()
 
 if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_pre)
   file(REMOVE ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_pre)
@@ -333,6 +351,20 @@ if(ENABLE_VCPKG)
       )
     endif()
   endif()
+
+  if(ENABLE_MINIZIP)
+    find_package(PkgConfig)
+    pkg_check_modules(MINIZIP REQUIRED IMPORTED_TARGET minizip)
+    target_link_libraries(paozhu PRIVATE PkgConfig::MINIZIP)
+
+    # 确保包含 minizip 子目录的父目录在搜索路径中
+    find_path(MINIZIP_INCLUDE_DIR minizip/zip.h)
+    if(MINIZIP_INCLUDE_DIR)
+      target_include_directories(paozhu PRIVATE ${MINIZIP_INCLUDE_DIR})
+    else()
+      message(WARNING "minizip/zip.h not found – include path may be incomplete")
+    endif()
+  endif()
 else()
   # Not using vcpkg: system libraries
   # On Windows, we highly recommend using vcpkg; exit with a helpful message if not.
@@ -427,6 +459,29 @@ else()
 
     find_package(Freetype REQUIRED)
     target_link_libraries(paozhu PRIVATE Freetype::Freetype)
+  endif()
+
+
+  if(ENABLE_MINIZIP)
+    find_library(MINIZIP_LIBRARY minizip
+      PATHS /usr/local/opt/minizip/lib /opt/homebrew/opt/minizip/lib
+            /usr/lib64 /usr/lib/x86_64-linux-gnu /usr/lib
+    )
+    if(NOT MINIZIP_LIBRARY)
+      message(FATAL_ERROR "minizip library not found")
+    endif()
+
+    find_path(MINIZIP_INCLUDE_DIR minizip/zip.h
+      PATHS /usr/local/opt/minizip/include /opt/homebrew/opt/minizip/include
+            /usr/include /usr/local/include
+    )
+    if(NOT MINIZIP_INCLUDE_DIR)
+      message(FATAL_ERROR "minizip header (minizip/zip.h) not found")
+    endif()
+
+    target_link_libraries(paozhu PRIVATE ${MINIZIP_LIBRARY})
+    target_include_directories(paozhu PRIVATE ${MINIZIP_INCLUDE_DIR})
+    message(STATUS "Found minizip: ${MINIZIP_LIBRARY} (include: ${MINIZIP_INCLUDE_DIR})")
   endif()
 
   # Brotli
