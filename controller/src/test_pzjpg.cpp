@@ -116,7 +116,7 @@ std::string test_showjpg(std::shared_ptr<httppeer> peer)
 
     image::jpg img;
     bool isok = img.read(file_conf);
-    if(!isok)
+    if(isok)
     {
         client.type("image/jpg");
         auto vec      = img.imshow();

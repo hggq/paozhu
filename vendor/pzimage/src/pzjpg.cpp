@@ -213,6 +213,13 @@ public:
         return val;
     }
 
+    void skipRestartMarker() {
+        nbits = 0;
+        if (pos + 1 < len && data[pos] == 0xFF && data[pos + 1] >= 0xD0 && data[pos + 1] <= 0xD7) {
+            pos += 2;
+        }
+    }
+
     bool isEnd() const {
         return pos >= len && nbits == 0;
     }
@@ -1497,16 +1504,13 @@ bool jpg::read(const std::string& filename) {
     if (file.size() < 4) return false;
 
     size_t pos = 0;
-    bool read_ok = true;
     auto readU8 = [&]() -> uint8_t {
-        if (pos >= file.size()) { read_ok = false; return 0; }
+        if (pos >= file.size()) return 0;
         return file[pos++];
     };
     auto readU16 = [&]() -> uint16_t {
         uint16_t hi = readU8();
-        if (!read_ok) return 0;
         uint16_t lo = readU8();
-        if (!read_ok) return 0;
         return (hi << 8) | lo;
     };
 
@@ -1521,6 +1525,7 @@ bool jpg::read(const std::string& filename) {
     int num_comp = 0;
     uint8_t comp_id[4], comp_samp[4], comp_qt[4];
     bool is_progressive = false;
+    int restart_interval = 0;
 
     std::vector<ScanInfo> scans;
 
@@ -1574,8 +1579,7 @@ bool jpg::read(const std::string& filename) {
             continue;
 
         uint16_t seg_len = readU16();
-        if (!read_ok || seg_len < 2) return false;
-        if (pos + seg_len < pos) return false;
+        if (seg_len < 2) return false;
         size_t seg_end = pos + seg_len - 2;
         if (seg_end > file.size()) return false;
 
@@ -1695,6 +1699,8 @@ bool jpg::read(const std::string& filename) {
                 }
                 ht.build();
             }
+        } else if (marker == 0xDD) { // DRI (Define Restart Interval)
+            restart_interval = readU16();
         }
         pos = seg_end;
     }
@@ -1738,9 +1744,15 @@ bool jpg::read(const std::string& filename) {
         const ScanInfo& si = scans[0];
         BitReader br(si.data, si.len);
         int prev_dc[4] = {0, 0, 0, 0};
+        int mcu_count = 0;
 
         for (int mcu_r = 0; mcu_r < mcu_rows; mcu_r++) {
             for (int mcu_c = 0; mcu_c < mcu_cols; mcu_c++) {
+                if (restart_interval > 0 && mcu_count > 0 && mcu_count % restart_interval == 0) {
+                    br.skipRestartMarker();
+                    memset(prev_dc, 0, sizeof(prev_dc));
+                }
+                mcu_count++;
                 for (int c = 0; c < num_comp; c++) {
                     int hc = (comp_samp[c] >> 4) & 0x0F;
                     int vc = comp_samp[c] & 0x0F;
@@ -1754,6 +1766,7 @@ bool jpg::read(const std::string& filename) {
                         }
                     }
                     int qt_id = comp_qt[c];
+                    if (qt_id >= 4) return false;
                     int blocks_x = mcu_cols * hc;
 
                     for (int v = 0; v < vc; v++) {
@@ -1954,6 +1967,7 @@ bool jpg::read(const std::string& filename) {
         int vc = comp_samp[c] & 0x0F;
         int blocks_x = mcu_cols * hc;
         int qt_id = comp_qt[c];
+        if (qt_id >= 4) return false;
 
         for (int by = 0; by < mcu_rows * vc; by++) {
             for (int bx = 0; bx < blocks_x; bx++) {
