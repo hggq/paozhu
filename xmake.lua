@@ -1,6 +1,4 @@
 add_rules("mode.debug", "mode.release")
---add_requires("boost","mysql", "openssl", "libgd", "asio", "zlib", "brotli", "libqrencode", "libpng", "freetype")
-
 -- add_defines("release")
 if is_mode("release") then
 else
@@ -56,9 +54,6 @@ add_includedirs("libs/markdown")
 add_includedirs("libs/pinyin")
 add_includedirs("libs/weixin/include")
 add_includedirs("asio")
---download https://dev.mysql.com/get/Downloads/MySQL-8.0/mysql-8.0.35-winx64.zip
---copy include lib to current workspace
---add_includedirs("include", "include/mysql")
 
 for _, dir in ipairs(os.dirs("$(buildir)/libs/**")) do
     add_includedirs(dir)
@@ -95,18 +90,17 @@ target("paozhu")
     end
     set_kind("binary")
     add_deps("paozhu_pre")
---    add_packages("boost")
     add_packages("asio")
     add_packages("openssl3")
     add_packages("zlib")
---    add_packages("libgd")
---    add_packages("libqrencode")
---    add_packages("libpng")
---    add_packages("freetype")
---    add_packages("mysql")
     add_packages("brotli")
     add_files("models/**.cpp")
     add_files("vendor/httpserver/**.cpp")
+-- 可以打开支持扩展模块
+-- You can open the support extension module    
+-- add_files("vendor/pzimage/src/**.cpp")
+-- add_files("vendor/webpdf/src/**.cpp")
+-- add_files("vendor/pzexcel/src/**.cpp")
     add_files("common/**.cpp")
     add_files("controller/src/**.cpp")
     add_files("viewsrc/view/**.cpp")
@@ -125,7 +119,6 @@ target("paozhu")
                 for _, linkdir in ipairs({"./lib"}) do
                     if os.isdir(linkdir) then
                         target:add("linkdirs", linkdir)
-                        -- target:add("links", "mysqlclient")
                     end
                 end
             end 
@@ -153,7 +146,6 @@ target("paozhu_cli")
     add_files("vendor/httpserver/src/mysql_conn_pool.cpp")
     add_files("vendor/httpserver/src/clientdatacache.cpp")
 
---    add_packages("mysql")
     on_load(function (target)
         if is_plat("windows") then
             target:add("links", "ws2_32")
@@ -164,7 +156,6 @@ target("paozhu_cli")
                 for _, linkdir in ipairs({"./lib"}) do
                     if os.isdir(linkdir) then
                         target:add("linkdirs", linkdir)
-                        -- target:add("links", "mysqlclient")
                     end
                 end
             end 
