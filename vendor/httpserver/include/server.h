@@ -97,6 +97,10 @@ class httpserver
     asio::awaitable<void> http2_co_send_304(std::shared_ptr<httppeer> peer, std::shared_ptr<http2_send_data_t>);
     asio::awaitable<void> http2_co_send_compress(std::shared_ptr<httppeer> peer, std::shared_ptr<http2_send_data_t> send_file_obj);
 
+    // Shared helpers to remove duplicated blocks across the http2 send paths.
+    void http2_compress_output(std::shared_ptr<httppeer> &peer, std::shared_ptr<http2_send_data_t> &send_file_obj);
+    void clear_peer_data(std::shared_ptr<httppeer> &peer);
+
     bool http2_send_file(std::shared_ptr<httppeer>);
     asio::awaitable<void> http2_send_file_range(std::shared_ptr<httppeer> peer);
 

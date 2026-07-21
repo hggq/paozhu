@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>webpdf HTML to PDF Tutorial</title>
+</head>
+<style>
+body {
+    font-family: AlibabaSans-Regular;
+    font-size: 20px;
+    line-height: 28px;
+    color: #333333;
+}
+p {
+    line-height: 28px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+    text-indent: 2em;
+}
+h3 {
+    color: #2c5aa0;
+    font-size: 26px;
+    margin-top: 20px;
+    margin-bottom: 12px;
+}
+h4 {
+    color: #3a7bd5;
+    font-size: 22px;
+    margin-top: 16px;
+    margin-bottom: 10px;
+}
+h5 {
+    color: #555555;
+    font-size: 20px;
+    margin-top: 12px;
+    margin-bottom: 8px;
+}
+table {
+    border-color: #cccccc;
+    font-size: 16px;
+}
+th {
+    color: #2c5aa0;
+    padding: 8px 12px;
+    background-color: #f0f5fa;
+}
+td {
+    padding: 8px 12px;
+}
+code {
+    font-family: Courier, monospace;
+    background-color: #f5f5f5;
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: #c7254e;
+    font-size: 16px;
+}
+pre {
+    background-color: #f8f8f8;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 15px;
+    font-family: Courier, monospace;
+    font-size: 14px;
+    line-height: 1.2em;
+    color: #333;
+}
+.note {
+    background-color: #fff8e1;
+    border-left: 4px solid #ffc107;
+    padding: 12px 16px;
+    margin: 12px 0;
+    border-radius: 4px;
+}
+.tip {
+    background-color: #e8f5e9;
+    border-left: 4px solid #4caf50;
+    padding: 12px 16px;
+    margin: 12px 0;
+    border-radius: 4px;
+}
+</style>
+</header>
+<body>
+
+<!-- Cover -->
+<div class="pagecover" style="background-image:url(images/cover.jpg);" title="Cover">
+    <h1 style="padding-top: 260px; text-align: center; color: #333333; font-size: 48px;">webpdf Tutorial</h1>
+    <div style="text-align: center; color: #333333; font-size: 20px; padding-top: 30px;">
+        The Complete Guide to HTML to PDF
+    </div>
+    <div style="text-align: center; color: #04430a; font-size: 16px; padding-top: 50px;">
+        Version 1.0
+    </div>
+</div>
+
+<!-- Table of contents background -->
+<div class="pagecatalogue" style="background-image:url(images/mulu.jpeg);">
+    <h3 style="padding-top: 200px; text-align: center; color: #333333; font-size: 36px;">Table of Contents</h3>
+</div>
+
+<!-- Auto-generated TOC content -->
+<div class="cataloguecontent" title="Table of Contents"></div>
+
+<!-- Header -->
+<div class="pageheader" style="height: 30px;">
+    <div style="text-align: right;margin-right: 100px; font-size: 14px; color: #666;">
+        <img src="images/divlogo.svg" style="padding-right: 20px;">
+        <span>webpdf Tutorial · Page {pagenum} / {pagetotal}</span>
+    </div>
+</div>
+
+<!-- Footer -->
+<div class="pagefooter" style="height: 20px;">
+    <div style="text-align:center; font-size: 12px; color: #999;">
+        — Page {pagenum} / {pagetotal} —
+    </div>
+</div>
+
+<!-- Main content -->
+
+<h3 class="catalogue1">Chapter 1 Introduction</h3>
+
+<h4 class="catalogue2">1.1 What is webpdf</h4>
+
+<p>webpdf is a lightweight HTML‑to‑PDF library written in C++. It renders HTML content into high‑quality PDF documents without relying on a browser engine. Instead, it parses HTML and CSS directly and generates PDF instructions, resulting in fast startup times and low memory usage.</p>
+
+<p>This library is particularly well‑suited for:</p>
+<p>• Server‑side batch generation of PDF reports and documents</p>
+<p>• PDF generation in embedded systems</p>
+<p>• Applications that require precise control over PDF output</p>
+<p>• Environments with strict startup speed and memory constraints</p>
+
+<h4 class="catalogue2">1.2 Key Features</h4>
+
+<table border="1" style="width: 100%;">
+    <thead>
+        <tr>
+            <th style="width: 30%;">Feature</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td style="text-align: left;">HTML Parsing</td>
+            <td style="text-align: left;">Supports common HTML tags and CSS styles</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Chinese Support</td>
+            <td style="text-align: left;">Full support for TrueType Chinese fonts</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">SVG Rendering</td>
+            <td style="text-align: left;">Supports vector graphics and gradient fills</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Automatic Pagination</td>
+            <td style="text-align: left;">Smart page breaks; table headers repeat across pages</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Headers &amp; Footers</td>
+            <td style="text-align: left;">Custom headers/footers with page number placeholders</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Table of Contents</td>
+            <td style="text-align: left;">Auto‑generated TOC with page numbers and clickable links</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Full‑Page Images</td>
+            <td style="text-align: left;">Use <code>class="pagefull"</code> for full‑page rendering</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="note">
+    <strong>Note:</strong> webpdf is not a browser engine; it is a dedicated HTML/CSS renderer, so it only supports commonly used tags and styles. For complex web applications, consider a browser‑based solution.
+</div>
+
+<h3 class="catalogue1">Chapter 2 Quick Start</h3>
+
+<h4 class="catalogue2">2.1 Building the Project</h4>
+
+<p>The project uses a Makefile build system. Ensure <code>g++</code> and <code>make</code> are installed. In the project root, run:</p>
+
+<pre>cd webpdf
+make</pre>
+
+<p>After a successful build, the <code>test_html</code> executable will be generated.</p>
+
+<h4 class="catalogue2">2.2 Running the Test</h4>
+
+<p>Run the test program; it reads <code>content.html</code> and outputs <code>output.pdf</code> by default:</p>
+
+<pre>./test_html</pre>
+
+<p>You can also specify input and output files:</p>
+
+<pre>./test_html input.html output.pdf</pre>
+
+<h4 class="catalogue2">2.3 A Minimal Example</h4>
+
+<p>Here is the most basic HTML file, containing only a title and a paragraph:</p>
+
+<pre>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;meta charset="utf-8"&gt;
+&lt;title&gt;Hello&lt;/title&gt;
+&lt;style&gt;
+body {
+    font-family: msyh;
+    font-size: 24px;
+}
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h1&gt;Hello, webpdf!&lt;/h1&gt;
+    &lt;p&gt;This is my first PDF document.&lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+
+<div class="tip">
+    <strong>Tip:</strong> Make sure your HTML file is saved with UTF‑8 encoding, otherwise Chinese characters may appear garbled.
+</div>
+
+<h3 class="catalogue1">Chapter 3 Text Styling</h3>
+
+<h4 class="catalogue2">3.1 Fonts and Sizes</h4>
+
+<p>webpdf supports setting fonts and sizes via CSS. Before using a font, you must register it using the C++ API method <code>AddFont()</code>.</p>
+
+<p>Example:</p>
+<pre>body {
+    font-family: "Microsoft YaHei";
+    font-size: 24px;
+}</pre>
+
+<h5 class="catalogue3">3.1.1 Font Weight &amp; Italics</h5>
+
+<p>Use the <code>&lt;b&gt;</code> or <code>&lt;strong&gt;</code> tags for <b>bold text</b>, and <code>&lt;i&gt;</code> or <code>&lt;em&gt;</code> for <i>italic text</i>. You can also combine them: <b><i>bold italic</i></b>.</p>
+
+<h5 class="catalogue3">3.1.2 Underline and Color</h5>
+
+<p>Use the <code>&lt;u&gt;</code> tag for <u>underlined text</u>. Use <code>&lt;font color="..."&gt;</code> to set text color, e.g. <font color="#FF0000">red</font>, <font color="#00AA00">green</font>, <font color="#0000FF">blue</font>.</p>
+
+<h4 class="catalogue2">3.2 Text Alignment</h4>
+
+<p style="text-align: left;">This is left‑aligned text. Left aligned text. Mixed Chinese and English display.</p>
+<p style="text-align: center;">This is center‑aligned text. Center aligned text.</p>
+<p style="text-align: right;">This is right‑aligned text. Right aligned text.</p>
+
+<h4 class="catalogue2">3.3 Line Height and Paragraphs</h4>
+
+<p>Line‑height controls the vertical spacing between lines. Appropriate line‑height improves readability. Generally, a value of 1.2 to 1.5 times the font size works well.</p>
+
+<p style="line-height: 20px; font-size: 14px;">This paragraph has a small line‑height (20px) with font‑size 14px. The text looks rather compact, suitable for space‑constrained scenarios. But too small a line‑height can slow reading and cause eye fatigue. So it's not recommended for long body text.</p>
+
+<p style="line-height: 40px; font-size: 18px;">This paragraph has a large line‑height (40px) with font‑size 18px. The generous spacing makes reading comfortable, especially for long articles, as readers can easily track each line. Many technical manuals and books use relaxed line‑height.</p>
+
+<h3 class="catalogue1">Chapter 4 Tables</h3>
+
+<h4 class="catalogue2">4.1 Basic Table</h4>
+
+<p>Use the <code>&lt;table&gt;</code> tag to create tables. Add <code>border="1"</code> to show borders.</p>
+
+<table border="1" style="width: 100%;">
+    <thead>
+        <tr>
+            <th>Product Name</th>
+            <th>Price</th>
+            <th>Stock</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td style="text-align: left;">Web Development Framework</td>
+            <td>¥299</td>
+            <td>128</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Mobile App Component Library</td>
+            <td>¥499</td>
+            <td>56</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Enterprise Management System</td>
+            <td>¥1999</td>
+            <td>12</td>
+        </tr>
+    </tbody>
+</table>
+
+<h4 class="catalogue2">4.2 Table Alignment</h4>
+
+<p>Cell content can be aligned both horizontally and vertically:</p>
+
+<table border="1" style="width: 100%;">
+    <thead>
+        <tr>
+            <th style="width: 33%;">Left</th>
+            <th style="width: 33%;">Center</th>
+            <th style="width: 34%;">Right</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td style="text-align: left;">Left aligned</td>
+            <td style="text-align: center;">Centered</td>
+            <td style="text-align: right;">Right aligned</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; vertical-align: top;">
+                Top aligned<br>
+                second line<br>
+                third line
+            </td>
+            <td style="text-align: center; vertical-align: middle;">
+                Middle aligned
+            </td>
+            <td style="text-align: right; vertical-align: bottom;">
+                Bottom aligned
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<h4 class="catalogue2">4.3 Merged Cells</h4>
+
+<p>Use <code>colspan</code> to merge columns and <code>rowspan</code> to merge rows.</p>
+
+<table border="1" style="width: 100%;">
+    <thead>
+        <tr>
+            <th colspan="2">Product Information</th>
+            <th>Price Details</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td rowspan="3">Software Products</td>
+            <td style="text-align: left;">Basic Edition</td>
+            <td>¥99</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Professional Edition</td>
+            <td>¥299</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Enterprise Edition</td>
+            <td>¥999</td>
+        </tr>
+        <tr>
+            <td rowspan="2">Services</td>
+            <td style="text-align: left;">Technical Support</td>
+            <td>¥499/year</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Custom Development</td>
+            <td>Hourly rate</td>
+        </tr>
+    </tbody>
+</table>
+
+<h4 class="catalogue2">4.4 Multi‑Page Tables</h4>
+
+<p>When a table is long and spans multiple pages, add <code>style="position: fixed"</code> so that the header repeats automatically on every page for easier reading.</p>
+
+<table border="1" style="width: 100%; position: fixed;">
+    <thead>
+        <tr>
+            <th style="width: 40%;">Feature Module</th>
+            <th style="width: 30%;">Basic</th>
+            <th style="width: 30%;">Professional</th>
+        </tr>
+    </thead>
+    <tfoot>
+        <tr>
+            <td style="text-align: right;">Total Features</td>
+            <td>12 items</td>
+            <td>28 items</td>
+        </tr>
+    </tfoot>
+    <tbody>
+        <tr>
+            <td style="text-align: left;">User Management</td>
+            <td>✓ Supported</td>
+            <td>✓ Supported</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Role &amp; Permissions</td>
+            <td>✓ Basic</td>
+            <td>✓ Full</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Data Reporting</td>
+            <td>✓ Basic reports</td>
+            <td>✓ Advanced reports</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Export</td>
+            <td>✓ Excel</td>
+            <td>✓ Excel/PDF/Word</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Notifications</td>
+            <td>✗ Not supported</td>
+            <td>✓ Supported</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Workflow Engine</td>
+            <td>✗ Not supported</td>
+            <td>✓ Supported</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">API Interface</td>
+            <td>✓ Basic</td>
+            <td>✓ Full</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Third‑party Integration</td>
+            <td>✗ Not supported</td>
+            <td>✓ Supported</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Data Backup</td>
+            <td>✓ Manual</td>
+            <td>✓ Automatic</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Operation Logs</td>
+            <td>✓ Basic</td>
+            <td>✓ Full audit</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Multi‑language</td>
+            <td>✗ Not supported</td>
+            <td>✓ Supported</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Mobile Adaptation</td>
+            <td>✗ Not supported</td>
+            <td>✓ Supported</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Technical Support</td>
+            <td>Community</td>
+            <td>24/7 dedicated</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Upgrade Service</td>
+            <td>Minor updates</td>
+            <td>All versions</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Custom Development</td>
+            <td>✗ Not supported</td>
+            <td>Optional</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Deployment</td>
+            <td>Public cloud</td>
+            <td>Public / Private</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">SLA Guarantee</td>
+            <td>99%</td>
+            <td>99.9%</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Data Migration</td>
+            <td>✗ Not supported</td>
+            <td>✓ Supported</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Training Service</td>
+            <td>Online docs</td>
+            <td>On‑site training</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Security Certification</td>
+            <td>Basic</td>
+            <td>Class‑III (China)</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Performance Tuning</td>
+            <td>Standard</td>
+            <td>Deep optimization</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Plugin Marketplace</td>
+            <td>✗ Not supported</td>
+            <td>✓ Supported</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Open Platform</td>
+            <td>✗ Not supported</td>
+            <td>✓ Supported</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Multi‑tenancy</td>
+            <td>✗ Not supported</td>
+            <td>✓ Supported</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">BI Analytics</td>
+            <td>✗ Not supported</td>
+            <td>✓ Supported</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">AI Assistant</td>
+            <td>✗ Not supported</td>
+            <td>✓ Optional</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Price (per year)</td>
+            <td>¥2,999</td>
+            <td>¥9,999</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3 class="catalogue1">Chapter 5 Images &amp; SVG</h3>
+
+<h4 class="catalogue2">5.1 Raster Images</h4>
+
+<p>webpdf supports common raster formats like PNG and JPG. Insert images using the <code>&lt;img&gt;</code> tag:</p>
+
+<p style="text-align: center;"><img src="images/2388_445.jpg"></p>
+
+<h4 class="catalogue2">5.2 SVG Vector Graphics</h4>
+
+<p>SVG (Scalable Vector Graphics) scale without loss, making them ideal for charts and icons. You can reference SVG files via <code>&lt;img&gt;</code>, or embed SVG code directly in HTML.</p>
+
+<p style="text-align: center;"><img src="images/untitled.svg"></p>
+
+<h4 class="catalogue2">5.3 Embedding SVG</h4>
+
+<p>Embedding SVG directly in HTML gives you finer control:</p>
+
+<div style="text-align: center;">
+<svg width="300" height="200" xmlns="http://www.w3.org/2000/svg">
+    <rect x="10" y="10" width="280" height="180" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2" rx="8"/>
+    <rect x="30" y="50" width="60" height="120" fill="#4285f4" stroke="#333" stroke-width="1"/>
+    <rect x="110" y="80" width="60" height="90" fill="#ea4335" stroke="#333" stroke-width="1"/>
+    <rect x="190" y="30" width="60" height="140" fill="#fbbc05" stroke="#333" stroke-width="1"/>
+    <text x="60" y="185" font-size="12" text-anchor="middle" fill="#333">Jan</text>
+    <text x="140" y="185" font-size="12" text-anchor="middle" fill="#333">Feb</text>
+    <text x="220" y="185" font-size="12" text-anchor="middle" fill="#333">Mar</text>
+    <text x="150" y="35" font-size="14" text-anchor="middle" fill="#333">Quarterly Sales Chart</text>
+</svg>
+</div>
+
+<h4 class="catalogue2">5.4 SVG Gradients</h4>
+
+<p>webpdf supports both linear and radial SVG gradients.</p>
+
+<h5 class="catalogue3">5.4.1 Linear Gradient</h5>
+
+<p>A linear gradient transitions colours along a straight line:</p>
+
+<div style="text-align: center;">
+<svg width="400" height="50" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="rainbow" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#FF0000"/>
+            <stop offset="17%" stop-color="#FF7F00"/>
+            <stop offset="33%" stop-color="#FFFF00"/>
+            <stop offset="50%" stop-color="#00FF00"/>
+            <stop offset="67%" stop-color="#0000FF"/>
+            <stop offset="83%" stop-color="#4B0082"/>
+            <stop offset="100%" stop-color="#9400D3"/>
+        </linearGradient>
+    </defs>
+    <rect x="0" y="0" width="400" height="50" fill="url(#rainbow)" stroke="#333" stroke-width="1"/>
+</svg>
+</div>
+
+<p>A vertical linear gradient:</p>
+
+<div style="text-align: center;">
+<svg width="300" height="80" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="sunset" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#ff6b6b"/>
+            <stop offset="50%" stop-color="#feca57"/>
+            <stop offset="100%" stop-color="#48dbfb"/>
+        </linearGradient>
+    </defs>
+    <rect x="0" y="0" width="300" height="80" fill="url(#sunset)" stroke="#333" stroke-width="1" rx="8"/>
+</svg>
+</div>
+
+<h5 class="catalogue3">5.4.2 Radial Gradient</h5>
+
+<p>A radial gradient radiates from a central point, ideal for spheres and glow effects:</p>
+
+<div style="text-align: center;">
+<svg width="300" height="120" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <radialGradient id="ball" cx="35%" cy="35%" r="60%">
+            <stop offset="0%" stop-color="#ffffff"/>
+            <stop offset="100%" stop-color="#2c5aa0"/>
+        </radialGradient>
+    </defs>
+    <circle cx="60" cy="60" r="50" fill="url(#ball)" stroke="#333" stroke-width="2"/>
+    <ellipse cx="180" cy="60" rx="80" ry="50" fill="url(#ball)" stroke="#333" stroke-width="2"/>
+</svg>
+</div>
+
+<h4 class="catalogue2">5.5 Paths and Shapes</h4>
+
+<p>SVG supports various basic shapes and path drawing:</p>
+
+<div style="text-align: center;">
+<svg width="450" height="180" xmlns="http://www.w3.org/2000/svg">
+    <line x1="20" y1="25" x2="430" y2="25" stroke="#333" stroke-width="2"/>
+    <line x1="20" y1="50" x2="430" y2="50" stroke="#666" stroke-width="2" stroke-dasharray="10,5"/>
+    <line x1="20" y1="75" x2="430" y2="75" stroke="#999" stroke-width="2" stroke-dasharray="2,4"/>
+    
+    <polyline points="20,110 60,90 100,110 140,90 180,110 220,90" fill="none" stroke="#e74c3c" stroke-width="2"/>
+    
+    <polygon points="280,110 310,80 340,110 370,80 400,110 385,140 295,140" fill="#f39c12" stroke="#333" stroke-width="1.5"/>
+    
+    <path d="M 20 150 Q 70 120 120 150 T 220 150" fill="none" stroke="#9b59b6" stroke-width="2"/>
+    
+    <ellipse cx="330" cy="150" rx="60" ry="22" fill="#27ae60" stroke="#333" stroke-width="1.5"/>
+</svg>
+</div>
+
+<h3 class="catalogue1">Chapter 6 Page Layout</h3>
+
+<h4 class="catalogue2">6.1 Forced Page Break</h4>
+
+<p>Sometimes you need to force a page break at a specific location. Use the <code>page-break-before: always</code> style:</p>
+
+<pre>&lt;div style="page-break-before: always;"&gt;&lt;/div&gt;</pre>
+
+<p>This empty div will not produce any visible content, only trigger a page break.</p>
+
+<h4 class="catalogue2">6.2 Full‑Page Images</h4>
+
+<p>Use <code>class="pagefull"</code> to make an image occupy the entire page, without headers, footers, or margins. The image will be scaled and centered proportionally.</p>
+
+<pre>&lt;p class="pagefull"&gt;&lt;img src="images/fullpage.png"&gt;&lt;/p&gt;</pre>
+
+<p>Here is a full‑page PNG image:</p>
+
+<p class="pagefull"><img src="images/6409.png"></p>
+
+<p>The image above fills an entire page, with no header or footer. Now we are on a new page, headers and footers are back to normal.</p>
+
+<p>SVG images can also be full‑page:</p>
+
+<p class="pagefull"><img src="images/fulpage.svg"></p>
+
+<p>This is another new page, with headers and footers visible. The full‑page feature is perfect for covers, illustrations, charts, or any content that deserves a whole page.</p>
+
+<div class="tip">
+    <strong>Pro tip:</strong> The <code>pagefull</code> class can be applied to any container; the first <code>&lt;img&gt;</code> inside will be used for full‑page rendering, while the container itself and any other children will not be displayed.
+</div>
+
+<h4 class="catalogue2">6.3 Containers and Backgrounds</h4>
+
+<p>Use <code>&lt;div&gt;</code> to create block containers with background colours, borders, rounded corners, etc.:</p>
+
+<div style="background-color: #e3f2fd; padding: 20px; border-radius: 10px; border: 1px solid #2196f3;">
+    <strong style="color: #1565c0;">Info Box</strong>
+    <p style="text-indent: 0; margin: 10px 0 0 0;">This is a blue‑themed info box. Use it for important messages, notes, etc.</p>
+</div>
+
+<p></p>
+
+<div style="background-color: #ffebee; padding: 15px 20px; border-left: 6px solid #f44336; border-radius: 4px;">
+    <strong style="color: #c62828;">Warning</strong>
+    <p style="text-indent: 0; margin: 8px 0 0 0; color: #b71c1c;">This is a warning box with a prominent red left border.</p>
+</div>
+
+<p></p>
+
+<div style="background-image: url(images/hot.png); background-repeat: no-repeat; background-position: left center; padding: 20px 20px 20px 50px; border: 2px solid #ff9800; border-radius: 25px;">
+    <strong style="color: #e65100;">Hot Recommendation</strong>
+    <p style="text-indent: 0; margin: 8px 0 0 0;">A container with a background image, rounded border, and padding.</p>
+</div>
+
+<fieldset style="background-color: #e3f2fd; padding: 20px; border-radius: 10px; border: 1px solid #2196f3;">
+    <legend>Fieldset Info Box</legend>
+    <p style="text-indent: 0; margin: 10px 0 0 0;">This is another info box using the fieldset element for a grouped style.</p>
+</fieldset>
+
+<h3 class="catalogue1">Chapter 7 Advanced Features</h3>
+
+<h4 class="catalogue2">7.1 Hyperlinks</h4>
+
+<p>Use the <code>&lt;a&gt;</code> tag to create hyperlinks; in the PDF, clicking them will open the URL. For example, visit <a href="https://www.example.com">Example Website</a> for more info.</p>
+
+<p>Long links wrap correctly: <a href="https://www.example.com/very/long/path/to/document.html?query=value&param=test&foo=bar&baz=qux">https://www.example.com/very/long/path/to/document.html?query=value&param=test&foo=bar&baz=qux</a></p>
+
+<h4 class="catalogue2">7.2 Horizontal Rules</h4>
+
+<p>Use the <code>&lt;hr&gt;</code> tag to insert horizontal rules for separating content:</p>
+
+<p>Default style:</p>
+<hr>
+
+<p>Red thick rule:</p>
+<hr style="border-color: #f44336; border-width: 3px;">
+
+<p>Green dashed rule:</p>
+<hr style="border-color: #4caf50; border-style: dashed; border-width: 2px;">
+
+<p>Blue dotted rule, 50% width centered:</p>
+<hr style="border-color: #2196f3; border-style: dotted; border-width: 2px; width: 50%; margin: 0 auto;">
+
+<p>Orange short rule, right‑aligned:</p>
+<hr style="border-color: #ff9800; border-width: 2px; width: 200px; text-align: right;">
+
+<h4 class="catalogue2">7.3 Headers and Footers</h4>
+
+<p>Use <code>class="pageheader"</code> and <code>class="pagefooter"</code> to define custom headers and footers for every page. This document uses them.</p>
+
+<p>Two special placeholders are available in headers/footers:</p>
+
+<table border="1" style="width: 100%;">
+    <thead>
+        <tr>
+            <th style="width: 30%;">Placeholder</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>{pagenum}</code></td>
+            <td style="text-align: left;">Current page number</td>
+        </tr>
+        <tr>
+            <td><code>{pagetotal}</code></td>
+            <td style="text-align: left;">Total page count</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="note">
+    <strong>Note:</strong> Cover pages and TOC pages do not show headers/footers by default. Full‑page (<code>pagefull</code>) pages also hide them.
+</div>
+
+<h4 class="catalogue2">7.4 Table of Contents Generation</h4>
+
+<p>webpdf can automatically generate a table of contents. Add <code>class="catalogue1"</code>, <code>catalogue2</code>, or <code>catalogue3</code> to headings to include them in the TOC.</p>
+
+<table border="1" style="width: 100%;">
+    <thead>
+        <tr>
+            <th style="width: 30%;">Class Name</th>
+            <th>TOC Level</th>
+            <th>Corresponding Headings</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>catalogue1</code></td>
+            <td>Level 1</td>
+            <td>h1 ~ h3</td>
+        </tr>
+        <tr>
+            <td><code>catalogue2</code></td>
+            <td>Level 2</td>
+            <td>h4 ~ h5</td>
+        </tr>
+        <tr>
+            <td><code>catalogue3</code></td>
+            <td>Level 3</td>
+            <td>h5 ~ h6</td>
+        </tr>
+    </tbody>
+</table>
+
+<p>The generated TOC includes page numbers and clickable links to each section.</p>
+
+<h4 class="catalogue2">7.5 Cover and Title Pages</h4>
+
+<p>Use <code>class="pagecover"</code> to create a cover page. Cover pages have no headers/footers and content starts from the top of the page.</p>
+
+<p>Use <code>class="pagecatalogue"</code> for a TOC background, combined with <code>class="cataloguecontent"</code> to auto‑insert the TOC.</p>
+
+<h3 class="catalogue1">Chapter 8 API Reference</h3>
+
+<h4 class="catalogue2">8.1 The FPDF Class</h4>
+
+<p><code>FPDF</code> is the core PDF document class, used to create and manipulate PDF files.</p>
+
+<table border="1" style="width: 100%; position: fixed;">
+    <thead>
+        <tr>
+            <th style="width: 35%;">Method</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">FPDF()</td>
+            <td style="text-align: left;">Constructor – creates a new PDF document</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">AddPage()</td>
+            <td style="text-align: left;">Adds a new page</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">AddFont(family, style, file, dir)</td>
+            <td style="text-align: left;">Registers a font file</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetFont(family, style, size)</td>
+            <td style="text-align: left;">Sets the current font</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">WriteHTML(html, line_height)</td>
+            <td style="text-align: left;">Renders HTML content into the PDF</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">Output(dest, name)</td>
+            <td style="text-align: left;">Outputs the PDF file</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetShowHeader(show)</td>
+            <td style="text-align: left;">Enables/disables header display</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetShowFooter(show)</td>
+            <td style="text-align: left;">Enables/disables footer display</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetShowHeaderFooter(show)</td>
+            <td style="text-align: left;">Sets both header and footer visibility</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">PageNo()</td>
+            <td style="text-align: left;">Returns the current page number</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetPageNumberOffset(offset)</td>
+            <td style="text-align: left;">Sets a page number offset</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetLeftMargin(margin)</td>
+            <td style="text-align: left;">Sets left margin</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetRightMargin(margin)</td>
+            <td style="text-align: left;">Sets right margin</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetTopMargin(margin)</td>
+            <td style="text-align: left;">Sets top margin</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetAutoPageBreak(auto, margin)</td>
+            <td style="text-align: left;">Configures automatic page breaking</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">GetPageWidth()</td>
+            <td style="text-align: left;">Returns page width</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">GetPageHeight()</td>
+            <td style="text-align: left;">Returns page height</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">GetX() / GetY()</td>
+            <td style="text-align: left;">Returns current X/Y coordinates</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetXY(x, y)</td>
+            <td style="text-align: left;">Sets current position</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">Image(file, x, y, w, h)</td>
+            <td style="text-align: left;">Inserts an image</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">Rect(x, y, w, h, style)</td>
+            <td style="text-align: left;">Draws a rectangle</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetFillColor(r, g, b)</td>
+            <td style="text-align: left;">Sets fill colour</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetDrawColor(r, g, b)</td>
+            <td style="text-align: left;">Sets stroke colour</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetTextColor(r, g, b)</td>
+            <td style="text-align: left;">Sets text colour</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetLineWidth(width)</td>
+            <td style="text-align: left;">Sets line width</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">AddAxialShading(...)</td>
+            <td style="text-align: left;">Adds an axial (linear) gradient</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">ShadeFill(x, y, w, h, id)</td>
+            <td style="text-align: left;">Fills a rectangle with a gradient</td>
+        </tr>
+    </tbody>
+</table>
+
+<h4 class="catalogue2">8.2 Complete Example Code</h4>
+
+<pre>#include &lt;iostream&gt;
+#include &lt;fstream&gt;
+#include &lt;sstream&gt;
+#include &lt;string&gt;
+#include "fpdf.h"
+
+std::string read_file(const std::string&amp; path) {
+    std::ifstream f(path);
+    if (!f.is_open())
+        throw std::runtime_error("Cannot open file: " + path);
+    std::stringstream ss;
+    ss &lt;&lt; f.rdbuf();
+    return ss.str();
+}
+
+int main(int argc, char* argv[]) {
+    try {
+        std::string html_file = "content.html";
+        std::string pdf_file = "output.pdf";
+
+        if (argc &gt; 1) html_file = argv[1];
+        if (argc &gt; 2) pdf_file = argv[2];
+
+        std::string html = read_file(html_file);
+
+        webpdf::FPDF pdf;
+        pdf.AddPage();
+        pdf.AddFont("msyh", "", "msyh.ttf", "font/");
+        pdf.SetFont("msyh", "", 14);
+        pdf.WriteHTML(html);
+        pdf.Output("F", pdf_file);
+
+        std::cout &lt;&lt; "PDF generated: " &lt;&lt; pdf_file &lt;&lt; std::endl;
+        return 0;
+    } catch (const std::exception&amp; e) {
+        std::cerr &lt;&lt; "Error: " &lt;&lt; e.what() &lt;&lt; std::endl;
+        return 1;
+    }
+}</pre>
+
+<h3 class="catalogue1">Chapter 9 Frequently Asked Questions</h3>
+
+<h4 class="catalogue2">9.1 Text Issues</h4>
+
+<table border="1" style="width: 100%;">
+    <thead>
+        <tr>
+            <th style="width: 30%;">Problem</th>
+            <th>Solution</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td style="text-align: left;">Chinese characters appear as boxes or garbled</td>
+            <td style="text-align: left;">Ensure you have registered a Chinese font with <code>AddFont()</code> and that the <code>font-family</code> in CSS matches exactly</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Font weight (bold) does not work</td>
+            <td style="text-align: left;">You must register a separate font file for that weight; webpdf does not simulate bold automatically</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Line wrapping is incorrect</td>
+            <td style="text-align: left;">Check for special characters or spaces; Chinese wraps based on character width</td>
+        </tr>
+    </tbody>
+</table>
+
+<h4 class="catalogue2">9.2 Image Issues</h4>
+
+<table border="1" style="width: 100%;">
+    <thead>
+        <tr>
+            <th style="width: 30%;">Problem</th>
+            <th>Solution</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td style="text-align: left;">Images do not appear</td>
+            <td style="text-align: left;">Check that the image path is correct and relative to the program's working directory</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">SVG renders as black</td>
+            <td style="text-align: left;">Verify SVG syntax; gradients must be defined inside <code>&lt;defs&gt;</code></td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">SVG gradients show incorrectly</td>
+            <td style="text-align: left;">Ensure the gradient ID is correct and referenced as <code>url(#id)</code></td>
+        </tr>
+    </tbody>
+</table>
+
+<h4 class="catalogue2">9.3 Pagination Issues</h4>
+
+<table border="1" style="width: 100%;">
+    <thead>
+        <tr>
+            <th style="width: 30%;">Problem</th>
+            <th>Solution</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td style="text-align: left;">Blank page before a forced page break</td>
+            <td style="text-align: left;">Use an empty <code>&lt;div style="page-break-before: always;"&gt;&lt;/div&gt;</code> without any content inside</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Table header does not repeat across pages</td>
+            <td style="text-align: left;">Add <code>style="position: fixed"</code> to the <code>&lt;table&gt;</code> tag</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Full‑page image still shows headers/footers</td>
+            <td style="text-align: left;">Make sure <code>class="pagefull"</code> is on the container and it contains an <code>&lt;img&gt;</code> child</td>
+        </tr>
+    </tbody>
+</table>
+
+<h4 class="catalogue2">9.4 Other Issues</h4>
+
+<table border="1" style="width: 100%;">
+    <thead>
+        <tr>
+            <th style="width: 30%;">Problem</th>
+            <th>Solution</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td style="text-align: left;">TOC page numbers are incorrect</td>
+            <td style="text-align: left;">TOC page numbers are estimated; complex layouts may cause slight deviations</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Some CSS styles do not apply</td>
+            <td style="text-align: left;">webpdf supports only a subset of common CSS properties; check the supported list in the tutorial</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">Generated PDF file is too large</td>
+            <td style="text-align: left;">Use compressed images and avoid large raster images where possible</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="tip">
+    <strong>Final words:</strong> webpdf is a continuously evolving project Hosted on <a href="https://github.com/hggq/webpdf">https://github.com/hggq/webpdf</a>. If you encounter issues or need new features, feedback and contributions are welcome. We hope this tutorial helps you get up to speed quickly and produce beautiful PDF documents!
+</div>
+
+</body>
+</html>

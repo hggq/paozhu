@@ -7,10 +7,107 @@
 
 namespace http
 {
+// Number of extra NUL bytes appended after the real markdown content so that
+// the many fixed look-ahead reads (mdcontent[read_offset + N], N up to 5) always
+// stay inside the string buffer. md_size still holds the real length, so all
+// parsing loops are unaffected while out-of-bounds reads are eliminated.
+static const unsigned int MD_LOOKAHEAD_PAD = 8;
+
+static inline bool is_md_word_char(unsigned char c)
+{
+    return (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+}
+
+// Append text to an HTML attribute value / text node with the dangerous
+// characters escaped, so user content can never break out of an attribute or
+// inject markup.
+static void append_html_escaped(std::string &out, const std::string &in)
+{
+    for (unsigned int i = 0; i < in.size(); i++)
+    {
+        switch (in[i])
+        {
+        case '&':
+            out.append("&amp;");
+            break;
+        case '<':
+            out.append("&lt;");
+            break;
+        case '>':
+            out.append("&gt;");
+            break;
+        case '"':
+            out.append("&quot;");
+            break;
+        case '\'':
+            out.append("&#39;");
+            break;
+        default:
+            out.push_back(in[i]);
+            break;
+        }
+    }
+}
+
+// Reject URLs with dangerous schemes (javascript:, vbscript:, data:) to avoid
+// XSS through links/images. Relative URLs and anchors are always allowed.
+static bool is_safe_url(const std::string &url, bool allow_data)
+{
+    unsigned int i = 0;
+    while (i < url.size() && (url[i] == 0x20 || url[i] == 0x09 || url[i] == 0x0A || url[i] == 0x0D))
+    {
+        i++;
+    }
+    std::string scheme;
+    for (; i < url.size(); i++)
+    {
+        unsigned char c = (unsigned char)url[i];
+        if (c == ':')
+        {
+            break;
+        }
+        if (c == '/' || c == '?' || c == '#')
+        {
+            return true;// relative URL / anchor, no scheme
+        }
+        if (c >= 'A' && c <= 'Z')
+        {
+            scheme.push_back((char)(c + 32));
+        }
+        else if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '+' || c == '-' || c == '.')
+        {
+            scheme.push_back((char)c);
+        }
+        else
+        {
+            return true;// non-scheme character before ':' -> treat as relative
+        }
+    }
+    if (i >= url.size())
+    {
+        return true;// no scheme separator found
+    }
+    if (scheme == "javascript" || scheme == "vbscript")
+    {
+        return false;
+    }
+    if (scheme == "data" && !allow_data)
+    {
+        return false;
+    }
+    return true;
+}
+
 void markdown2html::parser(const std::string &content)
 {
     mdcontent = content;
-    md_size   = mdcontent.size();
+    md_size   = (unsigned int)mdcontent.size();
+    read_offset = 0;
+    htmlcontent.clear();
+    error_msg.clear();
+    toc_list.clear();
+    ref_list.clear();
+    mdcontent.append(MD_LOOKAHEAD_PAD, '\0');
     process();
 }
 std::string markdown2html::get_htmlcontent()
@@ -34,6 +131,12 @@ void markdown2html::parserfile(const std::string &filename)
     mdcontent.resize(md_size);
     md_size = fread((char *)&mdcontent[0], 1, md_size, fp.get());
     mdcontent.resize(md_size);
+    read_offset = 0;
+    htmlcontent.clear();
+    error_msg.clear();
+    toc_list.clear();
+    ref_list.clear();
+    mdcontent.append(MD_LOOKAHEAD_PAD, '\0');
     process();
 }
 void markdown2html::strip_blank()
@@ -91,6 +194,11 @@ void markdown2html::process_blockquote()
             process_bold();
             continue;
         }
+        if (mdcontent[read_offset] == '_' && (read_offset == 0 || !is_md_word_char((unsigned char)mdcontent[read_offset - 1])))
+        {
+            process_bold();
+            continue;
+        }
         htmlcontent.push_back(mdcontent[read_offset]);
     }
     if (read_offset == md_size)
@@ -102,64 +210,98 @@ void markdown2html::process_blockquote()
 }
 void markdown2html::process_bold()
 {
-    std::string tempbold;
+    // Handles emphasis with either '*' or '_' as the marker. read_offset points
+    // at the first marker byte. Determines the opening run length (1=em,
+    // 2=strong, 3=strong+em), then looks ahead for a matching closing run in the
+    // same inline scope. If none is found the markers are emitted as literal text
+    // so no content is lost and no unbalanced tag is produced.
+    const char marker      = mdcontent[read_offset];
     unsigned int inboffset = read_offset;
-    if (mdcontent[read_offset] == '*' && mdcontent[read_offset + 1] == '*' && mdcontent[read_offset + 2] == '*')
+    unsigned char opencount = 1;
+    if (mdcontent[read_offset + 1] == marker)
     {
-        htmlcontent.append("<strong><em>");
-        read_offset += 3;
+        opencount = 2;
+        if (mdcontent[read_offset + 2] == marker)
+        {
+            opencount = 3;
+        }
     }
-    else if (mdcontent[read_offset] == '*' && mdcontent[read_offset + 1] == '*')
+
+    // Look ahead for a closing marker within the same paragraph / block.
+    bool found            = false;
+    unsigned int closepos = 0;
+    for (unsigned int scan = inboffset + opencount; scan < md_size; scan++)
+    {
+        char c = mdcontent[scan];
+        if (c == 0x0A)
+        {
+            char nx = mdcontent[scan + 1];
+            if (nx == 0x0A || nx == '>' || nx == '#')
+            {
+                break;// blank line / new block ends the inline scope
+            }
+            continue;
+        }
+        if (c == 0x5C)
+        {
+            scan++;// skip escaped character
+            continue;
+        }
+        if (c == marker)
+        {
+            found    = true;
+            closepos = scan;
+            break;
+        }
+    }
+
+    if (!found)
+    {
+        // No closing marker: output the opening markers literally and let the
+        // caller (which does continue; -> read_offset++) resume just after them.
+        htmlcontent.append(std::string(opencount, marker));
+        read_offset = inboffset + opencount - 1;
+        return;
+    }
+
+    unsigned char closecount = 1;
+    if (mdcontent[closepos + 1] == marker)
+    {
+        closecount = 2;
+        if (mdcontent[closepos + 2] == marker)
+        {
+            closecount = 3;
+        }
+    }
+    unsigned char n = opencount < closecount ? opencount : closecount;
+
+    if (opencount > n)
+    {
+        htmlcontent.append(std::string(opencount - n, marker));
+    }
+    if (n >= 2)
     {
         htmlcontent.append("<strong>");
-        read_offset += 2;
     }
-    else if (mdcontent[read_offset] == '*' && mdcontent[read_offset + 1] != '*')
+    if (n == 1 || n == 3)
     {
         htmlcontent.append("<em>");
-        read_offset += 1;
     }
-    for (; read_offset < md_size; read_offset++)
+
+    for (read_offset = inboffset + opencount; read_offset < closepos; read_offset++)
     {
-        if (mdcontent[read_offset] == 0x0A)
-        {
-            if (mdcontent[read_offset + 1] == '>' || mdcontent[read_offset + 1] == '-' || mdcontent[read_offset + 1] == '#')
-            {
-                read_offset = inboffset;
-                return;
-            }
-        }
-        else if (mdcontent[read_offset] == '*')
-        {
-            if (mdcontent[read_offset] == '*' && mdcontent[read_offset + 1] == '*' && mdcontent[read_offset + 2] == '*')
-            {
-                read_offset += 2;
-
-                htmlcontent.append(tempbold);
-                htmlcontent.append("</em></strong>");
-            }
-            else if (mdcontent[read_offset] == '*' && mdcontent[read_offset + 1] == '*')
-            {
-                read_offset += 1;
-
-                htmlcontent.append(tempbold);
-                htmlcontent.append("</strong>");
-            }
-            else if (mdcontent[read_offset] == '*' && mdcontent[read_offset + 1] != '*')
-            {
-                // read_offset+=1;
-
-                htmlcontent.append(tempbold);
-                htmlcontent.append("</em>");
-            }
-            return;
-        }
-        if (mdcontent[read_offset] == 0x5C)
+        char c = mdcontent[read_offset];
+        if (c == 0x5C)
         {
             backslash_transfer();
             continue;
         }
-        if (mdcontent[read_offset] == '[')
+        if (c == 0x60)
+        {
+            process_dan();
+            continue;
+        }
+        if (c == '[')
         {
             unsigned int tempbnum = read_offset;
             process_href();
@@ -168,8 +310,28 @@ void markdown2html::process_bold()
                 continue;
             }
         }
-        tempbold.push_back(mdcontent[read_offset]);
+        if (c == 0x0A)
+        {
+            htmlcontent.push_back(0x20);
+            continue;
+        }
+        htmlcontent.push_back(c);
     }
+
+    if (n == 1 || n == 3)
+    {
+        htmlcontent.append("</em>");
+    }
+    if (n >= 2)
+    {
+        htmlcontent.append("</strong>");
+    }
+    if (closecount > n)
+    {
+        htmlcontent.append(std::string(closecount - n, marker));
+    }
+    // Leave read_offset on the last consumed closing marker; caller steps past it.
+    read_offset = closepos + closecount - 1;
 }
 void markdown2html::process_href()
 {
@@ -245,7 +407,14 @@ void markdown2html::process_href()
         {
             htmlcontent.append("<a href=\"");
 
-            htmlcontent.append(hreftemp);
+            if (is_safe_url(hreftemp, false))
+            {
+                append_html_escaped(htmlcontent, hreftemp);
+            }
+            else
+            {
+                htmlcontent.push_back('#');
+            }
             htmlcontent.append("\" ");
             if (tags_class.size() > 0)
             {
@@ -258,7 +427,7 @@ void markdown2html::process_href()
                 }
             }
             htmlcontent.append(">");
-            htmlcontent.append(tempstr);
+            append_html_escaped(htmlcontent, tempstr);
             htmlcontent.append("</a>");
             // read_offset+=1;
             return;
@@ -281,7 +450,7 @@ void markdown2html::process_href()
                 if (mdcontent[read_offset] == '"')
                 {
                     htmlcontent.append("<span class=\"footnote-word\">");//<span class="footnote-word">title</span>
-                    htmlcontent.append(tempstr);
+                    append_html_escaped(htmlcontent, tempstr);
                     htmlcontent.append("</span>");//<sup class="footnote-ref">[4]</sup>
                     htmlcontent.append("<sup class=\"footnote-ref\">[");
                     unsigned char tempnum = ref_list.size() + 1 + '0';
@@ -318,9 +487,24 @@ void markdown2html::process_dan()
             htmlcontent.append("</code>");
             return;
         }
+        if (mdcontent[read_offset] == '&')
+        {
+            htmlcontent.append("&amp;");
+            continue;
+        }
+        if (mdcontent[read_offset] == '<')
+        {
+            htmlcontent.append("&lt;");
+            continue;
+        }
+        if (mdcontent[read_offset] == '>')
+        {
+            htmlcontent.append("&gt;");
+            continue;
+        }
         if (mdcontent[read_offset] == '\\')
         {
-            backslash_transfer();
+            htmlcontent.push_back('\\');
             continue;
         }
         htmlcontent.push_back(mdcontent[read_offset]);
@@ -373,7 +557,12 @@ void markdown2html::process_codeblock()
                 return;
             }
         }
-        if (mdcontent[read_offset] == '<')
+        if (mdcontent[read_offset] == '&')
+        {
+            htmlcontent.append("&amp;");
+            continue;
+        }
+        else if (mdcontent[read_offset] == '<')
         {
             htmlcontent.append("&lt;");
             continue;
@@ -475,6 +664,11 @@ void markdown2html::process_h()
             process_bold();
             continue;
         }
+        if (mdcontent[read_offset] == '_' && (read_offset == 0 || !is_md_word_char((unsigned char)mdcontent[read_offset - 1])))
+        {
+            process_bold();
+            continue;
+        }
         if (mdcontent[read_offset] == '~')
         {
             process_delline();
@@ -561,6 +755,11 @@ void markdown2html::process_p()
             continue;
         }
         if (mdcontent[read_offset] == '*')
+        {
+            process_bold();
+            continue;
+        }
+        if (mdcontent[read_offset] == '_' && (read_offset == 0 || !is_md_word_char((unsigned char)mdcontent[read_offset - 1])))
         {
             process_bold();
             continue;
@@ -990,6 +1189,11 @@ void markdown2html::process_listul()
             process_bold();
             continue;
         }
+        if (mdcontent[read_offset] == '_' && (read_offset == 0 || !is_md_word_char((unsigned char)mdcontent[read_offset - 1])))
+        {
+            process_bold();
+            continue;
+        }
         if (mdcontent[read_offset] == '~')
         {
             process_delline();
@@ -1103,6 +1307,11 @@ void markdown2html::process_listuldot()
             continue;
         }
         if (mdcontent[read_offset] == '*')
+        {
+            process_bold();
+            continue;
+        }
+        if (mdcontent[read_offset] == '_' && (read_offset == 0 || !is_md_word_char((unsigned char)mdcontent[read_offset - 1])))
         {
             process_bold();
             continue;
@@ -1245,6 +1454,11 @@ void markdown2html::process_listulnum()
             process_bold();
             continue;
         }
+        if (mdcontent[read_offset] == '_' && (read_offset == 0 || !is_md_word_char((unsigned char)mdcontent[read_offset - 1])))
+        {
+            process_bold();
+            continue;
+        }
         if (mdcontent[read_offset] == '~')
         {
             process_delline();
@@ -1275,16 +1489,54 @@ void markdown2html::process_listulnum()
 }
 void markdown2html::backslash_transfer()
 {
-    switch (mdcontent[read_offset])
+    // read_offset points at the backslash. Consume it and emit the following
+    // character literally (escaping it for HTML when needed). Callers run inside
+    // a for(; ; read_offset++) loop and do `continue;`, so leaving read_offset on
+    // the escaped character makes the loop step past both bytes.
+    if (read_offset + 1 >= md_size)
     {
-    case 0x5C:
-        htmlcontent.push_back(mdcontent[read_offset]);
-        break;
+        htmlcontent.push_back('\\');
+        return;
+    }
+    read_offset += 1;
+    unsigned char c = (unsigned char)mdcontent[read_offset];
+    switch (c)
+    {
+    case '\\':
+    case '`':
     case '*':
-        htmlcontent.push_back(mdcontent[read_offset]);
-        break;
+    case '_':
+    case '{':
+    case '}':
     case '[':
-        htmlcontent.push_back(mdcontent[read_offset]);
+    case ']':
+    case '(':
+    case ')':
+    case '#':
+    case '+':
+    case '-':
+    case '.':
+    case '!':
+    case '~':
+    case '|':
+        htmlcontent.push_back((char)c);
+        break;
+    case '<':
+        htmlcontent.append("&lt;");
+        break;
+    case '>':
+        htmlcontent.append("&gt;");
+        break;
+    case '&':
+        htmlcontent.append("&amp;");
+        break;
+    case '"':
+        htmlcontent.append("&quot;");
+        break;
+    default:
+        // Not an escapable character: keep the backslash as-is.
+        htmlcontent.push_back('\\');
+        htmlcontent.push_back((char)c);
         break;
     }
 }
@@ -1562,7 +1814,10 @@ void markdown2html::process_img()
     if (imgtype == 0)
     {
         htmlcontent.append("<img src=\"");
-        htmlcontent.append(tempstrurl);
+        if (is_safe_url(tempstrurl, true))
+        {
+            append_html_escaped(htmlcontent, tempstrurl);
+        }
         htmlcontent.append("\" ");
         if (tags_class.size() > 0)
         {
@@ -1575,13 +1830,16 @@ void markdown2html::process_img()
             }
         }
         htmlcontent.append(" alt=\"");
-        htmlcontent.append(tempstr);
+        append_html_escaped(htmlcontent, tempstr);
         htmlcontent.append("\">");
     }
     else
     {
         htmlcontent.append("<video src=\"");
-        htmlcontent.append(tempstrurl);
+        if (is_safe_url(tempstrurl, true))
+        {
+            append_html_escaped(htmlcontent, tempstrurl);
+        }
         htmlcontent.append("\" ");
         if (tags_class.size() > 0)
         {
@@ -1593,7 +1851,7 @@ void markdown2html::process_img()
                 htmlcontent.append("\" ");
             }
         }
-        htmlcontent.append(tempstr);
+        append_html_escaped(htmlcontent, tempstr);
         htmlcontent.append(" controls=\"controls\">");
     }
 }
@@ -1649,8 +1907,40 @@ void markdown2html::process()
                 process_listuldot();
                 break;
             }
+            if (is_thematic_break('*'))
+            {
+                htmlcontent.push_back(0x0A);
+                htmlcontent.append("<hr />");
+                htmlcontent.push_back(0x0A);
+                for (; read_offset < md_size; read_offset++)
+                {
+                    if (mdcontent[read_offset] == 0x0A)
+                    {
+                        read_offset += 1;
+                        break;
+                    }
+                }
+                break;
+            }
             process_p();
-            read_offset += 1;
+            break;
+        case '_':
+            if (is_thematic_break('_'))
+            {
+                htmlcontent.push_back(0x0A);
+                htmlcontent.append("<hr />");
+                htmlcontent.push_back(0x0A);
+                for (; read_offset < md_size; read_offset++)
+                {
+                    if (mdcontent[read_offset] == 0x0A)
+                    {
+                        read_offset += 1;
+                        break;
+                    }
+                }
+                break;
+            }
+            process_p();
             break;
         case '-':
             if (mdcontent[read_offset + 1] == 0x20)
@@ -1700,5 +1990,30 @@ void markdown2html::process()
 void markdown2html::set_tags_class(const std::string &k, const std::string &v)
 {
     tags_class[k] = v;
+}
+// Returns true when the line starting at read_offset is a thematic break made
+// only of the given marker character (>= 3 of them) plus optional spaces/tabs.
+bool markdown2html::is_thematic_break(char marker)
+{
+    unsigned int count = 0;
+    for (unsigned int i = read_offset; i < md_size; i++)
+    {
+        char c = mdcontent[i];
+        if (c == 0x0A)
+        {
+            break;
+        }
+        if (c == marker)
+        {
+            count++;
+            continue;
+        }
+        if (c == 0x20 || c == 0x09 || c == 0x0D)
+        {
+            continue;
+        }
+        return false;
+    }
+    return count >= 3;
 }
 }// namespace http

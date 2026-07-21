@@ -1774,7 +1774,17 @@ void obj_val::append(const std::string &v)
     {
         if (length < 8)
         {
-            unsigned int jlenth = length + v.size() * 2;
+            // 溢出检查: length + v.size() * 2 可能溢出
+            unsigned long long safe_len = (unsigned long long)length + (unsigned long long)v.size() * 2;
+            unsigned int jlenth;
+            if (safe_len >= 0xFFFFFF)
+            {
+                jlenth = 0xFFFFFF;
+            }
+            else
+            {
+                jlenth = (unsigned int)safe_len;
+            }
             jlenth              = jlenth - jlenth % 8 + 8;
             if (jlenth >= 0xFFFFFF)
             {
@@ -1820,7 +1830,17 @@ void obj_val::append(const std::string &v)
                 unsigned int old_number = number;
                 unsigned int old_length = length;
 
-                unsigned int jlenth = length + v.size() * 2;
+                // 溢出检查: length + v.size() * 2 可能溢出
+                unsigned long long safe_len = (unsigned long long)length + (unsigned long long)v.size() * 2;
+                unsigned int jlenth;
+                if (safe_len >= 0xFFFFFF)
+                {
+                    jlenth = 0xFFFFFF;
+                }
+                else
+                {
+                    jlenth = (unsigned int)safe_len;
+                }
                 jlenth              = jlenth - jlenth % 8 + 8;
                 if (jlenth >= 0xFFFFFF)
                 {
@@ -3500,13 +3520,21 @@ obj_val::~obj_val()
 {
     if (_val_type == obj_type::OBJECT)
     {
-        obj->_data.clear();
-        delete obj;
+        if (obj != nullptr)
+        {
+            obj->_data.clear();
+            delete obj;
+            obj = nullptr;
+        }
     }
     else if (_val_type == obj_type::ARRAY)
     {
-        array_val->_data.clear();
-        delete array_val;
+        if (array_val != nullptr)
+        {
+            array_val->_data.clear();
+            delete array_val;
+            array_val = nullptr;
+        }
     }
     else if (_val_type == obj_type::STRING)
     {

@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>webpdf HTML转PDF 使用教程</title>
+</head>
+<style>
+body {
+    font-family: AlibabaPuHuiTi-Light;
+    font-size: 20px;
+    line-height: 28px;
+    color: #333333;
+}
+p {
+    line-height: 28px;
+    margin-top: 8px;
+    margin-bottom: 8px;
+    text-indent: 2em;
+}
+h3 {
+    color: #2c5aa0;
+    font-size: 26px;
+    margin-top: 20px;
+    margin-bottom: 12px;
+}
+h4 {
+    color: #3a7bd5;
+    font-size: 22px;
+    margin-top: 16px;
+    margin-bottom: 10px;
+}
+h5 {
+    color: #555555;
+    font-size: 20px;
+    margin-top: 12px;
+    margin-bottom: 8px;
+}
+table {
+    border-color: #cccccc;
+    font-size: 16px;
+}
+th {
+    color: #2c5aa0;
+    padding: 8px 12px;
+    background-color: #f0f5fa;
+}
+td {
+    padding: 8px 12px;
+}
+code {
+    font-family: Courier, monospace;
+    background-color: #f5f5f5;
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: #c7254e;
+    font-size: 16px;
+}
+pre {
+    background-color: #f8f8f8;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 15px;
+    font-family: Courier, monospace;
+    font-size: 14px;
+    line-height: 1.2em;
+    color: #333;
+}
+.note {
+    background-color: #fff8e1;
+    border-left: 4px solid #ffc107;
+    padding: 12px 16px;
+    margin: 12px 0;
+    border-radius: 4px;
+}
+.tip {
+    background-color: #e8f5e9;
+    border-left: 4px solid #4caf50;
+    padding: 12px 16px;
+    margin: 12px 0;
+    border-radius: 4px;
+}
+</style>
+</header>
+<body>
+
+<!-- 封面 -->
+<div class="pagecover" style="background-image:url(images/cover.jpg);" title="封面">
+    <h1 style="padding-top: 260px; text-align: center; color: #333333; font-size: 48px;">webpdf 使用教程</h1>
+    <div style="text-align: center; color: #333333; font-size: 20px; padding-top: 30px;">
+        HTML 转 PDF 完全指南
+    </div>
+    <div style="text-align: center; color: #023110; font-size: 16px; padding-top: 50px;">
+        版本 1.0
+    </div>
+</div>
+
+<!-- 目录页背景 -->
+<div class="pagecatalogue" style="background-image:url(images/mulu.jpeg);">
+    <h3 style="padding-top: 200px; text-align: center; color: #0a0909; font-size: 36px;">目 录</h3>
+</div>
+
+<!-- 自动目录内容 -->
+<div class="cataloguecontent" title="目录"></div>
+
+<!-- 页眉 -->
+<div class="pageheader" style="height: 30px;">
+    <div style="text-align: right;margin-right: 100px; font-size: 14px; color: #666;">
+        <img src="images/divlogo.svg" style="padding-right: 20px;">
+        <span>webpdf 使用教程 · 第{pagenum}页 / 共{pagetotal}页</span>
+    </div>
+</div>
+
+<!-- 页脚 -->
+<div class="pagefooter" style="height: 20px;">
+    <div style="text-align:center; font-size: 12px; color: #999;">
+        — 第{pagenum}页 / 共{pagetotal}页 —
+    </div>
+</div>
+
+<!-- 正文开始 -->
+
+<h3 class="catalogue1">第一章 简介</h3>
+
+<h4 class="catalogue2">1.1 什么是 webpdf</h4>
+
+<p>webpdf 是一个轻量级的 HTML 转 PDF 库，使用 C++ 开发，支持将 HTML 内容渲染为高质量的 PDF 文档。它不需要依赖浏览器内核，而是直接解析 HTML 和 CSS 并生成 PDF 指令，因此启动速度快、内存占用低。</p>
+
+<p>本库特别适合以下场景：</p>
+<p>• 服务器端批量生成 PDF 报表和文档</p>
+<p>• 嵌入式系统中的 PDF 生成</p>
+<p>• 需要精确控制 PDF 输出的应用</p>
+<p>• 对启动速度和内存有严格要求的环境</p>
+
+<h4 class="catalogue2">1.2 主要特性</h4>
+
+<table border="1" style="width: 100%;">
+    <thead>
+        <tr>
+            <th style="width: 30%;">特性</th>
+            <th>说明</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td style="text-align: left;">HTML 解析</td>
+            <td style="text-align: left;">支持常用 HTML 标签和 CSS 样式</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">中文支持</td>
+            <td style="text-align: left;">完整支持 TrueType 中文字体</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">SVG 渲染</td>
+            <td style="text-align: left;">支持矢量图形和渐变填充</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">自动分页</td>
+            <td style="text-align: left;">智能分页，表格跨页自动重复表头</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">页眉页脚</td>
+            <td style="text-align: left;">支持自定义页眉页脚，可插入页码</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">目录生成</td>
+            <td style="text-align: left;">自动生成带页码的目录，支持点击跳转</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">满页图片</td>
+            <td style="text-align: left;">支持 class="pagefull" 满页渲染</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="note">
+    <strong>注意：</strong>webpdf 不是浏览器内核，而是一个专用的 HTML/CSS 渲染引擎，因此只支持常用的标签和样式。对于复杂的 Web 应用，请使用基于浏览器的方案。
+</div>
+
+<h3 class="catalogue1">第二章 快速开始</h3>
+
+<h4 class="catalogue2">2.1 编译项目</h4>
+
+<p>项目使用 Makefile 构建系统，确保系统已安装 g++ 和 make。在项目根目录下执行：</p>
+
+<pre>cd webpdf
+make</pre>
+
+<p>编译成功后，会生成 <code>test_html</code> 可执行文件。</p>
+
+<h4 class="catalogue2">2.2 运行测试</h4>
+
+<p>运行测试程序，默认读取 <code>content.html</code> 并输出 <code>output.pdf</code>：</p>
+
+<pre>./test_html</pre>
+
+<p>也可以指定输入和输出文件：</p>
+
+<pre>./test_html input.html output.pdf</pre>
+
+<h4 class="catalogue2">2.3 最简单的示例</h4>
+
+<p>下面是一个最基本的 HTML 文件，只包含标题和一段文字：</p>
+
+<pre>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;meta charset="utf-8"&gt;
+&lt;title&gt;Hello&lt;/title&gt;
+&lt;style&gt;
+body {
+    font-family: msyh;
+    font-size: 24px;
+}
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;h1&gt;Hello, webpdf!&lt;/h1&gt;
+    &lt;p&gt;这是我的第一个 PDF 文档。&lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+
+<div class="tip">
+    <strong>提示：</strong>确保 HTML 文件使用 UTF-8 编码，否则中文可能显示乱码。
+</div>
+
+<h3 class="catalogue1">第三章 文本样式</h3>
+
+<h4 class="catalogue2">3.1 字体与字号</h4>
+
+<p>webpdf 支持通过 CSS 设置字体和字号。在使用字体前，必须先通过 C++ API 的 <code>AddFont()</code> 方法注册字体文件。</p>
+
+<p>示例：</p>
+<pre>body {
+    font-family: "Microsoft YaHei";
+    font-size: 24px;
+}</pre>
+
+<h5 class="catalogue3">3.1.1 字重与斜体</h5>
+
+<p>可以使用 <code>&lt;b&gt;</code> 或 <code>&lt;strong&gt;</code> 标签来表示<b>加粗文本</b>，使用 <code>&lt;i&gt;</code> 或 <code>&lt;em&gt;</code> 标签来表示<i>斜体文本</i>。当然，也可以同时使用 <b><i>加粗斜体</i></b>。</p>
+
+<h5 class="catalogue3">3.1.2 下划线与颜色</h5>
+
+<p>使用 <code>&lt;u&gt;</code> 标签可以添加<u>下划线</u>。使用 <code>&lt;font color="..."&gt;</code> 可以设置文字颜色，例如 <font color="#FF0000">红色</font>、<font color="#00AA00">绿色</font>、<font color="#0000FF">蓝色</font>。</p>
+
+<h4 class="catalogue2">3.2 文本对齐</h4>
+
+<p style="text-align: left;">这是左对齐的文本。Left aligned text. 中文英文混合显示的效果。</p>
+<p style="text-align: center;">这是居中对齐的文本。Center aligned text.</p>
+<p style="text-align: right;">这是右对齐的文本。Right aligned text.</p>
+
+<h4 class="catalogue2">3.3 行高与段落</h4>
+
+<p>行高（line-height）控制每行文字之间的垂直间距。合适的行高可以提高阅读体验。一般来说，行高设置为字号的 1.2 到 1.5 倍比较合适。</p>
+
+<p style="line-height: 20px; font-size: 14px;">这是较小行高的段落。行高为 20px，字号为 14px。文字显得比较紧凑。适合空间有限的场景。但是行高太小会影响阅读速度，眼睛容易疲劳。所以正文内容不建议使用太小的行高。</p>
+
+<p style="line-height: 40px; font-size: 18px;">这是较大行高的段落。行高为 40px，字号为 18px。行间距比较宽松，阅读起来比较舒适。适合长文章阅读，读者可以更轻松地追踪每行的位置。很多技术文档和书籍都采用比较宽松的行高。</p>
+
+<h3 class="catalogue1">第四章 表格</h3>
+
+<h4 class="catalogue2">4.1 基本表格</h4>
+
+<p>使用 <code>&lt;table&gt;</code> 标签创建表格。添加 <code>border="1"</code> 属性显示边框。</p>
+
+<table border="1" style="width: 100%;">
+    <thead>
+        <tr>
+            <th>产品名称</th>
+            <th>价格</th>
+            <th>库存</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td style="text-align: left;">Web 开发框架</td>
+            <td>¥299</td>
+            <td>128</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">移动应用组件库</td>
+            <td>¥499</td>
+            <td>56</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">企业级管理系统</td>
+            <td>¥1999</td>
+            <td>12</td>
+        </tr>
+    </tbody>
+</table>
+
+<h4 class="catalogue2">4.2 表格对齐方式</h4>
+
+<p>单元格内容可以设置不同的水平对齐方式和垂直对齐方式：</p>
+
+<table border="1" style="width: 100%;">
+    <thead>
+        <tr>
+            <th style="width: 33%;">左对齐</th>
+            <th style="width: 33%;">居中对齐</th>
+            <th style="width: 34%;">右对齐</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td style="text-align: left;">文字靠左</td>
+            <td style="text-align: center;">文字居中</td>
+            <td style="text-align: right;">文字靠右</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; vertical-align: top;">
+                顶部对齐<br>
+                第二行<br>
+                第三行
+            </td>
+            <td style="text-align: center; vertical-align: middle;">
+                垂直居中
+            </td>
+            <td style="text-align: right; vertical-align: bottom;">
+                底部对齐
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<h4 class="catalogue2">4.3 合并单元格</h4>
+
+<p>使用 <code>colspan</code> 合并列，使用 <code>rowspan</code> 合并行。</p>
+
+<table border="1" style="width: 100%;">
+    <thead>
+        <tr>
+            <th colspan="2">产品信息</th>
+            <th>价格详情</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td rowspan="3">软件产品</td>
+            <td style="text-align: left;">基础版</td>
+            <td>¥99</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">专业版</td>
+            <td>¥299</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">企业版</td>
+            <td>¥999</td>
+        </tr>
+        <tr>
+            <td rowspan="2">服务项目</td>
+            <td style="text-align: left;">技术支持</td>
+            <td>¥499/年</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">定制开发</td>
+            <td>按工时计费</td>
+        </tr>
+    </tbody>
+</table>
+
+<h4 class="catalogue2">4.4 跨页表格</h4>
+
+<p>当表格内容较多需要跨页显示时，可以添加 <code>style="position: fixed"</code>，这样表头会在每一页自动重复显示，方便阅读。</p>
+
+<table border="1" style="width: 100%; position: fixed;">
+    <thead>
+        <tr>
+            <th style="width: 40%;">功能模块</th>
+            <th style="width: 30%;">基础版</th>
+            <th style="width: 30%;">专业版</th>
+        </tr>
+    </thead>
+    <tfoot>
+        <tr>
+            <td style="text-align: right;">合计功能数</td>
+            <td>12 项</td>
+            <td>28 项</td>
+        </tr>
+    </tfoot>
+    <tbody>
+        <tr>
+            <td style="text-align: left;">用户管理</td>
+            <td>✓ 支持</td>
+            <td>✓ 支持</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">角色权限</td>
+            <td>✓ 基础</td>
+            <td>✓ 完整</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">数据报表</td>
+            <td>✓ 基础报表</td>
+            <td>✓ 高级报表</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">导出功能</td>
+            <td>✓ Excel</td>
+            <td>✓ Excel/PDF/Word</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">消息通知</td>
+            <td>✗ 不支持</td>
+            <td>✓ 支持</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">工作流引擎</td>
+            <td>✗ 不支持</td>
+            <td>✓ 支持</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">API 接口</td>
+            <td>✓ 基础接口</td>
+            <td>✓ 完整接口</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">第三方集成</td>
+            <td>✗ 不支持</td>
+            <td>✓ 支持</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">数据备份</td>
+            <td>✓ 手动备份</td>
+            <td>✓ 自动备份</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">操作日志</td>
+            <td>✓ 基础日志</td>
+            <td>✓ 完整审计</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">多语言支持</td>
+            <td>✗ 不支持</td>
+            <td>✓ 支持</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">移动端适配</td>
+            <td>✗ 不支持</td>
+            <td>✓ 支持</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">技术支持</td>
+            <td>社区支持</td>
+            <td>7x24 专人支持</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">升级服务</td>
+            <td>小版本升级</td>
+            <td>全版本升级</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">定制开发</td>
+            <td>✗ 不支持</td>
+            <td>可选服务</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">部署方式</td>
+            <td>公有云</td>
+            <td>公有云/私有部署</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">SLA 保障</td>
+            <td>99%</td>
+            <td>99.9%</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">数据迁移服务</td>
+            <td>✗ 不支持</td>
+            <td>✓ 支持</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">培训服务</td>
+            <td>在线文档</td>
+            <td>现场培训</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">安全认证</td>
+            <td>基础</td>
+            <td>等保三级</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">性能优化</td>
+            <td>标准</td>
+            <td>深度优化</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">插件市场</td>
+            <td>✗ 不支持</td>
+            <td>✓ 支持</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">开放平台</td>
+            <td>✗ 不支持</td>
+            <td>✓ 支持</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">多租户</td>
+            <td>✗ 不支持</td>
+            <td>✓ 支持</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">BI 分析</td>
+            <td>✗ 不支持</td>
+            <td>✓ 支持</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">AI 助手</td>
+            <td>✗ 不支持</td>
+            <td>✓ 可选</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">价格（每年）</td>
+            <td>¥2,999</td>
+            <td>¥9,999</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3 class="catalogue1">第五章 图片与 SVG</h3>
+
+<h4 class="catalogue2">5.1 位图图片</h4>
+
+<p>webpdf 支持 PNG、JPG 等常见位图格式。使用 <code>&lt;img&gt;</code> 标签插入图片：</p>
+
+<p style="text-align: center;"><img src="images/2388_445.jpg"></p>
+
+<h4 class="catalogue2">5.2 SVG 矢量图</h4>
+
+<p>SVG（可缩放矢量图形）可以无损缩放，适合图表和图标。可以通过 <code>&lt;img&gt;</code> 引用 SVG 文件，也可以直接在 HTML 中嵌入 SVG 代码。</p>
+
+<p style="text-align: center;"><img src="images/untitled.svg"></p>
+
+<h4 class="catalogue2">5.3 嵌入 SVG</h4>
+
+<p>在 HTML 中直接嵌入 SVG 代码，可以获得更灵活的控制：</p>
+
+<div style="text-align: center;">
+<svg width="300" height="200" xmlns="http://www.w3.org/2000/svg">
+    <rect x="10" y="10" width="280" height="180" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2" rx="8"/>
+    <rect x="30" y="50" width="60" height="120" fill="#4285f4" stroke="#333" stroke-width="1"/>
+    <rect x="110" y="80" width="60" height="90" fill="#ea4335" stroke="#333" stroke-width="1"/>
+    <rect x="190" y="30" width="60" height="140" fill="#fbbc05" stroke="#333" stroke-width="1"/>
+    <text x="60" y="185" font-size="12" text-anchor="middle" fill="#333">一月</text>
+    <text x="140" y="185" font-size="12" text-anchor="middle" fill="#333">二月</text>
+    <text x="220" y="185" font-size="12" text-anchor="middle" fill="#333">三月</text>
+    <text x="150" y="35" font-size="14" text-anchor="middle" fill="#333">季度销售柱状图</text>
+</svg>
+</div>
+
+<h4 class="catalogue2">5.4 SVG 渐变</h4>
+
+<p>webpdf 支持线性渐变和径向渐变两种 SVG 渐变效果。</p>
+
+<h5 class="catalogue3">5.4.1 线性渐变</h5>
+
+<p>线性渐变沿着一条直线方向逐渐变化颜色：</p>
+
+<div style="text-align: center;">
+<svg width="400" height="50" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="rainbow" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#FF0000"/>
+            <stop offset="17%" stop-color="#FF7F00"/>
+            <stop offset="33%" stop-color="#FFFF00"/>
+            <stop offset="50%" stop-color="#00FF00"/>
+            <stop offset="67%" stop-color="#0000FF"/>
+            <stop offset="83%" stop-color="#4B0082"/>
+            <stop offset="100%" stop-color="#9400D3"/>
+        </linearGradient>
+    </defs>
+    <rect x="0" y="0" width="400" height="50" fill="url(#rainbow)" stroke="#333" stroke-width="1"/>
+</svg>
+</div>
+
+<p>垂直方向的线性渐变：</p>
+
+<div style="text-align: center;">
+<svg width="300" height="80" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <linearGradient id="sunset" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#ff6b6b"/>
+            <stop offset="50%" stop-color="#feca57"/>
+            <stop offset="100%" stop-color="#48dbfb"/>
+        </linearGradient>
+    </defs>
+    <rect x="0" y="0" width="300" height="80" fill="url(#sunset)" stroke="#333" stroke-width="1" rx="8"/>
+</svg>
+</div>
+
+<h5 class="catalogue3">5.4.2 径向渐变</h5>
+
+<p>径向渐变从中心点向外扩散，适合绘制球体和光晕效果：</p>
+
+<div style="text-align: center;">
+<svg width="300" height="120" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+        <radialGradient id="ball" cx="35%" cy="35%" r="60%">
+            <stop offset="0%" stop-color="#ffffff"/>
+            <stop offset="100%" stop-color="#2c5aa0"/>
+        </radialGradient>
+    </defs>
+    <circle cx="60" cy="60" r="50" fill="url(#ball)" stroke="#333" stroke-width="2"/>
+    <ellipse cx="180" cy="60" rx="80" ry="50" fill="url(#ball)" stroke="#333" stroke-width="2"/>
+</svg>
+</div>
+
+<h4 class="catalogue2">5.5 路径与图形</h4>
+
+<p>SVG 支持多种基本图形和路径绘制：</p>
+
+<div style="text-align: center;">
+<svg width="450" height="180" xmlns="http://www.w3.org/2000/svg">
+    <line x1="20" y1="25" x2="430" y2="25" stroke="#333" stroke-width="2"/>
+    <line x1="20" y1="50" x2="430" y2="50" stroke="#666" stroke-width="2" stroke-dasharray="10,5"/>
+    <line x1="20" y1="75" x2="430" y2="75" stroke="#999" stroke-width="2" stroke-dasharray="2,4"/>
+    
+    <polyline points="20,110 60,90 100,110 140,90 180,110 220,90" fill="none" stroke="#e74c3c" stroke-width="2"/>
+    
+    <polygon points="280,110 310,80 340,110 370,80 400,110 385,140 295,140" fill="#f39c12" stroke="#333" stroke-width="1.5"/>
+    
+    <path d="M 20 150 Q 70 120 120 150 T 220 150" fill="none" stroke="#9b59b6" stroke-width="2"/>
+    
+    <ellipse cx="330" cy="150" rx="60" ry="22" fill="#27ae60" stroke="#333" stroke-width="1.5"/>
+</svg>
+</div>
+
+<h3 class="catalogue1">第六章 页面布局</h3>
+
+<h4 class="catalogue2">6.1 强制分页</h4>
+
+<p>有时需要在特定位置强制分页，可以使用 <code>page-break-before: always</code> 样式：</p>
+
+<pre>&lt;div style="page-break-before: always;"&gt;&lt;/div&gt;</pre>
+
+<p>上面这个空的 div 不会产生任何可见内容，只会触发一次分页。</p>
+
+<h4 class="catalogue2">6.2 满页图片</h4>
+
+<p>使用 <code>class="pagefull"</code> 可以让图片占满整个页面，不显示页眉、页脚和边距。图片会按比例缩放并居中显示。</p>
+
+<pre>&lt;p class="pagefull"&gt;&lt;img src="images/fullpage.png"&gt;&lt;/p&gt;</pre>
+
+<p>下面是一张满页的 PNG 图片：</p>
+
+<p class="pagefull"><img src="images/6409.png"></p>
+
+<p>上面这张图片占满了一整页，没有页眉和页脚。现在是新的一页，页眉页脚恢复正常显示。</p>
+
+<p>SVG 矢量图也可以满页显示：</p>
+
+<p class="pagefull"><img src="images/fulpage.svg"></p>
+
+<p>这又是新的一页，页眉页脚正常显示。满页图片功能非常适合封面、插图、图表等需要整页展示的内容。</p>
+
+<div class="tip">
+    <strong>小技巧：</strong>pagefull 类可以加在任何容器元素上，容器内的第一个 img 元素会被用于满页渲染，容器本身和其他子元素不会显示。
+</div>
+
+<h4 class="catalogue2">6.3 容器与背景</h4>
+
+<p>使用 <code>&lt;div&gt;</code> 可以创建块级容器，设置背景色、边框、圆角等样式：</p>
+
+<div style="background-color: #e3f2fd; padding: 20px; border-radius: 10px; border: 1px solid #2196f3;">
+    <strong style="color: #1565c0;">信息提示框</strong>
+    <p style="text-indent: 0; margin: 10px 0 0 0;">这是一个蓝色主题的提示框。可以用来显示重要的信息、注意事项等。</p>
+</div>
+
+<p></p>
+
+<div style="background-color: #ffebee; padding: 15px 20px; border-left: 6px solid #f44336; border-radius: 4px;">
+    <strong style="color: #c62828;">警告提示</strong>
+    <p style="text-indent: 0; margin: 8px 0 0 0; color: #b71c1c;">这是一个警告提示框，左侧有醒目的红色边框。</p>
+</div>
+
+<p></p>
+
+<div style="background-image: url(images/hot.png); background-repeat: no-repeat; background-position: left center; padding: 20px 20px 20px 50px; border: 2px solid #ff9800; border-radius: 25px;">
+    <strong style="color: #e65100;">热门推荐</strong>
+    <p style="text-indent: 0; margin: 8px 0 0 0;">带背景图和圆角边框的容器样式。</p>
+</div>
+
+<fieldset style="background-color: #e3f2fd; padding: 20px; border-radius: 10px; border: 1px solid #2196f3;">
+    <legend>fieldset提示框</legend>
+    <p style="text-indent: 0; margin: 10px 0 0 0;">这是一个蓝色主题的提示框。可以用来显示重要的信息、注意事项等。</p>
+</fieldset>
+
+<h3 class="catalogue1">第七章 高级功能</h3>
+
+<h4 class="catalogue2">7.1 超链接</h4>
+
+<p>使用 <code>&lt;a&gt;</code> 标签可以创建超链接，在 PDF 中点击可以跳转到指定网页。例如：访问<a href="https://www.example.com">示例网站</a>了解更多信息。</p>
+
+<p>长链接也能正确换行显示：<a href="https://www.example.com/very/long/path/to/document.html?query=value&param=test&foo=bar&baz=qux">https://www.example.com/very/long/path/to/document.html?query=value&param=test&foo=bar&baz=qux</a></p>
+
+<h4 class="catalogue2">7.2 水平线</h4>
+
+<p>使用 <code>&lt;hr&gt;</code> 标签可以插入水平线，用于分隔内容：</p>
+
+<p>默认样式的水平线：</p>
+<hr>
+
+<p>红色粗线：</p>
+<hr style="border-color: #f44336; border-width: 3px;">
+
+<p>绿色虚线：</p>
+<hr style="border-color: #4caf50; border-style: dashed; border-width: 2px;">
+
+<p>蓝色点线，50% 宽度居中：</p>
+<hr style="border-color: #2196f3; border-style: dotted; border-width: 2px; width: 50%; margin: 0 auto;">
+
+<p>橙色短线条，右对齐：</p>
+<hr style="border-color: #ff9800; border-width: 2px; width: 200px; text-align: right;">
+
+<h4 class="catalogue2">7.3 页眉与页脚</h4>
+
+<p>使用 <code>class="pageheader"</code> 和 <code>class="pagefooter"</code> 可以自定义每一页的页眉和页脚。本文档的页眉和页脚就是使用这个功能实现的。</p>
+
+<p>页眉页脚中可以使用两个特殊占位符：</p>
+
+<table border="1" style="width: 100%;">
+    <thead>
+        <tr>
+            <th style="width: 30%;">占位符</th>
+            <th>说明</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>{pagenum}</code></td>
+            <td style="text-align: left;">当前页码</td>
+        </tr>
+        <tr>
+            <td><code>{pagetotal}</code></td>
+            <td style="text-align: left;">文档总页数</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="note">
+    <strong>注意：</strong>封面页和目录页默认不显示页眉页脚。满页图片（pagefull）的页面也不显示页眉页脚。
+</div>
+
+<h4 class="catalogue2">7.4 目录生成</h4>
+
+<p>webpdf 可以自动生成目录。给标题添加 <code>class="catalogue1"</code>、<code>catalogue2</code>、<code>catalogue3</code> 即可自动加入目录。</p>
+
+<table border="1" style="width: 100%;">
+    <thead>
+        <tr>
+            <th style="width: 30%;">类名</th>
+            <th>目录级别</th>
+            <th>对应标题</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>catalogue1</code></td>
+            <td>一级目录</td>
+            <td>h1 ~ h3</td>
+        </tr>
+        <tr>
+            <td><code>catalogue2</code></td>
+            <td>二级目录</td>
+            <td>h4 ~ h5</td>
+        </tr>
+        <tr>
+            <td><code>catalogue3</code></td>
+            <td>三级目录</td>
+            <td>h5 ~ h6</td>
+        </tr>
+    </tbody>
+</table>
+
+<p>生成的目录带有页码，并且可以点击跳转到对应章节。</p>
+
+<h4 class="catalogue2">7.5 封面与扉页</h4>
+
+<p>使用 <code>class="pagecover"</code> 可以创建封面页，封面页不显示页眉页脚，内容从页面顶部开始。</p>
+
+<p>使用 <code>class="pagecatalogue"</code> 可以创建目录页背景，配合 <code>class="cataloguecontent"</code> 自动生成目录内容。</p>
+
+<h3 class="catalogue1">第八章 API 参考</h3>
+
+<h4 class="catalogue2">8.1 FPDF 类</h4>
+
+<p>FPDF 是 PDF 文档的核心类，用于创建和操作 PDF 文件。</p>
+
+<table border="1" style="width: 100%; position: fixed;">
+    <thead>
+        <tr>
+            <th style="width: 35%;">方法</th>
+            <th>说明</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">FPDF()</td>
+            <td style="text-align: left;">构造函数，创建一个新的 PDF 文档</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">AddPage()</td>
+            <td style="text-align: left;">添加一页新页面</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">AddFont(family, style, file, dir)</td>
+            <td style="text-align: left;">注册字体文件</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetFont(family, style, size)</td>
+            <td style="text-align: left;">设置当前字体</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">WriteHTML(html, line_height)</td>
+            <td style="text-align: left;">渲染 HTML 内容到 PDF</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">Output(dest, name)</td>
+            <td style="text-align: left;">输出 PDF 文件</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetShowHeader(show)</td>
+            <td style="text-align: left;">设置是否显示页眉</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetShowFooter(show)</td>
+            <td style="text-align: left;">设置是否显示页脚</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetShowHeaderFooter(show)</td>
+            <td style="text-align: left;">同时设置页眉页脚显示</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">PageNo()</td>
+            <td style="text-align: left;">获取当前页码</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetPageNumberOffset(offset)</td>
+            <td style="text-align: left;">设置页码偏移量</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetLeftMargin(margin)</td>
+            <td style="text-align: left;">设置左边距</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetRightMargin(margin)</td>
+            <td style="text-align: left;">设置右边距</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetTopMargin(margin)</td>
+            <td style="text-align: left;">设置上边距</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetAutoPageBreak(auto, margin)</td>
+            <td style="text-align: left;">设置自动分页</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">GetPageWidth()</td>
+            <td style="text-align: left;">获取页面宽度</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">GetPageHeight()</td>
+            <td style="text-align: left;">获取页面高度</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">GetX() / GetY()</td>
+            <td style="text-align: left;">获取当前坐标</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetXY(x, y)</td>
+            <td style="text-align: left;">设置当前坐标</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">Image(file, x, y, w, h)</td>
+            <td style="text-align: left;">插入图片</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">Rect(x, y, w, h, style)</td>
+            <td style="text-align: left;">绘制矩形</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetFillColor(r, g, b)</td>
+            <td style="text-align: left;">设置填充颜色</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetDrawColor(r, g, b)</td>
+            <td style="text-align: left;">设置描边颜色</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetTextColor(r, g, b)</td>
+            <td style="text-align: left;">设置文字颜色</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">SetLineWidth(width)</td>
+            <td style="text-align: left;">设置线宽</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">AddAxialShading(...)</td>
+            <td style="text-align: left;">添加轴向渐变</td>
+        </tr>
+        <tr>
+            <td style="text-align: left; font-family: monospace; font-size: 14px;">ShadeFill(x, y, w, h, id)</td>
+            <td style="text-align: left;">使用渐变填充矩形</td>
+        </tr>
+    </tbody>
+</table>
+
+<h4 class="catalogue2">8.2 完整示例代码</h4>
+
+<pre>#include &lt;iostream&gt;
+#include &lt;fstream&gt;
+#include &lt;sstream&gt;
+#include &lt;string&gt;
+#include "fpdf.h"
+
+std::string read_file(const std::string&amp; path) {
+    std::ifstream f(path);
+    if (!f.is_open())
+        throw std::runtime_error("Cannot open file: " + path);
+    std::stringstream ss;
+    ss &lt;&lt; f.rdbuf();
+    return ss.str();
+}
+
+int main(int argc, char* argv[]) {
+    try {
+        std::string html_file = "content.html";
+        std::string pdf_file = "output.pdf";
+
+        if (argc &gt; 1) html_file = argv[1];
+        if (argc &gt; 2) pdf_file = argv[2];
+
+        std::string html = read_file(html_file);
+
+        webpdf::FPDF pdf;
+        pdf.AddPage();
+        pdf.AddFont("msyh", "", "msyh.ttf", "font/");
+        pdf.SetFont("msyh", "", 14);
+        pdf.WriteHTML(html);
+        pdf.Output("F", pdf_file);
+
+        std::cout &lt;&lt; "PDF generated: " &lt;&lt; pdf_file &lt;&lt; std::endl;
+        return 0;
+    } catch (const std::exception&amp; e) {
+        std::cerr &lt;&lt; "Error: " &lt;&lt; e.what() &lt;&lt; std::endl;
+        return 1;
+    }
+}</pre>
+
+<h3 class="catalogue1">第九章 常见问题</h3>
+
+<h4 class="catalogue2">9.1 文字相关</h4>
+
+<table border="1" style="width: 100%;">
+    <thead>
+        <tr>
+            <th style="width: 30%;">问题</th>
+            <th>解决方案</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td style="text-align: left;">中文显示乱码或方框</td>
+            <td style="text-align: left;">确保已使用 AddFont() 注册中文字体，且 CSS 中 font-family 名称匹配</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">字体粗细不起作用</td>
+            <td style="text-align: left;">需要注册对应字重的字体文件，webpdf 不会自动模拟加粗</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">文字换行不正确</td>
+            <td style="text-align: left;">检查是否有特殊字符或空格，中文按字符宽度换行</td>
+        </tr>
+    </tbody>
+</table>
+
+<h4 class="catalogue2">9.2 图片相关</h4>
+
+<table border="1" style="width: 100%;">
+    <thead>
+        <tr>
+            <th style="width: 30%;">问题</th>
+            <th>解决方案</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td style="text-align: left;">图片不显示</td>
+            <td style="text-align: left;">检查图片路径是否正确，路径相对于程序运行目录</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">SVG 显示为黑色</td>
+            <td style="text-align: left;">检查 SVG 语法是否正确，渐变需要在 defs 中定义</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">SVG 渐变显示不正确</td>
+            <td style="text-align: left;">确保渐变 ID 正确，使用 url(#id) 格式引用</td>
+        </tr>
+    </tbody>
+</table>
+
+<h4 class="catalogue2">9.3 分页相关</h4>
+
+<table border="1" style="width: 100%;">
+    <thead>
+        <tr>
+            <th style="width: 30%;">问题</th>
+            <th>解决方案</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td style="text-align: left;">pagebreak 前有空白页</td>
+            <td style="text-align: left;">使用空 div + page-break-before: always，不要在里面放内容</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">表格跨页表头不重复</td>
+            <td style="text-align: left;">添加 style="position: fixed" 到 table 标签</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">pagefull 图片有页眉页脚</td>
+            <td style="text-align: left;">确保 class="pagefull" 加在容器上，且包含 img 子元素</td>
+        </tr>
+    </tbody>
+</table>
+
+<h4 class="catalogue2">9.4 其他问题</h4>
+
+<table border="1" style="width: 100%;">
+    <thead>
+        <tr>
+            <th style="width: 30%;">问题</th>
+            <th>解决方案</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td style="text-align: left;">目录页码不对</td>
+            <td style="text-align: left;">目录页码是估算的，复杂布局可能有偏差</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">HTML 中某些样式不生效</td>
+            <td style="text-align: left;">webpdf 只支持常用 CSS 属性，查看教程中的支持列表</td>
+        </tr>
+        <tr>
+            <td style="text-align: left;">生成的 PDF 文件很大</td>
+            <td style="text-align: left;">使用压缩的图片，减少大尺寸位图的使用</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="tip">
+    <strong>写在最后：</strong>webpdf 是一个持续发展的项目,托管于 <a href="https://github.com/hggq/webpdf">https://github.com/hggq/webpdf</a>。如果你遇到了问题或需要新功能，欢迎反馈和贡献代码。希望本教程能帮助你快速上手，制作出精美的 PDF 文档！
+</div>
+
+</body>
+</html>

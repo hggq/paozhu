@@ -39,12 +39,14 @@ Discussing the joy of C++ web development with community developers.
 ✅26. Integrates the ACME protocol to automatically renew and validate SSL certificates  
 ✅27. Integrate server-side OCSP staples  
 ✅28. Simple read and write support for Excel files (xlsx)  
+✅29. Built-in image generation and processing, supporting both JPG and PNG formats  
+✅30. Built-in HTML to PDF module: webpdf (a sub-project of this project)
 
 
 ### 2.Runtime environment
 
 C++ standard request c++20   
-asio openssl zlib brotli [options](gd qrencode)
+asio openssl zlib brotli
 
 Supports Linux MacOS Windows
 
@@ -65,8 +67,6 @@ brew install openssl
 brew install zlib
 brew install brotli
 
-[options] brew install gd
-[options] brew install qrencode
 ```
 
 #### 3.2 Ubuntu && Fedora
@@ -80,8 +80,6 @@ Ubuntu>= 22.04 , test on Fedora38, need install asan（sudo yum install libasan�
 ```
 sudo apt-get install cmake
 sudo apt-get install -y brotli  libbrotli-dev zlib1g-dev
-sudo apt-get install libgd-dev
-sudo apt-get install qrencode libqrencode-dev
 sudo apt-get install openssl libssl-dev
 sudo apt-get install mysql-server
  

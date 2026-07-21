@@ -269,9 +269,9 @@ struct obj_val
 
     bool is_point() const { return _val_type == obj_type::FLOAT || _val_type == obj_type::DOUBLE; }
 
-    bool is_num() const { return _val_type == obj_type::INT || _val_type == obj_type::INT || _val_type == obj_type::UINT || _val_type == obj_type::LONG || _val_type == obj_type::ULONG || _val_type == obj_type::FLOAT || _val_type == obj_type::DOUBLE; }
-    bool is_number() const { return _val_type == obj_type::INT || _val_type == obj_type::INT || _val_type == obj_type::UINT || _val_type == obj_type::LONG || _val_type == obj_type::ULONG || _val_type == obj_type::FLOAT || _val_type == obj_type::DOUBLE; }
-    bool is_real() const { return _val_type == obj_type::INT || _val_type == obj_type::INT || _val_type == obj_type::UINT || _val_type == obj_type::LONG || _val_type == obj_type::ULONG || _val_type == obj_type::FLOAT || _val_type == obj_type::DOUBLE; }
+    bool is_num() const { return _val_type == obj_type::INT || _val_type == obj_type::UINT || _val_type == obj_type::LONG || _val_type == obj_type::ULONG || _val_type == obj_type::FLOAT || _val_type == obj_type::DOUBLE; }
+    bool is_number() const { return _val_type == obj_type::INT || _val_type == obj_type::UINT || _val_type == obj_type::LONG || _val_type == obj_type::ULONG || _val_type == obj_type::FLOAT || _val_type == obj_type::DOUBLE; }
+    bool is_real() const { return _val_type == obj_type::INT || _val_type == obj_type::UINT || _val_type == obj_type::LONG || _val_type == obj_type::ULONG || _val_type == obj_type::FLOAT || _val_type == obj_type::DOUBLE; }
 
     bool is_string() const { return _val_type == obj_type::STRING; }
     bool is_array() const { return _val_type == obj_type::ARRAY; }

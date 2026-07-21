@@ -13,9 +13,17 @@
 #include "send_email.h"
 #include "func.h"
 #include "client_context.h"
+
 namespace http
 {
 
+/**
+ * @brief 添加邮件附件
+ * 
+ * 检查附件文件是否存在，存在则添加到附件列表中
+ * @param file_name 附件文件路径
+ * @return true表示添加成功，false表示文件不存在
+ */
 bool send_email::addattachments(std::string file_name)
 {
     FILE *ffile = fopen(file_name.c_str(), "rb");
@@ -27,6 +35,13 @@ bool send_email::addattachments(std::string file_name)
     attachments.push_back(file_name);
     return true;
 }
+
+/**
+ * @brief 邮件发送入口函数
+ * 
+ * 根据isssl标志选择SSL加密连接或明文TCP连接发送邮件
+ * @return true表示发送成功，false表示失败
+ */
 bool send_email::send()
 {
     if (isssl)
@@ -38,28 +53,35 @@ bool send_email::send()
         return senddata();
     }
 }
+
+/**
+ * @brief 建立SSL加密连接发送邮件
+ * 
+ * 使用OpenSSL和ASIO建立SSL/TLS连接，通过状态机模式执行SMTP协议流程：
+ * 连接 -> 握手 -> EHLO -> AUTH LOGIN -> 发送用户名/密码 -> MAIL FROM -> RCPT TO -> DATA -> 发送邮件内容 -> QUIT
+ * @return true表示发送成功，false表示失败
+ */
 bool send_email::sendssldata()
 {
     try
     {
-        // asio::io_context io_context;
         client_context &temp_io_context = get_client_context_obj();
         asio::ssl::context ssl_context(asio::ssl::context::sslv23);
-
         asio::ssl::stream<asio::ip::tcp::socket> socket(temp_io_context.get_ctx(), ssl_context);
+
         ssl_context.set_default_verify_paths();
         asio::ip::tcp::resolver resolver(temp_io_context.get_ctx());
         auto endpoints = resolver.resolve(smpturl.c_str(), std::to_string(port));
 
         SSL_set_tlsext_host_name(socket.native_handle(), smpturl.c_str());
-
-        asio::connect(socket.lowest_layer(), endpoints,ec);
+        asio::connect(socket.lowest_layer(), endpoints, ec);
 
         if (ec)
         {
             errormsg.append("ssl connect error!");
             return false;
         }
+
         ssl_context.set_verify_mode(asio::ssl::verify_peer);
         ssl_context.set_verify_callback(asio::ssl::host_name_verification(smpturl));
 
@@ -80,48 +102,6 @@ bool send_email::sendssldata()
 
         state = SEND_START;
         unsigned int n;
-        //  unsigned int ci_data=0;
-
-        //     memset(data, 0x00, 2048);
-        //     n = socket.read_some(asio::buffer(data, 1024), ec);
-        //     sendcommand.clear();
-        //     sendcommand.append("EHLO ");
-        //     sendcommand.append(smpturl);
-        //     sendcommand.append("\r\n");
-
-        //     socket.write_some(asio::buffer(sendcommand));
-        //     memset(data, 0x00, 2048);
-        //     n = socket.read_some(asio::buffer(data, 1024), ec);
-
-        //     sendcommand.clear();
-        //     sendcommand.append("AUTH LOGIN\r\n");
-        //     //sendcommand.append("AUTH CRAM-MD5\r\n");
-        //     socket.write_some(asio::buffer(sendcommand));
-        //     memset(data, 0x00, 2048);
-        //     n = socket.read_some(asio::buffer(data, 1024), ec);
-
-        //     // std::string backseret;
-        //     // for(unsigned int i=4;i<n;i++)
-        //     // {
-        //     //     backseret.push_back(data[i]);
-        //     // }
-
-        //     // backseret=base64_decode((const char*)&backseret[0],backseret.size());
-
-        //     // unsigned char sSHA[EVP_MAX_MD_SIZE] = {0};
-        //     // unsigned int nSHALen = EVP_MAX_MD_SIZE;
-        //     // unsigned char* ret = HMAC(EVP_md5(),(const char*)&password[0],password.size(), (const unsigned char*)&backseret[0], backseret.size(), sSHA, &nSHALen);
-
-        //     // backseret=username+' '+char2str(&sSHA[0],nSHALen);
-        //     // sendcommand=base64_encode((const char*)&backseret[0],backseret.size());
-        //     //sendcommand.clear();
-        //     sendcommand.clear();
-        //     sendcommand.append(base64_encode(username.data(), username.size()));
-        //     sendcommand.append("\r\n");
-
-        //     socket.write_some(asio::buffer(sendcommand));
-        //     memset(data, 0x00, 2048);
-        //     n = socket.read_some(asio::buffer(data, 1024), ec);
 
         memset(data, 0x00, 2048);
         n = socket.read_some(asio::buffer(data, 1024), ec);
@@ -135,26 +115,12 @@ bool send_email::sendssldata()
                 switch (state)
                 {
                 case SEND_EHLO:
-                    sendloop();
-                    break;
                 case SEND_AUTH_LOGIN:
-                    sendloop();
-                    break;
                 case SEND_USER:
-                    sendloop();
-                    break;
                 case SEND_PASSWORD:
-                    sendloop();
-                    break;
                 case SEND_MAIL_FROM:
-                    sendloop();
-                    break;
                 case SEND_RCPT_TO:
-                    sendloop();
-                    break;
                 case SEND_DATA:
-                    sendloop();
-                    break;
                 case SEND_EMAIL:
                     sendloop();
                     break;
@@ -164,10 +130,8 @@ bool send_email::sendssldata()
 
                 if (sendcommand.size() > 0)
                 {
-
                     if (state == SEND_EMAIL)
                     {
-
                         if (sendfiles.size() == 0)
                         {
                             socket.write_some(asio::buffer(sendcommand));
@@ -176,9 +140,10 @@ bool send_email::sendssldata()
                         {
                             asio::write(socket, asio::buffer(sendcommand));
                             unsigned int sendsize = 0;
-                            data[2048]            = 0;
+                            data[2048] = 0;
                             std::string filecontent;
                             std::string sendcontent;
+
                             for (unsigned int j = 0; j < sendfiles.size(); j++)
                             {
                                 if (sendfiles[j].predata.empty())
@@ -186,6 +151,7 @@ bool send_email::sendssldata()
                                     break;
                                 }
                                 socket.write_some(asio::buffer(sendfiles[j].predata));
+
                                 FILE *ff = fopen(sendfiles[j].filename.c_str(), "rb");
                                 if (ff)
                                 {
@@ -198,6 +164,7 @@ bool send_email::sendssldata()
                                     unsigned int nread = fread(filecontent.data(), 1, size, ff);
                                     filecontent.resize(nread);
                                     filecontent = base64_encode(filecontent.data(), filecontent.size(), false);
+
                                     sendcontent.clear();
                                     for (; sendsize < filecontent.size(); sendsize++)
                                     {
@@ -208,17 +175,10 @@ bool send_email::sendssldata()
                                         sendcontent.push_back(filecontent[sendsize]);
                                     }
                                     asio::write(socket, asio::buffer(sendcontent.data(), sendcontent.size()));
-                                    // while(sendsize<size){
-                                    //         memset(data,0x00,2048);
-                                    //         unsigned int nread =fread(data, 1,2048, ff);
-
-                                    //         asio::write(socket,asio::buffer(data,nread));
-                                    //         //socket.write(asio::buffer(data,nread));
-                                    //         sendsize+=nread;
-                                    // }
                                 }
                                 fclose(ff);
                             }
+
                             sendcommand.clear();
                             sendcommand.append("\r\n--");
                             sendcommand.append(boundarystsr);
@@ -231,6 +191,7 @@ bool send_email::sendssldata()
                     {
                         socket.write_some(asio::buffer(sendcommand));
                     }
+
                     memset(data, 0x00, 2048);
                     n = socket.read_some(asio::buffer(data, 1024), ec);
                 }
@@ -248,6 +209,7 @@ bool send_email::sendssldata()
                             }
                         }
                     }
+
                     switch (state)
                     {
                     case SEND_EHLO:
@@ -375,7 +337,6 @@ bool send_email::sendssldata()
                         sendcommand.clear();
                         sendcommand.append("QUIT");
                         sendcommand.append("\r\n");
-
                         socket.write_some(asio::buffer(sendcommand));
                         break;
                     }
@@ -387,6 +348,7 @@ bool send_email::sendssldata()
                 }
             }
         }
+
         if (state == SEND_END)
         {
             return true;
@@ -401,48 +363,31 @@ bool send_email::sendssldata()
         errormsg.append(e.what());
         return false;
     }
-    return true;
 }
+
+/**
+ * @brief 建立明文TCP连接发送邮件
+ * 
+ * 使用ASIO建立明文TCP连接，通过状态机模式执行SMTP协议流程：
+ * 连接 -> EHLO -> AUTH LOGIN -> 发送用户名/密码 -> MAIL FROM -> RCPT TO -> DATA -> 发送邮件内容 -> QUIT
+ * @return true表示发送成功，false表示失败
+ */
 bool send_email::senddata()
 {
-
     try
     {
-        //asio::io_context clientio_context(1);
         client_context &temp_io_context = get_client_context_obj();
-        // asio::signal_set signals(temp_io_context, SIGINT, SIGTERM);
-        // signals.async_wait([&](auto, auto)
-        //                    { clientio_context.stop(); });
-
         asio::ip::tcp::socket socket(temp_io_context.get_ctx());
         asio::ip::tcp::resolver resolver(temp_io_context.get_ctx());
         auto endpoints = resolver.resolve(smpturl, std::to_string(port));
-        asio::connect(socket,endpoints,ec);
+        asio::connect(socket, endpoints, ec);
 
-        //asio::ip::tcp::resolver::query checkquery(smpturl, std::to_string(port));
-        // asio::ip::tcp::resolver::iterator iter = resolver.resolve(checkquery);
-        // asio::ip::tcp::resolver::iterator end;
-        // asio::ip::tcp::endpoint endpoint;
-
-        // while (iter != end)
-        // {
-        //     endpoint = *iter++;
-        //     socket.connect(endpoint, ec);
-        //     if (ec)
-        //     {
-        //         continue;
-        //     }
-        //     else
-        //     {
-        //         break;
-        //     }
-        // }
-        // asio::error_code ec;
         if (ec)
         {
             errormsg.append("host connect error!");
             return false;
         }
+
         unsigned int n;
         state = SEND_START;
         memset(data, 0x00, 2048);
@@ -457,26 +402,12 @@ bool send_email::senddata()
                 switch (state)
                 {
                 case SEND_EHLO:
-                    sendloop();
-                    break;
                 case SEND_AUTH_LOGIN:
-                    sendloop();
-                    break;
                 case SEND_USER:
-                    sendloop();
-                    break;
                 case SEND_PASSWORD:
-                    sendloop();
-                    break;
                 case SEND_MAIL_FROM:
-                    sendloop();
-                    break;
                 case SEND_RCPT_TO:
-                    sendloop();
-                    break;
                 case SEND_DATA:
-                    sendloop();
-                    break;
                 case SEND_EMAIL:
                     sendloop();
                     break;
@@ -486,10 +417,8 @@ bool send_email::senddata()
 
                 if (sendcommand.size() > 0)
                 {
-
                     if (state == SEND_EMAIL)
                     {
-
                         if (sendfiles.size() == 0)
                         {
                             socket.write_some(asio::buffer(sendcommand));
@@ -498,9 +427,10 @@ bool send_email::senddata()
                         {
                             asio::write(socket, asio::buffer(sendcommand));
                             unsigned int sendsize = 0;
-                            data[2048]            = 0;
+                            data[2048] = 0;
                             std::string filecontent;
                             std::string sendcontent;
+
                             for (unsigned int j = 0; j < sendfiles.size(); j++)
                             {
                                 if (sendfiles[j].predata.empty())
@@ -508,6 +438,7 @@ bool send_email::senddata()
                                     break;
                                 }
                                 socket.write_some(asio::buffer(sendfiles[j].predata));
+
                                 FILE *ff = fopen(sendfiles[j].filename.c_str(), "rb");
                                 if (ff)
                                 {
@@ -520,6 +451,7 @@ bool send_email::senddata()
                                     unsigned int nread = fread(filecontent.data(), 1, size, ff);
                                     filecontent.resize(nread);
                                     filecontent = base64_encode(filecontent.data(), filecontent.size(), false);
+
                                     sendcontent.clear();
                                     for (; sendsize < filecontent.size(); sendsize++)
                                     {
@@ -530,17 +462,10 @@ bool send_email::senddata()
                                         sendcontent.push_back(filecontent[sendsize]);
                                     }
                                     asio::write(socket, asio::buffer(sendcontent.data(), sendcontent.size()));
-                                    // while(sendsize<size){
-                                    //         memset(data,0x00,2048);
-                                    //         unsigned int nread =fread(data, 1,2048, ff);
-
-                                    //         asio::write(socket,asio::buffer(data,nread));
-                                    //         //socket.write(asio::buffer(data,nread));
-                                    //         sendsize+=nread;
-                                    // }
                                 }
                                 fclose(ff);
                             }
+
                             sendcommand.clear();
                             sendcommand.append("\r\n--");
                             sendcommand.append(boundarystsr);
@@ -553,6 +478,7 @@ bool send_email::senddata()
                     {
                         socket.write_some(asio::buffer(sendcommand));
                     }
+
                     memset(data, 0x00, 2048);
                     n = socket.read_some(asio::buffer(data, 1024), ec);
                 }
@@ -698,7 +624,6 @@ bool send_email::senddata()
                         sendcommand.clear();
                         sendcommand.append("QUIT");
                         sendcommand.append("\r\n");
-
                         socket.write_some(asio::buffer(sendcommand));
                         break;
                     }
@@ -710,6 +635,7 @@ bool send_email::senddata()
                 }
             }
         }
+
         if (state == SEND_END)
         {
             return true;
@@ -725,17 +651,39 @@ bool send_email::senddata()
         return false;
     }
 }
+
+/**
+ * @brief 获取当前GMT时间字符串
+ * 
+ * 生成符合RFC 2822标准的日期格式，用于邮件的Date头部字段
+ * @return GMT时间字符串，格式如 "Thu, 01 Jan 1970 00:00:00 GMT"
+ */
 std::string send_email::getgmttime()
 {
     time_t curr_time;
     curr_time = time((time_t *)NULL);
     tm *timeInfo;
     char timestr[30] = {'\0'};
-    timeInfo         = gmtime(&curr_time);
+    timeInfo = gmtime(&curr_time);
     strftime(timestr, sizeof(timestr), "%a, %d %b %Y %H:%M:%S GMT", timeInfo);
     std::string temp(timestr);
     return temp;
 }
+
+/**
+ * @brief SMTP状态机命令生成函数
+ * 
+ * 根据当前会话状态生成对应的SMTP协议命令，包括：
+ * - SEND_EHLO: 发送HELO命令
+ * - SEND_AUTH_LOGIN: 发送AUTH LOGIN命令
+ * - SEND_USER: 发送base64编码的用户名
+ * - SEND_PASSWORD: 发送base64编码的密码
+ * - SEND_MAIL_FROM: 发送MAIL FROM命令
+ * - SEND_RCPT_TO: 发送RCPT TO命令
+ * - SEND_DATA: 发送DATA命令
+ * - SEND_EMAIL: 构建并发送完整的邮件内容（含MIME头、正文和附件）
+ * @return true表示处理成功
+ */
 bool send_email::sendloop()
 {
     unsigned int n;
@@ -745,46 +693,44 @@ bool send_email::sendloop()
         sendcommand.append("HELO ");
         sendcommand.append(smpturl);
         sendcommand.append("\r\n");
-
         break;
+
     case SEND_AUTH_LOGIN:
         sendcommand.append("AUTH LOGIN\r\n");
-
         break;
+
     case SEND_USER:
         sendcommand.clear();
         sendcommand.append(base64_encode(username.data(), username.size()));
         sendcommand.append("\r\n");
-
         break;
+
     case SEND_PASSWORD:
         sendcommand.clear();
         sendcommand.append(base64_encode(password.data(), password.size()));
         sendcommand.append("\r\n");
-
         break;
+
     case SEND_MAIL_FROM:
         sendcommand.clear();
         sendcommand.append("MAIL FROM:<");
         sendcommand.append(username);
         sendcommand.append(">\r\n");
-
         break;
+
     case SEND_RCPT_TO:
         sendcommand.append("RCPT TO:<");
         sendcommand.append(toemail);
         sendcommand.append(">\r\n");
-
         break;
+
     case SEND_DATA:
         sendcommand.append("DATA\r\n");
         break;
-    case SEND_EMAIL:
 
+    case SEND_EMAIL:
         if (attachments.size() > 0)
         {
-            // attachments_content();
-
             sendcommand.clear();
             sendcommand.append("MIME-Version: 1.0\r\n");
             sendcommand.append("From: =?UTF-8?B?");
@@ -812,7 +758,6 @@ bool send_email::sendloop()
             sendcommand.append(">\r\n");
 
             srand(time(0));
-            // std::string boundarystsr;
             boundarystsr.clear();
             std::stringstream ostr;
             unsigned int c = rand() * 10000000;
@@ -835,14 +780,12 @@ bool send_email::sendloop()
             sendcommand.append("\r\n");
             sendcommand.append("Content-Type: text/html; charset=UTF-8\r\n\r\n");
             sendcommand.append(content);
-
-            // std::string buffer;
             sendcommand.append("\r\n");
+
             n = 0;
             sendfiles.resize(attachments.size());
             for (; n < attachments.size(); n++)
             {
-
                 FILE *ffile = fopen(attachments[n].c_str(), "rb");
                 if (!ffile)
                 {
@@ -850,6 +793,7 @@ bool send_email::sendloop()
                     continue;
                 }
                 fclose(ffile);
+
                 unsigned int k = 0;
                 std::string filename_temp;
                 for (k = attachments[n].size(); k > 0; k--)
@@ -864,22 +808,18 @@ bool send_email::sendloop()
                     }
                 }
                 filename_temp.append(attachments[n].substr(k));
+
                 sendfiles[n].predata.append("\r\n--");
                 sendfiles[n].predata.append(boundarystsr);
-                // sendfiles[n].predata.append("\r\nContent-Type: application/octet-stream;\r\nContent-Transfer-Encoding: base64\r\nContent-Disposition: attachment; filename=\"=?UTF-8?B?");
-                // sendcommand.append(attachments[n]);
                 sendfiles[n].predata.append("\r\nContent-Type: application/octet-stream;\r\nContent-Transfer-Encoding: base64\r\nContent-Disposition: attachment; filename=\"=?UTF-8?B?");
                 sendfiles[n].predata.append(base64_encode(filename_temp.data(), filename_temp.size()));
                 sendfiles[n].predata.append("?=\"\r\n\r\n");
-                // sendcommand.append("?=\"\r\nContent-Transfer-Encoding: base64\r\n\r\n");
-
                 sendfiles[n].filename = attachments[n];
             }
             sendfiles.resize(n);
         }
         else
         {
-
             sendcommand.clear();
             sendcommand.append("MIME-Version: 1.0\r\n");
             sendcommand.append("Content-Type: text/html; charset=utf-8\r\n");
@@ -908,7 +848,6 @@ bool send_email::sendloop()
             sendcommand.append(">\r\n");
 
             srand(time(0));
-            // std::string boundarystsr;
             boundarystsr.clear();
             std::stringstream ostr;
             unsigned int c = rand() * 10000000;
@@ -922,12 +861,12 @@ bool send_email::sendloop()
             sendcommand.append(content);
             sendcommand.append("\r\n\r\n.\r\n");
         }
-
         break;
+
     default:
         break;
     }
     return true;
 }
 
-}// namespace http
+} // namespace http

@@ -1,11 +1,16 @@
 #include <cstdlib>
+#include <cstdint>
+#include <cstring>
+#include <cmath>
+#include <ctime>
+#include <charconv>
 #include <filesystem>
 #include <string>
 #include <iostream>
 #include <vector>
 #include <map>
 
-#ifdef ENABLE_MINIZIP
+#ifdef ENABLE_EXCEL
 #include "minizip/zip.h"
 #include "minizip/unzip.h"
 #include "pzexcel.h"
@@ -38,6 +43,7 @@ excel::excel()
 void excel::clear()
 {
     shared_strings.clear();
+    shared_string_map.clear();
     sheets.clear();
     workbook_mapfiles.clear();
     error_msg.clear();
@@ -47,17 +53,14 @@ void excel::clear()
     styles.clear();
     numfmts.clear();
     index = 0;
+    defaults_ready = false;
 }
 
 size_t excel::find_shared_string(const std::string &s) const
 {
-    for (size_t i = 0; i < shared_strings.size(); i++)
-    {
-        if (shared_strings[i] == s)
-        {
-            return i;
-        }
-    }
+    auto it = shared_string_map.find(s);
+    if (it != shared_string_map.end())
+        return it->second;
     return SIZE_MAX;
 }
 
@@ -185,6 +188,7 @@ bool excel::read(const std::string &zipfilename)
     std::string tempname;
     std::string file_content;
     size_t zip_entry_count = 0;
+    size_t total_unzip_size = 0;
 
     do
     {
@@ -203,7 +207,12 @@ bool excel::read(const std::string &zipfilename)
             error_msg.append(zipfilename);
             break;
         }
-        tempname.append(buffer);
+        // minizip only NUL-terminates when size_filename < buffer size; use the
+        // reported length (clamped) to avoid reading past the buffer.
+        size_t name_len = fileInfo.size_filename;
+        if (name_len >= sizeof(buffer))
+            name_len = sizeof(buffer) - 1;
+        tempname.append(buffer, name_len);
 
         if (!is_safe_zip_path(tempname))
         {
@@ -232,6 +241,14 @@ bool excel::read(const std::string &zipfilename)
                     unzClose(uf);
                     return false;
                 }
+                if (total_unzip_size + bytesRead > MAX_TOTAL_UNZIP_SIZE)
+                {
+                    error_msg = "Error: Total decompressed size exceeds limit";
+                    unzCloseCurrentFile(uf);
+                    unzClose(uf);
+                    return false;
+                }
+                total_unzip_size += bytesRead;
                 file_content.append(buffer, bytesRead);
             }
         } while (bytesRead > 0);
@@ -358,13 +375,19 @@ void excel::process_styles([[maybe_unused]] const std::string &filename, const s
                         }
                         else if (str_casecmp_pre_safe(file_content, si, "<u/"))
                         {
-                            si               = si + sizeof("<u/") - 1;
-                            temp_font.strike = true;
+                            si                  = si + sizeof("<u/") - 1;
+                            temp_font.underline = "single";
                             continue;
                         }
                         else if (str_casecmp_pre_safe(file_content, si, "<u "))
                         {
-                            si               = si + sizeof("<u ") - 1;
+                            si                  = si + sizeof("<u ") - 1;
+                            temp_font.underline = "single";
+                            continue;
+                        }
+                        else if (str_casecmp_pre_safe(file_content, si, "<strike"))
+                        {
+                            si               = si + sizeof("<strike") - 1;
                             temp_font.strike = true;
                             continue;
                         }
@@ -736,76 +759,58 @@ void excel::process_styles([[maybe_unused]] const std::string &filename, const s
                             }
                         }
                     }
-                    for (; si < file_content.size(); si++)
-                    {
-                        if (str_casecmp_pre_safe(file_content, si, "<left"))
-                        {
-                            si = si + sizeof("<left") - 1;
-                            if (file_content[si] == '/')
-                            {
-                                si = si - 1;
-                                break;
-                            }
-                            else if (str_casecmp_pre_safe(file_content, si, "style=\""))
-                            {
-                                si = si + sizeof("style=\"") - 1;
-                                for (; si < file_content.size(); si++)
-                                {
-                                    if (file_content[si] == '"')
-                                    {
-                                        si = si - 1;
-                                        break;
-                                    }
-                                    temp_border.left.style.push_back(file_content[si]);
+                    auto parse_border_side = [&](const char *name, PZ_EXCEL_CELL_BORDER_SIDE &side) {
+                        size_t name_len = strlen(name);
+                        si += name_len;
+                        bool self_close = (si < file_content.size() && file_content[si] == '/');
+                        if (self_close) { si--; return; }
+                        for (; si < file_content.size(); si++) {
+                            if (str_casecmp_pre_safe(file_content, si, "style=\"")) {
+                                si += sizeof("style=\"") - 1;
+                                for (; si < file_content.size(); si++) {
+                                    if (file_content[si] == '"') { si--; break; }
+                                    side.style.push_back(file_content[si]);
                                 }
-                            }
-                            else if (file_content[si] == '>')
-                            {
-                                for (; si < file_content.size(); si++)
-                                {
-                                    if (str_casecmp_pre_safe(file_content, si, "<color"))
-                                    {
-                                        si = si + sizeof("<color") - 1;
-                                        for (; si < file_content.size(); si++)
-                                        {
-                                            if (str_casecmp_pre_safe(file_content, si, "indexed=\""))
-                                            {
-                                                si = si + sizeof("indexed=\"") - 1;
-                                                for (; si < file_content.size(); si++)
-                                                {
-                                                    if (file_content[si] == '>' || file_content[si] == '/')
-                                                    {
-                                                        break;
-                                                    }
-                                                    temp_border.left.color.push_back(file_content[si]);
+                            } else if (file_content[si] == '>') {
+                                for (; si < file_content.size(); si++) {
+                                    if (str_casecmp_pre_safe(file_content, si, "<color")) {
+                                        si += sizeof("<color") - 1;
+                                        for (; si < file_content.size(); si++) {
+                                            if (str_casecmp_pre_safe(file_content, si, "indexed=\"")) {
+                                                si += sizeof("indexed=\"") - 1;
+                                                for (; si < file_content.size(); si++) {
+                                                    if (file_content[si] == '>' || file_content[si] == '/') break;
+                                                    side.color.push_back(file_content[si]);
                                                 }
-                                            }
-                                            else if (str_casecmp_pre_safe(file_content, si, "rgb=\""))
-                                            {
-                                                si = si + sizeof("rgb=\"") - 1;
-
-                                                for (; si < file_content.size(); si++)
-                                                {
-                                                    if (file_content[si] == '>' || file_content[si] == '/')
-                                                    {
-                                                        break;
-                                                    }
-                                                    temp_border.left.color.push_back(file_content[si]);
+                                            } else if (str_casecmp_pre_safe(file_content, si, "rgb=\"")) {
+                                                si += sizeof("rgb=\"") - 1;
+                                                for (; si < file_content.size(); si++) {
+                                                    if (file_content[si] == '>' || file_content[si] == '/') break;
+                                                    side.color.push_back(file_content[si]);
                                                 }
-                                            }
-                                            else if (file_content[si] == '>' || file_content[si] == '/')
-                                            {
-                                                si = si - 1;
-                                                break;
+                                            } else if (file_content[si] == '>' || file_content[si] == '/') {
+                                                si--; break;
                                             }
                                         }
                                         break;
                                     }
                                 }
-                            }
+                                break;
+                            } else if (file_content[si] == '/') { si--; break; }
                         }
-                        else if (str_casecmp_pre_safe(file_content, si, "</border>"))
-                        {
+                    };
+                    for (; si < file_content.size(); si++) {
+                        if (str_casecmp_pre_safe(file_content, si, "<left")) {
+                            parse_border_side("<left", temp_border.left);
+                        } else if (str_casecmp_pre_safe(file_content, si, "<right")) {
+                            parse_border_side("<right", temp_border.right);
+                        } else if (str_casecmp_pre_safe(file_content, si, "<top")) {
+                            parse_border_side("<top", temp_border.top);
+                        } else if (str_casecmp_pre_safe(file_content, si, "<bottom")) {
+                            parse_border_side("<bottom", temp_border.bottom);
+                        } else if (str_casecmp_pre_safe(file_content, si, "<diagonal")) {
+                            parse_border_side("<diagonal", temp_border.diagonal);
+                        } else if (str_casecmp_pre_safe(file_content, si, "</border>")) {
                             si = si + sizeof("</border>") - 1;
                             borders.push_back(temp_border);
                             break;
@@ -818,6 +823,154 @@ void excel::process_styles([[maybe_unused]] const std::string &filename, const s
                     break;
                 }
             }
+        }
+    }
+
+    // --- Pass 3: Parse cellXfs ---
+    si = 0;
+    for (; si < file_content.size(); si++)
+    {
+        if (str_casecmp_pre_safe(file_content, si, "<cellXfs"))
+        {
+            si = si + sizeof("<cellXfs") - 1;
+            for (; si < file_content.size(); si++)
+            {
+                if (str_casecmp_pre_safe(file_content, si, "<xf ") || str_casecmp_pre_safe(file_content, si, "<xf/"))
+                {
+                    PZ_EXCEL_CELL_STYLE style;
+                    bool self_closing = (si + 3 < file_content.size() && file_content[si + 3] == '/');
+                    si = si + sizeof("<xf ") - 1;
+                    for (; si < file_content.size(); si++)
+                    {
+                        if (str_casecmp_pre_safe(file_content, si, "numFmtId=\""))
+                        {
+                            si = si + sizeof("numFmtId=\"") - 1;
+                            unsigned int val = 0;
+                            for (; si < file_content.size(); si++)
+                            {
+                                if (file_content[si] == '"') break;
+                                if (file_content[si] >= '0' && file_content[si] <= '9')
+                                    val = val * 10 + (file_content[si] - '0');
+                            }
+                            style.numfmtid = (val > 255) ? 255 : static_cast<unsigned char>(val);
+                        }
+                        else if (str_casecmp_pre_safe(file_content, si, "fontId=\""))
+                        {
+                            si = si + sizeof("fontId=\"") - 1;
+                            unsigned int val = 0;
+                            for (; si < file_content.size(); si++)
+                            {
+                                if (file_content[si] == '"') break;
+                                if (file_content[si] >= '0' && file_content[si] <= '9')
+                                    val = val * 10 + (file_content[si] - '0');
+                            }
+                            style.fontid = (val > 255) ? 255 : static_cast<unsigned char>(val);
+                        }
+                        else if (str_casecmp_pre_safe(file_content, si, "fillId=\""))
+                        {
+                            si = si + sizeof("fillId=\"") - 1;
+                            unsigned int val = 0;
+                            for (; si < file_content.size(); si++)
+                            {
+                                if (file_content[si] == '"') break;
+                                if (file_content[si] >= '0' && file_content[si] <= '9')
+                                    val = val * 10 + (file_content[si] - '0');
+                            }
+                            style.fillid = (val > 255) ? 255 : static_cast<unsigned char>(val);
+                        }
+                        else if (str_casecmp_pre_safe(file_content, si, "borderId=\""))
+                        {
+                            si = si + sizeof("borderId=\"") - 1;
+                            unsigned int val = 0;
+                            for (; si < file_content.size(); si++)
+                            {
+                                if (file_content[si] == '"') break;
+                                if (file_content[si] >= '0' && file_content[si] <= '9')
+                                    val = val * 10 + (file_content[si] - '0');
+                            }
+                            style.borderid = (val > 255) ? 255 : static_cast<unsigned char>(val);
+                        }
+                        else if (str_casecmp_pre_safe(file_content, si, "xfId=\""))
+                        {
+                            si = si + sizeof("xfId=\"") - 1;
+                            unsigned int val = 0;
+                            for (; si < file_content.size(); si++)
+                            {
+                                if (file_content[si] == '"') break;
+                                if (file_content[si] >= '0' && file_content[si] <= '9')
+                                    val = val * 10 + (file_content[si] - '0');
+                            }
+                            style.xfid = (val > 255) ? 255 : static_cast<unsigned char>(val);
+                        }
+                        else if (str_casecmp_pre_safe(file_content, si, "applyFont=\"1\""))
+                        {
+                            si = si + sizeof("applyFont=\"1\"") - 1;
+                            style.apply_font = true;
+                        }
+                        else if (str_casecmp_pre_safe(file_content, si, "applyFill=\"1\""))
+                        {
+                            si = si + sizeof("applyFill=\"1\"") - 1;
+                            style.apply_fill = true;
+                        }
+                        else if (str_casecmp_pre_safe(file_content, si, "applyNumberFormat=\"1\""))
+                        {
+                            si = si + sizeof("applyNumberFormat=\"1\"") - 1;
+                            style.apply_fmt = true;
+                        }
+                        else if (str_casecmp_pre_safe(file_content, si, "applyBorder=\"1\""))
+                        {
+                            si = si + sizeof("applyBorder=\"1\"") - 1;
+                            style.apply_border = true;
+                        }
+                        else if (file_content[si] == '>' || file_content[si] == '/')
+                        {
+                            if (file_content[si] == '/')
+                                self_closing = true;
+                            si++;
+                            break;
+                        }
+                    }
+                    if (!self_closing)
+                    {
+                        for (; si < file_content.size(); si++)
+                        {
+                            if (str_casecmp_pre_safe(file_content, si, "horizontal=\""))
+                            {
+                                si = si + sizeof("horizontal=\"") - 1;
+                                style.align.clear();
+                                for (; si < file_content.size(); si++)
+                                {
+                                    if (file_content[si] == '"') break;
+                                    style.align.push_back(file_content[si]);
+                                }
+                                style.apply_align = true;
+                            }
+                            else if (str_casecmp_pre_safe(file_content, si, "vertical=\""))
+                            {
+                                si = si + sizeof("vertical=\"") - 1;
+                                style.valign.clear();
+                                for (; si < file_content.size(); si++)
+                                {
+                                    if (file_content[si] == '"') break;
+                                    style.valign.push_back(file_content[si]);
+                                }
+                                style.apply_align = true;
+                            }
+                            else if (str_casecmp_pre_safe(file_content, si, "</xf>"))
+                            {
+                                si = si + sizeof("</xf>") - 1;
+                                break;
+                            }
+                        }
+                    }
+                    styles.push_back(style);
+                }
+                else if (str_casecmp_pre_safe(file_content, si, "</cellXfs>"))
+                {
+                    break;
+                }
+            }
+            break;
         }
     }
 }
@@ -837,7 +990,8 @@ void excel::process_worksheets_sheet(const std::string &filename, const std::str
         }
         else if (filename[i] > 0x2F && filename[i] < 0x3A)
         {
-            sheet_id = sheet_id * 10 + (filename[i] - '0');
+            if (sheet_id < 100000)
+                sheet_id = sheet_id * 10 + (filename[i] - '0');
         }
     }
     //check sheet at
@@ -889,7 +1043,8 @@ void excel::process_worksheets_sheet(const std::string &filename, const std::str
                         }
                         else if (file_content[si] > 0x2F && file_content[si] < 0x3A)
                         {
-                            max_row = max_row * 10 + (file_content[si] - '0');
+                            if (max_row < MAX_ROWS)
+                                max_row = max_row * 10 + (file_content[si] - '0');
                         }
                         else if (file_content[si] > 0x40 && file_content[si] < 0x5B)
                         {
@@ -907,7 +1062,8 @@ void excel::process_worksheets_sheet(const std::string &filename, const std::str
 
                     for (unsigned int i = 0; i < begin_str.size(); i++)
                     {
-                        max_col = max_col * 26 + (begin_str[i] - 0x40);
+                        if (max_col < MAX_COLS)
+                            max_col = max_col * 26 + (begin_str[i] - 0x40);
                     }
 
                     break;
@@ -1045,10 +1201,21 @@ void excel::process_worksheets_sheet(const std::string &filename, const std::str
                                     }
                                     if (temp_v_str.size() > 0)
                                     {
-                                        temp_cell.t_type = temp_v_str[0];
-                                        if (temp_v_str[0] == 's' || temp_v_str[0] == 'S')
+                                        // t="s" -> shared string index; t="str" -> inline
+                                        // formula string result (NOT an index); others keep
+                                        // their first char as the type marker.
+                                        if (temp_v_str == "s")
                                         {
+                                            temp_cell.t_type = 's';
                                             temp_cell.v_type = 5;
+                                        }
+                                        else if (temp_v_str == "str")
+                                        {
+                                            temp_cell.t_type = 'S';
+                                        }
+                                        else
+                                        {
+                                            temp_cell.t_type = temp_v_str[0];
                                         }
                                     }
                                     temp_v_str.clear();
@@ -1093,8 +1260,10 @@ void excel::process_worksheets_sheet(const std::string &filename, const std::str
                                                 si = si + sizeof("<v") - 1;
                                                 break;
                                             }
-                                            else if (file_content[si] == '.')
+                                            else if (temp_cell.v_type != 5 &&
+                                                     (file_content[si] == '.' || file_content[si] == 'e' || file_content[si] == 'E'))
                                             {
+                                                // '.', 'e' or 'E' -> floating point / scientific notation
                                                 temp_cell.v_type = 3;
                                             }
                                             temp_v_str.push_back(file_content[si]);
@@ -1105,31 +1274,91 @@ void excel::process_worksheets_sheet(const std::string &filename, const std::str
                                 }
                             }
 
+                            //inlineStr: extract text from <is><t>...</t></is>
+                            if (is_has_v && temp_cell.t_type == 'i')
+                            {
+                                temp_v_str.clear();
+                                for (; si < file_content.size(); si++)
+                                {
+                                    if (str_casecmp_pre_safe(file_content, si, "<is"))
+                                    {
+                                        si = si + sizeof("<is") - 1;
+                                        for (; si < file_content.size(); si++)
+                                        {
+                                            if (file_content[si] == '>')
+                                            {
+                                                si++;
+                                                break;
+                                            }
+                                        }
+                                        for (; si < file_content.size(); si++)
+                                        {
+                                            if (str_casecmp_pre_safe(file_content, si, "<t>"))
+                                            {
+                                                si = si + sizeof("<t>") - 1;
+                                                break;
+                                            }
+                                            else if (str_casecmp_pre_safe(file_content, si, "<t "))
+                                            {
+                                                si = si + sizeof("<t ") - 1;
+                                                for (; si < file_content.size(); si++)
+                                                {
+                                                    if (file_content[si] == '>')
+                                                    {
+                                                        si++;
+                                                        break;
+                                                    }
+                                                }
+                                                break;
+                                            }
+                                        }
+                                        for (; si < file_content.size(); si++)
+                                        {
+                                            if (str_casecmp_pre_safe(file_content, si, "</t>"))
+                                            {
+                                                si = si + sizeof("</t>") - 2;
+                                                break;
+                                            }
+                                            temp_v_str.push_back(file_content[si]);
+                                        }
+                                        break;
+                                    }
+                                }
+                                if (temp_v_str.size() > 0)
+                                {
+                                    has_value = true;
+                                    size_t ss_idx = shared_strings.size();
+                                    if (ss_idx < MAX_SHARED_STRINGS)
+                                        shared_strings.push_back(temp_v_str);
+                                    temp_cell.value.i = static_cast<long long>(ss_idx);
+                                    temp_cell.v_type  = 5;
+                                }
+                            }
+
+                            //formula string result t="str": the <v> holds the literal
+                            //string (not a shared-string index), store it as one.
+                            if (is_has_v && temp_cell.t_type == 'S' && temp_v_str.size() > 0)
+                            {
+                                has_value     = true;
+                                size_t ss_idx = shared_strings.size();
+                                if (ss_idx < MAX_SHARED_STRINGS)
+                                    shared_strings.push_back(temp_v_str);
+                                temp_cell.value.i = static_cast<long long>(ss_idx);
+                                temp_cell.v_type  = 5;
+                                temp_v_str.clear();
+                            }
+
                             //end v tag;
                             if (is_has_v && temp_v_str.size() > 0)
                             {
                                 has_value = true;
                                 if (temp_cell.v_type == 3)
                                 {
-                                    try
-                                    {
-                                        temp_cell.value.d = std::stold(temp_v_str.c_str());
-                                    }
-                                    catch (const std::exception &)
-                                    {
-                                        temp_cell.value.d = 0.0;
-                                    }
+                                    temp_cell.value.d = parse_dbl(temp_v_str);
                                 }
                                 else
                                 {
-                                    try
-                                    {
-                                        temp_cell.value.i = std::stoll(temp_v_str.c_str());
-                                    }
-                                    catch (const std::exception &)
-                                    {
-                                        temp_cell.value.i = 0;
-                                    }
+                                    temp_cell.value.i = parse_ll(temp_v_str);
                                 }
                             }
 
@@ -1398,6 +1627,7 @@ void excel::process_shared_strings([[maybe_unused]] const std::string &filename,
                 si = si + sizeof("<si>") - 1;
             else
                 si = si + sizeof("<si ") - 1;
+            temp_s_str.clear();
             for (; si < file_content.size(); si++)
             {
                 if (str_casecmp_pre_safe(file_content, si, "<t>") || str_casecmp_pre_safe(file_content, si, "<t "))
@@ -1427,12 +1657,16 @@ void excel::process_shared_strings([[maybe_unused]] const std::string &filename,
                         }
                         temp_s_str.push_back(file_content[si]);
                     }
-                    if (shared_strings.size() < MAX_SHARED_STRINGS)
-                        shared_strings.push_back(temp_s_str);
                     continue;
                 }
                 if (str_casecmp_pre_safe(file_content, si, "</si>"))
                 {
+                    if (shared_strings.size() < MAX_SHARED_STRINGS)
+                    {
+                        size_t idx = shared_strings.size();
+                        shared_strings.push_back(temp_s_str);
+                        shared_string_map[temp_s_str] = idx;
+                    }
                     si = si + sizeof("</si>") - 2;
                     break;
                 }
@@ -1456,7 +1690,7 @@ std::string excel::getCell(unsigned int row_num, unsigned int col_num)
             }
             else if (cell_it->second.v_type < 5)
             {
-                return std::to_string(cell_it->second.value.d);
+                return dbl_to_str(cell_it->second.value.d);
             }
             else if (cell_it->second.v_type < 7)
             {
@@ -1492,7 +1726,7 @@ std::string excel::getCell(const std::string &key)
             }
             else if (cell_it->second.v_type < 5)
             {
-                return std::to_string(cell_it->second.value.d);
+                return dbl_to_str(cell_it->second.value.d);
             }
             else if (cell_it->second.v_type < 7)
             {
@@ -1563,7 +1797,9 @@ std::string excel::getDate(const std::string &key, const std::string &date_forma
             }
         }
     }
-    unsigned int t_v      = std::ceil(cell_vall * 86400);
+    // Excel 1900 leap year bug: serial > 60 includes fictitious Feb 29, 1900
+    double adj_vall = (cell_vall > 60.0) ? (cell_vall - 1.0) : cell_vall;
+    unsigned long long t_v = static_cast<unsigned long long>(std::ceil(adj_vall * 86400));
     unsigned int temp_val = 1900;
     std::tm output_tm{};
     output_tm.tm_year  = 0;
@@ -1726,8 +1962,12 @@ excel &excel::addSheet(const std::string &name)
 static void ensure_default_style(std::vector<PZ_EXCEL_CELL_FONT> &fonts,
                                  std::vector<PZ_EXCEL_CELL_FILL> &bgcolors,
                                  std::vector<PZ_EXCEL_CELL_BORDER> &borders,
-                                 std::vector<PZ_EXCEL_CELL_STYLE> &styles)
+                                 std::vector<PZ_EXCEL_CELL_STYLE> &styles,
+                                 bool &defaults_ready)
 {
+    if (defaults_ready)
+        return;
+    defaults_ready = true;
     if (fonts.empty())
     {
         PZ_EXCEL_CELL_FONT f;
@@ -1781,7 +2021,7 @@ void excel::setCellColor(const std::string &key, std::string_view value)
     if (row_num > MAX_ROWS || col_num > MAX_COLS)
         return;
 
-    ensure_default_style(fonts, bgcolors, borders, styles);
+    ensure_default_style(fonts, bgcolors, borders, styles, defaults_ready);
 
     std::string color_str = normalize_color(value);
 
@@ -1901,20 +2141,23 @@ static std::string gen_workbook_xml(const std::vector<PZ_EXCEL_SHEET> &sheets)
     for (unsigned int i = 0; i < sheets.size(); i++)
     {
         std::string name = sheets[i].name.empty() ? "Sheet" + std::to_string(i + 1) : sheets[i].name;
-        xml += "<sheet name=\"" + xml_escape(name) + "\" sheetId=\"" + std::to_string(i + 1) + "\" r:id=\"rId" + std::to_string(i + 1) + "\"/>";
+        unsigned int sid = (sheets[i].sheet_index > 0) ? sheets[i].sheet_index : (i + 1);
+        xml += "<sheet name=\"" + xml_escape(name) + "\" sheetId=\"" + std::to_string(sid) + "\" r:id=\"rId" + std::to_string(i + 1) + "\"/>";
     }
     xml += "</sheets>";
     xml += "</workbook>";
     return xml;
 }
 
-static std::string gen_workbook_rels_xml(unsigned int sheet_count)
+static std::string gen_workbook_rels_xml(const std::vector<PZ_EXCEL_SHEET> &sheets)
 {
     std::string xml = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n";
     xml += "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">";
-    for (unsigned int i = 1; i <= sheet_count; i++)
+    unsigned int sheet_count = sheets.size();
+    for (unsigned int i = 0; i < sheet_count; i++)
     {
-        xml += "<Relationship Id=\"rId" + std::to_string(i) + "\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet" + std::to_string(i) + ".xml\"/>";
+        unsigned int sid = (sheets[i].sheet_index > 0) ? sheets[i].sheet_index : (i + 1);
+        xml += "<Relationship Id=\"rId" + std::to_string(i + 1) + "\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet" + std::to_string(sid) + ".xml\"/>";
     }
     xml += "<Relationship Id=\"rId" + std::to_string(sheet_count + 1) + "\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>";
     xml += "<Relationship Id=\"rId" + std::to_string(sheet_count + 2) + "\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme\" Target=\"theme/theme1.xml\"/>";
@@ -1929,19 +2172,41 @@ static std::string gen_shared_strings_xml(const std::vector<std::string> &shared
     xml += "<sst xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"" + std::to_string(shared_strings.size()) + "\" uniqueCount=\"" + std::to_string(shared_strings.size()) + "\">";
     for (auto &s : shared_strings)
     {
-        xml += "<si><t>" + xml_escape(s) + "</t></si>";
+        bool need_preserve = false;
+        if (!s.empty())
+        {
+            char first = s.front(), last = s.back();
+            if (first == ' ' || first == '\t' || first == '\n' || first == '\r' ||
+                last == ' ' || last == '\t' || last == '\n' || last == '\r')
+                need_preserve = true;
+        }
+        if (need_preserve)
+            xml += "<si><t xml:space=\"preserve\">" + xml_escape(s) + "</t></si>";
+        else
+            xml += "<si><t>" + xml_escape(s) + "</t></si>";
     }
     xml += "</sst>";
     return xml;
 }
 
-static std::string gen_styles_xml(const std::vector<PZ_EXCEL_CELL_FONT> &fonts,
+static std::string gen_styles_xml(const std::map<std::string, std::string> &numfmts,
+                                  const std::vector<PZ_EXCEL_CELL_FONT> &fonts,
                                   const std::vector<PZ_EXCEL_CELL_FILL> &bgcolors,
                                   const std::vector<PZ_EXCEL_CELL_BORDER> &borders,
                                   const std::vector<PZ_EXCEL_CELL_STYLE> &styles)
 {
     std::string xml = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n";
     xml += "<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">";
+
+    if (!numfmts.empty())
+    {
+        xml += "<numFmts count=\"" + std::to_string(numfmts.size()) + "\">";
+        for (auto &nf : numfmts)
+        {
+            xml += "<numFmt numFmtId=\"" + nf.first + "\" formatCode=\"" + xml_escape(nf.second) + "\"/>";
+        }
+        xml += "</numFmts>";
+    }
 
     xml += "<fonts count=\"" + std::to_string(fonts.size()) + "\">";
     for (auto &f : fonts)
@@ -2101,7 +2366,7 @@ static std::string gen_sheet_xml(const PZ_EXCEL_SHEET &sheet,[[maybe_unused]] co
             }
             else if (cell.v_type < 5)
             {
-                xml += "<c " + attrs + "><v>" + std::to_string(cell.value.d) + "</v></c>";
+                xml += "<c " + attrs + "><v>" + dbl_to_str(cell.value.d) + "</v></c>";
             }
             else if (cell.v_type < 7)
             {
@@ -2219,7 +2484,7 @@ bool excel::write(const std::string &zipfilename)
         sheets.push_back(std::move(s));
     }
 
-    ensure_default_style(fonts, bgcolors, borders, styles);
+    ensure_default_style(fonts, bgcolors, borders, styles, defaults_ready);
 
     zipFile zf = zipOpen(zipfilename.c_str(), APPEND_STATUS_CREATE);
     if (zf == NULL)
@@ -2265,7 +2530,7 @@ bool excel::write(const std::string &zipfilename)
         return false;
     }
 
-    if (!zip_add_file(zf, "xl/_rels/workbook.xml.rels", gen_workbook_rels_xml(sheet_count)))
+    if (!zip_add_file(zf, "xl/_rels/workbook.xml.rels", gen_workbook_rels_xml(sheets)))
     {
         error_msg = "Error: Failed to add xl/_rels/workbook.xml.rels";
         zipClose(zf, NULL);
@@ -2279,7 +2544,7 @@ bool excel::write(const std::string &zipfilename)
         return false;
     }
 
-    if (!zip_add_file(zf, "xl/styles.xml", gen_styles_xml(fonts, bgcolors, borders, styles)))
+    if (!zip_add_file(zf, "xl/styles.xml", gen_styles_xml(numfmts, fonts, bgcolors, borders, styles)))
     {
         error_msg = "Error: Failed to add xl/styles.xml";
         zipClose(zf, NULL);
@@ -2295,7 +2560,8 @@ bool excel::write(const std::string &zipfilename)
 
     for (unsigned int i = 0; i < sheet_count; i++)
     {
-        std::string sheet_path = "xl/worksheets/sheet" + std::to_string(i + 1) + ".xml";
+        unsigned int sid = (sheets[i].sheet_index > 0) ? sheets[i].sheet_index : (i + 1);
+        std::string sheet_path = "xl/worksheets/sheet" + std::to_string(sid) + ".xml";
         if (!zip_add_file(zf, sheet_path.c_str(), gen_sheet_xml(sheets[i], shared_strings, styles)))
         {
             error_msg = "Error: Failed to add " + sheet_path;
@@ -2310,4 +2576,4 @@ bool excel::write(const std::string &zipfilename)
 
 }// namespace pz
 
-#endif// ENABLE_MINIZIP
+#endif// ENABLE_EXCEL

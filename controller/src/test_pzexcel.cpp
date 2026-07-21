@@ -5,16 +5,16 @@
 #include "func.h"
 #include <memory>
 #include <string>
-#ifdef ENABLE_MINIZIP
+#ifdef ENABLE_EXCEL
 #include "pzexcel.h"
-#endif// ENABLE_MINIZIP
+#endif// ENABLE_EXCEL
 namespace http
 {
 //@urlpath(null,test_pzexcel)
 std::string test_pzexcel(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
-#ifdef ENABLE_MINIZIP
+#ifdef ENABLE_EXCEL
     server_loaclvar &static_server_var = get_server_global_var();
 
     if (static_server_var.config_path.size() < 5)
@@ -216,8 +216,8 @@ std::string test_pzexcel(std::shared_ptr<httppeer> peer)
         }
     }
 #else
-    client << "<p>Please: cmake .. -DENABLE_MINIZIP=ON </p>";
-#endif// ENABLE_MINIZIP
+    client << "<p>Please: cmake .. -DENABLE_EXCEL=ON </p>";
+#endif// ENABLE_EXCEL
 
     return "";
 }

@@ -28,7 +28,9 @@ option(ENABLE_VCPKG "Use vcpkg toolchain" OFF)
 option(ENABLE_BOOST "Enable Boost support" OFF)
 option(ENABLE_GD "Enable GD graphics and QR" OFF)
 option(ENABLE_BENCHMARK "Enable benchmarks" OFF)
-option(ENABLE_MINIZIP "Enable minizip support" OFF)
+option(ENABLE_EXCEL "Enable pzexcel support" OFF)
+option(ENABLE_IMAGE "Enable image support" OFF)
+option(ENABLE_PDF "Enable pz::webpdf support" OFF)
 
 # ---- Vcpkg toolchain ----
 if(ENABLE_VCPKG)
@@ -52,7 +54,9 @@ if(ENABLE_VCPKG)
 
   auto_enable_vcpkg_feature(ENABLE_GD "gd")
   auto_enable_vcpkg_feature(ENABLE_BOOST "boost")
-  auto_enable_vcpkg_feature(ENABLE_MINIZIP "minizip")
+  auto_enable_vcpkg_feature(ENABLE_EXCEL "pzexcel")
+  auto_enable_vcpkg_feature(ENABLE_IMAGE "image")
+  auto_enable_vcpkg_feature(ENABLE_PDF "webpdf")
 endif()
 
 # ---- C++ standard ----
@@ -127,10 +131,17 @@ file(GLOB_RECURSE viewsrc_list    CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}
 file(GLOB_RECURSE reflect_list    CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/libs/*.cpp")
 file(GLOB_RECURSE src_list        CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
-if(ENABLE_MINIZIP)
+if(ENABLE_EXCEL)
   file(GLOB_RECURSE pzexcel_list CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/vendor/pzexcel/src/*.cpp")
 endif()
 
+if(ENABLE_IMAGE)
+  file(GLOB_RECURSE pzimage_list CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/vendor/pzimage/src/*.cpp")
+endif()
+
+if(ENABLE_PDF)
+  file(GLOB_RECURSE webpdf_list CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/vendor/webpdf/src/*.cpp")
+endif()
 
 # Auto-generate missing header stubs for controllers
 foreach(cppfile IN LISTS controller_list)
@@ -175,8 +186,16 @@ set(paozhu_srcs
   ${controller_list}
 )
 
-if(ENABLE_MINIZIP)
+if(ENABLE_EXCEL)
   list(APPEND paozhu_srcs ${pzexcel_list})
+endif()
+
+if(ENABLE_IMAGE)
+  list(APPEND paozhu_srcs ${pzimage_list})
+endif()
+
+if(ENABLE_PDF)
+  list(APPEND paozhu_srcs ${webpdf_list})
 endif()
 
 add_executable(paozhu
@@ -191,8 +210,16 @@ target_compile_definitions(paozhu PRIVATE ASIO_STANDALONE)
 if(ENABLE_BENCHMARK)
   target_compile_definitions(paozhu PRIVATE BENCHMARK)
 endif()
-if(ENABLE_MINIZIP)
-  target_compile_definitions(paozhu PRIVATE ENABLE_MINIZIP)
+if(ENABLE_EXCEL)
+  target_compile_definitions(paozhu PRIVATE ENABLE_EXCEL)
+endif()
+
+if(ENABLE_IMAGE)
+  target_compile_definitions(paozhu PRIVATE ENABLE_IMAGE)
+endif()
+
+if(ENABLE_PDF)
+  target_compile_definitions(paozhu PRIVATE ENABLE_PDF)
 endif()
 
 target_link_libraries(paozhu PRIVATE project_warnings)
@@ -221,8 +248,16 @@ include_project_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/libs")
 include_project_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/include")
 include_project_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/common")
 
-if(ENABLE_MINIZIP)
+if(ENABLE_EXCEL)
   include_system_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/vendor/pzexcel/include")
+endif()
+
+if(ENABLE_IMAGE)
+  include_system_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/vendor/pzimage/include")
+endif()
+
+if(ENABLE_PDF)
+  include_system_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/vendor/webpdf/include")
 endif()
 
 if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_pre)
@@ -352,7 +387,7 @@ if(ENABLE_VCPKG)
     endif()
   endif()
 
-  if(ENABLE_MINIZIP)
+  if(ENABLE_EXCEL)
     find_package(PkgConfig)
     pkg_check_modules(MINIZIP REQUIRED IMPORTED_TARGET minizip)
     target_link_libraries(paozhu PRIVATE PkgConfig::MINIZIP)
@@ -462,7 +497,7 @@ else()
   endif()
 
 
-  if(ENABLE_MINIZIP)
+  if(ENABLE_EXCEL)
     find_library(MINIZIP_LIBRARY minizip
       PATHS /usr/local/opt/minizip/lib /opt/homebrew/opt/minizip/lib
             /usr/lib64 /usr/lib/x86_64-linux-gnu /usr/lib

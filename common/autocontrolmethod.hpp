@@ -42,6 +42,7 @@
 #include "admin/category.h"
 #include "admin/marhome.h"
 #include "admin/main.h"
+#include "test_webpdf.h"
 #include "testformpost.h"
 #include "test_parse_ini.h"
 #include "test_socket_handle.h"
@@ -54,11 +55,13 @@
 #include "testpzcache.h"
 #include "testhello.h"
 #include "testsitepath.h"
+#include "test_pzpng.h"
 #include "testto_tree.h"
 #include "testcmake.h"
 #include "testcrud.h"
 #include "testjsonreflect.h"
 #include "testaddclienttask.h"
+#include "test_pzjpg.h"
 #include "testormclient.h"
 #include "testmarkdown.h"
 #include "testcommit.h"
@@ -515,6 +518,12 @@ namespace http
 		temp.regfun = admin_faviconpost;
 		methodcallback.emplace("admin/faviconpost",temp);
 		temp.pre = nullptr;
+		temp.regfun = test_webpdf;
+		methodcallback.emplace("test_webpdf",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_otfpdf;
+		methodcallback.emplace("test_ttfpdf",temp);
+		temp.pre = nullptr;
 		temp.regfun = testurlencoded;
 		methodcallback.emplace("tformpost",temp);
 		temp.pre = nullptr;
@@ -587,6 +596,12 @@ namespace http
 		temp.regfun = testsitepath;
 		methodcallback.emplace("testsitepath",temp);
 		temp.pre = nullptr;
+		temp.regfun = test_pzpng;
+		methodcallback.emplace("test_pzpng",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_outpng;
+		methodcallback.emplace("test_outpng",temp);
+		temp.pre = nullptr;
 		temp.regfun = testtotree;
 		methodcallback.emplace("testtotree",temp);
 		temp.pre = nullptr;
@@ -637,6 +652,12 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testexecuteclienttask;
 		methodcallback.emplace("executeclienttask",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_pzjpg;
+		methodcallback.emplace("test_pzjpg",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_outjpg;
+		methodcallback.emplace("test_outjpg",temp);
 		temp.pre = nullptr;
 		temp.regfun = testormclient;
 		methodcallback.emplace("testormclient",temp);

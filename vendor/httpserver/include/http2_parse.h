@@ -279,6 +279,10 @@ class http2parse
     unsigned int steam_count = 0;
     unsigned int isfinsish   = 0;
 
+    // Rapid Reset(CVE-2023-44487) protection: count RST_STREAM frames per connection.
+    // When it exceeds the threshold the connection is closed via GOAWAY.
+    unsigned char rst_stream_count = 0;
+
     struct http2_setting_t setting_data;
 
     //std::vector<std::pair<std::string, std::string>> header_lists;

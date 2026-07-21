@@ -11,8 +11,11 @@
 #include <list>
 #include <string_view>
 #include <cstddef>
+#include <cstdint>
+#include <charconv>
+#include <unordered_map>
 
-#ifdef ENABLE_MINIZIP
+#ifdef ENABLE_EXCEL
 namespace pz
 {
 struct PZ_EXCEL_CELL_STYLE
@@ -100,6 +103,39 @@ struct PZ_EXCEL_SHEET
     std::map<unsigned long long, PZ_EXCEL_CELL_FONT> fonts;
 };
 
+// Numeric <-> string helpers based on std::to_chars / std::from_chars.
+// They are locale-independent, allocation-free and correctly handle
+// scientific notation as well as shortest round-trippable double output.
+inline std::string dbl_to_str(double d)
+{
+    char buf[64];
+    auto res = std::to_chars(buf, buf + sizeof(buf), d);
+    if (res.ec == std::errc{})
+        return std::string(buf, res.ptr);
+    // buf is large enough for the shortest form of any double; this only
+    // guards against pathological cases so we never return garbage.
+    return std::to_string(d);
+}
+
+inline double parse_dbl(std::string_view s)
+{
+    double v = 0.0;
+    auto res = std::from_chars(s.data(), s.data() + s.size(), v);
+    // On invalid_argument / result_out_of_range v is untouched -> return 0.
+    if (res.ec != std::errc{})
+        return 0.0;
+    return v;
+}
+
+inline long long parse_ll(std::string_view s)
+{
+    long long v = 0;
+    auto res = std::from_chars(s.data(), s.data() + s.size(), v);
+    if (res.ec != std::errc{})
+        return 0;
+    return v;
+}
+
 class excel
 {
   public:
@@ -170,6 +206,7 @@ class excel
             if (sidx >= MAX_SHARED_STRINGS)
                 return *this;
             shared_strings.push_back(value);
+            shared_string_map[value] = sidx;
         }
         PZ_EXCEL_CELL temp_cell;
         temp_cell.v_type                       = 5;
@@ -216,16 +253,9 @@ class excel
                 else if (cell_it->second.v_type < 7)
                 {
                     size_t idx = static_cast<size_t>(cell_it->second.value.i);
-                    if (idx >= 0 && idx < shared_strings.size())
+                    if (idx < shared_strings.size())
                     {
-                        try
-                        {
-                            return std::stold(shared_strings[idx].c_str());
-                        }
-                        catch (const std::exception &)
-                        {
-                            return 0.0;
-                        }
+                        return parse_dbl(shared_strings[idx]);
                     }
                 }
                 else if (cell_it->second.v_type < 10)
@@ -259,16 +289,9 @@ class excel
                 else if (cell_it->second.v_type < 7)
                 {
                     size_t idx = static_cast<size_t>(cell_it->second.value.i);
-                    if (idx >= 0 && idx < shared_strings.size())
+                    if (idx < shared_strings.size())
                     {
-                        try
-                        {
-                            return static_cast<T>(std::stoll(shared_strings[idx].c_str()));
-                        }
-                        catch (const std::exception &)
-                        {
-                            return 0;
-                        }
+                        return static_cast<T>(parse_ll(shared_strings[idx]));
                     }
                 }
                 else if (cell_it->second.v_type < 10)
@@ -297,12 +320,12 @@ class excel
                 }
                 else if (cell_it->second.v_type < 5)
                 {
-                    return std::to_string(cell_it->second.value.d);
+                    return dbl_to_str(cell_it->second.value.d);
                 }
                 else if (cell_it->second.v_type < 7)
                 {
                     size_t idx = static_cast<size_t>(cell_it->second.value.i);
-                    if (idx >= 0 && idx < shared_strings.size())
+                    if (idx < shared_strings.size())
                     {
                         return shared_strings[idx];
                     }
@@ -380,7 +403,7 @@ class excel
                             }
                             else if (cell_it->second.v_type < 5)
                             {
-                                temp_str = std::to_string(cell_it->second.value.d);
+                                temp_str = dbl_to_str(cell_it->second.value.d);
                             }
                             else if (cell_it->second.v_type < 7)
                             {
@@ -412,7 +435,7 @@ class excel
                             }
                             else if (cell_it->second.v_type < 5)
                             {
-                                temp_str = std::to_string(cell_it->second.value.d);
+                                temp_str = dbl_to_str(cell_it->second.value.d);
                             }
                             else if (cell_it->second.v_type < 7)
                             {
@@ -460,10 +483,14 @@ class excel
 
     std::vector<PZ_EXCEL_CELL_STYLE> styles;
 
+    std::unordered_map<std::string, size_t> shared_string_map;
+    bool defaults_ready = false;
+
     static const unsigned int MAX_ROWS     = 1048576;
     static const unsigned int MAX_COLS     = 16384;
     static const size_t MAX_SHARED_STRINGS = 1000000;
     static const size_t MAX_FILE_SIZE      = 100 * 1024 * 1024;
+    static const size_t MAX_TOTAL_UNZIP_SIZE = 10 * 1024 * 1024;
     static const size_t MAX_ZIP_ENTRIES    = 10000;
 
   private:
@@ -483,5 +510,5 @@ class excel
 
 }// namespace pz
 
-#endif  // ENABLE_MINIZIP
+#endif  // ENABLE_EXCEL
 #endif

@@ -16,6 +16,14 @@ namespace http
 
         end = src + len;
 
+        // Each Huffman symbol is at least 5 bits, so the decoded output is at
+        // most len*8/5 bytes. Reserve up front to avoid repeated reallocations
+        // during the per-nibble push_back below.
+        if (len > 0)
+        {
+            outstr.reserve(outstr.size() + len * 2);
+        }
+
         while (src != end)
         {
             ch = *src++;

@@ -19,9 +19,11 @@ namespace http
         const char *p = str;
         unsigned char word[2];
         char zifu;
+        if (len > 0)
+            url.reserve(len);
         for (int i = 0; i < len; i++)
         {
-            if (p[i] == '%' && p[i + 1] != '%')
+            if (p[i] == '%' && (i + 2) < len && p[i + 1] != '%')
             {
                 word[0] = p[i + 1];
                 word[1] = p[i + 2];

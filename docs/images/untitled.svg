@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<svg width="176" height="213" xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg">
+ <!-- Created with SVG-edit - https://github.com/SVG-Edit/svgedit-->
+ <g class="layer">
+  <title>Layer 1</title>
+  <rect fill="#FF0000" height="138" id="svg_1" stroke="#000000" stroke-width="5" transform="matrix(1, 0, 0, 1, -30, -32)" width="88" x="32.5" y="34.5"/>
+  <rect fill="#FF0000" fill-opacity="null" height="143" id="svg_2" stroke="#005fbf" stroke-dasharray="null" stroke-linecap="null" stroke-linejoin="null" stroke-width="5" transform="matrix(1, 0, 0, 1, 1, 5)" width="54" x="118.5" y="-2.5"/>
+  <ellipse cx="8.5" cy="168.5" fill="#bfbf00" id="svg_3" rx="33" ry="21" stroke="#000000" stroke-dasharray="null" stroke-linecap="null" stroke-linejoin="null" stroke-opacity="null" stroke-width="5" transform="matrix(1, 0, 0, 1, 76, 21)"/>
+ </g>
+</svg>

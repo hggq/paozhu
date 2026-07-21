@@ -1782,7 +1782,7 @@ void http2parse::headertype1(unsigned char c,
     {
         a -= 62;
         unsigned int j = 0;
-        for (auto hinfo : dynamic_lists)
+        for (const auto &hinfo : dynamic_lists)
         {
             if (j == a)
             {
@@ -1975,7 +1975,7 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
             {
                 a -= 62;
                 unsigned int j = 0;
-                for (auto hinfo : dynamic_lists)
+                for (const auto &hinfo : dynamic_lists)
                 {
                     if (j == a)
                     {
@@ -2222,7 +2222,7 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
                 c = 0;
                 a -= 62;
                 unsigned int j = 0;
-                for (auto hinfo : dynamic_lists)
+                for (const auto &hinfo : dynamic_lists)
                 {
                     if (j == a)
                     {
@@ -2462,7 +2462,7 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
             c = 0;
             a -= 62;
             unsigned int j = 0;
-            for (auto hinfo : dynamic_lists)
+            for (const auto &hinfo : dynamic_lists)
             {
                 if (j == a)
                 {
@@ -2691,6 +2691,18 @@ void http2parse::readping(const HTTP2_PACK_DATA_T &temp_pack_data)
 void http2parse::readrst_stream(const HTTP2_PACK_DATA_T &temp_pack_data)
 {
     DEBUG_LOG("readrst_stream %u ", temp_pack_data.stream_id);
+    // Rapid Reset(CVE-2023-44487) protection: too many RST_STREAM on one
+    // connection means the peer is opening then immediately cancelling streams
+    // to exhaust CPU. Once the count exceeds 250, flag an error so the caller
+    // sends GOAWAY and closes the connection.
+    if (rst_stream_count < 255)
+    {
+        rst_stream_count++;
+    }
+    if (rst_stream_count > 250)
+    {
+        error = 40210;
+    }
     auto iter = http_data_weak.find(temp_pack_data.stream_id);
     if (iter != http_data_weak.end())
     {

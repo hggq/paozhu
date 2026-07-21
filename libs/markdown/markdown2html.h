@@ -30,6 +30,7 @@ class markdown2html
     void process_listulnum();
     void process();
     void backslash_transfer();
+    bool is_thematic_break(char);
 
     void set_tags_class(const std::string &, const std::string &);
     std::string get_htmlcontent();
@@ -40,8 +41,8 @@ class markdown2html
     std::string error_msg;
     std::vector<std::pair<unsigned char, std::string>> toc_list;
     std::vector<std::pair<std::string, std::string>> ref_list;
-    unsigned int md_size;
-    unsigned int read_offset;
+    unsigned int md_size   = 0;
+    unsigned int read_offset = 0;
     std::map<std::string, std::string> tags_class;
 };
 }// namespace http

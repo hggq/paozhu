@@ -624,6 +624,62 @@ asio::awaitable<void> httpserver::http2_send_status_content(std::shared_ptr<http
 
     co_return;
 }
+void httpserver::http2_compress_output(std::shared_ptr<httppeer> &peer, std::shared_ptr<http2_send_data_t> &send_file_obj)
+{
+    peer->compress = 0;
+    if (peer->state.gzip || peer->state.br)
+    {
+        if (str_casecmp(peer->content_type, "text/html; charset=utf-8") ||
+            str_casecmp(peer->content_type, "application/json") ||
+            str_casecmp(peer->content_type, "text/html") ||
+            str_casecmp(peer->content_type, "application/json; charset=utf-8"))
+        {
+            if (peer->output.size() > 100)
+            {
+                if (peer->state.br)
+                {
+                    brotli_encode(peer->output, send_file_obj->content);
+                    peer->compress = 2;
+                }
+                else if (peer->state.gzip)
+                {
+                    if (compress(peer->output.data(),
+                                 peer->output.size(),
+                                 send_file_obj->content,
+                                 Z_DEFAULT_COMPRESSION) == Z_OK)
+                    {
+                        peer->compress = 1;
+                    }
+                }
+            }
+        }
+    }
+
+    if (peer->compress > 0)
+    {
+        send_file_obj->content_length = send_file_obj->content.size();
+        peer->length(send_file_obj->content.size());
+    }
+    else
+    {
+        send_file_obj->content_length = peer->output.size();
+        peer->length(peer->output.size());
+    }
+}
+void httpserver::clear_peer_data(std::shared_ptr<httppeer> &peer)
+{
+    peer->output.clear();
+    peer->output.shrink_to_fit();
+    peer->get.clear();
+    peer->post.clear();
+    peer->files.clear();
+    peer->json.clear();
+    peer->rawcontent.clear();
+    peer->rawcontent.shrink_to_fit();
+    peer->val.clear();
+    peer->cookie.clear();
+    peer->session.clear();
+}
 asio::awaitable<bool> httpserver::http2_static_file_authority(std::shared_ptr<httppeer> peer)
 {
     serverconfig &sysconfigpath = getserversysconfig();
@@ -651,52 +707,13 @@ asio::awaitable<bool> httpserver::http2_static_file_authority(std::shared_ptr<ht
                 peer->type("text/html; charset=utf-8");
             }
 
-            peer->compress = 0;
-            if (peer->state.gzip || peer->state.br)
-            {
-                if (str_casecmp(peer->content_type, "text/html; charset=utf-8") ||
-                    str_casecmp(peer->content_type, "application/json") ||
-                    str_casecmp(peer->content_type, "text/html") ||
-                    str_casecmp(peer->content_type, "application/json; charset=utf-8"))
-                {
-                    if (peer->output.size() > 100)
-                    {
-
-                        if (peer->state.br)
-                        {
-                            brotli_encode(peer->output, send_file_obj->content);
-                            peer->compress = 2;
-                        }
-                        else if (peer->state.gzip)
-                        {
-                            if (compress(peer->output.data(),
-                                         peer->output.size(),
-                                         send_file_obj->content,
-                                         Z_DEFAULT_COMPRESSION) == Z_OK)
-                            {
-                                peer->compress = 1;
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (peer->compress > 0)
-            {
-                send_file_obj->content_length = send_file_obj->content.size();
-                peer->length(send_file_obj->content.size());
-            }
-            else
-            {
-                send_file_obj->content_length = peer->output.size();
-                peer->length(peer->output.size());
-            }
+            http2_compress_output(peer, send_file_obj);
 
             send_file_obj->header = peer->make_http2_header(0);
 
             if (peer->compress == 0)
             {
-                send_file_obj->content = peer->output;
+                send_file_obj->content = std::move(peer->output);
             }
             send_file_obj->peer          = peer;
             send_file_obj->is_sendheader = false;
@@ -705,17 +722,7 @@ asio::awaitable<bool> httpserver::http2_static_file_authority(std::shared_ptr<ht
             lock.unlock();
             send_data_condition.notify_one();
 
-            peer->output.clear();
-            peer->output.shrink_to_fit();
-            peer->get.clear();
-            peer->post.clear();
-            peer->files.clear();
-            peer->json.clear();
-            peer->rawcontent.clear();
-            peer->rawcontent.shrink_to_fit();
-            peer->val.clear();
-            peer->cookie.clear();
-            peer->session.clear();
+            clear_peer_data(peer);
 
             co_return false;
         }
@@ -762,52 +769,13 @@ asio::awaitable<bool> httpserver::http2_static_file_authority(std::shared_ptr<ht
                         peer->type("text/html; charset=utf-8");
                     }
 
-                    peer->compress = 0;
-                    if (peer->state.gzip || peer->state.br)
-                    {
-                        if (str_casecmp(peer->content_type, "text/html; charset=utf-8") ||
-                            str_casecmp(peer->content_type, "application/json") ||
-                            str_casecmp(peer->content_type, "text/html") ||
-                            str_casecmp(peer->content_type, "application/json; charset=utf-8"))
-                        {
-                            if (peer->output.size() > 100)
-                            {
-
-                                if (peer->state.br)
-                                {
-                                    brotli_encode(peer->output, send_file_obj->content);
-                                    peer->compress = 2;
-                                }
-                                else if (peer->state.gzip)
-                                {
-                                    if (compress(peer->output.data(),
-                                                 peer->output.size(),
-                                                 send_file_obj->content,
-                                                 Z_DEFAULT_COMPRESSION) == Z_OK)
-                                    {
-                                        peer->compress = 1;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    if (peer->compress > 0)
-                    {
-                        send_file_obj->content_length = send_file_obj->content.size();
-                        peer->length(send_file_obj->content.size());
-                    }
-                    else
-                    {
-                        send_file_obj->content_length = peer->output.size();
-                        peer->length(peer->output.size());
-                    }
+                    http2_compress_output(peer, send_file_obj);
 
                     send_file_obj->header = peer->make_http2_header(0);
 
                     if (peer->compress == 0)
                     {
-                        send_file_obj->content = peer->output;
+                        send_file_obj->content = std::move(peer->output);
                     }
                     send_file_obj->peer          = peer;
                     send_file_obj->is_sendheader = false;
@@ -816,17 +784,7 @@ asio::awaitable<bool> httpserver::http2_static_file_authority(std::shared_ptr<ht
                     lock.unlock();
                     send_data_condition.notify_one();
 
-                    peer->output.clear();
-                    peer->output.shrink_to_fit();
-                    peer->get.clear();
-                    peer->post.clear();
-                    peer->files.clear();
-                    peer->json.clear();
-                    peer->rawcontent.clear();
-                    peer->rawcontent.shrink_to_fit();
-                    peer->val.clear();
-                    peer->cookie.clear();
-                    peer->session.clear();
+                    clear_peer_data(peer);
 
                     co_return false;
                 }
@@ -853,46 +811,7 @@ asio::awaitable<void> httpserver::http2_fastcgi(std::shared_ptr<httppeer> peer)
 
     co_await co_user_fastcgi_task(peer);
 
-    peer->compress = 0;
-    if (peer->state.gzip || peer->state.br)
-    {
-        if (str_casecmp(peer->content_type, "text/html; charset=utf-8") ||
-            str_casecmp(peer->content_type, "application/json") ||
-            str_casecmp(peer->content_type, "text/html") ||
-            str_casecmp(peer->content_type, "application/json; charset=utf-8"))
-        {
-            if (peer->output.size() > 100)
-            {
-
-                if (peer->state.br)
-                {
-                    brotli_encode(peer->output, send_file_obj->content);
-                    peer->compress = 2;
-                }
-                else if (peer->state.gzip)
-                {
-                    if (compress(peer->output.data(),
-                                 peer->output.size(),
-                                 send_file_obj->content,
-                                 Z_DEFAULT_COMPRESSION) == Z_OK)
-                    {
-                        peer->compress = 1;
-                    }
-                }
-            }
-        }
-    }
-
-    if (peer->compress > 0)
-    {
-        send_file_obj->content_length = send_file_obj->content.size();
-        peer->length(send_file_obj->content.size());
-    }
-    else
-    {
-        send_file_obj->content_length = peer->output.size();
-        peer->length(peer->output.size());
-    }
+    http2_compress_output(peer, send_file_obj);
 
     if (peer->get_status() < 100)
     {
@@ -911,7 +830,7 @@ asio::awaitable<void> httpserver::http2_fastcgi(std::shared_ptr<httppeer> peer)
 
     if (peer->compress == 0)
     {
-        send_file_obj->content = peer->output;
+        send_file_obj->content = std::move(peer->output);
     }
     send_file_obj->peer          = peer;
     send_file_obj->is_sendheader = false;
@@ -920,17 +839,7 @@ asio::awaitable<void> httpserver::http2_fastcgi(std::shared_ptr<httppeer> peer)
     lock.unlock();
     send_data_condition.notify_one();
 
-    peer->output.clear();
-    peer->output.shrink_to_fit();
-    peer->get.clear();
-    peer->post.clear();
-    peer->files.clear();
-    peer->json.clear();
-    peer->rawcontent.clear();
-    peer->rawcontent.shrink_to_fit();
-    peer->val.clear();
-    peer->cookie.clear();
-    peer->session.clear();
+    clear_peer_data(peer);
 
     co_return;
 }
@@ -997,46 +906,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             auto send_file_obj               = send_queue_obj.get_cache_ptr();
             send_file_obj->cache_data.resize(15360);
             send_file_obj->content.clear();
-            peer->compress = 0;
-            if (peer->state.gzip || peer->state.br)
-            {
-                if (str_casecmp(peer->content_type, "text/html; charset=utf-8") ||
-                    str_casecmp(peer->content_type, "application/json") ||
-                    str_casecmp(peer->content_type, "text/html") ||
-                    str_casecmp(peer->content_type, "application/json; charset=utf-8"))
-                {
-                    if (peer->output.size() > 100)
-                    {
-
-                        if (peer->state.br)
-                        {
-                            brotli_encode(peer->output, send_file_obj->content);
-                            peer->compress = 2;
-                        }
-                        else if (peer->state.gzip)
-                        {
-                            if (compress(peer->output.data(),
-                                         peer->output.size(),
-                                         send_file_obj->content,
-                                         Z_DEFAULT_COMPRESSION) == Z_OK)
-                            {
-                                peer->compress = 1;
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (peer->compress > 0)
-            {
-                send_file_obj->content_length = send_file_obj->content.size();
-                peer->length(send_file_obj->content.size());
-            }
-            else
-            {
-                send_file_obj->content_length = peer->output.size();
-                peer->length(peer->output.size());
-            }
+            http2_compress_output(peer, send_file_obj);
 
             if (peer->get_status() < 100)
             {
@@ -1051,7 +921,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
 
             if (peer->compress == 0)
             {
-                send_file_obj->content = peer->output;
+                send_file_obj->content = std::move(peer->output);
             }
             send_file_obj->peer          = peer;
             send_file_obj->is_sendheader = false;
@@ -1061,17 +931,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             lock.unlock();
             send_data_condition.notify_one();
 
-            peer->output.clear();
-            peer->output.shrink_to_fit();
-            peer->get.clear();
-            peer->post.clear();
-            peer->files.clear();
-            peer->json.clear();
-            peer->rawcontent.clear();
-            peer->rawcontent.shrink_to_fit();
-            peer->val.clear();
-            peer->cookie.clear();
-            peer->session.clear();
+            clear_peer_data(peer);
             co_return;
         }
         else
@@ -1149,46 +1009,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
                 }
             }
 
-            peer->compress = 0;
-            if (peer->state.gzip || peer->state.br)
-            {
-                if (str_casecmp(peer->content_type, "text/html; charset=utf-8") ||
-                    str_casecmp(peer->content_type, "application/json") ||
-                    str_casecmp(peer->content_type, "text/html") ||
-                    str_casecmp(peer->content_type, "application/json; charset=utf-8"))
-                {
-                    if (peer->output.size() > 100)
-                    {
-
-                        if (peer->state.br)
-                        {
-                            brotli_encode(peer->output, send_file_obj->content);
-                            peer->compress = 2;
-                        }
-                        else if (peer->state.gzip)
-                        {
-                            if (compress(peer->output.data(),
-                                         peer->output.size(),
-                                         send_file_obj->content,
-                                         Z_DEFAULT_COMPRESSION) == Z_OK)
-                            {
-                                peer->compress = 1;
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (peer->compress > 0)
-            {
-                send_file_obj->content_length = send_file_obj->content.size();
-                peer->length(send_file_obj->content.size());
-            }
-            else
-            {
-                send_file_obj->content_length = peer->output.size();
-                peer->length(peer->output.size());
-            }
+            http2_compress_output(peer, send_file_obj);
 
             if (peer->get_status() < 100)
             {
@@ -1203,7 +1024,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             DEBUG_LOG("http2_send_content");
             if (peer->compress == 0)
             {
-                send_file_obj->content = peer->output;
+                send_file_obj->content = std::move(peer->output);
             }
             send_file_obj->peer          = peer;
             send_file_obj->is_sendheader = false;
@@ -1213,17 +1034,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             lock.unlock();
             send_data_condition.notify_one();
 
-            peer->output.clear();
-            peer->output.shrink_to_fit();
-            peer->get.clear();
-            peer->post.clear();
-            peer->files.clear();
-            peer->json.clear();
-            peer->rawcontent.clear();
-            peer->rawcontent.shrink_to_fit();
-            peer->val.clear();
-            peer->cookie.clear();
-            peer->session.clear();
+            clear_peer_data(peer);
             co_return;
         }
         co_return;
@@ -1752,17 +1563,7 @@ asio::awaitable<void> httpserver::http1_fastcgi(std::shared_ptr<httppeer> peer)
     htmlcontent.append("\r\n");
     co_await peer->socket_session->async_send_writer(htmlcontent);
     co_await peer->socket_session->async_send_writer(peer->output);
-    peer->output.clear();
-    peer->output.shrink_to_fit();
-    peer->get.clear();
-    peer->post.clear();
-    peer->files.clear();
-    peer->json.clear();
-    peer->rawcontent.clear();
-    peer->rawcontent.shrink_to_fit();
-    peer->val.clear();
-    peer->cookie.clear();
-    peer->session.clear();
+    clear_peer_data(peer);
     co_return;
 }
 asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
@@ -1855,17 +1656,7 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
         htmlcontent.append("\r\n");
         co_await peer_session->async_send_writer(htmlcontent);
         co_await peer_session->async_send_writer(peer->output);
-        peer->output.clear();
-        peer->output.shrink_to_fit();
-        peer->get.clear();
-        peer->post.clear();
-        peer->files.clear();
-        peer->json.clear();
-        peer->rawcontent.clear();
-        peer->rawcontent.shrink_to_fit();
-        peer->val.clear();
-        peer->cookie.clear();
-        peer->session.clear();
+        clear_peer_data(peer);
         co_return;
     }
     else
