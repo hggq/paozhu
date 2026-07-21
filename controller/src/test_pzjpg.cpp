@@ -93,4 +93,42 @@ std::string test_outjpg(std::shared_ptr<httppeer> peer)
     return "";
 }
 
+//@urlpath(null,test_showjpg)
+std::string test_showjpg(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+#ifdef ENABLE_IMAGE
+    server_loaclvar &static_server_var = get_server_global_var();
+
+    if (static_server_var.config_path.size() < 5)
+    {
+        client << "<p> static_server_var.config_path empty </p>";
+        return "";
+    }
+
+    std::string file_conf = dir_name(static_server_var.config_path);
+
+    if (file_conf.size() > 0 && file_conf.back() != '/')
+    {
+        file_conf.push_back('/');
+    }
+    file_conf.append("docs/images/2388_445.jpg");
+
+    image::jpg img;
+    bool isok = img.read(file_conf);
+    if(!isok)
+    {
+        client.type("image/jpg");
+        auto vec      = img.imshow();
+        client.output = std::string(reinterpret_cast<const char *>(vec.data()), vec.size());
+    }
+    client << "<p>read file error:"<< file_conf <<" </p>";
+
+#else
+    client << "<p>Please: cmake .. -DENABLE_IMAGE=ON </p>";
+#endif// ENABLE_IMAGE
+
+    return "";
+}
+
 }// namespace http

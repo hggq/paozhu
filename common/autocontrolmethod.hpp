@@ -659,6 +659,9 @@ namespace http
 		temp.regfun = test_outjpg;
 		methodcallback.emplace("test_outjpg",temp);
 		temp.pre = nullptr;
+		temp.regfun = test_showjpg;
+		methodcallback.emplace("test_showjpg",temp);
+		temp.pre = nullptr;
 		temp.regfun = testormclient;
 		methodcallback.emplace("testormclient",temp);
 		temp.pre = nullptr;

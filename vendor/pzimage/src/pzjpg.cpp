@@ -1497,10 +1497,16 @@ bool jpg::read(const std::string& filename) {
     if (file.size() < 4) return false;
 
     size_t pos = 0;
-    auto readU8 = [&]() -> uint8_t { return (pos < file.size()) ? file[pos++] : 0; };
+    bool read_ok = true;
+    auto readU8 = [&]() -> uint8_t {
+        if (pos >= file.size()) { read_ok = false; return 0; }
+        return file[pos++];
+    };
     auto readU16 = [&]() -> uint16_t {
         uint16_t hi = readU8();
+        if (!read_ok) return 0;
         uint16_t lo = readU8();
+        if (!read_ok) return 0;
         return (hi << 8) | lo;
     };
 
@@ -1568,7 +1574,10 @@ bool jpg::read(const std::string& filename) {
             continue;
 
         uint16_t seg_len = readU16();
+        if (!read_ok || seg_len < 2) return false;
+        if (pos + seg_len < pos) return false;
         size_t seg_end = pos + seg_len - 2;
+        if (seg_end > file.size()) return false;
 
         // 保存扩展标记数据
         if (marker == 0xE0) { // APP0 (JFIF)
@@ -1632,6 +1641,7 @@ bool jpg::read(const std::string& filename) {
                 uint8_t info = readU8();
                 int tid = info & 0x0F;
                 int prec = (info >> 4) & 0x0F;
+                if (tid >= 4) return false;
                 if (prec == 0) {
                     for (int i = 0; i < 64; i++) quant_tables[tid][i] = readU8();
                 } else {
@@ -1650,6 +1660,7 @@ bool jpg::read(const std::string& filename) {
                 comp_id[i] = readU8();
                 comp_samp[i] = readU8();
                 comp_qt[i] = readU8();
+                if (comp_qt[i] >= 4) return false;
             }
         } else if (marker == 0xC2) { // SOF2 progressive
             is_progressive = true;
@@ -1664,6 +1675,7 @@ bool jpg::read(const std::string& filename) {
                 comp_id[i] = readU8();
                 comp_samp[i] = readU8();
                 comp_qt[i] = readU8();
+                if (comp_qt[i] >= 4) return false;
             }
         } else if (marker == 0xC4) { // DHT
             while (pos < seg_end) {
