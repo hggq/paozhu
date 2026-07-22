@@ -2910,7 +2910,7 @@ std::string create_mysql_orm_where_null_string(const std::string &modelName_file
         }
         wheresql.append(" )";
     append_content.append(colname);
-    append_content.append(" = NULL \");\n");
+    append_content.append(" IS NULL \");\n");
     append_content += R"(
         return *mod;   
     }   
@@ -2950,7 +2950,7 @@ std::string create_mysql_orm_where_nnull_string(const std::string &modelName_fil
         }
         wheresql.append(" )";
     append_content.append(colname);
-    append_content.append(" != NULL \");\n");
+    append_content.append(" IS NOT NULL \");\n");
     append_content += R"(
         return *mod;   
     }   
@@ -3674,7 +3674,7 @@ std::string create_mysql_orm_where_ornull_string(const std::string &modelName_fi
         }
         wheresql.append(" )";
     append_content.append(colname);
-    append_content.append(" = NULL \");\n");
+    append_content.append(" IS NULL \");\n");
     append_content += R"(
         return *mod;   
     }   
@@ -3714,7 +3714,7 @@ std::string create_mysql_orm_where_ornnull_string(const std::string &modelName_f
         }
         wheresql.append(" )";
     append_content.append(colname);
-    append_content.append(" != NULL \");\n");
+    append_content.append(" IS NOT NULL \");\n");
     append_content += R"(
         return *mod;   
     }   
@@ -5328,6 +5328,11 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
     template_file.append("_mysql");
     template_file.append(".h");
     fp = fopen(template_file.c_str(), "wb");
+    if (fp == NULL)
+    {
+        std::cout << "\033[1m\033[31mError\033[0m open file fail: " << template_file << std::endl;
+        return;
+    }
     fwrite(template_content.data(), 1, template_content.size(), fp);
     fclose(fp);
 }
