@@ -112,6 +112,10 @@ private:
     double line_buf_fs_mm_ = 0;
     std::string line_buf_align_;
     void render_table(const std::shared_ptr<HTMLNode>& table_node, const CSSStyle& style);
+    // Grid-aware table renderer used when any cell has colspan/rowspan > 1.
+    void render_table_spanned(const std::shared_ptr<HTMLNode>& table_node, const CSSStyle& style,
+                              const std::vector<std::shared_ptr<HTMLNode>>& all_rows,
+                              const std::vector<bool>& row_is_thead);
     // Render a single cell (td-like) with cross-page support, background, and border
     void render_td_cell(const std::string& text, double cell_w, double lh,
                         double pad_l, double pad_r, double pad_t, double pad_b,

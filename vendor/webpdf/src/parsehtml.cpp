@@ -1038,6 +1038,20 @@ static void find_special_elements(
     }
 }
 
+// Parse a colspan/rowspan attribute; defaults to 1, clamped to a sane range.
+static int span_attr(const std::shared_ptr<HTMLNode>& cell, const char* name) {
+    auto it = cell->attrs.find(name);
+    if (it == cell->attrs.end()) return 1;
+    try {
+        int v = std::stoi(it->second);
+        if (v < 1) return 1;
+        if (v > 1000) return 1000;
+        return v;
+    } catch (...) {
+        return 1;
+    }
+}
+
 void HTMLRenderer::render_table(const std::shared_ptr<HTMLNode>& table_node, const CSSStyle& style) {
     std::vector<TableSection> sections;
     collect_sections(table_node->children, sections);
@@ -1049,6 +1063,35 @@ void HTMLRenderer::render_table(const std::shared_ptr<HTMLNode>& table_node, con
         for (auto& r : sec.rows) all_rows.push_back(r);
     }
     if (all_rows.empty()) return;
+
+    // Flag which rows belong to <thead> (parallel to all_rows order)
+    std::vector<bool> row_is_thead;
+    row_is_thead.reserve(all_rows.size());
+    for (auto& sec : sections)
+        for (size_t ri = 0; ri < sec.rows.size(); ri++)
+            row_is_thead.push_back(sec.tag == "thead");
+
+    // If any cell uses colspan/rowspan, use the grid-aware renderer which
+    // builds a proper occupancy grid; the positional renderer below cannot
+    // handle merged cells.
+    {
+        bool has_span = false;
+        for (auto& row : all_rows) {
+            for (auto& c : row->children) {
+                if (c->type == HTMLNodeType::ELEMENT &&
+                    (c->tag == "td" || c->tag == "th") &&
+                    (span_attr(c, "colspan") > 1 || span_attr(c, "rowspan") > 1)) {
+                    has_span = true;
+                    break;
+                }
+            }
+            if (has_span) break;
+        }
+        if (has_span) {
+            render_table_spanned(table_node, style, all_rows, row_is_thead);
+            return;
+        }
+    }
 
     int num_cols = 0;
     for (auto& row : all_rows) {
@@ -1651,6 +1694,398 @@ void HTMLRenderer::render_table(const std::shared_ptr<HTMLNode>& table_node, con
 
         render_row(row);
     }
+
+    if (has_border && !style.border_color.empty()) {
+        pdf->DrawColor = saved_draw_color;
+        pdf->_out(saved_draw_color);
+    }
+
+    apply_style(style);
+    pdf->Ln(lh * 0.3);
+}
+
+// Grid-aware table renderer: builds an occupancy grid so that cells with
+// colspan/rowspan are placed and sized correctly. Row-span groups are kept
+// on a single page (a page break is inserted before the group if it would
+// otherwise be split), which matches the small merged-cell tables this
+// renderer targets.
+void HTMLRenderer::render_table_spanned(const std::shared_ptr<HTMLNode>& table_node, const CSSStyle& style,
+                                        const std::vector<std::shared_ptr<HTMLNode>>& all_rows,
+                                        const std::vector<bool>& row_is_thead) {
+    int nrows = (int)all_rows.size();
+    if (nrows == 0) return;
+
+    // ---- Build the grid via an occupancy map ----
+    struct GCell {
+        std::shared_ptr<HTMLNode> node;
+        int r, c;        // starting row/col
+        int rspan, cspan;
+    };
+    std::vector<GCell> gcells;
+    std::vector<std::vector<char>> occ; // occ[r][c] != 0 means occupied
+    auto is_occ = [&](int r, int c) -> bool {
+        if (r < 0 || r >= (int)occ.size()) return false;
+        if (c < 0 || c >= (int)occ[r].size()) return false;
+        return occ[r][c] != 0;
+    };
+    auto set_occ = [&](int r, int c) {
+        while ((int)occ.size() <= r) occ.push_back(std::vector<char>());
+        while ((int)occ[r].size() <= c) occ[r].push_back(0);
+        occ[r][c] = 1;
+    };
+
+    int num_cols = 0;
+    for (int r = 0; r < nrows; r++) {
+        int c = 0;
+        for (auto& child : all_rows[r]->children) {
+            if (child->type != HTMLNodeType::ELEMENT ||
+                (child->tag != "td" && child->tag != "th")) continue;
+            while (is_occ(r, c)) c++;
+            int cspan = span_attr(child, "colspan");
+            int rspan = span_attr(child, "rowspan");
+            if (rspan > nrows - r) rspan = nrows - r;
+            if (rspan < 1) rspan = 1;
+            GCell gc;
+            gc.node = child;
+            gc.r = r; gc.c = c;
+            gc.rspan = rspan; gc.cspan = cspan;
+            gcells.push_back(gc);
+            for (int rr = r; rr < r + rspan; rr++)
+                for (int cc = c; cc < c + cspan; cc++)
+                    set_occ(rr, cc);
+            c += cspan;
+            if (c > num_cols) num_cols = c;
+        }
+    }
+    if (num_cols == 0) return;
+
+    double default_pad = 2.0;
+    double min_col_w = pdf->GetStringWidth("W") + default_pad * 2;
+    double lh = get_line_height_mm(style);
+
+    // Merge stylesheet + inline style for a cell (th implies bold).
+    auto cell_css = [&](const std::shared_ptr<HTMLNode>& cell) -> CSSStyle {
+        CSSStyle cs = style;
+        auto sit = stylesheet.find(cell->tag);
+        if (sit != stylesheet.end())
+            css_parser.merge_style(cs, sit->second);
+        css_parser.merge_style(cs, cell->style);
+        if (cell->tag == "th") cs.bold = true;
+        return cs;
+    };
+
+    // Max text line width (mm) of a cell's content at current font.
+    auto measure_text_w = [&](const std::string& text) -> double {
+        double max_line_w = 0;
+        std::string clean;
+        clean.reserve(text.size());
+        for (size_t p = 0; p < text.size(); p++) {
+            char ch = text[p];
+            if (ch == '\r') { if (p + 1 < text.size() && text[p + 1] == '\n') p++; clean += '\n'; }
+            else clean += ch;
+        }
+        std::istringstream lss(clean);
+        std::string line;
+        while (std::getline(lss, line)) {
+            size_t ls = line.find_first_not_of(" \t");
+            size_t le = line.find_last_not_of(" \t");
+            if (ls == std::string::npos) continue;
+            double lw = pdf->GetStringWidth(line.substr(ls, le - ls + 1));
+            if (lw > max_line_w) max_line_w = lw;
+        }
+        return max_line_w;
+    };
+
+    // ---- Column width calculation ----
+    std::string saved_family = pdf->FontFamily;
+    std::string saved_style = pdf->FontStyle;
+    double saved_size = pdf->FontSize;
+    std::string saved_text_color = pdf->TextColor;
+
+    std::vector<double> col_natural(num_cols, min_col_w);
+    std::vector<double> col_pct(num_cols, 0);
+    std::vector<bool> col_has_explicit(num_cols, false);
+    std::vector<double> col_explicit(num_cols, 0);
+
+    // First measure only single-column cells so spans don't inflate one column.
+    for (auto& gc : gcells) {
+        if (gc.cspan != 1) continue;
+        CSSStyle cs = cell_css(gc.node);
+        apply_style(cs);
+        double pad_l = cs.padding_left > 0 ? cs.padding_left / pdf->k : default_pad;
+        double pad_r = cs.padding_right > 0 ? cs.padding_right / pdf->k : default_pad;
+        std::string text = trim_cell_text(node_to_text(gc.node));
+        double tw = measure_text_w(text) + pad_l + pad_r;
+        if (tw > col_natural[gc.c]) col_natural[gc.c] = tw;
+        if (cs.width > 0) {
+            double w = cs.width / pdf->k;
+            if (w > col_explicit[gc.c]) { col_explicit[gc.c] = w; col_has_explicit[gc.c] = true; }
+        }
+        if (cs.width_pct > 0 && cs.width_pct > col_pct[gc.c])
+            col_pct[gc.c] = cs.width_pct;
+    }
+    // Then make sure spanning cells' content fits across their columns.
+    for (auto& gc : gcells) {
+        if (gc.cspan <= 1) continue;
+        CSSStyle cs = cell_css(gc.node);
+        apply_style(cs);
+        double pad_l = cs.padding_left > 0 ? cs.padding_left / pdf->k : default_pad;
+        double pad_r = cs.padding_right > 0 ? cs.padding_right / pdf->k : default_pad;
+        std::string text = trim_cell_text(node_to_text(gc.node));
+        double need = measure_text_w(text) + pad_l + pad_r;
+        double have = 0;
+        for (int cc = gc.c; cc < gc.c + gc.cspan && cc < num_cols; cc++) have += col_natural[cc];
+        if (need > have && gc.cspan > 0) {
+            double add = (need - have) / gc.cspan;
+            for (int cc = gc.c; cc < gc.c + gc.cspan && cc < num_cols; cc++) col_natural[cc] += add;
+        }
+    }
+
+    pdf->FontFamily = saved_family;
+    pdf->FontStyle = saved_style;
+    pdf->FontSize = saved_size;
+    pdf->FontSizePt = saved_size;
+    pdf->TextColor = saved_text_color;
+
+    std::vector<double> natural_w(num_cols, 0);
+    for (int i = 0; i < num_cols; i++) {
+        natural_w[i] = col_has_explicit[i] ? col_explicit[i] : col_natural[i];
+        if (natural_w[i] < min_col_w) natural_w[i] = min_col_w;
+    }
+
+    double max_w = pdf->GetPageWidth() - pdf->lMargin - pdf->rMargin;
+    double table_w = 0;
+    if (style.width_pct > 0) {
+        table_w = max_w * style.width_pct / 100.0;
+    } else if (style.width > 0) {
+        table_w = style.width / pdf->k;
+    } else {
+        double pre = 0;
+        for (int i = 0; i < num_cols; i++) pre += natural_w[i];
+        if (pre > max_w) table_w = max_w;
+        else { table_w = pre + min_col_w * num_cols; if (table_w > max_w) table_w = max_w; }
+    }
+
+    std::vector<double> col_widths(num_cols, 0);
+    double remaining = table_w;
+    int auto_cols = 0;
+    for (int i = 0; i < num_cols; i++) {
+        if (col_has_explicit[i]) { col_widths[i] = col_explicit[i]; remaining -= col_widths[i]; }
+        else if (col_pct[i] > 0) { col_widths[i] = table_w * col_pct[i] / 100.0; remaining -= col_widths[i]; }
+        else auto_cols++;
+    }
+    if (auto_cols > 0) {
+        double share = remaining / auto_cols;
+        if (share < min_col_w) share = min_col_w;
+        for (int i = 0; i < num_cols; i++)
+            if (!col_has_explicit[i] && col_pct[i] <= 0) col_widths[i] = share;
+    }
+    double total = 0;
+    for (double w : col_widths) total += w;
+    if (total > table_w && total > 0) {
+        double scale = table_w / total;
+        for (double& w : col_widths) w *= scale;
+    }
+    for (double& w : col_widths) if (w < min_col_w) w = min_col_w;
+
+    auto col_x_off = [&](int c) -> double {
+        double x = 0; for (int j = 0; j < c && j < num_cols; j++) x += col_widths[j]; return x;
+    };
+    auto span_w = [&](int c, int cspan) -> double {
+        double w = 0; for (int j = c; j < c + cspan && j < num_cols; j++) w += col_widths[j]; return w;
+    };
+
+    // ---- Row height calculation ----
+    std::vector<double> row_h(nrows, lh);
+    // Single-row cells set the baseline height for their row.
+    for (auto& gc : gcells) {
+        if (gc.rspan != 1) continue;
+        CSSStyle cs = cell_css(gc.node);
+        apply_style(cs);
+        double pad_l = cs.padding_left > 0 ? cs.padding_left / pdf->k : default_pad;
+        double pad_r = cs.padding_right > 0 ? cs.padding_right / pdf->k : default_pad;
+        double pad_t = cs.padding_top > 0 ? cs.padding_top / pdf->k : default_pad;
+        double pad_b = cs.padding_bottom > 0 ? cs.padding_bottom / pdf->k : default_pad;
+        std::string text = trim_cell_text(node_to_text(gc.node));
+        double avail = span_w(gc.c, gc.cspan) - pad_l - pad_r;
+        if (avail < min_col_w - default_pad * 2) avail = min_col_w - default_pad * 2;
+        int nl = pdf->GetMultiCellLines(avail, text);
+        if (nl < 1) nl = 1;
+        double h = nl * lh + pad_t + pad_b;
+        if (h > row_h[gc.r]) row_h[gc.r] = h;
+    }
+    // Row-spanning cells: grow the last spanned row if the group is too short.
+    for (auto& gc : gcells) {
+        if (gc.rspan <= 1) continue;
+        CSSStyle cs = cell_css(gc.node);
+        apply_style(cs);
+        double pad_l = cs.padding_left > 0 ? cs.padding_left / pdf->k : default_pad;
+        double pad_r = cs.padding_right > 0 ? cs.padding_right / pdf->k : default_pad;
+        double pad_t = cs.padding_top > 0 ? cs.padding_top / pdf->k : default_pad;
+        double pad_b = cs.padding_bottom > 0 ? cs.padding_bottom / pdf->k : default_pad;
+        std::string text = trim_cell_text(node_to_text(gc.node));
+        double avail = span_w(gc.c, gc.cspan) - pad_l - pad_r;
+        if (avail < min_col_w - default_pad * 2) avail = min_col_w - default_pad * 2;
+        int nl = pdf->GetMultiCellLines(avail, text);
+        if (nl < 1) nl = 1;
+        double needed = nl * lh + pad_t + pad_b;
+        double have = 0;
+        for (int rr = gc.r; rr < gc.r + gc.rspan && rr < nrows; rr++) have += row_h[rr];
+        if (needed > have) {
+            int last = gc.r + gc.rspan - 1;
+            if (last >= nrows) last = nrows - 1;
+            row_h[last] += (needed - have);
+        }
+    }
+    pdf->FontFamily = saved_family;
+    pdf->FontStyle = saved_style;
+    pdf->FontSize = saved_size;
+    pdf->FontSizePt = saved_size;
+    pdf->TextColor = saved_text_color;
+
+    // ---- Table position ----
+    double actual_table_w = 0;
+    for (double w : col_widths) actual_table_w += w;
+    std::string table_align = "left";
+    auto align_it = table_node->attrs.find("align");
+    if (align_it != table_node->attrs.end()) table_align = str_tolower(align_it->second);
+    double table_x = pdf->lMargin;
+    if (table_align == "center") {
+        table_x = pdf->lMargin + (max_w - actual_table_w) / 2.0;
+        if (table_x < pdf->lMargin) table_x = pdf->lMargin;
+    } else if (table_align == "right") {
+        table_x = pdf->GetPageWidth() - pdf->rMargin - actual_table_w;
+        if (table_x < pdf->lMargin) table_x = pdf->lMargin;
+    }
+
+    auto border_it = table_node->attrs.find("border");
+    bool has_border = (border_it != table_node->attrs.end() && border_it->second != "0");
+
+    std::string saved_draw_color = pdf->DrawColor;
+    if (has_border && !style.border_color.empty()) {
+        std::istringstream iss(style.border_color);
+        int r = 0, g = 0, b = 0; iss >> r >> g >> b;
+        pdf->SetDrawColor(r, g, b);
+    }
+
+    bool is_fixed = (style.position == "fixed");
+
+    std::vector<double> row_y(nrows, 0);
+    std::vector<int> thead_idx;
+    for (int r = 0; r < nrows; r++) if (row_is_thead[r]) thead_idx.push_back(r);
+
+    bool old_auto = pdf->AutoPageBreak;
+    double old_bm = pdf->bMargin;
+    pdf->SetAutoPageBreak(false);
+
+    // Draw every cell that STARTS at row r (spanning cells extend downward).
+    auto draw_row = [&](int r) {
+        double y_top = row_y[r];
+        for (auto& gc : gcells) {
+            if (gc.r != r) continue;
+            double x = table_x + col_x_off(gc.c);
+            double w = span_w(gc.c, gc.cspan);
+            double h = 0;
+            for (int rr = gc.r; rr < gc.r + gc.rspan && rr < nrows; rr++) h += row_h[rr];
+            double max_h = pdf->PageBreakTrigger - y_top;
+            if (h > max_h && max_h > 0) h = max_h;
+
+            CSSStyle cs = cell_css(gc.node);
+            std::string text = trim_cell_text(node_to_text(gc.node));
+            bool is_header = (gc.node->tag == "th");
+            std::string align = is_header ? "C" : "L";
+            auto ait = gc.node->attrs.find("align");
+            if (ait != gc.node->attrs.end()) {
+                std::string a = str_tolower(ait->second);
+                if (a == "center") align = "C"; else if (a == "right") align = "R"; else if (a == "left") align = "L";
+            }
+            if (!cs.text_align.empty()) {
+                if (cs.text_align == "center") align = "C";
+                else if (cs.text_align == "right") align = "R";
+                else if (cs.text_align == "left") align = "L";
+            }
+            apply_style(cs);
+            double pad_l = cs.padding_left > 0 ? cs.padding_left / pdf->k : default_pad;
+            double pad_r = cs.padding_right > 0 ? cs.padding_right / pdf->k : default_pad;
+            double pad_t = cs.padding_top > 0 ? cs.padding_top / pdf->k : default_pad;
+            double pad_b = cs.padding_bottom > 0 ? cs.padding_bottom / pdf->k : default_pad;
+
+            if (!cs.background_color.empty()) {
+                std::istringstream iss(cs.background_color);
+                int br = 0, bg = 0, bb = 0; iss >> br >> bg >> bb;
+                std::string saved_fill = pdf->FillColor;
+                pdf->SetFillColor(br, bg, bb);
+                pdf->Rect(x, y_top, w, h, "F");
+                pdf->FillColor = saved_fill;
+                pdf->_out(saved_fill);
+            }
+            if (has_border) pdf->Rect(x, y_top, w, h);
+
+            double cell_w = w - pad_l - pad_r;
+            if (cell_w < min_col_w - default_pad * 2) cell_w = min_col_w - default_pad * 2;
+            int nl = pdf->GetMultiCellLines(cell_w, text);
+            if (nl < 1) nl = 1;
+            double text_h = nl * lh;
+            double text_y = y_top + pad_t;
+            if (cs.vertical_align == "bottom") {
+                text_y = y_top + h - pad_b - text_h;
+                if (text_y < y_top + pad_t) text_y = y_top + pad_t;
+            } else if (cs.vertical_align != "top") {
+                double avail_v = h - pad_t - pad_b;
+                text_y = y_top + pad_t + (avail_v - text_h) / 2.0;
+                if (text_y < y_top + pad_t) text_y = y_top + pad_t;
+            }
+            pdf->SetXY(x + pad_l, text_y);
+            pdf->MultiCell(w - pad_l - pad_r, lh, text, 0, align);
+        }
+    };
+
+    auto render_thead_block = [&](double& y) {
+        for (int ti : thead_idx) {
+            row_y[ti] = y;
+            draw_row(ti);
+            y += row_h[ti];
+        }
+    };
+
+    double y = pdf->GetY();
+    if (!thead_idx.empty()) {
+        double space_avail = pdf->PageBreakTrigger - y;
+        if (space_avail < lh * 3 && y > pdf->tMargin + 1) {
+            pdf->AddPage();
+            y = pdf->GetY();
+        }
+        render_thead_block(y);
+    }
+
+    double full_page = pdf->PageBreakTrigger - pdf->tMargin;
+    for (int r = 0; r < nrows; r++) {
+        if (row_is_thead[r]) continue;
+        // Height of the row plus any row-span group that starts here; we try to
+        // keep the whole group on one page.
+        double block_h = row_h[r];
+        for (auto& gc : gcells) {
+            if (gc.r == r && gc.rspan > 1) {
+                double hh = 0;
+                for (int rr = r; rr < r + gc.rspan && rr < nrows; rr++) hh += row_h[rr];
+                if (hh > block_h) block_h = hh;
+            }
+        }
+        double page_avail = pdf->PageBreakTrigger - y;
+        bool need_break = (block_h > page_avail && block_h <= full_page) ||
+                          (row_h[r] > page_avail);
+        if (need_break && y > pdf->tMargin + 1) {
+            pdf->AddPage();
+            y = pdf->GetY();
+            if (is_fixed && !thead_idx.empty()) render_thead_block(y);
+        }
+        row_y[r] = y;
+        draw_row(r);
+        y += row_h[r];
+    }
+
+    pdf->SetXY(table_x, y);
+    pdf->SetAutoPageBreak(old_auto, old_bm);
 
     if (has_border && !style.border_color.empty()) {
         pdf->DrawColor = saved_draw_color;
