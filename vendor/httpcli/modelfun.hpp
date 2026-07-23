@@ -5001,7 +5001,6 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
     std::string real_tag_sp;
     std::string modelName_file = model_name;
     colname_first_touper(modelName_file);
-
     if (db_tag != "default")
     {
         real_tag    = db_tag;
@@ -5347,6 +5346,8 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
     std::string model_name_obj=model_name;
  
     colname_first_touper(model_name_obj);
+    model_name_obj = colname_to_hump(model_name_obj);
+    
     filebasefilename.resize(model_name.size());
 
     std::transform(model_name.begin(), model_name.end(), filebasefilename.begin(), ::tolower);
@@ -11401,6 +11402,7 @@ void addhfiletoormfile(std::string mpath, std::string modelname, std::string rms
 
     std::string real_model_name = modelname;
     colname_first_touper(real_model_name);
+    real_model_name = colname_to_hump(real_model_name);
     s.resize(size);
 
     auto nread = fread(&s[0], 1, size, f);
