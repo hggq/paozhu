@@ -8,6 +8,7 @@
 #include "types/techempower_json.h"
 #include "department/department_type.h"
 #include "img/editorupload_type.h"
+#include "types/json_ref_obj.h"
 #include "unicode.h"
 
 template<typename JSON_REF_OBJ_TEMP>
@@ -95,4 +96,27 @@ std::string json_encode(const std::vector<img_upload_outjson_t> &json_reflectobj
 unsigned int json_decode(img_upload_outjson_t &json_reflectobj,const std::string &_json_data,unsigned int _offset=0);
 
 unsigned int json_decode(std::vector<img_upload_outjson_t> &json_reflectobj,const std::string &_json_data,unsigned int _offset=0);
+}
+
+namespace json
+{
+
+
+std::string json_encode(const json_ref_obj_recent_orders_t &json_reflectobj);
+
+
+std::string json_encode(const std::vector<json_ref_obj_recent_orders_t> &json_reflectobj);
+
+unsigned int json_decode(json_ref_obj_recent_orders_t &json_reflectobj,const std::string &_json_data,unsigned int _offset=0);
+
+unsigned int json_decode(std::vector<json_ref_obj_recent_orders_t> &json_reflectobj,const std::string &_json_data,unsigned int _offset=0);
+
+std::string json_encode(const json_ref_obj &json_reflectobj);
+
+
+std::string json_encode(const std::vector<json_ref_obj> &json_reflectobj);
+
+unsigned int json_decode(json_ref_obj &json_reflectobj,const std::string &_json_data,unsigned int _offset=0);
+
+unsigned int json_decode(std::vector<json_ref_obj> &json_reflectobj,const std::string &_json_data,unsigned int _offset=0);
 }

@@ -136,6 +136,7 @@ std::string json_encode(const std::vector<department_outjson_t> &json_reflectobj
                     _offset++;
                     _offset=http::json_string_trim(_json_data,_offset);
                     
+                    
                     if(_offset < _json_data.size() &&_json_data[_offset]=='{')
                     {   //还是一个对象，表示有嵌套对象
                         //1 内置 struct map<std::string,*>
@@ -282,6 +283,14 @@ std::string json_encode(const std::vector<department_outjson_t> &json_reflectobj
                                     json_reflectobj.bianzhi_num=0;
                                 }
                                  
+                            }
+                            			else if (http::str_casecmp(_json_key_name, "isopen"))
+                            {
+                                json_reflectobj.isopen = (_json_value_name=="true"||_json_value_name=="1"||_json_value_name=="TRUE"||_json_value_name=="True");     
+                            }
+                            			else if (http::str_casecmp(_json_key_name, "_is_use"))
+                            {
+                                json_reflectobj._is_use = (_json_value_name=="true"||_json_value_name=="1"||_json_value_name=="TRUE"||_json_value_name=="True");     
                             }
                             			else if (http::str_casecmp(_json_key_name, "title"))
                             {
@@ -490,6 +499,7 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
                     _offset++;
                     _offset=http::json_string_trim(_json_data,_offset);
                     
+                    
                     if(_offset < _json_data.size() &&_json_data[_offset]=='{')
                     {   //还是一个对象，表示有嵌套对象
                         //1 内置 struct map<std::string,*>
@@ -512,10 +522,10 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
                 //直到引号
                 if(_json_data[_offset]==0x22)
                 {
-                    unsigned int temp_offset_a=_offset;
+                    unsigned int temp_offset=_offset;
                     _json_value_name.clear();
-                    _json_key_name=http::jsonstring_to_utf8(&_json_data[_offset],_json_data.size()-_offset,temp_offset_a);
-                    _offset=temp_offset_a;
+                    _json_key_name=http::jsonstring_to_utf8(&_json_data[_offset],_json_data.size()-_offset,temp_offset);
+                    _offset=temp_offset;
                     if(_json_data[_offset]==0x22)
                     {
                         if((_offset+1)<_json_data.size())
@@ -535,6 +545,7 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
                     _offset++;
                     _offset=http::json_string_trim(_json_data,_offset);
 
+                    
                     if(_offset < _json_data.size() && _json_data[_offset]=='{')
                     {   //还是一个对象，表示有嵌套对象
                     

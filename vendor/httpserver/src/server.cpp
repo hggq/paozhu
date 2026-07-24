@@ -93,13 +93,20 @@ asio::awaitable<void> httpserver::http2_send_file_range(std::shared_ptr<httppeer
 
     DEBUG_LOG("%s", peer->sendfilename.c_str());
 
+    long long file_length = -1;
     if (send_file_obj->fp.get())
     {
-        send_file_obj->peer = peer;
-        send_file_obj->type = 1;
         fseek(send_file_obj->fp.get(), 0, SEEK_END);
-        send_file_obj->content_length = ftell(send_file_obj->fp.get());
+        file_length = ftell(send_file_obj->fp.get());
         fseek(send_file_obj->fp.get(), 0, SEEK_SET);
+    }
+
+    // ftell 返回 -1 表示读取文件大小失败，按访问失败处理，避免 content_length 溢出成超大值
+    if (send_file_obj->fp.get() && file_length >= 0)
+    {
+        send_file_obj->peer           = peer;
+        send_file_obj->type           = 1;
+        send_file_obj->content_length = static_cast<unsigned long long>(file_length);
 
         send_file_obj->file_ext = get_fileext(peer->sendfilename);
 
@@ -278,9 +285,18 @@ asio::awaitable<void> httpserver::http2_co_send_compress(std::shared_ptr<httppee
         if (fp)
         {
             fseek(fp.get(), 0, SEEK_END);
-            send_file_obj->content_length = ftell(fp.get());
+            long long file_length = ftell(fp.get());
             fseek(fp.get(), 0, SEEK_SET);
-            send_file_obj->fp = std::move(fp);
+            if (file_length < 0)
+            {
+                // ftell 失败，放弃使用压缩缓存文件，避免 content_length 溢出
+                peer->compress = 0;
+            }
+            else
+            {
+                send_file_obj->content_length = static_cast<unsigned long long>(file_length);
+                send_file_obj->fp             = std::move(fp);
+            }
         }
         else
         {
@@ -354,13 +370,20 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
 
     DEBUG_LOG("%s", peer->sendfilename.c_str());
 
+    long long file_length = -1;
     if (send_file_obj->fp.get())
     {
-        send_file_obj->peer = peer;
-        send_file_obj->type = 1;
         fseek(send_file_obj->fp.get(), 0, SEEK_END);
-        send_file_obj->content_length = ftell(send_file_obj->fp.get());
+        file_length = ftell(send_file_obj->fp.get());
         fseek(send_file_obj->fp.get(), 0, SEEK_SET);
+    }
+
+    // ftell 返回 -1 表示读取文件大小失败，按访问失败处理，避免 content_length 溢出成超大值
+    if (send_file_obj->fp.get() && file_length >= 0)
+    {
+        send_file_obj->peer           = peer;
+        send_file_obj->type           = 1;
+        send_file_obj->content_length = static_cast<unsigned long long>(file_length);
 
         send_file_obj->file_ext = get_fileext(peer->sendfilename);
 
@@ -1103,13 +1126,20 @@ asio::awaitable<void> httpserver::http1_send_file(std::shared_ptr<httppeer> peer
 
     DEBUG_LOG("news http1_send_file %s", peer->sendfilename.c_str());
 
+    long long file_length = -1;
     if (send_file_obj->fp.get())
     {
-        send_file_obj->peer = peer;
-        send_file_obj->type = 1;
         fseek(send_file_obj->fp.get(), 0, SEEK_END);
-        send_file_obj->content_length = ftell(send_file_obj->fp.get());
+        file_length = ftell(send_file_obj->fp.get());
         fseek(send_file_obj->fp.get(), 0, SEEK_SET);
+    }
+
+    // ftell 返回 -1 表示读取文件大小失败，按访问失败处理，避免 content_length 溢出成超大值
+    if (send_file_obj->fp.get() && file_length >= 0)
+    {
+        send_file_obj->peer           = peer;
+        send_file_obj->type           = 1;
+        send_file_obj->content_length = static_cast<unsigned long long>(file_length);
 
         send_file_obj->file_ext = get_fileext(peer->sendfilename);
 
@@ -1242,13 +1272,20 @@ asio::awaitable<void> httpserver::http1_send_file_range(std::shared_ptr<httppeer
 
     DEBUG_LOG("news http1_send_file_range %s", peer->sendfilename.c_str());
 
+    long long file_length = -1;
     if (send_file_obj->fp.get())
     {
-        send_file_obj->peer = peer;
-        send_file_obj->type = 1;
         fseek(send_file_obj->fp.get(), 0, SEEK_END);
-        send_file_obj->content_length = ftell(send_file_obj->fp.get());
+        file_length = ftell(send_file_obj->fp.get());
         fseek(send_file_obj->fp.get(), 0, SEEK_SET);
+    }
+
+    // ftell 返回 -1 表示读取文件大小失败，按访问失败处理，避免 content_length 溢出成超大值
+    if (send_file_obj->fp.get() && file_length >= 0)
+    {
+        send_file_obj->peer           = peer;
+        send_file_obj->type           = 1;
+        send_file_obj->content_length = static_cast<unsigned long long>(file_length);
 
         send_file_obj->file_ext = get_fileext(peer->sendfilename);
 

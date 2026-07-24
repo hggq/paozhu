@@ -287,14 +287,14 @@ std::string utf8_to_unicodestring(std::string &source)
             // c[0]=(big_char&0xFF00)>>8;
 
             // 1
-            c[0] = big_char & 0xF000 >> 12;
+            c[0] = big_char >> 12 & 0x0F;
             obj.push_back(str[c[0]]);
             // 2
-            c[0] = big_char & 0xF00 >> 8;
+            c[0] = big_char >> 8 & 0x0F;
             obj.push_back(str[c[0]]);
 
             // 3
-            c[0] = big_char & 0xF0 >> 4;
+            c[0] = big_char >> 4 & 0x0F;
             obj.push_back(str[c[0]]);
 
             // 4
@@ -640,14 +640,14 @@ std::string utf8_to_jsonstring(const std::string &source)
             obj.push_back(0x5c);
             obj.push_back('u');
             // 1
-            c[0] = big_char & 0xF000 >> 12;
+            c[0] = big_char >> 12 & 0x0F;
             obj.push_back(str[c[0]]);
             // 2
-            c[0] = big_char & 0xF00 >> 8;
+            c[0] = big_char >> 8 & 0x0F;
             obj.push_back(str[c[0]]);
 
             // 3
-            c[0] = big_char & 0xF0 >> 4;
+            c[0] = big_char >> 4 & 0x0F;
             obj.push_back(str[c[0]]);
 
             // 4
@@ -857,7 +857,7 @@ std::string jsonstring_to_utf8(const char *jsonstr, unsigned int str_length, uns
                     }
                     else
                     {
-                        if ((j + 6) < str_length)
+                        if ((j + 6) > str_length)
                         {
                             return str;
                         }
@@ -877,14 +877,21 @@ std::string jsonstring_to_utf8(const char *jsonstr, unsigned int str_length, uns
                         }
                         temp = c[0] << 4 | c[1];
                         temp = temp << 8 | c[2] << 4 | c[3];
-                        c[3] = '\0';
-                        c[2] = (temp & 0x3F) | 0x80;
-                        c[1] = ((temp >> 6) & 0x3F) | 0x80;
-                        c[0] = ((temp >> 12) & 0x0F) | 0xE0;
-
-                        str += c[0];
-                        str += c[1];
-                        str += c[2];
+                        if (temp < 0x80)
+                        {
+                            str += (char)(unsigned char)(temp & 0x7F);
+                        }
+                        else if (temp < 0x800)
+                        {
+                            str += (char)(unsigned char)(((temp >> 6) & 0x1F) | 0xC0);
+                            str += (char)(unsigned char)((temp & 0x3F) | 0x80);
+                        }
+                        else
+                        {
+                            str += (char)(unsigned char)(((temp >> 12) & 0x0F) | 0xE0);
+                            str += (char)(unsigned char)(((temp >> 6) & 0x3F) | 0x80);
+                            str += (char)(unsigned char)((temp & 0x3F) | 0x80);
+                        }
                         j += 5;
                     }
                 }
@@ -1015,7 +1022,7 @@ std::string json_str_to_utf8(std::string_view jsonstr)
                     }
                     else
                     {
-                        if ((j + 6) < str_length)
+                        if ((j + 6) > str_length)
                         {
                             return str;
                         }
@@ -1035,14 +1042,21 @@ std::string json_str_to_utf8(std::string_view jsonstr)
                         }
                         temp = c[0] << 4 | c[1];
                         temp = temp << 8 | c[2] << 4 | c[3];
-                        c[3] = '\0';
-                        c[2] = (temp & 0x3F) | 0x80;
-                        c[1] = ((temp >> 6) & 0x3F) | 0x80;
-                        c[0] = ((temp >> 12) & 0x0F) | 0xE0;
-
-                        str += c[0];
-                        str += c[1];
-                        str += c[2];
+                        if (temp < 0x80)
+                        {
+                            str += (char)(unsigned char)(temp & 0x7F);
+                        }
+                        else if (temp < 0x800)
+                        {
+                            str += (char)(unsigned char)(((temp >> 6) & 0x1F) | 0xC0);
+                            str += (char)(unsigned char)((temp & 0x3F) | 0x80);
+                        }
+                        else
+                        {
+                            str += (char)(unsigned char)(((temp >> 12) & 0x0F) | 0xE0);
+                            str += (char)(unsigned char)(((temp >> 6) & 0x3F) | 0x80);
+                            str += (char)(unsigned char)((temp & 0x3F) | 0x80);
+                        }
                         j += 5;
                     }
                 }
@@ -1262,14 +1276,14 @@ std::string utf8_to_json_string(const std::string &source)
             obj.push_back(0x5c);
             obj.push_back('u');
             // 1
-            c[0] = big_char & 0xF000 >> 12;
+            c[0] = big_char >> 12 & 0x0F;
             obj.push_back(str[c[0]]);
             // 2
-            c[0] = big_char & 0xF00 >> 8;
+            c[0] = big_char >> 8 & 0x0F;
             obj.push_back(str[c[0]]);
 
             // 3
-            c[0] = big_char & 0xF0 >> 4;
+            c[0] = big_char >> 4 & 0x0F;
             obj.push_back(str[c[0]]);
 
             // 4

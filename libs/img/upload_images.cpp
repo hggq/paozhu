@@ -160,6 +160,25 @@ bool upload_images::upload_img(const std::string &fieldname)
             upload_info.state = "上传文件名有误(upload file name error!)";
             return false;
         }
+
+        for(unsigned int m=tempstr.size() - 1, kk = 0; m > 0; m--, kk++)
+        {
+            if(tempstr[m] == '.')
+            {
+                break;
+            }
+
+            if(tempstr[m] > 0x40 && tempstr[m] < 0x5B)
+            {
+                tempstr[m] = tempstr[m] + 0x20;
+            }
+            
+            if(kk>4)
+            {
+                break;
+            }
+        }
+
         bool isshowfile          = true;
         unsigned int extfilesize = tempstr.size();
         if (extfilesize > 3)

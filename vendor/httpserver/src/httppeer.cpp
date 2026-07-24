@@ -211,6 +211,7 @@ void httppeer::parse_session_file(const std::string &sessionfile)
 
     if (fcntl(fd, F_SETLKW, &lock) == -1)
     {
+        close(fd);
         return;
     }
 #else
@@ -218,31 +219,44 @@ void httppeer::parse_session_file(const std::string &sessionfile)
     auto native_handle = (HANDLE)_get_osfhandle(fd);
     if (!LockFile(native_handle, 0, 0, 0, MAXDWORD))
     {
+        close(fd);
         return;
     }
 #endif
 
     int filelen = lseek(fd, 0L, SEEK_END);
-    temp_session_file.clear();
-    temp_session_file.resize(filelen);
-    lseek(fd, 0L, SEEK_SET);
-    int readsize = read(fd, temp_session_file.data(), filelen);
-    if (readsize > 0)
+    if (filelen > 0)
     {
-        temp_session_file.resize(readsize);
-        session.from_json(temp_session_file);
+        temp_session_file.clear();
+        temp_session_file.resize(filelen);
+        lseek(fd, 0L, SEEK_SET);
+        int readsize = read(fd, temp_session_file.data(), filelen);
+        if (readsize > 0)
+        {
+            temp_session_file.resize(readsize);
+            // session 文件内容损坏时不得抛出异常, 否则会中断整个请求连接
+            try
+            {
+                session.from_json(temp_session_file);
+            }
+            catch (...)
+            {
+                session.clear();
+            }
+        }
     }
 
 #ifndef _WIN32
     lock.l_type = F_UNLCK;
     if (fcntl(fd, F_SETLKW, &lock) == -1)
     {
-
+        close(fd);
         return;
     }
 #else
     if (!UnlockFile(native_handle, 0, 0, 0, MAXDWORD))
     {
+        close(fd);
         return;
     }
 #endif
@@ -376,7 +390,7 @@ void httppeer::save_session_file(const std::string &sessionfile)
     root_path.append(sessionfile);
     root_path.append("_sess");
 #ifndef _MSC_VER
-    int fd = open(root_path.c_str(), O_RDWR | O_CREAT, 0666);
+    int fd = open(root_path.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0666);
     if (fd == -1)
     {
         // perror("open");

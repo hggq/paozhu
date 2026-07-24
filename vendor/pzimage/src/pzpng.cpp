@@ -358,9 +358,9 @@ bool png::read(const std::string &filename)
         file_.close();
         return false;
     }
-    char png[3];
-    file_.read(png, 3);
-    if (file_.gcount() != 3 || std::string(png, 3) != "PNG")
+    char png_sig[3];
+    file_.read(png_sig, 3);
+    if (file_.gcount() != 3 || std::string(png_sig, 3) != "PNG")
     {
         file_.close();
         return false;

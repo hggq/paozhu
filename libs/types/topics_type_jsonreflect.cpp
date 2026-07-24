@@ -134,6 +134,7 @@ std::string json_encode(const std::vector<topics_tree_outjson_t> &json_reflectob
                     _offset++;
                     _offset=http::json_string_trim(_json_data,_offset);
                     
+                    
                     if(_offset < _json_data.size() &&_json_data[_offset]=='{')
                     {   //还是一个对象，表示有嵌套对象
                         //1 内置 struct map<std::string,*>
@@ -280,6 +281,14 @@ std::string json_encode(const std::vector<topics_tree_outjson_t> &json_reflectob
                             {
 
                                 json_reflectobj.urlpath=_json_value_name;     
+                            }
+                            			else if (http::str_casecmp(_json_key_name, "isview"))
+                            {
+                                json_reflectobj.isview = (_json_value_name=="true"||_json_value_name=="1"||_json_value_name=="TRUE"||_json_value_name=="True");     
+                            }
+                            			else if (http::str_casecmp(_json_key_name, "_is_use"))
+                            {
+                                json_reflectobj._is_use = (_json_value_name=="true"||_json_value_name=="1"||_json_value_name=="TRUE"||_json_value_name=="True");     
                             }
                             else if (http::str_casecmp(_json_key_name, "_level"))
                             {

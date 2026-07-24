@@ -10832,6 +10832,8 @@ headtxt += R"(::meta data;
         {
             if (record[i].)";
         headtxt.append(parentitemname);
+        headtxt += R"(>0 && record[i].)";
+        headtxt.append(parentitemname);
         headtxt += R"(== t_vid)
             {
                 )";
@@ -10839,6 +10841,10 @@ headtxt += R"(::meta data;
         headtxt += R"(
                 targetdata.push_back(temp_obja);
             }
+        }
+        if(targetdata.size() == 0 )
+        {
+            return;
         }
         level+=1;
         for (unsigned int j = 0; j < targetdata.size(); j++)

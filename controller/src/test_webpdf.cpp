@@ -18,13 +18,13 @@ std::string test_webpdf(std::shared_ptr<httppeer> peer)
 #ifdef ENABLE_PDF
     server_loaclvar &static_server_var = get_server_global_var();
 
-    if (static_server_var.config_path.size() < 5)
+    if (static_server_var.log_path.size() < 5)
     {
-        client << "<p> static_server_var.config_path empty </p>";
+        client << "<p> static_server_var.log_path empty </p>";
         return "";
     }
 
-    std::string file_conf = dir_name(static_server_var.config_path);
+    std::string file_conf = dir_name(static_server_var.log_path);
 
     if (file_conf.size() > 0 && file_conf.back() != '/')
     {
@@ -153,13 +153,13 @@ std::string test_otfpdf(std::shared_ptr<httppeer> peer)
 #ifdef ENABLE_PDF
     server_loaclvar &static_server_var = get_server_global_var();
 
-    if (static_server_var.config_path.size() < 5)
+    if (static_server_var.log_path.size() < 5)
     {
-        client << "<p> static_server_var.config_path empty </p>";
+        client << "<p> static_server_var.log_path empty </p>";
         return "";
     }
 
-    std::string file_conf = dir_name(static_server_var.config_path);
+    std::string file_conf = dir_name(static_server_var.log_path);
 
     if (file_conf.size() > 0 && file_conf.back() != '/')
     {

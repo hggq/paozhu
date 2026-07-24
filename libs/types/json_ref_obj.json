@@ -1,0 +1,68 @@
+{
+  "status": "success",
+  "code": 200,
+  "api_version": "v3.2.1",
+  "config": {
+    "debug": false,
+    "timeout": 30.5,
+    "retry": 0,
+    "nullable_field": null
+  },
+  "user": {
+    "id": 10086,
+    "name": {
+      "zh": "张伟·测试",
+      "en": "Wei Zhang",
+      "ar": "تشانغ وي"
+    },
+    "bio": "我热爱 C++ 编程 ☕️ 和 旅行 ✈️。\n换行符测试\t制表符测试。",
+    "address": {
+      "street": "中关村大街 66 号 6楼 606室",
+      "city": "北京市",
+      "geo": {
+        "lat": 39.9087,
+        "lng": 116.3975
+      }
+    },
+    "tags": ["开发者", "AI", "🚀火箭", "🏀篮球", "🎮游戏"],
+    "settings": {
+      "notifications": true,
+      "language": "zh-CN"
+    }
+  },
+  "recent_orders": [
+    {
+      "id": "ORD-2026-001",
+      "amount": 199.99,
+      "items": ["《C++ Primer》", "咖啡豆 500g"],
+      "remark": "家庭👨‍👩‍👧‍👦 周末阅读时光"
+    },
+    {
+      "id": "ORD-2026-002",
+      "amount": 0.01,
+      "items": ["虚拟商品"],
+      "remark": "🇨🇳 测试旗帜与🏳️‍🌈 彩虹旗"
+    }
+  ],
+  "escape_sequence_test": {
+    "quotes": "她说:\"这个 JSON 里嵌套了双引号！\"",
+    "backslash": "C:\\Windows\\System32\\drivers\\etc\\hosts",
+    "json_boundary": "此内容包含 )\" 序列，测试 C++ R\"(...)\" 是否会提前终止",
+    "unicode_emoji_raw": "😀😁😂🤣😃😄😅😆😉😊😋😎😍😘🥰"
+  },
+  "nested_arrays_test": [
+    [
+      [1, 2, 3],
+      ["a", "b", "c"]
+    ],
+    [
+      [true, false],
+      [null, "mixed"]
+    ]
+  ],
+  "metadata": {
+    "generated_at": "2026-07-24T16:00:00+08:00",
+    "source": "ChatGPT 复杂测试数据",
+    "rnd_seed": 3.1415926535
+  }
+}

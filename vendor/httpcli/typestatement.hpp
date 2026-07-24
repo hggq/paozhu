@@ -97,8 +97,15 @@ class typejsonfiles
         std::string namespacename;
 
         fseek(fp.get(), 0, SEEK_END);
-        unsigned long long file_size = ftell(fp.get());
+        long file_size_raw = ftell(fp.get());
         fseek(fp.get(), 0, SEEK_SET);
+
+        if (file_size_raw <= 0)
+        {
+            return temp;
+        }
+
+        unsigned long long file_size = static_cast<unsigned long long>(file_size_raw);
 
         filecontent.resize(file_size);
         file_size = fread(&filecontent[0], 1, file_size, fp.get());
@@ -145,10 +152,10 @@ class typejsonfiles
             }
 
             // pick namespace
-            if (filecontent[i] == 'n' && filecontent[i + 1] == 'a' && filecontent[i + 2] == 'm' &&
-                filecontent[i + 3] == 'e' && filecontent[i + 4] == 's' && filecontent[i + 5] == 'p' &&
-                filecontent[i + 6] == 'a' && filecontent[i + 7] == 'c' && filecontent[i + 8] == 'e' &&
-                filecontent[i + 9] == ' ')
+            if ((i + 9) < filecontent.size() && filecontent[i] == 'n' && filecontent[i + 1] == 'a' &&
+                filecontent[i + 2] == 'm' && filecontent[i + 3] == 'e' && filecontent[i + 4] == 's' &&
+                filecontent[i + 5] == 'p' && filecontent[i + 6] == 'a' && filecontent[i + 7] == 'c' &&
+                filecontent[i + 8] == 'e' && filecontent[i + 9] == ' ')
             {
                 unsigned j = i + 10;
                 for (; j < filecontent.size(); j++)
@@ -190,13 +197,13 @@ class typejsonfiles
             //     continue;
             // }
             ////@reflect
-            if (filecontent[i] == '/' && filecontent[i + 1] == '/' && filecontent[i + 2] == '@' &&
-                filecontent[i + 3] == 'r' && filecontent[i + 4] == 'e' && filecontent[i + 5] == 'f' &&
-                filecontent[i + 6] == 'l')
+            if ((i + 6) < filecontent.size() && filecontent[i] == '/' && filecontent[i + 1] == '/' &&
+                filecontent[i + 2] == '@' && filecontent[i + 3] == 'r' && filecontent[i + 4] == 'e' &&
+                filecontent[i + 5] == 'f' && filecontent[i + 6] == 'l')
             {
-                if (filecontent[i + 7] == 'e' && filecontent[i + 8] == 'c' && filecontent[i + 9] == 't' &&
-                    filecontent[i + 10] == ' ' && filecontent[i + 11] == 'j' && filecontent[i + 12] == 's' &&
-                    filecontent[i + 13] == 'o' && filecontent[i + 14] == 'n')
+                if ((i + 14) < filecontent.size() && filecontent[i + 7] == 'e' && filecontent[i + 8] == 'c' &&
+                    filecontent[i + 9] == 't' && filecontent[i + 10] == ' ' && filecontent[i + 11] == 'j' &&
+                    filecontent[i + 12] == 's' && filecontent[i + 13] == 'o' && filecontent[i + 14] == 'n')
                 {
                     std::string prename;
                     std::string tempname;
@@ -244,9 +251,9 @@ class typejsonfiles
         for (; offset < filecontent.size(); offset++)
         {
             // struct
-            if (filecontent[offset] == 's' && filecontent[offset + 1] == 't' && filecontent[offset + 2] == 'r' &&
-                filecontent[offset + 3] == 'u' && filecontent[offset + 4] == 'c' && filecontent[offset + 5] == 't' &&
-                filecontent[offset + 6] == ' ')
+            if ((offset + 6) < filecontent.size() && filecontent[offset] == 's' && filecontent[offset + 1] == 't' &&
+                filecontent[offset + 2] == 'r' && filecontent[offset + 3] == 'u' && filecontent[offset + 4] == 'c' &&
+                filecontent[offset + 5] == 't' && filecontent[offset + 6] == ' ')
             {
                 offset = offset + 7;
                 for (; offset < filecontent.size(); offset++)
@@ -308,8 +315,9 @@ class typejsonfiles
                 }
             }
             // class
-            if (filecontent[offset] == 'c' && filecontent[offset + 1] == 'l' && filecontent[offset + 2] == 'a' &&
-                filecontent[offset + 3] == 's' && filecontent[offset + 4] == 's' && filecontent[offset + 5] == ' ')
+            if ((offset + 5) < filecontent.size() && filecontent[offset] == 'c' && filecontent[offset + 1] == 'l' &&
+                filecontent[offset + 2] == 'a' && filecontent[offset + 3] == 's' && filecontent[offset + 4] == 's' &&
+                filecontent[offset + 5] == ' ')
             {
                 offset = offset + 6;
                 for (; offset < filecontent.size(); offset++)
@@ -607,7 +615,8 @@ class typejsonfiles
             if (filecontent[offset] == '{')
             {
                 isdefinefunc = false;
-                if (filecontent[offset - 1] == 0x27 && filecontent[offset + 1] == 0x27)
+                if (offset > 0 && (offset + 1) < filecontent.size() && filecontent[offset - 1] == 0x27 &&
+                    filecontent[offset + 1] == 0x27)
                 {
                 }
                 else
@@ -618,12 +627,16 @@ class typejsonfiles
             }
             if (filecontent[offset] == '}')
             {
-                if (filecontent[offset - 1] == 0x27 && filecontent[offset + 1] == 0x27)
+                if (offset > 0 && (offset + 1) < filecontent.size() && filecontent[offset - 1] == 0x27 &&
+                    filecontent[offset + 1] == 0x27)
                 {
                 }
                 else
                 {
-                    levelnum -= 1;
+                    if (levelnum > 0)
+                    {
+                        levelnum -= 1;
+                    }
                 }
 
                 if (levelnum == 0)
@@ -986,6 +999,105 @@ class typejsonfiles
 
         return std::make_tuple(offset, linecontent);
     }
+    // 递归判断结构体(含内联子结构体)是否存在 rawjson 透传字段
+    bool tree_has_rawjson(const struct obj_reflect_type &node)
+    {
+        for (unsigned int i = 0; i < node.children.size(); i++)
+        {
+            if (node.children[i].type == "rawjson")
+            {
+                return true;
+            }
+            if (node.children[i].type == "struct" && tree_has_rawjson(node.children[i]))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    // 生成一个用于"跳过一个 JSON 值"的辅助函数(捕获 rawjson 原始文本时使用)
+    std::string rawjson_skip_helper()
+    {
+        return R"(
+static unsigned int _paozhu_json_skip_value(const std::string &_json_data, unsigned int _offset)
+{
+    _offset = http::json_string_trim(_json_data, _offset);
+    if (_offset >= _json_data.size())
+    {
+        return _offset;
+    }
+    char _c = _json_data[_offset];
+    if (_c == '"')
+    {
+        _offset += 1;
+        for (; _offset < _json_data.size(); _offset++)
+        {
+            if (_json_data[_offset] == 0x5C)
+            {
+                _offset += 1;
+                continue;
+            }
+            if (_json_data[_offset] == '"')
+            {
+                _offset += 1;
+                break;
+            }
+        }
+        return _offset;
+    }
+    if (_c == '{' || _c == '[')
+    {
+        int _depth = 0;
+        bool _instr = false;
+        for (; _offset < _json_data.size(); _offset++)
+        {
+            char _ch = _json_data[_offset];
+            if (_instr)
+            {
+                if (_ch == 0x5C)
+                {
+                    _offset += 1;
+                    continue;
+                }
+                if (_ch == '"')
+                {
+                    _instr = false;
+                }
+                continue;
+            }
+            if (_ch == '"')
+            {
+                _instr = true;
+                continue;
+            }
+            if (_ch == '{' || _ch == '[')
+            {
+                _depth += 1;
+            }
+            else if (_ch == '}' || _ch == ']')
+            {
+                _depth -= 1;
+                if (_depth <= 0)
+                {
+                    _offset += 1;
+                    break;
+                }
+            }
+        }
+        return _offset;
+    }
+    for (; _offset < _json_data.size(); _offset++)
+    {
+        char _ch = _json_data[_offset];
+        if (_ch == ',' || _ch == '}' || _ch == ']' || _ch == 0x20 || _ch == 0x0A || _ch == 0x0D || _ch == '\t')
+        {
+            break;
+        }
+    }
+    return _offset;
+}
+)";
+    }
     void createhfile(const std::string &filename,
                      const std::vector<struct obj_reflect_type> &methodpathfile,
                      const std::string &headerfilename)
@@ -1023,6 +1135,21 @@ class typejsonfiles
             header_content.append("\n{\n");
         }
         fwrite(&header_content[0], 1, header_content.size(), fp.get());
+
+        bool _need_rawjson = false;
+        for (unsigned int i = 0; i < methodpathfile.size(); i++)
+        {
+            if (tree_has_rawjson(methodpathfile[i]))
+            {
+                _need_rawjson = true;
+                break;
+            }
+        }
+        if (_need_rawjson)
+        {
+            std::string rawjson_helper = rawjson_skip_helper();
+            fwrite(&rawjson_helper[0], 1, rawjson_helper.size(), fp.get());
+        }
 
         for (unsigned int i = 0; i < methodpathfile.size(); i++)
         {
@@ -1169,6 +1296,33 @@ class typejsonfiles
                     _offset++;
                     _offset=http::json_string_trim(_json_data,_offset);
                     
+                    )";
+        for (unsigned int _ri = 0; _ri < json_reflect_data.children.size(); _ri++)
+        {
+            if (json_reflect_data.children[_ri].type == "rawjson")
+            {
+                tempcontent += R"(
+                    if (http::str_casecmp(_json_key_name, ")";
+                tempcontent += json_reflect_data.children[_ri].name;
+                tempcontent += R"("))
+                    {
+                        unsigned int _raw_begin=_offset;
+                        unsigned int _raw_end=_paozhu_json_skip_value(_json_data,_offset);
+                        if(_raw_end>_raw_begin && _raw_end<=_json_data.size())
+                        {
+                            )";
+                tempcontent += tempobjname;
+                tempcontent += json_reflect_data.children[_ri].name;
+                tempcontent += R"(.assign(_json_data,_raw_begin,_raw_end-_raw_begin);
+                        }
+                        _offset=_raw_end;
+                        if(_offset>0){_offset-=1;}
+                        continue;
+                    }
+                    )";
+            }
+        }
+        tempcontent += R"(
                     if(_offset < _json_data.size() &&_json_data[_offset]=='{')
                     {   //还是一个对象，表示有嵌套对象
                         //1 内置 struct map<std::string,*>
@@ -1794,6 +1948,25 @@ class typejsonfiles
                             )";
                 ishas += 1;
             }
+            else if (json_reflect_data.children[i].type.starts_with("bool"))
+            {
+                if (ishas > 0)
+                {
+                    tempcontent += "\t\t\telse ";
+                }
+                tempcontent += R"(if (http::str_casecmp(_json_key_name, ")";
+                tempcontent += json_reflect_data.children[i].name;
+                tempcontent += R"("))
+                            {
+                                )";
+                tempcontent += tempobjname;
+                tempcontent += json_reflect_data.children[i].name;
+                tempcontent += R"( = (_json_value_name=="true"||_json_value_name=="1"||_json_value_name=="TRUE"||_json_value_name=="True");)";
+                tempcontent += R"(     
+                            }
+                            )";
+                ishas += 1;
+            }
         }
 
         tempcontent += R"(
@@ -1859,6 +2032,33 @@ class typejsonfiles
                     _offset++;
                     _offset=http::json_string_trim(_json_data,_offset);
 
+                    )";
+        for (unsigned int _ri = 0; _ri < json_reflect_data.children.size(); _ri++)
+        {
+            if (json_reflect_data.children[_ri].type == "rawjson")
+            {
+                tempcontent += R"(
+                    if (http::str_casecmp(_json_key_name, ")";
+                tempcontent += json_reflect_data.children[_ri].name;
+                tempcontent += R"("))
+                    {
+                        unsigned int _raw_begin=_offset;
+                        unsigned int _raw_end=_paozhu_json_skip_value(_json_data,_offset);
+                        if(_raw_end>_raw_begin && _raw_end<=_json_data.size())
+                        {
+                            )";
+                tempcontent += tempobjname;
+                tempcontent += json_reflect_data.children[_ri].name;
+                tempcontent += R"(.assign(_json_data,_raw_begin,_raw_end-_raw_begin);
+                        }
+                        _offset=_raw_end;
+                        if(_offset>0){_offset-=1;}
+                        continue;
+                    }
+                    )";
+            }
+        }
+        tempcontent += R"(
                     if(_offset < _json_data.size() && _json_data[_offset]=='{')
                     {   //还是一个对象，表示有嵌套对象
                     )";
@@ -2457,6 +2657,25 @@ class typejsonfiles
                 tempcontent += json_reflect_data.children[i].name;
                 tempcontent += R"(=_json_value_name;)";
 
+                tempcontent += R"(     
+                            }
+                            )";
+                ishas += 1;
+            }
+            else if (json_reflect_data.children[i].type.starts_with("bool"))
+            {
+                if (ishas > 0)
+                {
+                    tempcontent += "\t\t\telse ";
+                }
+                tempcontent += R"(if (http::str_casecmp(_json_key_name, ")";
+                tempcontent += json_reflect_data.children[i].name;
+                tempcontent += R"("))
+                            {
+                                )";
+                tempcontent += tempobjname;
+                tempcontent += json_reflect_data.children[i].name;
+                tempcontent += R"( = (_json_value_name=="true"||_json_value_name=="1"||_json_value_name=="TRUE"||_json_value_name=="True");)";
                 tempcontent += R"(     
                             }
                             )";
@@ -3180,6 +3399,20 @@ unsigned int json_decode(std::vector<)";
         if (json_reflect_data.name.size() > 0 && json_reflect_data.name[0] == '_')
         {
             return "";
+        }
+        if (json_reflect_data.type == "rawjson")
+        {
+            maincontent += R"(_stream << "\")";
+            maincontent += json_reflect_data.name;
+            maincontent += R"(\":" << ()";
+            maincontent += pre_name;
+            maincontent += json_reflect_data.name;
+            maincontent += R"(.empty() ? std::string("null") : )";
+            maincontent += pre_name;
+            maincontent += json_reflect_data.name;
+            maincontent += R"();
+                )";
+            return maincontent;
         }
         if (json_reflect_data.type == "unsigned int")
         {

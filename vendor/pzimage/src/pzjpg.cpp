@@ -1590,7 +1590,7 @@ bool jpg::read(const std::string& filename) {
             metadata.app0[1] = 0xE0;
             metadata.app0[2] = (seg_len >> 8) & 0xFF;
             metadata.app0[3] = seg_len & 0xFF;
-            for (size_t i = 4; i < seg_len + 2 && pos < seg_end; i++) {
+            for (size_t i = 4; i < (size_t)seg_len + 2 && pos < seg_end; i++) {
                 metadata.app0[i] = readU8();
             }
             pos = seg_end;
@@ -1601,7 +1601,7 @@ bool jpg::read(const std::string& filename) {
             metadata.exif[1] = 0xE1;
             metadata.exif[2] = (seg_len >> 8) & 0xFF;
             metadata.exif[3] = seg_len & 0xFF;
-            for (size_t i = 4; i < seg_len + 2 && pos < seg_end; i++) {
+            for (size_t i = 4; i < (size_t)seg_len + 2 && pos < seg_end; i++) {
                 metadata.exif[i] = readU8();
             }
             pos = seg_end;
@@ -1612,7 +1612,7 @@ bool jpg::read(const std::string& filename) {
             metadata.icc_profile[1] = 0xE2;
             metadata.icc_profile[2] = (seg_len >> 8) & 0xFF;
             metadata.icc_profile[3] = seg_len & 0xFF;
-            for (size_t i = 4; i < seg_len + 2 && pos < seg_end; i++) {
+            for (size_t i = 4; i < (size_t)seg_len + 2 && pos < seg_end; i++) {
                 metadata.icc_profile[i] = readU8();
             }
             pos = seg_end;
@@ -1623,7 +1623,7 @@ bool jpg::read(const std::string& filename) {
             metadata.xmp[1] = 0xEF;
             metadata.xmp[2] = (seg_len >> 8) & 0xFF;
             metadata.xmp[3] = seg_len & 0xFF;
-            for (size_t i = 4; i < seg_len + 2 && pos < seg_end; i++) {
+            for (size_t i = 4; i < (size_t)seg_len + 2 && pos < seg_end; i++) {
                 metadata.xmp[i] = readU8();
             }
             pos = seg_end;
@@ -1633,7 +1633,7 @@ bool jpg::read(const std::string& filename) {
             metadata.other_apps.push_back(marker);
             metadata.other_apps.push_back((seg_len >> 8) & 0xFF);
             metadata.other_apps.push_back(seg_len & 0xFF);
-            for (size_t i = 0; i < seg_len - 2 && pos < seg_end; i++) {
+            for (size_t i = 0; i < (size_t)seg_len - 2 && pos < seg_end; i++) {
                 metadata.other_apps.push_back(readU8());
             }
             pos = seg_end;

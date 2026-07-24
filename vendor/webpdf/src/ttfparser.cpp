@@ -1245,10 +1245,10 @@ std::string TTFParser::_subset_cff(const std::string& cff, const std::vector<uin
 
     // Remap the font dicts that are actually referenced by the subset.
     std::map<uint8_t, uint8_t> fd_remap; // old FD -> new FD
-    auto use_fd = [&](uint8_t f) {
-        if (f < fds.size() && !fd_remap.count(f)) {
+    auto use_fd = [&](uint8_t fd) {
+        if (fd < fds.size() && !fd_remap.count(fd)) {
             uint8_t nf = (uint8_t)fd_remap.size();
-            fd_remap[f] = nf;
+            fd_remap[fd] = nf;
         }
     };
     use_fd(gid_to_fd[0]);

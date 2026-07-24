@@ -1443,9 +1443,9 @@ void HTMLRenderer::render_table(const std::shared_ptr<HTMLNode>& table_node, con
             std::string align = is_header ? "C" : "L";
 
             // Check align attribute first
-            auto align_it = cell->attrs.find("align");
-            if (align_it != cell->attrs.end()) {
-                std::string a = str_tolower(align_it->second);
+            auto cell_align_it = cell->attrs.find("align");
+            if (cell_align_it != cell->attrs.end()) {
+                std::string a = str_tolower(cell_align_it->second);
                 if (a == "center") align = "C";
                 else if (a == "right") align = "R";
                 else if (a == "left") align = "L";
@@ -3505,9 +3505,9 @@ void HTMLRenderer::render_nodes(const std::vector<std::shared_ptr<HTMLNode>>& no
                                     if (side_w <= 0) return;
                                     if (!side_color.empty()) {
                                         std::istringstream iss(side_color);
-                                        int r = 0, g = 0, b = 0;
-                                        iss >> r >> g >> b;
-                                        pdf->SetFillColor(r, g, b);
+                                        int cr = 0, cg = 0, cb = 0;
+                                        iss >> cr >> cg >> cb;
+                                        pdf->SetFillColor(cr, cg, cb);
                                     }
                                     pdf->_out(fmt(rx) + " " + fmt(ry) + " " +
                                               fmt(rw) + " " + fmt(rh) + " re f");
@@ -3542,9 +3542,9 @@ void HTMLRenderer::render_nodes(const std::vector<std::shared_ptr<HTMLNode>>& no
                                     double sw = side_w / pdf->k;
                                     if (!side_color.empty()) {
                                         std::istringstream iss(side_color);
-                                        int r = 0, g = 0, b = 0;
-                                        iss >> r >> g >> b;
-                                        pdf->SetFillColor(r, g, b);
+                                        int cr = 0, cg = 0, cb = 0;
+                                        iss >> cr >> cg >> cb;
+                                        pdf->SetFillColor(cr, cg, cb);
                                     }
                                     if (x1 == x2) {
                                         double bx = (x1 == x_start) ? x1 : x1 - sw;

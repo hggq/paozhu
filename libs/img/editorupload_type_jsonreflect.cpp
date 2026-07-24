@@ -113,6 +113,7 @@ std::string json_encode(const std::vector<img_upload_list_t> &json_reflectobj)
                     _offset++;
                     _offset=http::json_string_trim(_json_data,_offset);
                     
+                    
                     if(_offset < _json_data.size() &&_json_data[_offset]=='{')
                     {   //还是一个对象，表示有嵌套对象
                         //1 内置 struct map<std::string,*>
@@ -414,6 +415,7 @@ std::string json_encode(const std::vector<img_upload_outjson_t> &json_reflectobj
                     }
                     _offset++;
                     _offset=http::json_string_trim(_json_data,_offset);
+                    
                     
                     if(_offset < _json_data.size() &&_json_data[_offset]=='{')
                     {   //还是一个对象，表示有嵌套对象

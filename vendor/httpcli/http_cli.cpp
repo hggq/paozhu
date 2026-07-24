@@ -39,7 +39,10 @@ int main(int argc, char *argv[])
     {
         std::cout << " \033[1m\033[31m model ｜ view | viewtocpp | control \033[0m "
                      " \n Welcome to use \033[4m\033[31mcli\033[0m to manage "
-                     "your MVC files。\n";
+                     "your MVC files。\n"
+                     "Input f create view, from view directory to viewsrc c++ cpp file, next input a create all modify html to c++ cpp\n"
+                     "Input m create ORM file, from database to ORM c++ cpp file, next select db front number to create.\n"
+                     "Input j create json file, scan libs directory *.json, annotation [//@reflect json to_json from_json] struct to json.cpp\n";
     }
     if (argc > 1)
     {

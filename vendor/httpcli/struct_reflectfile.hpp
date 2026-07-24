@@ -21,6 +21,7 @@
 #endif
 
 #include "typestatement.hpp"
+#include "jsonfile_reflect.hpp"
 
 void make_all_directory(const std::string &path, const std::string &pathname)
 {
@@ -160,6 +161,50 @@ int jsoncli()
             }
         }
     }
+    /////////////////
+    // 扫描 libs/** 下的 .json 样例文件, 解析结构并生成 <base>.h / <base>.cpp
+    {
+        std::string jsonsamplepath = current_run_path + "libs";
+        auto jsonlist              = jsonfilereflect::readalljsonfile(jsonsamplepath);
+        for (unsigned int i = 0; i < jsonlist.size(); i++)
+        {
+            std::string rel          = jsonlist[i]; // 如 types/json_ref_obj
+            std::string jsonfilepath = jsonsamplepath + "/" + rel + ".json";
+            std::string content      = jsonfilereflect::read_json_file(jsonfilepath);
+            if (content.empty())
+            {
+                continue;
+            }
+            // 结构体名取相对路径最后一段(必须是合法 C++ 标识符)
+            std::string basename = rel;
+            auto slashpos        = basename.find_last_of('/');
+            if (slashpos != std::string::npos)
+            {
+                basename = basename.substr(slashpos + 1);
+            }
+            jsonfilereflect::jsonfile_parser parser(content);
+            jsonfilereflect::jsonfile_value rootval = parser.parse();
+            jsonfilereflect::jsonfile_builder builder;
+            std::vector<struct obj_reflect_type> topo = builder.build(rootval, basename, "json");
+            if (topo.empty())
+            {
+                continue;
+            }
+            // 生成 <base>.h (namespace json 下的 struct 定义, 不含 //@reflect 标记)
+            std::string hfilepath = jsonsamplepath + "/" + rel + ".h";
+            jsonfilereflect::jsonfile_hwriter hwriter;
+            hwriter.write(hfilepath, topo, rel, "json");
+            // 复用 createhfile 生成 <base>.cpp
+            std::string cppfilepath   = jsonsamplepath + "/" + rel + ".cpp";
+            std::string headerinclude = "#include \"" + rel + ".h\"";
+            std::cout << ifindex << " " << cppfilepath << std::endl;
+            ifindex += 1;
+            tjf.createhfile(cppfilepath, topo, headerinclude);
+            jsonreflect_headers_content += tjf.get_jsonreflect_header(topo);
+            filelists.push_back(headerinclude);
+        }
+    }
+
     std::string json_header_filename =
         current_run_path + "common/json_reflect_headers.h";
     tjf.createhjson_reflectfile(json_header_filename, jsonreflect_headers_content, filelists);
