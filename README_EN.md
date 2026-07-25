@@ -24,8 +24,8 @@ Discussing the joy of C++ web development with community developers.
 ✅11. The framework features that I/O uses the coroutine pool to run and thread pool to run  
 ✅12. The framework supports compress gzip br out files  
 ✅13. URL POST Upload Files. use client.get[] client.post[] client.files[] get    
-✅14. Integrated sendmail  
-✅15. Generating QR code requires gd and qrencode libraries  
+✅14. Integrated the SendMail library, supporting both synchronous and asynchronous modes  
+✅15. Integrated QR code generation  
 ✅16. Plugin module,Hot Module Replacement  
 ✅17. The framework supports cache Module，ORM supports Result save to cache  
 ✅18. The controller directory cpp files annotation auto pick to url mapping  
@@ -33,8 +33,8 @@ Discussing the joy of C++ web development with community developers.
 ✅20. Support full demo admin backend, visit url /admin/main  
 ✅21. Support PHP-FPM fastcgi running, which can replace Apache, allowing PHP programmers to smoothly transition to C++development mode  
 ✅22. Built-in WeChat Mini Program payment function  
-✅23. Supports Socket server and client, supports Socket SSL connection  
-✅24. Supports RPC server and client, uses HTTP registered URL functions  
+✅23. Supports Socket server and client, supports SSL connection for Socket, facilitating IoT development  
+✅24. Supports both RPC server and client, using HTTP annotation URL functions  
 ✅25. Traffic limiting, with a two-stage limit based on a 60-second moving average of traffic  
 ✅26. Integrates the ACME protocol to automatically renew and validate SSL certificates  
 ✅27. Integrate server-side OCSP staples  
@@ -57,7 +57,7 @@ Supports Linux MacOS Windows
 - system requirements
 
 ```
->= BigSur
+>= Sequoia
 ```
 - Install necessary dependencies
 ```bash

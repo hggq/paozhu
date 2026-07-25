@@ -2183,8 +2183,7 @@ void obj_val::from_json(const std::string &json_str)
     from_json_internal(json_str, *this, offset, 0);
     while (offset < json_str.size() && (json_str[offset] == ' ' || json_str[offset] == '\t' || json_str[offset] == '\r' || json_str[offset] == '\n'))
         offset++;
-    if (offset < json_str.size())
-        throw json_parse_error("Unexpected trailing characters after JSON");
+    
 }
 
 std::string obj_val::to_json()
