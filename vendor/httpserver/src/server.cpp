@@ -18,6 +18,7 @@
 #include "http_parse.h"
 #include "serverconfig.h"
 #include "httppeer.h"
+#include "router.h"
 #include "http2_flow.h"
 #include "directory_fun.h"
 #include "https_brotli.h"
@@ -975,50 +976,8 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             bool not_co_handle = true;
 
             DEBUG_LOG("---  htttp2 co handle --------");
-            auto co_iter = _co_http_regmethod_table.find(peer->sendfilename);
-            if (co_iter != _co_http_regmethod_table.end())
-            {
-                DEBUG_LOG("---  coll %s handle --------", peer->sendfilename.c_str());
-                not_co_handle = false;
-                if (co_iter->second.pre != nullptr)
-                {
-                    send_file_obj->header = co_await co_iter->second.pre(peer);
-                    if (send_file_obj->header.size() == 2 && str_casecmp(send_file_obj->header, "ok"))
-                    {
-                        send_file_obj->header = co_await co_iter->second.regfun(peer);
-                    }
-                }
-                else
-                {
-                    send_file_obj->header = co_await co_iter->second.regfun(peer);
-                }
-
-                for (unsigned int co_loop_num = 0; co_loop_num < 30; ++co_loop_num)
-                {
-                    if (send_file_obj->header.size() > 0)
-                    {
-                        co_iter = _co_http_regmethod_table.find(send_file_obj->header);
-                        if (co_iter != _co_http_regmethod_table.end())
-                        {
-                            send_file_obj->header = co_await co_iter->second.regfun(peer);
-                        }
-                        else
-                        {
-                            auto iter = _http_regmethod_table.find(send_file_obj->header);
-                            if (iter != _http_regmethod_table.end())
-                            {
-                                // how to handle this case ?
-                                not_co_handle = true;
-                            }
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-            }
+            co_route_result co_ret = co_await get_router().co_dispatch(peer);
+            not_co_handle          = co_ret.need_sync;
 
             send_file_obj->header.clear();
             if (not_co_handle)
@@ -1707,58 +1666,12 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
         peer->etag.clear();
         peer->output.clear();
 
-        std::string respcontent;
-        bool not_co_handle = true;
         DEBUG_LOG("---  http1 co handle --------");
-        auto co_iter = _co_http_regmethod_table.find(peer->sendfilename);
-        if (co_iter != _co_http_regmethod_table.end())
+        co_route_result co_ret = co_await get_router().co_dispatch(peer);
+        bool not_co_handle     = co_ret.need_sync;
+        if (co_ret.matched && peer->ischunked)
         {
-            DEBUG_LOG("---  coll %s handle --------", peer->sendfilename.c_str());
-            not_co_handle = false;
-
-            if (co_iter->second.pre != nullptr)
-            {
-                respcontent = co_await co_iter->second.pre(peer);
-                if (respcontent.size() == 2 && str_casecmp(respcontent, "ok"))
-                {
-                    respcontent = co_await co_iter->second.regfun(peer);
-                }
-            }
-            else
-            {
-                respcontent = co_await co_iter->second.regfun(peer);
-            }
-
-            for (unsigned int co_loop_num = 0; co_loop_num < 30; ++co_loop_num)
-            {
-                if (respcontent.size() > 0)
-                {
-                    co_iter = _co_http_regmethod_table.find(respcontent);
-                    if (co_iter != _co_http_regmethod_table.end())
-                    {
-                        respcontent = co_await co_iter->second.regfun(peer);
-                    }
-                    else
-                    {
-                        auto iter = _http_regmethod_table.find(respcontent);
-                        if (iter != _http_regmethod_table.end())
-                        {
-                            // how to handle this case ?
-                            not_co_handle = true;
-                        }
-                        break;
-                    }
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            if (peer->ischunked)
-            {
-                co_return;
-            }
+            co_return;
         }
 
         if (not_co_handle)
@@ -2674,53 +2587,8 @@ asio::awaitable<unsigned int> httpserver::client_rpc_loop(unsigned int readnum, 
 
             if (rpc->isfinish)
             {
-                std::string respcontent;
-                //bool not_co_handle = true;
                 DEBUG_LOG("---  rpc co handle --------");
-                auto co_iter = _co_http_regmethod_table.find(peer->sendfilename);
-                if (co_iter != _co_http_regmethod_table.end())
-                {
-                    DEBUG_LOG("---  rpc %s handle --------", peer->sendfilename.c_str());
-                    //not_co_handle = false;
-                    if (co_iter->second.pre != nullptr)
-                    {
-                        respcontent = co_await co_iter->second.pre(peer);
-                        if (respcontent.size() == 2 && str_casecmp(respcontent, "ok"))
-                        {
-                            respcontent = co_await co_iter->second.regfun(peer);
-                        }
-                    }
-                    else
-                    {
-                        respcontent = co_await co_iter->second.regfun(peer);
-                    }
-
-                    for (unsigned int co_loop_num = 0; co_loop_num < 30; ++co_loop_num)
-                    {
-                        if (respcontent.size() > 0)
-                        {
-                            co_iter = _co_http_regmethod_table.find(respcontent);
-                            if (co_iter != _co_http_regmethod_table.end())
-                            {
-                                respcontent = co_await co_iter->second.regfun(peer);
-                            }
-                            else
-                            {
-                                auto iter = _http_regmethod_table.find(respcontent);
-                                if (iter != _http_regmethod_table.end())
-                                {
-                                    // how to handle this case ?
-                                    //not_co_handle = true;
-                                }
-                                break;
-                            }
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
-                }
+                co_await get_router().co_dispatch(peer);
 
                 if (!rpc->is_send)
                 {
