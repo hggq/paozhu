@@ -236,6 +236,42 @@ std::string weixinpay::unifiedorder()
     }
 }
 
+std::string weixinpay::createNative()
+{
+    // NATIVE 扫码支付下单，不需要 openid，成功返回 code_url 供生成二维码
+    std::map<std::string, std::string> params;
+    params["appid"]            = appid_;
+    params["mch_id"]           = mch_id_;
+    params["nonce_str"]        = generate_nonce_str();
+    params["body"]             = body_;
+    params["out_trade_no"]     = out_trade_no_;
+    params["total_fee"]        = total_fee_;
+    params["spbill_create_ip"] = client_ip_;
+    params["notify_url"]       = notify_url_;
+    params["trade_type"]       = "NATIVE";
+    params["product_id"]       = out_trade_no_;// NATIVE 模式一必传，模式二用商户单号即可
+
+    // 生成签名
+    std::string sign = get_sign(params);
+    params["sign"]   = sign;
+
+    // 转为 XML 并发送请求
+    std::string xml = post_to_xml(params);
+    std::string url = "https://api.mch.weixin.qq.com/pay/unifiedorder";
+    xml             = postxmlto(url, xml);
+    // 解析返回的 XML
+    std::map<std::string, std::string> resp = parse_xml(xml);
+
+    if (resp["return_code"] == "SUCCESS" && resp["result_code"] == "SUCCESS")
+    {
+        return resp["code_url"];// 返回扫码链接，如 weixin://wxpay/bizpayurl?pr=xxxx
+    }
+    else
+    {
+        return "ERROR:" + resp["return_msg"] + ";" + resp["err_code_des"];
+    }
+}
+
 std::string weixinpay::getpay()
 {
     // 1. 调用统一下单获取 prepay_id

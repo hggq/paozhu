@@ -21,11 +21,12 @@ public:
     void setBody(const std::string& b) { body_ = b; }
     void setClientIp(const std::string& b) { client_ip_ = b; }
     void setTotalFee(const std::string& fee) { total_fee_ = fee; }  // 注意字段名修正为 total_fee
-    void settNotifyUrl(const std::string& url) { notify_url_ = url; }  // 注意字段名修正为 total_fee
+    void setNotifyUrl(const std::string& url) { notify_url_ = url; }
 
     // 核心接口
     std::string getpay();          // 统一下单 + 生成调起支付参数
     std::string unifiedorder();    // 仅统一下单，返回 prepay_id 或原始 XML
+    std::string createNative();    // NATIVE 扫码下单，返回 code_url（用于生成二维码）
     std::map<std::string, std::string> handle_notify(const std::string& postData);
 private:
     // 成员变量（私有）
