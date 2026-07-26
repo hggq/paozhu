@@ -1184,6 +1184,10 @@ double webpdf::GetStringWidth(const std::string& s) {
         size_t i = 0;
         while (i < s.size()) {
             unsigned char c = (unsigned char)s[i];
+            if (c == '\r' || c == '\n' || c == '\f') {
+                i++;
+                continue;
+            }
             int unicode = 0;
             if (c < 0x80) {
                 unicode = c;
@@ -1216,6 +1220,8 @@ double webpdf::GetStringWidth(const std::string& s) {
         }
     } else {
         for (char c : s) {
+            if (c == '\r' || c == '\n' || c == '\f')
+                continue;
             int idx = (unsigned char)c;
             if (idx < (int)CurrentFont->cw.size())
                 width += CurrentFont->cw[idx];
@@ -1544,7 +1550,7 @@ void webpdf::MultiCell(double cw, double ch, const std::string& txt, const std::
             i++;
             continue;
         }
-        if (c == '\n') {
+        if (c == '\n' || c == '\f') {
             if (ws > 0) {
                 ws = 0;
                 _out("0 Tw");
@@ -1685,7 +1691,7 @@ int webpdf::GetMultiCellLines(double cw, const std::string& txt) {
             i++;
             continue;
         }
-        if (c == '\n') {
+        if (c == '\n' || c == '\f') {
             i++;
             sep = -1;
             j = i;
@@ -1796,7 +1802,7 @@ std::string webpdf::SplitTextByLines(double cw, std::string& txt, int max_lines)
             i++;
             continue;
         }
-        if (c == '\n') {
+        if (c == '\n' || c == '\f') {
             i++;
             if (nl == max_lines) {
                 last_line_end = i;

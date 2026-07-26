@@ -284,4 +284,52 @@ std::string test_otfpdf(std::shared_ptr<httppeer> peer)
     return "";
 }
 
+//@urlpath(null,test_table_linebreak)
+std::string test_table_linebreak(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+#ifdef ENABLE_PDF
+    try 
+    {
+        std::string html_content = R"(
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+table { border-collapse: collapse; width: 100%; }
+td { border: 1px solid #000; padding: 5mm; font-size: 10pt; }
+</style>
+</head>
+<body>
+<table>
+<tr><td>第一行<br>第二行<br>第三行</td></tr>
+<tr><td>第一行\n第二行\n第三行</td></tr>
+<tr><td><p>第一段内容</p><p>第二段内容</p></td></tr>
+</table>
+</body>
+</html>
+)";
+
+        auto pdf = std::make_unique<pz::webpdf>();
+        pdf->AddPage();
+        pdf->SetFont("Helvetica", "", 12);
+        pdf->WriteHTML(html_content);
+        
+        std::string output_path = "/Users/hzq/paozhu/temp/table_test.pdf";
+        pdf->Output("F", output_path);
+        
+        client << "<p>PDF generated: " << output_path << "</p>";
+        client << "<p><a href=\"/temp/table_test.pdf\" target=\"_blank\">Download PDF</a></p>";
+        
+    } catch (const std::exception& e) {
+        client << "Error: " << e.what();
+        return "";
+    }
+#else
+    client << "<p>Please: cmake .. -DENABLE_PDF=ON </p>";
+#endif// ENABLE_PDF
+
+    return "";
+}
+
 }// namespace http

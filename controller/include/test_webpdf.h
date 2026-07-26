@@ -8,4 +8,5 @@ namespace http
 {        
 	std::string test_webpdf(std::shared_ptr<httppeer> peer);
 	std::string test_otfpdf(std::shared_ptr<httppeer> peer);
+	std::string test_table_linebreak(std::shared_ptr<httppeer> peer);
 }

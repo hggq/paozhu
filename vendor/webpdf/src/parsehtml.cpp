@@ -883,10 +883,19 @@ static int count_cols(const std::shared_ptr<HTMLNode>& tr) {
     return count;
 }
 
+// Block-level tags that force a line break after their content inside a table cell
+static bool is_block_text_tag(const std::string& tag) {
+    return tag == "p" || tag == "div" || tag == "li" || tag == "ul" ||
+           tag == "ol" || tag == "blockquote" || tag == "pre" ||
+           (tag.size() == 2 && tag[0] == 'h' && tag[1] >= '1' && tag[1] <= '6');
+}
+
 static std::string node_to_text(const std::shared_ptr<HTMLNode>& node) {
     std::string result;
     if (node->type == HTMLNodeType::TEXT) {
         result += node->text;
+    } else if (node->type == HTMLNodeType::BR) {
+        result += '\f';
     } else if (node->type == HTMLNodeType::ELEMENT) {
         if (node->tag == "br") {
             result += '\f';
@@ -894,6 +903,9 @@ static std::string node_to_text(const std::shared_ptr<HTMLNode>& node) {
             for (auto& c : node->children) {
                 result += node_to_text(c);
             }
+            // Block-level children (e.g. <p>, <div>) end with a line break
+            if (is_block_text_tag(node->tag) && !result.empty() && result.back() != '\f')
+                result += '\f';
         }
     }
     return result;
@@ -919,16 +931,9 @@ static std::string trim_cell_text(const std::string& s) {
             last_was_space = false;
         }
     }
-    // Trim trailing spaces
-    while (!result.empty() && result.back() == ' ') result.pop_back();
-    // Trim trailing line break
-    while (!result.empty() && (result.back() == '\f' || result.back() == '\n')) {
-        // Only trim if it was followed by only spaces (already trimmed)
-        if (result.size() > 1 && (result[result.size()-2] == '\f' || result[result.size()-2] == '\n'))
-            result.pop_back();
-        else
-            break;
-    }
+    // Trim trailing spaces and line breaks (avoid empty trailing lines in cells)
+    while (!result.empty() && (result.back() == ' ' || result.back() == '\f' || result.back() == '\n'))
+        result.pop_back();
     return result;
 }
 
@@ -1140,7 +1145,7 @@ void HTMLRenderer::render_table(const std::shared_ptr<HTMLNode>& table_node, con
             std::string text = trim_cell_text(node_to_text(cells[i]));
             double max_line_w = 0;
 
-            // Replace \r\n, \r with \n, then split by \n
+            // Replace \r\n, \r with \n, \f (<br>) with \n, then split by \n
             std::string clean_text;
             clean_text.reserve(text.size());
             for (size_t p = 0; p < text.size(); p++) {
@@ -1148,6 +1153,8 @@ void HTMLRenderer::render_table(const std::shared_ptr<HTMLNode>& table_node, con
                 if (c == '\r') {
                     if (p + 1 < text.size() && text[p + 1] == '\n')
                         p++;
+                    clean_text += '\n';
+                } else if (c == '\f') {
                     clean_text += '\n';
                 } else {
                     clean_text += c;
@@ -2439,7 +2446,7 @@ void HTMLRenderer::render_nodes(const std::vector<std::shared_ptr<HTMLNode>>& no
                             double sz = est_style.font_size > 0 ? est_style.font_size : saved_size;
                             try { pdf->SetFont(fam, st, sz); } catch (...) {}
                             
-                            std::string text = node_to_text(cd);
+                            std::string text = trim_cell_text(node_to_text(cd));
                             if (!text.empty()) {
                                 int lines = pdf->GetMultiCellLines(child_w, text);
                                 double lh = get_line_height_mm(est_style);
