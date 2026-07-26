@@ -2714,21 +2714,61 @@ int obj_val::casecmp(const std::string &str) const
 
 std::vector<std::pair<std::string, obj_val>> &obj_val::as_object()
 {
-    if (_val_type != obj_type::OBJECT)
-        throw std::runtime_error("Not an object");
-    return obj->_data;
+    if (_val_type == obj_type::OBJECT)
+    {
+        return obj->_data;
+    }
+    else if (_val_type == obj_type::NIL)
+    {
+        obj       = new obj_t;
+        _val_type = obj_type::OBJECT;
+        return obj->_data;
+    }
+    else if (_val_type == obj_type::ARRAY)
+    {
+        if (array_val->_data.size() == 0)
+        {
+            clear();
+            obj       = new obj_t;
+            _val_type = obj_type::OBJECT;
+            return obj->_data;
+        }
+    }
+    throw std::runtime_error("Not an object");
 }
 
 std::vector<obj_val> &obj_val::as_array()
 {
-    if (_val_type != obj_type::ARRAY)
-        throw std::runtime_error("Not an array");
-    return array_val->_data;
+    if (_val_type == obj_type::ARRAY)
+    {
+        return array_val->_data;
+    }
+    else if (_val_type == obj_type::NIL)
+    {
+        array_val = new obj_array;
+        _val_type = obj_type::ARRAY;
+        return array_val->_data;
+    }
+    else if (_val_type == obj_type::OBJECT)
+    {
+        if (obj->_data.size() == 0)
+        {
+            clear();
+            array_val = new obj_array;
+            _val_type = obj_type::ARRAY;
+            return array_val->_data;
+        }
+    }
+    throw std::runtime_error("as_array no array");
 }
 
 std::string obj_val::as_string()
 {
-    return static_cast<std::string>(*this);
+    if (_val_type == obj_type::STRING)
+    {
+        return static_cast<std::string>(*this);
+    }
+    return to_string();
 }
 
 std::string obj_val::as_string(std::string_view default_val)

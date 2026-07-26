@@ -1867,6 +1867,52 @@ std::string json_addslash(const std::string &content)
     return temp;
 }
 
+std::string json_escape(const std::string &content)
+{
+    std::string temp;
+    temp.reserve(content.size());
+    for (unsigned int i = 0; i < content.size(); i++)
+    {
+        unsigned char c = (unsigned char)content[i];
+        switch (c)
+        {
+        case '"':
+            temp.append("\\\"");
+            break;
+        case '\\':
+            temp.append("\\\\");
+            break;
+        case '\b':
+            temp.append("\\b");
+            break;
+        case '\f':
+            temp.append("\\f");
+            break;
+        case '\n':
+            temp.append("\\n");
+            break;
+        case '\r':
+            temp.append("\\r");
+            break;
+        case '\t':
+            temp.append("\\t");
+            break;
+        default:
+            if (c < 0x20)
+            {
+                char buf[8];
+                snprintf(buf, sizeof(buf), "\\u%04x", c);
+                temp.append(buf);
+            }
+            else
+            {
+                temp.push_back(content[i]);
+            }
+        }
+    }
+    return temp;
+}
+
 std::string strip_html(std::string_view content)
 {
     std::string temp;
