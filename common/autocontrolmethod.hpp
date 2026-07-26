@@ -18,6 +18,7 @@
 #include "test_sql_commit.h"
 #include "techempower.h"
 #include "teststrip_html.h"
+#include "test_wxpay.h"
 #include "testsoft_remove.h"
 #include "test_escape_str.h"
 #include "test_customstruct.h"
@@ -26,6 +27,7 @@
 #include "testjson.h"
 #include "test_pzexcel.h"
 #include "test_reverse.h"
+#include "test_alipay.h"
 #include "test_co_handle.h"
 #include "testrand.h"
 #include "test_dir_name.h"
@@ -122,6 +124,33 @@ namespace http
 		temp.regfun = teststrip_html;
 		methodcallback.emplace("teststrip_html",temp);
 		temp.pre = nullptr;
+		temp.regfun = test_wxpay_native;
+		methodcallback.emplace("testwxpaynative",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_wxpay_jsapi;
+		methodcallback.emplace("testwxpayjsapi",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_wxpay_app;
+		methodcallback.emplace("testwxpayapp",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_wxpay_h5;
+		methodcallback.emplace("testwxpayh5",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_wxpay_query;
+		methodcallback.emplace("testwxpayquery",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_wxpay_close;
+		methodcallback.emplace("testwxpayclose",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_wxpay_refund;
+		methodcallback.emplace("testwxpayrefund",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_wxpay_notify;
+		methodcallback.emplace("wxpaynotify",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_wxpay_download_cert;
+		methodcallback.emplace("wxpaydownloadcert",temp);
+		temp.pre = nullptr;
 		temp.regfun = testsoftremove;
 		methodcallback.emplace("testsoftremove",temp);
 		temp.pre = nullptr;
@@ -145,6 +174,30 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testmb_reverse;
 		methodcallback.emplace("testmb_reverse",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_alipay_app;
+		methodcallback.emplace("testalipayapp",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_alipay_qrcode;
+		methodcallback.emplace("testalipayqrcode",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_alipay_page;
+		methodcallback.emplace("testalipaypage",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_alipay_query;
+		methodcallback.emplace("testalipayquery",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_alipay_cancel;
+		methodcallback.emplace("testalipaycancel",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_alipay_refund;
+		methodcallback.emplace("testalipayrefund",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_alipay_notify;
+		methodcallback.emplace("alipaynotify",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_alipay_return;
+		methodcallback.emplace("alipayreturn",temp);
 		temp.pre = nullptr;
 		temp.regfun = testrand;
 		methodcallback.emplace("testrand",temp);
@@ -523,6 +576,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = test_otfpdf;
 		methodcallback.emplace("test_ttfpdf",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_table_linebreak;
+		methodcallback.emplace("test_table_linebreak",temp);
 		temp.pre = nullptr;
 		temp.regfun = testurlencoded;
 		methodcallback.emplace("tformpost",temp);

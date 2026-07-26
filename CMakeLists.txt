@@ -31,6 +31,8 @@ option(ENABLE_BENCHMARK "Enable benchmarks" OFF)
 option(ENABLE_EXCEL "Enable pzexcel support" OFF)
 option(ENABLE_IMAGE "Enable image support" OFF)
 option(ENABLE_PDF "Enable pz::webpdf support" OFF)
+option(ENABLE_SMS "Enable SMS support" OFF)
+option(ENABLE_WEBPAY "Enable webpay support (alipay/wxpay)" OFF)
 
 # ---- Vcpkg toolchain ----
 if(ENABLE_VCPKG)
@@ -143,6 +145,14 @@ if(ENABLE_PDF)
   file(GLOB_RECURSE webpdf_list CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/vendor/webpdf/src/*.cpp")
 endif()
 
+if(ENABLE_SMS)
+  file(GLOB_RECURSE sms_list CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/vendor/sms/src/*.cpp")
+endif()
+
+if(ENABLE_WEBPAY)
+  file(GLOB_RECURSE webpay_list CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/vendor/webpay/src/*.cpp")
+endif()
+
 # Auto-generate missing header stubs for controllers
 foreach(cppfile IN LISTS controller_list)
   string(REGEX REPLACE "${CMAKE_CURRENT_SOURCE_DIR}/controller/src/" "" rel_path "${cppfile}")
@@ -198,6 +208,14 @@ if(ENABLE_PDF)
   list(APPEND paozhu_srcs ${webpdf_list})
 endif()
 
+if(ENABLE_SMS)
+  list(APPEND paozhu_srcs ${sms_list})
+endif()
+
+if(ENABLE_WEBPAY)
+  list(APPEND paozhu_srcs ${webpay_list})
+endif()
+
 add_executable(paozhu
   $<IF:$<CONFIG:Release>,
     ${CMAKE_CURRENT_SOURCE_DIR}/startup/main_daemon.cpp,
@@ -220,6 +238,14 @@ endif()
 
 if(ENABLE_PDF)
   target_compile_definitions(paozhu PRIVATE ENABLE_PDF)
+endif()
+
+if(ENABLE_SMS)
+  target_compile_definitions(paozhu PRIVATE ENABLE_SMS)
+endif()
+
+if(ENABLE_WEBPAY)
+  target_compile_definitions(paozhu PRIVATE ENABLE_WEBPAY)
 endif()
 
 target_link_libraries(paozhu PRIVATE project_warnings)
@@ -254,6 +280,14 @@ endif()
 
 if(ENABLE_IMAGE)
   include_system_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/vendor/pzimage/include")
+endif()
+
+if(ENABLE_SMS)
+  include_system_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/vendor/sms/include")
+endif()
+
+if(ENABLE_WEBPAY)
+  include_system_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/vendor/webpay/include")
 endif()
 
 if(ENABLE_PDF)

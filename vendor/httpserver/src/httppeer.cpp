@@ -638,176 +638,146 @@ bool httppeer::find_host_index()
     }
     return false;
 }
+//check filepath is a regular file
+static bool stat_is_regfile(const std::string &filepath)
+{
+    struct stat tempfileinfo;
+    memset(&tempfileinfo, 0, sizeof(tempfileinfo));
+    if (stat(filepath.c_str(), &tempfileinfo) == 0)
+    {
+        return (tempfileinfo.st_mode & S_IFREG) != 0;
+    }
+    return false;
+}
+//remove ".." "./" dot segments and their following '/' from url path
+static void remove_dot_path(std::string &pathname)
+{
+    unsigned int j = 0;
+    for (unsigned int n = 0; n < pathname.size(); n++)
+    {
+        if (pathname[n] == '.' && (n + 1) < pathname.size() && (pathname[n + 1] == '.' || pathname[n + 1] == '/'))
+        {
+            n += 1;
+            while ((n + 1) < pathname.size() && pathname[n + 1] == '/')
+            {
+                n += 1;
+            }
+            continue;
+        }
+        if (j != n)
+        {
+            pathname[j] = pathname[n];
+        }
+        j++;
+    }
+    if (j < pathname.size())
+    {
+        pathname.resize(j);
+    }
+}
 bool httppeer::isuse_fastcgi()
 {
     serverconfig &sysconfigpath = getserversysconfig();
+    auto &hostinfo              = sysconfigpath.sitehostinfos[host_index];
     compress                    = 0;
     linktype                    = 0;
     output.clear();
     sendfilename.clear();
-    if (sysconfigpath.sitehostinfos[host_index].isuse_php == 1)
+    if (hostinfo.isuse_php != 1)
     {
-        DEBUG_LOG("check php file");
-        if (pathinfos.size() > 0)
+        return false;
+    }
+    DEBUG_LOG("check php file");
+    if (pathinfos.size() == 0)
+    {
+        //no url path, if default index not exist try index.php in php root document
+        if (stat_is_regfile(hostinfo.wwwpath + hostinfo.document_index))
         {
-            //sendfilename.clear();
-            for (unsigned int i = 0; i < pathinfos.size(); i++)
-            {
-                unsigned int extfilesize = pathinfos[i].size();
-                if (extfilesize > 4 && pathinfos[i][extfilesize - 1] == 'p' && pathinfos[i][extfilesize - 2] == 'h' &&
-                    pathinfos[i][extfilesize - 3] == 'p' && pathinfos[i][extfilesize - 4] == '.')
-                {
-                    if (sendfilename.size() > 0)
-                    {
-                        sendfilename.append("/");
-                    }
-                    sendfilename.append(pathinfos[i]);
-                    struct stat sessfileinfo;
-                    std::string tempac = sysconfigpath.sitehostinfos[host_index].php_root_document + sendfilename;
-                    DEBUG_LOG("php file %s", tempac.c_str());
-                    memset(&sessfileinfo, 0, sizeof(sessfileinfo));
-                    if (stat(tempac.c_str(), &sessfileinfo) == 0)
-                    {
-                        if (sessfileinfo.st_mode & S_IFREG)
-                        {
-                            compress = 10;
-                            if (i == 0)
-                            {
-                                linktype = 10;
-                            }
-                            else
-                            {
-                                linktype = 50 + i;
-                            }
-                            DEBUG_LOG("is php file %s", sendfilename.c_str());
-                            return true;
-                        }
-                    }
-                }
-                else
-                {
-                    if (sendfilename.size() > 0)
-                    {
-                        sendfilename.append("/");
-                    }
-                    sendfilename.append(pathinfos[i]);
-                    //check url path reg points
-                    if (_http_regmethod_table.contains(sendfilename))
-                    {
-                        return false;
-                    }
-                }
-            }
-
-            DEBUG_LOG("check urlpath reg %s", sendfilename.c_str());
-            // if (_http_regmethod_table.contains(sendfilename))
-            // {
-            //     return false;
-            // }
-            // else
-            // {
-            struct stat sessfileinfo;
-            std::string tempac = sysconfigpath.sitehostinfos[host_index].wwwpath + sendfilename;
-            memset(&sessfileinfo, 0, sizeof(sessfileinfo));
-            if (stat(tempac.c_str(), &sessfileinfo) == 0)
-            {
-                if (sessfileinfo.st_mode & S_IFREG)
-                {
-                    compress = 0;
-                    linktype = 0;
-                    return false;
-                }
-                else if (sessfileinfo.st_mode & S_IFDIR)
-                {
-                    compress = 0;
-                    linktype = 0;
-                    tempac   = sysconfigpath.sitehostinfos[host_index].php_root_document + sendfilename + "/index.php";
-                    memset(&sessfileinfo, 0, sizeof(sessfileinfo));
-                    if (stat(tempac.c_str(), &sessfileinfo) == 0)
-                    {
-                        if (sessfileinfo.st_mode & S_IFREG)
-                        {
-                            compress = 10;
-                            linktype = 15;
-                            sendfilename.append("/index.php");
-                            return true;
-                        }
-                    }
-                    return false;
-                }
-            }
-
-            DEBUG_LOG("rewrite_php_lists: %zu", sysconfigpath.sitehostinfos[host_index].rewrite_php_lists.size());
-            if (sysconfigpath.sitehostinfos[host_index].rewrite_php_lists.size() > 0)
-            {
-                unsigned int i = 0;
-                if (sysconfigpath.sitehostinfos[host_index].rewrite_php_lists[0].first.size() == 0)
-                {
-                    tempac = sysconfigpath.sitehostinfos[host_index].php_root_document + sysconfigpath.sitehostinfos[host_index].rewrite_php_lists[0].second;
-                    memset(&sessfileinfo, 0, sizeof(sessfileinfo));
-                    if (stat(tempac.c_str(), &sessfileinfo) == 0)
-                    {
-                        if (sessfileinfo.st_mode & S_IFREG)
-                        {
-                            compress = 10;
-                            linktype = 19;
-                            return true;
-                        }
-                    }
-                    i = 1;
-                }
-                for (; i < sysconfigpath.sitehostinfos[host_index].rewrite_php_lists.size(); i++)
-                {
-                    unsigned int j = 0;
-
-                    for (; j < sysconfigpath.sitehostinfos[host_index].rewrite_php_lists[i].first.size(); j++)
-                    {
-                        if (j < sendfilename.size() && sysconfigpath.sitehostinfos[host_index].rewrite_php_lists[i].first[j] == sendfilename[j])
-                        {
-                            continue;
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
-                    if (j == sysconfigpath.sitehostinfos[host_index].rewrite_php_lists[i].first.size())
-                    {
-                        compress = 10;
-                        linktype = 20 + i;
-                        return true;
-                    }
-                }
-            }
-            //}
+            return false;
         }
-        else
+        if (hostinfo.php_root_document.size() > 0 && stat_is_regfile(hostinfo.php_root_document + "index.php"))
         {
-
-            struct stat sessfileinfo;
-            std::string tempac = sysconfigpath.sitehostinfos[host_index].wwwpath + sysconfigpath.sitehostinfos[host_index].document_index;
-            memset(&sessfileinfo, 0, sizeof(sessfileinfo));
-            if (stat(tempac.c_str(), &sessfileinfo) == 0)
+            compress = 10;
+            linktype = 12;
+        }
+        return false;
+    }
+    for (unsigned int i = 0; i < pathinfos.size(); i++)
+    {
+        if (sendfilename.size() > 0)
+        {
+            sendfilename.append("/");
+        }
+        sendfilename.append(pathinfos[i]);
+        unsigned int extfilesize = pathinfos[i].size();
+        if (extfilesize > 4 && pathinfos[i][extfilesize - 1] == 'p' && pathinfos[i][extfilesize - 2] == 'h' &&
+            pathinfos[i][extfilesize - 3] == 'p' && pathinfos[i][extfilesize - 4] == '.')
+        {
+            //xxx.php exist in php root document
+            if (stat_is_regfile(hostinfo.php_root_document + sendfilename))
             {
-                if (sessfileinfo.st_mode & S_IFREG)
-                {
-                    return false;
-                }
+                compress = 10;
+                linktype = (i == 0) ? 10 : (50 + i);
+                DEBUG_LOG("is php file %s", sendfilename.c_str());
+                return true;
             }
+        }
+        else if (_http_regmethod_table.contains(sendfilename))
+        {
+            //check url path reg points
+            return false;
+        }
+    }
 
-            if (sysconfigpath.sitehostinfos[host_index].php_root_document.size() > 0)
+    DEBUG_LOG("check urlpath reg %s", sendfilename.c_str());
+    //whole url path exist in wwwpath: static file or directory
+    struct stat sessfileinfo;
+    std::string tempac = hostinfo.wwwpath + sendfilename;
+    memset(&sessfileinfo, 0, sizeof(sessfileinfo));
+    if (stat(tempac.c_str(), &sessfileinfo) == 0)
+    {
+        if (sessfileinfo.st_mode & S_IFREG)
+        {
+            return false;
+        }
+        else if (sessfileinfo.st_mode & S_IFDIR)
+        {
+            //directory, try index.php in php root document
+            if (stat_is_regfile(hostinfo.php_root_document + sendfilename + "/index.php"))
             {
-                //struct stat sessfileinfo;
-                tempac = sysconfigpath.sitehostinfos[host_index].php_root_document + "index.php";
-                memset(&sessfileinfo, 0, sizeof(sessfileinfo));
-                if (stat(tempac.c_str(), &sessfileinfo) == 0)
-                {
-                    if (sessfileinfo.st_mode & S_IFREG)
-                    {
-                        compress = 10;
-                        linktype = 12;
-                    }
-                }
+                compress = 10;
+                linktype = 15;
+                sendfilename.append("/index.php");
+                return true;
+            }
+            return false;
+        }
+    }
+
+    DEBUG_LOG("rewrite_php_lists: %zu", hostinfo.rewrite_php_lists.size());
+    //url path not exist, check php rewrite rules
+    if (hostinfo.rewrite_php_lists.size() > 0)
+    {
+        unsigned int i = 0;
+        if (hostinfo.rewrite_php_lists[0].first.size() == 0)
+        {
+            //empty prefix, default rewrite entry
+            if (stat_is_regfile(hostinfo.php_root_document + hostinfo.rewrite_php_lists[0].second))
+            {
+                compress = 10;
+                linktype = 19;
+                return true;
+            }
+            i = 1;
+        }
+        for (; i < hostinfo.rewrite_php_lists.size(); i++)
+        {
+            const std::string &rewrite_pre = hostinfo.rewrite_php_lists[i].first;
+            if (rewrite_pre.size() <= sendfilename.size() && sendfilename.compare(0, rewrite_pre.size(), rewrite_pre) == 0)
+            {
+                compress = 10;
+                linktype = 20 + i;
+                return true;
             }
         }
     }
@@ -815,235 +785,98 @@ bool httppeer::isuse_fastcgi()
 }
 unsigned char httppeer::has_urlfileext()
 {
-    unsigned char temp = 0;
-    if (pathinfos.size() > 0)
-    {
-        for (unsigned i = 0, n = pathinfos.size() - 1; i < pathinfos[n].size(); i++)
-        {
-            if (pathinfos[n][i] == '.')
-            {
-                temp = 1;
-                break;
-            }
-        }
-    }
-    if (temp == 0)
+    if (pathinfos.size() == 0)
     {
         sendfilename.clear();
-        for (unsigned int i = 0; i < pathinfos.size(); i++)
+        return 0;
+    }
+    //last url path has '.' , treat as static file url
+    if (pathinfos.back().find('.') != std::string::npos)
+    {
+        return 1;
+    }
+    //join url paths, check reg points of every parent path
+    sendfilename.clear();
+    for (unsigned int i = 0; i < pathinfos.size(); i++)
+    {
+        if (i > 0)
         {
-            if (i > 0 && i < pathinfos.size())
-            {
-                if (_http_regmethod_table.contains(sendfilename))
-                {
-                    return 4;
-                }
-                else if (_co_http_regmethod_table.contains(sendfilename))
-                {
-                    return 40;
-                }
-            }
-            if (i > 0)
-            {
-                sendfilename.append("/");
-            }
-            sendfilename.append(pathinfos[i]);
-        }
-        if (sendfilename.size() > 0)
-        {
-            unsigned int j = 0;
-            unsigned int n = 0;
-            for (; n < sendfilename.size(); n++)
-            {
-                if (sendfilename[n] == '.')
-                {
-                    if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '.')
-                    {
-                        n += 1;
-                        for (; n < sendfilename.size();)
-                        {
-                            if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '/')
-                            {
-                                n += 1;
-                                continue;
-                            }
-                            break;
-                        }
-                        continue;
-                    }
-                    else if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '/')
-                    {
-                        n += 1;
-                        for (; n < sendfilename.size();)
-                        {
-                            if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '/')
-                            {
-                                n += 1;
-                                continue;
-                            }
-                            break;
-                        }
-                        continue;
-                    }
-                }
-                j++;
-            }
-            if (j < sendfilename.size())
-            {
-                n = 0;
-                j = 0;
-                for (; n < sendfilename.size(); n++)
-                {
-                    if (sendfilename[n] == '.')
-                    {
-                        if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '.')
-                        {
-                            n += 1;
-                            for (; n < sendfilename.size();)
-                            {
-                                if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '/')
-                                {
-                                    n += 1;
-                                    continue;
-                                }
-                                break;
-                            }
-                            continue;
-                        }
-                        else if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '/')
-                        {
-                            n += 1;
-                            for (; n < sendfilename.size();)
-                            {
-                                if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '/')
-                                {
-                                    n += 1;
-                                    continue;
-                                }
-                                break;
-                            }
-                            continue;
-                        }
-                    }
-                    sendfilename[j] = sendfilename[n];
-                    j++;
-                }
-                sendfilename.resize(j);
-            }
-            //file
             if (_http_regmethod_table.contains(sendfilename))
             {
-                temp = 4;
-                //maybe let urlpath functions read index.html filetime
-                if (pathinfos.size() == 5)
-                {
-                    serverconfig &sysconfigpath = getserversysconfig();
-                    if (sysconfigpath.siteusehtmlchache)
-                    {
-                        memset(&fileinfo, 0, sizeof(fileinfo));
-                        if (sitepath.size() > 0 && sitepath.back() == '/')
-                        {
-                            sendfilename = sitepath + "/" + sendfilename;
-                        }
-                        else
-                        {
-                            if (sysconfigpath.wwwpath.size() > 0 && sitepath.back() == '/')
-                            {
-                                sendfilename = sysconfigpath.wwwpath + sendfilename;
-                            }
-                            else
-                            {
-                                sendfilename = sysconfigpath.wwwpath + "/" + sendfilename;
-                            }
-                        }
-
-                        if (sendfilename.size() > 0 && sendfilename.back() != '/')
-                        {
-                            sendfilename.push_back('/');
-                        }
-                        sendfilename.append(sysconfigpath.map_value["default"]["index"]);
-
-                        if (stat(sendfilename.c_str(), &fileinfo) == 0)
-                        {
-                            if (fileinfo.st_mode & S_IFREG)
-                            {
-                                if (sysconfigpath.siteusehtmlchachetime > 10 &&
-                                    sysconfigpath.siteusehtmlchachetime > (timeid() - (unsigned long)fileinfo.st_mtime))
-                                {
-                                    temp = 5;
-                                }
-                            }
-                        }
-                    }
-                }
-                //end file
+                return 4;
             }
             else if (_co_http_regmethod_table.contains(sendfilename))
             {
-                temp = 4;
-                //maybe let urlpath functions read index.html filetime
-                if (pathinfos.size() == 5)
+                return 40;
+            }
+            sendfilename.append("/");
+        }
+        sendfilename.append(pathinfos[i]);
+    }
+    if (sendfilename.size() == 0)
+    {
+        return 0;
+    }
+    remove_dot_path(sendfilename);
+
+    unsigned char temp = 0;
+    if (_http_regmethod_table.contains(sendfilename) || _co_http_regmethod_table.contains(sendfilename))
+    {
+        temp = 4;
+        //maybe let urlpath functions read index.html filetime
+        if (pathinfos.size() == 5)
+        {
+            serverconfig &sysconfigpath = getserversysconfig();
+            if (sysconfigpath.siteusehtmlchache)
+            {
+                memset(&fileinfo, 0, sizeof(fileinfo));
+                if (sitepath.size() > 0 && sitepath.back() == '/')
                 {
-                    serverconfig &sysconfigpath = getserversysconfig();
-                    if (sysconfigpath.siteusehtmlchache)
+                    sendfilename = sitepath + "/" + sendfilename;
+                }
+                else
+                {
+                    if (sysconfigpath.wwwpath.size() > 0 && sitepath.size() > 0 && sitepath.back() == '/')
                     {
-                        memset(&fileinfo, 0, sizeof(fileinfo));
-                        if (sitepath.size() > 0 && sitepath.back() == '/')
-                        {
-                            sendfilename = sitepath + "/" + sendfilename;
-                        }
-                        else
-                        {
-                            if (sysconfigpath.wwwpath.size() > 0 && sitepath.back() == '/')
-                            {
-                                sendfilename = sysconfigpath.wwwpath + sendfilename;
-                            }
-                            else
-                            {
-                                sendfilename = sysconfigpath.wwwpath + "/" + sendfilename;
-                            }
-                        }
+                        sendfilename = sysconfigpath.wwwpath + sendfilename;
+                    }
+                    else
+                    {
+                        sendfilename = sysconfigpath.wwwpath + "/" + sendfilename;
+                    }
+                }
 
-                        if (sendfilename.size() > 0 && sendfilename.back() != '/')
-                        {
-                            sendfilename.push_back('/');
-                        }
-                        sendfilename.append(sysconfigpath.map_value["default"]["index"]);
+                if (sendfilename.size() > 0 && sendfilename.back() != '/')
+                {
+                    sendfilename.push_back('/');
+                }
+                sendfilename.append(sysconfigpath.map_value["default"]["index"]);
 
-                        if (stat(sendfilename.c_str(), &fileinfo) == 0)
+                if (stat(sendfilename.c_str(), &fileinfo) == 0)
+                {
+                    if (fileinfo.st_mode & S_IFREG)
+                    {
+                        if (sysconfigpath.siteusehtmlchachetime > 10 &&
+                            sysconfigpath.siteusehtmlchachetime > (timeid() - (unsigned long)fileinfo.st_mtime))
                         {
-                            if (fileinfo.st_mode & S_IFREG)
-                            {
-                                if (sysconfigpath.siteusehtmlchachetime > 10 &&
-                                    sysconfigpath.siteusehtmlchachetime > (timeid() - (unsigned long)fileinfo.st_mtime))
-                                {
-                                    temp = 5;
-                                }
-                            }
+                            temp = 5;
                         }
                     }
                 }
-                //end file
             }
         }
+        //end file
     }
     return temp;
 }
 unsigned char httppeer::get_fileinfo()
 {
-
-    std::string filenamebase, fileexttype;
     serverconfig &sysconfigpath = getserversysconfig();
+    auto &hostinfo              = sysconfigpath.sitehostinfos[host_index];
 
+    //full static file path: sitepath + url paths
     sendfilename = sitepath;
-    if (sendfilename.size() > 0)
-    {
-        if (sendfilename.back() != '/')
-        {
-            sendfilename.push_back('/');
-        }
-    }
-    else
+    if (sendfilename.size() == 0 || sendfilename.back() != '/')
     {
         sendfilename.push_back('/');
     }
@@ -1055,130 +888,15 @@ unsigned char httppeer::get_fileinfo()
         }
         sendfilename.append(pathinfos[i]);
     }
-
-    if (sendfilename.size() > 0)
-    {
-        unsigned int j = 0;
-        unsigned int n = 0;
-        for (; n < sendfilename.size(); n++)
-        {
-            if (sendfilename[n] == '.')
-            {
-                if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '.')
-                {
-                    n += 1;
-                    for (; n < sendfilename.size();)
-                    {
-                        if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '/')
-                        {
-                            n += 1;
-                            continue;
-                        }
-                        break;
-                    }
-                    continue;
-                }
-                else if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '/')
-                {
-                    n += 1;
-                    for (; n < sendfilename.size();)
-                    {
-                        if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '/')
-                        {
-                            n += 1;
-                            continue;
-                        }
-                        break;
-                    }
-                    continue;
-                }
-            }
-            j++;
-        }
-        if (j < sendfilename.size())
-        {
-            n = 0;
-            j = 0;
-            for (; n < sendfilename.size(); n++)
-            {
-                if (sendfilename[n] == '.')
-                {
-                    if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '.')
-                    {
-                        n += 1;
-                        for (; n < sendfilename.size();)
-                        {
-                            if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '/')
-                            {
-                                n += 1;
-                                continue;
-                            }
-                            break;
-                        }
-                        continue;
-                    }
-                    else if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '/')
-                    {
-                        n += 1;
-                        for (; n < sendfilename.size();)
-                        {
-                            if ((n + 1) < sendfilename.size() && sendfilename[n + 1] == '/')
-                            {
-                                n += 1;
-                                continue;
-                            }
-                            break;
-                        }
-                        continue;
-                    }
-                }
-                sendfilename[j] = sendfilename[n];
-                j++;
-            }
-            sendfilename.resize(j);
-        }
-    }
-
-    if (pathinfos.size() > 0)
-    {
-        filenamebase = pathinfos.back();
-    }
-    else
-    {
-        filenamebase.clear();
-    }
-
-    unsigned int filebasesize   = filenamebase.size();
-    unsigned int filenameoffset = 0;
-
-    if (filebasesize > 0)
-    {
-        for (filenameoffset = filebasesize - 1; filenameoffset > 0; filenameoffset--)
-        {
-            if (filenamebase[filenameoffset] == '.')
-            {
-                break;
-            }
-            else if (filenamebase[filenameoffset] == '/')
-            {
-                filenameoffset = filebasesize - 1;
-                break;
-            }
-        }
-        filenameoffset += 1;
-        for (; filenameoffset < filebasesize; filenameoffset++)
-        {
-            fileexttype.push_back(filenamebase[filenameoffset]);
-        }
-    }
+    remove_dot_path(sendfilename);
 
     memset(&fileinfo, 0, sizeof(fileinfo));
     sendfiletype = 0;
     if (stat(sendfilename.c_str(), &fileinfo) == 0)
     {
-
         if (fileinfo.st_mode & S_IFDIR)
         {
+            //directory, try default index file
             sendfiletype             = 2;
             unsigned int nowpathsize = sendfilename.size();
             if (sendfilename.size() > 0 && sendfilename.back() != '/')
@@ -1192,7 +910,6 @@ unsigned char httppeer::get_fileinfo()
                 if (fileinfo.st_mode & S_IFREG)
                 {
                     sendfiletype = 1;
-                    fileexttype  = "html";
                 }
             }
             if (sendfiletype == 2)
@@ -1205,107 +922,78 @@ unsigned char httppeer::get_fileinfo()
             sendfiletype = 1;
             // use cahce html ,modulepath same urlpath
             // sample: /module/method/202204/22333.html
-
-            // if(isusehtmlcache&&header->pathinfo.size()>2&&chachefiletime>10&&chachefiletime<(http::timeid()-(unsigned
-            // long)fileinfo.st_mtime)){
-            //     pathtype=3;
-            // }
             if (sysconfigpath.siteusehtmlchache && pathinfos.size() > 3 && sysconfigpath.siteusehtmlchachetime > 10 &&
                 sysconfigpath.siteusehtmlchachetime < (timeid() - (unsigned long)fileinfo.st_mtime))
             {
+                //cache html expired, use urlpath function
                 sendfiletype = 3;
             }
         }
     }
-    if (sendfiletype == 0)
+    if (sendfiletype == 0 && hostinfo.isrewrite)
     {
-        if (sysconfigpath.sitehostinfos[host_index].isrewrite)
+        if (hostinfo.rewrite404 == 1)
         {
-            if (sysconfigpath.sitehostinfos[host_index].rewrite404 == 1)
+            //static 404 rewrite, check multi 404 rewrite
+            if (hostinfo.action_404_lists.size() > 0 && pathinfos.size() > 0)
             {
-                //check multi 404 rewrite
-                if (sysconfigpath.sitehostinfos[host_index].action_404_lists.size() > 0)
+                for (unsigned int k = 0; k < hostinfo.action_404_lists.size(); k++)
                 {
-                    if (pathinfos.size() > 0)
+                    if (pathinfos[0].size() <= hostinfo.action_404_lists[k].size() && str_cmp_pre(hostinfo.action_404_lists[k], pathinfos[0], pathinfos[0].size()))
                     {
-                        for (unsigned int k = 0; k < sysconfigpath.sitehostinfos[host_index].action_404_lists.size(); k++)
+                        sendfilename = sitepath;
+                        sendfilename.append(hostinfo.action_404_lists[k]);
+                        memset(&fileinfo, 0, sizeof(fileinfo));
+                        if (stat(sendfilename.c_str(), &fileinfo) == 0)
                         {
-                            if (pathinfos[0].size() <= sysconfigpath.sitehostinfos[host_index].action_404_lists[k].size() && str_cmp_pre(sysconfigpath.sitehostinfos[host_index].action_404_lists[k], pathinfos[0], pathinfos[0].size()))
+                            if (fileinfo.st_mode & S_IFREG)
                             {
-                                sendfilename = sitepath;
-                                sendfilename.append(sysconfigpath.sitehostinfos[host_index].action_404_lists[k]);
-                                memset(&fileinfo, 0, sizeof(fileinfo));
-                                if (stat(sendfilename.c_str(), &fileinfo) == 0)
-                                {
-                                    if (fileinfo.st_mode & S_IFREG)
-                                    {
-                                        sendfiletype = 1;
-                                        fileexttype  = "html";
-                                        return sendfiletype;
-                                    }
-                                }
+                                sendfiletype = 1;
+                                return sendfiletype;
                             }
-                        }
-                    }
-                }
-                sendfilename = sitepath;
-                if (sysconfigpath.sitehostinfos[host_index].rewrite_404_action.size() > 0)
-                {
-                    sendfilename.append(sysconfigpath.sitehostinfos[host_index].rewrite_404_action);
-                    memset(&fileinfo, 0, sizeof(fileinfo));
-                    if (stat(sendfilename.c_str(), &fileinfo) == 0)
-                    {
-                        if (fileinfo.st_mode & S_IFREG)
-                        {
-                            sendfiletype = 1;
-                            fileexttype  = "html";
                         }
                     }
                 }
             }
-            else if (sysconfigpath.sitehostinfos[host_index].rewrite404 == 2)
+            sendfilename = sitepath;
+            if (hostinfo.rewrite_404_action.size() > 0)
             {
-                //dynamic method, use urlpath function
-                if (sysconfigpath.sitehostinfos[host_index].action_404_lists.size() > 0)
+                sendfilename.append(hostinfo.rewrite_404_action);
+                memset(&fileinfo, 0, sizeof(fileinfo));
+                if (stat(sendfilename.c_str(), &fileinfo) == 0)
                 {
-                    if (pathinfos.size() > 0)
+                    if (fileinfo.st_mode & S_IFREG)
                     {
-                        for (unsigned int k = 0; k < sysconfigpath.sitehostinfos[host_index].action_404_lists.size(); k++)
+                        sendfiletype = 1;
+                    }
+                }
+            }
+        }
+        else if (hostinfo.rewrite404 == 2)
+        {
+            //dynamic method, use urlpath function
+            if (hostinfo.action_404_lists.size() > 0 && pathinfos.size() > 0)
+            {
+                for (unsigned int k = 0; k < hostinfo.action_404_lists.size(); k++)
+                {
+                    if (pathinfos[0].size() > 2 && hostinfo.action_404_lists[k].size() > 2 && str_cmp_pre(hostinfo.action_404_lists[k], pathinfos[0], 3))
+                    {
+                        if (pathinfos.size() < 20)
                         {
-                            if (pathinfos[0].size() > 2 && sysconfigpath.sitehostinfos[host_index].action_404_lists[k].size() > 2 && str_cmp_pre(sysconfigpath.sitehostinfos[host_index].action_404_lists[k], pathinfos[0], 3))
-                            {
-                                unsigned int tempsize = pathinfos.size();
-                                if (tempsize < 20)
-                                {
-                                    tempsize += 1;
-                                    pathinfos.resize(tempsize);
-                                    for (unsigned int j = tempsize - 1; j > 0; j--)
-                                    {
-                                        pathinfos[j] = pathinfos[j - 1];
-                                    }
-                                    pathinfos[0] = sysconfigpath.sitehostinfos[host_index].action_404_lists[k];
-                                    sendfiletype = 3;
-                                    return sendfiletype;
-                                }
-                            }
+                            pathinfos.insert(pathinfos.begin(), hostinfo.action_404_lists[k]);
+                            sendfiletype = 3;
+                            return sendfiletype;
                         }
                     }
                 }
+            }
 
-                if (sysconfigpath.sitehostinfos[host_index].rewrite_404_action.size() > 0)
+            if (hostinfo.rewrite_404_action.size() > 0)
+            {
+                if (pathinfos.size() < 20)
                 {
-                    unsigned int tempsize = pathinfos.size();
-                    if (tempsize < 20)
-                    {
-                        tempsize += 1;
-                        pathinfos.resize(tempsize);
-                        for (unsigned int j = tempsize - 1; j > 0; j--)
-                        {
-                            pathinfos[j] = pathinfos[j - 1];
-                        }
-                        pathinfos[0] = sysconfigpath.sitehostinfos[host_index].rewrite_404_action;
-                        sendfiletype = 3;
-                    }
+                    pathinfos.insert(pathinfos.begin(), hostinfo.rewrite_404_action);
+                    sendfiletype = 3;
                 }
             }
         }
