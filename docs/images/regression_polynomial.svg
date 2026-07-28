@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+<rect width="100%" height="100%" fill="white"/>
+<text x="400" y="30" text-anchor="middle" fill="#333" font-size="16" font-weight="bold" font-family="Arial, sans-serif">Polynomial Regression - Quadratic</text>
+<line x1="60" y1="50" x2="60" y2="460" stroke="#333" stroke-width="1"/>
+<line x1="60" y1="460" x2="780" y2="460" stroke="#333" stroke-width="1"/>
+<line x1="60" y1="460" x2="780" y2="460" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="56" y1="460" x2="60" y2="460" stroke="#999" stroke-width="1"/>
+<text x="52" y="464" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">-15</text>
+<line x1="60" y1="378" x2="780" y2="378" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="56" y1="378" x2="60" y2="378" stroke="#999" stroke-width="1"/>
+<text x="52" y="382" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">26</text>
+<line x1="60" y1="296" x2="780" y2="296" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="56" y1="296" x2="60" y2="296" stroke="#999" stroke-width="1"/>
+<text x="52" y="300" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">66</text>
+<line x1="60" y1="214" x2="780" y2="214" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="56" y1="214" x2="60" y2="214" stroke="#999" stroke-width="1"/>
+<text x="52" y="218" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">106</text>
+<line x1="60" y1="132" x2="780" y2="132" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="56" y1="132" x2="60" y2="132" stroke="#999" stroke-width="1"/>
+<text x="52" y="136" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">146</text>
+<line x1="60" y1="50" x2="780" y2="50" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="56" y1="50" x2="60" y2="50" stroke="#999" stroke-width="1"/>
+<text x="52" y="54" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">187</text>
+<line x1="60" y1="460" x2="60" y2="464" stroke="#999" stroke-width="1"/>
+<text x="60" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">-1</text>
+<line x1="204" y1="460" x2="204" y2="464" stroke="#999" stroke-width="1"/>
+<text x="204" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">1</text>
+<line x1="348" y1="460" x2="348" y2="464" stroke="#999" stroke-width="1"/>
+<text x="348" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">3</text>
+<line x1="492" y1="460" x2="492" y2="464" stroke="#999" stroke-width="1"/>
+<text x="492" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">6</text>
+<line x1="636" y1="460" x2="636" y2="464" stroke="#999" stroke-width="1"/>
+<text x="636" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">8</text>
+<line x1="780" y1="460" x2="780" y2="464" stroke="#999" stroke-width="1"/>
+<text x="780" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">10</text>
+<circle cx="120" cy="425.833" r="6" fill="#9a60b4"/>
+<circle cx="186.667" cy="414.438" r="6" fill="#9a60b4"/>
+<circle cx="253.333" cy="402.432" r="6" fill="#9a60b4"/>
+<circle cx="320" cy="374.756" r="6" fill="#9a60b4"/>
+<circle cx="386.667" cy="346.878" r="6" fill="#9a60b4"/>
+<circle cx="453.333" cy="305.772" r="6" fill="#9a60b4"/>
+<circle cx="520" cy="262.631" r="6" fill="#9a60b4"/>
+<circle cx="586.667" cy="209.316" r="6" fill="#9a60b4"/>
+<circle cx="653.333" cy="148.878" r="6" fill="#9a60b4"/>
+<circle cx="720" cy="84.1667" r="6" fill="#9a60b4"/>
+<polyline points="120,425.615 186.667,416.296 253.333,399.797 320,376.116 386.667,345.255 453.333,307.212 520,261.989 586.667,209.585 653.333,150 720,83.2343" fill="none" stroke="#ee6666" stroke-width="2.5" stroke-linejoin="round"/>
+<text x="770" y="70" text-anchor="end" fill="#ee6666" font-size="14" font-weight="bold" font-family="Arial, sans-serif">y = 1.764x^2 + 2.81x + 2.2</text>
+</svg>

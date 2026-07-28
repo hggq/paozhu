@@ -46,6 +46,50 @@ namespace http
         BrotliEncoderDestroyInstance(instance);
     }
 
+    void brotli_encode_file(std::FILE *fp, long long file_size, std::string &out_data)
+    {
+        if (!fp || file_size <= 0)
+            return;
+
+        constexpr unsigned int CHUNK = 16384;
+        unsigned char in[CHUNK];
+        unsigned char out[CHUNK];
+
+        auto instance = BrotliEncoderCreateInstance(nullptr, nullptr, nullptr);
+        if (!instance)
+            return;
+
+        long long remaining = file_size;
+        BrotliEncoderOperation op = BROTLI_OPERATION_PROCESS;
+
+        do
+        {
+            size_t chunk = (remaining > (long long)CHUNK) ? CHUNK : (size_t)remaining;
+            size_t nread = fread(in, 1, chunk, fp);
+            if (nread == 0)
+                break;
+            remaining -= (long long)nread;
+
+            size_t available_in  = nread;
+            const unsigned char *next_in = in;
+            if (remaining == 0)
+                op = BROTLI_OPERATION_FINISH;
+
+            do
+            {
+                size_t available_out = CHUNK;
+                unsigned char *next_out = out;
+                BrotliEncoderCompressStream(
+                    instance, op,
+                    &available_in, &next_in, &available_out, &next_out, nullptr);
+                out_data.append(reinterpret_cast<const char *>(out), CHUNK - available_out);
+            } while (available_in > 0 || (op == BROTLI_OPERATION_FINISH && !BrotliEncoderIsFinished(instance)));
+
+        } while (op != BROTLI_OPERATION_FINISH || !BrotliEncoderIsFinished(instance));
+
+        BrotliEncoderDestroyInstance(instance);
+    }
+
     void brotli_decode(const std::string &data, std::string &out_data)
     {
         std::array<unsigned char, 2048> buffer;

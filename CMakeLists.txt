@@ -33,6 +33,7 @@ option(ENABLE_IMAGE "Enable image support" OFF)
 option(ENABLE_PDF "Enable pz::webpdf support" OFF)
 option(ENABLE_SMS "Enable SMS support" OFF)
 option(ENABLE_WEBPAY "Enable webpay support (alipay/wxpay)" OFF)
+option(ENABLE_CHART "Enable chart support" OFF)
 
 # ---- Vcpkg toolchain ----
 if(ENABLE_VCPKG)
@@ -149,6 +150,10 @@ if(ENABLE_SMS)
   file(GLOB_RECURSE sms_list CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/vendor/sms/src/*.cpp")
 endif()
 
+if(ENABLE_CHART)
+  file(GLOB_RECURSE charts_list CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/vendor/pzcharts/src/*.cpp")
+endif()
+
 if(ENABLE_WEBPAY)
   file(GLOB_RECURSE webpay_list CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/vendor/webpay/src/*.cpp")
 endif()
@@ -212,6 +217,10 @@ if(ENABLE_SMS)
   list(APPEND paozhu_srcs ${sms_list})
 endif()
 
+if(ENABLE_CHART)
+  list(APPEND paozhu_srcs ${charts_list})
+endif()
+
 if(ENABLE_WEBPAY)
   list(APPEND paozhu_srcs ${webpay_list})
 endif()
@@ -242,6 +251,10 @@ endif()
 
 if(ENABLE_SMS)
   target_compile_definitions(paozhu PRIVATE ENABLE_SMS)
+endif()
+
+if(ENABLE_CHART)
+  target_compile_definitions(paozhu PRIVATE ENABLE_CHART)
 endif()
 
 if(ENABLE_WEBPAY)
@@ -284,6 +297,10 @@ endif()
 
 if(ENABLE_SMS)
   include_system_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/vendor/sms/include")
+endif()
+
+if(ENABLE_CHART)
+  include_system_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/vendor/pzcharts/include")
 endif()
 
 if(ENABLE_WEBPAY)

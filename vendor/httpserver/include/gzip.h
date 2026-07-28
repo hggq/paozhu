@@ -13,6 +13,8 @@ namespace http
    constexpr size_t DEFAULT_MAX_DECOMPRESS_SIZE = 256 * 1024 * 1024;
 
    int compress(const char *in_str, size_t in_len, std::string &out_str, int level);
+   // 流式压缩：从 FILE* 分块读取并压缩，避免将整个文件内容加载到内存
+   int compress_file(std::FILE *fp, long long file_size, std::string &out_str, int level);
 
    bool uncompress(std::string_view compressed_data, std::string &data, size_t max_size = DEFAULT_MAX_DECOMPRESS_SIZE);
    bool uncompress(unsigned char *compressed_data, unsigned int length, std::vector<unsigned char> &data, size_t max_size = DEFAULT_MAX_DECOMPRESS_SIZE);

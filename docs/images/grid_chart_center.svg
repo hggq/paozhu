@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+<rect width="100%" height="100%" fill="white"/>
+<text x="400" y="30" text-anchor="middle" fill="#333" font-size="16" font-weight="bold" font-family="Arial, sans-serif">3x3 Grid - Centered Title + Content Offset + No Rotation</text>
+<text x="110" y="144" text-anchor="end" fill="#333" font-size="13" font-family="Arial, sans-serif">Finance</text>
+<text x="110" y="304" text-anchor="end" fill="#333" font-size="13" font-family="Arial, sans-serif">Growth</text>
+<text x="110" y="464" text-anchor="end" fill="#333" font-size="13" font-family="Arial, sans-serif">Satisfaction</text>
+<text x="226.667" y="565" text-anchor="middle" fill="#333" font-size="13" font-family="Arial, sans-serif">Q1</text>
+<text x="440" y="565" text-anchor="middle" fill="#333" font-size="13" font-family="Arial, sans-serif">Q2</text>
+<text x="653.333" y="565" text-anchor="middle" fill="#333" font-size="13" font-family="Arial, sans-serif">Q3</text>
+<rect x="120" y="60" width="213.333" height="160" fill="#e6f5f0" stroke="#aaa" stroke-width="1.5"/>
+<text x="226.667" y="84" text-anchor="middle" fill="#1e5032" font-size="14" font-weight="bold" font-family="Arial, sans-serif">Revenue</text>
+<text x="130" y="102" text-anchor="start" fill="#3c8c50" font-size="11" font-family="Arial, sans-serif">12.5M</text>
+<text x="130" y="117" text-anchor="start" fill="#3c8c50" font-size="11" font-family="Arial, sans-serif">+8.3% YoY</text>
+<rect x="333.333" y="60" width="213.333" height="160" fill="#f5ebe6" stroke="#aaa" stroke-width="1.5"/>
+<text x="440" y="84" text-anchor="middle" fill="#8c3c1e" font-size="14" font-weight="bold" font-family="Arial, sans-serif">Cost</text>
+<text x="343.333" y="102" text-anchor="start" fill="#b45028" font-size="11" font-family="Arial, sans-serif">8.2M</text>
+<text x="343.333" y="117" text-anchor="start" fill="#b45028" font-size="11" font-family="Arial, sans-serif">-2.1% YoY</text>
+<rect x="546.667" y="60" width="213.333" height="160" fill="#e6f0ff" stroke="#aaa" stroke-width="1.5"/>
+<text x="653.333" y="84" text-anchor="middle" fill="#1e328c" font-size="14" font-weight="bold" font-family="Arial, sans-serif">Profit</text>
+<text x="556.667" y="102" text-anchor="start" fill="#3264c8" font-size="11" font-family="Arial, sans-serif">4.3M</text>
+<text x="556.667" y="117" text-anchor="start" fill="#3264c8" font-size="11" font-family="Arial, sans-serif">+15.6% YoY</text>
+<rect x="120" y="220" width="213.333" height="160" fill="#f0f5e6" stroke="#aaa" stroke-width="1.5"/>
+<text x="226.667" y="244" text-anchor="middle" fill="#50641e" font-size="14" font-weight="bold" font-family="Arial, sans-serif">Users</text>
+<text x="130" y="262" text-anchor="start" fill="#789628" font-size="11" font-family="Arial, sans-serif">48.2K</text>
+<text x="130" y="277" text-anchor="start" fill="#789628" font-size="11" font-family="Arial, sans-serif">+12.0%</text>
+<rect x="333.333" y="220" width="213.333" height="160" fill="#f0e6f5" stroke="#aaa" stroke-width="1.5"/>
+<text x="440" y="244" text-anchor="middle" fill="#641e78" font-size="14" font-weight="bold" font-family="Arial, sans-serif">DAU</text>
+<text x="343.333" y="262" text-anchor="start" fill="#9632b4" font-size="11" font-family="Arial, sans-serif">12.8K</text>
+<text x="343.333" y="277" text-anchor="start" fill="#9632b4" font-size="11" font-family="Arial, sans-serif">+5.3%</text>
+<rect x="546.667" y="220" width="213.333" height="160" fill="#ebf5f5" stroke="#aaa" stroke-width="1.5"/>
+<text x="653.333" y="244" text-anchor="middle" fill="#146464" font-size="14" font-weight="bold" font-family="Arial, sans-serif">Retention</text>
+<text x="556.667" y="262" text-anchor="start" fill="#1e8c8c" font-size="11" font-family="Arial, sans-serif">72.5%</text>
+<text x="556.667" y="277" text-anchor="start" fill="#1e8c8c" font-size="11" font-family="Arial, sans-serif">+1.2%</text>
+<rect x="120" y="380" width="213.333" height="160" fill="#f5f0e6" stroke="#aaa" stroke-width="1.5"/>
+<text x="226.667" y="404" text-anchor="middle" fill="#785a14" font-size="14" font-weight="bold" font-family="Arial, sans-serif">NPS</text>
+<text x="130" y="422" text-anchor="start" fill="#b4821e" font-size="11" font-family="Arial, sans-serif">68</text>
+<text x="130" y="437" text-anchor="start" fill="#b4821e" font-size="11" font-family="Arial, sans-serif">+3 pts</text>
+<rect x="333.333" y="380" width="213.333" height="160" fill="#ffebf0" stroke="#aaa" stroke-width="1.5"/>
+<text x="440" y="404" text-anchor="middle" fill="#961e32" font-size="14" font-weight="bold" font-family="Arial, sans-serif">CSAT</text>
+<text x="343.333" y="422" text-anchor="start" fill="#c82846" font-size="11" font-family="Arial, sans-serif">4.8/5.0</text>
+<text x="343.333" y="437" text-anchor="start" fill="#c82846" font-size="11" font-family="Arial, sans-serif">+0.2</text>
+<rect x="546.667" y="380" width="213.333" height="160" fill="#f5f5f0" stroke="#aaa" stroke-width="1.5"/>
+<text x="653.333" y="404" text-anchor="middle" fill="#643c0a" font-size="14" font-weight="bold" font-family="Arial, sans-serif">Churn</text>
+<text x="556.667" y="422" text-anchor="start" fill="#965a14" font-size="11" font-family="Arial, sans-serif">3.2%</text>
+<text x="556.667" y="437" text-anchor="start" fill="#965a14" font-size="11" font-family="Arial, sans-serif">-0.5%</text>
+</svg>

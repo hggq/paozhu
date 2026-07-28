@@ -975,6 +975,46 @@ static std::shared_ptr<HTMLNode> find_first_img(const std::shared_ptr<HTMLNode>&
     return nullptr;
 }
 
+// First <img> inside a table cell, size in mm; the image is rendered below
+// the cell text by render_table's row renderer.
+struct CellImage {
+    std::string src;
+    double w = 0;
+    double h = 0;
+};
+
+static bool get_cell_image(webpdf* pdf, double k, const std::shared_ptr<HTMLNode>& cell, CellImage& out) {
+    auto img = find_first_img(cell);
+    if (!img) return false;
+    auto src_it = img->attrs.find("src");
+    if (src_it == img->attrs.end() || src_it->second.empty()) return false;
+    if (!is_safe_file_path(src_it->second)) return false;
+    // SVG inside table cells is not supported by this renderer
+    if (src_it->second.size() > 4) {
+        std::string ext = src_it->second.substr(src_it->second.size() - 4);
+        for (auto& ch : ext) { if (ch >= 'A' && ch <= 'Z') ch = (char)(ch - 'A' + 'a'); }
+        if (ext == ".svg") return false;
+    }
+    out.src = src_it->second;
+    double w_px = 0, h_px = 0;
+    auto w_it = img->attrs.find("width");
+    if (w_it != img->attrs.end()) { try { w_px = std::stod(w_it->second); } catch (const std::exception&) {} }
+    auto h_it = img->attrs.find("height");
+    if (h_it != img->attrs.end()) { try { h_px = std::stod(h_it->second); } catch (const std::exception&) {} }
+    out.w = w_px > 0 ? w_px / k : 0;
+    out.h = h_px > 0 ? h_px / k : 0;
+    // Missing dimension(s): fill from the intrinsic image size keeping aspect
+    if (out.w <= 0 || out.h <= 0) {
+        double real_w = 0, real_h = 0;
+        if (pdf->GetImageSize(out.src, real_w, real_h) && real_w > 0 && real_h > 0) {
+            if (out.w <= 0 && out.h <= 0) { out.w = real_w; out.h = real_h; }
+            else if (out.w <= 0) { out.w = out.h * real_w / real_h; }
+            else { out.h = out.w * real_h / real_w; }
+        }
+    }
+    return out.w > 0 && out.h > 0;
+}
+
 static bool is_empty_node(const std::shared_ptr<HTMLNode>& node) {
     if (!node) return true;
     if (node->type == HTMLNodeType::TEXT) {
@@ -1333,7 +1373,8 @@ void HTMLRenderer::render_table(const std::shared_ptr<HTMLNode>& table_node, con
 
     // Lambda to calculate row height without rendering
     auto calc_row_height = [&](const std::shared_ptr<HTMLNode>& row, 
-                                const std::map<int, std::string>& text_overrides = {}) -> double {
+                                const std::map<int, std::string>& text_overrides = {},
+                                bool include_images = true) -> double {
         std::vector<std::shared_ptr<HTMLNode>> cells;
         for (auto& c : row->children) {
             if (c->type == HTMLNodeType::ELEMENT && (c->tag == "td" || c->tag == "th")) {
@@ -1372,6 +1413,14 @@ void HTMLRenderer::render_table(const std::shared_ptr<HTMLNode>& table_node, con
             int num_lines = pdf->GetMultiCellLines(avail_w, text);
             if (num_lines < 1) num_lines = 1;
             double cell_h = num_lines * lh + pad_t + pad_b;
+            if (include_images) {
+                CellImage cimg;
+                if (get_cell_image(pdf, pdf->k, cell, cimg)) {
+                    double iw = cimg.w, ih = cimg.h;
+                    if (iw > avail_w) { ih = ih * avail_w / iw; iw = avail_w; }
+                    cell_h += ih + lh * 0.2;
+                }
+            }
             if (cell_h > max_h) max_h = cell_h;
         }
         return max_h;
@@ -1380,9 +1429,11 @@ void HTMLRenderer::render_table(const std::shared_ptr<HTMLNode>& table_node, con
     // Lambda to render a single row
     // text_overrides: optional map of cell_index -> text to use instead of node content
     // is_cross_page: if true, disable vertical centering (all cells top-aligned)
+    // draw_images: render <img> found in cells (disabled on continuation fragments)
     auto render_row = [&](const std::shared_ptr<HTMLNode>& row, 
                           const std::map<int, std::string>& text_overrides = {},
-                          bool is_cross_page = false) {
+                          bool is_cross_page = false,
+                          bool draw_images = true) {
         std::vector<std::shared_ptr<HTMLNode>> cells;
         for (auto& c : row->children) {
             if (c->type == HTMLNodeType::ELEMENT && (c->tag == "td" || c->tag == "th")) {
@@ -1430,6 +1481,14 @@ void HTMLRenderer::render_table(const std::shared_ptr<HTMLNode>& table_node, con
             int num_lines = pdf->GetMultiCellLines(cell_w, text);
             if (num_lines < 1) num_lines = 1;
             double cell_h = num_lines * lh + pad_t + pad_b;
+            if (draw_images) {
+                CellImage cimg;
+                if (get_cell_image(pdf, pdf->k, cell, cimg)) {
+                    double iw = cimg.w, ih = cimg.h;
+                    if (iw > cell_w) { ih = ih * cell_w / iw; iw = cell_w; }
+                    cell_h += ih + lh * 0.2;
+                }
+            }
             if (cell_h > row_h) row_h = cell_h;
         }
 
@@ -1498,22 +1557,46 @@ void HTMLRenderer::render_table(const std::shared_ptr<HTMLNode>& table_node, con
             if (num_lines < 1) num_lines = 1;
             double text_h = num_lines * lh;
 
+            // Image inside the cell: rendered below the text, scaled to fit width
+            CellImage cimg;
+            bool has_img = draw_images && get_cell_image(pdf, pdf->k, cell, cimg);
+            double img_w = 0, img_h = 0, img_gap = 0;
+            if (has_img) {
+                img_w = cimg.w;
+                img_h = cimg.h;
+                if (img_w > cell_w) { img_h = img_h * cell_w / img_w; img_w = cell_w; }
+                img_gap = lh * 0.2;
+            }
+            double content_h = text_h + (has_img ? img_h + img_gap : 0);
+
             // Determine vertical position based on vertical-align
             // For cross-page rows, always use top alignment
             double text_y = y_start + pad_t;
             if (!is_cross_page && cell_style.vertical_align == "bottom") {
-                text_y = y_start + row_h - pad_b - text_h;
+                text_y = y_start + row_h - pad_b - content_h;
                 if (text_y < y_start + pad_t) text_y = y_start + pad_t;
             } else if (!is_cross_page && cell_style.vertical_align != "top") {
                 // Default: vertically centered (only for non-cross-page rows)
                 double avail_v = row_h - pad_t - pad_b;
-                text_y = y_start + pad_t + (avail_v - text_h) / 2.0;
+                text_y = y_start + pad_t + (avail_v - content_h) / 2.0;
                 if (text_y < y_start + pad_t) text_y = y_start + pad_t;
             }
 
             // Render text with wrapping
             pdf->SetXY(x + pad_l, text_y);
             pdf->MultiCell(col_widths[i] - pad_l - pad_r, lh, text, 0, align);
+
+            // Render the cell image below the text, honoring horizontal align
+            if (has_img) {
+                double img_x = x + pad_l;
+                if (align == "C") {
+                    img_x = x + (col_widths[i] - img_w) / 2.0;
+                    if (img_x < x + pad_l) img_x = x + pad_l;
+                } else if (align == "R") {
+                    img_x = x + col_widths[i] - pad_r - img_w;
+                }
+                pdf->Image(cimg.src, img_x, text_y + text_h + img_gap, img_w, img_h);
+            }
         }
 
         // After rendering all cells, determine correct Y position
@@ -1571,7 +1654,10 @@ void HTMLRenderer::render_table(const std::shared_ptr<HTMLNode>& table_node, con
             
             // Loop until all content is rendered (handles cross-page)
             bool has_been_split = false;  // Track if this row has been split across pages
+            bool tried_new_page = false;  // Guard against page-break retry loops for image rows
             while (true) {
+                // Images render only on the first fragment of a split row
+                bool draw_imgs = !has_been_split;
                 // Calculate available space
                 double y_cur = pdf->GetY();
                 // Use PageBreakTrigger to match Cell/MultiCell's auto-break check
@@ -1582,7 +1668,7 @@ void HTMLRenderer::render_table(const std::shared_ptr<HTMLNode>& table_node, con
                 for (int i = 0; i < (int)cell_texts.size() && i < num_cols; i++) {
                     check_overrides[i] = cell_texts[i];
                 }
-                double row_height = calc_row_height(row, check_overrides);
+                double row_height = calc_row_height(row, check_overrides, draw_imgs);
                 
                 double min_row_h = lh + default_pad * 2;
                 if (page_avail < min_row_h) {
@@ -1596,8 +1682,27 @@ void HTMLRenderer::render_table(const std::shared_ptr<HTMLNode>& table_node, con
                 
                 if (row_height <= page_avail) {
                     // Row fits entirely, render normally
-                    render_row(row, check_overrides, has_been_split);
+                    render_row(row, check_overrides, has_been_split, draw_imgs);
                     break;
+                }
+                
+                // Rows containing images are moved to a fresh page instead of
+                // being split, so the image is never cut at the page bottom.
+                if (draw_imgs && !tried_new_page) {
+                    bool row_has_img = false;
+                    for (auto& c : cells) {
+                        CellImage tmp;
+                        if (get_cell_image(pdf, pdf->k, c, tmp)) { row_has_img = true; break; }
+                    }
+                    if (row_has_img) {
+                        tried_new_page = true;
+                        pdf->AddPage();
+                        pdf->SetX(table_x);
+                        if (is_fixed && !thead_rows.empty()) {
+                            render_thead();
+                        }
+                        continue;
+                    }
                 }
                 
                 // Row doesn't fit, need to split
@@ -1652,7 +1757,7 @@ void HTMLRenderer::render_table(const std::shared_ptr<HTMLNode>& table_node, con
                 }
                 
                 // Render the row with split content (cross-page, so top-align all cells)
-                render_row(row, text_overrides, true);
+                render_row(row, text_overrides, true, draw_imgs);
                 
                 if (!has_remaining) {
                     break;  // All content rendered
@@ -1919,6 +2024,14 @@ void HTMLRenderer::render_table_spanned(const std::shared_ptr<HTMLNode>& table_n
         int nl = pdf->GetMultiCellLines(avail, text);
         if (nl < 1) nl = 1;
         double h = nl * lh + pad_t + pad_b;
+        {
+            CellImage cimg;
+            if (get_cell_image(pdf, pdf->k, gc.node, cimg)) {
+                double iw = cimg.w, ih = cimg.h;
+                if (iw > avail) { ih = ih * avail / iw; iw = avail; }
+                h += ih + lh * 0.2;
+            }
+        }
         if (h > row_h[gc.r]) row_h[gc.r] = h;
     }
     // Row-spanning cells: grow the last spanned row if the group is too short.
@@ -1936,6 +2049,14 @@ void HTMLRenderer::render_table_spanned(const std::shared_ptr<HTMLNode>& table_n
         int nl = pdf->GetMultiCellLines(avail, text);
         if (nl < 1) nl = 1;
         double needed = nl * lh + pad_t + pad_b;
+        {
+            CellImage cimg;
+            if (get_cell_image(pdf, pdf->k, gc.node, cimg)) {
+                double iw = cimg.w, ih = cimg.h;
+                if (iw > avail) { ih = ih * avail / iw; iw = avail; }
+                needed += ih + lh * 0.2;
+            }
+        }
         double have = 0;
         for (int rr = gc.r; rr < gc.r + gc.rspan && rr < nrows; rr++) have += row_h[rr];
         if (needed > have) {
@@ -2033,17 +2154,42 @@ void HTMLRenderer::render_table_spanned(const std::shared_ptr<HTMLNode>& table_n
             int nl = pdf->GetMultiCellLines(cell_w, text);
             if (nl < 1) nl = 1;
             double text_h = nl * lh;
+
+            // Image inside the cell: rendered below the text, scaled to fit width
+            CellImage cimg;
+            bool has_img = get_cell_image(pdf, pdf->k, gc.node, cimg);
+            double img_w = 0, img_h = 0, img_gap = 0;
+            if (has_img) {
+                img_w = cimg.w;
+                img_h = cimg.h;
+                if (img_w > cell_w) { img_h = img_h * cell_w / img_w; img_w = cell_w; }
+                img_gap = lh * 0.2;
+            }
+            double content_h = text_h + (has_img ? img_h + img_gap : 0);
+
             double text_y = y_top + pad_t;
             if (cs.vertical_align == "bottom") {
-                text_y = y_top + h - pad_b - text_h;
+                text_y = y_top + h - pad_b - content_h;
                 if (text_y < y_top + pad_t) text_y = y_top + pad_t;
             } else if (cs.vertical_align != "top") {
                 double avail_v = h - pad_t - pad_b;
-                text_y = y_top + pad_t + (avail_v - text_h) / 2.0;
+                text_y = y_top + pad_t + (avail_v - content_h) / 2.0;
                 if (text_y < y_top + pad_t) text_y = y_top + pad_t;
             }
             pdf->SetXY(x + pad_l, text_y);
             pdf->MultiCell(w - pad_l - pad_r, lh, text, 0, align);
+
+            // Render the cell image below the text, honoring horizontal align
+            if (has_img) {
+                double img_x = x + pad_l;
+                if (align == "C") {
+                    img_x = x + (w - img_w) / 2.0;
+                    if (img_x < x + pad_l) img_x = x + pad_l;
+                } else if (align == "R") {
+                    img_x = x + w - pad_r - img_w;
+                }
+                pdf->Image(cimg.src, img_x, text_y + text_h + img_gap, img_w, img_h);
+            }
         }
     };
 

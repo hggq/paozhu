@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+<rect width="100%" height="100%" fill="white"/>
+<text x="400" y="30" text-anchor="middle" fill="#333" font-size="16" font-weight="bold" font-family="Arial, sans-serif">Bar Chart - Custom Bar Colors</text>
+<line x1="60" y1="50" x2="60" y2="460" stroke="#333" stroke-width="1"/>
+<line x1="60" y1="460" x2="780" y2="460" stroke="#333" stroke-width="1"/>
+<line x1="60" y1="460" x2="780" y2="460" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="56" y1="460" x2="60" y2="460" stroke="#999" stroke-width="1"/>
+<text x="52" y="464" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">0</text>
+<line x1="60" y1="378" x2="780" y2="378" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="56" y1="378" x2="60" y2="378" stroke="#999" stroke-width="1"/>
+<text x="52" y="382" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">44</text>
+<line x1="60" y1="296" x2="780" y2="296" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="56" y1="296" x2="60" y2="296" stroke="#999" stroke-width="1"/>
+<text x="52" y="300" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">88</text>
+<line x1="60" y1="214" x2="780" y2="214" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="56" y1="214" x2="60" y2="214" stroke="#999" stroke-width="1"/>
+<text x="52" y="218" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">132</text>
+<line x1="60" y1="132" x2="780" y2="132" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="56" y1="132" x2="60" y2="132" stroke="#999" stroke-width="1"/>
+<text x="52" y="136" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">176</text>
+<line x1="60" y1="50" x2="780" y2="50" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="56" y1="50" x2="60" y2="50" stroke="#999" stroke-width="1"/>
+<text x="52" y="54" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">220</text>
+<line x1="111.429" y1="460" x2="111.429" y2="464" stroke="#999" stroke-width="1"/>
+<text x="111.429" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">Mon</text>
+<line x1="214.286" y1="460" x2="214.286" y2="464" stroke="#999" stroke-width="1"/>
+<text x="214.286" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">Tue</text>
+<line x1="317.143" y1="460" x2="317.143" y2="464" stroke="#999" stroke-width="1"/>
+<text x="317.143" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">Wed</text>
+<line x1="420" y1="460" x2="420" y2="464" stroke="#999" stroke-width="1"/>
+<text x="420" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">Thu</text>
+<line x1="522.857" y1="460" x2="522.857" y2="464" stroke="#999" stroke-width="1"/>
+<text x="522.857" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">Fri</text>
+<line x1="625.714" y1="460" x2="625.714" y2="464" stroke="#999" stroke-width="1"/>
+<text x="625.714" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">Sat</text>
+<line x1="728.571" y1="460" x2="728.571" y2="464" stroke="#999" stroke-width="1"/>
+<text x="728.571" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">Sun</text>
+<defs>
+<clipPath id="barClip">
+<rect x="60" y="50" width="720" height="410"/>
+</clipPath>
+</defs>
+<g clip-path="url(#barClip)">
+<rect x="80.5714" y="236.364" width="61.7143" height="223.636" fill="#ee6666" rx="2"/>
+<rect x="183.429" y="87.2727" width="61.7143" height="372.727" fill="#fac858" rx="2"/>
+<rect x="286.286" y="180.455" width="61.7143" height="279.545" fill="#67e07f" rx="2"/>
+<rect x="389.143" y="310.909" width="61.7143" height="149.091" fill="#37a2da" rx="2"/>
+<rect x="492" y="329.545" width="61.7143" height="130.455" fill="#9a60b4" rx="2"/>
+<rect x="594.857" y="255" width="61.7143" height="205" fill="#fc8452" rx="2"/>
+<rect x="697.714" y="217.727" width="61.7143" height="242.273" fill="#73c0de" rx="2"/>
+</g>
+</svg>

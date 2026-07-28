@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 600 400">
+<rect width="100%" height="100%" fill="white"/>
+<text x="300" y="30" text-anchor="middle" fill="#333" font-size="16" font-weight="bold" font-family="Arial, sans-serif">Progress Gauge</text>
+<path d="M193.934,326.066 A150,150 0 0 1 192.281,115.613 L200.899,123.964 A138,138 0 0 0 202.419,317.581 Z" fill="#67e0e3" stroke="none" stroke-width="0" stroke-linejoin="round"/>
+<path d="M192.281,115.613 A150,150 0 0 1 402.682,110.655 L394.468,119.402 A138,138 0 0 0 200.899,123.964 Z" fill="#37a2da" stroke="none" stroke-width="0" stroke-linejoin="round"/>
+<path d="M402.682,110.655 A150,150 0 0 1 406.066,326.066 L397.581,317.581 A138,138 0 0 0 394.468,119.402 Z" fill="#fac858" stroke="none" stroke-width="0" stroke-linejoin="round"/>
+<line x1="205.955" y1="314.045" x2="216.561" y2="303.439" stroke="#999" stroke-width="3"/>
+<text x="227.168" y="296.832" text-anchor="end" fill="#999" font-size="11" font-family="Arial, sans-serif">0</text>
+<line x1="197.522" y1="304.777" x2="204.456" y2="299.041" stroke="#ccc" stroke-width="1"/>
+<line x1="189.998" y1="294.757" x2="197.442" y2="289.698" stroke="#ccc" stroke-width="1"/>
+<line x1="183.451" y1="284.073" x2="191.338" y2="279.737" stroke="#ccc" stroke-width="1"/>
+<line x1="177.939" y1="272.821" x2="186.198" y2="269.246" stroke="#ccc" stroke-width="1"/>
+<line x1="173.509" y1="261.099" x2="182.069" y2="258.318" stroke="#ccc" stroke-width="1"/>
+<line x1="173.509" y1="261.099" x2="187.775" y2="256.464" stroke="#999" stroke-width="3"/>
+<text x="202.041" y="255.829" text-anchor="end" fill="#999" font-size="11" font-family="Arial, sans-serif">10</text>
+<line x1="170.203" y1="249.013" x2="178.986" y2="247.05" stroke="#ccc" stroke-width="1"/>
+<line x1="168.049" y1="236.669" x2="176.978" y2="235.541" stroke="#ccc" stroke-width="1"/>
+<line x1="167.066" y1="224.178" x2="176.061" y2="223.895" stroke="#ccc" stroke-width="1"/>
+<line x1="167.262" y1="211.649" x2="176.245" y2="212.214" stroke="#ccc" stroke-width="1"/>
+<line x1="168.637" y1="199.194" x2="177.527" y2="200.602" stroke="#ccc" stroke-width="1"/>
+<line x1="168.637" y1="199.194" x2="183.453" y2="201.541" stroke="#999" stroke-width="3"/>
+<text x="198.268" y="207.887" text-anchor="end" fill="#999" font-size="11" font-family="Arial, sans-serif">20</text>
+<line x1="171.178" y1="186.924" x2="179.896" y2="189.162" stroke="#ccc" stroke-width="1"/>
+<line x1="174.863" y1="174.948" x2="183.331" y2="177.996" stroke="#ccc" stroke-width="1"/>
+<line x1="179.658" y1="163.371" x2="187.801" y2="167.203" stroke="#ccc" stroke-width="1"/>
+<line x1="185.521" y1="152.297" x2="193.268" y2="156.879" stroke="#ccc" stroke-width="1"/>
+<line x1="192.401" y1="141.825" x2="199.682" y2="147.115" stroke="#ccc" stroke-width="1"/>
+<line x1="192.401" y1="141.825" x2="204.536" y2="150.641" stroke="#999" stroke-width="3"/>
+<text x="216.671" y="163.458" text-anchor="end" fill="#999" font-size="11" font-family="Arial, sans-serif">30</text>
+<line x1="200.235" y1="132.046" x2="206.986" y2="137.997" stroke="#ccc" stroke-width="1"/>
+<line x1="208.955" y1="123.047" x2="215.116" y2="129.608" stroke="#ccc" stroke-width="1"/>
+<line x1="218.483" y1="114.909" x2="224" y2="122.021" stroke="#ccc" stroke-width="1"/>
+<line x1="228.735" y1="107.704" x2="233.557" y2="115.303" stroke="#ccc" stroke-width="1"/>
+<line x1="239.619" y1="101.496" x2="243.705" y2="109.515" stroke="#ccc" stroke-width="1"/>
+<line x1="239.619" y1="101.496" x2="246.429" y2="114.861" stroke="#999" stroke-width="3"/>
+<text x="253.239" y="124.226" text-anchor="end" fill="#999" font-size="11" font-family="Arial, sans-serif">40</text>
+<line x1="251.039" y1="96.3397" x2="254.353" y2="104.708" stroke="#ccc" stroke-width="1"/>
+<line x1="262.894" y1="92.2809" x2="265.405" y2="100.924" stroke="#ccc" stroke-width="1"/>
+<line x1="275.078" y1="89.3558" x2="276.765" y2="98.1964" stroke="#ccc" stroke-width="1"/>
+<line x1="287.484" y1="87.5903" x2="288.331" y2="96.5503" stroke="#ccc" stroke-width="1"/>
+<line x1="300" y1="87" x2="300" y2="96" stroke="#ccc" stroke-width="1"/>
+<line x1="300" y1="87" x2="300" y2="102" stroke="#999" stroke-width="3"/>
+<text x="300" y="113" text-anchor="middle" fill="#999" font-size="11" font-family="Arial, sans-serif">50</text>
+<line x1="312.516" y1="87.5903" x2="311.669" y2="96.5503" stroke="#ccc" stroke-width="1"/>
+<line x1="324.922" y1="89.3558" x2="323.235" y2="98.1964" stroke="#ccc" stroke-width="1"/>
+<line x1="337.106" y1="92.2809" x2="334.595" y2="100.924" stroke="#ccc" stroke-width="1"/>
+<line x1="348.961" y1="96.3397" x2="345.647" y2="104.708" stroke="#ccc" stroke-width="1"/>
+<line x1="360.381" y1="101.496" x2="356.295" y2="109.515" stroke="#ccc" stroke-width="1"/>
+<line x1="360.381" y1="101.496" x2="353.571" y2="114.861" stroke="#999" stroke-width="3"/>
+<text x="346.761" y="124.226" text-anchor="start" fill="#999" font-size="11" font-family="Arial, sans-serif">60</text>
+<line x1="371.265" y1="107.704" x2="366.443" y2="115.303" stroke="#ccc" stroke-width="1"/>
+<line x1="381.517" y1="114.909" x2="376" y2="122.021" stroke="#ccc" stroke-width="1"/>
+<line x1="391.045" y1="123.047" x2="384.884" y2="129.608" stroke="#ccc" stroke-width="1"/>
+<line x1="399.765" y1="132.046" x2="393.014" y2="137.997" stroke="#ccc" stroke-width="1"/>
+<line x1="407.599" y1="141.825" x2="400.318" y2="147.115" stroke="#ccc" stroke-width="1"/>
+<line x1="407.599" y1="141.825" x2="395.464" y2="150.641" stroke="#999" stroke-width="3"/>
+<text x="383.329" y="163.458" text-anchor="start" fill="#999" font-size="11" font-family="Arial, sans-serif">70</text>
+<line x1="414.479" y1="152.297" x2="406.732" y2="156.879" stroke="#ccc" stroke-width="1"/>
+<line x1="420.342" y1="163.371" x2="412.199" y2="167.203" stroke="#ccc" stroke-width="1"/>
+<line x1="425.137" y1="174.948" x2="416.669" y2="177.996" stroke="#ccc" stroke-width="1"/>
+<line x1="428.822" y1="186.924" x2="420.104" y2="189.162" stroke="#ccc" stroke-width="1"/>
+<line x1="431.363" y1="199.194" x2="422.473" y2="200.602" stroke="#ccc" stroke-width="1"/>
+<line x1="431.363" y1="199.194" x2="416.547" y2="201.541" stroke="#999" stroke-width="3"/>
+<text x="401.732" y="207.887" text-anchor="start" fill="#999" font-size="11" font-family="Arial, sans-serif">80</text>
+<line x1="432.738" y1="211.649" x2="423.755" y2="212.214" stroke="#ccc" stroke-width="1"/>
+<line x1="432.934" y1="224.178" x2="423.939" y2="223.895" stroke="#ccc" stroke-width="1"/>
+<line x1="431.951" y1="236.669" x2="423.022" y2="235.541" stroke="#ccc" stroke-width="1"/>
+<line x1="429.797" y1="249.013" x2="421.014" y2="247.05" stroke="#ccc" stroke-width="1"/>
+<line x1="426.491" y1="261.099" x2="417.931" y2="258.318" stroke="#ccc" stroke-width="1"/>
+<line x1="426.491" y1="261.099" x2="412.225" y2="256.464" stroke="#999" stroke-width="3"/>
+<text x="397.959" y="255.829" text-anchor="start" fill="#999" font-size="11" font-family="Arial, sans-serif">90</text>
+<line x1="422.061" y1="272.821" x2="413.802" y2="269.246" stroke="#ccc" stroke-width="1"/>
+<line x1="416.549" y1="284.073" x2="408.662" y2="279.737" stroke="#ccc" stroke-width="1"/>
+<line x1="410.002" y1="294.757" x2="402.558" y2="289.698" stroke="#ccc" stroke-width="1"/>
+<line x1="402.478" y1="304.777" x2="395.544" y2="299.041" stroke="#ccc" stroke-width="1"/>
+<line x1="394.045" y1="314.045" x2="387.681" y2="307.681" stroke="#ccc" stroke-width="1"/>
+<line x1="394.045" y1="314.045" x2="383.439" y2="303.439" stroke="#999" stroke-width="3"/>
+<text x="372.832" y="296.832" text-anchor="start" fill="#999" font-size="11" font-family="Arial, sans-serif">100</text>
+<path d="M193.934,326.066 A150,150 0 1 1 412.517,120.803 L402.015,130.062 A136,136 0 1 0 203.833,316.167 Z" fill="#5470c6" stroke="none" stroke-width="0" stroke-linejoin="round"/>
+<text x="300" y="250" text-anchor="middle" fill="#333" font-size="14" font-family="Arial, sans-serif">Progress</text>
+<text x="300" y="280" text-anchor="middle" fill="#333" font-size="28" font-weight="bold" font-family="Arial, sans-serif">68.0</text>
+</svg>

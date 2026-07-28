@@ -27,6 +27,7 @@
 #include "testjson.h"
 #include "test_pzexcel.h"
 #include "test_reverse.h"
+#include "test_svgchart.h"
 #include "test_alipay.h"
 #include "test_co_handle.h"
 #include "testrand.h"
@@ -77,6 +78,7 @@
 #include "testsqltuple.h"
 #include "testsiteid.h"
 #include "testsessionid.h"
+#include "test_deepseekapi.h"
 #include "devcors.h"
 #include "test_rpc_handle.h"
  
@@ -174,6 +176,12 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testmb_reverse;
 		methodcallback.emplace("testmb_reverse",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_svgchart;
+		methodcallback.emplace("test_svgchart",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_svgstats;
+		methodcallback.emplace("test_svgstats",temp);
 		temp.pre = nullptr;
 		temp.regfun = test_alipay_app;
 		methodcallback.emplace("testalipayapp",temp);
@@ -619,6 +627,9 @@ namespace http
 		temp.regfun = test_weixinpay;
 		methodcallback.emplace("testweixinpay",temp);
 		temp.pre = nullptr;
+		temp.regfun = test_weixin_native;
+		methodcallback.emplace("testweixinnative",temp);
+		temp.pre = nullptr;
 		temp.regfun = test_xcxnotify;
 		methodcallback.emplace("xcxnotify",temp);
 		temp.pre = nullptr;
@@ -798,6 +809,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testshowsession;
 		methodcallback.emplace("testshowsession",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_deepseek_async;
+		methodcallback.emplace("deepseek_async",temp);
 		temp.pre = nullptr;
 		temp.regfun = api_dev_hostcors;
 		methodcallback.emplace("api/dev/hostcors",temp);

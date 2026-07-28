@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+<rect width="100%" height="100%" fill="white"/>
+<text x="400" y="30" text-anchor="middle" fill="#333" font-size="16" font-weight="bold" font-family="Arial, sans-serif">Radar Chart - Border Only</text>
+<path d="M420,285.75L446.63,270.375L446.63,239.625L420,224.25L393.37,239.625L393.37,270.375Z" fill="none" stroke="#e0e0e0" stroke-width="1"/>
+<path d="M420,316.5L473.261,285.75L473.261,224.25L420,193.5L366.739,224.25L366.739,285.75Z" fill="none" stroke="#e0e0e0" stroke-width="1"/>
+<path d="M420,347.25L499.891,301.125L499.891,208.875L420,162.75L340.109,208.875L340.109,301.125Z" fill="none" stroke="#e0e0e0" stroke-width="1"/>
+<path d="M420,378L526.521,316.5L526.521,193.5L420,132L313.479,193.5L313.479,316.5Z" fill="none" stroke="#e0e0e0" stroke-width="1"/>
+<path d="M420,408.75L553.151,331.875L553.151,178.125L420,101.25L286.849,178.125L286.849,331.875Z" fill="none" stroke="#e0e0e0" stroke-width="1"/>
+<text x="420" y="402.75" text-anchor="middle" fill="#999" font-size="10" font-family="Arial, sans-serif">98</text>
+<line x1="420" y1="255" x2="420" y2="408.75" stroke="#d0d0d0" stroke-width="1"/>
+<text x="420" y="432.75" text-anchor="middle" fill="#333" font-size="12" font-family="Arial, sans-serif">Sales</text>
+<line x1="420" y1="255" x2="553.151" y2="331.875" stroke="#d0d0d0" stroke-width="1"/>
+<text x="570.472" y="345.875" text-anchor="start" fill="#333" font-size="12" font-family="Arial, sans-serif">Admin</text>
+<line x1="420" y1="255" x2="553.151" y2="178.125" stroke="#d0d0d0" stroke-width="1"/>
+<text x="570.472" y="172.125" text-anchor="start" fill="#333" font-size="12" font-family="Arial, sans-serif">Tech</text>
+<line x1="420" y1="255" x2="420" y2="101.25" stroke="#d0d0d0" stroke-width="1"/>
+<text x="420" y="85.25" text-anchor="middle" fill="#333" font-size="12" font-family="Arial, sans-serif">Support</text>
+<line x1="420" y1="255" x2="286.849" y2="178.125" stroke="#d0d0d0" stroke-width="1"/>
+<text x="269.528" y="172.125" text-anchor="end" fill="#333" font-size="12" font-family="Arial, sans-serif">R&amp;D</text>
+<line x1="420" y1="255" x2="286.849" y2="331.875" stroke="#d0d0d0" stroke-width="1"/>
+<text x="269.528" y="345.875" text-anchor="end" fill="#333" font-size="12" font-family="Arial, sans-serif">Marketing</text>
+<polyline points="420,379.873 541.661,325.241 514.625,200.368 420,122.322 291.58,180.857 318.616,313.534 420,379.873" fill="none" stroke="#5470c6" stroke-width="2.5" stroke-linejoin="round"/>
+<circle cx="420" cy="379.873" r="4" fill="#5470c6"/>
+<circle cx="541.661" cy="325.241" r="4" fill="#5470c6"/>
+<circle cx="514.625" cy="200.368" r="4" fill="#5470c6"/>
+<circle cx="420" cy="122.322" r="4" fill="#5470c6"/>
+<circle cx="291.58" cy="180.857" r="4" fill="#5470c6"/>
+<circle cx="318.616" cy="313.534" r="4" fill="#5470c6"/>
+<circle cx="420" cy="379.873" r="4" fill="#5470c6"/>
+<polyline points="420,348.655 521.384,313.534 528.143,192.563 420,145.736 305.098,188.661 332.134,305.73 420,348.655" fill="none" stroke="#ee6666" stroke-width="2.5" stroke-linejoin="round"/>
+<circle cx="420" cy="348.655" r="4" fill="#ee6666"/>
+<circle cx="521.384" cy="313.534" r="4" fill="#ee6666"/>
+<circle cx="528.143" cy="192.563" r="4" fill="#ee6666"/>
+<circle cx="420" cy="145.736" r="4" fill="#ee6666"/>
+<circle cx="305.098" cy="188.661" r="4" fill="#ee6666"/>
+<circle cx="332.134" cy="305.73" r="4" fill="#ee6666"/>
+<circle cx="420" cy="348.655" r="4" fill="#ee6666"/>
+</svg>

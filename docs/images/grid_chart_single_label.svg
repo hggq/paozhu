@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+<rect width="100%" height="100%" fill="white"/>
+<text x="400" y="30" text-anchor="middle" fill="#333" font-size="16" font-weight="bold" font-family="Arial, sans-serif">3x3 Grid Chart - Single Axis Labels</text>
+<text x="110" y="304" text-anchor="end" fill="#333" font-size="14" font-weight="bold" font-family="Arial, sans-serif" transform="rotate(-90 110 304)">Relative Market Share</text>
+<text x="440" y="565" text-anchor="middle" fill="#333" font-size="14" font-weight="bold" font-family="Arial, sans-serif">Market Growth Rate</text>
+<rect x="120" y="60" width="213.333" height="160" fill="#64c864" stroke="#666" stroke-width="1"/>
+<text x="226.667" y="145.333" text-anchor="middle" fill="#ffffff" font-size="16" font-weight="bold" font-family="Arial, sans-serif">Star</text>
+<rect x="333.333" y="60" width="213.333" height="160" fill="#78d278" stroke="#666" stroke-width="1"/>
+<text x="440" y="145.333" text-anchor="middle" fill="#ffffff" font-size="16" font-weight="bold" font-family="Arial, sans-serif">Star</text>
+<rect x="546.667" y="60" width="213.333" height="160" fill="#ffc864" stroke="#666" stroke-width="1"/>
+<text x="653.333" y="145.333" text-anchor="middle" fill="#ffffff" font-size="16" font-weight="bold" font-family="Arial, sans-serif">Question
+Mark</text>
+<rect x="120" y="220" width="213.333" height="160" fill="#82dc82" stroke="#666" stroke-width="1"/>
+<text x="226.667" y="305.333" text-anchor="middle" fill="#ffffff" font-size="16" font-weight="bold" font-family="Arial, sans-serif">Star</text>
+<rect x="333.333" y="220" width="213.333" height="160" fill="#ffd26e" stroke="#666" stroke-width="1"/>
+<text x="440" y="305.333" text-anchor="middle" fill="#ffffff" font-size="16" font-weight="bold" font-family="Arial, sans-serif">Question
+Mark</text>
+<rect x="546.667" y="220" width="213.333" height="160" fill="#ff9696" stroke="#666" stroke-width="1"/>
+<text x="653.333" y="305.333" text-anchor="middle" fill="#ffffff" font-size="16" font-weight="bold" font-family="Arial, sans-serif">Dog</text>
+<rect x="120" y="380" width="213.333" height="160" fill="#64b4dc" stroke="#666" stroke-width="1"/>
+<text x="226.667" y="465.333" text-anchor="middle" fill="#ffffff" font-size="16" font-weight="bold" font-family="Arial, sans-serif">Cash Cow</text>
+<rect x="333.333" y="380" width="213.333" height="160" fill="#ffa0a0" stroke="#666" stroke-width="1"/>
+<text x="440" y="465.333" text-anchor="middle" fill="#ffffff" font-size="16" font-weight="bold" font-family="Arial, sans-serif">Dog</text>
+<rect x="546.667" y="380" width="213.333" height="160" fill="#ffaaaa" stroke="#666" stroke-width="1"/>
+<text x="653.333" y="465.333" text-anchor="middle" fill="#ffffff" font-size="16" font-weight="bold" font-family="Arial, sans-serif">Dog</text>
+</svg>

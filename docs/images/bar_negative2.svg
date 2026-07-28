@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="450" viewBox="0 0 600 450">
+<rect width="100%" height="100%" fill="white"/>
+<text x="300" y="30" text-anchor="middle" fill="#333" font-size="16" font-weight="bold" font-family="Arial, sans-serif">Alternating Labels</text>
+<line x1="324.598" y1="70" x2="324.598" y2="410" stroke="#333" stroke-width="1.5"/>
+<line x1="120" y1="70" x2="120" y2="410" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="4,4"/>
+<line x1="120" y1="66" x2="120" y2="70" stroke="#999" stroke-width="1"/>
+<text x="120" y="60" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">-0.4</text>
+<line x1="212" y1="70" x2="212" y2="410" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="4,4"/>
+<line x1="212" y1="66" x2="212" y2="70" stroke="#999" stroke-width="1"/>
+<text x="212" y="60" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">-0.2</text>
+<line x1="304" y1="70" x2="304" y2="410" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="4,4"/>
+<line x1="304" y1="66" x2="304" y2="70" stroke="#999" stroke-width="1"/>
+<text x="304" y="60" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">-0.0</text>
+<line x1="396" y1="70" x2="396" y2="410" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="4,4"/>
+<line x1="396" y1="66" x2="396" y2="70" stroke="#999" stroke-width="1"/>
+<text x="396" y="60" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">0.2</text>
+<line x1="488" y1="70" x2="488" y2="410" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="4,4"/>
+<line x1="488" y1="66" x2="488" y2="70" stroke="#999" stroke-width="1"/>
+<text x="488" y="60" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">0.4</text>
+<line x1="580" y1="70" x2="580" y2="410" stroke="#e0e0e0" stroke-width="1" stroke-dasharray="4,4"/>
+<line x1="580" y1="66" x2="580" y2="70" stroke="#999" stroke-width="1"/>
+<text x="580" y="60" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">0.6</text>
+<defs>
+<clipPath id="negBarClip">
+<rect x="120" y="70" width="460" height="340"/>
+</clipPath>
+</defs>
+<g clip-path="url(#negBarClip)">
+<rect x="292.269" y="76.8" width="32.3293" height="20.4" fill="#5470c6" rx="2"/>
+<text x="297.269" y="91" text-anchor="start" fill="#333" font-size="12" font-family="Arial, sans-serif">ten</text>
+<rect x="283.032" y="110.8" width="41.5663" height="20.4" fill="#91cc75" rx="2"/>
+<text x="288.032" y="125" text-anchor="start" fill="#333" font-size="12" font-family="Arial, sans-serif">nine</text>
+<rect x="324.598" y="144.8" width="92.3695" height="20.4" fill="#fac858" rx="2"/>
+<text x="411.968" y="159" text-anchor="end" fill="#333" font-size="12" font-family="Arial, sans-serif">eight</text>
+<rect x="324.598" y="178.8" width="203.213" height="20.4" fill="#ee6666" rx="2"/>
+<text x="522.811" y="193" text-anchor="end" fill="#333" font-size="12" font-family="Arial, sans-serif">seven</text>
+<rect x="218.373" y="212.8" width="106.225" height="20.4" fill="#73c0de" rx="2"/>
+<text x="223.373" y="227" text-anchor="start" fill="#333" font-size="12" font-family="Arial, sans-serif">six</text>
+<rect x="324.598" y="246.8" width="36.9478" height="20.4" fill="#3ca283" rx="2"/>
+<text x="356.546" y="261" text-anchor="end" fill="#333" font-size="12" font-family="Arial, sans-serif">five</text>
+<rect x="246.084" y="280.8" width="78.5141" height="20.4" fill="#fc8452" rx="2"/>
+<text x="251.084" y="295" text-anchor="start" fill="#333" font-size="12" font-family="Arial, sans-serif">four</text>
+<rect x="324.598" y="314.8" width="217.068" height="20.4" fill="#9a60b4" rx="2"/>
+<text x="536.667" y="329" text-anchor="end" fill="#333" font-size="12" font-family="Arial, sans-serif">three</text>
+<rect x="158.333" y="348.8" width="166.265" height="20.4" fill="#ea7ccc" rx="2"/>
+<text x="163.333" y="363" text-anchor="start" fill="#333" font-size="12" font-family="Arial, sans-serif">two</text>
+<rect x="324.598" y="382.8" width="83.1325" height="20.4" fill="#5470c6" rx="2"/>
+<text x="402.731" y="397" text-anchor="end" fill="#333" font-size="12" font-family="Arial, sans-serif">one</text>
+</g>
+</svg>

@@ -172,6 +172,7 @@ void http2parse::readheaders(const HTTP2_PACK_DATA_T &temp_pack_data)
         error = steam_httppeer->check_upload_limit();
     }
     steam_httppeer->isuse_fastcgi();
+    http2_header_recvs.erase(iter);
 }
 void http2parse::headers_parse(const HTTP2_HEADER_FRAME_T &header_block_obj, std::shared_ptr<httppeer> steam_httppeer)
 {
@@ -2662,8 +2663,10 @@ void http2parse::readwinupdate(const HTTP2_PACK_DATA_T &temp_pack_data)
     ident_stream = ident_stream + temp_n;
 
     DEBUG_LOG("window_update %u", ident_stream);
-    peer_session->window_update_num = ident_stream;
-    window_update_recv_num          = ident_stream;
+    peer_session->window_update_num += ident_stream;
+    // window_update_recv_num tracks server's receive window consumption;
+    // client's WINDOW_UPDATE should NOT modify it. Only the send window is
+    // affected by incoming WINDOW_UPDATE frames.
 }
 //
 void http2parse::readping(const HTTP2_PACK_DATA_T &temp_pack_data)

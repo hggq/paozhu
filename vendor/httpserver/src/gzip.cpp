@@ -63,6 +63,64 @@ int compress(const char *in_str, size_t in_len, std::string &out_str, [[maybe_un
     return Z_OK;
 }
 
+int compress_file(std::FILE *fp, long long file_size, std::string &out_str, int level)
+{
+    if (!fp || file_size <= 0)
+        return Z_DATA_ERROR;
+
+    int ret, flush;
+    unsigned have;
+    z_stream strm;
+    int windowBits    = 15;
+    int GZIP_ENCODING = 16;
+
+    unsigned char in[CHUNK];
+    unsigned char out[CHUNK];
+
+    strm.zalloc = Z_NULL;
+    strm.zfree  = Z_NULL;
+    strm.opaque = Z_NULL;
+
+    ret = deflateInit2(&strm, level, Z_DEFLATED, windowBits | GZIP_ENCODING, 8, Z_DEFAULT_STRATEGY);
+    if (ret != Z_OK)
+        return ret;
+
+    long long remaining = file_size;
+    do
+    {
+        size_t chunk = (remaining > (long long)CHUNK) ? CHUNK : (size_t)remaining;
+        size_t nread = fread(in, 1, chunk, fp);
+        if (nread == 0)
+            break;
+        remaining -= (long long)nread;
+
+        strm.avail_in = (uInt)nread;
+        strm.next_in  = in;
+        flush         = (remaining == 0) ? Z_FINISH : Z_NO_FLUSH;
+
+        do
+        {
+            strm.avail_out = CHUNK;
+            strm.next_out  = out;
+            ret            = deflate(&strm, flush);
+            if (ret == Z_STREAM_ERROR)
+            {
+                deflateEnd(&strm);
+                return Z_STREAM_ERROR;
+            }
+            have = CHUNK - strm.avail_out;
+            out_str.append((const char *)out, have);
+        } while (strm.avail_out == 0);
+
+    } while (flush != Z_FINISH);
+
+    deflateEnd(&strm);
+    if (ret != Z_STREAM_END)
+        return Z_STREAM_ERROR;
+
+    return Z_OK;
+}
+
 bool uncompress(std::string_view compressed_data, std::string &data, size_t max_size)
 {
     int ret;

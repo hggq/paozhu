@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+<rect width="100%" height="100%" fill="white"/>
+<text x="400" y="30" text-anchor="middle" fill="#333" font-size="16" font-weight="bold" font-family="Arial, sans-serif">Basic Scatter Chart</text>
+<line x1="60" y1="50" x2="60" y2="460" stroke="#333" stroke-width="1"/>
+<line x1="60" y1="460" x2="780" y2="460" stroke="#333" stroke-width="1"/>
+<line x1="60" y1="460" x2="780" y2="460" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="56" y1="460" x2="60" y2="460" stroke="#999" stroke-width="1"/>
+<text x="52" y="464" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">3</text>
+<line x1="60" y1="378" x2="780" y2="378" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="56" y1="378" x2="60" y2="378" stroke="#999" stroke-width="1"/>
+<text x="52" y="382" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">5</text>
+<line x1="60" y1="296" x2="780" y2="296" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="56" y1="296" x2="60" y2="296" stroke="#999" stroke-width="1"/>
+<text x="52" y="300" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">6</text>
+<line x1="60" y1="214" x2="780" y2="214" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="56" y1="214" x2="60" y2="214" stroke="#999" stroke-width="1"/>
+<text x="52" y="218" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">8</text>
+<line x1="60" y1="132" x2="780" y2="132" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="56" y1="132" x2="60" y2="132" stroke="#999" stroke-width="1"/>
+<text x="52" y="136" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">10</text>
+<line x1="60" y1="50" x2="780" y2="50" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="56" y1="50" x2="60" y2="50" stroke="#999" stroke-width="1"/>
+<text x="52" y="54" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">12</text>
+<line x1="60" y1="460" x2="60" y2="464" stroke="#999" stroke-width="1"/>
+<text x="60" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">3</text>
+<line x1="204" y1="460" x2="204" y2="464" stroke="#999" stroke-width="1"/>
+<text x="204" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">5</text>
+<line x1="348" y1="460" x2="348" y2="464" stroke="#999" stroke-width="1"/>
+<text x="348" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">8</text>
+<line x1="492" y1="460" x2="492" y2="464" stroke="#999" stroke-width="1"/>
+<text x="492" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">10</text>
+<line x1="636" y1="460" x2="636" y2="464" stroke="#999" stroke-width="1"/>
+<text x="636" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">13</text>
+<line x1="780" y1="460" x2="780" y2="464" stroke="#999" stroke-width="1"/>
+<text x="780" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">15</text>
+<circle cx="480" cy="219.011" r="7" fill="#5470c6"/>
+<circle cx="360" cy="268.667" r="7" fill="#5470c6"/>
+<circle cx="660" cy="239.967" r="7" fill="#5470c6"/>
+<circle cx="420" cy="183.933" r="7" fill="#5470c6"/>
+<circle cx="540" cy="205.8" r="7" fill="#5470c6"/>
+<circle cx="720" cy="131.544" r="7" fill="#5470c6"/>
+<circle cx="240" cy="255.456" r="7" fill="#5470c6"/>
+<circle cx="120" cy="391.211" r="7" fill="#5470c6"/>
+<circle cx="600" cy="91.4556" r="7" fill="#5470c6"/>
+<circle cx="300" cy="365.7" r="7" fill="#5470c6"/>
+<circle cx="180" cy="326.522" r="7" fill="#5470c6"/>
+<circle cx="360" cy="289.167" r="7" fill="#91cc75"/>
+<circle cx="480" cy="220.833" r="7" fill="#91cc75"/>
+<circle cx="600" cy="152.5" r="7" fill="#91cc75"/>
+<circle cx="240" cy="334.722" r="7" fill="#91cc75"/>
+<circle cx="720" cy="84.1667" r="7" fill="#91cc75"/>
+<circle cx="120" cy="425.833" r="7" fill="#91cc75"/>
+<circle cx="420" cy="266.389" r="7" fill="#91cc75"/>
+<circle cx="540" cy="198.056" r="7" fill="#91cc75"/>
+</svg>

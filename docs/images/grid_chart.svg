@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+<rect width="100%" height="100%" fill="white"/>
+<text x="400" y="30" text-anchor="middle" fill="#333" font-size="16" font-weight="bold" font-family="Arial, sans-serif">3x3 Grid Chart - Custom Colors and Text</text>
+<text x="110" y="144" text-anchor="end" fill="#333" font-size="13" font-family="Arial, sans-serif" transform="rotate(-90 110 144)">Row 1</text>
+<text x="110" y="304" text-anchor="end" fill="#333" font-size="13" font-family="Arial, sans-serif" transform="rotate(-90 110 304)">Row 2</text>
+<text x="110" y="464" text-anchor="end" fill="#333" font-size="13" font-family="Arial, sans-serif" transform="rotate(-90 110 464)">Row 3</text>
+<text x="226.667" y="565" text-anchor="middle" fill="#333" font-size="13" font-family="Arial, sans-serif">Column 1</text>
+<text x="440" y="565" text-anchor="middle" fill="#333" font-size="13" font-family="Arial, sans-serif">Column 2</text>
+<text x="653.333" y="565" text-anchor="middle" fill="#333" font-size="13" font-family="Arial, sans-serif">Column 3</text>
+<rect x="120" y="60" width="213.333" height="160" fill="#ffe6e6" stroke="#999" stroke-width="1.5"/>
+<text x="226.667" y="144.667" text-anchor="middle" fill="#b41e1e" font-size="14" font-weight="bold" font-family="Arial, sans-serif">Item A1</text>
+<rect x="333.333" y="60" width="213.333" height="160" fill="#e6ffe6" stroke="#999" stroke-width="1.5"/>
+<text x="440" y="144.667" text-anchor="middle" fill="#1e821e" font-size="14" font-weight="bold" font-family="Arial, sans-serif">Item A2</text>
+<rect x="546.667" y="60" width="213.333" height="160" fill="#e6e6ff" stroke="#999" stroke-width="1.5"/>
+<text x="653.333" y="144.667" text-anchor="middle" fill="#1e1eb4" font-size="14" font-weight="bold" font-family="Arial, sans-serif">Item A3</text>
+<rect x="120" y="220" width="213.333" height="160" fill="#ffffdc" stroke="#999" stroke-width="1.5"/>
+<text x="226.667" y="304.667" text-anchor="middle" fill="#967814" font-size="14" font-weight="bold" font-family="Arial, sans-serif">Item B1</text>
+<rect x="333.333" y="220" width="213.333" height="160" fill="#f0dcff" stroke="#999" stroke-width="1.5"/>
+<text x="440" y="304.667" text-anchor="middle" fill="#821eb4" font-size="14" font-weight="bold" font-family="Arial, sans-serif">Item B2</text>
+<rect x="546.667" y="220" width="213.333" height="160" fill="#dcffff" stroke="#999" stroke-width="1.5"/>
+<text x="653.333" y="304.667" text-anchor="middle" fill="#148282" font-size="14" font-weight="bold" font-family="Arial, sans-serif">Item B3</text>
+<rect x="120" y="380" width="213.333" height="160" fill="#ffdcf0" stroke="#999" stroke-width="1.5"/>
+<text x="226.667" y="464.667" text-anchor="middle" fill="#b41e78" font-size="14" font-weight="bold" font-family="Arial, sans-serif">Item C1</text>
+<rect x="333.333" y="380" width="213.333" height="160" fill="#f0f0dc" stroke="#999" stroke-width="1.5"/>
+<text x="440" y="464.667" text-anchor="middle" fill="#64641e" font-size="14" font-weight="bold" font-family="Arial, sans-serif">Item C2</text>
+<rect x="546.667" y="380" width="213.333" height="160" fill="#e6f0ff" stroke="#999" stroke-width="1.5"/>
+<text x="653.333" y="464.667" text-anchor="middle" fill="#325096" font-size="14" font-weight="bold" font-family="Arial, sans-serif">Item C3</text>
+</svg>

@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+<rect width="100%" height="100%" fill="white"/>
+<text x="400" y="30" text-anchor="middle" fill="#333" font-size="16" font-weight="bold" font-family="Arial, sans-serif">World Population - Horizontal Bar</text>
+<line x1="60" y1="50" x2="60" y2="460" stroke="#333" stroke-width="1"/>
+<line x1="60" y1="460" x2="780" y2="460" stroke="#333" stroke-width="1"/>
+<line x1="60" y1="50" x2="60" y2="460" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="60" y1="460" x2="60" y2="464" stroke="#999" stroke-width="1"/>
+<text x="60" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">0</text>
+<line x1="204" y1="50" x2="204" y2="460" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="204" y1="460" x2="204" y2="464" stroke="#999" stroke-width="1"/>
+<text x="204" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">31059</text>
+<line x1="348" y1="50" x2="348" y2="460" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="348" y1="460" x2="348" y2="464" stroke="#999" stroke-width="1"/>
+<text x="348" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">62118</text>
+<line x1="492" y1="50" x2="492" y2="460" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="492" y1="460" x2="492" y2="464" stroke="#999" stroke-width="1"/>
+<text x="492" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">93177</text>
+<line x1="636" y1="50" x2="636" y2="460" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="636" y1="460" x2="636" y2="464" stroke="#999" stroke-width="1"/>
+<text x="636" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">124237</text>
+<line x1="780" y1="50" x2="780" y2="460" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="780" y1="460" x2="780" y2="464" stroke="#999" stroke-width="1"/>
+<text x="780" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">155296</text>
+<text x="52" y="79.625" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">China</text>
+<text x="52" y="130.875" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">India</text>
+<text x="52" y="182.125" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">USA</text>
+<text x="52" y="233.375" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">Indonesia</text>
+<text x="52" y="284.625" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">Brazil</text>
+<text x="52" y="335.875" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">Pakistan</text>
+<text x="52" y="387.125" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">Nigeria</text>
+<text x="52" y="438.375" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">Bangladesh</text>
+<defs>
+<clipPath id="hbarClip">
+<rect x="60" y="50" width="720" height="410"/>
+</clipPath>
+</defs>
+<g clip-path="url(#hbarClip)">
+<rect x="60" y="60.25" width="654.545" height="30.75" fill="#5470c6" rx="2"/>
+<rect x="60" y="111.5" width="639.811" height="30.75" fill="#5470c6" rx="2"/>
+<rect x="60" y="162.75" width="153.462" height="30.75" fill="#5470c6" rx="2"/>
+<rect x="60" y="214" width="126.812" height="30.75" fill="#5470c6" rx="2"/>
+<rect x="60" y="265.25" width="98.5495" height="30.75" fill="#5470c6" rx="2"/>
+<rect x="60" y="316.5" width="102.412" height="30.75" fill="#5470c6" rx="2"/>
+<rect x="60" y="367.75" width="95.5683" height="30.75" fill="#5470c6" rx="2"/>
+<rect x="60" y="419" width="76.3508" height="30.75" fill="#5470c6" rx="2"/>
+</g>
+</svg>

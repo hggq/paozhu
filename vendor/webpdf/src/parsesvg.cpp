@@ -1374,7 +1374,14 @@ void SVGRenderer::draw_svg_text(const std::shared_ptr<HTMLNode>& elem) {
         double adj_x = x;
         if (anchor == "middle" || anchor == "end") {
             double w_mm = pdf->GetStringWidth(text_content);
-            double w_svg = w_mm * pdf->k / ctm_scale_x;
+            // w_mm is in mm, pdf->k converts mm to PDF user-space units.
+            // The font is set in user space (SVG space), so the text width
+            // in SVG units is simply w_mm * pdf->k — no need to divide by
+            // ctm_scale_x.  Dividing would double-count the CTM scale and
+            // cause text-anchor misalignment (especially visible with
+            // rotated labels and mixed-length strings like "Finance" vs
+            // "Satisfaction").
+            double w_svg = w_mm * pdf->k;
             if (anchor == "middle") adj_x -= w_svg / 2.0;
             else adj_x -= w_svg;
         }

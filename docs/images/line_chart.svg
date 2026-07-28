@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500">
+<rect width="100%" height="100%" fill="white"/>
+<text x="400" y="30" text-anchor="middle" fill="#333" font-size="16" font-weight="bold" font-family="Arial, sans-serif">Basic Line Chart</text>
+<line x1="60" y1="50" x2="60" y2="460" stroke="#333" stroke-width="1"/>
+<line x1="60" y1="460" x2="780" y2="460" stroke="#333" stroke-width="1"/>
+<line x1="60" y1="460" x2="780" y2="460" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="56" y1="460" x2="60" y2="460" stroke="#999" stroke-width="1"/>
+<text x="52" y="464" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">0</text>
+<line x1="60" y1="378" x2="780" y2="378" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="56" y1="378" x2="60" y2="378" stroke="#999" stroke-width="1"/>
+<text x="52" y="382" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">280</text>
+<line x1="60" y1="296" x2="780" y2="296" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="56" y1="296" x2="60" y2="296" stroke="#999" stroke-width="1"/>
+<text x="52" y="300" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">560</text>
+<line x1="60" y1="214" x2="780" y2="214" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="56" y1="214" x2="60" y2="214" stroke="#999" stroke-width="1"/>
+<text x="52" y="218" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">841</text>
+<line x1="60" y1="132" x2="780" y2="132" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="56" y1="132" x2="60" y2="132" stroke="#999" stroke-width="1"/>
+<text x="52" y="136" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">1121</text>
+<line x1="60" y1="50" x2="780" y2="50" stroke="#e0e0e0" stroke-width="1"/>
+<line x1="56" y1="50" x2="60" y2="50" stroke="#999" stroke-width="1"/>
+<text x="52" y="54" text-anchor="end" fill="#666" font-size="11" font-family="Arial, sans-serif">1401</text>
+<line x1="60" y1="460" x2="60" y2="464" stroke="#999" stroke-width="1"/>
+<text x="60" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">Mon</text>
+<line x1="180" y1="460" x2="180" y2="464" stroke="#999" stroke-width="1"/>
+<text x="180" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">Tue</text>
+<line x1="300" y1="460" x2="300" y2="464" stroke="#999" stroke-width="1"/>
+<text x="300" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">Wed</text>
+<line x1="420" y1="460" x2="420" y2="464" stroke="#999" stroke-width="1"/>
+<text x="420" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">Thu</text>
+<line x1="540" y1="460" x2="540" y2="464" stroke="#999" stroke-width="1"/>
+<text x="540" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">Fri</text>
+<line x1="660" y1="460" x2="660" y2="464" stroke="#999" stroke-width="1"/>
+<text x="660" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">Sat</text>
+<line x1="780" y1="460" x2="780" y2="464" stroke="#999" stroke-width="1"/>
+<text x="780" y="480" text-anchor="middle" fill="#666" font-size="11" font-family="Arial, sans-serif">Sun</text>
+<polyline points="60,220.029 180,187.252 300,196.324 420,186.667 540,82.4839 660,70.778 780,73.7045" fill="none" stroke="#5470c6" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="60" cy="220.029" r="4" fill="#5470c6"/>
+<circle cx="180" cy="187.252" r="4" fill="#5470c6"/>
+<circle cx="300" cy="196.324" r="4" fill="#5470c6"/>
+<circle cx="420" cy="186.667" r="4" fill="#5470c6"/>
+<circle cx="540" cy="82.4839" r="4" fill="#5470c6"/>
+<circle cx="660" cy="70.778" r="4" fill="#5470c6"/>
+<circle cx="780" cy="73.7045" r="4" fill="#5470c6"/>
+<polyline points="60,278.558 180,245.782 300,254.854 420,274.461 540,199.543 660,187.837 780,190.764" fill="none" stroke="#91cc75" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="60" cy="278.558" r="4" fill="#91cc75"/>
+<circle cx="180" cy="245.782" r="4" fill="#91cc75"/>
+<circle cx="300" cy="254.854" r="4" fill="#91cc75"/>
+<circle cx="420" cy="274.461" r="4" fill="#91cc75"/>
+<circle cx="540" cy="199.543" r="4" fill="#91cc75"/>
+<circle cx="660" cy="187.837" r="4" fill="#91cc75"/>
+<circle cx="780" cy="190.764" r="4" fill="#91cc75"/>
+</svg>

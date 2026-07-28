@@ -109,23 +109,15 @@ void http2_ring_queue_obj::fix_queue_list()
 {
     std::unique_lock<std::mutex> lock(lock_queue);
     unsigned int queue_size = queue_list.size();
-    if (queue_size > 200)
+    if (queue_size > 120)
     {
-        unsigned int j = queue_size / 20;
-        if (j < 200)
-        {
-            j = 200;
-        }
-        for (auto iter = queue_list.begin(); iter != queue_list.end();)
+        // 保留 120 个缓存对象，超出部分清理
+        unsigned int remove_count = queue_size - 120;
+        for (auto iter = queue_list.begin(); iter != queue_list.end() && remove_count > 0;)
         {
             iter->reset();
             queue_list.erase(iter++);
-
-            j--;
-            if (j < 200)
-            {
-                break;
-            }
+            remove_count--;
         }
     }
     lock.unlock();

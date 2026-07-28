@@ -319,30 +319,25 @@ asio::awaitable<void> httpserver::http2_co_send_compress(std::shared_ptr<httppee
     }
     else
     {
-        // create content
-        std::string tempcompress;
-        long long filesize = 0;
-        //一次性读入需要压缩的内容，不大于16M
+        // 流式压缩：分块读取文件并压缩，避免将整个文件内容加载到内存
         if (send_file_obj->content_length > 16877216)
         {
             peer->compress = 0;
             co_return;
         }
-        tempcompress.resize(send_file_obj->content_length);
-        filesize = fread(&tempcompress[0], 1, send_file_obj->content_length, send_file_obj->fp.get());
-        tempcompress.resize(filesize);
+
+        long long file_size = static_cast<long long>(send_file_obj->content_length);
+        send_file_obj->content.clear();
 
         if (peer->compress == 2)
         {
-            send_file_obj->content.clear();
-            brotli_encode(tempcompress, send_file_obj->content);
+            brotli_encode_file(send_file_obj->fp.get(), file_size, send_file_obj->content);
             send_file_obj->content_length = send_file_obj->content.size();
             send_file_obj->type           = 17;
         }
         else if (peer->compress == 1)
         {
-            if (compress(tempcompress.data(), tempcompress.size(), send_file_obj->content, Z_DEFAULT_COMPRESSION) ==
-                Z_OK)
+            if (compress_file(send_file_obj->fp.get(), file_size, send_file_obj->content, Z_DEFAULT_COMPRESSION) == Z_OK)
             {
                 send_file_obj->content_length = send_file_obj->content.size();
                 send_file_obj->type           = 16;
@@ -3669,6 +3664,9 @@ void httpserver::websocket_loop(int fps)
                 {
                     send_queue_obj.fix_queue_list(rate_limit_accept_wait_num.load());
                 }
+                // 定期清理 ring queue 缓存池，避免无限增长
+                http2_ring_queue_obj &ring_queue_obj = get_http2_ring_queue_obj();
+                ring_queue_obj.fix_queue_list();
             }
         }
         std::this_thread::sleep_until(m_EndFrame);
