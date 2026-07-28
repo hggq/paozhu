@@ -28,8 +28,7 @@ option(ENABLE_VCPKG "Use vcpkg toolchain" OFF)
 option(ENABLE_BOOST "Enable Boost support" OFF)
 option(ENABLE_GD "Enable GD graphics and QR" OFF)
 option(ENABLE_BENCHMARK "Enable benchmarks" OFF)
-option(ENABLE_EXCEL "Enable pzexcel support" OFF)
-option(ENABLE_WORD "Enable pzword support" OFF)
+option(ENABLE_OFFICE "Enable pzexcel pzword support" OFF)
 option(ENABLE_IMAGE "Enable image support" OFF)
 option(ENABLE_PDF "Enable pz::webpdf support" OFF)
 option(ENABLE_SMS "Enable SMS support" OFF)
@@ -58,7 +57,7 @@ if(ENABLE_VCPKG)
 
   auto_enable_vcpkg_feature(ENABLE_GD "gd")
   auto_enable_vcpkg_feature(ENABLE_BOOST "boost")
-  auto_enable_vcpkg_feature(ENABLE_EXCEL "pzexcel")
+  auto_enable_vcpkg_feature(ENABLE_OFFICE "pzexcel pzword")
   auto_enable_vcpkg_feature(ENABLE_IMAGE "image")
   auto_enable_vcpkg_feature(ENABLE_PDF "webpdf")
 endif()
@@ -135,11 +134,8 @@ file(GLOB_RECURSE viewsrc_list    CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}
 file(GLOB_RECURSE reflect_list    CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/libs/*.cpp")
 file(GLOB_RECURSE src_list        CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 
-if(ENABLE_EXCEL)
+if(ENABLE_OFFICE)
   file(GLOB_RECURSE pzexcel_list CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/vendor/pzexcel/src/*.cpp")
-endif()
-
-if(ENABLE_WORD)
   file(GLOB_RECURSE pzword_list CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/vendor/pzword/src/*.cpp")
 endif()
 
@@ -206,11 +202,8 @@ set(paozhu_srcs
   ${controller_list}
 )
 
-if(ENABLE_EXCEL)
+if(ENABLE_OFFICE)
   list(APPEND paozhu_srcs ${pzexcel_list})
-endif()
-
-if(ENABLE_WORD)
   list(APPEND paozhu_srcs ${pzword_list})
 endif()
 
@@ -246,12 +239,8 @@ target_compile_definitions(paozhu PRIVATE ASIO_STANDALONE)
 if(ENABLE_BENCHMARK)
   target_compile_definitions(paozhu PRIVATE BENCHMARK)
 endif()
-if(ENABLE_EXCEL)
-  target_compile_definitions(paozhu PRIVATE ENABLE_EXCEL)
-endif()
-
-if(ENABLE_WORD)
-  target_compile_definitions(paozhu PRIVATE ENABLE_WORD)
+if(ENABLE_OFFICE)
+  target_compile_definitions(paozhu PRIVATE ENABLE_OFFICE)
 endif()
 
 if(ENABLE_IMAGE)
@@ -300,11 +289,8 @@ include_project_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/libs")
 include_project_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/include")
 include_project_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/common")
 
-if(ENABLE_EXCEL)
+if(ENABLE_OFFICE)
   include_system_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/vendor/pzexcel/include")
-endif()
-
-if(ENABLE_WORD)
   include_system_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/vendor/pzword/include")
 endif()
 
@@ -461,7 +447,7 @@ if(ENABLE_VCPKG)
 
   # ------- minizip (vcpkg) -------
   # [MINIZIP] Use vcpkg's CMake config target
-  if(ENABLE_EXCEL)
+  if(ENABLE_OFFICE)
     find_package(minizip CONFIG REQUIRED)
     target_link_libraries(paozhu PRIVATE minizip::minizip)
     # vcpkg's minizip already sets up include directories automatically
@@ -565,7 +551,7 @@ else()
 
   # ------- minizip (system) -------
   # [MINIZIP] Use find_library / find_path for Unix-like systems (macOS, Linux)
-  if(ENABLE_EXCEL)
+  if(ENABLE_OFFICE)
     # On macOS, Homebrew installs minizip under /usr/local/opt or /opt/homebrew
     # On Linux, typical locations are /usr/lib, /usr/lib64, etc.
     find_library(MINIZIP_LIBRARY minizip

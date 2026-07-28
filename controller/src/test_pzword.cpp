@@ -5,16 +5,16 @@
 #include "func.h"
 #include <memory>
 #include <string>
-#ifdef ENABLE_WORD
+#ifdef ENABLE_OFFICE
 #include "pz_word.h"
-#endif// ENABLE_WORD
+#endif// ENABLE_OFFICE
 namespace http
 {
 //@urlpath(null,test_pzword)
 std::string test_pzword(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
-#ifdef ENABLE_WORD
+#ifdef ENABLE_OFFICE
     server_loaclvar &static_server_var = get_server_global_var();
 
     if (static_server_var.config_path.size() < 5)
@@ -87,8 +87,8 @@ std::string test_pzword(std::shared_ptr<httppeer> peer)
     client <<"<p>Successfully wrote www.docx</p>";
     client <<html;
 #else
-    client << "<p>Please: cmake .. -DENABLE_WORD=ON </p>";
-#endif// ENABLE_WORD
+    client << "<p>Please: cmake .. -DENABLE_OFFICE=ON </p>";
+#endif// ENABLE_OFFICE
 
     return "";
 }

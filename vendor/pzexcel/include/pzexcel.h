@@ -15,7 +15,6 @@
 #include <charconv>
 #include <unordered_map>
 
-#ifdef ENABLE_EXCEL
 namespace pz
 {
 struct PZ_EXCEL_CELL_STYLE
@@ -510,5 +509,4 @@ class excel
 
 }// namespace pz
 
-#endif  // ENABLE_EXCEL
 #endif

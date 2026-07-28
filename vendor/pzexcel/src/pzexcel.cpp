@@ -10,7 +10,6 @@
 #include <vector>
 #include <map>
 
-#ifdef ENABLE_EXCEL
 #include "minizip/zip.h"
 #include "minizip/unzip.h"
 #include "pzexcel.h"
@@ -2575,5 +2574,3 @@ bool excel::write(const std::string &zipfilename)
 }
 
 }// namespace pz
-
-#endif// ENABLE_EXCEL
