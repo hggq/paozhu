@@ -11,6 +11,7 @@
 #include "testhttpclient.h"
 #include "test_websocket_handle.h"
 #include "testmysqlinsert.h"
+#include "test_pzword.h"
 #include "test_sql_json.h"
 #include "testrestfulpath.h"
 #include "testdownloadauth.h"
@@ -104,6 +105,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testmysqlpagebar;
 		methodcallback.emplace("mpagebar",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_pzword;
+		methodcallback.emplace("test_pzword",temp);
 		temp.pre = nullptr;
 		temp.regfun = testsqljson;
 		methodcallback.emplace("testsqljson",temp);

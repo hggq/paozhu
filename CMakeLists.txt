@@ -29,6 +29,7 @@ option(ENABLE_BOOST "Enable Boost support" OFF)
 option(ENABLE_GD "Enable GD graphics and QR" OFF)
 option(ENABLE_BENCHMARK "Enable benchmarks" OFF)
 option(ENABLE_EXCEL "Enable pzexcel support" OFF)
+option(ENABLE_WORD "Enable pzword support" OFF)
 option(ENABLE_IMAGE "Enable image support" OFF)
 option(ENABLE_PDF "Enable pz::webpdf support" OFF)
 option(ENABLE_SMS "Enable SMS support" OFF)
@@ -138,6 +139,10 @@ if(ENABLE_EXCEL)
   file(GLOB_RECURSE pzexcel_list CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/vendor/pzexcel/src/*.cpp")
 endif()
 
+if(ENABLE_WORD)
+  file(GLOB_RECURSE pzword_list CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/vendor/pzword/src/*.cpp")
+endif()
+
 if(ENABLE_IMAGE)
   file(GLOB_RECURSE pzimage_list CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/vendor/pzimage/src/*.cpp")
 endif()
@@ -205,6 +210,10 @@ if(ENABLE_EXCEL)
   list(APPEND paozhu_srcs ${pzexcel_list})
 endif()
 
+if(ENABLE_WORD)
+  list(APPEND paozhu_srcs ${pzword_list})
+endif()
+
 if(ENABLE_IMAGE)
   list(APPEND paozhu_srcs ${pzimage_list})
 endif()
@@ -239,6 +248,10 @@ if(ENABLE_BENCHMARK)
 endif()
 if(ENABLE_EXCEL)
   target_compile_definitions(paozhu PRIVATE ENABLE_EXCEL)
+endif()
+
+if(ENABLE_WORD)
+  target_compile_definitions(paozhu PRIVATE ENABLE_WORD)
 endif()
 
 if(ENABLE_IMAGE)
@@ -289,6 +302,10 @@ include_project_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/common")
 
 if(ENABLE_EXCEL)
   include_system_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/vendor/pzexcel/include")
+endif()
+
+if(ENABLE_WORD)
+  include_system_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/vendor/pzword/include")
 endif()
 
 if(ENABLE_IMAGE)
@@ -384,10 +401,14 @@ if(MSVC AND WIN32)
   endif()
 endif()
 
-# ---- Dependency handling ----
+# ============================================================================
+#  Dependency handling
+# ============================================================================
+
 if(ENABLE_VCPKG)
-  # Using vcpkg
+  # ---- Using vcpkg ----
   target_compile_definitions(paozhu PRIVATE ENABLE_VCPKG)
+
   find_package(asio CONFIG REQUIRED)
   target_link_libraries(paozhu PRIVATE asio::asio)
   target_link_libraries(paozhu_cli PRIVATE asio::asio)
@@ -438,21 +459,16 @@ if(ENABLE_VCPKG)
     endif()
   endif()
 
+  # ------- minizip (vcpkg) -------
+  # [MINIZIP] Use vcpkg's CMake config target
   if(ENABLE_EXCEL)
-    find_package(PkgConfig)
-    pkg_check_modules(MINIZIP REQUIRED IMPORTED_TARGET minizip)
-    target_link_libraries(paozhu PRIVATE PkgConfig::MINIZIP)
-
-    # 确保包含 minizip 子目录的父目录在搜索路径中
-    find_path(MINIZIP_INCLUDE_DIR minizip/zip.h)
-    if(MINIZIP_INCLUDE_DIR)
-      target_include_directories(paozhu PRIVATE ${MINIZIP_INCLUDE_DIR})
-    else()
-      message(WARNING "minizip/zip.h not found – include path may be incomplete")
-    endif()
+    find_package(minizip CONFIG REQUIRED)
+    target_link_libraries(paozhu PRIVATE minizip::minizip)
+    # vcpkg's minizip already sets up include directories automatically
   endif()
+
 else()
-  # Not using vcpkg: system libraries
+  # ---- Not using vcpkg: system libraries ----
   # On Windows, we highly recommend using vcpkg; exit with a helpful message if not.
   if(WIN32)
     message(FATAL_ERROR
@@ -547,8 +563,11 @@ else()
     target_link_libraries(paozhu PRIVATE Freetype::Freetype)
   endif()
 
-
+  # ------- minizip (system) -------
+  # [MINIZIP] Use find_library / find_path for Unix-like systems (macOS, Linux)
   if(ENABLE_EXCEL)
+    # On macOS, Homebrew installs minizip under /usr/local/opt or /opt/homebrew
+    # On Linux, typical locations are /usr/lib, /usr/lib64, etc.
     find_library(MINIZIP_LIBRARY minizip
       PATHS /usr/local/opt/minizip/lib /opt/homebrew/opt/minizip/lib
             /usr/lib64 /usr/lib/x86_64-linux-gnu /usr/lib
