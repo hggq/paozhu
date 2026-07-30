@@ -30,6 +30,7 @@
 #include "client_context.h"
 #include "terminal_color.h"
 #include "func.h"
+#include "cost_define.h"
 #include "atomic_guard.h"
 
 namespace http
@@ -2303,8 +2304,14 @@ std::string client::get_body()
             return "";
         }
         fseek(ffp.get(), 0, SEEK_END);
-        unsigned int nsize = ftell(ffp.get());
+        long fsize = ftell(ffp.get());
         fseek(ffp.get(), 0, SEEK_SET);
+
+        if (fsize < 0 || fsize > CONST_HTTP_BODY_POST_SIZE)
+        {
+            return "";
+        }
+        unsigned int nsize = static_cast<unsigned int>(fsize);
 
         page.content.resize(nsize);
 
@@ -2329,8 +2336,14 @@ const std::string &client::ref_body()
             return page.content;
         }
         fseek(ffp.get(), 0, SEEK_END);
-        unsigned int nsize = ftell(ffp.get());
+        long fsize = ftell(ffp.get());
         fseek(ffp.get(), 0, SEEK_SET);
+
+        if (fsize < 0 || fsize > CONST_HTTP_BODY_POST_SIZE)
+        {
+            return page.content;
+        }
+        unsigned int nsize = static_cast<unsigned int>(fsize);
 
         page.content.resize(nsize);
 

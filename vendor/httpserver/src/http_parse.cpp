@@ -1055,7 +1055,15 @@ void httpparse::process_header_line(std::string_view line_str)
     case 14:
         if (str_casecmp(header_key, "Content-Length"))
         {
-            peer->content_length = header_valuetoint(header_value);
+            long long temp_cl = str2int(&header_value[0], header_value.size());
+            if (temp_cl < 0 || temp_cl > CONST_HTTP_BODY_POST_SIZE)
+            {
+                peer->content_length = 0;
+            }
+            else
+            {
+                peer->content_length = static_cast<unsigned long long>(temp_cl);
+            }
         }
         break;
     case 13:

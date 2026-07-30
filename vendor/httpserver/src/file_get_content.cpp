@@ -15,6 +15,7 @@
 #include "file_get_content.h"
 #include "httpclient.h"
 #include "func.h"
+#include "cost_define.h"
 namespace http
 {
 std::string file_get_contents(std::string str, std::map<std::string, std::string> &parabody, unsigned int timeoutnum)
@@ -124,8 +125,15 @@ std::string file_get_contents(std::string str, std::map<std::string, std::string
             return file_body;
         }
         fseek(ffp, 0, SEEK_END);
-        unsigned int nsize = ftell(ffp);
+        long fsize = ftell(ffp);
         fseek(ffp, 0, SEEK_SET);
+
+        if (fsize < 0 || fsize > CONST_HTTP_BODY_POST_SIZE)
+        {
+            fclose(ffp);
+            return file_body;
+        }
+        unsigned int nsize = static_cast<unsigned int>(fsize);
 
         file_body.resize(nsize);
 
@@ -187,8 +195,15 @@ std::string file_get_contents(std::string str, unsigned int timeoutnum)
             return file_body;
         }
         fseek(ffp, 0, SEEK_END);
-        unsigned int nsize = ftell(ffp);
+        long fsize = ftell(ffp);
         fseek(ffp, 0, SEEK_SET);
+
+        if (fsize < 0 || fsize > CONST_HTTP_BODY_POST_SIZE)
+        {
+            fclose(ffp);
+            return file_body;
+        }
+        unsigned int nsize = static_cast<unsigned int>(fsize);
 
         file_body.resize(nsize);
 
@@ -196,7 +211,6 @@ std::string file_get_contents(std::string str, unsigned int timeoutnum)
         file_body.resize(nread);
         fclose(ffp);
     }
-
     return file_body;
 }
 bool file_put_contents(std::string str, std::string &body, bool append)

@@ -1617,6 +1617,10 @@ long long str2int(std::string_view source)
         {
             temp = temp * 10 + (source[qi] - 0x30);
         }
+        else if(source[qi] == '.')
+        {
+            break;
+        }
     }
     if (issub)
     {

@@ -22,6 +22,7 @@
 #include "directory_fun.h"
 #include "unicode.h"
 #include "func.h"
+#include "cost_define.h"
 
 namespace fs = std::filesystem;
 namespace http
@@ -121,8 +122,14 @@ std::string displaydirectory(std::string localpath, std::string urlpath, std::st
     if (ff)
     {
         fseek(ff, 0, SEEK_END);
-        size_t size = ftell(ff);
+        long fsize = ftell(ff);
         fseek(ff, 0, SEEK_SET);
+        if (fsize < 0 || fsize > CONST_HTTP_BODY_POST_SIZE)
+        {
+            fclose(ff);
+            return {};
+        }
+        size_t size = static_cast<size_t>(fsize);
         senddatastring.resize(size);
         auto nread = fread(&senddatastring[0], 1, size, ff);
         senddatastring.resize(nread);
@@ -500,8 +507,14 @@ std::string displaydirectory_attachfile(std::string localpath, std::string urlpa
     if (ff)
     {
         fseek(ff, 0, SEEK_END);
-        size_t size = ftell(ff);
+        long fsize = ftell(ff);
         fseek(ff, 0, SEEK_SET);
+        if (fsize < 0 || fsize > CONST_HTTP_BODY_POST_SIZE)
+        {
+            fclose(ff);
+            return {};
+        }
+        size_t size = static_cast<size_t>(fsize);
         senddatastring.resize(size);
         auto nread = fread(&senddatastring[0], 1, size, ff);
         senddatastring.resize(nread);
@@ -746,8 +759,14 @@ std::string displaydirectory_attachimg(std::string localpath, std::string urlpat
     if (ff)
     {
         fseek(ff, 0, SEEK_END);
-        size_t size = ftell(ff);
+        long fsize = ftell(ff);
         fseek(ff, 0, SEEK_SET);
+        if (fsize < 0 || fsize > CONST_HTTP_BODY_POST_SIZE)
+        {
+            fclose(ff);
+            return {};
+        }
+        size_t size = static_cast<size_t>(fsize);
         senddatastring.resize(size);
         auto nread = fread(&senddatastring[0], 1, size, ff);
         senddatastring.resize(nread);

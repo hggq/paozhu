@@ -7,6 +7,7 @@
 #include <cstring>
 #include "httppeer.h"
 #include "func.h"
+#include "cost_define.h"
 #include "terminal_color.h"
 
 namespace http
@@ -28,8 +29,14 @@ std::map<std::string, std::map<std::string, std::string>> loadserversconfig(std:
         return sys_config;
     }
     fseek(f.get(), 0, SEEK_END);
-    auto const size = ftell(f.get());
+    long fsize = ftell(f.get());
     fseek(f.get(), 0, SEEK_SET);
+
+    if (fsize < 0 || fsize > CONST_HTTP_BODY_POST_SIZE)
+    {
+        return sys_config;
+    }
+    auto const size = static_cast<size_t>(fsize);
 
     std::string s, linestr, keyname, strval;
     s.resize(size);

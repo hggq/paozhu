@@ -1082,9 +1082,19 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             steam_httppeer->header["Authorization"] = header_value;
             break;
         case 28:
-            steam_httppeer->content_length           = str2int(&header_value[0], header_value.size());
+        {
+            long long temp_cl = str2int(&header_value[0], header_value.size());
+            if (temp_cl < 0 || temp_cl > CONST_HTTP_BODY_POST_SIZE)
+            {
+                steam_httppeer->content_length = 0;
+            }
+            else
+            {
+                steam_httppeer->content_length = static_cast<unsigned long long>(temp_cl);
+            }
             steam_httppeer->header["Content-Length"] = header_value;
             break;
+        }
         case 31:
             getcontenttype(header_name, header_value, steam_httppeer);
             break;
@@ -1280,7 +1290,15 @@ void http2parse::header_process(const std::string &header_name, const std::strin
         case 14:
             if (str_casecmp(header_name, "Content-Length"))
             {
-                steam_httppeer->content_length           = str2int(&header_value[0], header_value.size());
+                long long temp_cl = str2int(&header_value[0], header_value.size());
+                if (temp_cl < 0 || temp_cl > CONST_HTTP_BODY_POST_SIZE)
+                {
+                    steam_httppeer->content_length = 0;
+                }
+                else
+                {
+                    steam_httppeer->content_length = static_cast<unsigned long long>(temp_cl);
+                }
                 steam_httppeer->header["Content-Length"] = header_value;
             }
             else
