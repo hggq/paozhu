@@ -1960,4 +1960,209 @@ void httppeer::clear()
     flow_method.reset();
 }
 
+std::string httppeer::make_http2_data(unsigned int sid, std::string_view payload, bool is_end)
+{
+    std::string frame(9, '\0');
+
+    // payload length (3 bytes, big-endian)
+    unsigned int len = payload.size();
+    frame[2] = len & 0xFF;
+    len >>= 8;
+    frame[1] = len & 0xFF;
+    len >>= 8;
+    frame[0] = len & 0xFF;
+
+    // frame type: 0x00 = DATA
+    frame[3] = 0x00;
+
+    // flags: 0x01 = END_STREAM
+    frame[4] = is_end ? 0x01 : 0x00;
+
+    // stream_id (4 bytes, big-endian)
+    unsigned int sid_temp = sid;
+    frame[8] = sid_temp & 0xFF;
+    sid_temp >>= 8;
+    frame[7] = sid_temp & 0xFF;
+    sid_temp >>= 8;
+    frame[6] = sid_temp & 0xFF;
+    sid_temp >>= 8;
+    frame[5] = sid_temp & 0xFF;
+
+    frame.append(payload);
+    return frame;
+}
+
+asio::awaitable<void> httppeer::async_make_sse_header()
+{
+    status(200);
+    type("text/event-stream");
+    set_header("Cache-Control", "no-cache");
+    set_header("Connection", "keep-alive");
+    set_header("Date", get_gmttime());
+    set_header("Last-Modified", get_gmttime((unsigned long long)fileinfo.st_mtime));
+    if (!etag.empty())
+    {
+        set_header("ETag", etag);
+    }
+    ischunked = true;
+
+    std::string header_str;
+    if (httpv == 2)
+    {
+        header_str = make_http2_header(0);
+    }
+    else
+    {
+        header_str = make_http1_header();
+        header_str.append("\r\n");
+    }
+
+    if (socket_session)
+    {
+        co_await socket_session->async_send_writer(header_str);
+    }
+    co_return;
+}
+
+void httppeer::make_sse_header()
+{
+    status(200);
+    type("text/event-stream");
+    set_header("Cache-Control", "no-cache");
+    set_header("Connection", "keep-alive");
+    set_header("Date", get_gmttime());
+    set_header("Last-Modified", get_gmttime((unsigned long long)fileinfo.st_mtime));
+    if (!etag.empty())
+    {
+        set_header("ETag", etag);
+    }
+    ischunked = true;
+
+    std::string header_str;
+    if (httpv == 2)
+    {
+        header_str = make_http2_header(0);
+    }
+    else
+    {
+        header_str = make_http1_header();
+        header_str.append("\r\n");
+    }
+
+    if (socket_session)
+    {
+        socket_session->send_writer(header_str);
+    }
+}
+
+asio::awaitable<void> httppeer::async_make_sse_body(std::string_view data)
+{
+    std::string sse_data;
+    sse_data.reserve(data.size() + 8);
+    sse_data.append("data: ");
+    sse_data.append(data);
+    sse_data.append("\n\n");
+
+    if (httpv == 2)
+    {
+        std::string frame = make_http2_data(stream_id, sse_data, false);
+        if (socket_session)
+        {
+            co_await socket_session->async_send_writer(frame);
+        }
+    }
+    else
+    {
+        std::string chunk;
+        chunk.reserve(sse_data.size() + 16);
+        std::ostringstream ss;
+        ss << std::hex << sse_data.size();
+        chunk.append(ss.str());
+        chunk.append("\r\n");
+        chunk.append(sse_data);
+        chunk.append("\r\n");
+
+        if (socket_session)
+        {
+            co_await socket_session->async_send_writer(chunk);
+        }
+    }
+    co_return;
+}
+
+void httppeer::make_sse_body(std::string_view data)
+{
+    std::string sse_data;
+    sse_data.reserve(data.size() + 8);
+    sse_data.append("data: ");
+    sse_data.append(data);
+    sse_data.append("\n\n");
+
+    if (httpv == 2)
+    {
+        std::string frame = make_http2_data(stream_id, sse_data, false);
+        if (socket_session)
+        {
+            socket_session->send_writer(frame);
+        }
+    }
+    else
+    {
+        std::string chunk;
+        chunk.reserve(sse_data.size() + 16);
+        std::ostringstream ss;
+        ss << std::hex << sse_data.size();
+        chunk.append(ss.str());
+        chunk.append("\r\n");
+        chunk.append(sse_data);
+        chunk.append("\r\n");
+
+        if (socket_session)
+        {
+            socket_session->send_writer(chunk);
+        }
+    }
+}
+
+asio::awaitable<void> httppeer::async_make_sse_end()
+{
+    if (httpv == 2)
+    {
+        // 发送空 DATA 帧，END_STREAM 标志
+        std::string frame = make_http2_data(stream_id, "", true);
+        if (socket_session)
+        {
+            co_await socket_session->async_send_writer(frame);
+        }
+    }
+    else
+    {
+        // HTTP/1.1 chunked 结束标记
+        if (socket_session)
+        {
+            co_await socket_session->async_send_writer(std::string_view("0\r\n\r\n"));
+        }
+    }
+    co_return;
+}
+
+void httppeer::make_sse_end()
+{
+    if (httpv == 2)
+    {
+        std::string frame = make_http2_data(stream_id, "", true);
+        if (socket_session)
+        {
+            socket_session->send_writer(frame);
+        }
+    }
+    else
+    {
+        if (socket_session)
+        {
+            socket_session->send_writer("0\r\n\r\n");
+        }
+    }
+}
+
 }// namespace http

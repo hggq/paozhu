@@ -104,6 +104,8 @@ class client : public std::enable_shared_from_this<client>
     void readheaderline(const char *buffer, unsigned int buffersize);
     void respreadtocontent(const char *buffer, unsigned int buffersize);
     void respreadtofile(const char *buffer, unsigned int buffersize);
+    void respread_sse(const char *buffer, unsigned int buffersize);
+    void parse_sse_event();
     void responseheader(std::string_view, std::string_view);
     void respcookieprocess(std::string_view);
     void respattachmentprocess(std::string_view);
@@ -241,6 +243,7 @@ class client : public std::enable_shared_from_this<client>
     std::function<void(std::string &header_str)> onrequest                                           = nullptr;
     std::function<void(unsigned long long, unsigned long long)> upload_process                       = nullptr;
     std::function<void(unsigned long long, unsigned long long)> download_process                     = nullptr;
+    std::function<void(std::string &respdata, std::shared_ptr<client>)> on_sse_event                     = nullptr;
 
     asio::strand<asio::io_context::executor_type> strand_;
     std::function<void(std::shared_ptr<client>)> dur_time_loop_fun                        = nullptr;
@@ -257,6 +260,7 @@ class client : public std::enable_shared_from_this<client>
   public:
     std::string contenttype;
     std::string contentline;
+    std::string sse_buffer;
 
     unsigned char parsetojson = 0;
 

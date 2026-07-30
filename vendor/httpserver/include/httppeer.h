@@ -135,6 +135,17 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     bool find_host_index();
     unsigned int check_upload_limit();
 
+    // SSE 流式输出
+    asio::awaitable<void> async_make_sse_header();
+    asio::awaitable<void> async_make_sse_body(std::string_view data);
+    asio::awaitable<void> async_make_sse_end();
+    void make_sse_header();
+    void make_sse_body(std::string_view data);
+    void make_sse_end();
+
+  private:
+    std::string make_http2_data(unsigned int sid, std::string_view payload, bool is_end);
+
   public:
     std::string host;
     std::string url;

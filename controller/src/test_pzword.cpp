@@ -38,54 +38,54 @@ std::string test_pzword(std::shared_ptr<httppeer> peer)
     client << "<p>=== Reading " << zipfile << " ===</p></p>";
 
     pz::word pzw;
-    if(!pzw.read(zipfile))
+    if (!pzw.read(zipfile))
     {
-        client <<"Read error: "<<pzw.error_msg;
-        client <<"Trying to read from unzipped directory...";
-        
-        if(!pzw.read_from_unzipped("."))
+        client << "Read error: " << pzw.error_msg;
+        client << "Trying to read from unzipped directory...";
+
+        if (!pzw.read_from_unzipped("."))
         {
-            client <<"Read from unzipped error: "<<pzw.error_msg;
+            client << "Read from unzipped error: " << pzw.error_msg;
             return "";
         }
         else
         {
-            client <<"Read from unzipped directory success";
+            client << "Read from unzipped directory success";
         }
     }
     else
     {
-        client <<"Read from docx file success";
+        client << "Read from docx file success";
     }
 
-   std::string html = pzw.to_html();
+    std::string html = pzw.to_html();
 
-    std::ofstream html_file(file_conf+"word.html");
-    if(html_file)
+    std::ofstream html_file(file_conf + "word.html");
+    if (html_file)
     {
         html_file << html;
         html_file.close();
-        client <<"\n=== HTML saved to word.html ===";
+        client << "\n=== HTML saved to word.html ===";
     }
     else
     {
-        client <<"Error: Unable to write word.html";
+        client << "Error: Unable to write word.html";
     }
 
     pz::word pzww;
-    if(!pzww.read_html(file_conf+"word.html"))
+    if (!pzww.read_html(file_conf + "word.html"))
     {
-        client <<"Read HTML error: "<<pzww.error_msg;
+        client << "Read HTML error: " << pzww.error_msg;
         return "";
     }
 
-    if(!pzww.write(file_conf + "www.docx"))
+    if (!pzww.write(file_conf + "www.docx"))
     {
-        client <<"Write DOCX error: "<<pzww.error_msg;
+        client << "Write DOCX error: " << pzww.error_msg;
         return "";
     }
-    client <<"<p>Successfully wrote www.docx</p>";
-    client <<html;
+    client << "<p>Successfully wrote www.docx</p>";
+    client << html;
 #else
     client << "<p>Please: cmake .. -DENABLE_OFFICE=ON </p>";
 #endif// ENABLE_OFFICE

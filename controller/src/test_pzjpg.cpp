@@ -43,7 +43,6 @@ std::string test_pzjpg(std::shared_ptr<httppeer> peer)
     img.save(file_conf + "line_thickness_test.jpg");
     client << "<p>保存完成</p>";
 
-
 #else
     client << "<p>Please: cmake .. -DENABLE_IMAGE=ON </p>";
 #endif// ENABLE_IMAGE
@@ -84,7 +83,7 @@ std::string test_outjpg(std::shared_ptr<httppeer> peer)
     // client << "<p>保存完成</p>";
 
     image::ttffont font;
-    if (font.load(file_conf+"font/AlibabaPuHuiTi-Light.ttf")) 
+    if (font.load(file_conf + "font/AlibabaPuHuiTi-Light.ttf"))
     {
         const std::string text = "AbcXyz8核鑫03炮竹";
         font.drawTextOutline(img, 20, 70, 56.0f, text, {30, 30, 200});
@@ -94,7 +93,6 @@ std::string test_outjpg(std::shared_ptr<httppeer> peer)
     client.type("image/jpg");
     auto vec      = img.imshow();
     client.output = std::string(reinterpret_cast<const char *>(vec.data()), vec.size());
-
 
 #else
     client << "<p>Please: cmake .. -DENABLE_IMAGE=ON </p>";
@@ -126,13 +124,13 @@ std::string test_showjpg(std::shared_ptr<httppeer> peer)
 
     image::jpg img;
     bool isok = img.read(file_conf);
-    if(isok)
+    if (isok)
     {
         client.type("image/jpg");
         auto vec      = img.imshow();
         client.output = std::string(reinterpret_cast<const char *>(vec.data()), vec.size());
     }
-    client << "<p>read file error:"<< file_conf <<" </p>";
+    client << "<p>read file error:" << file_conf << " </p>";
 
 #else
     client << "<p>Please: cmake .. -DENABLE_IMAGE=ON </p>";

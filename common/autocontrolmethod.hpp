@@ -817,8 +817,8 @@ namespace http
 		temp.regfun = testshowsession;
 		methodcallback.emplace("testshowsession",temp);
 		temp.pre = nullptr;
-		temp.regfun = test_deepseek_async;
-		methodcallback.emplace("deepseek_async",temp);
+		temp.regfun = test_deepseek_api;
+		methodcallback.emplace("deepseek_api",temp);
 		temp.pre = nullptr;
 		temp.regfun = api_dev_hostcors;
 		methodcallback.emplace("api/dev/hostcors",temp);
@@ -886,6 +886,12 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testhttpclient22_cowait_body;
 		methodcallback.emplace("testcowaitclient22",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_deepseek_async;
+		methodcallback.emplace("deepseek_async",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_deepseek_sse;
+		methodcallback.emplace("deepseek_sse",temp);
 		temp.pre = nullptr;
 		temp.regfun = test_rpcclient;
 		methodcallback.emplace("test_rpcclient",temp);

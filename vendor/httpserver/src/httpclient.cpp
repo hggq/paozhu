@@ -127,6 +127,7 @@ client &client::clear()
     response_header.clear();
     page.code     = 0;
     page.length   = 0;
+    page.issse    = false;
     page.istxt    = false;
     page.isjson   = false;
     page.chunked  = false;
@@ -145,6 +146,7 @@ client &client::clear()
     page.file.error = 0;
     page.padd       = 0;
     page.json.clear();
+    sse_buffer.clear();
     close_connect();
     return *this;
 }
@@ -486,6 +488,7 @@ asio::awaitable<void> client::async_send_data()
         response_header.clear();
         page.code     = 0;
         page.length   = 0;
+        page.issse    = false;
         page.istxt    = false;
         page.isjson   = false;
         page.chunked  = false;
@@ -504,6 +507,7 @@ asio::awaitable<void> client::async_send_data()
         page.file.error = 0;
         page.padd       = 0;
         page.json.clear();
+        sse_buffer.clear();
 
         if (!sock)
         {
@@ -746,6 +750,7 @@ client &client::send_data()
         response_header.clear();
         page.code     = 0;
         page.length   = 0;
+        page.issse    = false;
         page.istxt    = false;
         page.isjson   = false;
         page.chunked  = false;
@@ -764,6 +769,7 @@ client &client::send_data()
         page.file.error = 0;
         page.padd       = 0;
         page.json.clear();
+        sse_buffer.clear();
 
         //asio::io_context clientio_context(1);
         //client_context &temp_io_context = get_client_context_obj();
@@ -1070,6 +1076,7 @@ asio::awaitable<void> client::async_send_ssl_data()
         response_header.clear();
         page.code     = 0;
         page.length   = 0;
+        page.issse    = false;
         page.istxt    = false;
         page.isjson   = false;
         page.chunked  = false;
@@ -1088,6 +1095,7 @@ asio::awaitable<void> client::async_send_ssl_data()
         page.file.error = 0;
         page.padd       = 0;
         page.json.clear();
+        sse_buffer.clear();
 
         if (!sslsock)
         {
@@ -1381,6 +1389,7 @@ client &client::send_ssl_data()
         response_header.clear();
         page.code     = 0;
         page.length   = 0;
+        page.issse    = false;
         page.istxt    = false;
         page.isjson   = false;
         page.chunked  = false;
@@ -1399,6 +1408,7 @@ client &client::send_ssl_data()
         page.file.error = 0;
         page.padd       = 0;
         page.json.clear();
+        sse_buffer.clear();
 
         //asio::io_context io_context;
         // client_context &temp_io_context = get_client_context_obj();
@@ -2540,6 +2550,177 @@ void client::respreadtofile(const char *buffer, unsigned int buffersize)
         fwrite(&buffer[i], offset, 1, rawfile.get());
     }
 }
+void client::respread_sse(const char *buffer, unsigned int buffersize)
+{
+    unsigned int i = readoffset;
+
+    while (i < buffersize)
+    {
+        if (page.chunked)
+        {
+            // chunked 传输编码：先解码 chunk 再解析 SSE
+            if (page.length == 0)
+            {
+                // 解析 chunk 大小
+                unsigned int n = 0;
+                for (; i < buffersize; i++)
+                {
+                    if (buffer[i] == 0x0D || buffer[i] == 0x0A)
+                        break;
+                    if (buffer[i] >= '0' && buffer[i] <= '9')
+                        n = (n << 4) + (buffer[i] - '0');
+                    else if (buffer[i] >= 'A' && buffer[i] <= 'F')
+                        n = (n << 4) + (buffer[i] - 'A') + 10;
+                    else if (buffer[i] >= 'a' && buffer[i] <= 'f')
+                        n = (n << 4) + (buffer[i] - 'a') + 10;
+                }
+                page.length = n;
+                if (page.length == 0)
+                {
+                    // chunk 结束
+                    for (; i < buffersize; i++)
+                    {
+                        if (buffer[i] != 0x0D && buffer[i] != 0x0A)
+                            break;
+                    }
+                    readoffset = i;
+                    return;
+                }
+
+                // 跳过 chunk 大小后的 \r\n（处理跨包）
+                if (i < buffersize && buffer[i] == 0x0D)
+                {
+                    i++;
+                    if (i < buffersize && buffer[i] == 0x0A)
+                    {
+                        i++;
+                    }
+                    else
+                    {
+                        if (i < buffersize)
+                        {
+                            iserror = 1;
+                        }
+                        page.padd = 1;
+                        break;
+                    }
+                }
+                else
+                {
+                    if (i < buffersize)
+                    {
+                        iserror = 1;
+                        break;
+                    }
+                    page.padd = 2;
+                    break;
+                }
+            }
+
+            // 跨包处理：补齐上次未读完的 \r\n
+            if (page.padd == 2)
+            {
+                if (i < buffersize && buffer[i] == 0x0D)
+                {
+                    i++;
+                    if (i < buffersize && buffer[i] == 0x0A)
+                    {
+                        i++;
+                    }
+                    else
+                    {
+                        iserror = 1;
+                        return;
+                    }
+                }
+                else
+                {
+                    iserror = 1;
+                    return;
+                }
+                page.padd = 0;
+            }
+            else if (page.padd == 1)
+            {
+                if (i < buffersize && buffer[i] == 0x0A)
+                {
+                    i++;
+                }
+                else
+                {
+                    iserror = 1;
+                    return;
+                }
+                page.padd = 0;
+            }
+
+            // 读取 chunk 数据
+            if (page.length > 0)
+            {
+                for (; i < buffersize && page.length > 0; i++, page.length--)
+                {
+                    sse_buffer.push_back(buffer[i]);
+
+                    if (sse_buffer.size() >= 2 &&
+                        sse_buffer[sse_buffer.size() - 2] == '\n' &&
+                        sse_buffer[sse_buffer.size() - 1] == '\n')
+                    {
+                        parse_sse_event();
+                        sse_buffer.clear();
+                    }
+                }
+            }
+            else
+            {
+                // 防止死循环
+                i++;
+            }
+
+            // chunk 数据读完后跳过尾部 \r\n
+            if (page.length == 0 && i < buffersize)
+            {
+                if (buffer[i] == 0x0D)
+                    i++;
+                if (i < buffersize && buffer[i] == 0x0A)
+                    i++;
+            }
+        }
+        else
+        {
+            // 非 chunked：直接累积
+            for (; i < buffersize; i++)
+            {
+                sse_buffer.push_back(buffer[i]);
+
+                if (sse_buffer.size() >= 2 &&
+                    sse_buffer[sse_buffer.size() - 2] == '\n' &&
+                    sse_buffer[sse_buffer.size() - 1] == '\n')
+                {
+                    parse_sse_event();
+                    sse_buffer.clear();
+                }
+            }
+        }
+    }
+}
+
+void client::parse_sse_event()
+{
+    if (sse_buffer.size() > 5 && str_casecmp(sse_buffer.substr(0, 5), "data:"))
+    {
+        // 去掉尾部的 \n\n（SSE 事件边界分隔符）
+        std::string data_str = sse_buffer;
+        while (!data_str.empty() && (data_str.back() == '\n' || data_str.back() == '\r'))
+        {
+            data_str.pop_back();
+        }
+        if (on_sse_event)
+        {
+            on_sse_event(data_str, shared_from_this());
+        }
+    }
+}
+
 void client::finishprocess()
 {
     if (rawfile)
@@ -2547,6 +2728,11 @@ void client::finishprocess()
         rawfile.reset(nullptr);
         // fclose(rawfile);
         // rawfile = NULL;
+    }
+    // SSE 模式不进行 gzip 解压和 JSON 全量解析
+    if (page.issse)
+    {
+        return;
     }
     if (page.encode == 'g')
     {
@@ -2597,7 +2783,11 @@ bool client::process(const char *buffer, unsigned int buffersize)
     if (headerfinish == 1 && iserror == 0 && readoffset < buffersize)
     {
         // type length chunked
-        if (page.istxt)
+        if (page.issse)
+        {
+            respread_sse(buffer, buffersize);
+        }
+        else if (page.istxt)
         {
             respreadtocontent(buffer, buffersize);
         }

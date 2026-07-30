@@ -10,7 +10,7 @@
 #endif// ENABLE_PDF
 namespace http
 {
-namespace fs = std::filesystem;    
+namespace fs = std::filesystem;
 //@urlpath(null,test_webpdf)
 std::string test_webpdf(std::shared_ptr<httppeer> peer)
 {
@@ -31,22 +31,21 @@ std::string test_webpdf(std::shared_ptr<httppeer> peer)
         file_conf.push_back('/');
     }
     file_conf.append("docs/");
-    
-    if(peer->pathinfos.size() == 2 && peer->pathinfos[1] == "cn") 
-    {    
-        try 
+
+    if (peer->pathinfos.size() == 2 && peer->pathinfos[1] == "cn")
+    {
+        try
         {
-            std::string html_file = file_conf +  "webpdf_tutorial.html";
-            std::string pdf_file  = file_conf +  "webpdf_tutorial.pdf";
+            std::string html_file = file_conf + "webpdf_tutorial.html";
+            std::string pdf_file  = file_conf + "webpdf_tutorial.pdf";
             // OTF (bare CID-keyed CFF) subsetting path. content_otf.html uses
             // the family name "SourceHanSerifSC-Light" directly.
             std::string font_file = "AlibabaPuHuiTi-Light.otf";
             std::string font_name = "AlibabaPuHuiTi-Light";
 
-    
             fs::path html_path = fs::absolute(html_file);
-            fs::path pdf_path   = fs::absolute(pdf_file);
-            fs::path font_dir   = fs::absolute(file_conf + "font");
+            fs::path pdf_path  = fs::absolute(pdf_file);
+            fs::path font_dir  = fs::absolute(file_conf + "font");
 
             std::ifstream f(html_file, std::ios::binary);
             if (!f.is_open())
@@ -54,7 +53,7 @@ std::string test_webpdf(std::shared_ptr<httppeer> peer)
                 client << "Cannot open file: " << html_file;
                 return "";
             }
-                
+
             // 获取文件大小
             f.seekg(0, std::ios::end);
             std::streamsize size = f.tellg();
@@ -62,7 +61,8 @@ std::string test_webpdf(std::shared_ptr<httppeer> peer)
 
             std::string html;
             html.resize(static_cast<size_t>(size));
-            if (size > 0 && !f.read(html.data(), size)) {
+            if (size > 0 && !f.read(html.data(), size))
+            {
                 client << "Failed to read file: " << html_file;
                 return "";
             }
@@ -70,8 +70,8 @@ std::string test_webpdf(std::shared_ptr<httppeer> peer)
             auto pdf = std::make_unique<pz::webpdf>();
             pdf->setImagesPath(file_conf);
             pdf->AddPage();
-            pdf->AddFont(font_name,"",font_file,font_dir.string());
-            pdf->SetFont(font_name,"",14);
+            pdf->AddFont(font_name, "", font_file, font_dir.string());
+            pdf->SetFont(font_name, "", 14);
             fs::current_path(fs::absolute(html_file).parent_path());
             pdf->WriteHTML(html);
 
@@ -79,16 +79,16 @@ std::string test_webpdf(std::shared_ptr<httppeer> peer)
             pdf->Output("F", pdf_path.string());
             peer->output = pdf->Output("D", pdf_path.string());
             //peer->output = pdf->move_result();
-            
-            
-        } catch (const std::exception& e) {
+        }
+        catch (const std::exception &e)
+        {
             client << "Error: " << e.what();
             return "";
         }
     }
     else
     {
-        try 
+        try
         {
             std::string html_file = file_conf + "webpdf_tutorial_en.html";
             std::string pdf_file  = file_conf + "webpdf_tutorial_en.pdf";
@@ -98,8 +98,8 @@ std::string test_webpdf(std::shared_ptr<httppeer> peer)
             // Resolve everything to absolute paths up front, before we change the
             // working directory to the HTML's location for relative asset lookups.
             fs::path html_path = fs::absolute(html_file);
-            fs::path pdf_path   = fs::absolute(pdf_file);
-            fs::path font_dir   = fs::absolute(file_conf + "font");
+            fs::path pdf_path  = fs::absolute(pdf_file);
+            fs::path font_dir  = fs::absolute(file_conf + "font");
 
             std::ifstream f(html_file, std::ios::binary);
             if (!f.is_open())
@@ -107,7 +107,7 @@ std::string test_webpdf(std::shared_ptr<httppeer> peer)
                 client << "Cannot open file: " << html_file;
                 return "";
             }
-                
+
             // 获取文件大小
             f.seekg(0, std::ios::end);
             std::streamsize size = f.tellg();
@@ -115,7 +115,8 @@ std::string test_webpdf(std::shared_ptr<httppeer> peer)
 
             std::string html;
             html.resize(static_cast<size_t>(size));
-            if (size > 0 && !f.read(html.data(), size)) {
+            if (size > 0 && !f.read(html.data(), size))
+            {
                 client << "Failed to read file: " << html_file;
                 return "";
             }
@@ -127,14 +128,15 @@ std::string test_webpdf(std::shared_ptr<httppeer> peer)
 
             // Resources (images, etc.) in the HTML are relative to the HTML file.
             //fs::current_path(html_path.parent_path());
- 
+
             pdf->WriteHTML(html);
             peer->type("application/pdf");
             pdf->Output("F", pdf_path.string());
             peer->output = pdf->Output("D", pdf_path.string());
             //peer->output = pdf->move_result();
-            
-        } catch (const std::exception& e) {
+        }
+        catch (const std::exception &e)
+        {
             std::cerr << "Error: " << e.what() << std::endl;
             return "";
         }
@@ -166,22 +168,21 @@ std::string test_otfpdf(std::shared_ptr<httppeer> peer)
         file_conf.push_back('/');
     }
     file_conf.append("docs/");
-    
-    if(peer->pathinfos.size() == 2 && peer->pathinfos[1] == "cn") 
-    {    
-        try 
+
+    if (peer->pathinfos.size() == 2 && peer->pathinfos[1] == "cn")
+    {
+        try
         {
-            std::string html_file = file_conf +  "webpdf_tutorial.html";
-            std::string pdf_file  = file_conf +  "webpdf_tutorial_ttf.pdf";
+            std::string html_file = file_conf + "webpdf_tutorial.html";
+            std::string pdf_file  = file_conf + "webpdf_tutorial_ttf.pdf";
             // OTF (bare CID-keyed CFF) subsetting path. content_otf.html uses
             // the family name "SourceHanSerifSC-Light" directly.
             std::string font_file = "AlibabaPuHuiTi-Light.ttf";
             std::string font_name = "AlibabaPuHuiTi-Light";
 
-    
             fs::path html_path = fs::absolute(html_file);
-            fs::path pdf_path   = fs::absolute(pdf_file);
-            fs::path font_dir   = fs::absolute(file_conf + "font");
+            fs::path pdf_path  = fs::absolute(pdf_file);
+            fs::path font_dir  = fs::absolute(file_conf + "font");
 
             std::ifstream f(html_file, std::ios::binary);
             if (!f.is_open())
@@ -189,7 +190,7 @@ std::string test_otfpdf(std::shared_ptr<httppeer> peer)
                 client << "Cannot open file: " << html_file;
                 return "";
             }
-                
+
             // 获取文件大小
             f.seekg(0, std::ios::end);
             std::streamsize size = f.tellg();
@@ -197,7 +198,8 @@ std::string test_otfpdf(std::shared_ptr<httppeer> peer)
 
             std::string html;
             html.resize(static_cast<size_t>(size));
-            if (size > 0 && !f.read(html.data(), size)) {
+            if (size > 0 && !f.read(html.data(), size))
+            {
                 client << "Failed to read file: " << html_file;
                 return "";
             }
@@ -210,23 +212,23 @@ std::string test_otfpdf(std::shared_ptr<httppeer> peer)
 
             // Resources (images, etc.) in the HTML are relative to the HTML file.
             fs::current_path(html_path.parent_path());
- 
+
             pdf->WriteHTML(html);
 
             peer->type("application/pdf");
             pdf->Output("F", pdf_path.string());
             peer->output = pdf->Output("D", pdf_path.string());
             //peer->output = pdf->move_result();
-            
-            
-        } catch (const std::exception& e) {
+        }
+        catch (const std::exception &e)
+        {
             client << "Error: " << e.what();
             return "";
         }
     }
     else
     {
-        try 
+        try
         {
             std::string html_file = file_conf + "webpdf_tutorial_en.html";
             std::string pdf_file  = file_conf + "webpdf_tutorial_en_ttf.pdf";
@@ -236,8 +238,8 @@ std::string test_otfpdf(std::shared_ptr<httppeer> peer)
             // Resolve everything to absolute paths up front, before we change the
             // working directory to the HTML's location for relative asset lookups.
             fs::path html_path = fs::absolute(html_file);
-            fs::path pdf_path   = fs::absolute(pdf_file);
-            fs::path font_dir   = fs::absolute(file_conf + "font");
+            fs::path pdf_path  = fs::absolute(pdf_file);
+            fs::path font_dir  = fs::absolute(file_conf + "font");
 
             std::ifstream f(html_file, std::ios::binary);
             if (!f.is_open())
@@ -245,7 +247,7 @@ std::string test_otfpdf(std::shared_ptr<httppeer> peer)
                 client << "Cannot open file: " << html_file;
                 return "";
             }
-                
+
             // 获取文件大小
             f.seekg(0, std::ios::end);
             std::streamsize size = f.tellg();
@@ -253,7 +255,8 @@ std::string test_otfpdf(std::shared_ptr<httppeer> peer)
 
             std::string html;
             html.resize(static_cast<size_t>(size));
-            if (size > 0 && !f.read(html.data(), size)) {
+            if (size > 0 && !f.read(html.data(), size))
+            {
                 client << "Failed to read file: " << html_file;
                 return "";
             }
@@ -271,8 +274,9 @@ std::string test_otfpdf(std::shared_ptr<httppeer> peer)
             pdf->Output("F", pdf_path.string());
             peer->output = pdf->Output("D", pdf_path.string());
             //peer->output = pdf->move_result();
-            
-        } catch (const std::exception& e) {
+        }
+        catch (const std::exception &e)
+        {
             std::cerr << "Error: " << e.what() << std::endl;
             return "";
         }
@@ -289,7 +293,7 @@ std::string test_table_linebreak(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
 #ifdef ENABLE_PDF
-    try 
+    try
     {
         std::string html_content = R"(
 <!DOCTYPE html>
@@ -314,14 +318,15 @@ td { border: 1px solid #000; padding: 5mm; font-size: 10pt; }
         pdf->AddPage();
         pdf->SetFont("Helvetica", "", 12);
         pdf->WriteHTML(html_content);
-        
+
         std::string output_path = "/Users/hzq/paozhu/temp/table_test.pdf";
         pdf->Output("F", output_path);
-        
+
         client << "<p>PDF generated: " << output_path << "</p>";
         client << "<p><a href=\"/temp/table_test.pdf\" target=\"_blank\">Download PDF</a></p>";
-        
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception &e)
+    {
         client << "Error: " << e.what();
         return "";
     }
