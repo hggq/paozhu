@@ -1997,7 +1997,6 @@ asio::awaitable<void> httppeer::async_make_sse_header()
     status(200);
     type("text/event-stream");
     set_header("Cache-Control", "no-cache");
-    set_header("Connection", "keep-alive");
     set_header("Date", get_gmttime());
     set_header("Last-Modified", get_gmttime((unsigned long long)fileinfo.st_mtime));
     if (!etag.empty())
@@ -2005,6 +2004,7 @@ asio::awaitable<void> httppeer::async_make_sse_header()
         set_header("ETag", etag);
     }
     ischunked = true;
+    // Transfer-Encoding: chunked 和 Connection 由 make_http1_header 根据 ischunked/keepalive 自动添加
 
     std::string header_str;
     if (httpv == 2)
@@ -2029,7 +2029,6 @@ void httppeer::make_sse_header()
     status(200);
     type("text/event-stream");
     set_header("Cache-Control", "no-cache");
-    set_header("Connection", "keep-alive");
     set_header("Date", get_gmttime());
     set_header("Last-Modified", get_gmttime((unsigned long long)fileinfo.st_mtime));
     if (!etag.empty())
