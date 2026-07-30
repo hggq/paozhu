@@ -251,6 +251,7 @@ asio::awaitable<std::string> test_deepseek_sse(std::shared_ptr<httppeer> peer)
 
         if (data == "[DONE]")
         {
+            client.make_sse_body("[DONE]");
             client.make_sse_end();
             return;
         }
@@ -286,6 +287,7 @@ asio::awaitable<std::string> test_deepseek_sse(std::shared_ptr<httppeer> peer)
     if (http->get_status() != 200)
     {
         client.make_sse_body("HTTP Error from sse: " + std::to_string(http->get_status()) + ": " + http->error_msg);
+        client.make_sse_body("[DONE]");
         client.make_sse_end();
     }
 
