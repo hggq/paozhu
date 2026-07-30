@@ -1,0 +1,200 @@
+# C++ Web 框架开发企业后台所需模块清单
+
+---
+
+## 一、基础架构层
+
+| 模块 | 说明 | C++ 推荐库/方案 |
+|------|------|----------------|
+| HTTP 服务器 | 路由、中间件、请求解析 | Paozhu / Drogon / Crow / Oat++ |
+| 模板引擎 | 服务端渲染 HTML 页面 | Inja / Mustache / CTemplate |
+| JSON 处理 | API 请求/响应序列化 | nlohmann/json / RapidJSON / simdjson |
+| 配置管理 | ini/yaml/toml 配置文件读取 | yaml-cpp / toml++ / inih |
+| 日志系统 | 分级日志、文件轮转、异步写入 | spdlog / glog / log4cplus |
+| 协程/线程池 | 高并发任务调度 | asio / libco / 框架内置 |
+
+---
+
+## 二、安全与认证
+
+| 模块 | 说明 | 推荐方案 |
+|------|------|----------|
+| 用户认证 | 登录、登出、Token 刷新 | JWT（jwt-cpp / cpp-jwt） |
+| 权限管理 | RBAC / ABAC 角色权限控制 | Casbin-cpp / 自研 |
+| OAuth2 / SSO | 第三方登录（微信、钉钉、LDAP） | 自研 + HTTP 客户端 |
+| 密码加密 | bcrypt / argon2 / PBKDF2 | libargon2 / OpenSSL |
+| HTTPS / TLS | 传输层加密 | OpenSSL / Botan |
+| 验证码 | 图形验证码 / 滑动验证 | 自研（Cairo 绘图）/ 第三方服务 |
+| 防暴力破解 | 登录失败锁定、IP 限流 | Redis 计数 + 中间件 |
+| CSRF / XSS 防护 | Web 安全过滤 | 自研中间件 |
+| 接口签名 | API 防篡改（HMAC-SHA256） | OpenSSL |
+| 数据脱敏 | 手机号、身份证、银行卡掩码 | 自研工具函数 |
+
+---
+
+## 三、数据层
+
+| 模块 | 说明 | 推荐方案 |
+|------|------|----------|
+| ORM / 数据库访问 | CRUD、迁移、连接池 | 框架内置 ORM / sqlpp11 / SOCI |
+| 数据库驱动 | MySQL / PostgreSQL / SQLite | libmysqlclient / libpq / sqlite3 |
+| 连接池 | 数据库连接复用、健康检查 | 自研 / 框架内置 |
+| 缓存 | 热点数据、Session、分布式锁 | hiredis（Redis）/ memcached |
+| 全文搜索 | 商品/文档/日志检索 | Elasticsearch（HTTP API）/ MeiliSearch |
+| 数据字典 | 枚举值、下拉选项统一管理 | 数据库表 + 缓存 |
+| 多租户 | SaaS 数据隔离 | 按 tenant_id 分库/分表 |
+| 数据备份 | 定时备份、恢复 | mysqldump + cron / 自研任务 |
+
+---
+
+## 四、文件与文档处理
+
+| 模块 | 说明 | 推荐方案 |
+|------|------|----------|
+| **Excel 读写** | 导入导出 .xlsx | OpenXLSX / xlnt / libxlsxwriter |
+| **HTML → PDF** | 报表、合同、发票生成 | wkhtmltopdf / Chromium Headless / libwkhtmltox |
+| **Word 生成** | .docx 模板填充 | libopc / docx-template（自研 zip+xml） |
+| **CSV 读写** | 大数据量导入导出 | RapidCSV / 自研 |
+| 文件上传/下载 | 分片上传、断点续传、进度 | 框架内置 + 自研 |
+| 对象存储 | 图片/文件云端存储 | MinIO（S3 API）/ 阿里云 OSS SDK |
+| 图片处理 | 缩略图、裁剪、水印、格式转换 | stb_image / OpenCV / ImageMagick（CLI） |
+| 二维码/条码 | 生成/识别 | libqrencode / zxing-cpp |
+| 压缩包 | zip/tar.gz 打包下载 | libzip / minizip / libarchive |
+| 文件预览 | Office/PDF 在线预览 | OnlyOffice / LibreOffice（headless） |
+
+---
+
+## 五、通信与消息
+
+| 模块 | 说明 | 推荐方案 |
+|------|------|----------|
+| 邮件发送 | SMTP / 模板邮件 | libcurl（SMTP）/ vmime / mailio |
+| 短信通知 | 验证码、告警 | HTTP API（阿里云/腾讯云 SDK） |
+| WebSocket | 实时推送、在线状态 | 框架内置 / uWebSockets / libwebsockets |
+| 消息队列 | 异步任务、削峰填谷 | RabbitMQ（AMQP）/ Kafka（librdkafka）/ Redis Stream |
+| 站内信/通知 | 系统公告、待办提醒 | 数据库 + WebSocket 推送 |
+| HTTP 客户端 | 调用第三方 API | libcurl / cpp-httplib / cpr |
+| gRPC | 微服务间通信 | gRPC C++ |
+| MQTT | IoT 设备通信（如适用） | Paho MQTT C++ |
+
+---
+
+## 六、任务与调度
+
+| 模块 | 说明 | 推荐方案 |
+|------|------|----------|
+| 定时任务 | Cron 表达式调度 | 自研 / croncpp / 框架内置 |
+| 异步任务队列 | 耗时操作后台执行（导出、发邮件） | 线程池 + Redis 队列 / RabbitMQ |
+| 任务状态追踪 | 进度查询、失败重试 | Redis / 数据库状态表 |
+| 分布式锁 | 防止任务重复执行 | Redis SETNX / Redlock |
+| 工作流引擎 | 审批流、状态机 | 自研（状态机表）/ 轻量 BPMN |
+
+---
+
+## 七、业务功能模块
+
+| 模块 | 说明 |
+|------|------|
+| 用户管理 | 增删改查、头像、状态、批量导入 |
+| 组织架构 | 部门树、岗位、上下级关系 |
+| 角色权限 | 菜单权限、按钮权限、数据权限 |
+| 操作日志 | 谁在什么时间做了什么操作 |
+| 登录日志 | IP、设备、地点、异常告警 |
+| 系统配置 | 动态参数、开关、主题 |
+| 代码生成器 | 根据表结构生成 CRUD 代码 |
+| 数据导入导出 | Excel 批量导入 + 校验 + 错误反馈 |
+| 报表统计 | 图表数据接口（ECharts 前端渲染） |
+| 审批流程 | 请假、报销、采购等 OA 流程 |
+| 附件管理 | 合同、凭证上传与关联 |
+| 数据看板 | Dashboard 聚合统计 |
+
+---
+
+## 八、运维与监控
+
+| 模块 | 说明 | 推荐方案 |
+|------|------|----------|
+| 健康检查 | /health 接口、依赖检测 | 自研 |
+| 性能监控 | QPS、延迟、错误率 | Prometheus + Grafana（prometheus-cpp） |
+| 链路追踪 | 分布式调用链 | OpenTelemetry C++ / Jaeger |
+| 告警通知 | 异常自动通知（钉钉/企微/邮件） | Webhook + HTTP 客户端 |
+| 灰度发布 | 流量切分、A/B 测试 | Nginx + 自研路由 |
+| 限流熔断 | 接口级限流、服务降级 | 令牌桶/滑动窗口（自研中间件） |
+| 优雅停机 | 信号处理、连接排空 | signal + 框架内置 |
+
+---
+
+## 九、API 与接口规范
+
+| 模块 | 说明 | 推荐方案 |
+|------|------|----------|
+| RESTful API | 统一 URL 规范、HTTP 方法 | 框架路由 |
+| 统一响应格式 | `{code, msg, data}` | 自研中间件/基类 |
+| 参数校验 | 必填、类型、范围、正则 | 自研 Validator / 框架内置 |
+| 接口文档 | Swagger / OpenAPI 3.0 | 自研注解生成 / 手写 YAML |
+| 版本管理 | /api/v1、/api/v2 | 路由前缀 |
+| 分页/排序/过滤 | 通用查询参数 | 自研工具类 |
+| 幂等性 | 防重复提交 | Token 机制 / 唯一键 |
+
+---
+
+## 十、前端配套（前后端分离时）
+
+| 模块 | 说明 |
+|------|------|
+| 管理后台 UI | Vue3 + Element Plus / React + Ant Design |
+| 图表 | ECharts / Chart.js |
+| 富文本编辑器 | TinyMCE / WangEditor |
+| 文件上传组件 | 分片上传 + 进度条 |
+| 权限路由 | 动态菜单、按钮级控制 |
+| 国际化 | i18n 多语言 |
+
+---
+
+## 模块优先级建议（开发顺序）
+
+```
+第一阶段（MVP）
+├── HTTP 框架 + 路由
+├── 数据库 ORM + 连接池
+├── 用户认证（JWT）
+├── RBAC 权限
+├── 统一响应 + 参数校验
+└── 日志系统
+
+第二阶段（核心业务）
+├── Excel 导入导出
+├── HTML → PDF
+├── 文件上传 / 对象存储
+├── 操作日志 / 登录日志
+├── 数据字典
+└── 定时任务
+
+第三阶段（增强）
+├── 邮件 / 短信 / WebSocket
+├── 消息队列 + 异步任务
+├── 缓存（Redis）
+├── 图片处理 / 二维码
+├── 工作流 / 审批
+└── 报表统计
+
+第四阶段（运维）
+├── 监控 + 告警
+├── 限流熔断
+├── 链路追踪
+├── 灰度发布
+└── 自动化部署（Docker / CI/CD）
+```
+
+---
+
+## 总结
+
+一个完整的企业后台，C++ 侧大约需要集成 **15～25 个第三方库**，自研 **10～20 个业务模块**。核心难点不在单个模块，而在于：
+
+1. **统一异常处理**：所有模块的错误码、日志、回滚策略一致
+2. **并发安全**：连接池、缓存、任务队列的线程/协程安全
+3. **可配置化**：功能开关、参数热更新，避免改代码重新编译
+4. **可观测性**：每个模块埋点，出问题能快速定位
+
+如果需要针对某个具体模块展开详细实现代码，可以告诉我。

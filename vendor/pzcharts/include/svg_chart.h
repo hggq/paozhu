@@ -190,6 +190,9 @@ protected:
     // 格式化数值
     static std::string fmt(double val, int precision = 1);
 
+    // 按值域跨度自适应小数位数：跨度小时刻度取整会出现重复标签（如 1、1、0、-1、-1）
+    static int tickPrecision(double span, int ticks);
+
     // XML text escaping (& → &amp; < → &lt; > → &gt;)
     static std::string escapeXml(const std::string& text);
 };
@@ -767,6 +770,84 @@ private:
 };
 
 // ============================================================
+// 10b. 乔哈里视窗 (Johari Window)
+//      2x2 象限图，展示自我认知模型
+//      - 公开区 (Open): 自己知道、别人也知道
+//      - 盲区 (Blind): 自己不知道、别人知道
+//      - 隐藏区 (Hidden): 自己知道、别人不知道
+//      - 未知区 (Unknown): 自己不知道、别人也不知道
+// ============================================================
+
+class SvgJohariWindowChart : public SvgChart {
+public:
+    // 象限索引
+    enum Quadrant {
+        OPEN = 0,     // 左上: 公开区
+        BLIND = 1,    // 右上: 盲区
+        HIDDEN = 2,   // 左下: 隐藏区
+        UNKNOWN = 3   // 右下: 未知区
+    };
+
+    SvgJohariWindowChart(int width = 800, int height = 600);
+
+    // 设置一个象限（标题 + 内容，标题顶对齐，内容支持 \n 多行）
+    void setQuadrant(Quadrant q, const std::string& title, const std::string& content,
+                     const SvgColor& bgColor = SvgColor(),
+                     const SvgColor& titleColor = SvgColor(),
+                     const SvgColor& contentColor = SvgColor(),
+                     int titleFontSize = 14, int contentFontSize = 11);
+
+    // 设置 X 轴标签（底部两列）
+    // left: 左侧列标签（默认 "Known to Others"）
+    // right: 右侧列标签（默认 "Unknown to Others"）
+    void setXLabels(const std::string& left, const std::string& right);
+
+    // 设置 Y 轴标签（左侧两行）
+    // top: 上方行标签（默认 "Known to Self"）
+    // bottom: 下方行标签（默认 "Unknown to Self"）
+    void setYLabels(const std::string& top, const std::string& bottom);
+
+    // 设置全局边框颜色和宽度
+    void setCellBorder(const std::string& color, double width = 1);
+
+    // 设置格子圆角半径
+    void setCellBorderRadius(double radius);
+
+    // 设置标题和内容之间的间距（像素）
+    void setContentOffset(double offset);
+
+    // 设置标题对齐方式: "start" (左对齐，默认), "center" (居中)
+    void setTitleAlign(const std::string& align);
+
+    // 设置是否显示背景色（默认 true）
+    void setShowBackground(bool show);
+
+    std::string render() override;
+
+private:
+    struct QuadrantData {
+        std::string title;
+        std::string content;
+        SvgColor bgColor = SvgColor(255, 255, 255);
+        SvgColor titleColor = SvgColor(51, 51, 51);
+        SvgColor contentColor = SvgColor(102, 102, 102);
+        int titleFontSize = 14;
+        int contentFontSize = 11;
+    };
+    QuadrantData quadrants_[4];
+    std::string xLabelLeft_   = "Known to Others";
+    std::string xLabelRight_  = "Unknown to Others";
+    std::string yLabelTop_    = "Known to Self";
+    std::string yLabelBottom_ = "Unknown to Self";
+    std::string cellBorderColor_ = "#ccc";
+    double cellBorderWidth_ = 1;
+    double cellBorderRadius_ = 0;
+    double contentOffset_ = 12;
+    std::string titleAlign_ = "start";
+    bool showBackground_ = true;
+};
+
+// ============================================================
 // 11. 九宫格图 (3x3 Grid Chart)
 //     每个格子可自定义背景色、边框、标题和内容
 //     只有标题时居中，有标题+内容时标题顶对齐
@@ -896,7 +977,80 @@ private:
 };
 
 // ============================================================
-// 13. 聚类散点图 (Clustering Scatter Chart)
+// 13. 热力图 (Heatmap Chart)
+//     算法来自 ECharts HeatmapView.ts / HeatmapSeries.ts
+//     使用 Cartesian 坐标系，X/Y 轴均为 category 类型
+//     每个格子为矩形，颜色根据 visualMap 映射
+// ============================================================
+
+struct HeatmapDataItem {
+    int x;          // category index for x-axis
+    int y;          // category index for y-axis
+    double value;
+    HeatmapDataItem(int x_ = 0, int y_ = 0, double v = 0)
+        : x(x_), y(y_), value(v) {}
+};
+
+class SvgHeatmapChart : public SvgChart {
+public:
+    SvgHeatmapChart(int width = 800, int height = 500);
+
+    // 添加单条数据 [x, y, value]
+    void addData(int x, int y, double value);
+
+    // 批量添加数据
+    void addData(const std::vector<HeatmapDataItem>& data);
+
+    // 设置 X 轴标签（category 名称）
+    void setXLabels(const std::vector<std::string>& labels);
+
+    // 设置 Y 轴标签（category 名称）
+    void setYLabels(const std::vector<std::string>& labels);
+
+    // 设置 visualMap 数值范围
+    void setValueRange(double minVal, double maxVal);
+
+    // 设置颜色渐变（默认: 浅蓝 → #5070dd）
+    // 至少需要 2 个颜色，value 在 min~max 之间线性插值
+    void setColorGradient(const std::vector<SvgColor>& colors);
+
+    // 显示/隐藏格子内的数值标签
+    void setShowLabel(bool show);
+
+    // 设置标签字号
+    void setLabelFontSize(int size);
+
+    // 设置格子之间的间距（像素，默认 1）
+    void setCellGap(double gap);
+
+    // 设置格子圆角半径
+    void setBorderRadius(double radius);
+
+    // 设置是否显示 visualMap 图例
+    void setShowVisualMap(bool show);
+
+    std::string render() override;
+
+private:
+    std::vector<HeatmapDataItem> data_;
+    std::vector<std::string> xLabels_;
+    std::vector<std::string> yLabels_;
+    double minVal_ = 0;
+    double maxVal_ = 1;
+    bool valueRangeSet_ = false;
+    std::vector<SvgColor> gradientColors_;
+    bool showLabel_ = true;
+    int labelFontSize_ = 11;
+    double cellGap_ = 1;
+    double borderRadius_ = 0;
+    bool showVisualMap_ = true;
+
+    // 根据 value 在 minVal~maxVal 之间线性插值颜色
+    SvgColor valueToColor(double value) const;
+};
+
+// ============================================================
+// 14. 聚类散点图 (Clustering Scatter Chart)
 //     散点按簇着色 + 簇中心标记 + 图例
 //     使用 ClusteringProcess 类进行聚类计算
 // ============================================================
@@ -911,6 +1065,10 @@ public:
     // 设置聚类个数
     void setClusterCount(int k);
 
+    // 设置外部聚类标签（与 data 一一对应，0-based 簇号）
+    // 设置后 render() 直接使用该标签着色，质心取各簇均值；不设置则内部运行 K-Means
+    void setAssignments(const std::vector<int>& assignments);
+
     // 自定义每个簇的颜色（不设置则使用默认调色板）
     void setClusterColors(const std::vector<SvgColor>& colors);
 
@@ -920,15 +1078,21 @@ public:
     // 设置中心点大小
     void setCentroidSize(double size);
 
+    // 是否绘制右上角内置图例（默认绘制）。簇数较多时图例会压住数据点，
+    // 外部另有图例说明时可关掉
+    void setShowLegend(bool show);
+
     std::string render() override;
 
 private:
     std::vector<std::vector<double>> data_;
     int clusterCount_ = 3;
+    std::vector<int> assignments_;
     std::vector<SvgColor> clusterColors_;
     std::vector<SvgColor> palette_;
     double pointSize_ = 6;
     double centroidSize_ = 10;
+    bool showLegend_ = true;
 };
 
 #endif // SVG_CHART_H

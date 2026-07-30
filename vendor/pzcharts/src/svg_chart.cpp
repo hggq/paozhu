@@ -201,6 +201,16 @@ std::string SvgChart::fmt(double val, int precision) {
     return oss.str();
 }
 
+int SvgChart::tickPrecision(double span, int ticks) {
+    if (ticks < 1) ticks = 1;
+    // 取能区分相邻刻度的最少位数：刻度间距比分辨率大一倍以上就够了
+    double step = std::fabs(span) / ticks;
+    if (step >= 5.0) return 0;
+    if (step >= 0.5) return 1;
+    if (step >= 0.05) return 2;
+    return 3;
+}
+
 // ============================================================
 // SvgLineChart 实现
 // ============================================================
@@ -2672,6 +2682,215 @@ std::string SvgCandlestickChart::render() {
 }
 
 // ============================================================
+// SvgJohariWindowChart 实现 - 乔哈里视窗 (2x2 象限图)
+// ============================================================
+
+SvgJohariWindowChart::SvgJohariWindowChart(int width, int height)
+    : SvgChart(width, height) {}
+
+void SvgJohariWindowChart::setQuadrant(Quadrant q, const std::string& title,
+                                       const std::string& content,
+                                       const SvgColor& bgColor,
+                                       const SvgColor& titleColor,
+                                       const SvgColor& contentColor,
+                                       int titleFontSize, int contentFontSize) {
+    if (q < 0 || q > 3) return;
+    quadrants_[q].title = title;
+    quadrants_[q].content = content;
+    if (bgColor.r != 0 || bgColor.g != 0 || bgColor.b != 0 || bgColor.a != 1.0) {
+        quadrants_[q].bgColor = bgColor;
+    }
+    if (titleColor.r != 0 || titleColor.g != 0 || titleColor.b != 0 || titleColor.a != 1.0) {
+        quadrants_[q].titleColor = titleColor;
+    }
+    if (contentColor.r != 0 || contentColor.g != 0 || contentColor.b != 0 || contentColor.a != 1.0) {
+        quadrants_[q].contentColor = contentColor;
+    }
+    quadrants_[q].titleFontSize = titleFontSize;
+    quadrants_[q].contentFontSize = contentFontSize;
+}
+
+void SvgJohariWindowChart::setXLabels(const std::string& left, const std::string& right) {
+    xLabelLeft_ = left;
+    xLabelRight_ = right;
+}
+
+void SvgJohariWindowChart::setYLabels(const std::string& top, const std::string& bottom) {
+    yLabelTop_ = top;
+    yLabelBottom_ = bottom;
+}
+
+void SvgJohariWindowChart::setCellBorder(const std::string& color, double width) {
+    cellBorderColor_ = color;
+    cellBorderWidth_ = width;
+}
+
+void SvgJohariWindowChart::setCellBorderRadius(double radius) {
+    cellBorderRadius_ = std::max(0.0, radius);
+}
+
+void SvgJohariWindowChart::setContentOffset(double offset) {
+    contentOffset_ = std::max(0.0, offset);
+}
+
+void SvgJohariWindowChart::setTitleAlign(const std::string& align) {
+    titleAlign_ = align;
+}
+
+void SvgJohariWindowChart::setShowBackground(bool show) {
+    showBackground_ = show;
+}
+
+std::string SvgJohariWindowChart::render() {
+    std::ostringstream oss;
+    oss << svgHeader();
+
+    if (!title_.empty()) {
+        oss << svgTitleText(title_);
+    }
+
+    // 布局
+    double marginLeft = 120;
+    double marginRight = 40;
+    double marginTop = 60;
+    double marginBottom = 60;
+
+    double gridW = width_ - marginLeft - marginRight;
+    double gridH = height_ - marginTop - marginBottom;
+    double cellW = gridW / 2.0;
+    double cellH = gridH / 2.0;
+
+    double gridX = marginLeft;
+    double gridY = marginTop;
+
+    // Y 轴标签（左侧，旋转90度）
+    for (int r = 0; r < 2; ++r) {
+        const std::string& label = (r == 0) ? yLabelTop_ : yLabelBottom_;
+        double cy = gridY + cellH * r + cellH / 2.0 + 4;
+        double lx = gridX - 10;
+        oss << "<text x=\"" << lx << "\" y=\"" << cy
+            << "\" text-anchor=\"end\""
+            << " fill=\"#333\" font-size=\"13\" font-weight=\"bold\""
+            << " font-family=\"" << fontFamily_ << "\""
+            << " transform=\"rotate(-90 " << lx << " " << cy << ")\">"
+            << escapeXml(label) << "</text>\n";
+    }
+
+    // X 轴标签（底部）
+    for (int c = 0; c < 2; ++c) {
+        const std::string& label = (c == 0) ? xLabelLeft_ : xLabelRight_;
+        double cx = gridX + cellW * c + cellW / 2.0;
+        double ly = gridY + gridH + 25;
+        oss << "<text x=\"" << cx << "\" y=\"" << ly
+            << "\" text-anchor=\"middle\""
+            << " fill=\"#333\" font-size=\"13\" font-weight=\"bold\""
+            << " font-family=\"" << fontFamily_ << "\">"
+            << escapeXml(label) << "</text>\n";
+    }
+
+    // 绘制 4 个象限
+    double padding = 12;
+    for (int r = 0; r < 2; ++r) {
+        for (int c = 0; c < 2; ++c) {
+            int idx = r * 2 + c;
+            const auto& qd = quadrants_[idx];
+            double cx = gridX + cellW * c;
+            double cy = gridY + cellH * r;
+
+            // 背景矩形（仅在 showBackground_ 为 true 时绘制填充）
+            // 边框始终绘制
+            if (showBackground_) {
+                std::string bg = qd.bgColor.toHex();
+                if (cellBorderRadius_ > 0) {
+                    oss << "<rect x=\"" << cx << "\" y=\"" << cy
+                        << "\" width=\"" << cellW << "\" height=\"" << cellH
+                        << "\" rx=\"" << cellBorderRadius_ << "\""
+                        << " fill=\"" << bg << "\""
+                        << " stroke=\"" << cellBorderColor_ << "\""
+                        << " stroke-width=\"" << cellBorderWidth_ << "\"/>\n";
+                } else {
+                    oss << "<rect x=\"" << cx << "\" y=\"" << cy
+                        << "\" width=\"" << cellW << "\" height=\"" << cellH
+                        << "\" fill=\"" << bg << "\""
+                        << " stroke=\"" << cellBorderColor_ << "\""
+                        << " stroke-width=\"" << cellBorderWidth_ << "\"/>\n";
+                }
+            } else {
+                if (cellBorderRadius_ > 0) {
+                    oss << "<rect x=\"" << cx << "\" y=\"" << cy
+                        << "\" width=\"" << cellW << "\" height=\"" << cellH
+                        << "\" rx=\"" << cellBorderRadius_ << "\""
+                        << " fill=\"none\""
+                        << " stroke=\"" << cellBorderColor_ << "\""
+                        << " stroke-width=\"" << cellBorderWidth_ << "\"/>\n";
+                } else {
+                    oss << "<rect x=\"" << cx << "\" y=\"" << cy
+                        << "\" width=\"" << cellW << "\" height=\"" << cellH
+                        << " fill=\"none\""
+                        << " stroke=\"" << cellBorderColor_ << "\""
+                        << " stroke-width=\"" << cellBorderWidth_ << "\"/>\n";
+                }
+            }
+
+            if (qd.title.empty() && qd.content.empty()) continue;
+
+            bool hasContent = !qd.content.empty();
+            bool isCenter = (titleAlign_ == "center");
+
+            double titleX;
+            std::string anchor;
+            if (isCenter) {
+                titleX = cx + cellW / 2.0;
+                anchor = "middle";
+            } else {
+                titleX = cx + padding;
+                anchor = "start";
+            }
+            double titleY = cy + padding + qd.titleFontSize;
+
+            if (hasContent) {
+                // 标题
+                oss << "<text x=\"" << titleX << "\" y=\"" << titleY
+                    << "\" text-anchor=\"" << anchor << "\""
+                    << " fill=\"" << qd.titleColor.toHex() << "\""
+                    << " font-size=\"" << qd.titleFontSize << "\""
+                    << " font-weight=\"bold\""
+                    << " font-family=\"" << fontFamily_ << "\">"
+                    << escapeXml(qd.title) << "</text>\n";
+
+                // 内容文本（多行，始终左对齐）
+                double contentY = titleY + contentOffset_;
+                double contentX = cx + padding;
+                std::istringstream stream(qd.content);
+                std::string line;
+                while (std::getline(stream, line)) {
+                    oss << "<text x=\"" << contentX << "\" y=\"" << contentY
+                        << "\" text-anchor=\"start\""
+                        << " fill=\"" << qd.contentColor.toHex() << "\""
+                        << " font-size=\"" << qd.contentFontSize << "\""
+                        << " font-family=\"" << fontFamily_ << "\">"
+                        << escapeXml(line) << "</text>\n";
+                    contentY += qd.contentFontSize + 4;
+                }
+            } else {
+                // 只有标题
+                double ty = cy + cellH / 2.0 + qd.titleFontSize / 3.0;
+                oss << "<text x=\"" << titleX << "\" y=\"" << ty
+                    << "\" text-anchor=\"" << anchor << "\""
+                    << " fill=\"" << qd.titleColor.toHex() << "\""
+                    << " font-size=\"" << qd.titleFontSize << "\""
+                    << " font-weight=\"bold\""
+                    << " font-family=\"" << fontFamily_ << "\">"
+                    << escapeXml(qd.title) << "</text>\n";
+            }
+        }
+    }
+
+    oss << svgFooter();
+    return oss.str();
+}
+
+// ============================================================
 // SvgGridChart 实现 - 九宫格图
 // ============================================================
 
@@ -3188,6 +3407,247 @@ std::string SvgRegressionChart::render() {
 }
 
 // ============================================================
+// SvgHeatmapChart 实现
+//    算法来自 ECharts HeatmapView.ts / HeatmapSeries.ts
+//    使用 Cartesian 坐标系，X/Y 轴均为 category 类型
+//    visualMap 将 value 映射到颜色渐变
+// ============================================================
+
+SvgHeatmapChart::SvgHeatmapChart(int width, int height)
+    : SvgChart(width, height) {
+    // 默认颜色渐变: 浅蓝 → #5070dd (ECharts gradientColor 默认值)
+    gradientColors_ = {
+        SvgColor(208, 220, 249),  // 浅蓝 (modifyHSL #5070dd, lightness 0.9)
+        SvgColor(80, 112, 221)     // #5070dd (themeColor)
+    };
+}
+
+void SvgHeatmapChart::addData(int x, int y, double value) {
+    data_.push_back(HeatmapDataItem(x, y, value));
+    if (!valueRangeSet_) {
+        if (data_.size() == 1) {
+            minVal_ = maxVal_ = value;
+        } else {
+            minVal_ = std::min(minVal_, value);
+            maxVal_ = std::max(maxVal_, value);
+        }
+    }
+}
+
+void SvgHeatmapChart::addData(const std::vector<HeatmapDataItem>& data) {
+    for (const auto& item : data) {
+        addData(item.x, item.y, item.value);
+    }
+}
+
+void SvgHeatmapChart::setXLabels(const std::vector<std::string>& labels) {
+    xLabels_ = labels;
+}
+
+void SvgHeatmapChart::setYLabels(const std::vector<std::string>& labels) {
+    yLabels_ = labels;
+}
+
+void SvgHeatmapChart::setValueRange(double minVal, double maxVal) {
+    minVal_ = minVal;
+    maxVal_ = maxVal;
+    valueRangeSet_ = true;
+}
+
+void SvgHeatmapChart::setColorGradient(const std::vector<SvgColor>& colors) {
+    if (colors.size() >= 2) {
+        gradientColors_ = colors;
+    }
+}
+
+void SvgHeatmapChart::setShowLabel(bool show) {
+    showLabel_ = show;
+}
+
+void SvgHeatmapChart::setLabelFontSize(int size) {
+    labelFontSize_ = size;
+}
+
+void SvgHeatmapChart::setCellGap(double gap) {
+    cellGap_ = gap;
+}
+
+void SvgHeatmapChart::setBorderRadius(double radius) {
+    borderRadius_ = radius;
+}
+
+void SvgHeatmapChart::setShowVisualMap(bool show) {
+    showVisualMap_ = show;
+}
+
+SvgColor SvgHeatmapChart::valueToColor(double value) const {
+    if (gradientColors_.empty()) return SvgColor(0, 0, 0);
+    if (gradientColors_.size() == 1) return gradientColors_[0];
+
+    double range = maxVal_ - minVal_;
+    double t = (range == 0) ? 0 : (value - minVal_) / range;
+    t = std::max(0.0, std::min(1.0, t));
+
+    int n = static_cast<int>(gradientColors_.size()) - 1;
+    double scaledT = t * n;
+    int idx = static_cast<int>(scaledT);
+    if (idx >= n) idx = n - 1;
+    double frac = scaledT - idx;
+
+    const SvgColor& c1 = gradientColors_[idx];
+    const SvgColor& c2 = gradientColors_[idx + 1];
+
+    return SvgColor(
+        static_cast<int>(c1.r + (c2.r - c1.r) * frac),
+        static_cast<int>(c1.g + (c2.g - c1.g) * frac),
+        static_cast<int>(c1.b + (c2.b - c1.b) * frac),
+        c1.a + (c2.a - c1.a) * frac
+    );
+}
+
+std::string SvgHeatmapChart::render() {
+    std::ostringstream oss;
+    oss << svgHeader();
+
+    if (!title_.empty()) {
+        oss << svgTitleText(title_);
+    }
+
+    if (data_.empty()) {
+        oss << svgFooter();
+        return oss.str();
+    }
+
+    int xMax = 0, yMax = 0;
+    for (const auto& item : data_) {
+        xMax = std::max(xMax, item.x);
+        yMax = std::max(yMax, item.y);
+    }
+    int xCount = xMax + 1;
+    int yCount = yMax + 1;
+
+    std::vector<std::string> xLabels = xLabels_;
+    if (xLabels.empty()) {
+        for (int i = 0; i < xCount; ++i) {
+            xLabels.push_back(std::to_string(i));
+        }
+    }
+    std::vector<std::string> yLabels = yLabels_;
+    if (yLabels.empty()) {
+        for (int i = 0; i < yCount; ++i) {
+            yLabels.push_back(std::to_string(i));
+        }
+    }
+
+    double maxYLabelWidth = 0;
+    for (const auto& label : yLabels) {
+        maxYLabelWidth = std::max(maxYLabelWidth, label.length() * 8.0);
+    }
+    double marginLeft = std::max(kMarginLeft, maxYLabelWidth + 20);
+    double marginRight = showVisualMap_ ? 80 : kMarginRight;
+    double marginTop = kMarginTop;
+    double marginBottom = kMarginBottom + 30;
+
+    double gridX = marginLeft;
+    double gridY = marginTop;
+    double gridW = width_ - marginLeft - marginRight;
+    double gridH = height_ - marginTop - marginBottom;
+
+    double cellW = (gridW - cellGap_ * (xCount + 1)) / xCount;
+    double cellH = (gridH - cellGap_ * (yCount + 1)) / yCount;
+
+    // Y 轴标签
+    for (int i = 0; i < yCount && i < static_cast<int>(yLabels.size()); ++i) {
+        double y = gridY + cellGap_ + i * (cellH + cellGap_) + cellH / 2.0;
+        oss << "<text x=\"" << (gridX - 8) << "\" y=\"" << (y + 4)
+            << "\" text-anchor=\"end\""
+            << " fill=\"#666\" font-size=\"12\""
+            << " font-family=\"" << fontFamily_ << "\">"
+            << escapeXml(yLabels[i]) << "</text>\n";
+    }
+
+    // X 轴标签
+    for (int i = 0; i < xCount && i < static_cast<int>(xLabels.size()); ++i) {
+        double x = gridX + cellGap_ + i * (cellW + cellGap_) + cellW / 2.0;
+        double yOff = gridY + gridH + 14;
+        oss << "<text x=\"" << x << "\" y=\"" << yOff
+            << "\" text-anchor=\"middle\""
+            << " fill=\"#666\" font-size=\"12\""
+            << " font-family=\"" << fontFamily_ << "\">"
+            << escapeXml(xLabels[i]) << "</text>\n";
+    }
+
+    // 绘制每个格子
+    for (const auto& item : data_) {
+        if (item.x < 0 || item.x >= xCount || item.y < 0 || item.y >= yCount) continue;
+        if (!std::isfinite(item.value)) continue;
+
+        double x = gridX + cellGap_ + item.x * (cellW + cellGap_);
+        double y = gridY + cellGap_ + item.y * (cellH + cellGap_);
+
+        SvgColor color = valueToColor(item.value);
+
+        oss << "<rect x=\"" << x << "\" y=\"" << y
+            << "\" width=\"" << cellW << "\" height=\"" << cellH
+            << "\" fill=\"" << color.toHex() << "\"";
+        if (borderRadius_ > 0) {
+            oss << " rx=\"" << borderRadius_ << "\"";
+        }
+        oss << "/>\n";
+
+        if (showLabel_) {
+            double cx = x + cellW / 2.0;
+            double cy = y + cellH / 2.0 + 4;
+            int brightness = (color.r * 299 + color.g * 587 + color.b * 114) / 1000;
+            std::string textColor = (brightness > 150) ? "#333" : "#fff";
+
+            oss << "<text x=\"" << cx << "\" y=\"" << cy
+                << "\" text-anchor=\"middle\""
+                << " fill=\"" << textColor << "\" font-size=\"" << labelFontSize_ << "\""
+                << " font-family=\"" << fontFamily_ << "\">"
+                << fmt(item.value, 0) << "</text>\n";
+        }
+    }
+
+    // visualMap 图例
+    if (showVisualMap_) {
+        double vmX = width_ - marginRight + 10;
+        double vmY = gridY + 10;
+        double vmW = 15;
+        double vmH = gridH - 20;
+
+        int steps = 50;
+        double stepH = vmH / steps;
+        for (int i = 0; i < steps; ++i) {
+            double t = 1.0 - static_cast<double>(i) / (steps - 1);
+            double val = minVal_ + t * (maxVal_ - minVal_);
+            SvgColor c = valueToColor(val);
+            oss << "<rect x=\"" << vmX << "\" y=\"" << (vmY + i * stepH)
+                << "\" width=\"" << vmW << "\" height=\"" << (stepH + 0.5)
+                << "\" fill=\"" << c.toHex() << "\"/>\n";
+        }
+
+        oss << "<rect x=\"" << vmX << "\" y=\"" << vmY
+            << "\" width=\"" << vmW << "\" height=\"" << vmH
+            << "\" fill=\"none\" stroke=\"#ccc\" stroke-width=\"1\"/>\n";
+
+        oss << "<text x=\"" << (vmX + vmW + 5) << "\" y=\"" << (vmY + 4)
+            << "\" text-anchor=\"start\""
+            << " fill=\"#666\" font-size=\"10\""
+            << " font-family=\"" << fontFamily_ << "\">"
+            << fmt(maxVal_, 0) << "</text>\n";
+        oss << "<text x=\"" << (vmX + vmW + 5) << "\" y=\"" << (vmY + vmH + 4)
+            << "\" text-anchor=\"start\""
+            << " fill=\"#666\" font-size=\"10\""
+            << " font-family=\"" << fontFamily_ << "\">"
+            << fmt(minVal_, 0) << "</text>\n";
+    }
+
+    oss << svgFooter();
+    return oss.str();
+}
+
+// ============================================================
 // SvgClusteringChart 实现
 // 散点按簇着色 + 簇中心标记 + 图例
 // 使用 ClusteringProcess 类进行聚类计算
@@ -3204,6 +3664,10 @@ void SvgClusteringChart::setClusterCount(int k) {
     clusterCount_ = std::max(2, k);
 }
 
+void SvgClusteringChart::setAssignments(const std::vector<int>& assignments) {
+    assignments_ = assignments;
+}
+
 void SvgClusteringChart::setClusterColors(const std::vector<SvgColor>& colors) {
     clusterColors_ = colors;
 }
@@ -3214,6 +3678,10 @@ void SvgClusteringChart::setPointSize(double size) {
 
 void SvgClusteringChart::setCentroidSize(double size) {
     centroidSize_ = std::max(1.0, size);
+}
+
+void SvgClusteringChart::setShowLegend(bool show) {
+    showLegend_ = show;
 }
 
 std::string SvgClusteringChart::render() {
@@ -3229,8 +3697,38 @@ std::string SvgClusteringChart::render() {
         return oss.str();
     }
 
-    // 运行聚类
-    auto clusterResult = ClusteringProcess::simpleKMeans(data_, clusterCount_);
+    // 运行聚类（外部传入标签时直接使用，质心取各簇均值）
+    ClusteringProcess::Result clusterResult;
+    if (assignments_.size() == data_.size()) {
+        int k = clusterCount_;
+        for (int a : assignments_) {
+            if (a >= k) k = a + 1;
+        }
+        size_t dim = data_[0].size();
+        clusterResult.centroids.assign(k, std::vector<double>(dim, 0.0));
+        clusterResult.pointsInCluster.resize(k);
+        clusterResult.clusterAssigned.resize(data_.size());
+        std::vector<size_t> counts(k, 0);
+        for (size_t i = 0; i < data_.size(); ++i) {
+            int ci = assignments_[i];
+            if (ci < 0) ci = 0;
+            clusterResult.clusterAssigned[i].clusterIndex = ci;
+            clusterResult.clusterAssigned[i].distance = 0.0;
+            clusterResult.pointsInCluster[ci].push_back(data_[i]);
+            for (size_t d = 0; d < dim; ++d) {
+                clusterResult.centroids[ci][d] += data_[i][d];
+            }
+            counts[ci]++;
+        }
+        for (int c = 0; c < k; ++c) {
+            if (counts[c] == 0) continue;
+            for (size_t d = 0; d < dim; ++d) {
+                clusterResult.centroids[c][d] /= static_cast<double>(counts[c]);
+            }
+        }
+    } else {
+        clusterResult = ClusteringProcess::simpleKMeans(data_, clusterCount_);
+    }
     int k = static_cast<int>(clusterResult.centroids.size());
 
     // 确定簇颜色
@@ -3273,15 +3771,17 @@ std::string SvgClusteringChart::render() {
     // 轴
     std::vector<std::string> yLabels;
     int yTicks = 5;
+    int yPrec  = tickPrecision(yMax - yMin, yTicks);
     for (int i = 0; i <= yTicks; ++i) {
         double val = yMin + (yMax - yMin) * i / yTicks;
-        yLabels.push_back(fmt(val, 0));
+        yLabels.push_back(fmt(val, yPrec));
     }
     std::vector<std::string> xLabels;
     int xTicks = 5;
+    int xPrec  = tickPrecision(xMax - xMin, xTicks);
     for (int i = 0; i <= xTicks; ++i) {
         double val = xMin + (xMax - xMin) * i / xTicks;
-        xLabels.push_back(fmt(val, 0));
+        xLabels.push_back(fmt(val, xPrec));
     }
     oss << drawAxes(xLabels, yLabels);
 
@@ -3313,18 +3813,20 @@ std::string SvgClusteringChart::render() {
     }
 
     // 图例（右上角）
-    double legendX = gridRect_.x + gridRect_.width - 10;
-    double legendY = gridRect_.y + 15;
-    for (int i = 0; i < k && i < static_cast<int>(colors.size()); ++i) {
-        double ly = legendY + i * 20;
-        oss << svgCircle(legendX - 100, ly, 5, colors[i].toHex());
-        std::ostringstream label;
-        label << "Cluster " << (i + 1) << " (" << clusterResult.pointsInCluster[i].size() << ")";
-        oss << "<text x=\"" << (legendX - 88) << "\" y=\"" << (ly + 4)
-            << "\" text-anchor=\"start\""
-            << " fill=\"#333\" font-size=\"12\""
-            << " font-family=\"" << fontFamily_ << "\">"
-            << label.str() << "</text>\n";
+    if (showLegend_) {
+        double legendX = gridRect_.x + gridRect_.width - 10;
+        double legendY = gridRect_.y + 15;
+        for (int i = 0; i < k && i < static_cast<int>(colors.size()); ++i) {
+            double ly = legendY + i * 20;
+            oss << svgCircle(legendX - 100, ly, 5, colors[i].toHex());
+            std::ostringstream label;
+            label << "Cluster " << (i + 1) << " (" << clusterResult.pointsInCluster[i].size() << ")";
+            oss << "<text x=\"" << (legendX - 88) << "\" y=\"" << (ly + 4)
+                << "\" text-anchor=\"start\""
+                << " fill=\"#333\" font-size=\"12\""
+                << " font-family=\"" << fontFamily_ << "\">"
+                << label.str() << "</text>\n";
+        }
     }
 
     oss << svgFooter();

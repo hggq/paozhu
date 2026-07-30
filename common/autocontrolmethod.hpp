@@ -673,6 +673,9 @@ namespace http
 		temp.regfun = test_outpng;
 		methodcallback.emplace("test_outpng",temp);
 		temp.pre = nullptr;
+		temp.regfun = test_captcha;
+		methodcallback.emplace("test_captcha",temp);
+		temp.pre = nullptr;
 		temp.regfun = testtotree;
 		methodcallback.emplace("testtotree",temp);
 		temp.pre = nullptr;

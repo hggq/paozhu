@@ -7,6 +7,7 @@
 #include <string>
 #ifdef ENABLE_IMAGE
 #include "pzjpg.h"
+#include "ttffont.h"
 #endif// ENABLE_IMAGE
 namespace http
 {
@@ -55,21 +56,21 @@ std::string test_outjpg(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
 #ifdef ENABLE_IMAGE
-    // server_loaclvar &static_server_var = get_server_global_var();
+    server_loaclvar &static_server_var = get_server_global_var();
 
-    // if (static_server_var.config_path.size() < 5)
-    // {
-    //     client << "<p> static_server_var.config_path empty </p>";
-    //     return "";
-    // }
+    if (static_server_var.log_path.size() < 5)
+    {
+        client << "<p> static_server_var.log_path empty </p>";
+        return "";
+    }
 
-    // std::string file_conf = dir_name(static_server_var.config_path);
+    std::string file_conf = dir_name(static_server_var.log_path);
 
-    // if (file_conf.size() > 0 && file_conf.back() != '/')
-    // {
-    //     file_conf.push_back('/');
-    // }
-    // file_conf.append("docs/");
+    if (file_conf.size() > 0 && file_conf.back() != '/')
+    {
+        file_conf.push_back('/');
+    }
+    file_conf.append("docs/");
 
     image::jpg img;
     img.create(800, 600);
@@ -81,6 +82,15 @@ std::string test_outjpg(std::shared_ptr<httppeer> peer)
     // client << "<p>开始</p>";
     // img.save(file_conf+"line_thickness_test.jpg");
     // client << "<p>保存完成</p>";
+
+    image::ttffont font;
+    if (font.load(file_conf+"font/AlibabaPuHuiTi-Light.ttf")) 
+    {
+        const std::string text = "AbcXyz8核鑫03炮竹";
+        font.drawTextOutline(img, 20, 70, 56.0f, text, {30, 30, 200});
+        font.drawText(img, 20, 160, 56.0f, text, {30, 130, 30});
+    }
+
     client.type("image/jpg");
     auto vec      = img.imshow();
     client.output = std::string(reinterpret_cast<const char *>(vec.data()), vec.size());

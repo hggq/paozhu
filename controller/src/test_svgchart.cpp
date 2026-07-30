@@ -616,6 +616,188 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
         client << chart.render();
     }
 
+        // ============================================================
+    // 28. 热力图 - Punch Card (小时 x 星期)
+    //     算法来自 ECharts HeatmapView.ts / HeatmapSeries.ts
+    // ============================================================
+    {
+        SvgHeatmapChart chart(900, 500);
+        chart.setTitle("Heatmap - Punch Card");
+
+        std::vector<std::string> hours = {
+            "12a", "1a", "2a", "3a", "4a", "5a", "6a",
+            "7a", "8a", "9a", "10a", "11a",
+            "12p", "1p", "2p", "3p", "4p", "5p",
+            "6p", "7p", "8p", "9p", "10p", "11p"
+        };
+        std::vector<std::string> days = {
+            "Saturday", "Friday", "Thursday",
+            "Wednesday", "Tuesday", "Monday", "Sunday"
+        };
+
+        chart.setXLabels(hours);
+        chart.setYLabels(days);
+
+        // Data from ECharts heatmap test data
+        std::vector<HeatmapDataItem> data = {
+            {0,0,5},{0,1,1},{0,2,0},{0,3,0},{0,4,0},{0,5,0},{0,6,0},{0,7,0},{0,8,0},{0,9,0},{0,10,0},{0,11,2},{0,12,4},{0,13,1},{0,14,1},{0,15,3},{0,16,4},{0,17,6},{0,18,4},{0,19,4},{0,20,3},{0,21,3},{0,22,2},{0,23,5},
+            {1,0,7},{1,1,0},{1,2,0},{1,3,0},{1,4,0},{1,5,0},{1,6,0},{1,7,0},{1,8,0},{1,9,0},{1,10,5},{1,11,2},{1,12,2},{1,13,6},{1,14,9},{1,15,11},{1,16,6},{1,17,7},{1,18,8},{1,19,12},{1,20,5},{1,21,5},{1,22,7},{1,23,2},
+            {2,0,1},{2,1,1},{2,2,0},{2,3,0},{2,4,0},{2,5,0},{2,6,0},{2,7,0},{2,8,0},{2,9,0},{2,10,3},{2,11,2},{2,12,1},{2,13,9},{2,14,8},{2,15,10},{2,16,6},{2,17,5},{2,18,5},{2,19,5},{2,20,7},{2,21,4},{2,22,2},{2,23,4},
+            {3,0,7},{3,1,3},{3,2,0},{3,3,0},{3,4,0},{3,5,0},{3,6,0},{3,7,0},{3,8,1},{3,9,0},{3,10,5},{3,11,4},{3,12,7},{3,13,14},{3,14,13},{3,15,12},{3,16,9},{3,17,5},{3,18,5},{3,19,10},{3,20,6},{3,21,4},{3,22,4},{3,23,1},
+            {4,0,1},{4,1,3},{4,2,0},{4,3,0},{4,4,0},{4,5,1},{4,6,0},{4,7,0},{4,8,0},{4,9,2},{4,10,4},{4,11,4},{4,12,2},{4,13,4},{4,14,4},{4,15,14},{4,16,12},{4,17,1},{4,18,8},{4,19,5},{4,20,3},{4,21,7},{4,22,3},{4,23,0},
+            {5,0,2},{5,1,1},{5,2,0},{5,3,3},{5,4,0},{5,5,0},{5,6,0},{5,7,0},{5,8,2},{5,9,0},{5,10,4},{5,11,1},{5,12,5},{5,13,10},{5,14,5},{5,15,7},{5,16,11},{5,17,6},{5,18,0},{5,19,5},{5,20,3},{5,21,4},{5,22,2},{5,23,0},
+            {6,0,1},{6,1,0},{6,2,0},{6,3,0},{6,4,0},{6,5,0},{6,6,0},{6,7,0},{6,8,0},{6,9,0},{6,10,1},{6,11,0},{6,12,2},{6,13,1},{6,14,3},{6,15,4},{6,16,0},{6,17,0},{6,18,0},{6,19,0},{6,20,1},{6,21,2},{6,22,2},{6,23,6}
+        };
+        chart.addData(data);
+        chart.setValueRange(0, 14);
+        chart.setCellGap(0);
+        //saveSvg("heatmap_punch_card.svg", chart.render());
+        client << chart.render();
+    }
+
+    // ============================================================
+    // 29. 热力图 - 自定义颜色渐变（绿-黄-红）
+    // ============================================================
+    {
+        SvgHeatmapChart chart(900, 500);
+        chart.setTitle("Heatmap - Custom Gradient (Green-Yellow-Red)");
+
+        std::vector<std::string> hours = {
+            "12a","1a","2a","3a","4a","5a","6a","7a","8a","9a","10a","11a",
+            "12p","1p","2p","3p","4p","5p","6p","7p","8p","9p","10p","11p"
+        };
+        std::vector<std::string> days = {
+            "Sat","Fri","Thu","Wed","Tue","Mon","Sun"
+        };
+        chart.setXLabels(hours);
+        chart.setYLabels(days);
+
+        std::vector<HeatmapDataItem> data = {
+            {0,0,5},{1,0,7},{2,0,1},{3,0,7},{4,0,1},{5,0,2},{6,0,1},
+            {0,1,1},{1,1,0},{2,1,1},{3,1,3},{4,1,3},{5,1,1},{6,1,0},
+            {0,2,0},{1,2,0},{2,2,0},{3,2,0},{4,2,0},{5,2,0},{6,2,0},
+            {0,3,0},{1,3,0},{2,3,0},{3,3,0},{4,3,0},{5,3,3},{6,3,0},
+            {0,4,0},{1,4,0},{2,4,0},{3,4,0},{4,4,0},{5,4,0},{6,4,0},
+            {0,5,0},{1,5,0},{2,5,0},{3,5,0},{4,5,1},{5,5,0},{6,5,0},
+            {0,6,0},{1,6,0},{2,6,0},{3,6,0},{4,6,0},{5,6,0},{6,6,0},
+            {0,7,0},{1,7,0},{2,7,0},{3,7,0},{4,7,0},{5,7,0},{6,7,0},
+            {0,8,0},{1,8,0},{2,8,0},{3,8,1},{4,8,0},{5,8,2},{6,8,0},
+            {0,9,0},{1,9,0},{2,9,0},{3,9,0},{4,9,2},{5,9,0},{6,9,0},
+            {0,10,0},{1,10,5},{2,10,3},{3,10,5},{4,10,4},{5,10,4},{6,10,1},
+            {0,11,2},{1,11,2},{2,11,2},{3,11,4},{4,11,4},{5,11,1},{6,11,0},
+            {0,12,4},{1,12,2},{2,12,1},{3,12,7},{4,12,2},{5,12,5},{6,12,2},
+            {0,13,1},{1,13,6},{2,13,9},{3,13,14},{4,13,4},{5,13,10},{6,13,1},
+            {0,14,1},{1,14,9},{2,14,8},{3,14,13},{4,14,4},{5,14,5},{6,14,3},
+            {0,15,3},{1,15,11},{2,15,10},{3,15,12},{4,15,14},{5,15,7},{6,15,4},
+            {0,16,4},{1,16,6},{2,16,6},{3,16,9},{4,16,12},{5,16,11},{6,16,0},
+            {0,17,6},{1,17,7},{2,17,5},{3,17,5},{4,17,1},{5,17,6},{6,17,0},
+            {0,18,4},{1,18,8},{2,18,5},{3,18,5},{4,18,8},{5,18,0},{6,18,0},
+            {0,19,4},{1,19,12},{2,19,5},{3,19,10},{4,19,5},{5,19,5},{6,19,0},
+            {0,20,3},{1,20,5},{2,20,7},{3,20,6},{4,20,3},{5,20,3},{6,20,1},
+            {0,21,3},{1,21,5},{2,21,4},{3,21,4},{4,21,7},{5,21,4},{6,21,2},
+            {0,22,2},{1,22,7},{2,22,2},{3,22,4},{4,22,3},{5,22,2},{6,22,2},
+            {0,23,5},{1,23,2},{2,23,4},{3,23,1},{4,23,0},{5,23,0},{6,23,6}
+        };
+        chart.addData(data);
+        chart.setValueRange(0, 14);
+        // Green-Yellow-Red gradient
+        chart.setColorGradient({
+            SvgColor(103, 224, 127),  // green
+            SvgColor(250, 200, 88),   // yellow
+            SvgColor(238, 102, 102)   // red
+        });
+        chart.setCellGap(1);
+        chart.setBorderRadius(2);
+        //saveSvg("heatmap_custom_gradient.svg", chart.render());
+        client << chart.render();
+    }
+
+    // ============================================================
+    // 30. 乔哈里视窗 (Johari Window) - 2x2 象限图
+    // ============================================================
+    {
+        SvgJohariWindowChart chart(800, 600);
+        chart.setTitle("Johari Window");
+
+        // 公开区 (Open): 自己知道、别人也知道
+        chart.setQuadrant(SvgJohariWindowChart::OPEN,
+            "Open Area",
+            "Name, skills, experience\nBehaviors, attitudes\nPublic information",
+            SvgColor(200, 230, 255),   // 浅蓝
+            SvgColor(30, 60, 140),     // 深蓝标题
+            SvgColor(60, 100, 180),    // 蓝色内容
+            15, 12);
+
+        // 盲区 (Blind): 自己不知道、别人知道
+        chart.setQuadrant(SvgJohariWindowChart::BLIND,
+            "Blind Spot",
+            "Habits you don't notice\nCommunication style\nImpact on others",
+            SvgColor(255, 220, 200),   // 浅橙
+            SvgColor(160, 60, 20),     // 深橙标题
+            SvgColor(200, 90, 40),     // 橙色内容
+            15, 12);
+
+        // 隐藏区 (Hidden): 自己知道、别人不知道
+        chart.setQuadrant(SvgJohariWindowChart::HIDDEN,
+            "Hidden Area",
+            "Private thoughts\nPersonal history\nUnshared feelings",
+            SvgColor(200, 255, 220),   // 浅绿
+            SvgColor(20, 120, 50),     // 深绿标题
+            SvgColor(40, 160, 80),     // 绿色内容
+            15, 12);
+
+        // 未知区 (Unknown): 自己不知道、别人也不知道
+        chart.setQuadrant(SvgJohariWindowChart::UNKNOWN,
+            "Unknown Area",
+            "Untapped potential\nSubconscious motives\nFuture possibilities",
+            SvgColor(240, 230, 255),   // 浅紫
+            SvgColor(100, 30, 140),    // 深紫标题
+            SvgColor(140, 60, 190),    // 紫色内容
+            15, 12);
+
+        chart.setCellBorder("#999", 1.5);
+        chart.setCellBorderRadius(6);
+        chart.setContentOffset(14);
+        //saveSvg("johari_window.svg", chart.render());
+        client << chart.render();
+    }
+
+    // ============================================================
+    // 31. 乔哈里视窗 - 无背景色 + 标题居中
+    // ============================================================
+    {
+        SvgJohariWindowChart chart(800, 600);
+        chart.setTitle("Johari Window - No Background, Centered Title");
+
+        chart.setQuadrant(SvgJohariWindowChart::OPEN,
+            "Open Area",
+            "Known to self and others\nShared knowledge\nPublic identity",
+            SvgColor(), SvgColor(30, 60, 140), SvgColor(100, 140, 200), 15, 12);
+
+        chart.setQuadrant(SvgJohariWindowChart::BLIND,
+            "Blind Spot",
+            "Unknown to self, known to others\nFeedback reveals these\nGrowth opportunities",
+            SvgColor(), SvgColor(180, 80, 30), SvgColor(210, 120, 60), 15, 12);
+
+        chart.setQuadrant(SvgJohariWindowChart::HIDDEN,
+            "Hidden Area",
+            "Known to self, unknown to others\nPrivate self\nSelective disclosure",
+            SvgColor(), SvgColor(20, 120, 50), SvgColor(60, 160, 90), 15, 12);
+
+        chart.setQuadrant(SvgJohariWindowChart::UNKNOWN,
+            "Unknown Area",
+            "Unknown to both\nUntapped potential\nDiscovery through experience",
+            SvgColor(), SvgColor(100, 30, 140), SvgColor(150, 70, 200), 15, 12);
+
+        chart.setShowBackground(false);
+        chart.setTitleAlign("center");
+        chart.setCellBorder("#bbb", 1.5);
+        chart.setCellBorderRadius(6);
+        chart.setContentOffset(14);
+        //saveSvg("johari_window_clean.svg", chart.render());
+        client << chart.render();
+    }
+
     client << "<p>All SVG charts generated successfully!</p>";
 #else
     client << "<p>Please: cmake .. -DENABLE_CHART=ON </p>";
