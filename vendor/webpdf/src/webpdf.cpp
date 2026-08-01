@@ -3099,9 +3099,33 @@ void webpdf::_putfonts() {
             toUni += "1 begincodespacerange\n";
             toUni += "<0000> <FFFF>\n";
             toUni += "endcodespacerange\n";
-            toUni += "1 beginbfrange\n";
-            toUni += "<0000> <FFFF> <0000>\n";
-            toUni += "endbfrange\n";
+            // 文本查看器（macOS PDFKit 等）复制文字时会先通过上面的 Encoding CMap
+            // 把内容流中的 2 字节 Unicode 码位转成 CID(==GID)，再拿 CID 查 ToUnicode。
+            // 如果这里用恒等映射，复制出来的就是 CID 编号（表现为乱码），
+            // 所以必须建立 CID(==GID) -> Unicode 的反向映射。
+            std::vector<std::pair<int, int>> cid2uni; // (CID==GID, Unicode)
+            for (auto& kv : otf.cffUniToGid)
+                cid2uni.push_back({(int)kv.second, (int)kv.first});
+            std::sort(cid2uni.begin(), cid2uni.end());
+            {
+                size_t ti = 0, tm = cid2uni.size();
+                while (ti < tm) {
+                    size_t tj = ti;
+                    while (tj + 1 < tm &&
+                           cid2uni[tj + 1].first == cid2uni[tj].first + 1 &&
+                           cid2uni[tj + 1].second == cid2uni[tj].second + 1 &&
+                           (tj - ti) < 99)
+                        tj++;
+                    if (tj > ti) {
+                        toUni += sprintf_str("1 beginbfrange\n<%04X> <%04X> <%04X>\nendbfrange\n",
+                                             cid2uni[ti].first, cid2uni[tj].first, cid2uni[ti].second);
+                    } else {
+                        toUni += sprintf_str("1 beginbfchar\n<%04X> <%04X>\nendbfchar\n",
+                                             cid2uni[ti].first, cid2uni[ti].second);
+                    }
+                    ti = tj + 1;
+                }
+            }
             toUni += "endcmap\n";
             toUni += "CMapName currentdict /CMap defineresource pop\n";
             toUni += "end\n";

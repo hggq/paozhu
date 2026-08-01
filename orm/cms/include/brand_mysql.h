@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Mon, 13 Jul 2026 09:10:59 GMT
+ *  Creation time Sat, 01 Aug 2026 14:58:15 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -6737,7 +6737,7 @@ M_MODEL& nullLogo()
         {
             ishascontent = true;
         }
-        wheresql.append(" logo = NULL ");
+        wheresql.append(" logo IS NULL ");
 
         return *mod;   
     }   
@@ -6766,7 +6766,7 @@ M_MODEL& nnullLogo()
         {
             ishascontent = true;
         }
-        wheresql.append(" logo != NULL ");
+        wheresql.append(" logo IS NOT NULL ");
 
         return *mod;   
     }   
@@ -7308,7 +7308,7 @@ M_MODEL& or_nullLogo()
         {
             ishascontent = true;
         }
-        wheresql.append(" logo = NULL ");
+        wheresql.append(" logo IS NULL ");
 
         return *mod;   
     }   
@@ -7337,7 +7337,7 @@ M_MODEL& or_nnullLogo()
         {
             ishascontent = true;
         }
-        wheresql.append(" logo != NULL ");
+        wheresql.append(" logo IS NOT NULL ");
 
         return *mod;   
     }   
@@ -8275,7 +8275,7 @@ M_MODEL& nullTitle()
         {
             ishascontent = true;
         }
-        wheresql.append(" title = NULL ");
+        wheresql.append(" title IS NULL ");
 
         return *mod;   
     }   
@@ -8304,7 +8304,7 @@ M_MODEL& nnullTitle()
         {
             ishascontent = true;
         }
-        wheresql.append(" title != NULL ");
+        wheresql.append(" title IS NOT NULL ");
 
         return *mod;   
     }   
@@ -8846,7 +8846,7 @@ M_MODEL& or_nullTitle()
         {
             ishascontent = true;
         }
-        wheresql.append(" title = NULL ");
+        wheresql.append(" title IS NULL ");
 
         return *mod;   
     }   
@@ -8875,7 +8875,7 @@ M_MODEL& or_nnullTitle()
         {
             ishascontent = true;
         }
-        wheresql.append(" title != NULL ");
+        wheresql.append(" title IS NOT NULL ");
 
         return *mod;   
     }   
@@ -9813,7 +9813,7 @@ M_MODEL& nullName()
         {
             ishascontent = true;
         }
-        wheresql.append(" name = NULL ");
+        wheresql.append(" name IS NULL ");
 
         return *mod;   
     }   
@@ -9842,7 +9842,7 @@ M_MODEL& nnullName()
         {
             ishascontent = true;
         }
-        wheresql.append(" name != NULL ");
+        wheresql.append(" name IS NOT NULL ");
 
         return *mod;   
     }   
@@ -10384,7 +10384,7 @@ M_MODEL& or_nullName()
         {
             ishascontent = true;
         }
-        wheresql.append(" name = NULL ");
+        wheresql.append(" name IS NULL ");
 
         return *mod;   
     }   
@@ -10413,7 +10413,7 @@ M_MODEL& or_nnullName()
         {
             ishascontent = true;
         }
-        wheresql.append(" name != NULL ");
+        wheresql.append(" name IS NOT NULL ");
 
         return *mod;   
     }   
@@ -11351,7 +11351,7 @@ M_MODEL& nullIntroduce()
         {
             ishascontent = true;
         }
-        wheresql.append(" introduce = NULL ");
+        wheresql.append(" introduce IS NULL ");
 
         return *mod;   
     }   
@@ -11380,7 +11380,7 @@ M_MODEL& nnullIntroduce()
         {
             ishascontent = true;
         }
-        wheresql.append(" introduce != NULL ");
+        wheresql.append(" introduce IS NOT NULL ");
 
         return *mod;   
     }   
@@ -11922,7 +11922,7 @@ M_MODEL& or_nullIntroduce()
         {
             ishascontent = true;
         }
-        wheresql.append(" introduce = NULL ");
+        wheresql.append(" introduce IS NULL ");
 
         return *mod;   
     }   
@@ -11951,7 +11951,7 @@ M_MODEL& or_nnullIntroduce()
         {
             ishascontent = true;
         }
-        wheresql.append(" introduce != NULL ");
+        wheresql.append(" introduce IS NOT NULL ");
 
         return *mod;   
     }   
@@ -12889,7 +12889,7 @@ M_MODEL& nullDetailcontent()
         {
             ishascontent = true;
         }
-        wheresql.append(" detailcontent = NULL ");
+        wheresql.append(" detailcontent IS NULL ");
 
         return *mod;   
     }   
@@ -12918,7 +12918,7 @@ M_MODEL& nnullDetailcontent()
         {
             ishascontent = true;
         }
-        wheresql.append(" detailcontent != NULL ");
+        wheresql.append(" detailcontent IS NOT NULL ");
 
         return *mod;   
     }   
@@ -13460,7 +13460,7 @@ M_MODEL& or_nullDetailcontent()
         {
             ishascontent = true;
         }
-        wheresql.append(" detailcontent = NULL ");
+        wheresql.append(" detailcontent IS NULL ");
 
         return *mod;   
     }   
@@ -13489,7 +13489,7 @@ M_MODEL& or_nnullDetailcontent()
         {
             ishascontent = true;
         }
-        wheresql.append(" detailcontent != NULL ");
+        wheresql.append(" detailcontent IS NOT NULL ");
 
         return *mod;   
     }   

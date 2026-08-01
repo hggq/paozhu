@@ -11455,7 +11455,7 @@ void addhfiletoormfile(std::string mpath, std::string modelname, std::string rms
     s.shrink_to_fit();
 }
 
-int modelcli()
+int modelcli(const std::string &dbtag = "")
 {
 
     fs::path current_path = fs::current_path();
@@ -11553,59 +11553,87 @@ dbtype=mysql
         return 0;
     }
 
-    for (unsigned int i = 0; i < myconfig.size(); i++)
-    {
-        if (myconfig[i].link_type == 0)
-        {
-            std::cout << " \033[1m\033[31m" << (i + 1) << "\033[0m " << myconfig[i].dbname << std::endl;
-        }
-    }
-
-    unsigned int indexsdb = 0;
-    command.clear();
-    while (true)
-    {
-        std::cout << "select db index:";
-        indexsdb = 0;
-        std::cin >> command;
-        if (command[0] < '0' || command[0] > '9')
-        {
-            return 0;
-        }
-        for (unsigned int i = 0; i < command.size(); i++)
-        {
-            if (command[i] == 0x20)
-            {
-                return 0;
-            }
-            if (command[i] >= '0' && command[i] <= '9')
-            {
-                indexsdb = indexsdb * 10 + (command[i] - '0');
-            }
-            if (i > 2)
-            {
-                return 0;
-            }
-        }
-
-        if (indexsdb > myconfig.size())
-        {
-            command.clear();
-            continue;
-        }
-
-        command.clear();
-        break;
-    }
-
     orm::orm_conn_t link_config_item;
-    for (unsigned int i = 0; i < myconfig.size(); i++)
+    if (!dbtag.empty())
     {
-        if (myconfig[i].link_type == 0)
+        bool found_db = false;
+        for (unsigned int i = 0; i < myconfig.size(); i++)
         {
-            if ((i + 1) == indexsdb)
+            if (myconfig[i].link_type == 0 && myconfig[i].tag == dbtag)
             {
                 link_config_item = myconfig[i];
+                found_db         = true;
+                break;
+            }
+        }
+        if (!found_db)
+        {
+            std::cout << " \033[1m\033[31mError\033[0m db tag [" << dbtag << "] not found in conf/orm.conf, available tags:" << std::endl;
+            for (unsigned int i = 0; i < myconfig.size(); i++)
+            {
+                if (myconfig[i].link_type == 0)
+                {
+                    std::cout << "  " << myconfig[i].tag << std::endl;
+                }
+            }
+            return 0;
+        }
+    }
+    else
+    {
+        for (unsigned int i = 0; i < myconfig.size(); i++)
+        {
+            if (myconfig[i].link_type == 0)
+            {
+                std::cout << " \033[1m\033[31m" << (i + 1) << "\033[0m " << myconfig[i].dbname << std::endl;
+            }
+        }
+
+        unsigned int indexsdb = 0;
+        command.clear();
+        while (true)
+        {
+            std::cout << "select db index:";
+            indexsdb = 0;
+            std::cin >> command;
+            if (command[0] < '0' || command[0] > '9')
+            {
+                return 0;
+            }
+            for (unsigned int i = 0; i < command.size(); i++)
+            {
+                if (command[i] == 0x20)
+                {
+                    return 0;
+                }
+                if (command[i] >= '0' && command[i] <= '9')
+                {
+                    indexsdb = indexsdb * 10 + (command[i] - '0');
+                }
+                if (i > 2)
+                {
+                    return 0;
+                }
+            }
+
+            if (indexsdb > myconfig.size())
+            {
+                command.clear();
+                continue;
+            }
+
+            command.clear();
+            break;
+        }
+
+        for (unsigned int i = 0; i < myconfig.size(); i++)
+        {
+            if (myconfig[i].link_type == 0)
+            {
+                if ((i + 1) == indexsdb)
+                {
+                    link_config_item = myconfig[i];
+                }
             }
         }
     }

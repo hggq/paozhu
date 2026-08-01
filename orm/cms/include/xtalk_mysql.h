@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Mon, 13 Jul 2026 09:10:59 GMT
+ *  Creation time Sat, 01 Aug 2026 14:58:15 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -8177,7 +8177,7 @@ M_MODEL& nullContent()
         {
             ishascontent = true;
         }
-        wheresql.append(" content = NULL ");
+        wheresql.append(" content IS NULL ");
 
         return *mod;   
     }   
@@ -8206,7 +8206,7 @@ M_MODEL& nnullContent()
         {
             ishascontent = true;
         }
-        wheresql.append(" content != NULL ");
+        wheresql.append(" content IS NOT NULL ");
 
         return *mod;   
     }   
@@ -8748,7 +8748,7 @@ M_MODEL& or_nullContent()
         {
             ishascontent = true;
         }
-        wheresql.append(" content = NULL ");
+        wheresql.append(" content IS NULL ");
 
         return *mod;   
     }   
@@ -8777,7 +8777,7 @@ M_MODEL& or_nnullContent()
         {
             ishascontent = true;
         }
-        wheresql.append(" content != NULL ");
+        wheresql.append(" content IS NOT NULL ");
 
         return *mod;   
     }   

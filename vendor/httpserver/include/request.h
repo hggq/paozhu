@@ -79,6 +79,7 @@ struct obj_val
     bool to_bool() const;
     long long to_int() const;
     double to_float() const;
+    double to_double() const;
     char to_char() const;
     obj_val &from_char(char c);
     obj_type get_type() const;

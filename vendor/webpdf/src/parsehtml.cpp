@@ -106,9 +106,11 @@ std::string HTMLRenderer::str_tolower(const std::string& s) {
 }
 
 std::string HTMLRenderer::str_trim(const std::string& s) {
-    size_t start = s.find_first_not_of(" \t\n\r");
+    // \f is used internally by node_to_text as a <br>/block break marker,
+    // trim it too so TOC entry titles don't carry a stray form-feed glyph
+    size_t start = s.find_first_not_of(" \t\n\r\f\v");
     if (start == std::string::npos) return "";
-    size_t end = s.find_last_not_of(" \t\n\r");
+    size_t end = s.find_last_not_of(" \t\n\r\f\v");
     return s.substr(start, end - start + 1);
 }
 
@@ -1546,6 +1548,15 @@ void HTMLRenderer::render_table(const std::shared_ptr<HTMLNode>& table_node, con
             pdf->SetXY(x, y_start);
 
             // Draw cell background/border
+            if (!cell_style.background_color.empty()) {
+                std::istringstream iss(cell_style.background_color);
+                int br = 0, bg = 0, bb = 0; iss >> br >> bg >> bb;
+                std::string saved_fill = pdf->FillColor;
+                pdf->SetFillColor(br, bg, bb);
+                pdf->Rect(x, y_start, col_widths[i], row_h, "F");
+                pdf->FillColor = saved_fill;
+                pdf->_out(saved_fill);
+            }
             if (has_border) {
                 pdf->Rect(x, y_start, col_widths[i], row_h);
             }
@@ -2500,8 +2511,11 @@ void HTMLRenderer::render_nodes(const std::vector<std::shared_ptr<HTMLNode>>& no
                             if (entry.link_id == 0) {
                                 entry.link_id = pdf->AddLink();
                             }
-                            pdf->SetLink(entry.link_id, 0, pdf->PageNo());
-                            entry.page_no = pdf->PageNo();
+                            // A heading with page-break-before renders on the next
+                            // page (AddPage happens later in the block branch).
+                            int entry_page = pdf->PageNo() + (new_style.page_break_before ? 1 : 0);
+                            pdf->SetLink(entry.link_id, 0, entry_page);
+                            entry.page_no = entry_page;
                             toc_match_index++;
                         }
                     }
@@ -3149,7 +3163,9 @@ void HTMLRenderer::render_nodes(const std::vector<std::shared_ptr<HTMLNode>>& no
                 line_buf_fs_mm_ = 0;
                 line_buf_align_.clear();
                 // Handle page-break-before: always
-                if (new_style.page_break_before && !toc_pass1) {
+                // Must also break in pass1: total_pages and TOC page numbers are
+                // computed from pass1, so its pagination must match pass2.
+                if (new_style.page_break_before) {
                     pdf->AddPage();
                 }
                 if (new_style.margin_left > 0) {
@@ -4590,6 +4606,9 @@ void HTMLRenderer::WriteHTML(const std::string& html, double line_height) {
                     if (actual_rel < 1) actual_rel = 1;
                     e.page_no = actual_rel;
                 }
+                // Refresh total pages too, headers/footers show {pagetotal}
+                total_pages = pdf->PageNo() - pdf->GetPageNumberOffset();
+                if (total_pages < 1) total_pages = 1;
                 toc_retried = true;
                 continue;  // retry the pass
             }

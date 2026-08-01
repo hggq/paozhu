@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Mon, 13 Jul 2026 09:10:59 GMT
+ *  Creation time Sat, 01 Aug 2026 14:58:15 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -9503,7 +9503,7 @@ M_MODEL& nullSidename()
         {
             ishascontent = true;
         }
-        wheresql.append(" sidename = NULL ");
+        wheresql.append(" sidename IS NULL ");
 
         return *mod;   
     }   
@@ -9532,7 +9532,7 @@ M_MODEL& nnullSidename()
         {
             ishascontent = true;
         }
-        wheresql.append(" sidename != NULL ");
+        wheresql.append(" sidename IS NOT NULL ");
 
         return *mod;   
     }   
@@ -10074,7 +10074,7 @@ M_MODEL& or_nullSidename()
         {
             ishascontent = true;
         }
-        wheresql.append(" sidename = NULL ");
+        wheresql.append(" sidename IS NULL ");
 
         return *mod;   
     }   
@@ -10103,7 +10103,7 @@ M_MODEL& or_nnullSidename()
         {
             ishascontent = true;
         }
-        wheresql.append(" sidename != NULL ");
+        wheresql.append(" sidename IS NOT NULL ");
 
         return *mod;   
     }   
@@ -11041,7 +11041,7 @@ M_MODEL& nullTxtcontent()
         {
             ishascontent = true;
         }
-        wheresql.append(" txtcontent = NULL ");
+        wheresql.append(" txtcontent IS NULL ");
 
         return *mod;   
     }   
@@ -11070,7 +11070,7 @@ M_MODEL& nnullTxtcontent()
         {
             ishascontent = true;
         }
-        wheresql.append(" txtcontent != NULL ");
+        wheresql.append(" txtcontent IS NOT NULL ");
 
         return *mod;   
     }   
@@ -11612,7 +11612,7 @@ M_MODEL& or_nullTxtcontent()
         {
             ishascontent = true;
         }
-        wheresql.append(" txtcontent = NULL ");
+        wheresql.append(" txtcontent IS NULL ");
 
         return *mod;   
     }   
@@ -11641,7 +11641,7 @@ M_MODEL& or_nnullTxtcontent()
         {
             ishascontent = true;
         }
-        wheresql.append(" txtcontent != NULL ");
+        wheresql.append(" txtcontent IS NOT NULL ");
 
         return *mod;   
     }   

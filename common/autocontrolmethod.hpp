@@ -20,6 +20,7 @@
 #include "techempower.h"
 #include "teststrip_html.h"
 #include "test_wxpay.h"
+#include "test_pzzip.h"
 #include "testsoft_remove.h"
 #include "test_escape_str.h"
 #include "test_customstruct.h"
@@ -156,6 +157,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = test_wxpay_download_cert;
 		methodcallback.emplace("wxpaydownloadcert",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_pzzip;
+		methodcallback.emplace("test_pzzip",temp);
 		temp.pre = nullptr;
 		temp.regfun = testsoftremove;
 		methodcallback.emplace("testsoftremove",temp);

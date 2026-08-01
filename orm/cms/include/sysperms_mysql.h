@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Mon, 13 Jul 2026 09:10:59 GMT
+ *  Creation time Sat, 01 Aug 2026 14:58:15 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -5453,7 +5453,7 @@ M_MODEL& nullUrlpath()
         {
             ishascontent = true;
         }
-        wheresql.append(" urlpath = NULL ");
+        wheresql.append(" urlpath IS NULL ");
 
         return *mod;   
     }   
@@ -5482,7 +5482,7 @@ M_MODEL& nnullUrlpath()
         {
             ishascontent = true;
         }
-        wheresql.append(" urlpath != NULL ");
+        wheresql.append(" urlpath IS NOT NULL ");
 
         return *mod;   
     }   
@@ -6024,7 +6024,7 @@ M_MODEL& or_nullUrlpath()
         {
             ishascontent = true;
         }
-        wheresql.append(" urlpath = NULL ");
+        wheresql.append(" urlpath IS NULL ");
 
         return *mod;   
     }   
@@ -6053,7 +6053,7 @@ M_MODEL& or_nnullUrlpath()
         {
             ishascontent = true;
         }
-        wheresql.append(" urlpath != NULL ");
+        wheresql.append(" urlpath IS NOT NULL ");
 
         return *mod;   
     }   
@@ -6991,7 +6991,7 @@ M_MODEL& nullUrlname()
         {
             ishascontent = true;
         }
-        wheresql.append(" urlname = NULL ");
+        wheresql.append(" urlname IS NULL ");
 
         return *mod;   
     }   
@@ -7020,7 +7020,7 @@ M_MODEL& nnullUrlname()
         {
             ishascontent = true;
         }
-        wheresql.append(" urlname != NULL ");
+        wheresql.append(" urlname IS NOT NULL ");
 
         return *mod;   
     }   
@@ -7562,7 +7562,7 @@ M_MODEL& or_nullUrlname()
         {
             ishascontent = true;
         }
-        wheresql.append(" urlname = NULL ");
+        wheresql.append(" urlname IS NULL ");
 
         return *mod;   
     }   
@@ -7591,7 +7591,7 @@ M_MODEL& or_nnullUrlname()
         {
             ishascontent = true;
         }
-        wheresql.append(" urlname != NULL ");
+        wheresql.append(" urlname IS NOT NULL ");
 
         return *mod;   
     }   
@@ -8529,7 +8529,7 @@ M_MODEL& nullName()
         {
             ishascontent = true;
         }
-        wheresql.append(" name = NULL ");
+        wheresql.append(" name IS NULL ");
 
         return *mod;   
     }   
@@ -8558,7 +8558,7 @@ M_MODEL& nnullName()
         {
             ishascontent = true;
         }
-        wheresql.append(" name != NULL ");
+        wheresql.append(" name IS NOT NULL ");
 
         return *mod;   
     }   
@@ -9100,7 +9100,7 @@ M_MODEL& or_nullName()
         {
             ishascontent = true;
         }
-        wheresql.append(" name = NULL ");
+        wheresql.append(" name IS NULL ");
 
         return *mod;   
     }   
@@ -9129,7 +9129,7 @@ M_MODEL& or_nnullName()
         {
             ishascontent = true;
         }
-        wheresql.append(" name != NULL ");
+        wheresql.append(" name IS NOT NULL ");
 
         return *mod;   
     }   

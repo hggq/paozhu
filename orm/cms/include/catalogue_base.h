@@ -2,7 +2,7 @@
 #define ORM_CMS_CATALOGUEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Mon, 13 Jul 2026 09:10:59 GMT
+*本文件为自动生成 Sat, 01 Aug 2026 14:58:15 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -2436,7 +2436,7 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
     {
         for (unsigned int i = 0; i < record.size(); i++)
         {
-            if (record[i].parentid== t_vid)
+            if (record[i].parentid>0 && record[i].parentid== t_vid)
             {
                 		catalogue_info::meta_tree temp_obja;
 								temp_obja.cid=record[i].cid;
@@ -2450,6 +2450,10 @@ tempsql<<"\"imgurl\":\""<<http::utf8_to_jsonstring(tree_data[n].imgurl)<<"\"";
 
                 targetdata.push_back(temp_obja);
             }
+        }
+        if(targetdata.size() == 0 )
+        {
+            return;
         }
         level+=1;
         for (unsigned int j = 0; j < targetdata.size(); j++)

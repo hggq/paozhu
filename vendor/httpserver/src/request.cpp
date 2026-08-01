@@ -1222,6 +1222,25 @@ double obj_val::to_float() const
     }
 }
 
+double obj_val::to_double() const
+{
+    switch (_val_type)
+    {
+    case obj_type::NIL: return 0.0;
+    case obj_type::BOOL: return lval ? 1.0 : 0.0;
+    case obj_type::STRING:
+        if (str_.empty()) return 0.0;
+        try { return std::stod(str_); }
+        catch (...) { return 0.0; }
+    case obj_type::INT:
+    case obj_type::LONG: return static_cast<double>(lval);
+    case obj_type::UINT:
+    case obj_type::ULONG: return static_cast<double>(uval);
+    case obj_type::DOUBLE: return dval;
+    default: return 0.0;
+    }
+}
+
 char obj_val::to_char() const
 {
     switch (_val_type)

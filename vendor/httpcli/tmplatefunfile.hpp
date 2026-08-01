@@ -10,7 +10,7 @@
 #include <list>
 
 #include "templateparsefile.hpp"
-int viewfilecli()
+int viewfilecli(bool auto_all = false)
 {
     namespace fs = std::filesystem;
     http::viewtemplatefile tp;
@@ -57,7 +57,22 @@ int viewfilecli()
     }
     if (mustfile.size() > 0)
     {
-
+        if (auto_all)
+        {
+            int k = 1;
+            for (auto it = mustfile.begin(); it != mustfile.end(); it++)
+            {
+                std::string tempfile = "viewsrc/";
+                tempfile.append(it->first);
+                fs::path tmpath = tempfile;
+                tmpath.replace_extension(".cpp");
+                tp.reset();
+                tp.parseto(it->first, tmpath.string());
+                std::cout << k << " \033[32m[+]\033[0m \033[1m\033[31m" << it->first << "\033[0m ->" << tmpath.string() << std::endl;
+                k++;
+            }
+            return 0;
+        }
         std::string commond;
         while (i > 0)
         {

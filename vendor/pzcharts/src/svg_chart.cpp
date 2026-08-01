@@ -982,10 +982,10 @@ std::string SvgPieChart::render() {
         std::string pathD = buildSectorPath(cx, cy, maxR, r0, currentAngle, endAngle);
         oss << svgPath(pathD, "#fff", 1.5, data_[i].color.toHex());
 
-        // 绘制标签
+        // 绘制标签：用黑色文字，白色标签在小扇区溢出到白色背景上会看不见
         SvgPoint labelPos = labelPosition(cx, cy, maxR, currentAngle, endAngle);
         oss << svgText(labelPos.x, labelPos.y, data_[i].name,
-                       "middle", "#fff", 11);
+                       "middle", "#333", 11);
 
         currentAngle = endAngle;
     }
@@ -2199,12 +2199,20 @@ std::string SvgDensityChart::render() {
 
     // Y-axis ticks and labels
     int yTicks = 5;
+    // Density values are often tiny (e.g. 0.002); fixed 2-decimal labels would
+    // collapse into identical "0.01" ticks, so widen precision until the tick
+    // step becomes representable.
+    int yDec = 2;
+    double yStep = yMax / yTicks;
+    while (yDec < 6 && yStep * std::pow(10.0, yDec) < 1.0) {
+        yDec++;
+    }
     for (int i = 0; i <= yTicks; ++i) {
         double val = yMax * i / yTicks;
         double y = yScale.map(val);
         oss << svgLine(gx, y, gx + gw, y, "#e8e8e8", 1); // grid line
         oss << svgLine(gx - 4, y, gx, y, "#999", 1);      // tick
-        oss << svgText(gx - 8, y + 4, fmt(val, 2), "end", "#666", 11);
+        oss << svgText(gx - 8, y + 4, fmt(val, yDec), "end", "#666", 11);
     }
 
     // X-axis ticks and labels

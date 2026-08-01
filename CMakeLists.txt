@@ -34,6 +34,7 @@ option(ENABLE_PDF "Enable pz::webpdf support" OFF)
 option(ENABLE_SMS "Enable SMS support" OFF)
 option(ENABLE_WEBPAY "Enable webpay support (alipay/wxpay)" OFF)
 option(ENABLE_CHART "Enable chart support" OFF)
+option(ENABLE_ZIP "Enable pzzip support" OFF)
 
 # ---- Vcpkg toolchain ----
 if(ENABLE_VCPKG)
@@ -60,6 +61,7 @@ if(ENABLE_VCPKG)
   auto_enable_vcpkg_feature(ENABLE_OFFICE "pzexcel pzword")
   auto_enable_vcpkg_feature(ENABLE_IMAGE "image")
   auto_enable_vcpkg_feature(ENABLE_PDF "webpdf")
+  auto_enable_vcpkg_feature(ENABLE_ZIP "zipfile")
 endif()
 
 # ---- C++ standard ----
@@ -159,6 +161,10 @@ if(ENABLE_WEBPAY)
   file(GLOB_RECURSE webpay_list CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/vendor/webpay/src/*.cpp")
 endif()
 
+if(ENABLE_ZIP)
+  file(GLOB_RECURSE pzzip_list CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/vendor/pzzip/src/*.cpp")
+endif()
+
 # Auto-generate missing header stubs for controllers
 foreach(cppfile IN LISTS controller_list)
   string(REGEX REPLACE "${CMAKE_CURRENT_SOURCE_DIR}/controller/src/" "" rel_path "${cppfile}")
@@ -227,6 +233,10 @@ if(ENABLE_WEBPAY)
   list(APPEND paozhu_srcs ${webpay_list})
 endif()
 
+if(ENABLE_ZIP)
+  list(APPEND paozhu_srcs ${pzzip_list})
+endif()
+
 add_executable(paozhu
   $<IF:$<CONFIG:Release>,
     ${CMAKE_CURRENT_SOURCE_DIR}/startup/main_daemon.cpp,
@@ -261,6 +271,10 @@ endif()
 
 if(ENABLE_WEBPAY)
   target_compile_definitions(paozhu PRIVATE ENABLE_WEBPAY)
+endif()
+
+if(ENABLE_ZIP)
+  target_compile_definitions(paozhu PRIVATE ENABLE_ZIP)
 endif()
 
 target_link_libraries(paozhu PRIVATE project_warnings)
@@ -312,6 +326,10 @@ endif()
 
 if(ENABLE_PDF)
   include_system_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/vendor/webpdf/include")
+endif()
+
+if(ENABLE_ZIP)
+  include_system_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/vendor/pzzip/include")
 endif()
 
 if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_pre)

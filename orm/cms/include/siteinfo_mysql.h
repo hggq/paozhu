@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Mon, 13 Jul 2026 09:10:59 GMT
+ *  Creation time Sat, 01 Aug 2026 14:58:15 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -6911,7 +6911,7 @@ M_MODEL& nullSitename()
         {
             ishascontent = true;
         }
-        wheresql.append(" sitename = NULL ");
+        wheresql.append(" sitename IS NULL ");
 
         return *mod;   
     }   
@@ -6940,7 +6940,7 @@ M_MODEL& nnullSitename()
         {
             ishascontent = true;
         }
-        wheresql.append(" sitename != NULL ");
+        wheresql.append(" sitename IS NOT NULL ");
 
         return *mod;   
     }   
@@ -7482,7 +7482,7 @@ M_MODEL& or_nullSitename()
         {
             ishascontent = true;
         }
-        wheresql.append(" sitename = NULL ");
+        wheresql.append(" sitename IS NULL ");
 
         return *mod;   
     }   
@@ -7511,7 +7511,7 @@ M_MODEL& or_nnullSitename()
         {
             ishascontent = true;
         }
-        wheresql.append(" sitename != NULL ");
+        wheresql.append(" sitename IS NOT NULL ");
 
         return *mod;   
     }   
@@ -8449,7 +8449,7 @@ M_MODEL& nullSitedomain()
         {
             ishascontent = true;
         }
-        wheresql.append(" sitedomain = NULL ");
+        wheresql.append(" sitedomain IS NULL ");
 
         return *mod;   
     }   
@@ -8478,7 +8478,7 @@ M_MODEL& nnullSitedomain()
         {
             ishascontent = true;
         }
-        wheresql.append(" sitedomain != NULL ");
+        wheresql.append(" sitedomain IS NOT NULL ");
 
         return *mod;   
     }   
@@ -9020,7 +9020,7 @@ M_MODEL& or_nullSitedomain()
         {
             ishascontent = true;
         }
-        wheresql.append(" sitedomain = NULL ");
+        wheresql.append(" sitedomain IS NULL ");
 
         return *mod;   
     }   
@@ -9049,7 +9049,7 @@ M_MODEL& or_nnullSitedomain()
         {
             ishascontent = true;
         }
-        wheresql.append(" sitedomain != NULL ");
+        wheresql.append(" sitedomain IS NOT NULL ");
 
         return *mod;   
     }   
@@ -9987,7 +9987,7 @@ M_MODEL& nullMetakeys()
         {
             ishascontent = true;
         }
-        wheresql.append(" metakeys = NULL ");
+        wheresql.append(" metakeys IS NULL ");
 
         return *mod;   
     }   
@@ -10016,7 +10016,7 @@ M_MODEL& nnullMetakeys()
         {
             ishascontent = true;
         }
-        wheresql.append(" metakeys != NULL ");
+        wheresql.append(" metakeys IS NOT NULL ");
 
         return *mod;   
     }   
@@ -10558,7 +10558,7 @@ M_MODEL& or_nullMetakeys()
         {
             ishascontent = true;
         }
-        wheresql.append(" metakeys = NULL ");
+        wheresql.append(" metakeys IS NULL ");
 
         return *mod;   
     }   
@@ -10587,7 +10587,7 @@ M_MODEL& or_nnullMetakeys()
         {
             ishascontent = true;
         }
-        wheresql.append(" metakeys != NULL ");
+        wheresql.append(" metakeys IS NOT NULL ");
 
         return *mod;   
     }   
@@ -11525,7 +11525,7 @@ M_MODEL& nullMetadesc()
         {
             ishascontent = true;
         }
-        wheresql.append(" metadesc = NULL ");
+        wheresql.append(" metadesc IS NULL ");
 
         return *mod;   
     }   
@@ -11554,7 +11554,7 @@ M_MODEL& nnullMetadesc()
         {
             ishascontent = true;
         }
-        wheresql.append(" metadesc != NULL ");
+        wheresql.append(" metadesc IS NOT NULL ");
 
         return *mod;   
     }   
@@ -12096,7 +12096,7 @@ M_MODEL& or_nullMetadesc()
         {
             ishascontent = true;
         }
-        wheresql.append(" metadesc = NULL ");
+        wheresql.append(" metadesc IS NULL ");
 
         return *mod;   
     }   
@@ -12125,7 +12125,7 @@ M_MODEL& or_nnullMetadesc()
         {
             ishascontent = true;
         }
-        wheresql.append(" metadesc != NULL ");
+        wheresql.append(" metadesc IS NOT NULL ");
 
         return *mod;   
     }   
@@ -13063,7 +13063,7 @@ M_MODEL& nullCopyright()
         {
             ishascontent = true;
         }
-        wheresql.append(" copyright = NULL ");
+        wheresql.append(" copyright IS NULL ");
 
         return *mod;   
     }   
@@ -13092,7 +13092,7 @@ M_MODEL& nnullCopyright()
         {
             ishascontent = true;
         }
-        wheresql.append(" copyright != NULL ");
+        wheresql.append(" copyright IS NOT NULL ");
 
         return *mod;   
     }   
@@ -13634,7 +13634,7 @@ M_MODEL& or_nullCopyright()
         {
             ishascontent = true;
         }
-        wheresql.append(" copyright = NULL ");
+        wheresql.append(" copyright IS NULL ");
 
         return *mod;   
     }   
@@ -13663,7 +13663,7 @@ M_MODEL& or_nnullCopyright()
         {
             ishascontent = true;
         }
-        wheresql.append(" copyright != NULL ");
+        wheresql.append(" copyright IS NOT NULL ");
 
         return *mod;   
     }   
@@ -14601,7 +14601,7 @@ M_MODEL& nullBeiansn()
         {
             ishascontent = true;
         }
-        wheresql.append(" beiansn = NULL ");
+        wheresql.append(" beiansn IS NULL ");
 
         return *mod;   
     }   
@@ -14630,7 +14630,7 @@ M_MODEL& nnullBeiansn()
         {
             ishascontent = true;
         }
-        wheresql.append(" beiansn != NULL ");
+        wheresql.append(" beiansn IS NOT NULL ");
 
         return *mod;   
     }   
@@ -15172,7 +15172,7 @@ M_MODEL& or_nullBeiansn()
         {
             ishascontent = true;
         }
-        wheresql.append(" beiansn = NULL ");
+        wheresql.append(" beiansn IS NULL ");
 
         return *mod;   
     }   
@@ -15201,7 +15201,7 @@ M_MODEL& or_nnullBeiansn()
         {
             ishascontent = true;
         }
-        wheresql.append(" beiansn != NULL ");
+        wheresql.append(" beiansn IS NOT NULL ");
 
         return *mod;   
     }   
@@ -16139,7 +16139,7 @@ M_MODEL& nullFootscript()
         {
             ishascontent = true;
         }
-        wheresql.append(" footscript = NULL ");
+        wheresql.append(" footscript IS NULL ");
 
         return *mod;   
     }   
@@ -16168,7 +16168,7 @@ M_MODEL& nnullFootscript()
         {
             ishascontent = true;
         }
-        wheresql.append(" footscript != NULL ");
+        wheresql.append(" footscript IS NOT NULL ");
 
         return *mod;   
     }   
@@ -16710,7 +16710,7 @@ M_MODEL& or_nullFootscript()
         {
             ishascontent = true;
         }
-        wheresql.append(" footscript = NULL ");
+        wheresql.append(" footscript IS NULL ");
 
         return *mod;   
     }   
@@ -16739,7 +16739,7 @@ M_MODEL& or_nnullFootscript()
         {
             ishascontent = true;
         }
-        wheresql.append(" footscript != NULL ");
+        wheresql.append(" footscript IS NOT NULL ");
 
         return *mod;   
     }   
@@ -17677,7 +17677,7 @@ M_MODEL& nullHeadscript()
         {
             ishascontent = true;
         }
-        wheresql.append(" headscript = NULL ");
+        wheresql.append(" headscript IS NULL ");
 
         return *mod;   
     }   
@@ -17706,7 +17706,7 @@ M_MODEL& nnullHeadscript()
         {
             ishascontent = true;
         }
-        wheresql.append(" headscript != NULL ");
+        wheresql.append(" headscript IS NOT NULL ");
 
         return *mod;   
     }   
@@ -18248,7 +18248,7 @@ M_MODEL& or_nullHeadscript()
         {
             ishascontent = true;
         }
-        wheresql.append(" headscript = NULL ");
+        wheresql.append(" headscript IS NULL ");
 
         return *mod;   
     }   
@@ -18277,7 +18277,7 @@ M_MODEL& or_nnullHeadscript()
         {
             ishascontent = true;
         }
-        wheresql.append(" headscript != NULL ");
+        wheresql.append(" headscript IS NOT NULL ");
 
         return *mod;   
     }   
@@ -19215,7 +19215,7 @@ M_MODEL& nullIntroduce()
         {
             ishascontent = true;
         }
-        wheresql.append(" introduce = NULL ");
+        wheresql.append(" introduce IS NULL ");
 
         return *mod;   
     }   
@@ -19244,7 +19244,7 @@ M_MODEL& nnullIntroduce()
         {
             ishascontent = true;
         }
-        wheresql.append(" introduce != NULL ");
+        wheresql.append(" introduce IS NOT NULL ");
 
         return *mod;   
     }   
@@ -19786,7 +19786,7 @@ M_MODEL& or_nullIntroduce()
         {
             ishascontent = true;
         }
-        wheresql.append(" introduce = NULL ");
+        wheresql.append(" introduce IS NULL ");
 
         return *mod;   
     }   
@@ -19815,7 +19815,7 @@ M_MODEL& or_nnullIntroduce()
         {
             ishascontent = true;
         }
-        wheresql.append(" introduce != NULL ");
+        wheresql.append(" introduce IS NOT NULL ");
 
         return *mod;   
     }   
@@ -20753,7 +20753,7 @@ M_MODEL& nullSitelogo()
         {
             ishascontent = true;
         }
-        wheresql.append(" sitelogo = NULL ");
+        wheresql.append(" sitelogo IS NULL ");
 
         return *mod;   
     }   
@@ -20782,7 +20782,7 @@ M_MODEL& nnullSitelogo()
         {
             ishascontent = true;
         }
-        wheresql.append(" sitelogo != NULL ");
+        wheresql.append(" sitelogo IS NOT NULL ");
 
         return *mod;   
     }   
@@ -21324,7 +21324,7 @@ M_MODEL& or_nullSitelogo()
         {
             ishascontent = true;
         }
-        wheresql.append(" sitelogo = NULL ");
+        wheresql.append(" sitelogo IS NULL ");
 
         return *mod;   
     }   
@@ -21353,7 +21353,7 @@ M_MODEL& or_nnullSitelogo()
         {
             ishascontent = true;
         }
-        wheresql.append(" sitelogo != NULL ");
+        wheresql.append(" sitelogo IS NOT NULL ");
 
         return *mod;   
     }   
@@ -22291,7 +22291,7 @@ M_MODEL& nullSitebanner()
         {
             ishascontent = true;
         }
-        wheresql.append(" sitebanner = NULL ");
+        wheresql.append(" sitebanner IS NULL ");
 
         return *mod;   
     }   
@@ -22320,7 +22320,7 @@ M_MODEL& nnullSitebanner()
         {
             ishascontent = true;
         }
-        wheresql.append(" sitebanner != NULL ");
+        wheresql.append(" sitebanner IS NOT NULL ");
 
         return *mod;   
     }   
@@ -22862,7 +22862,7 @@ M_MODEL& or_nullSitebanner()
         {
             ishascontent = true;
         }
-        wheresql.append(" sitebanner = NULL ");
+        wheresql.append(" sitebanner IS NULL ");
 
         return *mod;   
     }   
@@ -22891,7 +22891,7 @@ M_MODEL& or_nnullSitebanner()
         {
             ishascontent = true;
         }
-        wheresql.append(" sitebanner != NULL ");
+        wheresql.append(" sitebanner IS NOT NULL ");
 
         return *mod;   
     }   
@@ -23829,7 +23829,7 @@ M_MODEL& nullContactman()
         {
             ishascontent = true;
         }
-        wheresql.append(" contactman = NULL ");
+        wheresql.append(" contactman IS NULL ");
 
         return *mod;   
     }   
@@ -23858,7 +23858,7 @@ M_MODEL& nnullContactman()
         {
             ishascontent = true;
         }
-        wheresql.append(" contactman != NULL ");
+        wheresql.append(" contactman IS NOT NULL ");
 
         return *mod;   
     }   
@@ -24400,7 +24400,7 @@ M_MODEL& or_nullContactman()
         {
             ishascontent = true;
         }
-        wheresql.append(" contactman = NULL ");
+        wheresql.append(" contactman IS NULL ");
 
         return *mod;   
     }   
@@ -24429,7 +24429,7 @@ M_MODEL& or_nnullContactman()
         {
             ishascontent = true;
         }
-        wheresql.append(" contactman != NULL ");
+        wheresql.append(" contactman IS NOT NULL ");
 
         return *mod;   
     }   
@@ -25367,7 +25367,7 @@ M_MODEL& nullPhone()
         {
             ishascontent = true;
         }
-        wheresql.append(" phone = NULL ");
+        wheresql.append(" phone IS NULL ");
 
         return *mod;   
     }   
@@ -25396,7 +25396,7 @@ M_MODEL& nnullPhone()
         {
             ishascontent = true;
         }
-        wheresql.append(" phone != NULL ");
+        wheresql.append(" phone IS NOT NULL ");
 
         return *mod;   
     }   
@@ -25938,7 +25938,7 @@ M_MODEL& or_nullPhone()
         {
             ishascontent = true;
         }
-        wheresql.append(" phone = NULL ");
+        wheresql.append(" phone IS NULL ");
 
         return *mod;   
     }   
@@ -25967,7 +25967,7 @@ M_MODEL& or_nnullPhone()
         {
             ishascontent = true;
         }
-        wheresql.append(" phone != NULL ");
+        wheresql.append(" phone IS NOT NULL ");
 
         return *mod;   
     }   
@@ -26905,7 +26905,7 @@ M_MODEL& nullMobile()
         {
             ishascontent = true;
         }
-        wheresql.append(" mobile = NULL ");
+        wheresql.append(" mobile IS NULL ");
 
         return *mod;   
     }   
@@ -26934,7 +26934,7 @@ M_MODEL& nnullMobile()
         {
             ishascontent = true;
         }
-        wheresql.append(" mobile != NULL ");
+        wheresql.append(" mobile IS NOT NULL ");
 
         return *mod;   
     }   
@@ -27476,7 +27476,7 @@ M_MODEL& or_nullMobile()
         {
             ishascontent = true;
         }
-        wheresql.append(" mobile = NULL ");
+        wheresql.append(" mobile IS NULL ");
 
         return *mod;   
     }   
@@ -27505,7 +27505,7 @@ M_MODEL& or_nnullMobile()
         {
             ishascontent = true;
         }
-        wheresql.append(" mobile != NULL ");
+        wheresql.append(" mobile IS NOT NULL ");
 
         return *mod;   
     }   
@@ -28443,7 +28443,7 @@ M_MODEL& nullEmail()
         {
             ishascontent = true;
         }
-        wheresql.append(" email = NULL ");
+        wheresql.append(" email IS NULL ");
 
         return *mod;   
     }   
@@ -28472,7 +28472,7 @@ M_MODEL& nnullEmail()
         {
             ishascontent = true;
         }
-        wheresql.append(" email != NULL ");
+        wheresql.append(" email IS NOT NULL ");
 
         return *mod;   
     }   
@@ -29014,7 +29014,7 @@ M_MODEL& or_nullEmail()
         {
             ishascontent = true;
         }
-        wheresql.append(" email = NULL ");
+        wheresql.append(" email IS NULL ");
 
         return *mod;   
     }   
@@ -29043,7 +29043,7 @@ M_MODEL& or_nnullEmail()
         {
             ishascontent = true;
         }
-        wheresql.append(" email != NULL ");
+        wheresql.append(" email IS NOT NULL ");
 
         return *mod;   
     }   
@@ -29981,7 +29981,7 @@ M_MODEL& nullBankname()
         {
             ishascontent = true;
         }
-        wheresql.append(" bankname = NULL ");
+        wheresql.append(" bankname IS NULL ");
 
         return *mod;   
     }   
@@ -30010,7 +30010,7 @@ M_MODEL& nnullBankname()
         {
             ishascontent = true;
         }
-        wheresql.append(" bankname != NULL ");
+        wheresql.append(" bankname IS NOT NULL ");
 
         return *mod;   
     }   
@@ -30552,7 +30552,7 @@ M_MODEL& or_nullBankname()
         {
             ishascontent = true;
         }
-        wheresql.append(" bankname = NULL ");
+        wheresql.append(" bankname IS NULL ");
 
         return *mod;   
     }   
@@ -30581,7 +30581,7 @@ M_MODEL& or_nnullBankname()
         {
             ishascontent = true;
         }
-        wheresql.append(" bankname != NULL ");
+        wheresql.append(" bankname IS NOT NULL ");
 
         return *mod;   
     }   
@@ -31519,7 +31519,7 @@ M_MODEL& nullBanksn()
         {
             ishascontent = true;
         }
-        wheresql.append(" banksn = NULL ");
+        wheresql.append(" banksn IS NULL ");
 
         return *mod;   
     }   
@@ -31548,7 +31548,7 @@ M_MODEL& nnullBanksn()
         {
             ishascontent = true;
         }
-        wheresql.append(" banksn != NULL ");
+        wheresql.append(" banksn IS NOT NULL ");
 
         return *mod;   
     }   
@@ -32090,7 +32090,7 @@ M_MODEL& or_nullBanksn()
         {
             ishascontent = true;
         }
-        wheresql.append(" banksn = NULL ");
+        wheresql.append(" banksn IS NULL ");
 
         return *mod;   
     }   
@@ -32119,7 +32119,7 @@ M_MODEL& or_nnullBanksn()
         {
             ishascontent = true;
         }
-        wheresql.append(" banksn != NULL ");
+        wheresql.append(" banksn IS NOT NULL ");
 
         return *mod;   
     }   
@@ -33057,7 +33057,7 @@ M_MODEL& nullAddress()
         {
             ishascontent = true;
         }
-        wheresql.append(" address = NULL ");
+        wheresql.append(" address IS NULL ");
 
         return *mod;   
     }   
@@ -33086,7 +33086,7 @@ M_MODEL& nnullAddress()
         {
             ishascontent = true;
         }
-        wheresql.append(" address != NULL ");
+        wheresql.append(" address IS NOT NULL ");
 
         return *mod;   
     }   
@@ -33628,7 +33628,7 @@ M_MODEL& or_nullAddress()
         {
             ishascontent = true;
         }
-        wheresql.append(" address = NULL ");
+        wheresql.append(" address IS NULL ");
 
         return *mod;   
     }   
@@ -33657,7 +33657,7 @@ M_MODEL& or_nnullAddress()
         {
             ishascontent = true;
         }
-        wheresql.append(" address != NULL ");
+        wheresql.append(" address IS NOT NULL ");
 
         return *mod;   
     }   
@@ -34595,7 +34595,7 @@ M_MODEL& nullZipnum()
         {
             ishascontent = true;
         }
-        wheresql.append(" zipnum = NULL ");
+        wheresql.append(" zipnum IS NULL ");
 
         return *mod;   
     }   
@@ -34624,7 +34624,7 @@ M_MODEL& nnullZipnum()
         {
             ishascontent = true;
         }
-        wheresql.append(" zipnum != NULL ");
+        wheresql.append(" zipnum IS NOT NULL ");
 
         return *mod;   
     }   
@@ -35166,7 +35166,7 @@ M_MODEL& or_nullZipnum()
         {
             ishascontent = true;
         }
-        wheresql.append(" zipnum = NULL ");
+        wheresql.append(" zipnum IS NULL ");
 
         return *mod;   
     }   
@@ -35195,7 +35195,7 @@ M_MODEL& or_nnullZipnum()
         {
             ishascontent = true;
         }
-        wheresql.append(" zipnum != NULL ");
+        wheresql.append(" zipnum IS NOT NULL ");
 
         return *mod;   
     }   
@@ -36133,7 +36133,7 @@ M_MODEL& nullTaxsn()
         {
             ishascontent = true;
         }
-        wheresql.append(" taxsn = NULL ");
+        wheresql.append(" taxsn IS NULL ");
 
         return *mod;   
     }   
@@ -36162,7 +36162,7 @@ M_MODEL& nnullTaxsn()
         {
             ishascontent = true;
         }
-        wheresql.append(" taxsn != NULL ");
+        wheresql.append(" taxsn IS NOT NULL ");
 
         return *mod;   
     }   
@@ -36704,7 +36704,7 @@ M_MODEL& or_nullTaxsn()
         {
             ishascontent = true;
         }
-        wheresql.append(" taxsn = NULL ");
+        wheresql.append(" taxsn IS NULL ");
 
         return *mod;   
     }   
@@ -36733,7 +36733,7 @@ M_MODEL& or_nnullTaxsn()
         {
             ishascontent = true;
         }
-        wheresql.append(" taxsn != NULL ");
+        wheresql.append(" taxsn IS NOT NULL ");
 
         return *mod;   
     }   
@@ -37671,7 +37671,7 @@ M_MODEL& nullCompanyname()
         {
             ishascontent = true;
         }
-        wheresql.append(" companyname = NULL ");
+        wheresql.append(" companyname IS NULL ");
 
         return *mod;   
     }   
@@ -37700,7 +37700,7 @@ M_MODEL& nnullCompanyname()
         {
             ishascontent = true;
         }
-        wheresql.append(" companyname != NULL ");
+        wheresql.append(" companyname IS NOT NULL ");
 
         return *mod;   
     }   
@@ -38242,7 +38242,7 @@ M_MODEL& or_nullCompanyname()
         {
             ishascontent = true;
         }
-        wheresql.append(" companyname = NULL ");
+        wheresql.append(" companyname IS NULL ");
 
         return *mod;   
     }   
@@ -38271,7 +38271,7 @@ M_MODEL& or_nnullCompanyname()
         {
             ishascontent = true;
         }
-        wheresql.append(" companyname != NULL ");
+        wheresql.append(" companyname IS NOT NULL ");
 
         return *mod;   
     }   
@@ -39209,7 +39209,7 @@ M_MODEL& nullLinkname()
         {
             ishascontent = true;
         }
-        wheresql.append(" linkname = NULL ");
+        wheresql.append(" linkname IS NULL ");
 
         return *mod;   
     }   
@@ -39238,7 +39238,7 @@ M_MODEL& nnullLinkname()
         {
             ishascontent = true;
         }
-        wheresql.append(" linkname != NULL ");
+        wheresql.append(" linkname IS NOT NULL ");
 
         return *mod;   
     }   
@@ -39780,7 +39780,7 @@ M_MODEL& or_nullLinkname()
         {
             ishascontent = true;
         }
-        wheresql.append(" linkname = NULL ");
+        wheresql.append(" linkname IS NULL ");
 
         return *mod;   
     }   
@@ -39809,7 +39809,7 @@ M_MODEL& or_nnullLinkname()
         {
             ishascontent = true;
         }
-        wheresql.append(" linkname != NULL ");
+        wheresql.append(" linkname IS NOT NULL ");
 
         return *mod;   
     }   
@@ -40747,7 +40747,7 @@ M_MODEL& nullLinkmobile()
         {
             ishascontent = true;
         }
-        wheresql.append(" linkmobile = NULL ");
+        wheresql.append(" linkmobile IS NULL ");
 
         return *mod;   
     }   
@@ -40776,7 +40776,7 @@ M_MODEL& nnullLinkmobile()
         {
             ishascontent = true;
         }
-        wheresql.append(" linkmobile != NULL ");
+        wheresql.append(" linkmobile IS NOT NULL ");
 
         return *mod;   
     }   
@@ -41318,7 +41318,7 @@ M_MODEL& or_nullLinkmobile()
         {
             ishascontent = true;
         }
-        wheresql.append(" linkmobile = NULL ");
+        wheresql.append(" linkmobile IS NULL ");
 
         return *mod;   
     }   
@@ -41347,7 +41347,7 @@ M_MODEL& or_nnullLinkmobile()
         {
             ishascontent = true;
         }
-        wheresql.append(" linkmobile != NULL ");
+        wheresql.append(" linkmobile IS NOT NULL ");
 
         return *mod;   
     }   
@@ -42285,7 +42285,7 @@ M_MODEL& nullLinkaddress()
         {
             ishascontent = true;
         }
-        wheresql.append(" linkaddress = NULL ");
+        wheresql.append(" linkaddress IS NULL ");
 
         return *mod;   
     }   
@@ -42314,7 +42314,7 @@ M_MODEL& nnullLinkaddress()
         {
             ishascontent = true;
         }
-        wheresql.append(" linkaddress != NULL ");
+        wheresql.append(" linkaddress IS NOT NULL ");
 
         return *mod;   
     }   
@@ -42856,7 +42856,7 @@ M_MODEL& or_nullLinkaddress()
         {
             ishascontent = true;
         }
-        wheresql.append(" linkaddress = NULL ");
+        wheresql.append(" linkaddress IS NULL ");
 
         return *mod;   
     }   
@@ -42885,7 +42885,7 @@ M_MODEL& or_nnullLinkaddress()
         {
             ishascontent = true;
         }
-        wheresql.append(" linkaddress != NULL ");
+        wheresql.append(" linkaddress IS NOT NULL ");
 
         return *mod;   
     }   
@@ -43823,7 +43823,7 @@ M_MODEL& nullTheme()
         {
             ishascontent = true;
         }
-        wheresql.append(" theme = NULL ");
+        wheresql.append(" theme IS NULL ");
 
         return *mod;   
     }   
@@ -43852,7 +43852,7 @@ M_MODEL& nnullTheme()
         {
             ishascontent = true;
         }
-        wheresql.append(" theme != NULL ");
+        wheresql.append(" theme IS NOT NULL ");
 
         return *mod;   
     }   
@@ -44394,7 +44394,7 @@ M_MODEL& or_nullTheme()
         {
             ishascontent = true;
         }
-        wheresql.append(" theme = NULL ");
+        wheresql.append(" theme IS NULL ");
 
         return *mod;   
     }   
@@ -44423,7 +44423,7 @@ M_MODEL& or_nnullTheme()
         {
             ishascontent = true;
         }
-        wheresql.append(" theme != NULL ");
+        wheresql.append(" theme IS NOT NULL ");
 
         return *mod;   
     }   
@@ -45361,7 +45361,7 @@ M_MODEL& nullSitepath()
         {
             ishascontent = true;
         }
-        wheresql.append(" sitepath = NULL ");
+        wheresql.append(" sitepath IS NULL ");
 
         return *mod;   
     }   
@@ -45390,7 +45390,7 @@ M_MODEL& nnullSitepath()
         {
             ishascontent = true;
         }
-        wheresql.append(" sitepath != NULL ");
+        wheresql.append(" sitepath IS NOT NULL ");
 
         return *mod;   
     }   
@@ -45932,7 +45932,7 @@ M_MODEL& or_nullSitepath()
         {
             ishascontent = true;
         }
-        wheresql.append(" sitepath = NULL ");
+        wheresql.append(" sitepath IS NULL ");
 
         return *mod;   
     }   
@@ -45961,7 +45961,7 @@ M_MODEL& or_nnullSitepath()
         {
             ishascontent = true;
         }
-        wheresql.append(" sitepath != NULL ");
+        wheresql.append(" sitepath IS NOT NULL ");
 
         return *mod;   
     }   

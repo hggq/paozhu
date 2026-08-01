@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Mon, 13 Jul 2026 09:10:59 GMT
+ *  Creation time Sat, 01 Aug 2026 14:58:15 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -5401,7 +5401,7 @@ M_MODEL& nullImgurl()
         {
             ishascontent = true;
         }
-        wheresql.append(" imgurl = NULL ");
+        wheresql.append(" imgurl IS NULL ");
 
         return *mod;   
     }   
@@ -5430,7 +5430,7 @@ M_MODEL& nnullImgurl()
         {
             ishascontent = true;
         }
-        wheresql.append(" imgurl != NULL ");
+        wheresql.append(" imgurl IS NOT NULL ");
 
         return *mod;   
     }   
@@ -5972,7 +5972,7 @@ M_MODEL& or_nullImgurl()
         {
             ishascontent = true;
         }
-        wheresql.append(" imgurl = NULL ");
+        wheresql.append(" imgurl IS NULL ");
 
         return *mod;   
     }   
@@ -6001,7 +6001,7 @@ M_MODEL& or_nnullImgurl()
         {
             ishascontent = true;
         }
-        wheresql.append(" imgurl != NULL ");
+        wheresql.append(" imgurl IS NOT NULL ");
 
         return *mod;   
     }   
@@ -8307,7 +8307,7 @@ M_MODEL& nullAttachfiles()
         {
             ishascontent = true;
         }
-        wheresql.append(" attachfiles = NULL ");
+        wheresql.append(" attachfiles IS NULL ");
 
         return *mod;   
     }   
@@ -8336,7 +8336,7 @@ M_MODEL& nnullAttachfiles()
         {
             ishascontent = true;
         }
-        wheresql.append(" attachfiles != NULL ");
+        wheresql.append(" attachfiles IS NOT NULL ");
 
         return *mod;   
     }   
@@ -8878,7 +8878,7 @@ M_MODEL& or_nullAttachfiles()
         {
             ishascontent = true;
         }
-        wheresql.append(" attachfiles = NULL ");
+        wheresql.append(" attachfiles IS NULL ");
 
         return *mod;   
     }   
@@ -8907,7 +8907,7 @@ M_MODEL& or_nnullAttachfiles()
         {
             ishascontent = true;
         }
-        wheresql.append(" attachfiles != NULL ");
+        wheresql.append(" attachfiles IS NOT NULL ");
 
         return *mod;   
     }   
@@ -9845,7 +9845,7 @@ M_MODEL& nullName()
         {
             ishascontent = true;
         }
-        wheresql.append(" name = NULL ");
+        wheresql.append(" name IS NULL ");
 
         return *mod;   
     }   
@@ -9874,7 +9874,7 @@ M_MODEL& nnullName()
         {
             ishascontent = true;
         }
-        wheresql.append(" name != NULL ");
+        wheresql.append(" name IS NOT NULL ");
 
         return *mod;   
     }   
@@ -10416,7 +10416,7 @@ M_MODEL& or_nullName()
         {
             ishascontent = true;
         }
-        wheresql.append(" name = NULL ");
+        wheresql.append(" name IS NULL ");
 
         return *mod;   
     }   
@@ -10445,7 +10445,7 @@ M_MODEL& or_nnullName()
         {
             ishascontent = true;
         }
-        wheresql.append(" name != NULL ");
+        wheresql.append(" name IS NOT NULL ");
 
         return *mod;   
     }   
@@ -11383,7 +11383,7 @@ M_MODEL& nullAttachdate()
         {
             ishascontent = true;
         }
-        wheresql.append(" attachdate = NULL ");
+        wheresql.append(" attachdate IS NULL ");
 
         return *mod;   
     }   
@@ -11412,7 +11412,7 @@ M_MODEL& nnullAttachdate()
         {
             ishascontent = true;
         }
-        wheresql.append(" attachdate != NULL ");
+        wheresql.append(" attachdate IS NOT NULL ");
 
         return *mod;   
     }   
@@ -11954,7 +11954,7 @@ M_MODEL& or_nullAttachdate()
         {
             ishascontent = true;
         }
-        wheresql.append(" attachdate = NULL ");
+        wheresql.append(" attachdate IS NULL ");
 
         return *mod;   
     }   
@@ -11983,7 +11983,7 @@ M_MODEL& or_nnullAttachdate()
         {
             ishascontent = true;
         }
-        wheresql.append(" attachdate != NULL ");
+        wheresql.append(" attachdate IS NOT NULL ");
 
         return *mod;   
     }   
@@ -15657,7 +15657,7 @@ M_MODEL& nullFileext()
         {
             ishascontent = true;
         }
-        wheresql.append(" fileext = NULL ");
+        wheresql.append(" fileext IS NULL ");
 
         return *mod;   
     }   
@@ -15686,7 +15686,7 @@ M_MODEL& nnullFileext()
         {
             ishascontent = true;
         }
-        wheresql.append(" fileext != NULL ");
+        wheresql.append(" fileext IS NOT NULL ");
 
         return *mod;   
     }   
@@ -16228,7 +16228,7 @@ M_MODEL& or_nullFileext()
         {
             ishascontent = true;
         }
-        wheresql.append(" fileext = NULL ");
+        wheresql.append(" fileext IS NULL ");
 
         return *mod;   
     }   
@@ -16257,7 +16257,7 @@ M_MODEL& or_nnullFileext()
         {
             ishascontent = true;
         }
-        wheresql.append(" fileext != NULL ");
+        wheresql.append(" fileext IS NOT NULL ");
 
         return *mod;   
     }   

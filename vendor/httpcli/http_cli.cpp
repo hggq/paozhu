@@ -40,6 +40,10 @@ int main(int argc, char *argv[])
         std::cout << " \033[1m\033[31m model ｜ view | viewtocpp | control \033[0m "
                      " \n Welcome to use \033[4m\033[31mcli\033[0m to manage "
                      "your MVC files。\n"
+                     "Usage:\n"
+                     "  paozhu_cli view          update all view templates to cpp (viewsrc/)\n"
+                     "  paozhu_cli json          update json reflect files\n"
+                     "  paozhu_cli orm <dbtag>   update ORM files, dbtag e.g. cms (see conf/orm.conf)\n"
                      "Input f create view, from view directory to viewsrc c++ cpp file, next input a create all modify html to c++ cpp\n"
                      "Input m create ORM file, from database to ORM c++ cpp file, next select db front number to create.\n"
                      "Input j create json file, scan libs directory *.json, annotation [//@reflect json to_json from_json] struct to json.cpp\n";
@@ -47,6 +51,23 @@ int main(int argc, char *argv[])
     if (argc > 1)
     {
         commandstr = argv[1];
+    }
+    if (commandstr == "view")
+    {
+        return viewfilecli(true);
+    }
+    if (commandstr == "json")
+    {
+        return jsoncli();
+    }
+    if (commandstr == "orm")
+    {
+        if (argc < 3)
+        {
+            std::cout << "Usage: paozhu_cli orm <dbtag>  (dbtag: section name in conf/orm.conf, e.g. cms)" << std::endl;
+            return 1;
+        }
+        return modelcli(argv[2]);
     }
     // std::string commandstr{argv[1]};
     while (1)
