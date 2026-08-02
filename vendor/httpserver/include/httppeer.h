@@ -135,6 +135,23 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     bool find_host_index();
     unsigned int check_upload_limit();
 
+    // 常规发送（Content-Length）：先发 header，再发 body，最后 end 结束
+    // 使用前须先调 peer->length(file_size) 设置 Content-Length
+    void send_make_header();
+    void send_make_body(std::string_view data);
+    void send_make_end();
+    asio::awaitable<void> async_send_make_header();
+    asio::awaitable<void> async_send_make_body(std::string_view data);
+    asio::awaitable<void> async_send_make_end();
+
+    // 流式发送（chunked transfer）：先发 header，再逐块发 body，最后 end 结束
+    void send_chunk_header();
+    void send_chunk_body(std::string_view data);
+    void send_chunk_end();
+    asio::awaitable<void> async_send_chunk_header();
+    asio::awaitable<void> async_send_chunk_body(std::string_view data);
+    asio::awaitable<void> async_send_chunk_end();
+
     // SSE 流式输出
     asio::awaitable<void> async_make_sse_header();
     asio::awaitable<void> async_make_sse_body(std::string_view data);

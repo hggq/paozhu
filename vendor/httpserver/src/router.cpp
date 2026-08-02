@@ -283,14 +283,74 @@ void router::dispatch(std::shared_ptr<httppeer> peer)
 
 asio::awaitable<co_route_result> router::co_dispatch(std::shared_ptr<httppeer> peer)
 {
+    DEBUG_LOG("---  in %s co_dispatch --------", peer->sendfilename.c_str());
     co_route_result route_ret;
+    route_ret.matched   = false;
+    serverconfig &sysconfigpath = getserversysconfig();
+
+    if (sysconfigpath.sitehostinfos[peer->host_index].alias_domain.size() > 0)
+    {
+        auto iter1 = _co_domain_regmethod_table.find(sysconfigpath.sitehostinfos[peer->host_index].alias_domain);
+        if (iter1 != _co_domain_regmethod_table.end())
+        {
+            auto iter2 = iter1->second.find(peer->sendfilename);
+            if (iter2 != iter1->second.end())
+            {
+                std::string respcontent;
+                route_ret.matched   = true;
+                route_ret.need_sync = false;
+
+                if (iter2->second.pre != nullptr)
+                {
+                    respcontent = co_await iter2->second.pre(peer);
+                    if (respcontent.size() == 2 && str_casecmp(respcontent, "ok"))
+                    {
+                        respcontent = co_await iter2->second.regfun(peer);
+                    }
+                }
+                else
+                {
+                    respcontent = co_await iter2->second.regfun(peer);
+                }
+            }
+        }
+    }
+    else
+    {
+        auto iter1 = _co_domain_regmethod_table.find(sysconfigpath.sitehostinfos[peer->host_index].mainhost);
+        if (iter1 != _co_domain_regmethod_table.end())
+        {
+            auto iter2 = iter1->second.find(peer->sendfilename);
+            if (iter2 != iter1->second.end())
+            {
+                std::string respcontent;
+                route_ret.matched   = true;
+                route_ret.need_sync = false;
+                if (iter2->second.pre != nullptr)
+                {
+                    respcontent = co_await iter2->second.pre(peer);
+                    if (respcontent.size() == 2 && str_casecmp(respcontent, "ok"))
+                    {
+                        respcontent = co_await iter2->second.regfun(peer);
+                    }
+                }
+                else
+                {
+                    respcontent = co_await iter2->second.regfun(peer);
+                }
+            }
+        }
+    }
+    if(route_ret.matched)
+    {
+        co_return route_ret;
+    }
+
     auto co_iter = _co_http_regmethod_table.find(peer->sendfilename);
     if (co_iter != _co_http_regmethod_table.end())
     {
-        DEBUG_LOG("---  coll %s handle --------", peer->sendfilename.c_str());
         route_ret.matched   = true;
         route_ret.need_sync = false;
-
         std::string respcontent;
         if (co_iter->second.pre != nullptr)
         {
@@ -330,6 +390,7 @@ asio::awaitable<co_route_result> router::co_dispatch(std::shared_ptr<httppeer> p
             }
         }
     }
+
     co_return route_ret;
 }
 

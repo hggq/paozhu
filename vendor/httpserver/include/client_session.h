@@ -74,6 +74,7 @@ class client_session : public std::enable_shared_from_this<client_session>
     client_session(asio::io_context &);
     ~client_session();
     unsigned int send_writer(const std::string &msg);
+    unsigned int send_writer(std::string_view msg);
     unsigned int send_writer(const unsigned char *, unsigned int);
 
     bool isopensocket();

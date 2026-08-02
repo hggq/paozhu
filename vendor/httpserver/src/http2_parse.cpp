@@ -328,21 +328,21 @@ void http2parse::path_process([[maybe_unused]] const std::string &header_name, c
 
             if (buffer_key.size() > 0)
             {
-                if (buffer_key.size() == 2 && buffer_key[0] == '.' &&
-                    buffer_key[1] == '.')
+                std::string decoded = http::url_decode(buffer_key.data(), buffer_key.length());
+                if (decoded.size() == 2 && decoded[0] == '.' &&
+                    decoded[1] == '.')
                 {
                     if (steam_httppeer->pathinfos.size() > 0)
                     {
                         steam_httppeer->pathinfos.pop_back();
                     }
                 }
-                else if (buffer_key.size() == 1 && buffer_key[0] == '.')
+                else if (decoded.size() == 1 && decoded[0] == '.')
                 {
                 }
                 else
                 {
-                    steam_httppeer->pathinfos.emplace_back(
-                        http::url_decode(buffer_key.data(), buffer_key.length()));
+                    steam_httppeer->pathinfos.emplace_back(decoded);
                 }
                 buffer_key.clear();
             }
@@ -360,22 +360,21 @@ void http2parse::path_process([[maybe_unused]] const std::string &header_name, c
             error = 40201;
             return;
         }
-        if (buffer_key.size() == 2 && buffer_key[0] == '.' &&
-            buffer_key[1] == '.')
+        std::string decoded = http::url_decode(buffer_key.data(), buffer_key.length());
+        if (decoded.size() == 2 && decoded[0] == '.' &&
+            decoded[1] == '.')
         {
             if (steam_httppeer->pathinfos.size() > 0)
             {
                 steam_httppeer->pathinfos.pop_back();
             }
         }
-        else if (buffer_key.size() == 1 && buffer_key[0] == '.')
+        else if (decoded.size() == 1 && decoded[0] == '.')
         {
         }
         else
         {
-            steam_httppeer->pathinfos.emplace_back(
-                http::url_decode(buffer_key.data(),
-                                 buffer_key.length()));
+            steam_httppeer->pathinfos.emplace_back(decoded);
         }
     }
 

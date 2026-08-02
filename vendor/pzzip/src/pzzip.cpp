@@ -80,7 +80,7 @@ std::string zip::safe_filename(const std::string& path) {
         if (c == '\0') break;
         if (c == '\\') { s += '/'; continue; }
         if (c == ':' || c == '*' || c == '?' ||
-            c == '"' || c == '<' || c == '>' || c == '|' || (c < 0x20)) {
+            c == '"' || c == '<' || c == '>' || c == '|' || ((unsigned char)c < 0x20)) {
             continue;
         }
         s += c;

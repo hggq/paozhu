@@ -105,7 +105,9 @@ class client : public std::enable_shared_from_this<client>
     void respreadtocontent(const char *buffer, unsigned int buffersize);
     void respreadtofile(const char *buffer, unsigned int buffersize);
     void respread_sse(const char *buffer, unsigned int buffersize);
+    asio::awaitable<void> async_respread_sse(const char *buffer, unsigned int buffersize);
     void parse_sse_event();
+    asio::awaitable<void> async_parse_sse_event();
     void responseheader(std::string_view, std::string_view);
     void respcookieprocess(std::string_view);
     void respattachmentprocess(std::string_view);
@@ -113,6 +115,8 @@ class client : public std::enable_shared_from_this<client>
     void processcode();
     void finishprocess();
     bool process(const char *buffer, unsigned int buffersize);
+    asio::awaitable<bool> async_process(const char *buffer, unsigned int buffersize);
+
     void close_file(std::FILE *fp) { std::fclose(fp); }
     void close_connect();
     void buildheader();
@@ -223,6 +227,7 @@ class client : public std::enable_shared_from_this<client>
         bool isjson   = false;
         bool chunked  = false;
         bool keeplive = false;
+        bool isend    = false;
         char encode   = 0;
         char padd     = 0;
         std::string rawheader;
@@ -243,7 +248,8 @@ class client : public std::enable_shared_from_this<client>
     std::function<void(std::string &header_str)> onrequest                                           = nullptr;
     std::function<void(unsigned long long, unsigned long long)> upload_process                       = nullptr;
     std::function<void(unsigned long long, unsigned long long)> download_process                     = nullptr;
-    std::function<void(std::string &respdata, std::shared_ptr<client>)> on_sse_event                     = nullptr;
+    std::function<void(std::string &respdata, std::shared_ptr<client>)> on_sse_event                 = nullptr;
+    std::function<asio::awaitable<void>(std::string&, std::shared_ptr<http::client>)> async_on_sse_event   = nullptr;
 
     asio::strand<asio::io_context::executor_type> strand_;
     std::function<void(std::shared_ptr<client>)> dur_time_loop_fun                        = nullptr;

@@ -22,8 +22,6 @@
 #include "directory_fun.h"
 #include "unicode.h"
 #include "func.h"
-#include "cost_define.h"
-
 namespace fs = std::filesystem;
 namespace http
 {
@@ -124,7 +122,7 @@ std::string displaydirectory(std::string localpath, std::string urlpath, std::st
         fseek(ff, 0, SEEK_END);
         long fsize = ftell(ff);
         fseek(ff, 0, SEEK_SET);
-        if (fsize < 0 || fsize > CONST_HTTP_BODY_POST_SIZE)
+        if (fsize < 0)
         {
             fclose(ff);
             return {};
@@ -509,7 +507,7 @@ std::string displaydirectory_attachfile(std::string localpath, std::string urlpa
         fseek(ff, 0, SEEK_END);
         long fsize = ftell(ff);
         fseek(ff, 0, SEEK_SET);
-        if (fsize < 0 || fsize > CONST_HTTP_BODY_POST_SIZE)
+        if (fsize < 0)
         {
             fclose(ff);
             return {};
@@ -761,7 +759,7 @@ std::string displaydirectory_attachimg(std::string localpath, std::string urlpat
         fseek(ff, 0, SEEK_END);
         long fsize = ftell(ff);
         fseek(ff, 0, SEEK_SET);
-        if (fsize < 0 || fsize > CONST_HTTP_BODY_POST_SIZE)
+        if (fsize < 0 )
         {
             fclose(ff);
             return {};

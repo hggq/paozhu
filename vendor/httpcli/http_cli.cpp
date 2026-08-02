@@ -41,7 +41,8 @@ int main(int argc, char *argv[])
                      " \n Welcome to use \033[4m\033[31mcli\033[0m to manage "
                      "your MVC files。\n"
                      "Usage:\n"
-                     "  paozhu_cli view          update all view templates to cpp (viewsrc/)\n"
+                     "  paozhu_cli view          update modified view templates to cpp (viewsrc/)\n"
+                     "  paozhu_cli view force    force regenerate all view templates to cpp\n"
                      "  paozhu_cli json          update json reflect files\n"
                      "  paozhu_cli orm <dbtag>   update ORM files, dbtag e.g. cms (see conf/orm.conf)\n"
                      "Input f create view, from view directory to viewsrc c++ cpp file, next input a create all modify html to c++ cpp\n"
@@ -54,6 +55,10 @@ int main(int argc, char *argv[])
     }
     if (commandstr == "view")
     {
+        if (argc > 2 && std::string(argv[2]) == "force")
+        {
+            return viewfilecli(false, true);
+        }
         return viewfilecli(true);
     }
     if (commandstr == "json")

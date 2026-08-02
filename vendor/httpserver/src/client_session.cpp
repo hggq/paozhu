@@ -331,6 +331,51 @@ unsigned int client_session::send_writer(const std::string &msg)
         return 0;
     }
 }
+
+unsigned int client_session::send_writer(std::string_view msg)
+{
+    if (isclose)
+    {
+        return 0;
+    }
+    try
+    {
+        unsigned int n = 0;
+        if (isssl)
+        {
+            if (sslsocket->lowest_layer().is_open())
+            {
+               n = asio::write(*sslsocket, asio::buffer(msg));
+            }
+            else
+            {
+                isclose = true;
+                return 0;
+            }
+        }
+        else
+        {
+            if (socket->is_open())
+            {
+               n = asio::write(*socket, asio::buffer(msg));
+            }
+            else
+            {
+                isclose = true;
+                return 0;
+            }
+        }
+        return n;
+    }
+    catch (std::exception &)
+    {
+        isclose = true;
+        iserror = true;
+        cancel();
+        return 0;
+    }
+}
+
 bool client_session::isopensocket()
 {
 

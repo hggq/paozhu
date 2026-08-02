@@ -49,6 +49,7 @@
 #include "admin/main.h"
 #include "test_webpdf.h"
 #include "testformpost.h"
+#include "test_httppeersend.h"
 #include "test_parse_ini.h"
 #include "test_socket_handle.h"
 #include "teststr2int.h"
@@ -63,6 +64,7 @@
 #include "test_pzpng.h"
 #include "testto_tree.h"
 #include "testcmake.h"
+#include "test_chunked.h"
 #include "testcrud.h"
 #include "testjsonreflect.h"
 #include "testaddclienttask.h"
@@ -611,6 +613,12 @@ namespace http
 		temp.regfun = testuploadpostfile;
 		methodcallback.emplace("addpostfile",temp);
 		temp.pre = nullptr;
+		temp.regfun = test_httppeersend;
+		methodcallback.emplace("test_httppeersend",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_httppeersend_text;
+		methodcallback.emplace("test_httppeersend_text",temp);
+		temp.pre = nullptr;
 		temp.regfun = test_parse_ini;
 		methodcallback.emplace("test_parse_ini",temp);
 		temp.pre = nullptr;
@@ -688,6 +696,12 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testcauto;
 		methodcallback.emplace("ccauto",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_chunked;
+		methodcallback.emplace("test_chunked",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_chunkedfile;
+		methodcallback.emplace("test_chunkedfile",temp);
 		temp.pre = nullptr;
 		temp.regfun = articlelogin;
 		methodcallback.emplace("cms/login",temp);
@@ -873,11 +887,17 @@ namespace http
 		temp.regfun = test_leftjoinfull;
 		methodcallback.emplace("test_leftjoinfull",temp);
 		temp.pre = nullptr;
+		temp.regfun = test_httppeersend_async;
+		methodcallback.emplace("test_httppeersend_async",temp);
+		temp.pre = nullptr;
 		temp.regfun = test_socket_client;
 		methodcallback.emplace("test_socket_client",temp);
 		temp.pre = nullptr;
 		temp.regfun = test_co_sqlquery;
 		methodcallback.emplace("co_sqlquery",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_chunked_async;
+		methodcallback.emplace("test_chunked_async",temp);
 		temp.pre = nullptr;
 		temp.regfun = test_cols_co;
 		methodcallback.emplace("test_cols_co",temp);
@@ -896,6 +916,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = test_deepseek_sse;
 		methodcallback.emplace("deepseek_sse",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_deepseek_chunk;
+		methodcallback.emplace("deepseek_chunk",temp);
 		temp.pre = nullptr;
 		temp.regfun = test_rpcclient;
 		methodcallback.emplace("test_rpcclient",temp);

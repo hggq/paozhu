@@ -15,7 +15,6 @@
 #include "file_get_content.h"
 #include "httpclient.h"
 #include "func.h"
-#include "cost_define.h"
 namespace http
 {
 std::string file_get_contents(std::string str, std::map<std::string, std::string> &parabody, unsigned int timeoutnum)
@@ -128,7 +127,7 @@ std::string file_get_contents(std::string str, std::map<std::string, std::string
         long fsize = ftell(ffp);
         fseek(ffp, 0, SEEK_SET);
 
-        if (fsize < 0 || fsize > CONST_HTTP_BODY_POST_SIZE)
+        if (fsize < 0)
         {
             fclose(ffp);
             return file_body;
@@ -198,7 +197,7 @@ std::string file_get_contents(std::string str, unsigned int timeoutnum)
         long fsize = ftell(ffp);
         fseek(ffp, 0, SEEK_SET);
 
-        if (fsize < 0 || fsize > CONST_HTTP_BODY_POST_SIZE)
+        if (fsize < 0)
         {
             fclose(ffp);
             return file_body;

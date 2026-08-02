@@ -974,6 +974,11 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             co_route_result co_ret = co_await get_router().co_dispatch(peer);
             not_co_handle          = co_ret.need_sync;
 
+            if (co_ret.matched && peer->ischunked)
+            {
+                co_return;
+            }
+
             send_file_obj->header.clear();
             if (not_co_handle)
             {
@@ -1661,7 +1666,7 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
         peer->etag.clear();
         peer->output.clear();
 
-        DEBUG_LOG("---  http1 co handle --------");
+        DEBUG_LOG("---  http1 co handle %s--------", peer->sendfilename.c_str());
         co_route_result co_ret = co_await get_router().co_dispatch(peer);
         bool not_co_handle     = co_ret.need_sync;
         if (co_ret.matched && peer->ischunked)
@@ -4477,22 +4482,22 @@ void httpserver::httpwatch()
     unsigned char plan_http1_exit = 0x00;
     unsigned char plan_http2_exit = 0x00;
 
-    bool is_clear_sock = false;
-    bool is_run_acme   = false;
-    int acme_every_day_time = sysconfigpath.acme_every_day_time;
+    bool is_clear_sock            = false;
+    bool is_run_acme              = false;
+    int acme_every_day_time       = sysconfigpath.acme_every_day_time;
     int acme_every_day_time_reset = 1;
-    int ocsp_interval_time = sysconfigpath.ocsp_interval_time;
+    int ocsp_interval_time        = sysconfigpath.ocsp_interval_time;
 
-    if(ocsp_interval_time < 3600)
+    if (ocsp_interval_time < 3600)
     {
         ocsp_interval_time = 3600;
     }
 
-    if(acme_every_day_time < 2)
+    if (acme_every_day_time < 2)
     {
         acme_every_day_time = 2;
     }
-    if(acme_every_day_time > 23)
+    if (acme_every_day_time > 23)
     {
         acme_every_day_time = 23;
     }
@@ -4971,7 +4976,7 @@ void httpserver::httpwatch()
             if (now->tm_hour == acme_every_day_time && is_run_acme)
             {
                 is_run_acme = false;
-                //every day 
+                //every day
                 std::thread t_acme(&httpserver::acme_task, this);
                 t_acme.detach();
             }
@@ -4984,9 +4989,7 @@ void httpserver::httpwatch()
             if (mysqlpool_time % ocsp_interval_time == 9)
             {
                 std::thread t_ocsp([]()
-                {
-                    refresh_all_ocsp_staples();
-                });
+                                   { refresh_all_ocsp_staples(); });
                 t_ocsp.detach();
             }
 
@@ -5511,7 +5514,7 @@ void httpserver::acme_task()
     {
         site_num = 30;
     }
-    
+
     for (unsigned int i = 0; i < site_num; i++)
     {
         acme_update();

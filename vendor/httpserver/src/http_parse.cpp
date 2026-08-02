@@ -493,19 +493,20 @@ void httpparse::methodprocess(std::string_view contentline)
             }
             if (header_temp.size() > 0)
             {
-                if (header_temp.size() == 2 && header_temp[0] == '.' && header_temp[1] == '.')
+                std::string decoded = http::url_decode(header_temp.data(), header_temp.length());
+                if (decoded.size() == 2 && decoded[0] == '.' && decoded[1] == '.')
                 {
                     if (peer->pathinfos.size() > 0)
                     {
                         peer->pathinfos.pop_back();
                     }
                 }
-                else if (header_temp.size() == 1 && header_temp[0] == '.')
+                else if (decoded.size() == 1 && decoded[0] == '.')
                 {
                 }
                 else
                 {
-                    peer->pathinfos.emplace_back(http::url_decode(header_temp.data(), header_temp.length()));
+                    peer->pathinfos.emplace_back(decoded);
                 }
                 header_temp.clear();
             }
@@ -522,19 +523,20 @@ void httpparse::methodprocess(std::string_view contentline)
             error = 40090;
             return;
         }
-        if (header_temp.size() == 2 && header_temp[0] == '.' && header_temp[1] == '.')
+        std::string decoded = http::url_decode(header_temp.data(), header_temp.length());
+        if (decoded.size() == 2 && decoded[0] == '.' && decoded[1] == '.')
         {
             if (peer->pathinfos.size() > 0)
             {
                 peer->pathinfos.pop_back();
             }
         }
-        else if (header_temp.size() == 1 && header_temp[0] == '.')
+        else if (decoded.size() == 1 && decoded[0] == '.')
         {
         }
         else
         {
-            peer->pathinfos.emplace_back(http::url_decode(header_temp.data(), header_temp.length()));
+            peer->pathinfos.emplace_back(decoded);
         }
     }
     unsigned int p_pos_offset = ioffset - p_begin;

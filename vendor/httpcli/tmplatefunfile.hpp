@@ -10,7 +10,7 @@
 #include <list>
 
 #include "templateparsefile.hpp"
-int viewfilecli(bool auto_all = false)
+int viewfilecli(bool auto_all = false, bool force_all = false)
 {
     namespace fs = std::filesystem;
     http::viewtemplatefile tp;
@@ -55,24 +55,46 @@ int viewfilecli(bool auto_all = false)
         std::cout << "\033[0m\t time: \033[32m" << (lsystemTime->tm_year + 1900) << "-" << (lsystemTime->tm_mon + 1) << "-" << lsystemTime->tm_mday << " " << lsystemTime->tm_hour << ":" << lsystemTime->tm_min << ":" << lsystemTime->tm_sec << "\033[0m" << std::endl;
         i++;
     }
+    if (force_all)
+    {
+        int k = 1;
+        for (auto it = tp.fileslist.begin(); it != tp.fileslist.end(); it++)
+        {
+            fs::path p = it->first;
+            std::string extfile = p.extension().string();
+            if (!stringcasecmp(extfile, ".html"))
+            {
+                continue;
+            }
+            std::string tempfile = "viewsrc/";
+            tempfile.append(it->first);
+            fs::path tmpath = tempfile;
+            tmpath.replace_extension(".cpp");
+            tp.reset();
+            tp.parseto(it->first, tmpath.string());
+            std::cout << k << " \033[32m[+]\033[0m \033[1m\033[31m" << it->first << "\033[0m ->" << tmpath.string() << std::endl;
+            k++;
+        }
+        return 0;
+    }
+    if (auto_all)
+    {
+        int k = 1;
+        for (auto it = mustfile.begin(); it != mustfile.end(); it++)
+        {
+            std::string tempfile = "viewsrc/";
+            tempfile.append(it->first);
+            fs::path tmpath = tempfile;
+            tmpath.replace_extension(".cpp");
+            tp.reset();
+            tp.parseto(it->first, tmpath.string());
+            std::cout << k << " \033[32m[+]\033[0m \033[1m\033[31m" << it->first << "\033[0m ->" << tmpath.string() << std::endl;
+            k++;
+        }
+        return 0;
+    }
     if (mustfile.size() > 0)
     {
-        if (auto_all)
-        {
-            int k = 1;
-            for (auto it = mustfile.begin(); it != mustfile.end(); it++)
-            {
-                std::string tempfile = "viewsrc/";
-                tempfile.append(it->first);
-                fs::path tmpath = tempfile;
-                tmpath.replace_extension(".cpp");
-                tp.reset();
-                tp.parseto(it->first, tmpath.string());
-                std::cout << k << " \033[32m[+]\033[0m \033[1m\033[31m" << it->first << "\033[0m ->" << tmpath.string() << std::endl;
-                k++;
-            }
-            return 0;
-        }
         std::string commond;
         while (i > 0)
         {

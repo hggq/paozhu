@@ -677,7 +677,7 @@ asio::awaitable<void> client::async_send_data()
 
         // unsigned long long totalsize;
         // rawfile = NULL;
-
+        
         while (true)
         {
             memset(read_data, 0x00, 2048);
@@ -695,11 +695,21 @@ asio::awaitable<void> client::async_send_data()
             {
                 break;
             }
-            readoffset = 0;
-            if (process(read_data, n))
+            if (async_on_sse_event != nullptr)
             {
-                break;
+                // 协程版 SSE 解析
+                readoffset = 0;
+                if (co_await async_process(read_data, n))
+                    break;
             }
+            else
+            {
+                // 使用原有的同步 process() 处理（非SSE或同步回调）
+                readoffset = 0;
+                if (process(read_data, n))
+                    break;
+            }
+
             if (page.file.size > 0 && (page.file.size == page.content.size()))
             {
                 break;
@@ -1332,11 +1342,28 @@ asio::awaitable<void> client::async_send_ssl_data()
             {
                 break;
             }
-            readoffset = 0;
-            if (process(read_data, n))
+
+            if (async_on_sse_event != nullptr)
             {
-                break;
+                
+                // 协程版 SSE 解析
+                readoffset = 0;
+                if (co_await async_process(read_data, n))
+                    break;
             }
+            else
+            {
+                // 使用原有的同步 process() 处理（非SSE或同步回调）
+                readoffset = 0;
+                if (process(read_data, n))
+                    break;
+            }
+
+            // readoffset = 0;
+            // if (process(read_data, n))
+            // {
+            //     break;
+            // }
             if (page.file.size > 0 && (page.file.size == page.content.size()))
             {
                 break;
@@ -2372,14 +2399,109 @@ void client::respreadtocontent(const char *buffer, unsigned int buffersize)
 
     while (i < buffersize)
     {
-        if (page.length == 0)
+        // 首先处理跨包状态（page.padd != 0）
+        if (page.padd == 3)
         {
-            //是尾部或一个块开始
-            unsigned int n = 0;
+            // chunk 数据后的 CRLF 分隔符跨包：等待消费 \n
+            if (i < buffersize && buffer[i] == 0x0D)
+            {
+                i++;
+                if (i < buffersize && buffer[i] == 0x0A)
+                {
+                    i++;
+                    page.padd = 0;
+                }
+                else
+                {
+                    iserror = 1;
+                    return;
+                }
+            }
+            else if (i < buffersize && buffer[i] == 0x0A)
+            {
+                // 只有 \n，没有 \r（某些 HTTP 实现会这样）
+                i++;
+                page.padd = 0;
+            }
+            else if (i >= buffersize)
+            {
+                readoffset = i;
+                return;
+            }
+            else
+            {
+                iserror = 1;
+                return;
+            }
+            if (page.padd != 0)
+            {
+                readoffset = i;
+                return;
+            }
+        }
+        
+        if (page.padd == 2)
+        {
+            // chunk size 后的 CRLF 跨包
+            if (i < buffersize && buffer[i] == 0x0D)
+            {
+                i++;
+                if (i < buffersize && buffer[i] == 0x0A)
+                {
+                    i++;
+                    page.padd = 0;
+                }
+                else
+                {
+                    iserror = 1;
+                    return;
+                }
+            }
+            else if (i >= buffersize)
+            {
+                readoffset = i;
+                return;
+            }
+            else
+            {
+                iserror = 1;
+                return;
+            }
+            continue;
+        }
+        
+        if (page.padd == 1)
+        {
+            // chunk size 后的 CRLF 跨包：等待消费 \n
+            if (i < buffersize && buffer[i] == 0x0A)
+            {
+                i++;
+                page.padd = 0;
+            }
+            else if (i >= buffersize)
+            {
+                readoffset = i;
+                return;
+            }
+            else
+            {
+                iserror = 1;
+                return;
+            }
+            continue;
+        }
+        
+        // padd==4 必须优先于 page.length==0 检查（因为 padd==4 时 page.length 存储的是部分解析值，可能为 0）
+        if (page.padd == 4)
+        {
+            // size 行跨包续接：继续解析十六进制字符
+            bool size_complete = false;
+            unsigned int n = (unsigned int)page.length;
             for (; i < buffersize; i++)
             {
                 if (buffer[i] == 0x0D || buffer[i] == 0x0A)
                 {
+                    size_complete = true;
                     break;
                 }
                 if (buffer[i] >= '0' && buffer[i] <= '9')
@@ -2399,6 +2521,99 @@ void client::respreadtocontent(const char *buffer, unsigned int buffersize)
                 }
             }
             page.length = n;
+
+            if (!size_complete)
+            {
+                // 仍然不完整
+                readoffset = i;
+                return;
+            }
+
+            page.padd = 0;
+
+            if (page.length == 0)
+            {
+                //尾部了
+                page.file.size = page.content.size();
+                for (; i < buffersize; i++)
+                {
+                    if (buffer[i] == 0x0D || buffer[i] == 0x0A)
+                    {
+                        continue;
+                    }
+                    break;
+                }
+                readoffset = i;
+                return;
+            }
+
+            //后面必须是\r\n
+            if (i < buffersize && buffer[i] == 0x0D)
+            {
+                i++;
+                if (i < buffersize && buffer[i] == 0x0A)
+                {
+                    i++;
+                }
+                else
+                {
+                    if (i < buffersize)
+                    {
+                        iserror = 1;
+                    }
+                    page.padd = 1;
+                    break;
+                }
+            }
+            else
+            {
+                if (i < buffersize)
+                {
+                    iserror = 1;
+                    break;
+                }
+                page.padd = 2;
+                break;
+            }
+        }
+        else if (page.length == 0)
+        {
+            //是尾部或一个块开始
+            unsigned int n = 0;
+            bool size_complete = false;
+            for (; i < buffersize; i++)
+            {
+                if (buffer[i] == 0x0D || buffer[i] == 0x0A)
+                {
+                    size_complete = true;
+                    break;
+                }
+                if (buffer[i] >= '0' && buffer[i] <= '9')
+                {
+                    n = n << 4;
+                    n = n + (unsigned char)(buffer[i] - '0');
+                }
+                else if (buffer[i] >= 'A' && buffer[i] <= 'F')
+                {
+                    n = n << 4;
+                    n = n + (unsigned char)(buffer[i] - 'A') + 10;
+                }
+                else if (buffer[i] >= 'a' && buffer[i] <= 'f')
+                {
+                    n = n << 4;
+                    n = n + (unsigned char)(buffer[i] - 'a') + 10;
+                }
+            }
+            page.length = n;
+
+            if (!size_complete)
+            {
+                // size 行跨包：未读到 CRLF
+                page.padd = 4;
+                readoffset = i;
+                return;
+            }
+
             if (page.length == 0)
             {
                 //尾部了
@@ -2491,8 +2706,38 @@ void client::respreadtocontent(const char *buffer, unsigned int buffersize)
                 page.length--;
                 if (page.length == 0)
                 {
-                    //下一个循环，消化下一个块
                     break;
+                }
+            }
+            // break 跳过了 for 循环的 i++，需要手动推进到数据之后的位置
+            if (page.length == 0 && i < buffersize)
+            {
+                i++;
+            }
+
+            // 消费 chunk 数据后的 \r\n 分隔符
+            // HTTP chunked 格式: <size>\r\n<data>\r\n
+            if (page.length == 0)
+            {
+                if (i < buffersize && buffer[i] == 0x0D)
+                {
+                    i++;
+                    if (i < buffersize && buffer[i] == 0x0A)
+                    {
+                        i++;
+                    }
+                    else
+                    {
+                        page.padd = 3;
+                    }
+                }
+                else if (i < buffersize && buffer[i] == 0x0A)
+                {
+                    i++;
+                }
+                else if (i >= buffersize)
+                {
+                    page.padd = 3;
                 }
             }
         }
@@ -2502,6 +2747,7 @@ void client::respreadtocontent(const char *buffer, unsigned int buffersize)
             i++;
         }
     }
+    readoffset = i;
 }
 
 void client::respreadtofile(const char *buffer, unsigned int buffersize)
@@ -2572,14 +2818,18 @@ void client::respread_sse(const char *buffer, unsigned int buffersize)
         if (page.chunked)
         {
             // chunked 传输编码：先解码 chunk 再解析 SSE
-            if (page.length == 0)
+            if (page.length == 0 && page.padd != 4)
             {
                 // 解析 chunk 大小
                 unsigned int n = 0;
+                bool size_complete = false;
                 for (; i < buffersize; i++)
                 {
                     if (buffer[i] == 0x0D || buffer[i] == 0x0A)
+                    {
+                        size_complete = true;
                         break;
+                    }
                     if (buffer[i] >= '0' && buffer[i] <= '9')
                         n = (n << 4) + (buffer[i] - '0');
                     else if (buffer[i] >= 'A' && buffer[i] <= 'F')
@@ -2588,6 +2838,14 @@ void client::respread_sse(const char *buffer, unsigned int buffersize)
                         n = (n << 4) + (buffer[i] - 'a') + 10;
                 }
                 page.length = n;
+
+                if (!size_complete)
+                {
+                    page.padd = 4;
+                    readoffset = i;
+                    return;
+                }
+
                 if (page.length == 0)
                 {
                     // chunk 结束
@@ -2601,6 +2859,76 @@ void client::respread_sse(const char *buffer, unsigned int buffersize)
                 }
 
                 // 跳过 chunk 大小后的 \r\n（处理跨包）
+                if (i < buffersize && buffer[i] == 0x0D)
+                {
+                    i++;
+                    if (i < buffersize && buffer[i] == 0x0A)
+                    {
+                        i++;
+                    }
+                    else
+                    {
+                        if (i < buffersize)
+                        {
+                            iserror = 1;
+                        }
+                        page.padd = 1;
+                        break;
+                    }
+                }
+                else
+                {
+                    if (i < buffersize)
+                    {
+                        iserror = 1;
+                        break;
+                    }
+                    page.padd = 2;
+                    break;
+                }
+            }
+            else if (page.padd == 4)
+            {
+                // size 行跨包续接
+                bool size_complete = false;
+                unsigned int n = (unsigned int)page.length;
+                for (; i < buffersize; i++)
+                {
+                    if (buffer[i] == 0x0D || buffer[i] == 0x0A)
+                    {
+                        size_complete = true;
+                        break;
+                    }
+                    if (buffer[i] >= '0' && buffer[i] <= '9')
+                        n = (n << 4) + (buffer[i] - '0');
+                    else if (buffer[i] >= 'A' && buffer[i] <= 'F')
+                        n = (n << 4) + (buffer[i] - 'A') + 10;
+                    else if (buffer[i] >= 'a' && buffer[i] <= 'f')
+                        n = (n << 4) + (buffer[i] - 'a') + 10;
+                }
+                page.length = n;
+
+                if (!size_complete)
+                {
+                    readoffset = i;
+                    return;
+                }
+
+                page.padd = 0;
+
+                if (page.length == 0)
+                {
+                    // chunk 结束
+                    for (; i < buffersize; i++)
+                    {
+                        if (buffer[i] != 0x0D && buffer[i] != 0x0A)
+                            break;
+                    }
+                    readoffset = i;
+                    return;
+                }
+
+                // 跳过 chunk 大小后的 \r\n
                 if (i < buffersize && buffer[i] == 0x0D)
                 {
                     i++;
@@ -2690,12 +3018,57 @@ void client::respread_sse(const char *buffer, unsigned int buffersize)
             }
 
             // chunk 数据读完后跳过尾部 \r\n
-            if (page.length == 0 && i < buffersize)
+            if (page.length == 0)
             {
-                if (buffer[i] == 0x0D)
+                if (i < buffersize && buffer[i] == 0x0D)
+                {
                     i++;
-                if (i < buffersize && buffer[i] == 0x0A)
+                    if (i < buffersize && buffer[i] == 0x0A)
+                    {
+                        i++;
+                    }
+                    else
+                    {
+                        page.padd = 3;
+                    }
+                }
+                else if (i < buffersize && buffer[i] == 0x0A)
+                {
                     i++;
+                }
+                else if (i >= buffersize)
+                {
+                    page.padd = 3;
+                }
+            }
+
+            // 处理跨包：chunk 数据后的 \r\n 在下一缓冲区
+            if (page.padd == 3)
+            {
+                if (i < buffersize && buffer[i] == 0x0D)
+                {
+                    i++;
+                    if (i < buffersize && buffer[i] == 0x0A)
+                    {
+                        i++;
+                        page.padd = 0;
+                    }
+                }
+                else if (i < buffersize && buffer[i] == 0x0A)
+                {
+                    i++;
+                    page.padd = 0;
+                }
+                else if (i >= buffersize)
+                {
+                    readoffset = i;
+                    return;
+                }
+                else
+                {
+                    iserror = 1;
+                    return;
+                }
             }
         }
         else
@@ -2715,6 +3088,308 @@ void client::respread_sse(const char *buffer, unsigned int buffersize)
             }
         }
     }
+    readoffset = i;
+}
+
+asio::awaitable<void> client::async_respread_sse(const char *buffer, unsigned int buffersize)
+{
+    unsigned int i = readoffset;
+
+    while (i < buffersize)
+    {
+        if (page.chunked)
+        {
+            // chunked 传输编码：先解码 chunk 再解析 SSE
+            if (page.length == 0 && page.padd != 4)
+            {
+                // 解析 chunk 大小
+                unsigned int n = 0;
+                bool size_complete = false;
+                for (; i < buffersize; i++)
+                {
+                    if (buffer[i] == 0x0D || buffer[i] == 0x0A)
+                    {
+                        size_complete = true;
+                        break;
+                    }
+                    if (buffer[i] >= '0' && buffer[i] <= '9')
+                        n = (n << 4) + (buffer[i] - '0');
+                    else if (buffer[i] >= 'A' && buffer[i] <= 'F')
+                        n = (n << 4) + (buffer[i] - 'A') + 10;
+                    else if (buffer[i] >= 'a' && buffer[i] <= 'f')
+                        n = (n << 4) + (buffer[i] - 'a') + 10;
+                }
+                page.length = n;
+
+                if (!size_complete)
+                {
+                    page.padd = 4;
+                    readoffset = i;
+                    co_return;
+                }
+
+                if (page.length == 0)
+                {
+                    // chunk 结束
+                    for (; i < buffersize; i++)
+                    {
+                        if (buffer[i] != 0x0D && buffer[i] != 0x0A)
+                            break;
+                    }
+                    readoffset = i;
+                    co_return;
+                }
+
+                // 跳过 chunk 大小后的 \r\n（处理跨包）
+                if (i < buffersize && buffer[i] == 0x0D)
+                {
+                    i++;
+                    if (i < buffersize && buffer[i] == 0x0A)
+                    {
+                        i++;
+                    }
+                    else
+                    {
+                        if (i < buffersize)
+                        {
+                            iserror = 1;
+                        }
+                        page.padd = 1;
+                        break;
+                    }
+                }
+                else
+                {
+                    if (i < buffersize)
+                    {
+                        iserror = 1;
+                        break;
+                    }
+                    page.padd = 2;
+                    break;
+                }
+            }
+            else if (page.padd == 4)
+            {
+                // size 行跨包续接
+                bool size_complete = false;
+                unsigned int n = (unsigned int)page.length;
+                for (; i < buffersize; i++)
+                {
+                    if (buffer[i] == 0x0D || buffer[i] == 0x0A)
+                    {
+                        size_complete = true;
+                        break;
+                    }
+                    if (buffer[i] >= '0' && buffer[i] <= '9')
+                        n = (n << 4) + (buffer[i] - '0');
+                    else if (buffer[i] >= 'A' && buffer[i] <= 'F')
+                        n = (n << 4) + (buffer[i] - 'A') + 10;
+                    else if (buffer[i] >= 'a' && buffer[i] <= 'f')
+                        n = (n << 4) + (buffer[i] - 'a') + 10;
+                }
+                page.length = n;
+
+                if (!size_complete)
+                {
+                    readoffset = i;
+                    co_return;
+                }
+
+                page.padd = 0;
+
+                if (page.length == 0)
+                {
+                    // chunk 结束
+                    for (; i < buffersize; i++)
+                    {
+                        if (buffer[i] != 0x0D && buffer[i] != 0x0A)
+                            break;
+                    }
+                    readoffset = i;
+                    co_return;
+                }
+
+                // 跳过 chunk 大小后的 \r\n
+                if (i < buffersize && buffer[i] == 0x0D)
+                {
+                    i++;
+                    if (i < buffersize && buffer[i] == 0x0A)
+                    {
+                        i++;
+                    }
+                    else
+                    {
+                        if (i < buffersize)
+                        {
+                            iserror = 1;
+                        }
+                        page.padd = 1;
+                        break;
+                    }
+                }
+                else
+                {
+                    if (i < buffersize)
+                    {
+                        iserror = 1;
+                        break;
+                    }
+                    page.padd = 2;
+                    break;
+                }
+            }
+
+            // 跨包处理：补齐上次未读完的 \r\n
+            if (page.padd == 2)
+            {
+                if (i < buffersize && buffer[i] == 0x0D)
+                {
+                    i++;
+                    if (i < buffersize && buffer[i] == 0x0A)
+                    {
+                        i++;
+                    }
+                    else
+                    {
+                        iserror = 1;
+                        co_return;
+                    }
+                }
+                else
+                {
+                    iserror = 1;
+                    co_return;
+                }
+                page.padd = 0;
+            }
+            else if (page.padd == 1)
+            {
+                if (i < buffersize && buffer[i] == 0x0A)
+                {
+                    i++;
+                }
+                else
+                {
+                    iserror = 1;
+                    co_return;
+                }
+                page.padd = 0;
+            }
+
+            // 读取 chunk 数据
+            if (page.length > 0)
+            {
+                for (; i < buffersize && page.length > 0; i++, page.length--)
+                {
+                    sse_buffer.push_back(buffer[i]);
+
+                    if (sse_buffer.size() >= 2 &&
+                        sse_buffer[sse_buffer.size() - 2] == '\n' &&
+                        sse_buffer[sse_buffer.size() - 1] == '\n')
+                    {
+                        co_await async_parse_sse_event();
+                        sse_buffer.clear();
+                    }
+                }
+            }
+            else
+            {
+                // 防止死循环
+                i++;
+            }
+
+            // chunk 数据读完后跳过尾部 \r\n
+            if (page.length == 0)
+            {
+                if (i < buffersize && buffer[i] == 0x0D)
+                {
+                    i++;
+                    if (i < buffersize && buffer[i] == 0x0A)
+                    {
+                        i++;
+                    }
+                    else
+                    {
+                        page.padd = 3;
+                    }
+                }
+                else if (i < buffersize && buffer[i] == 0x0A)
+                {
+                    i++;
+                }
+                else if (i >= buffersize)
+                {
+                    page.padd = 3;
+                }
+            }
+
+            // 处理跨包：chunk 数据后的 \r\n 在下一缓冲区
+            if (page.padd == 3)
+            {
+                if (i < buffersize && buffer[i] == 0x0D)
+                {
+                    i++;
+                    if (i < buffersize && buffer[i] == 0x0A)
+                    {
+                        i++;
+                        page.padd = 0;
+                    }
+                }
+                else if (i < buffersize && buffer[i] == 0x0A)
+                {
+                    i++;
+                    page.padd = 0;
+                }
+                else if (i >= buffersize)
+                {
+                    readoffset = i;
+                    co_return;
+                }
+                else
+                {
+                    iserror = 1;
+                    co_return;
+                }
+            }
+        }
+        else
+        {
+            // 非 chunked：直接累积
+            for (; i < buffersize; i++)
+            {
+                sse_buffer.push_back(buffer[i]);
+
+                if (sse_buffer.size() >= 2 &&
+                    sse_buffer[sse_buffer.size() - 2] == '\n' &&
+                    sse_buffer[sse_buffer.size() - 1] == '\n')
+                {
+                    co_await async_parse_sse_event();
+                    sse_buffer.clear();
+                }
+            }
+        }
+    }
+    readoffset = i;
+    co_return;
+}
+
+asio::awaitable<void> client::async_parse_sse_event()
+{
+    if (sse_buffer.size() > 5 && str_casecmp(sse_buffer.substr(0, 5), "data:"))
+    {
+        // 去掉尾部的 \n\n（SSE 事件边界分隔符）
+        std::string data_str = sse_buffer;
+        while (!data_str.empty() && (data_str.back() == '\n' || data_str.back() == '\r'))
+        {
+            data_str.pop_back();
+        }
+        if (async_on_sse_event)
+        {
+           co_await async_on_sse_event(data_str, shared_from_this());
+        }
+    }
+    co_return;
 }
 
 void client::parse_sse_event()
@@ -2816,6 +3491,68 @@ bool client::process(const char *buffer, unsigned int buffersize)
     }
     return false;
 }
+
+asio::awaitable<bool> client::async_process(const char *buffer, unsigned int buffersize)
+{
+    if (readoffset >= buffersize)
+    {
+        co_return true;
+    }
+    if (iserror > 0)
+    {
+        co_return true;
+    }
+    if (headerfinish == 0)
+    {
+        for (; readoffset < buffersize;)
+        {
+            readheaderline(buffer, buffersize);
+            if (iserror > 0)
+            {
+                break;
+            }
+            if (headerfinish == 1)
+            {
+                page.length = 0;
+                if (onheader != nullptr)
+                {
+                    if (onheader(buffer, readoffset, page.code))
+                    {
+                        co_return true;
+                    }
+                }
+                break;
+            }
+        }
+    }
+    if (headerfinish == 1 && iserror == 0 && readoffset < buffersize)
+    {
+        // type length chunked
+        if (page.issse)
+        {
+           co_await async_respread_sse(buffer, buffersize);
+           if(page.isend)
+           {
+               co_return true;
+           }
+        }
+        else if (page.istxt)
+        {
+            respreadtocontent(buffer, buffersize);
+        }
+        else
+        {
+            page.length = page.length + (buffersize - readoffset);
+            respreadtofile(buffer, buffersize);
+            if (download_process != nullptr)
+            {
+                download_process(page.length, page.file.size);
+            }
+        }
+    }
+    co_return false;
+}
+
 client &client::data_type(std::string str)
 {
 

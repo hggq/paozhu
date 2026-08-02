@@ -649,32 +649,6 @@ static bool stat_is_regfile(const std::string &filepath)
     }
     return false;
 }
-//remove ".." "./" dot segments and their following '/' from url path
-static void remove_dot_path(std::string &pathname)
-{
-    unsigned int j = 0;
-    for (unsigned int n = 0; n < pathname.size(); n++)
-    {
-        if (pathname[n] == '.' && (n + 1) < pathname.size() && (pathname[n + 1] == '.' || pathname[n + 1] == '/'))
-        {
-            n += 1;
-            while ((n + 1) < pathname.size() && pathname[n + 1] == '/')
-            {
-                n += 1;
-            }
-            continue;
-        }
-        if (j != n)
-        {
-            pathname[j] = pathname[n];
-        }
-        j++;
-    }
-    if (j < pathname.size())
-    {
-        pathname.resize(j);
-    }
-}
 bool httppeer::isuse_fastcgi()
 {
     serverconfig &sysconfigpath = getserversysconfig();
@@ -797,28 +771,75 @@ unsigned char httppeer::has_urlfileext()
     }
     //join url paths, check reg points of every parent path
     sendfilename.clear();
+    serverconfig &sysconfigpath = getserversysconfig();
+
     for (unsigned int i = 0; i < pathinfos.size(); i++)
     {
         if (i > 0)
         {
-            if (_http_regmethod_table.contains(sendfilename))
-            {
-                return 4;
-            }
-            else if (_co_http_regmethod_table.contains(sendfilename))
-            {
-                return 40;
-            }
             sendfilename.append("/");
         }
         sendfilename.append(pathinfos[i]);
+
+        if (sysconfigpath.sitehostinfos[host_index].alias_domain.size() > 0)
+        {
+            auto iter1 = _domain_regmethod_table.find(sysconfigpath.sitehostinfos[host_index].alias_domain);
+            if (iter1 != _domain_regmethod_table.end())
+            {
+                if (iter1->second.contains(sendfilename))
+                {
+                    return 4;
+                }
+            }
+        }
+        else
+        {
+            auto iter1 = _domain_regmethod_table.find(sysconfigpath.sitehostinfos[host_index].mainhost);
+            if (iter1 != _domain_regmethod_table.end())
+            {
+                if (iter1->second.contains(sendfilename))
+                {
+                    return 4;
+                }
+            }
+        }
+
+        if (sysconfigpath.sitehostinfos[host_index].alias_domain.size() > 0)
+        {
+            auto iter1 = _co_domain_regmethod_table.find(sysconfigpath.sitehostinfos[host_index].alias_domain);
+            if (iter1 != _co_domain_regmethod_table.end())
+            {
+                if (iter1->second.contains(sendfilename))
+                {
+                    return 40;
+                }
+            }
+        }
+        else
+        {
+            auto iter1 = _co_domain_regmethod_table.find(sysconfigpath.sitehostinfos[host_index].mainhost);
+            if (iter1 != _co_domain_regmethod_table.end())
+            {
+                if (iter1->second.contains(sendfilename))
+                {
+                    return 40;
+                }
+            }
+        }
+
+        if (_http_regmethod_table.contains(sendfilename))
+        {
+            return 4;
+        }
+        else if (_co_http_regmethod_table.contains(sendfilename))
+        {
+            return 40;
+        }
     }
     if (sendfilename.size() == 0)
     {
         return 0;
     }
-    remove_dot_path(sendfilename);
-
     unsigned char temp = 0;
     if (_http_regmethod_table.contains(sendfilename) || _co_http_regmethod_table.contains(sendfilename))
     {
@@ -826,40 +847,41 @@ unsigned char httppeer::has_urlfileext()
         //maybe let urlpath functions read index.html filetime
         if (pathinfos.size() == 5)
         {
-            serverconfig &sysconfigpath = getserversysconfig();
             if (sysconfigpath.siteusehtmlchache)
             {
                 memset(&fileinfo, 0, sizeof(fileinfo));
+                std::string tempfilecheck;
                 if (sitepath.size() > 0 && sitepath.back() == '/')
                 {
-                    sendfilename = sitepath + "/" + sendfilename;
+                    tempfilecheck = sitepath + "/" + sendfilename;
                 }
                 else
                 {
                     if (sysconfigpath.wwwpath.size() > 0 && sitepath.size() > 0 && sitepath.back() == '/')
                     {
-                        sendfilename = sysconfigpath.wwwpath + sendfilename;
+                        tempfilecheck = sysconfigpath.wwwpath + sendfilename;
                     }
                     else
                     {
-                        sendfilename = sysconfigpath.wwwpath + "/" + sendfilename;
+                        tempfilecheck = sysconfigpath.wwwpath + "/" + sendfilename;
                     }
                 }
 
-                if (sendfilename.size() > 0 && sendfilename.back() != '/')
+                if (tempfilecheck.size() > 0 && tempfilecheck.back() != '/')
                 {
-                    sendfilename.push_back('/');
+                    tempfilecheck.push_back('/');
                 }
-                sendfilename.append(sysconfigpath.map_value["default"]["index"]);
+                tempfilecheck.append(sysconfigpath.map_value["default"]["index"]);
 
-                if (stat(sendfilename.c_str(), &fileinfo) == 0)
+                if (stat(tempfilecheck.c_str(), &fileinfo) == 0)
                 {
                     if (fileinfo.st_mode & S_IFREG)
                     {
                         if (sysconfigpath.siteusehtmlchachetime > 10 &&
                             sysconfigpath.siteusehtmlchachetime > (timeid() - (unsigned long)fileinfo.st_mtime))
                         {
-                            temp = 5;
+                            temp         = 5;
+                            sendfilename = tempfilecheck;
                         }
                     }
                 }
@@ -888,7 +910,6 @@ unsigned char httppeer::get_fileinfo()
         }
         sendfilename.append(pathinfos[i]);
     }
-    remove_dot_path(sendfilename);
 
     memset(&fileinfo, 0, sizeof(fileinfo));
     sendfiletype = 0;
@@ -1966,7 +1987,7 @@ std::string httppeer::make_http2_data(unsigned int sid, std::string_view payload
 
     // payload length (3 bytes, big-endian)
     unsigned int len = payload.size();
-    frame[2] = len & 0xFF;
+    frame[2]         = len & 0xFF;
     len >>= 8;
     frame[1] = len & 0xFF;
     len >>= 8;
@@ -1980,7 +2001,7 @@ std::string httppeer::make_http2_data(unsigned int sid, std::string_view payload
 
     // stream_id (4 bytes, big-endian)
     unsigned int sid_temp = sid;
-    frame[8] = sid_temp & 0xFF;
+    frame[8]              = sid_temp & 0xFF;
     sid_temp >>= 8;
     frame[7] = sid_temp & 0xFF;
     sid_temp >>= 8;
@@ -1990,6 +2011,296 @@ std::string httppeer::make_http2_data(unsigned int sid, std::string_view payload
 
     frame.append(payload);
     return frame;
+}
+
+// ---------------- 常规发送（Content-Length） ----------------
+void httppeer::send_make_header()
+{
+    status(200);
+    if (!isset_type())
+    {
+        type("application/octet-stream");
+    }
+    set_header("Cache-Control", "no-cache");
+    set_header("Date", get_gmttime());
+
+    std::string header_str;
+    if (httpv == 2)
+    {
+        header_str = make_http2_header(0);
+    }
+    else
+    {
+        header_str = make_http1_header();
+        header_str.append("\r\n");
+    }
+
+    if (socket_session)
+    {
+        socket_session->send_writer(header_str);
+    }
+}
+
+void httppeer::send_make_body(std::string_view data)
+{
+    if (httpv == 2)
+    {
+        std::string frame = make_http2_data(stream_id, data, false);
+        if (socket_session)
+        {
+            socket_session->send_writer(frame);
+        }
+    }
+    else
+    {
+        if (socket_session)
+        {
+            socket_session->send_writer(data);
+        }
+    }
+}
+
+void httppeer::send_make_end()
+{
+    if (httpv == 2)
+    {
+        std::string frame = make_http2_data(stream_id, "", true);
+        if (socket_session)
+        {
+            socket_session->send_writer(frame);
+        }
+    }
+    // HTTP/1.1: Content-Length 模式下，浏览器按长度读取完毕自动结束，无需额外操作
+    // 发完后置 ischunked = true，让 server.cpp 那边直接返回
+    ischunked = true;
+}
+
+asio::awaitable<void> httppeer::async_send_make_header()
+{
+    status(200);
+    if (!isset_type())
+    {
+        type("application/octet-stream");
+    }
+    set_header("Cache-Control", "no-cache");
+    set_header("Date", get_gmttime());
+
+    std::string header_str;
+    if (httpv == 2)
+    {
+        header_str = make_http2_header(0);
+    }
+    else
+    {
+        header_str = make_http1_header();
+        header_str.append("\r\n");
+    }
+
+    if (socket_session)
+    {
+        co_await socket_session->async_send_writer(header_str);
+    }
+    co_return;
+}
+
+asio::awaitable<void> httppeer::async_send_make_body(std::string_view data)
+{
+    if (httpv == 2)
+    {
+        std::string frame = make_http2_data(stream_id, data, false);
+        if (socket_session)
+        {
+            co_await socket_session->async_send_writer(frame);
+        }
+    }
+    else
+    {
+        if (socket_session)
+        {
+            co_await socket_session->async_send_writer(data);
+        }
+    }
+    co_return;
+}
+
+asio::awaitable<void> httppeer::async_send_make_end()
+{
+    if (httpv == 2)
+    {
+        std::string frame = make_http2_data(stream_id, "", true);
+        if (socket_session)
+        {
+            co_await socket_session->async_send_writer(frame);
+        }
+    }
+    ischunked = true;
+    co_return;
+}
+
+// ---------------- 流式发送（chunked transfer） ----------------
+void httppeer::send_chunk_header()
+{
+    status(200);
+    if (!isset_type())
+    {
+        type("application/octet-stream");
+    }
+    set_header("Cache-Control", "no-cache");
+    set_header("Date", get_gmttime());
+    ischunked = true;
+
+    std::string header_str;
+    if (httpv == 2)
+    {
+        header_str = make_http2_header(0);
+    }
+    else
+    {
+        header_str = make_http1_header();
+        header_str.append("\r\n");
+    }
+
+    if (socket_session)
+    {
+        socket_session->send_writer(header_str);
+    }
+    ischunked = false;
+}
+
+void httppeer::send_chunk_body(std::string_view data)
+{
+    if (data.empty())
+    {
+        return;
+    }
+    if (httpv == 2)
+    {
+        std::string frame = make_http2_data(stream_id, data, false);
+        if (socket_session)
+        {
+            socket_session->send_writer(frame);
+        }
+    }
+    else
+    {
+        std::string chunk;
+        chunk.reserve(data.size() + 16);
+        std::ostringstream ss;
+        ss << std::hex << data.size();
+        chunk.append(ss.str());
+        chunk.append("\r\n");
+        chunk.append(data);
+        chunk.append("\r\n");
+
+        if (socket_session)
+        {
+            socket_session->send_writer(chunk);
+        }
+    }
+}
+
+void httppeer::send_chunk_end()
+{
+    if (httpv == 2)
+    {
+        std::string frame = make_http2_data(stream_id, "", true);
+        if (socket_session)
+        {
+            socket_session->send_writer(frame);
+        }
+    }
+    else
+    {
+        if (socket_session)
+        {
+            socket_session->send_writer(std::string_view("0\r\n\r\n"));
+        }
+    }
+    ischunked = true;
+}
+
+asio::awaitable<void> httppeer::async_send_chunk_header()
+{
+    status(200);
+    if (!isset_type())
+    {
+        type("application/octet-stream");
+    }
+    set_header("Cache-Control", "no-cache");
+    set_header("Date", get_gmttime());
+    ischunked = true;
+
+    std::string header_str;
+    if (httpv == 2)
+    {
+        header_str = make_http2_header(0);
+    }
+    else
+    {
+        header_str = make_http1_header();
+        header_str.append("\r\n");
+    }
+
+    if (socket_session)
+    {
+        co_await socket_session->async_send_writer(header_str);
+    }
+    ischunked = false;
+    co_return;
+}
+
+asio::awaitable<void> httppeer::async_send_chunk_body(std::string_view data)
+{
+    if (data.empty())
+    {
+        co_return;
+    }
+    if (httpv == 2)
+    {
+        std::string frame = make_http2_data(stream_id, data, false);
+        if (socket_session)
+        {
+            co_await socket_session->async_send_writer(frame);
+        }
+    }
+    else
+    {
+        std::string chunk;
+        chunk.reserve(data.size() + 16);
+        std::ostringstream ss;
+        ss << std::hex << data.size();
+        chunk.append(ss.str());
+        chunk.append("\r\n");
+        chunk.append(data);
+        chunk.append("\r\n");
+
+        if (socket_session)
+        {
+            co_await socket_session->async_send_writer(chunk);
+        }
+    }
+    co_return;
+}
+
+asio::awaitable<void> httppeer::async_send_chunk_end()
+{
+    if (httpv == 2)
+    {
+        std::string frame = make_http2_data(stream_id, "", true);
+        if (socket_session)
+        {
+            co_await socket_session->async_send_writer(frame);
+        }
+    }
+    else
+    {
+        if (socket_session)
+        {
+            co_await socket_session->async_send_writer(std::string_view("0\r\n\r\n"));
+        }
+    }
+    ischunked = true;
+    co_return;
 }
 
 asio::awaitable<void> httppeer::async_make_sse_header()
@@ -2159,7 +2470,7 @@ void httppeer::make_sse_end()
     {
         if (socket_session)
         {
-            socket_session->send_writer("0\r\n\r\n");
+            socket_session->send_writer(std::string_view("0\r\n\r\n"));
         }
     }
 }
