@@ -38,6 +38,12 @@ public:
     // 解压指定文件到指定目录
     bool extract_file(const std::string& filename, const std::string& output_dir = ".");
 
+    // 读取 ZIP 中指定文件到字符串（适合小文本文件如 XML）
+    bool read_file_to_string(const std::string& filename, std::string& out);
+
+    // 读取 ZIP 中指定文件到二进制向量（适合图片等二进制文件）
+    bool read_file_to_vector(const std::string& filename, std::vector<unsigned char>& out);
+
     // ==================== 创建 ZIP ====================
 
     // 创建一个新的 ZIP 文件用于写入
@@ -48,6 +54,12 @@ public:
     // streaming: true=流式压缩（大数据用），false=内存压缩（小文件默认）
     bool add_file(const std::string& filepath, const std::string& stored_name = "",
                   bool streaming = false);
+
+    // 向 ZIP 中添加一个内存文件（从字符串，适合 XML 等文本）
+    bool add_file_from_string(const std::string& zip_name, const std::string& content);
+
+    // 向 ZIP 中添加一个内存文件（从二进制数据，适合图片）
+    bool add_file_from_memory(const std::string& zip_name, const char* data, size_t len);
 
     // 关闭当前打开的 ZIP 文件
     void close();

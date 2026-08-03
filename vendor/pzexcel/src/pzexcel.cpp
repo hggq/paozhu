@@ -10,8 +10,7 @@
 #include <vector>
 #include <map>
 
-#include "minizip/zip.h"
-#include "minizip/unzip.h"
+#include "pzzip.h"
 #include "pzexcel.h"
 
 namespace pz
@@ -159,99 +158,44 @@ bool excel::read(const std::string &zipfilename)
 {
     clear();
     error_msg.clear();
-    unzFile uf = unzOpen(zipfilename.c_str());
-    if (uf == NULL)
+
+    pz::zip zf;
+    if (!zf.open_zipfile(zipfilename))
     {
         error_msg = "Error: Unable to open zip file ";
         error_msg.append(zipfilename);
         return false;
     }
 
-    unz_global_info globalInfo;
-    if (unzGetGlobalInfo(uf, &globalInfo) != UNZ_OK)
-    {
-        error_msg = "Error: Unable to get global info for ";
-        error_msg.append(zipfilename);
-        unzClose(uf);
-        return false;
-    }
-
-    if (unzGoToFirstFile(uf) != UNZ_OK)
-    {
-        error_msg = "Error: Unable to go to first file in ";
-        error_msg.append(zipfilename);
-        unzClose(uf);
-        return false;
-    }
+    std::vector<std::string> file_list = zf.files_list();
 
     std::string tempname;
     std::string file_content;
     size_t zip_entry_count = 0;
     size_t total_unzip_size = 0;
 
-    do
+    for (const auto &tempname : file_list)
     {
-        if (zip_entry_count >= MAX_ZIP_ENTRIES)
-        {
-            break;
-        }
+        if (zip_entry_count >= MAX_ZIP_ENTRIES) break;
         zip_entry_count++;
 
-        tempname.clear();
-        char buffer[4096];
-        unz_file_info fileInfo;
-        if (unzGetCurrentFileInfo(uf, &fileInfo, buffer, sizeof(buffer), NULL, 0, NULL, 0) != UNZ_OK)
-        {
-            error_msg = "Error: Unable to get current file info in  ";
-            error_msg.append(zipfilename);
-            break;
-        }
-        // minizip only NUL-terminates when size_filename < buffer size; use the
-        // reported length (clamped) to avoid reading past the buffer.
-        size_t name_len = fileInfo.size_filename;
-        if (name_len >= sizeof(buffer))
-            name_len = sizeof(buffer) - 1;
-        tempname.append(buffer, name_len);
+        if (!is_safe_zip_path(tempname)) continue;
 
-        if (!is_safe_zip_path(tempname))
-        {
-            unzCloseCurrentFile(uf);
+        if (!zf.read_file_to_string(tempname, file_content)) {
             continue;
         }
 
-        if (unzOpenCurrentFile(uf) != UNZ_OK)
+        if (file_content.size() > MAX_FILE_SIZE)
         {
-            error_msg = "Error: Unable to open current file in ";
-            error_msg.append(zipfilename);
-            break;
+            error_msg = "Error: File size exceeds maximum limit";
+            return false;
         }
-
-        int bytesRead;
-        file_content.clear();
-        do
+        if (total_unzip_size + file_content.size() > MAX_TOTAL_UNZIP_SIZE)
         {
-            bytesRead = unzReadCurrentFile(uf, buffer, sizeof(buffer));
-            if (bytesRead > 0)
-            {
-                if (file_content.size() + bytesRead > MAX_FILE_SIZE)
-                {
-                    error_msg = "Error: File size exceeds maximum limit";
-                    unzCloseCurrentFile(uf);
-                    unzClose(uf);
-                    return false;
-                }
-                if (total_unzip_size + bytesRead > MAX_TOTAL_UNZIP_SIZE)
-                {
-                    error_msg = "Error: Total decompressed size exceeds limit";
-                    unzCloseCurrentFile(uf);
-                    unzClose(uf);
-                    return false;
-                }
-                total_unzip_size += bytesRead;
-                file_content.append(buffer, bytesRead);
-            }
-        } while (bytesRead > 0);
-        unzCloseCurrentFile(uf);
+            error_msg = "Error: Total decompressed size exceeds limit";
+            return false;
+        }
+        total_unzip_size += file_content.size();
 
         if (tempname == "xl/sharedStrings.xml")
         {
@@ -273,10 +217,9 @@ bool excel::read(const std::string &zipfilename)
         {
             process_styles(tempname, file_content);
         }
+    }
 
-    } while (unzGoToNextFile(uf) == UNZ_OK);
-
-    unzClose(uf);
+    zf.close();
     return true;
 }
 void excel::process_styles([[maybe_unused]] const std::string &filename, const std::string &file_content)
@@ -2455,22 +2398,6 @@ static std::string gen_theme_xml()
            "</a:theme>";
 }
 
-static bool zip_add_file(zipFile zf, const char *filename, const std::string &content)
-{
-    zip_fileinfo fileInfo = {};
-    if (zipOpenNewFileInZip(zf, filename, &fileInfo, NULL, 0, NULL, 0, NULL, Z_DEFLATED, Z_DEFAULT_COMPRESSION) != Z_OK)
-    {
-        return false;
-    }
-    if (zipWriteInFileInZip(zf, content.c_str(), content.size()) != Z_OK)
-    {
-        zipCloseFileInZip(zf);
-        return false;
-    }
-    zipCloseFileInZip(zf);
-    return true;
-}
-
 bool excel::write(const std::string &zipfilename)
 {
     error_msg.clear();
@@ -2485,8 +2412,8 @@ bool excel::write(const std::string &zipfilename)
 
     ensure_default_style(fonts, bgcolors, borders, styles, defaults_ready);
 
-    zipFile zf = zipOpen(zipfilename.c_str(), APPEND_STATUS_CREATE);
-    if (zf == NULL)
+    pz::zip zf;
+    if (!zf.create_zipfile(zipfilename))
     {
         error_msg = "Error: Unable to create zip file " + zipfilename;
         return false;
@@ -2494,66 +2421,56 @@ bool excel::write(const std::string &zipfilename)
 
     unsigned int sheet_count = sheets.size();
 
-    if (!zip_add_file(zf, "[Content_Types].xml", gen_content_types_xml(sheet_count)))
+    auto add_entry = [&](const std::string& name, const std::string& content) -> bool {
+        if (!zf.add_file_from_string(name, content)) {
+            error_msg = "Error: Failed to add " + name + ": " + zf.error_msg();
+            return false;
+        }
+        return true;
+    };
+
+    if (!add_entry("[Content_Types].xml", gen_content_types_xml(sheet_count)))
     {
-        error_msg = "Error: Failed to add [Content_Types].xml";
-        zipClose(zf, NULL);
         return false;
     }
 
-    if (!zip_add_file(zf, "_rels/.rels", gen_rels_xml()))
+    if (!add_entry("_rels/.rels", gen_rels_xml()))
     {
-        error_msg = "Error: Failed to add _rels/.rels";
-        zipClose(zf, NULL);
         return false;
     }
 
-    if (!zip_add_file(zf, "docProps/core.xml", gen_core_xml()))
+    if (!add_entry("docProps/core.xml", gen_core_xml()))
     {
-        error_msg = "Error: Failed to add docProps/core.xml";
-        zipClose(zf, NULL);
         return false;
     }
 
-    if (!zip_add_file(zf, "docProps/app.xml", gen_app_xml(sheets)))
+    if (!add_entry("docProps/app.xml", gen_app_xml(sheets)))
     {
-        error_msg = "Error: Failed to add docProps/app.xml";
-        zipClose(zf, NULL);
         return false;
     }
 
-    if (!zip_add_file(zf, "xl/workbook.xml", gen_workbook_xml(sheets)))
+    if (!add_entry("xl/workbook.xml", gen_workbook_xml(sheets)))
     {
-        error_msg = "Error: Failed to add xl/workbook.xml";
-        zipClose(zf, NULL);
         return false;
     }
 
-    if (!zip_add_file(zf, "xl/_rels/workbook.xml.rels", gen_workbook_rels_xml(sheets)))
+    if (!add_entry("xl/_rels/workbook.xml.rels", gen_workbook_rels_xml(sheets)))
     {
-        error_msg = "Error: Failed to add xl/_rels/workbook.xml.rels";
-        zipClose(zf, NULL);
         return false;
     }
 
-    if (!zip_add_file(zf, "xl/sharedStrings.xml", gen_shared_strings_xml(shared_strings)))
+    if (!add_entry("xl/sharedStrings.xml", gen_shared_strings_xml(shared_strings)))
     {
-        error_msg = "Error: Failed to add xl/sharedStrings.xml";
-        zipClose(zf, NULL);
         return false;
     }
 
-    if (!zip_add_file(zf, "xl/styles.xml", gen_styles_xml(numfmts, fonts, bgcolors, borders, styles)))
+    if (!add_entry("xl/styles.xml", gen_styles_xml(numfmts, fonts, bgcolors, borders, styles)))
     {
-        error_msg = "Error: Failed to add xl/styles.xml";
-        zipClose(zf, NULL);
         return false;
     }
 
-    if (!zip_add_file(zf, "xl/theme/theme1.xml", gen_theme_xml()))
+    if (!add_entry("xl/theme/theme1.xml", gen_theme_xml()))
     {
-        error_msg = "Error: Failed to add xl/theme/theme1.xml";
-        zipClose(zf, NULL);
         return false;
     }
 
@@ -2561,15 +2478,13 @@ bool excel::write(const std::string &zipfilename)
     {
         unsigned int sid = (sheets[i].sheet_index > 0) ? sheets[i].sheet_index : (i + 1);
         std::string sheet_path = "xl/worksheets/sheet" + std::to_string(sid) + ".xml";
-        if (!zip_add_file(zf, sheet_path.c_str(), gen_sheet_xml(sheets[i], shared_strings, styles)))
+        if (!add_entry(sheet_path, gen_sheet_xml(sheets[i], shared_strings, styles)))
         {
-            error_msg = "Error: Failed to add " + sheet_path;
-            zipClose(zf, NULL);
             return false;
         }
     }
 
-    zipClose(zf, NULL);
+    zf.close();
     return true;
 }
 

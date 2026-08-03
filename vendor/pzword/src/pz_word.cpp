@@ -1,13 +1,14 @@
 #include <cstdlib>
 #include <cstdint>
+#include <cstring>
 #include <filesystem>
 #include <string>
 #include <iostream>
 #include <vector>
 #include <map>
 #include <fstream>
-#include "minizip/zip.h"
-#include "minizip/unzip.h"
+#include <algorithm>
+#include "pzzip.h"
 #include "pz_word.h"
 
 namespace pz
@@ -412,7 +413,7 @@ void word::parse_body(const std::string &content, size_t begin, size_t end, int 
         {
             WORD_PARAGRAPH para;
             parse_paragraph(content, tag.body_start, tag.body_end, para);
-            if(!para.runs.empty())
+            if(!para.runs.empty() || !para.images.empty())
             {
                 WORD_CONTENT c;
                 c.type = WORD_CONTENT_TYPE::PARAGRAPH;
@@ -568,7 +569,7 @@ void word::parse_run_properties(const std::string &content, size_t begin, size_t
     }
 }
 
-// 解析 run：文本、制表符、换行
+// 解析 run：文本、制表符、换行、图片
 void word::parse_run(const std::string &content, size_t begin, size_t end, WORD_PARAGRAPH &para, WORD_RUN &default_run)
 {
     WORD_RUN run = default_run;  // 继承段落默认格式
@@ -592,6 +593,40 @@ void word::parse_run(const std::string &content, size_t begin, size_t end, WORD_
         else if(tag.name == "w:br" || tag.name == "w:cr")
         {
             run.text.push_back('\n');
+        }
+        else if(tag.name == "w:drawing")
+        {
+            // 解析图片：找 a:blip 的 r:embed，获取图片关系 ID
+            std::string rid = parse_drawing_rid(content, tag.body_start, tag.body_end);
+            if(!rid.empty())
+            {
+                WORD_IMAGE img;
+                img.path = rid;  // 临时存储 rId，后续 to_html 时解析
+                // 获取图片尺寸（EMU）
+                XML_TAG sub;
+                size_t si2 = tag.body_start;
+                while(next_element(content, si2, tag.body_end, sub))
+                {
+                    si2 = sub.next;
+                    if(sub.name == "wp:inline" || sub.name == "wp:anchor")
+                    {
+                        XML_TAG ext;
+                        size_t si3 = sub.body_start;
+                        while(next_element(content, si3, sub.body_end, ext))
+                        {
+                            si3 = ext.next;
+                            if(ext.name == "wp:extent")
+                            {
+                                std::string cx = get_tag_attr(content, ext, "cx");
+                                std::string cy = get_tag_attr(content, ext, "cy");
+                                for(char c : cx) if(c >= '0' && c <= '9') img.width_emu = img.width_emu * 10 + (c - '0');
+                                for(char c : cy) if(c >= '0' && c <= '9') img.height_emu = img.height_emu * 10 + (c - '0');
+                            }
+                        }
+                    }
+                }
+                para.images.push_back(std::move(img));
+            }
         }
     }
     if(!run.text.empty())
@@ -686,6 +721,25 @@ void word::parse_table(const std::string &content, size_t begin, size_t end, WOR
                         }
                     }
                     if(!table.border_color.empty() && table.border_size == 0) table.border_size = 1;
+                }
+            }
+            continue;
+        }
+        if(tag.name == "w:tblGrid")
+        {
+            // 解析网格列宽（dxa 单位）
+            table.col_widths.clear();
+            XML_TAG gc;
+            size_t gi = tag.body_start;
+            while(next_element(content, gi, tag.body_end, gc))
+            {
+                gi = gc.next;
+                if(gc.name == "w:gridCol")
+                {
+                    std::string wval = get_tag_attr(content, gc, "w:w");
+                    unsigned int w = 0;
+                    for(char c : wval) if(c >= '0' && c <= '9') w = w * 10 + (c - '0');
+                    table.col_widths.push_back(w);
                 }
             }
             continue;
@@ -872,6 +926,37 @@ void word::parse_table_cell(const std::string &content, size_t begin, size_t end
                     }
                 }
             }
+            // 收集单元格段落中的图片（即使段落没有文本也要收集）
+            if(!para.images.empty())
+            {
+                for(auto &img : para.images)
+                {
+                    cell.images.push_back(std::move(img));
+                }
+            }
+        }
+        else if(tag.name == "w:r")
+        {
+            // 直接位于 tc 内的 w:r（不包含在 w:p 中），处理其中的图片
+            WORD_PARAGRAPH dummy_para;
+            WORD_RUN default_run;
+            parse_run(content, tag.body_start, tag.body_end, dummy_para, default_run);
+            // parse_run 将 drawing 添加到 dummy_para.images，
+            // 也可能产生文本 run 添加到 dummy_para.runs
+            if(!dummy_para.images.empty())
+            {
+                for(auto &img : dummy_para.images)
+                {
+                    cell.images.push_back(std::move(img));
+                }
+            }
+            if(!dummy_para.runs.empty())
+            {
+                for(const auto &run : dummy_para.runs)
+                {
+                    cell.text += run.text;
+                }
+            }
         }
     }
 }
@@ -880,101 +965,93 @@ bool word::read(const std::string &zipfilename)
 {
     clear();
     error_msg.clear();
-    
-    unzFile uf = unzOpen(zipfilename.c_str());
-    if (uf == NULL) {
+
+    pz::zip zf;
+    if (!zf.open_zipfile(zipfilename)) {
         error_msg = "Error: Unable to open zip file ";
         error_msg.append(zipfilename);
         return false;
     }
-    
-    unz_global_info globalInfo;
-    if (unzGetGlobalInfo(uf, &globalInfo) != UNZ_OK) {
-        error_msg = "Error: Unable to get global info for ";
-        error_msg.append(zipfilename);
-        unzClose(uf);
-        return false;
-    }
-    
-    if (unzGoToFirstFile(uf) != UNZ_OK) {
-        error_msg = "Error: Unable to go to first file in ";
-        error_msg.append(zipfilename);
-        unzClose(uf);
-        return false;
-    }
-    
-    std::string tempname;
+
+    std::vector<std::string> file_list = zf.files_list();
+
     std::string file_content;
     std::string document_xml;
     std::string styles_xml;
+    std::string rels_xml;
+    std::map<std::string, std::vector<unsigned char>> image_datas;
     size_t zip_entry_count = 0;
-    
-    do {
-        if(zip_entry_count >= MAX_ZIP_ENTRIES)
-        {
-            break;
-        }
-        zip_entry_count++;
-        
-        tempname.clear();
-        char buffer[4096];
-        unz_file_info fileInfo;
-        if (unzGetCurrentFileInfo(uf, &fileInfo, buffer, sizeof(buffer), NULL, 0, NULL, 0) != UNZ_OK) {
-            error_msg = "Error: Unable to get current file info in ";
-            error_msg.append(zipfilename);
-            break;
-        }
-        // 注意：文件名长度 >= 缓冲区时 minizip 不会写 '\0' 终止符，
-        // 必须按 size_filename 截取，不能当 C 字符串用（否则越界读）
-        size_t name_len = fileInfo.size_filename;
-        if(name_len > sizeof(buffer)) name_len = sizeof(buffer);
-        tempname.assign(buffer, name_len);
-        
-        if(!is_safe_zip_path(tempname))
-        {
-            unzCloseCurrentFile(uf);
-            continue;
-        }
-        
-        if (unzOpenCurrentFile(uf) != UNZ_OK) {
-            error_msg = "Error: Unable to open current file in ";
-            error_msg.append(zipfilename);
-            break;
-        }
-        
-        int bytesRead;
-        file_content.clear();
-        do {
-            bytesRead = unzReadCurrentFile(uf, buffer, sizeof(buffer));
-            if (bytesRead > 0) {
-                if(file_content.size() + bytesRead > MAX_FILE_SIZE)
-                {
-                    error_msg = "Error: File size exceeds maximum limit";
-                    unzCloseCurrentFile(uf);
-                    unzClose(uf);
-                    return false;
-                }
-                file_content.append(buffer, bytesRead);
-            }
-        } while (bytesRead > 0);
-        unzCloseCurrentFile(uf);
-        
-        if(tempname == "word/document.xml")
-        {
-            document_xml = std::move(file_content);
-            file_content.clear();
-        }
-        else if(tempname == "word/styles.xml")
-        {
-            styles_xml = std::move(file_content);
-            file_content.clear();
-        }
-        
-    } while (unzGoToNextFile(uf) == UNZ_OK);
-    
-    unzClose(uf);
 
-    // 先解析表格样式再解析正文（zip 里条目顺序不定，不能依赖出现顺序）
+    for (const auto &tempname : file_list) {
+        if (zip_entry_count >= MAX_ZIP_ENTRIES) break;
+        zip_entry_count++;
+
+        if (!is_safe_zip_path(tempname)) continue;
+
+        if (tempname == "word/document.xml") {
+            if (!zf.read_file_to_string(tempname, document_xml)) {
+                error_msg = "Error: Failed to read word/document.xml: " + zf.error_msg();
+                return false;
+            }
+        }
+        else if (tempname == "word/styles.xml") {
+            if (!zf.read_file_to_string(tempname, styles_xml)) {
+                error_msg = "Error: Failed to read word/styles.xml: " + zf.error_msg();
+                return false;
+            }
+        }
+        else if (tempname == "word/_rels/document.xml.rels") {
+            if (!zf.read_file_to_string(tempname, rels_xml)) {
+                error_msg = "Error: Failed to read rels: " + zf.error_msg();
+                return false;
+            }
+        }
+        else if (tempname.size() > 10 && tempname.compare(0, 10, "word/media") == 0) {
+            std::vector<unsigned char> img_data;
+            if (zf.read_file_to_vector(tempname, img_data)) {
+                image_datas[tempname] = std::move(img_data);
+            }
+        }
+    }
+
+    zf.close();
+
+    image_rels_.clear();
+    image_datas_.clear();
+    if(!rels_xml.empty())
+    {
+        XML_TAG rels_root;
+        size_t si = 0;
+        bool found_rels = false;
+        while(next_element(rels_xml, si, rels_xml.size(), rels_root))
+        {
+            si = rels_root.next;
+            if(rels_root.name == "Relationships")
+            {
+                found_rels = true;
+                break;
+            }
+        }
+        if(found_rels)
+        {
+            XML_TAG rel;
+            si = rels_root.body_start;
+            while(next_element(rels_xml, si, rels_root.body_end, rel))
+            {
+                si = rel.next;
+                if(rel.name != "Relationship") continue;
+                std::string type = get_tag_attr(rels_xml, rel, "Type");
+                if(type.find("/image") == std::string::npos) continue;
+                std::string rId = get_tag_attr(rels_xml, rel, "Id");
+                std::string target = get_tag_attr(rels_xml, rel, "Target");
+                if(rId.empty() || target.empty()) continue;
+                std::string full_target = "word/" + target;
+                image_rels_[rId] = full_target;
+            }
+        }
+    }
+    image_datas_ = std::move(image_datas);
+
     if(!styles_xml.empty()) parse_styles(styles_xml);
     if(!document_xml.empty()) process_document(document_xml);
     return true;
@@ -1036,6 +1113,162 @@ bool word::read_from_unzipped(const std::string &base_path)
     return true;
 }
 
+// ---- 图片辅助函数 ------------------------------------------------------
+// 解析 w:drawing 元素中的 r:embed 属性，返回关系 ID（如 "rId5"）
+std::string word::parse_drawing_rid(const std::string &content, size_t begin, size_t end) const
+{
+    const char *pos = content.data() + begin;
+    const char *endp = content.data() + end;
+    
+    // 找 a:blip 的 r:embed="xxx"
+    const char blip_tag[] = "a:blip";
+    const char embed_attr[] = "r:embed=\"";
+    const char *blip = std::search(pos, endp, blip_tag, blip_tag + (sizeof(blip_tag) - 1));
+    if(blip >= endp) return "";
+    
+    const char *rid = std::search(blip, endp, embed_attr, embed_attr + (sizeof(embed_attr) - 1));
+    if(rid >= endp) return "";
+    
+    std::string result;
+    const char *p = rid + 9;
+    while(p < endp && *p != '"' && *p != '\'')
+    {
+        result += *p;
+        p++;
+    }
+    return result;
+}
+
+// 通过 rId 获取图片二进制数据和扩展名
+bool word::get_image_by_rid(const std::string &rId, std::vector<unsigned char> &out, std::string &ext) const
+{
+    auto it = image_rels_.find(rId);
+    if(it == image_rels_.end()) return false;
+    
+    auto dit = image_datas_.find(it->second);
+    if(dit == image_datas_.end()) return false;
+    
+    out = dit->second;
+    // 从路径中提取扩展名
+    const std::string &target = it->second;
+    size_t dot = target.rfind('.');
+    if(dot != std::string::npos) ext = target.substr(dot + 1);
+    return true;
+}
+
+// base64 编码
+std::string word::base64_encode(const unsigned char *data, size_t len)
+{
+    static const char table[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    std::string result;
+    result.reserve(((len + 2) / 3) * 4);
+    for(size_t i = 0; i < len; i += 3)
+    {
+        unsigned char a = data[i];
+        unsigned char b = (i + 1 < len) ? data[i + 1] : 0;
+        unsigned char c = (i + 2 < len) ? data[i + 2] : 0;
+        result += table[a >> 2];
+        result += table[((a & 0x03) << 4) | (b >> 4)];
+        result += (i + 1 < len) ? table[((b & 0x0f) << 2) | (c >> 6)] : '=';
+        result += (i + 2 < len) ? table[c & 0x3f] : '=';
+    }
+    return result;
+}
+
+// base64 解码
+std::vector<unsigned char> word::base64_decode(const std::string &s)
+{
+    static const unsigned char inv[256] = {
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,62,0,0,0,63,52,53,54,55,56,57,58,59,60,61,0,0,0,0,0,0,
+        0,0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,0,0,0,0,0,
+        0,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+    };
+    std::vector<unsigned char> result;
+    result.reserve(s.size() * 3 / 4);
+    int val = 0, bits = -8;
+    for(char c : s)
+    {
+        if(c == '=') break;
+        unsigned char v = inv[(unsigned char)c];
+        if(v == 0 && c != 'A') continue;
+        val = (val << 6) | v;
+        bits += 6;
+        if(bits >= 0)
+        {
+            result.push_back((unsigned char)((val >> bits) & 0xff));
+            bits -= 8;
+        }
+    }
+    return result;
+}
+
+// 辅助：将图片列表导出 HTML <img> 标签
+static void append_images_html(std::string &html, const std::vector<WORD_IMAGE> &images,
+                                const std::map<std::string, std::string> &image_rels,
+                                const std::map<std::string, std::vector<unsigned char>> &image_datas,
+                                const std::string &output_dir, bool save_to_disk,
+                                int &img_counter)
+{
+    for(const auto &img : images)
+    {
+        img_counter++;
+        // 通过 rId 获取实际的图片数据和扩展名
+        const std::string &rId = img.path;  // parse_run 时我们暂时存了 rId
+        std::string ext;
+        
+        std::string img_tag = "<img src=\"";
+        
+        auto it = image_rels.find(rId);
+        if(it != image_rels.end())
+        {
+            auto dit = image_datas.find(it->second);
+            if(dit != image_datas.end())
+            {
+                const std::string &target = it->second;
+                size_t dot = target.rfind('.');
+                if(dot != std::string::npos) ext = target.substr(dot + 1);
+                
+                if(save_to_disk && !output_dir.empty())
+                {
+                    // 保存图片到磁盘
+                    std::string img_filename = "img_" + std::to_string(img_counter) + "." + ext;
+                    std::ofstream fout(output_dir + "/" + img_filename, std::ios::binary);
+                    if(fout)
+                    {
+                        fout.write(reinterpret_cast<const char*>(dit->second.data()), dit->second.size());
+                        fout.close();
+                    }
+                    img_tag += img_filename;
+                }
+                else
+                {
+                    // 使用 base64 data URI
+                    std::string mime = "image/" + ext;
+                    if(ext == "jpg") mime = "image/jpeg";
+                    img_tag += "data:" + mime + ";base64," + word::base64_encode(dit->second.data(), dit->second.size());
+                }
+                img_tag += "\"";
+                
+                // 添加尺寸
+                if(img.width_emu > 0 && img.height_emu > 0)
+                {
+                    int w_px = img.width_emu / 9525;  // EMU → px (1px = 9525 EMU)
+                    int h_px = img.height_emu / 9525;
+                    if(w_px > 0 && h_px > 0)
+                        img_tag += " width=\"" + std::to_string(w_px) + "\" height=\"" + std::to_string(h_px) + "\"";
+                }
+                img_tag += " />";
+                html += img_tag;
+            }
+        }
+    }
+}
+
 std::string word::to_html() const
 {
     std::string html;
@@ -1043,6 +1276,7 @@ std::string word::to_html() const
     
     html += "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n<title>Word Document</title>\n</head>\n<body>\n";
     
+    int img_counter = 0;
     for(const auto &content : contents)
     {
         if(content.type == WORD_CONTENT_TYPE::PARAGRAPH)
@@ -1110,6 +1344,9 @@ std::string word::to_html() const
                 }
             }
             
+            // 渲染段落中的图片
+            append_images_html(html, para.images, image_rels_, image_datas_, "", false, img_counter);
+            
             html += "</";
             html += tag_name;
             html += ">\n";
@@ -1149,6 +1386,10 @@ std::string word::to_html() const
                     std::string td_style;
                     if(!cell.bg_color.empty()) td_style += "background-color:#" + sanitize_token(cell.bg_color) + ";";
                     if(!cell.text_color.empty()) td_style += "color:#" + sanitize_token(cell.text_color) + ";";
+                    if(!cell.text_align.empty() && cell.text_align != "left")
+                        td_style += "text-align:" + cell.text_align + ";";
+                    if(!cell.vertical_align.empty() && cell.vertical_align != "top")
+                        td_style += "vertical-align:" + cell.vertical_align + ";";
                     if(cell.width > 0) td_style += "width:" + std::to_string(cell.width) + "px;";
                     if(cell.height > 0) td_style += "height:" + std::to_string(cell.height) + "px;";
                     if(cell.padding > 0) td_style += "padding:" + std::to_string(cell.padding) + "px;";
@@ -1161,6 +1402,8 @@ std::string word::to_html() const
 
                     html += ">";
                     html += html_escape(cell.text);
+                    // 渲染单元格中的图片
+                    append_images_html(html, cell.images, image_rels_, image_datas_, "", false, img_counter);
                     html += "</td>";
                 }
                 html += "</tr>\n";
@@ -1172,6 +1415,157 @@ std::string word::to_html() const
     
     html += "</body>\n</html>";
     
+    return html;
+}
+
+// 生成 HTML 并将图片保存到指定目录（图片以 img_1.png 等文件名保存，HTML 中使用相对路径）
+std::string word::to_html_with_images(const std::string &output_dir) const
+{
+    if(contents.empty())
+    {
+        return "<html><body></body></html>";
+    }
+    
+    // 确保输出目录存在（使用 std::filesystem 安全创建，避免命令注入）
+    if(!output_dir.empty())
+    {
+        try
+        {
+            std::filesystem::create_directories(output_dir);
+        }
+        catch(const std::filesystem::filesystem_error &)
+        {
+            // 目录创建失败，继续执行（后续写入图片时会失败）
+        }
+    }
+    
+    std::string html;
+    html += "<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n";
+    html += "<title>word to html file</title>\n</head>\n<body>\n";
+    
+    int img_counter = 0;
+    for(const auto &item : contents)
+    {
+        if(item.type == WORD_CONTENT_TYPE::PARAGRAPH)
+        {
+            WORD_PARAGRAPH para = item.paragraph;
+            
+            // 标题和列表标签
+            std::string tag_name = "p";
+            if(para.heading_level >= 1 && para.heading_level <= 6)
+            {
+                tag_name = "h" + std::to_string(para.heading_level);
+            }
+            
+            // 对齐
+            std::string align_attr;
+            if(!para.text_align.empty() && para.text_align != "left")
+            {
+                align_attr = " style=\"text-align:" + para.text_align + ";\"";
+            }
+            
+            html += "<" + tag_name + align_attr + ">";
+            
+            // 渲染 runs
+            for(const auto &run : para.runs)
+            {
+                std::string style;
+                if(run.bold) style += "font-weight:bold;";
+                if(run.italic) style += "font-style:italic;";
+                if(run.underline) style += "text-decoration:underline;";
+                if(run.font_size > 0) style += "font-size:" + std::to_string(run.font_size) + "px;";
+                if(!run.color.empty()) style += "color:#" + sanitize_token(run.color) + ";";
+                if(!run.highlight.empty()) style += "background-color:" + sanitize_token(run.highlight) + ";";
+                if(!run.font_name.empty()) style += "font-family:" + html_escape(run.font_name) + ";";
+                
+                if(!style.empty())
+                {
+                    html += "<span style=\"" + style + "\">" + html_escape(run.text) + "</span>";
+                }
+                else
+                {
+                    html += html_escape(run.text);
+                }
+            }
+            
+            // 渲染图片（保存到磁盘）
+            append_images_html(html, para.images, image_rels_, image_datas_, output_dir, true, img_counter);
+            
+            html += "</" + tag_name + ">\n";
+        }
+        else if(item.type == WORD_CONTENT_TYPE::TABLE)
+        {
+            const WORD_TABLE &table = item.table;
+            html += "<table style=\"border-collapse: collapse;";
+            if(table.width > 0) html += "width:" + std::to_string(table.width) + "px;";
+            if(table.border_size > 0)
+            {
+                html += "border:" + std::to_string(table.border_size) + "px solid ";
+                if(!table.border_color.empty())
+                    html += "#" + sanitize_token(table.border_color) + ";";
+                else
+                    html += "#000000;";
+            }
+            else
+            {
+                html += "border:1px solid #000000;";
+            }
+            html += "\">\n";
+            // 列宽信息：通过 colgroup 保留
+            if(!table.col_widths.empty() && table.col_widths.size() == table.cols)
+            {
+                html += "<colgroup>";
+                for(unsigned int c = 0; c < table.cols; c++)
+                {
+                    // dxa 转 px（1px ≈ 15dxa）
+                    unsigned int px = table.col_widths[c] / 15;
+                    if(px == 0) px = 1;
+                    html += "<col style=\"width:" + std::to_string(px) + "px;\">";
+                }
+                html += "</colgroup>\n";
+            }
+            for(const auto &row : table.rows)
+            {
+                html += "<tr>";
+                for(const auto &cell : row.cells)
+                {
+                    html += "<td";
+                    // rowspan/colspan
+                    if(cell.row_span > 1)
+                        html += " rowspan=\"" + std::to_string(cell.row_span) + "\"";
+                    if(cell.col_span > 1)
+                        html += " colspan=\"" + std::to_string(cell.col_span) + "\"";
+                    // style
+                    std::string td_style;
+                    if(!cell.bg_color.empty())
+                        td_style += "background-color:#" + sanitize_token(cell.bg_color) + ";";
+                    if(!cell.text_color.empty())
+                        td_style += "color:#" + sanitize_token(cell.text_color) + ";";
+                    if(!cell.text_align.empty() && cell.text_align != "left")
+                        td_style += "text-align:" + cell.text_align + ";";
+                    if(!cell.vertical_align.empty() && cell.vertical_align != "top")
+                        td_style += "vertical-align:" + cell.vertical_align + ";";
+                    if(cell.width > 0)
+                        td_style += "width:" + std::to_string(cell.width) + "px;";
+                    if(cell.height > 0)
+                        td_style += "height:" + std::to_string(cell.height) + "px;";
+                    if(cell.padding > 0)
+                        td_style += "padding:" + std::to_string(cell.padding) + "px;";
+                    if(!td_style.empty())
+                        html += " style=\"" + td_style + "\"";
+                    html += ">";
+                    html += html_escape(cell.text);
+                    // 渲染单元格中的图片
+                    append_images_html(html, cell.images, image_rels_, image_datas_, output_dir, true, img_counter);
+                    html += "</td>";
+                }
+                html += "</tr>\n";
+            }
+            html += "</table>\n";
+        }
+    }
+    
+    html += "</body>\n</html>";
     return html;
 }
 
@@ -1403,6 +1797,82 @@ void word::parse_html_cell_style(const std::string &style_str, WORD_TABLE_CELL &
         {
             cell.padding = parse_css_px(val);
         }
+        else if(prop == "text-align")
+        {
+            if(val == "justify")
+                cell.text_align = "both";
+            else if(val == "left" || val == "center" || val == "right")
+                cell.text_align = val;
+        }
+        else if(prop == "vertical-align")
+        {
+            if(val == "middle")
+                cell.vertical_align = "center";
+            else if(val == "top" || val == "bottom")
+                cell.vertical_align = val;
+        }
+    }
+}
+
+// 解析 CSS style 到 WORD_PARAGRAPH（text-align, line-height）
+void word::parse_html_paragraph_style(const std::string &style_str, WORD_PARAGRAPH &para) const
+{
+    std::map<std::string, std::string> props;
+    size_t pos = 0;
+    while(pos < style_str.size())
+    {
+        // 跳过空白
+        while(pos < style_str.size() && (style_str[pos] == ' ' || style_str[pos] == '\t' ||
+              style_str[pos] == '\r' || style_str[pos] == '\n'))
+            pos++;
+        if(pos >= style_str.size()) break;
+
+        size_t sep = style_str.find(':', pos);
+        if(sep == std::string::npos) break;
+        size_t sc = style_str.find(';', sep);
+        if(sc == std::string::npos) sc = style_str.size();
+
+        std::string prop = style_str.substr(pos, sep - pos);
+        std::string val  = style_str.substr(sep + 1, sc - sep - 1);
+
+        // trim
+        while(!prop.empty() && (prop.front() == ' ' || prop.front() == '\t'))
+            prop.erase(0, 1);
+        while(!prop.empty() && (prop.back() == ' ' || prop.back() == '\t' ||
+              prop.back() == '\r' || prop.back() == '\n'))
+            prop.pop_back();
+        while(!val.empty() && (val.front() == ' ' || val.front() == '\t'))
+            val.erase(0, 1);
+        while(!val.empty() && (val.back() == ' ' || val.back() == '\t' ||
+              val.back() == '\r' || val.back() == '\n'))
+            val.pop_back();
+
+        if(prop == "text-align")
+        {
+            // CSS "justify" 对应 OOXML "both"（两端对齐）
+            if(val == "justify")
+                para.text_align = "both";
+            else if(val == "left" || val == "center" || val == "right")
+                para.text_align = val;
+        }
+        else if(prop == "line-height")
+        {
+            // 单位处理：px → 数字；pt → px(×4/3) 近似；纯数字/百分比/em 忽略
+            if(!val.empty())
+            {
+                if(val.size() >= 2 && val.substr(val.size() - 2) == "px")
+                {
+                    para.line_height = (unsigned int)std::stoul(val.substr(0, val.size() - 2));
+                }
+                else if(val.size() >= 2 && val.substr(val.size() - 2) == "pt")
+                {
+                    // pt → px 近似（dpi 96）：1pt ≈ 4/3 px
+                    para.line_height = (unsigned int)(std::stod(val.substr(0, val.size() - 2)) * 4.0 / 3.0);
+                }
+            }
+        }
+
+        pos = sc > pos ? sc + 1 : style_str.size();
     }
 }
 
@@ -1704,7 +2174,7 @@ void word::parse_html_body(const std::string &content, size_t begin, size_t end)
            name == "p" || name == "div")
         {
             size_t closing = find_closing_tag(content, after, end, name);
-            parse_html_block(content, after, closing, name);
+            parse_html_block(content, after, closing, name, attrs);
             pos = closing;
         }
         else if(name == "table")
@@ -1729,7 +2199,7 @@ void word::parse_html_body(const std::string &content, size_t begin, size_t end)
 }
 
 // 解析块级元素（h1-h5, p, div）
-void word::parse_html_block(const std::string &content, size_t begin, size_t end, const std::string &tag_name)
+void word::parse_html_block(const std::string &content, size_t begin, size_t end, const std::string &tag_name, const std::string &attrs)
 {
     WORD_PARAGRAPH para;
 
@@ -1737,6 +2207,13 @@ void word::parse_html_block(const std::string &content, size_t begin, size_t end
     if(tag_name.size() == 2 && tag_name[0] == 'h' && tag_name[1] >= '1' && tag_name[1] <= '5')
     {
         para.heading_level = tag_name[1] - '0';
+    }
+
+    // 解析段落级 CSS 样式（text-align, line-height 等）
+    std::string block_style = get_html_attr(attrs, "style");
+    if(!block_style.empty())
+    {
+        parse_html_paragraph_style(block_style, para);
     }
 
     // run 从全局默认样式继承；标题的字号由 Heading 样式决定，不继承全局字号
@@ -1747,9 +2224,15 @@ void word::parse_html_block(const std::string &content, size_t begin, size_t end
         def.font_size = 0;
     }
 
+    // 块级 style 中也可能包含 run 级 CSS（如 font-size），应用到默认 run
+    if(!block_style.empty())
+    {
+        parse_html_style(block_style, def);
+    }
+
     parse_html_inline(content, begin, end, para, def);
 
-    if(!para.runs.empty())
+    if(!para.runs.empty() || !para.images.empty())
     {
         WORD_CONTENT c;
         c.type = WORD_CONTENT_TYPE::PARAGRAPH;
@@ -1846,6 +2329,18 @@ void word::parse_html_inline(const std::string &content, size_t begin, size_t en
             pos = after;
             continue;
         }
+        else if(name == "img")
+        {
+            std::string src = get_html_attr(attrs, "src");
+            if(!src.empty())
+            {
+                WORD_IMAGE img;
+                img.path = src;
+                para.images.push_back(std::move(img));
+            }
+            pos = after;
+            continue;
+        }
         else if(name == "br" || is_self)
         {
             current_run.text += '\n';
@@ -1932,6 +2427,55 @@ void word::parse_html_table(const std::string &content, size_t begin, size_t end
         }
     }
 
+    // 解析 colgroup → 恢复 col_widths（px → dxa）
+    {
+        size_t cg_pos = content.find("<colgroup", begin);
+        if(cg_pos != std::string::npos && cg_pos < end)
+        {
+            size_t cg_end = content.find("</colgroup>", cg_pos);
+            if(cg_end == std::string::npos || cg_end >= end)
+                cg_end = content.find(">", cg_pos);  // self-closing
+            if(cg_end != std::string::npos && cg_end < end)
+            {
+                table.col_widths.clear();
+                size_t cp = cg_pos + 9;
+                while(cp < cg_end)
+                {
+                    size_t col_lt = content.find("<col", cp);
+                    if(col_lt == std::string::npos || col_lt >= cg_end) break;
+                    size_t col_gt = content.find('>', col_lt);
+                    if(col_gt == std::string::npos || col_gt >= cg_end) break;
+                    std::string col_attrs = content.substr(col_lt + 4, col_gt - col_lt - 4);
+                    // 从 style="width:XXXpx" 提取宽度
+                    std::string cs = get_html_attr(col_attrs, "style");
+                    unsigned int w_px = 0;
+                    if(!cs.empty())
+                    {
+                        size_t wpos = cs.find("width:");
+                        if(wpos != std::string::npos)
+                        {
+                            wpos += 6;
+                            while(wpos < cs.size() && cs[wpos] == ' ') wpos++;
+                            unsigned int v = 0;
+                            while(wpos < cs.size() && cs[wpos] >= '0' && cs[wpos] <= '9')
+                                { v = v * 10 + (cs[wpos] - '0'); wpos++; }
+                            w_px = v;
+                        }
+                    }
+                    // 也支持 width="XXX" 属性
+                    if(w_px == 0)
+                    {
+                        std::string wa = get_html_attr(col_attrs, "width");
+                        w_px = parse_css_px(wa);
+                    }
+                    table.col_widths.push_back(w_px > 0 ? w_px * 15 : 0);
+                    cp = col_gt + 1;
+                }
+            }
+        }
+    }
+
+    std::vector<int> rowspan_remaining;  // [col] = 该列剩余需占位的行数（>=1 表示需填充占位格）
     size_t pos = begin;
     while(pos < end)
     {
@@ -1961,8 +2505,19 @@ void word::parse_html_table(const std::string &content, size_t begin, size_t end
             size_t tr_end = find_closing_tag(content, after, end, "tr");
             WORD_TABLE_ROW row;
             size_t tr_pos = after;
+            size_t col_idx = 0;  // 当前逻辑列索引
+
             while(tr_pos < tr_end)
             {
+                // 在当前 td 之前，先填入 rowspan 占位格（之前行的跨行续接）
+                while(col_idx < rowspan_remaining.size() && rowspan_remaining[col_idx] > 0)
+                {
+                    WORD_TABLE_CELL placeholder;
+                    placeholder.row_span = 0;  // 0 表示 vMerge 续接格
+                    row.cells.push_back(std::move(placeholder));
+                    col_idx++;
+                }
+
                 size_t td_lt = content.find('<', tr_pos);
                 if(td_lt == std::string::npos || td_lt >= tr_end) break;
 
@@ -1994,6 +2549,38 @@ void word::parse_html_table(const std::string &content, size_t begin, size_t end
                     if(!td_style.empty())
                         parse_html_cell_style(td_style, cell);
 
+                    // 解析 td/th 的 HTML align / valign 属性（style 优先）
+                    std::string td_align = get_html_attr(td_attrs, "align");
+                    if(!td_align.empty() && cell.text_align.empty())
+                    {
+                        if(td_align == "justify") cell.text_align = "both";
+                        else if(td_align == "left" || td_align == "center" || td_align == "right")
+                            cell.text_align = td_align;
+                    }
+                    std::string td_valign = get_html_attr(td_attrs, "valign");
+                    if(!td_valign.empty() && cell.vertical_align.empty())
+                    {
+                        if(td_valign == "middle") cell.vertical_align = "center";
+                        else if(td_valign == "top" || td_valign == "bottom")
+                            cell.vertical_align = td_valign;
+                    }
+
+                    // 解析 colspan / rowspan 属性
+                    std::string colspan_str = get_html_attr(td_attrs, "colspan");
+                    if(!colspan_str.empty())
+                    {
+                        unsigned int span = 0;
+                        for(char c : colspan_str) if(c >= '0' && c <= '9') span = span * 10 + (c - '0');
+                        if(span > 1 && span < 256) cell.col_span = static_cast<unsigned char>(span);
+                    }
+                    std::string rowspan_str = get_html_attr(td_attrs, "rowspan");
+                    if(!rowspan_str.empty())
+                    {
+                        unsigned int span = 0;
+                        for(char c : rowspan_str) if(c >= '0' && c <= '9') span = span * 10 + (c - '0');
+                        if(span > 1 && span < 256) cell.row_span = static_cast<unsigned char>(span);
+                    }
+
                     // 提取 td 内的纯文本（忽略 span 等格式）
                     std::string cell_text;
                     size_t td_pos = td_after;
@@ -2016,6 +2603,16 @@ void word::parse_html_table(const std::string &content, size_t begin, size_t end
                         {
                             if(inner_name == "br")
                                 cell_text += '\n';
+                            else if(inner_name == "img")
+                            {
+                                std::string src = get_html_attr(inner_attrs, "src");
+                                if(!src.empty())
+                                {
+                                    WORD_IMAGE img;
+                                    img.path = src;
+                                    cell.images.push_back(std::move(img));
+                                }
+                            }
                             td_pos = inner_after;
                             continue;
                         }
@@ -2032,6 +2629,9 @@ void word::parse_html_table(const std::string &content, size_t begin, size_t end
                         cell.text = cell_text.substr(first, last - first);
                     }
                     row.cells.push_back(std::move(cell));
+                    // 按 col_span 推进列索引
+                    unsigned int span = cell.col_span > 0 ? cell.col_span : 1;
+                    col_idx += span;
                     tr_pos = td_end;
                 }
                 else
@@ -2039,10 +2639,46 @@ void word::parse_html_table(const std::string &content, size_t begin, size_t end
                     tr_pos = td_after;
                 }
             }
+
+            // 行末补齐 rowspan 占位格（之前行跨行到本行末尾的列）
+            while(col_idx < rowspan_remaining.size() && rowspan_remaining[col_idx] > 0)
+            {
+                WORD_TABLE_CELL placeholder;
+                placeholder.row_span = 0;
+                row.cells.push_back(std::move(placeholder));
+                col_idx++;
+            }
+
             if(!row.cells.empty())
             {
-                if(row.cells.size() > table.cols)
-                    table.cols = static_cast<unsigned int>(row.cells.size());
+                // 计算本行逻辑列总数（含 colspan 展开）
+                size_t total_slots = 0;
+                for(const auto &c : row.cells)
+                    total_slots += (c.col_span > 0 ? c.col_span : 1);
+                if(total_slots > table.cols)
+                    table.cols = static_cast<unsigned int>(total_slots);
+
+                // 更新 rowspan_remaining：递减旧值 → 注册本行新 rowspan
+                for(auto &r : rowspan_remaining)
+                    if(r > 0) r--;
+                while(!rowspan_remaining.empty() && rowspan_remaining.back() <= 0)
+                    rowspan_remaining.pop_back();
+
+                // 注册本行新 rowspan（从已填充的列位置开始）
+                size_t reg_idx = 0;
+                for(const auto &c : row.cells)
+                {
+                    if(c.row_span > 1)
+                    {
+                        unsigned int span = c.col_span > 0 ? c.col_span : 1;
+                        if(rowspan_remaining.size() < reg_idx + span)
+                            rowspan_remaining.resize(reg_idx + span, 0);
+                        for(unsigned int i = 0; i < span; i++)
+                            rowspan_remaining[reg_idx + i] = c.row_span - 1;
+                    }
+                    reg_idx += (c.col_span > 0 ? c.col_span : 1);
+                }
+
                 table.rows.push_back(std::move(row));
             }
             pos = tr_end;
@@ -2055,22 +2691,6 @@ void word::parse_html_table(const std::string &content, size_t begin, size_t end
 }
 
 // ========== DOCX 写入（write）==========
-
-static bool zip_add_file(zipFile zf, const char *filename, const std::string &content)
-{
-    // zipWriteInFileInZip 的长度参数是 unsigned int，防止 size_t 截断写出损坏的 zip
-    if(content.size() > 0xFFFFFFFFu) return false;
-    zip_fileinfo zi = {};
-    if(zipOpenNewFileInZip(zf, filename, &zi, NULL, 0, NULL, 0, NULL, Z_DEFLATED, Z_DEFAULT_COMPRESSION) != ZIP_OK)
-        return false;
-    if(zipWriteInFileInZip(zf, content.data(), static_cast<unsigned int>(content.size())) != ZIP_OK)
-    {
-        zipCloseFileInZip(zf);
-        return false;
-    }
-    zipCloseFileInZip(zf);
-    return true;
-}
 
 bool word::read_html(const std::string &html_file)
 {
@@ -2096,6 +2716,10 @@ bool word::read_html(const std::string &html_file)
     std::string html_content(size, '\0');
     file.read(&html_content[0], size);
     file.close();
+
+    // 记录 HTML 文件所在目录，用于解析图片相对路径
+    size_t slash = html_file.find_last_of("/\\");
+    html_base_dir = (slash != std::string::npos) ? html_file.substr(0, slash) : ".";
 
     // 小写副本用于定位标签（不区分大小写）
     std::string lower;
@@ -2153,58 +2777,107 @@ bool word::write(const std::string &docx_file)
 {
     error_msg.clear();
 
-    zipFile zf = zipOpen(docx_file.c_str(), APPEND_STATUS_CREATE);
-    if(zf == NULL)
+    pz::zip zf;
+    if(!zf.create_zipfile(docx_file))
     {
         error_msg = "Error: Unable to create zip file " + docx_file;
         return false;
     }
 
-    if(!zip_add_file(zf, "[Content_Types].xml", gen_docx_content_types()))
+    std::string document_xml = gen_docx_document();
+    std::string content_types = gen_docx_content_types();
+    std::string rels = gen_docx_rels();
+    std::string doc_rels = gen_docx_document_rels();
+    std::string styles = gen_docx_styles();
+
+    if(!zf.add_file_from_string("[Content_Types].xml", content_types))
     {
-        error_msg = "Error: Failed to add [Content_Types].xml";
-        zipClose(zf, NULL);
+        error_msg = "Error: Failed to add [Content_Types].xml: " + zf.error_msg();
         return false;
     }
-    if(!zip_add_file(zf, "_rels/.rels", gen_docx_rels()))
+    if(!zf.add_file_from_string("_rels/.rels", rels))
     {
-        error_msg = "Error: Failed to add _rels/.rels";
-        zipClose(zf, NULL);
+        error_msg = "Error: Failed to add _rels/.rels: " + zf.error_msg();
         return false;
     }
-    if(!zip_add_file(zf, "word/_rels/document.xml.rels", gen_docx_document_rels()))
+    if(!zf.add_file_from_string("word/_rels/document.xml.rels", doc_rels))
     {
-        error_msg = "Error: Failed to add word/_rels/document.xml.rels";
-        zipClose(zf, NULL);
+        error_msg = "Error: Failed to add word/_rels/document.xml.rels: " + zf.error_msg();
         return false;
     }
-    if(!zip_add_file(zf, "word/document.xml", gen_docx_document()))
+    if(!zf.add_file_from_string("word/document.xml", document_xml))
     {
-        error_msg = "Error: Failed to add word/document.xml";
-        zipClose(zf, NULL);
+        error_msg = "Error: Failed to add word/document.xml: " + zf.error_msg();
         return false;
     }
-    if(!zip_add_file(zf, "word/styles.xml", gen_docx_styles()))
+    if(!zf.add_file_from_string("word/styles.xml", styles))
     {
-        error_msg = "Error: Failed to add word/styles.xml";
-        zipClose(zf, NULL);
+        error_msg = "Error: Failed to add word/styles.xml: " + zf.error_msg();
         return false;
     }
 
-    zipClose(zf, NULL);
+    for(const auto &img : collected_images)
+    {
+        if(!img.data.empty())
+        {
+            // 直接使用内存中的数据（来自 base64 data URI）
+            if(!zf.add_file_from_memory(img.zipPath, reinterpret_cast<const char*>(img.data.data()), img.data.size()))
+            {
+                error_msg = "Error: Failed to add " + img.zipPath + ": " + zf.error_msg();
+                return false;
+            }
+        }
+        else
+        {
+            // 从文件读取
+            std::ifstream img_file(img.origPath, std::ios::binary);
+            if(!img_file)
+            {
+                error_msg = "Error: Unable to open image file " + img.origPath;
+                return false;
+            }
+            img_file.seekg(0, std::ios::end);
+            size_t img_size = static_cast<size_t>(img_file.tellg());
+            img_file.seekg(0, std::ios::beg);
+            std::vector<char> img_data(img_size);
+            img_file.read(img_data.data(), img_size);
+            img_file.close();
+
+            if(!zf.add_file_from_memory(img.zipPath, img_data.data(), img_data.size()))
+            {
+                error_msg = "Error: Failed to add " + img.zipPath + ": " + zf.error_msg();
+                return false;
+            }
+        }
+    }
+
+    zf.close();
     return true;
 }
 
 // 生成 [Content_Types].xml
 std::string word::gen_docx_content_types() const
 {
-    return "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
+    std::string xml = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
            "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">"
            "<Default Extension=\"rels\" ContentType=\"application/vnd.openxmlformats-package.relationships+xml\"/>"
            "<Default Extension=\"xml\" ContentType=\"application/xml\"/>"
+           "<Default Extension=\"png\" ContentType=\"image/png\"/>"
+           "<Default Extension=\"jpg\" ContentType=\"image/jpeg\"/>"
            "<Override PartName=\"/word/document.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\"/>"
-           "<Override PartName=\"/word/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml\"/>"
-           "</Types>";
+           "<Override PartName=\"/word/styles.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml\"/>";
+
+    for(const auto &img : collected_images)
+    {
+        if(img.ext != "png" && img.ext != "jpg")
+        {
+            xml += "<Default Extension=\"" + xml_escape(img.ext) + "\" ContentType=\"image/" +
+                   (img.ext == "gif" ? "gif" : img.ext == "bmp" ? "bmp" : img.ext == "svg" ? "svg+xml" : "jpeg") + "\"/>";
+        }
+    }
+
+    xml += "</Types>";
+    return xml;
 }
 
 // 生成 _rels/.rels
@@ -2219,14 +2892,115 @@ std::string word::gen_docx_rels() const
 // 生成 word/_rels/document.xml.rels
 std::string word::gen_docx_document_rels() const
 {
-    return "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
+    std::string xml = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
            "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"
-           "</Relationships>";
+           "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>";
+
+    for(const auto &img : collected_images)
+    {
+        xml += "<Relationship Id=\"" + img.rId + "\""
+               " Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/image\""
+               " Target=\"" + img.zipPath.substr(5) + "\"/>";  // 去掉 "word/" 前缀
+    }
+
+    xml += "</Relationships>";
+    return xml;
+}
+
+// 收集图片到 collected_images，返回 rId（失败返回空字符串）
+std::string word::collect_image_private(
+    COLLECTED_IMAGE &out,
+    const std::string &rel_path,
+    const std::string &base_dir,
+    unsigned int counter,
+    int &next_rId)
+{
+    // 检查是否为 base64 data URI
+    if(rel_path.size() > 10 && rel_path.substr(0, 5) == "data:")
+    {
+        // 格式: data:image/png;base64,iVBORw0KGgo...
+        std::string ext;
+        size_t semi = rel_path.find(';');
+        if(semi != std::string::npos)
+        {
+            std::string mime = rel_path.substr(5, semi - 5);
+            // mime 如 "image/png", "image/jpeg", "image/gif"
+            size_t slash = mime.find('/');
+            if(slash != std::string::npos)
+            {
+                ext = mime.substr(slash + 1);
+                if(ext == "jpeg") ext = "jpg";
+            }
+            else
+            {
+                ext = "png";
+            }
+        }
+        else
+        {
+            ext = "png";
+        }
+
+        // 找到 base64 数据部分
+        size_t base64_pos = rel_path.find("base64,");
+        if(base64_pos == std::string::npos) return "";
+        base64_pos += 7;  // 跳过 "base64,"
+
+        std::vector<unsigned char> decoded = base64_decode(rel_path.substr(base64_pos));
+        if(decoded.empty()) return "";
+
+        int w = 200, h = 200;
+        read_image_dims_from_memory(decoded.data(), decoded.size(), w, h);
+
+        std::string rId = "rId" + std::to_string(next_rId++);
+        std::string zipPath = "word/media/image" + std::to_string(counter) + "." + ext;
+
+        out.rId = rId;
+        out.zipPath = zipPath;
+        out.ext = ext;
+        out.widthEmu = w * 9525;
+        out.heightEmu = h * 9525;
+        out.data = std::move(decoded);
+
+        return rId;
+    }
+
+    // 原有逻辑：从文件路径读取
+    std::string full = base_dir + "/" + rel_path;
+    std::string ext = get_image_ext(rel_path);
+
+    // 检查文件是否存在
+    std::ifstream test(full, std::ios::binary);
+    if(!test)
+    {
+        full = rel_path;
+        test.open(full, std::ios::binary);
+        if(!test) return "";
+    }
+    test.close();
+
+    int w = 200, h = 200;
+    read_image_dims(full, w, h);
+
+    std::string rId = "rId" + std::to_string(next_rId++);
+    std::string zipPath = "word/media/image" + std::to_string(counter) + "." + ext;
+
+    out.rId = rId;
+    out.zipPath = zipPath;
+    out.origPath = full;
+    out.ext = ext;
+    out.widthEmu = w * 9525;
+    out.heightEmu = h * 9525;
+
+    return rId;
 }
 
 // 生成 word/document.xml
 std::string word::gen_docx_document() const
 {
+    collected_images.clear();
+    next_image_rId = 100;
+
     std::string xml;
     xml.reserve(contents.size() * 512);
 
@@ -2243,11 +3017,36 @@ std::string word::gen_docx_document() const
             xml += "<w:p>";
 
             // 段落属性
-            if(para.heading_level > 0 && para.heading_level <= 5)
+            bool has_pPr = (para.heading_level > 0 && para.heading_level <= 5) ||
+                           !para.text_align.empty() || para.line_height > 0;
+            if(has_pPr)
             {
-                xml += "<w:pPr><w:pStyle w:val=\"Heading";
-                xml += '0' + para.heading_level;
-                xml += "\"/></w:pPr>";
+                xml += "<w:pPr>";
+
+                // OOXML 规范严格顺序：pStyle 在最前，然后 spacing，最后 jc
+                // 标题样式（必须最先）
+                if(para.heading_level > 0 && para.heading_level <= 5)
+                {
+                    xml += "<w:pStyle w:val=\"Heading";
+                    xml += '0' + para.heading_level;
+                    xml += "\"/>";
+                }
+
+                // 行高
+                if(para.line_height > 0)
+                {
+                    // 1px = 15 twips
+                    unsigned int twips = para.line_height * 15;
+                    xml += "<w:spacing w:line=\"" + std::to_string(twips) + "\" w:lineRule=\"exact\"/>";
+                }
+
+                // 对齐（必须最后）
+                if(!para.text_align.empty())
+                {
+                    xml += "<w:jc w:val=\"" + para.text_align + "\"/>";
+                }
+
+                xml += "</w:pPr>";
             }
 
             for(const auto &run : para.runs)
@@ -2311,6 +3110,18 @@ std::string word::gen_docx_document() const
                 xml += "</w:r>";
             }
 
+            // 段落内的图片（在文本后）
+            unsigned int img_counter = static_cast<unsigned int>(collected_images.size());
+            for(const auto &img : para.images)
+            {
+                if(img.path.empty()) continue;
+                COLLECTED_IMAGE ci;
+                std::string rId = collect_image_private(ci, img.path, html_base_dir, img_counter++, next_image_rId);
+                if(rId.empty()) continue;
+                xml += gen_docx_drawing(static_cast<size_t>(img_counter - 1), rId, ci.widthEmu / 9525, ci.heightEmu / 9525);
+                collected_images.push_back(std::move(ci));
+            }
+
             xml += "</w:p>";
         }
         else if(content.type == WORD_CONTENT_TYPE::TABLE)
@@ -2342,8 +3153,16 @@ std::string word::gen_docx_document() const
 
             // 网格列定义
             xml += "<w:tblGrid>";
-            for(unsigned int c = 0; c < table.cols; c++)
-                xml += "<w:gridCol w:w=\"" + std::to_string(9000 / (table.cols > 0 ? table.cols : 1)) + "\"/>";
+            if(!table.col_widths.empty() && table.col_widths.size() == table.cols)
+            {
+                for(unsigned int c = 0; c < table.cols; c++)
+                    xml += "<w:gridCol w:w=\"" + std::to_string(table.col_widths[c]) + "\"/>";
+            }
+            else
+            {
+                for(unsigned int c = 0; c < table.cols; c++)
+                    xml += "<w:gridCol w:w=\"" + std::to_string(9000 / (table.cols > 0 ? table.cols : 1)) + "\"/>";
+            }
             xml += "</w:tblGrid>";
 
             for(const auto &row : table.rows)
@@ -2352,6 +3171,16 @@ std::string word::gen_docx_document() const
                 for(const auto &cell : row.cells)
                 {
                     xml += "<w:tc><w:tcPr>";
+
+                    // 跨列（colspan → gridSpan）
+                    if(cell.col_span > 1)
+                        xml += "<w:gridSpan w:val=\"" + std::to_string(cell.col_span) + "\"/>";
+
+                    // 跨行（rowspan → vMerge）
+                    if(cell.row_span > 1)
+                        xml += "<w:vMerge w:val=\"restart\"/>";
+                    else if(cell.row_span == 0)
+                        xml += "<w:vMerge/>";  // 续接上一行的跨行
 
                     // 单元格宽度
                     if(cell.width > 0)
@@ -2371,25 +3200,55 @@ std::string word::gen_docx_document() const
                                "<w:right w:w=\"" + pad + "\" w:type=\"dxa\"/></w:tcMar>";
                     }
 
+                    // 垂直对齐
+                    if(!cell.vertical_align.empty())
+                        xml += "<w:vAlign w:val=\"" + cell.vertical_align + "\"/>";
+
                     xml += "</w:tcPr>";
 
-                    // 单元格内容（带文字颜色）
-                    xml += "<w:p>";
-                    if(!cell.text_color.empty())
+                    // vMerge 续接格只需要空段落
+                    if(cell.row_span == 0)
                     {
-                        xml += "<w:r><w:rPr><w:color w:val=\"" + sanitize_token(cell.text_color) + "\"/>";
-                        if(!cell.text.empty() && (cell.text.front() == ' ' || cell.text.back() == ' '))
-                            xml += "</w:rPr><w:t xml:space=\"preserve\">" + xml_escape(cell.text) + "</w:t></w:r>";
-                        else
-                            xml += "</w:rPr><w:t>" + xml_escape(cell.text) + "</w:t></w:r>";
+                        xml += "<w:p></w:p></w:tc>";
                     }
                     else
                     {
-                        xml += "<w:r><w:t>";
-                        xml += xml_escape(cell.text);
-                        xml += "</w:t></w:r>";
+                        // 单元格内容（带文字颜色和水平对齐）
+                        xml += "<w:p>";
+                        if(!cell.text_align.empty())
+                            xml += "<w:pPr><w:jc w:val=\"" + cell.text_align + "\"/></w:pPr>";
+                        if(!cell.text_color.empty())
+                        {
+                            xml += "<w:r><w:rPr><w:color w:val=\"" + sanitize_token(cell.text_color) + "\"/>";
+                            if(!cell.text.empty() && (cell.text.front() == ' ' || cell.text.back() == ' '))
+                                xml += "</w:rPr><w:t xml:space=\"preserve\">" + xml_escape(cell.text) + "</w:t></w:r>";
+                            else
+                                xml += "</w:rPr><w:t>" + xml_escape(cell.text) + "</w:t></w:r>";
+                        }
+                        else
+                        {
+                            xml += "<w:r><w:t>";
+                            xml += xml_escape(cell.text);
+                            xml += "</w:t></w:r>";
+                        }
+                        xml += "</w:p>";
+
+                        // 单元格内的图片（放在单独的 w:p 中）
+                        unsigned int cell_img_counter = static_cast<unsigned int>(collected_images.size());
+                        for(const auto &img : cell.images)
+                        {
+                            if(img.path.empty()) continue;
+                            COLLECTED_IMAGE ci;
+                            std::string rId = collect_image_private(ci, img.path, html_base_dir, cell_img_counter++, next_image_rId);
+                            if(rId.empty()) continue;
+                            xml += "<w:p>";
+                            xml += gen_docx_drawing(static_cast<size_t>(cell_img_counter - 1), rId, ci.widthEmu / 9525, ci.heightEmu / 9525);
+                            xml += "</w:p>";
+                            collected_images.push_back(std::move(ci));
+                        }
+
+                        xml += "</w:tc>";
                     }
-                    xml += "</w:p></w:tc>";
                 }
                 xml += "</w:tr>";
             }
@@ -2429,7 +3288,7 @@ std::string word::gen_docx_styles() const
     }
     else
     {
-        def_rpr += "<w:rFonts w:asciiTheme=\"minorHAnsi\" w:eastAsiaTheme=\"minorEastAsia\" w:hAnsiTheme=\"minorHAnsi\" w:cstheme=\"minorBidi\"/>";
+        def_rpr += "<w:rFonts w:ascii=\"Calibri\" w:eastAsia=\"宋体\" w:hAnsi=\"Calibri\" w:cs=\"Calibri\"/>";
     }
     if(!default_style.color.empty() && default_style.color != "000000" && default_style.color != "auto")
     {
@@ -2473,7 +3332,7 @@ std::string word::gen_docx_styles() const
            "<w:uiPriority w:val=\"9\"/>"
            "<w:qFormat/>"
            "<w:pPr><w:spacing w:before=\"480\" w:after=\"200\"/><w:outlineLvl w:val=\"0\"/></w:pPr>"
-           "<w:rPr><w:rFonts w:asciiTheme=\"majorHAnsi\" w:eastAsiaTheme=\"majorEastAsia\" w:hAnsiTheme=\"majorHAnsi\" w:cstheme=\"majorBidi\"/>"
+           "<w:rPr>"
            "<w:b/><w:bCs/><w:sz w:val=\"44\"/><w:szCs w:val=\"44\"/>"
            "</w:rPr></w:style>"
 
@@ -2486,7 +3345,7 @@ std::string word::gen_docx_styles() const
            "<w:uiPriority w:val=\"9\"/>"
            "<w:qFormat/>"
            "<w:pPr><w:spacing w:before=\"360\" w:after=\"160\"/><w:outlineLvl w:val=\"1\"/></w:pPr>"
-           "<w:rPr><w:rFonts w:asciiTheme=\"majorHAnsi\" w:eastAsiaTheme=\"majorEastAsia\" w:hAnsiTheme=\"majorHAnsi\" w:cstheme=\"majorBidi\"/>"
+           "<w:rPr>"
            "<w:b/><w:bCs/><w:sz w:val=\"32\"/><w:szCs w:val=\"32\"/>"
            "</w:rPr></w:style>"
 
@@ -2499,7 +3358,7 @@ std::string word::gen_docx_styles() const
            "<w:uiPriority w:val=\"9\"/>"
            "<w:qFormat/>"
            "<w:pPr><w:spacing w:before=\"280\" w:after=\"120\"/><w:outlineLvl w:val=\"2\"/></w:pPr>"
-           "<w:rPr><w:rFonts w:asciiTheme=\"majorHAnsi\" w:eastAsiaTheme=\"majorEastAsia\" w:hAnsiTheme=\"majorHAnsi\" w:cstheme=\"majorBidi\"/>"
+           "<w:rPr>"
            "<w:b/><w:bCs/><w:sz w:val=\"28\"/><w:szCs w:val=\"28\"/>"
            "</w:rPr></w:style>"
 
@@ -2512,7 +3371,7 @@ std::string word::gen_docx_styles() const
            "<w:uiPriority w:val=\"9\"/>"
            "<w:qFormat/>"
            "<w:pPr><w:spacing w:before=\"240\" w:after=\"80\"/><w:outlineLvl w:val=\"3\"/></w:pPr>"
-           "<w:rPr><w:rFonts w:asciiTheme=\"majorHAnsi\" w:eastAsiaTheme=\"majorEastAsia\" w:hAnsiTheme=\"majorHAnsi\" w:cstheme=\"majorBidi\"/>"
+           "<w:rPr>"
            "<w:b/><w:bCs/><w:sz w:val=\"24\"/><w:szCs w:val=\"24\"/>"
            "</w:rPr></w:style>"
 
@@ -2525,7 +3384,7 @@ std::string word::gen_docx_styles() const
            "<w:uiPriority w:val=\"9\"/>"
            "<w:qFormat/>"
            "<w:pPr><w:spacing w:before=\"200\" w:after=\"80\"/><w:outlineLvl w:val=\"4\"/></w:pPr>"
-           "<w:rPr><w:rFonts w:asciiTheme=\"majorHAnsi\" w:eastAsiaTheme=\"majorEastAsia\" w:hAnsiTheme=\"majorHAnsi\" w:cstheme=\"majorBidi\"/>"
+           "<w:rPr>"
            "<w:b/><w:bCs/><w:sz w:val=\"22\"/><w:szCs w:val=\"22\"/>"
            "</w:rPr></w:style>"
 
@@ -2534,7 +3393,7 @@ std::string word::gen_docx_styles() const
            "<w:name w:val=\"Heading 1 Char\"/>"
            "<w:link w:val=\"Heading1\"/>"
            "<w:uiPriority w:val=\"9\"/>"
-           "<w:rPr><w:rFonts w:asciiTheme=\"majorHAnsi\" w:eastAsiaTheme=\"majorEastAsia\" w:hAnsiTheme=\"majorHAnsi\" w:cstheme=\"majorBidi\"/>"
+           "<w:rPr>"
            "<w:b/><w:bCs/><w:sz w:val=\"44\"/><w:szCs w:val=\"44\"/>"
            "</w:rPr></w:style>"
 
@@ -2542,7 +3401,7 @@ std::string word::gen_docx_styles() const
            "<w:name w:val=\"Heading 2 Char\"/>"
            "<w:link w:val=\"Heading2\"/>"
            "<w:uiPriority w:val=\"9\"/>"
-           "<w:rPr><w:rFonts w:asciiTheme=\"majorHAnsi\" w:eastAsiaTheme=\"majorEastAsia\" w:hAnsiTheme=\"majorHAnsi\" w:cstheme=\"majorBidi\"/>"
+           "<w:rPr>"
            "<w:b/><w:bCs/><w:sz w:val=\"32\"/><w:szCs w:val=\"32\"/>"
            "</w:rPr></w:style>"
 
@@ -2550,7 +3409,7 @@ std::string word::gen_docx_styles() const
            "<w:name w:val=\"Heading 3 Char\"/>"
            "<w:link w:val=\"Heading3\"/>"
            "<w:uiPriority w:val=\"9\"/>"
-           "<w:rPr><w:rFonts w:asciiTheme=\"majorHAnsi\" w:eastAsiaTheme=\"majorEastAsia\" w:hAnsiTheme=\"majorHAnsi\" w:cstheme=\"majorBidi\"/>"
+           "<w:rPr>"
            "<w:b/><w:bCs/><w:sz w:val=\"28\"/><w:szCs w:val=\"28\"/>"
            "</w:rPr></w:style>"
 
@@ -2558,7 +3417,7 @@ std::string word::gen_docx_styles() const
            "<w:name w:val=\"Heading 4 Char\"/>"
            "<w:link w:val=\"Heading4\"/>"
            "<w:uiPriority w:val=\"9\"/>"
-           "<w:rPr><w:rFonts w:asciiTheme=\"majorHAnsi\" w:eastAsiaTheme=\"majorEastAsia\" w:hAnsiTheme=\"majorHAnsi\" w:cstheme=\"majorBidi\"/>"
+           "<w:rPr>"
            "<w:b/><w:bCs/><w:sz w:val=\"24\"/><w:szCs w:val=\"24\"/>"
            "</w:rPr></w:style>"
 
@@ -2566,11 +3425,177 @@ std::string word::gen_docx_styles() const
            "<w:name w:val=\"Heading 5 Char\"/>"
            "<w:link w:val=\"Heading5\"/>"
            "<w:uiPriority w:val=\"9\"/>"
-           "<w:rPr><w:rFonts w:asciiTheme=\"majorHAnsi\" w:eastAsiaTheme=\"majorEastAsia\" w:hAnsiTheme=\"majorHAnsi\" w:cstheme=\"majorBidi\"/>"
+           "<w:rPr>"
            "<w:b/><w:bCs/><w:sz w:val=\"22\"/><w:szCs w:val=\"22\"/>"
            "</w:rPr></w:style>"
 
            "</w:styles>";
 }
+
+// ========== 图片工具函数 ==========
+
+// 获取图片扩展名（小写）
+std::string word::get_image_ext(const std::string &path)
+{
+    size_t dot = path.find_last_of('.');
+    if(dot == std::string::npos) return "png";
+    std::string ext = path.substr(dot + 1);
+    for(auto &c : ext) c = static_cast<char>(tolower(static_cast<unsigned char>(c)));
+    if(ext == "jpeg") ext = "jpg";
+    return ext;
+}
+
+// 读取 JPEG/PNG 图片的宽高（像素）
+bool word::read_image_dims(const std::string &filePath, int &w, int &h)
+{
+    std::ifstream f(filePath, std::ios::binary);
+    if(!f) return false;
+
+    unsigned char buf[32];
+    f.read(reinterpret_cast<char*>(buf), 32);
+    size_t n = static_cast<size_t>(f.gcount());
+    f.close();
+    if(n < 8) return false;
+
+    // JPEG: SOI=FFD8, 查找 SOF0 标记 (FFC0)
+    if(buf[0] == 0xFF && buf[1] == 0xD8)
+    {
+        // 简易 JPEG 宽度/高度读取：扫描至 SOF0
+        // 实际上只在 fread 的 32 字节内查是不够的，但简单场景够用
+        // 通过再次读取整个头部来解析
+        std::ifstream fj(filePath, std::ios::binary);
+        if(!fj) return false;
+        fj.seekg(2);
+        unsigned char marker[2];
+        while(fj.read(reinterpret_cast<char*>(marker), 2))
+        {
+            if(marker[0] != 0xFF) break;
+            if(marker[1] >= 0xC0 && marker[1] <= 0xC2)
+            {
+                fj.seekg(3, std::ios::cur);  // 跳 length(2) + precision(1)
+                unsigned char dims[4];
+                if(!fj.read(reinterpret_cast<char*>(dims), 4)) break;
+                h = (dims[0] << 8) | dims[1];
+                w = (dims[2] << 8) | dims[3];
+                return true;
+            }
+            if(marker[1] == 0xD9) break;  // EOI
+            // 读取 segment length
+            unsigned char len[2];
+            if(!fj.read(reinterpret_cast<char*>(len), 2)) break;
+            unsigned short segLen = (len[0] << 8) | len[1];
+            if(segLen < 2) break;
+            fj.seekg(segLen - 2, std::ios::cur);
+        }
+        return false;
+    }
+
+    // PNG: signature 89 50 4E 47 0D 0A 1A 0A, 然后 IHDR
+    if(n >= 24 && buf[0] == 0x89 && buf[1] == 0x50 && buf[2] == 0x4E && buf[3] == 0x47)
+    {
+        // IHDR 位于偏移 16: width(4) height(4)
+        w = (buf[16] << 24) | (buf[17] << 16) | (buf[18] << 8) | buf[19];
+        h = (buf[20] << 24) | (buf[21] << 16) | (buf[22] << 8) | buf[23];
+        return true;
+    }
+
+    return false;
+}
+
+// 从内存读取 JPEG/PNG 图片的宽高（像素）
+bool word::read_image_dims_from_memory(const unsigned char *data, size_t len, int &w, int &h)
+{
+    if(len < 8) return false;
+
+    // JPEG: SOI=FFD8
+    if(data[0] == 0xFF && data[1] == 0xD8)
+    {
+        // 扫描 SOF0 标记 (FFC0-C2)
+        size_t pos = 2;
+        while(pos + 2 < len)
+        {
+            if(data[pos] != 0xFF) break;
+            unsigned char marker = data[pos + 1];
+            if(marker == 0xD9) break;  // EOI
+            if(marker >= 0xC0 && marker <= 0xC2)
+            {
+                // SOF: length(2) + precision(1) + height(2) + width(2)
+                pos += 2;  // skip marker
+                if(pos + 6 > len) break;
+                // skip length(2) + precision(1)
+                pos += 3;
+                h = (data[pos] << 8) | data[pos + 1];
+                w = (data[pos + 2] << 8) | data[pos + 3];
+                return true;
+            }
+            // 跳过 segment
+            if(pos + 3 > len) break;
+            unsigned short segLen = (data[pos + 2] << 8) | data[pos + 3];
+            if(segLen < 2) break;
+            pos += 2 + segLen;
+        }
+        return false;
+    }
+
+    // PNG: signature 89 50 4E 47 0D 0A 1A 0A
+    if(len >= 24 && data[0] == 0x89 && data[1] == 0x50 && data[2] == 0x4E && data[3] == 0x47)
+    {
+        // IHDR 位于偏移 16: width(4) height(4)
+        w = (data[16] << 24) | (data[17] << 16) | (data[18] << 8) | data[19];
+        h = (data[20] << 24) | (data[21] << 16) | (data[22] << 8) | data[23];
+        return true;
+    }
+
+    return false;
+}
+
+// 生成单个图片的 w:drawing XML
+std::string word::gen_docx_drawing(size_t img_idx, const std::string &rId, int w, int h) const
+{
+    // 像素转 EMU（1px = 914400 / 96 = 9525 EMU）
+    int cx = w * 9525;
+    int cy = h * 9525;
+
+    std::string name = "image" + std::to_string(img_idx);
+
+    return
+        "<w:r>"
+        "<w:rPr><w:noProof/></w:rPr>"
+        "<w:drawing>"
+        "<wp:inline distT=\"0\" distB=\"0\" distL=\"0\" distR=\"0\""
+        " xmlns:wp=\"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing\">"
+        "<wp:extent cx=\"" + std::to_string(cx) + "\" cy=\"" + std::to_string(cy) + "\"/>"
+        "<wp:effectExtent l=\"0\" t=\"0\" r=\"0\" b=\"0\"/>"
+        "<wp:docPr id=\"" + std::to_string(img_idx + 1) + "\" name=\"" + name + "\"/>"
+        "<wp:cNvGraphicFramePr>"
+        "<a:graphicFrameLocks noChangeAspect=\"1\""
+        " xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\"/>"
+        "</wp:cNvGraphicFramePr>"
+        "<a:graphic xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\">"
+        "<a:graphicData uri=\"http://schemas.openxmlformats.org/drawingml/2006/picture\">"
+        "<pic:pic xmlns:pic=\"http://schemas.openxmlformats.org/drawingml/2006/picture\">"
+        "<pic:nvPicPr>"
+        "<pic:cNvPr id=\"0\" name=\"" + name + "\"/>"
+        "<pic:cNvPicPr/>"
+        "</pic:nvPicPr>"
+        "<pic:blipFill>"
+        "<a:blip r:embed=\"" + rId + "\"/>"
+        "<a:stretch><a:fillRect/></a:stretch>"
+        "</pic:blipFill>"
+        "<pic:spPr>"
+        "<a:xfrm><a:off x=\"0\" y=\"0\"/>"
+        "<a:ext cx=\"" + std::to_string(cx) + "\" cy=\"" + std::to_string(cy) + "\"/>"
+        "</a:xfrm>"
+        "<a:prstGeom prst=\"rect\"><a:avLst/></a:prstGeom>"
+        "</pic:spPr>"
+        "</pic:pic>"
+        "</a:graphicData>"
+        "</a:graphic>"
+        "</wp:inline>"
+        "</w:drawing>"
+        "</w:r>";
+}
+
+
 
 }

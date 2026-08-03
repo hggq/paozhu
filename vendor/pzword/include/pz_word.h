@@ -24,10 +24,22 @@ struct WORD_RUN
     std::string font_name;
 };
 
+struct WORD_IMAGE
+{
+    std::string path;  // 相对于 HTML 文件的图片路径
+    std::vector<unsigned char> data;  // 图片二进制数据（DOCX→HTML 使用）
+    std::string ext;   // 图片扩展名，如 "png", "jpg", "jpeg", "gif"
+    int width_emu = 0;   // 图片宽度 EMU
+    int height_emu = 0;  // 图片高度 EMU
+};
+
 struct WORD_PARAGRAPH
 {
     std::vector<WORD_RUN> runs;
     unsigned char heading_level = 0;
+    std::string text_align;       // text-align: left/center/right/justify
+    unsigned int line_height = 0; // line-height px（0 表示不设置）
+    std::vector<WORD_IMAGE> images;  // 行内图片
 };
 
 struct WORD_TABLE_CELL
@@ -35,11 +47,14 @@ struct WORD_TABLE_CELL
     std::string text;
     unsigned char row_span = 1;
     unsigned char col_span = 1;
-    std::string bg_color;     // background-color
-    std::string text_color;   // 文字颜色
-    unsigned int width = 0;   // 宽度 px
-    unsigned int height = 0;  // 高度 px
-    unsigned int padding = 0; // 内边距 px
+    std::string bg_color;       // background-color
+    std::string text_color;     // 文字颜色
+    unsigned int width = 0;     // 宽度 px
+    unsigned int height = 0;    // 高度 px
+    unsigned int padding = 0;   // 内边距 px
+    std::string text_align;     // 水平对齐: left/center/right/both
+    std::string vertical_align; // 垂直对齐: top/center/bottom
+    std::vector<WORD_IMAGE> images;  // 单元格内图片
 };
 
 struct WORD_TABLE_ROW
@@ -54,6 +69,7 @@ struct WORD_TABLE
     unsigned int width = 0;        // 表格宽度 px
     std::string border_color;      // 边框颜色
     unsigned int border_size = 0;  // 边框大小 px（0 表示默认）
+    std::vector<unsigned int> col_widths;  // 每列宽度（dxa 单位），空表示均分
 };
 
 enum class WORD_CONTENT_TYPE
@@ -78,6 +94,7 @@ class word
         bool read_html(const std::string &html_file);
         bool write(const std::string &docx_file);
         std::string to_html() const;
+        std::string to_html_with_images(const std::string &output_dir) const;
         void clear();
 
         // 设置页边距 px（1px = 15 twips）
@@ -98,6 +115,24 @@ class word
     public:
         std::vector<WORD_CONTENT> contents;
         std::string error_msg;
+        std::string html_base_dir;  // HTML 文件所在目录，用于解析图片相对路径
+
+        // 图片收集（DOCX 生成期间填充）
+        struct COLLECTED_IMAGE
+        {
+            std::string rId;
+            std::string zipPath;
+            std::string origPath;
+            std::string ext;
+            int widthEmu = 0;
+            int heightEmu = 0;
+            std::vector<unsigned char> data;  // 直接存储二进制数据（base64 data URI 解码后使用）
+        };
+        static std::string get_image_ext(const std::string &path);
+        static bool read_image_dims(const std::string &filePath, int &w, int &h);
+        static bool read_image_dims_from_memory(const unsigned char *data, size_t len, int &w, int &h);
+        static std::string base64_encode(const unsigned char *data, size_t len);
+        static std::vector<unsigned char> base64_decode(const std::string &s);
 
         // 全局默认样式（来自 HTML <head><style> 的 body 规则），text 字段不使用
         WORD_RUN default_style;
@@ -156,11 +191,12 @@ class word
         void parse_html_head_style(const std::string &css);
         void apply_css_margin(const std::string &prop, const std::string &val);
         void parse_html_body(const std::string &content, size_t begin, size_t end);
-        void parse_html_block(const std::string &content, size_t begin, size_t end, const std::string &tag_name);
+        void parse_html_block(const std::string &content, size_t begin, size_t end, const std::string &tag_name, const std::string &attrs = "");
         void parse_html_inline(const std::string &content, size_t begin, size_t end, WORD_PARAGRAPH &para, const WORD_RUN &default_run = WORD_RUN(), int depth = 0);
         void parse_html_table(const std::string &content, size_t begin, size_t end, WORD_TABLE &table, const std::string &table_attrs = "");
         void parse_html_style(const std::string &style_str, WORD_RUN &run) const;
         void parse_html_cell_style(const std::string &style_str, WORD_TABLE_CELL &cell) const;
+        void parse_html_paragraph_style(const std::string &style_str, WORD_PARAGRAPH &para) const;
 
         // CSS 尺寸值 "12px" → 数字
         static unsigned int parse_css_px(const std::string &val);
@@ -174,6 +210,22 @@ class word
         std::string gen_docx_document_rels() const;
         std::string gen_docx_document() const;
         std::string gen_docx_styles() const;
+
+        // 图片支持（生成期）
+        mutable std::vector<COLLECTED_IMAGE> collected_images;
+        mutable int next_image_rId = 100;
+        std::string gen_docx_drawing(size_t img_idx, const std::string &rId, int w, int h) const;
+        static std::string collect_image_private(COLLECTED_IMAGE &out, const std::string &rel_path,
+                                                  const std::string &base_dir, unsigned int counter, int &next_rId);
+
+        // 图片支持（解析期 DOCX→HTML）
+        // rId → target（如 "rId5" → "media/image1.png"），在 read() 中从 _rels 解析填充
+        std::map<std::string, std::string> image_rels_;
+        // target → binary data，在 read() 中从 ZIP 条目提取填充
+        std::map<std::string, std::vector<unsigned char>> image_datas_;
+
+        std::string parse_drawing_rid(const std::string &content, size_t begin, size_t end) const;
+        bool get_image_by_rid(const std::string &rId, std::vector<unsigned char> &out, std::string &ext) const;
 };
 
 }

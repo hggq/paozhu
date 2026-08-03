@@ -463,13 +463,7 @@ if(ENABLE_VCPKG)
     endif()
   endif()
 
-  # ------- minizip (vcpkg) -------
-  # [MINIZIP] Use vcpkg's CMake config target
-  if(ENABLE_OFFICE)
-    find_package(minizip CONFIG REQUIRED)
-    target_link_libraries(paozhu PRIVATE minizip::minizip)
-    # vcpkg's minizip already sets up include directories automatically
-  endif()
+  
 
 else()
   # ---- Not using vcpkg: system libraries ----
@@ -567,31 +561,7 @@ else()
     target_link_libraries(paozhu PRIVATE Freetype::Freetype)
   endif()
 
-  # ------- minizip (system) -------
-  # [MINIZIP] Use find_library / find_path for Unix-like systems (macOS, Linux)
-  if(ENABLE_OFFICE)
-    # On macOS, Homebrew installs minizip under /usr/local/opt or /opt/homebrew
-    # On Linux, typical locations are /usr/lib, /usr/lib64, etc.
-    find_library(MINIZIP_LIBRARY minizip
-      PATHS /usr/local/opt/minizip/lib /opt/homebrew/opt/minizip/lib
-            /usr/lib64 /usr/lib/x86_64-linux-gnu /usr/lib
-    )
-    if(NOT MINIZIP_LIBRARY)
-      message(FATAL_ERROR "minizip library not found")
-    endif()
-
-    find_path(MINIZIP_INCLUDE_DIR minizip/zip.h
-      PATHS /usr/local/opt/minizip/include /opt/homebrew/opt/minizip/include
-            /usr/include /usr/local/include
-    )
-    if(NOT MINIZIP_INCLUDE_DIR)
-      message(FATAL_ERROR "minizip header (minizip/zip.h) not found")
-    endif()
-
-    target_link_libraries(paozhu PRIVATE ${MINIZIP_LIBRARY})
-    target_include_directories(paozhu PRIVATE ${MINIZIP_INCLUDE_DIR})
-    message(STATUS "Found minizip: ${MINIZIP_LIBRARY} (include: ${MINIZIP_INCLUDE_DIR})")
-  endif()
+  
 
   # Brotli
   find_library(BROTLI_ENC brotlienc
