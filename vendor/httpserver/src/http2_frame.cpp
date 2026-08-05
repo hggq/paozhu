@@ -149,13 +149,13 @@ bool make_http2_headers_static(std::string &hh_data, unsigned int hh_code)
     switch (hh_code)
     {
     case 200:
-        hh_data.push_back(0x88);
+        hh_data.push_back((char)0x88);
         break;
     case 204:
-        hh_data.push_back(0x89);
+        hh_data.push_back((char)0x89);
         break;
     case 206:
-        hh_data.push_back(0x8A);
+        hh_data.push_back((char)0x8A);
         break;
     case 302:
         hh_data.push_back(0x48);
@@ -165,10 +165,10 @@ bool make_http2_headers_static(std::string &hh_data, unsigned int hh_code)
         hh_data.push_back(0x32);
         break;
     case 304:
-        hh_data.push_back(0x8B);
+        hh_data.push_back((char)0x8B);
         break;
     case 400:
-        hh_data.push_back(0x8C);
+        hh_data.push_back((char)0x8C);
         break;
     case 403:
         hh_data.push_back(0x48);
@@ -178,13 +178,13 @@ bool make_http2_headers_static(std::string &hh_data, unsigned int hh_code)
         hh_data.push_back(0x33);
         break;    
     case 404:
-        hh_data.push_back(0x8D);
+        hh_data.push_back((char)0x8D);
         break;
     case 500:
-        hh_data.push_back(0x8E);
+        hh_data.push_back((char)0x8E);
         break;
     default:
-        hh_data.push_back(0x88);
+        hh_data.push_back((char)0x88);
         return false;
     }
 
@@ -204,7 +204,7 @@ bool make_http2_headers_item(std::string &hh_data, unsigned char hh_code, const 
     if (en_value.size() > 0x7F)
     {
         unsigned int totalsize = en_value.size() - 0x7F;
-        hh_data.push_back(0xFF);
+        hh_data.push_back((char)0xFF);
         if (totalsize > 127)
         {
             unsigned char temp    = totalsize / 128;
@@ -237,7 +237,7 @@ bool make_http2_headers_item2(std::string &hh_data, const std::string &key, cons
     if (en_value.size() > 0x7F)
     {
         unsigned int totalsize = en_value.size() - 0x7F;
-        hh_data.push_back(0xFF);
+        hh_data.push_back((char)0xFF);
         if (totalsize > 127)
         {
             unsigned char temp    = totalsize / 128;
@@ -263,7 +263,7 @@ bool make_http2_headers_item2(std::string &hh_data, const std::string &key, cons
     if (en_value.size() > 0x7F)
     {
         unsigned int totalsize = en_value.size() - 0x7F;
-        hh_data.push_back(0xFF);
+        hh_data.push_back((char)0xFF);
         if (totalsize > 127)
         {
             unsigned char temp    = totalsize / 128;
@@ -302,7 +302,7 @@ bool make_http2_headers_item2(std::string &hh_data, unsigned char hh_code, const
     if (en_value.size() > 0x7F)
     {
         unsigned int totalsize = en_value.size() - 0x7F;
-        hh_data.push_back(0xFF);
+        hh_data.push_back((char)0xFF);
         if (totalsize > 127)
         {
             unsigned char temp    = totalsize / 128;
@@ -357,7 +357,7 @@ bool make_http2_headers_item3(std::string &hh_data, const std::string &key, cons
     if (en_value.size() > 0x7F)
     {
         unsigned int totalsize = en_value.size() - 0x7F;
-        hh_data.push_back(0xFF);
+        hh_data.push_back((char)0xFF);
         if (totalsize > 127)
         {
             unsigned char temp    = totalsize / 128;
@@ -382,7 +382,7 @@ bool make_http2_headers_item3(std::string &hh_data, const std::string &key, cons
     if (en_value.size() > 0x7F)
     {
         unsigned int totalsize = en_value.size() - 0x7F;
-        hh_data.push_back(0xFF);
+        hh_data.push_back((char)0xFF);
         if (totalsize > 127)
         {
             unsigned char temp    = totalsize / 128;
@@ -421,7 +421,7 @@ bool make_http2_headers_item3(std::string &hh_data, unsigned char hh_code, const
     if (en_value.size() > 0x7F)
     {
         unsigned int totalsize = en_value.size() - 0x7F;
-        hh_data.push_back(0xFF);
+        hh_data.push_back((char)0xFF);
         if (totalsize > 127)
         {
             unsigned char temp    = totalsize / 128;
@@ -482,7 +482,7 @@ bool make_http2_headers_item4(std::string &hh_data, unsigned char hh_code, const
     if (en_value.size() > 0x7F)
     {
         unsigned int totalsize = en_value.size() - 0x7F;
-        hh_data.push_back(0xFF);
+        hh_data.push_back((char)0xFF);
         if (totalsize > 127)
         {
             unsigned char temp    = totalsize / 128;
@@ -536,7 +536,7 @@ bool make_http2_headers_item4(std::string &hh_data, const std::string &key, cons
     if (en_value.size() > 0x7F)
     {
         unsigned int totalsize = en_value.size() - 0x7F;
-        hh_data.push_back(0xFF);
+        hh_data.push_back((char)0xFF);
         if (totalsize > 127)
         {
             unsigned char temp    = totalsize / 128;
@@ -561,7 +561,7 @@ bool make_http2_headers_item4(std::string &hh_data, const std::string &key, cons
     if (en_value.size() > 0x7F)
     {
         unsigned int totalsize = en_value.size() - 0x7F;
-        hh_data.push_back(0xFF);
+        hh_data.push_back((char)0xFF);
         if (totalsize > 127)
         {
             unsigned char temp    = totalsize / 128;

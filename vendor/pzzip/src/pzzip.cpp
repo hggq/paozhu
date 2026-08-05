@@ -7,6 +7,7 @@
 #include <iostream>
 #include <sstream>
 #include <filesystem>
+#include <string_view>
 
 // ==================== ZIP 格式常量 ====================
 static const uint32_t LOCAL_FILE_HEADER_SIG   = 0x04034b50;
@@ -76,6 +77,7 @@ zip::~zip() {
 std::string zip::safe_filename(const std::string& path) {
     // 1. 将 "\" 统一转为 "/"，过滤危险字符，截断 null 字节
     std::string s;
+    s.reserve(path.size());
     for (char c : path) {
         if (c == '\0') break;
         if (c == '\\') { s += '/'; continue; }
@@ -89,17 +91,19 @@ std::string zip::safe_filename(const std::string& path) {
     // 2. 去掉开头的 "/"（拒绝绝对路径）
     size_t start = s.find_first_not_of('/');
     if (start == std::string::npos) return "unnamed";
-    s = s.substr(start);
+    std::string_view sv(s.data() + start, s.size() - start);
 
     // 3. 按 '/' 分割，拒绝包含 ".." 的路径组件（防目录穿越）
+    // 使用 string_view 避免 substr 分配
     std::string result;
+    result.reserve(sv.size());
     size_t pos = 0;
-    while (pos < s.size()) {
-        size_t slash = s.find('/', pos);
-        std::string comp = (slash == std::string::npos)
-                           ? s.substr(pos)
-                           : s.substr(pos, slash - pos);
-        if (comp.find("..") != std::string::npos) {
+    while (pos < sv.size()) {
+        size_t slash = sv.find('/', pos);
+        std::string_view comp = (slash == std::string_view::npos)
+                                ? sv.substr(pos)
+                                : sv.substr(pos, slash - pos);
+        if (comp.find("..") != std::string_view::npos) {
             // 任何包含 ".." 的组件均视为危险，直接拒绝
             return "unnamed";
         } else if (comp == "." || comp.empty()) {
@@ -108,7 +112,7 @@ std::string zip::safe_filename(const std::string& path) {
             if (!result.empty()) result += '/';
             result += comp;
         }
-        if (slash == std::string::npos) break;
+        if (slash == std::string_view::npos) break;
         pos = slash + 1;
     }
 
@@ -141,24 +145,31 @@ uint32_t zip::calc_crc32(const char* data, size_t len) {
 
 // ==================== 关闭 ====================
 void zip::close() {
-    if (is_write_mode_ && write_stream_.is_open()) {
-        // 先写入中央目录和 EOCD
-        if (!write_entries_.empty()) {
+    if (is_write_mode_) {
+        bool writable = is_memory_mode_ || write_stream_.is_open();
+        if (writable && !write_entries_.empty()) {
+            // 先写入中央目录和 EOCD
             write_central_directory();
             write_eocd();
         }
-        write_stream_.close();
+        if (write_stream_.is_open()) {
+            write_stream_.close();
+        }
     }
     if (read_stream_.is_open()) {
         read_stream_.close();
     }
     entries_.clear();
+    entry_index_.clear();
     write_entries_.clear();
     central_dir_offset_ = 0;
     total_entries_ = 0;
     central_dir_size_ = 0;
     central_dir_offset_in_file_ = 0;
     is_write_mode_ = false;
+    is_memory_mode_ = false;
+    buffer_.clear();
+    write_pos_ = 0;
     file_size_ = 0;
 }
 
@@ -181,33 +192,44 @@ bool zip::find_eocd() {
     file_size_ = static_cast<uint64_t>(fsize);
 
     // 在文件末尾 65535 + 22 字节内搜索 EOCD 签名
+    // 使用小块窗口逐次回退扫描，避免一次性分配 64KB+ 的缓冲区
     size_t search_size = std::min<size_t>(static_cast<size_t>(fsize), 65535 + 22);
-    std::vector<char> buf(search_size);
+    constexpr size_t kWindowSize = 4096 + 22;  // 每次读取一个窗口
+    char buf[kWindowSize];
 
-    read_stream_.seekg(-static_cast<long>(search_size), std::ios::end);
-    read_stream_.read(buf.data(), search_size);
-    if (!read_stream_.good() && !read_stream_.eof()) return false;
+    long remaining = static_cast<long>(search_size);
+    while (remaining >= 22) {
+        long chunk = std::min<long>(remaining, static_cast<long>(kWindowSize));
+        read_stream_.seekg(-chunk, std::ios::cur);
+        size_t read_bytes = static_cast<size_t>(chunk);
+        read_stream_.read(buf, read_bytes);
+        if (!read_stream_.good() && !read_stream_.eof()) return false;
 
-    // 从后往前搜索 EOCD 签名
-    for (long i = static_cast<long>(search_size) - 22; i >= 0; --i) {
-        uint32_t sig;
-        std::memcpy(&sig, &buf[i], sizeof(sig));  // 避免未对齐访问
-        if (sig == EOCD_SIG) {
-            EOCDRaw eocd;
-            std::memcpy(&eocd, &buf[i], sizeof(eocd));
-            total_entries_ = eocd.cd_entries_total;
-            central_dir_size_ = eocd.cd_size;
-            central_dir_offset_in_file_ = eocd.cd_offset;
+        // 从后往前搜索 EOCD 签名
+        long start = static_cast<long>(read_bytes) - 22;
+        for (long i = start; i >= 0; --i) {
+            uint32_t sig;
+            std::memcpy(&sig, &buf[i], sizeof(sig));  // 避免未对齐访问
+            if (sig == EOCD_SIG) {
+                EOCDRaw eocd;
+                std::memcpy(&eocd, &buf[i], sizeof(eocd));
+                total_entries_ = eocd.cd_entries_total;
+                central_dir_size_ = eocd.cd_size;
+                central_dir_offset_in_file_ = eocd.cd_offset;
 
-            // 校验中央目录偏移 + 大小不超出文件范围
-            uint64_t cd_end = static_cast<uint64_t>(central_dir_offset_in_file_)
-                            + static_cast<uint64_t>(central_dir_size_);
-            if (cd_end > file_size_) {
-                error_msg_ = "pzzip: 中央目录偏移/大小超出文件范围";
-                return false;
+                // 校验中央目录偏移 + 大小不超出文件范围
+                uint64_t cd_end = static_cast<uint64_t>(central_dir_offset_in_file_)
+                                + static_cast<uint64_t>(central_dir_size_);
+                if (cd_end > file_size_) {
+                    error_msg_ = "pzzip: 中央目录偏移/大小超出文件范围";
+                    return false;
+                }
+                return true;
             }
-            return true;
         }
+        // 回退搜索位置（保留 21 字节重叠区，防止 EOCD 签名跨窗口边界漏检）
+        read_stream_.seekg(-(static_cast<long>(read_bytes) - 21), std::ios::cur);
+        remaining -= static_cast<long>(read_bytes) - 21;
     }
     return false;
 }
@@ -263,6 +285,7 @@ bool zip::parse_central_directory() {
         if (!read_stream_) return false;
 
         entries_.push_back(std::move(entry));
+        entry_index_[entries_.back().filename] = entries_.size() - 1;
     }
     return true;
 }
@@ -303,13 +326,11 @@ std::vector<std::string> zip::files_list() const {
 bool zip::extract_file(const std::string& filename, const std::string& output_dir) {
     if (!read_stream_.is_open()) return false;
 
-    // 查找匹配的条目
+    // 查找匹配的条目（使用索引 O(1) 查找）
     const ZipEntry* entry = nullptr;
-    for (const auto& e : entries_) {
-        if (e.filename == filename) {
-            entry = &e;
-            break;
-        }
+    auto it = entry_index_.find(filename);
+    if (it != entry_index_.end() && it->second < entries_.size()) {
+        entry = &entries_[it->second];
     }
     if (!entry) {
         error_msg_ = "pzzip: 文件 " + filename + " 不在 ZIP 中";
@@ -324,19 +345,30 @@ bool zip::extract_file(const std::string& filename, const std::string& output_di
     {
         std::filesystem::path check_path(output_dir);
         std::filesystem::path rel(safe_name);
+        std::error_code sym_ec;
         for (const auto& part : rel.parent_path()) {
             check_path /= part;
-            if (std::filesystem::is_symlink(check_path)) {
+            if (std::filesystem::is_symlink(check_path, sym_ec)) {
                 error_msg_ = "pzzip: 路径包含符号链接，拒绝解压: " + check_path.string();
                 return false;
             }
         }
+        // 目标文件本身若是已存在的 symlink，拒绝覆盖（防借道写入任意文件）
+        if (std::filesystem::is_symlink(out_path, sym_ec)) {
+            error_msg_ = "pzzip: 目标文件是符号链接，拒绝解压: " + out_path;
+            return false;
+        }
     }
 
     // 确保输出目录存在
-    std::filesystem::create_directories(
-        std::filesystem::path(out_path).parent_path()
-    );
+    try {
+        std::filesystem::create_directories(
+            std::filesystem::path(out_path).parent_path()
+        );
+    } catch (const std::filesystem::filesystem_error& e) {
+        error_msg_ = std::string("pzzip: 创建输出目录失败: ") + e.what();
+        return false;
+    }
 
     // 读取本地文件头
     read_stream_.seekg(entry->local_header_offset, std::ios::beg);
@@ -380,31 +412,16 @@ bool zip::extract_file(const std::string& filename, const std::string& output_di
         return false;
     }
 
-    // 存储模式：直接复制
-    if (entry->compression_method == COMPRESSION_STORED) {
-        std::vector<char> data(comp_size);
-        read_stream_.read(data.data(), comp_size);
-        if (!read_stream_) {
-            error_msg_ = "pzzip: 读取存储数据失败";
-            return false;
-        }
-        std::ofstream out(out_path, std::ios::binary);
-        if (!out.is_open()) {
-            error_msg_ = "pzzip: 无法创建输出文件 " + out_path;
-            return false;
-        }
-        out.write(data.data(), data.size());
-        out.close();
-        return true;
-    }
-
-    if (entry->compression_method != COMPRESSION_DEFLATED) {
+    // 存储/DEFLATE 之外的压缩方法不支持
+    if (entry->compression_method != COMPRESSION_STORED &&
+        entry->compression_method != COMPRESSION_DEFLATED) {
         error_msg_ = "pzzip: 不支持的压缩方法 " + std::to_string(entry->compression_method);
         return false;
     }
 
-    // ========== 流式 DEFLATE 解压 ==========
+    // ========== 流式解压（stored 直接分块复制 / DEFLATE 走 inflate）==========
     static const size_t kChunkSize = 64 * 1024;  // 64KB
+    const bool need_inflate = (entry->compression_method == COMPRESSION_DEFLATED);
 
     std::ofstream out(out_path, std::ios::binary);
     if (!out.is_open()) {
@@ -413,7 +430,7 @@ bool zip::extract_file(const std::string& filename, const std::string& output_di
     }
 
     z_stream strm = {};
-    if (inflateInit2(&strm, -MAX_WBITS) != Z_OK) {
+    if (need_inflate && inflateInit2(&strm, -MAX_WBITS) != Z_OK) {
         error_msg_ = "pzzip: zlib inflateInit2 失败";
         return false;
     }
@@ -434,6 +451,24 @@ bool zip::extract_file(const std::string& filename, const std::string& output_di
             break;
         }
         remaining -= static_cast<uint32_t>(to_read);
+
+        if (!need_inflate) {
+            // 存储模式：分块直接写出（避免按 comp_size 一次性分配大缓冲区）
+            crc_val = crc32(crc_val, reinterpret_cast<const Bytef*>(in_buf.data()),
+                            static_cast<uInt>(to_read));
+            total_out += static_cast<uint64_t>(to_read);
+            if (total_out > static_cast<uint64_t>(max_uncompressed_size_)) {
+                error_msg_ = "pzzip: 文件 " + entry->filename + " 解压后大小超过上限";
+                success = false;
+                break;
+            }
+            out.write(in_buf.data(), to_read);
+            if (!out.good()) {
+                error_msg_ = "pzzip: 写入解压数据失败";
+                success = false;
+            }
+            continue;
+        }
 
         strm.avail_in = static_cast<uInt>(to_read);
         strm.next_in = reinterpret_cast<Bytef*>(in_buf.data());
@@ -475,7 +510,9 @@ bool zip::extract_file(const std::string& filename, const std::string& output_di
         if (!success) break;
     }
 
-    inflateEnd(&strm);
+    if (need_inflate) {
+        inflateEnd(&strm);
+    }
     out.close();
 
     if (!success) {
@@ -537,11 +574,9 @@ bool zip::read_file_to_vector(const std::string& filename, std::vector<unsigned 
     }
 
     const ZipEntry* entry = nullptr;
-    for (const auto& e : entries_) {
-        if (e.filename == filename) {
-            entry = &e;
-            break;
-        }
+    auto it = entry_index_.find(filename);
+    if (it != entry_index_.end() && it->second < entries_.size()) {
+        entry = &entries_[it->second];
     }
     if (!entry) {
         error_msg_ = "pzzip: 文件 " + filename + " 不在 ZIP 中";
@@ -570,12 +605,27 @@ bool zip::read_file_to_vector(const std::string& filename, std::vector<unsigned 
     uint32_t comp_size = entry->compressed_size;
     uint32_t uncomp_size = entry->uncompressed_size;
 
+    // 检查压缩数据不超出文件范围
+    uint64_t data_end = static_cast<uint64_t>(entry->local_header_offset)
+                      + sizeof(LocalFileHeaderRaw)
+                      + local.filename_length + local.extra_field_length
+                      + comp_size;
+    if (data_end > file_size_) {
+        error_msg_ = "pzzip: 文件 " + entry->filename + " 压缩数据越界";
+        return false;
+    }
+
     if (uncomp_size > max_uncompressed_size_) {
         error_msg_ = "pzzip: 文件 " + entry->filename + " 解压后大小超过上限";
         return false;
     }
 
     if (entry->compression_method == COMPRESSION_STORED) {
+        // stored 模式压缩大小应等于原始大小，防伪造头导致超大分配
+        if (comp_size != uncomp_size) {
+            error_msg_ = "pzzip: 文件 " + entry->filename + " stored 条目大小不一致";
+            return false;
+        }
         out.resize(comp_size);
         read_stream_.read(reinterpret_cast<char*>(out.data()), comp_size);
         if (!read_stream_) {
@@ -596,6 +646,7 @@ bool zip::read_file_to_vector(const std::string& filename, std::vector<unsigned 
     std::vector<char> out_buf(kChunkSize);
     uint64_t total_out = 0;
     uint32_t remaining = comp_size;
+    out.reserve(uncomp_size);  // 已知上限（受 max_uncompressed_size_ 约束），避免反复重分配
 
     z_stream strm = {};
     if (inflateInit2(&strm, -MAX_WBITS) != Z_OK) {
@@ -660,6 +711,37 @@ bool zip::read_file_to_vector(const std::string& filename, std::vector<unsigned 
 
 // ==================== 创建 ZIP ====================
 
+// 统一写出助手（新增）：内存模式追加到 buffer_，文件模式写 write_stream_
+bool zip::append_(const void* data, size_t len) {
+    if (len == 0) return true;
+    // 非 ZIP64 格式单文件 4GB 上限，防 write_pos_ 32 位回绕产生损坏文件
+    if (static_cast<uint64_t>(write_pos_) + len > UINT32_MAX) {
+        error_msg_ = "pzzip: 输出超过 4GB 限制（不支持 ZIP64）";
+        return false;
+    }
+    if (is_memory_mode_) {
+        buffer_.append(reinterpret_cast<const char*>(data), len);
+        write_pos_ = static_cast<uint32_t>(buffer_.size());
+        return true;
+    }
+    write_stream_.write(reinterpret_cast<const char*>(data), len);
+    if (!write_stream_.good()) return false;
+    // 同步写出位置（等价于 tellp），供 header_offset / central_dir_offset_ 使用
+    write_pos_ = static_cast<uint32_t>(write_stream_.tellp());
+    return true;
+}
+
+bool zip::can_write_() const {
+    return is_write_mode_ && (is_memory_mode_ || write_stream_.is_open());
+}
+
+void zip::begin_write_mode_() {
+    is_write_mode_ = true;
+    write_entries_.clear();
+    central_dir_offset_ = 0;
+    write_pos_ = 0;
+}
+
 bool zip::create_zipfile(const std::string& filename) {
     close();
 
@@ -669,10 +751,48 @@ bool zip::create_zipfile(const std::string& filename) {
         return false;
     }
 
-    is_write_mode_ = true;
-    write_entries_.clear();
-    central_dir_offset_ = 0;
+    is_memory_mode_ = false;
+    begin_write_mode_();
     return true;
+}
+
+// 创建内存 ZIP 输出（新增，不落磁盘）
+bool zip::create_zipbuffer() {
+    close();
+
+    buffer_.clear();
+    is_memory_mode_ = true;
+    begin_write_mode_();
+    return true;
+}
+
+// 结束写入并取回完整 ZIP 字节流（新增）
+std::string zip::write_to_buffer() {
+    if (!is_write_mode_ || !is_memory_mode_) {
+        error_msg_ = "pzzip: 请先调用 create_zipbuffer 创建内存 ZIP";
+        return std::string();
+    }
+
+    if (write_entries_.empty()) {
+        error_msg_ = "pzzip: 无条目可输出";
+        return std::string();
+    }
+
+    if (!write_central_directory() || !write_eocd()) {
+        if (error_msg_.empty()) {
+            error_msg_ = "pzzip: 写入中央目录/EOCD 失败";
+        }
+        buffer_.clear();
+        is_memory_mode_ = false;
+        close();
+        return std::string();
+    }
+
+    // 先取走字节流；退出内存模式后再 close() 清理状态，避免 close() 重复写中央目录
+    std::string result = std::move(buffer_);
+    is_memory_mode_ = false;
+    close();
+    return result;
 }
 
 bool zip::write_local_header(const std::string& zip_name, uint32_t uncompressed_size,
@@ -691,18 +811,28 @@ bool zip::write_local_header(const std::string& zip_name, uint32_t uncompressed_
     local.crc32 = use_data_descriptor ? 0 : crc;
     local.compressed_size = use_data_descriptor ? 0 : compressed_size;
     local.uncompressed_size = use_data_descriptor ? 0 : uncompressed_size;
+    if (zip_name.size() > 256) {
+        error_msg_ = "pzzip: 文件名超过256字符限制: " + zip_name;
+        return false;
+    }
     local.filename_length = static_cast<uint16_t>(zip_name.size());
     local.extra_field_length = 0;
 
-    write_stream_.write(reinterpret_cast<const char*>(&local), sizeof(local));
-    write_stream_.write(zip_name.data(), zip_name.size());
-
-    return write_stream_.good();
+    if (!append_(&local, sizeof(local))) return false;
+    if (!append_(zip_name.data(), zip_name.size())) {
+        error_msg_ = "pzzip: 写入本地文件头失败";
+        return false;
+    }
+    return true;
 }
 
 bool zip::add_file(const std::string& filepath, const std::string& stored_name, bool streaming) {
-    if (!is_write_mode_ || !write_stream_.is_open()) {
-        error_msg_ = "pzzip: 请先调用 create_zipfile 创建 ZIP 文件";
+    if (!can_write_()) {
+        error_msg_ = "pzzip: 请先调用 create_zipfile / create_zipbuffer 创建 ZIP";
+        return false;
+    }
+    if (write_entries_.size() >= kMaxEntries) {
+        error_msg_ = "pzzip: ZIP 条目数超过上限 " + std::to_string(kMaxEntries);
         return false;
     }
 
@@ -728,9 +858,15 @@ bool zip::add_file(const std::string& filepath, const std::string& stored_name, 
     size_t file_size = static_cast<size_t>(src.tellg());
     src.seekg(0, std::ios::beg);
 
+    // ZIP 格式不支持 ZIP64, 文件大小不超过 4GB
+    if (file_size > UINT32_MAX) {
+        error_msg_ = "pzzip: 文件大小超过 4GB 限制: " + filepath;
+        return false;
+    }
+
     uint32_t crc = 0;
     uint32_t compressed_size = 0;
-    uint32_t header_offset = static_cast<uint32_t>(write_stream_.tellp());
+    uint32_t header_offset = write_pos_;
 
     // 文件超过阈值时自动切换为流式压缩，防止内存耗尽
     if (!streaming && file_size > kMemoryCompressThreshold) {
@@ -767,14 +903,18 @@ bool zip::add_file(const std::string& filepath, const std::string& stored_name, 
             return false;
         }
 
+        if (strm.total_out > UINT32_MAX) {
+            error_msg_ = "pzzip: 压缩后大小超过 4GB 限制: " + filepath;
+            deflateEnd(&strm);
+            return false;
+        }
         compressed_size = static_cast<uint32_t>(strm.total_out);
         deflateEnd(&strm);
 
         if (!write_local_header(zip_name, static_cast<uint32_t>(file_size), crc, compressed_size)) {
             return false;
         }
-        write_stream_.write(compressed.data(), compressed_size);
-        if (!write_stream_.good()) {
+        if (!append_(compressed.data(), compressed_size)) {
             error_msg_ = "pzzip: 写入文件失败";
             return false;
         }
@@ -825,8 +965,7 @@ bool zip::add_file(const std::string& filepath, const std::string& stored_name, 
                 }
 
                 size_t have = kChunkSize - strm.avail_out;
-                write_stream_.write(out_buf.data(), have);
-                if (!write_stream_.good()) {
+                if (!append_(out_buf.data(), have)) {
                     error_msg_ = "pzzip: 写入压缩数据失败";
                     success = false;
                     break;
@@ -856,8 +995,7 @@ bool zip::add_file(const std::string& filepath, const std::string& stored_name, 
                 }
                 size_t have = kChunkSize - strm.avail_out;
                 if (have > 0) {
-                    write_stream_.write(out_buf.data(), have);
-                    if (!write_stream_.good()) {
+                    if (!append_(out_buf.data(), have)) {
                         error_msg_ = "pzzip: 写入压缩数据失败";
                         success = false;
                         break;
@@ -867,6 +1005,11 @@ bool zip::add_file(const std::string& filepath, const std::string& stored_name, 
         }
 
         crc = crc_val;
+        if (strm.total_out > UINT32_MAX) {
+            error_msg_ = "pzzip: 流式压缩后大小超过 4GB 限制: " + filepath;
+            deflateEnd(&strm);
+            return false;
+        }
         compressed_size = static_cast<uint32_t>(strm.total_out);
         deflateEnd(&strm);
         src.close();
@@ -876,11 +1019,8 @@ bool zip::add_file(const std::string& filepath, const std::string& stored_name, 
         // 写入数据描述符（CRC32 + compressed_size + uncompressed_size）
         static const uint32_t kDataDescriptorSig = 0x08074b50;
         uint32_t uncompressed_size32 = static_cast<uint32_t>(file_size);
-        write_stream_.write(reinterpret_cast<const char*>(&kDataDescriptorSig), 4);
-        write_stream_.write(reinterpret_cast<const char*>(&crc), 4);
-        write_stream_.write(reinterpret_cast<const char*>(&compressed_size), 4);
-        write_stream_.write(reinterpret_cast<const char*>(&uncompressed_size32), 4);
-        if (!write_stream_.good()) {
+        if (!append_(&kDataDescriptorSig, 4) || !append_(&crc, 4) ||
+            !append_(&compressed_size, 4) || !append_(&uncompressed_size32, 4)) {
             error_msg_ = "pzzip: 写入数据描述符失败";
             return false;
         }
@@ -897,7 +1037,7 @@ bool zip::add_file(const std::string& filepath, const std::string& stored_name, 
     entry.local_header_offset = header_offset;
     write_entries_.push_back(std::move(entry));
 
-    central_dir_offset_ = static_cast<uint32_t>(write_stream_.tellp());
+    central_dir_offset_ = write_pos_;
     return true;
 }
 
@@ -906,8 +1046,17 @@ bool zip::add_file_from_string(const std::string& zip_name, const std::string& c
 }
 
 bool zip::add_file_from_memory(const std::string& zip_name, const char* data, size_t len) {
-    if (!is_write_mode_ || !write_stream_.is_open()) {
-        error_msg_ = "pzzip: 请先调用 create_zipfile 创建 ZIP 文件";
+    if (!can_write_()) {
+        error_msg_ = "pzzip: 请先调用 create_zipfile / create_zipbuffer 创建 ZIP";
+        return false;
+    }
+    if (write_entries_.size() >= kMaxEntries) {
+        error_msg_ = "pzzip: ZIP 条目数超过上限 " + std::to_string(kMaxEntries);
+        return false;
+    }
+    // 非 ZIP64 格式 4GB 限制，须在 calc_crc32（uInt 参数）之前拦截
+    if (len > UINT32_MAX) {
+        error_msg_ = "pzzip: 数据大小超过 4GB 限制";
         return false;
     }
 
@@ -916,10 +1065,15 @@ bool zip::add_file_from_memory(const std::string& zip_name, const char* data, si
 
     uint32_t crc = calc_crc32(data, len);
     uint32_t compressed_size = 0;
-    uint32_t header_offset = static_cast<uint32_t>(write_stream_.tellp());
+    uint32_t header_offset = write_pos_;
 
     if (len == 0) {
-        write_local_header(safe_name, 0, 0, 0);
+        if (!write_local_header(safe_name, 0, 0, 0)) {
+            if (error_msg_.empty()) {
+                error_msg_ = "pzzip: 写入本地文件头失败";
+            }
+            return false;
+        }
         ZipEntry entry;
         entry.filename = safe_name;
         entry.compression_method = COMPRESSION_DEFLATED;
@@ -929,7 +1083,7 @@ bool zip::add_file_from_memory(const std::string& zip_name, const char* data, si
         entry.uncompressed_size = 0;
         entry.local_header_offset = header_offset;
         write_entries_.push_back(std::move(entry));
-        central_dir_offset_ = static_cast<uint32_t>(write_stream_.tellp());
+        central_dir_offset_ = write_pos_;
         return true;
     }
 
@@ -966,8 +1120,7 @@ bool zip::add_file_from_memory(const std::string& zip_name, const char* data, si
     if (!write_local_header(safe_name, static_cast<uint32_t>(len), crc, compressed_size)) {
         return false;
     }
-    write_stream_.write(compressed.data(), compressed_size);
-    if (!write_stream_.good()) {
+    if (!append_(compressed.data(), compressed_size)) {
         error_msg_ = "pzzip: 写入文件失败";
         return false;
     }
@@ -982,16 +1135,21 @@ bool zip::add_file_from_memory(const std::string& zip_name, const char* data, si
     entry.local_header_offset = header_offset;
     write_entries_.push_back(std::move(entry));
 
-    central_dir_offset_ = static_cast<uint32_t>(write_stream_.tellp());
+    central_dir_offset_ = write_pos_;
     return true;
 }
 
 bool zip::write_central_directory() {
-    write_stream_.seekp(central_dir_offset_, std::ios::beg);
+    // 顺序追加写出：文件模式 seek 到记录位置，内存模式 write_pos_ 恰好等于 central_dir_offset_
+    if (!is_memory_mode_) {
+        write_stream_.seekp(central_dir_offset_, std::ios::beg);
+    }
+
+    // 中央目录所有条目使用同一时间戳，循环外调用一次即可
+    uint16_t mod_time, mod_date;
+    msdos_time(mod_time, mod_date);
 
     for (const auto& entry : write_entries_) {
-        uint16_t mod_time, mod_date;
-        msdos_time(mod_time, mod_date);
 
         CentralDirEntryRaw cd = {};
         cd.signature = CENTRAL_DIR_SIG;
@@ -1004,6 +1162,10 @@ bool zip::write_central_directory() {
         cd.crc32 = entry.crc32;
         cd.compressed_size = entry.compressed_size;
         cd.uncompressed_size = entry.uncompressed_size;
+        if (entry.filename.size() > 256) {
+            error_msg_ = "pzzip: 文件名超过256字符限制: " + entry.filename;
+            return false;
+        }
         cd.filename_length = static_cast<uint16_t>(entry.filename.size());
         cd.extra_field_length = 0;
         cd.file_comment_length = 0;
@@ -1012,16 +1174,18 @@ bool zip::write_central_directory() {
         cd.external_attrs = 0;
         cd.local_header_offset = entry.local_header_offset;
 
-        write_stream_.write(reinterpret_cast<const char*>(&cd), sizeof(cd));
-        write_stream_.write(entry.filename.data(), entry.filename.size());
+        if (!append_(&cd, sizeof(cd)) || !append_(entry.filename.data(), entry.filename.size())) {
+            error_msg_ = "pzzip: 写入中央目录失败";
+            return false;
+        }
     }
 
-    return write_stream_.good();
+    return true;
 }
 
 bool zip::write_eocd() {
     uint32_t cd_start = central_dir_offset_;
-    uint32_t cd_end = static_cast<uint32_t>(write_stream_.tellp());
+    uint32_t cd_end = write_pos_;
     uint32_t cd_size = cd_end - cd_start;
 
     EOCDRaw eocd = {};
@@ -1034,8 +1198,11 @@ bool zip::write_eocd() {
     eocd.cd_offset = cd_start;
     eocd.comment_length = 0;
 
-    write_stream_.write(reinterpret_cast<const char*>(&eocd), sizeof(eocd));
-    return write_stream_.good();
+    if (!append_(&eocd, sizeof(eocd))) {
+        error_msg_ = "pzzip: 写入 EOCD 失败";
+        return false;
+    }
+    return true;
 }
 
 } // namespace pz

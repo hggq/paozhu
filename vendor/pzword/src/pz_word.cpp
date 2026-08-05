@@ -495,6 +495,7 @@ void word::parse_paragraph_properties(const std::string &content, size_t begin, 
                 if(val[di] >= '0' && val[di] <= '9')
                 {
                     level = level * 10 + (val[di] - '0');
+                    if(level > 100) { valid = false; break; }  // 防无符号回绕绕过级别上限检查
                 }
                 else if(val[di] != ' ')
                 {
@@ -619,8 +620,9 @@ void word::parse_run(const std::string &content, size_t begin, size_t end, WORD_
                             {
                                 std::string cx = get_tag_attr(content, ext, "cx");
                                 std::string cy = get_tag_attr(content, ext, "cy");
-                                for(char c : cx) if(c >= '0' && c <= '9') img.width_emu = img.width_emu * 10 + (c - '0');
-                                for(char c : cy) if(c >= '0' && c <= '9') img.height_emu = img.height_emu * 10 + (c - '0');
+                                // 带上限累加，防恶意超长数字导致 int 有符号溢出
+                                for(char c : cx) if(c >= '0' && c <= '9' && img.width_emu < 100000000) img.width_emu = img.width_emu * 10 + (c - '0');
+                                for(char c : cy) if(c >= '0' && c <= '9' && img.height_emu < 100000000) img.height_emu = img.height_emu * 10 + (c - '0');
                             }
                         }
                     }
@@ -663,11 +665,28 @@ void word::parse_table(const std::string &content, size_t begin, size_t end, WOR
                 {
                     std::string val = get_tag_attr(content, prop, "w:w");
                     std::string type = get_tag_attr(content, prop, "w:type");
+                    // std::stoul 遇非法输入/超范围会抛异常，捕获后置 0
                     unsigned int w = 0;
-                    for(char c : val) if(c >= '0' && c <= '9') w = w * 10 + (c - '0');
-                    // dxa 转 px（1px ≈ 15dxa），pct 是百分比（按 5000 = 100%），auto 忽略
+                    try
+                    {
+                        w = static_cast<unsigned int>(std::stoul(val));
+                    }
+                    catch(...)
+                    {
+                        w = 0;
+                    }
+                    // dxa 转 px（1px ≈ 15dxa），pct 是百分比（5000 = 100%），auto 忽略
                     if(type == "dxa" && w > 0) table.width = w / 15;
-                    else if(type == "pct") table.width = w * 0; // 百分比暂不处理，设 0 表示 auto
+                    else if(type == "pct" && w > 0)
+                    {
+                        table.width_pct = w / 50;
+                        if(table.width_pct > 100) table.width_pct = 100;
+                    }
+                }
+                else if(prop.name == "w:jc")
+                {
+                    std::string v = get_tag_attr(content, prop, "w:val");
+                    if(v == "left" || v == "center" || v == "right") table.align = v;
                 }
                 else if(prop.name == "w:tblStyle")
                 {
@@ -981,6 +1000,7 @@ bool word::read(const std::string &zipfilename)
     std::string rels_xml;
     std::map<std::string, std::vector<unsigned char>> image_datas;
     size_t zip_entry_count = 0;
+    size_t total_image_bytes = 0;  // 图片数据总量，防海量条目撑爆内存
 
     for (const auto &tempname : file_list) {
         if (zip_entry_count >= MAX_ZIP_ENTRIES) break;
@@ -1009,7 +1029,11 @@ bool word::read(const std::string &zipfilename)
         else if (tempname.size() > 10 && tempname.compare(0, 10, "word/media") == 0) {
             std::vector<unsigned char> img_data;
             if (zf.read_file_to_vector(tempname, img_data)) {
-                image_datas[tempname] = std::move(img_data);
+                // 超出图片总量上限的条目直接丢弃，不中断解析
+                if (total_image_bytes + img_data.size() <= MAX_TOTAL_IMAGE_SIZE) {
+                    total_image_bytes += img_data.size();
+                    image_datas[tempname] = std::move(img_data);
+                }
             }
         }
     }
@@ -1045,6 +1069,8 @@ bool word::read(const std::string &zipfilename)
                 std::string rId = get_tag_attr(rels_xml, rel, "Id");
                 std::string target = get_tag_attr(rels_xml, rel, "Target");
                 if(rId.empty() || target.empty()) continue;
+                // 防止路径穿越攻击
+                if(target.find("..") != std::string::npos || target[0] == '/') continue;
                 std::string full_target = "word/" + target;
                 image_rels_[rId] = full_target;
             }
@@ -1062,7 +1088,14 @@ bool word::read_from_unzipped(const std::string &base_path)
     clear();
     error_msg.clear();
     
-    std::string dir = base_path;
+    // 规范化路径，防止路径穿越攻击
+    std::string dir;
+    try {
+        dir = std::filesystem::weakly_canonical(base_path).string();
+    } catch (const std::filesystem::filesystem_error&) {
+        error_msg = "Error: Invalid base path for read_from_unzipped";
+        return false;
+    }
     if(!dir.empty() && dir.back() != '/')
     {
         dir += "/";
@@ -1131,7 +1164,8 @@ std::string word::parse_drawing_rid(const std::string &content, size_t begin, si
     
     std::string result;
     const char *p = rid + 9;
-    while(p < endp && *p != '"' && *p != '\'')
+    // rId 长度上限 256，防恶意文档用超大属性值撑爆内存
+    while(p < endp && *p != '"' && *p != '\'' && result.size() < 256)
     {
         result += *p;
         p++;
@@ -1356,7 +1390,10 @@ std::string word::to_html() const
             const auto &table = content.table;
             
             html += "<table style=\"border-collapse: collapse;";
-            if(table.width > 0) html += "width:" + std::to_string(table.width) + "px;";
+            if(table.width_pct > 0) html += "width:" + std::to_string(table.width_pct) + "%;";
+            else if(table.width > 0) html += "width:" + std::to_string(table.width) + "px;";
+            if(table.align == "center") html += "margin:0 auto;";
+            else if(table.align == "right") html += "margin-left:auto;";
             if(table.border_size > 0)
             {
                 html += "border:" + std::to_string(table.border_size) + "px solid ";
@@ -1448,7 +1485,7 @@ std::string word::to_html_with_images(const std::string &output_dir) const
     {
         if(item.type == WORD_CONTENT_TYPE::PARAGRAPH)
         {
-            WORD_PARAGRAPH para = item.paragraph;
+            const WORD_PARAGRAPH &para = item.paragraph;  // 引用即可，避免深拷贝（含图片向量）
             
             // 标题和列表标签
             std::string tag_name = "p";
@@ -1497,7 +1534,10 @@ std::string word::to_html_with_images(const std::string &output_dir) const
         {
             const WORD_TABLE &table = item.table;
             html += "<table style=\"border-collapse: collapse;";
-            if(table.width > 0) html += "width:" + std::to_string(table.width) + "px;";
+            if(table.width_pct > 0) html += "width:" + std::to_string(table.width_pct) + "%;";
+            else if(table.width > 0) html += "width:" + std::to_string(table.width) + "px;";
+            if(table.align == "center") html += "margin:0 auto;";
+            else if(table.align == "right") html += "margin-left:auto;";
             if(table.border_size > 0)
             {
                 html += "border:" + std::to_string(table.border_size) + "px solid ";
@@ -1628,9 +1668,17 @@ static std::string html_decode(const std::string &s)
                         result += static_cast<char>(0xC0 | (codepoint >> 6));
                         result += static_cast<char>(0x80 | (codepoint & 0x3F));
                     }
-                    else
+                    else if(codepoint < 0x10000)
                     {
                         result += static_cast<char>(0xE0 | (codepoint >> 12));
+                        result += static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
+                        result += static_cast<char>(0x80 | (codepoint & 0x3F));
+                    }
+                    else
+                    {
+                        // 增补平面码点需 4 字节 UTF-8
+                        result += static_cast<char>(0xF0 | (codepoint >> 18));
+                        result += static_cast<char>(0x80 | ((codepoint >> 12) & 0x3F));
                         result += static_cast<char>(0x80 | ((codepoint >> 6) & 0x3F));
                         result += static_cast<char>(0x80 | (codepoint & 0x3F));
                     }
@@ -1732,9 +1780,18 @@ unsigned int word::parse_css_px(const std::string &val)
     if(val.empty()) return 0;
     size_t px = val.find("px");
     if(px == std::string::npos) return 0;
+    // std::stoul 遇非法输入抛 std::invalid_argument、超范围抛 std::out_of_range，捕获后置 0
     unsigned int result = 0;
-    for(size_t i = 0; i < px; i++)
-        if(val[i] >= '0' && val[i] <= '9') result = result * 10 + (val[i] - '0');
+    try
+    {
+        result = static_cast<unsigned int>(std::stoul(val.substr(0, px)));
+    }
+    catch(...)
+    {
+        result = 0;
+    }
+    // 限幅，防止后续乘 EMU/twips 换算时整型溢出
+    if(result > 10000000) result = 10000000;
     return result;
 }
 
@@ -1860,14 +1917,25 @@ void word::parse_html_paragraph_style(const std::string &style_str, WORD_PARAGRA
             // 单位处理：px → 数字；pt → px(×4/3) 近似；纯数字/百分比/em 忽略
             if(!val.empty())
             {
-                if(val.size() >= 2 && val.substr(val.size() - 2) == "px")
+                if(val.size() >= 2 && val.compare(val.size() - 2, 2, "px") == 0)
                 {
-                    para.line_height = (unsigned int)std::stoul(val.substr(0, val.size() - 2));
+                    para.line_height = parse_css_px(val);
                 }
-                else if(val.size() >= 2 && val.substr(val.size() - 2) == "pt")
+                else if(val.size() >= 2 && val.compare(val.size() - 2, 2, "pt") == 0)
                 {
                     // pt → px 近似（dpi 96）：1pt ≈ 4/3 px
-                    para.line_height = (unsigned int)(std::stod(val.substr(0, val.size() - 2)) * 4.0 / 3.0);
+                    // std::stoul 遇非法输入/超范围会抛异常，捕获后置 0
+                    unsigned int pt = 0;
+                    try
+                    {
+                        pt = static_cast<unsigned int>(std::stoul(val.substr(0, val.size() - 2)));
+                    }
+                    catch(...)
+                    {
+                        pt = 0;
+                    }
+                    if(pt > 1000000) pt = 1000000;
+                    para.line_height = (pt * 4 + 2) / 3;
                 }
             }
         }
@@ -2395,7 +2463,29 @@ void word::parse_html_table(const std::string &content, size_t begin, size_t end
 
             if(prop == "width")
             {
-                table.width = parse_css_px(val);
+                if(!val.empty() && val.back() == '%')
+                {
+                    // 百分比宽度，std::stoul 遇非法输入/超范围抛异常，捕获后置 0
+                    unsigned int pct = 0;
+                    try
+                    {
+                        pct = static_cast<unsigned int>(std::stoul(val));
+                    }
+                    catch(...)
+                    {
+                        pct = 0;
+                    }
+                    if(pct > 0 && pct <= 100) table.width_pct = pct;
+                }
+                else
+                {
+                    table.width = parse_css_px(val);
+                }
+            }
+            else if(prop == "margin" || prop == "margin-left" || prop == "margin-right")
+            {
+                // margin: 0 auto 等 → 表格居中
+                if(val.find("auto") != std::string::npos) table.align = "center";
             }
             else if(prop == "border")
             {
@@ -2425,6 +2515,44 @@ void word::parse_html_table(const std::string &content, size_t begin, size_t end
                 else table.border_color = val;
             }
         }
+    }
+
+    // <table width="80%"> / width="600" / align="center" 属性
+    {
+        std::string wattr = get_html_attr(table_attrs, "width");
+        if(!wattr.empty())
+        {
+            if(wattr.back() == '%')
+            {
+                unsigned int pct = 0;
+                try
+                {
+                    pct = static_cast<unsigned int>(std::stoul(wattr));
+                }
+                catch(...)
+                {
+                    pct = 0;
+                }
+                if(pct > 0 && pct <= 100) table.width_pct = pct;
+            }
+            else if(table.width == 0 && table.width_pct == 0)
+            {
+                // 纯数字属性视为 px
+                unsigned int v = 0;
+                try
+                {
+                    v = static_cast<unsigned int>(std::stoul(wattr));
+                }
+                catch(...)
+                {
+                    v = 0;
+                }
+                if(v > 0) table.width = v;
+            }
+        }
+        std::string aattr = get_html_attr(table_attrs, "align");
+        if(table.align.empty() && (aattr == "left" || aattr == "center" || aattr == "right"))
+            table.align = aattr;
     }
 
     // 解析 colgroup → 恢复 col_widths（px → dxa）
@@ -2721,6 +2849,12 @@ bool word::read_html(const std::string &html_file)
     size_t slash = html_file.find_last_of("/\\");
     html_base_dir = (slash != std::string::npos) ? html_file.substr(0, slash) : ".";
 
+    return parse_html_string(html_content);
+}
+
+// 解析内存中的完整 HTML 文本（read_html 读完文件后、read_html_content 直接复用）
+bool word::parse_html_string(const std::string &html_content)
+{
     // 小写副本用于定位标签（不区分大小写）
     std::string lower;
     lower.reserve(html_content.size());
@@ -2773,6 +2907,20 @@ bool word::read_html(const std::string &html_file)
     return true;
 }
 
+// 直接从内存 HTML 字符串解析（免临时文件）；不修改 html_base_dir
+bool word::read_html_content(const std::string &html)
+{
+    clear();
+
+    if(html.size() > MAX_FILE_SIZE)
+    {
+        error_msg = "Error: HTML content exceeds maximum limit";
+        return false;
+    }
+
+    return parse_html_string(html);
+}
+
 bool word::write(const std::string &docx_file)
 {
     error_msg.clear();
@@ -2784,6 +2932,18 @@ bool word::write(const std::string &docx_file)
         return false;
     }
 
+    if(!pack_docx(zf))
+    {
+        return false;
+    }
+
+    zf.close();
+    return true;
+}
+
+// 把所有 docx 条目写入已创建的 pz::zip（文件/内存模式通用，write 与 write_to_buffer 共用）
+bool word::pack_docx(pz::zip &zf)
+{
     std::string document_xml = gen_docx_document();
     std::string content_types = gen_docx_content_types();
     std::string rels = gen_docx_rels();
@@ -2837,10 +2997,22 @@ bool word::write(const std::string &docx_file)
                 return false;
             }
             img_file.seekg(0, std::ios::end);
-            size_t img_size = static_cast<size_t>(img_file.tellg());
+            std::streamoff img_end = img_file.tellg();
+            // tellg 失败返回 -1；单图上限 16MB（与 base64 图片一致），防 bad_alloc 崩溃
+            if(img_end < 0 || img_end > 16 * 1024 * 1024)
+            {
+                error_msg = "Error: Image file too large or unreadable " + img.origPath;
+                return false;
+            }
+            size_t img_size = static_cast<size_t>(img_end);
             img_file.seekg(0, std::ios::beg);
             std::vector<char> img_data(img_size);
             img_file.read(img_data.data(), img_size);
+            if(static_cast<size_t>(img_file.gcount()) != img_size)
+            {
+                error_msg = "Error: Failed to read image file " + img.origPath;
+                return false;
+            }
             img_file.close();
 
             if(!zf.add_file_from_memory(img.zipPath, img_data.data(), img_data.size()))
@@ -2851,8 +3023,34 @@ bool word::write(const std::string &docx_file)
         }
     }
 
-    zf.close();
     return true;
+}
+
+// 生成 docx 并返回内存字节流（纯内存，零临时文件）：
+// 借助 pz::zip 的内存输出能力（create_zipbuffer / write_to_buffer）打包
+std::string word::write_to_buffer()
+{
+    error_msg.clear();
+
+    pz::zip zf;
+    if(!zf.create_zipbuffer())
+    {
+        error_msg = "Error: Unable to create zip buffer: " + zf.error_msg();
+        return std::string();
+    }
+
+    if(!pack_docx(zf))
+    {
+        return std::string();
+    }
+
+    std::string data = zf.write_to_buffer();
+    if(data.empty())
+    {
+        error_msg = "Error: Failed to build docx in memory: " + zf.error_msg();
+        return std::string();
+    }
+    return data;
 }
 
 // 生成 [Content_Types].xml
@@ -2946,11 +3144,20 @@ std::string word::collect_image_private(
         if(base64_pos == std::string::npos) return "";
         base64_pos += 7;  // 跳过 "base64,"
 
+        // 编码段超过解码上限(16MB)对应的编码长度时直接拒绝，避免先解码分配再丢弃
+        if(rel_path.size() - base64_pos > 22 * 1024 * 1024) return "";
+
         std::vector<unsigned char> decoded = base64_decode(rel_path.substr(base64_pos));
         if(decoded.empty()) return "";
 
+        // 限制解码后的图片数据不超过 16MB
+        if(decoded.size() > 16 * 1024 * 1024) return "";
+
         int w = 200, h = 200;
         read_image_dims_from_memory(decoded.data(), decoded.size(), w, h);
+        // 尺寸限幅，防 w * 9525 等整型溢出（恶意图片头可伪造超大宽高）
+        if(w < 1 || w > 30000) w = 200;
+        if(h < 1 || h > 30000) h = 200;
 
         std::string rId = "rId" + std::to_string(next_rId++);
         std::string zipPath = "word/media/image" + std::to_string(counter) + "." + ext;
@@ -2966,21 +3173,30 @@ std::string word::collect_image_private(
     }
 
     // 原有逻辑：从文件路径读取
+    // 路径穿越防护: rel_path 由HTML内容控制, 只允许base_dir下的相对路径
+    if(rel_path.empty() || rel_path[0] == '/' || rel_path.find("..") != std::string::npos)
+    {
+        return "";
+    }
     std::string full = base_dir + "/" + rel_path;
     std::string ext = get_image_ext(rel_path);
 
-    // 检查文件是否存在
-    std::ifstream test(full, std::ios::binary);
-    if(!test)
+    // 规范化后仍须位于 base_dir 之下, 否则跳过
+    std::string canon_full = std::filesystem::weakly_canonical(full).string();
+    std::string canon_base = std::filesystem::weakly_canonical(base_dir).string();
+    if(canon_full.size() <= canon_base.size() ||
+       canon_full.compare(0, canon_base.size(), canon_base) != 0 ||
+       canon_full[canon_base.size()] != '/')
     {
-        full = rel_path;
-        test.open(full, std::ios::binary);
-        if(!test) return "";
+        return "";
     }
-    test.close();
 
+    // read_image_dims 内部处理文件不存在的情况，避免 TOCTOU 竞态
     int w = 200, h = 200;
     read_image_dims(full, w, h);
+    // 尺寸限幅，防 w * 9525 等整型溢出
+    if(w < 1 || w > 30000) w = 200;
+    if(h < 1 || h > 30000) h = 200;
 
     std::string rId = "rId" + std::to_string(next_rId++);
     std::string zipPath = "word/media/image" + std::to_string(counter) + "." + ext;
@@ -3002,7 +3218,7 @@ std::string word::gen_docx_document() const
     next_image_rId = 100;
 
     std::string xml;
-    xml.reserve(contents.size() * 512);
+    xml.reserve(contents.size() * 1024);
 
     xml += "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>"
            "<w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\""
@@ -3129,11 +3345,17 @@ std::string word::gen_docx_document() const
             const auto &table = content.table;
             xml += "<w:tbl><w:tblPr>";
 
-            // 表格宽度
-            if(table.width > 0)
+            // 表格宽度：百分比优先（pct 单位 5000 = 100%）
+            if(table.width_pct > 0)
+                xml += "<w:tblW w:w=\"" + std::to_string(table.width_pct * 50) + "\" w:type=\"pct\"/>";
+            else if(table.width > 0)
                 xml += "<w:tblW w:w=\"" + std::to_string(table.width * 15) + "\" w:type=\"dxa\"/>";
             else
                 xml += "<w:tblW w:w=\"0\" w:type=\"auto\"/>";
+
+            // 表格对齐（OOXML 顺序：紧跟 tblW 之后）
+            if(!table.align.empty())
+                xml += "<w:jc w:val=\"" + sanitize_token(table.align) + "\"/>";
 
             // 边框
             std::string border_sz = "4";  // 默认 0.5pt
@@ -3454,27 +3676,22 @@ bool word::read_image_dims(const std::string &filePath, int &w, int &h)
     unsigned char buf[32];
     f.read(reinterpret_cast<char*>(buf), 32);
     size_t n = static_cast<size_t>(f.gcount());
-    f.close();
     if(n < 8) return false;
 
     // JPEG: SOI=FFD8, 查找 SOF0 标记 (FFC0)
     if(buf[0] == 0xFF && buf[1] == 0xD8)
     {
-        // 简易 JPEG 宽度/高度读取：扫描至 SOF0
-        // 实际上只在 fread 的 32 字节内查是不够的，但简单场景够用
-        // 通过再次读取整个头部来解析
-        std::ifstream fj(filePath, std::ios::binary);
-        if(!fj) return false;
-        fj.seekg(2);
+        // 复用已打开的文件流，从偏移 2 开始扫描 JPEG 标记
+        f.seekg(2);
         unsigned char marker[2];
-        while(fj.read(reinterpret_cast<char*>(marker), 2))
+        while(f.read(reinterpret_cast<char*>(marker), 2))
         {
             if(marker[0] != 0xFF) break;
             if(marker[1] >= 0xC0 && marker[1] <= 0xC2)
             {
-                fj.seekg(3, std::ios::cur);  // 跳 length(2) + precision(1)
+                f.seekg(3, std::ios::cur);  // 跳 length(2) + precision(1)
                 unsigned char dims[4];
-                if(!fj.read(reinterpret_cast<char*>(dims), 4)) break;
+                if(!f.read(reinterpret_cast<char*>(dims), 4)) break;
                 h = (dims[0] << 8) | dims[1];
                 w = (dims[2] << 8) | dims[3];
                 return true;
@@ -3482,10 +3699,10 @@ bool word::read_image_dims(const std::string &filePath, int &w, int &h)
             if(marker[1] == 0xD9) break;  // EOI
             // 读取 segment length
             unsigned char len[2];
-            if(!fj.read(reinterpret_cast<char*>(len), 2)) break;
+            if(!f.read(reinterpret_cast<char*>(len), 2)) break;
             unsigned short segLen = (len[0] << 8) | len[1];
             if(segLen < 2) break;
-            fj.seekg(segLen - 2, std::ios::cur);
+            f.seekg(segLen - 2, std::ios::cur);
         }
         return false;
     }
@@ -3552,7 +3769,11 @@ bool word::read_image_dims_from_memory(const unsigned char *data, size_t len, in
 // 生成单个图片的 w:drawing XML
 std::string word::gen_docx_drawing(size_t img_idx, const std::string &rId, int w, int h) const
 {
-    // 像素转 EMU（1px = 914400 / 96 = 9525 EMU）
+    // 像素转 EMU（1px = 914400 / 96 = 9525 EMU）；先限幅防乘法溢出
+    if(w < 1) w = 1;
+    if(w > 30000) w = 30000;
+    if(h < 1) h = 1;
+    if(h > 30000) h = 30000;
     int cx = w * 9525;
     int cy = h * 9525;
 

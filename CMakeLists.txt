@@ -36,6 +36,13 @@ option(ENABLE_WEBPAY "Enable webpay support (alipay/wxpay)" OFF)
 option(ENABLE_CHART "Enable chart support" OFF)
 option(ENABLE_ZIP "Enable pzzip support" OFF)
 
+# ---- Feature dependencies ----
+# pzword(docx) 依赖 pz::zip 打包，开启 ENABLE_OFFICE 时自动开启 ENABLE_ZIP
+if(ENABLE_OFFICE AND NOT ENABLE_ZIP)
+  set(ENABLE_ZIP ON)
+  message(STATUS "ENABLE_OFFICE requires ENABLE_ZIP: auto-enabled")
+endif()
+
 # ---- Vcpkg toolchain ----
 if(ENABLE_VCPKG)
   if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)

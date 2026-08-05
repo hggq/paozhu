@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <unordered_map>
 
 namespace pz {
 
@@ -48,6 +49,13 @@ public:
 
     // 创建一个新的 ZIP 文件用于写入
     bool create_zipfile(const std::string& filename);
+
+    // 创建内存 ZIP 输出（新增，不落磁盘）：后续 add_file*/close 全部写入内部 buffer
+    bool create_zipbuffer();
+
+    // 结束写入（补写中央目录/EOCD）并取回完整 ZIP 字节流（新增，供 pzword 等免临时文件场景使用）
+    // 失败返回空串，原因见 error_msg()
+    std::string write_to_buffer();
 
     // 向 ZIP 中添加一个文件（传入磁盘上的文件路径）
     // stored_name: 在 ZIP 中存储的路径名，为空则自动取 basename
@@ -96,10 +104,23 @@ private:
     bool write_central_directory();
     bool write_eocd();
 
+    // 统一写出助手（新增）：内存模式追加到 buffer_，文件模式写 write_stream_
+    bool append_(const void* data, size_t len);
+    // 是否处于可写状态（文件模式流已打开，或内存模式已创建）
+    bool can_write_() const;
+    // 重置写入状态（create_zipfile / create_zipbuffer 共用）
+    void begin_write_mode_();
+
     // ========== 成员变量 ==========
     std::ifstream read_stream_;
     std::ofstream write_stream_;
     std::vector<ZipEntry> entries_;
+    std::unordered_map<std::string, size_t> entry_index_;  // filename → entries_ 下标
+
+    // 内存输出模式（新增）：true 时写出目标为 buffer_ 而非 write_stream_
+    bool is_memory_mode_ = false;
+    std::string buffer_;        // 内存 ZIP 输出缓冲区
+    uint32_t write_pos_ = 0;    // 当前写出位置（等价于文件模式的 tellp）
 
     // 写入状态
     std::vector<ZipEntry> write_entries_;

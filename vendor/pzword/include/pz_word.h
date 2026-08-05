@@ -9,6 +9,7 @@
 #include <string_view>
 #include <cstddef>
 
+#include "pzzip.h"  // pack_docx 使用 pz::zip（ENABLE_OFFICE 依赖 ENABLE_ZIP）
 
 namespace pz
 {
@@ -67,6 +68,8 @@ struct WORD_TABLE
     std::vector<WORD_TABLE_ROW> rows;
     unsigned int cols = 0;
     unsigned int width = 0;        // 表格宽度 px
+    unsigned int width_pct = 0;    // 表格宽度百分比 1-100（优先于 width，0 表示未设置）
+    std::string align;             // 表格对齐: left/center/right（center 即居中显示）
     std::string border_color;      // 边框颜色
     unsigned int border_size = 0;  // 边框大小 px（0 表示默认）
     std::vector<unsigned int> col_widths;  // 每列宽度（dxa 单位），空表示均分
@@ -92,7 +95,12 @@ class word
         bool read(const std::string &);
         bool read_from_unzipped(const std::string &);
         bool read_html(const std::string &html_file);
+        // 直接从内存 HTML 字符串解析（新增，免临时文件）；不修改 html_base_dir，
+        // 调用方可预先/事后设置 html_base_dir 指定图片相对路径解析基目录
+        bool read_html_content(const std::string &html);
         bool write(const std::string &docx_file);
+        // 生成 docx 并返回内存字节流（新增，免临时文件）；失败返回空串，原因见 error_msg
+        std::string write_to_buffer();
         std::string to_html() const;
         std::string to_html_with_images(const std::string &output_dir) const;
         void clear();
@@ -145,6 +153,7 @@ class word
 
         static const size_t MAX_FILE_SIZE = 100 * 1024 * 1024;
         static const size_t MAX_ZIP_ENTRIES = 10000;
+        static const size_t MAX_TOTAL_IMAGE_SIZE = 256 * 1024 * 1024;  // read() 图片数据总量上限
         static const unsigned int MAX_HEADING_LEVEL = 5;
         static const int MAX_PARSE_DEPTH = 64;  // 递归解析深度上限，防止恶意嵌套打爆栈
 
@@ -187,7 +196,9 @@ class word
         void parse_table_row(const std::string &content, size_t begin, size_t end, WORD_TABLE_ROW &row, std::vector<bool> &vmerge_flags);
         void parse_table_cell(const std::string &content, size_t begin, size_t end, WORD_TABLE_CELL &cell, bool &vmerge_continue);
 
-        // HTML 解析（用于 read_html）
+        // HTML 解析（用于 read_html / read_html_content）
+        // 解析已在内存中的完整 HTML 文本（read_html 读完文件后、read_html_content 直接复用）
+        bool parse_html_string(const std::string &html_content);
         void parse_html_head_style(const std::string &css);
         void apply_css_margin(const std::string &prop, const std::string &val);
         void parse_html_body(const std::string &content, size_t begin, size_t end);
@@ -205,6 +216,8 @@ class word
         std::string get_html_attr(const std::string &attrs, std::string_view attr_name) const;
 
         // DOCX 生成
+        // 把所有 docx 条目写入已创建的 pz::zip（文件/内存模式通用，write 与 write_to_buffer 共用）
+        bool pack_docx(pz::zip &zf);
         std::string gen_docx_content_types() const;
         std::string gen_docx_rels() const;
         std::string gen_docx_document_rels() const;
