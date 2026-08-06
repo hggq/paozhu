@@ -17,7 +17,7 @@ namespace http
 {
   void _initview_method_regto(VIEW_REG  &_viewmetholdreg)
   {
-            	 //create time: Sat, 01 Aug 2026 15:28:38 GMT
+            	 //create time: Thu, 06 Aug 2026 08:55:28 GMT
 
 	_viewmetholdreg.emplace("admin/addarticle",http::view::admin::addarticle);
 	_viewmetholdreg.emplace("admin/addhomecontent",http::view::admin::addhomecontent);
@@ -30,6 +30,7 @@ namespace http
 	_viewmetholdreg.emplace("admin/addtopicsidepick",http::view::admin::addtopicsidepick);
 	_viewmetholdreg.emplace("admin/addtopicsidetext",http::view::admin::addtopicsidetext);
 	_viewmetholdreg.emplace("admin/copyright",http::view::admin::copyright);
+	_viewmetholdreg.emplace("admin/dashboard",http::view::admin::dashboard);
 	_viewmetholdreg.emplace("admin/editarticle",http::view::admin::editarticle);
 	_viewmetholdreg.emplace("admin/edithomeblockmulit",http::view::admin::edithomeblockmulit);
 	_viewmetholdreg.emplace("admin/edithomecontent",http::view::admin::edithomecontent);
@@ -42,10 +43,12 @@ namespace http
 	_viewmetholdreg.emplace("admin/edittopic",http::view::admin::edittopic);
 	_viewmetholdreg.emplace("admin/edittopicsidepick",http::view::admin::edittopicsidepick);
 	_viewmetholdreg.emplace("admin/edittopicsidetext",http::view::admin::edittopicsidetext);
+	_viewmetholdreg.emplace("admin/elementplus",http::view::admin::elementplus);
 	_viewmetholdreg.emplace("admin/favicon",http::view::admin::favicon);
 	_viewmetholdreg.emplace("admin/fileupload",http::view::admin::fileupload);
 	_viewmetholdreg.emplace("admin/footscript",http::view::admin::footscript);
 	_viewmetholdreg.emplace("admin/homedesign",http::view::admin::homedesign);
+	_viewmetholdreg.emplace("admin/jstimetest",http::view::admin::jstimetest);
 	_viewmetholdreg.emplace("admin/listarticle",http::view::admin::listarticle);
 	_viewmetholdreg.emplace("admin/listproduct",http::view::admin::listproduct);
 	_viewmetholdreg.emplace("admin/login",http::view::admin::login);
@@ -56,9 +59,11 @@ namespace http
 	_viewmetholdreg.emplace("admin/marproductattach",http::view::admin::marproductattach);
 	_viewmetholdreg.emplace("admin/martopic",http::view::admin::martopic);
 	_viewmetholdreg.emplace("admin/martopicside",http::view::admin::martopicside);
+	_viewmetholdreg.emplace("admin/menu",http::view::admin::menu);
 	_viewmetholdreg.emplace("admin/siteinfo",http::view::admin::siteinfo);
 	_viewmetholdreg.emplace("admin/sitelogo",http::view::admin::sitelogo);
 	_viewmetholdreg.emplace("admin/userinfo",http::view::admin::userinfo);
+	_viewmetholdreg.emplace("admin/vuetest",http::view::admin::vuetest);
 	_viewmetholdreg.emplace("admin/welcome",http::view::admin::welcome);
 	_viewmetholdreg.emplace("cms/add",http::view::cms::add);
 	_viewmetholdreg.emplace("cms/edit",http::view::cms::edit);

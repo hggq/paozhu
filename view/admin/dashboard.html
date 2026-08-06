@@ -1,0 +1,26 @@
+<div class="page-card" id="vue-app">
+    <div class="page-title">📊 仪表盘</div>
+    <p><a href="/admin/jstimetest">登录</a></p>
+    <p>当前时间：2025-01-15 14:30:25</p>
+    <div>
+        <p>Vue 组件也能用：{{ time }}</p>
+        <p>当前用户：{{ username }}</p>
+    </div>
+</div>
+<script data-vue>
+{
+    setup() {
+        const timeRef = Vue.ref(new Date().toLocaleString());
+        const timer = setInterval(() => {
+            timeRef.value = new Date().toLocaleString();
+        }, 1000);
+
+        const userStore = window.useUserStore();
+        const username = Vue.computed(() => userStore.state.name);
+
+        // 组件卸载时清理定时器
+        Vue.onUnmounted(() => clearInterval(timer));
+        return { time: timeRef,username };
+    }
+}
+</script>

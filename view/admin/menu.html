@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>系统后台</title>
+    <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/icons/font/bootstrap-icons.css">
+    <script src="/js/vue.global.js"></script>
+    <link href="/css/menu.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/element.css" />
+    <script src="/js/element.min.js"></script>
+    <script src="/js/jquery.min.js"></script>
+</head>
+<body>
+
+    <header class="app-header">
+        <button class="sidebar-toggle" id="btnSidebarToggle" type="button" aria-label="Toggle navigation" aria-controls="sidebar">
+            <i class="bi bi-list"></i>
+        </button>
+        <div class="logo"><i>📦</i> Admin</div>
+        <span class="header-title">· 自定义菜单</span>
+        <div class="header-right">
+            <span>管理员</span>
+            <button class="btn-logout" id="btnLogout">退出</button>
+        </div>
+    </header>
+
+    <div class="app-body">
+        <aside class="app-sidebar" id="sidebar">
+            <ul class="sidebar-menu" id="menuContainer"></ul>
+        </aside>
+        <main class="app-main">
+            <div class="tab-bar" id="tabBar"></div>
+            <div class="tab-content-wrapper" id="tabContentWrapper"></div>
+        </main>
+    </div>
+
+    <div class="toast" id="toast"></div>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <script>
+        // ================================================================
+        //  菜单配置：由后台动态输出（C++ 视图可在此注入真实菜单数据）
+        // ================================================================
+        const MENU_CONFIG = [{
+            group: '公共',
+            icon: 'bi-grid',
+            items: [
+                { text: '仪表盘', href: '/admin/dashboard', icon: '📊', html: true},
+                { text: 'Vue 演示', href: '/admin/vuetest', icon: '📦', html: true},
+                { text: 'Element 演示', href: '/admin/testelementplus', icon: '🐷', html: true},
+            ]
+        }];
+</script>
+    <script src="/assets/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/store.js"></script>
+    <script src="/js/menu.js"></script>
+    
+</body>
+</html>

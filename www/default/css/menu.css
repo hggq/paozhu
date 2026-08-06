@@ -1,0 +1,63 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f2f5; height: 100vh; display: flex; flex-direction: column; }
+.app-header { height: 56px; background: #1a2332; color: #fff; display: flex; align-items: center; padding: 0 24px; flex-shrink: 0; }
+.app-header .logo { font-size: 20px; font-weight: 700; }
+.app-header .logo i { background: #4a7cf7; padding: 4px 12px; border-radius: 6px; font-size: 16px; margin-right: 8px; }
+.app-header .header-title { margin-left: 16px; color: #aab8d0; }
+.app-header .header-right { margin-left: auto; display: flex; gap: 16px; align-items: center; }
+.app-header .btn-logout { background: transparent; border: 1px solid #3a4a62; color: #b0c0d8; padding: 4px 14px; border-radius: 4px; cursor: pointer; }
+.app-body { display: flex; flex: 1; overflow: hidden; }
+.app-sidebar { width: 200px; background: #1e2a3a; color: #b0c0d8; padding: 16px 12px; overflow-y: auto; flex-shrink: 0; border-right: 1px solid #2a3a4e; }
+.app-sidebar .sidebar-menu { list-style: none; margin: 0; padding: 0; }
+.app-sidebar .menu-group { margin-bottom: 12px; }
+.app-sidebar .menu-group .group-title { font-size: 12px; text-transform: uppercase; color: #5a6a82; padding: 6px 8px; font-weight: 600; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none; border-radius: 6px; transition: 0.15s; }
+.app-sidebar .menu-group .group-title:hover { color: #8a9cb8; background: #2a3a4e; }
+.app-sidebar .menu-group .group-label { display: inline-flex; align-items: center; gap: 6px; }
+.app-sidebar .menu-group .group-icon { font-size: 13px; }
+.app-sidebar .menu-group .group-arrow { font-size: 11px; transition: transform 0.2s ease; }
+.app-sidebar .menu-group.collapsed .group-arrow { transform: rotate(-90deg); }
+.app-sidebar .menu-group .group-items { display: grid; grid-template-rows: 1fr; transition: grid-template-rows 0.25s ease; }
+.app-sidebar .menu-group.collapsed .group-items { grid-template-rows: 0fr; }
+.app-sidebar .menu-group .group-items-inner { overflow: hidden; min-height: 0; }
+.app-sidebar .menu-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 6px; cursor: pointer; color: #b0c0d8; transition: 0.15s; font-size: 14px; text-decoration: none; }
+.app-sidebar .menu-item:hover { background: #2a3a4e; color: #e8edf5; }
+.app-sidebar .menu-item.active { background: #2a3a4e; color: #4a7cf7; }
+.app-main { flex: 1; display: flex; flex-direction: column; background: #f0f2f5; overflow: hidden; }
+.tab-bar { display: flex; align-items: center; background: #fff; border-bottom: 1px solid #e4e7ed; padding: 0 8px; height: 40px; flex-shrink: 0; overflow-x: auto; gap: 2px; }
+.tab-item { display: inline-flex; align-items: center; gap: 6px; padding: 0 16px; height: 32px; border-radius: 4px 4px 0 0; font-size: 13px; color: #5a6a82; cursor: pointer; background: #f5f7fa; border: 1px solid transparent; border-bottom: none; margin-top: 6px; user-select: none; }
+.tab-item.active { background: #fff; color: #1a2332; border-color: #e4e7ed; font-weight: 500; box-shadow: 0 -2px 4px rgba(0,0,0,0.02); }
+.tab-item .tab-close { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; font-size: 12px; color: #8a9aaa; cursor: pointer; margin-left: 4px; }
+.tab-item .tab-close:hover { background: #e4e7ed; color: #e74c3c; }
+.tab-content-wrapper { flex: 1; position: relative; overflow: hidden; }
+.tab-pane { position: absolute; inset: 0; display: none; overflow: auto; padding: 20px 24px; background: #f0f2f5; }
+.tab-pane.active { display: block; }
+.page-card { background: #fff; border-radius: 8px; padding: 24px 28px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); max-width: 900px; margin: 0 auto; }
+.page-card .page-title { font-size: 20px; font-weight: 600; color: #1a2332; margin-bottom: 16px; }
+.page-card .page-desc { color: #5a6a82; font-size: 14px; border-left: 3px solid #4a7cf7; padding-left: 14px; margin-bottom: 20px; background: #f8faff; padding: 12px 16px; border-radius: 4px; }
+.toast { position: fixed; bottom: 24px; right: 24px; background: #1a2332; color: #e8edf5; padding: 12px 20px; border-radius: 8px; font-size: 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); z-index: 999; transform: translateY(80px); opacity: 0; transition: 0.3s ease; pointer-events: none; }
+.toast.show { transform: translateY(0); opacity: 1; }
+.vue-demo-container { padding: 12px; background: #f8faff; border-radius: 8px; border: 1px solid #dce8f5; }
+.vue-demo-container input { padding: 6px 12px; border: 1px solid #dce0e8; border-radius: 4px; font-size: 14px; }
+.vue-demo-container button { padding: 6px 16px; background: #4a7cf7; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+.vue-demo-container button:hover { background: #3a6ae0; }
+.demo-btn { margin: 12px 0; }
+.add-menu-form { background: #f0f7ff; padding: 16px; border-radius: 8px; border: 1px solid #d0e0ff; margin-top: 16px; }
+.add-menu-form label { display: inline-block; width: 80px; }
+.add-menu-form input { width: 250px; margin-right: 12px; }
+.menu-list { margin-top: 16px; background: #f8faff; padding: 12px; border-radius: 8px; }
+.menu-list li { padding: 4px 0; border-bottom: 1px dashed #e0e8f0; }
+/* 手机端侧边栏呼出 */
+.sidebar-toggle { display: none; align-items: center; justify-content: center; width: 36px; height: 32px; margin-right: 12px; background: transparent; border: 1px solid #3a4a62; color: #b0c0d8; border-radius: 4px; font-size: 20px; line-height: 1; cursor: pointer; }
+.sidebar-toggle:hover { color: #e8edf5; border-color: #4a7cf7; }
+.sidebar-backdrop { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45); z-index: 1040; }
+.sidebar-backdrop.show { display: block; }
+
+@media (max-width: 768px) {
+    .app-header { padding: 0 12px; }
+    .app-header .header-title { display: none; }
+    .sidebar-toggle { display: inline-flex; }
+    .app-sidebar { position: fixed; top: 56px; bottom: 0; left: 0; z-index: 1045; transform: translateX(-100%); transition: transform 0.25s ease; }
+    .app-sidebar.open { transform: translateX(0); box-shadow: 0 0 24px rgba(0, 0, 0, 0.35); }
+    .tab-pane { padding: 12px; }
+    .page-card { padding: 16px; }
+}

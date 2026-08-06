@@ -39,6 +39,7 @@
 #include "test_leftjoin.h"
 #include "testsendmail.h"
 #include "superadmin/supermain.h"
+#include "admin/menu.h"
 #include "admin/articles.h"
 #include "admin/marproduct.h"
 #include "admin/topics.h"
@@ -303,6 +304,24 @@ namespace http
 		temp.pre = superadmin_isloginjson;
 		temp.regfun = superadmin_editpwdpost;
 		methodcallback.emplace("superadmin/editpwdpost",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_menu;
+		methodcallback.emplace("admin/menu",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_vuetest;
+		methodcallback.emplace("admin/vuetest",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_dashboard;
+		methodcallback.emplace("admin/dashboard",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_jstimetest;
+		methodcallback.emplace("admin/jstimetest",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_testelementplus;
+		methodcallback.emplace("admin/testelementplus",temp);
+		temp.pre = nullptr;
+		temp.regfun = admin_testgetjson;
+		methodcallback.emplace("admin/testgetjson",temp);
 		temp.pre = admin_islogin;
 		temp.regfun = admin_addarticle;
 		methodcallback.emplace("admin/addarticle",temp);

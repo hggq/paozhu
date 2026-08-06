@@ -1,0 +1,26 @@
+<div class="page-card">
+    <div class="page-title">📊 仪表盘</div>
+    <p><a href="/admin/login">登录</a></p>
+    <p>当前时间：<span id="timeDisplay">加载中...</span></p>
+</div>
+
+<script>
+    (function() {
+        const el = document.getElementById('timeDisplay');
+        let timer = null;
+
+        function update() {
+            el.textContent = new Date().toLocaleString();
+        }
+
+        update();
+        timer = setInterval(update, 1000);
+
+        // 将清理函数挂载到当前容器（页面脚本执行时，容器为 document.currentScript.parentNode 或通过 parent 获取）
+        const container = document.currentScript.parentNode;
+        container.__cleanup = function() {
+            clearInterval(timer);
+            console.log('定时器已清理');
+        };
+    })();
+</script>

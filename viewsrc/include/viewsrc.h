@@ -27,6 +27,7 @@ namespace  admin{
 	std::string addtopicsidepick(const struct view_param &vinfo,http::obj_val &obj);
 	std::string addtopicsidetext(const struct view_param &vinfo,http::obj_val &obj);
 	std::string copyright(const struct view_param &vinfo,http::obj_val &obj);
+	std::string dashboard(const struct view_param &vinfo,http::obj_val &obj);
 	std::string editarticle(const struct view_param &vinfo,http::obj_val &obj);
 	std::string edithomeblockmulit(const struct view_param &vinfo,http::obj_val &obj);
 	std::string edithomecontent(const struct view_param &vinfo,http::obj_val &obj);
@@ -39,10 +40,12 @@ namespace  admin{
 	std::string edittopic(const struct view_param &vinfo,http::obj_val &obj);
 	std::string edittopicsidepick(const struct view_param &vinfo,http::obj_val &obj);
 	std::string edittopicsidetext(const struct view_param &vinfo,http::obj_val &obj);
+	std::string elementplus(const struct view_param &vinfo,http::obj_val &obj);
 	std::string favicon(const struct view_param &vinfo,http::obj_val &obj);
 	std::string fileupload(const struct view_param &vinfo,http::obj_val &obj);
 	std::string footscript(const struct view_param &vinfo,http::obj_val &obj);
 	std::string homedesign(const struct view_param &vinfo,http::obj_val &obj);
+	std::string jstimetest(const struct view_param &vinfo,http::obj_val &obj);
 	std::string listarticle(const struct view_param &vinfo,http::obj_val &obj);
 	std::string listproduct(const struct view_param &vinfo,http::obj_val &obj);
 	std::string login(const struct view_param &vinfo,http::obj_val &obj);
@@ -53,9 +56,11 @@ namespace  admin{
 	std::string marproductattach(const struct view_param &vinfo,http::obj_val &obj);
 	std::string martopic(const struct view_param &vinfo,http::obj_val &obj);
 	std::string martopicside(const struct view_param &vinfo,http::obj_val &obj);
+	std::string menu(const struct view_param &vinfo,http::obj_val &obj);
 	std::string siteinfo(const struct view_param &vinfo,http::obj_val &obj);
 	std::string sitelogo(const struct view_param &vinfo,http::obj_val &obj);
 	std::string userinfo(const struct view_param &vinfo,http::obj_val &obj);
+	std::string vuetest(const struct view_param &vinfo,http::obj_val &obj);
 	std::string welcome(const struct view_param &vinfo,http::obj_val &obj);
 }
 

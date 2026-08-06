@@ -1,0 +1,78 @@
+<div class="page-card">
+    <div class="page-title">📦 Vue 演示 <span style="font-size:14px;font-weight:400;color:#8a9aaa;">自定义添加菜单</span></div>
+    <div class="page-desc">您可以在下方添加任意菜单项，指向后台预置的接口。</div>
+    <div id="vue-app" class="vue-demo-container">
+        <h3>自定义菜单添加器</h3>
+        <div class="add-menu-form">
+            <div>
+                <label>菜单标题：</label>
+                <input v-model="menuTitle" placeholder="如：数据分析" />
+            </div>
+            <div style="margin-top:8px;">
+                <label>链接地址：</label>
+                <input v-model="menuHref" placeholder="如：/data-analysis" style="width:300px;" />
+            </div>
+            <div style="margin-top:12px;">
+                <button @click="addCustomMenu">➕ 添加到菜单</button>
+                <span style="margin-left:16px;color:#5a6a82;">（页面会以 HTML 模式加载）</span>
+            </div>
+        </div>
+        <hr style="margin:16px 0;" />
+        <div>
+            <strong>当前菜单列表：</strong>
+            <ul class="menu-list">
+                <li v-for="item in menuItems" :key="item.href">
+                    {{ item.text }} ({{ item.href }})
+                </li>
+            </ul>
+        </div>
+        <p><small>提示：添加后左侧菜单会立即更新，点击新菜单项即可打开对应页面。</small></p>
+    </div>
+    <script data-vue>
+        {
+            setup() {
+                const menuTitle = Vue.ref('');
+                const menuHref = Vue.ref('');
+                const menuItems = Vue.computed(() => {
+                    const items = [];
+                    MENU_CONFIG.forEach(group => {
+                        group.items.forEach(item => {
+                            items.push({ text: item.text, href: item.href });
+                        });
+                    });
+                    return items;
+                });
+
+                const addCustomMenu = () => {
+                    const title = menuTitle.value.trim();
+                    const href = menuHref.value.trim();
+                    if (!title || !href) {
+                        alert('请填写完整的标题和链接地址');
+                        return;
+                    }
+                    const newItem = {
+                        text: title,
+                        href: href,
+                        icon: '📌',
+                        html: true
+                    };
+                    if (MENU_CONFIG.length > 0) {
+                        MENU_CONFIG[0].items.push(newItem);
+                    } else {
+                        MENU_CONFIG.push({ group: '自定义', items: [newItem] });
+                    }
+                    if (window.renderMenu) window.renderMenu();
+                    menuTitle.value = '';
+                    menuHref.value = '';
+                    alert('✅ 菜单已添加：' + title);
+                };
+
+                return { menuTitle, menuHref, menuItems, addCustomMenu };
+            }
+        }
+    </script>
+    <div style="margin-top:16px;font-size:14px;color:#5a6a82;">
+        <p>📌 您可以通过此页面动态添加任意菜单项，无需提前加载配置。</p>
+        <p>🗑️ 关闭 Tab 时，Vue 应用会自动卸载。</p>
+    </div>
+</div>
