@@ -51,6 +51,6 @@ jobs:
       - run: echo "🍏 This job's status is ${{ job.status }}."
       - name: Build
         run: |
-          cmake . -B ${{github.workspace}} -DENABLE_WIN_VCPKG=ON -DENABLE_VCPKG=ON -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE=Debug -G Ninja
+          cmake . -B ${{github.workspace}} -DENABLE_WIN_VCPKG=ON -DENABLE_VCPKG=ON -DCMAKE_TOOLCHAIN_FILE=${{github.workspace}}/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows -DENABLE_PDF=ON -DENABLE_CHART=ON -DENABLE_OFFICE=ON -DENABLE_ZIP=ON -DENABLE_IMAGE=ON -DCMAKE_BUILD_TYPE=Debug -G Ninja
       - name: Build
         run: cmake --build ${{github.workspace}} --config Debug
