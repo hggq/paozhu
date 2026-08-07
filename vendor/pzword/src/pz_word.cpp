@@ -1644,7 +1644,7 @@ static std::string html_decode(const std::string &s)
             if(s.compare(i, 4, "&gt;") == 0) { result += '>'; i += 3; continue; }
             if(s.compare(i, 6, "&quot;") == 0) { result += '"'; i += 5; continue; }
             if(s.compare(i, 6, "&apos;") == 0) { result += '\''; i += 5; continue; }
-            if(s.compare(i, 6, "&nbsp;") == 0) { result += (char)0xC2; result += (char)0xA0; i += 5; continue; }
+            if(s.compare(i, 6, "&nbsp;") == 0) { result += static_cast<char>(static_cast<unsigned char>(0xC2)); result += static_cast<char>(static_cast<unsigned char>(0xA0)); i += 5; continue; }
             // 数字实体 &#xxxx;
             if(i + 1 < s.size() && s[i + 1] == '#')
             {

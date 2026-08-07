@@ -1,4 +1,4 @@
-name: win vcpkg
+name: win expand packages vcpkg
 run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
 on: [push]
 jobs:

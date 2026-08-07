@@ -1,9 +1,15 @@
+// MSVC 需要 _USE_MATH_DEFINES 才能从 <cmath> 获得 M_PI
+#define _USE_MATH_DEFINES
 #include "pzjpg.h"
 #include <cmath>
 #include <cstring>
 #include <fstream>
 #include <algorithm>
 #include <stdexcept>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 namespace image {
 
