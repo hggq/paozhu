@@ -42,6 +42,12 @@ asio::awaitable<std::string> test_socket_client(std::shared_ptr<httppeer> peer)
     send_content.append((char *)recv_data,0,n);
     client << send_content;
 
+    /*
+    * 上面是普通client使用方式，一般业务使用上面的方式就可以了，下面是高级soket使用方式，用户端退出，把任务放到任务线程定时执行。
+    * The above is the common usage method, which is sufficient for general business purposes. 
+    * Below is the advanced socket usage method. When the client exits, the task is placed in a task thread for scheduled execution.
+    */
+
     a->durtime = 12;
     a->async_dur_time_loop_fun = [](std::shared_ptr<http::socket_client> b)-> asio::awaitable<void> 
                 {

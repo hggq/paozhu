@@ -32,13 +32,18 @@ asio::awaitable<std::string> test_websocket_client(std::shared_ptr<httppeer> pee
     // a->make_ws_text(send_content,outdata);
     // unsigned int n = co_await a->async_write(outdata);
     unsigned int n = co_await a->async_text_write(send_content);
-    client << " <hr >send:"<<n;
+    client << " <hr >send:"<< n;
 
     n = co_await a->async_text_read();
     client << "  "<< a->recv_data.content;
     a->reset_recv_status();
     //end echo http client
     //Let the websocket client run alone in the background
+    /*
+    * 上面是普通client使用方式，一般业务使用上面的方式就可以了，下面是高级websoket使用方式，用户端退出，把任务放到任务线程定时执行。
+    * The above is the common usage method, which is sufficient for general business purposes. 
+    * Below is the advanced websocket usage method. When the client exits, the task is placed in a task thread for scheduled execution.
+    */
 
     a->async_dur_time_loop_fun = [](std::shared_ptr<websocket_client> b)-> asio::awaitable<void> {
                             std::string send_content="websocket client loop";
