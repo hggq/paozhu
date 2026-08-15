@@ -1,220 +1,220 @@
-# Paozhu C++ Web Framework - AI 开发指南
+# Paozhu C++ Web Framework - AI Development Guide
 
-## 一、项目概述
+## I. Project Overview
 
-Paozhu (炮竹) 是一个高性能的 C++20 Web 框架，基于 Asio 异步网络库构建，支持 HTTP/HTTPS/HTTP2 协议。框架采用 MVC 架构，内置 ORM、模板引擎、协程支持和丰富的功能模块。
+Paozhu (炮竹) is a high-performance C++20 web framework built on the Asio asynchronous networking library, supporting HTTP/HTTPS/HTTP2 protocols. The framework adopts an MVC architecture and integrates ORM, template engine, coroutine support, and a rich set of functional modules.
 
-### 核心特性
-- **异步 IO**: 基于 Asio 的异步非阻塞网络模型
-- **协程支持**: C++20 co_await 关键字编写异步代码
-- **HTTP/HTTP2**: 原生支持 HTTP/1.1 和 HTTP/2 协议
-- **ORM**: 内置 ORM，支持 MySQL 和 PostgreSQL
-- **OCSP Stapling**: 自动 OCSP stapling 支持
-- **ACME**: 自动 SSL 证书申请和管理
-- **模块扩展**: 图片处理、Excel、Word、PDF、图表等
+### Core Features
+- **Asynchronous I/O**: Asio‑based non‑blocking network model
+- **Coroutine Support**: Use C++20 `co_await` for asynchronous code
+- **HTTP/HTTP2**: Native support for HTTP/1.1 and HTTP/2
+- **ORM**: Built‑in ORM with MySQL and PostgreSQL support
+- **OCSP Stapling**: Automatic OCSP stapling
+- **ACME**: Automatic SSL certificate issuance and renewal
+- **Modular Extensions**: Image processing, Excel, Word, PDF, chart generation, etc.
 
-### 编译标准
-- C++20 或更高
-- OpenSSL 3.0+ (SSL/TLS 支持)
-- 跨平台: macOS, Linux, Windows
+### Compilation Standards
+- C++20 or later
+- OpenSSL 3.0+ (for SSL/TLS)
+- Cross‑platform: macOS, Linux, Windows
 
 ---
 
-## 二、目录结构
+## II. Directory Structure
 
 ```
 paozhu/
-├── conf/                          # 配置文件目录
-│   ├── server.conf                # 服务器主配置
-│   ├── orm.conf                   # 数据库连接配置
-│   ├── acme.conf                  # ACME 证书配置
-│   ├── gcc.conf                   # 编译器配置
-│   ├── controlbuild.conf          # 控制器构建配置
-│   └── ...                        # 其他配置和 SQL 文件
+├── conf/                          # Configuration files
+│   ├── server.conf                # Main server configuration
+│   ├── orm.conf                   # Database connection settings
+│   ├── acme.conf                  # ACME certificate settings
+│   ├── gcc.conf                   # Compiler settings
+│   ├── controlbuild.conf          # Controller build settings
+│   └── ...                        # Other configuration and SQL files
 │
-├── controller/                    # 控制器层
-│   ├── include/                   # 控制器头文件
-│   │   ├── admin/                 # 后台管理控制器
-│   │   └── test*.h               # 功能测试控制器
-│   └── src/                       # 控制器实现
-│       ├── admin/                 # 后台管理实现
-│       └── test*.cpp              # 功能测试实现
+├── controller/                    # Controller layer
+│   ├── include/                   # Controller headers
+│   │   ├── admin/                 # Admin controllers
+│   │   └── test*.h               # Functional test controllers
+│   └── src/                       # Controller implementations
+│       ├── admin/                 # Admin implementations
+│       └── test*.cpp              # Functional test implementations
 │
-├── models/                        # 数据模型层
-│   ├── cms/                       # CMS 相关模型
-│   ├── ph/                        # PostgreSQL 测试模型
-│   └── include/                   # 模型头文件
+├── models/                        # Data model layer
+│   ├── cms/                       # CMS‑related models
+│   ├── ph/                        # PostgreSQL test models
+│   └── include/                   # Model headers
 │
-├── orm/                           # ORM 层（自动生成）
-│   ├── cms/include/               # CMS ORM 操作类
-│   │   ├── *_base.h               # 基础字段定义（自动生成）
-│   │   └── *_opsql.h              # SQL 操作中间层（自动生成）
-│   ├── include/                   # 通用 ORM 文件
-│   └── orm.h                      # ORM 统一入口
+├── orm/                           # ORM layer (auto‑generated)
+│   ├── cms/include/               # CMS ORM operation classes
+│   │   ├── *_base.h               # Base field definitions (auto‑generated)
+│   │   └── *_opsql.h              # SQL operation intermediate layer (auto‑generated)
+│   ├── include/                   # Common ORM files
+│   └── orm.h                      # ORM unified entry
 │
-├── view/                          # 视图模板（HTML）
-│   ├── admin/                     # 后台管理视图
-│   ├── home/                      # 首页视图
-│   └── ...                        # 其他视图
+├── view/                          # View templates (HTML)
+│   ├── admin/                     # Admin views
+│   ├── home/                      # Home views
+│   └── ...                        # Other views
 │
-├── viewsrc/                       # 视图编译产物（C++ 源码）
-│   ├── include/                   # 视图注册头文件
-│   └── view/                      # 视图实现
+├── viewsrc/                       # Compiled view artifacts (C++ sources)
+│   ├── include/                   # View registration headers
+│   └── view/                      # View implementations
 │
-├── vendor/                        # 第三方/内部库
-│   ├── httpserver/                # HTTP 服务器核心
-│   │   ├── include/               # 服务器头文件
-│   │   │   ├── request.h          # HTTP 请求处理
-│   │   │   ├── httppeer.h        # HTTP 客户端封装
-│   │   │   ├── router.h           # URL 路由
-│   │   │   └── ...               # 其他头文件
-│   │   └── src/                   # 服务器实现
-│   ├── httpcli/                   # CLI 工具（代码生成器）
-│   ├── pzexcel/                   # Excel 读写
-│   ├── pzword/                    # Word 文档生成
-│   ├── pzzip/                     # ZIP 压缩/解压
-│   ├── pzimage/                   # 图片处理（JPG/PNG）
-│   ├── pzcharts/                  # SVG 图表生成
-│   ├── webpdf/                    # HTML 转 PDF
-│   ├── sms/                       # 短信发送
-│   └── webpay/                    # 微信/支付宝支付
+├── vendor/                        # Third‑party / internal libraries
+│   ├── httpserver/                # HTTP server core
+│   │   ├── include/               # Server headers
+│   │   │   ├── request.h          # HTTP request handling
+│   │   │   ├── httppeer.h         # HTTP client wrapper
+│   │   │   ├── router.h           # URL routing
+│   │   │   └── ...               # Other headers
+│   │   └── src/                   # Server implementations
+│   ├── httpcli/                   # CLI tools (code generators)
+│   ├── pzexcel/                   # Excel read/write
+│   ├── pzword/                    # Word document generation
+│   ├── pzzip/                     # ZIP compression/decompression
+│   ├── pzimage/                   # Image processing (JPG/PNG)
+│   ├── pzcharts/                  # SVG chart generation
+│   ├── webpdf/                    # HTML to PDF conversion
+│   ├── sms/                       # SMS sending
+│   └── webpay/                    # WeChat / Alipay payments
 │
-├── libs/                          # 业务工具库
-│   ├── img/                       # 图片上传处理
-│   ├── markdown/                  # Markdown 转 HTML
-│   ├── pinyin/                    # 汉字转拼音
-│   ├── ipdata/                    # IP 地理位置查询
-│   └── types/                     # 通用类型定义
+├── libs/                          # Business utility libraries
+│   ├── img/                       # Image upload handling
+│   ├── markdown/                  # Markdown to HTML conversion
+│   ├── pinyin/                    # Chinese to Pinyin conversion
+│   ├── ipdata/                    # IP geolocation lookup
+│   └── types/                     # Common type definitions
 │
-├── common/                        # 公共定义
-│   ├── autorestfulpaths.hpp       # RESTful 路径注册
-│   ├── reghttpmethod.hpp          # HTTP 方法注册
+├── common/                        # Common definitions
+│   ├── autorestfulpaths.hpp       # RESTful path registration
+│   ├── reghttpmethod.hpp          # HTTP method registration
 │   └── ...
 │
-├── sockets/                       # Socket 扩展
-├── websockets/                    # WebSocket 支持
-├── startup/                       # 程序入口
-│   ├── main_dev.cpp               # 开发模式入口
-│   ├── main_daemon.cpp            # 守护进程入口
-│   └── main_docker.cpp            # Docker 入口
+├── sockets/                       # Socket extensions
+├── websockets/                    # WebSocket support
+├── startup/                       # Program entry points
+│   ├── main_dev.cpp               # Development mode entry
+│   ├── main_daemon.cpp            # Daemon mode entry
+│   └── main_docker.cpp            # Docker entry
 │
-├── www/                           # Web 静态文件根目录
-├── docs/                          # 示例资源（图片、字体等）
-├── CMakeLists.txt                 # CMake 构建配置
-└── AI_RULES.md                    # 本文档
+├── www/                           # Web static file root
+├── docs/                          # Example resources (images, fonts, etc.)
+├── CMakeLists.txt                 # CMake build configuration
+└── AI_RULES.md                    # This document
 ```
 
 ---
 
-## 三、配置文件说明
+## III. Configuration File Reference
 
-### 3.1 server.conf - 服务器配置
+### 3.1 server.conf – Server Configuration
 
 ```ini
 [default]
-; 线程配置
-threadmax = 1024          ; 最大线程数
-threadmin = 5             ; 最小线程数
-cothreadnum = 8           ; 协程运行线程数
+; Thread settings
+threadmax = 1024          ; Maximum threads
+threadmin = 5             ; Minimum threads
+cothreadnum = 8           ; Number of coroutine‑running threads
 
-; 端口配置
-httpport = 80             ; HTTP 端口
-httpsport = 443           ; HTTPS 端口
+; Port settings
+httpport = 80             ; HTTP port
+httpsport = 443           ; HTTPS port
 
-; SSL 配置
-mainhost = www.hggq.com  ; 主域名
-certificate_chain_file = www.hggq.com.pem    ; 证书链文件
-private_key_file = www.hggq.com.key         ; 私钥文件
-dh4096.pem               ; DH 参数文件
+; SSL settings
+mainhost = www.hggq.com   ; Primary domain
+certificate_chain_file = www.hggq.com.pem    ; Certificate chain file
+private_key_file = www.hggq.com.key         ; Private key file
+dh4096.pem               ; DH parameters file
 
-; 路径配置
-modelspath = ./models     ; 模型目录
-viewpath = ./view         ; 视图目录
-controlpath = ./controller; 控制器目录
-temppath = ./temp         ; 临时文件目录
-logpath = ./log           ; 日志目录
-wwwpath = ./www/default  ; Web 根目录
+; Path settings
+modelspath = ./models     ; Models directory
+viewpath = ./view         ; Views directory
+controlpath = ./controller; Controllers directory
+temppath = ./temp         ; Temporary files directory
+logpath = ./log           ; Logs directory
+wwwpath = ./www/default   ; Web root directory
 
-; 功能开关
-http2_enable = 1          ; HTTP/2 开关
-debug_enable = 1          ; 调试模式
-deamon_enable = 0         ; 守护进程模式
+; Feature toggles
+http2_enable = 1          ; HTTP/2 switch
+debug_enable = 1          ; Debug mode
+deamon_enable = 0         ; Daemon mode
 
-; ACME 配置
-acme_auto = 0             ; 自动 SSL 证书更新
-acme_every_day = 7        ; 每天几点执行 ACME
-ocsp_intv_time = 14400    ; OCSP 更新间隔（秒）
+; ACME settings
+acme_auto = 0             ; Automatic SSL certificate renewal
+acme_every_day = 7        ; Hour of day to run ACME
+ocsp_intv_time = 14400    ; OCSP update interval (seconds)
 
-; 会话配置
+; Session settings
 session_type = 1          ; 0=file 1=memory 2=redis
-static_file_compress_cache = 1  ; 静态文件压缩缓存
+static_file_compress_cache = 1  ; Static file compression cache
 
-; 上传配置
-upload_max_size = 16777216  ; 最大上传尺寸（16MB）
+; Upload settings
+upload_max_size = 16777216  ; Maximum upload size (16 MB)
 ```
 
-### 3.2 orm.conf - 数据库配置
+### 3.2 orm.conf – Database Configuration
 
 ```ini
-[section_name]     ; 数据库标识（如 default, cms, ph）
-type = main        ; main（主库）或 second（从库）
-host = 127.0.0.1   ; 数据库主机
-port = 3306        ; 端口（MySQL: 3306, PG: 5432）
-dbname = database_name  ; 数据库名
-user = username    ; 用户名
-password = pass    ; 密码
-pretable =         ; 表前缀
-maxpool = 5        ; 最大连接池
-dbtype = mysql     ; mysql 或 postgresql
-charset = utf8mb4  ; 字符集
-#ssl = ON          ; 启用 SSL
-#sslverify = ON    ; 校验证书链
-#sslhost =         ; 证书域名
+[section_name]     ; Database identifier (e.g., default, cms, ph)
+type = main        ; main (primary) or second (replica)
+host = 127.0.0.1   ; Database host
+port = 3306        ; Port (MySQL: 3306, PG: 5432)
+dbname = database_name  ; Database name
+user = username    ; Username
+password = pass    ; Password
+pretable =         ; Table prefix
+maxpool = 5        ; Maximum connection pool size
+dbtype = mysql     ; mysql or postgresql
+charset = utf8mb4  ; Character set
+#ssl = ON          ; Enable SSL
+#sslverify = ON    ; Verify certificate chain
+#sslhost =         ; Certificate domain
 ```
 
-**数据库标识约定**:
-- `default` - 基准测试数据库
-- `cms` - CMS 系统数据库
-- `docs` - 文档数据库
-- `ph` - PostgreSQL 测试库
+**Database identifier conventions**:
+- `default` – Benchmark testing database
+- `cms` – CMS system database
+- `docs` – Documentation database
+- `ph` – PostgreSQL test database
 
-### 3.3 acme.conf - ACME 证书配置
+### 3.3 acme.conf – ACME Certificate Configuration
 
 ```ini
 [info]
-acme_path = ./acme         ; ACME 工作目录
-cert_path = ./conf         ; 证书存储目录
-email = your@email.com    ; 邮箱（必须）
-days_remain = 10           ; 提前多少天更新证书
+acme_path = ./acme         ; ACME working directory
+cert_path = ./conf         ; Certificate storage directory
+email = your@email.com     ; Email address (mandatory)
+days_remain = 10           ; Renew certificate this many days before expiry
 
 [zerossl]
-server_url = https://acme.zerossl.com/v2/DV90  ; ZeroSSL 接口
+server_url = https://acme.zerossl.com/v2/DV90  ; ZeroSSL endpoint
 eab_kid =                  ; EAB Key ID
 eab_hmac_key =             ; EAB HMAC Key
 ```
 
 ---
 
-## 四、控制器开发规范
+## IV. Controller Development Guidelines
 
-### 4.1 控制器文件结构
+### 4.1 Controller File Structure
 
 ```cpp
 // controller/src/example.cpp
-#include "orm.h"              // ORM 入口
-#include "httppeer.h"         // HTTP 客户端封装
-#include "func.h"             // 工具函数
-#include "example.h"          // 对应头文件
+#include "orm.h"              // ORM entry
+#include "httppeer.h"         // HTTP client wrapper
+#include "func.h"             // Utility functions
+#include "example.h"          // Corresponding header
 
 namespace http
 {
-// 控制器函数实现
+// Controller function implementation
 }
 ```
 
-### 4.2 URL 路由注册
+### 4.2 URL Route Registration
 
-使用 `//@urlpath` 注释标记 URL 路由：
+Use `//@urlpath` comments to register URL routes:
 
 ```cpp
 //@urlpath(null,hello)
@@ -226,12 +226,12 @@ std::string testhello(std::shared_ptr<httppeer> peer)
 }
 ```
 
-**路由格式**: `//@urlpath(前置过滤器,URL路径)`
+**Route format**: `//@urlpath(前置过滤器,URL路径)`
 
-- 第一个参数: 前置过滤器函数名（`null` 表示无过滤器）
-- 第二个参数: URL 路径
+- First argument: pre‑filter function name (`null` means no filter)
+- Second argument: URL path
 
-### 4.3 前置过滤器
+### 4.3 Pre‑filters
 
 ```cpp
 //@urlpath(null,admin/islogin)
@@ -243,12 +243,12 @@ std::string admin_islogin(std::shared_ptr<httppeer> peer)
         client.val["code"] = 0;
         client.val["msg"] = "please login";
         client.out_json();
-        return "exit";         // 返回 "exit" 阻止后续执行
+        return "exit";         // Returning "exit" stops further execution
     }
     return "ok";
 }
 
-//@urlpath(admin_islogin,admin/main)  // 使用过滤器
+//@urlpath(admin_islogin,admin/main)  // Use the filter
 std::string admin_main(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
@@ -257,58 +257,58 @@ std::string admin_main(std::shared_ptr<httppeer> peer)
 }
 ```
 
-### 4.4 httppeer 常用 API
+### 4.4 Common httppeer APIs
 
 ```cpp
 httppeer &client = peer->get_peer();
 
-// 请求数据
-client.post["field"].to_string();   // POST 数据
-client.post["field"].to_int();      // POST 数据转 int
-client.get["param"];                // GET 参数
-client.client_ip;                   // 客户端 IP
-client.is_ssl();                    // 是否 HTTPS
+// Request data
+client.post["field"].to_string();   // POST data
+client.post["field"].to_int();      // POST data as int
+client.get["param"];                // GET parameter
+client.client_ip;                   // Client IP
+client.is_ssl();                    // Whether HTTPS is used
 
-// 响应输出
-client << "content";                // 直接输出
-client.view("path");                // 渲染视图（不带主题前缀）
-peer->theme_view("path");           // 渲染主题视图（自动添加 themes 前缀）
-client.goto_url("/path");           // 重定向
-client.goto_url("/path", 3, msg);   // 带延迟和消息的重定向
+// Response output
+client << "content";                // Direct output
+client.view("path");                // Render view (without theme prefix)
+peer->theme_view("path");           // Render themed view (automatically adds theme prefix)
+client.goto_url("/path");           // Redirect
+client.goto_url("/path", 3, msg);   // Redirect with delay and message
 
-// JSON 响应
-client.val["key"] = value;          // 设置 JSON 字段
-client.out_json();                  // 输出 JSON
+// JSON response
+client.val["key"] = value;          // Set JSON field
+client.out_json();                  // Output JSON
 
-// 会话管理
-client.session["key"] = value;      // 设置会话
-client.session["key"].to_int();    // 读取会话
-client.save_session();              // 保存会话
+// Session management
+client.session["key"] = value;      // Set session
+client.session["key"].to_int();     // Read session
+client.save_session();              // Save session
 
-// 文件上传
-client.files["field"]["filename"];  // 上传文件名
-client.files["field"]["tempfile"];  // 临时文件路径
+// File upload
+client.files["field"]["filename"];  // Uploaded filename
+client.files["field"]["tempfile"];  // Temporary file path
 
-// 路径
-client.get_sitepath();              // 获取站点路径
-client.get_hosturl();               // 获取主机 URL
+// Paths
+client.get_sitepath();              // Get site path
+client.get_hosturl();               // Get host URL
 ```
 
-### 4.5 主题视图 (theme_view)
+### 4.5 Themed Views (`theme_view`)
 
-`theme_view` 是支持多主题/多租户的视图渲染方法。与 `view` 的区别是会自动根据当前域名配置的 `themes` 值添加路径前缀：
+`theme_view` is a view‑rendering method that supports multi‑theme / multi‑tenant setups. Unlike `view`, it automatically adds a path prefix based on the `themes` configuration of the current domain.
 
 ```cpp
-// view: 直接渲染 view/front/producthome.html
+// view: renders view/front/producthome.html directly
 peer->view("front/producthome");
 
-// theme_view: 如果当前域名配置了 themes = "saas1"
-// 则实际渲染 view/saas1/front/producthome.html
-// 如果没有配置 themes，则等价于 peer->view("front/producthome")
+// theme_view: if the current domain has themes = "saas1",
+// it actually renders view/saas1/front/producthome.html.
+// If no themes is set, it is equivalent to peer->view("front/producthome").
 peer->theme_view("front/producthome");
 ```
 
-**真实项目用法示例**（来自 [products.cpp](file:///Users/hzq/newpoint/controller/src/saas.com/products.cpp)）：
+**Real‑world examples** (from [products.cpp](file:///Users/hzq/newpoint/controller/src/saas.com/products.cpp)):
 ```cpp
 peer->theme_view("front/producthome");
 peer->theme_view("front/productcatalogue");
@@ -318,32 +318,32 @@ peer->theme_view("front/productbrand");
 peer->theme_view("front/productsearch");
 ```
 
-**配置方式**（在域名配置文件中）：
+**Configuration** (in domain configuration files):
 ```ini
 [saas1.example.com]
-themes = saas1              ; 主题目录名，会被添加到视图路径前
-themes_url = /saas1/        ; 主题的静态资源 URL 前缀
+themes = saas1              ; Theme directory name, prepended to view paths
+themes_url = /saas1/        ; Static resource URL prefix for the theme
 ```
 
-**配套 API**:
+**Related APIs**:
 
 ```cpp
-// 获取当前域名的主题名
-std::string theme = peer->get_theme();     // 返回 "saas1" 或 ""
+// Get the current domain's theme name
+std::string theme = peer->get_theme();     // Returns "saas1" or ""
 
-// 手动拼接主题路径后使用 view（不推荐，仅作兼容用途）
+// Manually concatenate theme path and then use view (not recommended, only for compatibility)
 std::string viewfile = peer->get_theme();
 if (!viewfile.empty()) viewfile += "/";
 viewfile += "front/productcatalogue";
-peer->view(viewfile);  // 等价于 peer->theme_view("front/productcatalogue")
+peer->view(viewfile);  // Equivalent to peer->theme_view("front/productcatalogue")
 
-// 获取当前域名的主题 URL 前缀（用于模板中的静态资源）
-std::string themeUrl = peer->get_themeurl();  // 返回 "/saas1/" 或 ""
+// Get the current domain's theme URL prefix (for static assets in templates)
+std::string themeUrl = peer->get_themeurl();  // Returns "/saas1/" or ""
 ```
 
-**使用场景**：同一个系统服务多个租户（SaaS），每个租户有独立的域名和主题模板目录（如 `view/saas1/`、`view/saas2/`），控制器代码统一使用 `theme_view` 即可，无需关心具体主题名。
+**Use cases**: Serving the same system to multiple tenants (SaaS) with different domains and theme template directories (e.g., `view/saas1/`, `view/saas2/`). Controllers use `theme_view` uniformly without caring about the specific theme name.
 
-### 4.6 完整控制器示例
+### 4.6 Complete Controller Example
 
 ```cpp
 #include "orm.h"
@@ -353,7 +353,7 @@ std::string themeUrl = peer->get_themeurl();  // 返回 "/saas1/" 或 ""
 
 namespace http
 {
-// 列表页
+// List page
 //@urlpath(null,crud/list)
 std::string crud_list(std::shared_ptr<httppeer> peer)
 {
@@ -385,7 +385,7 @@ std::string crud_list(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-// 新增
+// Add
 //@urlpath(null,crud/addpost)
 std::string crud_addpost(std::shared_ptr<httppeer> peer)
 {
@@ -397,11 +397,11 @@ std::string crud_addpost(std::shared_ptr<httppeer> peer)
     model.data.content = client.post["content"].to_string();
     model.setPK(model.save());
     
-    client.goto_url("/crud/list", 3, "添加成功！");
+    client.goto_url("/crud/list", 3, "Added successfully!");
     return "";
 }
 
-// 编辑
+// Edit
 //@urlpath(null,crud/editpost)
 std::string crud_editpost(std::shared_ptr<httppeer> peer)
 {
@@ -413,11 +413,11 @@ std::string crud_editpost(std::shared_ptr<httppeer> peer)
     model.where("aid", id);
     model.update("title");
     
-    client.goto_url("/crud/list", 3, "修改成功！");
+    client.goto_url("/crud/list", 3, "Modified successfully!");
     return "";
 }
 
-// 删除
+// Delete
 //@urlpath(null,crud/delete)
 std::string crud_delete(std::shared_ptr<httppeer> peer)
 {
@@ -428,7 +428,7 @@ std::string crud_delete(std::shared_ptr<httppeer> peer)
     model.where("aid", id).delete();
     
     client.val["code"] = 1;
-    client.val["msg"] = "删除成功";
+    client.val["msg"] = "Deleted successfully";
     client.out_json();
     return "";
 }
@@ -437,130 +437,130 @@ std::string crud_delete(std::shared_ptr<httppeer> peer)
 
 ---
 
-## 五、ORM 使用指南
+## V. ORM Usage Guide
 
-### 5.1 生成 ORM 代码
+### 5.1 Generating ORM Code
 
-使用 CLI 工具从数据库自动生成 ORM 代码：
+Use the CLI tool to automatically generate ORM code from the database:
 
 ```bash
-# 生成指定数据库的 ORM
-./bin/paozhu_cli orm cms      # 从 [cms] 数据库配置生成
-./bin/paozhu_cli orm default  # 从 [default] 数据库配置生成
-./bin/paozhu_cli orm ph       # 从 [ph] PostgreSQL 配置生成
+# Generate ORM for the specified database
+./bin/paozhu_cli orm cms      # Generate from the [cms] database configuration
+./bin/paozhu_cli orm default  # Generate from the [default] database configuration
+./bin/paozhu_cli orm ph       # Generate from the [ph] PostgreSQL configuration
 ```
 
-### 5.2 模型文件组成
+### 5.2 Model File Composition
 
-每个表对应三个文件：
-- `models/{db}/ModelName.cpp` - 模型实现
-- `orm/{db}/include/modelname_base.h` - 字段基础定义（自动生成，不手动修改）
-- `orm/{db}/include/modelname_opsql.h` - SQL 操作层（自动生成，不手动修改）
+Each table corresponds to three files:
+- `models/{db}/ModelName.cpp` – Model implementation
+- `orm/{db}/include/modelname_base.h` – Field base definitions (auto‑generated, do not modify manually)
+- `orm/{db}/include/modelname_opsql.h` – SQL operation layer (auto‑generated, do not modify manually)
 
-### 5.3 ORM 基本查询
+### 5.3 Basic ORM Queries
 
 ```cpp
 #include "orm.h"
 
-// 获取所有记录
+// Get all records
 auto model = orm::cms::Article();
 model.fetch();
 
-// 条件查询
+// Conditional query
 model.where("userid", 123).fetch();
-model.where("title", "keyword").like();    // LIKE 查询
-model.where("status", 1).eq();             // 等于
+model.where("title", "keyword").like();    // LIKE query
+model.where("status", 1).eq();             // Equals
 
-// 多条件
+// Multiple conditions
 model.where("userid", 123)
      .whereAnd("status", 1)
      .fetch();
 
-// 排序
-model.desc("aid").fetch();           // 降序
-model.asc("addtime").fetch();        // 升序
+// Ordering
+model.desc("aid").fetch();           // Descending
+model.asc("addtime").fetch();        // Ascending
 
-// 分页
+// Pagination
 auto [minpage, maxpage, curpage, total] = model.page(1, 10);
 model.fetch();
 
-// 数量统计
+// Count
 unsigned int total = model.count();
 
-// 聚合
+// Aggregation
 unsigned int total = model.where("status", 1).count();
 ```
 
-### 5.4 ORM 高级查询
+### 5.4 Advanced ORM Queries
 
 ```cpp
-// 限制结果
+// Limit results
 model.limit(10).fetch();
 model.limit(5, 10).fetch();  // offset, count
 
-// 选择字段
+// Select fields
 model.select("aid,title,addtime").fetch();
 
-// 分组
+// Grouping
 model.group("category_id").fetch();
 
-// 聚合函数
+// Aggregate functions
 model.where("userid", 1).sum("price");
 model.where("userid", 1).avg("score");
 model.where("userid", 1).max("time");
 model.where("userid", 1).min("time");
 
-// 子查询
+// Subqueries
 model.whereIn("category_id", subQuery);
 
-// 锁定查询（事务内使用）
+// Locking queries (within transactions)
 model.where("id", 1).lock().fetch_one();
 ```
 
-### 5.5 ORM 数据操作
+### 5.5 ORM Data Manipulation
 
 ```cpp
 auto model = orm::cms::Article();
 
-// 新增
-model.data.title = "标题";
-model.data.content = "内容";
+// Insert
+model.data.title = "Title";
+model.data.content = "Content";
 model.data.userid = 1;
 unsigned int newId = model.save();
 model.setPK(newId);
 
-// 修改
-model.data.title = "新标题";
+// Update
+model.data.title = "New Title";
 model.where("aid", id).update("title");
 
-// 批量修改
+// Batch update
 model.data.status = 1;
 model.where("userid", 1).update("status");
 
-// 删除
+// Delete
 model.where("aid", id).delete();
 
-// 字段自增/自减
+// Increment / decrement
 model.where("aid", id).update_col("readnum", 1);     // readnum + 1
 model.where("aid", id).update_col("stock", -1);      // stock - 1
 
-// 字段替换
+// Replace in column
 model.where("aid", id).replace_col("content", "old", "new");
 
-// 直接操作主键
+// Direct primary key access
 model.setPK(id).fetch_one();
 model.where("pk", model.getPK());
 ```
 
-### 5.6 原生 SQL 查询
+### 5.6 Raw SQL Queries
 
-当需要执行复杂 SQL 或 ORM 不支持的查询时，使用 `orm::db_conn` 独立数据库连接：
+When complex SQL is needed or ORM does not support the query, use `orm::db_conn` as an independent database connection:
 
 ```cpp
 #include "orm.h"
 #include "orm_query.h"
 
-// 1. 定义返回结果结构体，继承 orm::Base，使用 ORM_NAMES 宏注册字段
+// 1. Define a result structure inheriting from orm::Base, using ORM_NAMES macro
 namespace orm::cust
 {
     struct LocalusersqlStruct : orm::Base<LocalusersqlStruct>
@@ -572,19 +572,19 @@ namespace orm::cust
     };
 }
 
-// 2. 使用独立数据库连接执行 SQL
+// 2. Use an independent database connection to execute SQL
 std::vector<orm::cust::LocalusersqlStruct> loaduser;
-auto ulink = std::make_unique<orm::db_conn>("cms");  // cms 为 orm.conf 中的数据库标签
+auto ulink = std::make_unique<orm::db_conn>("cms");  // "cms" is the database label in orm.conf
 
 std::string sqlstring = "SELECT adminid,name,nickname FROM sysuser where 1 limit 1";
 
-// 同步模式
+// Synchronous mode
 ulink->query(sqlstring, loaduser);
 
-// 协程模式（在 asio::awaitable 函数中）
+// Coroutine mode (inside an asio::awaitable function)
 co_await ulink->async_query(sqlstring, loaduser);
 
-// 3. 读取结果
+// 3. Read results
 for (auto &row : loaduser)
 {
     client << "adminid:" << row.adminid
@@ -593,33 +593,33 @@ for (auto &row : loaduser)
 }
 ```
 
-**注意**: SQL 中 SELECT 的字段必须与返回结构体的字段一一对应。
+**Note**: The fields selected in the SQL must correspond one‑to‑one with the fields in the returned structure.
 
-### 5.7 PostgreSQL 支持
+### 5.7 PostgreSQL Support
 
 ```cpp
-// PostgreSQL 模型使用独立的命名空间
-auto model = orm::ph::Forture();   // ph 命名空间对应 orm.conf 中的 [ph] 配置
+// PostgreSQL models use a separate namespace
+auto model = orm::ph::Forture();   // The "ph" namespace corresponds to the [ph] configuration in orm.conf
 model.fetch();
 
-// 注意：MySQL 模型(orm::cms)和 PostgreSQL 模型(orm::ph) 是独立的
-// 已生成的 MySQL 模型内部固化了 MySQL 连接，不能切换到 PostgreSQL
-// 如需使用 PostgreSQL，必须使用 orm::ph 命名空间下的模型
+// Important: MySQL models (orm::cms) and PostgreSQL models (orm::ph) are independent.
+// Generated MySQL models are hard‑bound to MySQL connections and cannot be switched to PostgreSQL.
+// To use PostgreSQL, you must use models from the orm::ph namespace.
 ```
 
-### 5.8 异步 ORM 操作
+### 5.8 Asynchronous ORM Operations
 
 ```cpp
-// 在协程中使用异步 ORM
+// Use asynchronous ORM inside a coroutine
 asio::awaitable<void> handle_request()
 {
     auto model = orm::cms::Article();
     
-    // 异步查询
+    // Asynchronous queries
     co_await model.async_fetch();
     co_await model.async_count();
     
-    // 异步操作
+    // Asynchronous operations
     co_await model.async_save();
     co_await model.async_update();
     co_await model.async_delete();
@@ -628,269 +628,269 @@ asio::awaitable<void> handle_request()
 
 ---
 
-## 六、CLI 工具使用
+## VI. CLI Tool Usage
 
-### 6.1 视图编译
+### 6.1 View Compilation
 
 ```bash
-# 编译修改过的视图
+# Compile modified views
 ./bin/paozhu_cli view
 
-# 强制重新编译所有视图
+# Force recompile all views
 ./bin/paozhu_cli view force
 ```
 
-### 6.2 ORM 生成
+### 6.2 ORM Generation
 
 ```bash
-# 生成 ORM 代码
+# Generate ORM code
 ./bin/paozhu_cli orm cms
 ./bin/paozhu_cli orm default
 ./bin/paozhu_cli orm ph
 ```
 
-### 6.3 JSON 反射生成
+### 6.3 JSON Reflection Generation
 
 ```bash
-# 扫描 libs 目录，为带 [//@reflect json to_json from_json] 注解的结构体生成反射代码
+# Scan the libs directory and generate reflection code for structs annotated with [//@reflect json to_json from_json]
 ./bin/paozhu_cli json
 ```
 
-### 6.4 数据库迁移
+### 6.4 Database Migration
 
 ```bash
-# 从 cms 迁移到 pg
+# Migrate from cms to pg
 ./bin/paozhu_cli dbconver cms pg
 
-# 强制迁移（覆盖已有表）
+# Force migration (overwrite existing tables)
 ./bin/paozhu_cli dbconver cms pg force
 ```
 
-### 6.5 SQL 导出
+### 6.5 SQL Export
 
 ```bash
-# 导出表结构
+# Export table structures
 ./bin/paozhu_cli dbtable cms ./schema.sql
-./bin/paozhu_cli dbtable cms ./pg.sql -target=pg      # 导出为 PG 语法
+./bin/paozhu_cli dbtable cms ./pg.sql -target=pg      # Export as PG syntax
 
-# 导出结构+数据
+# Export structure + data
 ./bin/paozhu_cli dbexport cms ./dump.sql
 ./bin/paozhu_cli dbexport cms ./mysql.sql -target=mysql
 ```
 
 ---
 
-## 七、视图模板开发
+## VII. View Template Development
 
-### 7.1 视图模板位置
+### 7.1 View Template Location
 
-视图模板存放在 `view/` 目录下，按功能分子目录：
-- `view/admin/` - 后台管理视图
-- `view/home/` - 首页视图
-- `view/login/` - 登录页视图
+View templates reside in the `view/` directory, organised into subdirectories by function:
+- `view/admin/` – Admin views
+- `view/home/` – Home views
+- `view/login/` – Login views
 
-### 7.2 视图渲染
+### 7.2 View Rendering
 
 ```cpp
-// 控制器中渲染视图
-client.view("admin/main");       // 渲染 view/admin/main.html
-client.view("home/header");      // 渲染 view/home/header.html
+// Render views in controllers
+client.view("admin/main");       // Renders view/admin/main.html
+client.view("home/header");      // Renders view/home/header.html
 ```
 
-### 7.3 视图变量传递
+### 7.3 Passing Variables to Views
 
 ```cpp
-// 控制器中设置视图变量
-client.val["title"] = "页面标题";
-client.val["user"]["name"] = "张三";
+// Set view variables in controllers
+client.val["title"] = "Page Title";
+client.val["user"]["name"] = "John Doe";
 client.val["list"].set_array();
 client.val["list"].push(item);
 
-// 视图模板中使用
-// ${title} - 输出变量
-// ${user.name} - 访问嵌套对象
-// <%c ... %> - 嵌入 C++ 代码
+// Use in view templates
+// ${title} - output variable
+// ${user.name} - access nested object
+// <%c ... %> - embed C++ code
 ```
 
-### 7.4 视图编译为 C++
+### 7.4 Compiling Views to C++
 
-视图模板通过 CLI 工具编译为 `viewsrc/` 下的 C++ 源文件：
+View templates are compiled into C++ source files in `viewsrc/` via the CLI tool:
 
 ```bash
-./bin/paozhu_cli view          # 增量编译
-./bin/paozhu_cli view force    # 全量编译
+./bin/paozhu_cli view          # Incremental compilation
+./bin/paozhu_cli view force    # Full compilation
 ```
 
 ---
 
-## 八、核心 API 参考
+## VIII. Core API Reference
 
-### 8.1 请求对象 (httppeer)
+### 8.1 Request Object (httppeer)
 
-| 功能 | 方法 | 说明 |
-|------|------|------|
-| GET 参数 | `client.get["key"]` | 获取 URL 查询参数 |
-| POST 数据 | `client.post["key"]` | 获取 POST 数据 |
-| 文件上传 | `client.files["field"]` | 获取上传文件信息 |
-| Cookie | `client.cookies["name"]` | 获取 Cookie |
-| 会话 | `client.session["key"]` | 会话读写 |
-| 输出文本 | `client << "text"` | 直接输出字符串 |
-| 渲染视图 | `client.view("path")` | 渲染视图模板 |
-| 主题视图 | `client.theme_view("path")` | 渲染带主题前缀的视图 |
-| 获取主题 | `client.get_theme()` | 获取当前域名的主题名 |
-| 获取主题URL | `client.get_themeurl()` | 获取主题的静态资源URL前缀 |
-| 重定向 | `client.goto_url("/path")` | 页面重定向 |
-| JSON 输出 | `client.out_json()` | 输出 JSON 响应 |
-| 客户端 IP | `client.client_ip` | 获取客户端 IP |
-| SSL 检测 | `client.is_ssl()` | 是否 HTTPS |
+| Feature | Method | Description |
+|---------|--------|-------------|
+| GET parameters | `client.get["key"]` | Get URL query parameters |
+| POST data | `client.post["key"]` | Get POST data |
+| File uploads | `client.files["field"]` | Get uploaded file info |
+| Cookies | `client.cookies["name"]` | Get cookie |
+| Session | `client.session["key"]` | Read/write session |
+| Output text | `client << "text"` | Output string directly |
+| Render view | `client.view("path")` | Render a view template |
+| Themed view | `client.theme_view("path")` | Render view with theme prefix |
+| Get theme | `client.get_theme()` | Get current domain’s theme name |
+| Get theme URL | `client.get_themeurl()` | Get static resource URL prefix for theme |
+| Redirect | `client.goto_url("/path")` | Redirect page |
+| JSON output | `client.out_json()` | Output JSON response |
+| Client IP | `client.client_ip` | Get client IP |
+| SSL detection | `client.is_ssl()` | Whether HTTPS is used |
 
-### 8.2 ORM 链式查询方法
+### 8.2 ORM Chainable Query Methods
 
-| 方法 | 说明 | 示例 |
-|------|------|------|
-| `where(col, val)` | 添加 WHERE 条件 | `.where("status", 1)` |
-| `whereAnd(col, val)` | AND 条件 | `.whereAnd("type", 2)` |
-| `whereOr(col, val)` | OR 条件 | `.whereOr("tag", 3)` |
-| `like()` | 模糊查询 | `.like()` |
-| `eq()` | 等于 | `.eq()` |
-| `ne()` | 不等于 | `.ne()` |
-| `gt()` | 大于 | `.gt()` |
-| `lt()` | 小于 | `.lt()` |
-| `ge()` | 大于等于 | `.ge()` |
-| `le()` | 小于等于 | `.le()` |
-| `in(val)` | IN 查询 | `.in("1,2,3")` |
+| Method | Description | Example |
+|--------|-------------|---------|
+| `where(col, val)` | Add WHERE condition | `.where("status", 1)` |
+| `whereAnd(col, val)` | AND condition | `.whereAnd("type", 2)` |
+| `whereOr(col, val)` | OR condition | `.whereOr("tag", 3)` |
+| `like()` | Fuzzy match | `.like()` |
+| `eq()` | Equals | `.eq()` |
+| `ne()` | Not equals | `.ne()` |
+| `gt()` | Greater than | `.gt()` |
+| `lt()` | Less than | `.lt()` |
+| `ge()` | Greater or equal | `.ge()` |
+| `le()` | Less or equal | `.le()` |
+| `in(val)` | IN query | `.in("1,2,3")` |
 | `nin(val)` | NOT IN | `.nin("4,5")` |
-| `desc(col)` | 降序排序 | `.desc("id")` |
-| `asc(col)` | 升序排序 | `.asc("time")` |
-| `limit(n)` | 限制数量 | `.limit(10)` |
-| `limit(offset, n)` | 分页限制 | `.limit(0, 20)` |
-| `select(fields)` | 选择字段 | `.select("id,name")` |
-| `group(col)` | 分组 | `.group("category")` |
-| `fetch()` | 执行查询 | 获取结果集 |
-| `fetch_one()` | 单条查询 | 获取单条记录 |
-| `count()` | 计数 | 返回记录数 |
-| `page(page, per)` | 分页计算 | 返回分页信息 |
+| `desc(col)` | Descending order | `.desc("id")` |
+| `asc(col)` | Ascending order | `.asc("time")` |
+| `limit(n)` | Limit count | `.limit(10)` |
+| `limit(offset, n)` | Limit with offset | `.limit(0, 20)` |
+| `select(fields)` | Select fields | `.select("id,name")` |
+| `group(col)` | Group by | `.group("category")` |
+| `fetch()` | Execute query | Get result set |
+| `fetch_one()` | Fetch single record | Get one record |
+| `count()` | Count records | Return number |
+| `page(page, per)` | Pagination calculation | Return pagination info |
 
 ---
 
-## 九、项目安全规范
+## IX. Project Security Guidelines
 
-### 9.1 路径安全
-- 路径验证必须防止路径穿越攻击
-- 使用 `std::filesystem::canonicalize` 验证路径
-- 临时文件不得有 group/others 权限
+### 9.1 Path Security
+- Path validation must prevent path traversal attacks.
+- Use `std::filesystem::canonicalize` to validate paths.
+- Temporary files must not have group/others permissions.
 
-### 9.2 数据库安全
-- 使用 ORM 参数化查询防止 SQL 注入
-- 敏感数据在配置文件中加密存储
-- 数据库连接使用最小权限原则
+### 9.2 Database Security
+- Use ORM parameterised queries to prevent SQL injection.
+- Sensitive data should be stored encrypted in configuration files.
+- Database connections should follow the principle of least privilege.
 
-### 9.3 会话安全
-- 会话 ID 使用安全随机生成
-- 敏感操作需验证会话状态
-- 支持 Session 过期时间配置
+### 9.3 Session Security
+- Session IDs must be generated using a secure random source.
+- Sensitive operations require session validation.
+- Support for session expiration time configuration.
 
 ### 9.4 SSL/TLS
-- 必须启用 OCSP Stapling
-- 使用 OpenSSL 3.0+
-- 证书自动续期（ACME）
+- OCSP Stapling must be enabled.
+- Use OpenSSL 3.0+.
+- Automatic certificate renewal (ACME).
 
 ---
 
-## 十、开发工作流
+## X. Development Workflow
 
-### 10.1 新增控制器
+### 10.1 Adding a New Controller
 
-1. 在 `controller/include/` 创建头文件（如 `newfeature.h`）
-2. 在 `controller/src/` 创建实现文件（如 `newfeature.cpp`）
-3. 使用 `//@urlpath` 注册路由
-4. 在 CMakeLists.txt 中添加源文件
-5. 重新编译项目
+1. Create a header file in `controller/include/` (e.g., `newfeature.h`).
+2. Create an implementation file in `controller/src/` (e.g., `newfeature.cpp`).
+3. Register routes using `//@urlpath`.
+4. Add the source file in CMakeLists.txt.
+5. Rebuild the project.
 
-### 10.2 新增数据表模型
+### 10.2 Adding a New Database Model
 
-1. 在数据库创建数据表
-2. 运行 `./bin/paozhu_cli orm <tag>` 生成 ORM 代码
-3. 在 `models/<db>/` 中实现模型业务逻辑
-4. 在控制器中使用 `orm::<db>::ModelName()` 访问数据
+1. Create the table in the database.
+2. Run `./bin/paozhu_cli orm <tag>` to generate ORM code.
+3. Implement business logic in `models/<db>/ModelName.cpp`.
+4. Access data in controllers via `orm::<db>::ModelName()`.
 
-### 10.3 新增视图
+### 10.3 Adding a New View
 
-1. 在 `view/` 下创建 HTML 模板
-2. 使用 `${var}` 标记变量位置
-3. 运行 `./bin/paozhu_cli view` 编译视图
-4. 在控制器中通过 `client.view()` 渲染
+1. Create an HTML template under `view/`.
+2. Use `${var}` to mark variable positions.
+3. Run `./bin/paozhu_cli view` to compile the view.
+4. Render it in controllers via `client.view()`.
 
-### 10.4 构建项目
+### 10.4 Building the Project
 
 ```bash
-# CMake 配置
+# CMake configuration
 mkdir build && cd build
 cmake ..
 
-# 编译
+# Compile
 make -j$(nproc)
 
-# 运行
-./bin/paozhu_cli         # CLI 工具
-./bin/paozhu             # Web 服务器
+# Run
+./bin/paozhu_cli         # CLI tool
+./bin/paozhu             # Web server
 ```
 
 ---
 
-## 十一、常见问题
+## XI. Frequently Asked Questions
 
-### Q: 如何添加新的数据库连接？
-在 `conf/orm.conf` 中添加新的 section，然后在代码中使用对应的命名空间。
+**Q: How can I add a new database connection?**  
+Add a new section in `conf/orm.conf` and then use the corresponding namespace in your code.
 
-### Q: ORM 代码可以手动修改吗？
-`_base.h` 和 `_opsql.h` 文件是自动生成的，不应手动修改。业务逻辑应在 `models/` 目录下的模型类中实现。
+**Q: Can ORM code be modified manually?**  
+The `_base.h` and `_opsql.h` files are auto‑generated and should not be manually modified. Business logic should be implemented in model classes under `models/`.
 
-### Q: 如何在 PostgreSQL 和 MySQL 之间切换？
-修改 `orm.conf` 中的 `dbtype` 参数，或使用 CLI 工具的 `dbconver` 功能迁移数据。
+**Q: How do I switch between PostgreSQL and MySQL?**  
+Change the `dbtype` parameter in `orm.conf`, or use the CLI tool’s `dbconver` feature to migrate data.
 
-### Q: 视图模板支持哪些特殊标签？
-- `${variable}` - 变量输出
-- `${variable|raw}` - 不转义输出
-- `<%c cpp_code %>` - 嵌入 C++ 代码
-- `<% include "file.html" %>` - 包含子模板
+**Q: What special tags does the view template support?**  
+- `${variable}` – variable output
+- `${variable|raw}` – unescaped output
+- `<%c cpp_code %>` – embed C++ code
+- `<% include "file.html" %>` – include sub‑template
 
-### Q: 如何调试 SQL 查询？
-在 `server.conf` 中设置 `debug_enable = 1`，ORM 会自动记录生成的 SQL 语句。
-
----
-
-## 十二、技术栈依赖
-
-### 核心依赖
-- **C++20** - 编程语言标准
-- **Asio** - 异步网络库
-- **OpenSSL 3.0+** - SSL/TLS 加密
-
-### 内置数据库客户端
-- 框架自行集成 MySQL 和 PostgreSQL 客户端，无需额外安装 MySQL Connector/C++ 或 libpq
-- 支持 **MySQL 8.0.4 以上版本**（支持 `caching_sha2_password` 认证插件）
-- 支持 **MariaDB 12.1+**（12.1 版本开始支持 `caching_sha2_password` 认证插件，与 MySQL 8.0 默认认证方式兼容）
-- 同时支持 **C++20 协程**（异步）和**同步**两种调用方式
-
-### 可选依赖
-- **Redis** - 会话存储
-- **FastCGI** - PHP 支持
-- **zlib** - 压缩支持
-
-### 内部模块
-- `vendor/httpserver/` - HTTP 服务器核心
-- `vendor/httpcli/` - CLI 代码生成器
-- `vendor/pzexcel/` - Excel 处理
-- `vendor/pzword/` - Word 处理
-- `vendor/pzzip/` - ZIP 压缩
-- `vendor/pzimage/` - 图片处理
-- `vendor/pzcharts/` - SVG 图表
-- `vendor/webpdf/` - PDF 生成
-- `vendor/sms/` - 短信服务
-- `vendor/webpay/` - 支付集成
+**Q: How can I debug SQL queries?**  
+Set `debug_enable = 1` in `server.conf`; ORM will log the generated SQL statements.
 
 ---
 
-*文档生成时间: 2026-08-15*
-*版本: 基于 Paozhu Framework 代码库分析*
+## XII. Technology Stack Dependencies
+
+### Core Dependencies
+- **C++20** – Programming language standard
+- **Asio** – Asynchronous networking library
+- **OpenSSL 3.0+** – SSL/TLS encryption
+
+### Built‑in Database Clients
+- The framework integrates MySQL and PostgreSQL clients directly – no need to install MySQL Connector/C++ or libpq separately.
+- Supports **MySQL 8.0.4 and above** (including `caching_sha2_password` authentication plugin).
+- Supports **MariaDB 12.1+** (starting from 12.1, it supports the `caching_sha2_password` authentication plugin, compatible with MySQL 8.0’s default authentication).
+- Supports both **C++20 coroutines** (asynchronous) and **synchronous** operation.
+
+### Optional Dependencies
+- **Redis** – Session storage
+- **FastCGI** – PHP support
+- **zlib** – Compression support
+
+### Internal Modules
+- `vendor/httpserver/` – HTTP server core
+- `vendor/httpcli/` – CLI code generator
+- `vendor/pzexcel/` – Excel processing
+- `vendor/pzword/` – Word processing
+- `vendor/pzzip/` – ZIP compression
+- `vendor/pzimage/` – Image processing
+- `vendor/pzcharts/` – SVG charts
+- `vendor/webpdf/` – PDF generation
+- `vendor/sms/` – SMS service
+- `vendor/webpay/` – Payment integration
+
+---
+
+*Document generated: 2026-08-15*  
+*Version: Based on Paozhu Framework codebase analysis*
