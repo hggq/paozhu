@@ -195,12 +195,31 @@ foreach(cppfile IN LISTS controller_list)
 endforeach()
 
 
+# ---- pgconnect sources (shared between MySQL and PostgreSQL) ----
+set(PGCONN_SRCS
+  "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/orm_common.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/pg_conn.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/mysql_conn.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/orm_conn_pool.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/orm_connect_mar.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/orm_query.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/clientdatacache.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/unicode.cpp"
+)
+
 # CLI tool
 add_executable(paozhu_cli
   "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpcli/http_cli.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/mysql_conn.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/mysql_conn_pool.cpp"
-  "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/clientdatacache.cpp"
+  ${PGCONN_SRCS}
+  ${ORM_CMS_MODEL_SRCS}
+  ${ORM_PG_MODEL_SRCS}
+)
+target_include_directories(paozhu_cli PRIVATE
+  "${CMAKE_CURRENT_SOURCE_DIR}"
+  "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/include"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include"
+  "${CMAKE_CURRENT_SOURCE_DIR}/orm"
+  "${CMAKE_CURRENT_SOURCE_DIR}/models"
 )
 
 # Main target

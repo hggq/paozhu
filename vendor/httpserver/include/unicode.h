@@ -134,7 +134,7 @@ namespace http
                         field = 0.0;
                     }
                 }
-            } catch (...) {
+            } catch (const std::exception &) {
                 field = 0.0;
             }
 
@@ -231,7 +231,7 @@ namespace http
                         field = 0.0;
                     }
                 }
-            } catch (...) {
+            } catch (const std::exception &) {
                 field = 0.0;
             }
 

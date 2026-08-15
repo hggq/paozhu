@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTABASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 01 Aug 2026 14:58:15 GMT
+*本文件为自动生成 Sat, 15 Aug 2026 09:48:14 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -645,7 +645,6 @@ static constexpr std::string_view modelname="Testa";
 			}
             switch(coln[0]){
 
-
          case 'c':
    	 return 3;
 break;
@@ -693,9 +692,9 @@ break;
      
          if(fieldsql.size()<2)
          {
-            temp="UPDATE `";
+            temp="UPDATE ";
             temp.append(tablename);
-            temp.push_back('`');
+            //temp.push_back('`');
             temp.append(" SET ");
          }
          else
@@ -715,15 +714,11 @@ break;
             
          }   
          
-      	temp.push_back('`');
-		temp.append("deleted");
-		temp.push_back('`');
+      	temp.append("deleted");
 		temp.append("=1 ");
 		 if(fieldsql.size()>0){ data.deleted=1; }
 		temp.push_back(',');
-		temp.push_back('`');
 		temp.append("deletetime");
-		temp.push_back('`');
 		temp.append("=");
 		unsigned int t=time((time_t *)NULL);
 		temp.append(std::to_string(t));
@@ -733,8 +728,9 @@ break;
      }
      
 
-  inline  std::string stringaddslash(const std::string &content){
+  inline  std::string stringaddslash(std::string_view content){
         std::string temp;
+        temp.reserve(content.size());
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='\''){
                 temp.append("\\'");
@@ -750,8 +746,9 @@ break;
         }
         return temp;
    }  
-  inline  std::string jsonaddslash(const std::string &content){
+  inline  std::string jsonaddslash(std::string_view content){
         std::string temp;
+        temp.reserve(content.size());
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='"'){
                 temp.append("\\\"");
@@ -774,14 +771,14 @@ break;
         tempsql<<" (";
         for(;j<testa_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                   // tempsql<<"`";
                 }
                 tempsql<<testa_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+            //tempsql<<"`";
         }
         tempsql<<") VALUES (";
 
@@ -825,14 +822,14 @@ tempsql<<")";
         tempsql<<" (";
         for(;j<testa_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                    //tempsql<<"`";
                 }
                 tempsql<<testa_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+           // tempsql<<"`";
         }
         tempsql<<") VALUES (";
 
@@ -876,14 +873,14 @@ tempsql<<")";
         tempsql<<" (";
         for(;j<testa_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                   // tempsql<<"`";
                 }
                 tempsql<<testa_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+           //tempsql<<"`";
         }
         tempsql<<") VALUES ";
 
@@ -894,7 +891,6 @@ tempsql<<")";
                 tempsql<<",";	
             }
             tempsql<<"(";
-
 
             	if(insert_data[i].id==0){
 	tempsql<<"null";
@@ -942,30 +938,30 @@ tempsql<<")";
         if(isall){
 
         if(data.id==0){
-	tempsql<<"`id`=0";
+	tempsql<<"id=0";
  }else{ 
-	tempsql<<"`id`="<<std::to_string(data.id);
+	tempsql<<"id="<<std::to_string(data.id);
 }
 if(data.parentid==0){
-	tempsql<<",`parentid`=0";
+	tempsql<<",parentid=0";
  }else{ 
-	tempsql<<",`parentid`="<<std::to_string(data.parentid);
+	tempsql<<",parentid="<<std::to_string(data.parentid);
 }
 if(data.value_id==0){
-	tempsql<<",`value_id`=0";
+	tempsql<<",value_id=0";
  }else{ 
-	tempsql<<",`value_id`="<<std::to_string(data.value_id);
+	tempsql<<",value_id="<<std::to_string(data.value_id);
 }
-tempsql<<",`content`='"<<stringaddslash(data.content)<<"'";
+tempsql<<",content='"<<stringaddslash(data.content)<<"'";
 if(data.deleted==0){
-	tempsql<<",`deleted`=0";
+	tempsql<<",deleted=0";
  }else{ 
-	tempsql<<",`deleted`="<<std::to_string(data.deleted);
+	tempsql<<",deleted="<<std::to_string(data.deleted);
 }
 if(data.deletetime==0){
-	tempsql<<",`deletetime`=0";
+	tempsql<<",deletetime=0";
  }else{ 
-	tempsql<<",`deletetime`="<<std::to_string(data.deletetime);
+	tempsql<<",deletetime="<<std::to_string(data.deletetime);
 }
  }else{ 
 
@@ -1014,45 +1010,45 @@ if(data.deletetime==0){
          case 0:
  if(jj>0){ tempsql<<","; } 
 if(data.id==0){
-	tempsql<<"`id`=0";
+	tempsql<<"id=0";
  }else{ 
-	tempsql<<"`id`="<<std::to_string(data.id);
+	tempsql<<"id="<<std::to_string(data.id);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
 if(data.parentid==0){
-	tempsql<<"`parentid`=0";
+	tempsql<<"parentid=0";
  }else{ 
-	tempsql<<"`parentid`="<<std::to_string(data.parentid);
+	tempsql<<"parentid="<<std::to_string(data.parentid);
 }
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
 if(data.value_id==0){
-	tempsql<<"`value_id`=0";
+	tempsql<<"value_id=0";
  }else{ 
-	tempsql<<"`value_id`="<<std::to_string(data.value_id);
+	tempsql<<"value_id="<<std::to_string(data.value_id);
 }
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`content`='"<<stringaddslash(data.content)<<"'";
+tempsql<<"content='"<<stringaddslash(data.content)<<"'";
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
 if(data.deleted==0){
-	tempsql<<"`deleted`=0";
+	tempsql<<"deleted=0";
  }else{ 
-	tempsql<<"`deleted`="<<std::to_string(data.deleted);
+	tempsql<<"deleted="<<std::to_string(data.deleted);
 }
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
 if(data.deletetime==0){
-	tempsql<<"`deletetime`=0";
+	tempsql<<"deletetime=0";
  }else{ 
-	tempsql<<"`deletetime`="<<std::to_string(data.deletetime);
+	tempsql<<"deletetime="<<std::to_string(data.deletetime);
 }
  break;
 
@@ -1071,24 +1067,24 @@ if(data.deletetime==0){
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
-        tempsql << "REPLACE INTO ";
+            tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
         for (; j < testa_info::col_names.size(); j++)
         {
             if (j > 0)
             {
-                tempsql << "`,`";
+                tempsql << ",";
             }
             else
             {
-                tempsql << "`";
+                tempsql << "";
             }
             tempsql << testa_info::col_names[j];
         }
         if (j > 0)
         {
-            tempsql << "`";
+            tempsql << "";
         }
         tempsql << ") VALUES ";
 
@@ -1126,8 +1122,8 @@ if(data.deletetime==0){
 	tempsql<<","<<std::to_string(record[i].deletetime);
 	}
 	tempsql<<")";
-
- }
+  }
+ 
  return tempsql.str();
 }
 
@@ -1142,17 +1138,17 @@ if(data.deletetime==0){
         {
             if (j > 0)
             {
-                tempsql << "`,`";
+                tempsql << ",";
             }
             else
             {
-                tempsql << "`";
+                tempsql << "";
             }
             tempsql << testa_info::col_names[j];
         }
         if (j > 0)
         {
-            tempsql << "`";
+            tempsql << "";
         }
         tempsql << ") VALUES ";
 

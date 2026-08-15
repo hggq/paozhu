@@ -11,21 +11,21 @@ Discussing the joy of C++ web development with community developers.
 
 ### 1.Features🔥🔥🔥🔥🔥
 
-✅ 1. Support json decode encode, not use thirdparty, support json standard  
-✅ 2. Support multiple domain name websites  
-✅ 3. Support multiple domain name ssl server  
-✅ 4. Support http/1.1 and http/2 protocols  
+✅ 1. Supports json decode encode, not use thirdparty, support json standard  
+✅ 2. Supports multiple domain name websites  
+✅ 3. Supports multiple domain name ssl server  
+✅ 4. Supports http/1.1 and http/2 protocols  
 ✅ 5. Supports WebSocket server and client, with duplex sending and receiving  
 ✅ 6. The framework comes with WebSocket push, which supports regular push to WebSocket client  
-✅ 7. Support httpclient get or post  
-✅ 8. Built in ORM, currently only supports MySQL, providing coroutine and connection pooling functionality  
+✅ 7. Supports httpclient GET and POST requests, in both synchronous and asynchronous modes  
+✅ 8. Built in ORM, supports MySQL and PostgreSQL, supports both coroutine and synchronous modes  
 ✅ 9. Framework has two thread pool,framework thread pool,user program runing thread pool  
 ✅10. The framework uses asio Coroutines  
 ✅11. The framework features that I/O uses the coroutine pool to run and thread pool to run  
 ✅12. The framework supports compress gzip br out files  
 ✅13. URL POST Upload Files. use client.get[] client.post[] client.files[] get    
 ✅14. Integrated the SendMail library, supporting both synchronous and asynchronous modes  
-✅15. Integrated QR code generation  
+✅15. Supports generating QR codes, verification codes, and charts (in svg format)  
 ✅16. Plugin module,Hot Module Replacement  
 ✅17. The framework supports cache Module，ORM supports Result save to cache  
 ✅18. The controller directory cpp files annotation auto pick to url mapping  
@@ -36,11 +36,11 @@ Discussing the joy of C++ web development with community developers.
 ✅23. Supports Socket server and client, supports SSL connection for Socket, facilitating IoT development  
 ✅24. Supports both RPC server and client, using HTTP annotation URL functions  
 ✅25. Traffic limiting, with a two-stage limit based on a 60-second moving average of traffic  
-✅26. Integrates the ACME protocol to automatically renew and validate SSL certificates  
-✅27. Integrate server-side OCSP staples  
-✅28. Simple read and write support for Excel files (xlsx)  
+✅26. Integrate ACME protocol to automatically renew SSL certificates and server-side OCSP stapling  
+✅27. Integrate zip file packaging and decompression  
+✅28. Simple Excel (xlsx) read-write support, simple conversion between Word (docx) and HTML  
 ✅29. Built-in image generation and processing, supporting both JPG and PNG formats  
-✅30. Built-in HTML to PDF module: webpdf (a sub-project of this project)
+✅30. Built-in HTML to PDF module webpdf  
 
 
 ### 2.Runtime environment
@@ -773,7 +773,7 @@ asio::awaitable<std::string> test_socket_client(std::shared_ptr<httppeer> peer)
 * [ ] 1.Improved HTTP features  
 * [ ] 2.HttpClient Improved
 * [ ] 3.HTTP/2 client  
-* [ ] 4.PostgresSQL,SQLite ORM  
+* [ ] 4.SQLite ORM  
 
 
 

@@ -2,7 +2,7 @@
 #define ORM_CMS_BLOGCATALOGBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 01 Aug 2026 14:58:15 GMT
+*本文件为自动生成 Sat, 15 Aug 2026 09:48:14 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -638,7 +638,6 @@ static constexpr std::string_view modelname="Blogcatalog";
 			}
             switch(coln[0]){
 
-
          case 'a':
    	 return 3;
 break;
@@ -681,8 +680,9 @@ break;
      }
      
 
-  inline  std::string stringaddslash(const std::string &content){
+  inline  std::string stringaddslash(std::string_view content){
         std::string temp;
+        temp.reserve(content.size());
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='\''){
                 temp.append("\\'");
@@ -698,8 +698,9 @@ break;
         }
         return temp;
    }  
-  inline  std::string jsonaddslash(const std::string &content){
+  inline  std::string jsonaddslash(std::string_view content){
         std::string temp;
+        temp.reserve(content.size());
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='"'){
                 temp.append("\\\"");
@@ -722,14 +723,14 @@ break;
         tempsql<<" (";
         for(;j<blogcatalog_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                   // tempsql<<"`";
                 }
                 tempsql<<blogcatalog_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+            //tempsql<<"`";
         }
         tempsql<<") VALUES (";
 
@@ -772,14 +773,14 @@ tempsql<<")";
         tempsql<<" (";
         for(;j<blogcatalog_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                    //tempsql<<"`";
                 }
                 tempsql<<blogcatalog_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+           // tempsql<<"`";
         }
         tempsql<<") VALUES (";
 
@@ -822,14 +823,14 @@ tempsql<<")";
         tempsql<<" (";
         for(;j<blogcatalog_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                   // tempsql<<"`";
                 }
                 tempsql<<blogcatalog_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+           //tempsql<<"`";
         }
         tempsql<<") VALUES ";
 
@@ -840,7 +841,6 @@ tempsql<<")";
                 tempsql<<",";	
             }
             tempsql<<"(";
-
 
             	if(insert_data[i].bid==0){
 	tempsql<<"null";
@@ -887,29 +887,29 @@ tempsql<<")";
         if(isall){
 
         if(data.bid==0){
-	tempsql<<"`bid`=0";
+	tempsql<<"bid=0";
  }else{ 
-	tempsql<<"`bid`="<<std::to_string(data.bid);
+	tempsql<<"bid="<<std::to_string(data.bid);
 }
 if(data.userid==0){
-	tempsql<<",`userid`=0";
+	tempsql<<",userid=0";
  }else{ 
-	tempsql<<",`userid`="<<std::to_string(data.userid);
+	tempsql<<",userid="<<std::to_string(data.userid);
 }
 if(data.dateid==0){
-	tempsql<<",`dateid`=0";
+	tempsql<<",dateid=0";
  }else{ 
-	tempsql<<",`dateid`="<<std::to_string(data.dateid);
+	tempsql<<",dateid="<<std::to_string(data.dateid);
 }
 if(data.articlenum==0){
-	tempsql<<",`articlenum`=0";
+	tempsql<<",articlenum=0";
  }else{ 
-	tempsql<<",`articlenum`="<<std::to_string(data.articlenum);
+	tempsql<<",articlenum="<<std::to_string(data.articlenum);
 }
 if(data.languageid==0){
-	tempsql<<",`languageid`=0";
+	tempsql<<",languageid=0";
  }else{ 
-	tempsql<<",`languageid`="<<std::to_string(data.languageid);
+	tempsql<<",languageid="<<std::to_string(data.languageid);
 }
  }else{ 
 
@@ -958,41 +958,41 @@ if(data.languageid==0){
          case 0:
  if(jj>0){ tempsql<<","; } 
 if(data.bid==0){
-	tempsql<<"`bid`=0";
+	tempsql<<"bid=0";
  }else{ 
-	tempsql<<"`bid`="<<std::to_string(data.bid);
+	tempsql<<"bid="<<std::to_string(data.bid);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
 if(data.userid==0){
-	tempsql<<"`userid`=0";
+	tempsql<<"userid=0";
  }else{ 
-	tempsql<<"`userid`="<<std::to_string(data.userid);
+	tempsql<<"userid="<<std::to_string(data.userid);
 }
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
 if(data.dateid==0){
-	tempsql<<"`dateid`=0";
+	tempsql<<"dateid=0";
  }else{ 
-	tempsql<<"`dateid`="<<std::to_string(data.dateid);
+	tempsql<<"dateid="<<std::to_string(data.dateid);
 }
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
 if(data.articlenum==0){
-	tempsql<<"`articlenum`=0";
+	tempsql<<"articlenum=0";
  }else{ 
-	tempsql<<"`articlenum`="<<std::to_string(data.articlenum);
+	tempsql<<"articlenum="<<std::to_string(data.articlenum);
 }
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
 if(data.languageid==0){
-	tempsql<<"`languageid`=0";
+	tempsql<<"languageid=0";
  }else{ 
-	tempsql<<"`languageid`="<<std::to_string(data.languageid);
+	tempsql<<"languageid="<<std::to_string(data.languageid);
 }
  break;
 
@@ -1011,24 +1011,24 @@ if(data.languageid==0){
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
-        tempsql << "REPLACE INTO ";
+            tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
         for (; j < blogcatalog_info::col_names.size(); j++)
         {
             if (j > 0)
             {
-                tempsql << "`,`";
+                tempsql << ",";
             }
             else
             {
-                tempsql << "`";
+                tempsql << "";
             }
             tempsql << blogcatalog_info::col_names[j];
         }
         if (j > 0)
         {
-            tempsql << "`";
+            tempsql << "";
         }
         tempsql << ") VALUES ";
 
@@ -1065,8 +1065,8 @@ if(data.languageid==0){
 	tempsql<<","<<std::to_string(record[i].languageid);
 	}
 	tempsql<<")";
-
- }
+  }
+ 
  return tempsql.str();
 }
 
@@ -1081,17 +1081,17 @@ if(data.languageid==0){
         {
             if (j > 0)
             {
-                tempsql << "`,`";
+                tempsql << ",";
             }
             else
             {
-                tempsql << "`";
+                tempsql << "";
             }
             tempsql << blogcatalog_info::col_names[j];
         }
         if (j > 0)
         {
-            tempsql << "`";
+            tempsql << "";
         }
         tempsql << ") VALUES ";
 

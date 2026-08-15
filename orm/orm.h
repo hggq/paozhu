@@ -1,4 +1,4 @@
-/*build this file time Sat, 26 Apr 2025 14:46:47 GMT*/
+/*build this file time Fri, 14 Aug 2026 13:00:43 GMT*/
 
 #include "Fortune.h"
 #include "World.h"
@@ -12,6 +12,7 @@
 #include "cms/include/Product.h"
 #include "cms/include/Productparam.h"
 #include "cms/include/Siteinfo.h"
+#include "cms/include/Sitelog.h"
 #include "cms/include/Superadmin.h"
 #include "cms/include/Sysperms.h"
 #include "cms/include/Sysrole.h"
@@ -20,9 +21,10 @@
 #include "cms/include/Testa.h"
 #include "cms/include/Testb.h"
 #include "cms/include/Topic.h"
+#include "cms/include/Topicset.h"
 #include "cms/include/Xmeet.h"
 #include "cms/include/Xproject.h"
 #include "cms/include/Xtalk.h"
 #include "cms/include/Xtask.h"
-#include "cms/include/Sitelog.h"
-#include "cms/include/Topicset.h"
+#include "ph/include/Fortune.h"
+#include "ph/include/World.h"

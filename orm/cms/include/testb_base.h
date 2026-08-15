@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTBBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 01 Aug 2026 14:58:15 GMT
+*本文件为自动生成 Sat, 15 Aug 2026 09:48:14 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -645,7 +645,6 @@ static constexpr std::string_view modelname="Testb";
 			}
             switch(coln[0]){
 
-
          case 'n':
    	 return 2;
 break;
@@ -695,8 +694,9 @@ break;
      }
      
 
-  inline  std::string stringaddslash(const std::string &content){
+  inline  std::string stringaddslash(std::string_view content){
         std::string temp;
+        temp.reserve(content.size());
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='\''){
                 temp.append("\\'");
@@ -712,8 +712,9 @@ break;
         }
         return temp;
    }  
-  inline  std::string jsonaddslash(const std::string &content){
+  inline  std::string jsonaddslash(std::string_view content){
         std::string temp;
+        temp.reserve(content.size());
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='"'){
                 temp.append("\\\"");
@@ -736,14 +737,14 @@ break;
         tempsql<<" (";
         for(;j<testb_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                   // tempsql<<"`";
                 }
                 tempsql<<testb_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+            //tempsql<<"`";
         }
         tempsql<<") VALUES (";
 
@@ -787,14 +788,14 @@ tempsql<<")";
         tempsql<<" (";
         for(;j<testb_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                    //tempsql<<"`";
                 }
                 tempsql<<testb_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+           // tempsql<<"`";
         }
         tempsql<<") VALUES (";
 
@@ -838,14 +839,14 @@ tempsql<<")";
         tempsql<<" (";
         for(;j<testb_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                   // tempsql<<"`";
                 }
                 tempsql<<testb_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+           //tempsql<<"`";
         }
         tempsql<<") VALUES ";
 
@@ -856,7 +857,6 @@ tempsql<<")";
                 tempsql<<",";	
             }
             tempsql<<"(";
-
 
             	if(insert_data[i].tid==0){
 	tempsql<<"null";
@@ -904,30 +904,30 @@ tempsql<<")";
         if(isall){
 
         if(data.tid==0){
-	tempsql<<"`tid`=0";
+	tempsql<<"tid=0";
  }else{ 
-	tempsql<<"`tid`="<<std::to_string(data.tid);
+	tempsql<<"tid="<<std::to_string(data.tid);
 }
 if(data.score==0){
-	tempsql<<",`score`=0";
+	tempsql<<",score=0";
  }else{ 
-	tempsql<<",`score`="<<std::to_string(data.score);
+	tempsql<<",score="<<std::to_string(data.score);
 }
-tempsql<<",`name`='"<<stringaddslash(data.name)<<"'";
+tempsql<<",name='"<<stringaddslash(data.name)<<"'";
 if(data.pricenum==0){
-	tempsql<<",`pricenum`=0";
+	tempsql<<",pricenum=0";
  }else{ 
-	tempsql<<",`pricenum`="<<std::to_string(data.pricenum);
+	tempsql<<",pricenum="<<std::to_string(data.pricenum);
 }
 if(data.orgprice==0){
-	tempsql<<",`orgprice`=0";
+	tempsql<<",orgprice=0";
  }else{ 
-	tempsql<<",`orgprice`="<<std::to_string(data.orgprice);
+	tempsql<<",orgprice="<<std::to_string(data.orgprice);
 }
 if(data.subprice==0){
-	tempsql<<",`subprice`=0";
+	tempsql<<",subprice=0";
  }else{ 
-	tempsql<<",`subprice`="<<std::to_string(data.subprice);
+	tempsql<<",subprice="<<std::to_string(data.subprice);
 }
  }else{ 
 
@@ -976,45 +976,45 @@ if(data.subprice==0){
          case 0:
  if(jj>0){ tempsql<<","; } 
 if(data.tid==0){
-	tempsql<<"`tid`=0";
+	tempsql<<"tid=0";
  }else{ 
-	tempsql<<"`tid`="<<std::to_string(data.tid);
+	tempsql<<"tid="<<std::to_string(data.tid);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
 if(data.score==0){
-	tempsql<<"`score`=0";
+	tempsql<<"score=0";
  }else{ 
-	tempsql<<"`score`="<<std::to_string(data.score);
+	tempsql<<"score="<<std::to_string(data.score);
 }
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`name`='"<<stringaddslash(data.name)<<"'";
+tempsql<<"name='"<<stringaddslash(data.name)<<"'";
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
 if(data.pricenum==0){
-	tempsql<<"`pricenum`=0";
+	tempsql<<"pricenum=0";
  }else{ 
-	tempsql<<"`pricenum`="<<std::to_string(data.pricenum);
+	tempsql<<"pricenum="<<std::to_string(data.pricenum);
 }
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
 if(data.orgprice==0){
-	tempsql<<"`orgprice`=0";
+	tempsql<<"orgprice=0";
  }else{ 
-	tempsql<<"`orgprice`="<<std::to_string(data.orgprice);
+	tempsql<<"orgprice="<<std::to_string(data.orgprice);
 }
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
 if(data.subprice==0){
-	tempsql<<"`subprice`=0";
+	tempsql<<"subprice=0";
  }else{ 
-	tempsql<<"`subprice`="<<std::to_string(data.subprice);
+	tempsql<<"subprice="<<std::to_string(data.subprice);
 }
  break;
 
@@ -1033,24 +1033,24 @@ if(data.subprice==0){
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
-        tempsql << "REPLACE INTO ";
+            tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
         for (; j < testb_info::col_names.size(); j++)
         {
             if (j > 0)
             {
-                tempsql << "`,`";
+                tempsql << ",";
             }
             else
             {
-                tempsql << "`";
+                tempsql << "";
             }
             tempsql << testb_info::col_names[j];
         }
         if (j > 0)
         {
-            tempsql << "`";
+            tempsql << "";
         }
         tempsql << ") VALUES ";
 
@@ -1088,8 +1088,8 @@ if(data.subprice==0){
 	tempsql<<","<<std::to_string(record[i].subprice);
 	}
 	tempsql<<")";
-
- }
+  }
+ 
  return tempsql.str();
 }
 
@@ -1104,17 +1104,17 @@ if(data.subprice==0){
         {
             if (j > 0)
             {
-                tempsql << "`,`";
+                tempsql << ",";
             }
             else
             {
-                tempsql << "`";
+                tempsql << "";
             }
             tempsql << testb_info::col_names[j];
         }
         if (j > 0)
         {
-            tempsql << "`";
+            tempsql << "";
         }
         tempsql << ") VALUES ";
 

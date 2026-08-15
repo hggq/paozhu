@@ -1,36 +1,20 @@
-#ifndef HTTP_MYSQL_ORM_CACHE_HPP
-#define HTTP_MYSQL_ORM_CACHE_HPP
+#ifndef ORM_CACHE_HPP
+#define ORM_CACHE_HPP
 
 #include <iostream>
 #include <mutex>
 #include <string>
 #include <map>
-#include <set>
-#include <string_view>
-#include <thread>
-#include "request.h"
-#include "unicode.h"
-#include "datetime.h"
-#include <stdexcept>
-#include <iostream>
-#include <functional>
-#include <tuple>
-#include <typeinfo>
 #include <memory>
-#include <list>
-#include <queue>
-#include <cmath>
-#include <condition_variable>
-#include <sstream>
-#include <algorithm>
-
-#include "mysql_conn.h"
-#include "mysql_conn_pool.h"
+#include <ctime>
 
 namespace orm
 {
 
-//typedef std::vector<std::pair<std::string, std::function<void(long long, long long)>>> commit_lists_callback;
+inline unsigned int orm_timeid()
+{
+    return static_cast<unsigned int>(std::time(nullptr));
+}
 
 template <typename BASE_T>
 std::map<std::size_t, BASE_T> &get_static_model_cache()
@@ -56,14 +40,14 @@ class model_meta_cache
     };
 
   public:
-    void save(std::size_t hashid,const BASE_MODEL &data_list, int expnum = 0, bool cover_data = false)
+    void save(std::size_t hashid, const BASE_MODEL &data_list, int expnum = 0, bool cover_data = false)
     {
         std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
         struct data_cache_t temp;
-        temp.data=data_list;
+        temp.data = data_list;
         if (expnum != 0)
         {
-            temp.exptime = http::timeid() + expnum;
+            temp.exptime = orm_timeid() + expnum;
         }
         else
         {
@@ -84,14 +68,14 @@ class model_meta_cache
         }
     }
 
-    void save(std::size_t hashid,BASE_MODEL &&data_list, int expnum = 0, bool cover_data = false)
+    void save(std::size_t hashid, BASE_MODEL &&data_list, int expnum = 0, bool cover_data = false)
     {
         std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
         struct data_cache_t temp;
         temp.data = std::move(data_list);
         if (expnum != 0)
         {
-            temp.exptime = http::timeid() + expnum;
+            temp.exptime = orm_timeid() + expnum;
         }
         else
         {
@@ -111,7 +95,7 @@ class model_meta_cache
             }
         }
     }
- 
+
     bool remove(std::size_t hashid)
     {
         std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
@@ -124,33 +108,37 @@ class model_meta_cache
         }
         return false;
     }
+
     void remove_exptime()
     {
         std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
-        unsigned int nowtime                     = http::timeid();
+        unsigned int nowtime                     = orm_timeid();
         std::unique_lock<std::mutex> lock(editlock);
         for (auto iter = obj.begin(); iter != obj.end();)
         {
-            if (iter->second.exptime == 0)
+            // exptime==0 表示永不过期，保留；已过期则删除
+            if (iter->second.exptime != 0 && iter->second.exptime < nowtime)
             {
-                continue;
+                iter = obj.erase(iter);
             }
-            if (iter->second.exptime < nowtime)
+            else
             {
-                obj.erase(iter++);
+                ++iter;
             }
         }
     }
+
     void clear()
     {
         std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
         std::unique_lock<std::mutex> lock(editlock);
         obj.clear();
     }
+
     int check(std::size_t hashid)
     {
         std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
-        unsigned int nowtime                     = http::timeid();
+        unsigned int nowtime                     = orm_timeid();
         std::unique_lock<std::mutex> lock(editlock);
         auto iter = obj.find(hashid);
         if (iter != obj.end())
@@ -167,7 +155,7 @@ class model_meta_cache
     int update(std::size_t hashid, int exptime = 0)
     {
         std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
-        unsigned int nowtime                     = http::timeid() + exptime;
+        unsigned int nowtime                     = orm_timeid() + exptime;
         if (exptime == 0)
         {
             nowtime = 0;
@@ -186,10 +174,11 @@ class model_meta_cache
         }
         return -1;
     }
-    const BASE_MODEL &get(std::size_t hashid)
+
+    const BASE_MODEL get(std::size_t hashid)
     {
         std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
-        unsigned int nowtime                     = http::timeid();
+        unsigned int nowtime                     = orm_timeid();
         std::unique_lock<std::mutex> lock(editlock);
         auto iter = obj.find(hashid);
         if (iter != obj.end())
@@ -198,7 +187,6 @@ class model_meta_cache
             {
                 return iter->second.data;
             }
-
             if (iter->second.exptime >= nowtime)
             {
                 return iter->second.data;
@@ -206,10 +194,10 @@ class model_meta_cache
             else
             {
                 obj.erase(iter++);
-                throw "This cache is vector loswer expected time";
+                throw std::runtime_error("This cache is vector loswer expected time");
             }
         }
-        throw "Not in this vector cache";
+        throw std::runtime_error("Not in this vector cache");
     }
 
     static model_meta_cache &getinstance()

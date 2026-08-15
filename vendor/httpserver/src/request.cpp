@@ -12,6 +12,7 @@
 #include <ostream>
 #include <sstream>
 #include <string>
+#include <stdexcept>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -1122,7 +1123,7 @@ float obj_val::str_to_float()
     if (_val_type != obj_type::STRING)
         return 0;
     try { return std::stof(str_); }
-    catch (...) { return 0; }
+    catch (const std::exception &) { return 0; }
 }
 
 double obj_val::str_to_double()
@@ -1130,7 +1131,7 @@ double obj_val::str_to_double()
     if (_val_type != obj_type::STRING)
         return 0;
     try { return std::stod(str_); }
-    catch (...) { return 0; }
+    catch (const std::exception &) { return 0; }
 }
 
 int obj_val::str_to_int()
@@ -1138,7 +1139,7 @@ int obj_val::str_to_int()
     if (_val_type != obj_type::STRING)
         return 0;
     try { return std::stoi(str_); }
-    catch (...) { return 0; }
+    catch (const std::exception &) { return 0; }
 }
 
 long long obj_val::str_to_long()
@@ -1146,7 +1147,7 @@ long long obj_val::str_to_long()
     if (_val_type != obj_type::STRING)
         return 0;
     try { return std::stoll(str_); }
-    catch (...) { return 0; }
+    catch (const std::exception &) { return 0; }
 }
 
 unsigned int obj_val::str_to_uint()
@@ -1154,7 +1155,7 @@ unsigned int obj_val::str_to_uint()
     if (_val_type != obj_type::STRING)
         return 0;
     try { return std::stoul(str_); }
-    catch (...) { return 0; }
+    catch (const std::exception &) { return 0; }
 }
 
 unsigned long long obj_val::str_to_ulong()
@@ -1162,7 +1163,7 @@ unsigned long long obj_val::str_to_ulong()
     if (_val_type != obj_type::STRING)
         return 0;
     try { return std::stoull(str_); }
-    catch (...) { return 0; }
+    catch (const std::exception &) { return 0; }
 }
 
 bool obj_val::to_bool() const
@@ -1193,7 +1194,7 @@ long long obj_val::to_int() const
     case obj_type::STRING:
         if (str_.empty()) return 0;
         try { return std::stoll(str_); }
-        catch (...) { return 0; }
+        catch (const std::exception &) { return 0; }
     case obj_type::INT:
     case obj_type::LONG: return lval;
     case obj_type::UINT:
@@ -1212,7 +1213,7 @@ double obj_val::to_float() const
     case obj_type::STRING:
         if (str_.empty()) return 0.0;
         try { return std::stod(str_); }
-        catch (...) { return 0.0; }
+        catch (const std::exception &) { return 0.0; }
     case obj_type::INT:
     case obj_type::LONG: return static_cast<double>(lval);
     case obj_type::UINT:
@@ -1231,7 +1232,7 @@ double obj_val::to_double() const
     case obj_type::STRING:
         if (str_.empty()) return 0.0;
         try { return std::stod(str_); }
-        catch (...) { return 0.0; }
+        catch (const std::exception &) { return 0.0; }
     case obj_type::INT:
     case obj_type::LONG: return static_cast<double>(lval);
     case obj_type::UINT:
@@ -2147,7 +2148,7 @@ static void from_json_internal(const std::string &json_str, obj_val &val, unsign
                     throw json_parse_error("JSON number is not finite");
                 val.set_type(obj_type::DOUBLE);
             }
-            catch (...)
+            catch (const std::exception &)
             {
                 throw json_parse_error("Invalid JSON number");
             }
@@ -2168,7 +2169,7 @@ static void from_json_internal(const std::string &json_str, obj_val &val, unsign
                     val.set_type(obj_type::LONG);
                 }
             }
-            catch (...)
+            catch (const std::exception &)
             {
                 try
                 {
@@ -2184,7 +2185,7 @@ static void from_json_internal(const std::string &json_str, obj_val &val, unsign
                         val.set_type(obj_type::ULONG);
                     }
                 }
-                catch (...)
+                catch (const std::exception &)
                 {
                     throw json_parse_error("Invalid JSON number");
                 }
@@ -2944,7 +2945,7 @@ obj_val::operator double() const
     case obj_type::STRING:
         if (str_.empty()) return 0.0;
         try { return std::stod(str_); }
-        catch (...) { return 0.0; }
+        catch (const std::exception &) { return 0.0; }
     case obj_type::INT: return lval;
     case obj_type::UINT: return uval;
     case obj_type::LONG: return lval;
@@ -2963,7 +2964,7 @@ obj_val::operator float() const
     case obj_type::STRING:
         if (str_.empty()) return 0.0f;
         try { return std::stof(str_); }
-        catch (...) { return 0.0f; }
+        catch (const std::exception &) { return 0.0f; }
     case obj_type::INT: return static_cast<float>(lval);
     case obj_type::UINT: return static_cast<float>(uval);
     case obj_type::LONG: return static_cast<float>(lval);
@@ -2982,7 +2983,7 @@ obj_val::operator long long() const
     case obj_type::STRING:
         if (str_.empty()) return 0;
         try { return std::stoll(str_); }
-        catch (...) { return 0; }
+        catch (const std::exception &) { return 0; }
     case obj_type::INT: return lval;
     case obj_type::UINT: return static_cast<long long>(uval);
     case obj_type::LONG: return lval;
@@ -3001,7 +3002,7 @@ obj_val::operator unsigned long long() const
     case obj_type::STRING:
         if (str_.empty()) return 0;
         try { return std::stoull(str_); }
-        catch (...) { return 0; }
+        catch (const std::exception &) { return 0; }
     case obj_type::INT: return static_cast<unsigned long long>(lval);
     case obj_type::UINT: return uval;
     case obj_type::LONG: return static_cast<unsigned long long>(lval);

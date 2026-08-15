@@ -5,6 +5,7 @@
 #include <cstring>
 #include "version.h"
 #include "terminal_color.h"
+#include "cost_define.h"
 #include "atomic_count.h"
 #include "sendqueue.h"
 #include "http_socket.h"
@@ -27,10 +28,8 @@
 #include "httphook.h"
 #include "func.h"
 
-#include "mysql_conn.h"
-#include "mysql_conn_pool.h"
-#include "mysql_connect_mar.h"
-#include "cost_define.h"
+#include "orm_conn_pool.h"
+#include "orm_connect_mar.h"
 
 #include "autocontrolmethod.hpp"
 #include "reghttpmethod.hpp"

@@ -2,7 +2,7 @@
 #define ORM_CMS_PRODUCTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 01 Aug 2026 14:58:15 GMT
+*本文件为自动生成 Sat, 15 Aug 2026 09:48:14 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -771,7 +771,6 @@ static constexpr std::string_view modelname="Product";
 			}
             switch(coln[0]){
 
-
          case 'a':
  switch(coln.size()){  
 case 7:
@@ -891,8 +890,9 @@ break;
      }
      
 
-  inline  std::string stringaddslash(const std::string &content){
+  inline  std::string stringaddslash(std::string_view content){
         std::string temp;
+        temp.reserve(content.size());
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='\''){
                 temp.append("\\'");
@@ -908,8 +908,9 @@ break;
         }
         return temp;
    }  
-  inline  std::string jsonaddslash(const std::string &content){
+  inline  std::string jsonaddslash(std::string_view content){
         std::string temp;
+        temp.reserve(content.size());
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='"'){
                 temp.append("\\\"");
@@ -932,14 +933,14 @@ break;
         tempsql<<" (";
         for(;j<product_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                   // tempsql<<"`";
                 }
                 tempsql<<product_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+            //tempsql<<"`";
         }
         tempsql<<") VALUES (";
 
@@ -1029,14 +1030,14 @@ tempsql<<")";
         tempsql<<" (";
         for(;j<product_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                    //tempsql<<"`";
                 }
                 tempsql<<product_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+           // tempsql<<"`";
         }
         tempsql<<") VALUES (";
 
@@ -1126,14 +1127,14 @@ tempsql<<")";
         tempsql<<" (";
         for(;j<product_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                   // tempsql<<"`";
                 }
                 tempsql<<product_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+           //tempsql<<"`";
         }
         tempsql<<") VALUES ";
 
@@ -1144,7 +1145,6 @@ tempsql<<")";
                 tempsql<<",";	
             }
             tempsql<<"(";
-
 
             	if(insert_data[i].pid==0){
 	tempsql<<"null";
@@ -1238,77 +1238,77 @@ tempsql<<")";
         if(isall){
 
         if(data.pid==0){
-	tempsql<<"`pid`=0";
+	tempsql<<"pid=0";
  }else{ 
-	tempsql<<"`pid`="<<std::to_string(data.pid);
+	tempsql<<"pid="<<std::to_string(data.pid);
 }
 if(data.userid==0){
-	tempsql<<",`userid`=0";
+	tempsql<<",userid=0";
  }else{ 
-	tempsql<<",`userid`="<<std::to_string(data.userid);
+	tempsql<<",userid="<<std::to_string(data.userid);
 }
 if(data.topicid==0){
-	tempsql<<",`topicid`=0";
+	tempsql<<",topicid=0";
  }else{ 
-	tempsql<<",`topicid`="<<std::to_string(data.topicid);
+	tempsql<<",topicid="<<std::to_string(data.topicid);
 }
 if(data.bigid==0){
-	tempsql<<",`bigid`=0";
+	tempsql<<",bigid=0";
  }else{ 
-	tempsql<<",`bigid`="<<std::to_string(data.bigid);
+	tempsql<<",bigid="<<std::to_string(data.bigid);
 }
 if(data.smallid==0){
-	tempsql<<",`smallid`=0";
+	tempsql<<",smallid=0";
  }else{ 
-	tempsql<<",`smallid`="<<std::to_string(data.smallid);
+	tempsql<<",smallid="<<std::to_string(data.smallid);
 }
 if(data.brandid==0){
-	tempsql<<",`brandid`=0";
+	tempsql<<",brandid=0";
  }else{ 
-	tempsql<<",`brandid`="<<std::to_string(data.brandid);
+	tempsql<<",brandid="<<std::to_string(data.brandid);
 }
 if(data.isview==0){
-	tempsql<<",`isview`=0";
+	tempsql<<",isview=0";
  }else{ 
-	tempsql<<",`isview`="<<std::to_string(data.isview);
+	tempsql<<",isview="<<std::to_string(data.isview);
 }
 if(data.isstore==0){
-	tempsql<<",`isstore`=0";
+	tempsql<<",isstore=0";
  }else{ 
-	tempsql<<",`isstore`="<<std::to_string(data.isstore);
+	tempsql<<",isstore="<<std::to_string(data.isstore);
 }
 if(data.ishome==0){
-	tempsql<<",`ishome`=0";
+	tempsql<<",ishome=0";
  }else{ 
-	tempsql<<",`ishome`="<<std::to_string(data.ishome);
+	tempsql<<",ishome="<<std::to_string(data.ishome);
 }
 if(data.showtype==0){
-	tempsql<<",`showtype`=0";
+	tempsql<<",showtype=0";
  }else{ 
-	tempsql<<",`showtype`="<<std::to_string(data.showtype);
+	tempsql<<",showtype="<<std::to_string(data.showtype);
 }
-tempsql<<",`sntype`='"<<stringaddslash(data.sntype)<<"'";
-tempsql<<",`name`='"<<stringaddslash(data.name)<<"'";
-tempsql<<",`keywords`='"<<stringaddslash(data.keywords)<<"'";
-tempsql<<",`introduce`='"<<stringaddslash(data.introduce)<<"'";
-tempsql<<",`listimg`='"<<stringaddslash(data.listimg)<<"'";
-tempsql<<",`bigimg`='"<<stringaddslash(data.bigimg)<<"'";
-tempsql<<",`maincontent`='"<<stringaddslash(data.maincontent)<<"'";
-tempsql<<",`paracontent`='"<<stringaddslash(data.paracontent)<<"'";
-tempsql<<",`samepro`='"<<stringaddslash(data.samepro)<<"'";
-tempsql<<",`attatchfiles`='"<<stringaddslash(data.attatchfiles)<<"'";
+tempsql<<",sntype='"<<stringaddslash(data.sntype)<<"'";
+tempsql<<",name='"<<stringaddslash(data.name)<<"'";
+tempsql<<",keywords='"<<stringaddslash(data.keywords)<<"'";
+tempsql<<",introduce='"<<stringaddslash(data.introduce)<<"'";
+tempsql<<",listimg='"<<stringaddslash(data.listimg)<<"'";
+tempsql<<",bigimg='"<<stringaddslash(data.bigimg)<<"'";
+tempsql<<",maincontent='"<<stringaddslash(data.maincontent)<<"'";
+tempsql<<",paracontent='"<<stringaddslash(data.paracontent)<<"'";
+tempsql<<",samepro='"<<stringaddslash(data.samepro)<<"'";
+tempsql<<",attatchfiles='"<<stringaddslash(data.attatchfiles)<<"'";
 if(data.price==0){
-	tempsql<<",`price`=0";
+	tempsql<<",price=0";
  }else{ 
-	tempsql<<",`price`="<<std::to_string(data.price);
+	tempsql<<",price="<<std::to_string(data.price);
 }
 if(data.sortid==0){
-	tempsql<<",`sortid`=0";
+	tempsql<<",sortid=0";
  }else{ 
-	tempsql<<",`sortid`="<<std::to_string(data.sortid);
+	tempsql<<",sortid="<<std::to_string(data.sortid);
 }
-tempsql<<",`adddate`='"<<stringaddslash(data.adddate)<<"'";
-tempsql<<",`editdate`='"<<stringaddslash(data.editdate)<<"'";
+tempsql<<",adddate='"<<stringaddslash(data.adddate)<<"'";
+tempsql<<",editdate='"<<stringaddslash(data.editdate)<<"'";
  }else{ 
 
      
@@ -1356,146 +1356,146 @@ tempsql<<",`editdate`='"<<stringaddslash(data.editdate)<<"'";
          case 0:
  if(jj>0){ tempsql<<","; } 
 if(data.pid==0){
-	tempsql<<"`pid`=0";
+	tempsql<<"pid=0";
  }else{ 
-	tempsql<<"`pid`="<<std::to_string(data.pid);
+	tempsql<<"pid="<<std::to_string(data.pid);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
 if(data.userid==0){
-	tempsql<<"`userid`=0";
+	tempsql<<"userid=0";
  }else{ 
-	tempsql<<"`userid`="<<std::to_string(data.userid);
+	tempsql<<"userid="<<std::to_string(data.userid);
 }
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
 if(data.topicid==0){
-	tempsql<<"`topicid`=0";
+	tempsql<<"topicid=0";
  }else{ 
-	tempsql<<"`topicid`="<<std::to_string(data.topicid);
+	tempsql<<"topicid="<<std::to_string(data.topicid);
 }
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
 if(data.bigid==0){
-	tempsql<<"`bigid`=0";
+	tempsql<<"bigid=0";
  }else{ 
-	tempsql<<"`bigid`="<<std::to_string(data.bigid);
+	tempsql<<"bigid="<<std::to_string(data.bigid);
 }
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
 if(data.smallid==0){
-	tempsql<<"`smallid`=0";
+	tempsql<<"smallid=0";
  }else{ 
-	tempsql<<"`smallid`="<<std::to_string(data.smallid);
+	tempsql<<"smallid="<<std::to_string(data.smallid);
 }
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
 if(data.brandid==0){
-	tempsql<<"`brandid`=0";
+	tempsql<<"brandid=0";
  }else{ 
-	tempsql<<"`brandid`="<<std::to_string(data.brandid);
+	tempsql<<"brandid="<<std::to_string(data.brandid);
 }
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
 if(data.isview==0){
-	tempsql<<"`isview`=0";
+	tempsql<<"isview=0";
  }else{ 
-	tempsql<<"`isview`="<<std::to_string(data.isview);
+	tempsql<<"isview="<<std::to_string(data.isview);
 }
  break;
  case 7:
  if(jj>0){ tempsql<<","; } 
 if(data.isstore==0){
-	tempsql<<"`isstore`=0";
+	tempsql<<"isstore=0";
  }else{ 
-	tempsql<<"`isstore`="<<std::to_string(data.isstore);
+	tempsql<<"isstore="<<std::to_string(data.isstore);
 }
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
 if(data.ishome==0){
-	tempsql<<"`ishome`=0";
+	tempsql<<"ishome=0";
  }else{ 
-	tempsql<<"`ishome`="<<std::to_string(data.ishome);
+	tempsql<<"ishome="<<std::to_string(data.ishome);
 }
  break;
  case 9:
  if(jj>0){ tempsql<<","; } 
 if(data.showtype==0){
-	tempsql<<"`showtype`=0";
+	tempsql<<"showtype=0";
  }else{ 
-	tempsql<<"`showtype`="<<std::to_string(data.showtype);
+	tempsql<<"showtype="<<std::to_string(data.showtype);
 }
  break;
  case 10:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`sntype`='"<<stringaddslash(data.sntype)<<"'";
+tempsql<<"sntype='"<<stringaddslash(data.sntype)<<"'";
  break;
  case 11:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`name`='"<<stringaddslash(data.name)<<"'";
+tempsql<<"name='"<<stringaddslash(data.name)<<"'";
  break;
  case 12:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`keywords`='"<<stringaddslash(data.keywords)<<"'";
+tempsql<<"keywords='"<<stringaddslash(data.keywords)<<"'";
  break;
  case 13:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`introduce`='"<<stringaddslash(data.introduce)<<"'";
+tempsql<<"introduce='"<<stringaddslash(data.introduce)<<"'";
  break;
  case 14:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`listimg`='"<<stringaddslash(data.listimg)<<"'";
+tempsql<<"listimg='"<<stringaddslash(data.listimg)<<"'";
  break;
  case 15:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`bigimg`='"<<stringaddslash(data.bigimg)<<"'";
+tempsql<<"bigimg='"<<stringaddslash(data.bigimg)<<"'";
  break;
  case 16:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`maincontent`='"<<stringaddslash(data.maincontent)<<"'";
+tempsql<<"maincontent='"<<stringaddslash(data.maincontent)<<"'";
  break;
  case 17:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`paracontent`='"<<stringaddslash(data.paracontent)<<"'";
+tempsql<<"paracontent='"<<stringaddslash(data.paracontent)<<"'";
  break;
  case 18:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`samepro`='"<<stringaddslash(data.samepro)<<"'";
+tempsql<<"samepro='"<<stringaddslash(data.samepro)<<"'";
  break;
  case 19:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`attatchfiles`='"<<stringaddslash(data.attatchfiles)<<"'";
+tempsql<<"attatchfiles='"<<stringaddslash(data.attatchfiles)<<"'";
  break;
  case 20:
  if(jj>0){ tempsql<<","; } 
 if(data.price==0){
-	tempsql<<"`price`=0";
+	tempsql<<"price=0";
  }else{ 
-	tempsql<<"`price`="<<std::to_string(data.price);
+	tempsql<<"price="<<std::to_string(data.price);
 }
  break;
  case 21:
  if(jj>0){ tempsql<<","; } 
 if(data.sortid==0){
-	tempsql<<"`sortid`=0";
+	tempsql<<"sortid=0";
  }else{ 
-	tempsql<<"`sortid`="<<std::to_string(data.sortid);
+	tempsql<<"sortid="<<std::to_string(data.sortid);
 }
  break;
  case 22:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`adddate`='"<<stringaddslash(data.adddate)<<"'";
+tempsql<<"adddate='"<<stringaddslash(data.adddate)<<"'";
  break;
  case 23:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`editdate`='"<<stringaddslash(data.editdate)<<"'";
+tempsql<<"editdate='"<<stringaddslash(data.editdate)<<"'";
  break;
 
      
@@ -1513,24 +1513,24 @@ tempsql<<"`editdate`='"<<stringaddslash(data.editdate)<<"'";
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
-        tempsql << "REPLACE INTO ";
+            tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
         for (; j < product_info::col_names.size(); j++)
         {
             if (j > 0)
             {
-                tempsql << "`,`";
+                tempsql << ",";
             }
             else
             {
-                tempsql << "`";
+                tempsql << "";
             }
             tempsql << product_info::col_names[j];
         }
         if (j > 0)
         {
-            tempsql << "`";
+            tempsql << "";
         }
         tempsql << ") VALUES ";
 
@@ -1614,8 +1614,8 @@ tempsql<<"`editdate`='"<<stringaddslash(data.editdate)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].adddate)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].editdate)<<"'";
 	tempsql<<")";
-
- }
+  }
+ 
  return tempsql.str();
 }
 
@@ -1630,17 +1630,17 @@ tempsql<<"`editdate`='"<<stringaddslash(data.editdate)<<"'";
         {
             if (j > 0)
             {
-                tempsql << "`,`";
+                tempsql << ",";
             }
             else
             {
-                tempsql << "`";
+                tempsql << "";
             }
             tempsql << product_info::col_names[j];
         }
         if (j > 0)
         {
-            tempsql << "`";
+            tempsql << "";
         }
         tempsql << ") VALUES ";
 

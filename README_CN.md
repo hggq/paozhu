@@ -20,14 +20,14 @@ controller目录是实际使用例子，还在完善中，目前框架压力测�
 ✅ 5. 支持WebSocket服务端和客户端，双工收发  
 ✅ 6. 框架自带WebSocket推送，支持定时推送到WebSocket客户端  
 ✅ 7. 支持httpclient get post，同步异步、协程模式，数据采集  
-✅ 8. 框架自带ORM,使用链接池方式，目前支持MySQL，支持协程和同步模式  
+✅ 8. 框架自带ORM,使用链接池方式，目前支持MySQL，PostgreSQL，支持协程和同步模式  
 ✅ 9. 框架自带线程池，和用户代码运行的线程池  
 ✅10. 框架使用asio自带的协程  
 ✅11. 框架特色是I/O 使用协程池 用户代码运行使用线程池,类似GO那种调度，只是针对http请求调度  
 ✅12. 框架支持普通文件gzip、br,并支持缓存到磁盘，下次不用cpu再压缩  
 ✅13. URL、POST和上传文件,解析结果client.get[] client.post[] client.files[]方式获取内容  
 ✅14. 自带SendMail类库，支持同步和协程模式  
-✅15. 支持生成二维码  
+✅15. 支持生成二维码、验证码、图表(Charts)(svg格式)  
 ✅16. 插件化编程，热动态更新，使用动态库方式  
 ✅17. 框架内置通用数据缓存模块，ORM结果缓存，提高并发能力  
 ✅18. 框架controller目录注解功能，方便添加URL路由映射，降低入门心智  
@@ -38,9 +38,9 @@ controller目录是实际使用例子，还在完善中，目前框架压力测�
 ✅23. 支持Socket服务端和客户端，支持Socket ssl连接，方便物联网开发  
 ✅24. 支持RPC服务端和客户端，使用HTTP注解URL函数  
 ✅25. 框架支持流量限制，60秒内平滑移动平均线二段式流量限制，配置参数在server.conf  
-✅26. 框架内置ACME协议，自动续订SSL证书并生效  
-✅27. 整合服务器端OCSP证书装订  
-✅28. 简单的Excel文件xlsx读写支持  
+✅26. 框架内置ACME协议，自动续订SSL证书，服务器端OCSP证书装订  
+✅27. 整合zip文件打包和解压  
+✅28. 简单的Excel（xlsx）读写支持， 简单Word（docx）转HTML，HTML转docx  
 ✅29. 内置图片生成和处理，支持jpg png两个类  
 ✅30. 内置HTML生成pdf模块webpdf（本项目子项目）  
 
@@ -778,7 +778,7 @@ asio::awaitable<std::string> test_socket_client(std::shared_ptr<httppeer> peer)
 * [ ] 1.增强HTTP特性  
 * [ ] 2.Httpclient 改善
 * [ ] 3.HTTP/2 客户端  
-* [ ] 4.PostgresSQL、SQLite ORM 支持  
+* [ ] 4.SQLite ORM 支持  
 
 ### 11.贡献👏👋
 

@@ -169,7 +169,6 @@ bool excel::read(const std::string &zipfilename)
 
     std::vector<std::string> file_list = zf.files_list();
 
-    std::string tempname;
     std::string file_content;
     size_t zip_entry_count = 0;
     size_t total_unzip_size = 0;

@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_WORLDBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Mon, 13 Jul 2026 09:10:56 GMT
+*本文件为自动生成 Sat, 15 Aug 2026 05:50:32 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -616,7 +616,6 @@ static constexpr std::string_view modelname="World";
 			}
             switch(coln[0]){
 
-
          case 'i':
    	 return 0;
 break;
@@ -650,8 +649,9 @@ break;
      }
      
 
-  inline  std::string stringaddslash(const std::string &content){
+  inline  std::string stringaddslash(std::string_view content){
         std::string temp;
+        temp.reserve(content.size());
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='\''){
                 temp.append("\\'");
@@ -667,8 +667,9 @@ break;
         }
         return temp;
    }  
-  inline  std::string jsonaddslash(const std::string &content){
+  inline  std::string jsonaddslash(std::string_view content){
         std::string temp;
+        temp.reserve(content.size());
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='"'){
                 temp.append("\\\"");
@@ -691,14 +692,14 @@ break;
         tempsql<<" (";
         for(;j<world_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                   // tempsql<<"`";
                 }
                 tempsql<<world_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+            //tempsql<<"`";
         }
         tempsql<<") VALUES (";
 
@@ -726,14 +727,14 @@ tempsql<<")";
         tempsql<<" (";
         for(;j<world_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                    //tempsql<<"`";
                 }
                 tempsql<<world_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+           // tempsql<<"`";
         }
         tempsql<<") VALUES (";
 
@@ -761,14 +762,14 @@ tempsql<<")";
         tempsql<<" (";
         for(;j<world_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                   // tempsql<<"`";
                 }
                 tempsql<<world_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+           //tempsql<<"`";
         }
         tempsql<<") VALUES ";
 
@@ -779,7 +780,6 @@ tempsql<<")";
                 tempsql<<",";	
             }
             tempsql<<"(";
-
 
             	if(insert_data[i].id==0){
 	tempsql<<"null";
@@ -811,14 +811,14 @@ tempsql<<")";
         if(isall){
 
         if(data.id==0){
-	tempsql<<"`id`=0";
+	tempsql<<"id=0";
  }else{ 
-	tempsql<<"`id`="<<std::to_string(data.id);
+	tempsql<<"id="<<std::to_string(data.id);
 }
 if(data.randomnumber==0){
-	tempsql<<",`randomnumber`=0";
+	tempsql<<",randomnumber=0";
  }else{ 
-	tempsql<<",`randomnumber`="<<std::to_string(data.randomnumber);
+	tempsql<<",randomnumber="<<std::to_string(data.randomnumber);
 }
  }else{ 
 
@@ -867,17 +867,17 @@ if(data.randomnumber==0){
          case 0:
  if(jj>0){ tempsql<<","; } 
 if(data.id==0){
-	tempsql<<"`id`=0";
+	tempsql<<"id=0";
  }else{ 
-	tempsql<<"`id`="<<std::to_string(data.id);
+	tempsql<<"id="<<std::to_string(data.id);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
 if(data.randomnumber==0){
-	tempsql<<"`randomnumber`=0";
+	tempsql<<"randomnumber=0";
  }else{ 
-	tempsql<<"`randomnumber`="<<std::to_string(data.randomnumber);
+	tempsql<<"randomnumber="<<std::to_string(data.randomnumber);
 }
  break;
 
@@ -896,24 +896,24 @@ if(data.randomnumber==0){
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
-        tempsql << "REPLACE INTO ";
+            tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
         for (; j < world_info::col_names.size(); j++)
         {
             if (j > 0)
             {
-                tempsql << "`,`";
+                tempsql << ",";
             }
             else
             {
-                tempsql << "`";
+                tempsql << "";
             }
             tempsql << world_info::col_names[j];
         }
         if (j > 0)
         {
-            tempsql << "`";
+            tempsql << "";
         }
         tempsql << ") VALUES ";
 
@@ -935,8 +935,8 @@ if(data.randomnumber==0){
 	tempsql<<","<<std::to_string(record[i].randomnumber);
 	}
 	tempsql<<")";
-
- }
+  }
+ 
  return tempsql.str();
 }
 
@@ -951,17 +951,17 @@ if(data.randomnumber==0){
         {
             if (j > 0)
             {
-                tempsql << "`,`";
+                tempsql << ",";
             }
             else
             {
-                tempsql << "`";
+                tempsql << "";
             }
             tempsql << world_info::col_names[j];
         }
         if (j > 0)
         {
-            tempsql << "`";
+            tempsql << "";
         }
         tempsql << ") VALUES ";
 

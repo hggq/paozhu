@@ -1,17 +1,17 @@
 
-#include "world_mysql.h"
+#include "world_opsql.h"
 #include "world_base.h"
 #include "World.h"
 
-/* Sat, 27 Jun 2026 11:17:52 GMT */
+/* Fri, 14 Aug 2026 13:00:43 GMT */
 /* 如果此文件存在不会自动覆盖，没有则会自动生成。
 *If this file exists, it will not be overwritten automatically. If not, it will be generated automatically. */
 
 	 
  namespace orm{
  
-			 World::World(std::string dbtag_):world_mysql(dbtag_){ mod=this; }
-			 World::World():world_mysql(){ mod=this; }
+			 World::World(std::string dbtag_):world_opsql(dbtag_){ mod=this; }
+			 World::World():world_opsql(){ mod=this; }
 
 
 	  }

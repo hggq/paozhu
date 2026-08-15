@@ -55,11 +55,11 @@ std::string get_utctime(time_t inputtime)
 
 std::string get_utc(time_t t)
 {
-    if(t == 0)
+    if (t == 0)
     {
-       t = time((time_t *)NULL);
+        t = time((time_t *)NULL);
     }
-    
+
     struct tm tm_val{};
 #ifdef _WIN32
     gmtime_s(&tm_val, &t);
@@ -179,7 +179,12 @@ unsigned int strgmttotime(std::string_view gmtstr)
 {
     unsigned int temp = 0;
     tm timeInfo;
-    unsigned char i = 0;
+    unsigned int i = 0;
+
+    if (gmtstr.length() < 29)
+    {
+        return 0;
+    }
 
     for (; i < gmtstr.length(); i++)
     {
@@ -189,7 +194,7 @@ unsigned int strgmttotime(std::string_view gmtstr)
         }
     }
     char tc[4] = {0x00};
-    if (gmtstr[i + 3] == ',')
+    if (i + 3 < gmtstr.length() && gmtstr[i + 3] == ',')
     {
         i += 5;
     }
@@ -332,7 +337,7 @@ unsigned int strgmttotime(std::string_view gmtstr)
 unsigned int strtotime(std::string_view str)
 {
     unsigned int temp = 0;
-    unsigned char i   = 0x00;
+    unsigned int i    = 0;
     tm datetime;
     char tc[4] = {0x00};
 
@@ -462,7 +467,7 @@ unsigned int strtotime(std::string_view str)
             datetime.tm_hour = tc[0];
         }
 
-        if ((unsigned char)str[i] > 0x7F)
+        if (i < str.length() && (unsigned char)str[i] > 0x7F)
         {
             i += 3;
         }

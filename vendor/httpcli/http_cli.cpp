@@ -19,6 +19,9 @@
 #include "tmplatefun.hpp"
 #include "ccontrollfun.hpp"
 #include "modelfun.hpp"
+#include "dbconver.hpp"
+#include "dbtable.hpp"
+#include "dbexport.hpp"
 
 #include "tmplatefunfile.hpp"
 #include "templateparsefile.hpp"
@@ -31,7 +34,7 @@ g++ http_cli.cpp -std=c++20 -I../httpserver/include -I../../common \
  ../httpserver/src/mysql_conn_pool.cpp \
  -lssl -lcrypto -ldl -I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib -lz \
  ../httpserver/src/clientdatacache.cpp -g -fsanitize=address
-*/ 
+*/
 int main(int argc, char *argv[])
 {
     std::string commandstr;
@@ -45,6 +48,19 @@ int main(int argc, char *argv[])
                      "  paozhu_cli view force    force regenerate all view templates to cpp\n"
                      "  paozhu_cli json          update json reflect files\n"
                      "  paozhu_cli orm <dbtag>   update ORM files, dbtag e.g. cms (see conf/orm.conf)\n"
+                     "  paozhu_cli dbconver <dbtag1> <dbtag2> [force]   migrate database\n"
+                     "  paozhu_cli dbtable <dbtag> <filename.sql> [-target=mysql|pg]  export table structures\n"
+                     "  paozhu_cli dbexport <dbtag> <filename.sql> [-target=mysql|pg]  export schema + data\n"
+                     "Example:\n"
+                     "  paozhu_cli orm pg                               generate ORM from PostgreSQL [pg]\n"
+                     "  paozhu_cli orm default                          generate ORM from MySQL [default]\n"
+                     "  paozhu_cli dbconver cms pg                      migrate MySQL [cms] to PG [pg]\n"
+                     "  paozhu_cli dbconver cms pg force                migrate, overwrite existing\n"
+                     "  paozhu_cli dbtable cms ./schema.sql             export MySQL [cms] to SQL file\n"
+                     "  paozhu_cli dbtable cms ./pg.sql -target=pg      export MySQL as PG DDL\n"
+                     "  paozhu_cli dbtable pg ./mysql.sql -target=mysql export PG as MySQL DDL\n"
+                     "  paozhu_cli dbexport cms ./dump.sql              export MySQL schema+data\n"
+                     "  paozhu_cli dbexport pg ./mysql.sql -target=mysql export PG as MySQL DDL+data\n"
                      "Input f create view, from view directory to viewsrc c++ cpp file, next input a create all modify html to c++ cpp\n"
                      "Input m create ORM file, from database to ORM c++ cpp file, next select db front number to create.\n"
                      "Input j create json file, scan libs directory *.json, annotation [//@reflect json to_json from_json] struct to json.cpp\n";
@@ -65,6 +81,7 @@ int main(int argc, char *argv[])
     {
         return jsoncli();
     }
+
     if (commandstr == "orm")
     {
         if (argc < 3)
@@ -74,6 +91,68 @@ int main(int argc, char *argv[])
         }
         return modelcli(argv[2]);
     }
+
+    if (commandstr == "dbconver")
+    {
+        if (argc < 4)
+        {
+            std::cout << "Usage: paozhu_cli dbconver <dbtag1> <dbtag2> [force]" << std::endl;
+            std::cout << "  dbtag1: source database tag (from conf/orm.conf)" << std::endl;
+            std::cout << "  dbtag2: target database tag (from conf/orm.conf)" << std::endl;
+            std::cout << "  force:  drop and recreate if table already exists (optional)" << std::endl;
+            return 1;
+        }
+        return dbconver::dbconvercli(argv[2], argv[3], (argc >= 5 ? argv[4] : ""));
+    }
+
+    if (commandstr == "dbtable")
+    {
+        if (argc < 4)
+        {
+            std::cout << "Usage: paozhu_cli dbtable <dbtag> <filename.sql> [-target=mysql|postgresql]" << std::endl;
+            std::cout << "  dbtag:    database tag (from conf/orm.conf)" << std::endl;
+            std::cout << "  filename: output SQL file path" << std::endl;
+            std::cout << "  -target:  target database type for DDL conversion (optional)" << std::endl;
+            return 1;
+        }
+
+        std::string target_arg;
+        for (int i = 4; i < argc; i++)
+        {
+            std::string arg = argv[i];
+            if (arg.find("-target=") == 0)
+            {
+                target_arg = arg.substr(8);
+            }
+        }
+
+        return dbtable::dbtablecli(argv[2], argv[3], target_arg);
+    }
+
+    if (commandstr == "dbexport")
+    {
+        if (argc < 4)
+        {
+            std::cout << "Usage: paozhu_cli dbexport <dbtag> <filename.sql> [-target=mysql|postgresql]" << std::endl;
+            std::cout << "  dbtag:    database tag (from conf/orm.conf)" << std::endl;
+            std::cout << "  filename: output SQL file path" << std::endl;
+            std::cout << "  -target:  target database type for DDL conversion (optional)" << std::endl;
+            return 1;
+        }
+
+        std::string target_arg;
+        for (int i = 4; i < argc; i++)
+        {
+            std::string arg = argv[i];
+            if (arg.find("-target=") == 0)
+            {
+                target_arg = arg.substr(8);
+            }
+        }
+
+        return dbexport::dbexportcli(argv[2], argv[3], target_arg);
+    }
+
     // std::string commandstr{argv[1]};
     while (1)
     {

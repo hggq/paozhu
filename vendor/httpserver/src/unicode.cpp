@@ -54,7 +54,7 @@ std::string unicode_to_utf8(std::string &source)
         isbig = true;
         pos   = 2;
     }
-    for (; pos < source.size(); pos++)
+    for (; pos + 1 < source.size(); pos++)
     {
         //读取顺序
         if (isbig)
@@ -97,6 +97,8 @@ std::string unicode_to_utf8(std::string &source)
         }
         else
         {
+            if (pos + 2 >= source.size())
+                break;
             if (isbig)
             {
                 low_char = ((unsigned char)source[pos + 1]) << 8 | (unsigned char)source[pos + 2];
@@ -158,6 +160,8 @@ std::string utf8_to_unicode(std::string &source)
         else if (c[0] >= 0xC0 && c[0] < 0xE0)
         {
             //两个utf8
+            if (pos + 1 >= source.size())
+                break;
             c[1] = (unsigned char)source[pos + 1];
             pos += 1;
             c[0]     = c[0] & 0x1F;
@@ -173,6 +177,8 @@ std::string utf8_to_unicode(std::string &source)
         else if (c[0] >= 0xE0 && c[0] < 0xF0)
         {
             //三个utf8
+            if (pos + 2 >= source.size())
+                break;
             c[1] = (unsigned char)source[pos + 1];
             c[2] = (unsigned char)source[pos + 2];
             pos += 2;
@@ -195,6 +201,8 @@ std::string utf8_to_unicode(std::string &source)
         else if (c[0] >= 0xF0 && c[0] < 0xF8)
         {
             //四个utf8
+            if (pos + 3 >= source.size())
+                break;
             c[1] = (unsigned char)source[pos + 1];
             c[2] = (unsigned char)source[pos + 2];
             c[3] = (unsigned char)source[pos + 3];
@@ -277,6 +285,8 @@ std::string utf8_to_unicodestring(std::string &source)
         else if (c[0] >= 0xC0 && c[0] < 0xE0)
         {
             //两个utf8
+            if (pos + 1 >= source.size())
+                break;
             c[1] = (unsigned char)source[pos + 1];
             pos += 1;
             c[0]     = c[0] & 0x1F;
@@ -304,6 +314,8 @@ std::string utf8_to_unicodestring(std::string &source)
         else if (c[0] >= 0xE0 && c[0] < 0xF0)
         {
             //三个utf8
+            if (pos + 2 >= source.size())
+                break;
             c[1] = (unsigned char)source[pos + 1];
             c[2] = (unsigned char)source[pos + 2];
             pos += 2;
@@ -333,6 +345,8 @@ std::string utf8_to_unicodestring(std::string &source)
         else if (c[0] >= 0xF0 && c[0] < 0xF8)
         {
             //四个utf8
+            if (pos + 3 >= source.size())
+                break;
             c[1] = (unsigned char)source[pos + 1];
             c[2] = (unsigned char)source[pos + 2];
             c[3] = (unsigned char)source[pos + 3];
@@ -758,6 +772,11 @@ std::string jsonstring_to_utf8(const char *jsonstr, unsigned int str_length, uns
     std::string str;
     unsigned int j = 0;
 
+    if (str_length == 0 || jsonstr == nullptr)
+    {
+        return str;
+    }
+
     if (str_length > 20)
     {
         str.reserve(str_length);
@@ -772,7 +791,7 @@ std::string jsonstring_to_utf8(const char *jsonstr, unsigned int str_length, uns
 
         if (jsonstr[j] == 0x5c)//'\'
         {
-             if ((j + 1) >= str_length)
+            if ((j + 1) >= str_length)
             {
                 return str;
             }
@@ -927,7 +946,7 @@ std::string json_str_to_utf8(std::string_view jsonstr)
     {
         str.reserve(str_length);
     }
-    j = json_string_trim(jsonstr,j);
+    j = json_string_trim(jsonstr, j);
     if (j < str_length && jsonstr[j] == 0x22)
     {
         j++;
@@ -937,7 +956,7 @@ std::string json_str_to_utf8(std::string_view jsonstr)
     {
         if (jsonstr[j] == 0x5c)//'\'
         {
-             if ((j + 1) >= str_length)
+            if ((j + 1) >= str_length)
             {
                 return str;
             }
@@ -1076,7 +1095,7 @@ std::string json_str_to_utf8(std::string_view jsonstr)
             str += jsonstr[j];
         }
     }
-    
+
     return str;
 }
 /*
@@ -1161,6 +1180,8 @@ std::string stringunicode_to_utf8(std::string &source)
     std::string obj;
     for (; pos < source.size(); pos++)
     {
+        if (pos >= source.size())
+            break;
         zi = (unsigned char)source[pos];
         pos += 1;
         if (zi > 0x60)
@@ -1175,6 +1196,8 @@ std::string stringunicode_to_utf8(std::string &source)
         {
             c[1] = zi - '0';
         }
+        if (pos >= source.size())
+            break;
         zi = (unsigned char)source[pos];
 
         if (zi > 0x60)

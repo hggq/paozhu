@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_FORTUNEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Mon, 13 Jul 2026 09:10:56 GMT
+*本文件为自动生成 Sat, 15 Aug 2026 05:50:32 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -616,7 +616,6 @@ static constexpr std::string_view modelname="Fortune";
 			}
             switch(coln[0]){
 
-
          case 'i':
    	 return 0;
 break;
@@ -650,8 +649,9 @@ break;
      }
      
 
-  inline  std::string stringaddslash(const std::string &content){
+  inline  std::string stringaddslash(std::string_view content){
         std::string temp;
+        temp.reserve(content.size());
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='\''){
                 temp.append("\\'");
@@ -667,8 +667,9 @@ break;
         }
         return temp;
    }  
-  inline  std::string jsonaddslash(const std::string &content){
+  inline  std::string jsonaddslash(std::string_view content){
         std::string temp;
+        temp.reserve(content.size());
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='"'){
                 temp.append("\\\"");
@@ -691,14 +692,14 @@ break;
         tempsql<<" (";
         for(;j<fortune_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                   // tempsql<<"`";
                 }
                 tempsql<<fortune_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+            //tempsql<<"`";
         }
         tempsql<<") VALUES (";
 
@@ -722,14 +723,14 @@ tempsql<<")";
         tempsql<<" (";
         for(;j<fortune_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                    //tempsql<<"`";
                 }
                 tempsql<<fortune_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+           // tempsql<<"`";
         }
         tempsql<<") VALUES (";
 
@@ -753,14 +754,14 @@ tempsql<<")";
         tempsql<<" (";
         for(;j<fortune_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                   // tempsql<<"`";
                 }
                 tempsql<<fortune_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+           //tempsql<<"`";
         }
         tempsql<<") VALUES ";
 
@@ -771,7 +772,6 @@ tempsql<<")";
                 tempsql<<",";	
             }
             tempsql<<"(";
-
 
             	if(insert_data[i].id==0){
 	tempsql<<"null";
@@ -799,11 +799,11 @@ tempsql<<")";
         if(isall){
 
         if(data.id==0){
-	tempsql<<"`id`=0";
+	tempsql<<"id=0";
  }else{ 
-	tempsql<<"`id`="<<std::to_string(data.id);
+	tempsql<<"id="<<std::to_string(data.id);
 }
-tempsql<<",`message`='"<<stringaddslash(data.message)<<"'";
+tempsql<<",message='"<<stringaddslash(data.message)<<"'";
  }else{ 
 
      
@@ -851,14 +851,14 @@ tempsql<<",`message`='"<<stringaddslash(data.message)<<"'";
          case 0:
  if(jj>0){ tempsql<<","; } 
 if(data.id==0){
-	tempsql<<"`id`=0";
+	tempsql<<"id=0";
  }else{ 
-	tempsql<<"`id`="<<std::to_string(data.id);
+	tempsql<<"id="<<std::to_string(data.id);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`message`='"<<stringaddslash(data.message)<<"'";
+tempsql<<"message='"<<stringaddslash(data.message)<<"'";
  break;
 
      
@@ -876,24 +876,24 @@ tempsql<<"`message`='"<<stringaddslash(data.message)<<"'";
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
-        tempsql << "REPLACE INTO ";
+            tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
         for (; j < fortune_info::col_names.size(); j++)
         {
             if (j > 0)
             {
-                tempsql << "`,`";
+                tempsql << ",";
             }
             else
             {
-                tempsql << "`";
+                tempsql << "";
             }
             tempsql << fortune_info::col_names[j];
         }
         if (j > 0)
         {
-            tempsql << "`";
+            tempsql << "";
         }
         tempsql << ") VALUES ";
 
@@ -911,8 +911,8 @@ tempsql<<"`message`='"<<stringaddslash(data.message)<<"'";
 	}
 	tempsql<<",'"<<stringaddslash(record[i].message)<<"'";
 	tempsql<<")";
-
- }
+  }
+ 
  return tempsql.str();
 }
 
@@ -927,17 +927,17 @@ tempsql<<"`message`='"<<stringaddslash(data.message)<<"'";
         {
             if (j > 0)
             {
-                tempsql << "`,`";
+                tempsql << ",";
             }
             else
             {
-                tempsql << "`";
+                tempsql << "";
             }
             tempsql << fortune_info::col_names[j];
         }
         if (j > 0)
         {
-            tempsql << "`";
+            tempsql << "";
         }
         tempsql << ") VALUES ";
 

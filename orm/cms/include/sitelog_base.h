@@ -2,7 +2,7 @@
 #define ORM_CMS_SITELOGBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 01 Aug 2026 14:58:15 GMT
+*本文件为自动生成 Sat, 15 Aug 2026 09:48:14 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -701,7 +701,6 @@ static constexpr std::string_view modelname="Sitelog";
 			}
             switch(coln[0]){
 
-
          case 'a':
    	 return 10;
 break;
@@ -787,8 +786,9 @@ break;
      }
      
 
-  inline  std::string stringaddslash(const std::string &content){
+  inline  std::string stringaddslash(std::string_view content){
         std::string temp;
+        temp.reserve(content.size());
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='\''){
                 temp.append("\\'");
@@ -804,8 +804,9 @@ break;
         }
         return temp;
    }  
-  inline  std::string jsonaddslash(const std::string &content){
+  inline  std::string jsonaddslash(std::string_view content){
         std::string temp;
+        temp.reserve(content.size());
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='"'){
                 temp.append("\\\"");
@@ -828,14 +829,14 @@ break;
         tempsql<<" (";
         for(;j<sitelog_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                   // tempsql<<"`";
                 }
                 tempsql<<sitelog_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+            //tempsql<<"`";
         }
         tempsql<<") VALUES (";
 
@@ -887,14 +888,14 @@ tempsql<<")";
         tempsql<<" (";
         for(;j<sitelog_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                    //tempsql<<"`";
                 }
                 tempsql<<sitelog_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+           // tempsql<<"`";
         }
         tempsql<<") VALUES (";
 
@@ -946,14 +947,14 @@ tempsql<<")";
         tempsql<<" (";
         for(;j<sitelog_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                   // tempsql<<"`";
                 }
                 tempsql<<sitelog_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+           //tempsql<<"`";
         }
         tempsql<<") VALUES ";
 
@@ -964,7 +965,6 @@ tempsql<<")";
                 tempsql<<",";	
             }
             tempsql<<"(";
-
 
             	if(insert_data[i].logid==0){
 	tempsql<<"null";
@@ -1020,39 +1020,39 @@ tempsql<<")";
         if(isall){
 
         if(data.logid==0){
-	tempsql<<"`logid`=0";
+	tempsql<<"logid=0";
  }else{ 
-	tempsql<<"`logid`="<<std::to_string(data.logid);
+	tempsql<<"logid="<<std::to_string(data.logid);
 }
 if(data.userid==0){
-	tempsql<<",`userid`=0";
+	tempsql<<",userid=0";
  }else{ 
-	tempsql<<",`userid`="<<std::to_string(data.userid);
+	tempsql<<",userid="<<std::to_string(data.userid);
 }
 if(data.memberid==0){
-	tempsql<<",`memberid`=0";
+	tempsql<<",memberid=0";
  }else{ 
-	tempsql<<",`memberid`="<<std::to_string(data.memberid);
+	tempsql<<",memberid="<<std::to_string(data.memberid);
 }
 if(data.ipport==0){
-	tempsql<<",`ipport`=0";
+	tempsql<<",ipport=0";
  }else{ 
-	tempsql<<",`ipport`="<<std::to_string(data.ipport);
+	tempsql<<",ipport="<<std::to_string(data.ipport);
 }
 if(data.httpv==0){
-	tempsql<<",`httpv`=0";
+	tempsql<<",httpv=0";
  }else{ 
-	tempsql<<",`httpv`="<<std::to_string(data.httpv);
+	tempsql<<",httpv="<<std::to_string(data.httpv);
 }
-tempsql<<",`ipaddress`='"<<stringaddslash(data.ipaddress)<<"'";
-tempsql<<",`visittime`='"<<stringaddslash(data.visittime)<<"'";
-tempsql<<",`useragent`='"<<stringaddslash(data.useragent)<<"'";
-tempsql<<",`referer`='"<<stringaddslash(data.referer)<<"'";
-tempsql<<",`cururl`='"<<stringaddslash(data.cururl)<<"'";
-tempsql<<",`address`='"<<stringaddslash(data.address)<<"'";
-tempsql<<",`hostname`='"<<stringaddslash(data.hostname)<<"'";
-tempsql<<",`derefererurl`='"<<stringaddslash(data.derefererurl)<<"'";
-tempsql<<",`deurl`='"<<stringaddslash(data.deurl)<<"'";
+tempsql<<",ipaddress='"<<stringaddslash(data.ipaddress)<<"'";
+tempsql<<",visittime='"<<stringaddslash(data.visittime)<<"'";
+tempsql<<",useragent='"<<stringaddslash(data.useragent)<<"'";
+tempsql<<",referer='"<<stringaddslash(data.referer)<<"'";
+tempsql<<",cururl='"<<stringaddslash(data.cururl)<<"'";
+tempsql<<",address='"<<stringaddslash(data.address)<<"'";
+tempsql<<",hostname='"<<stringaddslash(data.hostname)<<"'";
+tempsql<<",derefererurl='"<<stringaddslash(data.derefererurl)<<"'";
+tempsql<<",deurl='"<<stringaddslash(data.deurl)<<"'";
  }else{ 
 
      
@@ -1100,78 +1100,78 @@ tempsql<<",`deurl`='"<<stringaddslash(data.deurl)<<"'";
          case 0:
  if(jj>0){ tempsql<<","; } 
 if(data.logid==0){
-	tempsql<<"`logid`=0";
+	tempsql<<"logid=0";
  }else{ 
-	tempsql<<"`logid`="<<std::to_string(data.logid);
+	tempsql<<"logid="<<std::to_string(data.logid);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
 if(data.userid==0){
-	tempsql<<"`userid`=0";
+	tempsql<<"userid=0";
  }else{ 
-	tempsql<<"`userid`="<<std::to_string(data.userid);
+	tempsql<<"userid="<<std::to_string(data.userid);
 }
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
 if(data.memberid==0){
-	tempsql<<"`memberid`=0";
+	tempsql<<"memberid=0";
  }else{ 
-	tempsql<<"`memberid`="<<std::to_string(data.memberid);
+	tempsql<<"memberid="<<std::to_string(data.memberid);
 }
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
 if(data.ipport==0){
-	tempsql<<"`ipport`=0";
+	tempsql<<"ipport=0";
  }else{ 
-	tempsql<<"`ipport`="<<std::to_string(data.ipport);
+	tempsql<<"ipport="<<std::to_string(data.ipport);
 }
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
 if(data.httpv==0){
-	tempsql<<"`httpv`=0";
+	tempsql<<"httpv=0";
  }else{ 
-	tempsql<<"`httpv`="<<std::to_string(data.httpv);
+	tempsql<<"httpv="<<std::to_string(data.httpv);
 }
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`ipaddress`='"<<stringaddslash(data.ipaddress)<<"'";
+tempsql<<"ipaddress='"<<stringaddslash(data.ipaddress)<<"'";
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`visittime`='"<<stringaddslash(data.visittime)<<"'";
+tempsql<<"visittime='"<<stringaddslash(data.visittime)<<"'";
  break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`useragent`='"<<stringaddslash(data.useragent)<<"'";
+tempsql<<"useragent='"<<stringaddslash(data.useragent)<<"'";
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`referer`='"<<stringaddslash(data.referer)<<"'";
+tempsql<<"referer='"<<stringaddslash(data.referer)<<"'";
  break;
  case 9:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`cururl`='"<<stringaddslash(data.cururl)<<"'";
+tempsql<<"cururl='"<<stringaddslash(data.cururl)<<"'";
  break;
  case 10:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`address`='"<<stringaddslash(data.address)<<"'";
+tempsql<<"address='"<<stringaddslash(data.address)<<"'";
  break;
  case 11:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`hostname`='"<<stringaddslash(data.hostname)<<"'";
+tempsql<<"hostname='"<<stringaddslash(data.hostname)<<"'";
  break;
  case 12:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`derefererurl`='"<<stringaddslash(data.derefererurl)<<"'";
+tempsql<<"derefererurl='"<<stringaddslash(data.derefererurl)<<"'";
  break;
  case 13:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`deurl`='"<<stringaddslash(data.deurl)<<"'";
+tempsql<<"deurl='"<<stringaddslash(data.deurl)<<"'";
  break;
 
      
@@ -1189,24 +1189,24 @@ tempsql<<"`deurl`='"<<stringaddslash(data.deurl)<<"'";
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
-        tempsql << "REPLACE INTO ";
+            tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
         for (; j < sitelog_info::col_names.size(); j++)
         {
             if (j > 0)
             {
-                tempsql << "`,`";
+                tempsql << ",";
             }
             else
             {
-                tempsql << "`";
+                tempsql << "";
             }
             tempsql << sitelog_info::col_names[j];
         }
         if (j > 0)
         {
-            tempsql << "`";
+            tempsql << "";
         }
         tempsql << ") VALUES ";
 
@@ -1252,8 +1252,8 @@ tempsql<<"`deurl`='"<<stringaddslash(data.deurl)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].derefererurl)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].deurl)<<"'";
 	tempsql<<")";
-
- }
+  }
+ 
  return tempsql.str();
 }
 
@@ -1268,17 +1268,17 @@ tempsql<<"`deurl`='"<<stringaddslash(data.deurl)<<"'";
         {
             if (j > 0)
             {
-                tempsql << "`,`";
+                tempsql << ",";
             }
             else
             {
-                tempsql << "`";
+                tempsql << "";
             }
             tempsql << sitelog_info::col_names[j];
         }
         if (j > 0)
         {
-            tempsql << "`";
+            tempsql << "";
         }
         tempsql << ") VALUES ";
 

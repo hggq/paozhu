@@ -36,9 +36,9 @@
 #include <vector>
 
 #include "mysql_conn.h"
-#include "mysql_conn_pool.h"
+#include "orm_conn_pool.h"
 #include "orm_cache.hpp"
-#include "mysql_connect_mar.h"
+#include "orm_connect_mar.h"
 /*baseincludefile*/
 namespace orm
 {
@@ -55,7 +55,17 @@ namespace orm
             auto iter                                                            = conn_pool_obj.find(dbtag);
             if (iter != conn_pool_obj.end())
             {
-                conn_obj = iter->second;
+                //必须是 DB_TYPE::MYSQL 类型链接
+                if (iter->second->conf_data[0].db_type != DB_TYPE::MYSQL)
+                {
+                    conn_obj  = nullptr;
+                    iserror   = true;
+                    error_msg = "conn_pool db type error " + dbtag;
+                }
+                else
+                {
+                    conn_obj = iter->second;
+                }
             }
             else
             {
@@ -70,7 +80,17 @@ namespace orm
             auto iter                                                            = conn_pool_obj.find(dbtag);
             if (iter != conn_pool_obj.end())
             {
-                conn_obj = iter->second;
+                //必须是 DB_TYPE::MYSQL 类型链接
+                if (iter->second->conf_data[0].db_type != DB_TYPE::MYSQL)
+                {
+                    conn_obj  = nullptr;
+                    iserror   = true;
+                    error_msg = "conn_pool db type error " + dbtag;
+                }
+                else
+                {
+                    conn_obj = iter->second;
+                }
             }
             else
             {
@@ -85,7 +105,17 @@ namespace orm
             auto iter                                                            = conn_pool_obj.find(temptag);
             if (iter != conn_pool_obj.end())
             {
-                conn_obj = iter->second;
+                //必须是 DB_TYPE::MYSQL 类型链接
+                if (iter->second->conf_data[0].db_type != DB_TYPE::MYSQL)
+                {
+                    conn_obj  = nullptr;
+                    iserror   = true;
+                    error_msg = "conn_pool db type error " + dbtag;
+                }
+                else
+                {
+                    conn_obj = iter->second;
+                }
             }
             else
             {
@@ -142,17 +172,17 @@ namespace orm
                 {
                     return 0;
                 }
-                //auto conn = conn_obj->get_select_conn();
+                //auto conn = conn_obj->get_mysql_select_conn();
                 if (islock_conn)
                 {
                     if (!select_conn)
                     {
-                        select_conn = conn_obj->get_select_conn();
+                        select_conn = conn_obj->get_mysql_select_conn();
                     }
                 }
                 else
                 {
-                    select_conn = conn_obj->get_select_conn();
+                    select_conn = conn_obj->get_mysql_select_conn();
                 }
 
                 if (select_conn->isdebug)
@@ -228,13 +258,13 @@ namespace orm
                             {
                                 unsigned int tempnum = 0;
 
-                                unsigned int name_length = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
+                                unsigned int name_length = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
                                 querysql_len             = 0;
-                                // if((tempnum + name_length) >= temp_pack_data.data.size())
-                                // {
-                                //     error_msg = "MySQL read pack error";
-                                //     return 0;
-                                // }
+                                if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
+                                {
+                                    error_msg = "MySQL read pack error";
+                                    return 0;
+                                }
                                 for (unsigned int ik = 0; ik < name_length; ik++)
                                 {
                                     if (temp_pack_data.data[tempnum] >= '0' && temp_pack_data.data[tempnum] <= '9')
@@ -268,7 +298,7 @@ namespace orm
 
                 if (!islock_conn)
                 {
-                    conn_obj->back_select_conn(std::move(select_conn));
+                    conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
 
                 return querysql_len;
@@ -276,14 +306,6 @@ namespace orm
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
-                return 0;
-            }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
                 return 0;
             }
 
@@ -374,17 +396,17 @@ namespace orm
                 {
                     co_return 0;
                 }
-                //auto conn = co_await conn_obj->async_get_select_conn();
+                //auto conn = co_await conn_obj->async_get_mysql_select_conn();
                 if (islock_conn)
                 {
                     if (!select_conn)
                     {
-                        select_conn = co_await conn_obj->async_get_select_conn();
+                        select_conn = co_await conn_obj->async_get_mysql_select_conn();
                     }
                 }
                 else
                 {
-                    select_conn = co_await conn_obj->async_get_select_conn();
+                    select_conn = co_await conn_obj->async_get_mysql_select_conn();
                 }
 
                 if (select_conn->isdebug)
@@ -460,12 +482,12 @@ namespace orm
                             {
                                 unsigned int tempnum = 0;
 
-                                unsigned int name_length = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                // if((tempnum + name_length) >= temp_pack_data.data.size())
-                                // {
-                                //     error_msg = "MySQL read pack error";
-                                //     co_return 0;
-                                // }
+                                unsigned int name_length = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
+                                if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
+                                {
+                                    error_msg = "MySQL read pack error";
+                                    co_return 0;
+                                }
                                 querysql_len = 0;
                                 for (unsigned int ik = 0; ik < name_length; ik++)
                                 {
@@ -499,7 +521,7 @@ namespace orm
                 }
                 if (!islock_conn)
                 {
-                    conn_obj->back_select_conn(std::move(select_conn));
+                    conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
                 co_return querysql_len;
             }
@@ -508,14 +530,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 co_return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-                co_return 0;
-            }
+
             co_return 0;
         }
 
@@ -639,18 +654,18 @@ namespace orm
                 {
                     return 0;
                 }
-                //auto conn = conn_obj->get_edit_conn();
+                //auto conn = conn_obj->get_mysql_edit_conn();
 
                 if (islock_conn)
                 {
                     if (!edit_conn)
                     {
-                        edit_conn = conn_obj->get_edit_conn();
+                        edit_conn = conn_obj->get_mysql_edit_conn();
                     }
                 }
                 else
                 {
-                    edit_conn = conn_obj->get_edit_conn();
+                    edit_conn = conn_obj->get_mysql_edit_conn();
                 }
 
                 if (edit_conn->isdebug)
@@ -687,16 +702,16 @@ namespace orm
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
-                    iserror = true;
+                    iserror   = true;
                     edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
                     unsigned int d_offset = 1;
-                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
                     if (!islock_conn)
                     {
-                        conn_obj->back_edit_conn(std::move(edit_conn));
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                     }
                 }
 
@@ -707,13 +722,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             return 0;
         }
 
@@ -792,12 +801,12 @@ namespace orm
                 {
                     if (!edit_conn)
                     {
-                        edit_conn = co_await conn_obj->async_get_edit_conn();
+                        edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                     }
                 }
                 else
                 {
-                    edit_conn = co_await conn_obj->async_get_edit_conn();
+                    edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                 }
 
                 if (edit_conn->isdebug)
@@ -833,17 +842,17 @@ namespace orm
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
-                    iserror = true;
+                    iserror   = true;
                     edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
 
                     unsigned int d_offset = 1;
-                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
                     if (!islock_conn)
                     {
-                        conn_obj->back_edit_conn(std::move(edit_conn));
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                     }
                 }
                 co_return effect_num;
@@ -853,13 +862,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 co_return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             co_return 0;
         }
 
@@ -922,18 +925,18 @@ namespace orm
                 {
                     return 0;
                 }
-                //auto conn = conn_obj->get_edit_conn();
+                //auto conn = conn_obj->get_mysql_edit_conn();
 
                 if (islock_conn)
                 {
                     if (!edit_conn)
                     {
-                        edit_conn = conn_obj->get_edit_conn();
+                        edit_conn = conn_obj->get_mysql_edit_conn();
                     }
                 }
                 else
                 {
-                    edit_conn = conn_obj->get_edit_conn();
+                    edit_conn = conn_obj->get_mysql_edit_conn();
                 }
 
                 if (edit_conn->isdebug)
@@ -971,17 +974,17 @@ namespace orm
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
-                    iserror = true;
+                    iserror   = true;
                     edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
 
                     unsigned int d_offset = 1;
-                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
                     if (!islock_conn)
                     {
-                        conn_obj->back_edit_conn(std::move(edit_conn));
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                     }
                 }
                 return effect_num;
@@ -991,13 +994,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             return 0;
         }
 
@@ -1060,18 +1057,18 @@ namespace orm
                 {
                     co_return 0;
                 }
-                //auto conn = conn_obj->get_edit_conn();
+                //auto conn = conn_obj->get_mysql_edit_conn();
 
                 if (islock_conn)
                 {
                     if (!edit_conn)
                     {
-                        edit_conn = co_await conn_obj->async_get_edit_conn();
+                        edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                     }
                 }
                 else
                 {
-                    edit_conn = co_await conn_obj->async_get_edit_conn();
+                    edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                 }
 
                 if (edit_conn->isdebug)
@@ -1109,16 +1106,16 @@ namespace orm
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
-                    iserror = true;
+                    iserror   = true;
                     edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
                     unsigned int d_offset = 1;
-                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
                     if (!islock_conn)
                     {
-                        conn_obj->back_edit_conn(std::move(edit_conn));
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                     }
                 }
                 co_return effect_num;
@@ -1128,13 +1125,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 co_return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             co_return 0;
         }
 
@@ -1266,7 +1257,7 @@ namespace orm
             wheresql.push_back('=');
 
             wheresql.push_back('\'');
-            wheresql.append(val);
+            wheresql.append(B_BASE::stringaddslash(val));
             wheresql.push_back('\'');
             return *mod;
         }
@@ -1298,7 +1289,7 @@ namespace orm
             wheresql.push_back('>');
 
             wheresql.push_back('\'');
-            wheresql.append(val);
+            wheresql.append(B_BASE::stringaddslash(val));
             wheresql.push_back('\'');
             return *mod;
         }
@@ -1330,7 +1321,7 @@ namespace orm
             wheresql.append(">=");
 
             wheresql.push_back('\'');
-            wheresql.append(val);
+            wheresql.append(B_BASE::stringaddslash(val));
             wheresql.push_back('\'');
             return *mod;
         }
@@ -1362,7 +1353,7 @@ namespace orm
             wheresql.append(" < ");
 
             wheresql.push_back('\'');
-            wheresql.append(val);
+            wheresql.append(B_BASE::stringaddslash(val));
             wheresql.push_back('\'');
             return *mod;
         }
@@ -1394,7 +1385,7 @@ namespace orm
             wheresql.append(" <= ");
 
             wheresql.push_back('\'');
-            wheresql.append(val);
+            wheresql.append(B_BASE::stringaddslash(val));
             wheresql.push_back('\'');
             return *mod;
         }
@@ -1528,13 +1519,13 @@ namespace orm
             wheresql.append(" like '");
             if (val.size() > 0 && (val[0] == '%' || val.back() == '%'))
             {
-                wheresql.append(val);
+                wheresql.append(B_BASE::stringaddslash(val));
                 wheresql.append("' ");
             }
             else
             {
                 wheresql.push_back('%');
-                wheresql.append(val);
+                wheresql.append(B_BASE::stringaddslash(val));
                 wheresql.append("%' ");
             }
             return *mod;
@@ -1566,7 +1557,7 @@ namespace orm
             wheresql.append(wq);
             wheresql.append(" like '");
             wheresql.push_back('%');
-            wheresql.append(val);
+            wheresql.append(B_BASE::stringaddslash(val));
             wheresql.append("' ");
             return *mod;
         }
@@ -1596,7 +1587,7 @@ namespace orm
             }
             wheresql.append(wq);
             wheresql.append(" like '");
-            wheresql.append(val);
+            wheresql.append(B_BASE::stringaddslash(val));
             wheresql.append("%' ");
             return *mod;
         }
@@ -1627,13 +1618,13 @@ namespace orm
             wheresql.append(" like '");
             if (val[0] == '%' || val.back() == '%')
             {
-                wheresql.append(val);
+                wheresql.append(B_BASE::stringaddslash(val));
                 wheresql.append("' ");
             }
             else
             {
                 wheresql.push_back('%');
-                wheresql.append(val);
+                wheresql.append(B_BASE::stringaddslash(val));
                 wheresql.append("%' ");
             }
             return *mod;
@@ -1846,7 +1837,7 @@ namespace orm
             wheresql.append(wq);
             wheresql.push_back('=');
             wheresql.push_back('\'');
-            wheresql.append(val);
+            wheresql.append(B_BASE::stringaddslash(val));
             wheresql.push_back('\'');
 
             return *mod;
@@ -1878,7 +1869,7 @@ namespace orm
             wheresql.append(wq);
             wheresql.push_back('=');
             wheresql.push_back('\'');
-            wheresql.append(val);
+            wheresql.append(B_BASE::stringaddslash(val));
             wheresql.push_back('\'');
 
             return *mod;
@@ -1912,7 +1903,7 @@ namespace orm
             wheresql.push_back('>');
 
             wheresql.push_back('\'');
-            wheresql.append(val);
+            wheresql.append(B_BASE::stringaddslash(val));
             wheresql.push_back('\'');
             return *mod;
         }
@@ -1944,7 +1935,7 @@ namespace orm
             wheresql.append(">=");
 
             wheresql.push_back('\'');
-            wheresql.append(val);
+            wheresql.append(B_BASE::stringaddslash(val));
             wheresql.push_back('\'');
             return *mod;
         }
@@ -1976,7 +1967,7 @@ namespace orm
             wheresql.append(" < ");
 
             wheresql.push_back('\'');
-            wheresql.append(val);
+            wheresql.append(B_BASE::stringaddslash(val));
             wheresql.push_back('\'');
             return *mod;
         }
@@ -2008,7 +1999,7 @@ namespace orm
             wheresql.append(" <= ");
 
             wheresql.push_back('\'');
-            wheresql.append(val);
+            wheresql.append(B_BASE::stringaddslash(val));
             wheresql.push_back('\'');
             return *mod;
         }
@@ -2220,7 +2211,7 @@ namespace orm
             wheresql.append(wq);
             wheresql.push_back('=');
             wheresql.push_back('\'');
-            wheresql.append(val);
+            wheresql.append(B_BASE::stringaddslash(val));
             wheresql.push_back('\'');
             return *mod;
         }
@@ -2276,7 +2267,23 @@ namespace orm
 
             wheresql.append(k);
             wheresql.append(" IN(");
-            wheresql.append(val);
+            {
+                std::string _in_part;
+                for (char _c : val)
+                {
+                    if (_c == ',')
+                    {
+                        wheresql.append(B_BASE::stringaddslash(_in_part));
+                        wheresql.push_back('\'');
+                        wheresql.push_back(',');
+                        _in_part.clear();
+                    }
+                    else
+                        _in_part.push_back(_c);
+                }
+                wheresql.append(B_BASE::stringaddslash(_in_part));
+                wheresql.push_back('\'');
+            }
             wheresql.append(") ");
             return *mod;
         }
@@ -2681,7 +2688,7 @@ namespace orm
             {
             /*cols_name_where*/
             default:
-                return *mod; 
+                return *mod;
                 break;
             }
 
@@ -3028,17 +3035,17 @@ namespace orm
                 {
                     return temprecord;
                 }
-                //auto conn = conn_obj->get_select_conn();
+                //auto conn = conn_obj->get_mysql_select_conn();
                 if (islock_conn)
                 {
                     if (!select_conn)
                     {
-                        select_conn = conn_obj->get_select_conn();
+                        select_conn = conn_obj->get_mysql_select_conn();
                     }
                 }
                 else
                 {
-                    select_conn = conn_obj->get_select_conn();
+                    select_conn = conn_obj->get_mysql_select_conn();
                 }
 
                 if (select_conn->isdebug)
@@ -3118,19 +3125,19 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                column_num = field_array.size();
-                                unsigned int tempnum    = 0;
+                                column_num           = field_array.size();
+                                unsigned int tempnum = 0;
 
                                 std::map<std::string, std::string> data_temp;
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
-                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    // {
-                                    //     error_msg = "MySQL read pack error";
-                                    //     return temprecord;
-                                    // }
+                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
+                                    if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error: field name length overflow";
+                                        return temprecord;
+                                    }
                                     std::string temp_str;
                                     temp_str.resize(name_length);
                                     std::memcpy(temp_str.data(), (unsigned char *)&temp_pack_data.data[tempnum], name_length);
@@ -3169,7 +3176,7 @@ namespace orm
 
                 if (!islock_conn)
                 {
-                    conn_obj->back_select_conn(std::move(select_conn));
+                    conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
 
                 if (iscache)
@@ -3186,13 +3193,7 @@ namespace orm
             {
                 error_msg = std::string(e.what());
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             return temprecord;
         }
         std::tuple<std::vector<std::string>, std::map<std::string, unsigned int>, std::vector<std::vector<std::string>>>
@@ -3270,17 +3271,17 @@ namespace orm
                 {
                     return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
                 }
-                //auto conn = conn_obj->get_select_conn();
+                //auto conn = conn_obj->get_mysql_select_conn();
                 if (islock_conn)
                 {
                     if (!select_conn)
                     {
-                        select_conn = conn_obj->get_select_conn();
+                        select_conn = conn_obj->get_mysql_select_conn();
                     }
                 }
                 else
                 {
-                    select_conn = conn_obj->get_select_conn();
+                    select_conn = conn_obj->get_mysql_select_conn();
                 }
 
                 if (select_conn->isdebug)
@@ -3365,19 +3366,19 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                column_num = field_array.size();
-                                unsigned int tempnum    = 0;
+                                column_num           = field_array.size();
+                                unsigned int tempnum = 0;
 
                                 std::vector<std::string> temp_v_record;
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
-                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    // {
-                                    //     error_msg = "MySQL read pack error";
-                                    //     return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
-                                    // }
+                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
+                                    if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
+                                    }
                                     std::string tempstr;
                                     tempstr.resize(name_length);
                                     std::memcpy(tempstr.data(), (unsigned char *)&temp_pack_data.data[tempnum], name_length);
@@ -3409,7 +3410,7 @@ namespace orm
 
                 if (!islock_conn)
                 {
-                    conn_obj->back_select_conn(std::move(select_conn));
+                    conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
 
                 if (iscache)
@@ -3443,13 +3444,7 @@ namespace orm
             {
                 error_msg = std::string(e.what());
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
         }
 
@@ -3507,17 +3502,17 @@ namespace orm
                 {
                     return 0;
                 }
-                //auto conn = conn_obj->get_select_conn();
+                //auto conn = conn_obj->get_mysql_select_conn();
                 if (islock_conn)
                 {
                     if (!select_conn)
                     {
-                        select_conn = conn_obj->get_select_conn();
+                        select_conn = conn_obj->get_mysql_select_conn();
                     }
                 }
                 else
                 {
-                    select_conn = conn_obj->get_select_conn();
+                    select_conn = conn_obj->get_mysql_select_conn();
                 }
                 if (select_conn->isdebug)
                 {
@@ -3592,19 +3587,19 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                column_num = field_array.size();
-                                unsigned int tempnum    = 0;
+                                column_num           = field_array.size();
+                                unsigned int tempnum = 0;
 
                                 T data_temp;
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
-                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    // {
-                                    //     error_msg = "MySQL read pack error";
-                                    //     return 0;
-                                    // }
+                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
+                                    if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        return 0;
+                                    }
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
@@ -3641,7 +3636,7 @@ namespace orm
 
                 if (!islock_conn)
                 {
-                    conn_obj->back_select_conn(std::move(select_conn));
+                    conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
 
                 return effect_num;
@@ -3651,13 +3646,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             return 0;
         }
 
@@ -3713,17 +3702,17 @@ namespace orm
                 {
                     co_return 0;
                 }
-                //auto conn = co_await conn_obj->async_get_select_conn();
+                //auto conn = co_await conn_obj->async_get_mysql_select_conn();
                 if (islock_conn)
                 {
                     if (!select_conn)
                     {
-                        select_conn = co_await conn_obj->async_get_select_conn();
+                        select_conn = co_await conn_obj->async_get_mysql_select_conn();
                     }
                 }
                 else
                 {
-                    select_conn = co_await conn_obj->async_get_select_conn();
+                    select_conn = co_await conn_obj->async_get_mysql_select_conn();
                 }
                 if (select_conn->isdebug)
                 {
@@ -3798,19 +3787,19 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                column_num = field_array.size();
-                                unsigned int tempnum    = 0;
+                                column_num           = field_array.size();
+                                unsigned int tempnum = 0;
 
                                 T data_temp;
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
-                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    // {
-                                    //     error_msg = "MySQL read pack error";
-                                    //     co_return 0;
-                                    // }
+                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
+                                    if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        co_return 0;
+                                    }
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
@@ -3846,7 +3835,7 @@ namespace orm
                 }
                 if (!islock_conn)
                 {
-                    conn_obj->back_select_conn(std::move(select_conn));
+                    conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
 
                 co_return effect_num;
@@ -3856,13 +3845,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 co_return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             co_return 0;
         }
 
@@ -3917,17 +3900,17 @@ namespace orm
                 {
                     return 0;
                 }
-                //auto conn = conn_obj->get_select_conn();
+                //auto conn = conn_obj->get_mysql_select_conn();
                 if (islock_conn)
                 {
                     if (!select_conn)
                     {
-                        select_conn = conn_obj->get_select_conn();
+                        select_conn = conn_obj->get_mysql_select_conn();
                     }
                 }
                 else
                 {
-                    select_conn = conn_obj->get_select_conn();
+                    select_conn = conn_obj->get_mysql_select_conn();
                 }
                 if (select_conn->isdebug)
                 {
@@ -4002,19 +3985,19 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                column_num = field_array.size();
-                                unsigned int tempnum    = 0;
+                                column_num           = field_array.size();
+                                unsigned int tempnum = 0;
 
                                 T data_temp;
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
-                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    // {
-                                    //     error_msg = "MySQL read pack error";
-                                    //     return 0;
-                                    // }
+                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
+                                    if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        return 0;
+                                    }
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
@@ -4052,7 +4035,7 @@ namespace orm
 
                 if (!islock_conn)
                 {
-                    conn_obj->back_select_conn(std::move(select_conn));
+                    conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
 
                 return effect_num;
@@ -4062,13 +4045,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             return 0;
         }
 
@@ -4124,17 +4101,17 @@ namespace orm
                 {
                     co_return 0;
                 }
-                //auto conn = co_await conn_obj->async_get_select_conn();
+                //auto conn = co_await conn_obj->async_get_mysql_select_conn();
                 if (islock_conn)
                 {
                     if (!select_conn)
                     {
-                        select_conn = co_await conn_obj->async_get_select_conn();
+                        select_conn = co_await conn_obj->async_get_mysql_select_conn();
                     }
                 }
                 else
                 {
-                    select_conn = co_await conn_obj->async_get_select_conn();
+                    select_conn = co_await conn_obj->async_get_mysql_select_conn();
                 }
                 if (select_conn->isdebug)
                 {
@@ -4209,19 +4186,19 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                column_num = field_array.size();
-                                unsigned int tempnum    = 0;
+                                column_num           = field_array.size();
+                                unsigned int tempnum = 0;
 
                                 T data_temp;
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
-                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    // {
-                                    //     error_msg = "MySQL read pack error";
-                                    //     co_return 0;
-                                    // }
+                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
+                                    if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        co_return 0;
+                                    }
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
@@ -4257,7 +4234,7 @@ namespace orm
                 }
                 if (!islock_conn)
                 {
-                    conn_obj->back_select_conn(std::move(select_conn));
+                    conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
 
                 co_return effect_num;
@@ -4267,13 +4244,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 co_return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             co_return 0;
         }
 
@@ -4337,17 +4308,17 @@ namespace orm
                 {
                     return 0;
                 }
-                //auto conn = conn_obj->get_select_conn();
+                //auto conn = conn_obj->get_mysql_select_conn();
                 if (islock_conn)
                 {
                     if (!select_conn)
                     {
-                        select_conn = conn_obj->get_select_conn();
+                        select_conn = conn_obj->get_mysql_select_conn();
                     }
                 }
                 else
                 {
-                    select_conn = conn_obj->get_select_conn();
+                    select_conn = conn_obj->get_mysql_select_conn();
                 }
                 if (select_conn->isdebug)
                 {
@@ -4429,19 +4400,19 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                column_num = field_array.size();
-                                unsigned int tempnum    = 0;
+                                column_num           = field_array.size();
+                                unsigned int tempnum = 0;
 
                                 typename B_BASE::meta data_temp;
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
-                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    // {
-                                    //     error_msg = "MySQL read pack error";
-                                    //     return 0;
-                                    // }
+                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
+                                    if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        return 0;
+                                    }
                                     assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, data_temp);
                                     tempnum = tempnum + name_length;
                                 }
@@ -4470,7 +4441,7 @@ namespace orm
 
                 if (!islock_conn)
                 {
-                    conn_obj->back_select_conn(std::move(select_conn));
+                    conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
 
                 if (iscache)
@@ -4489,13 +4460,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             return 0;
         }
 
@@ -4559,17 +4524,17 @@ namespace orm
                 {
                     co_return 0;
                 }
-                //auto conn = co_await conn_obj->async_get_select_conn();
+                //auto conn = co_await conn_obj->async_get_mysql_select_conn();
                 if (islock_conn)
                 {
                     if (!select_conn)
                     {
-                        select_conn = co_await conn_obj->async_get_select_conn();
+                        select_conn = co_await conn_obj->async_get_mysql_select_conn();
                     }
                 }
                 else
                 {
-                    select_conn = co_await conn_obj->async_get_select_conn();
+                    select_conn = co_await conn_obj->async_get_mysql_select_conn();
                 }
                 if (select_conn->isdebug)
                 {
@@ -4650,19 +4615,19 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                column_num = field_array.size();
-                                unsigned int tempnum    = 0;
+                                column_num           = field_array.size();
+                                unsigned int tempnum = 0;
 
                                 typename B_BASE::meta data_temp;
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
-                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    // {
-                                    //     error_msg = "MySQL read pack error";
-                                    //     co_return 0;
-                                    // }
+                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
+                                    if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        co_return 0;
+                                    }
                                     assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, data_temp);
                                     tempnum = tempnum + name_length;
                                 }
@@ -4690,7 +4655,7 @@ namespace orm
                 }
                 if (!islock_conn)
                 {
-                    conn_obj->back_select_conn(std::move(select_conn));
+                    conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
                 if (iscache)
                 {
@@ -4708,13 +4673,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 co_return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             co_return 0;
         }
         M_MODEL &fetch_append()
@@ -4777,17 +4736,17 @@ namespace orm
                 {
                     return 0;
                 }
-                //auto conn = conn_obj->get_select_conn();
+                //auto conn = conn_obj->get_mysql_select_conn();
                 if (islock_conn)
                 {
                     if (!select_conn)
                     {
-                        select_conn = conn_obj->get_select_conn();
+                        select_conn = conn_obj->get_mysql_select_conn();
                     }
                 }
                 else
                 {
-                    select_conn = conn_obj->get_select_conn();
+                    select_conn = conn_obj->get_mysql_select_conn();
                 }
 
                 if (select_conn->isdebug)
@@ -4868,19 +4827,19 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                column_num = field_array.size();
-                                unsigned int tempnum    = 0;
+                                column_num           = field_array.size();
+                                unsigned int tempnum = 0;
 
                                 typename B_BASE::meta data_temp;
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
-                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    // {
-                                    //     error_msg = "MySQL read pack error";
-                                    //     return *mod;
-                                    // }
+                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
+                                    if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        return *mod;
+                                    }
                                     assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, data_temp);
                                     tempnum = tempnum + name_length;
                                 }
@@ -4909,7 +4868,7 @@ namespace orm
 
                 if (!islock_conn)
                 {
-                    conn_obj->back_select_conn(std::move(select_conn));
+                    conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
 
                 if (iscache)
@@ -4928,13 +4887,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 return *mod;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             return *mod;
         }
 
@@ -4999,17 +4952,17 @@ namespace orm
                 {
                     co_return 0;
                 }
-                //auto conn = co_await conn_obj->async_get_select_conn();
+                //auto conn = co_await conn_obj->async_get_mysql_select_conn();
                 if (islock_conn)
                 {
                     if (!select_conn)
                     {
-                        select_conn = co_await conn_obj->async_get_select_conn();
+                        select_conn = co_await conn_obj->async_get_mysql_select_conn();
                     }
                 }
                 else
                 {
-                    select_conn = co_await conn_obj->async_get_select_conn();
+                    select_conn = co_await conn_obj->async_get_mysql_select_conn();
                 }
 
                 if (select_conn->isdebug)
@@ -5091,19 +5044,19 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                column_num = field_array.size();
-                                unsigned int tempnum    = 0;
+                                column_num           = field_array.size();
+                                unsigned int tempnum = 0;
 
                                 typename B_BASE::meta data_temp;
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
-                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    // {
-                                    //     error_msg = "MySQL read pack error";
-                                    //     co_return 0;
-                                    // }
+                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
+                                    if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        co_return 0;
+                                    }
                                     assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, data_temp);
                                     tempnum = tempnum + name_length;
                                 }
@@ -5131,7 +5084,7 @@ namespace orm
                 }
                 if (!islock_conn)
                 {
-                    conn_obj->back_select_conn(std::move(select_conn));
+                    conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
                 if (iscache)
                 {
@@ -5149,13 +5102,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 co_return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             co_return 0;
         }
 
@@ -5211,17 +5158,17 @@ namespace orm
                 {
                     return 0;
                 }
-                //auto conn = conn_obj->get_select_conn();
+                //auto conn = conn_obj->get_mysql_select_conn();
                 if (islock_conn)
                 {
                     if (!select_conn)
                     {
-                        select_conn = conn_obj->get_select_conn();
+                        select_conn = conn_obj->get_mysql_select_conn();
                     }
                 }
                 else
                 {
-                    select_conn = conn_obj->get_select_conn();
+                    select_conn = conn_obj->get_mysql_select_conn();
                 }
 
                 if (select_conn->isdebug)
@@ -5295,18 +5242,18 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                column_num = field_array.size();
-                                unsigned int tempnum    = 0;
+                                column_num           = field_array.size();
+                                unsigned int tempnum = 0;
 
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
-                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    // {
-                                    //     error_msg = "MySQL read pack error";
-                                    //     return 0;
-                                    // }
+                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
+                                    if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        return 0;
+                                    }
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
@@ -5344,7 +5291,7 @@ namespace orm
 
                 if (!islock_conn)
                 {
-                    conn_obj->back_select_conn(std::move(select_conn));
+                    conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
 
                 return effect_num;
@@ -5354,13 +5301,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             return 0;
         }
 
@@ -5417,17 +5358,17 @@ namespace orm
                 {
                     co_return 0;
                 }
-                //auto conn = co_await conn_obj->async_get_select_conn();
+                //auto conn = co_await conn_obj->async_get_mysql_select_conn();
                 if (islock_conn)
                 {
                     if (!select_conn)
                     {
-                        select_conn = co_await conn_obj->async_get_select_conn();
+                        select_conn = co_await conn_obj->async_get_mysql_select_conn();
                     }
                 }
                 else
                 {
-                    select_conn = co_await conn_obj->async_get_select_conn();
+                    select_conn = co_await conn_obj->async_get_mysql_select_conn();
                 }
                 if (select_conn->isdebug)
                 {
@@ -5502,18 +5443,18 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                column_num = field_array.size();
-                                unsigned int tempnum    = 0;
+                                column_num           = field_array.size();
+                                unsigned int tempnum = 0;
 
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
-                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    // {
-                                    //     error_msg = "MySQL read pack error";
-                                    //     co_return 0;
-                                    // }
+                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
+                                    if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        co_return 0;
+                                    }
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
@@ -5550,7 +5491,7 @@ namespace orm
                 }
                 if (!islock_conn)
                 {
-                    conn_obj->back_select_conn(std::move(select_conn));
+                    conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
 
                 co_return effect_num;
@@ -5560,13 +5501,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 co_return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             co_return 0;
         }
 
@@ -5622,17 +5557,17 @@ namespace orm
                 {
                     return 0;
                 }
-                //auto conn = conn_obj->get_select_conn();
+                //auto conn = conn_obj->get_mysql_select_conn();
                 if (islock_conn)
                 {
                     if (!select_conn)
                     {
-                        select_conn = conn_obj->get_select_conn();
+                        select_conn = conn_obj->get_mysql_select_conn();
                     }
                 }
                 else
                 {
-                    select_conn = conn_obj->get_select_conn();
+                    select_conn = conn_obj->get_mysql_select_conn();
                 }
 
                 if (select_conn->isdebug)
@@ -5706,18 +5641,18 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                column_num = field_array.size();
-                                unsigned int tempnum    = 0;
+                                column_num           = field_array.size();
+                                unsigned int tempnum = 0;
 
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
-                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    // {
-                                    //     error_msg = "MySQL read pack error";
-                                    //     return 0;
-                                    // }
+                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
+                                    if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        return 0;
+                                    }
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
@@ -5755,7 +5690,7 @@ namespace orm
 
                 if (!islock_conn)
                 {
-                    conn_obj->back_select_conn(std::move(select_conn));
+                    conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
 
                 return effect_num;
@@ -5765,13 +5700,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             return 0;
         }
 
@@ -5828,17 +5757,17 @@ namespace orm
                 {
                     co_return 0;
                 }
-                //auto conn = co_await conn_obj->async_get_select_conn();
+                //auto conn = co_await conn_obj->async_get_mysql_select_conn();
                 if (islock_conn)
                 {
                     if (!select_conn)
                     {
-                        select_conn = co_await conn_obj->async_get_select_conn();
+                        select_conn = co_await conn_obj->async_get_mysql_select_conn();
                     }
                 }
                 else
                 {
-                    select_conn = co_await conn_obj->async_get_select_conn();
+                    select_conn = co_await conn_obj->async_get_mysql_select_conn();
                 }
                 if (select_conn->isdebug)
                 {
@@ -5913,18 +5842,18 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                column_num = field_array.size();
-                                unsigned int tempnum    = 0;
+                                column_num           = field_array.size();
+                                unsigned int tempnum = 0;
 
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
-                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    // {
-                                    //     error_msg = "MySQL read pack error";
-                                    //     co_return 0;
-                                    // }
+                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
+                                    if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        co_return 0;
+                                    }
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
@@ -5961,7 +5890,7 @@ namespace orm
                 }
                 if (!islock_conn)
                 {
-                    conn_obj->back_select_conn(std::move(select_conn));
+                    conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
 
                 co_return effect_num;
@@ -5971,13 +5900,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 co_return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             co_return 0;
         }
 
@@ -6040,17 +5963,17 @@ namespace orm
                 {
                     return 0;
                 }
-                //auto conn = conn_obj->get_select_conn();
+                //auto conn = conn_obj->get_mysql_select_conn();
                 if (islock_conn)
                 {
                     if (!select_conn)
                     {
-                        select_conn = conn_obj->get_select_conn();
+                        select_conn = conn_obj->get_mysql_select_conn();
                     }
                 }
                 else
                 {
-                    select_conn = conn_obj->get_select_conn();
+                    select_conn = conn_obj->get_mysql_select_conn();
                 }
 
                 if (select_conn->isdebug)
@@ -6130,8 +6053,8 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                column_num = field_array.size();
-                                unsigned int tempnum    = 0;
+                                column_num           = field_array.size();
+                                unsigned int tempnum = 0;
 
                                 if (isappend)
                                 {
@@ -6139,12 +6062,12 @@ namespace orm
                                     for (unsigned int ij = 0; ij < column_num; ij++)
                                     {
                                         unsigned long long name_length = 0;
-                                        name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                        // if((tempnum + name_length) >= temp_pack_data.data.size())
-                                        // {
-                                        //     error_msg = "MySQL read pack error";
-                                        //     return 0;
-                                        // }
+                                        name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
+                                        if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
+                                        {
+                                            error_msg = "MySQL read pack error";
+                                            return 0;
+                                        }
                                         assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, data_temp);
                                         tempnum = tempnum + name_length;
                                     }
@@ -6156,12 +6079,12 @@ namespace orm
                                     for (unsigned int ij = 0; ij < column_num; ij++)
                                     {
                                         unsigned long long name_length = 0;
-                                        name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                        // if((tempnum + name_length) >= temp_pack_data.data.size())
-                                        // {
-                                        //     error_msg = "MySQL read pack error";
-                                        //     return 0;
-                                        // }
+                                        name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
+                                        if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
+                                        {
+                                            error_msg = "MySQL read pack error";
+                                            return 0;
+                                        }
                                         assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, B_BASE::data);
                                         tempnum = tempnum + name_length;
                                     }
@@ -6190,7 +6113,7 @@ namespace orm
 
                 if (!islock_conn)
                 {
-                    conn_obj->back_select_conn(std::move(select_conn));
+                    conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
 
                 if (iscache)
@@ -6209,13 +6132,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             return 0;
         }
 
@@ -6279,17 +6196,17 @@ namespace orm
                 {
                     co_return 0;
                 }
-                //auto conn = co_await conn_obj->async_get_select_conn();
+                //auto conn = co_await conn_obj->async_get_mysql_select_conn();
                 if (islock_conn)
                 {
                     if (!select_conn)
                     {
-                        select_conn = co_await conn_obj->async_get_select_conn();
+                        select_conn = co_await conn_obj->async_get_mysql_select_conn();
                     }
                 }
                 else
                 {
-                    select_conn = co_await conn_obj->async_get_select_conn();
+                    select_conn = co_await conn_obj->async_get_mysql_select_conn();
                 }
                 if (select_conn->isdebug)
                 {
@@ -6370,8 +6287,8 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                column_num = field_array.size();
-                                unsigned int tempnum    = 0;
+                                column_num           = field_array.size();
+                                unsigned int tempnum = 0;
 
                                 if (isappend)
                                 {
@@ -6379,12 +6296,12 @@ namespace orm
                                     for (unsigned int ij = 0; ij < column_num; ij++)
                                     {
                                         unsigned long long name_length = 0;
-                                        name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                        // if((tempnum + name_length) >= temp_pack_data.data.size())
-                                        // {
-                                        //     error_msg = "MySQL read pack error";
-                                        //     co_return 0;
-                                        // }
+                                        name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
+                                        if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
+                                        {
+                                            error_msg = "MySQL read pack error";
+                                            co_return 0;
+                                        }
                                         assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, data_temp);
                                         tempnum = tempnum + name_length;
                                     }
@@ -6396,12 +6313,12 @@ namespace orm
                                     for (unsigned int ij = 0; ij < column_num; ij++)
                                     {
                                         unsigned long long name_length = 0;
-                                        name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                        // if((tempnum + name_length) >= temp_pack_data.data.size())
-                                        // {
-                                        //     error_msg = "MySQL read pack error";
-                                        //     co_return 0;
-                                        // }
+                                        name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
+                                        if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
+                                        {
+                                            error_msg = "MySQL read pack error";
+                                            co_return 0;
+                                        }
                                         assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, B_BASE::data);
                                         tempnum = tempnum + name_length;
                                     }
@@ -6429,7 +6346,7 @@ namespace orm
                 }
                 if (!islock_conn)
                 {
-                    conn_obj->back_select_conn(std::move(select_conn));
+                    conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
                 if (iscache)
                 {
@@ -6447,13 +6364,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 co_return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             co_return 0;
         }
 
@@ -6511,17 +6422,7 @@ namespace orm
             {
                 error_msg = std::string(e.what());
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (const char *e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             B_BASE::data_reset();
             return false;
         }
@@ -6599,18 +6500,8 @@ namespace orm
             {
                 error_msg = std::string(e.what());
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (const char *e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
-            throw "Not in cache";
+
+            throw std::runtime_error("Not in cache");
         }
 
         const std::vector<typename B_BASE::meta> &get_vector_cache(const std::string &cache_key_name)
@@ -6625,18 +6516,8 @@ namespace orm
             {
                 error_msg = std::string(e.what());
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (const char *e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
-            throw "Not in cache";
+
+            throw std::runtime_error("Not in cache");
         }
 
         bool get_record_cache(std::size_t cache_key_name)
@@ -6651,17 +6532,7 @@ namespace orm
             {
                 error_msg = std::string(e.what());
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (const char *e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             B_BASE::record.clear();
             return false;
         }
@@ -6717,17 +6588,17 @@ namespace orm
                 {
                     return 0;
                 }
-                //auto conn = conn_obj->get_select_conn();
+                //auto conn = conn_obj->get_mysql_select_conn();
                 if (islock_conn)
                 {
                     if (!select_conn)
                     {
-                        select_conn = conn_obj->get_select_conn();
+                        select_conn = conn_obj->get_mysql_select_conn();
                     }
                 }
                 else
                 {
-                    select_conn = conn_obj->get_select_conn();
+                    select_conn = conn_obj->get_mysql_select_conn();
                 }
 
                 if (select_conn->isdebug)
@@ -6803,19 +6674,19 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                column_num = field_array.size();
-                                unsigned int tempnum    = 0;
+                                column_num           = field_array.size();
+                                unsigned int tempnum = 0;
 
                                 http::obj_val json_temp_v;
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
-                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    // {
-                                    //     error_msg = "MySQL read pack error";
-                                    //     return 0;
-                                    // }
+                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
+                                    if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        return 0;
+                                    }
                                     std::string temp_str;
                                     temp_str.resize(name_length);
                                     std::memcpy(temp_str.data(), (unsigned char *)&temp_pack_data.data[tempnum], name_length);
@@ -6854,20 +6725,14 @@ namespace orm
                 }
                 if (!islock_conn)
                 {
-                    conn_obj->back_select_conn(std::move(select_conn));
+                    conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
             }
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             return valuetemp;
         }
 
@@ -6923,17 +6788,17 @@ namespace orm
                 {
                     co_return valuetemp;
                 }
-                //auto conn = co_await conn_obj->async_get_select_conn();
+                //auto conn = co_await conn_obj->async_get_mysql_select_conn();
                 if (islock_conn)
                 {
                     if (!select_conn)
                     {
-                        select_conn = co_await conn_obj->async_get_select_conn();
+                        select_conn = co_await conn_obj->async_get_mysql_select_conn();
                     }
                 }
                 else
                 {
-                    select_conn = co_await conn_obj->async_get_select_conn();
+                    select_conn = co_await conn_obj->async_get_mysql_select_conn();
                 }
 
                 if (select_conn->isdebug)
@@ -7007,19 +6872,19 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                column_num = field_array.size();
-                                unsigned int tempnum    = 0;
+                                column_num           = field_array.size();
+                                unsigned int tempnum = 0;
 
                                 http::obj_val json_temp_v;
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
-                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    // {
-                                    //     error_msg = "MySQL read pack error";
-                                    //     co_return 0;
-                                    // }
+                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
+                                    if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        co_return 0;
+                                    }
                                     std::string temp_str;
                                     temp_str.resize(name_length);
                                     std::memcpy(temp_str.data(), (unsigned char *)&temp_pack_data.data[tempnum], name_length);
@@ -7058,20 +6923,14 @@ namespace orm
                 }
                 if (!islock_conn)
                 {
-                    conn_obj->back_select_conn(std::move(select_conn));
+                    conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
             }
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             co_return valuetemp;
         }
 
@@ -7119,17 +6978,17 @@ namespace orm
                 {
                     return 0;
                 }
-                //auto conn = conn_obj->get_select_conn();
+                //auto conn = conn_obj->get_mysql_select_conn();
                 if (islock_conn)
                 {
                     if (!select_conn)
                     {
-                        select_conn = conn_obj->get_select_conn();
+                        select_conn = conn_obj->get_mysql_select_conn();
                     }
                 }
                 else
                 {
-                    select_conn = conn_obj->get_select_conn();
+                    select_conn = conn_obj->get_mysql_select_conn();
                 }
 
                 if (select_conn->isdebug)
@@ -7211,18 +7070,18 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                column_num = field_array.size();
-                                unsigned int tempnum    = 0;
+                                column_num           = field_array.size();
+                                unsigned int tempnum = 0;
 
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
-                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    // {
-                                    //     error_msg = "MySQL read pack error";
-                                    //     return 0;
-                                    // }
+                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
+                                    if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        return 0;
+                                    }
                                     assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, B_BASE::data);
                                     tempnum = tempnum + name_length;
                                 }
@@ -7250,7 +7109,7 @@ namespace orm
                 }
                 if (!islock_conn)
                 {
-                    conn_obj->back_select_conn(std::move(select_conn));
+                    conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
                 if (iscache)
                 {
@@ -7268,13 +7127,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             return 0;
         }
 
@@ -7322,17 +7175,17 @@ namespace orm
                 {
                     co_return 0;
                 }
-                //auto conn = co_await conn_obj->async_get_select_conn();
+                //auto conn = co_await conn_obj->async_get_mysql_select_conn();
                 if (islock_conn)
                 {
                     if (!select_conn)
                     {
-                        select_conn = co_await conn_obj->async_get_select_conn();
+                        select_conn = co_await conn_obj->async_get_mysql_select_conn();
                     }
                 }
                 else
                 {
-                    select_conn = co_await conn_obj->async_get_select_conn();
+                    select_conn = co_await conn_obj->async_get_mysql_select_conn();
                 }
 
                 if (select_conn->isdebug)
@@ -7412,18 +7265,18 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                column_num = field_array.size();
-                                unsigned int tempnum    = 0;
+                                column_num           = field_array.size();
+                                unsigned int tempnum = 0;
 
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
-                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    // {
-                                    //     error_msg = "MySQL read pack error";
-                                    //     co_return 0;
-                                    // }
+                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
+                                    if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        co_return 0;
+                                    }
                                     assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, B_BASE::data);
                                     tempnum = tempnum + name_length;
                                 }
@@ -7451,7 +7304,7 @@ namespace orm
                 }
                 if (!islock_conn)
                 {
-                    conn_obj->back_select_conn(std::move(select_conn));
+                    conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
                 if (iscache)
                 {
@@ -7469,13 +7322,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 co_return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             co_return 0;
         }
 
@@ -7533,18 +7380,18 @@ namespace orm
                 {
                     return 0;
                 }
-                //auto conn = conn_obj->get_edit_conn();
+                //auto conn = conn_obj->get_mysql_edit_conn();
 
                 if (islock_conn)
                 {
                     if (!edit_conn)
                     {
-                        edit_conn = conn_obj->get_edit_conn();
+                        edit_conn = conn_obj->get_mysql_edit_conn();
                     }
                 }
                 else
                 {
-                    edit_conn = conn_obj->get_edit_conn();
+                    edit_conn = conn_obj->get_mysql_edit_conn();
                 }
 
                 if (edit_conn->isdebug)
@@ -7583,17 +7430,17 @@ namespace orm
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
-                    iserror = true;
+                    iserror   = true;
                     edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
 
                     unsigned int d_offset = 1;
-                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
                     if (!islock_conn)
                     {
-                        conn_obj->back_edit_conn(std::move(edit_conn));
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                     }
                 }
                 return effect_num;
@@ -7603,13 +7450,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             return 0;
         }
         int update(const std::string &fieldname)
@@ -7668,17 +7509,17 @@ namespace orm
                 {
                     return 0;
                 }
-                //auto conn = conn_obj->get_edit_conn();
+                //auto conn = conn_obj->get_mysql_edit_conn();
                 if (islock_conn)
                 {
                     if (!edit_conn)
                     {
-                        edit_conn = conn_obj->get_edit_conn();
+                        edit_conn = conn_obj->get_mysql_edit_conn();
                     }
                 }
                 else
                 {
-                    edit_conn = conn_obj->get_edit_conn();
+                    edit_conn = conn_obj->get_mysql_edit_conn();
                 }
                 if (edit_conn->isdebug)
                 {
@@ -7716,17 +7557,17 @@ namespace orm
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
-                    iserror = true;
+                    iserror   = true;
                     edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
 
                     unsigned int d_offset = 1;
-                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
                     if (!islock_conn)
                     {
-                        conn_obj->back_edit_conn(std::move(edit_conn));
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                     }
                 }
                 return effect_num;
@@ -7736,13 +7577,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             return 0;
         }
 
@@ -7807,12 +7642,12 @@ namespace orm
                 {
                     if (!edit_conn)
                     {
-                        edit_conn = co_await conn_obj->async_get_edit_conn();
+                        edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                     }
                 }
                 else
                 {
-                    edit_conn = co_await conn_obj->async_get_edit_conn();
+                    edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                 }
 
                 if (edit_conn->isdebug)
@@ -7855,10 +7690,10 @@ namespace orm
                 {
 
                     unsigned int d_offset = 1;
-                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
                     if (!islock_conn)
                     {
-                        conn_obj->back_edit_conn(std::move(edit_conn));
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                     }
                 }
                 co_return effect_num;
@@ -7868,13 +7703,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 co_return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             co_return 0;
         }
         asio::awaitable<int> async_update()
@@ -7938,12 +7767,12 @@ namespace orm
                 {
                     if (!edit_conn)
                     {
-                        edit_conn = co_await conn_obj->async_get_edit_conn();
+                        edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                     }
                 }
                 else
                 {
-                    edit_conn = co_await conn_obj->async_get_edit_conn();
+                    edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                 }
 
                 if (edit_conn->isdebug)
@@ -7985,10 +7814,10 @@ namespace orm
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
                     unsigned int d_offset = 1;
-                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
                     if (!islock_conn)
                     {
-                        conn_obj->back_edit_conn(std::move(edit_conn));
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                     }
                 }
                 co_return effect_num;
@@ -7998,13 +7827,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 co_return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             co_return 0;
         }
 
@@ -8035,18 +7858,18 @@ namespace orm
                 {
                     return 0;
                 }
-                //auto conn = conn_obj->get_edit_conn();
+                //auto conn = conn_obj->get_mysql_edit_conn();
 
                 if (islock_conn)
                 {
                     if (!edit_conn)
                     {
-                        edit_conn = conn_obj->get_edit_conn();
+                        edit_conn = conn_obj->get_mysql_edit_conn();
                     }
                 }
                 else
                 {
-                    edit_conn = conn_obj->get_edit_conn();
+                    edit_conn = conn_obj->get_mysql_edit_conn();
                 }
 
                 if (edit_conn->isdebug)
@@ -8083,16 +7906,16 @@ namespace orm
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
-                    iserror = true;
+                    iserror   = true;
                     edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
                     unsigned int d_offset = 1;
-                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
                     if (!islock_conn)
                     {
-                        conn_obj->back_edit_conn(std::move(edit_conn));
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                     }
                 }
                 return effect_num;
@@ -8102,13 +7925,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             return 0;
         }
         int remove()
@@ -8168,17 +7985,17 @@ namespace orm
                 {
                     return 0;
                 }
-                //auto conn = conn_obj->get_edit_conn();
+                //auto conn = conn_obj->get_mysql_edit_conn();
                 if (islock_conn)
                 {
                     if (!edit_conn)
                     {
-                        edit_conn = conn_obj->get_edit_conn();
+                        edit_conn = conn_obj->get_mysql_edit_conn();
                     }
                 }
                 else
                 {
-                    edit_conn = conn_obj->get_edit_conn();
+                    edit_conn = conn_obj->get_mysql_edit_conn();
                 }
 
                 if (edit_conn->isdebug)
@@ -8215,16 +8032,16 @@ namespace orm
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
-                    iserror = true;
+                    iserror   = true;
                     edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
                     unsigned int d_offset = 1;
-                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
                     if (!islock_conn)
                     {
-                        conn_obj->back_edit_conn(std::move(edit_conn));
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                     }
                 }
                 return effect_num;
@@ -8234,13 +8051,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             return 0;
         }
 
@@ -8306,12 +8117,12 @@ namespace orm
                 {
                     if (!edit_conn)
                     {
-                        edit_conn = co_await conn_obj->async_get_edit_conn();
+                        edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                     }
                 }
                 else
                 {
-                    edit_conn = co_await conn_obj->async_get_edit_conn();
+                    edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                 }
 
                 if (edit_conn->isdebug)
@@ -8347,16 +8158,16 @@ namespace orm
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
-                    iserror = true;
+                    iserror   = true;
                     edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
                     unsigned int d_offset = 1;
-                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
                     if (!islock_conn)
                     {
-                        conn_obj->back_edit_conn(std::move(edit_conn));
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                     }
                 }
                 co_return effect_num;
@@ -8366,13 +8177,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 co_return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             co_return 0;
         }
 
@@ -8398,17 +8203,17 @@ namespace orm
                 {
                     return 0;
                 }
-                //auto conn = conn_obj->get_edit_conn();
+                //auto conn = conn_obj->get_mysql_edit_conn();
                 if (islock_conn)
                 {
                     if (!edit_conn)
                     {
-                        edit_conn = conn_obj->get_edit_conn();
+                        edit_conn = conn_obj->get_mysql_edit_conn();
                     }
                 }
                 else
                 {
-                    edit_conn = conn_obj->get_edit_conn();
+                    edit_conn = conn_obj->get_mysql_edit_conn();
                 }
 
                 if (edit_conn->isdebug)
@@ -8445,16 +8250,16 @@ namespace orm
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
-                    iserror = true;
+                    iserror   = true;
                     edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
                     unsigned int d_offset = 1;
-                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
                     if (!islock_conn)
                     {
-                        conn_obj->back_edit_conn(std::move(edit_conn));
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                     }
                 }
                 return effect_num;
@@ -8464,13 +8269,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             return 0;
         }
 
@@ -8501,12 +8300,12 @@ namespace orm
                 {
                     if (!edit_conn)
                     {
-                        edit_conn = co_await conn_obj->async_get_edit_conn();
+                        edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                     }
                 }
                 else
                 {
-                    edit_conn = co_await conn_obj->async_get_edit_conn();
+                    edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                 }
 
                 if (edit_conn->isdebug)
@@ -8542,16 +8341,16 @@ namespace orm
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
-                    iserror = true;
+                    iserror   = true;
                     edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
                     unsigned int d_offset = 1;
-                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
                     if (!islock_conn)
                     {
-                        conn_obj->back_edit_conn(std::move(edit_conn));
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                     }
                 }
                 co_return effect_num;
@@ -8561,13 +8360,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 co_return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             co_return 0;
         }
 
@@ -8631,17 +8424,17 @@ namespace orm
                 {
                     return 0;
                 }
-                //auto conn = conn_obj->get_edit_conn();
+                //auto conn = conn_obj->get_mysql_edit_conn();
                 if (islock_conn)
                 {
                     if (!edit_conn)
                     {
-                        edit_conn = conn_obj->get_edit_conn();
+                        edit_conn = conn_obj->get_mysql_edit_conn();
                     }
                 }
                 else
                 {
-                    edit_conn = conn_obj->get_edit_conn();
+                    edit_conn = conn_obj->get_mysql_edit_conn();
                 }
 
                 if (edit_conn->isdebug)
@@ -8678,16 +8471,16 @@ namespace orm
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
-                    iserror = true;
+                    iserror   = true;
                     edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
                     unsigned int d_offset = 1;
-                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
                     if (!islock_conn)
                     {
-                        conn_obj->back_edit_conn(std::move(edit_conn));
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                     }
                 }
                 return effect_num;
@@ -8697,13 +8490,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             return 0;
         }
         int soft_remove()
@@ -8774,18 +8561,18 @@ namespace orm
                 {
                     return 0;
                 }
-                //auto conn = conn_obj->get_edit_conn();
+                //auto conn = conn_obj->get_mysql_edit_conn();
 
                 if (islock_conn)
                 {
                     if (!edit_conn)
                     {
-                        edit_conn = conn_obj->get_edit_conn();
+                        edit_conn = conn_obj->get_mysql_edit_conn();
                     }
                 }
                 else
                 {
-                    edit_conn = conn_obj->get_edit_conn();
+                    edit_conn = conn_obj->get_mysql_edit_conn();
                 }
 
                 if (edit_conn->isdebug)
@@ -8822,16 +8609,16 @@ namespace orm
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
-                    iserror = true;
+                    iserror   = true;
                     edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
                     unsigned int d_offset = 1;
-                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
                     if (!islock_conn)
                     {
-                        conn_obj->back_edit_conn(std::move(edit_conn));
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                     }
                 }
                 return effect_num;
@@ -8841,13 +8628,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             return 0;
         }
         std::tuple<unsigned int, unsigned long long> insert(typename B_BASE::meta &insert_data)
@@ -8866,18 +8647,18 @@ namespace orm
                 {
                     return std::make_tuple(0, 0);
                 }
-                //auto conn = conn_obj->get_edit_conn();
+                //auto conn = conn_obj->get_mysql_edit_conn();
 
                 if (islock_conn)
                 {
                     if (!edit_conn)
                     {
-                        edit_conn = conn_obj->get_edit_conn();
+                        edit_conn = conn_obj->get_mysql_edit_conn();
                     }
                 }
                 else
                 {
-                    edit_conn = conn_obj->get_edit_conn();
+                    edit_conn = conn_obj->get_mysql_edit_conn();
                 }
 
                 if (edit_conn->isdebug)
@@ -8915,18 +8696,18 @@ namespace orm
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
-                    iserror = true;
+                    iserror   = true;
                     edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
                     unsigned int d_offset = 1;
-                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
-                    insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
+                    insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
-                        conn_obj->back_edit_conn(std::move(edit_conn));
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                     }
                 }
                 //return insert_last_id;
@@ -8936,13 +8717,7 @@ namespace orm
             {
                 error_msg = std::string(e.what());
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             return std::make_tuple(0, 0);
         }
 
@@ -8967,12 +8742,12 @@ namespace orm
                 {
                     if (!edit_conn)
                     {
-                        edit_conn = co_await conn_obj->async_get_edit_conn();
+                        edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                     }
                 }
                 else
                 {
-                    edit_conn = co_await conn_obj->async_get_edit_conn();
+                    edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                 }
 
                 if (edit_conn->isdebug)
@@ -9009,18 +8784,18 @@ namespace orm
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
-                    iserror = true;
+                    iserror   = true;
                     edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
                     unsigned int d_offset = 1;
-                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
-                    insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
+                    insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
-                        conn_obj->back_edit_conn(std::move(edit_conn));
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                     }
                 }
                 //co_return insert_last_id;
@@ -9030,13 +8805,7 @@ namespace orm
             {
                 error_msg = std::string(e.what());
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             co_return std::make_tuple(0, 0);
         }
 
@@ -9056,17 +8825,17 @@ namespace orm
                 {
                     return std::make_tuple(0, 0);
                 }
-                //auto conn = conn_obj->get_edit_conn();
+                //auto conn = conn_obj->get_mysql_edit_conn();
                 if (islock_conn)
                 {
                     if (!edit_conn)
                     {
-                        edit_conn = conn_obj->get_edit_conn();
+                        edit_conn = conn_obj->get_mysql_edit_conn();
                     }
                 }
                 else
                 {
-                    edit_conn = conn_obj->get_edit_conn();
+                    edit_conn = conn_obj->get_mysql_edit_conn();
                 }
 
                 if (edit_conn->isdebug)
@@ -9104,18 +8873,18 @@ namespace orm
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
-                    iserror = true;
+                    iserror   = true;
                     edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
                     unsigned int d_offset = 1;
-                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
-                    insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
+                    insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
-                        conn_obj->back_edit_conn(std::move(edit_conn));
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                     }
                 }
                 //return insert_last_id;
@@ -9125,13 +8894,7 @@ namespace orm
             {
                 error_msg = std::string(e.what());
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             return std::make_tuple(0, 0);
         }
 
@@ -9156,12 +8919,12 @@ namespace orm
                 {
                     if (!edit_conn)
                     {
-                        edit_conn = co_await conn_obj->async_get_edit_conn();
+                        edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                     }
                 }
                 else
                 {
-                    edit_conn = co_await conn_obj->async_get_edit_conn();
+                    edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                 }
 
                 if (edit_conn->isdebug)
@@ -9198,18 +8961,18 @@ namespace orm
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
-                    iserror = true;
+                    iserror   = true;
                     edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
                     unsigned int d_offset = 1;
-                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
-                    insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
+                    insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
-                        conn_obj->back_edit_conn(std::move(edit_conn));
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                     }
                 }
                 //co_return insert_last_id;
@@ -9219,13 +8982,7 @@ namespace orm
             {
                 error_msg = std::string(e.what());
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             co_return std::make_tuple(0, 0);
         }
 
@@ -9245,17 +9002,17 @@ namespace orm
                 {
                     return std::make_tuple(0, 0);
                 }
-                //auto conn = conn_obj->get_edit_conn();
+                //auto conn = conn_obj->get_mysql_edit_conn();
                 if (islock_conn)
                 {
                     if (!edit_conn)
                     {
-                        edit_conn = conn_obj->get_edit_conn();
+                        edit_conn = conn_obj->get_mysql_edit_conn();
                     }
                 }
                 else
                 {
-                    edit_conn = conn_obj->get_edit_conn();
+                    edit_conn = conn_obj->get_mysql_edit_conn();
                 }
 
                 if (edit_conn->isdebug)
@@ -9293,18 +9050,18 @@ namespace orm
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
-                    iserror = true;
+                    iserror   = true;
                     edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
                     unsigned int d_offset = 1;
-                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
-                    insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
+                    insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
-                        conn_obj->back_edit_conn(std::move(edit_conn));
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                     }
                 }
                 //return insert_last_id;
@@ -9314,13 +9071,7 @@ namespace orm
             {
                 error_msg = std::string(e.what());
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             return std::make_tuple(0, 0);
         }
 
@@ -9345,12 +9096,12 @@ namespace orm
                 {
                     if (!edit_conn)
                     {
-                        edit_conn = co_await conn_obj->async_get_edit_conn();
+                        edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                     }
                 }
                 else
                 {
-                    edit_conn = co_await conn_obj->async_get_edit_conn();
+                    edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                 }
 
                 if (edit_conn->isdebug)
@@ -9387,19 +9138,19 @@ namespace orm
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
-                    iserror = true;
+                    iserror   = true;
                     edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
 
                     unsigned int d_offset = 1;
-                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
-                    insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
+                    insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
-                        conn_obj->back_edit_conn(std::move(edit_conn));
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                     }
                 }
                 //co_return insert_last_id;
@@ -9409,13 +9160,7 @@ namespace orm
             {
                 error_msg = std::string(e.what());
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             co_return std::make_tuple(0, 0);
         }
 
@@ -9465,17 +9210,17 @@ namespace orm
                 {
                     return std::make_tuple(0, 0);
                 }
-                //auto conn = conn_obj->get_edit_conn();
+                //auto conn = conn_obj->get_mysql_edit_conn();
                 if (islock_conn)
                 {
                     if (!edit_conn)
                     {
-                        edit_conn = conn_obj->get_edit_conn();
+                        edit_conn = conn_obj->get_mysql_edit_conn();
                     }
                 }
                 else
                 {
-                    edit_conn = conn_obj->get_edit_conn();
+                    edit_conn = conn_obj->get_mysql_edit_conn();
                 }
 
                 if (edit_conn->isdebug)
@@ -9512,16 +9257,16 @@ namespace orm
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
-                    iserror = true;
+                    iserror   = true;
                     edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
                     unsigned int d_offset = 1;
-                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
                     if (!islock_conn)
                     {
-                        conn_obj->back_edit_conn(std::move(edit_conn));
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                     }
                 }
                 //return effect_num;
@@ -9534,17 +9279,17 @@ namespace orm
                 {
                     return std::make_tuple(0, 0);
                 }
-                //auto conn = conn_obj->get_edit_conn();
+                //auto conn = conn_obj->get_mysql_edit_conn();
                 if (islock_conn)
                 {
                     if (!edit_conn)
                     {
-                        edit_conn = conn_obj->get_edit_conn();
+                        edit_conn = conn_obj->get_mysql_edit_conn();
                     }
                 }
                 else
                 {
-                    edit_conn = conn_obj->get_edit_conn();
+                    edit_conn = conn_obj->get_mysql_edit_conn();
                 }
 
                 if (edit_conn->isdebug)
@@ -9582,18 +9327,18 @@ namespace orm
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
-                    iserror = true;
+                    iserror   = true;
                     edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
                     unsigned int d_offset = 1;
-                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
-                    insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
+                    insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
-                        conn_obj->back_edit_conn(std::move(edit_conn));
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                     }
                 }
                 //return insert_last_id;
@@ -9656,12 +9401,12 @@ namespace orm
                     {
                         if (!edit_conn)
                         {
-                            edit_conn = co_await conn_obj->async_get_edit_conn();
+                            edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                         }
                     }
                     else
                     {
-                        edit_conn = co_await conn_obj->async_get_edit_conn();
+                        edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                     }
 
                     if (edit_conn->isdebug)
@@ -9703,10 +9448,10 @@ namespace orm
                     else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                     {
                         unsigned int d_offset = 1;
-                        effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                        effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
                         if (!islock_conn)
                         {
-                            conn_obj->back_edit_conn(std::move(edit_conn));
+                            conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                         }
                     }
                     co_return std::make_tuple(effect_num, 0);
@@ -9717,14 +9462,7 @@ namespace orm
                     error_msg = std::string(e.what());
                     co_return std::make_tuple(0, 0);
                 }
-                catch (const std::string &e)
-                {
-                    error_msg = e;
-                }
-                catch (...)
-                {
-                    co_return std::make_tuple(0, 0);
-                }
+
                 co_return std::make_tuple(0, 0);
             }
             else
@@ -9740,12 +9478,12 @@ namespace orm
                     {
                         if (!edit_conn)
                         {
-                            edit_conn = co_await conn_obj->async_get_edit_conn();
+                            edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                         }
                     }
                     else
                     {
-                        edit_conn = co_await conn_obj->async_get_edit_conn();
+                        edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                     }
 
                     if (edit_conn->isdebug)
@@ -9789,12 +9527,12 @@ namespace orm
                     {
 
                         unsigned int d_offset = 1;
-                        effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
-                        insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                        effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
+                        insert_last_id        = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
                         B_BASE::setPK(insert_last_id);
                         if (!islock_conn)
                         {
-                            conn_obj->back_edit_conn(std::move(edit_conn));
+                            conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                         }
                     }
                     co_return std::make_tuple(effect_num, insert_last_id);
@@ -9804,13 +9542,7 @@ namespace orm
                 {
                     error_msg = std::string(e.what());
                 }
-                catch (const std::string &e)
-                {
-                    error_msg = e;
-                }
-                catch (...)
-                {
-                }
+
                 co_return std::make_tuple(0, 0);
             }
             co_return std::make_tuple(0, 0);
@@ -9941,17 +9673,17 @@ namespace orm
                 {
                     return 0;
                 }
-                //auto conn = conn_obj->get_select_conn();
+                //auto conn = conn_obj->get_mysql_select_conn();
                 if (islock_conn)
                 {
                     if (!select_conn)
                     {
-                        select_conn = conn_obj->get_select_conn();
+                        select_conn = conn_obj->get_mysql_select_conn();
                     }
                 }
                 else
                 {
-                    select_conn = conn_obj->get_select_conn();
+                    select_conn = conn_obj->get_mysql_select_conn();
                 }
 
                 if (select_conn->isdebug)
@@ -10034,19 +9766,19 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                column_num = field_array.size();
-                                unsigned int tempnum    = 0;
+                                column_num           = field_array.size();
+                                unsigned int tempnum = 0;
 
                                 T data_temp;
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
-                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    // {
-                                    //     error_msg = "MySQL read pack error";
-                                    //     co_return 0;
-                                    // }
+                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
+                                    if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        return 0;
+                                    }
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         data_temp.set_val(field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
@@ -10081,7 +9813,7 @@ namespace orm
                 }
                 if (!islock_conn)
                 {
-                    conn_obj->back_select_conn(std::move(select_conn));
+                    conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
                 return effect_num;
             }
@@ -10089,13 +9821,7 @@ namespace orm
             {
                 error_msg = std::string(e.what());
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             return 0;
         }
         template <ResultHasSetVal T>
@@ -10147,12 +9873,12 @@ namespace orm
                 {
                     if (!select_conn)
                     {
-                        select_conn = co_await conn_obj->async_get_select_conn();
+                        select_conn = co_await conn_obj->async_get_mysql_select_conn();
                     }
                 }
                 else
                 {
-                    select_conn = co_await conn_obj->async_get_select_conn();
+                    select_conn = co_await conn_obj->async_get_mysql_select_conn();
                 }
 
                 if (select_conn->isdebug)
@@ -10234,19 +9960,19 @@ namespace orm
                             }
                             else if (action_setup == 2)
                             {
-                                column_num = field_array.size();
-                                unsigned int tempnum    = 0;
+                                column_num           = field_array.size();
+                                unsigned int tempnum = 0;
 
                                 T data_temp;
                                 for (unsigned int ij = 0; ij < column_num; ij++)
                                 {
                                     unsigned long long name_length = 0;
-                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-                                    // if((tempnum + name_length) >= temp_pack_data.data.size())
-                                    // {
-                                    //     error_msg = "MySQL read pack error";
-                                    //     co_return 0;
-                                    // }
+                                    name_length                    = select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
+                                    if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
+                                    {
+                                        error_msg = "MySQL read pack error";
+                                        co_return 0;
+                                    }
                                     if (field_array[ij].name.size() > 0)
                                     {
                                         //or alias name
@@ -10282,7 +10008,7 @@ namespace orm
                 }
                 if (!islock_conn)
                 {
-                    conn_obj->back_select_conn(std::move(select_conn));
+                    conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
                 co_return effect_num;
             }
@@ -10290,13 +10016,7 @@ namespace orm
             {
                 error_msg = std::string(e.what());
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             co_return 0;
         }
 
@@ -10320,12 +10040,12 @@ namespace orm
                 {
                     if (!edit_conn)
                     {
-                        edit_conn = conn_obj->get_edit_conn();
+                        edit_conn = conn_obj->get_mysql_edit_conn();
                     }
                 }
                 else
                 {
-                    edit_conn = conn_obj->get_edit_conn();
+                    edit_conn = conn_obj->get_mysql_edit_conn();
                 }
 
                 if (edit_conn->isdebug)
@@ -10363,16 +10083,16 @@ namespace orm
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
-                    iserror = true;
+                    iserror   = true;
                     edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
                     unsigned int d_offset = 1;
-                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
                     if (!islock_conn)
                     {
-                        conn_obj->back_edit_conn(std::move(edit_conn));
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                     }
                 }
                 return effect_num;
@@ -10382,13 +10102,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             return 0;
         }
 
@@ -10411,12 +10125,12 @@ namespace orm
                 {
                     if (!edit_conn)
                     {
-                        edit_conn = co_await conn_obj->async_get_edit_conn();
+                        edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                     }
                 }
                 else
                 {
-                    edit_conn = co_await conn_obj->async_get_edit_conn();
+                    edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                 }
 
                 if (edit_conn->isdebug)
@@ -10454,16 +10168,16 @@ namespace orm
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
-                    iserror = true;
+                    iserror   = true;
                     edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
                 {
                     unsigned int d_offset = 1;
-                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], d_offset);
+                    effect_num            = edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
                     if (!islock_conn)
                     {
-                        conn_obj->back_edit_conn(std::move(edit_conn));
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                     }
                 }
 
@@ -10474,13 +10188,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 co_return 0;
             }
-            catch (const std::string &e)
-            {
-                error_msg = e;
-            }
-            catch (...)
-            {
-            }
+
             co_return 0;
         }
 
@@ -11761,13 +11469,18 @@ namespace orm
             {
                 if (select_conn)
                 {
-                    conn_obj->back_select_conn(std::move(select_conn));
+                    conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
                 if (edit_conn)
                 {
-                    conn_obj->back_edit_conn(std::move(edit_conn));
+                    conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                 }
             }
+        }
+
+        DB_TYPE get_db_type()
+        {
+            return DB_TYPE::MYSQL;
         }
 
       public:
@@ -11796,6 +11509,8 @@ namespace orm
         std::shared_ptr<mysql_conn_base> select_conn;
         std::shared_ptr<mysql_conn_base> edit_conn;
         std::shared_ptr<orm_conn_pool> conn_obj;
+
+        static constexpr DB_TYPE db_type = DB_TYPE::MYSQL;
     };
 } /*tagnamespace_replace*/
 }// namespace orm

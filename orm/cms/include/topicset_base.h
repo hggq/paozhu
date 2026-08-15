@@ -2,7 +2,7 @@
 #define ORM_CMS_TOPICSETBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 01 Aug 2026 14:58:15 GMT
+*本文件为自动生成 Sat, 15 Aug 2026 09:48:14 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -666,7 +666,6 @@ static constexpr std::string_view modelname="Topicset";
 			}
             switch(coln[0]){
 
-
          case 'l':
  switch(coln.size()){  
 case 10:
@@ -731,8 +730,9 @@ break;
      }
      
 
-  inline  std::string stringaddslash(const std::string &content){
+  inline  std::string stringaddslash(std::string_view content){
         std::string temp;
+        temp.reserve(content.size());
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='\''){
                 temp.append("\\'");
@@ -748,8 +748,9 @@ break;
         }
         return temp;
    }  
-  inline  std::string jsonaddslash(const std::string &content){
+  inline  std::string jsonaddslash(std::string_view content){
         std::string temp;
+        temp.reserve(content.size());
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='"'){
                 temp.append("\\\"");
@@ -772,14 +773,14 @@ break;
         tempsql<<" (";
         for(;j<topicset_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                   // tempsql<<"`";
                 }
                 tempsql<<topicset_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+            //tempsql<<"`";
         }
         tempsql<<") VALUES (";
 
@@ -834,14 +835,14 @@ tempsql<<")";
         tempsql<<" (";
         for(;j<topicset_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                    //tempsql<<"`";
                 }
                 tempsql<<topicset_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+           // tempsql<<"`";
         }
         tempsql<<") VALUES (";
 
@@ -896,14 +897,14 @@ tempsql<<")";
         tempsql<<" (";
         for(;j<topicset_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                   // tempsql<<"`";
                 }
                 tempsql<<topicset_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+           //tempsql<<"`";
         }
         tempsql<<") VALUES ";
 
@@ -914,7 +915,6 @@ tempsql<<")";
                 tempsql<<",";	
             }
             tempsql<<"(";
-
 
             	if(insert_data[i].topicsetid==0){
 	tempsql<<"null";
@@ -973,41 +973,41 @@ tempsql<<")";
         if(isall){
 
         if(data.topicsetid==0){
-	tempsql<<"`topicsetid`=0";
+	tempsql<<"topicsetid=0";
  }else{ 
-	tempsql<<"`topicsetid`="<<std::to_string(data.topicsetid);
+	tempsql<<"topicsetid="<<std::to_string(data.topicsetid);
 }
 if(data.userid==0){
-	tempsql<<",`userid`=0";
+	tempsql<<",userid=0";
  }else{ 
-	tempsql<<",`userid`="<<std::to_string(data.userid);
+	tempsql<<",userid="<<std::to_string(data.userid);
 }
 if(data.topicid==0){
-	tempsql<<",`topicid`=0";
+	tempsql<<",topicid=0";
  }else{ 
-	tempsql<<",`topicid`="<<std::to_string(data.topicid);
+	tempsql<<",topicid="<<std::to_string(data.topicid);
 }
 if(data.linktopicid==0){
-	tempsql<<",`linktopicid`=0";
+	tempsql<<",linktopicid=0";
  }else{ 
-	tempsql<<",`linktopicid`="<<std::to_string(data.linktopicid);
+	tempsql<<",linktopicid="<<std::to_string(data.linktopicid);
 }
 if(data.linkrownum==0){
-	tempsql<<",`linkrownum`=0";
+	tempsql<<",linkrownum=0";
  }else{ 
-	tempsql<<",`linkrownum`="<<std::to_string(data.linkrownum);
+	tempsql<<",linkrownum="<<std::to_string(data.linkrownum);
 }
 if(data.sidetype==0){
-	tempsql<<",`sidetype`=0";
+	tempsql<<",sidetype=0";
  }else{ 
-	tempsql<<",`sidetype`="<<std::to_string(data.sidetype);
+	tempsql<<",sidetype="<<std::to_string(data.sidetype);
 }
-tempsql<<",`sidename`='"<<stringaddslash(data.sidename)<<"'";
-tempsql<<",`txtcontent`='"<<stringaddslash(data.txtcontent)<<"'";
+tempsql<<",sidename='"<<stringaddslash(data.sidename)<<"'";
+tempsql<<",txtcontent='"<<stringaddslash(data.txtcontent)<<"'";
 if(data.sort==0){
-	tempsql<<",`sort`=0";
+	tempsql<<",sort=0";
  }else{ 
-	tempsql<<",`sort`="<<std::to_string(data.sort);
+	tempsql<<",sort="<<std::to_string(data.sort);
 }
  }else{ 
 
@@ -1056,65 +1056,65 @@ if(data.sort==0){
          case 0:
  if(jj>0){ tempsql<<","; } 
 if(data.topicsetid==0){
-	tempsql<<"`topicsetid`=0";
+	tempsql<<"topicsetid=0";
  }else{ 
-	tempsql<<"`topicsetid`="<<std::to_string(data.topicsetid);
+	tempsql<<"topicsetid="<<std::to_string(data.topicsetid);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
 if(data.userid==0){
-	tempsql<<"`userid`=0";
+	tempsql<<"userid=0";
  }else{ 
-	tempsql<<"`userid`="<<std::to_string(data.userid);
+	tempsql<<"userid="<<std::to_string(data.userid);
 }
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
 if(data.topicid==0){
-	tempsql<<"`topicid`=0";
+	tempsql<<"topicid=0";
  }else{ 
-	tempsql<<"`topicid`="<<std::to_string(data.topicid);
+	tempsql<<"topicid="<<std::to_string(data.topicid);
 }
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
 if(data.linktopicid==0){
-	tempsql<<"`linktopicid`=0";
+	tempsql<<"linktopicid=0";
  }else{ 
-	tempsql<<"`linktopicid`="<<std::to_string(data.linktopicid);
+	tempsql<<"linktopicid="<<std::to_string(data.linktopicid);
 }
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
 if(data.linkrownum==0){
-	tempsql<<"`linkrownum`=0";
+	tempsql<<"linkrownum=0";
  }else{ 
-	tempsql<<"`linkrownum`="<<std::to_string(data.linkrownum);
+	tempsql<<"linkrownum="<<std::to_string(data.linkrownum);
 }
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
 if(data.sidetype==0){
-	tempsql<<"`sidetype`=0";
+	tempsql<<"sidetype=0";
  }else{ 
-	tempsql<<"`sidetype`="<<std::to_string(data.sidetype);
+	tempsql<<"sidetype="<<std::to_string(data.sidetype);
 }
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`sidename`='"<<stringaddslash(data.sidename)<<"'";
+tempsql<<"sidename='"<<stringaddslash(data.sidename)<<"'";
  break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`txtcontent`='"<<stringaddslash(data.txtcontent)<<"'";
+tempsql<<"txtcontent='"<<stringaddslash(data.txtcontent)<<"'";
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
 if(data.sort==0){
-	tempsql<<"`sort`=0";
+	tempsql<<"sort=0";
  }else{ 
-	tempsql<<"`sort`="<<std::to_string(data.sort);
+	tempsql<<"sort="<<std::to_string(data.sort);
 }
  break;
 
@@ -1133,24 +1133,24 @@ if(data.sort==0){
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
-        tempsql << "REPLACE INTO ";
+            tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
         for (; j < topicset_info::col_names.size(); j++)
         {
             if (j > 0)
             {
-                tempsql << "`,`";
+                tempsql << ",";
             }
             else
             {
-                tempsql << "`";
+                tempsql << "";
             }
             tempsql << topicset_info::col_names[j];
         }
         if (j > 0)
         {
-            tempsql << "`";
+            tempsql << "";
         }
         tempsql << ") VALUES ";
 
@@ -1199,8 +1199,8 @@ if(data.sort==0){
 	tempsql<<","<<std::to_string(record[i].sort);
 	}
 	tempsql<<")";
-
- }
+  }
+ 
  return tempsql.str();
 }
 
@@ -1215,17 +1215,17 @@ if(data.sort==0){
         {
             if (j > 0)
             {
-                tempsql << "`,`";
+                tempsql << ",";
             }
             else
             {
-                tempsql << "`";
+                tempsql << "";
             }
             tempsql << topicset_info::col_names[j];
         }
         if (j > 0)
         {
-            tempsql << "`";
+            tempsql << "";
         }
         tempsql << ") VALUES ";
 

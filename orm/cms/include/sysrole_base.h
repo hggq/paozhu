@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSROLEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 01 Aug 2026 14:58:15 GMT
+*本文件为自动生成 Sat, 15 Aug 2026 09:48:14 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -652,7 +652,6 @@ static constexpr std::string_view modelname="Sysrole";
 			}
             switch(coln[0]){
 
-
          case 'n':
    	 return 2;
 break;
@@ -709,8 +708,9 @@ break;
      }
      
 
-  inline  std::string stringaddslash(const std::string &content){
+  inline  std::string stringaddslash(std::string_view content){
         std::string temp;
+        temp.reserve(content.size());
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='\''){
                 temp.append("\\'");
@@ -726,8 +726,9 @@ break;
         }
         return temp;
    }  
-  inline  std::string jsonaddslash(const std::string &content){
+  inline  std::string jsonaddslash(std::string_view content){
         std::string temp;
+        temp.reserve(content.size());
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='"'){
                 temp.append("\\\"");
@@ -750,14 +751,14 @@ break;
         tempsql<<" (";
         for(;j<sysrole_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                   // tempsql<<"`";
                 }
                 tempsql<<sysrole_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+            //tempsql<<"`";
         }
         tempsql<<") VALUES (";
 
@@ -806,14 +807,14 @@ tempsql<<")";
         tempsql<<" (";
         for(;j<sysrole_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                    //tempsql<<"`";
                 }
                 tempsql<<sysrole_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+           // tempsql<<"`";
         }
         tempsql<<") VALUES (";
 
@@ -862,14 +863,14 @@ tempsql<<")";
         tempsql<<" (";
         for(;j<sysrole_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                   // tempsql<<"`";
                 }
                 tempsql<<sysrole_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+           //tempsql<<"`";
         }
         tempsql<<") VALUES ";
 
@@ -880,7 +881,6 @@ tempsql<<")";
                 tempsql<<",";	
             }
             tempsql<<"(";
-
 
             	if(insert_data[i].roleid==0){
 	tempsql<<"null";
@@ -933,35 +933,35 @@ tempsql<<")";
         if(isall){
 
         if(data.roleid==0){
-	tempsql<<"`roleid`=0";
+	tempsql<<"roleid=0";
  }else{ 
-	tempsql<<"`roleid`="<<std::to_string(data.roleid);
+	tempsql<<"roleid="<<std::to_string(data.roleid);
 }
 if(data.userid==0){
-	tempsql<<",`userid`=0";
+	tempsql<<",userid=0";
  }else{ 
-	tempsql<<",`userid`="<<std::to_string(data.userid);
+	tempsql<<",userid="<<std::to_string(data.userid);
 }
-tempsql<<",`name`='"<<stringaddslash(data.name)<<"'";
+tempsql<<",name='"<<stringaddslash(data.name)<<"'";
 if(data.status==0){
-	tempsql<<",`status`=0";
+	tempsql<<",status=0";
  }else{ 
-	tempsql<<",`status`="<<std::to_string(data.status);
+	tempsql<<",status="<<std::to_string(data.status);
 }
 if(data.rolecode==0){
-	tempsql<<",`rolecode`=0";
+	tempsql<<",rolecode=0";
  }else{ 
-	tempsql<<",`rolecode`="<<std::to_string(data.rolecode);
+	tempsql<<",rolecode="<<std::to_string(data.rolecode);
 }
 if(data.sortid==0){
-	tempsql<<",`sortid`=0";
+	tempsql<<",sortid=0";
  }else{ 
-	tempsql<<",`sortid`="<<std::to_string(data.sortid);
+	tempsql<<",sortid="<<std::to_string(data.sortid);
 }
 if(data.rolevalue==0){
-	tempsql<<",`rolevalue`=0";
+	tempsql<<",rolevalue=0";
  }else{ 
-	tempsql<<",`rolevalue`="<<std::to_string(data.rolevalue);
+	tempsql<<",rolevalue="<<std::to_string(data.rolevalue);
 }
  }else{ 
 
@@ -1010,53 +1010,53 @@ if(data.rolevalue==0){
          case 0:
  if(jj>0){ tempsql<<","; } 
 if(data.roleid==0){
-	tempsql<<"`roleid`=0";
+	tempsql<<"roleid=0";
  }else{ 
-	tempsql<<"`roleid`="<<std::to_string(data.roleid);
+	tempsql<<"roleid="<<std::to_string(data.roleid);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
 if(data.userid==0){
-	tempsql<<"`userid`=0";
+	tempsql<<"userid=0";
  }else{ 
-	tempsql<<"`userid`="<<std::to_string(data.userid);
+	tempsql<<"userid="<<std::to_string(data.userid);
 }
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`name`='"<<stringaddslash(data.name)<<"'";
+tempsql<<"name='"<<stringaddslash(data.name)<<"'";
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
 if(data.status==0){
-	tempsql<<"`status`=0";
+	tempsql<<"status=0";
  }else{ 
-	tempsql<<"`status`="<<std::to_string(data.status);
+	tempsql<<"status="<<std::to_string(data.status);
 }
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
 if(data.rolecode==0){
-	tempsql<<"`rolecode`=0";
+	tempsql<<"rolecode=0";
  }else{ 
-	tempsql<<"`rolecode`="<<std::to_string(data.rolecode);
+	tempsql<<"rolecode="<<std::to_string(data.rolecode);
 }
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
 if(data.sortid==0){
-	tempsql<<"`sortid`=0";
+	tempsql<<"sortid=0";
  }else{ 
-	tempsql<<"`sortid`="<<std::to_string(data.sortid);
+	tempsql<<"sortid="<<std::to_string(data.sortid);
 }
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
 if(data.rolevalue==0){
-	tempsql<<"`rolevalue`=0";
+	tempsql<<"rolevalue=0";
  }else{ 
-	tempsql<<"`rolevalue`="<<std::to_string(data.rolevalue);
+	tempsql<<"rolevalue="<<std::to_string(data.rolevalue);
 }
  break;
 
@@ -1075,24 +1075,24 @@ if(data.rolevalue==0){
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
-        tempsql << "REPLACE INTO ";
+            tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
         for (; j < sysrole_info::col_names.size(); j++)
         {
             if (j > 0)
             {
-                tempsql << "`,`";
+                tempsql << ",";
             }
             else
             {
-                tempsql << "`";
+                tempsql << "";
             }
             tempsql << sysrole_info::col_names[j];
         }
         if (j > 0)
         {
-            tempsql << "`";
+            tempsql << "";
         }
         tempsql << ") VALUES ";
 
@@ -1135,8 +1135,8 @@ if(data.rolevalue==0){
 	tempsql<<","<<std::to_string(record[i].rolevalue);
 	}
 	tempsql<<")";
-
- }
+  }
+ 
  return tempsql.str();
 }
 
@@ -1151,17 +1151,17 @@ if(data.rolevalue==0){
         {
             if (j > 0)
             {
-                tempsql << "`,`";
+                tempsql << ",";
             }
             else
             {
-                tempsql << "`";
+                tempsql << "";
             }
             tempsql << sysrole_info::col_names[j];
         }
         if (j > 0)
         {
-            tempsql << "`";
+            tempsql << "";
         }
         tempsql << ") VALUES ";
 

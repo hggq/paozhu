@@ -83,6 +83,7 @@
 #include "testsqltuple.h"
 #include "testsiteid.h"
 #include "testsessionid.h"
+#include "test_pg_crud.h"
 #include "test_deepseekapi.h"
 #include "devcors.h"
 #include "test_rpc_handle.h"
@@ -853,6 +854,12 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testshowsession;
 		methodcallback.emplace("testshowsession",temp);
+		temp.pre = nullptr;
+		temp.regfun = article_pg_list;
+		methodcallback.emplace("cms/pglist",temp);
+		temp.pre = nullptr;
+		temp.regfun = article_pg_show;
+		methodcallback.emplace("cms/pgshow",temp);
 		temp.pre = nullptr;
 		temp.regfun = test_deepseek_api;
 		methodcallback.emplace("deepseek_api",temp);

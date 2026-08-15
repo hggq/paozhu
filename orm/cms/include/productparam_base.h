@@ -2,7 +2,7 @@
 #define ORM_CMS_PRODUCTPARAMBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 01 Aug 2026 14:58:15 GMT
+*本文件为自动生成 Sat, 15 Aug 2026 09:48:14 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -680,7 +680,6 @@ static constexpr std::string_view modelname="Productparam";
 			}
             switch(coln[0]){
 
-
          case 'a':
  switch(coln.size()){  
 case 10:
@@ -753,8 +752,9 @@ break;
      }
      
 
-  inline  std::string stringaddslash(const std::string &content){
+  inline  std::string stringaddslash(std::string_view content){
         std::string temp;
+        temp.reserve(content.size());
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='\''){
                 temp.append("\\'");
@@ -770,8 +770,9 @@ break;
         }
         return temp;
    }  
-  inline  std::string jsonaddslash(const std::string &content){
+  inline  std::string jsonaddslash(std::string_view content){
         std::string temp;
+        temp.reserve(content.size());
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='"'){
                 temp.append("\\\"");
@@ -794,14 +795,14 @@ break;
         tempsql<<" (";
         for(;j<productparam_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                   // tempsql<<"`";
                 }
                 tempsql<<productparam_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+            //tempsql<<"`";
         }
         tempsql<<") VALUES (";
 
@@ -854,14 +855,14 @@ tempsql<<")";
         tempsql<<" (";
         for(;j<productparam_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                    //tempsql<<"`";
                 }
                 tempsql<<productparam_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+           // tempsql<<"`";
         }
         tempsql<<") VALUES (";
 
@@ -914,14 +915,14 @@ tempsql<<")";
         tempsql<<" (";
         for(;j<productparam_info::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                   // tempsql<<"`";
                 }
                 tempsql<<productparam_info::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+           //tempsql<<"`";
         }
         tempsql<<") VALUES ";
 
@@ -932,7 +933,6 @@ tempsql<<")";
                 tempsql<<",";	
             }
             tempsql<<"(";
-
 
             	if(insert_data[i].ppid==0){
 	tempsql<<"null";
@@ -989,40 +989,40 @@ tempsql<<")";
         if(isall){
 
         if(data.ppid==0){
-	tempsql<<"`ppid`=0";
+	tempsql<<"ppid=0";
  }else{ 
-	tempsql<<"`ppid`="<<std::to_string(data.ppid);
+	tempsql<<"ppid="<<std::to_string(data.ppid);
 }
 if(data.userid==0){
-	tempsql<<",`userid`=0";
+	tempsql<<",userid=0";
  }else{ 
-	tempsql<<",`userid`="<<std::to_string(data.userid);
+	tempsql<<",userid="<<std::to_string(data.userid);
 }
 if(data.pid==0){
-	tempsql<<",`pid`=0";
+	tempsql<<",pid=0";
  }else{ 
-	tempsql<<",`pid`="<<std::to_string(data.pid);
+	tempsql<<",pid="<<std::to_string(data.pid);
 }
-tempsql<<",`imgurl`='"<<stringaddslash(data.imgurl)<<"'";
+tempsql<<",imgurl='"<<stringaddslash(data.imgurl)<<"'";
 if(data.price==0){
-	tempsql<<",`price`=0";
+	tempsql<<",price=0";
  }else{ 
-	tempsql<<",`price`="<<std::to_string(data.price);
+	tempsql<<",price="<<std::to_string(data.price);
 }
-tempsql<<",`attachfiles`='"<<stringaddslash(data.attachfiles)<<"'";
-tempsql<<",`name`='"<<stringaddslash(data.name)<<"'";
-tempsql<<",`attachdate`='"<<stringaddslash(data.attachdate)<<"'";
+tempsql<<",attachfiles='"<<stringaddslash(data.attachfiles)<<"'";
+tempsql<<",name='"<<stringaddslash(data.name)<<"'";
+tempsql<<",attachdate='"<<stringaddslash(data.attachdate)<<"'";
 if(data.sortid==0){
-	tempsql<<",`sortid`=0";
+	tempsql<<",sortid=0";
  }else{ 
-	tempsql<<",`sortid`="<<std::to_string(data.sortid);
+	tempsql<<",sortid="<<std::to_string(data.sortid);
 }
 if(data.filesize==0){
-	tempsql<<",`filesize`=0";
+	tempsql<<",filesize=0";
  }else{ 
-	tempsql<<",`filesize`="<<std::to_string(data.filesize);
+	tempsql<<",filesize="<<std::to_string(data.filesize);
 }
-tempsql<<",`fileext`='"<<stringaddslash(data.fileext)<<"'";
+tempsql<<",fileext='"<<stringaddslash(data.fileext)<<"'";
  }else{ 
 
      
@@ -1070,70 +1070,70 @@ tempsql<<",`fileext`='"<<stringaddslash(data.fileext)<<"'";
          case 0:
  if(jj>0){ tempsql<<","; } 
 if(data.ppid==0){
-	tempsql<<"`ppid`=0";
+	tempsql<<"ppid=0";
  }else{ 
-	tempsql<<"`ppid`="<<std::to_string(data.ppid);
+	tempsql<<"ppid="<<std::to_string(data.ppid);
 }
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
 if(data.userid==0){
-	tempsql<<"`userid`=0";
+	tempsql<<"userid=0";
  }else{ 
-	tempsql<<"`userid`="<<std::to_string(data.userid);
+	tempsql<<"userid="<<std::to_string(data.userid);
 }
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
 if(data.pid==0){
-	tempsql<<"`pid`=0";
+	tempsql<<"pid=0";
  }else{ 
-	tempsql<<"`pid`="<<std::to_string(data.pid);
+	tempsql<<"pid="<<std::to_string(data.pid);
 }
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`imgurl`='"<<stringaddslash(data.imgurl)<<"'";
+tempsql<<"imgurl='"<<stringaddslash(data.imgurl)<<"'";
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
 if(data.price==0){
-	tempsql<<"`price`=0";
+	tempsql<<"price=0";
  }else{ 
-	tempsql<<"`price`="<<std::to_string(data.price);
+	tempsql<<"price="<<std::to_string(data.price);
 }
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`attachfiles`='"<<stringaddslash(data.attachfiles)<<"'";
+tempsql<<"attachfiles='"<<stringaddslash(data.attachfiles)<<"'";
  break;
  case 6:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`name`='"<<stringaddslash(data.name)<<"'";
+tempsql<<"name='"<<stringaddslash(data.name)<<"'";
  break;
  case 7:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`attachdate`='"<<stringaddslash(data.attachdate)<<"'";
+tempsql<<"attachdate='"<<stringaddslash(data.attachdate)<<"'";
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
 if(data.sortid==0){
-	tempsql<<"`sortid`=0";
+	tempsql<<"sortid=0";
  }else{ 
-	tempsql<<"`sortid`="<<std::to_string(data.sortid);
+	tempsql<<"sortid="<<std::to_string(data.sortid);
 }
  break;
  case 9:
  if(jj>0){ tempsql<<","; } 
 if(data.filesize==0){
-	tempsql<<"`filesize`=0";
+	tempsql<<"filesize=0";
  }else{ 
-	tempsql<<"`filesize`="<<std::to_string(data.filesize);
+	tempsql<<"filesize="<<std::to_string(data.filesize);
 }
  break;
  case 10:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"`fileext`='"<<stringaddslash(data.fileext)<<"'";
+tempsql<<"fileext='"<<stringaddslash(data.fileext)<<"'";
  break;
 
      
@@ -1151,24 +1151,24 @@ tempsql<<"`fileext`='"<<stringaddslash(data.fileext)<<"'";
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
-        tempsql << "REPLACE INTO ";
+            tempsql << "REPLACE INTO ";
         tempsql << tablename;
         tempsql << " (";
         for (; j < productparam_info::col_names.size(); j++)
         {
             if (j > 0)
             {
-                tempsql << "`,`";
+                tempsql << ",";
             }
             else
             {
-                tempsql << "`";
+                tempsql << "";
             }
             tempsql << productparam_info::col_names[j];
         }
         if (j > 0)
         {
-            tempsql << "`";
+            tempsql << "";
         }
         tempsql << ") VALUES ";
 
@@ -1215,8 +1215,8 @@ tempsql<<"`fileext`='"<<stringaddslash(data.fileext)<<"'";
 	}
 	tempsql<<",'"<<stringaddslash(record[i].fileext)<<"'";
 	tempsql<<")";
-
- }
+  }
+ 
  return tempsql.str();
 }
 
@@ -1231,17 +1231,17 @@ tempsql<<"`fileext`='"<<stringaddslash(data.fileext)<<"'";
         {
             if (j > 0)
             {
-                tempsql << "`,`";
+                tempsql << ",";
             }
             else
             {
-                tempsql << "`";
+                tempsql << "";
             }
             tempsql << productparam_info::col_names[j];
         }
         if (j > 0)
         {
-            tempsql << "`";
+            tempsql << "";
         }
         tempsql << ") VALUES ";
 

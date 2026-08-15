@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
+#include <stdexcept>
 #include <list>
 #include <vector>
 #include <queue>
@@ -15,6 +16,7 @@ namespace http
 
 client_data_cache::~client_data_cache()
 {
+    std::unique_lock<std::mutex> lock(locklist);
     isclose = true;
     for (; !data_list.empty();)
     {
@@ -25,12 +27,12 @@ client_data_cache::~client_data_cache()
 }
 bool client_data_cache::fix_lists()
 {
+    std::unique_lock<std::mutex> lock(locklist);
     unsigned int list_size = data_list.size();
     if (list_size < 1025)
     {
         return false;
     }
-    std::unique_lock<std::mutex> lock(locklist);
     for (; !data_list.empty();)
     {
         unsigned char *a = data_list.front();
@@ -42,14 +44,14 @@ bool client_data_cache::fix_lists()
             break;
         }
     }
-    lock.unlock();
     return true;
 }
 void client_data_cache::inti_sendqueue(unsigned int a)
 {
     for (unsigned int i = 0; i < a; i++)
     {
-        data_list.emplace(reinterpret_cast<unsigned char *>(std::malloc(4096 * sizeof(unsigned char))));
+        unsigned char *ptr = reinterpret_cast<unsigned char *>(std::malloc(4096));
+        if (ptr != nullptr) data_list.emplace(ptr);
     }
 }
 unsigned char *client_data_cache::get_data_ptr()
@@ -62,18 +64,18 @@ unsigned char *client_data_cache::get_data_ptr()
         lock.unlock();
         for (int i = 0; i < 10; i++)
         {
-            try
+            a = reinterpret_cast<unsigned char *>(std::malloc(4096 * sizeof(unsigned char)));
+            if (a != nullptr)
             {
-                a = reinterpret_cast<unsigned char *>(std::malloc(4096 * sizeof(unsigned char)));
-                if (a != nullptr)
-                {
-                    break;
-                }
+                break;
             }
-            catch (...)
-            {
-                std::this_thread::sleep_for(std::chrono::microseconds(500));
-            }
+            // malloc失败时短暂休眠后重试
+            std::this_thread::sleep_for(std::chrono::microseconds(500));
+        }
+        // 如果10次尝试都失败，抛出异常或返回nullptr
+        if (a == nullptr)
+        {
+            throw std::bad_alloc();
         }
     }
     else
@@ -87,12 +89,14 @@ unsigned char *client_data_cache::get_data_ptr()
 }
 bool client_data_cache::back_data_ptr(unsigned char *a)
 {
-    if(isclose)
+    if (a == nullptr) return false;
+    std::unique_lock<std::mutex> lock(locklist);
+    if (isclose)
     {
+        lock.unlock();
         free(a);
         return true;
     }
-    std::unique_lock<std::mutex> lock(locklist);
     data_list.push(a);
     return true;
 }

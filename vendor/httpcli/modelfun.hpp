@@ -17,7 +17,8 @@
 #include <vector>
 #include <cmath>
 #include "mysql_conn.h"
-#include "mysql_conn_pool.h"
+#include "orm_conn_pool.h"
+#include "pg_conn.h"
 
 namespace fs = std::filesystem;
 
@@ -207,6 +208,375 @@ void assign_field_value(unsigned char index_pos, unsigned char *result_temp_data
         break;
     }
 }
+
+// ==================== PostgreSQL Infrastructure ====================
+enum class DBType
+{
+    MYSQL,
+    POSTGRESQL
+};
+
+DBType get_db_type(const std::string &dbtype_str)
+{
+    std::string lower = dbtype_str;
+    std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+    if (lower == "postgresql" || lower == "postgres" || lower == "pg")
+    {
+        return DBType::POSTGRESQL;
+    }
+    return DBType::MYSQL;
+}
+
+unsigned char pg_type_to_mysql_type(const std::string &pg_type)
+{
+    std::string lower = pg_type;
+    std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+    
+    if (lower == "smallint" || lower == "int2") return 0x02;
+    if (lower == "integer" || lower == "int4") return 0x03;
+    if (lower == "bigint" || lower == "int8") return 0x08;
+    if (lower == "smallserial" || lower == "serial2") return 0x02;
+    if (lower == "serial" || lower == "serial4") return 0x03;
+    if (lower == "bigserial" || lower == "serial8") return 0x08;
+    if (lower == "real" || lower == "float4") return 0x04;
+    if (lower == "double precision" || lower == "float8") return 0x05;
+    if (lower == "numeric" || lower == "decimal") return 0xF6;
+    if (lower == "boolean" || lower == "bool") return 0x01;
+    if (lower == "char" || lower == "character") return 0xFE;
+    if (lower == "varchar" || lower == "character varying") return 0xFD;
+    if (lower == "text") return 0xFC;
+    if (lower == "timestamp" || lower == "timestamp without time zone") return 0x0C;
+    if (lower == "timestamp with time zone" || lower == "timestamptz") return 0x0C;
+    if (lower == "date") return 0x0A;
+    if (lower == "time" || lower == "time without time zone") return 0x0B;
+    if (lower == "time with time zone" || lower == "timetz") return 0x0B;
+    if (lower == "bytea") return 0xFC;
+    if (lower == "json") return 0xF5;
+    if (lower == "jsonb") return 0xF5;
+    if (lower == "uuid") return 0xFE;
+    if (lower == "inet") return 0xFE;
+    if (lower == "cidr") return 0xFE;
+    if (lower == "macaddr") return 0xFE;
+    if (lower == "money") return 0xF6;
+    
+    size_t bracket_pos = lower.find('(');
+    if (bracket_pos != std::string::npos)
+    {
+        std::string base_type = lower.substr(0, bracket_pos);
+        if (base_type == "char" || base_type == "character") return 0xFE;
+        if (base_type == "varchar" || base_type == "character varying") return 0xFD;
+    }
+    
+    return 0xFE;
+}
+
+unsigned char pg_get_big_type(unsigned char col_type)
+{
+    if (col_type == 0xFC || col_type == 0xFD || col_type == 0xFE || col_type == 0xF5)
+    {
+        return 1;
+    }
+    else if (col_type == 0xF6 || col_type == 0x05 || col_type == 0x04 || col_type == 0x00)
+    {
+        return 3;
+    }
+    else if (col_type == 0x01 || col_type == 0x02 || col_type == 0x03 || col_type == 0x08)
+    {
+        return 2;
+    }
+    else if (col_type == 0x09)
+    {
+        return 3;
+    }
+    else if (col_type == 0x07 || col_type == 0x0A || col_type == 0x0B)
+    {
+        return 1;
+    }
+    else if (col_type == 0x0C)
+    {
+        return 1;
+    }
+    return 1;
+}
+
+bool pg_read_row_data(const std::string &pack_data, std::vector<std::string> &row_values)
+{
+    row_values.clear();
+    unsigned int offset = 0;
+    
+    while (offset < pack_data.size())
+    {
+        if (offset + 4 > pack_data.size()) return false;
+        
+        int len = (pack_data[offset] & 0xFF) | 
+                  ((pack_data[offset+1] & 0xFF) << 8) | 
+                  ((pack_data[offset+2] & 0xFF) << 16) | 
+                  ((pack_data[offset+3] & 0xFF) << 24);
+        
+        offset += 4;
+        
+        if (len == -1)
+        {
+            row_values.push_back("");
+        }
+        else if (offset + len > pack_data.size())
+        {
+            return false;
+        }
+        else
+        {
+            row_values.push_back(std::string(pack_data.data() + offset, len));
+            offset += len;
+        }
+    }
+    return true;
+}
+
+bool pg_read_full_sync(orm::pg_conn_base& conn, unsigned char* buf, size_t len) {
+    asio::error_code ec;
+    if (conn.conn_link->sock_type == 2) {
+        asio::read(*conn.conn_link->sslsocket, asio::buffer(buf, len), ec);
+    } else {
+        asio::read(*conn.conn_link->socket, asio::buffer(buf, len), ec);
+    }
+    return ec.value() == 0;
+}
+
+bool pg_read_message_sync(orm::pg_conn_base& conn, unsigned char& msg_type, std::string& payload) {
+    if (!pg_read_full_sync(conn, &msg_type, 1)) return false;
+    unsigned char len_buf[4];
+    if (!pg_read_full_sync(conn, len_buf, 4)) return false;
+    
+    int32_t len = (len_buf[0] << 24) | (len_buf[1] << 16) | (len_buf[2] << 8) | len_buf[3];
+    int32_t data_len = len - 4;
+    
+    if (data_len > 0) {
+        std::vector<char> tmp(data_len);
+        if (!pg_read_full_sync(conn, reinterpret_cast<unsigned char*>(tmp.data()), data_len)) return false;
+        payload.assign(tmp.data(), data_len);
+    } else {
+        payload.clear();
+    }
+    return true;
+}
+
+bool pg_get_table_list(std::shared_ptr<orm::pg_conn_base> pg_conn, std::vector<std::string> &table_lists)
+{
+    table_lists.clear();
+    
+    std::string sql = "SELECT relname FROM pg_class WHERE relkind = 'r' AND relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public') ORDER BY relname";
+    
+    if (pg_conn->write_sql(sql) == 0) {
+        return false;
+    }
+    
+    unsigned char msg_type;
+    std::string payload;
+    bool done = false;
+    
+    while (!done) {
+        if (!pg_read_message_sync(*pg_conn, msg_type, payload)) {
+            break;
+        }
+        
+        switch (msg_type) {
+        case 'D': {
+            size_t pos = 0;
+            if (pos + 2 > payload.size()) break;
+            pos += 2;
+            
+            int32_t len = (static_cast<uint8_t>(payload[pos]) << 24) |
+                          (static_cast<uint8_t>(payload[pos+1]) << 16) |
+                          (static_cast<uint8_t>(payload[pos+2]) << 8) |
+                          static_cast<uint8_t>(payload[pos+3]);
+            pos += 4;
+            
+            if (len > 0 && pos + len <= payload.size()) {
+                std::string table_name = payload.substr(pos, len);
+                std::transform(table_name.begin(), table_name.end(), table_name.begin(), ::tolower);
+                table_lists.push_back(table_name);
+            }
+            break;
+        }
+        case 'Z':
+            done = true;
+            break;
+        case 'E':
+            done = true;
+            break;
+        default:
+            break;
+        }
+    }
+    
+    return true;
+}
+
+bool pg_get_column_info(std::shared_ptr<orm::pg_conn_base> pg_conn, const std::string &table_name, std::vector<table_columns_info_t> &column_info_lists)
+{
+    column_info_lists.clear();
+    
+    std::string sql = "SELECT a.attname, t.typname, a.attlen, a.atttypmod, a.attnotnull, a.attnum "
+                      "FROM pg_attribute a JOIN pg_type t ON a.atttypid = t.oid "
+                      "WHERE a.attrelid = (SELECT oid FROM pg_class WHERE relname = '" + table_name + "' AND relkind = 'r') "
+                      "AND a.attnum > 0 AND NOT a.attisdropped ORDER BY a.attnum";
+    
+    if (pg_conn->write_sql(sql) == 0) {
+        return false;
+    }
+    
+    unsigned char msg_type;
+    std::string payload;
+    bool done = false;
+    std::vector<std::string> col_names;
+    
+    while (!done) {
+        if (!pg_read_message_sync(*pg_conn, msg_type, payload)) {
+            break;
+        }
+        
+        switch (msg_type) {
+        case 'T': {
+            size_t pos = 0;
+            if (pos + 2 > payload.size()) break;
+            int16_t num_cols = (static_cast<uint8_t>(payload[pos]) << 8) |
+                               static_cast<uint8_t>(payload[pos + 1]);
+            pos += 2;
+            
+            col_names.clear();
+            for (int16_t i = 0; i < num_cols; ++i) {
+                size_t null_pos = payload.find('\0', pos);
+                if (null_pos == std::string::npos) break;
+                std::string col_name = payload.substr(pos, null_pos - pos);
+                col_names.push_back(col_name);
+                pos = null_pos + 1;
+                pos += 18;
+            }
+            break;
+        }
+        case 'D': {
+            size_t pos = 0;
+            if (pos + 2 > payload.size()) break;
+            int16_t num_cols = (static_cast<uint8_t>(payload[pos]) << 8) |
+                               static_cast<uint8_t>(payload[pos + 1]);
+            pos += 2;
+            
+            table_columns_info_t col_info;
+            
+            for (int16_t i = 0; i < num_cols; ++i) {
+                if (pos + 4 > payload.size()) break;
+                int32_t len = (static_cast<uint8_t>(payload[pos]) << 24) |
+                              (static_cast<uint8_t>(payload[pos+1]) << 16) |
+                              (static_cast<uint8_t>(payload[pos+2]) << 8) |
+                              static_cast<uint8_t>(payload[pos+3]);
+                pos += 4;
+                
+                std::string value;
+                if (len > 0 && pos + len <= payload.size()) {
+                    value = payload.substr(pos, len);
+                }
+                pos += len;
+                
+                if (col_names[i] == "attname") {
+                    col_info.col_name = value;
+                    std::transform(col_info.col_name.begin(), col_info.col_name.end(), 
+                                   col_info.col_name.begin(), ::tolower);
+                } else if (col_names[i] == "typname") {
+                    col_info.col_type = pg_type_to_mysql_type(value);
+                    col_info.big_type = pg_get_big_type(col_info.col_type);
+                    if (value.find("timestamp") != std::string::npos || 
+                        value.find("date") != std::string::npos ||
+                        value.find("time") != std::string::npos) {
+                        col_info.is_datetime = true;
+                    }
+                    if (value.find("serial") != std::string::npos) {
+                        col_info.is_auto_inc = true;
+                    }
+                } else if (col_names[i] == "attlen") {
+                    if (!value.empty()) {
+                        col_info.col_length = strtointval(value);
+                    }
+                } else if (col_names[i] == "atttypmod") {
+                    if (!value.empty()) {
+                        int32_t mod = strtointval(value);
+                        if (mod > 0) {
+                            col_info.col_length = mod - 4;
+                        }
+                    }
+                }
+            }
+            
+            column_info_lists.push_back(col_info);
+            break;
+        }
+        case 'Z':
+            done = true;
+            break;
+        case 'E':
+            done = true;
+            break;
+        default:
+            break;
+        }
+    }
+    
+    // Query primary keys
+    sql = "SELECT a.attname FROM pg_index i JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey) "
+          "WHERE i.indrelid = '" + table_name + "'::regclass AND i.indisprimary";
+    
+    if (pg_conn->write_sql(sql) == 0) {
+        return false;
+    }
+    
+    done = false;
+    while (!done) {
+        if (!pg_read_message_sync(*pg_conn, msg_type, payload)) {
+            break;
+        }
+        
+        switch (msg_type) {
+        case 'D': {
+            size_t pos = 0;
+            if (pos + 2 > payload.size()) break;
+            pos += 2;
+            
+            int32_t len = (static_cast<uint8_t>(payload[pos]) << 24) |
+                          (static_cast<uint8_t>(payload[pos+1]) << 16) |
+                          (static_cast<uint8_t>(payload[pos+2]) << 8) |
+                          static_cast<uint8_t>(payload[pos+3]);
+            pos += 4;
+            
+            if (len > 0 && pos + len <= payload.size()) {
+                std::string pk_name = payload.substr(pos, len);
+                std::transform(pk_name.begin(), pk_name.end(), pk_name.begin(), ::tolower);
+                
+                for (auto& col : column_info_lists) {
+                    if (col.col_name == pk_name) {
+                        col.is_pk = true;
+                        if (col.col_type == 0x03 || col.col_type == 0x08 || col.col_type == 0x02) {
+                            col.is_auto_inc = true;
+                        }
+                        break;
+                    }
+                }
+            }
+            break;
+        }
+        case 'Z':
+            done = true;
+            break;
+        case 'E':
+            done = true;
+            break;
+        default:
+            break;
+        }
+    }
+    
+    return true;
+}
+// ==================== End PostgreSQL Infrastructure ====================
+
 unsigned int string_replace(std::string &content, const std::string &astr, const std::string &bstr)
 {
     std::string::size_type start_num = 0;
@@ -818,9 +1188,52 @@ std::string create_mysql_orm_where_instring_number(const std::string &modelName_
         }
         wheresql.append(" )";
     append_content.append(colname);
+    append_content.append(" IN('\");\n");
+    append_content += R"(
+        wheresql.append(B_BASE::stringaddslash(val));
+        wheresql.push_back('\'');
+        wheresql.push_back(')');
+        return *mod;   
+    }   
+    )";
+    return append_content;
+}
+
+std::string create_mysql_orm_where_innumber_number(const std::string &modelName_file, const std::string &colname, const std::string &humpname)
+{
+    std::string append_content;
+    append_content += "\n\ntemplate <typename T>\n\trequires std::is_integral_v<T>\n";
+    append_content.append(modelName_file);
+    append_content.append("& in");
+    append_content.append(humpname);
+    append_content.append("(const T &val)\n\t{");
+    append_content += R"(
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" )";
+    append_content.append(colname);
     append_content.append(" IN(\");\n");
     append_content += R"(
-        wheresql.append(val);
+        wheresql.append(std::to_string(val));
         wheresql.push_back(')');
         return *mod;   
     }   
@@ -972,9 +1385,52 @@ std::string create_mysql_orm_where_ninstring_number(const std::string &modelName
         }
         wheresql.append(" )";
     append_content.append(colname);
+    append_content.append(" NOT IN('\");\n");
+    append_content += R"(
+        wheresql.append(B_BASE::stringaddslash(val));
+        wheresql.push_back('\'');
+        wheresql.push_back(')');
+        return *mod;   
+    }   
+    )";
+    return append_content;
+}
+
+std::string create_mysql_orm_where_ninnumber_number(const std::string &modelName_file, const std::string &colname, const std::string &humpname)
+{
+    std::string append_content;
+    append_content += "\n\ntemplate <typename T>\n\trequires std::is_integral_v<T>\n";
+    append_content.append(modelName_file);
+    append_content.append("& nin");
+    append_content.append(humpname);
+    append_content.append("(const T &val)\n\t{");
+    append_content += R"(
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" )";
+    append_content.append(colname);
     append_content.append(" NOT IN(\");\n");
     append_content += R"(
-        wheresql.append(val);
+        wheresql.append(std::to_string(val));
         wheresql.push_back(')');
         return *mod;   
     }   
@@ -1438,9 +1894,52 @@ std::string create_mysql_orm_where_orinstring_number(const std::string &modelNam
         }
         wheresql.append(" )";
     append_content.append(colname);
+    append_content.append(" IN('\");\n");
+    append_content += R"(
+        wheresql.append(B_BASE::stringaddslash(val));
+        wheresql.push_back('\'');
+        wheresql.push_back(')');
+        return *mod;   
+    }   
+    )";
+    return append_content;
+}
+
+std::string create_mysql_orm_where_orinnumber_number(const std::string &modelName_file, const std::string &colname, const std::string &humpname)
+{
+    std::string append_content;
+    append_content += "\n\ntemplate <typename T>\n\trequires std::is_integral_v<T>\n";
+    append_content.append(modelName_file);
+    append_content.append("& or_in");
+    append_content.append(humpname);
+    append_content.append("(const T &val)\n\t{");
+    append_content += R"(
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" )";
+    append_content.append(colname);
     append_content.append(" IN(\");\n");
     append_content += R"(
-        wheresql.append(val);
+        wheresql.append(std::to_string(val));
         wheresql.push_back(')');
         return *mod;   
     }   
@@ -1592,9 +2091,52 @@ std::string create_mysql_orm_where_orninstring_number(const std::string &modelNa
         }
         wheresql.append(" )";
     append_content.append(colname);
+    append_content.append(" NOT IN('\");\n");
+    append_content += R"(
+        wheresql.append(B_BASE::stringaddslash(val));
+        wheresql.push_back('\'');
+        wheresql.push_back(')');
+        return *mod;   
+    }   
+    )";
+    return append_content;
+}
+
+std::string create_mysql_orm_where_orninnumber_number(const std::string &modelName_file, const std::string &colname, const std::string &humpname)
+{
+    std::string append_content;
+    append_content += "\n\ntemplate <typename T>\n\trequires std::is_integral_v<T>\n";
+    append_content.append(modelName_file);
+    append_content.append("& or_nin");
+    append_content.append(humpname);
+    append_content.append("(const T &val)\n\t{");
+    append_content += R"(
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" )";
+    append_content.append(colname);
     append_content.append(" NOT IN(\");\n");
     append_content += R"(
-        wheresql.append(val);
+        wheresql.append(std::to_string(val));
         wheresql.push_back(')');
         return *mod;   
     }   
@@ -2427,10 +2969,12 @@ std::string create_mysql_orm_number_feild_where(const std::string &modelName_fil
     append_content += create_mysql_orm_where_nqstring_number(modelName_file, tp.col_name, temp1);
 
     append_content += create_mysql_orm_where_instring_number(modelName_file, tp.col_name, temp1);
+    append_content += create_mysql_orm_where_innumber_number(modelName_file, tp.col_name, temp1);
     append_content += create_mysql_orm_where_invecnumber_number(modelName_file, tp.col_name, temp1);
     append_content += create_mysql_orm_where_invecstring_number(modelName_file, tp.col_name, temp1);
 
     append_content += create_mysql_orm_where_ninstring_number(modelName_file, tp.col_name, temp1);
+    append_content += create_mysql_orm_where_ninnumber_number(modelName_file, tp.col_name, temp1);
     append_content += create_mysql_orm_where_ninvecnumber_number(modelName_file, tp.col_name, temp1);
     append_content += create_mysql_orm_where_ninvecstring_number(modelName_file, tp.col_name, temp1);
 
@@ -2444,10 +2988,12 @@ std::string create_mysql_orm_number_feild_where(const std::string &modelName_fil
     append_content += create_mysql_orm_where_ornqstring_number(modelName_file, tp.col_name, temp1);
 
     append_content += create_mysql_orm_where_orinstring_number(modelName_file, tp.col_name, temp1);
+    append_content += create_mysql_orm_where_orinnumber_number(modelName_file, tp.col_name, temp1);
     append_content += create_mysql_orm_where_orinvecnumber_number(modelName_file, tp.col_name, temp1);
     append_content += create_mysql_orm_where_orinvecstring_number(modelName_file, tp.col_name, temp1);
 
     append_content += create_mysql_orm_where_orninstring_number(modelName_file, tp.col_name, temp1);
+    append_content += create_mysql_orm_where_orninnumber_number(modelName_file, tp.col_name, temp1);
     append_content += create_mysql_orm_where_orninvecnumber_number(modelName_file, tp.col_name, temp1);
     append_content += create_mysql_orm_where_orninvecstring_number(modelName_file, tp.col_name, temp1);
 
@@ -3074,8 +3620,9 @@ std::string create_mysql_orm_where_instring_string(const std::string &modelName_
         }
         wheresql.append(" )";
     append_content.append(colname);
-    append_content.append(" IN(\");\n");
-    append_content.append("\t\t\t\twheresql.append(val);\n");
+    append_content.append(" IN('\");\n");
+    append_content.append("\t\t\t\twheresql.append(B_BASE::stringaddslash(val));\n");
+    append_content.append("\t\t\t\twheresql.push_back('\\'');\n");
     append_content.append("\t\t\t\twheresql.push_back(')');\n");
     append_content += R"(
         return *mod;   
@@ -3129,7 +3676,6 @@ std::string create_mysql_orm_where_invecstring_string(const std::string &modelNa
             wheresql.append(B_BASE::stringaddslash(val[i]));
             wheresql.push_back('\'');    
         }
-    
 
     )";
     append_content += R"(
@@ -3184,7 +3730,6 @@ std::string create_mysql_orm_where_invecnumber_string(const std::string &modelNa
             wheresql.append(std::to_string(val[i]));
             wheresql.push_back('\'');    
         }
-    
 
     )";
     append_content += R"(
@@ -3226,8 +3771,9 @@ std::string create_mysql_orm_where_ninstring_string(const std::string &modelName
         }
         wheresql.append(" )";
     append_content.append(colname);
-    append_content.append(" NOT IN(\");\n");
-    append_content.append("\t\t\t\twheresql.append(val);\n");
+    append_content.append(" NOT IN('\");\n");
+    append_content.append("\t\t\t\twheresql.append(B_BASE::stringaddslash(val));\n");
+    append_content.append("\t\t\t\twheresql.push_back('\\'');\n");
     append_content.append("\t\t\t\twheresql.push_back(')');\n");
     append_content += R"(
         return *mod;   
@@ -3281,7 +3827,6 @@ std::string create_mysql_orm_where_ninvecstring_string(const std::string &modelN
             wheresql.append(B_BASE::stringaddslash(val[i]));
             wheresql.push_back('\'');    
         }
-    
 
     )";
     append_content += R"(
@@ -3336,7 +3881,6 @@ std::string create_mysql_orm_where_ninvecnumber_string(const std::string &modelN
             wheresql.append(std::to_string(val[i]));
             wheresql.push_back('\'');    
         }
-    
 
     )";
     append_content += R"(
@@ -3838,8 +4382,9 @@ std::string create_mysql_orm_where_orinstring_string(const std::string &modelNam
         }
         wheresql.append(" )";
     append_content.append(colname);
-    append_content.append(" IN(\");\n");
-    append_content.append("\t\t\t\twheresql.append(val);\n");
+    append_content.append(" IN('\");\n");
+    append_content.append("\t\t\t\twheresql.append(B_BASE::stringaddslash(val));\n");
+    append_content.append("\t\t\t\twheresql.push_back('\\'');\n");
     append_content.append("\t\t\t\twheresql.push_back(')');\n");
     append_content += R"(
         return *mod;   
@@ -3893,7 +4438,6 @@ std::string create_mysql_orm_where_orinvecstring_string(const std::string &model
             wheresql.append(B_BASE::stringaddslash(val[i]));
             wheresql.push_back('\'');    
         }
-    
 
     )";
     append_content += R"(
@@ -3948,7 +4492,6 @@ std::string create_mysql_orm_where_orinvecnumber_string(const std::string &model
             wheresql.append(std::to_string(val[i]));
             wheresql.push_back('\'');    
         }
-    
 
     )";
     append_content += R"(
@@ -3990,8 +4533,9 @@ std::string create_mysql_orm_where_orninstring_string(const std::string &modelNa
         }
         wheresql.append(" )";
     append_content.append(colname);
-    append_content.append(" NOT IN(\");\n");
-    append_content.append("\t\t\t\twheresql.append(val);\n");
+    append_content.append(" NOT IN('\");\n");
+    append_content.append("\t\t\t\twheresql.append(B_BASE::stringaddslash(val));\n");
+    append_content.append("\t\t\t\twheresql.push_back('\\'');\n");
     append_content.append("\t\t\t\twheresql.push_back(')');\n");
     append_content += R"(
         return *mod;   
@@ -4045,7 +4589,6 @@ std::string create_mysql_orm_where_orninvecstring_string(const std::string &mode
             wheresql.append(B_BASE::stringaddslash(val[i]));
             wheresql.push_back('\'');    
         }
-    
 
     )";
     append_content += R"(
@@ -4100,7 +4643,6 @@ std::string create_mysql_orm_where_orninvecnumber_string(const std::string &mode
             wheresql.append(std::to_string(val[i]));
             wheresql.push_back('\'');    
         }
-    
 
     )";
     append_content += R"(
@@ -4990,7 +5532,7 @@ std::string create_mysql_orm_string_feild_where(const std::string &modelName_fil
     return append_content;
 }
 
-void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::string &db_tag, const std::string &table_name, const std::string &model_name, const std::vector<orm::field_info_t> &field_array, const std::vector<table_columns_info_t> &table_column_info_lists)
+void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::string &db_tag, const std::string &table_name, const std::string &model_name, const std::vector<orm::field_info_t> &field_array, const std::vector<table_columns_info_t> &table_column_info_lists, DBType db_type)
 {
     //read orm template
     std::string header_name = "_ORM_" + db_tag + "_" + table_name + "_OPERATE_H";
@@ -5016,15 +5558,23 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
     std::string template_file = prj_root_path;
     std::string template_content;
     std::string append_content;
-    std::string modelName_m          = model_name + "_mysql";
+    std::string modelName_m          = model_name + "_opsql";
     //std::string real_model_base_name = real_model_name + "base";
 
     if (template_file.size() > 0 && template_file.back() != '/')
     {
         template_file.push_back('/');
     }
-    template_file.append("vendor/httpserver/include/mysqlorm.hpp");
 
+    if(db_type == DBType::POSTGRESQL)
+    {
+        template_file.append("vendor/httpserver/include/postgresqlorm.hpp");
+    }
+    else
+    {
+        template_file.append("vendor/httpserver/include/mysqlorm.hpp");
+    }
+    
     std::FILE *fp = fopen(template_file.c_str(), "rb");
     if (fp)
     {
@@ -5043,7 +5593,15 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
         return;
     }
 
-    std::size_t n = string_replace_all(template_content, "HTTP_MYSQL_ORM_HPP", header_name);
+    std::size_t n = 0;
+    if (db_type == DBType::POSTGRESQL)
+    {
+        n = string_replace_all(template_content, "HTTP_POSTGRESQL_ORM_HPP", header_name);
+    }
+    else
+    {
+        n = string_replace_all(template_content, "HTTP_MYSQL_ORM_HPP", header_name);
+    }
     if(n == 0)
     {
         //error 
@@ -5065,7 +5623,6 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
     model_name_info.append("_info::meta");
     n = string_replace(template_content, "{{date}}", getgmtdatetime());
     n = string_replace_all(template_content, "typename B_BASE::meta", model_name_info);
-
 
     if (real_tag.size() > 0)
     {
@@ -5290,7 +5847,6 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
     };
     */
 
-
     ///*appendwhere*/
     n = string_replace(template_content, "/*appendwhere*/", append_content);
     append_content.clear();
@@ -5324,7 +5880,7 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
 
     template_file.append("include/");
     template_file.append(model_name);//fix pre table_name
-    template_file.append("_mysql");
+    template_file.append("_opsql");
     template_file.append(".h");
     fp = fopen(template_file.c_str(), "wb");
     if (fp == NULL)
@@ -5336,7 +5892,7 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
     fclose(fp);
 }
 
-int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::string &db_tag, const std::string &table_name, const std::string &model_name, const std::vector<orm::field_info_t> &field_array, const std::vector<table_columns_info_t> &table_column_info_lists)
+int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::string &db_tag, const std::string &table_name, const std::string &model_name, const std::vector<orm::field_info_t> &field_array, const std::vector<table_columns_info_t> &table_column_info_lists, DBType db_type)
 {
 
     std::string modelspath = "models/";
@@ -5738,7 +6294,7 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
         filemodelstremcpp << rmstag;
         filemodelstremcpp << "/include/";
         filemodelstremcpp << tablenamebase;
-        filemodelstremcpp << "_mysql.h\"";
+        filemodelstremcpp << "_opsql.h\"";
         filemodelstremcpp << "\n#include \"";
         filemodelstremcpp << rmstag;
         filemodelstremcpp << "/include/";
@@ -5752,7 +6308,7 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
     {
         filemodelstremcpp << "\n#include \"";
         filemodelstremcpp << tablenamebase;
-        filemodelstremcpp << "_mysql.h\"";
+        filemodelstremcpp << "_opsql.h\"";
         filemodelstremcpp << "\n#include \"" << tablenamebase << "_base.h\"\n#include \""
                           << model_name_obj << ".h\"\n";
     }
@@ -5774,10 +6330,10 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
     filemodelstremcpp << "\n\t\t\t " << model_name_obj << "::" << model_name_obj
                       << "(std::string dbtag_):";
     filemodelstremcpp << model_name;
-    filemodelstremcpp << "_mysql(dbtag_){ mod=this; }\n";
+    filemodelstremcpp << "_opsql(dbtag_){ mod=this; }\n";
     filemodelstremcpp << "\t\t\t " << model_name_obj << "::" << model_name_obj << "():";
     filemodelstremcpp << model_name;
-    filemodelstremcpp << "_mysql(){ mod=this; }\n";
+    filemodelstremcpp << "_opsql(){ mod=this; }\n";
 
     if (rmstag != "default")
     {
@@ -5825,7 +6381,7 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
         filemodelstremcpp << rmstag;
         filemodelstremcpp << "/include/";
         filemodelstremcpp << tablenamebase;
-        filemodelstremcpp << "_mysql.h\" \n#include \"";
+        filemodelstremcpp << "_opsql.h\" \n#include \"";
         filemodelstremcpp << rmstag;
         filemodelstremcpp << "/include/";
         filemodelstremcpp << tablenamebase << "_base.h\"\n";
@@ -5835,7 +6391,7 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
     {
         filemodelstremcpp << "\n#include \"";
         filemodelstremcpp << tablenamebase;
-        filemodelstremcpp << "_mysql.h\" \n#include \"";
+        filemodelstremcpp << "_opsql.h\" \n#include \"";
         filemodelstremcpp << tablenamebase << "_base.h\"\n";
     }
     filemodelstremcpp << "\n/* ";
@@ -5853,7 +6409,7 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
 
     }
     filemodelstremcpp << "\t\tclass " << model_name_obj << " : public "
-                      << tablenamebase << "_mysql<" << model_name_obj << ","
+                      << tablenamebase << "_opsql<" << model_name_obj << ","
                       << tablenamebase << "_base>{\n";
 
     filemodelstremcpp << "\t\t public:\n";
@@ -5993,7 +6549,6 @@ headtxt += R"(
         filemodelstrem <<"\t\t"<< metalist[j] << std::endl;
     }
     filemodelstrem << "\n\t std::vector<meta_tree> children;\n };\n ";
-  
 
     filemodelstrem << R"( 
     struct meta_tree_ptr
@@ -6005,7 +6560,6 @@ headtxt += R"(
     }
     filemodelstrem << "\n\t std::vector<std::unique_ptr<meta_tree>> children;\n };\n ";
 
-    
     headtxt.append(filemodelstrem.str());   
     filemodelstrem.str("");
 
@@ -6034,7 +6588,6 @@ headtxt += R"(
                 headtxt.append(";\n\t\t");
             }
         }
-
 
 headtxt += R"(
         } else {
@@ -6349,8 +6902,7 @@ headtxt += R"(
 /*
     #define ORM_WORLD_COUNT(...) \
         ORM_WORLD_EXPAND(ORM_WORLD_GET_MACRO(__VA_ARGS__, 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1))
-    
-    
+
     #define ORM_WORLD_TO_JSON_ITEM(c) \
         oss << "\"" #c "\":" << http::to_json_value(c)
 */
@@ -6408,7 +6960,6 @@ headtxt += R"(
             ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_ITEM(c2)) 
 */
 
-
     for (int n = 1; n <= 16; ++n) 
     {
     headtxt += R"(
@@ -6458,7 +7009,6 @@ headtxt += R"(
         headtxt.append(colname_touper(tablenamebase));
         headtxt += R"(_TO_JSON_ITEM(c1))
         )";  
- 
 
         } else {
         headtxt += R"(
@@ -6762,7 +7312,6 @@ headtxt += R"(
 
     )";
 
-
 /*
     #define ORM_WORLD_TO_JSON_CUSTOM(...) \
         ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_N(__VA_ARGS__, 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(__VA_ARGS__))
@@ -6799,7 +7348,6 @@ headtxt += R"(
     headtxt += R"(_TO_JSON_CUSTOM_N(__VA_ARGS__, 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(__VA_ARGS__))
 
 )";
-
 
 /*
 set_val begin
@@ -6852,7 +7400,6 @@ set_val begin
     headtxt += R"(_SET_VAL_FIELD(c1)
     
     )";
-
 
  /*
  #define ORM_WORLD_SET_VAL_2(c1,c2) \
@@ -7877,7 +8424,6 @@ headtxt += R"(::meta data;
 			}
             switch(coln[0]){
 
-
          )";
     headtxt.append(filemodelstrem.str());
     filemodelstrem.str("");
@@ -7924,11 +8470,11 @@ headtxt += R"(::meta data;
             {
                 modelfileclasscpp.append("\ttemp.push_back(',');\n\t");
             }
-            modelfileclasscpp.append("\ttemp.push_back('`');\n\t");
+            //modelfileclasscpp.append("\ttemp.push_back('`');\n\t");
             modelfileclasscpp.append("\ttemp.append(\"");
             modelfileclasscpp.append(tablecollist[j]);
             modelfileclasscpp.append("\");\n\t");
-            modelfileclasscpp.append("\ttemp.push_back('`');\n\t");
+            //modelfileclasscpp.append("\ttemp.push_back('`');\n\t");
             modelfileclasscpp.append("\ttemp.append(\"=1 \");\n\t");
             modelfileclasscpp.append("\t if(fieldsql.size()>0){ data.");
             modelfileclasscpp.append(tablecollist[j]);
@@ -7940,11 +8486,11 @@ headtxt += R"(::meta data;
             {
                 modelfileclasscpp.append("\ttemp.push_back(',');\n\t");
             }
-            modelfileclasscpp.append("\ttemp.push_back('`');\n\t");
+            //modelfileclasscpp.append("\ttemp.push_back('`');\n\t");
             modelfileclasscpp.append("\ttemp.append(\"");
             modelfileclasscpp.append(tablecollist[j]);
             modelfileclasscpp.append("\");\n\t");
-            modelfileclasscpp.append("\ttemp.push_back('`');\n\t");
+            //modelfileclasscpp.append("\ttemp.push_back('`');\n\t");
             modelfileclasscpp.append("\ttemp.append(\"=\");\n\t");
             modelfileclasscpp.append("\tunsigned int t=time((time_t *)NULL);\n\t");
             modelfileclasscpp.append("\ttemp.append(std::to_string(t));\n\t");
@@ -7958,9 +8504,9 @@ headtxt += R"(::meta data;
         headtxt += R"(
          if(fieldsql.size()<2)
          {
-            temp="UPDATE `";
+            temp="UPDATE ";
             temp.append(tablename);
-            temp.push_back('`');
+            //temp.push_back('`');
             temp.append(" SET ");
          }
          else
@@ -7992,10 +8538,34 @@ headtxt += R"(::meta data;
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    headtxt = R"(
+    if (db_type == DBType::POSTGRESQL)
+    {
+        // PostgreSQL: standard_conforming_strings=on 时 \' 不是合法转义，
+        // 唯一可靠的字符串转义是 ' -> ''（反斜杠在 PG 中默认是普通字符，不转义）
+        headtxt = R"(
 
-  inline  std::string stringaddslash(const std::string &content){
+  inline  std::string stringaddslash(std::string_view content){
         std::string temp;
+        temp.reserve(content.size());
+        for(unsigned int i=0;i<content.size();i++){
+            if(content[i]=='\''){
+                temp.append("''");
+                continue;
+            }
+            temp.push_back(content[i]);
+        }
+        return temp;
+   }  
+)";
+    }
+    else
+    {
+        // MySQL: 使用 \' \" \\ 转义
+        headtxt = R"(
+
+  inline  std::string stringaddslash(std::string_view content){
+        std::string temp;
+        temp.reserve(content.size());
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='\''){
                 temp.append("\\'");
@@ -8011,8 +8581,11 @@ headtxt += R"(::meta data;
         }
         return temp;
    }  
-  inline  std::string jsonaddslash(const std::string &content){
+)";
+    }
+    headtxt += R"(  inline  std::string jsonaddslash(std::string_view content){
         std::string temp;
+        temp.reserve(content.size());
         for(unsigned int i=0;i<content.size();i++){
             if(content[i]=='"'){
                 temp.append("\\\"");
@@ -8037,16 +8610,16 @@ headtxt += R"(::meta data;
         headtxt +=model_info_name;
         headtxt += R"(::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                   // tempsql<<"`";
                 }
                 tempsql<<)";
         headtxt +=model_info_name;
         headtxt += R"(::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+            //tempsql<<"`";
         }
         tempsql<<") VALUES (";
 
@@ -8071,7 +8644,11 @@ headtxt += R"(::meta data;
                     if (tablecollist[j] == tablepkname)
                     {
                         insertstrem << "if(data." << tablecollist[j] << "==0){\n";
-                        insertstrem << "tempsql<<\"null\";\n";
+                        if(db_type == DBType::POSTGRESQL) {
+                            insertstrem << "tempsql<<\"DEFAULT\";\n";
+                        } else {
+                            insertstrem << "tempsql<<\"null\";\n";
+                        }
                         insertstrem << " }else{ \n";
                         insertstrem << "\ttempsql<<std::to_string(data." << tablecollist[j] << ");\n";
                         insertstrem << "}\n";
@@ -8090,7 +8667,11 @@ headtxt += R"(::meta data;
                     if (tablecollist[j] == tablepkname)
                     {
                         insertstrem << "if(data." << tablecollist[j] << "==0){\n";
-                        insertstrem << "tempsql<<\",null\";\n";
+                        if(db_type == DBType::POSTGRESQL) {
+                            insertstrem << "tempsql<<\",DEFAULT\";\n";
+                        } else {
+                            insertstrem << "tempsql<<\",null\";\n";
+                        }
                         insertstrem << " }else{ \n";
                         insertstrem << "\ttempsql<<\",\"<<std::to_string(data." << tablecollist[j] << ");\n";
                         insertstrem << "}\n";
@@ -8114,7 +8695,11 @@ headtxt += R"(::meta data;
             if (tablecollist[j] == tablepkname)
             {
                 insertstrem << "if(data." << tablecollist[j] << "==0){\n";
-                insertstrem << "tempsql<<\"null\";\n";
+                if(db_type == DBType::POSTGRESQL) {
+                    insertstrem << "tempsql<<\"DEFAULT\";\n";
+                } else {
+                    insertstrem << "tempsql<<\"null\";\n";
+                }
                 insertstrem << " }else{ \n";
                 insertstrem << "\ttempsql<<std::to_string(data." << tablecollist[j] << ");\n";
                 insertstrem << "}\n";
@@ -8133,13 +8718,13 @@ headtxt += R"(::meta data;
                 {
                     insertstrem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
                     insertstrem << "tempsql<<\" CURRENT_TIMESTAMP \";\n";
-                    insertstrem << " }else{ \n tempsql<<\"'\"<<data." << tablecollist[j] << "<<\"'\";\n }\n";
+                    insertstrem << " }else{ \n tempsql<<\"'\"<<stringaddslash(data." << tablecollist[j] << ")<<\"'\";\n }\n";
                 }
                 else if (colltypeshuzi[j] == 61)
                 {
                     insertstrem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
                     insertstrem << "tempsql<<\"CURRENT_DATE \";\n";
-                    insertstrem << " }else{ \n tempsql<<\"'\"<<data." << tablecollist[j] << "<<\"'\";\n }\n";
+                    insertstrem << " }else{ \n tempsql<<\"'\"<<stringaddslash(data." << tablecollist[j] << ")<<\"'\";\n }\n";
                 }
                 else
                 {
@@ -8162,13 +8747,13 @@ headtxt += R"(::meta data;
         {
             insertstrem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
             insertstrem << "tempsql<<\", CURRENT_TIMESTAMP \";\n";
-            insertstrem << " }else{ \n tempsql<<\",'\"<<data." << tablecollist[j] << "<<\"'\";\n }\n";
+            insertstrem << " }else{ \n tempsql<<\",'\"<<stringaddslash(data." << tablecollist[j] << ")<<\"'\";\n }\n";
         }
         else if (colltypeshuzi[j] == 61)
         {
             insertstrem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
             insertstrem << "tempsql<<\", CURRENT_DATE \";\n";
-            insertstrem << " }else{ \n tempsql<<\",'\"<<data." << tablecollist[j] << "<<\"'\";\n }\n";
+            insertstrem << " }else{ \n tempsql<<\",'\"<<stringaddslash(data." << tablecollist[j] << ")<<\"'\";\n }\n";
         }
         else
         {
@@ -8203,16 +8788,16 @@ headtxt += R"(::meta data;
         headtxt +=model_info_name;
         headtxt += R"(::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                    //tempsql<<"`";
                 }
                 tempsql<<)";
         headtxt +=model_info_name;
         headtxt += R"(::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+           // tempsql<<"`";
         }
         tempsql<<") VALUES (";
 
@@ -8237,7 +8822,11 @@ headtxt += R"(::meta data;
                     if (tablecollist[j] == tablepkname)
                     {
                         insertstrem << "if(insert_data." << tablecollist[j] << "==0){\n";
-                        insertstrem << "tempsql<<\"null\";\n";
+                        if(db_type == DBType::POSTGRESQL) {
+                            insertstrem << "tempsql<<\"DEFAULT\";\n";
+                        } else {
+                            insertstrem << "tempsql<<\"null\";\n";
+                        }
                         insertstrem << " }else{ \n";
                         insertstrem << "\ttempsql<<std::to_string(insert_data." << tablecollist[j] << ");\n";
                         insertstrem << "}\n";
@@ -8256,7 +8845,11 @@ headtxt += R"(::meta data;
                     if (tablecollist[j] == tablepkname)
                     {
                         insertstrem << "if(insert_data." << tablecollist[j] << "==0){\n";
-                        insertstrem << "tempsql<<\",null\";\n";
+                        if(db_type == DBType::POSTGRESQL) {
+                            insertstrem << "tempsql<<\",DEFAULT\";\n";
+                        } else {
+                            insertstrem << "tempsql<<\",null\";\n";
+                        }
                         insertstrem << " }else{ \n";
                         insertstrem << "\ttempsql<<\",\"<<std::to_string(insert_data." << tablecollist[j] << ");\n";
                         insertstrem << "}\n";
@@ -8280,7 +8873,11 @@ headtxt += R"(::meta data;
             if (tablecollist[j] == tablepkname)
             {
                 insertstrem << "if(insert_data." << tablecollist[j] << "==0){\n";
-                insertstrem << "tempsql<<\"null\";\n";
+                if(db_type == DBType::POSTGRESQL) {
+                    insertstrem << "tempsql<<\"DEFAULT\";\n";
+                } else {
+                    insertstrem << "tempsql<<\"null\";\n";
+                }
                 insertstrem << " }else{ \n";
                 insertstrem << "\ttempsql<<std::to_string(insert_data." << tablecollist[j] << ");\n";
                 insertstrem << "}\n";
@@ -8373,16 +8970,16 @@ headtxt += R"(::meta data;
         headtxt +=model_info_name;
         headtxt += R"(::col_names.size();j++){
                 if(j>0){
-                    tempsql<<"`,`";
+                    tempsql<<",";
                 }else{
-                    tempsql<<"`";
+                   // tempsql<<"`";
                 }
                 tempsql<<)";
         headtxt +=model_info_name;
         headtxt += R"(::col_names[j];
         }
         if(j>0){
-            tempsql<<"`";
+           //tempsql<<"`";
         }
         tempsql<<") VALUES ";
 
@@ -8393,7 +8990,6 @@ headtxt += R"(::meta data;
                 tempsql<<",";	
             }
             tempsql<<"(";
-
 
             )";
 
@@ -8416,7 +9012,11 @@ headtxt += R"(::meta data;
                     if (tablecollist[j] == tablepkname)
                     {
                         insertstrem << "\tif(insert_data[i]." << tablecollist[j] << "==0){\n";
-                        insertstrem << "\ttempsql<<\"null\";\n";
+                        if(db_type == DBType::POSTGRESQL) {
+                            insertstrem << "\ttempsql<<\"DEFAULT\";\n";
+                        } else {
+                            insertstrem << "\ttempsql<<\"null\";\n";
+                        }
                         insertstrem << "\t }else{ \n";
                         insertstrem << "\ttempsql<<std::to_string(insert_data[i]." << tablecollist[j] << ");\n";
                         insertstrem << "\t}\n";
@@ -8435,7 +9035,11 @@ headtxt += R"(::meta data;
                     if (tablecollist[j] == tablepkname)
                     {
                         insertstrem << "\tif(insert_data[i]." << tablecollist[j] << "==0){\n";
-                        insertstrem << "\ttempsql<<\",null\";\n";
+                        if(db_type == DBType::POSTGRESQL) {
+                            insertstrem << "\ttempsql<<\",DEFAULT\";\n";
+                        } else {
+                            insertstrem << "\ttempsql<<\",null\";\n";
+                        }
                         insertstrem << "\t }else{ \n";
                         insertstrem << "\ttempsql<<\",\"<<std::to_string(insert_data[i]." << tablecollist[j] << ");\n";
                         insertstrem << "\t}\n";
@@ -8459,7 +9063,11 @@ headtxt += R"(::meta data;
             if (tablecollist[j] == tablepkname)
             {
                 insertstrem << "\tif(insert_data[i]." << tablecollist[j] << "==0){\n";
-                insertstrem << "\ttempsql<<\"null\";\n";
+                if(db_type == DBType::POSTGRESQL) {
+                    insertstrem << "\ttempsql<<\"DEFAULT\";\n";
+                } else {
+                    insertstrem << "\ttempsql<<\"null\";\n";
+                }
                 insertstrem << "\t }else{ \n";
                 insertstrem << "\ttempsql<<std::to_string(insert_data[i]." << tablecollist[j] << ");\n";
                 insertstrem << "\t}\n";
@@ -8570,21 +9178,21 @@ headtxt += R"(::meta data;
             updatestrem << "if(data." << tablecollist[j] << "==0){\n";
             if (j > 0)
             {
-                updatestrem << "\ttempsql<<\",`" << tablecollist[j] << "`=0\";\n";
+                updatestrem << "\ttempsql<<\"," << tablecollist[j] << "=0\";\n";
             }
             else
             {
-                updatestrem << "\ttempsql<<\"`" << tablecollist[j] << "`=0\";\n";
+                updatestrem << "\ttempsql<<\"" << tablecollist[j] << "=0\";\n";
             }
             updatestrem << " }else{ \n";
             if (j > 0)
             {
-                updatestrem << "\ttempsql<<\",`" << tablecollist[j] << "`=\"<<std::to_string(data." << tablecollist[j]
+                updatestrem << "\ttempsql<<\"," << tablecollist[j] << "=\"<<std::to_string(data." << tablecollist[j]
                             << ");\n";
             }
             else
             {
-                updatestrem << "\ttempsql<<\"`" << tablecollist[j] << "`=\"<<std::to_string(data." << tablecollist[j]
+                updatestrem << "\ttempsql<<\"" << tablecollist[j] << "=\"<<std::to_string(data." << tablecollist[j]
                             << ");\n";
             }
 
@@ -8593,27 +9201,27 @@ headtxt += R"(::meta data;
         else if (colltypeshuzi[j] == 60)
         {
             updatestrem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
-            updatestrem << "tempsql<<\",`" << tablecollist[j] << "`=CURRENT_TIMESTAMP\";\n";
-            updatestrem << " }else{ \n tempsql<<\",`" << tablecollist[j] << "'='\"<<data." << tablecollist[j]
-                        << "<<\"'\";\n }\n";
+            updatestrem << "tempsql<<\"," << tablecollist[j] << "=CURRENT_TIMESTAMP\";\n";
+            updatestrem << " }else{ \n tempsql<<\"," << tablecollist[j] << "'='\"<<stringaddslash(data." << tablecollist[j]
+                        << ")<<\"'\";\n }\n";
         }
         else if (colltypeshuzi[j] == 61)
         {
             updatestrem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
-            updatestrem << "tempsql<<\",`" << tablecollist[j] << "`=CURRENT_DATE\";\n";
-            updatestrem << " }else{ \n tempsql<<\",`" << tablecollist[j] << "'='\"<<data." << tablecollist[j]
-                        << "<<\"'\";\n }\n";
+            updatestrem << "tempsql<<\"," << tablecollist[j] << "=CURRENT_DATE\";\n";
+            updatestrem << " }else{ \n tempsql<<\"," << tablecollist[j] << "'='\"<<stringaddslash(data." << tablecollist[j]
+                        << ")<<\"'\";\n }\n";
         }
         else
         {
             if (j > 0)
             {
-                updatestrem << "tempsql<<\",`" << tablecollist[j] << "`='\"<<stringaddslash(data." << tablecollist[j]
+                updatestrem << "tempsql<<\"," << tablecollist[j] << "='\"<<stringaddslash(data." << tablecollist[j]
                             << ")<<\"'\";\n";
             }
             else
             {
-                updatestrem << "tempsql<<\"`" << tablecollist[j] << "`='\"<<stringaddslash(data." << tablecollist[j]
+                updatestrem << "tempsql<<\"" << tablecollist[j] << "='\"<<stringaddslash(data." << tablecollist[j]
                             << ")<<\"'\";\n";
             }
         }
@@ -8687,21 +9295,21 @@ headtxt += R"(::meta data;
             update2strem << "if(data." << tablecollist[j] << "==0){\n";
             if (j > 0)
             {
-                update2strem << "\ttempsql<<\"`" << tablecollist[j] << "`=0\";\n";
+                update2strem << "\ttempsql<<\"" << tablecollist[j] << "=0\";\n";
             }
             else
             {
-                update2strem << "\ttempsql<<\"`" << tablecollist[j] << "`=0\";\n";
+                update2strem << "\ttempsql<<\"" << tablecollist[j] << "=0\";\n";
             }
             update2strem << " }else{ \n";
             if (j > 0)
             {
-                update2strem << "\ttempsql<<\"`" << tablecollist[j] << "`=\"<<std::to_string(data." << tablecollist[j]
+                update2strem << "\ttempsql<<\"" << tablecollist[j] << "=\"<<std::to_string(data." << tablecollist[j]
                              << ");\n";
             }
             else
             {
-                update2strem << "\ttempsql<<\"`" << tablecollist[j] << "`=\"<<std::to_string(data." << tablecollist[j]
+                update2strem << "\ttempsql<<\"" << tablecollist[j] << "=\"<<std::to_string(data." << tablecollist[j]
                              << ");\n";
             }
 
@@ -8710,27 +9318,27 @@ headtxt += R"(::meta data;
         else if (colltypeshuzi[j] == 60)
         {
             update2strem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
-            update2strem << "tempsql<<\"`" << tablecollist[j] << "`=CURRENT_TIMESTAMP\";\n";
-            update2strem << " }else{ \n tempsql<<\",`" << tablecollist[j] << "'='\"<<data." << tablecollist[j]
+            update2strem << "tempsql<<\"" << tablecollist[j] << "=CURRENT_TIMESTAMP\";\n";
+            update2strem << " }else{ \n tempsql<<\"," << tablecollist[j] << "'='\"<<data." << tablecollist[j]
                          << "<<\"'\";\n }\n";
         }
         else if (colltypeshuzi[j] == 61)
         {
             update2strem << "  \nif(data." << tablecollist[j] << ".size()==0){ \n";
-            update2strem << "tempsql<<\"`" << tablecollist[j] << "`=CURRENT_DATE\";\n";
-            update2strem << " }else{ \n tempsql<<\"`" << tablecollist[j] << "'='\"<<data." << tablecollist[j]
+            update2strem << "tempsql<<\"" << tablecollist[j] << "=CURRENT_DATE\";\n";
+            update2strem << " }else{ \n tempsql<<\"" << tablecollist[j] << "'='\"<<data." << tablecollist[j]
                          << "<<\"'\";\n }\n";
         }
         else
         {
             if (j > 0)
             {
-                update2strem << "tempsql<<\"`" << tablecollist[j] << "`='\"<<stringaddslash(data." << tablecollist[j]
+                update2strem << "tempsql<<\"" << tablecollist[j] << "='\"<<stringaddslash(data." << tablecollist[j]
                              << ")<<\"'\";\n";
             }
             else
             {
-                update2strem << "tempsql<<\"`" << tablecollist[j] << "`='\"<<stringaddslash(data." << tablecollist[j]
+                update2strem << "tempsql<<\"" << tablecollist[j] << "='\"<<stringaddslash(data." << tablecollist[j]
                              << ")<<\"'\";\n";
             }
         }
@@ -8764,8 +9372,20 @@ headtxt += R"(::meta data;
     std::string make_record_replace_sql()
     {
         unsigned int j = 0;
-        std::ostringstream tempsql;
-        tempsql << "REPLACE INTO ";
+        std::ostringstream tempsql;)";
+
+        if(db_type == DBType::MYSQL)
+        {
+            headtxt += R"(
+            tempsql << "REPLACE INTO ";)";
+        }
+        else
+        {
+            headtxt += R"(
+            tempsql << "INSERT INTO ";)";
+        }
+
+        headtxt += R"(
         tempsql << tablename;
         tempsql << " (";
         for (; j < )";
@@ -8774,11 +9394,11 @@ headtxt += R"(::meta data;
         {
             if (j > 0)
             {
-                tempsql << "`,`";
+                tempsql << ",";
             }
             else
             {
-                tempsql << "`";
+                tempsql << "";
             }
             tempsql << )";
         headtxt +=model_info_name;
@@ -8786,7 +9406,7 @@ headtxt += R"(::meta data;
         }
         if (j > 0)
         {
-            tempsql << "`";
+            tempsql << "";
         }
         tempsql << ") VALUES ";
 
@@ -8915,8 +9535,12 @@ headtxt += R"(::meta data;
             update2strem << "\ttempsql<<\",'\"<<stringaddslash(record[i]." << tablecollist[j] << ")<<\"'\";\n";
         }
     }
-    update2strem << "\ttempsql<<\")\";\n";
-    update2strem << "\n }\n return tempsql.str();\n}\n";
+    update2strem << "\ttempsql<<\")\";\n  }\n ";
+    if(db_type == DBType::POSTGRESQL)
+    {
+
+    }
+    update2strem << "\n return tempsql.str();\n}\n";
 
     headtxt.append(update2strem.str());
 
@@ -8942,11 +9566,11 @@ headtxt += R"(::meta data;
         {
             if (j > 0)
             {
-                tempsql << "`,`";
+                tempsql << ",";
             }
             else
             {
-                tempsql << "`";
+                tempsql << "";
             }
             tempsql << )";
         headtxt +=model_info_name;
@@ -8954,7 +9578,7 @@ headtxt += R"(::meta data;
         }
         if (j > 0)
         {
-            tempsql << "`";
+            tempsql << "";
         }
         tempsql << ") VALUES ";
 
@@ -9814,7 +10438,6 @@ headtxt += R"(::meta data;
         filemodelstrem << "\n\t\tcase " << std::to_string(j) << ":\n\t\t  http::json_set_val(data." << tablecollist[j]
                                << ",set_value_name);\n\t\t break;\n\t\t";
     }
- 
 
     filemodelstrem << "\n\t\tdefault:\n\t\t { }\n\t\t\t\n";
 
@@ -11340,7 +11963,6 @@ headtxt += R"(::meta data;
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-
     //////////////////////////////////////////
     // end orm basefile
     //////////////////////////////////////////////
@@ -11368,7 +11990,7 @@ headtxt += R"(::meta data;
     return 0;
 }
 
-void addhfiletoormfile(std::string mpath, std::string modelname, std::string rmstag)
+void addhfiletoormfile(std::string mpath, std::string modelname, std::string rmstag, DBType /**/)
 {
     std::string ormfilename = mpath;
     if (ormfilename.back() != '/')
@@ -11536,7 +12158,6 @@ maxpool=120
 minpool=20
 dbtype=mysql
 
-
 type=second
 host=127.0.0.1
 port=3306
@@ -11638,33 +12259,49 @@ dbtype=mysql
         }
     }
     asio::io_context io_context;
-    std::shared_ptr<orm::orm_conn_pool> conn = std::make_shared<orm::orm_conn_pool>();
-
-    conn->io_context   = &io_context;
-    conn->conf_data[0] = link_config_item;
     rmstag             = link_config_item.tag;
 
     std::string model_name;//strip pretable
 
-    std::shared_ptr<orm::mysql_conn_base> db_conn;
-    try
+    DBType db_type = get_db_type(link_config_item.dbtype);
+
+    std::shared_ptr<orm::mysql_conn_base> mysql_db_conn;
+    std::shared_ptr<orm::pg_conn_base> pg_db_conn;
+
+    if (db_type == DBType::POSTGRESQL)
     {
-        db_conn = conn->add_edit_connect();
+        pg_db_conn = std::make_shared<orm::pg_conn_base>(orm::orm_conn_link_t::create(io_context, orm::DB_TYPE::POSTGRESQL));
+        orm::orm_conn_t pg_config;
+        pg_config.host = link_config_item.host;
+        pg_config.port = link_config_item.port.empty() ? "5432" : link_config_item.port;
+        pg_config.dbname = link_config_item.dbname;
+        pg_config.user = link_config_item.user;
+        pg_config.password = link_config_item.password;
+
+        if (!pg_db_conn->connect(pg_config))
+        {
+            std::cerr << " PostgreSQL connect failed: " << pg_db_conn->error_msg << std::endl;
+            return 0;
+        }
+        std::cout << " PostgreSQL connected successfully!" << std::endl;
     }
-    catch (const std::exception &e)
+    else
     {
-        std::cerr <<" add_edit_connect "<< e.what() << '\n';
-        return 0;
-    }
-    catch (const std::string &e)
-    {
-        std::cerr <<" error_msg "<< e << '\n';
-        return 0;
-    }
-    catch (char const* e)
-    {
-        std::cerr <<" error_msg "<< e << '\n';
-        return 0;
+        std::shared_ptr<orm::orm_conn_pool> conn = std::make_shared<orm::orm_conn_pool>();
+
+        conn->io_context   = &io_context;
+        conn->conf_data[0] = link_config_item;
+
+        try
+        {
+            mysql_db_conn = conn->add_mysql_edit_connect();
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr <<" add_mysql_edit_connect "<< e.what() << '\n';
+            return 0;
+        }
+
     }
     //create tag directories
     if (rmstag != "default")
@@ -11723,140 +12360,40 @@ dbtype=mysql
         }
     }
 
-    std::string sqlstring     = "show tables;";
-    //unsigned int querysql_len = sqlstring.length() + 1;
-    //std::cout<<sqlstring <<std::endl;
-    // db_conn->send_data.clear();
-
-    // db_conn->send_data.push_back((querysql_len & 0xFF));
-    // db_conn->send_data.push_back((querysql_len >> 8 & 0xFF));
-    // db_conn->send_data.push_back((querysql_len >> 16 & 0xFF));
-    // db_conn->send_data.push_back(0x00);
-    // db_conn->send_data.push_back(0x03);
-    // db_conn->send_data.append(sqlstring);
-
-    std::size_t n = db_conn->write_sql(sqlstring);
-    //std::size_t n = asio::write(*db_conn->socket, asio::buffer(db_conn->send_data), db_conn->ec);
-
-    orm::pack_info_t temp_pack_data;
-    temp_pack_data.seq_id = 1;
-    bool is_sql_item      = false;
-    std::vector<orm::field_info_t> field_array;
-    unsigned char action_setup = 0;
-    unsigned int column_num    = 0;
-    unsigned int offset        = 0;
-
     std::vector<std::string> table_lists;
 
-    for (; is_sql_item == false;)
+    if (db_type == DBType::POSTGRESQL)
     {
-        n = db_conn->read_loop();
-        offset = 0;
-        for (; offset < n;)
-        {
-            db_conn->read_field_pack(db_conn->_cache_data, n, offset, temp_pack_data);
-            if (temp_pack_data.length == temp_pack_data.current_length)
-            {
-                if (db_conn->pack_eof_check(temp_pack_data))
-                {
-                    is_sql_item = true;
-                    break;
-                }
-
-                if (action_setup == 0)
-                {
-                    if (temp_pack_data.length == 2 && (unsigned char)temp_pack_data.data[0] < 251 && (unsigned char)temp_pack_data.data[0] > 0)
-                    {
-                        action_setup = 1;
-                        column_num   = (unsigned char)temp_pack_data.data[0];
-                    }
-                }
-                else if (action_setup == 1)
-                {
-                    orm::field_info_t temp_filed_col;
-                    db_conn->read_col_info(temp_pack_data.data, temp_filed_col);
-
-                    field_array.emplace_back(std::move(temp_filed_col));
-                    column_num--;
-                    if (column_num == 0)
-                    {
-                        action_setup = 2;
-                    }
-                }
-                else if (action_setup == 2)
-                {
-                    unsigned int tempnum    = 0;
-
-                    for (unsigned int ij = 0; ij < field_array.size(); ij++)
-                    {
-                        unsigned long long name_length = 0;// temp_pack_data.data[tempnum] & 0xff;
-                        name_length                    = db_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-
-                        table_lists.emplace_back(std::string(&temp_pack_data.data[tempnum], name_length));
-                        tempnum = tempnum + name_length;
-                    }
-                }
-            }
-            else
-            {
-                if (offset >= n)
-                {
-                    break;
-                }
-                is_sql_item = true;
-                break;
-            }
+        pg_get_table_list(pg_db_conn, table_lists);
+        std::cout << "\nPostgreSQL tables found: " << table_lists.size() << std::endl;
+        for (size_t i = 0; i < table_lists.size(); ++i) {
+            std::cout << "  " << (i+1) << ". " << table_lists[i] << std::endl;
         }
     }
-
-    for (unsigned int i_table = 0; i_table < table_lists.size(); i_table++)
+    else
     {
-        bool table_refresh = true;
+        std::string sqlstring     = "show tables;";
 
-        //create raw sql file
-        sqlstring = "SHOW CREATE TABLE ";
-        sqlstring.append(table_lists[i_table]);
-        sqlstring.append(";");
+        std::size_t n = mysql_db_conn->write_sql(sqlstring);
 
-        // querysql_len = sqlstring.length() + 1;
-
-        // db_conn->send_data.clear();
-
-        // db_conn->send_data.push_back((querysql_len & 0xFF));
-        // db_conn->send_data.push_back((querysql_len >> 8 & 0xFF));
-        // db_conn->send_data.push_back((querysql_len >> 16 & 0xFF));
-        // db_conn->send_data.push_back(0x00);
-        // db_conn->send_data.push_back(0x03);
-        // db_conn->send_data.append(sqlstring);
-        n = db_conn->write_sql(sqlstring);
-        //n = asio::write(*db_conn->socket, asio::buffer(db_conn->send_data), db_conn->ec);
-
-        temp_pack_data.length         = 0;
-        temp_pack_data.current_length = 0;
-        temp_pack_data.error          = 0;
-
+        orm::pack_info_t temp_pack_data;
         temp_pack_data.seq_id = 1;
-        temp_pack_data.error  = 0;
-        temp_pack_data.data.clear();
-        is_sql_item = false;
-        field_array.clear();
-
-        action_setup = 0;
-        column_num   = 0;
-        offset       = 0;
-
-        std::vector<std::string> table_create_info_lists;
+        bool is_sql_item      = false;
+        std::vector<orm::field_info_t> field_array;
+        unsigned char action_setup = 0;
+        unsigned int column_num    = 0;
+        unsigned int offset        = 0;
 
         for (; is_sql_item == false;)
         {
-            n = db_conn->read_loop();
+            n = mysql_db_conn->read_loop();
             offset = 0;
             for (; offset < n;)
             {
-                db_conn->read_field_pack(db_conn->_cache_data, n, offset, temp_pack_data);
+                mysql_db_conn->read_field_pack(mysql_db_conn->_cache_data, n, offset, temp_pack_data);
                 if (temp_pack_data.length == temp_pack_data.current_length)
                 {
-                    if (db_conn->pack_eof_check(temp_pack_data))
+                    if (mysql_db_conn->pack_eof_check(temp_pack_data))
                     {
                         is_sql_item = true;
                         break;
@@ -11873,7 +12410,7 @@ dbtype=mysql
                     else if (action_setup == 1)
                     {
                         orm::field_info_t temp_filed_col;
-                        db_conn->read_col_info(temp_pack_data.data, temp_filed_col);
+                        mysql_db_conn->read_col_info(temp_pack_data.data, temp_filed_col);
 
                         field_array.emplace_back(std::move(temp_filed_col));
                         column_num--;
@@ -11888,10 +12425,10 @@ dbtype=mysql
 
                         for (unsigned int ij = 0; ij < field_array.size(); ij++)
                         {
-                            unsigned long long name_length = 0;// temp_pack_data.data[tempnum] & 0xff;
-                            name_length                    = db_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
+                            unsigned long long name_length = 0;
+                            name_length                    = mysql_db_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
 
-                            table_create_info_lists.emplace_back(std::string(&temp_pack_data.data[tempnum], name_length));
+                            table_lists.emplace_back(std::string(&temp_pack_data.data[tempnum], name_length));
                             tempnum = tempnum + name_length;
                         }
                     }
@@ -11907,105 +12444,60 @@ dbtype=mysql
                 }
             }
         }
+    }
 
-        std::string ormsqlfile = ormfilepath;
-
-        if (table_create_info_lists.size() == 2)
-        {
-            if (ormsqlfile.back() != '/')
-            {
-                ormsqlfile.push_back('/');
-            }
-            ormsqlfile.append("/_rawsqlfile");
-            fs::path paths_a = ormsqlfile;
-            if (!fs::exists(paths_a))
-            {
-                fs::create_directories(paths_a);
-                fs::permissions(paths_a,
-                                fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
-                                fs::perm_options::add);
-            }
-            ormsqlfile.push_back('/');
-            ormsqlfile.append(rmstag);
-
-            paths_a = ormsqlfile;
-            if (!fs::exists(paths_a))
-            {
-                fs::create_directories(paths_a);
-                fs::permissions(paths_a,
-                                fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
-                                fs::perm_options::add);
-            }
-            ormsqlfile.push_back('/');
-            std::string fieldname = ormsqlfile;
-            fieldname.append(table_create_info_lists[0]);
-            fieldname.push_back('_');
-            fieldname.append(std::to_string(std::hash<std::string>{}(table_create_info_lists[1])));
-            fieldname.append(".sql");
-
-            if (fs::exists(fieldname))
-            {
-                table_refresh = false;
-            }
-            else
-            {
-                std::FILE *fp = fopen(fieldname.c_str(), "wb");
-                if (fp)
-                {
-                    fwrite(table_create_info_lists[1].data(), 1, table_create_info_lists[1].size(), fp);
-                    fclose(fp);
-                }
-            }
-        }
-
+    for (unsigned int i_table = 0; i_table < table_lists.size(); i_table++)
+    {
         std::vector<table_columns_info_t> table_column_info_lists;
-        //SHOW FULL COLUMNS FROM
-        table_refresh = true;
-        if (table_refresh)
+        std::vector<orm::field_info_t> field_array;
+
+        if (db_type == DBType::POSTGRESQL)
         {
-            sqlstring = "SHOW FULL COLUMNS FROM ";
+            pg_get_column_info(pg_db_conn, table_lists[i_table], table_column_info_lists);
+            std::cout << "\nTable: " << table_lists[i_table] << " - " << table_column_info_lists.size() << " columns" << std::endl;
+            // for (const auto& col : table_column_info_lists) {
+            //     std::cout << "  " << col.col_name 
+            //               << " type:0x" << std::hex << (int)col.col_type << std::dec
+            //               << " big_type:" << (int)col.big_type
+            //               << " pk:" << (col.is_pk ? "YES" : "NO")
+            //               << " auto:" << (col.is_auto_inc ? "YES" : "NO") << std::endl;
+            // }
+        }
+        else
+        {
+            bool table_refresh = true;
+
+            //create raw sql file
+            std::string sqlstring = "SHOW CREATE TABLE ";
             sqlstring.append(table_lists[i_table]);
             sqlstring.append(";");
 
-            // querysql_len = sqlstring.length() + 1;
-            // db_conn->send_data.clear();
+            std::size_t n = mysql_db_conn->write_sql(sqlstring);
 
-            // db_conn->send_data.push_back((querysql_len & 0xFF));
-            // db_conn->send_data.push_back((querysql_len >> 8 & 0xFF));
-            // db_conn->send_data.push_back((querysql_len >> 16 & 0xFF));
-            // db_conn->send_data.push_back(0x00);
-            // db_conn->send_data.push_back(0x03);
-            // db_conn->send_data.append(sqlstring);
-            n = db_conn->write_sql(sqlstring);
-
-            //n = asio::write(*db_conn->socket, asio::buffer(db_conn->send_data), db_conn->ec);
+            orm::pack_info_t temp_pack_data;
+            temp_pack_data.seq_id = 1;
+            bool is_sql_item      = false;
+            unsigned char action_setup = 0;
+            unsigned int column_num    = 0;
+            unsigned int offset        = 0;
 
             temp_pack_data.length         = 0;
             temp_pack_data.current_length = 0;
             temp_pack_data.error          = 0;
-
-            temp_pack_data.seq_id = 1;
-            temp_pack_data.error  = 0;
             temp_pack_data.data.clear();
-            is_sql_item = false;
-            field_array.clear();
 
-            action_setup = 0;
-            column_num   = 0;
-            offset       = 0;
-
-            std::vector<unsigned char> field_pos;
+            std::vector<std::string> table_create_info_lists;
 
             for (; is_sql_item == false;)
             {
-                n = db_conn->read_loop();
+                n = mysql_db_conn->read_loop();
                 offset = 0;
                 for (; offset < n;)
                 {
-                    db_conn->read_field_pack(db_conn->_cache_data, n, offset, temp_pack_data);
+                    mysql_db_conn->read_field_pack(mysql_db_conn->_cache_data, n, offset, temp_pack_data);
                     if (temp_pack_data.length == temp_pack_data.current_length)
                     {
-                        if (db_conn->pack_eof_check(temp_pack_data))
+                        if (mysql_db_conn->pack_eof_check(temp_pack_data))
                         {
                             is_sql_item = true;
                             break;
@@ -12022,17 +12514,7 @@ dbtype=mysql
                         else if (action_setup == 1)
                         {
                             orm::field_info_t temp_filed_col;
-                            db_conn->read_col_info(temp_pack_data.data, temp_filed_col);
-                            std::string find_field_name = temp_filed_col.name;
-                            std::transform(find_field_name.begin(), find_field_name.end(), find_field_name.begin(), ::tolower);
-
-                            for (unsigned int j = 0; j < table_columns_fields.size(); j++)
-                            {
-                                if (find_field_name == table_columns_fields[j])
-                                {
-                                    field_pos.push_back(j);
-                                }
-                            }
+                            mysql_db_conn->read_col_info(temp_pack_data.data, temp_filed_col);
 
                             field_array.emplace_back(std::move(temp_filed_col));
                             column_num--;
@@ -12044,17 +12526,15 @@ dbtype=mysql
                         else if (action_setup == 2)
                         {
                             unsigned int tempnum    = 0;
-                            table_columns_info_t temp_tb_info;
 
                             for (unsigned int ij = 0; ij < field_array.size(); ij++)
                             {
-                                unsigned long long name_length = 0;// temp_pack_data.data[tempnum] & 0xff;
-                                name_length                    = db_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
+                                unsigned long long name_length = 0;
+                                name_length                    = mysql_db_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
 
-                                assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, temp_tb_info);
+                                table_create_info_lists.emplace_back(std::string(&temp_pack_data.data[tempnum], name_length));
                                 tempnum = tempnum + name_length;
                             }
-                            table_column_info_lists.push_back(temp_tb_info);
                         }
                     }
                     else
@@ -12069,182 +12549,318 @@ dbtype=mysql
                 }
             }
 
-            //shwo
+            std::string ormsqlfile = ormfilepath;
 
-            sqlstring = "SELECT * FROM ";
-            sqlstring.append(table_lists[i_table]);
-            sqlstring.append(" where 0;");
-
-            // querysql_len = sqlstring.length() + 1;
-
-            // db_conn->send_data.clear();
-
-            // db_conn->send_data.push_back((querysql_len & 0xFF));
-            // db_conn->send_data.push_back((querysql_len >> 8 & 0xFF));
-            // db_conn->send_data.push_back((querysql_len >> 16 & 0xFF));
-            // db_conn->send_data.push_back(0x00);
-            // db_conn->send_data.push_back(0x03);
-            // db_conn->send_data.append(sqlstring);
-
-            n = db_conn->write_sql(sqlstring);
-            //n = asio::write(*db_conn->socket, asio::buffer(db_conn->send_data), db_conn->ec);
-
-            temp_pack_data.length         = 0;
-            temp_pack_data.current_length = 0;
-            temp_pack_data.error          = 0;
-
-            temp_pack_data.seq_id = 1;
-            temp_pack_data.error  = 0;
-            temp_pack_data.data.clear();
-            is_sql_item = false;
-            field_array.clear();
-
-            action_setup = 0;
-            column_num   = 0;
-            offset       = 0;
-
-            field_pos.clear();
-
-            for (; is_sql_item == false;)
+            if (table_create_info_lists.size() == 2)
             {
-                n = db_conn->read_loop();
-                offset = 0;
-                for (; offset < n;)
+                if (ormsqlfile.back() != '/')
                 {
-                    db_conn->read_field_pack(db_conn->_cache_data, n, offset, temp_pack_data);
-                    if (temp_pack_data.length == temp_pack_data.current_length)
+                    ormsqlfile.push_back('/');
+                }
+                ormsqlfile.append("/_rawsqlfile");
+                fs::path paths_a = ormsqlfile;
+                if (!fs::exists(paths_a))
+                {
+                    fs::create_directories(paths_a);
+                    fs::permissions(paths_a,
+                                    fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+                                    fs::perm_options::add);
+                }
+                ormsqlfile.push_back('/');
+                ormsqlfile.append(rmstag);
+
+                paths_a = ormsqlfile;
+                if (!fs::exists(paths_a))
+                {
+                    fs::create_directories(paths_a);
+                    fs::permissions(paths_a,
+                                    fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+                                    fs::perm_options::add);
+                }
+                ormsqlfile.push_back('/');
+                std::string fieldname = ormsqlfile;
+                fieldname.append(table_create_info_lists[0]);
+                fieldname.push_back('_');
+                fieldname.append(std::to_string(std::hash<std::string>{}(table_create_info_lists[1])));
+                fieldname.append(".sql");
+
+                if (fs::exists(fieldname))
+                {
+                    table_refresh = false;
+                }
+                else
+                {
+                    std::FILE *fp = fopen(fieldname.c_str(), "wb");
+                    if (fp)
                     {
-                        if (db_conn->pack_eof_check(temp_pack_data))
+                        fwrite(table_create_info_lists[1].data(), 1, table_create_info_lists[1].size(), fp);
+                        fclose(fp);
+                    }
+                }
+            }
+
+            //SHOW FULL COLUMNS FROM
+            table_refresh = true;
+            if (table_refresh)
+            {
+                sqlstring = "SHOW FULL COLUMNS FROM ";
+                sqlstring.append(table_lists[i_table]);
+                sqlstring.append(";");
+
+                n = mysql_db_conn->write_sql(sqlstring);
+
+                temp_pack_data.length         = 0;
+                temp_pack_data.current_length = 0;
+                temp_pack_data.error          = 0;
+
+                temp_pack_data.seq_id = 1;
+                temp_pack_data.error  = 0;
+                temp_pack_data.data.clear();
+                is_sql_item = false;
+                field_array.clear();
+
+                action_setup = 0;
+                column_num   = 0;
+                offset       = 0;
+
+                std::vector<unsigned char> field_pos;
+
+                for (; is_sql_item == false;)
+                {
+                    n = mysql_db_conn->read_loop();
+                    offset = 0;
+                    for (; offset < n;)
+                    {
+                        mysql_db_conn->read_field_pack(mysql_db_conn->_cache_data, n, offset, temp_pack_data);
+                        if (temp_pack_data.length == temp_pack_data.current_length)
                         {
+                            if (mysql_db_conn->pack_eof_check(temp_pack_data))
+                            {
+                                is_sql_item = true;
+                                break;
+                            }
+
+                            if (action_setup == 0)
+                            {
+                                if (temp_pack_data.length == 2 && (unsigned char)temp_pack_data.data[0] < 251 && (unsigned char)temp_pack_data.data[0] > 0)
+                                {
+                                    action_setup = 1;
+                                    column_num   = (unsigned char)temp_pack_data.data[0];
+                                }
+                            }
+                            else if (action_setup == 1)
+                            {
+                                orm::field_info_t temp_filed_col;
+                                mysql_db_conn->read_col_info(temp_pack_data.data, temp_filed_col);
+                                std::string find_field_name = temp_filed_col.name;
+                                std::transform(find_field_name.begin(), find_field_name.end(), find_field_name.begin(), ::tolower);
+
+                                for (unsigned int j = 0; j < table_columns_fields.size(); j++)
+                                {
+                                    if (find_field_name == table_columns_fields[j])
+                                    {
+                                        field_pos.push_back(j);
+                                    }
+                                }
+
+                                field_array.emplace_back(std::move(temp_filed_col));
+                                column_num--;
+                                if (column_num == 0)
+                                {
+                                    action_setup = 2;
+                                }
+                            }
+                            else if (action_setup == 2)
+                            {
+                                unsigned int tempnum    = 0;
+                                table_columns_info_t temp_tb_info;
+
+                                for (unsigned int ij = 0; ij < field_array.size(); ij++)
+                                {
+                                    unsigned long long name_length = 0;
+                                    name_length                    = mysql_db_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
+
+                                    assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, temp_tb_info);
+                                    tempnum = tempnum + name_length;
+                                }
+                                table_column_info_lists.push_back(temp_tb_info);
+                            }
+                        }
+                        else
+                        {
+                            if (offset >= n)
+                            {
+                                break;
+                            }
                             is_sql_item = true;
                             break;
                         }
+                    }
+                }
 
-                        if (action_setup == 0)
+                //SELECT * FROM ... where 0
+                sqlstring = "SELECT * FROM ";
+                sqlstring.append(table_lists[i_table]);
+                sqlstring.append(" where 0;");
+
+                n = mysql_db_conn->write_sql(sqlstring);
+
+                temp_pack_data.length         = 0;
+                temp_pack_data.current_length = 0;
+                temp_pack_data.error          = 0;
+
+                temp_pack_data.seq_id = 1;
+                temp_pack_data.error  = 0;
+                temp_pack_data.data.clear();
+                is_sql_item = false;
+                field_array.clear();
+
+                action_setup = 0;
+                column_num   = 0;
+                offset       = 0;
+
+                field_pos.clear();
+
+                for (; is_sql_item == false;)
+                {
+                    n = mysql_db_conn->read_loop();
+                    offset = 0;
+                    for (; offset < n;)
+                    {
+                        mysql_db_conn->read_field_pack(mysql_db_conn->_cache_data, n, offset, temp_pack_data);
+                        if (temp_pack_data.length == temp_pack_data.current_length)
                         {
-                            if (temp_pack_data.length == 2 && (unsigned char)temp_pack_data.data[0] < 251 && (unsigned char)temp_pack_data.data[0] > 0)
+                            if (mysql_db_conn->pack_eof_check(temp_pack_data))
                             {
-                                action_setup = 1;
-                                column_num   = (unsigned char)temp_pack_data.data[0];
+                                is_sql_item = true;
+                                break;
                             }
-                        }
-                        else if (action_setup == 1)
-                        {
-                            orm::field_info_t temp_filed_col;
-                            db_conn->read_col_info(temp_pack_data.data, temp_filed_col);
-                            std::string find_field_name = temp_filed_col.name;
-                            std::transform(find_field_name.begin(), find_field_name.end(), find_field_name.begin(), ::tolower);
 
-                            for (unsigned int j = 0; j < table_columns_fields.size(); j++)
+                            if (action_setup == 0)
                             {
-                                if (find_field_name == table_columns_fields[j])
+                                if (temp_pack_data.length == 2 && (unsigned char)temp_pack_data.data[0] < 251 && (unsigned char)temp_pack_data.data[0] > 0)
                                 {
-                                    field_pos.push_back(j);
+                                    action_setup = 1;
+                                    column_num   = (unsigned char)temp_pack_data.data[0];
                                 }
                             }
-
-                            field_array.emplace_back(std::move(temp_filed_col));
-                            column_num--;
-                            if (column_num == 0)
+                            else if (action_setup == 1)
                             {
-                                action_setup = 2;
+                                orm::field_info_t temp_filed_col;
+                                mysql_db_conn->read_col_info(temp_pack_data.data, temp_filed_col);
+                                std::string find_field_name = temp_filed_col.name;
+                                std::transform(find_field_name.begin(), find_field_name.end(), find_field_name.begin(), ::tolower);
+
+                                for (unsigned int j = 0; j < table_columns_fields.size(); j++)
+                                {
+                                    if (find_field_name == table_columns_fields[j])
+                                    {
+                                        field_pos.push_back(j);
+                                    }
+                                }
+
+                                field_array.emplace_back(std::move(temp_filed_col));
+                                column_num--;
+                                if (column_num == 0)
+                                {
+                                    action_setup = 2;
+                                }
+                            }
+                            else if (action_setup == 2)
+                            {
+                                unsigned int tempnum    = 0;
+
+                                for (unsigned int ij = 0; ij < field_array.size(); ij++)
+                                {
+                                    unsigned long long name_length = 0;
+                                    name_length                    = mysql_db_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
+
+                                    tempnum = tempnum + name_length;
+                                }
                             }
                         }
-                        else if (action_setup == 2)
+                        else
                         {
-                            unsigned int tempnum    = 0;
-
-                            for (unsigned int ij = 0; ij < field_array.size(); ij++)
+                            if (offset >= n)
                             {
-                                unsigned long long name_length = 0;// temp_pack_data.data[tempnum] & 0xff;
-                                name_length                    = db_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], tempnum);
-
-                                // assign_field_value(field_pos[ij], (unsigned char *)&temp_pack_data.data[tempnum], name_length, temp_tb_info);
-                                tempnum = tempnum + name_length;
+                                break;
                             }
-                        }
-                    }
-                    else
-                    {
-                        if (offset >= n)
-                        {
+                            is_sql_item = true;
                             break;
                         }
-                        is_sql_item = true;
-                        break;
                     }
                 }
-            }
 
-            for (unsigned int k = 0; k < field_array.size(); k++)
-            {
-                std::transform(field_array[k].org_name.begin(), field_array[k].org_name.end(), field_array[k].org_name.begin(), ::tolower);
-
-                for (unsigned int m = 0; m < table_column_info_lists.size(); m++)
+                for (unsigned int k = 0; k < field_array.size(); k++)
                 {
-                    if (field_array[k].org_name == table_column_info_lists[m].col_name)
-                    {
-                        table_column_info_lists[m].col_type = field_array[k].field_type;
-                        if (table_column_info_lists[m].col_type == 0xFC || table_column_info_lists[m].col_type == 0xFD || table_column_info_lists[m].col_type == 0xFE)
-                        {
-                            table_column_info_lists[m].big_type = 1;
-                        }
-                        else if (table_column_info_lists[m].col_type == 0xFB || table_column_info_lists[m].col_type == 0xFA || table_column_info_lists[m].col_type == 0x0F)
-                        {
-                            table_column_info_lists[m].big_type = 1;
-                        }
-                        else if (table_column_info_lists[m].col_type == 0xF6 || table_column_info_lists[m].col_type == 0x05 || table_column_info_lists[m].col_type == 0x04 || table_column_info_lists[m].col_type == 0x00)
-                        {
-                            table_column_info_lists[m].big_type = 3;
-                        }
-                        else if (table_column_info_lists[m].col_type == 0x01 || table_column_info_lists[m].col_type == 0x02 || table_column_info_lists[m].col_type == 0x03 || table_column_info_lists[m].col_type == 0x08)
-                        {
-                            table_column_info_lists[m].big_type = 2;
-                        }
-                        else if (table_column_info_lists[m].col_type == 0x09)
-                        {
-                            table_column_info_lists[m].big_type = 3;
-                        }
-                        else if (table_column_info_lists[m].col_type == 0x07 || table_column_info_lists[m].col_type == 0x0A || table_column_info_lists[m].col_type == 0x0B)
-                        {
-                            table_column_info_lists[m].big_type    = 1;
-                            table_column_info_lists[m].is_datetime = true;
-                        }
-                        else if (table_column_info_lists[m].col_type == 0x0C)
-                        {
-                            table_column_info_lists[m].big_type    = 1;
-                            table_column_info_lists[m].is_datetime = true;
-                        }
-                        else if (table_column_info_lists[m].col_type == 0xF5)
-                        {
-                            //json
-                            table_column_info_lists[m].big_type = 1;
-                        }
+                    std::transform(field_array[k].org_name.begin(), field_array[k].org_name.end(), field_array[k].org_name.begin(), ::tolower);
 
-                        if (field_array[k].flags & 32)
+                    for (unsigned int m = 0; m < table_column_info_lists.size(); m++)
+                    {
+                        if (field_array[k].org_name == table_column_info_lists[m].col_name)
                         {
-                            table_column_info_lists[m].is_unsigned = true;
-                        }
-                        if (field_array[k].flags & 2)
-                        {
-                            table_column_info_lists[m].is_pk = true;
-                        }
-                        if (field_array[k].flags & 512)
-                        {
-                            table_column_info_lists[m].is_auto_inc = true;
+                            table_column_info_lists[m].col_type = field_array[k].field_type;
+                            if (table_column_info_lists[m].col_type == 0xFC || table_column_info_lists[m].col_type == 0xFD || table_column_info_lists[m].col_type == 0xFE)
+                            {
+                                table_column_info_lists[m].big_type = 1;
+                            }
+                            else if (table_column_info_lists[m].col_type == 0xFB || table_column_info_lists[m].col_type == 0xFA || table_column_info_lists[m].col_type == 0x0F)
+                            {
+                                table_column_info_lists[m].big_type = 1;
+                            }
+                            else if (table_column_info_lists[m].col_type == 0xF6 || table_column_info_lists[m].col_type == 0x05 || table_column_info_lists[m].col_type == 0x04 || table_column_info_lists[m].col_type == 0x00)
+                            {
+                                table_column_info_lists[m].big_type = 3;
+                            }
+                            else if (table_column_info_lists[m].col_type == 0x01 || table_column_info_lists[m].col_type == 0x02 || table_column_info_lists[m].col_type == 0x03 || table_column_info_lists[m].col_type == 0x08)
+                            {
+                                table_column_info_lists[m].big_type = 2;
+                            }
+                            else if (table_column_info_lists[m].col_type == 0x09)
+                            {
+                                table_column_info_lists[m].big_type = 3;
+                            }
+                            else if (table_column_info_lists[m].col_type == 0x07 || table_column_info_lists[m].col_type == 0x0A || table_column_info_lists[m].col_type == 0x0B)
+                            {
+                                table_column_info_lists[m].big_type    = 1;
+                                table_column_info_lists[m].is_datetime = true;
+                            }
+                            else if (table_column_info_lists[m].col_type == 0x0C)
+                            {
+                                table_column_info_lists[m].big_type    = 1;
+                                table_column_info_lists[m].is_datetime = true;
+                            }
+                            else if (table_column_info_lists[m].col_type == 0xF5)
+                            {
+                                //json
+                                table_column_info_lists[m].big_type = 1;
+                            }
+
+                            if (field_array[k].flags & 32)
+                            {
+                                table_column_info_lists[m].is_unsigned = true;
+                            }
+                            if (field_array[k].flags & 2)
+                            {
+                                table_column_info_lists[m].is_pk = true;
+                            }
+                            if (field_array[k].flags & 512)
+                            {
+                                table_column_info_lists[m].is_auto_inc = true;
+                            }
                         }
                     }
                 }
             }
-
-            model_name.clear();
-            model_name = table_lists[i_table].substr(link_config_item.pretable.size());
-
-            //create mysql operate file
-            create_mysql_orm_operate_file(prj_root_path, rmstag, table_lists[i_table], model_name, field_array, table_column_info_lists);
-            create_orm_model_baseinfo_file(prj_root_path, rmstag, table_lists[i_table], model_name, field_array, table_column_info_lists);
-            addhfiletoormfile(prj_root_path + "orm/", model_name, rmstag);
         }
+
+        model_name.clear();
+        model_name = table_lists[i_table].substr(link_config_item.pretable.size());
+
+        //create orm operate file
+        create_mysql_orm_operate_file(prj_root_path, rmstag, table_lists[i_table], model_name, field_array, table_column_info_lists, db_type);
+        create_orm_model_baseinfo_file(prj_root_path, rmstag, table_lists[i_table], model_name, field_array, table_column_info_lists, db_type);
+        addhfiletoormfile(prj_root_path + "orm/", model_name, rmstag, db_type);
     }
 
     return 0;
