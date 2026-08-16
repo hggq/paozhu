@@ -4454,10 +4454,10 @@ void httpserver::httpwatch_init_paths(std::string &currentpath, std::string &err
     rate_limit_accept_time     = sysconfigpath.rate_limit_accept_time;
 }
 
-void httpserver::httpwatch_parse_reboot_cron(serverconfig &sysconfigpath,
-                                             unsigned char &cron_type, unsigned char &cron_day,
+void httpserver::httpwatch_parse_reboot_cron(unsigned char &cron_type, unsigned char &cron_day,
                                              unsigned char &cron_hour)
 {
+    serverconfig &sysconfigpath = getserversysconfig();
     if (sysconfigpath.map_value["default"]["reboot_cron"].size() > 1)
     {
         if (sysconfigpath.map_value["default"]["reboot_cron"][0] == 'M' || sysconfigpath.map_value["default"]["reboot_cron"][0] == 'm')
@@ -4524,9 +4524,9 @@ void httpserver::httpwatch_parse_reboot_cron(serverconfig &sysconfigpath,
     }
 }
 
-void httpserver::httpwatch_parse_clean_cron(serverconfig &sysconfigpath,
-                                            unsigned int &clean_cron_min, unsigned int &clean_cron_time_ago)
+void httpserver::httpwatch_parse_clean_cron(unsigned int &clean_cron_min, unsigned int &clean_cron_time_ago)
 {
+    serverconfig &sysconfigpath = getserversysconfig();
     if (sysconfigpath.map_value["default"]["clean_cron"].size() > 3)
     {
         clean_cron_min = 0;
@@ -4577,10 +4577,10 @@ void httpserver::httpwatch_parse_clean_cron(serverconfig &sysconfigpath,
     }
 }
 
-void httpserver::httpwatch_parse_links_restart(serverconfig &sysconfigpath,
-                                               unsigned int &restart_process_num,
+void httpserver::httpwatch_parse_links_restart(unsigned int &restart_process_num,
                                                int &restart_process_time_start, int &restart_process_time_end)
 {
+    serverconfig &sysconfigpath = getserversysconfig();
     if (sysconfigpath.map_value["default"]["links_restart_process"].size() > 3)
     {
         if (sysconfigpath.map_value["default"]["links_restart_process"][0] == 'N' || sysconfigpath.map_value["default"]["links_restart_process"][0] == 'n')
@@ -5320,9 +5320,9 @@ void httpserver::httpwatch()
     unsigned int restart_process_num = 0;
     int restart_process_time_start = 0, restart_process_time_end = 0;
 
-    httpwatch_parse_reboot_cron(sysconfigpath, cron_type, cron_day, cron_hour);
-    httpwatch_parse_clean_cron(sysconfigpath, clean_cron_min, clean_cron_time_ago);
-    httpwatch_parse_links_restart(sysconfigpath, restart_process_num,
+    httpwatch_parse_reboot_cron(cron_type, cron_day, cron_hour);
+    httpwatch_parse_clean_cron(clean_cron_min, clean_cron_time_ago);
+    httpwatch_parse_links_restart(restart_process_num,
                                   restart_process_time_start, restart_process_time_end);
 
     // 5. Main loop variables

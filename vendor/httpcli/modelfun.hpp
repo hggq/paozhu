@@ -19,6 +19,7 @@
 #include "mysql_conn.h"
 #include "orm_conn_pool.h"
 #include "pg_conn.h"
+#include "dbtypes.hpp"
 
 namespace fs = std::filesystem;
 
@@ -416,7 +417,8 @@ bool pg_get_column_info(std::shared_ptr<orm::pg_conn_base> pg_conn, const std::s
 {
     column_info_lists.clear();
     
-    std::string sql = "SELECT a.attname, t.typname, a.attlen, a.atttypmod, a.attnotnull, a.attnum "
+    std::string sql = "SELECT a.attname, t.typname, a.attlen, a.atttypmod, a.attnotnull, a.attnum, "
+                      "col_description(a.attrelid, a.attnum) AS comment "
                       "FROM pg_attribute a JOIN pg_type t ON a.atttypid = t.oid "
                       "WHERE a.attrelid = (SELECT oid FROM pg_class WHERE relname = '" + table_name + "' AND relkind = 'r') "
                       "AND a.attnum > 0 AND NOT a.attisdropped ORDER BY a.attnum";
@@ -503,6 +505,8 @@ bool pg_get_column_info(std::shared_ptr<orm::pg_conn_base> pg_conn, const std::s
                             col_info.col_length = mod - 4;
                         }
                     }
+                } else if (col_names[i] == "comment") {
+                    col_info.comment = value;
                 }
             }
             
@@ -12517,13 +12521,106 @@ dbtype=mysql
         {
             pg_get_column_info(pg_db_conn, table_lists[i_table], table_column_info_lists);
             std::cout << "\nTable: " << table_lists[i_table] << " - " << table_column_info_lists.size() << " columns" << std::endl;
-            // for (const auto& col : table_column_info_lists) {
-            //     std::cout << "  " << col.col_name 
-            //               << " type:0x" << std::hex << (int)col.col_type << std::dec
-            //               << " big_type:" << (int)col.big_type
-            //               << " pk:" << (col.is_pk ? "YES" : "NO")
-            //               << " auto:" << (col.is_auto_inc ? "YES" : "NO") << std::endl;
-            // }
+
+            // === 生成 _rawsqlfile (类似 MySQL 的 SHOW CREATE TABLE) ===
+            std::string ormsqlfile = ormfilepath;
+            if (ormsqlfile.back() != '/')
+            {
+                ormsqlfile.push_back('/');
+            }
+            ormsqlfile.append("/_rawsqlfile");
+            fs::path paths_a = ormsqlfile;
+            if (!fs::exists(paths_a))
+            {
+                fs::create_directories(paths_a);
+                fs::permissions(paths_a,
+                                fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+                                fs::perm_options::add);
+            }
+            ormsqlfile.push_back('/');
+            ormsqlfile.append(rmstag);
+
+            paths_a = ormsqlfile;
+            if (!fs::exists(paths_a))
+            {
+                fs::create_directories(paths_a);
+                fs::permissions(paths_a,
+                                fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+                                fs::perm_options::add);
+            }
+            ormsqlfile.push_back('/');
+
+            // 获取表注释
+            std::string table_comment;
+            {
+                std::string comment_sql = "SELECT obj_description(oid) FROM pg_class WHERE relname = '" + table_lists[i_table] + "' AND relkind = 'r'";
+                std::vector<orm::field_info_t> comment_fields;
+                std::vector<orm::pg_row_data_t> comment_rows;
+                unsigned int affected = 0;
+                unsigned int err = pg_db_conn->execute_and_fetch(comment_sql, comment_fields, comment_rows, affected);
+                if (err == 0 && !comment_rows.empty() && !comment_rows[0].values.empty())
+                {
+                    table_comment = comment_rows[0].values[0];
+                }
+            }
+
+            // 转换列信息并生成 DDL
+            dbtypes::db_table_info table_info;
+            table_info.table_name      = table_lists[i_table];
+            table_info.table_comment   = table_comment;
+            table_info.source_db_type  = dbtypes::DB_TYPE::POSTGRESQL;
+
+            for (const auto &col : table_column_info_lists)
+            {
+                dbtypes::db_field_info field;
+                field.field_name    = col.col_name;
+                field.comment       = col.comment;
+                field.default_value = col.default_value;
+                field.is_auto_inc   = col.is_auto_inc;
+                field.is_pk         = col.is_pk;
+                field.is_unsigned   = col.is_unsigned;
+                field.length        = col.col_length;
+                field.decimals      = col.decimals;
+
+                // 将 MySQL 协议类型码转换为 PostgreSQL 类型字符串
+                field.field_type = dbtypes::mysql_col_type_to_pg_type(col.col_type, col.col_length, col.is_unsigned);
+
+                table_info.fields.push_back(field);
+
+                if (col.is_pk)
+                {
+                    table_info.pk_name = col.col_name;
+                }
+                if (col.is_auto_inc)
+                {
+                    table_info.auto_inc_field = col.col_name;
+                }
+            }
+
+            std::string create_sql = dbtypes::gen_pg_create_table(table_info);
+
+            // 构建文件名: tablename_hash.sql
+            std::string fieldname = ormsqlfile;
+            fieldname.append(table_lists[i_table]);
+            fieldname.push_back('_');
+            fieldname.append(std::to_string(std::hash<std::string>{}(create_sql)));
+            fieldname.append(".sql");
+
+            if (fs::exists(fieldname))
+            {
+                // 文件已存在，跳过
+            }
+            else
+            {
+                std::FILE *fp = fopen(fieldname.c_str(), "wb");
+                if (fp)
+                {
+                    fwrite(create_sql.data(), 1, create_sql.size(), fp);
+                    fclose(fp);
+                    std::cout << "  Created: " << fieldname << std::endl;
+                }
+            }
+            // === 结束 _rawsqlfile 生成 ===
         }
         else
         {

@@ -436,6 +436,64 @@ inline DB_TYPE parse_target_type(const std::string &target_str)
     return DB_TYPE::MYSQL;
 }
 
+// ===================== MySQL 类型码转 PostgreSQL 类型字符串 =====================
+// 用于将 modelfun.hpp 中 pg_get_column_info 获取的 col_type (MySQL 协议类型码) 转换为 PG 类型
+inline std::string mysql_col_type_to_pg_type(unsigned char col_type, unsigned int length, [[maybe_unused]] bool is_unsigned)
+{
+    // MySQL 协议类型码定义参考:
+    // 0x01=TINYINT, 0x02=SMALLINT, 0x03=INT, 0x08=BIGINT, 0x09=MEDIUMINT
+    // 0x04=FLOAT, 0x05=DOUBLE, 0xF6=DECIMAL/NUMERIC
+    // 0xFE=CHAR/VARCHAR/TEXT等, 0xFD=VARCHAR, 0xFC=TEXT/BLOB
+    // 0x0A=DATE, 0x0B=TIME, 0x0C=DATETIME/TIMESTAMP, 0x07=TIMESTAMP(old)
+    // 0xF5=JSON
+
+    switch (col_type)
+    {
+    case 0x01: // TINYINT
+        if (length == 1)
+            return "boolean";
+        return "smallint";
+    case 0x02: // SMALLINT
+        return "smallint";
+    case 0x03: // INT
+        return "integer";
+    case 0x08: // BIGINT
+        return "bigint";
+    case 0x09: // MEDIUMINT
+        return "integer";
+    case 0x04: // FLOAT
+        return "real";
+    case 0x05: // DOUBLE
+        return "double precision";
+    case 0xF6: // DECIMAL/NUMERIC
+        if (length > 0)
+            return "numeric(" + std::to_string(length) + ")";
+        return "numeric";
+    case 0xFE: // CHAR/VARCHAR/ENUM/SET etc.
+        if (length > 0 && length < 256)
+            return "varchar(" + std::to_string(length) + ")";
+        return "text";
+    case 0xFD: // VARCHAR
+        if (length > 0)
+            return "varchar(" + std::to_string(length) + ")";
+        return "varchar(255)";
+    case 0xFC: // TEXT/BLOB
+        return "text";
+    case 0x0A: // DATE
+        return "date";
+    case 0x0B: // TIME
+        return "time";
+    case 0x0C: // DATETIME/TIMESTAMP
+        return "timestamp";
+    case 0x07: // TIMESTAMP (old)
+        return "timestamp";
+    case 0xF5: // JSON
+        return "jsonb";
+    default:
+        return "text";
+    }
+}
+
 inline void convert_table_for_target(db_table_info &table, DB_TYPE src_type, DB_TYPE target_type)
 {
     if (src_type == target_type)
@@ -1388,6 +1446,48 @@ inline std::string gen_ddl(const db_table_info &info, DB_TYPE db_type)
         return gen_pg_create_table(info);
     }
     return gen_mysql_create_table(info);
+}
+
+// ===================== orm::table_columns_info_t 转 db_table_info =====================
+// 用于将 modelfun.hpp 中 pg_get_column_info 获取的列信息转换为 db_table_info，以便生成 DDL
+inline db_table_info convert_columns_to_table_info(
+    const std::string &table_name,
+    const std::vector<orm::table_columns_info_t> &columns,
+    const std::string &table_comment = "")
+{
+    db_table_info info;
+    info.table_name      = table_name;
+    info.table_comment   = table_comment;
+    info.source_db_type  = DB_TYPE::POSTGRESQL;
+
+    for (const auto &col : columns)
+    {
+        db_field_info field;
+        field.field_name    = col.col_name;
+        field.comment       = col.comment;
+        field.default_value = col.default_value;
+        field.is_auto_inc   = col.is_auto_inc;
+        field.is_pk         = col.is_pk;
+        field.is_unsigned   = col.is_unsigned;
+        field.length        = col.col_length;
+        field.decimals      = col.decimals;
+
+        // 将 MySQL 协议类型码转换为 PostgreSQL 类型字符串
+        field.field_type = mysql_col_type_to_pg_type(col.col_type, col.col_length, col.is_unsigned);
+
+        info.fields.push_back(field);
+
+        if (col.is_pk)
+        {
+            info.pk_name = col.col_name;
+        }
+        if (col.is_auto_inc)
+        {
+            info.auto_inc_field = col.col_name;
+        }
+    }
+
+    return info;
 }
 
 // ===================== PG 表结构读取 =====================

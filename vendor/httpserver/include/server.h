@@ -68,8 +68,6 @@
 namespace http
 {
 
-class serverconfig;
-
 namespace fs = std::filesystem;
 class httpserver
 {
@@ -162,13 +160,10 @@ class httpserver
     void httpwatch_init_paths(std::string &currentpath, std::string &error_path,
                               std::string &traffic_switch_file, std::string &restart_file,
                               std::string &restart_ssl_file, std::string &orm_log_file);
-    void httpwatch_parse_reboot_cron(serverconfig &sysconfigpath,
-                                     unsigned char &cron_type, unsigned char &cron_day,
+    void httpwatch_parse_reboot_cron(unsigned char &cron_type, unsigned char &cron_day,
                                      unsigned char &cron_hour);
-    void httpwatch_parse_clean_cron(serverconfig &sysconfigpath,
-                                    unsigned int &clean_cron_min, unsigned int &clean_cron_time_ago);
-    void httpwatch_parse_links_restart(serverconfig &sysconfigpath,
-                                       unsigned int &restart_process_num,
+    void httpwatch_parse_clean_cron(unsigned int &clean_cron_min, unsigned int &clean_cron_time_ago);
+    void httpwatch_parse_links_restart(unsigned int &restart_process_num,
                                        int &restart_process_time_start, int &restart_process_time_end);
     void httpwatch_adjust_thread_pool(unsigned int &updatetimetemp);
     void httpwatch_memory_monitor(unsigned int mysqlpool_time);
