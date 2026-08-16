@@ -68,6 +68,8 @@
 namespace http
 {
 
+class serverconfig;
+
 namespace fs = std::filesystem;
 class httpserver
 {
@@ -154,7 +156,34 @@ class httpserver
 
     void add_nullptrlog(const std::string &logstrb);
     void httpwatch();
-    
+
+    // httpwatch sub-methods
+    void httpwatch_register_builtin_routes();
+    void httpwatch_init_paths(std::string &currentpath, std::string &error_path,
+                              std::string &traffic_switch_file, std::string &restart_file,
+                              std::string &restart_ssl_file, std::string &orm_log_file);
+    void httpwatch_parse_reboot_cron(serverconfig &sysconfigpath,
+                                     unsigned char &cron_type, unsigned char &cron_day,
+                                     unsigned char &cron_hour);
+    void httpwatch_parse_clean_cron(serverconfig &sysconfigpath,
+                                    unsigned int &clean_cron_min, unsigned int &clean_cron_time_ago);
+    void httpwatch_parse_links_restart(serverconfig &sysconfigpath,
+                                       unsigned int &restart_process_num,
+                                       int &restart_process_time_start, int &restart_process_time_end);
+    void httpwatch_adjust_thread_pool(unsigned int &updatetimetemp);
+    void httpwatch_memory_monitor(unsigned int mysqlpool_time);
+    void httpwatch_flush_access_log(const std::string &access_path);
+    void httpwatch_flush_error_log(const std::string &error_path);
+    void httpwatch_mysql_pool_maintenance(unsigned int &mysqlpool_time, const std::tm *now, unsigned int old_total_count);
+    void httpwatch_check_cron_reboot(unsigned char cron_type, unsigned char cron_day,
+                                     unsigned char cron_hour, const std::tm *now);
+    void httpwatch_clear_timeout_sessions(unsigned int clean_cron_min, unsigned int clean_cron_time_ago);
+    void httpwatch_check_deadlock(unsigned char &plan_http1_exit, unsigned char &plan_http2_exit,
+                                  unsigned int &old_ten_total_count, unsigned int old_total_count);
+    void httpwatch_check_restart_threshold(unsigned int restart_process_num,
+                                           int restart_process_time_start, int restart_process_time_end,
+                                           const std::tm *now, unsigned int old_total_count);
+
     void acme_task();
     void acme_update();
     void save_traffic_arrays();

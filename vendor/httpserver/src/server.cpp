@@ -3750,6 +3750,9 @@ httpserver::sslhandshake(std::shared_ptr<client_session> peer_session)
 }
 void httpserver::listeners()
 {
+#ifdef __APPLE__
+    pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
+#endif
     serverconfig &sysconfigpath = getserversysconfig();
     unsigned short portnum      = sysconfigpath.get_ssl_port();
 
@@ -4049,6 +4052,9 @@ void httpserver::listeners()
 }
 void httpserver::listener()
 {
+#ifdef __APPLE__
+    pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
+#endif
     serverconfig &sysconfigpath = getserversysconfig();
     asio::error_code ec_error;
 
@@ -4307,15 +4313,11 @@ void httpserver::add_runsocketthread()
             self->io_context.run();
         });
 }
-void httpserver::httpwatch()
+
+// ==================== httpwatch sub-methods ====================
+
+void httpserver::httpwatch_register_builtin_routes()
 {
-    serverconfig &sysconfigpath = getserversysconfig();
-
-    std::unique_lock<std::mutex> loglock(log_mutex);
-    error_loglist.push_back("------------begin-----------");
-    error_loglist.push_back(get_date("%Y-%m-%d %X\n"));
-    loglock.unlock();
-
     struct regmethold_t temp;
     temp.pre    = nullptr;
     temp.regfun = [self = this](std::shared_ptr<httppeer> peer) -> std::string
@@ -4343,15 +4345,7 @@ void httpserver::httpwatch()
                 client << " ";
                 try
                 {
-                    //std::map<std::size_t, std::shared_ptr<http::mysqllinkpool>> &mysqldbpoolglobal = get_mysqlpool();
                     isshow = 0;
-                    // for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
-                    // {
-                    //     client << " [db:" << iter->second->select_link.db
-                    //            << " select:" << std::to_string(iter->second->select_current_num);
-                    //     client << " edit:" << std::to_string(iter->second->edit_current_num);
-                    //     ++isshow;
-                    // }
                     client << "]</p>";
                     client << self->clientrunpool.printthreads(true);
                 }
@@ -4407,15 +4401,15 @@ void httpserver::httpwatch()
         return "";
     };
     _http_regmethod_table.emplace("frametasks_timeloop", std::move(temp));
+}
 
-    unsigned int updatetimetemp = 0;
-    std::string currentpath;
-    std::string error_path;
-    std::string error_msg_loop;
-    std::string traffic_switch_file;
-    std::string restart_file;
-    std::string restart_ssl_file;
-    std::string orm_log_file;
+void httpserver::httpwatch_init_paths(std::string &currentpath, std::string &error_path,
+                                      std::string &traffic_switch_file, std::string &restart_file,
+                                      std::string &restart_ssl_file, std::string &orm_log_file)
+{
+    serverconfig &sysconfigpath = getserversysconfig();
+
+    // ORM init
     try
     {
         currentpath = sysconfigpath.configpath;
@@ -4456,53 +4450,14 @@ void httpserver::httpwatch()
     orm_log_file.append("orm_debug.log");
 
     rate_limit_new_wait_num = sysconfigpath.rate_limit_new_wait_num;
-
     rate_limit_accept_wait_num = sysconfigpath.rate_limit_accept_wait_num;
     rate_limit_accept_time     = sysconfigpath.rate_limit_accept_time;
+}
 
-    unsigned int mysqlpool_time  = 1;
-    unsigned int remove_linknum  = 0;
-    unsigned int old_total_count = 0;
-
-    unsigned int old_ten_total_count = 0;
-
-    std::size_t n_write     = 0;
-    unsigned char cron_type = 0x00;
-    unsigned char cron_day  = 0x00;
-    unsigned char cron_hour = 0x00;
-
-    unsigned int clean_cron_min      = 60;
-    unsigned int clean_cron_time_ago = 0;
-
-    unsigned int restart_process_num = 0;
-    int restart_process_time_start   = 0;
-    int restart_process_time_end     = 0;
-
-    unsigned char plan_http1_exit = 0x00;
-    unsigned char plan_http2_exit = 0x00;
-
-    bool is_clear_sock            = false;
-    bool is_run_acme              = false;
-    int acme_every_day_time       = sysconfigpath.acme_every_day_time;
-    int acme_every_day_time_reset = 1;
-    int ocsp_interval_time        = sysconfigpath.ocsp_interval_time;
-
-    if (ocsp_interval_time < 3600)
-    {
-        ocsp_interval_time = 3600;
-    }
-
-    if (acme_every_day_time < 2)
-    {
-        acme_every_day_time = 2;
-    }
-    if (acme_every_day_time > 23)
-    {
-        acme_every_day_time = 23;
-    }
-    acme_every_day_time_reset = acme_every_day_time - 1;
-
-    // reboot server
+void httpserver::httpwatch_parse_reboot_cron(serverconfig &sysconfigpath,
+                                             unsigned char &cron_type, unsigned char &cron_day,
+                                             unsigned char &cron_hour)
+{
     if (sysconfigpath.map_value["default"]["reboot_cron"].size() > 1)
     {
         if (sysconfigpath.map_value["default"]["reboot_cron"][0] == 'M' || sysconfigpath.map_value["default"]["reboot_cron"][0] == 'm')
@@ -4567,7 +4522,11 @@ void httpserver::httpwatch()
             }
         }
     }
+}
 
+void httpserver::httpwatch_parse_clean_cron(serverconfig &sysconfigpath,
+                                            unsigned int &clean_cron_min, unsigned int &clean_cron_time_ago)
+{
     if (sysconfigpath.map_value["default"]["clean_cron"].size() > 3)
     {
         clean_cron_min = 0;
@@ -4616,10 +4575,14 @@ void httpserver::httpwatch()
             }
         }
     }
+}
 
+void httpserver::httpwatch_parse_links_restart(serverconfig &sysconfigpath,
+                                               unsigned int &restart_process_num,
+                                               int &restart_process_time_start, int &restart_process_time_end)
+{
     if (sysconfigpath.map_value["default"]["links_restart_process"].size() > 3)
     {
-
         if (sysconfigpath.map_value["default"]["links_restart_process"][0] == 'N' || sysconfigpath.map_value["default"]["links_restart_process"][0] == 'n')
         {
             for (unsigned int i = 1; i < sysconfigpath.map_value["default"]["links_restart_process"].size(); ++i)
@@ -4690,100 +4653,721 @@ void httpserver::httpwatch()
             }
         }
     }
-#ifndef _WIN32
-    struct flock lockstr = {};
-#endif
-    DEBUG_LOG("httpwatch run");
-    for (;;)
+}
+
+void httpserver::httpwatch_adjust_thread_pool(unsigned int &updatetimetemp)
+{
+    if (clientrunpool.gettasknum() > 1)
     {
-        try
+        DEBUG_LOG("add thread:%d", clientrunpool.gettasknum());
+        clientrunpool.addthread(3);
+        updatetimetemp = 0;
+    }
+    else if (clientrunpool.getlivenum() < 32)
+    {
+        DEBUG_LOG("fix thread:%d", clientrunpool.getlivenum());
+        updatetimetemp += 1;
+        if (updatetimetemp % 19 == 0)
         {
-            std::this_thread::sleep_for(std::chrono::seconds(5));
-            if (clientrunpool.gettasknum() > 1)
+            clientrunpool.fixthread();
+            updatetimetemp = 0;
+        }
+    }
+}
+
+void httpserver::httpwatch_memory_monitor(unsigned int mysqlpool_time)
+{
+    if ((mysqlpool_time % 2) == 0)
+    {
+        unsigned long long self_rss_num    = get_rss_kb();
+        unsigned long long total_memory_kb = get_total_memory_kb();
+
+        DEBUG_LOG("memory info:total:%llu process:%llu, live:%d", total_memory_kb, self_rss_num, live_link_count.load());
+        if (self_rss_num > (total_memory_kb / 2))
+        {
+            std::string temp_l = "-- memory info -- time:";
+            temp_l.append(get_date("%Y-%m-%d %X"));
+            temp_l.append(" total:");
+            temp_l.append(std::to_string(total_memory_kb));
+            temp_l.append(" process:");
+            temp_l.append(std::to_string(self_rss_num));
+            temp_l.append(" live:");
+            temp_l.append(std::to_string(live_link_count.load()));
+            temp_l.append("\n");
+
+            std::unique_lock<std::mutex> logmilock(log_mutex);
+            error_loglist.push_back(temp_l);
+            logmilock.unlock();
+        }
+
+        if (total_memory_kb > 100)
+        {
+            if (self_rss_num > ((total_memory_kb / 100) * 75))
             {
-                DEBUG_LOG("add thread:%d", clientrunpool.gettasknum());
-                clientrunpool.addthread(3);
-                updatetimetemp = 0;
-            }
-            else if (clientrunpool.getlivenum() < 32)
-            {
-                DEBUG_LOG("fix thread:%d", clientrunpool.getlivenum());
-                updatetimetemp += 1;
-                if (updatetimetemp % 19 == 0)
+                unsigned int nowtimeid = timeid() - 180;
+                std::unique_lock<std::mutex> lock_sock_c(socket_session_lists_mutex);
+
+                for (auto iter = socket_session_lists.begin(); iter != socket_session_lists.end();)
                 {
-                    clientrunpool.fixthread();
-                    updatetimetemp = 0;
-                }
-            }
-
-            if ((mysqlpool_time % 2) == 0)
-            {
-                unsigned long long self_rss_num    = get_rss_kb();
-                unsigned long long total_memory_kb = get_total_memory_kb();
-
-                DEBUG_LOG("memory info:total:%llu process:%llu, live:%d", total_memory_kb, self_rss_num, live_link_count.load());
-                if (self_rss_num > (total_memory_kb / 2))
-                {
-                    //1.6G
-                    std::string temp_l = "-- memory info -- time:";
-                    temp_l.append(get_date("%Y-%m-%d %X"));
-                    temp_l.append(" total:");
-                    temp_l.append(std::to_string(total_memory_kb));
-                    temp_l.append(" process:");
-                    temp_l.append(std::to_string(self_rss_num));
-                    temp_l.append(" live:");
-                    temp_l.append(std::to_string(live_link_count.load()));
-                    temp_l.append("\n");
-
-                    std::unique_lock<std::mutex> logmilock(log_mutex);
-                    error_loglist.push_back(temp_l);
-                    logmilock.unlock();
-                }
-
-                if (total_memory_kb > 100)
-                {
-                    //如果占用内存超过总内存75%
-                    //If the memory usage exceeds 75% of the total memory
-                    if (self_rss_num > ((total_memory_kb / 100) * 75))
+                    std::shared_ptr<client_session> p_session = iter->lock();
+                    if (p_session)
                     {
-                        //启动杀死3分钟之前的连接
-                        //Kill connections older than 3 minutes upon startup
-                        unsigned int nowtimeid = timeid() - 180;
-                        std::unique_lock<std::mutex> lock_sock_c(socket_session_lists_mutex);
-
-                        for (auto iter = socket_session_lists.begin(); iter != socket_session_lists.end();)
+                        if (p_session->time_limit.load() < nowtimeid)
                         {
-                            std::shared_ptr<client_session> p_session = iter->lock();
-                            if (p_session)
+                            DEBUG_LOG("clear nowtimeid pre session");
+                            asio::co_spawn(p_session->strand_, clientpeerstop(p_session), asio::detached);
+                            if (p_session->half_close)
                             {
-                                if (p_session->time_limit.load() < nowtimeid)
-                                {
-                                    DEBUG_LOG("clear nowtimeid pre session");
-                                    asio::co_spawn(p_session->strand_, clientpeerstop(p_session), asio::detached);
-                                    if (p_session->half_close)
-                                    {
-                                        socket_session_lists.erase(iter++);
-                                    }
-                                    else
-                                    {
-                                        ++iter;
-                                    }
-                                }
-                                else
-                                {
-                                    ++iter;
-                                }
+                                socket_session_lists.erase(iter++);
                             }
                             else
                             {
                                 ++iter;
                             }
                         }
-                        lock_sock_c.unlock();
+                        else
+                        {
+                            ++iter;
+                        }
+                    }
+                    else
+                    {
+                        ++iter;
+                    }
+                }
+                lock_sock_c.unlock();
+            }
+        }
+    }
+}
+
+void httpserver::httpwatch_flush_access_log(const std::string &access_path)
+{
+    if (!access_loglist.empty())
+    {
+#ifndef _MSC_VER
+#ifndef _WIN32
+        struct flock lockstr = {};
+#endif
+        int fd = open(access_path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
+        if (fd == -1)
+        {
+            return;
+        }
+
+#ifndef _WIN32
+        lockstr.l_type   = F_WRLCK;
+        lockstr.l_whence = SEEK_END;
+        lockstr.l_start  = 0;
+        lockstr.l_len    = 0;
+        lockstr.l_pid = 0;
+
+        if (fcntl(fd, F_SETLK, &lockstr) == -1)
+        {
+            close(fd);
+            return;
+        }
+#else
+        auto native_handle = (HANDLE)_get_osfhandle(fd);
+        auto file_size     = GetFileSize(native_handle, nullptr);
+        if (!LockFile(native_handle, file_size, 0, file_size, 0))
+        {
+            close(fd);
+            return;
+        }
+#endif
+        std::unique_lock<std::mutex> logacclock(log_mutex);
+        std::size_t n_write = 0;
+        while (!access_loglist.empty())
+        {
+            n_write = write(fd, access_loglist.front().data(), access_loglist.front().size());
+            access_loglist.pop_front();
+            if (n_write < 1)
+            {
+                access_loglist.clear();
+                break;
+            }
+        }
+        logacclock.unlock();
+
+#ifndef _WIN32
+        lockstr.l_type = F_UNLCK;
+        if (fcntl(fd, F_SETLK, &lockstr) == -1)
+        {
+            close(fd);
+            return;
+        }
+#else
+        if (!UnlockFile(native_handle, file_size, 0, file_size, 0))
+        {
+            close(fd);
+            return;
+        }
+#endif
+        close(fd);
+#endif
+    }
+}
+
+void httpserver::httpwatch_flush_error_log(const std::string &error_path)
+{
+    if (!error_loglist.empty())
+    {
+#ifndef _MSC_VER
+#ifndef _WIN32
+        struct flock lockstr = {};
+#endif
+        int fd = open(error_path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
+        if (fd == -1)
+        {
+            return;
+        }
+
+#ifndef _WIN32
+        lockstr.l_type   = F_WRLCK;
+        lockstr.l_whence = SEEK_END;
+        lockstr.l_start  = 0;
+        lockstr.l_len    = 0;
+        lockstr.l_pid = 0;
+
+        if (fcntl(fd, F_SETLK, &lockstr) == -1)
+        {
+            close(fd);
+            return;
+        }
+#else
+        auto native_handle = (HANDLE)_get_osfhandle(fd);
+        auto file_size     = GetFileSize(native_handle, nullptr);
+        if (!LockFile(native_handle, file_size, 0, file_size, 0))
+        {
+            close(fd);
+            return;
+        }
+#endif
+
+        std::unique_lock<std::mutex> logerrlock(log_mutex);
+        while (!error_loglist.empty())
+        {
+            std::size_t n_write = write(fd, error_loglist.front().data(), error_loglist.front().size());
+            error_loglist.pop_front();
+            (void)n_write;
+        }
+        logerrlock.unlock();
+
+#ifndef _WIN32
+        lockstr.l_type = F_UNLCK;
+        if (fcntl(fd, F_SETLK, &lockstr) == -1)
+        {
+            close(fd);
+            return;
+        }
+#else
+        if (!UnlockFile(native_handle, file_size, 0, file_size, 0))
+        {
+            close(fd);
+            return;
+        }
+#endif
+        close(fd);
+#endif
+    }
+}
+
+void httpserver::httpwatch_mysql_pool_maintenance(unsigned int &mysqlpool_time, const std::tm *now, unsigned int old_total_count)
+{
+    // Clear idle connections at 2am when traffic is low
+    if (now->tm_min == 2 && now->tm_sec < 9)
+    {
+        if (total_count.load() == old_total_count)
+        {
+            std::map<std::string, std::shared_ptr<orm::orm_conn_pool>> &mysqldbpoolglobal = orm::get_orm_conn_pool_obj();
+            for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
+            {
+                iter->second->clear_select_conn();
+                DEBUG_LOG("mysql pool clearpoool ");
+            }
+        }
+    }
+
+    // Force clear every 2 days at 3am
+    if (now->tm_hour < 3 && mysqlpool_time > 172800)
+    {
+        std::map<std::string, std::shared_ptr<orm::orm_conn_pool>> &mysqldbpoolglobal = orm::get_orm_conn_pool_obj();
+        for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
+        {
+            iter->second->clear_select_conn();
+            DEBUG_LOG("mysql pool clearpoool ");
+        }
+        mysqlpool_time = 1;
+    }
+}
+
+void httpserver::httpwatch_check_cron_reboot(unsigned char cron_type, unsigned char cron_day,
+                                            unsigned char cron_hour, const std::tm *now)
+{
+    if (cron_type > 0 && cron_day > 0 && cron_hour > 0 && now->tm_min < 3)
+    {
+        bool should_stop = false;
+        if (cron_type == 'd')
+        {
+            if ((now->tm_yday + 1) % cron_day == 0)
+            {
+                if (cron_hour > 0 && now->tm_hour == cron_hour)
+                {
+                    should_stop = true;
+                }
+            }
+        }
+        else if (cron_type == 'm')
+        {
+            if (now->tm_mday == cron_day)
+            {
+                if (cron_hour > 0 && now->tm_hour == cron_hour)
+                {
+                    should_stop = true;
+                }
+            }
+        }
+        else if (cron_type == 'w')
+        {
+            if (cron_day == 7 && 0 == now->tm_wday)
+            {
+                if (cron_hour > 0 && now->tm_hour == cron_hour)
+                {
+                    should_stop = true;
+                }
+            }
+            else if (now->tm_wday == cron_day)
+            {
+                if (cron_hour > 0 && now->tm_hour == cron_hour)
+                {
+                    should_stop = true;
+                }
+            }
+        }
+        else if (cron_type == 's')
+        {
+            if (now->tm_mon == 0 || now->tm_mon == 3 || now->tm_mon == 6 || now->tm_mon == 9)
+            {
+                if (now->tm_mday == cron_day)
+                {
+                    if (cron_hour > 0 && now->tm_hour == cron_hour)
+                    {
+                        should_stop = true;
                     }
                 }
             }
+        }
+        if (should_stop)
+        {
+            std::string logstr = "--- server restart ";
+            logstr.append(std::to_string(now->tm_mon + 1));
+            logstr.push_back('-');
+            logstr.append(std::to_string(now->tm_mday));
+            logstr.push_back(0x20);
+            logstr.append(std::to_string(now->tm_hour));
+            logstr.push_back(0x20);
+            logstr.push_back(cron_type);
+            logstr.append(std::to_string(cron_day));
+            logstr.push_back('h');
+            logstr.append(std::to_string(cron_hour));
+            logstr.append(" ---\n");
+            DEBUG_LOG("exit now:%s", logstr.c_str());
+            std::unique_lock<std::mutex> logvlock(log_mutex);
+            for (unsigned int i = 0; i < 10; i++)
+            {
+                error_loglist.push_back(logstr);
+            }
+            logvlock.unlock();
+            isstop = true;
+        }
+    }
+}
 
+void httpserver::httpwatch_clear_timeout_sessions(unsigned int clean_cron_min, unsigned int clean_cron_time_ago)
+{
+    unsigned int nowtimeid         = timeid();
+    unsigned int erase_count_num   = 0;
+    unsigned int ok_count_num      = 0;
+    unsigned int session_count_num = 0;
+    unsigned int hard_kill_8hours  = nowtimeid - CONST_HARD_KILL_TIME;
+    nowtimeid                      = nowtimeid - clean_cron_time_ago - 60;
+
+    std::unique_lock<std::mutex> lock_sock(socket_session_lists_mutex);
+    session_count_num = socket_session_lists.size();
+    lock_sock.unlock();
+
+    unsigned int remove_linknum = session_count_num / 10;
+    if (remove_linknum < 300)
+    {
+        remove_linknum = 300;
+    }
+
+    unsigned int offset_remove = session_count_num / remove_linknum;
+
+    if (offset_remove < 5)
+    {
+        offset_remove = 4;
+    }
+
+    offset_remove = rand_range(0, offset_remove);
+
+    unsigned int jc = 0;
+    unsigned int bc = 0;
+    if (offset_remove == 0)
+    {
+        offset_remove = remove_linknum;
+        jc            = 0;
+    }
+    else
+    {
+        offset_remove = offset_remove * remove_linknum;
+        if (offset_remove > remove_linknum)
+        {
+            jc = offset_remove - remove_linknum;
+        }
+        else
+        {
+            jc = 0;
+        }
+    }
+    // double remove num;
+    offset_remove = offset_remove + remove_linknum;
+
+    std::unique_lock<std::mutex> lock_sock_b(socket_session_lists_mutex);
+    for (auto iter = socket_session_lists.begin(); iter != socket_session_lists.end();)
+    {
+        bc++;
+        if (bc > offset_remove)
+        {
+            break;
+        }
+        if (bc < jc)
+        {
+            ++iter;
+            continue;
+        }
+
+        std::shared_ptr<client_session> p_session = iter->lock();
+        if (p_session)
+        {
+            if (p_session->time_limit.load() > 10 && p_session->time_limit.load() < nowtimeid)
+            {
+                asio::co_spawn(p_session->strand_, clientpeerstop(p_session), asio::detached);
+                DEBUG_LOG("socket_session_wait_clear asio::co_spawn");
+                if (p_session->half_close)
+                {
+                    socket_session_lists.erase(iter++);
+                }
+                else
+                {
+                    ++iter;
+                }
+                erase_count_num++;
+                continue;
+            }
+
+            if (p_session->time_limit.load() > 10 && p_session->time_begin < hard_kill_8hours)
+            {
+                asio::co_spawn(p_session->strand_, clientpeerstop(p_session), asio::detached);
+                DEBUG_LOG("socket_session_wait_clear asio::co_spawn");
+                if (p_session->half_close)
+                {
+                    socket_session_lists.erase(iter++);
+                }
+                else
+                {
+                    ++iter;
+                }
+                erase_count_num++;
+            }
+            else
+            {
+                ++iter;
+            }
+        }
+        else
+        {
+            socket_session_lists.erase(iter++);
+            ok_count_num++;
+        }
+    }
+    lock_sock_b.unlock();
+
+    if (hard_kill_old_link)
+    {
+        nowtimeid = timeid() - 180;
+        std::unique_lock<std::mutex> lock_sock_c(socket_session_lists_mutex);
+
+        for (auto iter = socket_session_lists.begin(); iter != socket_session_lists.end();)
+        {
+            std::shared_ptr<client_session> p_session = iter->lock();
+            if (p_session)
+            {
+                if (p_session->time_limit.load() < nowtimeid)
+                {
+                    DEBUG_LOG("clear nowtimeid pre session");
+                    asio::co_spawn(p_session->strand_, clientpeerstop(p_session), asio::detached);
+                    if (p_session->half_close)
+                    {
+                        socket_session_lists.erase(iter++);
+                        erase_count_num++;
+                    }
+                    else
+                    {
+                        ++iter;
+                    }
+                }
+                else
+                {
+                    ++iter;
+                }
+            }
+            else
+            {
+                ++iter;
+            }
+        }
+        lock_sock_c.unlock();
+    }
+
+    hard_kill_old_link = false;
+
+    std::string error_msg_loop;
+    error_msg_loop.clear();
+    error_msg_loop = "-- clear sock L:";
+    error_msg_loop.append(std::to_string(total_count.load()));
+    error_msg_loop.append(" t:");
+    error_msg_loop.append(std::to_string(session_count_num));
+    error_msg_loop.append(" O:");
+    error_msg_loop.append(std::to_string(ok_count_num));
+    error_msg_loop.append(" E:");
+    error_msg_loop.append(std::to_string(erase_count_num));
+
+    error_msg_loop.append(" P:");
+    error_msg_loop.append(std::to_string(clean_cron_min * 5));
+
+    error_msg_loop.append(" G:");
+    error_msg_loop.append(std::to_string(clean_cron_time_ago));
+
+    http2_send_queue &send_queue_obj = get_http2_send_queue();
+    error_msg_loop.append(" C:");
+    error_msg_loop.append(std::to_string(send_queue_obj.queue_list.size()));
+    error_msg_loop.append(" M:");
+    error_msg_loop.append(std::to_string(http2_minute_count.load()));
+    error_msg_loop.append(" L:");
+    error_msg_loop.append(std::to_string(live_link_count.load()));
+
+    unsigned long long self_rss_num    = get_rss_kb();
+    unsigned long long total_memory_kb = get_total_memory_kb();
+    error_msg_loop.append(" TOTAL:");
+    error_msg_loop.append(std::to_string(total_memory_kb));
+    error_msg_loop.append(" SELF:");
+    error_msg_loop.append(std::to_string(self_rss_num));
+
+    error_msg_loop.append(" --\n");
+    std::unique_lock<std::mutex> logvvlock(log_mutex);
+    error_loglist.push_back(error_msg_loop);
+    logvvlock.unlock();
+
+    //clear mysql connect
+    std::map<std::string, std::shared_ptr<orm::orm_conn_pool>> &mysqldbpoolglobal = orm::get_orm_conn_pool_obj();
+    for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
+    {
+        asio::co_spawn(this->io_context, orm_connect_clear(iter->second), asio::detached);
+        DEBUG_LOG("mysql connect clear 1024q or 2hour ");
+    }
+}
+
+void httpserver::httpwatch_check_deadlock(unsigned char &plan_http1_exit, unsigned char &plan_http2_exit,
+                                          unsigned int &old_ten_total_count, unsigned int old_total_count)
+{
+    std::string error_msg_loop;
+    // HTTP/2 deadlock detection
+    if (total_http2_count.load() > 4)
+    {
+        error_msg_loop.clear();
+        error_msg_loop.append("-- total_http2_count ");
+        error_msg_loop.append(std::to_string(total_http2_count.load()));
+        error_msg_loop.append(" - ");
+        error_msg_loop.append(std::to_string(old_ten_total_count));
+        error_msg_loop.append(" - ");
+        error_msg_loop.append(std::to_string(total_count.load()));
+        error_msg_loop.append(" - ");
+        error_msg_loop.append(std::to_string(plan_http2_exit));
+        error_msg_loop.append(" --\n");
+
+        if (plan_http2_exit == 0)
+        {
+            old_ten_total_count = old_total_count;
+        }
+
+        plan_http2_exit++;
+        if (plan_http2_exit > 2)
+        {
+            std::unique_lock<std::mutex> logh2lock(log_mutex);
+            error_loglist.push_back(error_msg_loop);
+            logh2lock.unlock();
+            if (old_ten_total_count == total_count.load())
+            {
+                isstop = true;
+            }
+            else
+            {
+                plan_http2_exit = 0;
+            }
+        }
+    }
+    else
+    {
+        if (plan_http2_exit > 0)
+        {
+            plan_http2_exit = 0;
+        }
+    }
+
+    // HTTP/1 deadlock detection
+    if (total_http1_count.load() > 4)
+    {
+        error_msg_loop.clear();
+        error_msg_loop.append("-- total_http2_count ");
+        error_msg_loop.append(std::to_string(total_http1_count.load()));
+        error_msg_loop.append(" - ");
+        error_msg_loop.append(std::to_string(old_ten_total_count));
+        error_msg_loop.append(" - ");
+        error_msg_loop.append(std::to_string(total_count.load()));
+        error_msg_loop.append(" - ");
+        error_msg_loop.append(std::to_string(plan_http2_exit));
+        error_msg_loop.append(" --\n");
+
+        if (plan_http1_exit == 0)
+        {
+            old_ten_total_count = old_total_count;
+        }
+
+        plan_http1_exit++;
+        if (plan_http1_exit > 2)
+        {
+            std::unique_lock<std::mutex> logh1lock(log_mutex);
+            error_loglist.push_back(error_msg_loop);
+            logh1lock.unlock();
+
+            if (old_ten_total_count == total_count.load())
+            {
+                isstop = true;
+            }
+            else
+            {
+                plan_http1_exit = 0;
+            }
+        }
+    }
+    else
+    {
+        if (plan_http1_exit > 0)
+        {
+            plan_http1_exit = 0;
+        }
+    }
+}
+
+void httpserver::httpwatch_check_restart_threshold(unsigned int restart_process_num,
+                                                   int restart_process_time_start, int restart_process_time_end,
+                                                   const std::tm *now, unsigned int old_total_count)
+{
+    // Check every 5 seconds for over threshold
+    if (now->tm_hour < restart_process_time_end && now->tm_hour > restart_process_time_start)
+    {
+        if (restart_process_num > 0)
+        {
+            if (old_total_count > restart_process_num && total_count.load() == old_total_count)
+            {
+                std::unique_lock<std::mutex> logrblock(log_mutex);
+                error_loglist.push_back("--restart_process_time_start--\n");
+                logrblock.unlock();
+                isstop = true;
+            }
+        }
+    }
+}
+
+void httpserver::httpwatch()
+{
+#ifdef __APPLE__
+    pthread_set_qos_class_self_np(QOS_CLASS_USER_INITIATED, 0);
+#endif
+    serverconfig &sysconfigpath = getserversysconfig();
+
+    // 1. Startup log
+    {
+        std::unique_lock<std::mutex> loglock(log_mutex);
+        error_loglist.push_back("------------begin-----------");
+        error_loglist.push_back(get_date("%Y-%m-%d %X\n"));
+    }
+
+    // 2. Register builtin routes
+    httpwatch_register_builtin_routes();
+
+    // 3. Initialize paths and configuration
+    std::string currentpath, error_path, traffic_switch_file;
+    std::string restart_file, restart_ssl_file, orm_log_file;
+    httpwatch_init_paths(currentpath, error_path, traffic_switch_file,
+                         restart_file, restart_ssl_file, orm_log_file);
+
+    // 4. Parse cron configurations
+    unsigned char cron_type = 0, cron_day = 0, cron_hour = 0;
+    unsigned int clean_cron_min = 60, clean_cron_time_ago = 0;
+    unsigned int restart_process_num = 0;
+    int restart_process_time_start = 0, restart_process_time_end = 0;
+
+    httpwatch_parse_reboot_cron(sysconfigpath, cron_type, cron_day, cron_hour);
+    httpwatch_parse_clean_cron(sysconfigpath, clean_cron_min, clean_cron_time_ago);
+    httpwatch_parse_links_restart(sysconfigpath, restart_process_num,
+                                  restart_process_time_start, restart_process_time_end);
+
+    // 5. Main loop variables
+    unsigned int updatetimetemp = 0;
+    unsigned int mysqlpool_time = 1;
+    unsigned int old_total_count = 0;
+    unsigned int old_ten_total_count = 0;
+    unsigned char plan_http1_exit = 0x00;
+    unsigned char plan_http2_exit = 0x00;
+    bool is_clear_sock = false;
+    bool is_run_acme = false;
+    int acme_every_day_time = sysconfigpath.acme_every_day_time;
+    int acme_every_day_time_reset = 1;
+    int ocsp_interval_time = sysconfigpath.ocsp_interval_time;
+
+    if (ocsp_interval_time < 3600)
+    {
+        ocsp_interval_time = 3600;
+    }
+    if (acme_every_day_time < 2)
+    {
+        acme_every_day_time = 2;
+    }
+    if (acme_every_day_time > 23)
+    {
+        acme_every_day_time = 23;
+    }
+    acme_every_day_time_reset = acme_every_day_time - 1;
+
+    DEBUG_LOG("httpwatch run");
+
+    // 6. Main event loop
+    for (;;)
+    {
+        try
+        {
+            std::this_thread::sleep_for(std::chrono::seconds(5));
+
+            // Thread pool adjustment
+            httpwatch_adjust_thread_pool(updatetimetemp);
+
+            // Memory monitoring
+            httpwatch_memory_monitor(mysqlpool_time);
+
+            // Collect thread pool errors
             if (clientrunpool.error_message.size() > 0)
             {
                 std::unique_lock<std::mutex> logthoollock(log_mutex);
@@ -4798,184 +5382,20 @@ void httpserver::httpwatch()
             clientrunpool.printthreads(false);
 #endif
 
-            // save access.log
-            if (!access_loglist.empty())
-            {
-#ifndef _MSC_VER
-                int fd = open(currentpath.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
-                if (fd == -1)
-                {
-                    continue;
-                }
-
-#ifndef _WIN32
-                lockstr.l_type   = F_WRLCK;
-                lockstr.l_whence = SEEK_END;
-                lockstr.l_start  = 0;
-                lockstr.l_len    = 0;
-
-                lockstr.l_pid = 0;
-
-                if (fcntl(fd, F_SETLK, &lockstr) == -1)
-                {
-                    close(fd);
-                    continue;
-                }
-#else
-                auto native_handle = (HANDLE)_get_osfhandle(fd);
-                auto file_size     = GetFileSize(native_handle, nullptr);
-                if (!LockFile(native_handle, file_size, 0, file_size, 0))
-                {
-                    close(fd);
-                    continue;
-                }
-#endif
-                std::unique_lock<std::mutex> logacclock(log_mutex);
-                while (!access_loglist.empty())
-                {
-                    n_write = write(fd, access_loglist.front().data(), access_loglist.front().size());
-                    access_loglist.pop_front();
-                    if (n_write < 1)
-                    {
-                        access_loglist.clear();
-                        break;
-                    }
-                }
-                logacclock.unlock();
-
-#ifndef _WIN32
-                lockstr.l_type = F_UNLCK;
-                if (fcntl(fd, F_SETLK, &lockstr) == -1)
-                {
-                    close(fd);
-                    continue;
-                }
-#else
-                if (!UnlockFile(native_handle, file_size, 0, file_size, 0))
-                {
-                    close(fd);
-                    continue;
-                }
-#endif
-                close(fd);
-#endif
-            }
-
-            // save error.log
-            if (!error_loglist.empty())
-            {
-#ifndef _MSC_VER
-                int fd = open(error_path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
-                if (fd == -1)
-                {
-                    continue;
-                }
-
-#ifndef _WIN32
-                lockstr.l_type   = F_WRLCK;
-                lockstr.l_whence = SEEK_END;
-                lockstr.l_start  = 0;
-                lockstr.l_len    = 0;
-
-                lockstr.l_pid = 0;
-
-                if (fcntl(fd, F_SETLK, &lockstr) == -1)
-                {
-                    close(fd);
-                    continue;
-                }
-#else
-                auto native_handle = (HANDLE)_get_osfhandle(fd);
-                auto file_size     = GetFileSize(native_handle, nullptr);
-                if (!LockFile(native_handle, file_size, 0, file_size, 0))
-                {
-                    close(fd);
-                    continue;
-                }
-#endif
-
-                std::unique_lock<std::mutex> logerrlock(log_mutex);
-                while (!error_loglist.empty())
-                {
-                    n_write = write(fd, error_loglist.front().data(), error_loglist.front().size());
-                    error_loglist.pop_front();
-                }
-                logerrlock.unlock();
-
-#ifndef _WIN32
-                lockstr.l_type = F_UNLCK;
-                if (fcntl(fd, F_SETLK, &lockstr) == -1)
-                {
-                    close(fd);
-                    continue;
-                }
-#else
-                if (!UnlockFile(native_handle, file_size, 0, file_size, 0))
-                {
-                    close(fd);
-                    continue;
-                }
-#endif
-                close(fd);
-#endif
-            }
-            if (n_write > 0)
-            {
-                n_write = 0;
-            }
+            // Flush logs
+            httpwatch_flush_access_log(currentpath);
+            httpwatch_flush_error_log(error_path);
 
             std::time_t t = std::time(nullptr);
             std::tm *now  = std::localtime(&t);
-            /*
-            std::tm now;
-            localtime_r(&t, &now);  // 线程安全
-            */
 
-            if (now->tm_min == 2 && now->tm_sec < 9)
-            {
-                if (total_count.load() == old_total_count)
-                {
-                    std::map<std::string, std::shared_ptr<orm::orm_conn_pool>> &mysqldbpoolglobal = orm::get_orm_conn_pool_obj();
-                    for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
-                    {
-                        iter->second->clear_select_conn();
-                        // iter->second->addpool_select_connect();
-                        // iter->second->addpool_edit_connect();
-                        DEBUG_LOG("mysql pool clearpoool ");
-                    }
-                    // std::map<std::size_t, std::shared_ptr<http::mysqllinkpool>> &mysqldbpoolglobal = get_mysqlpool();
-                    // for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
-                    // {
-                    //     iter->second->clearpool();
-                    //     iter->second->addpool_select_connect();
-                    //     iter->second->addpool_edit_connect();
-                    //     DEBUG_LOG("mysql pool clearpoool ");
-                    // }
-                }
-            }
+            // MySQL pool maintenance
+            httpwatch_mysql_pool_maintenance(mysqlpool_time, now, old_total_count);
 
-            if (now->tm_hour < 3 && mysqlpool_time > 172800)
-            {
-                std::map<std::string, std::shared_ptr<orm::orm_conn_pool>> &mysqldbpoolglobal = orm::get_orm_conn_pool_obj();
-                for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
-                {
-                    iter->second->clear_select_conn();
-                    // iter->second->addpool_select_connect();
-                    // iter->second->addpool_edit_connect();
-                    DEBUG_LOG("mysql pool clearpoool ");
-                }
-                // std::map<std::size_t, std::shared_ptr<http::mysqllinkpool>> &mysqldbpoolglobal = get_mysqlpool();
-                // for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
-                // {
-                //     iter->second->clearpool();
-                // }
-                mysqlpool_time = 1;
-            }
-
+            // ACME task trigger
             if (now->tm_hour == acme_every_day_time && is_run_acme)
             {
                 is_run_acme = false;
-                //every day
                 std::thread t_acme(&httpserver::acme_task, this);
                 t_acme.detach();
             }
@@ -4984,7 +5404,7 @@ void httpserver::httpwatch()
                 is_run_acme = true;
             }
 
-            // OCSP Stapling 刷新
+            // OCSP Stapling refresh
             if (mysqlpool_time % ocsp_interval_time == 9)
             {
                 std::thread t_ocsp([]()
@@ -4996,290 +5416,27 @@ void httpserver::httpwatch()
             DEBUG_LOG("clear mysql poll time:%d,client live:%d", mysqlpool_time, total_count.load());
             DEBUG_LOG("cron type:%c day:%d,hour:%d min:%d", cron_type, cron_day, cron_hour, now->tm_min);
 
-            // cron reboot process
-            if (cron_type > 0 && cron_day > 0 && cron_hour > 0 && mysqlpool_time > 40 && now->tm_min < 3)
+            // Cron reboot check (only after 40 cycles and within first 3 minutes)
+            if (mysqlpool_time > 40)
             {
-                if (cron_type == 'd')
-                {
-                    if ((now->tm_yday + 1) % cron_day == 0)
-                    {
-                        if (cron_hour > 0 && now->tm_hour == cron_hour)
-                        {
-                            isstop = true;
-                        }
-                    }
-                }
-                else if (cron_type == 'm')
-                {
-                    if (now->tm_mday == cron_day)
-                    {
-                        if (cron_hour > 0 && now->tm_hour == cron_hour)
-                        {
-                            isstop = true;
-                        }
-                    }
-                }
-                else if (cron_type == 'w')
-                {
-                    if (cron_day == 7 && 0 == now->tm_wday)
-                    {
-                        if (cron_hour > 0 && now->tm_hour == cron_hour)
-                        {
-                            isstop = true;
-                        }
-                    }
-                    else if (now->tm_wday == cron_day)
-                    {
-                        if (cron_hour > 0 && now->tm_hour == cron_hour)
-                        {
-                            isstop = true;
-                        }
-                    }
-                }
-                else if (cron_type == 's')
-                {
-                    if (now->tm_mon == 0 || now->tm_mon == 3 || now->tm_mon == 6 || now->tm_mon == 9)
-                    {
-                        if (now->tm_mday == cron_day)
-                        {
-                            if (cron_hour > 0 && now->tm_hour == cron_hour)
-                            {
-                                isstop = true;
-                            }
-                        }
-                    }
-                }
-                if (isstop)
-                {
-                    std::string logstr = "--- server restart ";
-                    logstr.append(std::to_string(now->tm_mon + 1));
-                    logstr.push_back('-');
-                    logstr.append(std::to_string(now->tm_mday));
-                    logstr.push_back(0x20);
-                    logstr.append(std::to_string(now->tm_hour));
-                    logstr.push_back(0x20);
-                    logstr.push_back(cron_type);
-                    logstr.append(std::to_string(cron_day));
-                    logstr.push_back('h');
-                    logstr.append(std::to_string(cron_hour));
-                    logstr.append(" ---\n");
-                    DEBUG_LOG("exit now:%s", logstr.c_str());
-                    std::unique_lock<std::mutex> logvlock(log_mutex);
-                    for (unsigned int i = 0; i < 10; i++)
-                    {
-                        error_loglist.push_back(logstr);
-                    }
-                    logvlock.unlock();
-                    cron_type = 0x00;
-
-                    continue;
-                }
+                httpwatch_check_cron_reboot(cron_type, cron_day, cron_hour, now);
             }
 
-            // clear timeout sock 10 minute
+            // Clear timeout sessions
             if (mysqlpool_time % (clean_cron_min + 1) == 0)
             {
                 is_clear_sock = true;
             }
             if (is_clear_sock)
             {
-                unsigned int nowtimeid         = timeid();
-                unsigned int erase_count_num   = 0;
-                unsigned int ok_count_num      = 0;
-                unsigned int session_count_num = 0;
-                unsigned int hard_kill_8hours  = nowtimeid - CONST_HARD_KILL_TIME;
-                nowtimeid                      = nowtimeid - clean_cron_time_ago - 60;
-
-                std::unique_lock<std::mutex> lock_sock(socket_session_lists_mutex);
-                session_count_num = socket_session_lists.size();
-                lock_sock.unlock();
-
-                remove_linknum = session_count_num / 10;
-                if (remove_linknum < 300)
-                {
-                    remove_linknum = 300;
-                }
-
-                unsigned int offset_remove = session_count_num / remove_linknum;
-
-                if (offset_remove < 5)
-                {
-                    offset_remove = 4;
-                }
-
-                offset_remove = rand_range(0, offset_remove);
-
-                unsigned int jc = 0;
-                unsigned int bc = 0;
-                if (offset_remove == 0)
-                {
-                    offset_remove = remove_linknum;
-                    jc            = 0;
-                }
-                else
-                {
-                    offset_remove = offset_remove * remove_linknum;
-                    if (offset_remove > remove_linknum)
-                    {
-                        jc = offset_remove - remove_linknum;
-                    }
-                    else
-                    {
-                        jc = 0;
-                    }
-                }
-                // double remove num;
-                offset_remove = offset_remove + remove_linknum;
-
-                std::unique_lock<std::mutex> lock_sock_b(socket_session_lists_mutex);
-                for (auto iter = socket_session_lists.begin(); iter != socket_session_lists.end();)
-                {
-                    bc++;
-                    if (bc > offset_remove)
-                    {
-                        break;
-                    }
-                    if (bc < jc)
-                    {
-                        ++iter;
-                        continue;
-                    }
-
-                    std::shared_ptr<client_session> p_session = iter->lock();
-                    if (p_session)
-                    {
-                        if (p_session->time_limit.load() > 10 && p_session->time_limit.load() < nowtimeid)
-                        {
-                            asio::co_spawn(p_session->strand_, clientpeerstop(p_session), asio::detached);
-                            DEBUG_LOG("socket_session_wait_clear asio::co_spawn");
-                            if (p_session->half_close)
-                            {
-                                socket_session_lists.erase(iter++);
-                            }
-                            else
-                            {
-                                ++iter;
-                            }
-                            erase_count_num++;
-                            continue;
-                        }
-
-                        if (p_session->time_limit.load() > 10 && p_session->time_begin < hard_kill_8hours)
-                        {
-                            asio::co_spawn(p_session->strand_, clientpeerstop(p_session), asio::detached);
-                            DEBUG_LOG("socket_session_wait_clear asio::co_spawn");
-                            if (p_session->half_close)
-                            {
-                                socket_session_lists.erase(iter++);
-                            }
-                            else
-                            {
-                                ++iter;
-                            }
-                            erase_count_num++;
-                        }
-                        else
-                        {
-                            ++iter;
-                        }
-                    }
-                    else
-                    {
-                        socket_session_lists.erase(iter++);
-                        ok_count_num++;
-                    }
-                }
-                lock_sock_b.unlock();
-
-                if (hard_kill_old_link)
-                {
-                    nowtimeid = timeid() - 180;
-                    std::unique_lock<std::mutex> lock_sock_c(socket_session_lists_mutex);
-
-                    for (auto iter = socket_session_lists.begin(); iter != socket_session_lists.end();)
-                    {
-                        std::shared_ptr<client_session> p_session = iter->lock();
-                        if (p_session)
-                        {
-                            if (p_session->time_limit.load() < nowtimeid)
-                            {
-                                DEBUG_LOG("clear nowtimeid pre session");
-                                asio::co_spawn(p_session->strand_, clientpeerstop(p_session), asio::detached);
-                                if (p_session->half_close)
-                                {
-                                    socket_session_lists.erase(iter++);
-                                    erase_count_num++;
-                                }
-                                else
-                                {
-                                    ++iter;
-                                }
-                            }
-                            else
-                            {
-                                ++iter;
-                            }
-                        }
-                        else
-                        {
-                            ++iter;
-                        }
-                    }
-                    lock_sock_c.unlock();
-                }
-
-                hard_kill_old_link = false;
-
-                error_msg_loop.clear();
-                error_msg_loop = "-- clear sock L:";
-                error_msg_loop.append(std::to_string(total_count.load()));
-                error_msg_loop.append(" t:");
-                error_msg_loop.append(std::to_string(session_count_num));
-                error_msg_loop.append(" O:");
-                error_msg_loop.append(std::to_string(ok_count_num));
-                error_msg_loop.append(" E:");
-                error_msg_loop.append(std::to_string(erase_count_num));
-
-                error_msg_loop.append(" P:");
-                error_msg_loop.append(std::to_string(clean_cron_min * 5));
-
-                error_msg_loop.append(" G:");
-                error_msg_loop.append(std::to_string(clean_cron_time_ago));
-
-                http2_send_queue &send_queue_obj = get_http2_send_queue();
-                error_msg_loop.append(" C:");
-                error_msg_loop.append(std::to_string(send_queue_obj.queue_list.size()));
-                error_msg_loop.append(" M:");
-                error_msg_loop.append(std::to_string(http2_minute_count.load()));
-                error_msg_loop.append(" L:");
-                error_msg_loop.append(std::to_string(live_link_count.load()));
-
-                unsigned long long self_rss_num    = get_rss_kb();
-                unsigned long long total_memory_kb = get_total_memory_kb();
-                error_msg_loop.append(" TOTAL:");
-                error_msg_loop.append(std::to_string(total_memory_kb));
-                error_msg_loop.append(" SELF:");
-                error_msg_loop.append(std::to_string(self_rss_num));
-
-                error_msg_loop.append(" --\n");
-                std::unique_lock<std::mutex> logvvlock(log_mutex);
-                error_loglist.push_back(error_msg_loop);
-                logvvlock.unlock();
-
-                //clear mysql connect
-                std::map<std::string, std::shared_ptr<orm::orm_conn_pool>> &mysqldbpoolglobal = orm::get_orm_conn_pool_obj();
-                for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
-                {
-                    asio::co_spawn(this->io_context, orm_connect_clear(iter->second), asio::detached);
-                    DEBUG_LOG("mysql connect clear 1024q or 2hour ");
-                }
-
+                httpwatch_clear_timeout_sessions(clean_cron_min, clean_cron_time_ago);
                 is_clear_sock = false;
             }
-            //
+
+            // Watch status log
             if (mysqlpool_time % 128 == 0)
             {
-                error_msg_loop.clear();
+                std::string error_msg_loop;
                 error_msg_loop = "-- watch ";
                 error_msg_loop.append(std::to_string(total_count.load()));
                 error_msg_loop.push_back(0x20);
@@ -5306,12 +5463,14 @@ void httpserver::httpwatch()
                 logwlock.unlock();
             }
 
+            // ORM query log save
             if (mysqlpool_time % (CONST_ORM_QUERY_LOG_TIME + 1) == 0)
             {
                 orm::orm_connect_mar_t &watch_conn = orm::get_orm_connect_mar();
                 watch_conn.save_log(orm_log_file);
             }
 
+            // Traffic statistics and restart file detection
             if (mysqlpool_time % 4 == 0)
             {
                 if (istraffic)
@@ -5352,108 +5511,15 @@ void httpserver::httpwatch()
                 }
             }
 
-            // may be asio post pool is die;
-            if (total_http2_count.load() > 4)
-            {
-                error_msg_loop.clear();
-                error_msg_loop.append("-- total_http2_count ");
-                error_msg_loop.append(std::to_string(total_http2_count.load()));
-                error_msg_loop.append(" - ");
-                error_msg_loop.append(std::to_string(old_ten_total_count));
-                error_msg_loop.append(" - ");
-                error_msg_loop.append(std::to_string(total_count.load()));
-                error_msg_loop.append(" - ");
-                error_msg_loop.append(std::to_string(plan_http2_exit));
-                error_msg_loop.append(" --\n");
+            // Deadlock detection
+            httpwatch_check_deadlock(plan_http1_exit, plan_http2_exit,
+                                     old_ten_total_count, old_total_count);
 
-                if (plan_http2_exit == 0)
-                {
-                    old_ten_total_count = old_total_count;
-                }
+            // Restart threshold check
+            httpwatch_check_restart_threshold(restart_process_num,
+                                              restart_process_time_start,
+                                              restart_process_time_end, now, old_total_count);
 
-                plan_http2_exit++;
-                if (plan_http2_exit > 2)
-                {
-                    std::unique_lock<std::mutex> logh2lock(log_mutex);
-                    error_loglist.push_back(error_msg_loop);
-                    logh2lock.unlock();
-                    if (old_ten_total_count == total_count.load())
-                    {
-                        isstop = true;
-                        continue;
-                    }
-                    else
-                    {
-                        plan_http2_exit = 0;
-                    }
-                }
-            }
-            else
-            {
-                if (plan_http2_exit > 0)
-                {
-                    plan_http2_exit = 0;
-                }
-            }
-            if (total_http1_count.load() > 4)
-            {
-                error_msg_loop.clear();
-                error_msg_loop.append("-- total_http2_count ");
-                error_msg_loop.append(std::to_string(total_http1_count.load()));
-                error_msg_loop.append(" - ");
-                error_msg_loop.append(std::to_string(old_ten_total_count));
-                error_msg_loop.append(" - ");
-                error_msg_loop.append(std::to_string(total_count.load()));
-                error_msg_loop.append(" - ");
-                error_msg_loop.append(std::to_string(plan_http2_exit));
-                error_msg_loop.append(" --\n");
-
-                if (plan_http1_exit == 0)
-                {
-                    old_ten_total_count = old_total_count;
-                }
-
-                plan_http1_exit++;
-                if (plan_http1_exit > 2)
-                {
-                    std::unique_lock<std::mutex> logh1lock(log_mutex);
-                    error_loglist.push_back(error_msg_loop);
-                    logh1lock.unlock();
-
-                    if (old_ten_total_count == total_count.load())
-                    {
-                        isstop = true;
-                        continue;
-                    }
-                    else
-                    {
-                        plan_http1_exit = 0;
-                    }
-                }
-            }
-            else
-            {
-                if (plan_http1_exit > 0)
-                {
-                    plan_http1_exit = 0;
-                }
-            }
-
-            // Check every 5 seconds for over 12000
-            if (now->tm_hour < restart_process_time_end && now->tm_hour > restart_process_time_start)
-            {
-                if (restart_process_num > 0)
-                {
-                    if (old_total_count > restart_process_num && total_count.load() == old_total_count)
-                    {
-                        std::unique_lock<std::mutex> logrblock(log_mutex);
-                        error_loglist.push_back("--restart_process_time_start--\n");
-                        logrblock.unlock();
-                        isstop = true;
-                        continue;
-                    }
-                }
-            }
             old_total_count = total_count.load();
         }
         catch (std::exception &e)
@@ -5466,7 +5532,7 @@ void httpserver::httpwatch()
             break;
         }
     }
-    // std::abort();
+    DEBUG_LOG("httpwatch exit");
     std::terminate();
 }
 void httpserver::acme_task()
@@ -6093,15 +6159,22 @@ void httpserver::set_thread_priority(std::thread &thread, int priority)
     auto native_handle = thread.native_handle();
 
 #ifdef _WIN32
-    // Windows 平台
     SetThreadPriority(native_handle, priority);
+#elif defined(__APPLE__)
+    // macOS: pthread_set_qos_class_self_np only affects the calling thread,
+    // so QoS is set inside each thread entry function instead.
+    (void)native_handle;
+    (void)priority;
 #else
-    // Linux 平台
-    sched_param sch;
-    int policy;
-    pthread_getschedparam(native_handle, &policy, &sch);
+    // Linux/POSIX: try SCHED_RR with given priority, fallback to SCHED_OTHER
+    struct sched_param sch;
     sch.sched_priority = priority;
-    pthread_setschedparam(native_handle, policy, &sch);
+    if (pthread_setschedparam(native_handle, SCHED_RR, &sch) != 0)
+    {
+        // Fallback: no permission or unsupported, reset to SCHED_OTHER priority 0
+        sch.sched_priority = 0;
+        pthread_setschedparam(native_handle, SCHED_OTHER, &sch);
+    }
 #endif
 }
 
@@ -6215,6 +6288,7 @@ void httpserver::run(const std::string &sysconfpath)
 #else
         set_thread_priority(https, 90);
         set_thread_priority(http, 90);
+        set_thread_priority(httpwatch, 50);
 #endif
 
         {

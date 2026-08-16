@@ -25,6 +25,8 @@ temp
 cmake-build-*
 .idea
 .vscode
+.qoder
+.qoder/
 www/default/upload
 orm/_rawsqlfile
 conf/*.bak
