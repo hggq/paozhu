@@ -65,7 +65,7 @@ paozhu/
 │   ├── httpserver/                # HTTP 服务器核心
 │   │   ├── include/               # 服务器头文件
 │   │   │   ├── request.h          # HTTP 请求处理
-│   │   │   ├── httppeer.h        # HTTP 客户端封装
+│   │   │   ├── httppeer.h        # HTTP 请求/响应处理对象
 │   │   │   ├── router.h           # URL 路由
 │   │   │   └── ...               # 其他头文件
 │   │   └── src/                   # 服务器实现
@@ -202,7 +202,7 @@ eab_hmac_key =             ; EAB HMAC Key
 ```cpp
 // controller/src/example.cpp
 #include "orm.h"              // ORM 入口
-#include "httppeer.h"         // HTTP 客户端封装
+#include "httppeer.h"         // HTTP 请求/响应处理对象
 #include "func.h"             // 工具函数
 #include "example.h"          // 对应头文件
 
@@ -308,7 +308,7 @@ peer->view("front/producthome");
 peer->theme_view("front/producthome");
 ```
 
-**真实项目用法示例**（来自 [products.cpp](file:///Users/hzq/newpoint/controller/src/saas.com/products.cpp)）：
+**用法示例**（`theme_view` 的声明位于 `vendor/httpserver/include/httppeer.h`）：
 ```cpp
 peer->theme_view("front/producthome");
 peer->theme_view("front/productcatalogue");
@@ -363,7 +363,7 @@ std::string crud_list(std::shared_ptr<httppeer> peer)
     unsigned int page = client.get["page"].to_int();
     if (page == 0) page = 1;
     
-    auto [minpage, maxpage, curpage, totalpage] = model.page(page, 10);
+    auto [minpage, maxpage, curpage, totalpage] = model.page(page, 10, 5);   // 第3参数 list_num：分页条显示的页码个数
     model.where("userid", client.session["userid"].to_int())
          .desc("aid")
          .fetch();
@@ -395,7 +395,7 @@ std::string crud_addpost(std::shared_ptr<httppeer> peer)
     model.data.userid = client.session["userid"].to_int();
     model.data.title = client.post["title"].to_string();
     model.data.content = client.post["content"].to_string();
-    model.setPK(model.save());
+    auto [effect, newId] = model.save();   // 返回 [生效行数, 自增ID]，save 已自动 setPK
     
     client.goto_url("/crud/list", 3, "添加成功！");
     return "";
@@ -425,7 +425,7 @@ std::string crud_delete(std::shared_ptr<httppeer> peer)
     unsigned int id = client.get["id"].to_int();
     
     auto model = orm::cms::Article();
-    model.where("aid", id).delete();
+    model.where("aid", id).remove();
     
     client.val["code"] = 1;
     client.val["msg"] = "删除成功";
@@ -434,6 +434,127 @@ std::string crud_delete(std::shared_ptr<httppeer> peer)
 }
 }
 ```
+
+### 4.7 协程控制器模式
+
+控制器可以使用 C++20 协程编写，实现非阻塞异步 IO。框架会根据返回类型自动检测并选择对应的执行方式。
+
+**核心规则**:
+- 返回类型: `asio::awaitable<std::string>`（替代 `std::string`）
+- 所有异步 ORM 操作使用 `co_await` 等待
+- 使用 `co_return ""` 替代 `return ""`
+- 批量操作使用 `lock_conn()` / `unlock_conn()` 复用单条连接（避免重复连接开销）
+
+**示例 1 - 基础协程控制器**（无数据库，纯文本响应）:
+
+```cpp
+//@urlpath(null,plaintext)
+asio::awaitable<std::string> techempowerplaintext(std::shared_ptr<httppeer> peer)
+{
+    peer->type("text/plain; charset=UTF-8");
+    peer->set_header("Date", get_gmttime());
+    peer->output = "Hello, World!";
+    co_return "";
+}
+```
+
+**示例 2 - 协程 + 异步 ORM 查询**:
+
+```cpp
+//@urlpath(null,db)
+asio::awaitable<std::string> techempowerdb(std::shared_ptr<httppeer> peer)
+{
+    peer->type("application/json; charset=UTF-8");
+    peer->set_header("Date", get_gmttime());
+
+    auto myworld = orm::World();
+    unsigned int rd_num = rand_range(1, 10000);
+    myworld.where("id", rd_num);
+    myworld.limit(1);
+    co_await myworld.async_fetch_one();   // 异步单条查询
+
+    peer->output = myworld.data_tojson();
+    co_return "";
+}
+```
+
+**示例 3 - 协程 + 异步批量查询**（使用 `lock_conn`/`unlock_conn`）:
+
+```cpp
+//@urlpath(null,queries)
+asio::awaitable<std::string> techempowerqueries(std::shared_ptr<httppeer> peer)
+{
+    peer->type("application/json; charset=UTF-8");
+    peer->set_header("Date", get_gmttime());
+
+    unsigned int get_num = peer->get["queries"].to_int();
+    if (get_num == 0) get_num = 1;
+    else if (get_num > 500) get_num = 500;
+
+    auto myworld = orm::World();
+    myworld.record.reserve(get_num);
+    myworld.lock_conn();                 // 锁定连接以便循环内复用
+    for (unsigned int i = 0; i < get_num; i++)
+    {
+        myworld.wheresql.clear();
+        unsigned int rd_num = rand_range(1, 10000);
+        myworld.where("id", rd_num);
+        co_await myworld.async_fetch_append();  // 异步追加查询结果
+    }
+    myworld.unlock_conn();               // 释放连接
+    peer->output = myworld.to_json();
+    co_return "";
+}
+```
+
+**示例 4 - 协程 + 异步更新**（循环内查询 + 更新）:
+
+```cpp
+//@urlpath(null,updates)
+asio::awaitable<std::string> techempowerupdates(std::shared_ptr<httppeer> peer)
+{
+    peer->type("application/json; charset=UTF-8");
+    peer->set_header("Date", get_gmttime());
+    unsigned int get_num = peer->get["queries"].to_int();
+    if (get_num == 0) get_num = 1;
+    else if (get_num > 500) get_num = 500;
+
+    auto myworld = orm::World();
+    myworld.record.clear();
+    myworld.record.reserve(get_num);
+    myworld.lock_conn();
+    for (unsigned int i = 0; i < get_num; i++)
+    {
+        myworld.wheresql.clear();
+        myworld.where("id", rand_range(1, 10000));
+        co_await myworld.async_fetch_append();
+        if (myworld.effect() > 0)
+        {
+            unsigned int j = myworld.record.size() - 1;
+            myworld.data.randomnumber = rand_range(1, 10000);
+            myworld.record[j].randomnumber = myworld.data.randomnumber;
+            co_await myworld.async_update("randomnumber");  // 异步更新
+        }
+    }
+    myworld.unlock_conn();
+    peer->output = myworld.to_json();
+    co_return "";
+}
+```
+
+**可用的异步 ORM 方法**:
+
+| 同步方法 | 异步方法 | 说明 |
+|----------|----------|------|
+| `fetch()` | `async_fetch()` | 查询所有匹配记录 |
+| `fetch_one()` | `async_fetch_one()` | 查询单条记录 |
+| `fetch_append()` | `async_fetch_append()` | 查询并追加到现有结果集 |
+| `count()` | `async_count()` | 统计匹配记录数 |
+| `save()` | `async_save()` | 新增记录 |
+| `update()` | `async_update()` | 更新记录 |
+| `remove()` | `async_remove()` | 删除记录 |
+
+**注意**: 同步控制器（返回 `std::string`）和协程控制器（返回 `asio::awaitable<std::string>`）可以在同一项目中混用。框架会根据函数签名自动选择正确的执行路径。
 
 ---
 
@@ -468,8 +589,10 @@ model.fetch();
 
 // 条件查询
 model.where("userid", 123).fetch();
-model.where("title", "keyword").like();    // LIKE 查询
-model.where("status", 1).eq();             // 等于
+model.whereLike("title", "keyword");       // LIKE 查询
+model.where("status", 1);                  // 等于
+model.whereBT("price", 100);               // 大于 >
+model.whereBE("price", 100);               // 大于等于 >=
 
 // 多条件
 model.where("userid", 123)
@@ -504,17 +627,27 @@ model.select("aid,title,addtime").fetch();
 // 分组
 model.group("category_id").fetch();
 
-// 聚合函数
-model.where("userid", 1).sum("price");
-model.where("userid", 1).avg("score");
-model.where("userid", 1).max("time");
-model.where("userid", 1).min("time");
+// 聚合函数（无 sum/avg/max/min 链式方法，用 select 别名 + 自定义结构体读取）
+namespace orm::cust
+{
+    struct SumStruct : orm::Base<SumStruct>
+    {
+        long long total;
+        ORM_NAMES(total);
+    };
+}
+std::vector<orm::cust::SumStruct> result;
+model.select("sum(price) as total");
+model.fetch_to(result);    // result[0].total 为聚合结果
 
 // 子查询
 model.whereIn("category_id", subQuery);
 
-// 锁定查询（事务内使用）
-model.where("id", 1).lock().fetch_one();
+// 连续批量操作：锁定连接复用（事务内使用）
+model.lock_conn();
+model.where("id", 1).fetch_one();
+// ... 更多操作
+model.unlock_conn();
 ```
 
 ### 5.5 ORM 数据操作
@@ -526,8 +659,7 @@ auto model = orm::cms::Article();
 model.data.title = "标题";
 model.data.content = "内容";
 model.data.userid = 1;
-unsigned int newId = model.save();
-model.setPK(newId);
+auto [effect, newId] = model.save();   // 返回 [生效行数, 自增ID]，save 已自动 setPK
 
 // 修改
 model.data.title = "新标题";
@@ -538,7 +670,7 @@ model.data.status = 1;
 model.where("userid", 1).update("status");
 
 // 删除
-model.where("aid", id).delete();
+model.where("aid", id).remove();
 
 // 字段自增/自减
 model.where("aid", id).update_col("readnum", 1);     // readnum + 1
@@ -547,9 +679,8 @@ model.where("aid", id).update_col("stock", -1);      // stock - 1
 // 字段替换
 model.where("aid", id).replace_col("content", "old", "new");
 
-// 直接操作主键
-model.setPK(id).fetch_one();
-model.where("pk", model.getPK());
+// 按主键查询（setPK 用于记录 save() 后的自增ID，不能代替 where 查询）
+model.where("aid", id).fetch_one();
 ```
 
 ### 5.6 原生 SQL 查询
@@ -622,7 +753,7 @@ asio::awaitable<void> handle_request()
     // 异步操作
     co_await model.async_save();
     co_await model.async_update();
-    co_await model.async_delete();
+    co_await model.async_remove();
 }
 ```
 
@@ -707,8 +838,8 @@ client.val["list"].set_array();
 client.val["list"].push(item);
 
 // 视图模板中使用
-// ${title} - 输出变量
-// ${user.name} - 访问嵌套对象
+// <%c echo<<obj["title"].as_string(); %>      - 输出变量
+// <%c echo<<obj["user"]["name"].as_string(); %> - 访问嵌套对象
 // <%c ... %> - 嵌入 C++ 代码
 ```
 
@@ -732,7 +863,7 @@ client.val["list"].push(item);
 | GET 参数 | `client.get["key"]` | 获取 URL 查询参数 |
 | POST 数据 | `client.post["key"]` | 获取 POST 数据 |
 | 文件上传 | `client.files["field"]` | 获取上传文件信息 |
-| Cookie | `client.cookies["name"]` | 获取 Cookie |
+| Cookie | `client.cookie["name"]` | 获取 Cookie |
 | 会话 | `client.session["key"]` | 会话读写 |
 | 输出文本 | `client << "text"` | 直接输出字符串 |
 | 渲染视图 | `client.view("path")` | 渲染视图模板 |
@@ -751,15 +882,14 @@ client.val["list"].push(item);
 | `where(col, val)` | 添加 WHERE 条件 | `.where("status", 1)` |
 | `whereAnd(col, val)` | AND 条件 | `.whereAnd("type", 2)` |
 | `whereOr(col, val)` | OR 条件 | `.whereOr("tag", 3)` |
-| `like()` | 模糊查询 | `.like()` |
-| `eq()` | 等于 | `.eq()` |
-| `ne()` | 不等于 | `.ne()` |
-| `gt()` | 大于 | `.gt()` |
-| `lt()` | 小于 | `.lt()` |
-| `ge()` | 大于等于 | `.ge()` |
-| `le()` | 小于等于 | `.le()` |
-| `in(val)` | IN 查询 | `.in("1,2,3")` |
-| `nin(val)` | NOT IN | `.nin("4,5")` |
+| `whereLike(col, val)` | LIKE 模糊查询 | `.whereLike("title","kw")` |
+| `whereOrLike(col, val)` | OR LIKE 查询 | `.whereOrLike("title","kw")` |
+| `whereBT(col, val)` | 大于 `>` | `.whereBT("price", 100)` |
+| `whereBE(col, val)` | 大于等于 `>=` | `.whereBE("price", 100)` |
+| `whereLT(col, val)` | 小于 `<` | `.whereLT("price", 100)` |
+| `whereLE(col, val)` | 小于等于 `<=` | `.whereLE("price", 100)` |
+| `whereIn(col, vals)` | IN 查询 | `.whereIn("id", "1,2,3")` |
+| `whereNotIn(col, vals)` | NOT IN | `.whereNotIn("id", "4,5")` |
 | `desc(col)` | 降序排序 | `.desc("id")` |
 | `asc(col)` | 升序排序 | `.asc("time")` |
 | `limit(n)` | 限制数量 | `.limit(10)` |
@@ -777,7 +907,7 @@ client.val["list"].push(item);
 
 ### 9.1 路径安全
 - 路径验证必须防止路径穿越攻击
-- 使用 `std::filesystem::canonicalize` 验证路径
+- 使用 `std::filesystem::canonical` 验证路径
 - 临时文件不得有 group/others 权限
 
 ### 9.2 数据库安全
@@ -817,7 +947,7 @@ client.val["list"].push(item);
 ### 10.3 新增视图
 
 1. 在 `view/` 下创建 HTML 模板
-2. 使用 `${var}` 标记变量位置
+2. 使用 `<%c echo<<obj["var"].to_string(); %>` 输出变量
 3. 运行 `./bin/paozhu_cli view` 编译视图
 4. 在控制器中通过 `client.view()` 渲染
 
@@ -850,10 +980,10 @@ make -j$(nproc)
 修改 `orm.conf` 中的 `dbtype` 参数，或使用 CLI 工具的 `dbconver` 功能迁移数据。
 
 ### Q: 视图模板支持哪些特殊标签？
-- `${variable}` - 变量输出
-- `${variable|raw}` - 不转义输出
+- `<%c echo<<obj["variable"].to_string(); %>` - 变量输出
+- `<%c echo<<obj["variable"].as_string(); %>` - 输出文本（默认转义，无 raw 语法）
 - `<%c cpp_code %>` - 嵌入 C++ 代码
-- `<% include "file.html" %>` - 包含子模板
+- `<%c include_sub("home/header",obj); %>` - 包含子模板
 
 ### Q: 如何调试 SQL 查询？
 在 `server.conf` 中设置 `debug_enable = 1`，ORM 会自动记录生成的 SQL 语句。

@@ -65,7 +65,7 @@ paozhu/
 │   ├── httpserver/                # HTTP server core
 │   │   ├── include/               # Server headers
 │   │   │   ├── request.h          # HTTP request handling
-│   │   │   ├── httppeer.h         # HTTP client wrapper
+│   │   │   ├── httppeer.h         # HTTP request/response handler
 │   │   │   ├── router.h           # URL routing
 │   │   │   └── ...               # Other headers
 │   │   └── src/                   # Server implementations
@@ -202,7 +202,7 @@ eab_hmac_key =             ; EAB HMAC Key
 ```cpp
 // controller/src/example.cpp
 #include "orm.h"              // ORM entry
-#include "httppeer.h"         // HTTP client wrapper
+#include "httppeer.h"         // HTTP request/response handler
 #include "func.h"             // Utility functions
 #include "example.h"          // Corresponding header
 
@@ -308,7 +308,7 @@ peer->view("front/producthome");
 peer->theme_view("front/producthome");
 ```
 
-**Real‑world examples** (from [products.cpp](file:///Users/hzq/newpoint/controller/src/saas.com/products.cpp)):
+**Usage examples** (the declaration of `theme_view` is in `vendor/httpserver/include/httppeer.h`):
 ```cpp
 peer->theme_view("front/producthome");
 peer->theme_view("front/productcatalogue");
@@ -363,7 +363,7 @@ std::string crud_list(std::shared_ptr<httppeer> peer)
     unsigned int page = client.get["page"].to_int();
     if (page == 0) page = 1;
     
-    auto [minpage, maxpage, curpage, totalpage] = model.page(page, 10);
+    auto [minpage, maxpage, curpage, totalpage] = model.page(page, 10, 5);   // 3rd parameter list_num: page link count
     model.where("userid", client.session["userid"].to_int())
          .desc("aid")
          .fetch();
@@ -395,7 +395,7 @@ std::string crud_addpost(std::shared_ptr<httppeer> peer)
     model.data.userid = client.session["userid"].to_int();
     model.data.title = client.post["title"].to_string();
     model.data.content = client.post["content"].to_string();
-    model.setPK(model.save());
+    auto [effect, newId] = model.save();   // returns [affected rows, auto-increment ID]; save() already sets PK
     
     client.goto_url("/crud/list", 3, "Added successfully!");
     return "";
@@ -425,7 +425,7 @@ std::string crud_delete(std::shared_ptr<httppeer> peer)
     unsigned int id = client.get["id"].to_int();
     
     auto model = orm::cms::Article();
-    model.where("aid", id).delete();
+    model.where("aid", id).remove();
     
     client.val["code"] = 1;
     client.val["msg"] = "Deleted successfully";
@@ -434,6 +434,127 @@ std::string crud_delete(std::shared_ptr<httppeer> peer)
 }
 }
 ```
+
+### 4.7 Coroutine Controller Pattern
+
+Controllers can be written using C++20 coroutines for non‑blocking asynchronous I/O. The framework automatically detects the return type and dispatches accordingly.
+
+**Key rules**:
+- Return type: `asio::awaitable<std::string>` (instead of `std::string`)
+- Use `co_await` for all async ORM operations
+- Use `co_return ""` instead of `return ""`
+- Use `lock_conn()` / `unlock_conn()` to reuse a single connection in batch operations (avoid repeated connect/disconnect overhead)
+
+**Example 1 – Basic coroutine controller** (no DB, plain response):
+
+```cpp
+//@urlpath(null,plaintext)
+asio::awaitable<std::string> techempowerplaintext(std::shared_ptr<httppeer> peer)
+{
+    peer->type("text/plain; charset=UTF-8");
+    peer->set_header("Date", get_gmttime());
+    peer->output = "Hello, World!";
+    co_return "";
+}
+```
+
+**Example 2 – Coroutine with async ORM query**:
+
+```cpp
+//@urlpath(null,db)
+asio::awaitable<std::string> techempowerdb(std::shared_ptr<httppeer> peer)
+{
+    peer->type("application/json; charset=UTF-8");
+    peer->set_header("Date", get_gmttime());
+
+    auto myworld = orm::World();
+    unsigned int rd_num = rand_range(1, 10000);
+    myworld.where("id", rd_num);
+    myworld.limit(1);
+    co_await myworld.async_fetch_one();   // Async single‑row fetch
+
+    peer->output = myworld.data_tojson();
+    co_return "";
+}
+```
+
+**Example 3 – Coroutine with async batch queries** (using `lock_conn`/`unlock_conn`):
+
+```cpp
+//@urlpath(null,queries)
+asio::awaitable<std::string> techempowerqueries(std::shared_ptr<httppeer> peer)
+{
+    peer->type("application/json; charset=UTF-8");
+    peer->set_header("Date", get_gmttime());
+
+    unsigned int get_num = peer->get["queries"].to_int();
+    if (get_num == 0) get_num = 1;
+    else if (get_num > 500) get_num = 500;
+
+    auto myworld = orm::World();
+    myworld.record.reserve(get_num);
+    myworld.lock_conn();                 // Lock connection for reuse in loop
+    for (unsigned int i = 0; i < get_num; i++)
+    {
+        myworld.wheresql.clear();
+        unsigned int rd_num = rand_range(1, 10000);
+        myworld.where("id", rd_num);
+        co_await myworld.async_fetch_append();  // Async append to record set
+    }
+    myworld.unlock_conn();               // Release connection
+    peer->output = myworld.to_json();
+    co_return "";
+}
+```
+
+**Example 4 – Coroutine with async update** (fetch + update in batch):
+
+```cpp
+//@urlpath(null,updates)
+asio::awaitable<std::string> techempowerupdates(std::shared_ptr<httppeer> peer)
+{
+    peer->type("application/json; charset=UTF-8");
+    peer->set_header("Date", get_gmttime());
+    unsigned int get_num = peer->get["queries"].to_int();
+    if (get_num == 0) get_num = 1;
+    else if (get_num > 500) get_num = 500;
+
+    auto myworld = orm::World();
+    myworld.record.clear();
+    myworld.record.reserve(get_num);
+    myworld.lock_conn();
+    for (unsigned int i = 0; i < get_num; i++)
+    {
+        myworld.wheresql.clear();
+        myworld.where("id", rand_range(1, 10000));
+        co_await myworld.async_fetch_append();
+        if (myworld.effect() > 0)
+        {
+            unsigned int j = myworld.record.size() - 1;
+            myworld.data.randomnumber = rand_range(1, 10000);
+            myworld.record[j].randomnumber = myworld.data.randomnumber;
+            co_await myworld.async_update("randomnumber");  // Async update
+        }
+    }
+    myworld.unlock_conn();
+    peer->output = myworld.to_json();
+    co_return "";
+}
+```
+
+**Available async ORM methods**:
+
+| Sync method | Async method | Description |
+|-------------|-------------|-------------|
+| `fetch()` | `async_fetch()` | Fetch all matching records |
+| `fetch_one()` | `async_fetch_one()` | Fetch single record |
+| `fetch_append()` | `async_fetch_append()` | Fetch and append to existing record set |
+| `count()` | `async_count()` | Count matching records |
+| `save()` | `async_save()` | Insert new record |
+| `update()` | `async_update()` | Update existing record |
+| `remove()` | `async_remove()` | Delete record |
+
+**Note**: Synchronous controllers (returning `std::string`) and coroutine controllers (returning `asio::awaitable<std::string>`) can coexist in the same project. The framework automatically selects the correct execution path based on the function signature.
 
 ---
 
@@ -468,8 +589,10 @@ model.fetch();
 
 // Conditional query
 model.where("userid", 123).fetch();
-model.where("title", "keyword").like();    // LIKE query
-model.where("status", 1).eq();             // Equals
+model.whereLike("title", "keyword");       // LIKE query
+model.where("status", 1);                  // Equals
+model.whereBT("price", 100);               // Greater than >
+model.whereBE("price", 100);               // Greater than or equal >=
 
 // Multiple conditions
 model.where("userid", 123)
@@ -504,17 +627,28 @@ model.select("aid,title,addtime").fetch();
 // Grouping
 model.group("category_id").fetch();
 
-// Aggregate functions
-model.where("userid", 1).sum("price");
-model.where("userid", 1).avg("score");
-model.where("userid", 1).max("time");
-model.where("userid", 1).min("time");
+// Aggregate functions (no sum/avg/max/min chain methods;
+// use a SELECT alias plus a custom struct with fetch_to)
+namespace orm::cust
+{
+    struct SumStruct : orm::Base<SumStruct>
+    {
+        long long total;
+        ORM_NAMES(total);
+    };
+}
+std::vector<orm::cust::SumStruct> result;
+model.select("sum(price) as total");
+model.fetch_to(result);    // result[0].total holds the aggregate
 
 // Subqueries
 model.whereIn("category_id", subQuery);
 
-// Locking queries (within transactions)
-model.where("id", 1).lock().fetch_one();
+// Batch operations: keep the same connection (within transactions)
+model.lock_conn();
+model.where("id", 1).fetch_one();
+// ... more operations
+model.unlock_conn();
 ```
 
 ### 5.5 ORM Data Manipulation
@@ -526,8 +660,7 @@ auto model = orm::cms::Article();
 model.data.title = "Title";
 model.data.content = "Content";
 model.data.userid = 1;
-unsigned int newId = model.save();
-model.setPK(newId);
+auto [effect, newId] = model.save();   // returns [affected rows, auto-increment ID]; save() already sets PK
 
 // Update
 model.data.title = "New Title";
@@ -538,7 +671,7 @@ model.data.status = 1;
 model.where("userid", 1).update("status");
 
 // Delete
-model.where("aid", id).delete();
+model.where("aid", id).remove();
 
 // Increment / decrement
 model.where("aid", id).update_col("readnum", 1);     // readnum + 1
@@ -547,9 +680,9 @@ model.where("aid", id).update_col("stock", -1);      // stock - 1
 // Replace in column
 model.where("aid", id).replace_col("content", "old", "new");
 
-// Direct primary key access
-model.setPK(id).fetch_one();
-model.where("pk", model.getPK());
+// Query by primary key (setPK records the auto-increment ID after save();
+// it cannot replace a where() query)
+model.where("aid", id).fetch_one();
 ```
 
 ### 5.6 Raw SQL Queries
@@ -622,7 +755,7 @@ asio::awaitable<void> handle_request()
     // Asynchronous operations
     co_await model.async_save();
     co_await model.async_update();
-    co_await model.async_delete();
+    co_await model.async_remove();
 }
 ```
 
@@ -707,8 +840,8 @@ client.val["list"].set_array();
 client.val["list"].push(item);
 
 // Use in view templates
-// ${title} - output variable
-// ${user.name} - access nested object
+// <%c echo<<obj["title"].as_string(); %>      - output variable
+// <%c echo<<obj["user"]["name"].as_string(); %> - access nested object
 // <%c ... %> - embed C++ code
 ```
 
@@ -732,7 +865,7 @@ View templates are compiled into C++ source files in `viewsrc/` via the CLI tool
 | GET parameters | `client.get["key"]` | Get URL query parameters |
 | POST data | `client.post["key"]` | Get POST data |
 | File uploads | `client.files["field"]` | Get uploaded file info |
-| Cookies | `client.cookies["name"]` | Get cookie |
+| Cookies | `client.cookie["name"]` | Get cookie |
 | Session | `client.session["key"]` | Read/write session |
 | Output text | `client << "text"` | Output string directly |
 | Render view | `client.view("path")` | Render a view template |
@@ -751,15 +884,14 @@ View templates are compiled into C++ source files in `viewsrc/` via the CLI tool
 | `where(col, val)` | Add WHERE condition | `.where("status", 1)` |
 | `whereAnd(col, val)` | AND condition | `.whereAnd("type", 2)` |
 | `whereOr(col, val)` | OR condition | `.whereOr("tag", 3)` |
-| `like()` | Fuzzy match | `.like()` |
-| `eq()` | Equals | `.eq()` |
-| `ne()` | Not equals | `.ne()` |
-| `gt()` | Greater than | `.gt()` |
-| `lt()` | Less than | `.lt()` |
-| `ge()` | Greater or equal | `.ge()` |
-| `le()` | Less or equal | `.le()` |
-| `in(val)` | IN query | `.in("1,2,3")` |
-| `nin(val)` | NOT IN | `.nin("4,5")` |
+| `whereLike(col, val)` | LIKE fuzzy match | `.whereLike("title","kw")` |
+| `whereOrLike(col, val)` | OR LIKE query | `.whereOrLike("title","kw")` |
+| `whereBT(col, val)` | Greater than `>` | `.whereBT("price", 100)` |
+| `whereBE(col, val)` | Greater or equal `>=` | `.whereBE("price", 100)` |
+| `whereLT(col, val)` | Less than `<` | `.whereLT("price", 100)` |
+| `whereLE(col, val)` | Less or equal `<=` | `.whereLE("price", 100)` |
+| `whereIn(col, vals)` | IN query | `.whereIn("id", "1,2,3")` |
+| `whereNotIn(col, vals)` | NOT IN | `.whereNotIn("id", "4,5")` |
 | `desc(col)` | Descending order | `.desc("id")` |
 | `asc(col)` | Ascending order | `.asc("time")` |
 | `limit(n)` | Limit count | `.limit(10)` |
@@ -777,7 +909,7 @@ View templates are compiled into C++ source files in `viewsrc/` via the CLI tool
 
 ### 9.1 Path Security
 - Path validation must prevent path traversal attacks.
-- Use `std::filesystem::canonicalize` to validate paths.
+- Use `std::filesystem::canonical` to validate paths.
 - Temporary files must not have group/others permissions.
 
 ### 9.2 Database Security
@@ -817,7 +949,7 @@ View templates are compiled into C++ source files in `viewsrc/` via the CLI tool
 ### 10.3 Adding a New View
 
 1. Create an HTML template under `view/`.
-2. Use `${var}` to mark variable positions.
+2. Use `<%c echo<<obj["var"].to_string(); %>` to output variables.
 3. Run `./bin/paozhu_cli view` to compile the view.
 4. Render it in controllers via `client.view()`.
 
@@ -850,10 +982,10 @@ The `_base.h` and `_opsql.h` files are auto‑generated and should not be manual
 Change the `dbtype` parameter in `orm.conf`, or use the CLI tool’s `dbconver` feature to migrate data.
 
 **Q: What special tags does the view template support?**  
-- `${variable}` – variable output
-- `${variable|raw}` – unescaped output
+- `<%c echo<<obj["variable"].to_string(); %>` – variable output
+- `<%c echo<<obj["variable"].as_string(); %>` – output text (escaped by default, no `raw` syntax)
 - `<%c cpp_code %>` – embed C++ code
-- `<% include "file.html" %>` – include sub‑template
+- `<%c include_sub("home/header",obj); %>` – include sub‑template
 
 **Q: How can I debug SQL queries?**  
 Set `debug_enable = 1` in `server.conf`; ORM will log the generated SQL statements.

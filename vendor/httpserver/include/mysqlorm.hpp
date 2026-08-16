@@ -6488,7 +6488,7 @@ namespace orm
             temp_cache.save(sqlhashid, cache_data, exp_time);
             return true;
         }
-        const typename B_BASE::meta &get_cache(const std::string &cache_key_name)
+        const typename B_BASE::meta get_cache(const std::string &cache_key_name)
         {
             try
             {
@@ -6504,7 +6504,7 @@ namespace orm
             throw std::runtime_error("Not in cache");
         }
 
-        const std::vector<typename B_BASE::meta> &get_vector_cache(const std::string &cache_key_name)
+        const std::vector<typename B_BASE::meta> get_vector_cache(const std::string &cache_key_name)
         {
             try
             {
