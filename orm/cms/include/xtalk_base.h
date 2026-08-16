@@ -2,7 +2,7 @@
 #define ORM_CMS_XTALKBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 15 Aug 2026 09:48:14 GMT
+*本文件为自动生成 Sun, 16 Aug 2026 04:43:42 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -676,9 +676,9 @@ static constexpr std::string_view modelname="Xtalk";
          char colpospppc;
 
 	         if(bi<91&&bi>64){
-				bi+=32;
-			}
-            switch(coln[0]){
+	         bi+=32;
+	         }
+	         switch(bi){
 
          case 'a':
  switch(coln.size()){  
@@ -1054,14 +1054,14 @@ tempsql<<")";
        return tempsql.str();
    } 
        
-    std::string make_update_sql(std::string_view fileld){
+    std::string make_update_sql(std::string_view field){
         std::ostringstream tempsql;
         tempsql<<"UPDATE ";
         tempsql<<tablename;
         tempsql<<" SET ";
 
         bool isall=false;
-        if(fileld.empty()){
+        if(field.empty()){
             isall=true;
         }
         if(isall){
@@ -1123,8 +1123,8 @@ if(data.replyid==0){
   unsigned int jj=0;
                   std::string keyname;
                   std::vector<unsigned char> keypos;
-                  for(;jj<fileld.size();jj++){
-                        if(fileld[jj]==','){
+                  for(;jj<field.size();jj++){
+                        if(field[jj]==','){
                                 unsigned char bpos_i=findcolpos(keyname);
                                keypos.emplace_back(bpos_i); 
 #ifdef DEBUG
@@ -1138,11 +1138,11 @@ if(data.replyid==0){
                                keyname.clear();
                              continue;   
                         }
-                        if(fileld[jj]==0x20){
+                        if(field[jj]==0x20){
 
                              continue;   
                         }
-                        keyname.push_back(fileld[jj]);
+                        keyname.push_back(field[jj]);
 
                   }  
                  if(keyname.size()>0){
@@ -1346,7 +1346,7 @@ if(data.replyid==0){
  return tempsql.str();
 }
 
-    std::string make_record_into_sql(std::string_view fileld)
+    std::string make_record_into_sql(std::string_view field)
     {
         unsigned int j = 0;
         std::ostringstream tempsql;
@@ -1437,9 +1437,9 @@ if(data.replyid==0){
         std::string keyname;
         unsigned char jj=0;
         j=0;
-        if(fileld.size()>0){
-        for(;jj<fileld.size();jj++){
-            if(fileld[jj]==','){
+        if(field.size()>0){
+        for(;jj<field.size();jj++){
+            if(field[jj]==','){
                 if(findcolpos(keyname)<255)
                 {
                     if(j>0)
@@ -1452,10 +1452,10 @@ if(data.replyid==0){
                 }
                 continue;   
             }
-            if(fileld[jj]==0x20){
+            if(field[jj]==0x20){
                 continue;   
             }
-            keyname.push_back(fileld[jj]);
+            keyname.push_back(field[jj]);
 
         }  
         if(keyname.size()>0){
@@ -1477,27 +1477,33 @@ if(data.replyid==0){
  return tempsql.str();
 }
 
-   std::vector<std::string> data_toarray(std::string_view fileld=""){
+   std::vector<std::string> data_toarray(std::string_view field=""){
         std::vector<std::string> temparray;
         std::string keyname;
         unsigned char jj=0;
         std::vector<unsigned char> keypos;
-        if(fileld.size()>1){
-            for(;jj<fileld.size();jj++){
-                if(fileld[jj]==','){
-                    keypos.emplace_back(findcolpos(keyname)); 
+        if(field.size()>1){
+            for(;jj<field.size();jj++){
+                if(field[jj]==','){
+                    if(findcolpos(keyname)<255)
+                    {
+                        keypos.emplace_back(findcolpos(keyname)); 
+                    }
                     keyname.clear();
                     continue;   
                 }
-                if(fileld[jj]==0x20){
+                if(field[jj]==0x20){
 
                     continue;   
                 }
-                keyname.push_back(fileld[jj]);
+                keyname.push_back(field[jj]);
 
             }  
             if(keyname.size()>0){
-                keypos.emplace_back(findcolpos(keyname)); 
+                if(findcolpos(keyname)<255)
+                {
+                    keypos.emplace_back(findcolpos(keyname)); 
+                }
                 keyname.clear();
             }
         }else{
@@ -1590,27 +1596,33 @@ if(data.replyid==0){
      return temparray;             
    }   
    
-   std::map<std::string,std::string> data_tomap(std::string_view fileld=""){
+   std::map<std::string,std::string> data_tomap(std::string_view field=""){
        std::map<std::string,std::string> tempsql;
         std::string keyname;
         unsigned char jj=0;
         std::vector<unsigned char> keypos;
-        if(fileld.size()>1){
-        for(;jj<fileld.size();jj++){
-            if(fileld[jj]==','){
-                keypos.emplace_back(findcolpos(keyname)); 
+        if(field.size()>1){
+        for(;jj<field.size();jj++){
+            if(field[jj]==','){
+                if(findcolpos(keyname)<255)
+                {
+                    keypos.emplace_back(findcolpos(keyname)); 
+                }
                 keyname.clear();
                 continue;   
             }
-            if(fileld[jj]==0x20){
+            if(field[jj]==0x20){
 
                 continue;   
             }
-            keyname.push_back(fileld[jj]);
+            keyname.push_back(field[jj]);
 
         }  
         if(keyname.size()>0){
-            keypos.emplace_back(findcolpos(keyname)); 
+            if(findcolpos(keyname)<255)
+            {
+                keypos.emplace_back(findcolpos(keyname)); 
+            }
             keyname.clear();
         }
         }else{
@@ -1765,27 +1777,33 @@ tempsql<<"}";
      return tempsql.str();             
    }   
    
-   std::string data_tojson(std::string fileld){
+   std::string data_tojson(std::string field){
         std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
         std::vector<unsigned char> keypos;
-        if(fileld.size()>0){
-        for(;jj<fileld.size();jj++){
-            if(fileld[jj]==','){
-                keypos.emplace_back(findcolpos(keyname)); 
+        if(field.size()>0){
+        for(;jj<field.size();jj++){
+            if(field[jj]==','){
+                if(findcolpos(keyname)<255)
+                {
+                    keypos.emplace_back(findcolpos(keyname)); 
+                }
                 keyname.clear();
                 continue;   
             }
-            if(fileld[jj]==0x20){
+            if(field[jj]==0x20){
 
                 continue;   
             }
-            keyname.push_back(fileld[jj]);
+            keyname.push_back(field[jj]);
 
         }  
         if(keyname.size()>0){
-            keypos.emplace_back(findcolpos(keyname)); 
+            if(findcolpos(keyname)<255)
+            {
+                keypos.emplace_back(findcolpos(keyname)); 
+            }
             keyname.clear();
         }
         }else{
@@ -1973,6 +1991,7 @@ if(data.replyid==0){
                                         break;
                                     }
                                     json_value_name.clear();
+                                    bool json_value_skipped=false;
                                     if(json_content[json_offset]==0x22)
                                     {
                                         
@@ -1986,7 +2005,11 @@ if(data.replyid==0){
                                     }
                                     else
                                     {
-                                        if(json_content[json_offset]!='{'&&json_content[json_offset]!=']')
+                                        if(json_content[json_offset]=='{'||json_content[json_offset]==']')
+                                        {
+                                            json_value_skipped=true;
+                                        }
+                                        else
                                         {
                                             for(;json_offset<json_content.size();json_offset++)
                                             {
@@ -2003,7 +2026,10 @@ if(data.replyid==0){
                                         }
                                     }
                                     //////////////////////////
-                                    set_val(json_key_name,json_value_name);
+                                    if(!json_value_skipped)
+                                    {
+                                        set_val(json_key_name,json_value_name);
+                                    }
                                     continue;
                                 }
                                 else
@@ -2068,6 +2094,7 @@ if(data.replyid==0){
                                     break;
                                 }
                                 json_value_name.clear();
+                                bool json_value_skipped=false;
                                 if(json_content[json_offset]==0x22)
                                 {
                                     temp_offset=json_offset;
@@ -2080,7 +2107,11 @@ if(data.replyid==0){
                                 }
                                 else
                                 {
-                                    if(json_content[json_offset]!='{'&&json_content[json_offset]!=']')
+                                    if(json_content[json_offset]=='{'||json_content[json_offset]==']')
+                                    {
+                                        json_value_skipped=true;
+                                    }
+                                    else
                                     {
                                         for(;json_offset<json_content.size();json_offset++)
                                         {
@@ -2097,7 +2128,10 @@ if(data.replyid==0){
                                     }
                                 }
                                 //////////////////////////
-                                set_val(json_key_name,json_value_name);
+                                if(!json_value_skipped)
+                                {
+                                    set_val(json_key_name,json_value_name);
+                                }
                                 continue;
                             }
                             else
@@ -2172,27 +2206,33 @@ if(data.replyid==0){
         }
    } 
     
-   std::string to_json(std::string_view fileld=""){
+   std::string to_json(std::string_view field=""){
     std::ostringstream tempsql;
     std::string keyname;
     unsigned char jj=0;
     std::vector<unsigned char> keypos;
-    if(fileld.size()>0){
-        for(;jj<fileld.size();jj++){
-            if(fileld[jj]==','){
-                keypos.emplace_back(findcolpos(keyname)); 
+    if(field.size()>0){
+        for(;jj<field.size();jj++){
+            if(field[jj]==','){
+                if(findcolpos(keyname)<255)
+                {
+                    keypos.emplace_back(findcolpos(keyname)); 
+                }
                 keyname.clear();
                 continue;   
             }
-            if(fileld[jj]==0x20){
+            if(field[jj]==0x20){
 
                 continue;   
             }
-            keyname.push_back(fileld[jj]);
+            keyname.push_back(field[jj]);
 
         }  
         if(keyname.size()>0){
-            keypos.emplace_back(findcolpos(keyname)); 
+            if(findcolpos(keyname)<255)
+            {
+                keypos.emplace_back(findcolpos(keyname)); 
+            }
             keyname.clear();
         }
     }else{
@@ -2305,27 +2345,33 @@ if(record[n].replyid==0){
      return tempsql.str();             
    }   
    
-   std::string to_json(std::function<bool(std::string&,xtalk_info::meta&)> func,std::string_view fileld=""){
+   std::string to_json(std::function<bool(std::string&,xtalk_info::meta&)> func,std::string_view field=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
         std::vector<unsigned char> keypos;
-        if(fileld.size()>0){
-            for(;jj<fileld.size();jj++){
-                if(fileld[jj]==','){
-                    keypos.emplace_back(findcolpos(keyname)); 
+        if(field.size()>0){
+            for(;jj<field.size();jj++){
+                if(field[jj]==','){
+                    if(findcolpos(keyname)<255)
+                    {
+                        keypos.emplace_back(findcolpos(keyname)); 
+                    }
                     keyname.clear();
                     continue;   
                 }
-                if(fileld[jj]==0x20){
+                if(field[jj]==0x20){
 
                     continue;   
                 }
-                keyname.push_back(fileld[jj]);
+                keyname.push_back(field[jj]);
 
             }  
             if(keyname.size()>0){
-                keypos.emplace_back(findcolpos(keyname)); 
+                if(findcolpos(keyname)<255)
+                {
+                    keypos.emplace_back(findcolpos(keyname)); 
+                }
                 keyname.clear();
             }
         }else{
@@ -2492,27 +2538,33 @@ std::vector<xtalk_info::meta> getRecord(){
  	 return record; 
 } 
 
-   std::string tree_tojson(const std::vector<xtalk_info::meta_tree> &tree_data, std::string_view fileld=""){
+   std::string tree_tojson(const std::vector<xtalk_info::meta_tree> &tree_data, std::string_view field=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
         std::vector<unsigned char> keypos;
-        if(fileld.size()>0){
-            for(;jj<fileld.size();jj++){
-                if(fileld[jj]==','){
-                    keypos.emplace_back(findcolpos(keyname)); 
+        if(field.size()>0){
+            for(;jj<field.size();jj++){
+                if(field[jj]==','){
+                    if(findcolpos(keyname)<255)
+                    {
+                        keypos.emplace_back(findcolpos(keyname)); 
+                    }
                     keyname.clear();
                     continue;   
                 }
-                if(fileld[jj]==0x20){
+                if(field[jj]==0x20){
 
                     continue;   
                 }
-                keyname.push_back(fileld[jj]);
+                keyname.push_back(field[jj]);
 
             }  
             if(keyname.size()>0){
+                if(findcolpos(keyname)<255)
+                {
                             keypos.emplace_back(findcolpos(keyname)); 
+                }
                             keyname.clear();
             }
         }else{
@@ -2621,34 +2673,40 @@ if(tree_data[n].replyid==0){
                  }
 
         tempsql<<",\"children\":";
-         tempsql<<tree_tojson(tree_data[n].children, fileld);     
+         tempsql<<tree_tojson(tree_data[n].children, field);     
       tempsql<<"}";  
             }
       tempsql<<"]";
      return tempsql.str();             
    }   
    
-   std::string tree_tojson(const std::vector<xtalk_info::meta_tree> &tree_data,std::function<bool(std::string&,const xtalk_info::meta_tree&)> func,std::string_view fileld=""){
+   std::string tree_tojson(const std::vector<xtalk_info::meta_tree> &tree_data,std::function<bool(std::string&,const xtalk_info::meta_tree&)> func,std::string_view field=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
         std::vector<unsigned char> keypos;
-        if(fileld.size()>0){
-            for(;jj<fileld.size();jj++){
-                if(fileld[jj]==','){
-                    keypos.emplace_back(findcolpos(keyname)); 
+        if(field.size()>0){
+            for(;jj<field.size();jj++){
+                if(field[jj]==','){
+                    if(findcolpos(keyname)<255)
+                    {
+                        keypos.emplace_back(findcolpos(keyname)); 
+                    }
                     keyname.clear();
                     continue;   
                 }
-                if(fileld[jj]==0x20){
+                if(field[jj]==0x20){
 
                     continue;   
                 }
-                keyname.push_back(fileld[jj]);
+                keyname.push_back(field[jj]);
 
             }  
             if(keyname.size()>0){
+                if(findcolpos(keyname)<255)
+                {
                             keypos.emplace_back(findcolpos(keyname)); 
+                }
                             keyname.clear();
             }
         }else{
@@ -2763,7 +2821,7 @@ if(tree_data[n].replyid==0){
                      }
                  }   
          tempsql<<",\"children\":";
-         tempsql<<tree_tojson(tree_data[n].children,func,fileld);     
+         tempsql<<tree_tojson(tree_data[n].children,func,field);     
       tempsql<<"}";  
             }
       tempsql<<"]";

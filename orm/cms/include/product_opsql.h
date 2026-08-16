@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sat, 15 Aug 2026 09:48:14 GMT
+ *  Creation time Sun, 16 Aug 2026 04:43:42 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -43360,7 +43360,7 @@ M_MODEL& or_leEditdate(T val)
             temp_cache.save(sqlhashid, cache_data, exp_time);
             return true;
         }
-        const product_info::meta &get_cache(const std::string &cache_key_name)
+        const product_info::meta get_cache(const std::string &cache_key_name)
         {
             try
             {
@@ -43376,7 +43376,7 @@ M_MODEL& or_leEditdate(T val)
             throw std::runtime_error("Not in cache");
         }
 
-        const std::vector<product_info::meta> &get_vector_cache(const std::string &cache_key_name)
+        const std::vector<product_info::meta> get_vector_cache(const std::string &cache_key_name)
         {
             try
             {

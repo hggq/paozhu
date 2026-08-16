@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sat, 15 Aug 2026 05:50:32 GMT
+ *  Creation time Sun, 16 Aug 2026 04:43:36 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -703,7 +703,7 @@ namespace orm
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
-                    iserror = true;
+                    iserror   = true;
                     edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
@@ -975,7 +975,7 @@ namespace orm
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
-                    iserror = true;
+                    iserror   = true;
                     edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
@@ -1107,7 +1107,7 @@ namespace orm
                 if ((unsigned char)temp_pack_data.data[0] == 0xFF)
                 {
                     error_msg = temp_pack_data.data.substr(3);
-                    iserror = true;
+                    iserror   = true;
                     edit_conn.reset();
                 }
                 else if ((unsigned char)temp_pack_data.data[0] == 0x00)
@@ -5337,9 +5337,17 @@ M_MODEL& or_leMessage(T val)
             wheresql.append(" IN(");
             {
                 std::string _in_part;
-                for (char _c : val) {
-                    if (_c == ',') { wheresql.append(B_BASE::stringaddslash(_in_part)); wheresql.push_back('\''); wheresql.push_back(','); _in_part.clear(); }
-                    else _in_part.push_back(_c);
+                for (char _c : val)
+                {
+                    if (_c == ',')
+                    {
+                        wheresql.append(B_BASE::stringaddslash(_in_part));
+                        wheresql.push_back('\'');
+                        wheresql.push_back(',');
+                        _in_part.clear();
+                    }
+                    else
+                        _in_part.push_back(_c);
                 }
                 wheresql.append(B_BASE::stringaddslash(_in_part));
                 wheresql.push_back('\'');
@@ -5754,7 +5762,7 @@ M_MODEL& or_leMessage(T val)
 				wheresql.append("message");
 				break;
             default:
-                return *mod; 
+                return *mod;
                 break;
             }
 
@@ -6197,8 +6205,8 @@ M_MODEL& or_leMessage(T val)
                             }
                             else if (action_setup == 2)
                             {
-                                column_num = field_array.size();
-                                unsigned int tempnum    = 0;
+                                column_num           = field_array.size();
+                                unsigned int tempnum = 0;
 
                                 std::map<std::string, std::string> data_temp;
                                 for (unsigned int ij = 0; ij < column_num; ij++)
@@ -9560,7 +9568,7 @@ M_MODEL& or_leMessage(T val)
             temp_cache.save(sqlhashid, cache_data, exp_time);
             return true;
         }
-        const fortune_info::meta &get_cache(const std::string &cache_key_name)
+        const fortune_info::meta get_cache(const std::string &cache_key_name)
         {
             try
             {
@@ -9576,7 +9584,7 @@ M_MODEL& or_leMessage(T val)
             throw std::runtime_error("Not in cache");
         }
 
-        const std::vector<fortune_info::meta> &get_vector_cache(const std::string &cache_key_name)
+        const std::vector<fortune_info::meta> get_vector_cache(const std::string &cache_key_name)
         {
             try
             {
