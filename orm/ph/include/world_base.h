@@ -2,7 +2,7 @@
 #define ORM_PH_WORLDBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sun, 16 Aug 2026 04:43:45 GMT
+*本文件为自动生成 Mon, 17 Aug 2026 02:57:52 GMT
 ***/
 #include <iostream>
 #include <charconv>

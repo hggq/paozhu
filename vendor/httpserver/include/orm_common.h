@@ -1,6 +1,8 @@
 #ifndef _ORM_COMMON_H
 #define _ORM_COMMON_H
 
+#include <variant>
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <memory>
@@ -110,6 +112,16 @@ struct orm_left_join_t
     std::string subsql;
 };
 
+// 定义支持的参数类型
+using sql_param_value = std::variant<
+    std::monostate,   // 表示空值（NULL）
+    int,              // 整型
+    long long,        // 长整型（对应数据库 BIGINT）
+    float,            // 单精度
+    double,           // 双精度（对应数据库 DOUBLE/REAL）
+    std::string       // 字符串（自动管理内存，无悬垂风险）
+>;
+
 struct orm_where_sql_t
 {
     bool begin_sub = false;// 只支持2级括号 Only level 2 brackets are supported
@@ -117,7 +129,7 @@ struct orm_where_sql_t
     wq op_type;
     unsigned char pos_n = 0;// 预处理语句第几位 Which position is the preprocessing statement at
     std::string filed_name;
-    std::string filed_value;// BETWEEN?
+    sql_param_value value; // BETWEEN?
 };
 
 struct orm_conn_link_t
