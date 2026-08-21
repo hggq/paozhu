@@ -913,6 +913,9 @@ namespace http
 		temp.regfun = test_leftjoinfull;
 		methodcallback.emplace("test_leftjoinfull",temp);
 		temp.pre = nullptr;
+		temp.regfun = test_co_sendmaildo;
+		methodcallback.emplace("testcosendmaildo",temp);
+		temp.pre = nullptr;
 		temp.regfun = test_httppeersend_async;
 		methodcallback.emplace("test_httppeersend_async",temp);
 		temp.pre = nullptr;

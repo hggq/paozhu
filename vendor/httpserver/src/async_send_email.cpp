@@ -254,11 +254,30 @@ bool async_send_email::sendloop()
 }
 
 /**
- * @brief 协程版SSL加密连接发送邮件
+ * @brief 协程版发送邮件（异步，不阻塞当前线程）
  * 
  * 使用OpenSSL和ASIO协程建立SSL/TLS连接，通过状态机模式执行SMTP协议流程：
  * 连接 -> 握手 -> EHLO -> AUTH LOGIN -> 发送用户名/密码 -> MAIL FROM -> RCPT TO -> DATA -> 发送邮件内容 -> QUIT
- * @return asio::awaitable<bool> true表示发送成功，false表示失败
+ *
+ * 使用示例（在协程环境中调用）：
+ * @code
+ * http::async_send_email mail("smtp.163.com", "user@163.com",
+ *                             "authcode", 25, true);   // 第5个参数 isssl=true
+ * mail.fromname   = "网站名称";
+ * mail.replyemail = "user@163.com";
+ * mail.toemail    = "someone@example.com";
+ * mail.toname     = "收件人";
+ * mail.subject    = "邮件主题";
+ * mail.content    = "<h1>邮件正文</h1>";
+ * mail.addattachments("/path/to/file.docx");  // 可选：添加附件
+ * bool ok = co_await mail.async_send();       // 协程挂起，不阻塞当前线程
+ * if (!ok) { std::cout << mail.errormsg; }    // 失败原因
+ * @endcode
+ *
+ * @note 该方法必须返回 awaitable<bool>，需要在 asio 协程（co_await 上下文）中使用；
+ *       相比同步版 send_email::send()，它不会阻塞当前执行线程，适合高并发场景。
+ *
+ * @return asio::awaitable<bool> true表示发送成功，false表示失败，失败原因见 errormsg
  */
 asio::awaitable<bool> async_send_email::async_send()
 {

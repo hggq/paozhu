@@ -765,7 +765,7 @@ asio::awaitable<std::string> test_socket_client(std::shared_ptr<httppeer> peer)
 
 ###  9.Related tutorial
 
-- [paozhu docs](https://hggq.github.io/paozhudocs/documentation_en.html)
+- [Paozhu docs](https://hggq.github.io/paozhudocs/)
 
 
 ### 10.Roadmap

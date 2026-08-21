@@ -37,10 +37,29 @@ bool send_email::addattachments(std::string file_name)
 }
 
 /**
- * @brief 邮件发送入口函数
+ * @brief 邮件发送入口函数（同步）
  * 
- * 根据isssl标志选择SSL加密连接或明文TCP连接发送邮件
- * @return true表示发送成功，false表示失败
+ * 根据isssl标志选择SSL加密连接或明文TCP连接发送邮件。
+ * 该方法为同步（阻塞）方式，调用后会阻塞当前线程直到整个 SMTP 会话结束，
+ * 适用于对耗时不敏感、并发量较低的场景。
+ *
+ * 使用示例：
+ * @code
+ * http::send_email mail("smtp.163.com", "user@163.com", "authcode", 25, false);
+ * mail.fromname   = "网站名称";                 // 发件人显示名称
+ * mail.replyemail = "user@163.com";             // 回复邮箱
+ * mail.toemail    = "someone@example.com";      // 收件人邮箱
+ * mail.toname     = "收件人";                    // 收件人显示名称
+ * mail.subject    = "邮件主题";                 // 主题
+ * mail.content    = "<h1>邮件正文</h1>";        // 正文（默认 HTML 格式）
+ * mail.addattachments("/path/to/file.docx");    // 可选：添加附件
+ * bool ok = mail.send();                       // 同步发送
+ * if (!ok) { std::cout << mail.errormsg; }      // 失败原因
+ * @endcode
+ *
+ * @note 若需要不阻塞当前线程的高并发发送，请改用协程版 async_send_email。
+ *
+ * @return true表示发送成功，false表示失败，失败原因见 errormsg
  */
 bool send_email::send()
 {
