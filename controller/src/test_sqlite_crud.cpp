@@ -13,11 +13,11 @@ namespace http
 //@urlpath(null,cms/sqlist)
 std::string article_sqlite_list(std::shared_ptr<httppeer> peer)
 {
+    httppeer &client = peer->get_peer();
     // step3 content list
 #ifdef ENABLE_SQLITE
     try
     {
-        httppeer &client = peer->get_peer();
         auto articles    = orm::lite::Fortune();
         int page         = client.get["page"].to_int();
         if (page < 0)

@@ -39,25 +39,8 @@ option(ENABLE_SQLITE "Enable SQLite database support" OFF)
 
 if(ENABLE_SQLITE)
   message(STATUS "ENABLE_SQLITE = ${ENABLE_SQLITE}")
-  find_path(SQLITE3_INCLUDE_DIR sqlite3.h
-    PATHS /usr/include /usr/local/include /opt/homebrew/include
-  )
-  find_library(SQLITE3_LIBRARY NAMES sqlite3
-    PATHS /usr/lib /usr/local/lib /opt/homebrew/lib
-  )
-  if(NOT SQLITE3_LIBRARY)
-    message(FATAL_ERROR "ENABLE_SQLITE=ON but SQLite3 not found. Install via: brew install sqlite3")
-  endif()
-  if(SQLITE3_INCLUDE_DIR)
-    message(STATUS "Found SQLite3: ${SQLITE3_LIBRARY} (${SQLITE3_INCLUDE_DIR})")
-  else()
-    message(STATUS "Found SQLite3: ${SQLITE3_LIBRARY} (system default include)")
-  endif()
 else()
   message(STATUS "SQLite support disabled (ENABLE_SQLITE=OFF)")
-  # 设置空值以便后续 target_link_libraries 可用
-  set(SQLITE3_LIBRARY "")
-  set(SQLITE3_INCLUDE_DIR "")
 endif()
 
 # ---- Feature dependencies ----
@@ -338,18 +321,7 @@ endif()
 
 if(ENABLE_SQLITE)
   target_compile_definitions(paozhu PUBLIC ENABLE_SQLITE)
-  target_link_libraries(paozhu PRIVATE ${SQLITE3_LIBRARY})
-  if(SQLITE3_INCLUDE_DIR)
-    target_include_directories(paozhu PRIVATE ${SQLITE3_INCLUDE_DIR})
-  endif()
-endif()
-
-if(ENABLE_SQLITE)
   target_compile_definitions(paozhu_cli PUBLIC ENABLE_SQLITE)
-  target_link_libraries(paozhu_cli PRIVATE ${SQLITE3_LIBRARY})
-  if(SQLITE3_INCLUDE_DIR)
-    target_include_directories(paozhu_cli PRIVATE ${SQLITE3_INCLUDE_DIR})
-  endif()
 endif()
 
 target_link_libraries(paozhu PRIVATE project_warnings)
@@ -538,7 +510,11 @@ if(ENABLE_VCPKG)
     endif()
   endif()
 
-  
+  if(ENABLE_SQLITE)
+    find_package(SQLite3 REQUIRED)
+    target_link_libraries(paozhu PRIVATE SQLite::SQLite3)
+    target_link_libraries(paozhu_cli PRIVATE SQLite::SQLite3)
+  endif()
 
 else()
   # ---- Not using vcpkg: system libraries ----
@@ -659,6 +635,30 @@ else()
         target_include_directories(paozhu PRIVATE "${prefix}/brotli/include")
       endif()
     endforeach()
+  endif()
+
+  # SQLite3
+  if(ENABLE_SQLITE)
+    find_path(SQLITE3_INCLUDE_DIR sqlite3.h
+      PATHS /usr/include /usr/local/include /opt/homebrew/include
+    )
+    find_library(SQLITE3_LIBRARY NAMES sqlite3
+      PATHS /usr/lib /usr/local/lib /opt/homebrew/lib
+    )
+    if(NOT SQLITE3_LIBRARY)
+      message(FATAL_ERROR "ENABLE_SQLITE=ON but SQLite3 not found. Install via: brew install sqlite3")
+    endif()
+    if(SQLITE3_INCLUDE_DIR)
+      message(STATUS "Found SQLite3: ${SQLITE3_LIBRARY} (${SQLITE3_INCLUDE_DIR})")
+    else()
+      message(STATUS "Found SQLite3: ${SQLITE3_LIBRARY} (system default include)")
+    endif()
+    target_link_libraries(paozhu PRIVATE ${SQLITE3_LIBRARY})
+    target_link_libraries(paozhu_cli PRIVATE ${SQLITE3_LIBRARY})
+    if(SQLITE3_INCLUDE_DIR)
+      target_include_directories(paozhu PRIVATE ${SQLITE3_INCLUDE_DIR})
+      target_include_directories(paozhu_cli PRIVATE ${SQLITE3_INCLUDE_DIR})
+    endif()
   endif()
 endif()
 

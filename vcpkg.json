@@ -13,6 +13,10 @@
         },
         {
             "name": "zlib"
+        },
+        {
+            "name": "sqlite3",
+            "platform": ""
         }
     ],
     "features": {
