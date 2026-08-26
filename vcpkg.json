@@ -14,10 +14,7 @@
         {
             "name": "zlib"
         },
-        {
-            "name": "sqlite3",
-            "platform": ""
-        }
+        "sqlite3"
     ],
     "features": {
         "boost": {
