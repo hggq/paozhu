@@ -99,11 +99,7 @@ inline int16_t buf_to_int16(const unsigned char *buf)
 
 // ======================== PG Query Result Types ========================
 
-struct pg_row_data_t
-{
-    std::vector<std::string> values;// 每列的值（NULL 用空字符串+is_null标记）
-    std::vector<bool> is_null;
-};
+// pg_row_data_t 已移至 orm_common.h (PG / SQLite 共用)
 
 // ======================== PostgreSQL Connection Base Class ========================
 

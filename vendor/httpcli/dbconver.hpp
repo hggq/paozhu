@@ -1,7 +1,7 @@
 /*
  *  @author 黄自权 huangziquan
  *  @date 2026-08-14
- *  @dest 数据库转换迁移工具 - MySQL <-> PostgreSQL
+ *  @dest 数据库转换迁移工具 - MySQL <-> PostgreSQL <-> SQLite
  *  Usage: paozhu_cli dbconver <dbtag1> <dbtag2>
  */
 
@@ -28,30 +28,42 @@ namespace dbconver
 using dbtypes::build_insert_sql_mysql;
 using dbtypes::build_insert_sql_pg;
 using dbtypes::convert_type_for_target;
+using dbtypes::create_connection;
 using dbtypes::db_field_info;
 using dbtypes::db_index_info;
 using dbtypes::db_table_info;
+using dbtypes::db_type_display;
 using dbtypes::escape_mysql_string;
 using dbtypes::escape_pg_identifier;
 using dbtypes::escape_pg_string;
+using dbtypes::exec_ddl;
+using dbtypes::fetch_rows;
+using dbtypes::gen_sqlite_create_table;
+using dbtypes::get_tables;
+using dbtypes::get_table_schema;
+using dbtypes::insert_row;
 using dbtypes::is_valid_mysql_charset;
 using dbtypes::is_valid_mysql_engine;
 using dbtypes::is_valid_sql_identifier;
-using dbtypes::mysql_fetch_rows;
-using dbtypes::mysql_get_table_schema;
-using dbtypes::mysql_type_to_pg;
-using dbtypes::parse_mysql_show_create;
-using dbtypes::pg_fetch_rows;
-using dbtypes::pg_get_table_schema;
-using dbtypes::pg_type_to_mysql;
+using dbtypes::is_safe_dbtag;
+using dbtypes::parse_target_type;
+using dbtypes::quote_identifier;
 using dbtypes::remove_quotes;
+using dbtypes::reset_autoincrement;
 using dbtypes::row_data_t;
 using dbtypes::starts_with_icase;
+using dbtypes::table_exists;
 using dbtypes::to_lower;
 using dbtypes::trim;
 using dbtypes::validate_database_name;
 using dbtypes::validate_table_name;
 using orm::DB_TYPE;
+
+// SQLite 数据库文件路径 (host 字段, 回退 dbname)
+inline std::string sqlite_conn_path(const orm::orm_conn_t &cfg)
+{
+    return cfg.host.empty() ? cfg.dbname : cfg.host;
+}
 
 // ===================== DDL 生成 (迁移专用) =====================
 
@@ -249,6 +261,11 @@ inline std::string build_create_table(const db_table_info &info, DB_TYPE target_
     {
         return build_pg_create_table(info);
     }
+    if (target_type == DB_TYPE::SQLITE)
+    {
+        // 含 DROP TABLE IF EXISTS + CREATE TABLE + 索引, 一次 exec_sql 全部执行 (幂等)
+        return gen_sqlite_create_table(info);
+    }
     return build_mysql_create_table(info);
 }
 
@@ -268,6 +285,23 @@ inline int dbconvercli(const std::string &dbtag1 = "", const std::string &dbtag2
         std::cout << "         (migrate and overwrite existing tables)" << std::endl;
         return 1;
     }
+
+    // ---- 输入安全验证 ----
+    if (!is_safe_dbtag(dbtag1))
+    {
+        return 1;
+    }
+    if (!is_safe_dbtag(dbtag2))
+    {
+        return 1;
+    }
+    if (!force_flag.empty() && force_flag != "force")
+    {
+        std::cerr << "  [ERROR] Invalid force flag: '" << force_flag << "'" << std::endl;
+        std::cerr << "          Only 'force' or empty is allowed" << std::endl;
+        return 1;
+    }
+    // ---- 安全验证完成 ----
 
     bool force_overwrite = (force_flag == "force");
 
@@ -317,16 +351,26 @@ inline int dbconvercli(const std::string &dbtag1 = "", const std::string &dbtag2
         return 1;
     }
 
-    DB_TYPE src_type = (to_lower(src_config.dbtype) == "postgresql") ? DB_TYPE::POSTGRESQL : DB_TYPE::MYSQL;
-    DB_TYPE dst_type = (to_lower(dst_config.dbtype) == "postgresql") ? DB_TYPE::POSTGRESQL : DB_TYPE::MYSQL;
+    DB_TYPE src_type = parse_target_type(src_config.dbtype);
+    DB_TYPE dst_type = parse_target_type(dst_config.dbtype);
 
-    std::cout << "  Source type: " << (src_type == DB_TYPE::POSTGRESQL ? "PostgreSQL" : "MySQL") << std::endl;
-    std::cout << "  Target type: " << (dst_type == DB_TYPE::POSTGRESQL ? "PostgreSQL" : "MySQL") << std::endl;
+    std::cout << "  Source type: " << db_type_display(src_type) << std::endl;
+    std::cout << "  Target type: " << db_type_display(dst_type) << std::endl;
 
-    if (src_config.host == dst_config.host &&
-        src_config.port == dst_config.port &&
-        src_config.dbname == dst_config.dbname &&
-        src_config.user == dst_config.user)
+    // 同源同目标检查: SQLite 比较文件路径, 网络库比较 host/port/dbname/user
+    bool same_db = false;
+    if (src_type == DB_TYPE::SQLITE || dst_type == DB_TYPE::SQLITE)
+    {
+        same_db = (src_type == dst_type) && (sqlite_conn_path(src_config) == sqlite_conn_path(dst_config));
+    }
+    else
+    {
+        same_db = src_config.host == dst_config.host &&
+                  src_config.port == dst_config.port &&
+                  src_config.dbname == dst_config.dbname &&
+                  src_config.user == dst_config.user;
+    }
+    if (same_db)
     {
         std::cerr << "  [WARN] Source and target are the same database, aborting." << std::endl;
         return 1;
@@ -334,105 +378,42 @@ inline int dbconvercli(const std::string &dbtag1 = "", const std::string &dbtag2
 
     asio::io_context io_context;
 
-    std::shared_ptr<orm::mysql_conn_base> src_mysql;
-    std::shared_ptr<orm::pg_conn_base> src_pg;
-
-    if (src_type == DB_TYPE::MYSQL)
+    auto src = create_connection(src_config, src_type, io_context);
+    if (!src.ok())
     {
-        auto src_pool          = std::make_shared<orm::orm_conn_pool>();
-        src_pool->io_context   = &io_context;
-        src_pool->conf_data[0] = src_config;
-        try
-        {
-            src_mysql = src_pool->add_mysql_edit_connect();
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "  [ERROR] MySQL source connect failed: " << e.what() << std::endl;
-            return 1;
-        }
-        std::cout << "  [OK] Source MySQL connected" << std::endl;
-    }
-    else
-    {
-        src_pg = std::make_shared<orm::pg_conn_base>(
-            orm::orm_conn_link_t::create(io_context, orm::DB_TYPE::POSTGRESQL));
-        orm::orm_conn_t pg_cfg = src_config;
-        if (pg_cfg.port.empty())
-            pg_cfg.port = "5432";
-        if (!src_pg->connect(pg_cfg))
-        {
-            std::cerr << "  [ERROR] PG source connect failed: " << src_pg->error_msg << std::endl;
-            return 1;
-        }
-        std::cout << "  [OK] Source PostgreSQL connected" << std::endl;
-    }
-
-    std::shared_ptr<orm::mysql_conn_base> dst_mysql;
-    std::shared_ptr<orm::pg_conn_base> dst_pg;
-
-    if (dst_type == DB_TYPE::MYSQL)
-    {
-        auto dst_pool          = std::make_shared<orm::orm_conn_pool>();
-        dst_pool->io_context   = &io_context;
-        dst_pool->conf_data[0] = dst_config;
-        try
-        {
-            dst_mysql = dst_pool->add_mysql_edit_connect();
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "  [ERROR] MySQL target connect failed: " << e.what() << std::endl;
-            return 1;
-        }
-        std::cout << "  [OK] Target MySQL connected" << std::endl;
-    }
-    else
-    {
-        dst_pg = std::make_shared<orm::pg_conn_base>(
-            orm::orm_conn_link_t::create(io_context, orm::DB_TYPE::POSTGRESQL));
-        orm::orm_conn_t pg_cfg = dst_config;
-        if (pg_cfg.port.empty())
-            pg_cfg.port = "5432";
-        if (!dst_pg->connect(pg_cfg))
-        {
-            std::cerr << "  [ERROR] PG target connect failed: " << dst_pg->error_msg << std::endl;
-            return 1;
-        }
-        std::cout << "  [OK] Target PostgreSQL connected" << std::endl;
-    }
-
-    bool target_db_exists = false;
-    if (!validate_database_name(dst_config.dbname))
-    {
+        std::cerr << "  [ERROR] " << src.error_msg << std::endl;
         return 1;
     }
+    std::cout << "  [OK] Source " << db_type_display(src_type) << " connected" << std::endl;
 
-    if (dst_type == DB_TYPE::MYSQL)
+    auto dst = create_connection(dst_config, dst_type, io_context);
+    if (!dst.ok())
     {
-        if (!dst_mysql)
-        {
-            std::cerr << "  [ERROR] Target MySQL connection failed (null)" << std::endl;
-            return 1;
-        }
-        std::string check_sql = "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = '" +
-                                dst_config.dbname + "'";
-        std::vector<row_data_t> check_rows;
-        if (mysql_fetch_rows(dst_mysql, check_sql, check_rows))
-        {
-            target_db_exists = !check_rows.empty();
-        }
+        std::cerr << "  [ERROR] " << dst.error_msg << std::endl;
+        return 1;
+    }
+    std::cout << "  [OK] Target " << db_type_display(dst_type) << " connected" << std::endl;
+
+    bool target_db_exists = false;
+    if (dst_type == DB_TYPE::SQLITE)
+    {
+        // SQLite: 文件不存在时 sqlite3_open 自动创建, connect 已成功即视为可用
+        target_db_exists = true;
     }
     else
     {
-        if (!dst_pg)
+        if (!validate_database_name(dst_config.dbname))
         {
-            std::cerr << "  [ERROR] Target PostgreSQL connection failed (null)" << std::endl;
             return 1;
         }
-        std::string check_sql = "SELECT 1 FROM pg_database WHERE datname = '" + dst_config.dbname + "'";
+        std::string check_sql;
+        if (dst_type == DB_TYPE::MYSQL)
+            check_sql = "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = '" +
+                        dst_config.dbname + "'";
+        else
+            check_sql = "SELECT 1 FROM pg_database WHERE datname = '" + dst_config.dbname + "'";
         std::vector<row_data_t> check_rows;
-        if (pg_fetch_rows(dst_pg, check_sql, check_rows))
+        if (fetch_rows(dst.conn, dst_type, check_sql, check_rows))
         {
             target_db_exists = !check_rows.empty();
         }
@@ -457,47 +438,7 @@ inline int dbconvercli(const std::string &dbtag1 = "", const std::string &dbtag2
 
     std::cout << "  [OK] Target database '" << dst_config.dbname << "' exists" << std::endl;
 
-    std::vector<std::string> table_list;
-    if (src_type == DB_TYPE::MYSQL)
-    {
-        if (!src_mysql)
-        {
-            std::cerr << "  [ERROR] Source MySQL connection failed (null)" << std::endl;
-            return 1;
-        }
-        std::vector<row_data_t> rows;
-        if (mysql_fetch_rows(src_mysql, "SHOW TABLES", rows))
-        {
-            for (auto &r : rows)
-            {
-                if (!r.values.empty())
-                {
-                    table_list.push_back(r.values[0]);
-                }
-            }
-        }
-    }
-    else
-    {
-        if (!src_pg)
-        {
-            std::cerr << "  [ERROR] Source PostgreSQL connection failed (null)" << std::endl;
-            return 1;
-        }
-        std::vector<row_data_t> rows;
-        if (pg_fetch_rows(src_pg,
-                          "SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename",
-                          rows))
-        {
-            for (auto &r : rows)
-            {
-                if (!r.values.empty())
-                {
-                    table_list.push_back(r.values[0]);
-                }
-            }
-        }
-    }
+    auto table_list = get_tables(src.conn, src_type);
 
     if (table_list.empty())
     {
@@ -527,16 +468,7 @@ inline int dbconvercli(const std::string &dbtag1 = "", const std::string &dbtag2
         std::cout << "\n  [" << (ti + 1) << "/" << table_list.size() << "] " << table_name << std::flush;
 
         db_table_info table_info;
-        bool schema_ok = false;
-
-        if (src_type == DB_TYPE::MYSQL)
-        {
-            schema_ok = mysql_get_table_schema(src_mysql, table_name, table_info);
-        }
-        else
-        {
-            schema_ok = pg_get_table_schema(src_pg, table_name, table_info);
-        }
+        bool schema_ok = get_table_schema(src.conn, src_type, table_name, table_info);
 
         if (!schema_ok)
         {
@@ -553,35 +485,23 @@ inline int dbconvercli(const std::string &dbtag1 = "", const std::string &dbtag2
                     f.field_type,
                     f.length,
                     f.is_unsigned,
+                    src_type,
                     dst_type);
                 f.field_type = target_type;
+                if (src_type == DB_TYPE::SQLITE)
+                {
+                    // SQLite 源声明自带参数 (如 varchar(255)), 清零避免目标 DDL 重复追加
+                    f.length   = 0;
+                    f.decimals = 0;
+                }
+                f.is_unsigned = false;
             }
         }
         table_info.source_db_type = src_type;
 
-        bool table_exists = false;
-        if (dst_type == DB_TYPE::MYSQL)
-        {
-            std::string check_sql = "SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA='" +
-                                    dst_config.dbname + "' AND TABLE_NAME='" + table_name + "'";
-            std::vector<row_data_t> check_rows;
-            if (mysql_fetch_rows(dst_mysql, check_sql, check_rows))
-            {
-                table_exists = !check_rows.empty();
-            }
-        }
-        else
-        {
-            std::string check_sql = "SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='" +
-                                    table_name + "'";
-            std::vector<row_data_t> check_rows;
-            if (pg_fetch_rows(dst_pg, check_sql, check_rows))
-            {
-                table_exists = !check_rows.empty();
-            }
-        }
+        bool tbl_exists = table_exists(dst.conn, dst_type, table_name, dst_config.dbname);
 
-        if (table_exists && !force_overwrite)
+        if (tbl_exists && !force_overwrite)
         {
             std::cout << " \033[33m[SKIP]\033[0m (table already exists in target, use 'force' to overwrite)" << std::endl;
             continue;
@@ -590,128 +510,41 @@ inline int dbconvercli(const std::string &dbtag1 = "", const std::string &dbtag2
         std::string ddl = build_create_table(table_info, dst_type);
 
         bool create_ok = false;
-        if (!table_exists)
+        std::string ddl_err;
+        if (!tbl_exists)
         {
-            if (dst_type == DB_TYPE::MYSQL)
+            create_ok = exec_ddl(dst.conn, dst_type, ddl, ddl_err);
+            if (!create_ok)
             {
-                if (dst_mysql->write_sql(ddl) > 0)
-                {
-                    unsigned int rn = dst_mysql->read_loop();
-                    if (rn > 0)
-                    {
-                        orm::pack_info_t ddl_resp;
-                        ddl_resp.seq_id      = 1;
-                        unsigned int roffset = 0;
-                        dst_mysql->read_field_pack(dst_mysql->_cache_data, rn, roffset, ddl_resp);
-                        if (ddl_resp.error == 0 && ddl_resp.data.size() > 0 && (unsigned char)ddl_resp.data[0] == 0x00)
-                        {
-                            create_ok = true;
-                        }
-                        else if (ddl_resp.error == 0 && ddl_resp.data.size() > 0 && (unsigned char)ddl_resp.data[0] == 0xFF)
-                        {
-                            std::cerr << " \033[31m[FAIL]\033[0m DDL error: " << ddl_resp.data.substr(1) << std::endl;
-                        }
-                        else
-                        {
-                            create_ok = true;
-                        }
-                    }
-                    else
-                    {
-                        std::cerr << " \033[33m[WARN]\033[0m CREATE TABLE read failed: " << dst_mysql->error_msg << std::endl;
-                    }
-                }
-                else
-                {
-                    std::cerr << " \033[31m[FAIL]\033[0m CREATE TABLE write failed: " << dst_mysql->error_msg << std::endl;
-                }
-            }
-            else
-            {
-                std::vector<orm::field_info_t> dummy_fields;
-                std::vector<orm::pg_row_data_t> dummy_rows;
-                unsigned int affected = 0;
-                unsigned int err      = dst_pg->execute_and_fetch(ddl, dummy_fields, dummy_rows, affected);
-                if (err == 0)
-                {
-                    create_ok = true;
-                }
-                else
-                {
-                    std::cerr << " \033[31m[FAIL]\033[0m DDL: " << dst_pg->error_msg << std::endl;
-                }
+                std::cerr << " \033[31m[FAIL]\033[0m DDL error: " << ddl_err << std::endl;
             }
         }
         else
         {
+            // force_overwrite: 先 DROP 再 CREATE
             if (dst_type == DB_TYPE::MYSQL)
             {
                 std::string drop_sql = gen_mysql_drop_table(table_info.table_name);
-                if (dst_mysql->write_sql(drop_sql) > 0)
+                std::string drop_err;
+                if (!exec_ddl(dst.conn, dst_type, drop_sql, drop_err))
                 {
-                    unsigned int rn = dst_mysql->read_loop();
-                    if (rn == 0)
-                    {
-                        std::cerr << " \033[33m[WARN]\033[0m DROP TABLE failed: " << dst_mysql->error_msg << std::endl;
-                    }
-                }
-                else
-                {
-                    std::cerr << " \033[33m[WARN]\033[0m DROP TABLE write failed: " << dst_mysql->error_msg << std::endl;
-                }
-                if (dst_mysql->write_sql(ddl) > 0)
-                {
-                    unsigned int rn = dst_mysql->read_loop();
-                    if (rn > 0)
-                    {
-                        orm::pack_info_t ddl_resp;
-                        ddl_resp.seq_id      = 1;
-                        unsigned int roffset = 0;
-                        dst_mysql->read_field_pack(dst_mysql->_cache_data, rn, roffset, ddl_resp);
-                        if (ddl_resp.error == 0 && ddl_resp.data.size() > 0 && (unsigned char)ddl_resp.data[0] == 0x00)
-                        {
-                            create_ok = true;
-                        }
-                        else if (ddl_resp.error == 0 && ddl_resp.data.size() > 0 && (unsigned char)ddl_resp.data[0] == 0xFF)
-                        {
-                            std::cerr << " \033[31m[FAIL]\033[0m DDL error: " << ddl_resp.data.substr(1) << std::endl;
-                        }
-                        else
-                        {
-                            create_ok = true;
-                        }
-                    }
-                    else
-                    {
-                        std::cerr << " \033[33m[WARN]\033[0m CREATE TABLE read failed: " << dst_mysql->error_msg << std::endl;
-                    }
-                }
-                else
-                {
-                    std::cerr << " \033[31m[FAIL]\033[0m CREATE TABLE write failed: " << dst_mysql->error_msg << std::endl;
+                    std::cerr << " \033[33m[WARN]\033[0m DROP TABLE failed: " << drop_err << std::endl;
                 }
             }
-            else
+            else if (dst_type == DB_TYPE::POSTGRESQL)
             {
                 std::string drop_sql = gen_pg_drop_table(table_info.table_name);
-                std::vector<orm::field_info_t> dummy_fields;
-                std::vector<orm::pg_row_data_t> dummy_rows;
-                unsigned int affected = 0;
-                unsigned int drop_err = dst_pg->execute_and_fetch(drop_sql, dummy_fields, dummy_rows, affected);
-                if (drop_err > 0)
+                std::string drop_err;
+                if (!exec_ddl(dst.conn, dst_type, drop_sql, drop_err))
                 {
-                    std::cerr << " \033[33m[WARN]\033[0m DROP TABLE failed: " << dst_pg->error_msg << std::endl;
+                    std::cerr << " \033[33m[WARN]\033[0m DROP TABLE failed: " << drop_err << std::endl;
                 }
-
-                unsigned int err = dst_pg->execute_and_fetch(ddl, dummy_fields, dummy_rows, affected);
-                if (err == 0)
-                {
-                    create_ok = true;
-                }
-                else
-                {
-                    std::cerr << " \033[31m[FAIL]\033[0m DDL: " << dst_pg->error_msg << std::endl;
-                }
+            }
+            // SQLite: DDL 自带 DROP TABLE IF EXISTS, 无需单独 DROP
+            create_ok = exec_ddl(dst.conn, dst_type, ddl, ddl_err);
+            if (!create_ok)
+            {
+                std::cerr << " \033[31m[FAIL]\033[0m DDL: " << ddl_err << std::endl;
             }
         }
 
@@ -725,25 +558,9 @@ inline int dbconvercli(const std::string &dbtag1 = "", const std::string &dbtag2
 
         unsigned long long total_count = 0;
         {
-            std::string count_sql;
-            if (src_type == DB_TYPE::MYSQL)
-            {
-                count_sql = "SELECT COUNT(*) FROM `" + table_name + "`";
-            }
-            else
-            {
-                count_sql = "SELECT COUNT(*) FROM " + table_name;
-            }
+            std::string count_sql = "SELECT COUNT(*) FROM " + quote_identifier(src_type, table_name);
             std::vector<row_data_t> count_rows;
-            bool count_ok = false;
-            if (src_type == DB_TYPE::MYSQL)
-            {
-                count_ok = mysql_fetch_rows(src_mysql, count_sql, count_rows);
-            }
-            else
-            {
-                count_ok = pg_fetch_rows(src_pg, count_sql, count_rows);
-            }
+            bool count_ok = fetch_rows(src.conn, src_type, count_sql, count_rows);
             if (count_ok && !count_rows.empty() && !count_rows[0].values.empty())
             {
                 try
@@ -761,61 +578,38 @@ inline int dbconvercli(const std::string &dbtag1 = "", const std::string &dbtag2
 
         while (total_rows_migrated < total_count)
         {
-            std::string select_sql;
-            if (src_type == DB_TYPE::MYSQL)
-            {
-                select_sql = "SELECT * FROM `" + table_name + "` LIMIT " +
-                             std::to_string(batch_size) + " OFFSET " + std::to_string(offset);
-            }
-            else
-            {
-                select_sql = "SELECT * FROM " + table_name + " LIMIT " +
-                             std::to_string(batch_size) + " OFFSET " + std::to_string(offset);
-            }
+            std::string select_sql = "SELECT * FROM " + quote_identifier(src_type, table_name) +
+                                     " LIMIT " + std::to_string(batch_size) + " OFFSET " + std::to_string(offset);
 
             std::vector<row_data_t> batch_rows;
-            bool read_ok = false;
-            if (src_type == DB_TYPE::MYSQL)
-            {
-                read_ok = mysql_fetch_rows(src_mysql, select_sql, batch_rows);
-            }
-            else
-            {
-                read_ok = pg_fetch_rows(src_pg, select_sql, batch_rows);
-            }
+            bool read_ok = fetch_rows(src.conn, src_type, select_sql, batch_rows);
 
             if (!read_ok || batch_rows.empty())
                 break;
 
-            for (auto &row : batch_rows)
+            if (dst_type == DB_TYPE::SQLITE)
             {
-                std::string insert_sql;
-                if (dst_type == DB_TYPE::MYSQL)
+                // SQLite 目标: 参数绑定插入 (二进制安全), 每批次包裹事务提速
+                auto dst_sqlite = std::get<std::shared_ptr<orm::sqlite_conn_base>>(dst.conn);
+                dst_sqlite->exec_sql("BEGIN");
+                std::string ins_err;
+                for (auto &row : batch_rows)
                 {
-                    insert_sql = build_insert_sql_mysql(table_info.table_name, table_info.fields, row, 0, row.values.size());
-                    if (dst_mysql->write_sql(insert_sql) > 0)
+                    if (!insert_row(dst.conn, dst_type, table_info.table_name, table_info.fields, row, ins_err))
                     {
-                        unsigned int rn = dst_mysql->read_loop();
-                        if (rn == 0)
-                        {
-                            std::cerr << " \033[31m[WARN]\033[0m MySQL INSERT read failed: " << dst_mysql->error_msg << std::endl;
-                        }
-                    }
-                    else
-                    {
-                        std::cerr << " \033[31m[WARN]\033[0m MySQL INSERT write failed: " << dst_mysql->error_msg << std::endl;
+                        std::cerr << "\n  \033[31m[WARN]\033[0m SQLite INSERT failed: " << ins_err << std::endl;
                     }
                 }
-                else
+                dst_sqlite->exec_sql("COMMIT");
+            }
+            else
+            {
+                std::string ins_err;
+                for (auto &row : batch_rows)
                 {
-                    insert_sql = build_insert_sql_pg(table_info.table_name, table_info.fields, row, 0, row.values.size());
-                    std::vector<orm::field_info_t> dummy_fields;
-                    std::vector<orm::pg_row_data_t> dummy_rows;
-                    unsigned int affected = 0;
-                    unsigned int err      = dst_pg->execute_and_fetch(insert_sql, dummy_fields, dummy_rows, affected);
-                    if (err > 0)
+                    if (!insert_row(dst.conn, dst_type, table_info.table_name, table_info.fields, row, ins_err))
                     {
-                        std::cerr << " \033[31m[WARN]\033[0m PostgreSQL INSERT failed: " << dst_pg->error_msg << std::endl;
+                        std::cerr << " \033[31m[WARN]\033[0m INSERT failed: " << ins_err << std::endl;
                     }
                 }
             }
@@ -834,52 +628,12 @@ inline int dbconvercli(const std::string &dbtag1 = "", const std::string &dbtag2
                 std::cerr << " \033[33m[WARN]\033[0m Invalid auto increment field name: '"
                           << table_info.auto_inc_field << "', skip reset" << std::endl;
             }
-            else if (dst_type == DB_TYPE::MYSQL)
+            else
             {
-                std::string alter_sql = "SELECT MAX(`" + table_info.auto_inc_field + "`) FROM `" +
-                                        table_info.table_name + "`";
-                std::vector<row_data_t> max_rows;
-                if (mysql_fetch_rows(dst_mysql, alter_sql, max_rows) && !max_rows.empty() && !max_rows[0].values.empty())
+                std::string ai_err;
+                if (!reset_autoincrement(dst.conn, dst_type, table_info.table_name, table_info.auto_inc_field, ai_err))
                 {
-                    if (!max_rows[0].values[0].empty() && !max_rows[0].is_null[0])
-                    {
-                        try
-                        {
-                            unsigned long long max_val = std::stoull(max_rows[0].values[0]);
-                            std::string reset_sql      = "ALTER TABLE `" + table_info.table_name +
-                                                    "` AUTO_INCREMENT = " + std::to_string(max_val + 1);
-                            if (dst_mysql->write_sql(reset_sql) > 0)
-                            {
-                                unsigned int rn = dst_mysql->read_loop();
-                                if (rn == 0)
-                                {
-                                    std::cerr << " \033[33m[WARN]\033[0m Failed to reset AUTO_INCREMENT read: " << dst_mysql->error_msg << std::endl;
-                                }
-                            }
-                            else
-                            {
-                                std::cerr << " \033[33m[WARN]\033[0m Failed to reset AUTO_INCREMENT write: " << dst_mysql->error_msg << std::endl;
-                            }
-                        }
-                        catch (...)
-                        {
-                        }
-                    }
-                }
-            }
-            else if (dst_type == DB_TYPE::POSTGRESQL)
-            {
-                std::string seq_name  = table_info.table_name + "_" + table_info.auto_inc_field + "_seq";
-                std::string alter_sql = "SELECT setval('" + seq_name + "', (SELECT MAX(" +
-                                        table_info.auto_inc_field + ") FROM " +
-                                        table_info.table_name + "))";
-                std::vector<orm::field_info_t> dummy_fields;
-                std::vector<orm::pg_row_data_t> dummy_rows;
-                unsigned int affected = 0;
-                unsigned int err      = dst_pg->execute_and_fetch(alter_sql, dummy_fields, dummy_rows, affected);
-                if (err > 0)
-                {
-                    std::cerr << " \033[33m[WARN]\033[0m Failed to reset sequence: " << dst_pg->error_msg << std::endl;
+                    std::cerr << " \033[33m[WARN]\033[0m Failed to reset auto-increment: " << ai_err << std::endl;
                 }
             }
         }

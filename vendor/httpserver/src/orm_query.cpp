@@ -25,6 +25,7 @@
 #include <asio/io_context.hpp>
 #include "mysql_conn.h"
 #include "pg_conn.h"
+#include "sqlite_conn.h"
 #include "orm_conn_pool.h"
 #include "orm_connect_mar.h"
 #include "orm_query.h"
@@ -66,6 +67,10 @@ bool db_conn::begin_commit()
     if (db_type == DB_TYPE::MYSQL)
     {
         return mysql_begin_commit_impl();
+    }
+    else if (db_type == DB_TYPE::SQLITE)
+    {
+        return sqlite_begin_commit_impl();
     }
     return pg_begin_commit_impl();
 }
@@ -178,6 +183,10 @@ bool db_conn::commit()
     {
         return mysql_commit_impl();
     }
+    else if (db_type == DB_TYPE::SQLITE)
+    {
+        return sqlite_commit_impl();
+    }
     return pg_commit_impl();
 }
 
@@ -272,6 +281,11 @@ void db_conn::rollback()
         mysql_rollback_impl();
         return;
     }
+    else if (db_type == DB_TYPE::SQLITE)
+    {
+        sqlite_rollback_impl();
+        return;
+    }
     pg_rollback_impl();
 }
 
@@ -355,6 +369,10 @@ asio::awaitable<bool> db_conn::async_begin_commit()
     if (db_type == DB_TYPE::MYSQL)
     {
         co_return co_await mysql_async_begin_commit_impl();
+    }
+    else if (db_type == DB_TYPE::SQLITE)
+    {
+        co_return co_await sqlite_async_begin_commit_impl();
     }
     co_return co_await pg_async_begin_commit_impl();
 }
@@ -467,6 +485,10 @@ asio::awaitable<bool> db_conn::async_commit()
     {
         co_return co_await mysql_async_commit_impl();
     }
+    else if (db_type == DB_TYPE::SQLITE)
+    {
+        co_return co_await sqlite_async_commit_impl();
+    }
     co_return co_await pg_async_commit_impl();
 }
 
@@ -559,6 +581,11 @@ asio::awaitable<void> db_conn::async_rollback()
         co_await mysql_async_rollback_impl();
         co_return;
     }
+    else if (db_type == DB_TYPE::SQLITE)
+    {
+        co_await sqlite_async_rollback_impl();
+        co_return;
+    }
     co_await pg_async_rollback_impl();
 }
 
@@ -631,11 +658,149 @@ asio::awaitable<void> db_conn::pg_async_rollback_impl()
     pg_edit_conn.reset();
 }
 
+// ======================== SQLite transaction implementations ========================
+
+bool db_conn::sqlite_begin_commit_impl()
+{
+    if (islock_conn)
+    {
+        if (!sqlite_edit_conn)
+        {
+            sqlite_edit_conn = conn_obj->get_sqlite_edit_conn();
+        }
+    }
+    else
+    {
+        sqlite_edit_conn = conn_obj->get_sqlite_edit_conn();
+    }
+
+    int affected = sqlite_edit_conn->exec_sql("BEGIN");
+    if (affected < 0)
+    {
+        error_msg   = sqlite_edit_conn->error_msg;
+        islock_conn = false;
+        iscommit    = false;
+        sqlite_edit_conn.reset();
+        return false;
+    }
+    return true;
+}
+
+bool db_conn::sqlite_commit_impl()
+{
+    if (sqlite_edit_conn == nullptr)
+    {
+        error_msg = "edit_conn error, must begin_commit() first";
+        iserror   = true;
+        return false;
+    }
+
+    int affected = sqlite_edit_conn->exec_sql("COMMIT");
+    if (affected < 0)
+    {
+        error_msg = sqlite_edit_conn->error_msg;
+        this->sqlite_rollback_impl();
+        return false;
+    }
+    conn_obj->back_sqlite_edit_conn(std::move(sqlite_edit_conn));
+    iscommit    = false;
+    islock_conn = false;
+    return true;
+}
+
+void db_conn::sqlite_rollback_impl()
+{
+    if (sqlite_edit_conn == nullptr)
+    {
+        error_msg = "edit_conn error, must begin_commit() first";
+        return;
+    }
+
+    int affected = sqlite_edit_conn->exec_sql("ROLLBACK");
+    if (affected < 0)
+    {
+        error_msg = sqlite_edit_conn->error_msg;
+    }
+    iscommit    = false;
+    islock_conn = false;
+    conn_obj->back_sqlite_edit_conn(std::move(sqlite_edit_conn));
+}
+
+asio::awaitable<bool> db_conn::sqlite_async_begin_commit_impl()
+{
+    if (islock_conn)
+    {
+        if (!sqlite_edit_conn)
+        {
+            sqlite_edit_conn = co_await conn_obj->async_get_sqlite_edit_conn();
+        }
+    }
+    else
+    {
+        sqlite_edit_conn = co_await conn_obj->async_get_sqlite_edit_conn();
+    }
+
+    int affected = co_await sqlite_edit_conn->async_exec_sql("BEGIN");
+    if (affected < 0)
+    {
+        error_msg   = sqlite_edit_conn->error_msg;
+        islock_conn = false;
+        iscommit    = false;
+        sqlite_edit_conn.reset();
+        co_return false;
+    }
+    co_return true;
+}
+
+asio::awaitable<bool> db_conn::sqlite_async_commit_impl()
+{
+    if (sqlite_edit_conn == nullptr)
+    {
+        error_msg = "edit_conn error, must begin_commit() first";
+        iserror   = true;
+        co_return false;
+    }
+
+    int affected = co_await sqlite_edit_conn->async_exec_sql("COMMIT");
+    if (affected < 0)
+    {
+        error_msg = sqlite_edit_conn->error_msg;
+        co_await this->sqlite_async_rollback_impl();
+        co_return false;
+    }
+    conn_obj->back_sqlite_edit_conn(std::move(sqlite_edit_conn));
+    iscommit    = false;
+    islock_conn = false;
+    co_return true;
+}
+
+asio::awaitable<void> db_conn::sqlite_async_rollback_impl()
+{
+    if (sqlite_edit_conn == nullptr)
+    {
+        error_msg = "edit_conn error, must begin_commit() first";
+        co_return;
+    }
+
+    int affected = co_await sqlite_edit_conn->async_exec_sql("ROLLBACK");
+    if (affected < 0)
+    {
+        error_msg = sqlite_edit_conn->error_msg;
+    }
+    iscommit    = false;
+    islock_conn = false;
+    conn_obj->back_sqlite_edit_conn(std::move(sqlite_edit_conn));
+}
+
 unsigned int db_conn::edit_query(const std::string &rawsql)
 {
     if (db_type == DB_TYPE::MYSQL)
     {
         return mysql_edit_query_impl(rawsql);
+    }
+    else if (db_type == DB_TYPE::SQLITE)
+    {
+        return sqlite_edit_query_impl(rawsql);
     }
     return pg_edit_query_impl(rawsql);
 }
@@ -792,11 +957,79 @@ unsigned int db_conn::pg_edit_query_impl(const std::string &rawsql)
     return 0;
 }
 
+unsigned int db_conn::sqlite_edit_query_impl(const std::string &rawsql)
+{
+    effect_num = 0;
+    if (iserror)
+    {
+        return 0;
+    }
+
+    try
+    {
+        if (conn_obj == nullptr)
+        {
+            error_msg = "Please select_db() tag";
+            return 0;
+        }
+
+        if (islock_conn)
+        {
+            if (!sqlite_edit_conn)
+            {
+                sqlite_edit_conn = conn_obj->get_sqlite_edit_conn();
+            }
+        }
+        else
+        {
+            sqlite_edit_conn = conn_obj->get_sqlite_edit_conn();
+        }
+
+        if (sqlite_edit_conn->isdebug)
+        {
+            sqlite_edit_conn->begin_time();
+        }
+
+        int affected = sqlite_edit_conn->exec_sql(rawsql);
+        if (affected < 0)
+        {
+            error_msg = sqlite_edit_conn->error_msg;
+            sqlite_edit_conn.reset();
+            return 0;
+        }
+        effect_num = static_cast<unsigned int>(affected);
+
+        if (sqlite_edit_conn->isdebug)
+        {
+            sqlite_edit_conn->finish_time();
+            auto &conn_mar    = get_orm_connect_mar();
+            long long du_time = sqlite_edit_conn->count_time();
+            conn_mar.push_log(rawsql, std::to_string(du_time));
+        }
+        if (!islock_conn)
+        {
+            conn_obj->back_sqlite_edit_conn(std::move(sqlite_edit_conn));
+        }
+        return effect_num;
+    }
+    catch (const std::exception &e)
+    {
+        error_msg = std::string(e.what());
+        return 0;
+    }
+
+    return 0;
+}
+
 asio::awaitable<unsigned int> db_conn::async_edit_query(const std::string &rawsql)
 {
     if (db_type == DB_TYPE::MYSQL)
     {
         co_return co_await mysql_async_edit_query_impl(rawsql);
+    }
+    else if (db_type == DB_TYPE::SQLITE)
+    {
+        co_return co_await sqlite_async_edit_query_impl(rawsql);
     }
     co_return co_await pg_async_edit_query_impl(rawsql);
 }
@@ -942,6 +1175,70 @@ asio::awaitable<unsigned int> db_conn::pg_async_edit_query_impl(const std::strin
         if (!islock_conn)
         {
             conn_obj->back_pg_edit_conn(std::move(pg_edit_conn));
+        }
+        co_return effect_num;
+    }
+    catch (const std::exception &e)
+    {
+        error_msg = std::string(e.what());
+        co_return 0;
+    }
+
+    co_return 0;
+}
+
+asio::awaitable<unsigned int> db_conn::sqlite_async_edit_query_impl(const std::string &rawsql)
+{
+    effect_num = 0;
+    if (iserror)
+    {
+        co_return 0;
+    }
+
+    try
+    {
+        if (conn_obj == nullptr)
+        {
+            error_msg = "Please select_db() tag";
+            co_return 0;
+        }
+
+        if (islock_conn)
+        {
+            if (!sqlite_edit_conn)
+            {
+                sqlite_edit_conn = co_await conn_obj->async_get_sqlite_edit_conn();
+            }
+        }
+        else
+        {
+            sqlite_edit_conn = co_await conn_obj->async_get_sqlite_edit_conn();
+        }
+
+        if (sqlite_edit_conn->isdebug)
+        {
+            sqlite_edit_conn->begin_time();
+        }
+
+        int affected = co_await sqlite_edit_conn->async_exec_sql(rawsql);
+        if (affected < 0)
+        {
+            error_msg = sqlite_edit_conn->error_msg;
+            sqlite_edit_conn.reset();
+            co_return 0;
+        }
+        effect_num = static_cast<unsigned int>(affected);
+
+        if (sqlite_edit_conn->isdebug)
+        {
+            sqlite_edit_conn->finish_time();
+            auto &conn_mar    = get_orm_connect_mar();
+            long long du_time = sqlite_edit_conn->count_time();
+            conn_mar.push_log(rawsql, std::to_string(du_time));
+        }
+        if (!islock_conn)
+        {
+            conn_obj->back_sqlite_edit_conn(std::move(sqlite_edit_conn));
         }
         co_return effect_num;
     }

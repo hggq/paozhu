@@ -1,22 +1,24 @@
 #include "orm.h"
 #include <chrono>
+#include <string>
 #include <thread>
 #include "md5.h"
 #include "func.h"
 #include "httppeer.h"
 #include "request.h"
-#include "test_pg_crud.h"
+#include "test_sqlite_crud.h"
 namespace http
 {
 
-//@urlpath(null,cms/pglist)
-std::string article_pg_list(std::shared_ptr<httppeer> peer)
+//@urlpath(null,cms/sqlist)
+std::string article_sqlite_list(std::shared_ptr<httppeer> peer)
 {
     // step3 content list
+#ifdef ENABLE_SQLITE
     try
     {
         httppeer &client = peer->get_peer();
-        auto articles    = orm::ph::Fortune();
+        auto articles    = orm::lite::Fortune();
         int page         = client.get["page"].to_int();
         if (page < 0)
         {
@@ -34,14 +36,14 @@ std::string article_pg_list(std::shared_ptr<httppeer> peer)
         //自动分页 automatic pagination
         articles.fetch();
 
-        client << "<p>page list for PostgreSQL</p>";
+        client << "<p>page list for sqlite</p>";
         client << "<p>" << articles.sqlstring << "</p>";
         client << "<p>size:" << std::to_string(articles.size()) << "</p>";
         if (articles.size() > 0)
         {
             for (auto &bb : articles)
             {
-                client << "<p><a href=\"/cms/pgshow?id=" << bb.id << "\">" << bb.id << "</a></p>";
+                client << "<p><a href=\"/cms/sqshow?id=" << std::to_string(bb.id) << "\">" << std::to_string(bb.id) << "</a></p>";
                 //client.val["list"].push(std::move(item));
             }
         }
@@ -51,22 +53,28 @@ std::string article_pg_list(std::shared_ptr<httppeer> peer)
     {
         std::cerr << e.what() << '\n';
     }
+#else
+    client << "<p>Please: cmake .. -DENABLE_SQLITE=ON</p>";
+#endif
     return "";
 }
 
-//@urlpath(null,cms/pgshow)
-std::string article_pg_show(std::shared_ptr<httppeer> peer)
+//@urlpath(null,cms/sqshow)
+std::string article_sqlite_show(std::shared_ptr<httppeer> peer)
 {
     // step4
     httppeer &client = peer->get_peer();
-    auto articles    = orm::ph::Fortune();
-    int aid          = client.get["id"].to_int();
+#ifdef ENABLE_SQLITE
+    auto articles = orm::lite::Fortune();
+    int aid       = client.get["id"].to_int();
 
     articles.where("id", aid).fetch_one();
 
     client.val["title"]   = std::to_string(aid);
     client.val["content"] = articles.getMessage();
-
+#else
+    client << "<p>Please: cmake .. -DENABLE_SQLITE=ON</p>";
+#endif
     peer->view("cms/show");
     return "";
 }

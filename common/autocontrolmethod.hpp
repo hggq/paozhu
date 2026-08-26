@@ -77,6 +77,7 @@
 #include "test_cols.h"
 #include "testpinyin.h"
 #include "testmoney_num.h"
+#include "test_sqlite_crud.h"
 #include "testipsearch.h"
 #include "testcowaitclient.h"
 #include "testcors.h"
@@ -806,6 +807,12 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = testtestmoneynum;
 		methodcallback.emplace("testtestmoneynum",temp);
+		temp.pre = nullptr;
+		temp.regfun = article_sqlite_list;
+		methodcallback.emplace("cms/sqlist",temp);
+		temp.pre = nullptr;
+		temp.regfun = article_sqlite_show;
+		methodcallback.emplace("cms/sqshow",temp);
 		temp.pre = nullptr;
 		temp.regfun = testipsearch;
 		methodcallback.emplace("testipsearch",temp);

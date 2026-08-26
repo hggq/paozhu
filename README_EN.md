@@ -18,7 +18,7 @@ Discussing the joy of C++ web development with community developers.
 ✅ 5. Supports WebSocket server and client, with duplex sending and receiving  
 ✅ 6. The framework comes with WebSocket push, which supports regular push to WebSocket client  
 ✅ 7. Supports httpclient GET and POST requests, in both synchronous and asynchronous modes  
-✅ 8. Built in ORM, supports MySQL and PostgreSQL, supports both coroutine and synchronous modes  
+✅ 8. Built in ORM, supports MySQL, PostgreSQL and SQLite, supports both coroutine and synchronous modes  
 ✅ 9. Framework has two thread pool,framework thread pool,user program runing thread pool  
 ✅10. The framework uses asio Coroutines  
 ✅11. The framework features that I/O uses the coroutine pool to run and thread pool to run  
@@ -773,8 +773,6 @@ asio::awaitable<std::string> test_socket_client(std::shared_ptr<httppeer> peer)
 * [ ] 1.Improved HTTP features  
 * [ ] 2.HttpClient Improved
 * [ ] 3.HTTP/2 client  
-* [ ] 4.SQLite ORM  
-
 
 
 ### 11.Contribute👏👋

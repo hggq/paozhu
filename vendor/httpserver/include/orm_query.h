@@ -14,6 +14,7 @@
 #include "unicode.h"
 #include "mysql_conn.h"
 #include "pg_conn.h"
+#include "sqlite_conn.h"
 #include "orm_conn_pool.h"
 #include "orm_connect_mar.h"
 
@@ -48,6 +49,17 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 if (mysql_edit_conn)
                 {
                     conn_obj->back_mysql_edit_conn(std::move(mysql_edit_conn));
+                }
+            }
+            else if (db_type == DB_TYPE::SQLITE)
+            {
+                if (sqlite_select_conn)
+                {
+                    conn_obj->back_sqlite_select_conn(std::move(sqlite_select_conn));
+                }
+                if (sqlite_edit_conn)
+                {
+                    conn_obj->back_sqlite_edit_conn(std::move(sqlite_edit_conn));
                 }
             }
             else
@@ -305,11 +317,95 @@ class db_conn : std::enable_shared_from_this<db_conn>
     }
 
     template <ResultHasSetVal T>
+    unsigned int sqlite_query_vec_impl(const std::string &rawsql, std::vector<T> &result_record)
+    {
+        effect_num = 0;
+        if (iserror)
+        {
+            return 0;
+        }
+
+        try
+        {
+            if (conn_obj == nullptr)
+            {
+                error_msg = "Please select_db() tag";
+                return 0;
+            }
+
+            if (islock_conn)
+            {
+                if (!sqlite_select_conn)
+                {
+                    sqlite_select_conn = conn_obj->get_sqlite_select_conn();
+                }
+            }
+            else
+            {
+                sqlite_select_conn = conn_obj->get_sqlite_select_conn();
+            }
+
+            if (sqlite_select_conn->isdebug)
+            {
+                sqlite_select_conn->begin_time();
+            }
+
+            sqlite_query_result query_result;
+            bool isok = sqlite_select_conn->query_fetch(rawsql, query_result);
+            if (!isok)
+            {
+                error_msg = sqlite_select_conn->error_msg;
+                sqlite_select_conn.reset();
+                return 0;
+            }
+
+            for (std::size_t ri = 0; ri < query_result.rows.size(); ri++)
+            {
+                T data_temp;
+                auto &row      = query_result.rows[ri];
+                auto &row_null = query_result.is_null[ri];
+                for (unsigned int ij = 0; ij < query_result.column_names.size() && ij < row.size(); ij++)
+                {
+                    if (!row_null[ij] && query_result.column_names[ij].size() > 0)
+                    {
+                        data_temp.set_val(query_result.column_names[ij], reinterpret_cast<const unsigned char *>(row[ij].data()), row[ij].size(), 0);
+                    }
+                }
+                result_record.emplace_back(std::move(data_temp));
+                effect_num++;
+            }
+
+            if (sqlite_select_conn->isdebug)
+            {
+                sqlite_select_conn->finish_time();
+                auto &conn_mar    = get_orm_connect_mar();
+                long long du_time = sqlite_select_conn->count_time();
+                conn_mar.push_log(rawsql, std::to_string(du_time));
+            }
+            if (!islock_conn)
+            {
+                conn_obj->back_sqlite_select_conn(std::move(sqlite_select_conn));
+            }
+            return effect_num;
+        }
+        catch (const std::exception &e)
+        {
+            error_msg = std::string(e.what());
+        }
+
+        return 0;
+    }
+
+    template <ResultHasSetVal T>
     unsigned int query(const std::string &rawsql, std::vector<T> &result_record)
     {
         if (db_type == DB_TYPE::MYSQL)
         {
             return mysql_query_vec_impl(rawsql, result_record);
+        }
+        else if (db_type == DB_TYPE::SQLITE)
+        {
+            return sqlite_query_vec_impl(rawsql, result_record);
         }
         return pg_query_vec_impl(rawsql, result_record);
     }
@@ -554,11 +650,95 @@ class db_conn : std::enable_shared_from_this<db_conn>
     }
 
     template <ResultHasSetVal T>
+    asio::awaitable<unsigned int> sqlite_async_query_vec_impl(const std::string &rawsql, std::vector<T> &result_record)
+    {
+        effect_num = 0;
+        if (iserror)
+        {
+            co_return 0;
+        }
+
+        try
+        {
+            if (conn_obj == nullptr)
+            {
+                error_msg = "Please select_db() tag";
+                co_return 0;
+            }
+
+            if (islock_conn)
+            {
+                if (!sqlite_select_conn)
+                {
+                    sqlite_select_conn = co_await conn_obj->async_get_sqlite_select_conn();
+                }
+            }
+            else
+            {
+                sqlite_select_conn = co_await conn_obj->async_get_sqlite_select_conn();
+            }
+
+            if (sqlite_select_conn->isdebug)
+            {
+                sqlite_select_conn->begin_time();
+            }
+
+            sqlite_query_result query_result;
+            bool isok = co_await sqlite_select_conn->async_query_fetch(rawsql, query_result);
+            if (!isok)
+            {
+                error_msg = sqlite_select_conn->error_msg;
+                sqlite_select_conn.reset();
+                co_return 0;
+            }
+
+            for (std::size_t ri = 0; ri < query_result.rows.size(); ri++)
+            {
+                T data_temp;
+                auto &row      = query_result.rows[ri];
+                auto &row_null = query_result.is_null[ri];
+                for (unsigned int ij = 0; ij < query_result.column_names.size() && ij < row.size(); ij++)
+                {
+                    if (!row_null[ij] && query_result.column_names[ij].size() > 0)
+                    {
+                        data_temp.set_val(query_result.column_names[ij], reinterpret_cast<const unsigned char *>(row[ij].data()), row[ij].size(), 0);
+                    }
+                }
+                result_record.emplace_back(std::move(data_temp));
+                effect_num++;
+            }
+
+            if (sqlite_select_conn->isdebug)
+            {
+                sqlite_select_conn->finish_time();
+                auto &conn_mar    = get_orm_connect_mar();
+                long long du_time = sqlite_select_conn->count_time();
+                conn_mar.push_log(rawsql, std::to_string(du_time));
+            }
+            if (!islock_conn)
+            {
+                conn_obj->back_sqlite_select_conn(std::move(sqlite_select_conn));
+            }
+            co_return effect_num;
+        }
+        catch (const std::exception &e)
+        {
+            error_msg = std::string(e.what());
+        }
+
+        co_return 0;
+    }
+
+    template <ResultHasSetVal T>
     asio::awaitable<unsigned int> async_query(const std::string &rawsql, std::vector<T> &result_record)
     {
         if (db_type == DB_TYPE::MYSQL)
         {
             co_return co_await mysql_async_query_vec_impl(rawsql, result_record);
+        }
+        else if (db_type == DB_TYPE::SQLITE)
+        {
+            co_return co_await sqlite_async_query_vec_impl(rawsql, result_record);
         }
         co_return co_await pg_async_query_vec_impl(rawsql, result_record);
     }
@@ -801,11 +981,93 @@ class db_conn : std::enable_shared_from_this<db_conn>
     }
 
     template <ResultHasSetVal T>
+    unsigned int sqlite_query_single_impl(const std::string &rawsql, T &result_record)
+    {
+        effect_num = 0;
+        if (iserror)
+        {
+            return 0;
+        }
+
+        try
+        {
+            if (conn_obj == nullptr)
+            {
+                error_msg = "Please select_db() tag";
+                return 0;
+            }
+
+            if (islock_conn)
+            {
+                if (!sqlite_select_conn)
+                {
+                    sqlite_select_conn = conn_obj->get_sqlite_select_conn();
+                }
+            }
+            else
+            {
+                sqlite_select_conn = conn_obj->get_sqlite_select_conn();
+            }
+
+            if (sqlite_select_conn->isdebug)
+            {
+                sqlite_select_conn->begin_time();
+            }
+
+            sqlite_query_result query_result;
+            bool isok = sqlite_select_conn->query_fetch(rawsql, query_result);
+            if (!isok)
+            {
+                error_msg = sqlite_select_conn->error_msg;
+                sqlite_select_conn.reset();
+                return 0;
+            }
+
+            if (!query_result.rows.empty())
+            {
+                auto &row      = query_result.rows.front();
+                auto &row_null = query_result.is_null.front();
+                for (unsigned int ij = 0; ij < query_result.column_names.size() && ij < row.size(); ij++)
+                {
+                    if (!row_null[ij] && query_result.column_names[ij].size() > 0)
+                    {
+                        result_record.set_val(query_result.column_names[ij], reinterpret_cast<const unsigned char *>(row[ij].data()), row[ij].size(), 0);
+                    }
+                }
+                effect_num++;
+            }
+
+            if (sqlite_select_conn->isdebug)
+            {
+                sqlite_select_conn->finish_time();
+                auto &conn_mar    = get_orm_connect_mar();
+                long long du_time = sqlite_select_conn->count_time();
+                conn_mar.push_log(rawsql, std::to_string(du_time));
+            }
+            if (!islock_conn)
+            {
+                conn_obj->back_sqlite_select_conn(std::move(sqlite_select_conn));
+            }
+            return effect_num;
+        }
+        catch (const std::exception &e)
+        {
+            error_msg = std::string(e.what());
+        }
+
+        return 0;
+    }
+
+    template <ResultHasSetVal T>
     unsigned int query(const std::string &rawsql, T &result_record)
     {
         if (db_type == DB_TYPE::MYSQL)
         {
             return mysql_query_single_impl(rawsql, result_record);
+        }
+        else if (db_type == DB_TYPE::SQLITE)
+        {
+            return sqlite_query_single_impl(rawsql, result_record);
         }
         return pg_query_single_impl(rawsql, result_record);
     }
@@ -1048,11 +1310,93 @@ class db_conn : std::enable_shared_from_this<db_conn>
     }
 
     template <ResultHasSetVal T>
+    asio::awaitable<unsigned int> sqlite_async_query_single_impl(const std::string &rawsql, T &result_record)
+    {
+        effect_num = 0;
+        if (iserror)
+        {
+            co_return 0;
+        }
+
+        try
+        {
+            if (conn_obj == nullptr)
+            {
+                error_msg = "Please select_db() tag";
+                co_return 0;
+            }
+
+            if (islock_conn)
+            {
+                if (!sqlite_select_conn)
+                {
+                    sqlite_select_conn = co_await conn_obj->async_get_sqlite_select_conn();
+                }
+            }
+            else
+            {
+                sqlite_select_conn = co_await conn_obj->async_get_sqlite_select_conn();
+            }
+
+            if (sqlite_select_conn->isdebug)
+            {
+                sqlite_select_conn->begin_time();
+            }
+
+            sqlite_query_result query_result;
+            bool isok = co_await sqlite_select_conn->async_query_fetch(rawsql, query_result);
+            if (!isok)
+            {
+                error_msg = sqlite_select_conn->error_msg;
+                sqlite_select_conn.reset();
+                co_return 0;
+            }
+
+            if (!query_result.rows.empty())
+            {
+                auto &row      = query_result.rows.front();
+                auto &row_null = query_result.is_null.front();
+                for (unsigned int ij = 0; ij < query_result.column_names.size() && ij < row.size(); ij++)
+                {
+                    if (!row_null[ij] && query_result.column_names[ij].size() > 0)
+                    {
+                        result_record.set_val(query_result.column_names[ij], reinterpret_cast<const unsigned char *>(row[ij].data()), row[ij].size(), 0);
+                    }
+                }
+                effect_num++;
+            }
+
+            if (sqlite_select_conn->isdebug)
+            {
+                sqlite_select_conn->finish_time();
+                auto &conn_mar    = get_orm_connect_mar();
+                long long du_time = sqlite_select_conn->count_time();
+                conn_mar.push_log(rawsql, std::to_string(du_time));
+            }
+            if (!islock_conn)
+            {
+                conn_obj->back_sqlite_select_conn(std::move(sqlite_select_conn));
+            }
+            co_return effect_num;
+        }
+        catch (const std::exception &e)
+        {
+            error_msg = std::string(e.what());
+        }
+
+        co_return 0;
+    }
+
+    template <ResultHasSetVal T>
     asio::awaitable<unsigned int> async_query(const std::string &rawsql, T &result_record)
     {
         if (db_type == DB_TYPE::MYSQL)
         {
             co_return co_await mysql_async_query_single_impl(rawsql, result_record);
+        }
+        else if (db_type == DB_TYPE::SQLITE)
+        {
+            co_return co_await sqlite_async_query_single_impl(rawsql, result_record);
         }
         co_return co_await pg_async_query_single_impl(rawsql, result_record);
     }
@@ -1306,11 +1650,99 @@ class db_conn : std::enable_shared_from_this<db_conn>
     }
 
     template <typename T, RecordLineCallback<T> Callback>
+    unsigned int sqlite_query_vec_cb_impl(const std::string &rawsql, std::vector<T> &result_record, Callback &&callback)
+    {
+        effect_num = 0;
+        if (iserror)
+        {
+            return 0;
+        }
+
+        try
+        {
+            if (conn_obj == nullptr)
+            {
+                error_msg = "Please select_db() tag";
+                return 0;
+            }
+
+            if (islock_conn)
+            {
+                if (!sqlite_select_conn)
+                {
+                    sqlite_select_conn = conn_obj->get_sqlite_select_conn();
+                }
+            }
+            else
+            {
+                sqlite_select_conn = conn_obj->get_sqlite_select_conn();
+            }
+
+            if (sqlite_select_conn->isdebug)
+            {
+                sqlite_select_conn->begin_time();
+            }
+
+            sqlite_query_result query_result;
+            bool isok = sqlite_select_conn->query_fetch(rawsql, query_result);
+            if (!isok)
+            {
+                error_msg = sqlite_select_conn->error_msg;
+                sqlite_select_conn.reset();
+                return 0;
+            }
+
+            for (std::size_t ri = 0; ri < query_result.rows.size(); ri++)
+            {
+                T data_temp;
+                auto &row      = query_result.rows[ri];
+                auto &row_null = query_result.is_null[ri];
+                for (unsigned int ij = 0; ij < query_result.column_names.size() && ij < row.size(); ij++)
+                {
+                    if (row_null[ij])
+                    {
+                        continue;
+                    }
+                    if (query_result.column_names[ij].size() > 0)
+                    {
+                        std::invoke(std::forward<Callback>(callback), data_temp, query_result.column_names[ij], reinterpret_cast<const unsigned char *>(row[ij].data()), row[ij].size(), ij % 255, 1);
+                    }
+                }
+                result_record.emplace_back(std::move(data_temp));
+                effect_num++;
+            }
+
+            if (sqlite_select_conn->isdebug)
+            {
+                sqlite_select_conn->finish_time();
+                auto &conn_mar    = get_orm_connect_mar();
+                long long du_time = sqlite_select_conn->count_time();
+                conn_mar.push_log(rawsql, std::to_string(du_time));
+            }
+            if (!islock_conn)
+            {
+                conn_obj->back_sqlite_select_conn(std::move(sqlite_select_conn));
+            }
+            return effect_num;
+        }
+        catch (const std::exception &e)
+        {
+            error_msg = std::string(e.what());
+        }
+
+        return 0;
+    }
+
+    template <typename T, RecordLineCallback<T> Callback>
     unsigned int query(const std::string &rawsql, std::vector<T> &result_record, Callback &&callback)
     {
         if (db_type == DB_TYPE::MYSQL)
         {
             return mysql_query_vec_cb_impl(rawsql, result_record, std::forward<Callback>(callback));
+        }
+        else if (db_type == DB_TYPE::SQLITE)
+        {
+            return sqlite_query_vec_cb_impl(rawsql, result_record, std::forward<Callback>(callback));
         }
         return pg_query_vec_cb_impl(rawsql, result_record, std::forward<Callback>(callback));
     }
@@ -1562,11 +1994,99 @@ class db_conn : std::enable_shared_from_this<db_conn>
     }
 
     template <typename T, RecordLineCallback<T> Callback>
+    asio::awaitable<unsigned int> sqlite_async_query_vec_cb_impl(const std::string &rawsql, std::vector<T> &result_record, Callback &&callback)
+    {
+        effect_num = 0;
+        if (iserror)
+        {
+            co_return 0;
+        }
+
+        try
+        {
+            if (conn_obj == nullptr)
+            {
+                error_msg = "Please select_db() tag";
+                co_return 0;
+            }
+
+            if (islock_conn)
+            {
+                if (!sqlite_select_conn)
+                {
+                    sqlite_select_conn = co_await conn_obj->async_get_sqlite_select_conn();
+                }
+            }
+            else
+            {
+                sqlite_select_conn = co_await conn_obj->async_get_sqlite_select_conn();
+            }
+
+            if (sqlite_select_conn->isdebug)
+            {
+                sqlite_select_conn->begin_time();
+            }
+
+            sqlite_query_result query_result;
+            bool isok = co_await sqlite_select_conn->async_query_fetch(rawsql, query_result);
+            if (!isok)
+            {
+                error_msg = sqlite_select_conn->error_msg;
+                sqlite_select_conn.reset();
+                co_return 0;
+            }
+
+            for (std::size_t ri = 0; ri < query_result.rows.size(); ri++)
+            {
+                T data_temp;
+                auto &row      = query_result.rows[ri];
+                auto &row_null = query_result.is_null[ri];
+                for (unsigned int ij = 0; ij < query_result.column_names.size() && ij < row.size(); ij++)
+                {
+                    if (row_null[ij])
+                    {
+                        continue;
+                    }
+                    if (query_result.column_names[ij].size() > 0)
+                    {
+                        std::invoke(std::forward<Callback>(callback), data_temp, query_result.column_names[ij], reinterpret_cast<const unsigned char *>(row[ij].data()), row[ij].size(), ij % 255, 1);
+                    }
+                }
+                result_record.emplace_back(std::move(data_temp));
+                effect_num++;
+            }
+
+            if (sqlite_select_conn->isdebug)
+            {
+                sqlite_select_conn->finish_time();
+                auto &conn_mar    = get_orm_connect_mar();
+                long long du_time = sqlite_select_conn->count_time();
+                conn_mar.push_log(rawsql, std::to_string(du_time));
+            }
+            if (!islock_conn)
+            {
+                conn_obj->back_sqlite_select_conn(std::move(sqlite_select_conn));
+            }
+            co_return effect_num;
+        }
+        catch (const std::exception &e)
+        {
+            error_msg = std::string(e.what());
+        }
+
+        co_return 0;
+    }
+
+    template <typename T, RecordLineCallback<T> Callback>
     asio::awaitable<unsigned int> async_query(const std::string &rawsql, std::vector<T> &result_record, Callback &&callback)
     {
         if (db_type == DB_TYPE::MYSQL)
         {
             co_return co_await mysql_async_query_vec_cb_impl(rawsql, result_record, std::forward<Callback>(callback));
+        }
+        else if (db_type == DB_TYPE::SQLITE)
+        {
+            co_return co_await sqlite_async_query_vec_cb_impl(rawsql, result_record, std::forward<Callback>(callback));
         }
         co_return co_await pg_async_query_vec_cb_impl(rawsql, result_record, std::forward<Callback>(callback));
     }
@@ -1816,11 +2336,97 @@ class db_conn : std::enable_shared_from_this<db_conn>
     }
 
     template <typename T, RecordLineCallback<T> Callback>
+    unsigned int sqlite_query_single_cb_impl(const std::string &rawsql, T &result_record, Callback &&callback)
+    {
+        effect_num = 0;
+        if (iserror)
+        {
+            return 0;
+        }
+
+        try
+        {
+            if (conn_obj == nullptr)
+            {
+                error_msg = "Please select_db() tag";
+                return 0;
+            }
+
+            if (islock_conn)
+            {
+                if (!sqlite_select_conn)
+                {
+                    sqlite_select_conn = conn_obj->get_sqlite_select_conn();
+                }
+            }
+            else
+            {
+                sqlite_select_conn = conn_obj->get_sqlite_select_conn();
+            }
+
+            if (sqlite_select_conn->isdebug)
+            {
+                sqlite_select_conn->begin_time();
+            }
+
+            sqlite_query_result query_result;
+            bool isok = sqlite_select_conn->query_fetch(rawsql, query_result);
+            if (!isok)
+            {
+                error_msg = sqlite_select_conn->error_msg;
+                sqlite_select_conn.reset();
+                return 0;
+            }
+
+            if (!query_result.rows.empty())
+            {
+                auto &row      = query_result.rows.front();
+                auto &row_null = query_result.is_null.front();
+                for (unsigned int ij = 0; ij < query_result.column_names.size() && ij < row.size(); ij++)
+                {
+                    if (row_null[ij])
+                    {
+                        continue;
+                    }
+                    if (query_result.column_names[ij].size() > 0)
+                    {
+                        std::invoke(std::forward<Callback>(callback), result_record, query_result.column_names[ij], reinterpret_cast<const unsigned char *>(row[ij].data()), row[ij].size(), ij % 255, 1);
+                    }
+                }
+                effect_num++;
+            }
+
+            if (sqlite_select_conn->isdebug)
+            {
+                sqlite_select_conn->finish_time();
+                auto &conn_mar    = get_orm_connect_mar();
+                long long du_time = sqlite_select_conn->count_time();
+                conn_mar.push_log(rawsql, std::to_string(du_time));
+            }
+            if (!islock_conn)
+            {
+                conn_obj->back_sqlite_select_conn(std::move(sqlite_select_conn));
+            }
+            return effect_num;
+        }
+        catch (const std::exception &e)
+        {
+            error_msg = std::string(e.what());
+        }
+
+        return 0;
+    }
+
+    template <typename T, RecordLineCallback<T> Callback>
     unsigned int query(const std::string &rawsql, T &result_record, Callback &&callback)
     {
         if (db_type == DB_TYPE::MYSQL)
         {
             return mysql_query_single_cb_impl(rawsql, result_record, std::forward<Callback>(callback));
+        }
+        else if (db_type == DB_TYPE::SQLITE)
+        {
+            return sqlite_query_single_cb_impl(rawsql, result_record, std::forward<Callback>(callback));
         }
         return pg_query_single_cb_impl(rawsql, result_record, std::forward<Callback>(callback));
     }
@@ -2070,11 +2676,97 @@ class db_conn : std::enable_shared_from_this<db_conn>
     }
 
     template <typename T, RecordLineCallback<T> Callback>
+    asio::awaitable<unsigned int> sqlite_async_query_single_cb_impl(const std::string &rawsql, T &result_record, Callback &&callback)
+    {
+        effect_num = 0;
+        if (iserror)
+        {
+            co_return 0;
+        }
+
+        try
+        {
+            if (conn_obj == nullptr)
+            {
+                error_msg = "Please select_db() tag";
+                co_return 0;
+            }
+
+            if (islock_conn)
+            {
+                if (!sqlite_select_conn)
+                {
+                    sqlite_select_conn = co_await conn_obj->async_get_sqlite_select_conn();
+                }
+            }
+            else
+            {
+                sqlite_select_conn = co_await conn_obj->async_get_sqlite_select_conn();
+            }
+
+            if (sqlite_select_conn->isdebug)
+            {
+                sqlite_select_conn->begin_time();
+            }
+
+            sqlite_query_result query_result;
+            bool isok = co_await sqlite_select_conn->async_query_fetch(rawsql, query_result);
+            if (!isok)
+            {
+                error_msg = sqlite_select_conn->error_msg;
+                sqlite_select_conn.reset();
+                co_return 0;
+            }
+
+            if (!query_result.rows.empty())
+            {
+                auto &row      = query_result.rows.front();
+                auto &row_null = query_result.is_null.front();
+                for (unsigned int ij = 0; ij < query_result.column_names.size() && ij < row.size(); ij++)
+                {
+                    if (row_null[ij])
+                    {
+                        continue;
+                    }
+                    if (query_result.column_names[ij].size() > 0)
+                    {
+                        std::invoke(std::forward<Callback>(callback), result_record, query_result.column_names[ij], reinterpret_cast<const unsigned char *>(row[ij].data()), row[ij].size(), ij % 255, 1);
+                    }
+                }
+                effect_num++;
+            }
+
+            if (sqlite_select_conn->isdebug)
+            {
+                sqlite_select_conn->finish_time();
+                auto &conn_mar    = get_orm_connect_mar();
+                long long du_time = sqlite_select_conn->count_time();
+                conn_mar.push_log(rawsql, std::to_string(du_time));
+            }
+            if (!islock_conn)
+            {
+                conn_obj->back_sqlite_select_conn(std::move(sqlite_select_conn));
+            }
+            co_return effect_num;
+        }
+        catch (const std::exception &e)
+        {
+            error_msg = std::string(e.what());
+        }
+
+        co_return 0;
+    }
+
+    template <typename T, RecordLineCallback<T> Callback>
     asio::awaitable<unsigned int> async_query(const std::string &rawsql, T &result_record, Callback &&callback)
     {
         if (db_type == DB_TYPE::MYSQL)
         {
             co_return co_await mysql_async_query_single_cb_impl(rawsql, result_record, std::forward<Callback>(callback));
+        }
+        else if (db_type == DB_TYPE::SQLITE)
+        {
+            co_return co_await sqlite_async_query_single_cb_impl(rawsql, result_record, std::forward<Callback>(callback));
         }
         co_return co_await pg_async_query_single_cb_impl(rawsql, result_record, std::forward<Callback>(callback));
     }
@@ -2323,11 +3015,95 @@ class db_conn : std::enable_shared_from_this<db_conn>
     }
 
     template <ResultHasSetVal T>
+    unsigned int sqlite_edit_query_vec_impl(const std::string &rawsql, std::vector<T> &result_record)
+    {
+        effect_num = 0;
+        if (iserror)
+        {
+            return 0;
+        }
+
+        try
+        {
+            if (conn_obj == nullptr)
+            {
+                error_msg = "Please select_db() tag";
+                return 0;
+            }
+
+            if (islock_conn)
+            {
+                if (!sqlite_edit_conn)
+                {
+                    sqlite_edit_conn = conn_obj->get_sqlite_edit_conn();
+                }
+            }
+            else
+            {
+                sqlite_edit_conn = conn_obj->get_sqlite_edit_conn();
+            }
+
+            if (sqlite_edit_conn->isdebug)
+            {
+                sqlite_edit_conn->begin_time();
+            }
+
+            sqlite_query_result query_result;
+            bool isok = sqlite_edit_conn->query_fetch(rawsql, query_result);
+            if (!isok)
+            {
+                error_msg = sqlite_edit_conn->error_msg;
+                sqlite_edit_conn.reset();
+                return 0;
+            }
+
+            for (std::size_t ri = 0; ri < query_result.rows.size(); ri++)
+            {
+                T data_temp;
+                auto &row      = query_result.rows[ri];
+                auto &row_null = query_result.is_null[ri];
+                for (unsigned int ij = 0; ij < query_result.column_names.size() && ij < row.size(); ij++)
+                {
+                    if (!row_null[ij] && query_result.column_names[ij].size() > 0)
+                    {
+                        data_temp.set_val(query_result.column_names[ij], reinterpret_cast<const unsigned char *>(row[ij].data()), row[ij].size(), 0);
+                    }
+                }
+                result_record.emplace_back(std::move(data_temp));
+                effect_num++;
+            }
+
+            if (sqlite_edit_conn->isdebug)
+            {
+                sqlite_edit_conn->finish_time();
+                auto &conn_mar    = get_orm_connect_mar();
+                long long du_time = sqlite_edit_conn->count_time();
+                conn_mar.push_log(rawsql, std::to_string(du_time));
+            }
+            if (!islock_conn)
+            {
+                conn_obj->back_sqlite_edit_conn(std::move(sqlite_edit_conn));
+            }
+            return effect_num;
+        }
+        catch (const std::exception &e)
+        {
+            error_msg = std::string(e.what());
+        }
+
+        return 0;
+    }
+
+    template <ResultHasSetVal T>
     unsigned int edit_query(const std::string &rawsql, std::vector<T> &result_record)
     {
         if (db_type == DB_TYPE::MYSQL)
         {
             return mysql_edit_query_vec_impl(rawsql, result_record);
+        }
+        else if (db_type == DB_TYPE::SQLITE)
+        {
+            return sqlite_edit_query_vec_impl(rawsql, result_record);
         }
         return pg_edit_query_vec_impl(rawsql, result_record);
     }
@@ -2573,11 +3349,95 @@ class db_conn : std::enable_shared_from_this<db_conn>
     }
 
     template <ResultHasSetVal T>
+    asio::awaitable<unsigned int> sqlite_async_edit_query_vec_impl(const std::string &rawsql, std::vector<T> &result_record)
+    {
+        effect_num = 0;
+        if (iserror)
+        {
+            co_return 0;
+        }
+
+        try
+        {
+            if (conn_obj == nullptr)
+            {
+                error_msg = "Please select_db() tag";
+                co_return 0;
+            }
+
+            if (islock_conn)
+            {
+                if (!sqlite_edit_conn)
+                {
+                    sqlite_edit_conn = co_await conn_obj->async_get_sqlite_edit_conn();
+                }
+            }
+            else
+            {
+                sqlite_edit_conn = co_await conn_obj->async_get_sqlite_edit_conn();
+            }
+
+            if (sqlite_edit_conn->isdebug)
+            {
+                sqlite_edit_conn->begin_time();
+            }
+
+            sqlite_query_result query_result;
+            bool isok = co_await sqlite_edit_conn->async_query_fetch(rawsql, query_result);
+            if (!isok)
+            {
+                error_msg = sqlite_edit_conn->error_msg;
+                sqlite_edit_conn.reset();
+                co_return 0;
+            }
+
+            for (std::size_t ri = 0; ri < query_result.rows.size(); ri++)
+            {
+                T data_temp;
+                auto &row      = query_result.rows[ri];
+                auto &row_null = query_result.is_null[ri];
+                for (unsigned int ij = 0; ij < query_result.column_names.size() && ij < row.size(); ij++)
+                {
+                    if (!row_null[ij] && query_result.column_names[ij].size() > 0)
+                    {
+                        data_temp.set_val(query_result.column_names[ij], reinterpret_cast<const unsigned char *>(row[ij].data()), row[ij].size(), 0);
+                    }
+                }
+                result_record.emplace_back(std::move(data_temp));
+                effect_num++;
+            }
+
+            if (sqlite_edit_conn->isdebug)
+            {
+                sqlite_edit_conn->finish_time();
+                auto &conn_mar    = get_orm_connect_mar();
+                long long du_time = sqlite_edit_conn->count_time();
+                conn_mar.push_log(rawsql, std::to_string(du_time));
+            }
+            if (!islock_conn)
+            {
+                conn_obj->back_sqlite_edit_conn(std::move(sqlite_edit_conn));
+            }
+            co_return effect_num;
+        }
+        catch (const std::exception &e)
+        {
+            error_msg = std::string(e.what());
+        }
+
+        co_return 0;
+    }
+
+    template <ResultHasSetVal T>
     asio::awaitable<unsigned int> async_edit_query(const std::string &rawsql, std::vector<T> &result_record)
     {
         if (db_type == DB_TYPE::MYSQL)
         {
             co_return co_await mysql_async_edit_query_vec_impl(rawsql, result_record);
+        }
+        else if (db_type == DB_TYPE::SQLITE)
+        {
+            co_return co_await sqlite_async_edit_query_vec_impl(rawsql, result_record);
         }
         co_return co_await pg_async_edit_query_vec_impl(rawsql, result_record);
     }
@@ -2821,11 +3681,93 @@ class db_conn : std::enable_shared_from_this<db_conn>
     }
 
     template <ResultHasSetVal T>
+    unsigned int sqlite_edit_query_single_impl(const std::string &rawsql, T &result_record)
+    {
+        effect_num = 0;
+        if (iserror)
+        {
+            return 0;
+        }
+
+        try
+        {
+            if (conn_obj == nullptr)
+            {
+                error_msg = "Please select_db() tag";
+                return 0;
+            }
+
+            if (islock_conn)
+            {
+                if (!sqlite_edit_conn)
+                {
+                    sqlite_edit_conn = conn_obj->get_sqlite_edit_conn();
+                }
+            }
+            else
+            {
+                sqlite_edit_conn = conn_obj->get_sqlite_edit_conn();
+            }
+
+            if (sqlite_edit_conn->isdebug)
+            {
+                sqlite_edit_conn->begin_time();
+            }
+
+            sqlite_query_result query_result;
+            bool isok = sqlite_edit_conn->query_fetch(rawsql, query_result);
+            if (!isok)
+            {
+                error_msg = sqlite_edit_conn->error_msg;
+                sqlite_edit_conn.reset();
+                return 0;
+            }
+
+            if (!query_result.rows.empty())
+            {
+                auto &row      = query_result.rows.front();
+                auto &row_null = query_result.is_null.front();
+                for (unsigned int ij = 0; ij < query_result.column_names.size() && ij < row.size(); ij++)
+                {
+                    if (!row_null[ij] && query_result.column_names[ij].size() > 0)
+                    {
+                        result_record.set_val(query_result.column_names[ij], reinterpret_cast<const unsigned char *>(row[ij].data()), row[ij].size(), 0);
+                    }
+                }
+                effect_num++;
+            }
+
+            if (sqlite_edit_conn->isdebug)
+            {
+                sqlite_edit_conn->finish_time();
+                auto &conn_mar    = get_orm_connect_mar();
+                long long du_time = sqlite_edit_conn->count_time();
+                conn_mar.push_log(rawsql, std::to_string(du_time));
+            }
+            if (!islock_conn)
+            {
+                conn_obj->back_sqlite_edit_conn(std::move(sqlite_edit_conn));
+            }
+            return effect_num;
+        }
+        catch (const std::exception &e)
+        {
+            error_msg = std::string(e.what());
+        }
+
+        return 0;
+    }
+
+    template <ResultHasSetVal T>
     unsigned int edit_query(const std::string &rawsql, T &result_record)
     {
         if (db_type == DB_TYPE::MYSQL)
         {
             return mysql_edit_query_single_impl(rawsql, result_record);
+        }
+        else if (db_type == DB_TYPE::SQLITE)
+        {
+            return sqlite_edit_query_single_impl(rawsql, result_record);
         }
         return pg_edit_query_single_impl(rawsql, result_record);
     }
@@ -3070,11 +4012,93 @@ class db_conn : std::enable_shared_from_this<db_conn>
     }
 
     template <ResultHasSetVal T>
+    asio::awaitable<unsigned int> sqlite_async_edit_query_single_impl(const std::string &rawsql, T &result_record)
+    {
+        effect_num = 0;
+        if (iserror)
+        {
+            co_return 0;
+        }
+
+        try
+        {
+            if (conn_obj == nullptr)
+            {
+                error_msg = "Please select_db() tag";
+                co_return 0;
+            }
+
+            if (islock_conn)
+            {
+                if (!sqlite_edit_conn)
+                {
+                    sqlite_edit_conn = co_await conn_obj->async_get_sqlite_edit_conn();
+                }
+            }
+            else
+            {
+                sqlite_edit_conn = co_await conn_obj->async_get_sqlite_edit_conn();
+            }
+
+            if (sqlite_edit_conn->isdebug)
+            {
+                sqlite_edit_conn->begin_time();
+            }
+
+            sqlite_query_result query_result;
+            bool isok = co_await sqlite_edit_conn->async_query_fetch(rawsql, query_result);
+            if (!isok)
+            {
+                error_msg = sqlite_edit_conn->error_msg;
+                sqlite_edit_conn.reset();
+                co_return 0;
+            }
+
+            if (!query_result.rows.empty())
+            {
+                auto &row      = query_result.rows.front();
+                auto &row_null = query_result.is_null.front();
+                for (unsigned int ij = 0; ij < query_result.column_names.size() && ij < row.size(); ij++)
+                {
+                    if (!row_null[ij] && query_result.column_names[ij].size() > 0)
+                    {
+                        result_record.set_val(query_result.column_names[ij], reinterpret_cast<const unsigned char *>(row[ij].data()), row[ij].size(), 0);
+                    }
+                }
+                effect_num++;
+            }
+
+            if (sqlite_edit_conn->isdebug)
+            {
+                sqlite_edit_conn->finish_time();
+                auto &conn_mar    = get_orm_connect_mar();
+                long long du_time = sqlite_edit_conn->count_time();
+                conn_mar.push_log(rawsql, std::to_string(du_time));
+            }
+            if (!islock_conn)
+            {
+                conn_obj->back_sqlite_edit_conn(std::move(sqlite_edit_conn));
+            }
+            co_return effect_num;
+        }
+        catch (const std::exception &e)
+        {
+            error_msg = std::string(e.what());
+        }
+
+        co_return 0;
+    }
+
+    template <ResultHasSetVal T>
     asio::awaitable<unsigned int> async_edit_query(const std::string &rawsql, T &result_record)
     {
         if (db_type == DB_TYPE::MYSQL)
         {
             co_return co_await mysql_async_edit_query_single_impl(rawsql, result_record);
+        }
+        else if (db_type == DB_TYPE::SQLITE)
+        {
+            co_return co_await sqlite_async_edit_query_single_impl(rawsql, result_record);
         }
         co_return co_await pg_async_edit_query_single_impl(rawsql, result_record);
     }
@@ -3088,26 +4112,34 @@ class db_conn : std::enable_shared_from_this<db_conn>
     asio::awaitable<void> async_rollback();
 
   private:
-    //// transaction impl (mysql / pg)
+    //// transaction impl (mysql / pg / sqlite)
     bool mysql_begin_commit_impl();
     bool pg_begin_commit_impl();
+    bool sqlite_begin_commit_impl();
     bool mysql_commit_impl();
     bool pg_commit_impl();
+    bool sqlite_commit_impl();
     void mysql_rollback_impl();
     void pg_rollback_impl();
+    void sqlite_rollback_impl();
 
     asio::awaitable<bool> mysql_async_begin_commit_impl();
     asio::awaitable<bool> pg_async_begin_commit_impl();
+    asio::awaitable<bool> sqlite_async_begin_commit_impl();
     asio::awaitable<bool> mysql_async_commit_impl();
     asio::awaitable<bool> pg_async_commit_impl();
+    asio::awaitable<bool> sqlite_async_commit_impl();
     asio::awaitable<void> mysql_async_rollback_impl();
     asio::awaitable<void> pg_async_rollback_impl();
+    asio::awaitable<void> sqlite_async_rollback_impl();
 
-    //// raw edit sql impl (mysql / pg)
+    //// raw edit sql impl (mysql / pg / sqlite)
     unsigned int mysql_edit_query_impl(const std::string &rawsql);
     unsigned int pg_edit_query_impl(const std::string &rawsql);
+    unsigned int sqlite_edit_query_impl(const std::string &rawsql);
     asio::awaitable<unsigned int> mysql_async_edit_query_impl(const std::string &rawsql);
     asio::awaitable<unsigned int> pg_async_edit_query_impl(const std::string &rawsql);
+    asio::awaitable<unsigned int> sqlite_async_edit_query_impl(const std::string &rawsql);
 
   public:
     void clear()
@@ -3121,6 +4153,8 @@ class db_conn : std::enable_shared_from_this<db_conn>
         mysql_edit_conn.reset();
         pg_select_conn.reset();
         pg_edit_conn.reset();
+        sqlite_select_conn.reset();
+        sqlite_edit_conn.reset();
     }
 
   public:
@@ -3138,6 +4172,8 @@ class db_conn : std::enable_shared_from_this<db_conn>
     std::shared_ptr<mysql_conn_base> mysql_edit_conn;
     std::shared_ptr<pg_conn_base> pg_select_conn;
     std::shared_ptr<pg_conn_base> pg_edit_conn;
+    std::shared_ptr<sqlite_conn_base> sqlite_select_conn;
+    std::shared_ptr<sqlite_conn_base> sqlite_edit_conn;
     std::shared_ptr<orm_conn_pool> conn_obj;
     DB_TYPE db_type = DB_TYPE::MYSQL;
 };

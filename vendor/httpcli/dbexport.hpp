@@ -2,7 +2,7 @@
  *  @author 黄自权 huangziquan
  *  @date 2026-08-15
  *  @dest 导出数据库表结构+数据到SQL文件 (支持跨数据库类型)
- *  Usage: paozhu_cli dbexport <dbtag> <filename.sql> [-target=mysql|postgresql]
+ *  Usage: paozhu_cli dbexport <dbtag> <filename.sql> [-target=mysql|postgresql|sqlite]
  */
 
 #ifndef _DBEXPORT_HPP
@@ -21,7 +21,6 @@
 #include <ctime>
 #include <cctype>
 #include "dbtypes.hpp"
-#include "dbtable.hpp"
 
 namespace fs = std::filesystem;
 namespace dbexport
@@ -29,14 +28,20 @@ namespace dbexport
 
 using dbtypes::build_insert_sql_mysql;
 using dbtypes::build_insert_sql_pg;
+using dbtypes::build_insert_sql_sqlite;
 using dbtypes::convert_table_for_target;
-using dbtypes::escape_pg_identifier;
+using dbtypes::create_connection;
+using dbtypes::db_type_display;
+using dbtypes::fetch_rows;
 using dbtypes::gen_ddl;
+using dbtypes::get_tables;
+using dbtypes::get_table_schema;
 using dbtypes::is_valid_sql_identifier;
-using dbtypes::mysql_fetch_rows;
+using dbtypes::is_safe_dbtag;
+using dbtypes::is_safe_filename;
+using dbtypes::is_valid_target_type_str;
 using dbtypes::parse_target_type;
-using dbtypes::pg_fetch_rows;
-using dbtypes::to_lower;
+using dbtypes::quote_identifier;
 using orm::DB_TYPE;
 
 // ===================== 主导出逻辑 =====================
@@ -45,17 +50,38 @@ inline int dbexportcli(const std::string &dbtag = "", const std::string &filenam
 {
     if (dbtag.empty() || filename.empty())
     {
-        std::cout << "Usage: paozhu_cli dbexport <dbtag> <filename.sql> [-target=mysql|postgresql]" << std::endl;
+        std::cout << "Usage: paozhu_cli dbexport <dbtag> <filename.sql> [-target=mysql|postgresql|sqlite]" << std::endl;
         std::cout << "  dbtag:    database tag (from conf/orm.conf)" << std::endl;
         std::cout << "  filename: output SQL file path" << std::endl;
         std::cout << "  -target:  target database type for DDL conversion (optional)" << std::endl;
-        std::cout << "            mysql, postgresql, pg" << std::endl;
+        std::cout << "            mysql, postgresql, pg, sqlite, sqlite3" << std::endl;
         std::cout << "Example: paozhu_cli dbexport cms ./dump.sql" << std::endl;
         std::cout << "         (export MySQL [cms] schema+data to ./dump.sql)" << std::endl;
         std::cout << "         paozhu_cli dbexport pg ./mysql_dump.sql -target=mysql" << std::endl;
         std::cout << "         (export PG schema+data as MySQL DDL+INSERT)" << std::endl;
+        std::cout << "         paozhu_cli dbexport cms ./sqlite_dump.sql -target=sqlite" << std::endl;
+        std::cout << "         (export MySQL schema+data as SQLite DDL+INSERT)" << std::endl;
         return 1;
     }
+
+    // ---- 输入安全验证 ----
+    if (!is_safe_dbtag(dbtag))
+    {
+        return 1;
+    }
+    if (!is_safe_filename(filename))
+    {
+        std::cerr << "  [ERROR] Invalid filename: '" << filename << "'" << std::endl;
+        std::cerr << "          Path traversal, absolute paths, and dangerous characters are not allowed" << std::endl;
+        return 1;
+    }
+    if (!target_type_str.empty() && !is_valid_target_type_str(target_type_str))
+    {
+        std::cerr << "  [ERROR] Invalid target type: '" << target_type_str << "'" << std::endl;
+        std::cerr << "          Valid types: mysql, postgresql, pg, sqlite, sqlite3" << std::endl;
+        return 1;
+    }
+    // ---- 安全验证完成 ----
 
     std::cout << "\033[36m 🍄 Database Exporter (Schema + Data)\033[0m" << std::endl;
     std::cout << "  Source: \033[35m[" << dbtag << "]\033[0m" << std::endl;
@@ -86,76 +112,39 @@ inline int dbexportcli(const std::string &dbtag = "", const std::string &filenam
         return 1;
     }
 
-    DB_TYPE src_type    = (to_lower(src_config.dbtype) == "postgresql") ? DB_TYPE::POSTGRESQL : DB_TYPE::MYSQL;
+    DB_TYPE src_type    = parse_target_type(src_config.dbtype);
     DB_TYPE target_type = src_type;
     if (!target_type_str.empty())
     {
         target_type = parse_target_type(target_type_str);
     }
 
-    std::cout << "  Database type: " << (src_type == DB_TYPE::POSTGRESQL ? "PostgreSQL" : "MySQL") << std::endl;
+    std::cout << "  Database type: " << db_type_display(src_type) << std::endl;
     if (target_type != src_type)
     {
-        std::cout << "  Target DDL:   " << (target_type == DB_TYPE::POSTGRESQL ? "PostgreSQL" : "MySQL") << " (converted)" << std::endl;
+        std::cout << "  Target DDL:   " << db_type_display(target_type) << " (converted)" << std::endl;
     }
-    std::cout << "  Host: " << src_config.host << ":" << src_config.port << std::endl;
-    std::cout << "  Database: " << src_config.dbname << std::endl;
+    if (src_type == DB_TYPE::SQLITE)
+    {
+        std::cout << "  Database file: " << (src_config.host.empty() ? src_config.dbname : src_config.host) << std::endl;
+    }
+    else
+    {
+        std::cout << "  Host: " << src_config.host << ":" << src_config.port << std::endl;
+        std::cout << "  Database: " << src_config.dbname << std::endl;
+    }
 
     asio::io_context io_context;
 
-    std::shared_ptr<orm::mysql_conn_base> src_mysql;
-    std::shared_ptr<orm::pg_conn_base> src_pg;
+    auto src = create_connection(src_config, src_type, io_context);
+    if (!src.ok())
+    {
+        std::cerr << "  [ERROR] " << src.error_msg << std::endl;
+        return 1;
+    }
+    std::cout << "  \033[32m[OK]\033[0m " << db_type_display(src_type) << " connected" << std::endl;
 
-    if (src_type == DB_TYPE::MYSQL)
-    {
-        auto src_pool          = std::make_shared<orm::orm_conn_pool>();
-        src_pool->io_context   = &io_context;
-        src_pool->conf_data[0] = src_config;
-        try
-        {
-            src_mysql = src_pool->add_mysql_edit_connect();
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "  [ERROR] MySQL connect failed: " << e.what() << std::endl;
-            return 1;
-        }
-        std::cout << "  \033[32m[OK]\033[0m MySQL connected" << std::endl;
-    }
-    else
-    {
-        src_pg = std::make_shared<orm::pg_conn_base>(
-            orm::orm_conn_link_t::create(io_context, orm::DB_TYPE::POSTGRESQL));
-        orm::orm_conn_t pg_cfg = src_config;
-        if (pg_cfg.port.empty())
-            pg_cfg.port = "5432";
-        if (!src_pg->connect(pg_cfg))
-        {
-            std::cerr << "  [ERROR] PostgreSQL connect failed: " << src_pg->error_msg << std::endl;
-            return 1;
-        }
-        std::cout << "  \033[32m[OK]\033[0m PostgreSQL connected" << std::endl;
-    }
-
-    std::vector<std::string> tables;
-    if (src_type == DB_TYPE::MYSQL)
-    {
-        if (!src_mysql)
-        {
-            std::cerr << "  [ERROR] MySQL connection failed (null)" << std::endl;
-            return 1;
-        }
-        tables = dbtable::get_mysql_tables(src_mysql);
-    }
-    else
-    {
-        if (!src_pg)
-        {
-            std::cerr << "  [ERROR] PostgreSQL connection failed (null)" << std::endl;
-            return 1;
-        }
-        tables = dbtable::get_pg_tables(src_pg);
-    }
+    auto tables = get_tables(src.conn, src_type);
 
     if (tables.empty())
     {
@@ -176,10 +165,10 @@ inline int dbexportcli(const std::string &dbtag = "", const std::string &filenam
     outfile << "-- Database Export\n";
     outfile << "-- Source: " << dbtag << "\n";
     outfile << "-- Database: " << src_config.dbname << "\n";
-    outfile << "-- Type: " << (src_type == DB_TYPE::POSTGRESQL ? "PostgreSQL" : "MySQL") << "\n";
+    outfile << "-- Type: " << db_type_display(src_type) << "\n";
     if (target_type != src_type)
     {
-        outfile << "-- Target: " << (target_type == DB_TYPE::POSTGRESQL ? "PostgreSQL" : "MySQL") << " (converted)\n";
+        outfile << "-- Target: " << db_type_display(target_type) << " (converted)\n";
     }
     outfile << "-- Date: " << __DATE__ << " " << __TIME__ << "\n";
     outfile << "-- ============================================\n\n";
@@ -199,16 +188,7 @@ inline int dbexportcli(const std::string &dbtag = "", const std::string &filenam
         std::cout << "  Exporting: " << table_name << " ... ";
 
         dbtypes::db_table_info table_info;
-        bool schema_ok = false;
-
-        if (src_type == DB_TYPE::MYSQL)
-        {
-            schema_ok = dbtable::mysql_get_table_schema(src_mysql, table_name, table_info);
-        }
-        else
-        {
-            schema_ok = dbtable::pg_get_table_schema(src_pg, table_name, table_info);
-        }
+        bool schema_ok = get_table_schema(src.conn, src_type, table_name, table_info);
 
         if (!schema_ok)
         {
@@ -240,26 +220,11 @@ inline int dbexportcli(const std::string &dbtag = "", const std::string &filenam
 
         while (true)
         {
-            std::string data_sql;
-            if (src_type == DB_TYPE::MYSQL)
-            {
-                data_sql = "SELECT * FROM `" + table_name + "` LIMIT " + std::to_string(batch_size) + " OFFSET " + std::to_string(offset);
-            }
-            else
-            {
-                data_sql = "SELECT * FROM " + escape_pg_identifier(table_name) + " LIMIT " + std::to_string(batch_size) + " OFFSET " + std::to_string(offset);
-            }
+            std::string data_sql = "SELECT * FROM " + quote_identifier(src_type, table_name) +
+                                   " LIMIT " + std::to_string(batch_size) + " OFFSET " + std::to_string(offset);
 
             std::vector<dbtypes::row_data_t> batch_rows;
-            bool fetch_ok = false;
-            if (src_type == DB_TYPE::MYSQL)
-            {
-                fetch_ok = mysql_fetch_rows(src_mysql, data_sql, batch_rows);
-            }
-            else
-            {
-                fetch_ok = pg_fetch_rows(src_pg, data_sql, batch_rows);
-            }
+            bool fetch_ok = fetch_rows(src.conn, src_type, data_sql, batch_rows);
 
             if (!fetch_ok || batch_rows.empty())
                 break;
@@ -269,6 +234,11 @@ inline int dbexportcli(const std::string &dbtag = "", const std::string &filenam
                 if (target_type == DB_TYPE::POSTGRESQL)
                 {
                     outfile << build_insert_sql_pg(table_name, table_info.fields, row, 0, table_info.fields.size());
+                }
+                else if (target_type == DB_TYPE::SQLITE)
+                {
+                    // SQLite 目标: 文本 INSERT (BLOB 列输出 X'十六进制' 字面量)
+                    outfile << build_insert_sql_sqlite(table_name, table_info.fields, row, 0, table_info.fields.size());
                 }
                 else
                 {

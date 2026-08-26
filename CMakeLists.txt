@@ -16,7 +16,7 @@ project(Paozhu_web_framework
   LANGUAGES CXX
 )
 
-# ---- 设置默认构建类型为 Debug ----
+# ---- Set the default build type to Debug ----
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Build type" FORCE)
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release")
@@ -35,9 +35,33 @@ option(ENABLE_SMS "Enable SMS support" OFF)
 option(ENABLE_WEBPAY "Enable webpay support (alipay/wxpay)" OFF)
 option(ENABLE_CHART "Enable chart support" OFF)
 option(ENABLE_ZIP "Enable pzzip support" OFF)
+option(ENABLE_SQLITE "Enable SQLite database support" OFF)
+
+if(ENABLE_SQLITE)
+  message(STATUS "ENABLE_SQLITE = ${ENABLE_SQLITE}")
+  find_path(SQLITE3_INCLUDE_DIR sqlite3.h
+    PATHS /usr/include /usr/local/include /opt/homebrew/include
+  )
+  find_library(SQLITE3_LIBRARY NAMES sqlite3
+    PATHS /usr/lib /usr/local/lib /opt/homebrew/lib
+  )
+  if(NOT SQLITE3_LIBRARY)
+    message(FATAL_ERROR "ENABLE_SQLITE=ON but SQLite3 not found. Install via: brew install sqlite3")
+  endif()
+  if(SQLITE3_INCLUDE_DIR)
+    message(STATUS "Found SQLite3: ${SQLITE3_LIBRARY} (${SQLITE3_INCLUDE_DIR})")
+  else()
+    message(STATUS "Found SQLite3: ${SQLITE3_LIBRARY} (system default include)")
+  endif()
+else()
+  message(STATUS "SQLite support disabled (ENABLE_SQLITE=OFF)")
+  # 设置空值以便后续 target_link_libraries 可用
+  set(SQLITE3_LIBRARY "")
+  set(SQLITE3_INCLUDE_DIR "")
+endif()
 
 # ---- Feature dependencies ----
-# pzword(docx) 依赖 pz::zip 打包，开启 ENABLE_OFFICE 时自动开启 ENABLE_ZIP
+# pzword(docx) relies on pz::zip for packaging. When ENABLE_OFFICE is enabled, ENABLE_ZIP is automatically enabled
 if(ENABLE_OFFICE AND NOT ENABLE_ZIP)
   set(ENABLE_ZIP ON)
   message(STATUS "ENABLE_OFFICE requires ENABLE_ZIP: auto-enabled")
@@ -205,6 +229,12 @@ set(PGCONN_SRCS
   "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/orm_query.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/clientdatacache.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/unicode.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/sqlite_conn_stub.cpp"
+)
+
+# SQLite connection sources (always compile; sqlite_conn.cpp has #ifdef ENABLE_SQLITE guard)
+set(SQLITE_CONN_SRCS
+  "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/sqlite_conn.cpp"
 )
 
 # CLI tool
@@ -214,6 +244,9 @@ add_executable(paozhu_cli
   ${ORM_CMS_MODEL_SRCS}
   ${ORM_PG_MODEL_SRCS}
 )
+if(ENABLE_SQLITE)
+  target_sources(paozhu_cli PRIVATE ${SQLITE_CONN_SRCS})
+endif()
 target_include_directories(paozhu_cli PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}"
   "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/include"
@@ -301,6 +334,22 @@ endif()
 
 if(ENABLE_ZIP)
   target_compile_definitions(paozhu PRIVATE ENABLE_ZIP)
+endif()
+
+if(ENABLE_SQLITE)
+  target_compile_definitions(paozhu PUBLIC ENABLE_SQLITE)
+  target_link_libraries(paozhu PRIVATE ${SQLITE3_LIBRARY})
+  if(SQLITE3_INCLUDE_DIR)
+    target_include_directories(paozhu PRIVATE ${SQLITE3_INCLUDE_DIR})
+  endif()
+endif()
+
+if(ENABLE_SQLITE)
+  target_compile_definitions(paozhu_cli PUBLIC ENABLE_SQLITE)
+  target_link_libraries(paozhu_cli PRIVATE ${SQLITE3_LIBRARY})
+  if(SQLITE3_INCLUDE_DIR)
+    target_include_directories(paozhu_cli PRIVATE ${SQLITE3_INCLUDE_DIR})
+  endif()
 endif()
 
 target_link_libraries(paozhu PRIVATE project_warnings)

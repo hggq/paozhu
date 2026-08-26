@@ -25,6 +25,7 @@
 #include "mysql_conn.h"
 #include "orm_conn_pool.h"
 #include "pg_conn.h"
+#include "sqlite_conn.h"
 #include "orm_common.h"
 #include "cost_define.h"
 
@@ -33,6 +34,10 @@ namespace orm
 bool orm_conn_pool::is_postgresql() const
 {
     return conf_data[0].db_type == DB_TYPE::POSTGRESQL;
+}
+bool orm_conn_pool::is_sqlite() const
+{
+    return conf_data[0].db_type == DB_TYPE::SQLITE;
 }
 bool str_casecmp(std::string_view str1, std::string_view str2)
 {
@@ -427,6 +432,11 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
                     {
                         mysqlconf.db_type = DB_TYPE::POSTGRESQL;
                     }
+                    else if (strval == "sqlite" || strval == "sqlite3" || strval == "sq3" ||
+                             strval == "SQLITE" || strval == "SQLITE3")
+                    {
+                        mysqlconf.db_type = DB_TYPE::SQLITE;
+                    }
                     else
                     {
                         mysqlconf.db_type = DB_TYPE::MYSQL;
@@ -595,6 +605,11 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
             {
                 mysqlconf.db_type = DB_TYPE::POSTGRESQL;
             }
+            else if (strval == "sqlite" || strval == "sqlite3" || strval == "sq3" ||
+                     strval == "SQLITE" || strval == "SQLITE3")
+            {
+                mysqlconf.db_type = DB_TYPE::SQLITE;
+            }
             else
             {
                 mysqlconf.db_type = DB_TYPE::MYSQL;
@@ -678,6 +693,10 @@ std::string init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_con
                     {
                         n = iter->second->init_pg_edit_conn(item.min_pool);
                     }
+                    else if (item.db_type == DB_TYPE::SQLITE)
+                    {
+                        n = iter->second->init_sqlite_edit_conn(item.min_pool);
+                    }
                     else
                     {
                         n = iter->second->init_mysql_edit_conn(item.min_pool);
@@ -705,6 +724,10 @@ std::string init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_con
                     if (item.db_type == DB_TYPE::POSTGRESQL)
                     {
                         n = conn->init_pg_edit_conn(item.min_pool);
+                    }
+                    else if (item.db_type == DB_TYPE::SQLITE)
+                    {
+                        n = conn->init_sqlite_edit_conn(item.min_pool);
                     }
                     else
                     {
@@ -740,6 +763,10 @@ std::string init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_con
                     {
                         n = iter->second->init_pg_select_conn(item.min_pool);
                     }
+                    else if (item.db_type == DB_TYPE::SQLITE)
+                    {
+                        n = iter->second->init_sqlite_select_conn(item.min_pool);
+                    }
                     else
                     {
                         n = iter->second->init_mysql_select_conn(item.min_pool);
@@ -767,6 +794,10 @@ std::string init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_con
                     if (item.db_type == DB_TYPE::POSTGRESQL)
                     {
                         n = conn->init_pg_select_conn(item.min_pool);
+                    }
+                    else if (item.db_type == DB_TYPE::SQLITE)
+                    {
+                        n = conn->init_sqlite_select_conn(item.min_pool);
                     }
                     else
                     {
@@ -1223,6 +1254,235 @@ std::shared_ptr<pg_conn_base> orm_conn_pool::get_pg_select_conn()
     return add_pg_select_connect();
 }
 
+// ======================== SQLite connections ========================
+// SQLite 为本地文件库, 单连接模式: 同库任务已由框架级常驻 worker 线程串行,
+// 每个角色 (edit/select) 保持一条常驻连接共享使用, 无需借出/归还式连接池。
+// 公开接口签名与 MySQL/PG 保持一致, 调用方无感知。
+
+asio::awaitable<std::shared_ptr<sqlite_conn_base>> orm_conn_pool::async_add_sqlite_edit_connect()
+{
+    auto conn = std::make_shared<sqlite_conn_base>();
+    conn->start_worker_thread(*io_context, sqlite_db_path_of(conf_data[0]));
+    bool isok = co_await conn->async_connect(conf_data[0]);
+    if (isok)
+    {
+        if (conf_data[0].isdebug)
+        {
+            conn->isdebug = true;
+        }
+        co_return conn;
+    }
+    throw std::runtime_error(" add_sqlite_edit_connect failed for tag ");
+}
+
+std::shared_ptr<sqlite_conn_base> orm_conn_pool::add_sqlite_edit_connect()
+{
+    auto conn = std::make_shared<sqlite_conn_base>();
+    conn->start_worker_thread(*io_context, sqlite_db_path_of(conf_data[0]));
+    bool isok = conn->connect(conf_data[0]);
+    if (isok)
+    {
+        if (conf_data[0].isdebug)
+        {
+            conn->isdebug = true;
+        }
+        return conn;
+    }
+    throw std::runtime_error(" add_sqlite_edit_connect failed for tag ");
+}
+void orm_conn_pool::back_sqlite_edit_conn(std::shared_ptr<sqlite_conn_base> conn)
+{
+    // 单连接模式: 连接常驻共享, 无需归还, 仅保留用量统计 (与 MySQL/PG 接口一致)
+    if (conn)
+    {
+        conn->time_start = time((time_t *)NULL);
+        conn->query_num++;
+    }
+}
+unsigned int orm_conn_pool::init_sqlite_edit_conn(unsigned char n)
+{
+    (void)n;
+#ifndef ENABLE_SQLITE
+    error_msg = "SQLite support not compiled. Rebuild with -DENABLE_SQLITE=ON";
+    return 0;
+#else
+    // 单连接模式: 忽略 n, 只建一条常驻连接 (同库任务已在 worker 线程串行)
+    {
+        std::unique_lock<std::mutex> lock(conn_edit_mutex);
+        if (sqlite_edit_conn && !sqlite_edit_conn->is_closed())
+        {
+            return 1;
+        }
+    }
+    try
+    {
+        auto conn = add_sqlite_edit_connect();
+        std::unique_lock<std::mutex> lock(conn_edit_mutex);
+        sqlite_edit_conn = conn;
+        return 1;
+    }
+    catch (const std::exception &e)
+    {
+        error_msg.append(e.what());
+        return 0;
+    }
+#endif
+}
+std::shared_ptr<sqlite_conn_base> orm_conn_pool::add_sqlite_select_connect()
+{
+    auto conn = std::make_shared<sqlite_conn_base>();
+    conn->start_worker_thread(*io_context, sqlite_db_path_of(conf_data[1]));
+    bool isok = conn->connect(conf_data[1]);
+    if (isok)
+    {
+        if (conf_data[1].isdebug)
+        {
+            conn->isdebug = true;
+        }
+        return conn;
+    }
+    throw std::runtime_error(" add_sqlite_select_connect failed for tag ");
+}
+asio::awaitable<std::shared_ptr<sqlite_conn_base>> orm_conn_pool::async_add_sqlite_select_connect()
+{
+    auto conn = std::make_shared<sqlite_conn_base>();
+    conn->start_worker_thread(*io_context, sqlite_db_path_of(conf_data[1]));
+    bool isok = co_await conn->async_connect(conf_data[1]);
+    if (isok)
+    {
+        if (conf_data[1].isdebug)
+        {
+            conn->isdebug = true;
+        }
+        co_return conn;
+    }
+    throw std::runtime_error(" add_sqlite_select_connect failed for tag ");
+}
+void orm_conn_pool::back_sqlite_select_conn(std::shared_ptr<sqlite_conn_base> conn)
+{
+    // 单连接模式: 连接常驻共享, 无需归还, 仅保留用量统计 (与 MySQL/PG 接口一致)
+    if (conn)
+    {
+        conn->time_start = time((time_t *)NULL);
+        conn->query_num++;
+    }
+}
+unsigned int orm_conn_pool::init_sqlite_select_conn(unsigned char n)
+{
+    (void)n;
+#ifndef ENABLE_SQLITE
+    error_msg = "SQLite support not compiled. Rebuild with -DENABLE_SQLITE=ON";
+    return 0;
+#else
+    // 单连接模式: 忽略 n, 只建一条常驻连接 (同库任务已在 worker 线程串行)
+    {
+        std::unique_lock<std::mutex> lock(conn_select_mutex);
+        if (sqlite_select_conn && !sqlite_select_conn->is_closed())
+        {
+            return 1;
+        }
+    }
+    try
+    {
+        auto conn = add_sqlite_select_connect();
+        std::unique_lock<std::mutex> lock(conn_select_mutex);
+        sqlite_select_conn = conn;
+        return 1;
+    }
+    catch (const std::exception &e)
+    {
+        error_msg.append(e.what());
+        return 0;
+    }
+#endif
+}
+
+asio::awaitable<std::shared_ptr<sqlite_conn_base>> orm_conn_pool::async_get_sqlite_edit_conn()
+{
+    // 单连接模式: 直接共享常驻连接; 断开时重建 (并发重建时复用先到的)
+    std::unique_lock<std::mutex> lock(conn_edit_mutex);
+    if (sqlite_edit_conn && !sqlite_edit_conn->is_closed())
+    {
+        co_return sqlite_edit_conn;
+    }
+    lock.unlock();
+    auto conn = co_await async_add_sqlite_edit_connect();
+    lock.lock();
+    if (!sqlite_edit_conn || sqlite_edit_conn->is_closed())
+    {
+        sqlite_edit_conn = conn;
+    }
+    else
+    {
+        conn = sqlite_edit_conn;
+    }
+    co_return conn;
+}
+
+std::shared_ptr<sqlite_conn_base> orm_conn_pool::get_sqlite_edit_conn()
+{
+    // 单连接模式: 直接共享常驻连接; 断开时重建 (并发重建时复用先到的)
+    std::unique_lock<std::mutex> lock(conn_edit_mutex);
+    if (sqlite_edit_conn && !sqlite_edit_conn->is_closed())
+    {
+        return sqlite_edit_conn;
+    }
+    lock.unlock();
+    auto conn = add_sqlite_edit_connect();
+    lock.lock();
+    if (!sqlite_edit_conn || sqlite_edit_conn->is_closed())
+    {
+        sqlite_edit_conn = conn;
+    }
+    else
+    {
+        conn = sqlite_edit_conn;
+    }
+    return conn;
+}
+asio::awaitable<std::shared_ptr<sqlite_conn_base>> orm_conn_pool::async_get_sqlite_select_conn()
+{
+    // 单连接模式: 直接共享常驻连接; 断开时重建 (并发重建时复用先到的)
+    std::unique_lock<std::mutex> lock(conn_select_mutex);
+    if (sqlite_select_conn && !sqlite_select_conn->is_closed())
+    {
+        co_return sqlite_select_conn;
+    }
+    lock.unlock();
+    auto conn = co_await async_add_sqlite_select_connect();
+    lock.lock();
+    if (!sqlite_select_conn || sqlite_select_conn->is_closed())
+    {
+        sqlite_select_conn = conn;
+    }
+    else
+    {
+        conn = sqlite_select_conn;
+    }
+    co_return conn;
+}
+std::shared_ptr<sqlite_conn_base> orm_conn_pool::get_sqlite_select_conn()
+{
+    // 单连接模式: 直接共享常驻连接; 断开时重建 (并发重建时复用先到的)
+    std::unique_lock<std::mutex> lock(conn_select_mutex);
+    if (sqlite_select_conn && !sqlite_select_conn->is_closed())
+    {
+        return sqlite_select_conn;
+    }
+    lock.unlock();
+    auto conn = add_sqlite_select_connect();
+    lock.lock();
+    if (!sqlite_select_conn || sqlite_select_conn->is_closed())
+    {
+        sqlite_select_conn = conn;
+    }
+    else
+    {
+        conn = sqlite_select_conn;
+    }
+    return conn;
+}
+
 asio::awaitable<bool> orm_conn_pool::clear_select_conn_2hour()
 {
     unsigned int nowtimeid = time((time_t *)NULL);
@@ -1282,6 +1542,7 @@ asio::awaitable<bool> orm_conn_pool::clear_select_conn_2hour()
         }
         lock.unlock();
     }
+    // SQLite 单连接常驻共享, 不参与定时回收 (断开时由 get 自动重建)
 
     co_return cleared;
 }
@@ -1345,6 +1606,7 @@ asio::awaitable<bool> orm_conn_pool::clear_edit_conn_2hour()
         }
         lock.unlock();
     }
+    // SQLite 单连接常驻共享, 不参与定时回收 (断开时由 get 自动重建)
 
     co_return cleared;
 }
@@ -1367,6 +1629,12 @@ unsigned int orm_conn_pool::clear_select_conn()
         temp->close();
         n++;
     }
+    if (sqlite_select_conn)
+    {
+        sqlite_select_conn->close();
+        sqlite_select_conn.reset();
+        n++;
+    }
     lock.unlock();
     return n;
 }
@@ -1386,6 +1654,12 @@ unsigned int orm_conn_pool::clear_edit_conn()
         auto temp = std::move(pg_edit_pool.front());
         pg_edit_pool.pop_front();
         temp->close();
+        n++;
+    }
+    if (sqlite_edit_conn)
+    {
+        sqlite_edit_conn->close();
+        sqlite_edit_conn.reset();
         n++;
     }
     lock.unlock();

@@ -28,3 +28,6 @@
 #include "cms/include/Xtask.h"
 #include "ph/include/Fortune.h"
 #include "ph/include/World.h"
+
+#include "lite/include/Fortune.h"
+#include "lite/include/World.h"

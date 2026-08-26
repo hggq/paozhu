@@ -19,6 +19,7 @@
 #include "mysql_conn.h"
 #include "orm_conn_pool.h"
 #include "pg_conn.h"
+#include "sqlite_conn.h"
 #include "dbtypes.hpp"
 
 namespace fs = std::filesystem;
@@ -214,7 +215,8 @@ void assign_field_value(unsigned char index_pos, unsigned char *result_temp_data
 enum class DBType
 {
     MYSQL,
-    POSTGRESQL
+    POSTGRESQL,
+    SQLITE
 };
 
 DBType get_db_type(const std::string &dbtype_str)
@@ -224,6 +226,10 @@ DBType get_db_type(const std::string &dbtype_str)
     if (lower == "postgresql" || lower == "postgres" || lower == "pg")
     {
         return DBType::POSTGRESQL;
+    }
+    if (lower == "sqlite" || lower == "sqlite3" || lower == "sq3")
+    {
+        return DBType::SQLITE;
     }
     return DBType::MYSQL;
 }
@@ -580,6 +586,197 @@ bool pg_get_column_info(std::shared_ptr<orm::pg_conn_base> pg_conn, const std::s
     return true;
 }
 // ==================== End PostgreSQL Infrastructure ====================
+
+// ==================== SQLite Infrastructure ====================
+
+// SQLite 声明类型 (亲和性) -> MySQL 类型码映射, 可带长度如 varchar(64)
+unsigned char sqlite_type_to_mysql_type(const std::string &decl_type)
+{
+    std::string lower = decl_type;
+    std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
+
+    // 提取括号前基类型名 (小写, 去空格)
+    std::string base = lower;
+    size_t bracket_pos = base.find('(');
+    if (bracket_pos != std::string::npos)
+    {
+        base = base.substr(0, bracket_pos);
+    }
+    while (!base.empty() && base.back() == ' ')
+    {
+        base.pop_back();
+    }
+
+    // 日期时间类优先 (避免被 INT/CHAR 亲和性规则抢先)
+    if (base.find("timestamp") != std::string::npos || base.find("datetime") != std::string::npos)
+    {
+        return 0x0C;
+    }
+    if (base == "date")
+    {
+        return 0x0A;
+    }
+    if (base == "time")
+    {
+        return 0x0B;
+    }
+    if (base.find("decimal") != std::string::npos || base.find("numeric") != std::string::npos)
+    {
+        return 0xF6;
+    }
+    if (base.find("bool") != std::string::npos)
+    {
+        return 0x01;
+    }
+    if (base.find("int") != std::string::npos)
+    {
+        if (base.find("bigint") != std::string::npos || base.find("int8") != std::string::npos)
+        {
+            return 0x08;
+        }
+        if (base.find("smallint") != std::string::npos || base.find("tinyint") != std::string::npos ||
+            base.find("int2") != std::string::npos || base.find("int1") != std::string::npos)
+        {
+            return 0x02;
+        }
+        return 0x03;
+    }
+    if (base.find("real") != std::string::npos || base.find("floa") != std::string::npos || base.find("doub") != std::string::npos)
+    {
+        return 0x05;
+    }
+    if (base.find("blob") != std::string::npos || base.empty())
+    {
+        return 0xFC;
+    }
+    if (base.find("varchar") != std::string::npos || base.find("varying") != std::string::npos ||
+        base.find("nchar") != std::string::npos || base.find("nvarchar") != std::string::npos)
+    {
+        return 0xFD;
+    }
+    if (base.find("char") != std::string::npos)
+    {
+        return 0xFE;
+    }
+    if (base.find("clob") != std::string::npos || base.find("text") != std::string::npos)
+    {
+        return 0xFC;
+    }
+    // 默认按 varchar 处理
+    return 0xFD;
+}
+
+// 从声明类型的括号中提取长度, 如 varchar(64) -> 64, decimal(10,2) -> 10
+unsigned int sqlite_type_length(const std::string &decl_type)
+{
+    size_t lp = decl_type.find('(');
+    if (lp == std::string::npos)
+    {
+        return 0;
+    }
+    size_t rp = decl_type.find(')', lp);
+    size_t cp = decl_type.find(',', lp);
+    size_t end_pos = (rp == std::string::npos) ? decl_type.size() : rp;
+    if (cp != std::string::npos && cp < end_pos)
+    {
+        end_pos = cp;
+    }
+    return static_cast<unsigned int>(strtointval(decl_type.substr(lp + 1, end_pos - lp - 1)));
+}
+
+// decimal(10,2) 的小数位 -> 2; 无则 0
+unsigned char sqlite_type_decimals(const std::string &decl_type)
+{
+    size_t lp = decl_type.find('(');
+    if (lp == std::string::npos)
+    {
+        return 0;
+    }
+    size_t cp = decl_type.find(',', lp);
+    if (cp == std::string::npos)
+    {
+        return 0;
+    }
+    return static_cast<unsigned char>(strtointval(decl_type.substr(cp + 1)));
+}
+
+bool sqlite_get_table_list(std::shared_ptr<orm::sqlite_conn_base> lite_conn, std::vector<std::string> &table_lists)
+{
+    table_lists.clear();
+    std::vector<std::string> tables = lite_conn->get_table_list();
+    for (auto &t : tables)
+    {
+        std::string table_name = t;
+        std::transform(table_name.begin(), table_name.end(), table_name.begin(), ::tolower);
+        table_lists.push_back(table_name);
+    }
+    return true;
+}
+
+// 基于 PRAGMA table_info 封装 (键: cid/name/type/notnull/dflt_value/pk)
+bool sqlite_get_column_info(std::shared_ptr<orm::sqlite_conn_base> lite_conn, const std::string &table_name, std::vector<table_columns_info_t> &column_info_lists)
+{
+    column_info_lists.clear();
+
+    std::vector<std::map<std::string, std::string>> infos = lite_conn->get_table_info(table_name);
+    if (infos.empty())
+    {
+        return false;
+    }
+
+    for (auto &row : infos)
+    {
+        table_columns_info_t col_info;
+
+        auto it_name = row.find("name");
+        if (it_name != row.end())
+        {
+            col_info.col_name = it_name->second;
+            std::transform(col_info.col_name.begin(), col_info.col_name.end(), col_info.col_name.begin(), ::tolower);
+        }
+
+        std::string decl_type;
+        auto it_type = row.find("type");
+        if (it_type != row.end())
+        {
+            decl_type = it_type->second;
+        }
+
+        col_info.col_type = sqlite_type_to_mysql_type(decl_type);
+        col_info.big_type = pg_get_big_type(col_info.col_type);
+        col_info.col_length = sqlite_type_length(decl_type);
+        col_info.decimals = sqlite_type_decimals(decl_type);
+
+        std::string decl_lower = decl_type;
+        std::transform(decl_lower.begin(), decl_lower.end(), decl_lower.begin(), ::tolower);
+        if (decl_lower.find("timestamp") != std::string::npos || decl_lower.find("datetime") != std::string::npos ||
+            decl_lower.find("date") != std::string::npos || decl_lower.find("time") != std::string::npos)
+        {
+            col_info.is_datetime = true;
+        }
+
+        auto it_dflt = row.find("dflt_value");
+        if (it_dflt != row.end())
+        {
+            col_info.default_value = it_dflt->second;
+        }
+
+        auto it_pk = row.find("pk");
+        if (it_pk != row.end() && it_pk->second != "0")
+        {
+            col_info.is_pk = true;
+            // INTEGER 主键即 rowid 别名, 自动增长 (与 MySQL AUTO_INCREMENT 对应)
+            if (col_info.col_type == 0x03 || col_info.col_type == 0x08 || col_info.col_type == 0x02)
+            {
+                col_info.is_auto_inc = true;
+            }
+        }
+
+        column_info_lists.push_back(col_info);
+    }
+    return true;
+}
+// ==================== End SQLite Infrastructure ====================
 
 unsigned int string_replace(std::string &content, const std::string &astr, const std::string &bstr)
 {
@@ -5574,6 +5771,10 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
     {
         template_file.append("vendor/httpserver/include/postgresqlorm.hpp");
     }
+    else if(db_type == DBType::SQLITE)
+    {
+        template_file.append("vendor/httpserver/include/sqliteorm.hpp");
+    }
     else
     {
         template_file.append("vendor/httpserver/include/mysqlorm.hpp");
@@ -5601,6 +5802,10 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
     if (db_type == DBType::POSTGRESQL)
     {
         n = string_replace_all(template_content, "HTTP_POSTGRESQL_ORM_HPP", header_name);
+    }
+    else if (db_type == DBType::SQLITE)
+    {
+        n = string_replace_all(template_content, "HTTP_SQLITE_ORM_HPP", header_name);
     }
     else
     {
@@ -6170,6 +6375,11 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
         if (table_column_info_lists[i].col_type == 0x0A)
         {
             colltypeshuzi[i] = 61;
+        }
+        if (table_column_info_lists[i].col_type == 0x0B)
+        {
+            // TIME 类型为字符串字段，按普通字符串处理（避免落入数字分支）
+            colltypeshuzi[i] = 30;
         }
         if (table_column_info_lists[i].col_type == 0xF6 || table_column_info_lists[i].col_type == 0x04 || table_column_info_lists[i].col_type == 0x05)
         {
@@ -8546,9 +8756,9 @@ headtxt += R"(::meta data;
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
 
-    if (db_type == DBType::POSTGRESQL)
+    if (db_type == DBType::POSTGRESQL || db_type == DBType::SQLITE)
     {
-        // PostgreSQL: standard_conforming_strings=on 时 \' 不是合法转义，
+        // PostgreSQL / SQLite: standard_conforming_strings=on 时 \' 不是合法转义，
         // 唯一可靠的字符串转义是 ' -> ''（反斜杠在 PG 中默认是普通字符，不转义）
         headtxt = R"(
 
@@ -9382,7 +9592,7 @@ headtxt += R"(::meta data;
         unsigned int j = 0;
         std::ostringstream tempsql;)";
 
-        if(db_type == DBType::MYSQL)
+        if(db_type == DBType::MYSQL || db_type == DBType::SQLITE)
         {
             headtxt += R"(
             tempsql << "REPLACE INTO ";)";
@@ -12333,6 +12543,7 @@ dbtype=mysql
 
     std::shared_ptr<orm::mysql_conn_base> mysql_db_conn;
     std::shared_ptr<orm::pg_conn_base> pg_db_conn;
+    std::shared_ptr<orm::sqlite_conn_base> sqlite_db_conn;
 
     if (db_type == DBType::POSTGRESQL)
     {
@@ -12350,6 +12561,21 @@ dbtype=mysql
             return 0;
         }
         std::cout << " PostgreSQL connected successfully!" << std::endl;
+    }
+    else if (db_type == DBType::SQLITE)
+    {
+        // SQLite 本地文件库: host 字段存 .db 文件路径, 不进连接池 (CLI 同步场景无需 worker 线程)
+        sqlite_db_conn = std::make_shared<orm::sqlite_conn_base>();
+        orm::orm_conn_t lite_config;
+        lite_config.host   = link_config_item.host;
+        lite_config.dbname = link_config_item.dbname;
+
+        if (!sqlite_db_conn->connect(lite_config))
+        {
+            std::cerr << " SQLite connect failed: " << sqlite_db_conn->error_msg << std::endl;
+            return 0;
+        }
+        std::cout << " SQLite connected successfully! (" << sqlite_db_conn->db_file_path() << ")" << std::endl;
     }
     else
     {
@@ -12432,6 +12658,14 @@ dbtype=mysql
     {
         pg_get_table_list(pg_db_conn, table_lists);
         std::cout << "\nPostgreSQL tables found: " << table_lists.size() << std::endl;
+        for (size_t i = 0; i < table_lists.size(); ++i) {
+            std::cout << "  " << (i+1) << ". " << table_lists[i] << std::endl;
+        }
+    }
+    else if (db_type == DBType::SQLITE)
+    {
+        table_lists = dbtypes::get_sqlite_tables(sqlite_db_conn);
+        std::cout << "\nSQLite tables found: " << table_lists.size() << std::endl;
         for (size_t i = 0; i < table_lists.size(); ++i) {
             std::cout << "  " << (i+1) << ". " << table_lists[i] << std::endl;
         }
@@ -12598,6 +12832,79 @@ dbtype=mysql
             }
 
             std::string create_sql = dbtypes::gen_pg_create_table(table_info);
+
+            // 构建文件名: tablename_hash.sql
+            std::string fieldname = ormsqlfile;
+            fieldname.append(table_lists[i_table]);
+            fieldname.push_back('_');
+            fieldname.append(std::to_string(std::hash<std::string>{}(create_sql)));
+            fieldname.append(".sql");
+
+            if (fs::exists(fieldname))
+            {
+                // 文件已存在，跳过
+            }
+            else
+            {
+                std::FILE *fp = fopen(fieldname.c_str(), "wb");
+                if (fp)
+                {
+                    fwrite(create_sql.data(), 1, create_sql.size(), fp);
+                    fclose(fp);
+                    std::cout << "  Created: " << fieldname << std::endl;
+                }
+            }
+            // === 结束 _rawsqlfile 生成 ===
+        }
+        else if (db_type == DBType::SQLITE)
+        {
+            sqlite_get_column_info(sqlite_db_conn, table_lists[i_table], table_column_info_lists);
+            std::cout << "\nTable: " << table_lists[i_table] << " - " << table_column_info_lists.size() << " columns" << std::endl;
+
+            // === 生成 _rawsqlfile (直接取 sqlite_master 中的原始建表语句) ===
+            std::string ormsqlfile = ormfilepath;
+            if (ormsqlfile.back() != '/')
+            {
+                ormsqlfile.push_back('/');
+            }
+            ormsqlfile.append("/_rawsqlfile");
+            fs::path paths_a = ormsqlfile;
+            if (!fs::exists(paths_a))
+            {
+                fs::create_directories(paths_a);
+                fs::permissions(paths_a,
+                                fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+                                fs::perm_options::add);
+            }
+            ormsqlfile.push_back('/');
+            ormsqlfile.append(rmstag);
+
+            paths_a = ormsqlfile;
+            if (!fs::exists(paths_a))
+            {
+                fs::create_directories(paths_a);
+                fs::permissions(paths_a,
+                                fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+                                fs::perm_options::add);
+            }
+            ormsqlfile.push_back('/');
+
+            // 从 sqlite_master 取原始 CREATE TABLE 语句
+            std::string create_sql;
+            {
+                std::string raw_sql_query = "SELECT sql FROM sqlite_master WHERE type='table' AND name='" + table_lists[i_table] + "'";
+                orm::sqlite_query_result qr;
+                if (sqlite_db_conn->query_fetch(raw_sql_query, qr) && !qr.rows.empty() && !qr.rows[0].empty())
+                {
+                    create_sql = qr.rows[0][0];
+                }
+            }
+
+            if (create_sql.empty())
+            {
+                create_sql = "-- no schema found for table " + table_lists[i_table];
+            }
+            create_sql.append(";");
 
             // 构建文件名: tablename_hash.sql
             std::string fieldname = ormsqlfile;

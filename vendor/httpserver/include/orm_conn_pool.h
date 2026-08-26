@@ -16,6 +16,7 @@
 #include <asio/io_context.hpp>
 #include "mysql_conn.h"
 #include "pg_conn.h"
+#include "sqlite_conn.h"
 
 namespace orm
 {
@@ -54,6 +55,21 @@ class orm_conn_pool
     asio::awaitable<std::shared_ptr<pg_conn_base>> async_add_pg_select_connect();
     asio::awaitable<std::shared_ptr<pg_conn_base>> async_get_pg_select_conn();
 
+    // SQLite connections
+    std::shared_ptr<sqlite_conn_base> get_sqlite_edit_conn();
+    std::shared_ptr<sqlite_conn_base> add_sqlite_edit_connect();
+    void back_sqlite_edit_conn(std::shared_ptr<sqlite_conn_base> conn);
+    unsigned int init_sqlite_edit_conn(unsigned char n);
+    asio::awaitable<std::shared_ptr<sqlite_conn_base>> async_add_sqlite_edit_connect();
+    asio::awaitable<std::shared_ptr<sqlite_conn_base>> async_get_sqlite_edit_conn();
+
+    std::shared_ptr<sqlite_conn_base> get_sqlite_select_conn();
+    std::shared_ptr<sqlite_conn_base> add_sqlite_select_connect();
+    void back_sqlite_select_conn(std::shared_ptr<sqlite_conn_base> conn);
+    unsigned int init_sqlite_select_conn(unsigned char n);
+    asio::awaitable<std::shared_ptr<sqlite_conn_base>> async_add_sqlite_select_connect();
+    asio::awaitable<std::shared_ptr<sqlite_conn_base>> async_get_sqlite_select_conn();
+
     // Common
     unsigned int clear_edit_conn();
     unsigned int clear_select_conn();
@@ -62,6 +78,8 @@ class orm_conn_pool
 
     // Helper: check if this pool is for PostgreSQL
     bool is_postgresql() const;
+    // Helper: check if this pool is for SQLite
+    bool is_sqlite() const;
 
     ~orm_conn_pool()
     {
@@ -74,6 +92,10 @@ class orm_conn_pool
     // PostgreSQL pools
     std::list<std::shared_ptr<pg_conn_base>> pg_edit_pool;
     std::list<std::shared_ptr<pg_conn_base>> pg_select_pool;
+    // SQLite 单连接模式: 同库任务已在框架 worker 线程串行,
+    // 每角色一条常驻连接即可 (多连接也只是在同一线程排队)
+    std::shared_ptr<sqlite_conn_base> sqlite_edit_conn;
+    std::shared_ptr<sqlite_conn_base> sqlite_select_conn;
 
     std::array<orm_conn_t, 2> conf_data;
     std::mutex conn_edit_mutex;

@@ -1,7 +1,7 @@
 /*
  *  @author 黄自权 huangziquan
  *  @date 2026-08-14
- *  @dest 数据库类型定义和工具函数 - MySQL & PostgreSQL 共用
+ *  @dest 数据库类型定义和工具函数 - MySQL & PostgreSQL & SQLite 共用
  */
 
 #ifndef _DBTYPES_HPP
@@ -19,8 +19,12 @@
 #include <filesystem>
 #include <ctime>
 #include <cctype>
+#include <cstdlib>
+#include <cerrno>
+#include <variant>
 #include "mysql_conn.h"
 #include "pg_conn.h"
+#include "sqlite_conn.h"
 #include "orm_conn_pool.h"
 #include "orm_common.h"
 
@@ -149,6 +153,56 @@ inline bool validate_database_name(const std::string &db_name)
     return true;
 }
 
+// 验证 CLI 输入的 filename 安全性
+inline bool is_safe_filename(const std::string &filename)
+{
+    if (filename.empty())
+        return false;
+    if (filename.size() > 1024)
+        return false;
+    // 禁止路径遍历
+    if (filename.find("..") != std::string::npos)
+        return false;
+    // 禁止绝对路径
+    if (filename.front() == '/' || filename.front() == '\\')
+        return false;
+    // 禁止 SQL / shell 危险字符
+    for (char c : filename)
+    {
+        if (c == '\'' || c == '"' || c == ';' || c == '|' ||
+            c == '`' || c == '$' || c == '&' || c == '!' ||
+            c == '(' || c == ')' || c == '{' || c == '}')
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+// 验证 CLI 输入的 dbtag 格式
+inline bool is_safe_dbtag(const std::string &dbtag)
+{
+    if (!is_valid_sql_identifier(dbtag))
+    {
+        std::cerr << "  [ERROR] Invalid dbtag format: '" << dbtag << "'" << std::endl;
+        std::cerr << "          Only alphanumeric characters and underscore are allowed" << std::endl;
+        return false;
+    }
+    return true;
+}
+
+// 验证 CLI 输入的 target type 字符串
+inline bool is_valid_target_type_str(const std::string &target_str)
+{
+    std::string lower = to_lower(target_str);
+    if (lower == "mysql" || lower == "postgresql" || lower == "pg" || lower == "postgres" ||
+        lower == "sqlite" || lower == "sqlite3" || lower == "sq3")
+    {
+        return true;
+    }
+    return false;
+}
+
 inline bool is_valid_mysql_engine(const std::string &engine)
 {
     static const std::vector<std::string> whitelist = {
@@ -230,6 +284,44 @@ inline std::string escape_pg_identifier(const std::string &identifier)
     return result;
 }
 
+// SQLite 字符串字面量: 唯一合法转义是单引号翻倍 (不识别反斜杠转义,
+// 若用 MySQL 式 \\ / \n 转义会把数据写坏)
+inline std::string escape_sqlite_string(const std::string &val)
+{
+    std::string result;
+    result.reserve(val.size());
+    for (char c : val)
+    {
+        if (c == '\'')
+            result += "''";
+        else
+            result += c;
+    }
+    return result;
+}
+
+// SQLite 标识符: 双引号包裹, 规则与 PG 一致
+inline std::string escape_sqlite_identifier(const std::string &identifier)
+{
+    return escape_pg_identifier(identifier);
+}
+
+// BLOB 二进制 → SQLite X'十六进制' 字面量 (供文本形式 INSERT 导出使用)
+inline std::string bytes_to_hex_sqlite(const std::string &data)
+{
+    static const char *hex_digits = "0123456789ABCDEF";
+    std::string out;
+    out.reserve(3 + data.size() * 2);
+    out += "X'";
+    for (unsigned char c : data)
+    {
+        out.push_back(hex_digits[c >> 4]);
+        out.push_back(hex_digits[c & 0x0F]);
+    }
+    out.push_back('\'');
+    return out;
+}
+
 // ===================== 表结构定义 =====================
 
 struct db_field_info
@@ -276,6 +368,10 @@ struct row_data_t
 };
 
 // ===================== 类型映射 =====================
+// 本层: SQL 类型字符串映射 (std::string → std::string), 用于 DDL 生成和跨库迁移
+// modelfun.hpp 层: MySQL 协议类型码映射 (unsigned char → unsigned char), 用于 ORM 代码生成
+// 两套映射层次不同, 不合并: dbtypes.hpp 操作 SQL 类型名 (如 "varchar(255)" → "text"),
+// modelfun.hpp 操作 MySQL 线协议类型码 (如 MYSQL_TYPE_VARCHAR → MYSQL_TYPE_VAR_STRING)
 
 inline std::string mysql_type_to_pg(const std::string &mysql_type, unsigned int length, bool is_unsigned)
 {
@@ -411,19 +507,173 @@ inline std::string pg_type_to_mysql(const std::string &pg_type, unsigned int len
     return pg_type;
 }
 
+// ===================== SQLite 类型映射 (保留原始声明策略) =====================
+// SQLite 接受任意类型名 (按亲和性存储), 因此默认原样保留源库声明,
+// 仅对 SQLite 语义明显不合适的个别写法做归一, 以支持高保真反向转换
+
+// 源库类型 → SQLite 声明类型
+inline std::string sqlite_decl_type_for(const std::string &src_type, unsigned int length, unsigned char decimals, DB_TYPE src_db_type)
+{
+    std::string tl = to_lower(trim(src_type));
+    if (tl.empty())
+        return "TEXT";
+    if (tl == "enum" || tl == "set" || tl == "jsonb" || tl == "uuid" || tl == "money")
+        return "TEXT";
+    if (tl == "serial" || tl == "smallserial" || tl == "bigserial")
+        return "INTEGER";
+    if (tl == "bytea")
+        return "BLOB";
+    (void)src_db_type;
+
+    // 原始声明已带参数 (如 VARCHAR(255)/DECIMAL(10,2)) 则原样保留
+    if (src_type.find('(') != std::string::npos)
+        return src_type;
+
+    // 基类型名 + length/decimals 分离形式 (MySQL schema 解析风格):
+    // 字符串类/数值类附加长度参数, 其余直接保留类型名 (大写归一)
+    std::string base = src_type;
+    for (auto &c : base)
+        c = static_cast<char>(::toupper(static_cast<unsigned char>(c)));
+
+    if (tl == "varchar" || tl == "nvarchar" || tl == "char" || tl == "character varying" || tl == "character")
+    {
+        return base + "(" + std::to_string(length > 0 ? length : 255) + ")";
+    }
+    if (tl == "decimal" || tl == "numeric")
+    {
+        if (length > 0)
+        {
+            if (decimals > 0)
+                return base + "(" + std::to_string(length) + "," + std::to_string(static_cast<unsigned int>(decimals)) + ")";
+            return base + "(" + std::to_string(length) + ")";
+        }
+    }
+    return base;
+}
+
+// SQLite 声明类型 → MySQL 类型 (亲和性规则 + 原始声明识别)
+inline std::string sqlite_type_to_mysql(const std::string &sqlite_type)
+{
+    std::string tl = to_lower(trim(sqlite_type));
+    if (tl.empty())
+        return "text";
+
+    if (tl == "integer" || tl == "int8")
+        return "bigint";
+    if (tl == "int" || tl == "int4" || tl == "mediumint")
+        return "int";
+    if (tl == "smallint" || tl == "int2")
+        return "smallint";
+    if (tl == "tinyint")
+        return "tinyint";
+    if (tl == "boolean" || tl == "bool")
+        return "tinyint(1)";
+    if (tl == "real" || tl == "float" || tl == "float4")
+        return "float";
+    if (tl == "double" || tl == "double precision" || tl == "float8")
+        return "double";
+    if (tl == "text" || tl == "clob")
+        return "text";
+    if (tl == "blob")
+        return "longblob";
+    if (tl == "date")
+        return "date";
+    if (tl == "time")
+        return "time";
+    if (tl == "datetime" || tl == "timestamp")
+        return "datetime";
+
+    // 带参数声明 (varchar(255)/decimal(10,2) 等) 原样透传
+    if (starts_with_icase(tl, "varchar") || starts_with_icase(tl, "nvarchar") ||
+        starts_with_icase(tl, "char") || starts_with_icase(tl, "decimal") ||
+        starts_with_icase(tl, "numeric"))
+        return tl;
+
+    // 亲和性规则 (与 SQLite 官方亲和性判定顺序一致)
+    if (tl.find("int") != std::string::npos)
+        return "bigint";
+    if (tl.find("char") != std::string::npos || tl.find("clob") != std::string::npos ||
+        tl.find("text") != std::string::npos)
+        return "text";
+    if (tl.find("blob") != std::string::npos)
+        return "longblob";
+    if (tl.find("real") != std::string::npos || tl.find("floa") != std::string::npos ||
+        tl.find("doub") != std::string::npos)
+        return "double";
+    return "text";// NUMERIC 亲和性
+}
+
+// SQLite 声明类型 → PostgreSQL 类型
+inline std::string sqlite_type_to_pg(const std::string &sqlite_type)
+{
+    std::string tl = to_lower(trim(sqlite_type));
+    if (tl.empty())
+        return "text";
+
+    if (tl == "integer" || tl == "int" || tl == "int4" || tl == "mediumint")
+        return "integer";
+    if (tl == "bigint" || tl == "int8")
+        return "bigint";
+    if (tl == "smallint" || tl == "int2" || tl == "tinyint")
+        return "smallint";
+    if (tl == "boolean" || tl == "bool")
+        return "boolean";
+    if (tl == "real" || tl == "float" || tl == "float4")
+        return "real";
+    if (tl == "double" || tl == "double precision" || tl == "float8")
+        return "double precision";
+    if (tl == "text" || tl == "clob")
+        return "text";
+    if (tl == "blob")
+        return "bytea";
+    if (tl == "date")
+        return "date";
+    if (tl == "time")
+        return "time";
+    if (tl == "datetime" || tl == "timestamp")
+        return "timestamp";
+
+    if (starts_with_icase(tl, "varchar") || starts_with_icase(tl, "nvarchar") ||
+        starts_with_icase(tl, "char") || starts_with_icase(tl, "decimal") ||
+        starts_with_icase(tl, "numeric"))
+        return tl;
+
+    if (tl.find("int") != std::string::npos)
+        return "integer";
+    if (tl.find("char") != std::string::npos || tl.find("clob") != std::string::npos ||
+        tl.find("text") != std::string::npos)
+        return "text";
+    if (tl.find("blob") != std::string::npos)
+        return "bytea";
+    if (tl.find("real") != std::string::npos || tl.find("floa") != std::string::npos ||
+        tl.find("doub") != std::string::npos)
+        return "double precision";
+    return "text";// NUMERIC 亲和性
+}
+
 inline std::string convert_type_for_target(const std::string &source_type,
                                            unsigned int length,
                                            bool is_unsigned,
+                                           DB_TYPE src_type,
                                            DB_TYPE target_type)
 {
+    if (src_type == DB_TYPE::SQLITE)
+    {
+        if (target_type == DB_TYPE::POSTGRESQL)
+            return sqlite_type_to_pg(source_type);
+        if (target_type == DB_TYPE::MYSQL)
+            return sqlite_type_to_mysql(source_type);
+        return source_type;
+    }
+    if (target_type == DB_TYPE::SQLITE)
+    {
+        return sqlite_decl_type_for(source_type, length, 0, src_type);
+    }
     if (target_type == DB_TYPE::POSTGRESQL)
     {
         return mysql_type_to_pg(source_type, length, is_unsigned);
     }
-    else
-    {
-        return pg_type_to_mysql(source_type, length);
-    }
+    return pg_type_to_mysql(source_type, length);
 }
 
 inline DB_TYPE parse_target_type(const std::string &target_str)
@@ -432,6 +682,10 @@ inline DB_TYPE parse_target_type(const std::string &target_str)
     if (lower == "postgresql" || lower == "pg" || lower == "postgres")
     {
         return DB_TYPE::POSTGRESQL;
+    }
+    if (lower == "sqlite" || lower == "sqlite3" || lower == "sq3")
+    {
+        return DB_TYPE::SQLITE;
     }
     return DB_TYPE::MYSQL;
 }
@@ -521,6 +775,27 @@ inline void convert_table_for_target(db_table_info &table, DB_TYPE src_type, DB_
         else if (src_type == DB_TYPE::POSTGRESQL && target_type == DB_TYPE::MYSQL)
         {
             f.field_type = pg_type_to_mysql(f.field_type, f.length);
+        }
+        else if (target_type == DB_TYPE::SQLITE)
+        {
+            // 保留原始声明 (长度/精度拼回声明), 仅归一 SQLite 不接受的写法;
+            // 声明已自带参数时 f.length/f.decimals 清零避免 DDL 阶段重复追加
+            f.field_type = sqlite_decl_type_for(f.field_type, f.length, f.decimals, src_type);
+            f.length     = 0;
+            f.decimals   = 0;
+        }
+        else if (src_type == DB_TYPE::SQLITE && target_type == DB_TYPE::MYSQL)
+        {
+            // SQLite 源 field_type 可能带参数声明 (如 varchar(255)), 转换结果自带参数, 清零避免重复追加
+            f.field_type = sqlite_type_to_mysql(f.field_type);
+            f.length     = 0;
+            f.decimals   = 0;
+        }
+        else if (src_type == DB_TYPE::SQLITE && target_type == DB_TYPE::POSTGRESQL)
+        {
+            f.field_type = sqlite_type_to_pg(f.field_type);
+            f.length     = 0;
+            f.decimals   = 0;
         }
         f.is_unsigned = false;
     }
@@ -1439,11 +1714,171 @@ inline std::string gen_pg_create_table(const db_table_info &info)
     return oss.str();
 }
 
+// SQLite 不支持列/表 COMMENT 与 ENGINE/CHARSET, 注释以 -- SQL 注释保留
+inline std::string gen_sqlite_create_table(const db_table_info &info)
+{
+    if (info.fields.empty())
+        return "";
+
+    std::ostringstream oss;
+
+    // 收集主键列 (优先用 is_pk 标记, 回退拆分 pk_name)
+    std::vector<std::string> pk_cols;
+    for (const auto &f : info.fields)
+    {
+        if (f.is_pk)
+            pk_cols.push_back(f.field_name);
+    }
+    if (pk_cols.empty() && !info.pk_name.empty())
+    {
+        std::istringstream pk_iss(info.pk_name);
+        std::string pk_token;
+        while (std::getline(pk_iss, pk_token, ','))
+        {
+            pk_token = trim(pk_token);
+            if (!pk_token.empty())
+                pk_cols.push_back(pk_token);
+        }
+    }
+    bool composite_pk = pk_cols.size() > 1;
+
+    if (!info.table_comment.empty())
+    {
+        oss << "-- Table comment: " << info.table_comment << "\n";
+    }
+    oss << "DROP TABLE IF EXISTS " << escape_sqlite_identifier(info.table_name) << ";\n\n";
+    oss << "CREATE TABLE " << escape_sqlite_identifier(info.table_name) << " (\n";
+
+    for (size_t i = 0; i < info.fields.size(); i++)
+    {
+        const auto &f = info.fields[i];
+        oss << "  " << escape_sqlite_identifier(f.field_name) << " ";
+
+        std::string tl = to_lower(f.field_type);
+
+        if (f.is_auto_inc && f.is_pk)
+        {
+            // SQLite AUTOINCREMENT 必须是 INTEGER PRIMARY KEY (不支持复合主键)
+            oss << "INTEGER PRIMARY KEY AUTOINCREMENT";
+        }
+        else
+        {
+            oss << f.field_type;
+
+            // 追加长度/精度 (声明已带参数时跳过, 如 SQLite 源回读的 varchar(255))
+            if (tl.find('(') == std::string::npos)
+            {
+                if (f.length > 0 && (tl == "varchar" || tl == "nvarchar" || tl == "char" ||
+                                     tl == "character varying" || tl == "character"))
+                {
+                    oss << "(" << f.length << ")";
+                }
+                else if (f.length > 0 && (tl == "decimal" || tl == "numeric"))
+                {
+                    if (f.decimals > 0)
+                        oss << "(" << f.length << "," << (unsigned int)f.decimals << ")";
+                    else
+                        oss << "(" << f.length << ")";
+                }
+            }
+
+            if (!f.is_nullable)
+                oss << " NOT NULL";
+
+            if (!f.default_value.empty())
+            {
+                std::string dl = to_lower(f.default_value);
+                if (dl.find("nextval") == std::string::npos)
+                {
+                    oss << " DEFAULT ";
+                    if (dl == "current_timestamp" || dl == "now()" || dl == "now")
+                    {
+                        // now()/CURRENT_TIMESTAMP 映射为 SQLite 支持的 CURRENT_TIMESTAMP
+                        oss << "CURRENT_TIMESTAMP";
+                    }
+                    else if (dl == "null")
+                    {
+                        oss << "NULL";
+                    }
+                    else if (f.default_value.size() >= 2 && f.default_value.front() == '\'')
+                    {
+                        // 去除 PG 风格 ::type 后缀后原样输出 (已带引号)
+                        size_t cast_pos = f.default_value.find("::");
+                        if (cast_pos != std::string::npos)
+                            oss << f.default_value.substr(0, cast_pos);
+                        else
+                            oss << f.default_value;
+                    }
+                    else
+                    {
+                        oss << "'" << escape_sqlite_string(f.default_value) << "'";
+                    }
+                }
+            }
+
+            // 非自增单列主键行内声明 (自增主键已在上方分支处理)
+            if (f.is_pk && pk_cols.size() == 1)
+                oss << " PRIMARY KEY";
+        }
+
+        if (i < info.fields.size() - 1 || composite_pk)
+            oss << ",";
+        if (!f.comment.empty())
+            oss << " -- " << f.comment;
+        oss << "\n";
+    }
+
+    if (composite_pk)
+    {
+        oss << "  PRIMARY KEY (";
+        for (size_t j = 0; j < pk_cols.size(); j++)
+        {
+            if (j > 0)
+                oss << ", ";
+            oss << escape_sqlite_identifier(pk_cols[j]);
+        }
+        oss << ")";
+    }
+
+    oss << "\n);\n";
+
+    for (const auto &idx : info.indexes)
+    {
+        if (idx.is_primary)
+            continue;
+
+        oss << "CREATE ";
+        if (idx.is_unique)
+            oss << "UNIQUE ";
+        oss << "INDEX " << escape_sqlite_identifier(idx.index_name) << " ON "
+            << escape_sqlite_identifier(info.table_name) << " (";
+        for (size_t j = 0; j < idx.columns.size(); j++)
+        {
+            if (j > 0)
+                oss << ", ";
+            oss << escape_sqlite_identifier(idx.columns[j]);
+        }
+        oss << ");\n";
+    }
+
+    if (!info.auto_inc_field.empty())
+    {
+        oss << "-- Note: sqlite_sequence for table " << info.table_name
+            << " updated after data migration\n";
+    }
+
+    return oss.str();
+}
+
 inline std::string gen_ddl(const db_table_info &info, DB_TYPE db_type)
 {
     if (db_type == DB_TYPE::POSTGRESQL)
     {
         return gen_pg_create_table(info);
+    }
+    if (db_type == DB_TYPE::SQLITE)
+    {
+        return gen_sqlite_create_table(info);
     }
     return gen_mysql_create_table(info);
 }
@@ -1880,6 +2315,192 @@ inline bool mysql_get_table_schema(std::shared_ptr<orm::mysql_conn_base> mysql_c
     return got_create_table;
 }
 
+// ===================== SQLite 表结构读取 =====================
+
+inline std::vector<std::string> get_sqlite_tables(std::shared_ptr<orm::sqlite_conn_base> sqlite_conn)
+{
+    std::vector<std::string> tables;
+    if (!sqlite_conn)
+    {
+        std::cerr << "  [ERROR] SQLite connection is null" << std::endl;
+        return tables;
+    }
+    // 已过滤 sqlite_% 内部表 (见 sqlite_conn_base::get_table_list)
+    return sqlite_conn->get_table_list();
+}
+
+inline bool sqlite_get_table_schema(std::shared_ptr<orm::sqlite_conn_base> sqlite_conn,
+                                    const std::string &table_name,
+                                    db_table_info &table)
+{
+    if (!sqlite_conn)
+    {
+        std::cerr << "  [ERROR] SQLite connection is null" << std::endl;
+        return false;
+    }
+
+    if (!is_valid_sql_identifier(table_name))
+    {
+        std::cerr << "  [ERROR] Invalid table name: '" << table_name << "'" << std::endl;
+        return false;
+    }
+
+    table.table_name     = table_name;
+    table.source_db_type = DB_TYPE::SQLITE;
+    table.fields.clear();
+    table.indexes.clear();
+    table.pk_name.clear();
+    table.auto_inc_field.clear();
+
+    // PRAGMA table_info (键: cid/name/type/notnull/dflt_value/pk)
+    auto cols = sqlite_conn->get_table_info(table_name);
+    if (cols.empty())
+    {
+        std::cerr << "  [ERROR] SQLite PRAGMA table_info empty for: " << table_name << std::endl;
+        return false;
+    }
+
+    // AUTOINCREMENT 判定: 查 sqlite_sequence 而非按类型猜测 (仅在 sqlite_sequence 有该表记录时成立)
+    bool has_autoincrement = false;
+    {
+        orm::sqlite_query_result qr;
+        if (sqlite_conn->query_fetch(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='sqlite_sequence'", qr) &&
+            !qr.rows.empty())
+        {
+            orm::sqlite_query_result qr2;
+            if (sqlite_conn->query_fetch(
+                    "SELECT seq FROM sqlite_sequence WHERE name = '" + escape_sqlite_string(table_name) + "'", qr2) &&
+                !qr2.rows.empty())
+            {
+                has_autoincrement = true;
+            }
+        }
+    }
+
+    size_t pk_count = 0;
+    std::string pk_single;
+
+    for (auto &c : cols)
+    {
+        db_field_info field;
+        field.field_name = c["name"];
+
+        // 保留完整声明 (如 VARCHAR(255)), 同时解析长度/精度供 DDL 与反向转换使用
+        std::string decl = trim(c["type"]);
+        field.field_type = decl;
+
+        size_t po = decl.find('(');
+        size_t pc = decl.rfind(')');
+        if (po != std::string::npos && pc != std::string::npos && pc > po)
+        {
+            std::string params = decl.substr(po + 1, pc - po - 1);
+            size_t comma_pos   = params.find(',');
+            try
+            {
+                if (comma_pos != std::string::npos)
+                {
+                    unsigned long len = std::stoul(trim(params.substr(0, comma_pos)));
+                    unsigned long dec = std::stoul(trim(params.substr(comma_pos + 1)));
+                    if (len <= 0xFFFFFFFF)
+                        field.length = static_cast<unsigned int>(len);
+                    if (dec <= 0xFF)
+                        field.decimals = static_cast<unsigned char>(dec);
+                }
+                else
+                {
+                    unsigned long len = std::stoul(trim(params));
+                    if (len <= 0xFFFFFFFF)
+                        field.length = static_cast<unsigned int>(len);
+                }
+            }
+            catch (...)
+            {
+            }
+        }
+
+        if (c["notnull"] == "1")
+            field.is_nullable = false;
+
+        // dflt_value: 空为无默认值; 字符串默认值带引号 'xxx', DEFAULT NULL 返回字面量 NULL (丢弃)
+        const std::string &dflt = c["dflt_value"];
+        if (!dflt.empty() && to_lower(dflt) != "null")
+        {
+            field.default_value = dflt;
+        }
+
+        if (!c["pk"].empty() && c["pk"] != "0")
+        {
+            field.is_pk = true;
+            pk_count++;
+            pk_single = field.field_name;
+        }
+
+        table.fields.push_back(field);
+    }
+
+    // AUTOINCREMENT 只存在于"INTEGER PRIMARY KEY AUTOINCREMENT"形式: 单列 INTEGER 主键
+    if (has_autoincrement && pk_count == 1)
+    {
+        for (auto &f : table.fields)
+        {
+            if (f.is_pk && to_lower(f.field_type).find("int") != std::string::npos)
+            {
+                f.is_auto_inc        = true;
+                table.auto_inc_field = f.field_name;
+            }
+        }
+    }
+
+    if (pk_count == 1)
+    {
+        table.pk_name = pk_single;
+    }
+
+    // 索引: PRAGMA index_list (列: seq/name/unique/origin/partial)
+    orm::sqlite_query_result idx_qr;
+    if (sqlite_conn->query_fetch("PRAGMA index_list(\"" + table_name + "\")", idx_qr))
+    {
+        for (auto &r : idx_qr.rows)
+        {
+            if (r.size() < 3)
+                continue;
+            std::string idx_name = r[1];
+            std::string origin   = (r.size() > 3) ? r[3] : "";
+            if (origin == "pk")
+                continue;// INTEGER PRIMARY KEY 隐式索引, 跳过
+            if (starts_with_icase(idx_name, "sqlite_"))
+                continue;
+            if (!is_valid_sql_identifier(idx_name))
+                continue;// 校验索引名, 非法则跳过 (避免拼接风险)
+
+            db_index_info idx;
+            idx.index_name = idx_name;
+            idx.is_unique  = (r[2] == "1");
+            idx.is_primary = false;
+
+            orm::sqlite_query_result col_qr;
+            if (sqlite_conn->query_fetch("PRAGMA index_info(\"" + idx_name + "\")", col_qr))
+            {
+                for (auto &cr : col_qr.rows)
+                {
+                    // 列: seqno/cid/name; name 为空表示表达式索引, 整个索引丢弃
+                    if (cr.size() < 3 || cr[2].empty())
+                    {
+                        idx.columns.clear();
+                        break;
+                    }
+                    idx.columns.push_back(cr[2]);
+                }
+            }
+            if (!idx.columns.empty())
+                table.indexes.push_back(idx);
+        }
+    }
+
+    return true;
+}
+
 }// namespace dbtypes
 
 // ===================== 数据读取共用函数 =====================
@@ -1889,6 +2510,7 @@ namespace dbtypes
 
 using orm::mysql_conn_base;
 using orm::pg_conn_base;
+using orm::sqlite_conn_base;
 
 inline bool mysql_fetch_rows(std::shared_ptr<mysql_conn_base> mysql_conn,
                              const std::string &sql,
@@ -2042,6 +2664,159 @@ inline bool pg_fetch_rows(std::shared_ptr<pg_conn_base> pg_conn,
     return true;
 }
 
+// SQLite 结果集 → row_data_t (BLOB 以原始字节存于 values)
+inline bool sqlite_fetch_rows(std::shared_ptr<sqlite_conn_base> sqlite_conn,
+                              const std::string &sql,
+                              std::vector<row_data_t> &rows)
+{
+    rows.clear();
+
+    if (!sqlite_conn)
+    {
+        std::cerr << "  [ERROR] SQLite connection is null" << std::endl;
+        return false;
+    }
+
+    orm::sqlite_query_result qr;
+    if (!sqlite_conn->query_fetch(sql, qr))
+        return false;
+
+    for (size_t i = 0; i < qr.rows.size(); i++)
+    {
+        row_data_t row;
+        row.values = qr.rows[i];
+        for (size_t j = 0; j < qr.rows[i].size(); j++)
+        {
+            row.is_null.push_back(i < qr.is_null.size() && j < qr.is_null[i].size() ? qr.is_null[i][j] : false);
+        }
+        rows.push_back(std::move(row));
+    }
+
+    return true;
+}
+
+// 判断列是否为二进制类型 (BLOB 亲和或 bytea/binary) → 强制 bind_blob / X'hex' 输出
+inline bool sqlite_is_blob_field(const db_field_info &f)
+{
+    std::string tl = to_lower(f.field_type);
+    if (tl.find("blob") != std::string::npos)
+        return true;
+    if (tl == "bytea" || tl == "binary" || tl == "varbinary")
+        return true;
+    return false;
+}
+
+inline bool sqlite_str_is_int(const std::string &v)
+{
+    if (v.empty())
+        return false;
+    size_t i = 0;
+    if (v[0] == '+' || v[0] == '-')
+        i = 1;
+    if (i >= v.size())
+        return false;
+    for (; i < v.size(); i++)
+    {
+        if (!std::isdigit(static_cast<unsigned char>(v[i])))
+            return false;
+    }
+    return true;
+}
+
+inline bool sqlite_str_is_double(const std::string &v)
+{
+    if (v.empty())
+        return false;
+    char *end        = nullptr;
+    const char *cstr = v.c_str();
+    errno            = 0;
+    std::strtod(cstr, &end);
+    return errno == 0 && end == cstr + v.size();
+}
+
+// 参数绑定单行 INSERT (二进制安全: BLOB 用 bind_blob, 不走文本 SQL 拼接)
+inline bool sqlite_insert_row(std::shared_ptr<sqlite_conn_base> sqlite_conn,
+                              const std::string &table_name,
+                              const std::vector<db_field_info> &fields,
+                              const row_data_t &row)
+{
+    if (!sqlite_conn)
+    {
+        std::cerr << "  [ERROR] SQLite connection is null" << std::endl;
+        return false;
+    }
+
+    size_t max_col = std::min({fields.size(), row.values.size(), row.is_null.size()});
+    if (max_col == 0)
+        return false;
+
+    std::ostringstream oss;
+    oss << "INSERT INTO " << escape_sqlite_identifier(table_name) << " (";
+    for (size_t i = 0; i < max_col; i++)
+    {
+        if (i > 0)
+            oss << ", ";
+        oss << escape_sqlite_identifier(fields[i].field_name);
+    }
+    oss << ") VALUES (";
+    for (size_t i = 0; i < max_col; i++)
+    {
+        if (i > 0)
+            oss << ", ";
+        oss << "?";
+    }
+    oss << ")";
+
+    std::vector<orm::sqlite_bind_param> params(max_col);
+    for (size_t i = 0; i < max_col; i++)
+    {
+        orm::sqlite_bind_param &p = params[i];
+        if (row.is_null[i])
+        {
+            p.type = SQLITE_NULL;
+            continue;
+        }
+
+        const std::string &v = row.values[i];
+
+        // 二进制列强制 bind_blob
+        if (sqlite_is_blob_field(fields[i]))
+        {
+            p.type = SQLITE_BLOB;
+            p.data = v;
+            continue;
+        }
+
+        std::string tl = to_lower(fields[i].field_type);
+        // DECIMAL/日期类声明按 TEXT 绑定, 保留精度与格式 (NUMERIC 亲和不会改写文本)
+        if (starts_with_icase(tl, "decimal") || starts_with_icase(tl, "numeric") ||
+            tl == "datetime" || tl == "date" || tl == "time" || tl == "timestamp")
+        {
+            p.type = SQLITE_TEXT;
+            p.data = v;
+        }
+        else if (tl.find("int") != std::string::npos)
+        {
+            // INTEGER 亲和: 先验证是数字再绑定, 否则按文本 (避免非数字直出出错)
+            p.type = sqlite_str_is_int(v) ? SQLITE_INTEGER : SQLITE_TEXT;
+            p.data = v;
+        }
+        else if (tl.find("real") != std::string::npos || tl.find("floa") != std::string::npos ||
+                 tl.find("doub") != std::string::npos)
+        {
+            p.type = sqlite_str_is_double(v) ? SQLITE_FLOAT : SQLITE_TEXT;
+            p.data = v;
+        }
+        else
+        {
+            p.type = SQLITE_TEXT;
+            p.data = v;
+        }
+    }
+
+    return sqlite_conn->exec_bound(oss.str(), params);
+}
+
 inline std::string build_insert_sql_mysql(const std::string &table_name,
                                           const std::vector<db_field_info> &fields,
                                           const row_data_t &row,
@@ -2130,6 +2905,443 @@ inline std::string build_insert_sql_pg(const std::string &table_name,
     return oss.str();
 }
 
-}// namespace dbtypes
+// SQLite 目标的文本形式 INSERT (供 dbexport .sql 输出; 直接写库请用 sqlite_insert_row 绑定形式)
+// BLOB 列输出 X'十六进制' 字面量; 转义仅用 '' (不识别反斜杠转义)
+inline std::string build_insert_sql_sqlite(const std::string &table_name,
+                                           const std::vector<db_field_info> &fields,
+                                           const row_data_t &row,
+                                           size_t start_col,
+                                           size_t end_col)
+{
+    std::ostringstream oss;
+    oss << "INSERT INTO " << escape_sqlite_identifier(table_name) << " (";
+
+    size_t max_col = std::min({end_col, fields.size(), row.values.size(), row.is_null.size()});
+
+    for (size_t i = start_col; i < max_col; i++)
+    {
+        if (i > start_col)
+            oss << ", ";
+        oss << escape_sqlite_identifier(fields[i].field_name);
+    }
+    oss << ") VALUES (";
+
+    for (size_t i = start_col; i < max_col; i++)
+    {
+        if (i > start_col)
+            oss << ", ";
+        if (row.is_null[i])
+        {
+            oss << "NULL";
+        }
+        else
+        {
+            const auto &v = row.values[i];
+            if (sqlite_is_blob_field(fields[i]))
+            {
+                oss << bytes_to_hex_sqlite(v);
+            }
+            else if (v.empty())
+            {
+                oss << "''";
+            }
+            else
+            {
+                oss << "'" << escape_sqlite_string(v) << "'";
+            }
+        }
+    }
+    oss << ")";
+    return oss.str();
+}
+
+// ===================== C++20 类型安全连接封装 =====================
+
+// 类型安全连接变体: 任意时刻只持有一种数据库连接
+using db_conn_variant = std::variant<
+    std::shared_ptr<orm::mysql_conn_base>,
+    std::shared_ptr<orm::pg_conn_base>,
+    std::shared_ptr<orm::sqlite_conn_base>>;
+
+// 连接创建结果 (含错误信息)
+struct db_conn_result
+{
+    db_conn_variant conn;
+    std::string     error_msg;
+
+    bool ok() const { return error_msg.empty(); }
+
+    // 类型安全的连接访问 (编译期检查)
+    template <typename T>
+    std::shared_ptr<T> get() const
+    {
+        return std::get<std::shared_ptr<T>>(conn);
+    }
+
+    // 运行时按类型获取 DB_TYPE
+    DB_TYPE type() const
+    {
+        return std::visit([](const auto &p) -> DB_TYPE {
+            using T = std::decay_t<decltype(p)>;
+            if constexpr (std::is_same_v<T, std::shared_ptr<orm::mysql_conn_base>>)
+                return DB_TYPE::MYSQL;
+            else if constexpr (std::is_same_v<T, std::shared_ptr<orm::pg_conn_base>>)
+                return DB_TYPE::POSTGRESQL;
+            else
+                return DB_TYPE::SQLITE;
+        }, conn);
+    }
+};
+
+// 数据库类型显示名 (三库统一)
+inline std::string db_type_display(DB_TYPE t)
+{
+    if (t == DB_TYPE::POSTGRESQL)
+        return "PostgreSQL";
+    if (t == DB_TYPE::SQLITE)
+        return "SQLite";
+    return "MySQL";
+}
+
+// 按数据库类型引用标识符 (MySQL 反引号, PG/SQLite 双引号)
+inline std::string quote_identifier(DB_TYPE type, const std::string &identifier)
+{
+    if (type == DB_TYPE::MYSQL)
+        return "`" + identifier + "`";
+    return escape_pg_identifier(identifier); // PG/SQLite 共用双引号逻辑
+}
+
+// 统一连接创建 (替代三处重复的连接代码)
+inline db_conn_result create_connection(
+    const orm::orm_conn_t &config,
+    DB_TYPE                type,
+    asio::io_context      &ioc)
+{
+    db_conn_result result;
+
+    if (type == DB_TYPE::MYSQL)
+    {
+        auto pool          = std::make_shared<orm::orm_conn_pool>();
+        pool->io_context   = &ioc;
+        pool->conf_data[0] = config;
+        try
+        {
+            result.conn = pool->add_mysql_edit_connect();
+        }
+        catch (const std::exception &e)
+        {
+            result.error_msg = std::string("MySQL connect failed: ") + e.what();
+            return result;
+        }
+    }
+    else if (type == DB_TYPE::POSTGRESQL)
+    {
+        auto pg = std::make_shared<orm::pg_conn_base>(
+            orm::orm_conn_link_t::create(ioc, orm::DB_TYPE::POSTGRESQL));
+        orm::orm_conn_t pg_cfg = config;
+        if (pg_cfg.port.empty())
+            pg_cfg.port = "5432";
+        if (!pg->connect(pg_cfg))
+        {
+            result.error_msg = "PostgreSQL connect failed: " + pg->error_msg;
+            return result;
+        }
+        result.conn = std::move(pg);
+    }
+    else // SQLITE
+    {
+        auto sqlite = std::make_shared<orm::sqlite_conn_base>();
+        if (!sqlite->connect(config))
+        {
+            result.error_msg = "SQLite connect failed: " + sqlite->error_msg;
+            return result;
+        }
+        result.conn = std::move(sqlite);
+    }
+
+    return result;
+}
+
+// ===================== 统一操作分发函数 =====================
+
+// 统一获取表列表
+inline std::vector<std::string> get_tables(const db_conn_variant &conn, DB_TYPE type)
+{
+    switch (type)
+    {
+    case DB_TYPE::MYSQL:
+    {
+        auto mysql = std::get<std::shared_ptr<orm::mysql_conn_base>>(conn);
+        std::vector<row_data_t> rows;
+        std::vector<std::string> tables;
+        if (mysql_fetch_rows(mysql, "SHOW TABLES", rows))
+        {
+            for (auto &r : rows)
+                if (!r.values.empty())
+                    tables.push_back(r.values[0]);
+        }
+        return tables;
+    }
+    case DB_TYPE::POSTGRESQL:
+    {
+        auto pg = std::get<std::shared_ptr<orm::pg_conn_base>>(conn);
+        std::vector<row_data_t> rows;
+        std::vector<std::string> tables;
+        if (pg_fetch_rows(pg,
+                          "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename",
+                          rows))
+        {
+            for (auto &r : rows)
+                if (!r.values.empty())
+                    tables.push_back(r.values[0]);
+        }
+        return tables;
+    }
+    case DB_TYPE::SQLITE:
+        return get_sqlite_tables(std::get<std::shared_ptr<orm::sqlite_conn_base>>(conn));
+    }
+    return {};
+}
+
+// 统一获取表结构
+inline bool get_table_schema(const db_conn_variant &conn, DB_TYPE type,
+                             const std::string &table_name, db_table_info &info)
+{
+    switch (type)
+    {
+    case DB_TYPE::MYSQL:
+        return mysql_get_table_schema(std::get<std::shared_ptr<orm::mysql_conn_base>>(conn), table_name, info);
+    case DB_TYPE::POSTGRESQL:
+        return pg_get_table_schema(std::get<std::shared_ptr<orm::pg_conn_base>>(conn), table_name, info);
+    case DB_TYPE::SQLITE:
+        return sqlite_get_table_schema(std::get<std::shared_ptr<orm::sqlite_conn_base>>(conn), table_name, info);
+    }
+    return false;
+}
+
+// 统一执行查询获取行
+inline bool fetch_rows(const db_conn_variant &conn, DB_TYPE type,
+                       const std::string &sql, std::vector<row_data_t> &rows)
+{
+    switch (type)
+    {
+    case DB_TYPE::MYSQL:
+        return mysql_fetch_rows(std::get<std::shared_ptr<orm::mysql_conn_base>>(conn), sql, rows);
+    case DB_TYPE::POSTGRESQL:
+        return pg_fetch_rows(std::get<std::shared_ptr<orm::pg_conn_base>>(conn), sql, rows);
+    case DB_TYPE::SQLITE:
+        return sqlite_fetch_rows(std::get<std::shared_ptr<orm::sqlite_conn_base>>(conn), sql, rows);
+    }
+    return false;
+}
+
+// 统一检查表是否存在
+inline bool table_exists(const db_conn_variant &conn, DB_TYPE type,
+                         const std::string &table_name, const std::string &dbname = "")
+{
+    std::string sql;
+    switch (type)
+    {
+    case DB_TYPE::MYSQL:
+        sql = "SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA='" +
+              dbname + "' AND TABLE_NAME='" + table_name + "'";
+        break;
+    case DB_TYPE::POSTGRESQL:
+        sql = "SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='" +
+              table_name + "'";
+        break;
+    case DB_TYPE::SQLITE:
+        sql = "SELECT 1 FROM sqlite_master WHERE type='table' AND name='" + table_name + "'";
+        break;
+    }
+    std::vector<row_data_t> rows;
+    if (!fetch_rows(conn, type, sql, rows))
+        return false;
+    return !rows.empty();
+}
+
+// 统一执行 DDL (处理三种完全不同的执行协议)
+inline bool exec_ddl(const db_conn_variant &conn, DB_TYPE type,
+                     const std::string &ddl, std::string &error_msg)
+{
+    switch (type)
+    {
+    case DB_TYPE::MYSQL:
+    {
+        auto mysql = std::get<std::shared_ptr<orm::mysql_conn_base>>(conn);
+        if (mysql->write_sql(ddl) == 0)
+        {
+            error_msg = mysql->error_msg;
+            return false;
+        }
+        unsigned int rn = mysql->read_loop();
+        if (rn > 0)
+        {
+            orm::pack_info_t resp;
+            resp.seq_id      = 1;
+            unsigned int off = 0;
+            mysql->read_field_pack(mysql->_cache_data, rn, off, resp);
+            if (resp.error == 0 && resp.data.size() > 0 &&
+                (unsigned char)resp.data[0] == 0xFF)
+            {
+                error_msg = resp.data.substr(1);
+                return false;
+            }
+        }
+        return true;
+    }
+    case DB_TYPE::POSTGRESQL:
+    {
+        auto pg = std::get<std::shared_ptr<orm::pg_conn_base>>(conn);
+        std::vector<orm::field_info_t>   dummy_f;
+        std::vector<orm::pg_row_data_t>  dummy_r;
+        unsigned int affected = 0;
+        unsigned int err      = pg->execute_and_fetch(ddl, dummy_f, dummy_r, affected);
+        if (err > 0)
+        {
+            error_msg = pg->error_msg;
+            return false;
+        }
+        return true;
+    }
+    case DB_TYPE::SQLITE:
+    {
+        auto sqlite = std::get<std::shared_ptr<orm::sqlite_conn_base>>(conn);
+        if (sqlite->exec_sql(ddl) < 0)
+        {
+            error_msg = sqlite->error_msg;
+            return false;
+        }
+        return true;
+    }
+    }
+    return false;
+}
+
+// 统一插入单行
+inline bool insert_row(const db_conn_variant &conn, DB_TYPE type,
+                       const std::string &table_name,
+                       const std::vector<db_field_info> &fields,
+                       const row_data_t &row, std::string &error_msg)
+{
+    switch (type)
+    {
+    case DB_TYPE::MYSQL:
+    {
+        auto mysql  = std::get<std::shared_ptr<orm::mysql_conn_base>>(conn);
+        auto sql    = build_insert_sql_mysql(table_name, fields, row, 0, row.values.size());
+        if (mysql->write_sql(sql) == 0)
+        {
+            error_msg = mysql->error_msg;
+            return false;
+        }
+        unsigned int rn = mysql->read_loop();
+        if (rn == 0)
+        {
+            error_msg = mysql->error_msg;
+            return false;
+        }
+        return true;
+    }
+    case DB_TYPE::POSTGRESQL:
+    {
+        auto pg = std::get<std::shared_ptr<orm::pg_conn_base>>(conn);
+        auto sql = build_insert_sql_pg(table_name, fields, row, 0, row.values.size());
+        std::vector<orm::field_info_t>   df;
+        std::vector<orm::pg_row_data_t>  dr;
+        unsigned int affected = 0;
+        unsigned int err      = pg->execute_and_fetch(sql, df, dr, affected);
+        if (err > 0)
+        {
+            error_msg = pg->error_msg;
+            return false;
+        }
+        return true;
+    }
+    case DB_TYPE::SQLITE:
+    {
+        auto sqlite = std::get<std::shared_ptr<orm::sqlite_conn_base>>(conn);
+        if (!sqlite_insert_row(sqlite, table_name, fields, row))
+        {
+            error_msg = sqlite->error_msg;
+            return false;
+        }
+        return true;
+    }
+    }
+    return false;
+}
+
+// 统一 AUTOINCREMENT 重置
+inline bool reset_autoincrement(const db_conn_variant &conn, DB_TYPE type,
+                                const std::string &table_name,
+                                const std::string &auto_inc_field,
+                                std::string &error_msg)
+{
+    switch (type)
+    {
+    case DB_TYPE::MYSQL:
+    {
+        auto mysql = std::get<std::shared_ptr<orm::mysql_conn_base>>(conn);
+        std::string max_sql = "SELECT MAX(`" + auto_inc_field + "`) FROM `" + table_name + "`";
+        std::vector<row_data_t> max_rows;
+        if (mysql_fetch_rows(mysql, max_sql, max_rows) &&
+            !max_rows.empty() && !max_rows[0].values.empty() &&
+            !max_rows[0].values[0].empty() && !max_rows[0].is_null[0])
+        {
+            try
+            {
+                unsigned long long max_val = std::stoull(max_rows[0].values[0]);
+                std::string reset_sql      = "ALTER TABLE `" + table_name +
+                                        "` AUTO_INCREMENT = " + std::to_string(max_val + 1);
+                if (mysql->write_sql(reset_sql) == 0)
+                {
+                    error_msg = mysql->error_msg;
+                    return false;
+                }
+            }
+            catch (...)
+            {
+            }
+        }
+        return true;
+    }
+    case DB_TYPE::POSTGRESQL:
+    {
+        auto pg = std::get<std::shared_ptr<orm::pg_conn_base>>(conn);
+        std::string seq_name  = table_name + "_" + auto_inc_field + "_seq";
+        std::string alter_sql = "SELECT setval('" + seq_name +
+                                "', (SELECT MAX(" + auto_inc_field + ") FROM " + table_name + "))";
+        std::vector<orm::field_info_t>  df;
+        std::vector<orm::pg_row_data_t> dr;
+        unsigned int affected = 0;
+        unsigned int err      = pg->execute_and_fetch(alter_sql, df, dr, affected);
+        if (err > 0)
+        {
+            error_msg = pg->error_msg;
+            return false;
+        }
+        return true;
+    }
+    case DB_TYPE::SQLITE:
+    {
+        auto sqlite = std::get<std::shared_ptr<orm::sqlite_conn_base>>(conn);
+        std::string reset_sql =
+            "UPDATE sqlite_sequence SET seq = (SELECT MAX(" +
+            escape_sqlite_identifier(auto_inc_field) + ") FROM " +
+            escape_sqlite_identifier(table_name) +
+            ") WHERE name = '" + escape_sqlite_string(table_name) + "'";
+        if (sqlite->exec_sql(reset_sql) < 0)
+        {
+            error_msg = sqlite->error_msg;
+            return false;
+        }
+        return true;
+    }
+    }
+    return false;
+}
+
+} // namespace dbtypes
 
 #endif
