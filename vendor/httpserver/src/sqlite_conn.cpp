@@ -1,6 +1,6 @@
 /*
  * @Description: SQLite connection full implementation (ENABLE_SQLITE=ON only)
- *
+ * @date 2026-08-25
  * 本文件仅在 ENABLE_SQLITE=ON 时参与编译，提供完整的 SQLite 实现。
  */
 
@@ -22,7 +22,9 @@ class sqlite_worker_t
   public:
     sqlite_worker_t()
     {
-        std::thread([this]() { this->main_loop(); }).swap(thread_);
+        std::thread([this]()
+                    { this->main_loop(); })
+            .swap(thread_);
     }
 
     ~sqlite_worker_t()
@@ -77,9 +79,8 @@ class sqlite_worker_t
             std::function<void()> task;
             {
                 std::unique_lock<std::mutex> lock(queue_mutex_);
-                queue_cv_.wait(lock, [this]() {
-                    return !queue_.empty() || stop_.load();
-                });
+                queue_cv_.wait(lock, [this]()
+                               { return !queue_.empty() || stop_.load(); });
 
                 if (stop_.load() && queue_.empty())
                 {
@@ -286,7 +287,7 @@ bool sqlite_conn_base::ping_impl()
     }
 
     static const std::string ping_sql = "SELECT 1";
-    sqlite3_stmt *stmt = stmt_cache_.get_or_create(db_, ping_sql);
+    sqlite3_stmt *stmt                = stmt_cache_.get_or_create(db_, ping_sql);
     if (!stmt)
     {
         this->set_error(sqlite3_errmsg(db_));
@@ -330,22 +331,29 @@ int sqlite_conn_base::exec_sql_impl(const std::string &sql)
     // 检测事务相关语句
     std::string sql_upper;
     sql_upper.reserve(sql.size());
-    for (char c : sql) {
+    for (char c : sql)
+    {
         sql_upper += static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
     }
 
     size_t start = sql_upper.find_first_not_of(" \t\n\r");
-    if (start != std::string::npos) {
+    if (start != std::string::npos)
+    {
         sql_upper = sql_upper.substr(start);
     }
 
-    if (sql_upper.find("BEGIN") == 0 || sql_upper.find("SAVEPOINT") == 0) {
+    if (sql_upper.find("BEGIN") == 0 || sql_upper.find("SAVEPOINT") == 0)
+    {
         in_transaction_.store(true);
         transaction_log_.clear();
-    } else if (sql_upper.find("COMMIT") == 0 || sql_upper.find("RELEASE") == 0) {
+    }
+    else if (sql_upper.find("COMMIT") == 0 || sql_upper.find("RELEASE") == 0)
+    {
         in_transaction_.store(false);
         transaction_log_.clear();
-    } else if (sql_upper.find("ROLLBACK") == 0) {
+    }
+    else if (sql_upper.find("ROLLBACK") == 0)
+    {
         in_transaction_.store(false);
         transaction_log_.clear();
     }
@@ -707,17 +715,20 @@ bool sqlite_conn_base::rollback_transaction_impl()
 
 bool sqlite_conn_base::connect(const orm_conn_t &conn_config)
 {
-    return this->submit_sync<bool>([this, &conn_config]() { return this->connect_impl(conn_config); });
+    return this->submit_sync<bool>([this, &conn_config]()
+                                   { return this->connect_impl(conn_config); });
 }
 
 bool sqlite_conn_base::close()
 {
-    return this->submit_sync<bool>([this]() { return this->close_impl(); });
+    return this->submit_sync<bool>([this]()
+                                   { return this->close_impl(); });
 }
 
 bool sqlite_conn_base::ping()
 {
-    return this->submit_sync<bool>([this]() { return this->ping_impl(); });
+    return this->submit_sync<bool>([this]()
+                                   { return this->ping_impl(); });
 }
 
 bool sqlite_conn_base::is_closed()
@@ -727,17 +738,20 @@ bool sqlite_conn_base::is_closed()
 
 int sqlite_conn_base::exec_sql(const std::string &sql)
 {
-    return this->submit_sync<int>([this, &sql]() { return this->exec_sql_impl(sql); });
+    return this->submit_sync<int>([this, &sql]()
+                                  { return this->exec_sql_impl(sql); });
 }
 
 bool sqlite_conn_base::query_fetch(const std::string &sql, sqlite_query_result &result)
 {
-    return this->submit_sync<bool>([this, &sql, &result]() { return this->query_fetch_impl(sql, result); });
+    return this->submit_sync<bool>([this, &sql, &result]()
+                                   { return this->query_fetch_impl(sql, result); });
 }
 
 bool sqlite_conn_base::query_scalar(const std::string &sql, sqlite_scalar_result &result)
 {
-    return this->submit_sync<bool>([this, &sql, &result]() { return this->query_scalar_impl(sql, result); });
+    return this->submit_sync<bool>([this, &sql, &result]()
+                                   { return this->query_scalar_impl(sql, result); });
 }
 
 unsigned int sqlite_conn_base::execute_and_fetch(
@@ -746,7 +760,8 @@ unsigned int sqlite_conn_base::execute_and_fetch(
     std::vector<pg_row_data_t> &rows_out,
     unsigned int &affected_rows_out)
 {
-    return this->submit_sync<unsigned int>([this, &sql, &fields_out, &rows_out, &affected_rows_out]() {
+    return this->submit_sync<unsigned int>([this, &sql, &fields_out, &rows_out, &affected_rows_out]()
+                                           {
         sqlite_query_result result;
         if (!this->query_fetch_impl(sql, result))
         {
@@ -776,13 +791,13 @@ unsigned int sqlite_conn_base::execute_and_fetch(
         }
 
         affected_rows_out = static_cast<unsigned int>(result.affected_rows);
-        return 0;
-    });
+        return 0; });
 }
 
 int sqlite_conn_base::exec_batch(const std::vector<std::string> &sqls)
 {
-    return this->submit_sync<int>([this, &sqls]() {
+    return this->submit_sync<int>([this, &sqls]()
+                                  {
         if (!db_ || isclose_.load())
         {
             this->set_error("Database not connected");
@@ -815,18 +830,19 @@ int sqlite_conn_base::exec_batch(const std::vector<std::string> &sqls)
             return -1;
         }
 
-        return 0;
-    });
+        return 0; });
 }
 
 bool sqlite_conn_base::exec_bound(const std::string &sql, const std::vector<sqlite_bind_param> &params)
 {
-    return this->submit_sync<bool>([this, &sql, &params]() { return this->exec_bound_impl(sql, params); });
+    return this->submit_sync<bool>([this, &sql, &params]()
+                                   { return this->exec_bound_impl(sql, params); });
 }
 
 std::vector<std::string> sqlite_conn_base::get_table_list()
 {
-    return this->submit_sync<std::vector<std::string>>([this]() {
+    return this->submit_sync<std::vector<std::string>>([this]()
+                                                       {
         std::vector<std::string> tables;
         sqlite_query_result qr;
         if (this->query_fetch_impl(
@@ -840,13 +856,13 @@ std::vector<std::string> sqlite_conn_base::get_table_list()
                 }
             }
         }
-        return tables;
-    });
+        return tables; });
 }
 
 std::vector<std::map<std::string, std::string>> sqlite_conn_base::get_table_info(const std::string &table)
 {
-    return this->submit_sync<std::vector<std::map<std::string, std::string>>>([this, &table]() {
+    return this->submit_sync<std::vector<std::map<std::string, std::string>>>([this, &table]()
+                                                                              {
         std::vector<std::map<std::string, std::string>> columns;
 
         std::string quoted;
@@ -879,40 +895,45 @@ std::vector<std::map<std::string, std::string>> sqlite_conn_base::get_table_info
                 }
             }
         }
-        return columns;
-    });
+        return columns; });
 }
 
 // ======================== 协程接口 ========================
 
 asio::awaitable<bool> sqlite_conn_base::async_connect(const orm_conn_t &conn_config)
 {
-    co_return co_await this->run_on_worker<bool>([this, &conn_config]() { return this->connect_impl(conn_config); });
+    co_return co_await this->run_on_worker<bool>([this, &conn_config]()
+                                                 { return this->connect_impl(conn_config); });
 }
 
 asio::awaitable<bool> sqlite_conn_base::async_close()
 {
-    co_return co_await this->run_on_worker<bool>([this]() { return this->close_impl(); });
+    co_return co_await this->run_on_worker<bool>([this]()
+                                                 { return this->close_impl(); });
 }
 
 asio::awaitable<bool> sqlite_conn_base::async_ping()
 {
-    co_return co_await this->run_on_worker<bool>([this]() { return this->ping_impl(); });
+    co_return co_await this->run_on_worker<bool>([this]()
+                                                 { return this->ping_impl(); });
 }
 
 asio::awaitable<int> sqlite_conn_base::async_exec_sql(const std::string &sql)
 {
-    co_return co_await this->run_on_worker<int>([this, &sql]() { return this->exec_sql_impl(sql); });
+    co_return co_await this->run_on_worker<int>([this, &sql]()
+                                                { return this->exec_sql_impl(sql); });
 }
 
 asio::awaitable<bool> sqlite_conn_base::async_query_fetch(const std::string &sql, sqlite_query_result &result)
 {
-    co_return co_await this->run_on_worker<bool>([this, &sql, &result]() { return this->query_fetch_impl(sql, result); });
+    co_return co_await this->run_on_worker<bool>([this, &sql, &result]()
+                                                 { return this->query_fetch_impl(sql, result); });
 }
 
 asio::awaitable<bool> sqlite_conn_base::async_query_scalar(const std::string &sql, sqlite_scalar_result &result)
 {
-    co_return co_await this->run_on_worker<bool>([this, &sql, &result]() { return this->query_scalar_impl(sql, result); });
+    co_return co_await this->run_on_worker<bool>([this, &sql, &result]()
+                                                 { return this->query_scalar_impl(sql, result); });
 }
 
 asio::awaitable<unsigned int> sqlite_conn_base::async_execute_and_fetch(
@@ -921,25 +942,23 @@ asio::awaitable<unsigned int> sqlite_conn_base::async_execute_and_fetch(
     std::vector<pg_row_data_t> &rows_out,
     unsigned int &affected_rows_out)
 {
-    co_return co_await this->run_on_worker<unsigned int>([this, &sql, &fields_out, &rows_out, &affected_rows_out]() {
-        return this->execute_and_fetch(sql, fields_out, rows_out, affected_rows_out);
-    });
+    co_return co_await this->run_on_worker<unsigned int>([this, &sql, &fields_out, &rows_out, &affected_rows_out]()
+                                                         { return this->execute_and_fetch(sql, fields_out, rows_out, affected_rows_out); });
 }
 
 // ======================== Worker 模式 ========================
 
 void sqlite_conn_base::start_worker_thread(asio::io_context &ioc, const std::string &db_path)
 {
-    io_ctx_ = &ioc;
+    io_ctx_     = &ioc;
     worker_key_ = db_path;
 
     // 预创建 worker (通过 sqlite_worker_submit 机制)
     std::promise<void> ready_promise;
     auto ready_future = ready_promise.get_future();
 
-    sqlite_worker_submit(db_path, [&ready_promise]() {
-        ready_promise.set_value();
-    });
+    sqlite_worker_submit(db_path, [&ready_promise]()
+                         { ready_promise.set_value(); });
 
     ready_future.get();
 
@@ -947,7 +966,7 @@ void sqlite_conn_base::start_worker_thread(asio::io_context &ioc, const std::str
     {
         std::lock_guard<std::mutex> lock(sqlite_worker_map_mutex);
         auto &workers = sqlite_worker_map();
-        auto iter = workers.find(db_path);
+        auto iter     = workers.find(db_path);
         if (iter != workers.end())
         {
             cached_worker_ = iter->second;
@@ -989,7 +1008,8 @@ void sqlite_conn_base::drain_worker_tasks()
 {
     auto done     = std::make_shared<std::promise<void>>();
     auto done_fut = done->get_future();
-    this->submit_to_worker_cached([done]() { done->set_value(); });
+    this->submit_to_worker_cached([done]()
+                                  { done->set_value(); });
     done_fut.get();
 }
 
@@ -997,22 +1017,26 @@ void sqlite_conn_base::drain_worker_tasks()
 
 bool sqlite_conn_base::integrity_check(std::string &report)
 {
-    return this->submit_sync<bool>([this, &report]() { return this->integrity_check_impl(report); });
+    return this->submit_sync<bool>([this, &report]()
+                                   { return this->integrity_check_impl(report); });
 }
 
 bool sqlite_conn_base::repair_database()
 {
-    return this->submit_sync<bool>([this]() { return this->repair_database_impl(); });
+    return this->submit_sync<bool>([this]()
+                                   { return this->repair_database_impl(); });
 }
 
 bool sqlite_conn_base::reconnect(int max_retries)
 {
-    return this->submit_sync<bool>([this, max_retries]() { return this->reconnect_impl(max_retries); });
+    return this->submit_sync<bool>([this, max_retries]()
+                                   { return this->reconnect_impl(max_retries); });
 }
 
 bool sqlite_conn_base::rollback_unfinished_transactions()
 {
-    return this->submit_sync<bool>([this]() { return this->rollback_unfinished_impl(); });
+    return this->submit_sync<bool>([this]()
+                                   { return this->rollback_unfinished_impl(); });
 }
 
 // ======================== Debug / 工具 ========================
@@ -1075,4 +1099,4 @@ void sqlite_worker_shutdown_all_safe()
 
 }// namespace orm
 
-#endif  // ENABLE_SQLITE
+#endif// ENABLE_SQLITE

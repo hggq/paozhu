@@ -78,9 +78,12 @@ class sqlite_worker_t;
 template <typename T>
 inline T sqlite_shutdown_error_value()
 {
-    if constexpr (std::is_same_v<T, bool>) return false;
-    else if constexpr (std::is_integral_v<T>) return static_cast<T>(-1);
-    else return T{};
+    if constexpr (std::is_same_v<T, bool>)
+        return false;
+    else if constexpr (std::is_integral_v<T>)
+        return static_cast<T>(-1);
+    else
+        return T{};
 }
 
 #ifdef ENABLE_SQLITE
@@ -115,7 +118,8 @@ class sqlite_stmt_cache
     void clear()
     {
         for (auto &[sql, pair] : cache_)
-            if (pair.first) sqlite3_finalize(pair.first);
+            if (pair.first)
+                sqlite3_finalize(pair.first);
         cache_.clear();
         order_.clear();
     }
@@ -123,9 +127,10 @@ class sqlite_stmt_cache
   private:
     void evict_one()
     {
-        if (order_.empty()) return;
+        if (order_.empty())
+            return;
         const std::string &oldest = order_.back();
-        auto it = cache_.find(oldest);
+        auto it                   = cache_.find(oldest);
         if (it != cache_.end() && it->second.first)
             sqlite3_finalize(it->second.first);
         cache_.erase(oldest);
@@ -142,7 +147,7 @@ class sqlite_conn_base
   public:
     sqlite_conn_base();
     ~sqlite_conn_base();
-    sqlite_conn_base(const sqlite_conn_base &) = delete;
+    sqlite_conn_base(const sqlite_conn_base &)            = delete;
     sqlite_conn_base &operator=(const sqlite_conn_base &) = delete;
 
     bool connect(const orm_conn_t &conn_config);
@@ -188,15 +193,17 @@ class sqlite_conn_base
 
   public:
     std::string error_msg;
-    bool isdebug = false;
+    bool isdebug            = false;
     unsigned int time_start = 0;
-    unsigned int query_num = 0;
+    unsigned int query_num  = 0;
     std::chrono::time_point<std::chrono::steady_clock> time_begin;
     std::chrono::time_point<std::chrono::steady_clock> time_finish;
 
   private:
-    template <typename T> T submit_sync(std::function<T()> fn);
-    template <typename T> asio::awaitable<T> run_on_worker(std::function<T()> fn);
+    template <typename T>
+    T submit_sync(std::function<T()> fn);
+    template <typename T>
+    asio::awaitable<T> run_on_worker(std::function<T()> fn);
 
     bool connect_impl(const orm_conn_t &conn_config);
     bool close_impl();
@@ -232,9 +239,13 @@ class sqlite_conn_base
     std::atomic<int> consecutive_errors_{0};
     std::chrono::steady_clock::time_point last_error_time_;
     static constexpr int k_max_reconnect_retries = 3;
-    static constexpr int k_reconnect_delay_ms = 100;
-    static constexpr int k_error_threshold = 5;
-    struct transaction_log_t { std::string sql; std::chrono::steady_clock::time_point timestamp; };
+    static constexpr int k_reconnect_delay_ms    = 100;
+    static constexpr int k_error_threshold       = 5;
+    struct transaction_log_t
+    {
+        std::string sql;
+        std::chrono::steady_clock::time_point timestamp;
+    };
     std::vector<transaction_log_t> transaction_log_;
     std::mutex error_mutex_;
     orm_conn_t conn_config_;
@@ -246,46 +257,74 @@ inline T sqlite_conn_base::submit_sync(std::function<T()> fn)
 {
     if (!worker_running_.load())
     {
-        try { return fn(); }
-        catch (const std::exception &e) { this->set_error(std::string("exception in sqlite task: ") + e.what()); return sqlite_shutdown_error_value<T>(); }
-        catch (...) { this->set_error("unknown exception in sqlite task"); return sqlite_shutdown_error_value<T>(); }
+        try
+        {
+            return fn();
+        }
+        catch (const std::exception &e)
+        {
+            this->set_error(std::string("exception in sqlite task: ") + e.what());
+            return sqlite_shutdown_error_value<T>();
+        }
+        catch (...)
+        {
+            this->set_error("unknown exception in sqlite task");
+            return sqlite_shutdown_error_value<T>();
+        }
     }
-    if (shutdown_error_.load()) { this->set_error("sqlite_conn is shutting down"); return sqlite_shutdown_error_value<T>(); }
+    if (shutdown_error_.load())
+    {
+        this->set_error("sqlite_conn is shutting down");
+        return sqlite_shutdown_error_value<T>();
+    }
 
     auto promise = std::make_shared<std::promise<T>>();
     auto future  = promise->get_future();
-    submit_to_worker_cached([fn, promise, this]() {
+    submit_to_worker_cached([fn, promise, this]()
+                            {
         try { promise->set_value(fn()); }
         catch (const std::exception &e) { this->set_error(std::string("exception in sqlite task: ") + e.what()); promise->set_value(sqlite_shutdown_error_value<T>()); }
-        catch (...) { this->set_error("unknown exception in sqlite task"); promise->set_value(sqlite_shutdown_error_value<T>()); }
-    });
-    try { return future.get(); }
-    catch (...) { return sqlite_shutdown_error_value<T>(); }
+        catch (...) { this->set_error("unknown exception in sqlite task"); promise->set_value(sqlite_shutdown_error_value<T>()); } });
+    try
+    {
+        return future.get();
+    }
+    catch (...)
+    {
+        return sqlite_shutdown_error_value<T>();
+    }
 }
 
 template <typename T>
 inline asio::awaitable<T> sqlite_conn_base::run_on_worker(std::function<T()> fn)
 {
-    if (!worker_running_.load()) co_return fn();
-    if (shutdown_error_.load()) { this->set_error("sqlite_conn is shutting down"); co_return sqlite_shutdown_error_value<T>(); }
+    if (!worker_running_.load())
+        co_return fn();
+    if (shutdown_error_.load())
+    {
+        this->set_error("sqlite_conn is shutting down");
+        co_return sqlite_shutdown_error_value<T>();
+    }
 
     auto caller_executor = co_await asio::this_coro::executor;
     asio::use_awaitable_t<> token;
     auto awaitable = asio::async_initiate<void(T)>(
-        [this, fn, caller_executor](auto handler) mutable {
+        [this, fn, caller_executor](auto handler) mutable
+        {
             auto hp = std::make_shared<std::decay_t<decltype(handler)>>(std::move(handler));
-            submit_to_worker_cached([fn = std::move(fn), hp, caller_executor, this]() mutable {
+            submit_to_worker_cached([fn = std::move(fn), hp, caller_executor, this]() mutable
+                                    {
                 T value{};
                 try { value = fn(); }
                 catch (const std::exception& e) { value = sqlite_shutdown_error_value<T>(); this->set_error(std::string("exception in sqlite task: ") + e.what()); }
                 catch (...) { value = sqlite_shutdown_error_value<T>(); this->set_error("unknown exception in sqlite task"); }
-                asio::post(caller_executor, [hp, value = std::move(value)]() mutable { (*hp)(std::move(value)); });
-            });
-        }, token);
+                asio::post(caller_executor, [hp, value = std::move(value)]() mutable { (*hp)(std::move(value)); }); });
+        },
+        token);
     co_return co_await std::move(awaitable);
 }
 
-#endif  // def(ENABLE_SQLITE)
+#endif// def(ENABLE_SQLITE)
 
 #ifndef ENABLE_SQLITE
 
@@ -294,7 +333,7 @@ class sqlite_conn_base
   public:
     sqlite_conn_base();
     ~sqlite_conn_base();
-    sqlite_conn_base(const sqlite_conn_base &) = delete;
+    sqlite_conn_base(const sqlite_conn_base &)            = delete;
     sqlite_conn_base &operator=(const sqlite_conn_base &) = delete;
 
     bool connect(const orm_conn_t &conn_config);
@@ -338,14 +377,16 @@ class sqlite_conn_base
     const std::string &db_file_path() const { return db_file_path_; }
     static const char *sqlite_version();
 
-    template <typename T> T submit_sync(std::function<T()> fn);
-    template <typename T> asio::awaitable<T> run_on_worker(std::function<T()> fn);
+    template <typename T>
+    T submit_sync(std::function<T()> fn);
+    template <typename T>
+    asio::awaitable<T> run_on_worker(std::function<T()> fn);
 
   public:
     std::string error_msg;
-    bool isdebug = false;
+    bool isdebug            = false;
     unsigned int time_start = 0;
-    unsigned int query_num = 0;
+    unsigned int query_num  = 0;
     std::chrono::time_point<std::chrono::steady_clock> time_begin;
     std::chrono::time_point<std::chrono::steady_clock> time_finish;
 
@@ -358,18 +399,36 @@ class sqlite_conn_base
 template <typename T>
 inline T sqlite_conn_base::submit_sync(std::function<T()> fn)
 {
-    if (fn) { try { return fn(); } catch (...) {} }
+    if (fn)
+    {
+        try
+        {
+            return fn();
+        }
+        catch (...)
+        {
+        }
+    }
     return sqlite_shutdown_error_value<T>();
 }
 
 template <typename T>
 inline asio::awaitable<T> sqlite_conn_base::run_on_worker(std::function<T()> fn)
 {
-    if (fn) { try { co_return fn(); } catch (...) {} }
+    if (fn)
+    {
+        try
+        {
+            co_return fn();
+        }
+        catch (...)
+        {
+        }
+    }
     co_return sqlite_shutdown_error_value<T>();
 }
 
-#endif  // !def(ENABLE_SQLITE)
+#endif// !def(ENABLE_SQLITE)
 
 }// namespace orm
 

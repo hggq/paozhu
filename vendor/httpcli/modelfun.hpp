@@ -238,42 +238,70 @@ unsigned char pg_type_to_mysql_type(const std::string &pg_type)
 {
     std::string lower = pg_type;
     std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
-    
-    if (lower == "smallint" || lower == "int2") return 0x02;
-    if (lower == "integer" || lower == "int4") return 0x03;
-    if (lower == "bigint" || lower == "int8") return 0x08;
-    if (lower == "smallserial" || lower == "serial2") return 0x02;
-    if (lower == "serial" || lower == "serial4") return 0x03;
-    if (lower == "bigserial" || lower == "serial8") return 0x08;
-    if (lower == "real" || lower == "float4") return 0x04;
-    if (lower == "double precision" || lower == "float8") return 0x05;
-    if (lower == "numeric" || lower == "decimal") return 0xF6;
-    if (lower == "boolean" || lower == "bool") return 0x01;
-    if (lower == "char" || lower == "character") return 0xFE;
-    if (lower == "varchar" || lower == "character varying") return 0xFD;
-    if (lower == "text") return 0xFC;
-    if (lower == "timestamp" || lower == "timestamp without time zone") return 0x0C;
-    if (lower == "timestamp with time zone" || lower == "timestamptz") return 0x0C;
-    if (lower == "date") return 0x0A;
-    if (lower == "time" || lower == "time without time zone") return 0x0B;
-    if (lower == "time with time zone" || lower == "timetz") return 0x0B;
-    if (lower == "bytea") return 0xFC;
-    if (lower == "json") return 0xF5;
-    if (lower == "jsonb") return 0xF5;
-    if (lower == "uuid") return 0xFE;
-    if (lower == "inet") return 0xFE;
-    if (lower == "cidr") return 0xFE;
-    if (lower == "macaddr") return 0xFE;
-    if (lower == "money") return 0xF6;
-    
+
+    if (lower == "smallint" || lower == "int2")
+        return 0x02;
+    if (lower == "integer" || lower == "int4")
+        return 0x03;
+    if (lower == "bigint" || lower == "int8")
+        return 0x08;
+    if (lower == "smallserial" || lower == "serial2")
+        return 0x02;
+    if (lower == "serial" || lower == "serial4")
+        return 0x03;
+    if (lower == "bigserial" || lower == "serial8")
+        return 0x08;
+    if (lower == "real" || lower == "float4")
+        return 0x04;
+    if (lower == "double precision" || lower == "float8")
+        return 0x05;
+    if (lower == "numeric" || lower == "decimal")
+        return 0xF6;
+    if (lower == "boolean" || lower == "bool")
+        return 0x01;
+    if (lower == "char" || lower == "character")
+        return 0xFE;
+    if (lower == "varchar" || lower == "character varying")
+        return 0xFD;
+    if (lower == "text")
+        return 0xFC;
+    if (lower == "timestamp" || lower == "timestamp without time zone")
+        return 0x0C;
+    if (lower == "timestamp with time zone" || lower == "timestamptz")
+        return 0x0C;
+    if (lower == "date")
+        return 0x0A;
+    if (lower == "time" || lower == "time without time zone")
+        return 0x0B;
+    if (lower == "time with time zone" || lower == "timetz")
+        return 0x0B;
+    if (lower == "bytea")
+        return 0xFC;
+    if (lower == "json")
+        return 0xF5;
+    if (lower == "jsonb")
+        return 0xF5;
+    if (lower == "uuid")
+        return 0xFE;
+    if (lower == "inet")
+        return 0xFE;
+    if (lower == "cidr")
+        return 0xFE;
+    if (lower == "macaddr")
+        return 0xFE;
+    if (lower == "money")
+        return 0xF6;
+
     size_t bracket_pos = lower.find('(');
     if (bracket_pos != std::string::npos)
     {
         std::string base_type = lower.substr(0, bracket_pos);
-        if (base_type == "char" || base_type == "character") return 0xFE;
-        if (base_type == "varchar" || base_type == "character varying") return 0xFD;
+        if (base_type == "char" || base_type == "character")
+            return 0xFE;
+        if (base_type == "varchar" || base_type == "character varying")
+            return 0xFD;
     }
-    
+
     return 0xFE;
 }
 
@@ -310,18 +338,19 @@ bool pg_read_row_data(const std::string &pack_data, std::vector<std::string> &ro
 {
     row_values.clear();
     unsigned int offset = 0;
-    
+
     while (offset < pack_data.size())
     {
-        if (offset + 4 > pack_data.size()) return false;
-        
-        int len = (pack_data[offset] & 0xFF) | 
-                  ((pack_data[offset+1] & 0xFF) << 8) | 
-                  ((pack_data[offset+2] & 0xFF) << 16) | 
-                  ((pack_data[offset+3] & 0xFF) << 24);
-        
+        if (offset + 4 > pack_data.size())
+            return false;
+
+        int len = (pack_data[offset] & 0xFF) |
+                  ((pack_data[offset + 1] & 0xFF) << 8) |
+                  ((pack_data[offset + 2] & 0xFF) << 16) |
+                  ((pack_data[offset + 3] & 0xFF) << 24);
+
         offset += 4;
-        
+
         if (len == -1)
         {
             row_values.push_back("");
@@ -339,29 +368,40 @@ bool pg_read_row_data(const std::string &pack_data, std::vector<std::string> &ro
     return true;
 }
 
-bool pg_read_full_sync(orm::pg_conn_base& conn, unsigned char* buf, size_t len) {
+bool pg_read_full_sync(orm::pg_conn_base &conn, unsigned char *buf, size_t len)
+{
     asio::error_code ec;
-    if (conn.conn_link->sock_type == 2) {
+    if (conn.conn_link->sock_type == 2)
+    {
         asio::read(*conn.conn_link->sslsocket, asio::buffer(buf, len), ec);
-    } else {
+    }
+    else
+    {
         asio::read(*conn.conn_link->socket, asio::buffer(buf, len), ec);
     }
     return ec.value() == 0;
 }
 
-bool pg_read_message_sync(orm::pg_conn_base& conn, unsigned char& msg_type, std::string& payload) {
-    if (!pg_read_full_sync(conn, &msg_type, 1)) return false;
+bool pg_read_message_sync(orm::pg_conn_base &conn, unsigned char &msg_type, std::string &payload)
+{
+    if (!pg_read_full_sync(conn, &msg_type, 1))
+        return false;
     unsigned char len_buf[4];
-    if (!pg_read_full_sync(conn, len_buf, 4)) return false;
-    
-    int32_t len = (len_buf[0] << 24) | (len_buf[1] << 16) | (len_buf[2] << 8) | len_buf[3];
+    if (!pg_read_full_sync(conn, len_buf, 4))
+        return false;
+
+    int32_t len      = (len_buf[0] << 24) | (len_buf[1] << 16) | (len_buf[2] << 8) | len_buf[3];
     int32_t data_len = len - 4;
-    
-    if (data_len > 0) {
+
+    if (data_len > 0)
+    {
         std::vector<char> tmp(data_len);
-        if (!pg_read_full_sync(conn, reinterpret_cast<unsigned char*>(tmp.data()), data_len)) return false;
+        if (!pg_read_full_sync(conn, reinterpret_cast<unsigned char *>(tmp.data()), data_len))
+            return false;
         payload.assign(tmp.data(), data_len);
-    } else {
+    }
+    else
+    {
         payload.clear();
     }
     return true;
@@ -370,35 +410,42 @@ bool pg_read_message_sync(orm::pg_conn_base& conn, unsigned char& msg_type, std:
 bool pg_get_table_list(std::shared_ptr<orm::pg_conn_base> pg_conn, std::vector<std::string> &table_lists)
 {
     table_lists.clear();
-    
+
     std::string sql = "SELECT relname FROM pg_class WHERE relkind = 'r' AND relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'public') ORDER BY relname";
-    
-    if (pg_conn->write_sql(sql) == 0) {
+
+    if (pg_conn->write_sql(sql) == 0)
+    {
         return false;
     }
-    
+
     unsigned char msg_type;
     std::string payload;
     bool done = false;
-    
-    while (!done) {
-        if (!pg_read_message_sync(*pg_conn, msg_type, payload)) {
+
+    while (!done)
+    {
+        if (!pg_read_message_sync(*pg_conn, msg_type, payload))
+        {
             break;
         }
-        
-        switch (msg_type) {
-        case 'D': {
+
+        switch (msg_type)
+        {
+        case 'D':
+        {
             size_t pos = 0;
-            if (pos + 2 > payload.size()) break;
+            if (pos + 2 > payload.size())
+                break;
             pos += 2;
-            
+
             int32_t len = (static_cast<uint8_t>(payload[pos]) << 24) |
-                          (static_cast<uint8_t>(payload[pos+1]) << 16) |
-                          (static_cast<uint8_t>(payload[pos+2]) << 8) |
-                          static_cast<uint8_t>(payload[pos+3]);
+                          (static_cast<uint8_t>(payload[pos + 1]) << 16) |
+                          (static_cast<uint8_t>(payload[pos + 2]) << 8) |
+                          static_cast<uint8_t>(payload[pos + 3]);
             pos += 4;
-            
-            if (len > 0 && pos + len <= payload.size()) {
+
+            if (len > 0 && pos + len <= payload.size())
+            {
                 std::string table_name = payload.substr(pos, len);
                 std::transform(table_name.begin(), table_name.end(), table_name.begin(), ::tolower);
                 table_lists.push_back(table_name);
@@ -415,46 +462,55 @@ bool pg_get_table_list(std::shared_ptr<orm::pg_conn_base> pg_conn, std::vector<s
             break;
         }
     }
-    
+
     return true;
 }
 
 bool pg_get_column_info(std::shared_ptr<orm::pg_conn_base> pg_conn, const std::string &table_name, std::vector<table_columns_info_t> &column_info_lists)
 {
     column_info_lists.clear();
-    
+
     std::string sql = "SELECT a.attname, t.typname, a.attlen, a.atttypmod, a.attnotnull, a.attnum, "
                       "col_description(a.attrelid, a.attnum) AS comment "
                       "FROM pg_attribute a JOIN pg_type t ON a.atttypid = t.oid "
-                      "WHERE a.attrelid = (SELECT oid FROM pg_class WHERE relname = '" + table_name + "' AND relkind = 'r') "
-                      "AND a.attnum > 0 AND NOT a.attisdropped ORDER BY a.attnum";
-    
-    if (pg_conn->write_sql(sql) == 0) {
+                      "WHERE a.attrelid = (SELECT oid FROM pg_class WHERE relname = '" +
+                      table_name + "' AND relkind = 'r') "
+                                   "AND a.attnum > 0 AND NOT a.attisdropped ORDER BY a.attnum";
+
+    if (pg_conn->write_sql(sql) == 0)
+    {
         return false;
     }
-    
+
     unsigned char msg_type;
     std::string payload;
     bool done = false;
     std::vector<std::string> col_names;
-    
-    while (!done) {
-        if (!pg_read_message_sync(*pg_conn, msg_type, payload)) {
+
+    while (!done)
+    {
+        if (!pg_read_message_sync(*pg_conn, msg_type, payload))
+        {
             break;
         }
-        
-        switch (msg_type) {
-        case 'T': {
+
+        switch (msg_type)
+        {
+        case 'T':
+        {
             size_t pos = 0;
-            if (pos + 2 > payload.size()) break;
+            if (pos + 2 > payload.size())
+                break;
             int16_t num_cols = (static_cast<uint8_t>(payload[pos]) << 8) |
                                static_cast<uint8_t>(payload[pos + 1]);
             pos += 2;
-            
+
             col_names.clear();
-            for (int16_t i = 0; i < num_cols; ++i) {
+            for (int16_t i = 0; i < num_cols; ++i)
+            {
                 size_t null_pos = payload.find('\0', pos);
-                if (null_pos == std::string::npos) break;
+                if (null_pos == std::string::npos)
+                    break;
                 std::string col_name = payload.substr(pos, null_pos - pos);
                 col_names.push_back(col_name);
                 pos = null_pos + 1;
@@ -462,60 +518,78 @@ bool pg_get_column_info(std::shared_ptr<orm::pg_conn_base> pg_conn, const std::s
             }
             break;
         }
-        case 'D': {
+        case 'D':
+        {
             size_t pos = 0;
-            if (pos + 2 > payload.size()) break;
+            if (pos + 2 > payload.size())
+                break;
             int16_t num_cols = (static_cast<uint8_t>(payload[pos]) << 8) |
                                static_cast<uint8_t>(payload[pos + 1]);
             pos += 2;
-            
+
             table_columns_info_t col_info;
-            
-            for (int16_t i = 0; i < num_cols; ++i) {
-                if (pos + 4 > payload.size()) break;
+
+            for (int16_t i = 0; i < num_cols; ++i)
+            {
+                if (pos + 4 > payload.size())
+                    break;
                 int32_t len = (static_cast<uint8_t>(payload[pos]) << 24) |
-                              (static_cast<uint8_t>(payload[pos+1]) << 16) |
-                              (static_cast<uint8_t>(payload[pos+2]) << 8) |
-                              static_cast<uint8_t>(payload[pos+3]);
+                              (static_cast<uint8_t>(payload[pos + 1]) << 16) |
+                              (static_cast<uint8_t>(payload[pos + 2]) << 8) |
+                              static_cast<uint8_t>(payload[pos + 3]);
                 pos += 4;
-                
+
                 std::string value;
-                if (len > 0 && pos + len <= payload.size()) {
+                if (len > 0 && pos + len <= payload.size())
+                {
                     value = payload.substr(pos, len);
                 }
                 pos += len;
-                
-                if (col_names[i] == "attname") {
+
+                if (col_names[i] == "attname")
+                {
                     col_info.col_name = value;
-                    std::transform(col_info.col_name.begin(), col_info.col_name.end(), 
-                                   col_info.col_name.begin(), ::tolower);
-                } else if (col_names[i] == "typname") {
+                    std::transform(col_info.col_name.begin(), col_info.col_name.end(), col_info.col_name.begin(), ::tolower);
+                }
+                else if (col_names[i] == "typname")
+                {
                     col_info.col_type = pg_type_to_mysql_type(value);
                     col_info.big_type = pg_get_big_type(col_info.col_type);
-                    if (value.find("timestamp") != std::string::npos || 
+                    if (value.find("timestamp") != std::string::npos ||
                         value.find("date") != std::string::npos ||
-                        value.find("time") != std::string::npos) {
+                        value.find("time") != std::string::npos)
+                    {
                         col_info.is_datetime = true;
                     }
-                    if (value.find("serial") != std::string::npos) {
+                    if (value.find("serial") != std::string::npos)
+                    {
                         col_info.is_auto_inc = true;
                     }
-                } else if (col_names[i] == "attlen") {
-                    if (!value.empty()) {
+                }
+                else if (col_names[i] == "attlen")
+                {
+                    if (!value.empty())
+                    {
                         col_info.col_length = strtointval(value);
                     }
-                } else if (col_names[i] == "atttypmod") {
-                    if (!value.empty()) {
+                }
+                else if (col_names[i] == "atttypmod")
+                {
+                    if (!value.empty())
+                    {
                         int32_t mod = strtointval(value);
-                        if (mod > 0) {
+                        if (mod > 0)
+                        {
                             col_info.col_length = mod - 4;
                         }
                     }
-                } else if (col_names[i] == "comment") {
+                }
+                else if (col_names[i] == "comment")
+                {
                     col_info.comment = value;
                 }
             }
-            
+
             column_info_lists.push_back(col_info);
             break;
         }
@@ -529,41 +603,52 @@ bool pg_get_column_info(std::shared_ptr<orm::pg_conn_base> pg_conn, const std::s
             break;
         }
     }
-    
+
     // Query primary keys
     sql = "SELECT a.attname FROM pg_index i JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey) "
-          "WHERE i.indrelid = '" + table_name + "'::regclass AND i.indisprimary";
-    
-    if (pg_conn->write_sql(sql) == 0) {
+          "WHERE i.indrelid = '" +
+          table_name + "'::regclass AND i.indisprimary";
+
+    if (pg_conn->write_sql(sql) == 0)
+    {
         return false;
     }
-    
+
     done = false;
-    while (!done) {
-        if (!pg_read_message_sync(*pg_conn, msg_type, payload)) {
+    while (!done)
+    {
+        if (!pg_read_message_sync(*pg_conn, msg_type, payload))
+        {
             break;
         }
-        
-        switch (msg_type) {
-        case 'D': {
+
+        switch (msg_type)
+        {
+        case 'D':
+        {
             size_t pos = 0;
-            if (pos + 2 > payload.size()) break;
+            if (pos + 2 > payload.size())
+                break;
             pos += 2;
-            
+
             int32_t len = (static_cast<uint8_t>(payload[pos]) << 24) |
-                          (static_cast<uint8_t>(payload[pos+1]) << 16) |
-                          (static_cast<uint8_t>(payload[pos+2]) << 8) |
-                          static_cast<uint8_t>(payload[pos+3]);
+                          (static_cast<uint8_t>(payload[pos + 1]) << 16) |
+                          (static_cast<uint8_t>(payload[pos + 2]) << 8) |
+                          static_cast<uint8_t>(payload[pos + 3]);
             pos += 4;
-            
-            if (len > 0 && pos + len <= payload.size()) {
+
+            if (len > 0 && pos + len <= payload.size())
+            {
                 std::string pk_name = payload.substr(pos, len);
                 std::transform(pk_name.begin(), pk_name.end(), pk_name.begin(), ::tolower);
-                
-                for (auto& col : column_info_lists) {
-                    if (col.col_name == pk_name) {
+
+                for (auto &col : column_info_lists)
+                {
+                    if (col.col_name == pk_name)
+                    {
                         col.is_pk = true;
-                        if (col.col_type == 0x03 || col.col_type == 0x08 || col.col_type == 0x02) {
+                        if (col.col_type == 0x03 || col.col_type == 0x08 || col.col_type == 0x02)
+                        {
                             col.is_auto_inc = true;
                         }
                         break;
@@ -582,7 +667,7 @@ bool pg_get_column_info(std::shared_ptr<orm::pg_conn_base> pg_conn, const std::s
             break;
         }
     }
-    
+
     return true;
 }
 // ==================== End PostgreSQL Infrastructure ====================
@@ -596,7 +681,7 @@ unsigned char sqlite_type_to_mysql_type(const std::string &decl_type)
     std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
 
     // 提取括号前基类型名 (小写, 去空格)
-    std::string base = lower;
+    std::string base   = lower;
     size_t bracket_pos = base.find('(');
     if (bracket_pos != std::string::npos)
     {
@@ -674,8 +759,8 @@ unsigned int sqlite_type_length(const std::string &decl_type)
     {
         return 0;
     }
-    size_t rp = decl_type.find(')', lp);
-    size_t cp = decl_type.find(',', lp);
+    size_t rp      = decl_type.find(')', lp);
+    size_t cp      = decl_type.find(',', lp);
     size_t end_pos = (rp == std::string::npos) ? decl_type.size() : rp;
     if (cp != std::string::npos && cp < end_pos)
     {
@@ -742,10 +827,10 @@ bool sqlite_get_column_info(std::shared_ptr<orm::sqlite_conn_base> lite_conn, co
             decl_type = it_type->second;
         }
 
-        col_info.col_type = sqlite_type_to_mysql_type(decl_type);
-        col_info.big_type = pg_get_big_type(col_info.col_type);
+        col_info.col_type   = sqlite_type_to_mysql_type(decl_type);
+        col_info.big_type   = pg_get_big_type(col_info.col_type);
         col_info.col_length = sqlite_type_length(decl_type);
-        col_info.decimals = sqlite_type_decimals(decl_type);
+        col_info.decimals   = sqlite_type_decimals(decl_type);
 
         std::string decl_lower = decl_type;
         std::transform(decl_lower.begin(), decl_lower.end(), decl_lower.begin(), ::tolower);
@@ -837,7 +922,7 @@ void colname_first_touper(std::string &a)
 std::string colname_touper(const std::string &a)
 {
     std::string temp_str;
-    for(unsigned int i=0; i<a.size(); i++)
+    for (unsigned int i = 0; i < a.size(); i++)
     {
         if (a[i] >= 'a' && a[i] <= 'z')
         {
@@ -5750,7 +5835,7 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
         real_tag_sp = db_tag + "::";
     }
 
-    if(field_array.size()>0)
+    if (field_array.size() > 0)
     {
         //
     }
@@ -5759,7 +5844,7 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
     std::string template_file = prj_root_path;
     std::string template_content;
     std::string append_content;
-    std::string modelName_m          = model_name + "_opsql";
+    std::string modelName_m = model_name + "_opsql";
     //std::string real_model_base_name = real_model_name + "base";
 
     if (template_file.size() > 0 && template_file.back() != '/')
@@ -5767,11 +5852,11 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
         template_file.push_back('/');
     }
 
-    if(db_type == DBType::POSTGRESQL)
+    if (db_type == DBType::POSTGRESQL)
     {
         template_file.append("vendor/httpserver/include/postgresqlorm.hpp");
     }
-    else if(db_type == DBType::SQLITE)
+    else if (db_type == DBType::SQLITE)
     {
         template_file.append("vendor/httpserver/include/sqliteorm.hpp");
     }
@@ -5779,7 +5864,7 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
     {
         template_file.append("vendor/httpserver/include/mysqlorm.hpp");
     }
-    
+
     std::FILE *fp = fopen(template_file.c_str(), "rb");
     if (fp)
     {
@@ -5811,17 +5896,17 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
     {
         n = string_replace_all(template_content, "HTTP_MYSQL_ORM_HPP", header_name);
     }
-    if(n == 0)
+    if (n == 0)
     {
-        //error 
+        //error
     }
     n = string_replace_all(template_content, "mysql_orm", modelName_m);
-    if(n == 0)
+    if (n == 0)
     {
-        //error 
+        //error
     }
-    std::string model_name_info ="#include \"" + real_model_name+"_base.h\"\n/*baseincludefile*/";
-    n = string_replace(template_content, "/*baseincludefile*/", model_name_info);
+    std::string model_name_info = "#include \"" + real_model_name + "_base.h\"\n/*baseincludefile*/";
+    n                           = string_replace(template_content, "/*baseincludefile*/", model_name_info);
 
     model_name_info = real_model_name;
     model_name_info.append("_info::cols");
@@ -5843,83 +5928,83 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
         n = string_replace(template_content, "} /*tagnamespace_replace*/", "//} /*tagnamespace_replace*/");
     }
 
-    append_content +=R"(void assign_field_value(unsigned char index_pos, unsigned char *result_temp_data, unsigned long long value_size, )";
+    append_content += R"(void assign_field_value(unsigned char index_pos, unsigned char *result_temp_data, unsigned long long value_size, )";
     append_content += model_name_info;
-    append_content +=R"( &data_temp)
+    append_content += R"( &data_temp)
     {
         switch(index_pos)
         {
             )";
-        for (unsigned int m = 0; m < table_column_info_lists.size(); m++)
-        {
-            append_content +=R"(case )";
+    for (unsigned int m = 0; m < table_column_info_lists.size(); m++)
+    {
+        append_content += R"(case )";
 
-            append_content.append(std::to_string(m));
-            if (table_column_info_lists[m].big_type == 1 && table_column_info_lists[m].is_datetime == false )
-            {
-                append_content +=R"(:
+        append_content.append(std::to_string(m));
+        if (table_column_info_lists[m].big_type == 1 && table_column_info_lists[m].is_datetime == false)
+        {
+            append_content += R"(:
             data_temp.)";
             append_content.append(table_column_info_lists[m].col_name);
-            append_content +=R"(.clear();
+            append_content += R"(.clear();
             data_temp.)";
             append_content.append(table_column_info_lists[m].col_name);
-            append_content +=R"(.resize(value_size);
+            append_content += R"(.resize(value_size);
             )";
-            append_content +=R"(
+            append_content += R"(
             std::memcpy(data_temp.)";
             append_content.append(table_column_info_lists[m].col_name);
-            append_content +=R"(.data(), result_temp_data, value_size);
+            append_content += R"(.data(), result_temp_data, value_size);
             break;
                 )";
-            }
-            else if (table_column_info_lists[m].big_type == 1 && table_column_info_lists[m].is_datetime == true )
-            {
-                append_content +=R"(:
+        }
+        else if (table_column_info_lists[m].big_type == 1 && table_column_info_lists[m].is_datetime == true)
+        {
+            append_content += R"(:
             data_temp.)";
             append_content.append(table_column_info_lists[m].col_name);
-            append_content +=R"(.clear();
+            append_content += R"(.clear();
             data_temp.)";
             append_content.append(table_column_info_lists[m].col_name);
-            append_content +=R"(.resize(value_size);
+            append_content += R"(.resize(value_size);
             )";
-            append_content +=R"(
+            append_content += R"(
             std::memcpy(data_temp.)";
             append_content.append(table_column_info_lists[m].col_name);
-            append_content +=R"(.data(), result_temp_data, value_size);
+            append_content += R"(.data(), result_temp_data, value_size);
             break;
                 )";
-            }
-            else if (table_column_info_lists[m].big_type == 2)
-            {
-                append_content +=R"(:
+        }
+        else if (table_column_info_lists[m].big_type == 2)
+        {
+            append_content += R"(:
              {
                data_temp.)";
             append_content.append(table_column_info_lists[m].col_name);
-            append_content +=R"( = 0;
+            append_content += R"( = 0;
             )";
 
-            append_content +=R"(
+            append_content += R"(
                     auto result = std::from_chars(
                             reinterpret_cast<const char*>(result_temp_data),
                             reinterpret_cast<const char*>(result_temp_data) + value_size,
                             data_temp.)";
             append_content.append(table_column_info_lists[m].col_name);
-            append_content +=R"();
+            append_content += R"();
                         if (result.ec == std::errc()) {
 
                         }
                         else{
                             data_temp.)";
             append_content.append(table_column_info_lists[m].col_name);
-            append_content +=R"( = 0;
+            append_content += R"( = 0;
                         }
             }
             break;
                 )";
-            }
-            else if (table_column_info_lists[m].big_type == 3)
-            {
-                append_content +=R"(:
+        }
+        else if (table_column_info_lists[m].big_type == 3)
+        {
+            append_content += R"(:
                 {
 
                 #if defined(_LIBCPP_VERSION) && \
@@ -5928,14 +6013,14 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
 
                     data_temp.)";
             append_content.append(table_column_info_lists[m].col_name);
-            append_content +=R"( = 0.0;
+            append_content += R"( = 0.0;
                     try {
                         const char* p = reinterpret_cast<const char*>(result_temp_data);
 
                         if (value_size == 0 || *p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') {
                             data_temp.)";
             append_content.append(table_column_info_lists[m].col_name);
-            append_content +=R"( = 0.0;
+            append_content += R"( = 0.0;
                         } else {
                             std::string tmp(p, value_size);
                             size_t idx = 0;
@@ -5943,55 +6028,54 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
                             if (idx > 0 && idx <= value_size) {
                                 data_temp.)";
             append_content.append(table_column_info_lists[m].col_name);
-            append_content +=R"( = static_cast<double>(parsed);
+            append_content += R"( = static_cast<double>(parsed);
                             } else {
                                 data_temp.)";
             append_content.append(table_column_info_lists[m].col_name);
-            append_content +=R"( = 0.0;
+            append_content += R"( = 0.0;
                             }
                         }
                     } catch (...) {
                         data_temp.)";
             append_content.append(table_column_info_lists[m].col_name);
-            append_content +=R"( = 0.0;
+            append_content += R"( = 0.0;
                     }
 
                 #else
 
                 data_temp.)";
             append_content.append(table_column_info_lists[m].col_name);
-            append_content +=R"(=0.0;
+            append_content += R"(=0.0;
             )";
 
-            append_content +=R"(
+            append_content += R"(
                     auto result = std::from_chars(
                             reinterpret_cast<const char*>(result_temp_data),
                             reinterpret_cast<const char*>(result_temp_data) + value_size,
                             data_temp.)";
             append_content.append(table_column_info_lists[m].col_name);
-            append_content +=R"();
+            append_content += R"();
                         if (result.ec == std::errc()) {
 
                         }
                         else{
                             data_temp.)";
             append_content.append(table_column_info_lists[m].col_name);
-            append_content +=R"( = 0.0;
+            append_content += R"( = 0.0;
                         }
                 #endif
             }  
             break;
                 )";
-            }
-
         }
+    }
 
-        append_content +=R"(
+    append_content += R"(
         }
     }
     )";
 
-    std::string raw_template="M_MODEL";
+    std::string raw_template = "M_MODEL";
     for (unsigned int m = 0; m < table_column_info_lists.size(); m++)
     {
         //where
@@ -6008,7 +6092,7 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
             append_content.append(create_mysql_orm_float_feild_where(raw_template, table_column_info_lists[m]));
         }
     }
- 
+
     /*
     enum class protocol_field_type : std::uint8_t
     {
@@ -6060,17 +6144,17 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
     n = string_replace(template_content, "/*appendwhere*/", append_content);
     append_content.clear();
 
-        for (unsigned int j = 0; j < table_column_info_lists.size(); j++)
-        {
-            append_content.append("\n\t\t\tcase ");
-            append_content.append(real_model_name);
-            append_content.append("_info::cols::");
-            append_content.append(table_column_info_lists[j].col_name);
-            append_content.append(":\n\t\t\t\twheresql.append(\"");
-            append_content.append(table_column_info_lists[j].col_name);
-            append_content.append("\");\n\t\t\t\tbreak;");
-        }
-    n = string_replace_all(template_content, "/*cols_name_where*/", append_content);    
+    for (unsigned int j = 0; j < table_column_info_lists.size(); j++)
+    {
+        append_content.append("\n\t\t\tcase ");
+        append_content.append(real_model_name);
+        append_content.append("_info::cols::");
+        append_content.append(table_column_info_lists[j].col_name);
+        append_content.append(":\n\t\t\t\twheresql.append(\"");
+        append_content.append(table_column_info_lists[j].col_name);
+        append_content.append("\");\n\t\t\t\tbreak;");
+    }
+    n = string_replace_all(template_content, "/*cols_name_where*/", append_content);
     //save template
     template_file.clear();
     template_file = prj_root_path;
@@ -6108,11 +6192,11 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
     std::string sqlqueryring;
     std::string filebasefilename;
     std::string basefilepath;
-    std::string model_name_obj=model_name;
- 
+    std::string model_name_obj = model_name;
+
     colname_first_touper(model_name_obj);
     model_name_obj = colname_to_hump(model_name_obj);
-    
+
     filebasefilename.resize(model_name.size());
 
     std::transform(model_name.begin(), model_name.end(), filebasefilename.begin(), ::tolower);
@@ -6124,7 +6208,7 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
         rmstag = "default";
     }
 
-    if(field_array.size()>0)
+    if (field_array.size() > 0)
     {
         //
     }
@@ -6599,7 +6683,6 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
         filemodelstremcpp << rmstag;
         filemodelstremcpp << "/include/";
         filemodelstremcpp << tablenamebase << "_base.h\"\n";
-
     }
     else
     {
@@ -6620,7 +6703,6 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
         filemodelstremcpp << "\tnamespace ";
         filemodelstremcpp << rmstag;
         filemodelstremcpp << " { \n";
-
     }
     filemodelstremcpp << "\t\tclass " << model_name_obj << " : public "
                       << tablenamebase << "_opsql<" << model_name_obj << ","
@@ -6715,52 +6797,52 @@ namespace orm {
         headtxt.append(" { \n");
     }
 
-        headtxt += R"(
+    headtxt += R"(
 namespace )";
 
-std::string model_info_name = tablenamebase+"_info";
+    std::string model_info_name = tablenamebase + "_info";
     headtxt.append(model_info_name);
     headtxt += R"(
 {
 )";
 
-headtxt += R"( 
+    headtxt += R"( 
     enum class cols : unsigned char 
     {
 )";
-        
-        for (unsigned int j = 0; j < table_column_info_lists.size(); j++)
-        {
-            headtxt.append("\t\t");
-            headtxt.append(table_column_info_lists[j].col_name);
-            headtxt.append(" = ");
-            headtxt.append(std::to_string(j));
-            headtxt.append(",\n");
-        }
-        headtxt += R"(
+
+    for (unsigned int j = 0; j < table_column_info_lists.size(); j++)
+    {
+        headtxt.append("\t\t");
+        headtxt.append(table_column_info_lists[j].col_name);
+        headtxt.append(" = ");
+        headtxt.append(std::to_string(j));
+        headtxt.append(",\n");
+    }
+    headtxt += R"(
     };
 )";
 
-std::ostringstream filemodelstrem;
+    std::ostringstream filemodelstrem;
 
-headtxt += R"(
+    headtxt += R"(
     struct meta
     {
 )";
 
     for (unsigned int j = 0; j < metalist.size(); j++)
     {
-        filemodelstrem <<"\t\t"<< metalist[j] << std::endl;
+        filemodelstrem << "\t\t" << metalist[j] << std::endl;
     }
     filemodelstrem << "\t};\n ";
 
-        filemodelstrem << R"( 
+    filemodelstrem << R"( 
     struct meta_tree
     {
 )";
     for (unsigned int j = 0; j < metalist.size(); j++)
     {
-        filemodelstrem <<"\t\t"<< metalist[j] << std::endl;
+        filemodelstrem << "\t\t" << metalist[j] << std::endl;
     }
     filemodelstrem << "\n\t std::vector<meta_tree> children;\n };\n ";
 
@@ -6770,70 +6852,70 @@ headtxt += R"(
 )";
     for (unsigned int j = 0; j < metalist.size(); j++)
     {
-        filemodelstrem <<"\t\t"<< metalist[j] << std::endl;
+        filemodelstrem << "\t\t" << metalist[j] << std::endl;
     }
     filemodelstrem << "\n\t std::vector<std::unique_ptr<meta_tree>> children;\n };\n ";
 
-    headtxt.append(filemodelstrem.str());   
+    headtxt.append(filemodelstrem.str());
     filemodelstrem.str("");
 
-headtxt += R"(
+    headtxt += R"(
     template<cols Col>
     auto getField(const meta& m) 
     {
     )";
 
-        for (unsigned int j = 0; j < table_column_info_lists.size(); j++)
+    for (unsigned int j = 0; j < table_column_info_lists.size(); j++)
+    {
+        if (j == 0)
         {
-            if(j==0)
-            {
-                headtxt.append("\tif constexpr (Col == cols::");
-                headtxt.append(table_column_info_lists[j].col_name);
-                headtxt.append(") { \n\t\t return m.");
-                headtxt.append(table_column_info_lists[j].col_name);
-                headtxt.append(";\n\t\t");
-            }
-            else
-            {
-                headtxt.append("} else if constexpr (Col == cols::");
-                headtxt.append(table_column_info_lists[j].col_name);
-                headtxt.append(") { \n\t\t return m.");
-                headtxt.append(table_column_info_lists[j].col_name);
-                headtxt.append(";\n\t\t");
-            }
+            headtxt.append("\tif constexpr (Col == cols::");
+            headtxt.append(table_column_info_lists[j].col_name);
+            headtxt.append(") { \n\t\t return m.");
+            headtxt.append(table_column_info_lists[j].col_name);
+            headtxt.append(";\n\t\t");
         }
+        else
+        {
+            headtxt.append("} else if constexpr (Col == cols::");
+            headtxt.append(table_column_info_lists[j].col_name);
+            headtxt.append(") { \n\t\t return m.");
+            headtxt.append(table_column_info_lists[j].col_name);
+            headtxt.append(";\n\t\t");
+        }
+    }
 
-headtxt += R"(
+    headtxt += R"(
         } else {
             //static_assert(false, "Unsupported column type");
         }
     }
     )";
-headtxt += R"(
+    headtxt += R"(
     namespace type {
 )";
 
     for (unsigned int j = 0; j < table_column_info_lists.size(); j++)
-        {
-            headtxt.append("\t\tusing ");
-            headtxt.append(table_column_info_lists[j].col_name);
-            // headtxt.append(" = decltype(std::declval<const meta>().");
-            // headtxt.append(table_column_info_lists[j].col_name);
-            headtxt.append(" = ");
-            headtxt.append(collisttype[j]);
-            headtxt.append(";\n");
-        }
+    {
+        headtxt.append("\t\tusing ");
+        headtxt.append(table_column_info_lists[j].col_name);
+        // headtxt.append(" = decltype(std::declval<const meta>().");
+        // headtxt.append(table_column_info_lists[j].col_name);
+        headtxt.append(" = ");
+        headtxt.append(collisttype[j]);
+        headtxt.append(";\n");
+    }
 
-headtxt += R"(
+    headtxt += R"(
     }
 
     )";
-/*
-    #define ORM_WORLD_EXPAND(x) x 
-    
-*/
-headtxt += R"(
-    #define ORM_)"; 
+    /*
+        #define ORM_WORLD_EXPAND(x) x
+
+    */
+    headtxt += R"(
+    #define ORM_)";
     if (rmstag != "default")
     {
         headtxt.append(colname_touper(rmstag));
@@ -6843,22 +6925,22 @@ headtxt += R"(
     headtxt += R"(_EXPAND(x) x 
     )";
 
-/*
-    #define ORM_WORLD_META_FIELD_TYPE(col) \
-         orm::world_info::type::col 
+    /*
+        #define ORM_WORLD_META_FIELD_TYPE(col) \
+             orm::world_info::type::col
 
-    #define ORM_WORLD_PROJ_MEMBER(col) \
-          ORM_WORLD_EXPAND(ORM_WORLD_META_FIELD_TYPE(col)) col;
-                 
-    #define ORM_WORLD_PROJ_MEMBERS_1(c1) \
-        ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBER(c1)) 
-     
-    #define ORM_WORLD_PROJ_MEMBERS_2( c1, c2) \
-         ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBERS_1( c1)) ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBER(c2))
-*/
+        #define ORM_WORLD_PROJ_MEMBER(col) \
+              ORM_WORLD_EXPAND(ORM_WORLD_META_FIELD_TYPE(col)) col;
 
-headtxt += R"(
-    #define ORM_)"; 
+        #define ORM_WORLD_PROJ_MEMBERS_1(c1) \
+            ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBER(c1))
+
+        #define ORM_WORLD_PROJ_MEMBERS_2( c1, c2) \
+             ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBERS_1( c1)) ORM_WORLD_EXPAND(ORM_WORLD_PROJ_MEMBER(c2))
+    */
+
+    headtxt += R"(
+    #define ORM_)";
     if (rmstag != "default")
     {
         headtxt.append(colname_touper(rmstag));
@@ -6871,7 +6953,7 @@ headtxt += R"(
     {
         headtxt.append(rmstag);
         headtxt.append("::");
-    }        
+    }
 
     headtxt.append(tablenamebase);
     headtxt.append("_info::type::col");
@@ -6911,7 +6993,7 @@ headtxt += R"(
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
 
     headtxt += R"(_PROJ_MEMBERS_)";
@@ -6920,99 +7002,97 @@ headtxt += R"(
     headtxt.append(std::to_string(1));
     headtxt += R"() \
         ORM_)";
-        
+
     if (rmstag != "default")
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
 
     headtxt += R"(_EXPAND(ORM_)";
-        
+
     if (rmstag != "default")
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
 
     headtxt += R"(_PROJ_MEMBER(c)";
     headtxt.append(std::to_string(1));
     headtxt += R"()) 
     )";
-    for(unsigned int i=2; i<17; i++)
+    for (unsigned int i = 2; i < 17; i++)
     {
-       headtxt += R"( 
+        headtxt += R"( 
     #define ORM_)";
         if (rmstag != "default")
         {
             headtxt.append(colname_touper(rmstag));
             headtxt.append("_");
-        } 
+        }
         headtxt.append(colname_touper(tablenamebase));
 
         headtxt += R"(_PROJ_MEMBERS_)";
         headtxt.append(std::to_string(i));
         headtxt.push_back('(');
 
-        for(unsigned int j=1; j<(i+1); j++)
+        for (unsigned int j = 1; j < (i + 1); j++)
         {
-            if(j>1)
+            if (j > 1)
             {
-               headtxt.push_back(','); 
+                headtxt.push_back(',');
             }
             headtxt.append(" c");
             headtxt.append(std::to_string(j));
-
         }
 
         headtxt += R"() \
          ORM_)";
-            
+
         if (rmstag != "default")
         {
             headtxt.append(colname_touper(rmstag));
             headtxt.append("_");
-        } 
+        }
         headtxt.append(colname_touper(tablenamebase));
 
         headtxt += R"(_EXPAND(ORM_)";
-            
+
         if (rmstag != "default")
         {
             headtxt.append(colname_touper(rmstag));
             headtxt.append("_");
-        } 
+        }
         headtxt.append(colname_touper(tablenamebase));
 
         headtxt += R"(_PROJ_MEMBERS_)";
-        headtxt.append(std::to_string(i-1));
-        headtxt.push_back('('); 
-        for(unsigned int j=1; j<i; j++)
+        headtxt.append(std::to_string(i - 1));
+        headtxt.push_back('(');
+        for (unsigned int j = 1; j < i; j++)
         {
-            if(j>1)
+            if (j > 1)
             {
-               headtxt.push_back(','); 
+                headtxt.push_back(',');
             }
             headtxt.append(" c");
             headtxt.append(std::to_string(j));
-
         }
-        headtxt += R"()) ORM_)"; 
+        headtxt += R"()) ORM_)";
         if (rmstag != "default")
         {
             headtxt.append(colname_touper(rmstag));
             headtxt.append("_");
-        } 
+        }
         headtxt.append(colname_touper(tablenamebase));
 
-        headtxt += R"(_EXPAND(ORM_)"; 
+        headtxt += R"(_EXPAND(ORM_)";
         if (rmstag != "default")
         {
             headtxt.append(colname_touper(rmstag));
             headtxt.append("_");
-        } 
+        }
         headtxt.append(colname_touper(tablenamebase));
 
         headtxt += R"(_PROJ_MEMBER(c)";
@@ -7022,7 +7102,7 @@ headtxt += R"(
     }
 
     /*
-    #define ORM_WORLD_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,NAME,...) NAME 
+    #define ORM_WORLD_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,NAME,...) NAME
     */
     headtxt += R"( 
     #define ORM_)";
@@ -7030,34 +7110,34 @@ headtxt += R"(
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
 
     headtxt += R"(_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,NAME,...) NAME 
     
     )";
 
-/*
-    #define ORM_WORLD_PROJ_MEMBERS(...) \
-        ORM_WORLD_EXPAND(ORM_WORLD_GET_MACRO(__VA_ARGS__, \
-            ORM_WORLD_PROJ_MEMBERS_16, \
-            ORM_WORLD_PROJ_MEMBERS_15, \
-            ORM_WORLD_PROJ_MEMBERS_14, \
-            ORM_WORLD_PROJ_MEMBERS_13, \
-            ORM_WORLD_PROJ_MEMBERS_12, \
-            ORM_WORLD_PROJ_MEMBERS_11, \
-            ORM_WORLD_PROJ_MEMBERS_10, \
-            ORM_WORLD_PROJ_MEMBERS_9, \
-            ORM_WORLD_PROJ_MEMBERS_8, \
-            ORM_WORLD_PROJ_MEMBERS_7, \
-            ORM_WORLD_PROJ_MEMBERS_6, \
-            ORM_WORLD_PROJ_MEMBERS_5, \
-            ORM_WORLD_PROJ_MEMBERS_4, \
-            ORM_WORLD_PROJ_MEMBERS_3, \
-            ORM_WORLD_PROJ_MEMBERS_2, \
-            ORM_WORLD_PROJ_MEMBERS_1, \
-        )(__VA_ARGS__))
-*/
+    /*
+        #define ORM_WORLD_PROJ_MEMBERS(...) \
+            ORM_WORLD_EXPAND(ORM_WORLD_GET_MACRO(__VA_ARGS__, \
+                ORM_WORLD_PROJ_MEMBERS_16, \
+                ORM_WORLD_PROJ_MEMBERS_15, \
+                ORM_WORLD_PROJ_MEMBERS_14, \
+                ORM_WORLD_PROJ_MEMBERS_13, \
+                ORM_WORLD_PROJ_MEMBERS_12, \
+                ORM_WORLD_PROJ_MEMBERS_11, \
+                ORM_WORLD_PROJ_MEMBERS_10, \
+                ORM_WORLD_PROJ_MEMBERS_9, \
+                ORM_WORLD_PROJ_MEMBERS_8, \
+                ORM_WORLD_PROJ_MEMBERS_7, \
+                ORM_WORLD_PROJ_MEMBERS_6, \
+                ORM_WORLD_PROJ_MEMBERS_5, \
+                ORM_WORLD_PROJ_MEMBERS_4, \
+                ORM_WORLD_PROJ_MEMBERS_3, \
+                ORM_WORLD_PROJ_MEMBERS_2, \
+                ORM_WORLD_PROJ_MEMBERS_1, \
+            )(__VA_ARGS__))
+    */
 
     headtxt += R"( 
     #define ORM_)";
@@ -7065,61 +7145,60 @@ headtxt += R"(
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_PROJ_MEMBERS(...) \
         ORM_)";
-        if (rmstag != "default")
-        {
-            headtxt.append(colname_touper(rmstag));
-            headtxt.append("_");
-        } 
-        headtxt.append(colname_touper(tablenamebase));    
-        headtxt += R"(_EXPAND(ORM_)";
-    
     if (rmstag != "default")
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
-    headtxt.append(colname_touper(tablenamebase));    
+    }
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_EXPAND(ORM_)";
+
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }
+    headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_GET_MACRO(__VA_ARGS__, \
             )";
 
-    for(unsigned int i=16; i>0; i--)
+    for (unsigned int i = 16; i > 0; i--)
     {
         headtxt += R"(ORM_)";
         if (rmstag != "default")
         {
             headtxt.append(colname_touper(rmstag));
             headtxt.append("_");
-        } 
-        headtxt.append(colname_touper(tablenamebase));    
+        }
+        headtxt.append(colname_touper(tablenamebase));
         headtxt += R"(_PROJ_MEMBERS_)";
         headtxt.append(std::to_string(i));
-        if(i==1)
+        if (i == 1)
         {
-        headtxt += R"(, \
+            headtxt += R"(, \
         )";
         }
         else
         {
-        headtxt += R"(, \
+            headtxt += R"(, \
             )";
         }
-
     }
     headtxt += R"()(__VA_ARGS__))
 
     )";
- 
-/*
-    #define ORM_WORLD_COUNT(...) \
-        ORM_WORLD_EXPAND(ORM_WORLD_GET_MACRO(__VA_ARGS__, 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1))
 
-    #define ORM_WORLD_TO_JSON_ITEM(c) \
-        oss << "\"" #c "\":" << http::to_json_value(c)
-*/
+    /*
+        #define ORM_WORLD_COUNT(...) \
+            ORM_WORLD_EXPAND(ORM_WORLD_GET_MACRO(__VA_ARGS__, 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1))
+
+        #define ORM_WORLD_TO_JSON_ITEM(c) \
+            oss << "\"" #c "\":" << http::to_json_value(c)
+    */
 
     headtxt += R"(
     #define ORM_)";
@@ -7128,26 +7207,26 @@ headtxt += R"(
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_COUNT(...) \
-        ORM_)";   
+        ORM_)";
     if (rmstag != "default")
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
-    headtxt.append(colname_touper(tablenamebase));    
-    headtxt += R"(_EXPAND(ORM_)";   
+    }
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_EXPAND(ORM_)";
     if (rmstag != "default")
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
-    headtxt.append(colname_touper(tablenamebase));    
+    }
+    headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_GET_MACRO(__VA_ARGS__, 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1))
     
-    )";   
+    )";
 
     // ========== JSON 序列化宏 ==========
 
@@ -7158,131 +7237,136 @@ headtxt += R"(
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_TO_JSON_ITEM(c) \
         oss << "\"" #c "\":" << http::to_json_value(c)
-    )";   
+    )";
 
-/*
-    #define ORM_WORLD_TO_JSON_1(c1) \
-         ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_ITEM(c1))
-        
-    #define ORM_WORLD_TO_JSON_2(c1,c2) \
-         ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_1(c1)); \
-            oss << ','; \
-            ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_ITEM(c2)) 
-*/
+    /*
+        #define ORM_WORLD_TO_JSON_1(c1) \
+             ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_ITEM(c1))
 
-    for (int n = 1; n <= 16; ++n) 
+        #define ORM_WORLD_TO_JSON_2(c1,c2) \
+             ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_1(c1)); \
+                oss << ','; \
+                ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_ITEM(c2))
+    */
+
+    for (int n = 1; n <= 16; ++n)
     {
-    headtxt += R"(
+        headtxt += R"(
     #define ORM_)";
 
-    if (rmstag != "default")
-    {
-        headtxt.append(colname_touper(rmstag));
-        headtxt.append("_");
-    } 
-    headtxt.append(colname_touper(tablenamebase));
-    headtxt += R"(_TO_JSON_)";  
-    headtxt.append(std::to_string(n)); 
-    headtxt.append("(");
-         
+        if (rmstag != "default")
+        {
+            headtxt.append(colname_touper(rmstag));
+            headtxt.append("_");
+        }
+        headtxt.append(colname_touper(tablenamebase));
+        headtxt += R"(_TO_JSON_)";
+        headtxt.append(std::to_string(n));
+        headtxt.append("(");
+
         // 输出参数列表 c1, c2, ..., cn
-        for (int i = 1; i <= n; ++i) {
-            if (i > 1){
+        for (int i = 1; i <= n; ++i)
+        {
+            if (i > 1)
+            {
                 headtxt.append(",c");
             }
             else
             {
                 headtxt.append("c");
             }
-            headtxt.append(std::to_string(i)); 
+            headtxt.append(std::to_string(i));
         }
         headtxt.append(") \\");
-        
-        if (n == 1) {
 
-        headtxt += R"(
+        if (n == 1)
+        {
+
+            headtxt += R"(
          ORM_)";
 
-        if (rmstag != "default")
-        {
-            headtxt.append(colname_touper(rmstag));
-            headtxt.append("_");
-        } 
-        headtxt.append(colname_touper(tablenamebase));
-        headtxt += R"(_EXPAND(ORM_)";
+            if (rmstag != "default")
+            {
+                headtxt.append(colname_touper(rmstag));
+                headtxt.append("_");
+            }
+            headtxt.append(colname_touper(tablenamebase));
+            headtxt += R"(_EXPAND(ORM_)";
 
-        if (rmstag != "default")
+            if (rmstag != "default")
+            {
+                headtxt.append(colname_touper(rmstag));
+                headtxt.append("_");
+            }
+            headtxt.append(colname_touper(tablenamebase));
+            headtxt += R"(_TO_JSON_ITEM(c1))
+        )";
+        }
+        else
         {
-            headtxt.append(colname_touper(rmstag));
-            headtxt.append("_");
-        } 
-        headtxt.append(colname_touper(tablenamebase));
-        headtxt += R"(_TO_JSON_ITEM(c1))
-        )";  
-
-        } else {
-        headtxt += R"(
+            headtxt += R"(
          ORM_)";
-        if (rmstag != "default")
-        {
-            headtxt.append(colname_touper(rmstag));
-            headtxt.append("_");
-        } 
-        headtxt.append(colname_touper(tablenamebase));
-        headtxt += R"(_EXPAND(ORM_)";
+            if (rmstag != "default")
+            {
+                headtxt.append(colname_touper(rmstag));
+                headtxt.append("_");
+            }
+            headtxt.append(colname_touper(tablenamebase));
+            headtxt += R"(_EXPAND(ORM_)";
 
-        if (rmstag != "default")
-        {
-            headtxt.append(colname_touper(rmstag));
-            headtxt.append("_");
-        } 
-        headtxt.append(colname_touper(tablenamebase));
-        headtxt += R"(_TO_JSON_)";  
-        headtxt.append(std::to_string(n-1)); 
-        headtxt.append("(");
+            if (rmstag != "default")
+            {
+                headtxt.append(colname_touper(rmstag));
+                headtxt.append("_");
+            }
+            headtxt.append(colname_touper(tablenamebase));
+            headtxt += R"(_TO_JSON_)";
+            headtxt.append(std::to_string(n - 1));
+            headtxt.append("(");
 
-            for (int i = 1; i <= n-1; ++i) {
-                if (i > 1) headtxt.append(",");
+            for (int i = 1; i <= n - 1; ++i)
+            {
+                if (i > 1)
+                    headtxt.append(",");
                 headtxt.append("c");
-                headtxt.append(std::to_string(i)); 
+                headtxt.append(std::to_string(i));
             }
             headtxt += R"()); \
             oss << ','; \
             ORM_)";
 
-        if (rmstag != "default")
-        {
-            headtxt.append(colname_touper(rmstag));
-            headtxt.append("_");
-        } 
-        headtxt.append(colname_touper(tablenamebase));
-        headtxt += R"(_EXPAND(ORM_)";
+            if (rmstag != "default")
+            {
+                headtxt.append(colname_touper(rmstag));
+                headtxt.append("_");
+            }
+            headtxt.append(colname_touper(tablenamebase));
+            headtxt += R"(_EXPAND(ORM_)";
 
-        if (rmstag != "default")
-        {
-            headtxt.append(colname_touper(rmstag));
-            headtxt.append("_");
-        } 
-        headtxt.append(colname_touper(tablenamebase));
-        headtxt += R"(_TO_JSON_ITEM(c)";  
-        headtxt.append(std::to_string(n)); 
-        headtxt += R"()) 
+            if (rmstag != "default")
+            {
+                headtxt.append(colname_touper(rmstag));
+                headtxt.append("_");
+            }
+            headtxt.append(colname_touper(tablenamebase));
+            headtxt += R"(_TO_JSON_ITEM(c)";
+            headtxt.append(std::to_string(n));
+            headtxt += R"()) 
         
         )";
-
         }
     }
 
-/*
-    #define ORM_WORLD_TO_JSON_BODY(...) \
-        ORM_WORLD_EXPAND(ORM_WORLD_GET_MACRO(__VA_ARGS__, \
-            ORM_WORLD_TO_JSON_16,ORM_WORLD_TO_JSON_15,ORM_WORLD_TO_JSON_14,ORM_WORLD_TO_JSON_13,ORM_WORLD_TO_JSON_12,ORM_WORLD_TO_JSON_11,ORM_WORLD_TO_JSON_10,ORM_WORLD_TO_JSON_9,ORM_WORLD_TO_JSON_8,ORM_WORLD_TO_JSON_7,ORM_WORLD_TO_JSON_6,ORM_WORLD_TO_JSON_5,ORM_WORLD_TO_JSON_4,ORM_WORLD_TO_JSON_3,ORM_WORLD_TO_JSON_2,ORM_WORLD_TO_JSON_1 \
-         )(__VA_ARGS__))
-*/
+    /*
+        #define ORM_WORLD_TO_JSON_BODY(...) \
+            ORM_WORLD_EXPAND(ORM_WORLD_GET_MACRO(__VA_ARGS__, \
+                ORM_WORLD_TO_JSON_16,ORM_WORLD_TO_JSON_15,ORM_WORLD_TO_JSON_14,ORM_WORLD_TO_JSON_13,ORM_WORLD_TO_JSON_12,ORM_WORLD_TO_JSON_11,ORM_WORLD_TO_JSON_10,ORM_WORLD_TO_JSON_9,ORM_WORLD_TO_JSON_8,ORM_WORLD_TO_JSON_7,ORM_WORLD_TO_JSON_6,ORM_WORLD_TO_JSON_5,ORM_WORLD_TO_JSON_4,ORM_WORLD_TO_JSON_3,ORM_WORLD_TO_JSON_2,ORM_WORLD_TO_JSON_1 \
+             )(__VA_ARGS__))
+    */
 
     headtxt += R"(
     #define ORM_)";
@@ -7291,7 +7375,7 @@ headtxt += R"(
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_TO_JSON_BODY(...) \
         ORM_)";
@@ -7300,54 +7384,53 @@ headtxt += R"(
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_EXPAND(ORM_)";
     if (rmstag != "default")
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_GET_MACRO(__VA_ARGS__, \
-            )";     
-            
-    for(int i=16;i>0;i--)
+            )";
+
+    for (int i = 16; i > 0; i--)
     {
         headtxt.append("ORM_");
         if (rmstag != "default")
         {
             headtxt.append(colname_touper(rmstag));
             headtxt.append("_");
-        } 
+        }
         headtxt.append(colname_touper(tablenamebase));
         headtxt.append("_TO_JSON_");
-        headtxt.append(std::to_string(i)); 
-        if(i > 1)
+        headtxt.append(std::to_string(i));
+        if (i > 1)
         {
             headtxt.append(",");
         }
-
-    }        
+    }
     headtxt += R"( \
          )(__VA_ARGS__))
          
-         )"; 
-/////////
-/*
-    #define ORM_WORLD_UNWRAP(...) __VA_ARGS__  
+         )";
+    /////////
+    /*
+        #define ORM_WORLD_UNWRAP(...) __VA_ARGS__
 
-    #define ORM_WORLD_TO_JSON_CUSTOM_ITEM(name) \
-        oss << ",\"" #name "\":" << http::to_json_value(name);
-*/
-//begin custom name
+        #define ORM_WORLD_TO_JSON_CUSTOM_ITEM(name) \
+            oss << ",\"" #name "\":" << http::to_json_value(name);
+    */
+    //begin custom name
     headtxt += R"( 
     #define ORM_)";
     if (rmstag != "default")
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_UNWRAP(...) __VA_ARGS__  
@@ -7357,119 +7440,126 @@ headtxt += R"(
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_TO_JSON_CUSTOM_ITEM(name) \
         oss << ",\"" #name "\":" << http::to_json_value(name);
 
-    )"; 
-    
-/*
-#define ORM_WORLD_TO_JSON_CUSTOM_2(n1,n2)  ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_1(n1)) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_ITEM(n2)) 
-#define ORM_WORLD_TO_JSON_CUSTOM_3(n1,n2,n3)  ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_2(n1,n2)) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_ITEM(n3)) 
-*/
+    )";
 
-    for (int n = 1; n <= 16; ++n) {
+    /*
+    #define ORM_WORLD_TO_JSON_CUSTOM_2(n1,n2)  ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_1(n1)) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_ITEM(n2))
+    #define ORM_WORLD_TO_JSON_CUSTOM_3(n1,n2,n3)  ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_2(n1,n2)) ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_ITEM(n3))
+    */
+
+    for (int n = 1; n <= 16; ++n)
+    {
         // 宏定义开头
         headtxt += R"(#define ORM_)";
-    if (rmstag != "default")
-    {
-        headtxt.append(colname_touper(rmstag));
-        headtxt.append("_");
-    }              
+        if (rmstag != "default")
+        {
+            headtxt.append(colname_touper(rmstag));
+            headtxt.append("_");
+        }
 
-    headtxt.append(colname_touper(tablenamebase));
-    headtxt += R"(_TO_JSON_CUSTOM_)";
+        headtxt.append(colname_touper(tablenamebase));
+        headtxt += R"(_TO_JSON_CUSTOM_)";
 
         headtxt.append(std::to_string(n));
         headtxt.append("(");
         // 参数列表 n1, n2, ..., nn
-        for (int i = 1; i <= n; ++i) {
-            if (i > 1) headtxt.append(",");
+        for (int i = 1; i <= n; ++i)
+        {
+            if (i > 1)
+                headtxt.append(",");
             headtxt.append("n");
             headtxt.append(std::to_string(i));
-
         }
         headtxt.append(") ");
         // 宏体
-        if (n == 1) {
+        if (n == 1)
+        {
             headtxt += R"( ORM_)";
-    if (rmstag != "default")
-    {
-        headtxt.append(colname_touper(rmstag));
-        headtxt.append("_");
-    }              
+            if (rmstag != "default")
+            {
+                headtxt.append(colname_touper(rmstag));
+                headtxt.append("_");
+            }
 
-    headtxt.append(colname_touper(tablenamebase));
-    headtxt += R"(_EXPAND(ORM_)";
-    if (rmstag != "default")
-    {
-        headtxt.append(colname_touper(rmstag));
-        headtxt.append("_");
-    }              
+            headtxt.append(colname_touper(tablenamebase));
+            headtxt += R"(_EXPAND(ORM_)";
+            if (rmstag != "default")
+            {
+                headtxt.append(colname_touper(rmstag));
+                headtxt.append("_");
+            }
 
-    headtxt.append(colname_touper(tablenamebase));
-    headtxt += R"(_TO_JSON_CUSTOM_ITEM(n1)) )";
-        } else {
+            headtxt.append(colname_touper(tablenamebase));
+            headtxt += R"(_TO_JSON_CUSTOM_ITEM(n1)) )";
+        }
+        else
+        {
             headtxt += R"( ORM_)";
-    if (rmstag != "default")
-    {
-        headtxt.append(colname_touper(rmstag));
-        headtxt.append("_");
-    }              
+            if (rmstag != "default")
+            {
+                headtxt.append(colname_touper(rmstag));
+                headtxt.append("_");
+            }
 
-    headtxt.append(colname_touper(tablenamebase));
-    headtxt += R"(_EXPAND(ORM_)";
-    if (rmstag != "default")
-    {
-        headtxt.append(colname_touper(rmstag));
-        headtxt.append("_");
-    }              
+            headtxt.append(colname_touper(tablenamebase));
+            headtxt += R"(_EXPAND(ORM_)";
+            if (rmstag != "default")
+            {
+                headtxt.append(colname_touper(rmstag));
+                headtxt.append("_");
+            }
 
-    headtxt.append(colname_touper(tablenamebase));
-    headtxt += R"(_TO_JSON_CUSTOM_)";
-            headtxt.append(std::to_string(n-1));
+            headtxt.append(colname_touper(tablenamebase));
+            headtxt += R"(_TO_JSON_CUSTOM_)";
+            headtxt.append(std::to_string(n - 1));
             headtxt.push_back('(');
-            for (int i = 1; i < n; ++i) {
-                if (i > 1) headtxt.push_back(',');
+            for (int i = 1; i < n; ++i)
+            {
+                if (i > 1)
+                    headtxt.push_back(',');
                 headtxt.append("n");
                 headtxt.append(std::to_string(i));
             }
             headtxt += R"()) ORM_)";
-    if (rmstag != "default")
-    {
-        headtxt.append(colname_touper(rmstag));
-        headtxt.append("_");
-    }              
+            if (rmstag != "default")
+            {
+                headtxt.append(colname_touper(rmstag));
+                headtxt.append("_");
+            }
 
-    headtxt.append(colname_touper(tablenamebase));
-    headtxt += R"(_EXPAND(ORM_)";
-    if (rmstag != "default")
-    {
-        headtxt.append(colname_touper(rmstag));
-        headtxt.append("_");
-    }              
+            headtxt.append(colname_touper(tablenamebase));
+            headtxt += R"(_EXPAND(ORM_)";
+            if (rmstag != "default")
+            {
+                headtxt.append(colname_touper(rmstag));
+                headtxt.append("_");
+            }
 
-    headtxt.append(colname_touper(tablenamebase));
-    headtxt += R"(_TO_JSON_CUSTOM_ITEM(n)";
+            headtxt.append(colname_touper(tablenamebase));
+            headtxt += R"(_TO_JSON_CUSTOM_ITEM(n)";
             headtxt.append(std::to_string(n));
             headtxt.append(")) ");
         }
         headtxt.append("\n\n");
     }
 
-/*
-    #define ORM_WORLD_CAT(a, b) ORM_WORLD_CAT_(a, b)
-    #define ORM_WORLD_CAT_(a, b) a##b
-*/
-headtxt += R"(
+    /*
+        #define ORM_WORLD_CAT(a, b) ORM_WORLD_CAT_(a, b)
+        #define ORM_WORLD_CAT_(a, b) a##b
+    */
+    headtxt += R"(
     #define ORM_)";
     if (rmstag != "default")
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_CAT(a, b) ORM_)";
@@ -7477,7 +7567,7 @@ headtxt += R"(
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_CAT_(a, b)
@@ -7486,23 +7576,23 @@ headtxt += R"(
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_CAT_(a, b) a##b
 )";
 
-/*
-#define ORM_WORLD_TO_JSON_CUSTOM_N(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16, N, ...) \
-        ORM_WORLD_CAT(ORM_WORLD_TO_JSON_CUSTOM_, N)
-*/
-headtxt += R"(
+    /*
+    #define ORM_WORLD_TO_JSON_CUSTOM_N(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16, N, ...) \
+            ORM_WORLD_CAT(ORM_WORLD_TO_JSON_CUSTOM_, N)
+    */
+    headtxt += R"(
     #define ORM_)";
     if (rmstag != "default")
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_TO_JSON_CUSTOM_N(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16, N, ...) \
@@ -7511,7 +7601,7 @@ headtxt += R"(
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_CAT(ORM_)";
@@ -7519,18 +7609,18 @@ headtxt += R"(
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_TO_JSON_CUSTOM_, N)
 
     )";
 
-/*
-    #define ORM_WORLD_TO_JSON_CUSTOM(...) \
-        ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_N(__VA_ARGS__, 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(__VA_ARGS__))
+    /*
+        #define ORM_WORLD_TO_JSON_CUSTOM(...) \
+            ORM_WORLD_EXPAND(ORM_WORLD_TO_JSON_CUSTOM_N(__VA_ARGS__, 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(__VA_ARGS__))
 
-*/
+    */
 
     headtxt += R"(
 
@@ -7539,7 +7629,7 @@ headtxt += R"(
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_TO_JSON_CUSTOM(...) \
@@ -7548,7 +7638,7 @@ headtxt += R"(
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_EXPAND(ORM_)";
@@ -7556,21 +7646,21 @@ headtxt += R"(
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_TO_JSON_CUSTOM_N(__VA_ARGS__, 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(__VA_ARGS__))
 
 )";
 
-/*
-set_val begin
-#define ORM_XXXX_SET_VAL_FIELD(field) \
-    if (_orm_name == #field) { \
-        http::try_set_val(field, _buf, _length, _field_type); \
-        return; \
-    }
-*/
+    /*
+    set_val begin
+    #define ORM_XXXX_SET_VAL_FIELD(field) \
+        if (_orm_name == #field) { \
+            http::try_set_val(field, _buf, _length, _field_type); \
+            return; \
+        }
+    */
 
     headtxt += R"(
     #define ORM_)";
@@ -7579,7 +7669,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_SET_VAL_FIELD(field) \
     if (http::str_colname_casecmp(_orm_name , #field)) { \
@@ -7589,10 +7679,10 @@ set_val begin
     
     )";
 
-/*
-#define ORM_XXX_SET_VAL_1(c1) \
-    ORM_XXX_SET_VAL_FIELD(c1)
-*/
+    /*
+    #define ORM_XXX_SET_VAL_1(c1) \
+        ORM_XXX_SET_VAL_FIELD(c1)
+    */
 
     headtxt += R"(
     #define ORM_)";
@@ -7601,7 +7691,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_SET_VAL_1(c1) \
         ORM_)";
@@ -7609,36 +7699,36 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_SET_VAL_FIELD(c1)
     
     )";
 
- /*
- #define ORM_WORLD_SET_VAL_2(c1,c2) \
-    ORM_WORLD_EXPAND(ORM_WORLD_SET_VAL_1(c1)) \
-    ORM_WORLD_SET_VAL_FIELD(c2)
-    .........
- */   
-    for(int i=2;i<17;i++)
+    /*
+    #define ORM_WORLD_SET_VAL_2(c1,c2) \
+       ORM_WORLD_EXPAND(ORM_WORLD_SET_VAL_1(c1)) \
+       ORM_WORLD_SET_VAL_FIELD(c2)
+       .........
+    */
+    for (int i = 2; i < 17; i++)
     {
-            headtxt += R"(
+        headtxt += R"(
     #define ORM_)";
 
         if (rmstag != "default")
         {
             headtxt.append(colname_touper(rmstag));
             headtxt.append("_");
-        } 
+        }
         headtxt.append(colname_touper(tablenamebase));
         headtxt += R"(_SET_VAL_)";
         headtxt.append(std::to_string(i));
         headtxt.push_back('(');
 
-        for(int j=1;j<=i;j++)
+        for (int j = 1; j <= i; j++)
         {
-            if(j>1)
+            if (j > 1)
             {
                 headtxt.push_back(',');
             }
@@ -7653,23 +7743,23 @@ set_val begin
         {
             headtxt.append(colname_touper(rmstag));
             headtxt.append("_");
-        } 
+        }
         headtxt.append(colname_touper(tablenamebase));
         headtxt += R"(_EXPAND(ORM_)";
         if (rmstag != "default")
         {
             headtxt.append(colname_touper(rmstag));
             headtxt.append("_");
-        } 
+        }
         headtxt.append(colname_touper(tablenamebase));
-                headtxt += R"(_SET_VAL_)";
-        
-        headtxt.append(std::to_string(i-1));
+        headtxt += R"(_SET_VAL_)";
+
+        headtxt.append(std::to_string(i - 1));
         headtxt.push_back('(');
 
-        for(int j=1;j<i;j++)
+        for (int j = 1; j < i; j++)
         {
-            if(j>1)
+            if (j > 1)
             {
                 headtxt.push_back(',');
             }
@@ -7683,7 +7773,7 @@ set_val begin
         {
             headtxt.append(colname_touper(rmstag));
             headtxt.append("_");
-        } 
+        }
         headtxt.append(colname_touper(tablenamebase));
         headtxt += R"(_SET_VAL_FIELD(c)";
         headtxt.append(std::to_string(i));
@@ -7692,11 +7782,11 @@ set_val begin
         )";
     }
 
-// 计数分发（复用已有 GET_MACRO + CAT 模式）
-/*
-#define ORM_WORLD_SET_VAL_N(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,N,...) \
-    ORM_WORLD_CAT(ORM_WORLD_SET_VAL_, N)  
-*/
+    // 计数分发（复用已有 GET_MACRO + CAT 模式）
+    /*
+    #define ORM_WORLD_SET_VAL_N(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,N,...) \
+        ORM_WORLD_CAT(ORM_WORLD_SET_VAL_, N)
+    */
 
     headtxt += R"(
     #define ORM_)";
@@ -7705,7 +7795,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_SET_VAL_N(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,N,...) \
         ORM_)";
@@ -7713,32 +7803,32 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_CAT(ORM_)";
     if (rmstag != "default")
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_SET_VAL_, N)
     
     )";
 
- /*
- #define ORM_WORLD_SET_VAL_FIELDS(...) \
-    ORM_WORLD_EXPAND(ORM_WORLD_SET_VAL_N(__VA_ARGS__,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(__VA_ARGS__))
- */   
+    /*
+    #define ORM_WORLD_SET_VAL_FIELDS(...) \
+       ORM_WORLD_EXPAND(ORM_WORLD_SET_VAL_N(__VA_ARGS__,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(__VA_ARGS__))
+    */
 
-     headtxt += R"(
+    headtxt += R"(
     #define ORM_)";
 
     if (rmstag != "default")
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_SET_VAL_FIELDS(...) \
         ORM_)";
@@ -7746,24 +7836,24 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_EXPAND(ORM_)";
     if (rmstag != "default")
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_SET_VAL_N(__VA_ARGS__,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(__VA_ARGS__))
     
     )";
 
-/*
-// CustomNames 版本的 set_val（用于 SELF_STRUCT / CUST_STRUCT）
-#define ORM_WORLD_SET_VAL_CUSTOM_FIELDS(...) \
-    ORM_WORLD_EXPAND(ORM_WORLD_SET_VAL_FIELDS(ORM_WORLD_UNWRAP __VA_ARGS__))
-*/
+    /*
+    // CustomNames 版本的 set_val（用于 SELF_STRUCT / CUST_STRUCT）
+    #define ORM_WORLD_SET_VAL_CUSTOM_FIELDS(...) \
+        ORM_WORLD_EXPAND(ORM_WORLD_SET_VAL_FIELDS(ORM_WORLD_UNWRAP __VA_ARGS__))
+    */
 
     headtxt += R"(
     #define ORM_)";
@@ -7772,7 +7862,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_SET_VAL_CUSTOM_FIELDS(...) \
         ORM_)";
@@ -7780,29 +7870,29 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_EXPAND(ORM_)";
     if (rmstag != "default")
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_SET_VAL_FIELDS(ORM_)";
-        if (rmstag != "default")
+    if (rmstag != "default")
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_UNWRAP __VA_ARGS__))
     
     )";
 
-//begin struct
-///////
-//11111
+    //begin struct
+    ///////
+    //11111
     headtxt += R"(
     #define ORM_)";
 
@@ -7810,15 +7900,15 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_DEFINE_STRUCT(StructName, ...) \
-        namespace orm::)";   
+        namespace orm::)";
     if (rmstag != "default")
     {
         headtxt.append(rmstag);
         headtxt.append("::");
-    }        
+    }
     headtxt.append(tablenamebase);
     headtxt += R"(_info { \
             struct StructName { \
@@ -7827,7 +7917,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_EXPAND(ORM_)";
@@ -7835,7 +7925,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_PROJ_MEMBERS(__VA_ARGS__)) \
@@ -7848,7 +7938,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_EXPAND(ORM_)";
@@ -7856,7 +7946,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_TO_JSON_BODY(__VA_ARGS__)); \
@@ -7870,7 +7960,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_EXPAND(ORM_)";
@@ -7878,7 +7968,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_SET_VAL_FIELDS(__VA_ARGS__)) \
@@ -7897,8 +7987,8 @@ set_val begin
         
     )";
 
-////////////////////
-//22
+    ////////////////////
+    //22
     headtxt += R"(
     #define ORM_)";
 
@@ -7906,15 +7996,15 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_SELF_STRUCT(StructName, CustomDecl, CustomNames, ...) \
-        namespace orm::)";   
+        namespace orm::)";
     if (rmstag != "default")
     {
         headtxt.append(rmstag);
         headtxt.append("::");
-    }        
+    }
     headtxt.append(tablenamebase);
     headtxt += R"(_info { \
             struct StructName { \
@@ -7923,7 +8013,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_EXPAND(ORM_)";
@@ -7931,7 +8021,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_PROJ_MEMBERS(__VA_ARGS__)) \
@@ -7945,7 +8035,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_EXPAND(ORM_)";
@@ -7953,7 +8043,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_TO_JSON_BODY(__VA_ARGS__)); \
@@ -7962,7 +8052,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_EXPAND(ORM_)";
@@ -7970,7 +8060,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_TO_JSON_CUSTOM(ORM_)";
@@ -7978,7 +8068,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_UNWRAP CustomNames));  \
@@ -7993,7 +8083,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_EXPAND(ORM_)";
@@ -8001,27 +8091,27 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_SET_VAL_FIELDS(__VA_ARGS__)) \
                 ORM_)";
-                    if (rmstag != "default")
-                    {
-                        headtxt.append(colname_touper(rmstag));
-                        headtxt.append("_");
-                    }              
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }
 
-                    headtxt.append(colname_touper(tablenamebase));
-                    headtxt += R"(_EXPAND(ORM_)";
-                    if (rmstag != "default")
-                    {
-                        headtxt.append(colname_touper(rmstag));
-                        headtxt.append("_");
-                    }              
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_EXPAND(ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }
 
-                    headtxt.append(colname_touper(tablenamebase));
-                    headtxt += R"(_SET_VAL_CUSTOM_FIELDS(CustomNames)) \
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_SET_VAL_CUSTOM_FIELDS(CustomNames)) \
             } \
             }; \
             std::string to_json(const std::vector<StructName> &vec_){\
@@ -8046,15 +8136,15 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_TREE_STRUCT(StructName, ...) \
-        namespace orm::)";   
+        namespace orm::)";
     if (rmstag != "default")
     {
         headtxt.append(rmstag);
         headtxt.append("::");
-    }        
+    }
     headtxt.append(tablenamebase);
     headtxt += R"(_info { \
             struct StructName { \
@@ -8063,7 +8153,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_EXPAND(ORM_)";
@@ -8071,7 +8161,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_PROJ_MEMBERS(__VA_ARGS__)) \
@@ -8085,7 +8175,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_EXPAND(ORM_)";
@@ -8093,7 +8183,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_TO_JSON_BODY(__VA_ARGS__)); \
@@ -8114,7 +8204,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_EXPAND(ORM_)";
@@ -8122,7 +8212,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_SET_VAL_FIELDS(__VA_ARGS__)) \
@@ -8140,7 +8230,7 @@ set_val begin
        }
         
     )";
- ///////////////////////////////////////
+    ///////////////////////////////////////
     headtxt += R"(
     #define ORM_)";
 
@@ -8148,15 +8238,15 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_TREE_PTR_STRUCT(StructName, ...) \
-        namespace orm::)";   
+        namespace orm::)";
     if (rmstag != "default")
     {
         headtxt.append(rmstag);
         headtxt.append("::");
-    }        
+    }
     headtxt.append(tablenamebase);
     headtxt += R"(_info { \
             struct StructName { \
@@ -8165,7 +8255,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_EXPAND(ORM_)";
@@ -8173,7 +8263,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_PROJ_MEMBERS(__VA_ARGS__)) \
@@ -8187,7 +8277,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_EXPAND(ORM_)";
@@ -8195,7 +8285,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_TO_JSON_BODY(__VA_ARGS__)); \
@@ -8216,7 +8306,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_EXPAND(ORM_)";
@@ -8224,7 +8314,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_SET_VAL_FIELDS(__VA_ARGS__)) \
@@ -8243,8 +8333,8 @@ set_val begin
         
     )";
 
-///////////////////////////////////////
-//custom
+    ///////////////////////////////////////
+    //custom
     headtxt += R"(
     #define ORM_)";
 
@@ -8252,15 +8342,15 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    } 
+    }
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_CUST_STRUCT(StructName, CustomDecl, CustomNames, ...) \
-        namespace orm::)";   
+        namespace orm::)";
     if (rmstag != "default")
     {
         headtxt.append(rmstag);
         headtxt.append("::");
-    }        
+    }
     headtxt.append(tablenamebase);
     headtxt += R"(_info { \
             struct StructName { \
@@ -8269,7 +8359,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_EXPAND(ORM_)";
@@ -8277,7 +8367,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_PROJ_MEMBERS(__VA_ARGS__)) \
@@ -8292,7 +8382,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_EXPAND(ORM_)";
@@ -8300,7 +8390,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_TO_JSON_BODY(__VA_ARGS__)); \
@@ -8309,7 +8399,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_EXPAND(ORM_)";
@@ -8317,7 +8407,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_TO_JSON_CUSTOM(ORM_)";
@@ -8325,7 +8415,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_UNWRAP CustomNames));  \
@@ -8346,7 +8436,7 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_EXPAND(ORM_)";
@@ -8354,27 +8444,27 @@ set_val begin
     {
         headtxt.append(colname_touper(rmstag));
         headtxt.append("_");
-    }              
+    }
 
     headtxt.append(colname_touper(tablenamebase));
     headtxt += R"(_SET_VAL_FIELDS(__VA_ARGS__)) \
                     ORM_)";
-                    if (rmstag != "default")
-                    {
-                        headtxt.append(colname_touper(rmstag));
-                        headtxt.append("_");
-                    }              
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }
 
-                    headtxt.append(colname_touper(tablenamebase));
-                    headtxt += R"(_EXPAND(ORM_)";
-                    if (rmstag != "default")
-                    {
-                        headtxt.append(colname_touper(rmstag));
-                        headtxt.append("_");
-                    }              
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_EXPAND(ORM_)";
+    if (rmstag != "default")
+    {
+        headtxt.append(colname_touper(rmstag));
+        headtxt.append("_");
+    }
 
-                    headtxt.append(colname_touper(tablenamebase));
-                    headtxt += R"(_SET_VAL_CUSTOM_FIELDS(CustomNames)) \
+    headtxt.append(colname_touper(tablenamebase));
+    headtxt += R"(_SET_VAL_CUSTOM_FIELDS(CustomNames)) \
                 } \
             }; \
             std::string to_json(const std::vector<StructName> &vec_){\
@@ -8392,7 +8482,7 @@ set_val begin
 
     fwrite(&headtxt[0], headtxt.size(), 1, f);
     headtxt.clear();
- 
+
     filemodelstrem.str("");
     // may be used to optimize the const static std::array<std::string,N> col_names={"xxx"};
     filemodelstrem << "static constexpr std::array<std::string_view," << std::to_string(table_column_info_lists.size()) << "> col_names={";
@@ -8427,7 +8517,7 @@ set_val begin
         {
             filemodelstrem << ",";
         }
-        if(table_column_info_lists[j].col_length>255)
+        if (table_column_info_lists[j].col_length > 255)
         {
             filemodelstrem << "0";
         }
@@ -8455,20 +8545,20 @@ set_val begin
 
     headtxt += R"(
 }
-)";    
+)";
 
     headtxt += R"(
 struct )";
     headtxt.append(tablenamebase);
     headtxt += R"(_base
 {
-)";    
+)";
 
-headtxt += R"(      )"; 
-headtxt.append(model_info_name);
-headtxt += R"(::meta data;
-    )"; 
-    filemodelstrem.str(""); 
+    headtxt += R"(      )";
+    headtxt.append(model_info_name);
+    headtxt += R"(::meta data;
+    )";
+    filemodelstrem.str("");
 
     filemodelstrem << "std::vector<" << model_info_name << "::meta> record;\n";
     filemodelstrem << "std::string _rmstag=\"" << rmstag
@@ -8505,7 +8595,7 @@ headtxt += R"(::meta data;
     for (unsigned char j = 0; j < tablecollist.size(); j++)
     {
         char taa = tablecollist[j][0];
-        if(taa<91&&taa>64)
+        if (taa < 91 && taa > 64)
         {
             taa += 32;
         }
@@ -8825,16 +8915,16 @@ headtxt += R"(::meta data;
         tempsql<<tablename;
         tempsql<<" (";
         for(;j<)";
-        headtxt +=model_info_name;
-        headtxt += R"(::col_names.size();j++){
+    headtxt += model_info_name;
+    headtxt += R"(::col_names.size();j++){
                 if(j>0){
                     tempsql<<",";
                 }else{
                    // tempsql<<"`";
                 }
                 tempsql<<)";
-        headtxt +=model_info_name;
-        headtxt += R"(::col_names[j];
+    headtxt += model_info_name;
+    headtxt += R"(::col_names[j];
         }
         if(j>0){
             //tempsql<<"`";
@@ -8862,9 +8952,12 @@ headtxt += R"(::meta data;
                     if (tablecollist[j] == tablepkname)
                     {
                         insertstrem << "if(data." << tablecollist[j] << "==0){\n";
-                        if(db_type == DBType::POSTGRESQL) {
+                        if (db_type == DBType::POSTGRESQL)
+                        {
                             insertstrem << "tempsql<<\"DEFAULT\";\n";
-                        } else {
+                        }
+                        else
+                        {
                             insertstrem << "tempsql<<\"null\";\n";
                         }
                         insertstrem << " }else{ \n";
@@ -8885,9 +8978,12 @@ headtxt += R"(::meta data;
                     if (tablecollist[j] == tablepkname)
                     {
                         insertstrem << "if(data." << tablecollist[j] << "==0){\n";
-                        if(db_type == DBType::POSTGRESQL) {
+                        if (db_type == DBType::POSTGRESQL)
+                        {
                             insertstrem << "tempsql<<\",DEFAULT\";\n";
-                        } else {
+                        }
+                        else
+                        {
                             insertstrem << "tempsql<<\",null\";\n";
                         }
                         insertstrem << " }else{ \n";
@@ -8913,9 +9009,12 @@ headtxt += R"(::meta data;
             if (tablecollist[j] == tablepkname)
             {
                 insertstrem << "if(data." << tablecollist[j] << "==0){\n";
-                if(db_type == DBType::POSTGRESQL) {
+                if (db_type == DBType::POSTGRESQL)
+                {
                     insertstrem << "tempsql<<\"DEFAULT\";\n";
-                } else {
+                }
+                else
+                {
                     insertstrem << "tempsql<<\"null\";\n";
                 }
                 insertstrem << " }else{ \n";
@@ -9003,16 +9102,16 @@ headtxt += R"(::meta data;
         tempsql<<tablename;
         tempsql<<" (";
         for(;j<)";
-        headtxt +=model_info_name;
-        headtxt += R"(::col_names.size();j++){
+    headtxt += model_info_name;
+    headtxt += R"(::col_names.size();j++){
                 if(j>0){
                     tempsql<<",";
                 }else{
                     //tempsql<<"`";
                 }
                 tempsql<<)";
-        headtxt +=model_info_name;
-        headtxt += R"(::col_names[j];
+    headtxt += model_info_name;
+    headtxt += R"(::col_names[j];
         }
         if(j>0){
            // tempsql<<"`";
@@ -9040,9 +9139,12 @@ headtxt += R"(::meta data;
                     if (tablecollist[j] == tablepkname)
                     {
                         insertstrem << "if(insert_data." << tablecollist[j] << "==0){\n";
-                        if(db_type == DBType::POSTGRESQL) {
+                        if (db_type == DBType::POSTGRESQL)
+                        {
                             insertstrem << "tempsql<<\"DEFAULT\";\n";
-                        } else {
+                        }
+                        else
+                        {
                             insertstrem << "tempsql<<\"null\";\n";
                         }
                         insertstrem << " }else{ \n";
@@ -9063,9 +9165,12 @@ headtxt += R"(::meta data;
                     if (tablecollist[j] == tablepkname)
                     {
                         insertstrem << "if(insert_data." << tablecollist[j] << "==0){\n";
-                        if(db_type == DBType::POSTGRESQL) {
+                        if (db_type == DBType::POSTGRESQL)
+                        {
                             insertstrem << "tempsql<<\",DEFAULT\";\n";
-                        } else {
+                        }
+                        else
+                        {
                             insertstrem << "tempsql<<\",null\";\n";
                         }
                         insertstrem << " }else{ \n";
@@ -9091,9 +9196,12 @@ headtxt += R"(::meta data;
             if (tablecollist[j] == tablepkname)
             {
                 insertstrem << "if(insert_data." << tablecollist[j] << "==0){\n";
-                if(db_type == DBType::POSTGRESQL) {
+                if (db_type == DBType::POSTGRESQL)
+                {
                     insertstrem << "tempsql<<\"DEFAULT\";\n";
-                } else {
+                }
+                else
+                {
                     insertstrem << "tempsql<<\"null\";\n";
                 }
                 insertstrem << " }else{ \n";
@@ -9185,16 +9293,16 @@ headtxt += R"(::meta data;
         tempsql<<tablename;
         tempsql<<" (";
         for(;j<)";
-        headtxt +=model_info_name;
-        headtxt += R"(::col_names.size();j++){
+    headtxt += model_info_name;
+    headtxt += R"(::col_names.size();j++){
                 if(j>0){
                     tempsql<<",";
                 }else{
                    // tempsql<<"`";
                 }
                 tempsql<<)";
-        headtxt +=model_info_name;
-        headtxt += R"(::col_names[j];
+    headtxt += model_info_name;
+    headtxt += R"(::col_names[j];
         }
         if(j>0){
            //tempsql<<"`";
@@ -9230,9 +9338,12 @@ headtxt += R"(::meta data;
                     if (tablecollist[j] == tablepkname)
                     {
                         insertstrem << "\tif(insert_data[i]." << tablecollist[j] << "==0){\n";
-                        if(db_type == DBType::POSTGRESQL) {
+                        if (db_type == DBType::POSTGRESQL)
+                        {
                             insertstrem << "\ttempsql<<\"DEFAULT\";\n";
-                        } else {
+                        }
+                        else
+                        {
                             insertstrem << "\ttempsql<<\"null\";\n";
                         }
                         insertstrem << "\t }else{ \n";
@@ -9253,9 +9364,12 @@ headtxt += R"(::meta data;
                     if (tablecollist[j] == tablepkname)
                     {
                         insertstrem << "\tif(insert_data[i]." << tablecollist[j] << "==0){\n";
-                        if(db_type == DBType::POSTGRESQL) {
+                        if (db_type == DBType::POSTGRESQL)
+                        {
                             insertstrem << "\ttempsql<<\",DEFAULT\";\n";
-                        } else {
+                        }
+                        else
+                        {
                             insertstrem << "\ttempsql<<\",null\";\n";
                         }
                         insertstrem << "\t }else{ \n";
@@ -9281,9 +9395,12 @@ headtxt += R"(::meta data;
             if (tablecollist[j] == tablepkname)
             {
                 insertstrem << "\tif(insert_data[i]." << tablecollist[j] << "==0){\n";
-                if(db_type == DBType::POSTGRESQL) {
+                if (db_type == DBType::POSTGRESQL)
+                {
                     insertstrem << "\ttempsql<<\"DEFAULT\";\n";
-                } else {
+                }
+                else
+                {
                     insertstrem << "\ttempsql<<\"null\";\n";
                 }
                 insertstrem << "\t }else{ \n";
@@ -9592,23 +9709,23 @@ headtxt += R"(::meta data;
         unsigned int j = 0;
         std::ostringstream tempsql;)";
 
-        if(db_type == DBType::MYSQL || db_type == DBType::SQLITE)
-        {
-            headtxt += R"(
-            tempsql << "REPLACE INTO ";)";
-        }
-        else
-        {
-            headtxt += R"(
-            tempsql << "INSERT INTO ";)";
-        }
-
+    if (db_type == DBType::MYSQL || db_type == DBType::SQLITE)
+    {
         headtxt += R"(
+            tempsql << "REPLACE INTO ";)";
+    }
+    else
+    {
+        headtxt += R"(
+            tempsql << "INSERT INTO ";)";
+    }
+
+    headtxt += R"(
         tempsql << tablename;
         tempsql << " (";
         for (; j < )";
-        headtxt +=model_info_name;
-        headtxt += R"(::col_names.size(); j++)
+    headtxt += model_info_name;
+    headtxt += R"(::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -9619,8 +9736,8 @@ headtxt += R"(::meta data;
                 tempsql << "";
             }
             tempsql << )";
-        headtxt +=model_info_name;
-        headtxt += R"(::col_names[j];
+    headtxt += model_info_name;
+    headtxt += R"(::col_names[j];
         }
         if (j > 0)
         {
@@ -9754,9 +9871,8 @@ headtxt += R"(::meta data;
         }
     }
     update2strem << "\ttempsql<<\")\";\n  }\n ";
-    if(db_type == DBType::POSTGRESQL)
+    if (db_type == DBType::POSTGRESQL)
     {
-
     }
     update2strem << "\n return tempsql.str();\n}\n";
 
@@ -9779,8 +9895,8 @@ headtxt += R"(::meta data;
         tempsql << tablename;
         tempsql << " (";
         for (; j < )";
-        headtxt +=model_info_name;
-        headtxt += R"(::col_names.size(); j++)
+    headtxt += model_info_name;
+    headtxt += R"(::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -9791,8 +9907,8 @@ headtxt += R"(::meta data;
                 tempsql << "";
             }
             tempsql << )";
-        headtxt +=model_info_name;
-        headtxt += R"(::col_names[j];
+    headtxt += model_info_name;
+    headtxt += R"(::col_names[j];
         }
         if (j > 0)
         {
@@ -10011,8 +10127,8 @@ headtxt += R"(::meta data;
             }
         }else{
             for(jj=0;jj<)";
-        headtxt +=model_info_name;
-        headtxt += R"(::col_names.size();jj++){
+    headtxt += model_info_name;
+    headtxt += R"(::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -10130,8 +10246,8 @@ headtxt += R"(::meta data;
         }
         }else{
             for(jj=0;jj<)";
-        headtxt +=model_info_name;
-        headtxt += R"(::col_names.size();jj++){
+    headtxt += model_info_name;
+    headtxt += R"(::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -10341,8 +10457,8 @@ headtxt += R"(::meta data;
         }
         }else{
             for(jj=0;jj<)";
-        headtxt +=model_info_name;
-        headtxt += R"(::col_names.size();jj++){
+    headtxt += model_info_name;
+    headtxt += R"(::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -10688,7 +10804,7 @@ headtxt += R"(::meta data;
     for (unsigned int j = 0; j < tablecollist.size(); j++)
     {
         filemodelstrem << "\n\t\tcase " << std::to_string(j) << ":\n\t\t  http::json_set_val(data." << tablecollist[j]
-                               << ",set_value_name);\n\t\t break;\n\t\t";
+                       << ",set_value_name);\n\t\t break;\n\t\t";
     }
 
     filemodelstrem << "\n\t\tdefault:\n\t\t { }\n\t\t\t\n";
@@ -10717,7 +10833,7 @@ headtxt += R"(::meta data;
     //////////////////////////////////////////////
     // set_val long long
     filemodelstrem.str("");
-  
+
     headtxt.clear();
     ///////////////////////////////////////////////
     headtxt = R"(
@@ -10752,8 +10868,8 @@ headtxt += R"(::meta data;
         }
     }else{
         for(jj=0;jj<)";
-        headtxt +=model_info_name;
-        headtxt += R"(::col_names.size();jj++){
+    headtxt += model_info_name;
+    headtxt += R"(::col_names.size();jj++){
             keypos.emplace_back(jj); 
         }
     }
@@ -10891,8 +11007,8 @@ headtxt += R"(::meta data;
             }
         }else{
             for(jj=0;jj<)";
-        headtxt +=model_info_name;
-        headtxt += R"(::col_names.size();jj++){
+    headtxt += model_info_name;
+    headtxt += R"(::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -11297,7 +11413,7 @@ headtxt += R"(::meta data;
             }
         }else{
             for(jj=0;jj<)";
-        headtxt +=model_info_name;
+        headtxt += model_info_name;
         headtxt += R"(::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
@@ -11441,7 +11557,7 @@ headtxt += R"(::meta data;
             }
         }else{
             for(jj=0;jj<)";
-        headtxt +=model_info_name;
+        headtxt += model_info_name;
         headtxt += R"(::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
@@ -11623,11 +11739,11 @@ headtxt += R"(::meta data;
         headtxt += R"(
         return  temp_obja;   
     })";
-     
+
         headtxt += model_info_name;
         headtxt += R"(::meta_tree treedata_from_data()
     { )";
-     
+
         headtxt += model_info_name;
         headtxt += R"(::meta_tree temp_obja;
 
@@ -11644,14 +11760,14 @@ headtxt += R"(::meta data;
         headtxt += R"(
         return  temp_obja;   
     })";
-     
+
         headtxt += model_info_name;
         headtxt += R"(::meta_tree treedata_from_data(const )";
-     
+
         headtxt += model_info_name;
         headtxt += R"(::meta &tempdata)
     {)";
-     
+
         headtxt += model_info_name;
         headtxt += R"(::meta_tree temp_obja;
         )";
@@ -11668,12 +11784,12 @@ headtxt += R"(::meta data;
         return  temp_obja;   
     }     
     std::vector<)";
-     
+
         headtxt += model_info_name;
         headtxt += R"(::meta_tree> to_tree(unsigned int beginid=0)
     {
        std::vector<)";
-     
+
         headtxt += model_info_name;
         headtxt += R"(::meta_tree> temp;
        unsigned int level=0; 
@@ -11723,7 +11839,7 @@ headtxt += R"(::meta data;
        return temp; 
     }    
     void record_to_tree(std::vector<)";
-     
+
         headtxt += model_info_name;
         headtxt += R"(::meta_tree> &targetdata,long long t_vid,unsigned int level=0)
     {
@@ -11754,7 +11870,7 @@ headtxt += R"(::meta data;
         }
     }
     void tree_torecord(const std::vector<)";
-     
+
         headtxt += model_info_name;
         headtxt += R"(::meta_tree> &sourcedata,unsigned int level=0)
     {
@@ -11780,39 +11896,39 @@ headtxt += R"(::meta data;
     // get_meta string
     headtxt.clear();
     update2strem.str("");
- 
+
     headtxt += R"(
     template<)";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::cols KeyCol, )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::cols ValCol> 
     auto get_cols()
     {
         using KeyType = decltype()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<KeyCol>(std::declval<const )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::meta&>()));
         using ValType = decltype()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<ValCol>(std::declval<const )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::meta&>()));
 
         std::map<KeyType, ValType> result;
         for (const auto& iter : record) {
             result.emplace()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<KeyCol>(iter), )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<ValCol>(iter));
         }
@@ -11830,57 +11946,57 @@ headtxt += R"(::meta data;
         })
     */
     template<)";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::cols KeyCol, )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::cols ValCol, typename Callback> 
     requires std::invocable<Callback, 
             decltype()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<KeyCol>(std::declval<const )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::meta&>())), 
             decltype()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<ValCol>(std::declval<const )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::meta&>()))> &&
             std::convertible_to<
                 std::invoke_result_t<Callback&, 
                     decltype()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<KeyCol>(std::declval<const )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::meta&>())), 
                     decltype()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<ValCol>(std::declval<const )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::meta&>()))>, bool>
     auto get_cols(Callback&& callback)
     {
         using KeyType = decltype()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<KeyCol>(std::declval<const )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::meta&>()));
         using ValType = decltype()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<ValCol>(std::declval<const )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::meta&>()));
 
@@ -11890,25 +12006,25 @@ headtxt += R"(::meta data;
             if constexpr (std::is_same_v<std::decay_t<Callback>, std::nullptr_t>) 
             {
                 result.emplace()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<KeyCol>(iter), )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<ValCol>(iter));
             } else {
                 if (std::forward<Callback>(callback)()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<KeyCol>(iter), )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<ValCol>(iter))) {
                     result.emplace()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<KeyCol>(iter), )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<ValCol>(iter));
                 }
@@ -11924,39 +12040,39 @@ headtxt += R"(::meta data;
     //get_cols_vecs
     headtxt.clear();
     update2strem.str("");
- 
+
     headtxt += R"(
     template<)";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::cols KeyCol, )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::cols ValCol> 
     auto get_cols_vecs()
     {
         using KeyType = decltype()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<KeyCol>(std::declval<const )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::meta&>()));
         using ValType = decltype()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<ValCol>(std::declval<const )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::meta&>()));
 
         std::vector<std::pair<KeyType, ValType>> result;
         for (const auto& iter : record) {
             result.emplace_back()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<KeyCol>(iter), )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<ValCol>(iter));
         }
@@ -11975,57 +12091,57 @@ headtxt += R"(::meta data;
         })
     */
     template<)";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::cols KeyCol, )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::cols ValCol, typename Callback> 
     requires std::invocable<Callback, 
             decltype()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<KeyCol>(std::declval<const )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::meta&>())), 
             decltype()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<ValCol>(std::declval<const )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::meta&>()))> &&
             std::convertible_to<
                 std::invoke_result_t<Callback&, 
                     decltype()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<KeyCol>(std::declval<const )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::meta&>())), 
                     decltype()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<ValCol>(std::declval<const )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::meta&>()))>, bool>
     auto get_cols_vecs(Callback&& callback)
     {
         using KeyType = decltype()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<KeyCol>(std::declval<const )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::meta&>()));
         using ValType = decltype()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<ValCol>(std::declval<const )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::meta&>()));
 
@@ -12035,25 +12151,25 @@ headtxt += R"(::meta data;
             if constexpr (std::is_same_v<std::decay_t<Callback>, std::nullptr_t>) 
             {
                 result.emplace_back()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<KeyCol>(iter), )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<ValCol>(iter));
             } else {
                 if (std::forward<Callback>(callback)()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<KeyCol>(iter), )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<ValCol>(iter))) {
                     result.emplace_back()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<KeyCol>(iter), )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<ValCol>(iter));
                 }
@@ -12069,10 +12185,10 @@ headtxt += R"(::meta data;
     //get_vec_col
     headtxt.clear();
     update2strem.str("");
- 
+
     headtxt += R"(
     template<)";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::cols KeyCol>)";
 
@@ -12080,17 +12196,17 @@ headtxt += R"(::meta data;
     auto get_cols_vec()
     {
         using KeyType = decltype()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<KeyCol>(std::declval<const )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::meta&>()));
 
         std::vector<KeyType> result;
         for (const auto& iter : record) {
             result.emplace_back()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<KeyCol>(iter));
         }
@@ -12109,33 +12225,33 @@ headtxt += R"(::meta data;
         })
     */
     template<)";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::cols KeyCol, typename Callback> 
     requires std::invocable<Callback, 
             decltype()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<KeyCol>(std::declval<const )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::meta&>()))> &&
             std::convertible_to<
                 std::invoke_result_t<Callback&, 
                     decltype()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<KeyCol>(std::declval<const )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::meta&>()))>, bool>
     auto get_cols_vec(Callback&& callback)
     {
         using KeyType = decltype()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<KeyCol>(std::declval<const )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::meta&>()));
         std::vector<KeyType> result;
@@ -12144,16 +12260,16 @@ headtxt += R"(::meta data;
             if constexpr (std::is_same_v<std::decay_t<Callback>, std::nullptr_t>) 
             {
                 result.emplace_back()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<KeyCol>(iter));
             } else {
                 if (std::forward<Callback>(callback)()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<KeyCol>(iter))) {
                     result.emplace_back()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<KeyCol>(iter));
                 }
@@ -12169,14 +12285,14 @@ headtxt += R"(::meta data;
     //get_col_to_strs
     headtxt += R"(
     template<)";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::cols Col>
         requires requires(std::ostream& os, decltype()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<Col>(std::declval<const )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::meta&>())) t) {
             { os << t } -> std::same_as<std::ostream&>;
@@ -12188,7 +12304,7 @@ headtxt += R"(::meta data;
         for (const auto& iter : record) {
             oss << "\"";
             oss << )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<Col>(iter); 
             oss << "\",";
@@ -12205,14 +12321,14 @@ headtxt += R"(::meta data;
     //get_cols_str
     headtxt += R"(
     template<)";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::cols Col>
         requires requires(std::ostream& os, decltype()";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<Col>(std::declval<const )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::meta&>())) t) {
             { os << t } -> std::same_as<std::ostream&>;
@@ -12223,7 +12339,7 @@ headtxt += R"(::meta data;
 
         for (const auto& iter : record) {
             oss << )";
-     
+
     headtxt += model_info_name;
     headtxt += R"(::getField<Col>(iter); 
             oss << ",";
@@ -12535,7 +12651,7 @@ dbtype=mysql
         }
     }
     asio::io_context io_context;
-    rmstag             = link_config_item.tag;
+    rmstag = link_config_item.tag;
 
     std::string model_name;//strip pretable
 
@@ -12549,10 +12665,10 @@ dbtype=mysql
     {
         pg_db_conn = std::make_shared<orm::pg_conn_base>(orm::orm_conn_link_t::create(io_context, orm::DB_TYPE::POSTGRESQL));
         orm::orm_conn_t pg_config;
-        pg_config.host = link_config_item.host;
-        pg_config.port = link_config_item.port.empty() ? "5432" : link_config_item.port;
-        pg_config.dbname = link_config_item.dbname;
-        pg_config.user = link_config_item.user;
+        pg_config.host     = link_config_item.host;
+        pg_config.port     = link_config_item.port.empty() ? "5432" : link_config_item.port;
+        pg_config.dbname   = link_config_item.dbname;
+        pg_config.user     = link_config_item.user;
         pg_config.password = link_config_item.password;
 
         if (!pg_db_conn->connect(pg_config))
@@ -12590,10 +12706,9 @@ dbtype=mysql
         }
         catch (const std::exception &e)
         {
-            std::cerr <<" add_mysql_edit_connect "<< e.what() << '\n';
+            std::cerr << " add_mysql_edit_connect " << e.what() << '\n';
             return 0;
         }
-
     }
     //create tag directories
     if (rmstag != "default")
@@ -12658,21 +12773,23 @@ dbtype=mysql
     {
         pg_get_table_list(pg_db_conn, table_lists);
         std::cout << "\nPostgreSQL tables found: " << table_lists.size() << std::endl;
-        for (size_t i = 0; i < table_lists.size(); ++i) {
-            std::cout << "  " << (i+1) << ". " << table_lists[i] << std::endl;
+        for (size_t i = 0; i < table_lists.size(); ++i)
+        {
+            std::cout << "  " << (i + 1) << ". " << table_lists[i] << std::endl;
         }
     }
     else if (db_type == DBType::SQLITE)
     {
         table_lists = dbtypes::get_sqlite_tables(sqlite_db_conn);
         std::cout << "\nSQLite tables found: " << table_lists.size() << std::endl;
-        for (size_t i = 0; i < table_lists.size(); ++i) {
-            std::cout << "  " << (i+1) << ". " << table_lists[i] << std::endl;
+        for (size_t i = 0; i < table_lists.size(); ++i)
+        {
+            std::cout << "  " << (i + 1) << ". " << table_lists[i] << std::endl;
         }
     }
     else
     {
-        std::string sqlstring     = "show tables;";
+        std::string sqlstring = "show tables;";
 
         std::size_t n = mysql_db_conn->write_sql(sqlstring);
 
@@ -12686,7 +12803,7 @@ dbtype=mysql
 
         for (; is_sql_item == false;)
         {
-            n = mysql_db_conn->read_loop();
+            n      = mysql_db_conn->read_loop();
             offset = 0;
             for (; offset < n;)
             {
@@ -12721,7 +12838,7 @@ dbtype=mysql
                     }
                     else if (action_setup == 2)
                     {
-                        unsigned int tempnum    = 0;
+                        unsigned int tempnum = 0;
 
                         for (unsigned int ij = 0; ij < field_array.size(); ij++)
                         {
@@ -12791,7 +12908,7 @@ dbtype=mysql
                 std::vector<orm::field_info_t> comment_fields;
                 std::vector<orm::pg_row_data_t> comment_rows;
                 unsigned int affected = 0;
-                unsigned int err = pg_db_conn->execute_and_fetch(comment_sql, comment_fields, comment_rows, affected);
+                unsigned int err      = pg_db_conn->execute_and_fetch(comment_sql, comment_fields, comment_rows, affected);
                 if (err == 0 && !comment_rows.empty() && !comment_rows[0].values.empty())
                 {
                     table_comment = comment_rows[0].values[0];
@@ -12800,9 +12917,9 @@ dbtype=mysql
 
             // 转换列信息并生成 DDL
             dbtypes::db_table_info table_info;
-            table_info.table_name      = table_lists[i_table];
-            table_info.table_comment   = table_comment;
-            table_info.source_db_type  = dbtypes::DB_TYPE::POSTGRESQL;
+            table_info.table_name     = table_lists[i_table];
+            table_info.table_comment  = table_comment;
+            table_info.source_db_type = dbtypes::DB_TYPE::POSTGRESQL;
 
             for (const auto &col : table_column_info_lists)
             {
@@ -12941,8 +13058,8 @@ dbtype=mysql
             std::size_t n = mysql_db_conn->write_sql(sqlstring);
 
             orm::pack_info_t temp_pack_data;
-            temp_pack_data.seq_id = 1;
-            bool is_sql_item      = false;
+            temp_pack_data.seq_id      = 1;
+            bool is_sql_item           = false;
             unsigned char action_setup = 0;
             unsigned int column_num    = 0;
             unsigned int offset        = 0;
@@ -12956,7 +13073,7 @@ dbtype=mysql
 
             for (; is_sql_item == false;)
             {
-                n = mysql_db_conn->read_loop();
+                n      = mysql_db_conn->read_loop();
                 offset = 0;
                 for (; offset < n;)
                 {
@@ -12991,7 +13108,7 @@ dbtype=mysql
                         }
                         else if (action_setup == 2)
                         {
-                            unsigned int tempnum    = 0;
+                            unsigned int tempnum = 0;
 
                             for (unsigned int ij = 0; ij < field_array.size(); ij++)
                             {
@@ -13093,7 +13210,7 @@ dbtype=mysql
 
                 for (; is_sql_item == false;)
                 {
-                    n = mysql_db_conn->read_loop();
+                    n      = mysql_db_conn->read_loop();
                     offset = 0;
                     for (; offset < n;)
                     {
@@ -13138,7 +13255,7 @@ dbtype=mysql
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int tempnum    = 0;
+                                unsigned int tempnum = 0;
                                 table_columns_info_t temp_tb_info;
 
                                 for (unsigned int ij = 0; ij < field_array.size(); ij++)
@@ -13189,7 +13306,7 @@ dbtype=mysql
 
                 for (; is_sql_item == false;)
                 {
-                    n = mysql_db_conn->read_loop();
+                    n      = mysql_db_conn->read_loop();
                     offset = 0;
                     for (; offset < n;)
                     {
@@ -13234,7 +13351,7 @@ dbtype=mysql
                             }
                             else if (action_setup == 2)
                             {
-                                unsigned int tempnum    = 0;
+                                unsigned int tempnum = 0;
 
                                 for (unsigned int ij = 0; ij < field_array.size(); ij++)
                                 {

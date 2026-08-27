@@ -55,7 +55,8 @@ void parse_ini::parse_file(const std::string &filename)
             if (!current_section.empty())
             {
                 std::string comment_text = trimmed.substr(1);
-                auto start = std::find_if_not(comment_text.begin(), comment_text.end(), [](unsigned char c) { return std::isspace(c); });
+                auto start               = std::find_if_not(comment_text.begin(), comment_text.end(), [](unsigned char c)
+                                              { return std::isspace(c); });
                 if (start != comment_text.end())
                     comment_text = std::string(start, comment_text.end());
                 else
@@ -168,9 +169,9 @@ void parse_ini::parse_file(const std::string &filename)
                     {
                         if (item.name == key)
                         {
-                            item.value = value_temp;
+                            item.value   = value_temp;
                             item.comment = comment_temp;
-                            found = true;
+                            found        = true;
                             break;
                         }
                     }
@@ -292,7 +293,7 @@ bool parse_ini::save_value(const std::string &section, const std::string &name, 
     // 2. 遍历每一行，查找目标节和键
     std::string current_section;
     bool found = false;
-    std::string old_comment; // 保存原文件中的注释
+    std::string old_comment;// 保存原文件中的注释
 
     for (auto &line : lines)
     {
@@ -464,8 +465,8 @@ bool parse_ini::save_value(const std::string &section, const std::string &name, 
     else
     {
         ini_key_value_t kv;
-        kv.name = name;
-        kv.value = new_value;
+        kv.name    = name;
+        kv.value   = new_value;
         kv.comment = !normalized_comment.empty() ? normalized_comment : old_comment;
         config[section].push_back(kv);
     }
@@ -588,8 +589,8 @@ bool parse_ini::add_value(const std::string &section, const std::string &name, c
 
     // 更新内存
     ini_key_value_t kv;
-    kv.name = name;
-    kv.value = new_value;
+    kv.name    = name;
+    kv.value   = new_value;
     kv.comment = normalized_comment;
     config[section].push_back(kv);
     return true;

@@ -58,7 +58,7 @@ struct ini_item_t
     {
         data.push_back({key, value});
     }
-    
+
     void push_back(const std::string &key, const std::string &value, const std::string &comment)
     {
         data.push_back({key, value, comment});
@@ -189,7 +189,7 @@ struct ini_item_t
         {
             if (item.name.empty())
             {
-                if(item.comment.empty())
+                if (item.comment.empty())
                 {
                     oss << '\n';
                 }
@@ -201,13 +201,13 @@ struct ini_item_t
                     }
                     else
                     {
-                        oss << "; "<< item.comment << '\n';
+                        oss << "; " << item.comment << '\n';
                     }
                 }
             }
             else
             {
-                if(item.comment.empty())
+                if (item.comment.empty())
                 {
                     oss << item.name << " = " << item.value << '\n';
                 }
@@ -216,7 +216,7 @@ struct ini_item_t
                     if (!item.comment.empty() && (item.comment[0] == ';' || item.comment[0] == '#'))
                         oss << item.name << " = " << item.value << " " << item.comment << '\n';
                     else
-                        oss << item.name << " = " << item.value << " ; "<< item.comment << '\n';
+                        oss << item.name << " = " << item.value << " ; " << item.comment << '\n';
                 }
             }
         }
@@ -247,7 +247,6 @@ class parse_ini
     ini_item_t get_section(const std::string &section);
     //替换掉filename_文件中 某个值，不用config内容，重新加载找出,name 然后换掉 值，保留原文注释
     bool save_value(const std::string &section, const std::string &name, const std::string &default_value = "", const std::string &comment = "");
-    
 
     // ---------- 添加或更新某个值到文件中 ----------
     bool add_value(const std::string &section, const std::string &name, const std::string &default_value = "", const std::string &comment = "");

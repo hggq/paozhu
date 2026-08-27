@@ -8,7 +8,7 @@ Paozhu (炮竹) is a high-performance C++20 web framework built on the Asio asyn
 - **Asynchronous I/O**: Asio‑based non‑blocking network model
 - **Coroutine Support**: Use C++20 `co_await` for asynchronous code
 - **HTTP/HTTP2**: Native support for HTTP/1.1 and HTTP/2
-- **ORM**: Built‑in ORM with MySQL and PostgreSQL support
+- **ORM**: Built‑in ORM with MySQL PostgreSQL and SQLite support
 - **OCSP Stapling**: Automatic OCSP stapling
 - **ACME**: Automatic SSL certificate issuance and renewal
 - **Modular Extensions**: Image processing, Excel, Word, PDF, chart generation, etc.

@@ -8,7 +8,7 @@ Paozhu (炮竹) 是一个高性能的 C++20 Web 框架，基于 Asio 异步网�
 - **异步 IO**: 基于 Asio 的异步非阻塞网络模型
 - **协程支持**: C++20 co_await 关键字编写异步代码
 - **HTTP/HTTP2**: 原生支持 HTTP/1.1 和 HTTP/2 协议
-- **ORM**: 内置 ORM，支持 MySQL 和 PostgreSQL
+- **ORM**: 内置 ORM，支持 MySQL PostgreSQL 和 SQLite
 - **OCSP Stapling**: 自动 OCSP stapling 支持
 - **ACME**: 自动 SSL 证书申请和管理
 - **模块扩展**: 图片处理、Excel、Word、PDF、图表等
