@@ -64,7 +64,7 @@ std::string test_parse_ini(std::shared_ptr<httppeer> peer)
         client << "<p>=== Content of " << filename << " ===</p>\n<pre>";
         while (std::getline(in, line))
         {
-            client  << line << "\n";
+            client << line << "\n";
         }
         client << "</pre><p>===================================</p>\n";
         in.close();
@@ -116,14 +116,14 @@ std::string test_parse_ini(std::shared_ptr<httppeer> peer)
     client << "www.abc.com::csspath = " << ini.get_value("www.abc.com", "csspath", "(not found)") << "\n<br>";
 
     client << "<p>----raw key name-----</p>";
-    for(auto[first,second]:ini.config)
+    for (auto [first, second] : ini.config)
     {
         client << "<p>----begin-----</p>";
-        client << "<p>|"<<first<<"|</p>";
+        client << "<p>|" << first << "|</p>";
         client << "<p>------------begin-2----</p>";
-        for(auto[aaaa,bbbb]:second)
+        for (auto [name, value, comment] : second)
         {
-            client << "<p>|"<<aaaa<<":"<<bbbb<<"|</p>";
+            client << "<p>|" << name << ":" << value << (comment.size() > 0 ? ":" : "") << comment << "|</p>";
         }
         client << "<p>------------end-2----</p>";
         client << "<p>----end-----</p>";
@@ -222,7 +222,7 @@ std::string test_fix_server_conf(std::shared_ptr<httppeer> peer)
         client << "<p>=== Content of " << filename << " ===</p>\n<pre>\n";
         while (std::getline(in, line))
         {
-            client << line <<"\n";
+            client << line << "\n";
         }
         client << "</pre>\n";
         in.close();
@@ -264,15 +264,14 @@ std::string test_fix_orm_conf(std::shared_ptr<httppeer> peer)
         client << " not found: " << file_conf;
         return "";
     }
- 
 
     client << "<p>==================orm begin secret content =================</p>\n";
- 
+
     parse_ini ini(file_conf);
     ini.fix_file(file_conf);
 
     client << "<p>==================orm after secret content =================</p>\n";
- 
+
     return "";
 }
 

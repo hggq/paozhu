@@ -44,9 +44,24 @@ void parse_ini::parse_file(const std::string &filename)
     while (std::getline(file, line))
     {
         std::string trimmed = line_trim(line);
-        // 跳过空行和注释（; 或 #）
-        if (trimmed.empty() || trimmed.front() == ';' || trimmed.front() == '#')
+        // 跳过空行
+        if (trimmed.empty())
         {
+            continue;
+        }
+        // 注释行：存储到当前 section 的 comment 字段
+        if (trimmed.front() == ';' || trimmed.front() == '#')
+        {
+            if (!current_section.empty())
+            {
+                std::string comment_text = trimmed.substr(1);
+                auto start = std::find_if_not(comment_text.begin(), comment_text.end(), [](unsigned char c) { return std::isspace(c); });
+                if (start != comment_text.end())
+                    comment_text = std::string(start, comment_text.end());
+                else
+                    comment_text.clear();
+                config[current_section].push_back(ini_key_value_t{"", "", comment_text});
+            }
             continue;
         }
 
@@ -76,6 +91,8 @@ void parse_ini::parse_file(const std::string &filename)
                 std::string value = line_trim(trimmed.substr(eqPos + 1));
 
                 std::string value_temp;
+                std::string comment_temp;
+
                 if (value.size() > 0 && value[0] == '"')
                 {
                     unsigned int j = 1;
@@ -100,32 +117,67 @@ void parse_ini::parse_file(const std::string &filename)
                         }
                         value_temp.push_back(value[j]);
                     }
-                }
-                else
-                {
-                    unsigned int j = 0;
+                    // 跳过闭合引号，继续扫描注释
+                    ++j;
                     for (; j < value.size(); j++)
                     {
                         if (value[j] == '#' || value[j] == ';')
                         {
-                            // 去除分割之前的空格
-                            while (j > 0 && value[j - 1] == ' ')
-                            {
-                                j--;
-                            }
+                            comment_temp = value.substr(j);
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    // 查找注释分隔符位置
+                    size_t comment_pos = std::string::npos;
+                    for (size_t k = 0; k < value.size(); k++)
+                    {
+                        if (value[k] == '#' || value[k] == ';')
+                        {
+                            comment_pos = k;
                             break;
                         }
                     }
 
-                    if (j > 0)
+                    if (comment_pos != std::string::npos)
                     {
-                        value_temp = value.substr(0, j);
+                        // 去除注释前的空格作为值
+                        size_t end_pos = comment_pos;
+                        while (end_pos > 0 && value[end_pos - 1] == ' ')
+                            end_pos--;
+                        value_temp = value.substr(0, end_pos);
+
+                        // 提取注释（包含 ; 或 # 前缀）
+                        comment_temp = value.substr(comment_pos);
+                    }
+                    else
+                    {
+                        value_temp = value;
+                        // 去除尾部空格
+                        while (!value_temp.empty() && value_temp.back() == ' ')
+                            value_temp.pop_back();
                     }
                 }
 
                 if (!key.empty())
                 {
-                    config[current_section][key] = value_temp;
+                    bool found = false;
+                    for (auto &item : config[current_section].data)
+                    {
+                        if (item.name == key)
+                        {
+                            item.value = value_temp;
+                            item.comment = comment_temp;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found)
+                    {
+                        config[current_section].push_back(ini_key_value_t{key, value_temp, comment_temp});
+                    }
                 }
             }
         }
@@ -140,17 +192,17 @@ std::string parse_ini::get_value(const std::string &section, const std::string &
     auto itSec = config.find(section);
     if (itSec != config.end())
     {
-        auto itKey = itSec->second.find(name);
-        if (itKey != itSec->second.end())
+        auto [pVal, found] = itSec->second.try_find(name);
+        if (found)
         {
-            return itKey->second;
+            return *pVal;
         }
     }
     return default_value;
 }
 
 // ---------- 获取整个节 ----------
-std::unordered_map<std::string, std::string> parse_ini::get_section(const std::string &section)
+ini_item_t parse_ini::get_section(const std::string &section)
 {
     auto itSec = config.find(section);
     if (itSec != config.end())
@@ -205,14 +257,26 @@ bool parse_ini::atomic_write_file(const std::string &filename, const std::vector
 }
 
 // ---------- 修改文件中的某个值（保留注释和格式） ----------
-bool parse_ini::save_value(const std::string &section, const std::string &name, const std::string &new_value)
+bool parse_ini::save_value(const std::string &section, const std::string &name, const std::string &new_value, const std::string &comment)
 {
     if (filename_.empty())
         return false;
 
-    // 防止 INI 注入：值中不能包含换行符
+    // 防止 INI 注入：值和注释中不能包含换行符
     if (new_value.find('\n') != std::string::npos || new_value.find('\r') != std::string::npos)
         return false;
+    if (comment.find('\n') != std::string::npos || comment.find('\r') != std::string::npos)
+        return false;
+
+    // 规范化注释：空字符串表示不修改注释；否则确保以 ; 或 # 开头
+    std::string normalized_comment;
+    if (!comment.empty())
+    {
+        if (comment[0] == ';' || comment[0] == '#')
+            normalized_comment = comment;
+        else
+            normalized_comment = "; " + comment;
+    }
 
     // 1. 读取整个文件到内存
     std::ifstream inFile(filename_);
@@ -228,6 +292,7 @@ bool parse_ini::save_value(const std::string &section, const std::string &name, 
     // 2. 遍历每一行，查找目标节和键
     std::string current_section;
     bool found = false;
+    std::string old_comment; // 保存原文件中的注释
 
     for (auto &line : lines)
     {
@@ -258,134 +323,115 @@ bool parse_ini::save_value(const std::string &section, const std::string &name, 
                     // 保留等号之前的所有字符（包括缩进和等号本身）
                     std::string prefix = line.substr(0, origEq + 1);// 包含 '='
 
-                    // 提取等号后的原始内容（包括值、空格、引号、注释等）
+                    // 提取等号后的原始内容
                     std::string sub_str = line.substr(origEq + 1);
 
                     // 4. 构建新行：等号前部分 + 空格 + 新值
                     line = prefix + " " + new_value;
 
-                    // 5. 试图从 sub_str 中提取行尾注释和引号结构，并追加到新行后面
-                    size_t j = 0;
-
-                    // 跳过等号后的空格和制表符
-                    for (; j < sub_str.size(); j++)
-                        if (sub_str[j] != '\t' && sub_str[j] != ' ')
-                            break;
-
-                    // 情况 A：值被双引号包裹（例如 value = "old"  # comment）
-                    if (j < sub_str.size() && sub_str[j] == '"')
+                    if (!normalized_comment.empty())
                     {
-                        // 跳过开引号，从下一个字符开始查找匹配的闭合引号
-                        j++;
-                        for (; j < sub_str.size(); j++)
-                        {
-                            if (sub_str[j] == '"')
-                            {
-                                // 统计前面的连续反斜杠数量，奇数表示转义引号
-                                size_t backslash_count = 0;
-                                size_t k               = j;
-                                while (k > 0 && sub_str[k - 1] == '\\')
-                                {
-                                    backslash_count++;
-                                    k--;
-                                }
-                                if (backslash_count % 2 == 1)
-                                    continue;// 转义引号，跳过
-                                j++;         // 指向闭合引号的下一个字符
-                                break;
-                            }
-                        }
-
-                        // 继续移动，直到遇到注释符 # 或 ;（或字符串结尾）
-                        size_t comment_start = std::string::npos;
-                        for (; j < sub_str.size(); j++)
-                        {
-                            if (sub_str[j] == '#' || sub_str[j] == ';')
-                            {
-                                // 回退到注释符前的空格，保留格式
-                                comment_start = j;
-                                while (comment_start > 0 && sub_str[comment_start - 1] == ' ')
-                                {
-                                    comment_start--;
-                                }
-                                if (comment_start == j)
-                                {
-                                    line.push_back(' ');
-                                }
-                                break;
-                            }
-                        }
-
-                        // 如果找到了注释，则追加到新行
-                        if (comment_start != std::string::npos)
-                            line.append(sub_str.substr(comment_start));
+                        // 用新注释替换原注释
+                        line += " " + normalized_comment;
                     }
                     else
                     {
-                        // 情况 B：值没有引号（直接值，可能带注释）
-                        // j 已指向值的首字符，直接扫描注释符
-                        // 跳过等号后的空格（已经跳过部分，但可能还有）
-                        // 例子 aa = this comment # comment
-                        for (; j < sub_str.size(); j++)
-                        {
-                            if (sub_str[j] == ' ')
-                            {
-                                break;
-                            }
-                        }
+                        // 保留原注释的逻辑
+                        size_t j = 0;
 
-                        // 然后跳过连续空格，直到遇到第一个非空格字符
-                        // 因为不使用 双引号 包裹值，直接确认有没有 # ;
+                        // 跳过等号后的空格和制表符
                         for (; j < sub_str.size(); j++)
-                        {
-                            if (sub_str[j] != ' ')
-                            {
+                            if (sub_str[j] != '\t' && sub_str[j] != ' ')
                                 break;
-                            }
-                        }
 
-                        // 如果此时是注释符，直接追加
-                        if (j < sub_str.size() && (sub_str[j] == '#' || sub_str[j] == ';'))
+                        // 情况 A：值被双引号包裹
+                        if (j < sub_str.size() && sub_str[j] == '"')
                         {
-                            //回退一个空格
-                            if (j > 0 && sub_str[j - 1] == ' ')
+                            j++;
+                            for (; j < sub_str.size(); j++)
                             {
-                                j--;
+                                if (sub_str[j] == '"')
+                                {
+                                    size_t backslash_count = 0;
+                                    size_t k               = j;
+                                    while (k > 0 && sub_str[k - 1] == '\\')
+                                    {
+                                        backslash_count++;
+                                        k--;
+                                    }
+                                    if (backslash_count % 2 == 1)
+                                        continue;
+                                    j++;
+                                    break;
+                                }
                             }
-                            else
-                            {
-                                line.append(" ");
-                            }
-                            line.append(sub_str.substr(j));
-                        }
-                        else
-                        {
-                            // 否则，找到第一个注释符并追加（保留注释前的空格）
+
                             size_t comment_start = std::string::npos;
                             for (; j < sub_str.size(); j++)
                             {
                                 if (sub_str[j] == '#' || sub_str[j] == ';')
                                 {
-                                    // 回退到注释符前的空格，保留格式
                                     comment_start = j;
                                     while (comment_start > 0 && sub_str[comment_start - 1] == ' ')
-                                    {
                                         comment_start--;
-                                    }
                                     if (comment_start == j)
-                                    {
                                         line.push_back(' ');
-                                    }
                                     break;
                                 }
                             }
-
                             if (comment_start != std::string::npos)
+                            {
                                 line.append(sub_str.substr(comment_start));
+                                old_comment = sub_str.substr(comment_start);
+                            }
+                        }
+                        else
+                        {
+                            for (; j < sub_str.size(); j++)
+                            {
+                                if (sub_str[j] == ' ')
+                                    break;
+                            }
+                            for (; j < sub_str.size(); j++)
+                            {
+                                if (sub_str[j] != ' ')
+                                    break;
+                            }
+
+                            if (j < sub_str.size() && (sub_str[j] == '#' || sub_str[j] == ';'))
+                            {
+                                if (j > 0 && sub_str[j - 1] == ' ')
+                                    j--;
+                                else
+                                    line.append(" ");
+                                line.append(sub_str.substr(j));
+                                old_comment = sub_str.substr(j);
+                            }
+                            else
+                            {
+                                size_t comment_start = std::string::npos;
+                                for (; j < sub_str.size(); j++)
+                                {
+                                    if (sub_str[j] == '#' || sub_str[j] == ';')
+                                    {
+                                        comment_start = j;
+                                        while (comment_start > 0 && sub_str[comment_start - 1] == ' ')
+                                            comment_start--;
+                                        if (comment_start == j)
+                                            line.push_back(' ');
+                                        break;
+                                    }
+                                }
+                                if (comment_start != std::string::npos)
+                                {
+                                    line.append(sub_str.substr(comment_start));
+                                    old_comment = sub_str.substr(comment_start);
+                                }
+                            }
                         }
                     }
 
-                    found = true;// 标记已修改
+                    found = true;
                 }
             }
         }
@@ -394,42 +440,74 @@ bool parse_ini::save_value(const std::string &section, const std::string &name, 
     if (!found)
         return false;// 未找到键
 
-    // 6. 原子写入：临时文件 + rename，保留 .bak 备份
+    // 5. 原子写入：临时文件 + rename，保留 .bak 备份
     if (!atomic_write_file(filename_, lines))
         return false;
 
-    // 7. 同步内存中的 config
+    // 6. 同步内存中的 config
     auto itSec = config.find(section);
     if (itSec != config.end())
-        itSec->second[name] = new_value;
+    {
+        for (auto &item : itSec->second.data)
+        {
+            if (item.name == name)
+            {
+                item.value = new_value;
+                if (!normalized_comment.empty())
+                    item.comment = normalized_comment;
+                else if (!old_comment.empty())
+                    item.comment = old_comment;
+                break;
+            }
+        }
+    }
     else
-        config[section][name] = new_value;
+    {
+        ini_key_value_t kv;
+        kv.name = name;
+        kv.value = new_value;
+        kv.comment = !normalized_comment.empty() ? normalized_comment : old_comment;
+        config[section].push_back(kv);
+    }
 
     return true;
 }
 
 // ---------- 添加或更新某个值到文件中 ----------
-bool parse_ini::add_value(const std::string &section, const std::string &name, const std::string &new_value)
+bool parse_ini::add_value(const std::string &section, const std::string &name, const std::string &new_value, const std::string &comment)
 {
     if (filename_.empty())
         return false;
 
-    // 防止 INI 注入：节名、键名、值中不能包含换行符
+    // 防止 INI 注入：节名、键名、值和注释中不能包含换行符
     if (section.find('\n') != std::string::npos || section.find('\r') != std::string::npos)
         return false;
     if (name.find('\n') != std::string::npos || name.find('\r') != std::string::npos)
         return false;
     if (new_value.find('\n') != std::string::npos || new_value.find('\r') != std::string::npos)
         return false;
+    if (comment.find('\n') != std::string::npos || comment.find('\r') != std::string::npos)
+        return false;
+
     // 节名和键名不能为空，键名不能包含 '='
     if (section.empty() || name.empty() || name.find('=') != std::string::npos)
         return false;
 
+    // 规范化注释
+    std::string normalized_comment;
+    if (!comment.empty())
+    {
+        if (comment[0] == ';' || comment[0] == '#')
+            normalized_comment = comment;
+        else
+            normalized_comment = "; " + comment;
+    }
+
     // 如果键已存在，直接更新
     auto itSec = config.find(section);
-    if (itSec != config.end() && itSec->second.find(name) != itSec->second.end())
+    if (itSec != config.end() && itSec->second.contains(name))
     {
-        return save_value(section, name, new_value);
+        return save_value(section, name, new_value, comment);
     }
 
     // 读取文件
@@ -485,7 +563,10 @@ bool parse_ini::add_value(const std::string &section, const std::string &name, c
         }
     }
 
+    // 构建新行（包含注释）
     std::string new_line = name + " = " + new_value;
+    if (!normalized_comment.empty())
+        new_line += " " + normalized_comment;
 
     if (!section_found)
     {
@@ -506,7 +587,11 @@ bool parse_ini::add_value(const std::string &section, const std::string &name, c
         return false;
 
     // 更新内存
-    config[section][name] = new_value;
+    ini_key_value_t kv;
+    kv.name = name;
+    kv.value = new_value;
+    kv.comment = normalized_comment;
+    config[section].push_back(kv);
     return true;
 }
 
@@ -659,7 +744,7 @@ bool parse_ini::delete_section(const std::string &section)
     return true;
 }
 
-// ---------- 将内存中的配置保存到文件（无注释，纯格式） ----------
+// ---------- 将内存中的配置保存到文件 ----------
 bool parse_ini::save_file(const std::string &filename)
 {
     // 构建行列表
@@ -669,7 +754,26 @@ bool parse_ini::save_file(const std::string &filename)
         lines.push_back("[" + secPair.first + "]");
         for (const auto &kv : secPair.second)
         {
-            lines.push_back(kv.first + " = " + kv.second);
+            if (kv.name.empty())
+            {
+                // 纯注释行
+                if (!kv.comment.empty())
+                    lines.push_back("; " + kv.comment);
+                else
+                    lines.push_back("");
+            }
+            else
+            {
+                std::string line = kv.name + " = " + kv.value;
+                if (!kv.comment.empty())
+                {
+                    if (kv.comment[0] == ';' || kv.comment[0] == '#')
+                        line += " " + kv.comment;
+                    else
+                        line += " ; " + kv.comment;
+                }
+                lines.push_back(line);
+            }
         }
         lines.push_back("");// 节之间空行
     }
