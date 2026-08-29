@@ -28,8 +28,6 @@ paozhu/
 │   ├── server.conf                # Main server configuration
 │   ├── orm.conf                   # Database connection settings
 │   ├── acme.conf                  # ACME certificate settings
-│   ├── gcc.conf                   # Compiler settings
-│   ├── controlbuild.conf          # Controller build settings
 │   └── ...                        # Other configuration and SQL files
 │
 ├── controller/                    # Controller layer
@@ -101,7 +99,7 @@ paozhu/
 ├── www/                           # Web static file root
 ├── docs/                          # Example resources (images, fonts, etc.)
 ├── CMakeLists.txt                 # CMake build configuration
-└── AI_RULES.md                    # This document
+└── AGENTS.md                      # This document
 ```
 
 ---

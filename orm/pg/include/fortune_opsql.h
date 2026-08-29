@@ -1,5 +1,5 @@
-#ifndef _ORM_PH_WORLD_OPERATE_H
-#define _ORM_PH_WORLD_OPERATE_H
+#ifndef _ORM_PG_FORTUNE_OPERATE_H
+#define _ORM_PG_FORTUNE_OPERATE_H
 /*
  *  @author 黄自权 huangziquan
  *  @date 2022-05-04
@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM PostgreSQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Mon, 17 Aug 2026 02:57:51 GMT
+ *  Creation time Sat, 29 Aug 2026 05:49:37 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -39,18 +39,18 @@
 #include "orm_conn_pool.h"
 #include "orm_cache.hpp"
 #include "orm_connect_mar.h"
-#include "world_base.h"
+#include "fortune_base.h"
 /*baseincludefile*/
 namespace orm
 {
 // mysql Operational SQL middleware
-namespace ph
+namespace pg
 { /*tagnamespace_replace*/
     template <typename M_MODEL, typename B_BASE>
-    class world_opsql : public B_BASE
+    class fortune_opsql : public B_BASE
     {
       public:
-        world_opsql(const std::string &tag) : dbtag(tag)
+        fortune_opsql(const std::string &tag) : dbtag(tag)
         {
             std::map<std::string, std::shared_ptr<orm_conn_pool>> &conn_pool_obj = get_orm_conn_pool_obj();
             auto iter                                                            = conn_pool_obj.find(dbtag);
@@ -75,7 +75,7 @@ namespace ph
                 error_msg = "conn_pool not found " + dbtag;
             }
         }
-        world_opsql() : dbtag(B_BASE::_rmstag)
+        fortune_opsql() : dbtag(B_BASE::_rmstag)
         {
             std::map<std::string, std::shared_ptr<orm_conn_pool>> &conn_pool_obj = get_orm_conn_pool_obj();
             auto iter                                                            = conn_pool_obj.find(dbtag);
@@ -191,28 +191,26 @@ namespace ph
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = select_conn->execute_and_fetch(countsql, fields, rows, affected);
-                if (err > 0)
+                unsigned int querysql_len = 0;
+                unsigned int fetch_count = select_conn->fetch_directly(countsql,
+                    [&querysql_len](int col_count, char** col_names, auto get_data) -> bool {
+                        (void)col_count;
+                        (void)col_names;
+                        auto [ptr, len] = get_data(0);
+                        if (ptr != nullptr) {
+                            for (size_t ik = 0; ik < len; ik++) {
+                                if (ptr[ik] >= '0' && ptr[ik] <= '9') {
+                                    querysql_len = querysql_len * 10 + (ptr[ik] - '0');
+                                }
+                            }
+                        }
+                        return false;// 只取首行
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return 0;
-                }
-
-                unsigned int querysql_len = 0;
-                if (!rows.empty() && !rows[0].values.empty() && !rows[0].is_null[0])
-                {
-                    const std::string &val = rows[0].values[0];
-                    for (unsigned int ik = 0; ik < val.size(); ik++)
-                    {
-                        if (val[ik] >= '0' && val[ik] <= '9')
-                        {
-                            querysql_len = querysql_len * 10 + (val[ik] - '0');
-                        }
-                    }
                 }
                 effect_num = 1;
 
@@ -342,28 +340,26 @@ namespace ph
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await select_conn->async_execute_and_fetch(countsql, fields, rows, affected);
-                if (err > 0)
+                unsigned int querysql_len = 0;
+                unsigned int fetch_count = co_await select_conn->async_fetch_directly(countsql,
+                    [&querysql_len](int col_count, char** col_names, auto get_data) -> bool {
+                        (void)col_count;
+                        (void)col_names;
+                        auto [ptr, len] = get_data(0);
+                        if (ptr != nullptr) {
+                            for (size_t ik = 0; ik < len; ik++) {
+                                if (ptr[ik] >= '0' && ptr[ik] <= '9') {
+                                    querysql_len = querysql_len * 10 + (ptr[ik] - '0');
+                                }
+                            }
+                        }
+                        return false;// 只取首行
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     co_return 0;
-                }
-
-                unsigned int querysql_len = 0;
-                if (!rows.empty() && !rows[0].values.empty() && !rows[0].is_null[0])
-                {
-                    const std::string &val = rows[0].values[0];
-                    for (unsigned int ik = 0; ik < val.size(); ik++)
-                    {
-                        if (val[ik] >= '0' && val[ik] <= '9')
-                        {
-                            querysql_len = querysql_len * 10 + (val[ik] - '0');
-                        }
-                    }
                 }
                 effect_num = 1;
 
@@ -527,10 +523,7 @@ namespace ph
                 {
                     edit_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(countsql, fields, rows, affected);
+                unsigned int affected = edit_conn->exec_dml(countsql);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -538,7 +531,7 @@ namespace ph
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(countsql, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -651,10 +644,7 @@ namespace ph
                 {
                     edit_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await edit_conn->async_execute_and_fetch(countsql, fields, rows, affected);
+                unsigned int affected = co_await edit_conn->async_exec_dml(countsql);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -662,7 +652,7 @@ namespace ph
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(countsql, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -765,10 +755,7 @@ namespace ph
                     edit_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(countsql, fields, rows, affected);
+                unsigned int affected = edit_conn->exec_dml(countsql);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -776,7 +763,7 @@ namespace ph
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(countsql, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -879,10 +866,7 @@ namespace ph
                     edit_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await edit_conn->async_execute_and_fetch(countsql, fields, rows, affected);
+                unsigned int affected = co_await edit_conn->async_exec_dml(countsql);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -890,7 +874,7 @@ namespace ph
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(countsql, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -915,7 +899,7 @@ namespace ph
             co_return 0;
         }
 
-        void assign_field_value(unsigned char index_pos, unsigned char *result_temp_data, unsigned long long value_size, world_info::meta &data_temp)
+        void assign_field_value(unsigned char index_pos, unsigned char *result_temp_data, unsigned long long value_size, fortune_info::meta &data_temp)
     {
         switch(index_pos)
         {
@@ -936,20 +920,7 @@ namespace ph
             }
             break;
                 case 1:
-             {
-               data_temp.randomnumber = 0;
-            
-                    auto result = std::from_chars(
-                            reinterpret_cast<const char*>(result_temp_data),
-                            reinterpret_cast<const char*>(result_temp_data) + value_size,
-                            data_temp.randomnumber);
-                        if (result.ec == std::errc()) {
-
-                        }
-                        else{
-                            data_temp.randomnumber = 0;
-                        }
-            }
+            data_temp.message.assign(reinterpret_cast<const char*>(result_temp_data), value_size);
             break;
                 
         }
@@ -2460,7 +2431,7 @@ M_MODEL& or_leId(T val)
     }   
     
 
-M_MODEL& eqRandomnumber(const std::string &val)
+M_MODEL& nullMessage()
 	{
         if (wheresql.empty())
         {
@@ -2483,25 +2454,13 @@ M_MODEL& eqRandomnumber(const std::string &val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber = ");
+        wheresql.append(" message IS NULL ");
 
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
         return *mod;   
     }   
     
 
-M_MODEL& nqRandomnumber(const std::string &val)
+M_MODEL& nnullMessage()
 	{
         if (wheresql.empty())
         {
@@ -2524,25 +2483,13 @@ M_MODEL& nqRandomnumber(const std::string &val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber != ");
+        wheresql.append(" message IS NOT NULL ");
 
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
         return *mod;   
     }   
     
 
-M_MODEL& inRandomnumber(const std::string &val)
+M_MODEL& eqMessage(const std::string &val)
 	{
         if (wheresql.empty())
         {
@@ -2565,18 +2512,15 @@ M_MODEL& inRandomnumber(const std::string &val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber IN('");
+        wheresql.append(" message = '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
 
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
         return *mod;   
     }   
     
 
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& inRandomnumber(const T &val)
+M_MODEL& nqMessage(const std::string &val)
 	{
         if (wheresql.empty())
         {
@@ -2599,17 +2543,15 @@ M_MODEL& inRandomnumber(const T &val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber IN(");
+        wheresql.append(" message != '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
 
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
         return *mod;   
     }   
     
 
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& inRandomnumber(const std::vector<T>& val)
+M_MODEL& inMessage(const std::string &val)
 	{
         if (wheresql.empty())
         {
@@ -2632,23 +2574,100 @@ M_MODEL& inRandomnumber(const std::vector<T>& val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber IN(");
+        wheresql.append(" message IN('");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
+				wheresql.push_back(')');
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& inMessage(const std::vector<std::string> &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" message IN(");
 
         for(unsigned int i=0;i<val.size(); i++)
         {
-            if(i > 0)
+            if(i>0)
             {
-                wheresql.push_back(',');
+                wheresql.push_back(',');  
             }
+            wheresql.push_back('\'');  
+            wheresql.append(B_BASE::stringaddslash(val[i]));
+            wheresql.push_back('\'');    
+        }
+
+    
+        return *mod;   
+    }   
+    
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& inMessage(const std::vector<T> &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" message IN(");
+
+        for(unsigned int i=0;i<val.size(); i++)
+        {
+            if(i>0)
+            {
+                wheresql.push_back(',');  
+            }
+            wheresql.push_back('\'');  
             wheresql.append(std::to_string(val[i]));
+            wheresql.push_back('\'');    
         }
-        wheresql.push_back(')');
 
+    
         return *mod;   
     }   
     
 
-M_MODEL& inRandomnumber(const std::vector<std::string>& val)
+M_MODEL& ninMessage(const std::string &val)
 	{
         if (wheresql.empty())
         {
@@ -2671,69 +2690,59 @@ M_MODEL& inRandomnumber(const std::vector<std::string>& val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber IN(");
+        wheresql.append(" message NOT IN('");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
+				wheresql.push_back(')');
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& ninMessage(const std::vector<std::string> &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" message NOT IN(");
 
         for(unsigned int i=0;i<val.size(); i++)
         {
-            if(i > 0)
+            if(i>0)
             {
-                wheresql.push_back(',');
+                wheresql.push_back(',');  
             }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
+            wheresql.push_back('\'');  
+            wheresql.append(B_BASE::stringaddslash(val[i]));
+            wheresql.push_back('\'');    
         }
-        wheresql.push_back(')');
 
-        return *mod;   
-    }   
     
-
-M_MODEL& ninRandomnumber(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" randomnumber NOT IN('");
-
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
         return *mod;   
     }   
     
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& ninRandomnumber(const T &val)
+M_MODEL& ninMessage(const std::vector<T> &val)
 	{
         if (wheresql.empty())
         {
@@ -2756,56 +2765,25 @@ M_MODEL& ninRandomnumber(const T &val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber NOT IN(");
-
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& ninRandomnumber(const std::vector<T>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" randomnumber NOT IN(");
+        wheresql.append(" message NOT IN(");
 
         for(unsigned int i=0;i<val.size(); i++)
         {
-            if(i > 0)
+            if(i>0)
             {
-                wheresql.push_back(',');
+                wheresql.push_back(',');  
             }
+            wheresql.push_back('\'');  
             wheresql.append(std::to_string(val[i]));
+            wheresql.push_back('\'');    
         }
-        wheresql.push_back(')');
 
+    
         return *mod;   
     }   
     
 
-M_MODEL& ninRandomnumber(const std::vector<std::string>& val)
+M_MODEL& likeMessage(const std::string &val)
 	{
         if (wheresql.empty())
         {
@@ -2828,315 +2806,396 @@ M_MODEL& ninRandomnumber(const std::vector<std::string>& val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber NOT IN(");
+        wheresql.append(" message LIKE '%");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.append("%'");
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& l_likeMessage(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" message LIKE '%");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.append("'");
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& r_likeMessage(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" message LIKE '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.append("%'");
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& btMessage(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" message > '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& beMessage(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" message >= '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& ltMessage(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" message < '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& leMessage(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" AND ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" AND ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" message <= '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_nullMessage()
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" message IS NULL ");
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_nnullMessage()
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" message IS NOT NULL ");
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_eqMessage(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" message = '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_nqMessage(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" message != '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_inMessage(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" message IN('");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
+				wheresql.push_back(')');
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_inMessage(const std::vector<std::string> &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" message IN(");
 
         for(unsigned int i=0;i<val.size(); i++)
         {
-            if(i > 0)
+            if(i>0)
             {
-                wheresql.push_back(',');
+                wheresql.push_back(',');  
             }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
+            wheresql.push_back('\'');  
+            wheresql.append(B_BASE::stringaddslash(val[i]));
+            wheresql.push_back('\'');    
         }
-        wheresql.push_back(')');
 
-        return *mod;   
-    }   
     
-
-M_MODEL& btRandomnumber(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" randomnumber > ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& beRandomnumber(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" randomnumber >= ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& ltRandomnumber(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" randomnumber < ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& leRandomnumber(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" randomnumber <= ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_eqRandomnumber(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" randomnumber = ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_nqRandomnumber(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" randomnumber != ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_inRandomnumber(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" randomnumber IN('");
-
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
         return *mod;   
     }   
     
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_inRandomnumber(const T &val)
+M_MODEL& or_inMessage(const std::vector<T> &val)
 	{
         if (wheresql.empty())
         {
@@ -3159,56 +3218,25 @@ M_MODEL& or_inRandomnumber(const T &val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber IN(");
-
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_inRandomnumber(const std::vector<T>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" randomnumber IN(");
+        wheresql.append(" message IN(");
 
         for(unsigned int i=0;i<val.size(); i++)
         {
-            if(i > 0)
+            if(i>0)
             {
-                wheresql.push_back(',');
+                wheresql.push_back(',');  
             }
+            wheresql.push_back('\'');  
             wheresql.append(std::to_string(val[i]));
+            wheresql.push_back('\'');    
         }
-        wheresql.push_back(')');
 
+    
         return *mod;   
     }   
     
 
-M_MODEL& or_inRandomnumber(const std::vector<std::string>& val)
+M_MODEL& or_ninMessage(const std::string &val)
 	{
         if (wheresql.empty())
         {
@@ -3231,69 +3259,59 @@ M_MODEL& or_inRandomnumber(const std::vector<std::string>& val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber IN(");
+        wheresql.append(" message NOT IN('");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
+				wheresql.push_back(')');
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_ninMessage(const std::vector<std::string> &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" message NOT IN(");
 
         for(unsigned int i=0;i<val.size(); i++)
         {
-            if(i > 0)
+            if(i>0)
             {
-                wheresql.push_back(',');
+                wheresql.push_back(',');  
             }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
+            wheresql.push_back('\'');  
+            wheresql.append(B_BASE::stringaddslash(val[i]));
+            wheresql.push_back('\'');    
         }
-        wheresql.push_back(')');
 
-        return *mod;   
-    }   
     
-
-M_MODEL& or_ninRandomnumber(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" randomnumber NOT IN('");
-
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
         return *mod;   
     }   
     
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_ninRandomnumber(const T &val)
+M_MODEL& or_ninMessage(const std::vector<T> &val)
 	{
         if (wheresql.empty())
         {
@@ -3316,56 +3334,25 @@ M_MODEL& or_ninRandomnumber(const T &val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber NOT IN(");
-
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_ninRandomnumber(const std::vector<T>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" randomnumber NOT IN(");
+        wheresql.append(" message NOT IN(");
 
         for(unsigned int i=0;i<val.size(); i++)
         {
-            if(i > 0)
+            if(i>0)
             {
-                wheresql.push_back(',');
+                wheresql.push_back(',');  
             }
+            wheresql.push_back('\'');  
             wheresql.append(std::to_string(val[i]));
+            wheresql.push_back('\'');    
         }
-        wheresql.push_back(')');
 
+    
         return *mod;   
     }   
     
 
-M_MODEL& or_ninRandomnumber(const std::vector<std::string>& val)
+M_MODEL& or_likeMessage(const std::string &val)
 	{
         if (wheresql.empty())
         {
@@ -3388,35 +3375,15 @@ M_MODEL& or_ninRandomnumber(const std::vector<std::string>& val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
-        }
-        wheresql.push_back(')');
+        wheresql.append(" message LIKE '%");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.append("%'");
 
         return *mod;   
     }   
     
 
-M_MODEL& or_btRandomnumber(const std::string &val)
+M_MODEL& orl_likeMessage(const std::string &val)
 	{
         if (wheresql.empty())
         {
@@ -3439,25 +3406,15 @@ M_MODEL& or_btRandomnumber(const std::string &val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber > ");
+        wheresql.append(" message LIKE '%");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.append("'");
 
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
         return *mod;   
     }   
     
 
-M_MODEL& or_beRandomnumber(const std::string &val)
+M_MODEL& orr_likeMessage(const std::string &val)
 	{
         if (wheresql.empty())
         {
@@ -3480,25 +3437,15 @@ M_MODEL& or_beRandomnumber(const std::string &val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber >= ");
+        wheresql.append(" message LIKE '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.append("%'");
 
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
         return *mod;   
     }   
     
 
-M_MODEL& or_ltRandomnumber(const std::string &val)
+M_MODEL& or_btMessage(const std::string &val)
 	{
         if (wheresql.empty())
         {
@@ -3521,25 +3468,15 @@ M_MODEL& or_ltRandomnumber(const std::string &val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber < ");
+        wheresql.append(" message > '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
 
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
         return *mod;   
     }   
     
 
-M_MODEL& or_leRandomnumber(const std::string &val)
+M_MODEL& or_beMessage(const std::string &val)
 	{
         if (wheresql.empty())
         {
@@ -3562,27 +3499,79 @@ M_MODEL& or_leRandomnumber(const std::string &val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber <= ");
+        wheresql.append(" message >= '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
 
-        try
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_ltMessage(const std::string &val)
+	{
+        if (wheresql.empty())
         {
-            wheresql.append(std::to_string(std::stoll(val)));
         }
-        catch (std::invalid_argument const& ex)
+        else
         {
-           wheresql.push_back('0');
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
         }
-        catch (std::out_of_range const& ex)
+        if (iskuohao)
         {
-           wheresql.push_back('0');
+            ishascontent = true;
         }
+        wheresql.append(" message < '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
+
+        return *mod;   
+    }   
+    
+
+M_MODEL& or_leMessage(const std::string &val)
+	{
+        if (wheresql.empty())
+        {
+        }
+        else
+        {
+            if (ishascontent)
+            {
+                wheresql.append(" OR ");
+            }
+            else
+            {
+                if (!iskuohao)
+                {
+                    wheresql.append(" OR ");
+                }
+            }
+        }
+        if (iskuohao)
+        {
+            ishascontent = true;
+        }
+        wheresql.append(" message <= '");
+				wheresql.append(B_BASE::stringaddslash(val));
+				wheresql.push_back('\'');
+
         return *mod;   
     }   
     
 
 template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& eqRandomnumber(T val)
+		requires std::is_floating_point_v<T>||std::is_integral_v<T>
+M_MODEL& eqMessage(T val)
 	{
         if (wheresql.empty())
         {
@@ -3605,16 +3594,17 @@ M_MODEL& eqRandomnumber(T val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber = ");
+        wheresql.append(" message = '");
+				wheresql.append(std::to_string(val));
+				wheresql.push_back('\'');
 
-        wheresql.append(std::to_string(val));
         return *mod;   
     }   
     
 
 template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& nqRandomnumber(T val)
+		requires std::is_floating_point_v<T>||std::is_integral_v<T>
+M_MODEL& nqMessage(T val)
 	{
         if (wheresql.empty())
         {
@@ -3637,16 +3627,17 @@ M_MODEL& nqRandomnumber(T val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber != ");
+        wheresql.append(" message != '");
+				wheresql.append(std::to_string(val));
+				wheresql.push_back('\'');
 
-        wheresql.append(std::to_string(val));
         return *mod;   
     }   
     
 
 template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& btRandomnumber(T val)
+		requires std::is_floating_point_v<T>||std::is_integral_v<T>
+M_MODEL& btMessage(T val)
 	{
         if (wheresql.empty())
         {
@@ -3669,16 +3660,17 @@ M_MODEL& btRandomnumber(T val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber > ");
+        wheresql.append(" message > '");
+				wheresql.append(std::to_string(val));
+				wheresql.push_back('\'');
 
-        wheresql.append(std::to_string(val));
         return *mod;   
     }   
     
 
 template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& beRandomnumber(T val)
+		requires std::is_floating_point_v<T>||std::is_integral_v<T>
+M_MODEL& beMessage(T val)
 	{
         if (wheresql.empty())
         {
@@ -3701,16 +3693,17 @@ M_MODEL& beRandomnumber(T val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber >= ");
+        wheresql.append(" message >= '");
+				wheresql.append(std::to_string(val));
+				wheresql.push_back('\'');
 
-        wheresql.append(std::to_string(val));
         return *mod;   
     }   
     
 
 template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& ltRandomnumber(T val)
+		requires std::is_floating_point_v<T>||std::is_integral_v<T>
+M_MODEL& ltMessage(T val)
 	{
         if (wheresql.empty())
         {
@@ -3733,16 +3726,17 @@ M_MODEL& ltRandomnumber(T val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber < ");
+        wheresql.append(" message < '");
+		wheresql.append(std::to_string(val));
+		wheresql.push_back('\'');
 
-        wheresql.append(std::to_string(val));
         return *mod;   
     }   
     
 
 template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& leRandomnumber(T val)
+		requires std::is_floating_point_v<T>||std::is_integral_v<T>
+M_MODEL& leMessage(T val)
 	{
         if (wheresql.empty())
         {
@@ -3765,16 +3759,17 @@ M_MODEL& leRandomnumber(T val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber <= ");
+        wheresql.append(" message <= '");
+				wheresql.append(std::to_string(val));
+				wheresql.push_back('\'');
 
-        wheresql.append(std::to_string(val));
         return *mod;   
     }   
     
 
 template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_eqRandomnumber(T val)
+		requires std::is_floating_point_v<T>||std::is_integral_v<T>
+M_MODEL& or_eqMessage(T val)
 	{
         if (wheresql.empty())
         {
@@ -3797,16 +3792,17 @@ M_MODEL& or_eqRandomnumber(T val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber = ");
+        wheresql.append(" message = '");
+				wheresql.append(std::to_string(val));
+				wheresql.push_back('\'');
 
-        wheresql.append(std::to_string(val));
         return *mod;   
     }   
     
 
 template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_nqRandomnumber(T val)
+		requires std::is_floating_point_v<T>||std::is_integral_v<T>
+M_MODEL& or_nqMessage(T val)
 	{
         if (wheresql.empty())
         {
@@ -3829,16 +3825,17 @@ M_MODEL& or_nqRandomnumber(T val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber != ");
+        wheresql.append(" message != '");
+				wheresql.append(std::to_string(val));
+				wheresql.push_back('\'');
 
-        wheresql.append(std::to_string(val));
         return *mod;   
     }   
     
 
 template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_btRandomnumber(T val)
+		requires std::is_floating_point_v<T>||std::is_integral_v<T>
+M_MODEL& or_btMessage(T val)
 	{
         if (wheresql.empty())
         {
@@ -3861,16 +3858,17 @@ M_MODEL& or_btRandomnumber(T val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber > ");
+        wheresql.append(" message > '");
+				wheresql.append(std::to_string(val));
+				wheresql.push_back('\'');
 
-        wheresql.append(std::to_string(val));
         return *mod;   
     }   
     
 
 template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_beRandomnumber(T val)
+		requires std::is_floating_point_v<T>||std::is_integral_v<T>
+M_MODEL& or_beMessage(T val)
 	{
         if (wheresql.empty())
         {
@@ -3893,16 +3891,17 @@ M_MODEL& or_beRandomnumber(T val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber >= ");
+        wheresql.append(" message >= '");
+				wheresql.append(std::to_string(val));
+				wheresql.push_back('\'');
 
-        wheresql.append(std::to_string(val));
         return *mod;   
     }   
     
 
 template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_ltRandomnumber(T val)
+		requires std::is_floating_point_v<T>||std::is_integral_v<T>
+M_MODEL& or_ltMessage(T val)
 	{
         if (wheresql.empty())
         {
@@ -3925,16 +3924,17 @@ M_MODEL& or_ltRandomnumber(T val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber < ");
+        wheresql.append(" message < '");
+				wheresql.append(std::to_string(val));
+				wheresql.push_back('\'');
 
-        wheresql.append(std::to_string(val));
         return *mod;   
     }   
     
 
 template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_leRandomnumber(T val)
+		requires std::is_floating_point_v<T>||std::is_integral_v<T>
+M_MODEL& or_leMessage(T val)
 	{
         if (wheresql.empty())
         {
@@ -3957,9 +3957,10 @@ M_MODEL& or_leRandomnumber(T val)
         {
             ishascontent = true;
         }
-        wheresql.append(" randomnumber <= ");
+        wheresql.append(" message <= '");
+				wheresql.append(std::to_string(val));
+				wheresql.push_back('\'');
 
-        wheresql.append(std::to_string(val));
         return *mod;   
     }   
     
@@ -5157,7 +5158,7 @@ M_MODEL& or_leRandomnumber(T val)
                 {
                     wheresql.append("\'");
                 }
-                wheresql.append(key);
+                wheresql.append(to_escape(key));
                 wheresql.append("\'");
                 i++;
             }
@@ -5201,7 +5202,7 @@ M_MODEL& or_leRandomnumber(T val)
                 {
                     wheresql.append("\'");
                 }
-                wheresql.append(key);
+                wheresql.append(to_escape(key));
                 wheresql.append("\'");
                 i++;
             }
@@ -5493,7 +5494,7 @@ M_MODEL& or_leRandomnumber(T val)
         }
 
         template <typename T2>
-        M_MODEL &where(world_info::cols field1, orm::wq opwq, T2 &&field2)
+        M_MODEL &where(fortune_info::cols field1, orm::wq opwq, T2 &&field2)
         {
             if (wheresql.empty())
             {
@@ -5520,11 +5521,11 @@ M_MODEL& or_leRandomnumber(T val)
             switch (field1)
             {
             
-			case world_info::cols::id:
+			case fortune_info::cols::id:
 				wheresql.append("id");
 				break;
-			case world_info::cols::randomnumber:
-				wheresql.append("randomnumber");
+			case fortune_info::cols::message:
+				wheresql.append("message");
 				break;
             default:
                 return *mod;
@@ -5580,7 +5581,7 @@ M_MODEL& or_leRandomnumber(T val)
         }
 
         template <typename T2>
-        M_MODEL &whereOr(world_info::cols field1, orm::wq opwq, T2 &&field2)
+        M_MODEL &whereOr(fortune_info::cols field1, orm::wq opwq, T2 &&field2)
         {
             if (wheresql.empty())
             {
@@ -5607,11 +5608,11 @@ M_MODEL& or_leRandomnumber(T val)
             switch (field1)
             {
             
-			case world_info::cols::id:
+			case fortune_info::cols::id:
 				wheresql.append("id");
 				break;
-			case world_info::cols::randomnumber:
-				wheresql.append("randomnumber");
+			case fortune_info::cols::message:
+				wheresql.append("message");
 				break;
             default:
                 return *mod;
@@ -5898,33 +5899,25 @@ M_MODEL& or_leRandomnumber(T val)
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = select_conn->execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
+                    [this, &temprecord](int col_count, char** col_names, auto get_data) -> bool {
+                        std::map<std::string, std::string> data_temp;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            std::string col_name = col_names[ij] ? col_names[ij] : "";
+                            if (!col_name.empty()) {
+                                data_temp.insert({col_name, ptr != nullptr ? std::string(reinterpret_cast<const char*>(ptr), len) : std::string()});
+                            }
+                        }
+                        temprecord.emplace_back(std::move(data_temp));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return temprecord;
-                }
-
-                for (auto &row : rows)
-                {
-                    std::map<std::string, std::string> data_temp;
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (fields[ij].name.size() > 0)
-                        {
-                            data_temp.insert({fields[ij].name, row.values[ij]});
-                        }
-                        else if (fields[ij].org_name.size() > 0)
-                        {
-                            data_temp.insert({fields[ij].org_name, row.values[ij]});
-                        }
-                    }
-                    temprecord.emplace_back(std::move(data_temp));
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -6049,32 +6042,30 @@ M_MODEL& or_leRandomnumber(T val)
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = select_conn->execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
+                    [this, &temprecord, &table_fieldname, &table_fieldmap, first_col = true](int col_count, char** col_names, auto get_data) mutable -> bool {
+                        if (first_col) {
+                            for (int ii = 0; ii < col_count; ii++) {
+                                const char *nm = col_names[ii];
+                                table_fieldmap.emplace(nm ? nm : "", table_fieldname.size());
+                                table_fieldname.push_back(nm ? nm : "");
+                            }
+                            first_col = false;
+                        }
+                        std::vector<std::string> temp_v_record;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            temp_v_record.push_back(ptr != nullptr ? std::string(reinterpret_cast<const char*>(ptr), len) : std::string());
+                        }
+                        temprecord.push_back(std::move(temp_v_record));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
-                }
-
-                for (unsigned int ii = 0; ii < fields.size(); ii++)
-                {
-                    table_fieldmap.emplace(fields[ii].org_name, table_fieldname.size());
-                    table_fieldname.push_back(fields[ii].org_name);
-                }
-
-                for (auto &row : rows)
-                {
-                    std::vector<std::string> temp_v_record;
-                    for (unsigned int ij = 0; ij < row.values.size(); ij++)
-                    {
-                        temp_v_record.push_back(row.values[ij]);
-                    }
-                    temprecord.push_back(std::move(temp_v_record));
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -6195,39 +6186,27 @@ M_MODEL& or_leRandomnumber(T val)
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = select_conn->execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
+                    [this, &custom_record, &callback](int col_count, char** col_names, auto get_data) -> bool {
+                        T data_temp;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            std::string col_name = col_names[ij] ? col_names[ij] : "";
+                            if (!col_name.empty()) {
+                                std::invoke(std::forward<Callback>(callback), data_temp, col_name, ptr, len, 0, 1);
+                            }
+                        }
+                        custom_record.emplace_back(std::move(data_temp));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return 0;
-                }
-
-                for (auto &row : rows)
-                {
-                    T data_temp;
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        if (fields[ij].name.size() > 0)
-                        {
-                            //or alias name
-                            std::invoke(std::forward<Callback>(callback), data_temp, fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type, 1);
-                        }
-                        else if (fields[ij].org_name.size() > 0)
-                        {
-                            std::invoke(std::forward<Callback>(callback), data_temp, fields[ij].org_name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type, 1);
-                        }
-                    }
-                    custom_record.emplace_back(std::move(data_temp));
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -6322,39 +6301,27 @@ M_MODEL& or_leRandomnumber(T val)
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await select_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
+                    [this, &custom_record, &callback](int col_count, char** col_names, auto get_data) -> bool {
+                        T data_temp;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            std::string col_name = col_names[ij] ? col_names[ij] : "";
+                            if (!col_name.empty()) {
+                                std::invoke(std::forward<Callback>(callback), data_temp, col_name, ptr, len, 0, 1);
+                            }
+                        }
+                        custom_record.emplace_back(std::move(data_temp));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     co_return 0;
-                }
-
-                for (auto &row : rows)
-                {
-                    T data_temp;
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        if (fields[ij].name.size() > 0)
-                        {
-                            //or alias name
-                            std::invoke(std::forward<Callback>(callback), data_temp, fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type, 1);
-                        }
-                        else if (fields[ij].org_name.size() > 0)
-                        {
-                            std::invoke(std::forward<Callback>(callback), data_temp, fields[ij].org_name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type, 1);
-                        }
-                    }
-                    custom_record.emplace_back(std::move(data_temp));
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -6447,39 +6414,27 @@ M_MODEL& or_leRandomnumber(T val)
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = select_conn->execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
+                    [this, &custom_record](int col_count, char** col_names, auto get_data) -> bool {
+                        T data_temp;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            std::string col_name = col_names[ij] ? col_names[ij] : "";
+                            if (!col_name.empty()) {
+                                data_temp.set_val(col_name, ptr, len, 0);
+                            }
+                        }
+                        custom_record.emplace_back(std::move(data_temp));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return 0;
-                }
-
-                for (auto &row : rows)
-                {
-                    T data_temp;
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        if (fields[ij].name.size() > 0)
-                        {
-                            //or alias name
-                            data_temp.set_val(fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                        }
-                        else if (fields[ij].org_name.size() > 0)
-                        {
-                            data_temp.set_val(fields[ij].org_name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                        }
-                    }
-                    custom_record.emplace_back(std::move(data_temp));
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -6574,39 +6529,27 @@ M_MODEL& or_leRandomnumber(T val)
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await select_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
+                    [this, &custom_record](int col_count, char** col_names, auto get_data) -> bool {
+                        T data_temp;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            std::string col_name = col_names[ij] ? col_names[ij] : "";
+                            if (!col_name.empty()) {
+                                data_temp.set_val(col_name, ptr, len, 0);
+                            }
+                        }
+                        custom_record.emplace_back(std::move(data_temp));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     co_return 0;
-                }
-
-                for (auto &row : rows)
-                {
-                    T data_temp;
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        if (fields[ij].name.size() > 0)
-                        {
-                            //or alias name
-                            data_temp.set_val(fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                        }
-                        else if (fields[ij].org_name.size() > 0)
-                        {
-                            data_temp.set_val(fields[ij].org_name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                        }
-                    }
-                    custom_record.emplace_back(std::move(data_temp));
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -6708,37 +6651,34 @@ M_MODEL& or_leRandomnumber(T val)
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = select_conn->execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
+                    [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char** col_names, auto get_data) mutable -> bool {
+                        // 列位映射仅首行构建（同一结果集列序固定）：后续行按列号直接索引。
+                        if (first_row) {
+                            col_pos_map.assign(col_count, 255);
+                            for (int ii = 0; ii < col_count; ii++) {
+                                if (col_names[ii] && col_names[ii][0] != '\0') {
+                                    col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
+                                }
+                            }
+                            first_row = false;
+                        }
+                        fortune_info::meta data_temp;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
+                        }
+                        B_BASE::record.emplace_back(std::move(data_temp));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return 0;
-                }
-
-                std::vector<unsigned char> field_pos;
-                for (unsigned int ii = 0; ii < fields.size(); ii++)
-                {
-                    field_pos.push_back(B_BASE::findcolpos(fields[ii].org_name));
-                }
-
-                for (auto &row : rows)
-                {
-                    world_info::meta data_temp;
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        assign_field_value(field_pos[ij], (unsigned char *)row.values[ij].data(), row.values[ij].size(), data_temp);
-                    }
-                    B_BASE::record.emplace_back(std::move(data_temp));
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -6850,37 +6790,34 @@ M_MODEL& or_leRandomnumber(T val)
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await select_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
+                    [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char** col_names, auto get_data) mutable -> bool {
+                        // 列位映射仅首行构建（同一结果集列序固定）：后续行按列号直接索引。
+                        if (first_row) {
+                            col_pos_map.assign(col_count, 255);
+                            for (int ii = 0; ii < col_count; ii++) {
+                                if (col_names[ii] && col_names[ii][0] != '\0') {
+                                    col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
+                                }
+                            }
+                            first_row = false;
+                        }
+                        fortune_info::meta data_temp;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
+                        }
+                        B_BASE::record.emplace_back(std::move(data_temp));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     co_return 0;
-                }
-
-                std::vector<unsigned char> field_pos;
-                for (unsigned int ii = 0; ii < fields.size(); ii++)
-                {
-                    field_pos.push_back(B_BASE::findcolpos(fields[ii].org_name));
-                }
-
-                for (auto &row : rows)
-                {
-                    world_info::meta data_temp;
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        assign_field_value(field_pos[ij], (unsigned char *)row.values[ij].data(), row.values[ij].size(), data_temp);
-                    }
-                    B_BASE::record.emplace_back(std::move(data_temp));
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -6989,37 +6926,34 @@ M_MODEL& or_leRandomnumber(T val)
                 {
                     select_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = select_conn->execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
+                    [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char** col_names, auto get_data) mutable -> bool {
+                        // 列位映射仅首行构建（同一结果集列序固定）：后续行按列号直接索引。
+                        if (first_row) {
+                            col_pos_map.assign(col_count, 255);
+                            for (int ii = 0; ii < col_count; ii++) {
+                                if (col_names[ii] && col_names[ii][0] != '\0') {
+                                    col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
+                                }
+                            }
+                            first_row = false;
+                        }
+                        fortune_info::meta data_temp;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
+                        }
+                        B_BASE::record.emplace_back(std::move(data_temp));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return *mod;
-                }
-
-                std::vector<unsigned char> field_pos;
-                for (unsigned int ii = 0; ii < fields.size(); ii++)
-                {
-                    field_pos.push_back(B_BASE::findcolpos(fields[ii].org_name));
-                }
-
-                for (auto &row : rows)
-                {
-                    world_info::meta data_temp;
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        assign_field_value(field_pos[ij], (unsigned char *)row.values[ij].data(), row.values[ij].size(), data_temp);
-                    }
-                    B_BASE::record.emplace_back(std::move(data_temp));
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -7132,37 +7066,34 @@ M_MODEL& or_leRandomnumber(T val)
                 {
                     select_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await select_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
+                    [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char** col_names, auto get_data) mutable -> bool {
+                        // 列位映射仅首行构建（同一结果集列序固定）：后续行按列号直接索引。
+                        if (first_row) {
+                            col_pos_map.assign(col_count, 255);
+                            for (int ii = 0; ii < col_count; ii++) {
+                                if (col_names[ii] && col_names[ii][0] != '\0') {
+                                    col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
+                                }
+                            }
+                            first_row = false;
+                        }
+                        fortune_info::meta data_temp;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
+                        }
+                        B_BASE::record.emplace_back(std::move(data_temp));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     co_return 0;
-                }
-
-                std::vector<unsigned char> field_pos;
-                for (unsigned int ii = 0; ii < fields.size(); ii++)
-                {
-                    field_pos.push_back(B_BASE::findcolpos(fields[ii].org_name));
-                }
-
-                for (auto &row : rows)
-                {
-                    world_info::meta data_temp;
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        assign_field_value(field_pos[ij], (unsigned char *)row.values[ij].data(), row.values[ij].size(), data_temp);
-                    }
-                    B_BASE::record.emplace_back(std::move(data_temp));
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -7265,37 +7196,27 @@ M_MODEL& or_leRandomnumber(T val)
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = select_conn->execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
+                    [this, &custom_record, &callback](int col_count, char** col_names, auto get_data) -> bool {
+                        T data_temp;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            std::string col_name = col_names[ij] ? col_names[ij] : "";
+                            if (!col_name.empty()) {
+                                std::invoke(std::forward<Callback>(callback), data_temp, col_name, ptr, len, 0, 1);
+                            }
+                        }
+                        custom_record.emplace_back(std::move(data_temp));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return 0;
-                }
-
-                for (auto &row : rows)
-                {
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        if (fields[ij].name.size() > 0)
-                        {
-                            //or alias name
-                            std::invoke(std::forward<Callback>(callback), custom_record, fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type, 1);
-                        }
-                        else if (fields[ij].org_name.size() > 0)
-                        {
-                            std::invoke(std::forward<Callback>(callback), custom_record, fields[ij].org_name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type, 1);
-                        }
-                    }
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -7391,37 +7312,27 @@ M_MODEL& or_leRandomnumber(T val)
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await select_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
+                    [this, &custom_record, &callback](int col_count, char** col_names, auto get_data) -> bool {
+                        T data_temp;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            std::string col_name = col_names[ij] ? col_names[ij] : "";
+                            if (!col_name.empty()) {
+                                std::invoke(std::forward<Callback>(callback), data_temp, col_name, ptr, len, 0, 1);
+                            }
+                        }
+                        custom_record.emplace_back(std::move(data_temp));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     co_return 0;
-                }
-
-                for (auto &row : rows)
-                {
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        if (fields[ij].name.size() > 0)
-                        {
-                            //or alias name
-                            std::invoke(std::forward<Callback>(callback), custom_record, fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type, 1);
-                        }
-                        else if (fields[ij].org_name.size() > 0)
-                        {
-                            std::invoke(std::forward<Callback>(callback), custom_record, fields[ij].org_name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type, 1);
-                        }
-                    }
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -7516,37 +7427,25 @@ M_MODEL& or_leRandomnumber(T val)
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = select_conn->execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
+                    [this, &custom_struct](int col_count, char** col_names, auto get_data) -> bool {
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            std::string col_name = col_names[ij] ? col_names[ij] : "";
+                            if (!col_name.empty()) {
+                                custom_struct.set_val(col_name, ptr, len, 0);
+                            }
+                        }
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return 0;
-                }
-
-                for (auto &row : rows)
-                {
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        if (fields[ij].name.size() > 0)
-                        {
-                            //or alias name
-                            custom_struct.set_val(fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                        }
-                        else if (fields[ij].org_name.size() > 0)
-                        {
-                            custom_struct.set_val(fields[ij].org_name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                        }
-                    }
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -7642,37 +7541,25 @@ M_MODEL& or_leRandomnumber(T val)
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await select_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
+                    [this, &custom_struct](int col_count, char** col_names, auto get_data) -> bool {
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            std::string col_name = col_names[ij] ? col_names[ij] : "";
+                            if (!col_name.empty()) {
+                                custom_struct.set_val(col_name, ptr, len, 0);
+                            }
+                        }
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     co_return 0;
-                }
-
-                for (auto &row : rows)
-                {
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        if (fields[ij].name.size() > 0)
-                        {
-                            //or alias name
-                            custom_struct.set_val(fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                        }
-                        else if (fields[ij].org_name.size() > 0)
-                        {
-                            custom_struct.set_val(fields[ij].org_name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                        }
-                    }
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -7774,52 +7661,40 @@ M_MODEL& or_leRandomnumber(T val)
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = select_conn->execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
+                    [this, isappend](int col_count, char** col_names, auto get_data) -> bool {
+                        std::vector<unsigned char> field_pos;
+                        for (int ii = 0; ii < col_count; ii++) {
+                            field_pos.push_back(B_BASE::findcolpos(col_names[ii] ? col_names[ii] : ""));
+                        }
+                        if (isappend)
+                        {
+                            fortune_info::meta data_temp;
+                            for (int ij = 0; ij < col_count; ij++) {
+                                auto [ptr, len] = get_data(ij);
+                                if (ptr == nullptr) continue;
+                                assign_field_value(field_pos[ij], ptr, len, data_temp);
+                            }
+                            B_BASE::record.emplace_back(std::move(data_temp));
+                            effect_num++;
+                        }
+                        else
+                        {
+                            for (int ij = 0; ij < col_count; ij++) {
+                                auto [ptr, len] = get_data(ij);
+                                if (ptr == nullptr) continue;
+                                assign_field_value(field_pos[ij], ptr, len, B_BASE::data);
+                            }
+                            effect_num++;
+                        }
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return 0;
-                }
-
-                std::vector<unsigned char> field_pos;
-                for (unsigned int ii = 0; ii < fields.size(); ii++)
-                {
-                    field_pos.push_back(B_BASE::findcolpos(fields[ii].org_name));
-                }
-
-                for (auto &row : rows)
-                {
-                    if (isappend)
-                    {
-                        world_info::meta data_temp;
-                        for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                        {
-                            if (row.is_null[ij])
-                            {
-                                continue;
-                            }
-                            assign_field_value(field_pos[ij], (unsigned char *)row.values[ij].data(), row.values[ij].size(), data_temp);
-                        }
-                        B_BASE::record.emplace_back(std::move(data_temp));
-                        effect_num++;
-                    }
-                    else
-                    {
-                        for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                        {
-                            if (row.is_null[ij])
-                            {
-                                continue;
-                            }
-                            assign_field_value(field_pos[ij], (unsigned char *)row.values[ij].data(), row.values[ij].size(), B_BASE::data);
-                        }
-                        effect_num++;
-                    }
                 }
                 if (select_conn->isdebug)
                 {
@@ -7931,52 +7806,40 @@ M_MODEL& or_leRandomnumber(T val)
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await select_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
+                    [this, isappend](int col_count, char** col_names, auto get_data) -> bool {
+                        std::vector<unsigned char> field_pos;
+                        for (int ii = 0; ii < col_count; ii++) {
+                            field_pos.push_back(B_BASE::findcolpos(col_names[ii] ? col_names[ii] : ""));
+                        }
+                        if (isappend)
+                        {
+                            fortune_info::meta data_temp;
+                            for (int ij = 0; ij < col_count; ij++) {
+                                auto [ptr, len] = get_data(ij);
+                                if (ptr == nullptr) continue;
+                                assign_field_value(field_pos[ij], ptr, len, data_temp);
+                            }
+                            B_BASE::record.emplace_back(std::move(data_temp));
+                            effect_num++;
+                        }
+                        else
+                        {
+                            for (int ij = 0; ij < col_count; ij++) {
+                                auto [ptr, len] = get_data(ij);
+                                if (ptr == nullptr) continue;
+                                assign_field_value(field_pos[ij], ptr, len, B_BASE::data);
+                            }
+                            effect_num++;
+                        }
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     co_return 0;
-                }
-
-                std::vector<unsigned char> field_pos;
-                for (unsigned int ii = 0; ii < fields.size(); ii++)
-                {
-                    field_pos.push_back(B_BASE::findcolpos(fields[ii].org_name));
-                }
-
-                for (auto &row : rows)
-                {
-                    if (isappend)
-                    {
-                        world_info::meta data_temp;
-                        for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                        {
-                            if (row.is_null[ij])
-                            {
-                                continue;
-                            }
-                            assign_field_value(field_pos[ij], (unsigned char *)row.values[ij].data(), row.values[ij].size(), data_temp);
-                        }
-                        B_BASE::record.emplace_back(std::move(data_temp));
-                        effect_num++;
-                    }
-                    else
-                    {
-                        for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                        {
-                            if (row.is_null[ij])
-                            {
-                                continue;
-                            }
-                            assign_field_value(field_pos[ij], (unsigned char *)row.values[ij].data(), row.values[ij].size(), B_BASE::data);
-                        }
-                        effect_num++;
-                    }
                 }
                 if (select_conn->isdebug)
                 {
@@ -8026,28 +7889,28 @@ M_MODEL& or_leRandomnumber(T val)
         void set_cache_state(bool isrestatus = false) { iscache = isrestatus; }
         void remove_exptime_cache()
         {
-            model_meta_cache<world_info::meta> &temp_cache = model_meta_cache<world_info::meta>::getinstance();
+            model_meta_cache<fortune_info::meta> &temp_cache = model_meta_cache<fortune_info::meta>::getinstance();
             temp_cache.remove_exptime();
         }
         void clear_cache()
         {
-            model_meta_cache<world_info::meta> &temp_cache = model_meta_cache<world_info::meta>::getinstance();
+            model_meta_cache<fortune_info::meta> &temp_cache = model_meta_cache<fortune_info::meta>::getinstance();
             temp_cache.clear();
         }
         bool remove_cache()
         {
-            model_meta_cache<world_info::meta> &temp_cache = model_meta_cache<world_info::meta>::getinstance();
+            model_meta_cache<fortune_info::meta> &temp_cache = model_meta_cache<fortune_info::meta>::getinstance();
             std::size_t sqlhashid                               = std::hash<std::string>{}(sqlstring);
             return temp_cache.remove(sqlhashid);
         }
         bool remove_cache(std::size_t cache_key_name)
         {
-            model_meta_cache<world_info::meta> &temp_cache = model_meta_cache<world_info::meta>::getinstance();
+            model_meta_cache<fortune_info::meta> &temp_cache = model_meta_cache<fortune_info::meta>::getinstance();
             return temp_cache.remove(cache_key_name);
         }
         int check_cache(std::size_t cache_key_name)
         {
-            model_meta_cache<world_info::meta> &temp_cache = model_meta_cache<world_info::meta>::getinstance();
+            model_meta_cache<fortune_info::meta> &temp_cache = model_meta_cache<fortune_info::meta>::getinstance();
             return temp_cache.check(cache_key_name);
         }
 
@@ -8055,7 +7918,7 @@ M_MODEL& or_leRandomnumber(T val)
         {
             try
             {
-                model_meta_cache<world_info::meta> &temp_cache = model_meta_cache<world_info::meta>::getinstance();
+                model_meta_cache<fortune_info::meta> &temp_cache = model_meta_cache<fortune_info::meta>::getinstance();
                 B_BASE::data                                        = temp_cache.get(cache_key_name);
                 return true;
             }
@@ -8069,18 +7932,18 @@ M_MODEL& or_leRandomnumber(T val)
         }
         int update_cache(int exp_time = 0)
         {
-            model_meta_cache<std::vector<world_info::meta>> &temp_cache = model_meta_cache<std::vector<world_info::meta>>::getinstance();
+            model_meta_cache<std::vector<fortune_info::meta>> &temp_cache = model_meta_cache<std::vector<fortune_info::meta>>::getinstance();
             std::size_t sqlhashid                                            = std::hash<std::string>{}(sqlstring);
             return temp_cache.update(sqlhashid, exp_time);
         }
         int update_cache(std::size_t cache_key_name, int exp_time)
         {
-            model_meta_cache<std::vector<world_info::meta>> &temp_cache = model_meta_cache<std::vector<world_info::meta>>::getinstance();
+            model_meta_cache<std::vector<fortune_info::meta>> &temp_cache = model_meta_cache<std::vector<fortune_info::meta>>::getinstance();
             return temp_cache.update(cache_key_name, exp_time);
         }
         bool save_cache(int exp_time = 0)
         {
-            model_meta_cache<std::vector<world_info::meta>> &temp_cache = model_meta_cache<std::vector<world_info::meta>>::getinstance();
+            model_meta_cache<std::vector<fortune_info::meta>> &temp_cache = model_meta_cache<std::vector<fortune_info::meta>>::getinstance();
             std::size_t sqlhashid                                            = std::hash<std::string>{}(sqlstring);
             temp_cache.save(sqlhashid, B_BASE::record, exp_time);
             return true;
@@ -8088,52 +7951,52 @@ M_MODEL& or_leRandomnumber(T val)
 
         bool save_data_cache(int exp_time = 0)
         {
-            model_meta_cache<world_info::meta> &temp_cache = model_meta_cache<world_info::meta>::getinstance();
+            model_meta_cache<fortune_info::meta> &temp_cache = model_meta_cache<fortune_info::meta>::getinstance();
             std::size_t sqlhashid                               = std::hash<std::string>{}(sqlstring);
             temp_cache.save(sqlhashid, B_BASE::data, exp_time);
             return true;
         }
 
-        bool save_data_cache(const std::string &cache_key_name, const world_info::meta &cache_data, int exp_time = 0)
+        bool save_data_cache(const std::string &cache_key_name, const fortune_info::meta &cache_data, int exp_time = 0)
         {
-            model_meta_cache<world_info::meta> &temp_cache = model_meta_cache<world_info::meta>::getinstance();
+            model_meta_cache<fortune_info::meta> &temp_cache = model_meta_cache<fortune_info::meta>::getinstance();
             std::size_t sqlhashid                               = std::hash<std::string>{}(cache_key_name);
             temp_cache.save(sqlhashid, cache_data, exp_time);
             return true;
         }
 
-        bool save_cache(std::size_t cache_key_name, const std::vector<world_info::meta> &cache_data, int exp_time = 0)
+        bool save_cache(std::size_t cache_key_name, const std::vector<fortune_info::meta> &cache_data, int exp_time = 0)
         {
-            model_meta_cache<std::vector<world_info::meta>> &temp_cache = model_meta_cache<std::vector<world_info::meta>>::getinstance();
+            model_meta_cache<std::vector<fortune_info::meta>> &temp_cache = model_meta_cache<std::vector<fortune_info::meta>>::getinstance();
             temp_cache.save(cache_key_name, cache_data, exp_time);
             return true;
         }
-        bool save_cache(const std::string cache_key_name, const std::vector<world_info::meta> &cache_data, int exp_time = 0)
+        bool save_cache(const std::string cache_key_name, const std::vector<fortune_info::meta> &cache_data, int exp_time = 0)
         {
-            model_meta_cache<std::vector<world_info::meta>> &temp_cache = model_meta_cache<std::vector<world_info::meta>>::getinstance();
+            model_meta_cache<std::vector<fortune_info::meta>> &temp_cache = model_meta_cache<std::vector<fortune_info::meta>>::getinstance();
             std::size_t sqlhashid                                            = std::hash<std::string>{}(cache_key_name);
             temp_cache.save(sqlhashid, cache_data, exp_time);
             return true;
         }
-        bool save_vector_cache(const std::string cache_key_name, const std::vector<world_info::meta> &cache_data, int exp_time = 0)
+        bool save_vector_cache(const std::string cache_key_name, const std::vector<fortune_info::meta> &cache_data, int exp_time = 0)
         {
-            model_meta_cache<std::vector<world_info::meta>> &temp_cache = model_meta_cache<std::vector<world_info::meta>>::getinstance();
+            model_meta_cache<std::vector<fortune_info::meta>> &temp_cache = model_meta_cache<std::vector<fortune_info::meta>>::getinstance();
             std::size_t sqlhashid                                            = std::hash<std::string>{}(cache_key_name);
             temp_cache.save(sqlhashid, cache_data, exp_time);
             return true;
         }
-        bool save_cache(const std::string cache_key_name, const world_info::meta &cache_data, int exp_time = 0)
+        bool save_cache(const std::string cache_key_name, const fortune_info::meta &cache_data, int exp_time = 0)
         {
-            model_meta_cache<world_info::meta> &temp_cache = model_meta_cache<world_info::meta>::getinstance();
+            model_meta_cache<fortune_info::meta> &temp_cache = model_meta_cache<fortune_info::meta>::getinstance();
             std::size_t sqlhashid                               = std::hash<std::string>{}(cache_key_name);
             temp_cache.save(sqlhashid, cache_data, exp_time);
             return true;
         }
-        const world_info::meta get_cache(const std::string &cache_key_name)
+        const fortune_info::meta get_cache(const std::string &cache_key_name)
         {
             try
             {
-                model_meta_cache<world_info::meta> &temp_cache = model_meta_cache<world_info::meta>::getinstance();
+                model_meta_cache<fortune_info::meta> &temp_cache = model_meta_cache<fortune_info::meta>::getinstance();
                 std::size_t sqlhashid                               = std::hash<std::string>{}(cache_key_name);
                 return temp_cache.get(sqlhashid);
             }
@@ -8145,11 +8008,11 @@ M_MODEL& or_leRandomnumber(T val)
             throw std::runtime_error("Not in cache");
         }
 
-        const std::vector<world_info::meta> get_vector_cache(const std::string &cache_key_name)
+        const std::vector<fortune_info::meta> get_vector_cache(const std::string &cache_key_name)
         {
             try
             {
-                model_meta_cache<std::vector<world_info::meta>> &temp_cache = model_meta_cache<std::vector<world_info::meta>>::getinstance();
+                model_meta_cache<std::vector<fortune_info::meta>> &temp_cache = model_meta_cache<std::vector<fortune_info::meta>>::getinstance();
                 std::size_t sqlhashid                                            = std::hash<std::string>{}(cache_key_name);
                 return temp_cache.get(sqlhashid);
             }
@@ -8165,7 +8028,7 @@ M_MODEL& or_leRandomnumber(T val)
         {
             try
             {
-                model_meta_cache<std::vector<world_info::meta>> &temp_cache = model_meta_cache<std::vector<world_info::meta>>::getinstance();
+                model_meta_cache<std::vector<fortune_info::meta>> &temp_cache = model_meta_cache<std::vector<fortune_info::meta>>::getinstance();
                 B_BASE::record                                                   = temp_cache.get(cache_key_name);
                 return true;
             }
@@ -8247,39 +8110,27 @@ M_MODEL& or_leRandomnumber(T val)
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = select_conn->execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
+                    [this, &valuetemp](int col_count, char** col_names, auto get_data) -> bool {
+                        http::obj_val json_temp_v;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            std::string col_name = col_names[ij] ? col_names[ij] : "";
+                            if (!col_name.empty()) {
+                                json_temp_v[col_name] = std::string(reinterpret_cast<const char*>(ptr), len);
+                            }
+                        }
+                        valuetemp.push(json_temp_v);
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return 0;
-                }
-
-                for (auto &row : rows)
-                {
-                    http::obj_val json_temp_v;
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        if (fields[ij].name.size() > 0)
-                        {
-                            //or alias name
-                            json_temp_v[fields[ij].name] = row.values[ij];
-                        }
-                        else if (fields[ij].org_name.size() > 0)
-                        {
-                            json_temp_v[fields[ij].org_name] = row.values[ij];
-                        }
-                    }
-                    valuetemp.push(json_temp_v);
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -8370,39 +8221,27 @@ M_MODEL& or_leRandomnumber(T val)
                 {
                     select_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await select_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
+                    [this, &valuetemp](int col_count, char** col_names, auto get_data) -> bool {
+                        http::obj_val json_temp_v;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            std::string col_name = col_names[ij] ? col_names[ij] : "";
+                            if (!col_name.empty()) {
+                                json_temp_v[col_name] = std::string(reinterpret_cast<const char*>(ptr), len);
+                            }
+                        }
+                        valuetemp.push(json_temp_v);
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     co_return valuetemp;
-                }
-
-                for (auto &row : rows)
-                {
-                    http::obj_val json_temp_v;
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        if (fields[ij].name.size() > 0)
-                        {
-                            //or alias name
-                            json_temp_v[fields[ij].name] = row.values[ij];
-                        }
-                        else if (fields[ij].org_name.size() > 0)
-                        {
-                            json_temp_v[fields[ij].org_name] = row.values[ij];
-                        }
-                    }
-                    valuetemp.push(json_temp_v);
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -8486,35 +8325,32 @@ M_MODEL& or_leRandomnumber(T val)
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = select_conn->execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
+                    [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char** col_names, auto get_data) mutable -> bool {
+                        // 列位映射仅首行构建（同一结果集列序固定）：后续行按列号直接索引。
+                        if (first_row) {
+                            col_pos_map.assign(col_count, 255);
+                            for (int ii = 0; ii < col_count; ii++) {
+                                if (col_names[ii] && col_names[ii][0] != '\0') {
+                                    col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
+                                }
+                            }
+                            first_row = false;
+                        }
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
+                        }
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return 0;
-                }
-
-                std::vector<unsigned char> field_pos;
-                for (unsigned int ii = 0; ii < fields.size(); ii++)
-                {
-                    field_pos.push_back(B_BASE::findcolpos(fields[ii].org_name));
-                }
-
-                for (auto &row : rows)
-                {
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        assign_field_value(field_pos[ij], (unsigned char *)row.values[ij].data(), row.values[ij].size(), B_BASE::data);
-                    }
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -8608,35 +8444,32 @@ M_MODEL& or_leRandomnumber(T val)
                 {
                     select_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await select_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
+                    [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char** col_names, auto get_data) mutable -> bool {
+                        // 列位映射仅首行构建（同一结果集列序固定）：后续行按列号直接索引。
+                        if (first_row) {
+                            col_pos_map.assign(col_count, 255);
+                            for (int ii = 0; ii < col_count; ii++) {
+                                if (col_names[ii] && col_names[ii][0] != '\0') {
+                                    col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
+                                }
+                            }
+                            first_row = false;
+                        }
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
+                        }
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     co_return 0;
-                }
-
-                std::vector<unsigned char> field_pos;
-                for (unsigned int ii = 0; ii < fields.size(); ii++)
-                {
-                    field_pos.push_back(B_BASE::findcolpos(fields[ii].org_name));
-                }
-
-                for (auto &row : rows)
-                {
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        assign_field_value(field_pos[ij], (unsigned char *)row.values[ij].data(), row.values[ij].size(), B_BASE::data);
-                    }
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -8742,10 +8575,7 @@ M_MODEL& or_leRandomnumber(T val)
                     edit_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(sqlstring, fields, rows, affected);
+                unsigned int affected = edit_conn->exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -8753,7 +8583,7 @@ M_MODEL& or_leRandomnumber(T val)
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -8850,10 +8680,7 @@ M_MODEL& or_leRandomnumber(T val)
                     edit_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(sqlstring, fields, rows, affected);
+                unsigned int affected = edit_conn->exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -8861,7 +8688,7 @@ M_MODEL& or_leRandomnumber(T val)
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -8959,10 +8786,7 @@ M_MODEL& or_leRandomnumber(T val)
                 {
                     edit_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await edit_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
+                unsigned int affected = co_await edit_conn->async_exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -8970,7 +8794,7 @@ M_MODEL& or_leRandomnumber(T val)
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -9067,10 +8891,7 @@ M_MODEL& or_leRandomnumber(T val)
                 {
                     edit_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await edit_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
+                unsigned int affected = co_await edit_conn->async_exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -9078,7 +8899,7 @@ M_MODEL& or_leRandomnumber(T val)
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -9148,10 +8969,7 @@ M_MODEL& or_leRandomnumber(T val)
                 {
                     edit_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(sqlstring, fields, rows, affected);
+                unsigned int affected = edit_conn->exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -9159,7 +8977,7 @@ M_MODEL& or_leRandomnumber(T val)
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -9257,10 +9075,7 @@ M_MODEL& or_leRandomnumber(T val)
                 {
                     edit_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(sqlstring, fields, rows, affected);
+                unsigned int affected = edit_conn->exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -9268,7 +9083,7 @@ M_MODEL& or_leRandomnumber(T val)
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -9367,10 +9182,7 @@ M_MODEL& or_leRandomnumber(T val)
                 {
                     edit_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await edit_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
+                unsigned int affected = co_await edit_conn->async_exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -9378,7 +9190,7 @@ M_MODEL& or_leRandomnumber(T val)
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -9442,10 +9254,7 @@ M_MODEL& or_leRandomnumber(T val)
                 {
                     edit_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(sqlstring, fields, rows, affected);
+                unsigned int affected = edit_conn->exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -9453,7 +9262,7 @@ M_MODEL& or_leRandomnumber(T val)
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -9517,10 +9326,7 @@ M_MODEL& or_leRandomnumber(T val)
                 {
                     edit_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await edit_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
+                unsigned int affected = co_await edit_conn->async_exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -9528,7 +9334,7 @@ M_MODEL& or_leRandomnumber(T val)
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -9630,10 +9436,7 @@ M_MODEL& or_leRandomnumber(T val)
                 {
                     edit_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(sqlstring, fields, rows, affected);
+                unsigned int affected = edit_conn->exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -9641,7 +9444,7 @@ M_MODEL& or_leRandomnumber(T val)
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -9751,10 +9554,7 @@ M_MODEL& or_leRandomnumber(T val)
                 {
                     edit_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(sqlstring, fields, rows, affected);
+                unsigned int affected = edit_conn->exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -9762,7 +9562,7 @@ M_MODEL& or_leRandomnumber(T val)
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -9786,7 +9586,7 @@ M_MODEL& or_leRandomnumber(T val)
 
             return 0;
         }
-        std::tuple<unsigned int, unsigned long long> insert(world_info::meta &insert_data)
+        std::tuple<unsigned int, unsigned long long> insert(fortune_info::meta &insert_data)
         {
             effect_num = 0;
             sqlstring  = B_BASE::make_data_insert_sql(insert_data);
@@ -9823,10 +9623,17 @@ M_MODEL& or_leRandomnumber(T val)
                 std::string insertsql = sqlstring;
                 insertsql.append(" RETURNING ");
                 insertsql.append(B_BASE::getPKname());
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(insertsql, fields, rows, affected);
+                long long insert_last_id = 0;
+                unsigned int fetch_count = edit_conn->fetch_directly(insertsql,
+                    [&insert_last_id](int col_count, char** col_names, auto get_data) -> bool {
+                        (void)col_count;
+                        (void)col_names;
+                        auto [ptr, len] = get_data(0);
+                        if (ptr != nullptr && len > 0) {
+                            long long v = 0; auto r = std::from_chars(reinterpret_cast<const char*>(ptr), reinterpret_cast<const char*>(ptr) + len, v, 10); if (r.ec == std::errc()) insert_last_id = v;
+                        }
+                        return true;
+                    });
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -9834,9 +9641,7 @@ M_MODEL& or_leRandomnumber(T val)
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(insertsql, std::to_string(du_time));
                 }
-
-                long long insert_last_id = 0;
-                if (err > 0)
+                if (fetch_count == 0 && !edit_conn->error_msg.empty())
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -9844,11 +9649,7 @@ M_MODEL& or_leRandomnumber(T val)
                 }
                 else
                 {
-                    effect_num = affected;
-                    if (!rows.empty() && !rows.back().values.empty() && !rows.back().is_null[0])
-                    {
-                        insert_last_id = std::strtoll(rows.back().values[0].c_str(), nullptr, 10);
-                    }
+                    effect_num = fetch_count;
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
@@ -9866,7 +9667,7 @@ M_MODEL& or_leRandomnumber(T val)
             return std::make_tuple(0, 0);
         }
 
-        asio::awaitable<std::tuple<unsigned int, unsigned long long>> async_insert(world_info::meta &insert_data)
+        asio::awaitable<std::tuple<unsigned int, unsigned long long>> async_insert(fortune_info::meta &insert_data)
         {
             effect_num = 0;
             sqlstring  = B_BASE::make_data_insert_sql(insert_data);
@@ -9902,10 +9703,17 @@ M_MODEL& or_leRandomnumber(T val)
                 std::string insertsql = sqlstring;
                 insertsql.append(" RETURNING ");
                 insertsql.append(B_BASE::getPKname());
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await edit_conn->async_execute_and_fetch(insertsql, fields, rows, affected);
+                long long insert_last_id = 0;
+                unsigned int fetch_count = co_await edit_conn->async_fetch_directly(insertsql,
+                    [&insert_last_id](int col_count, char** col_names, auto get_data) -> bool {
+                        (void)col_count;
+                        (void)col_names;
+                        auto [ptr, len] = get_data(0);
+                        if (ptr != nullptr && len > 0) {
+                            long long v = 0; auto r = std::from_chars(reinterpret_cast<const char*>(ptr), reinterpret_cast<const char*>(ptr) + len, v, 10); if (r.ec == std::errc()) insert_last_id = v;
+                        }
+                        return true;
+                    });
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -9913,9 +9721,7 @@ M_MODEL& or_leRandomnumber(T val)
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(insertsql, std::to_string(du_time));
                 }
-
-                long long insert_last_id = 0;
-                if (err > 0)
+                if (fetch_count == 0 && !edit_conn->error_msg.empty())
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -9923,11 +9729,7 @@ M_MODEL& or_leRandomnumber(T val)
                 }
                 else
                 {
-                    effect_num = affected;
-                    if (!rows.empty() && !rows.back().values.empty() && !rows.back().is_null[0])
-                    {
-                        insert_last_id = std::strtoll(rows.back().values[0].c_str(), nullptr, 10);
-                    }
+                    effect_num = fetch_count;
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
@@ -9945,7 +9747,7 @@ M_MODEL& or_leRandomnumber(T val)
             co_return std::make_tuple(0, 0);
         }
 
-        std::tuple<unsigned int, unsigned long long> insert(std::vector<world_info::meta> &insert_data)
+        std::tuple<unsigned int, unsigned long long> insert(std::vector<fortune_info::meta> &insert_data)
         {
             effect_num = 0;
             sqlstring  = B_BASE::make_vector_insert_sql(insert_data);
@@ -9981,10 +9783,17 @@ M_MODEL& or_leRandomnumber(T val)
                 std::string insertsql = sqlstring;
                 insertsql.append(" RETURNING ");
                 insertsql.append(B_BASE::getPKname());
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(insertsql, fields, rows, affected);
+                long long insert_last_id = 0;
+                unsigned int fetch_count = edit_conn->fetch_directly(insertsql,
+                    [&insert_last_id](int col_count, char** col_names, auto get_data) -> bool {
+                        (void)col_count;
+                        (void)col_names;
+                        auto [ptr, len] = get_data(0);
+                        if (ptr != nullptr && len > 0) {
+                            long long v = 0; auto r = std::from_chars(reinterpret_cast<const char*>(ptr), reinterpret_cast<const char*>(ptr) + len, v, 10); if (r.ec == std::errc()) insert_last_id = v;
+                        }
+                        return true;
+                    });
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -9992,9 +9801,7 @@ M_MODEL& or_leRandomnumber(T val)
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(insertsql, std::to_string(du_time));
                 }
-
-                long long insert_last_id = 0;
-                if (err > 0)
+                if (fetch_count == 0 && !edit_conn->error_msg.empty())
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -10002,11 +9809,7 @@ M_MODEL& or_leRandomnumber(T val)
                 }
                 else
                 {
-                    effect_num = affected;
-                    if (!rows.empty() && !rows.back().values.empty() && !rows.back().is_null[0])
-                    {
-                        insert_last_id = std::strtoll(rows.back().values[0].c_str(), nullptr, 10);
-                    }
+                    effect_num = fetch_count;
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
@@ -10024,7 +9827,7 @@ M_MODEL& or_leRandomnumber(T val)
             return std::make_tuple(0, 0);
         }
 
-        asio::awaitable<std::tuple<unsigned int, unsigned long long>> async_insert(std::vector<world_info::meta> &insert_data)
+        asio::awaitable<std::tuple<unsigned int, unsigned long long>> async_insert(std::vector<fortune_info::meta> &insert_data)
         {
             effect_num = 0;
             sqlstring  = B_BASE::make_vector_insert_sql(insert_data);
@@ -10060,10 +9863,17 @@ M_MODEL& or_leRandomnumber(T val)
                 std::string insertsql = sqlstring;
                 insertsql.append(" RETURNING ");
                 insertsql.append(B_BASE::getPKname());
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await edit_conn->async_execute_and_fetch(insertsql, fields, rows, affected);
+                long long insert_last_id = 0;
+                unsigned int fetch_count = co_await edit_conn->async_fetch_directly(insertsql,
+                    [&insert_last_id](int col_count, char** col_names, auto get_data) -> bool {
+                        (void)col_count;
+                        (void)col_names;
+                        auto [ptr, len] = get_data(0);
+                        if (ptr != nullptr && len > 0) {
+                            long long v = 0; auto r = std::from_chars(reinterpret_cast<const char*>(ptr), reinterpret_cast<const char*>(ptr) + len, v, 10); if (r.ec == std::errc()) insert_last_id = v;
+                        }
+                        return true;
+                    });
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -10071,9 +9881,7 @@ M_MODEL& or_leRandomnumber(T val)
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(insertsql, std::to_string(du_time));
                 }
-
-                long long insert_last_id = 0;
-                if (err > 0)
+                if (fetch_count == 0 && !edit_conn->error_msg.empty())
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -10081,11 +9889,7 @@ M_MODEL& or_leRandomnumber(T val)
                 }
                 else
                 {
-                    effect_num = affected;
-                    if (!rows.empty() && !rows.back().values.empty() && !rows.back().is_null[0])
-                    {
-                        insert_last_id = std::strtoll(rows.back().values[0].c_str(), nullptr, 10);
-                    }
+                    effect_num = fetch_count;
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
@@ -10139,10 +9943,17 @@ M_MODEL& or_leRandomnumber(T val)
                 std::string insertsql = sqlstring;
                 insertsql.append(" RETURNING ");
                 insertsql.append(B_BASE::getPKname());
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(insertsql, fields, rows, affected);
+                long long insert_last_id = 0;
+                unsigned int fetch_count = edit_conn->fetch_directly(insertsql,
+                    [&insert_last_id](int col_count, char** col_names, auto get_data) -> bool {
+                        (void)col_count;
+                        (void)col_names;
+                        auto [ptr, len] = get_data(0);
+                        if (ptr != nullptr && len > 0) {
+                            long long v = 0; auto r = std::from_chars(reinterpret_cast<const char*>(ptr), reinterpret_cast<const char*>(ptr) + len, v, 10); if (r.ec == std::errc()) insert_last_id = v;
+                        }
+                        return true;
+                    });
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -10150,9 +9961,7 @@ M_MODEL& or_leRandomnumber(T val)
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(insertsql, std::to_string(du_time));
                 }
-
-                long long insert_last_id = 0;
-                if (err > 0)
+                if (fetch_count == 0 && !edit_conn->error_msg.empty())
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -10160,11 +9969,7 @@ M_MODEL& or_leRandomnumber(T val)
                 }
                 else
                 {
-                    effect_num = affected;
-                    if (!rows.empty() && !rows.back().values.empty() && !rows.back().is_null[0])
-                    {
-                        insert_last_id = std::strtoll(rows.back().values[0].c_str(), nullptr, 10);
-                    }
+                    effect_num = fetch_count;
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
@@ -10218,10 +10023,17 @@ M_MODEL& or_leRandomnumber(T val)
                 std::string insertsql = sqlstring;
                 insertsql.append(" RETURNING ");
                 insertsql.append(B_BASE::getPKname());
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await edit_conn->async_execute_and_fetch(insertsql, fields, rows, affected);
+                long long insert_last_id = 0;
+                unsigned int fetch_count = co_await edit_conn->async_fetch_directly(insertsql,
+                    [&insert_last_id](int col_count, char** col_names, auto get_data) -> bool {
+                        (void)col_count;
+                        (void)col_names;
+                        auto [ptr, len] = get_data(0);
+                        if (ptr != nullptr && len > 0) {
+                            long long v = 0; auto r = std::from_chars(reinterpret_cast<const char*>(ptr), reinterpret_cast<const char*>(ptr) + len, v, 10); if (r.ec == std::errc()) insert_last_id = v;
+                        }
+                        return true;
+                    });
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -10229,9 +10041,7 @@ M_MODEL& or_leRandomnumber(T val)
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(insertsql, std::to_string(du_time));
                 }
-
-                long long insert_last_id = 0;
-                if (err > 0)
+                if (fetch_count == 0 && !edit_conn->error_msg.empty())
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -10239,11 +10049,7 @@ M_MODEL& or_leRandomnumber(T val)
                 }
                 else
                 {
-                    effect_num = affected;
-                    if (!rows.empty() && !rows.back().values.empty() && !rows.back().is_null[0])
-                    {
-                        insert_last_id = std::strtoll(rows.back().values[0].c_str(), nullptr, 10);
-                    }
+                    effect_num = fetch_count;
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
@@ -10324,10 +10130,7 @@ M_MODEL& or_leRandomnumber(T val)
                 {
                     edit_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(sqlstring, fields, rows, affected);
+                unsigned int affected = edit_conn->exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -10335,7 +10138,7 @@ M_MODEL& or_leRandomnumber(T val)
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -10379,10 +10182,17 @@ M_MODEL& or_leRandomnumber(T val)
                 std::string insertsql = sqlstring;
                 insertsql.append(" RETURNING ");
                 insertsql.append(B_BASE::getPKname());
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(insertsql, fields, rows, affected);
+                long long insert_last_id = 0;
+                unsigned int fetch_count = edit_conn->fetch_directly(insertsql,
+                    [&insert_last_id](int col_count, char** col_names, auto get_data) -> bool {
+                        (void)col_count;
+                        (void)col_names;
+                        auto [ptr, len] = get_data(0);
+                        if (ptr != nullptr && len > 0) {
+                            long long v = 0; auto r = std::from_chars(reinterpret_cast<const char*>(ptr), reinterpret_cast<const char*>(ptr) + len, v, 10); if (r.ec == std::errc()) insert_last_id = v;
+                        }
+                        return true;
+                    });
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -10390,9 +10200,7 @@ M_MODEL& or_leRandomnumber(T val)
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(insertsql, std::to_string(du_time));
                 }
-
-                long long insert_last_id = 0;
-                if (err > 0)
+                if (fetch_count == 0 && !edit_conn->error_msg.empty())
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -10400,11 +10208,7 @@ M_MODEL& or_leRandomnumber(T val)
                 }
                 else
                 {
-                    effect_num = affected;
-                    if (!rows.empty() && !rows.back().values.empty() && !rows.back().is_null[0])
-                    {
-                        insert_last_id = std::strtoll(rows.back().values[0].c_str(), nullptr, 10);
-                    }
+                    effect_num = fetch_count;
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
@@ -10483,10 +10287,7 @@ M_MODEL& or_leRandomnumber(T val)
                     {
                         edit_conn->begin_time();
                     }
-                    std::vector<field_info_t> fields;
-                    std::vector<pg_row_data_t> rows;
-                    unsigned int affected = 0;
-                    unsigned int err      = co_await edit_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
+                    unsigned int affected = co_await edit_conn->async_exec_dml(sqlstring);
                     if (edit_conn->isdebug)
                     {
                         edit_conn->finish_time();
@@ -10494,7 +10295,7 @@ M_MODEL& or_leRandomnumber(T val)
                         long long du_time = edit_conn->count_time();
                         conn_mar.push_log(sqlstring, std::to_string(du_time));
                     }
-                    if (err > 0)
+                    if (affected == static_cast<unsigned int>(-1))
                     {
                         error_msg = edit_conn->error_msg;
                         iserror   = true;
@@ -10547,10 +10348,17 @@ M_MODEL& or_leRandomnumber(T val)
                     std::string insertsql = sqlstring;
                     insertsql.append(" RETURNING ");
                     insertsql.append(B_BASE::getPKname());
-                    std::vector<field_info_t> fields;
-                    std::vector<pg_row_data_t> rows;
-                    unsigned int affected = 0;
-                    unsigned int err      = co_await edit_conn->async_execute_and_fetch(insertsql, fields, rows, affected);
+                    long long insert_last_id = 0;
+                    unsigned int fetch_count = co_await edit_conn->async_fetch_directly(insertsql,
+                        [&insert_last_id](int col_count, char** col_names, auto get_data) -> bool {
+                            (void)col_count;
+                            (void)col_names;
+                            auto [ptr, len] = get_data(0);
+                            if (ptr != nullptr && len > 0) {
+                                long long v = 0; auto r = std::from_chars(reinterpret_cast<const char*>(ptr), reinterpret_cast<const char*>(ptr) + len, v, 10); if (r.ec == std::errc()) insert_last_id = v;
+                            }
+                            return true;
+                        });
                     if (edit_conn->isdebug)
                     {
                         edit_conn->finish_time();
@@ -10558,9 +10366,7 @@ M_MODEL& or_leRandomnumber(T val)
                         long long du_time = edit_conn->count_time();
                         conn_mar.push_log(insertsql, std::to_string(du_time));
                     }
-
-                    long long insert_last_id = 0;
-                    if (err > 0)
+                    if (fetch_count == 0 && !edit_conn->error_msg.empty())
                     {
                         error_msg = edit_conn->error_msg;
                         iserror   = true;
@@ -10568,11 +10374,7 @@ M_MODEL& or_leRandomnumber(T val)
                     }
                     else
                     {
-                        effect_num = affected;
-                        if (!rows.empty() && !rows.back().values.empty() && !rows.back().is_null[0])
-                        {
-                            insert_last_id = std::strtoll(rows.back().values[0].c_str(), nullptr, 10);
-                        }
+                        effect_num = fetch_count;
                         B_BASE::setPK(insert_last_id);
                         if (!islock_conn)
                         {
@@ -10734,38 +10536,27 @@ M_MODEL& or_leRandomnumber(T val)
                 {
                     select_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = select_conn->execute_and_fetch(rawsql, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = select_conn->fetch_directly(rawsql,
+                    [this, &result_record](int col_count, char** col_names, auto get_data) -> bool {
+                        T data_temp;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            std::string col_name = col_names[ij] ? col_names[ij] : "";
+                            if (!col_name.empty()) {
+                                data_temp.set_val(col_name, ptr, len, 0);
+                            }
+                        }
+                        result_record.emplace_back(std::move(data_temp));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return 0;
-                }
-
-                for (auto &row : rows)
-                {
-                    T data_temp;
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        if (fields[ij].name.size() > 0)
-                        {
-                            data_temp.set_val(fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                        }
-                        else if (fields[ij].org_name.size() > 0)
-                        {
-                            data_temp.set_val(fields[ij].org_name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                        }
-                    }
-                    result_record.emplace_back(std::move(data_temp));
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -10848,39 +10639,27 @@ M_MODEL& or_leRandomnumber(T val)
                 {
                     select_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await select_conn->async_execute_and_fetch(rawsql, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = co_await select_conn->async_fetch_directly(rawsql,
+                    [this, &result_record](int col_count, char** col_names, auto get_data) -> bool {
+                        T data_temp;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            std::string col_name = col_names[ij] ? col_names[ij] : "";
+                            if (!col_name.empty()) {
+                                data_temp.set_val(col_name, ptr, len, 0);
+                            }
+                        }
+                        result_record.emplace_back(std::move(data_temp));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     co_return 0;
-                }
-
-                for (auto &row : rows)
-                {
-                    T data_temp;
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        if (fields[ij].name.size() > 0)
-                        {
-                            //or alias name
-                            data_temp.set_val(fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                        }
-                        else if (fields[ij].org_name.size() > 0)
-                        {
-                            data_temp.set_val(fields[ij].org_name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                        }
-                    }
-                    result_record.emplace_back(std::move(data_temp));
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -10936,10 +10715,7 @@ M_MODEL& or_leRandomnumber(T val)
                     edit_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(rawsql, fields, rows, affected);
+                unsigned int affected = edit_conn->exec_dml(rawsql);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -10947,7 +10723,7 @@ M_MODEL& or_leRandomnumber(T val)
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(rawsql, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -11004,10 +10780,7 @@ M_MODEL& or_leRandomnumber(T val)
                     edit_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await edit_conn->async_execute_and_fetch(rawsql, fields, rows, affected);
+                unsigned int affected = co_await edit_conn->async_exec_dml(rawsql);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -11015,7 +10788,7 @@ M_MODEL& or_leRandomnumber(T val)
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(rawsql, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -12141,7 +11914,7 @@ M_MODEL& or_leRandomnumber(T val)
             return *mod;
         }
 
-        std::string commit_insert(world_info::meta &insert_data)
+        std::string commit_insert(fortune_info::meta &insert_data)
         {
             return B_BASE::make_data_insert_sql(insert_data);
         }
@@ -12285,7 +12058,7 @@ M_MODEL& or_leRandomnumber(T val)
             join_ptr.reset();
             return *mod;
         }
-        M_MODEL &set_data(world_info::meta indata)
+        M_MODEL &set_data(fortune_info::meta indata)
         {
             B_BASE::data = indata;
             return *mod;

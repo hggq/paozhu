@@ -190,28 +190,26 @@ namespace orm
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = select_conn->execute_and_fetch(countsql, fields, rows, affected);
-                if (err > 0)
+                unsigned int querysql_len = 0;
+                unsigned int fetch_count = select_conn->fetch_directly(countsql,
+                    [&querysql_len](int col_count, char** col_names, auto get_data) -> bool {
+                        (void)col_count;
+                        (void)col_names;
+                        auto [ptr, len] = get_data(0);
+                        if (ptr != nullptr) {
+                            for (size_t ik = 0; ik < len; ik++) {
+                                if (ptr[ik] >= '0' && ptr[ik] <= '9') {
+                                    querysql_len = querysql_len * 10 + (ptr[ik] - '0');
+                                }
+                            }
+                        }
+                        return false;// 只取首行
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return 0;
-                }
-
-                unsigned int querysql_len = 0;
-                if (!rows.empty() && !rows[0].values.empty() && !rows[0].is_null[0])
-                {
-                    const std::string &val = rows[0].values[0];
-                    for (unsigned int ik = 0; ik < val.size(); ik++)
-                    {
-                        if (val[ik] >= '0' && val[ik] <= '9')
-                        {
-                            querysql_len = querysql_len * 10 + (val[ik] - '0');
-                        }
-                    }
                 }
                 effect_num = 1;
 
@@ -341,28 +339,26 @@ namespace orm
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await select_conn->async_execute_and_fetch(countsql, fields, rows, affected);
-                if (err > 0)
+                unsigned int querysql_len = 0;
+                unsigned int fetch_count = co_await select_conn->async_fetch_directly(countsql,
+                    [&querysql_len](int col_count, char** col_names, auto get_data) -> bool {
+                        (void)col_count;
+                        (void)col_names;
+                        auto [ptr, len] = get_data(0);
+                        if (ptr != nullptr) {
+                            for (size_t ik = 0; ik < len; ik++) {
+                                if (ptr[ik] >= '0' && ptr[ik] <= '9') {
+                                    querysql_len = querysql_len * 10 + (ptr[ik] - '0');
+                                }
+                            }
+                        }
+                        return false;// 只取首行
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     co_return 0;
-                }
-
-                unsigned int querysql_len = 0;
-                if (!rows.empty() && !rows[0].values.empty() && !rows[0].is_null[0])
-                {
-                    const std::string &val = rows[0].values[0];
-                    for (unsigned int ik = 0; ik < val.size(); ik++)
-                    {
-                        if (val[ik] >= '0' && val[ik] <= '9')
-                        {
-                            querysql_len = querysql_len * 10 + (val[ik] - '0');
-                        }
-                    }
                 }
                 effect_num = 1;
 
@@ -526,10 +522,7 @@ namespace orm
                 {
                     edit_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(countsql, fields, rows, affected);
+                unsigned int affected = edit_conn->exec_dml(countsql);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -537,7 +530,7 @@ namespace orm
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(countsql, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -650,10 +643,7 @@ namespace orm
                 {
                     edit_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await edit_conn->async_execute_and_fetch(countsql, fields, rows, affected);
+                unsigned int affected = co_await edit_conn->async_exec_dml(countsql);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -661,7 +651,7 @@ namespace orm
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(countsql, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -764,10 +754,7 @@ namespace orm
                     edit_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(countsql, fields, rows, affected);
+                unsigned int affected = edit_conn->exec_dml(countsql);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -775,7 +762,7 @@ namespace orm
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(countsql, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -878,10 +865,7 @@ namespace orm
                     edit_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await edit_conn->async_execute_and_fetch(countsql, fields, rows, affected);
+                unsigned int affected = co_await edit_conn->async_exec_dml(countsql);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -889,7 +873,7 @@ namespace orm
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(countsql, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -2109,7 +2093,7 @@ namespace orm
                 {
                     wheresql.append("\'");
                 }
-                wheresql.append(key);
+                wheresql.append(to_escape(key));
                 wheresql.append("\'");
                 i++;
             }
@@ -2153,7 +2137,7 @@ namespace orm
                 {
                     wheresql.append("\'");
                 }
-                wheresql.append(key);
+                wheresql.append(to_escape(key));
                 wheresql.append("\'");
                 i++;
             }
@@ -2838,33 +2822,25 @@ namespace orm
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = select_conn->execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
+                    [this, &temprecord](int col_count, char** col_names, auto get_data) -> bool {
+                        std::map<std::string, std::string> data_temp;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            std::string col_name = col_names[ij] ? col_names[ij] : "";
+                            if (!col_name.empty()) {
+                                data_temp.insert({col_name, ptr != nullptr ? std::string(reinterpret_cast<const char*>(ptr), len) : std::string()});
+                            }
+                        }
+                        temprecord.emplace_back(std::move(data_temp));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return temprecord;
-                }
-
-                for (auto &row : rows)
-                {
-                    std::map<std::string, std::string> data_temp;
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (fields[ij].name.size() > 0)
-                        {
-                            data_temp.insert({fields[ij].name, row.values[ij]});
-                        }
-                        else if (fields[ij].org_name.size() > 0)
-                        {
-                            data_temp.insert({fields[ij].org_name, row.values[ij]});
-                        }
-                    }
-                    temprecord.emplace_back(std::move(data_temp));
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -2989,32 +2965,30 @@ namespace orm
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = select_conn->execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
+                    [this, &temprecord, &table_fieldname, &table_fieldmap, first_col = true](int col_count, char** col_names, auto get_data) mutable -> bool {
+                        if (first_col) {
+                            for (int ii = 0; ii < col_count; ii++) {
+                                const char *nm = col_names[ii];
+                                table_fieldmap.emplace(nm ? nm : "", table_fieldname.size());
+                                table_fieldname.push_back(nm ? nm : "");
+                            }
+                            first_col = false;
+                        }
+                        std::vector<std::string> temp_v_record;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            temp_v_record.push_back(ptr != nullptr ? std::string(reinterpret_cast<const char*>(ptr), len) : std::string());
+                        }
+                        temprecord.push_back(std::move(temp_v_record));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
-                }
-
-                for (unsigned int ii = 0; ii < fields.size(); ii++)
-                {
-                    table_fieldmap.emplace(fields[ii].org_name, table_fieldname.size());
-                    table_fieldname.push_back(fields[ii].org_name);
-                }
-
-                for (auto &row : rows)
-                {
-                    std::vector<std::string> temp_v_record;
-                    for (unsigned int ij = 0; ij < row.values.size(); ij++)
-                    {
-                        temp_v_record.push_back(row.values[ij]);
-                    }
-                    temprecord.push_back(std::move(temp_v_record));
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -3135,39 +3109,27 @@ namespace orm
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = select_conn->execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
+                    [this, &custom_record, &callback](int col_count, char** col_names, auto get_data) -> bool {
+                        T data_temp;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            std::string col_name = col_names[ij] ? col_names[ij] : "";
+                            if (!col_name.empty()) {
+                                std::invoke(std::forward<Callback>(callback), data_temp, col_name, ptr, len, 0, 1);
+                            }
+                        }
+                        custom_record.emplace_back(std::move(data_temp));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return 0;
-                }
-
-                for (auto &row : rows)
-                {
-                    T data_temp;
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        if (fields[ij].name.size() > 0)
-                        {
-                            //or alias name
-                            std::invoke(std::forward<Callback>(callback), data_temp, fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type, 1);
-                        }
-                        else if (fields[ij].org_name.size() > 0)
-                        {
-                            std::invoke(std::forward<Callback>(callback), data_temp, fields[ij].org_name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type, 1);
-                        }
-                    }
-                    custom_record.emplace_back(std::move(data_temp));
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -3262,39 +3224,27 @@ namespace orm
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await select_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
+                    [this, &custom_record, &callback](int col_count, char** col_names, auto get_data) -> bool {
+                        T data_temp;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            std::string col_name = col_names[ij] ? col_names[ij] : "";
+                            if (!col_name.empty()) {
+                                std::invoke(std::forward<Callback>(callback), data_temp, col_name, ptr, len, 0, 1);
+                            }
+                        }
+                        custom_record.emplace_back(std::move(data_temp));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     co_return 0;
-                }
-
-                for (auto &row : rows)
-                {
-                    T data_temp;
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        if (fields[ij].name.size() > 0)
-                        {
-                            //or alias name
-                            std::invoke(std::forward<Callback>(callback), data_temp, fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type, 1);
-                        }
-                        else if (fields[ij].org_name.size() > 0)
-                        {
-                            std::invoke(std::forward<Callback>(callback), data_temp, fields[ij].org_name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type, 1);
-                        }
-                    }
-                    custom_record.emplace_back(std::move(data_temp));
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -3387,39 +3337,27 @@ namespace orm
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = select_conn->execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
+                    [this, &custom_record](int col_count, char** col_names, auto get_data) -> bool {
+                        T data_temp;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            std::string col_name = col_names[ij] ? col_names[ij] : "";
+                            if (!col_name.empty()) {
+                                data_temp.set_val(col_name, ptr, len, 0);
+                            }
+                        }
+                        custom_record.emplace_back(std::move(data_temp));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return 0;
-                }
-
-                for (auto &row : rows)
-                {
-                    T data_temp;
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        if (fields[ij].name.size() > 0)
-                        {
-                            //or alias name
-                            data_temp.set_val(fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                        }
-                        else if (fields[ij].org_name.size() > 0)
-                        {
-                            data_temp.set_val(fields[ij].org_name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                        }
-                    }
-                    custom_record.emplace_back(std::move(data_temp));
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -3514,39 +3452,27 @@ namespace orm
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await select_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
+                    [this, &custom_record](int col_count, char** col_names, auto get_data) -> bool {
+                        T data_temp;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            std::string col_name = col_names[ij] ? col_names[ij] : "";
+                            if (!col_name.empty()) {
+                                data_temp.set_val(col_name, ptr, len, 0);
+                            }
+                        }
+                        custom_record.emplace_back(std::move(data_temp));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     co_return 0;
-                }
-
-                for (auto &row : rows)
-                {
-                    T data_temp;
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        if (fields[ij].name.size() > 0)
-                        {
-                            //or alias name
-                            data_temp.set_val(fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                        }
-                        else if (fields[ij].org_name.size() > 0)
-                        {
-                            data_temp.set_val(fields[ij].org_name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                        }
-                    }
-                    custom_record.emplace_back(std::move(data_temp));
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -3648,37 +3574,34 @@ namespace orm
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = select_conn->execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
+                    [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char** col_names, auto get_data) mutable -> bool {
+                        // 列位映射仅首行构建（同一结果集列序固定）：后续行按列号直接索引。
+                        if (first_row) {
+                            col_pos_map.assign(col_count, 255);
+                            for (int ii = 0; ii < col_count; ii++) {
+                                if (col_names[ii] && col_names[ii][0] != '\0') {
+                                    col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
+                                }
+                            }
+                            first_row = false;
+                        }
+                        typename B_BASE::meta data_temp;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
+                        }
+                        B_BASE::record.emplace_back(std::move(data_temp));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return 0;
-                }
-
-                std::vector<unsigned char> field_pos;
-                for (unsigned int ii = 0; ii < fields.size(); ii++)
-                {
-                    field_pos.push_back(B_BASE::findcolpos(fields[ii].org_name));
-                }
-
-                for (auto &row : rows)
-                {
-                    typename B_BASE::meta data_temp;
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        assign_field_value(field_pos[ij], (unsigned char *)row.values[ij].data(), row.values[ij].size(), data_temp);
-                    }
-                    B_BASE::record.emplace_back(std::move(data_temp));
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -3790,37 +3713,34 @@ namespace orm
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await select_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
+                    [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char** col_names, auto get_data) mutable -> bool {
+                        // 列位映射仅首行构建（同一结果集列序固定）：后续行按列号直接索引。
+                        if (first_row) {
+                            col_pos_map.assign(col_count, 255);
+                            for (int ii = 0; ii < col_count; ii++) {
+                                if (col_names[ii] && col_names[ii][0] != '\0') {
+                                    col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
+                                }
+                            }
+                            first_row = false;
+                        }
+                        typename B_BASE::meta data_temp;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
+                        }
+                        B_BASE::record.emplace_back(std::move(data_temp));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     co_return 0;
-                }
-
-                std::vector<unsigned char> field_pos;
-                for (unsigned int ii = 0; ii < fields.size(); ii++)
-                {
-                    field_pos.push_back(B_BASE::findcolpos(fields[ii].org_name));
-                }
-
-                for (auto &row : rows)
-                {
-                    typename B_BASE::meta data_temp;
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        assign_field_value(field_pos[ij], (unsigned char *)row.values[ij].data(), row.values[ij].size(), data_temp);
-                    }
-                    B_BASE::record.emplace_back(std::move(data_temp));
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -3929,37 +3849,34 @@ namespace orm
                 {
                     select_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = select_conn->execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
+                    [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char** col_names, auto get_data) mutable -> bool {
+                        // 列位映射仅首行构建（同一结果集列序固定）：后续行按列号直接索引。
+                        if (first_row) {
+                            col_pos_map.assign(col_count, 255);
+                            for (int ii = 0; ii < col_count; ii++) {
+                                if (col_names[ii] && col_names[ii][0] != '\0') {
+                                    col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
+                                }
+                            }
+                            first_row = false;
+                        }
+                        typename B_BASE::meta data_temp;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
+                        }
+                        B_BASE::record.emplace_back(std::move(data_temp));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return *mod;
-                }
-
-                std::vector<unsigned char> field_pos;
-                for (unsigned int ii = 0; ii < fields.size(); ii++)
-                {
-                    field_pos.push_back(B_BASE::findcolpos(fields[ii].org_name));
-                }
-
-                for (auto &row : rows)
-                {
-                    typename B_BASE::meta data_temp;
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        assign_field_value(field_pos[ij], (unsigned char *)row.values[ij].data(), row.values[ij].size(), data_temp);
-                    }
-                    B_BASE::record.emplace_back(std::move(data_temp));
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -4072,37 +3989,34 @@ namespace orm
                 {
                     select_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await select_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
+                    [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char** col_names, auto get_data) mutable -> bool {
+                        // 列位映射仅首行构建（同一结果集列序固定）：后续行按列号直接索引。
+                        if (first_row) {
+                            col_pos_map.assign(col_count, 255);
+                            for (int ii = 0; ii < col_count; ii++) {
+                                if (col_names[ii] && col_names[ii][0] != '\0') {
+                                    col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
+                                }
+                            }
+                            first_row = false;
+                        }
+                        typename B_BASE::meta data_temp;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
+                        }
+                        B_BASE::record.emplace_back(std::move(data_temp));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     co_return 0;
-                }
-
-                std::vector<unsigned char> field_pos;
-                for (unsigned int ii = 0; ii < fields.size(); ii++)
-                {
-                    field_pos.push_back(B_BASE::findcolpos(fields[ii].org_name));
-                }
-
-                for (auto &row : rows)
-                {
-                    typename B_BASE::meta data_temp;
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        assign_field_value(field_pos[ij], (unsigned char *)row.values[ij].data(), row.values[ij].size(), data_temp);
-                    }
-                    B_BASE::record.emplace_back(std::move(data_temp));
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -4205,37 +4119,27 @@ namespace orm
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = select_conn->execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
+                    [this, &custom_record, &callback](int col_count, char** col_names, auto get_data) -> bool {
+                        T data_temp;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            std::string col_name = col_names[ij] ? col_names[ij] : "";
+                            if (!col_name.empty()) {
+                                std::invoke(std::forward<Callback>(callback), data_temp, col_name, ptr, len, 0, 1);
+                            }
+                        }
+                        custom_record.emplace_back(std::move(data_temp));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return 0;
-                }
-
-                for (auto &row : rows)
-                {
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        if (fields[ij].name.size() > 0)
-                        {
-                            //or alias name
-                            std::invoke(std::forward<Callback>(callback), custom_record, fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type, 1);
-                        }
-                        else if (fields[ij].org_name.size() > 0)
-                        {
-                            std::invoke(std::forward<Callback>(callback), custom_record, fields[ij].org_name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type, 1);
-                        }
-                    }
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -4331,37 +4235,27 @@ namespace orm
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await select_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
+                    [this, &custom_record, &callback](int col_count, char** col_names, auto get_data) -> bool {
+                        T data_temp;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            std::string col_name = col_names[ij] ? col_names[ij] : "";
+                            if (!col_name.empty()) {
+                                std::invoke(std::forward<Callback>(callback), data_temp, col_name, ptr, len, 0, 1);
+                            }
+                        }
+                        custom_record.emplace_back(std::move(data_temp));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     co_return 0;
-                }
-
-                for (auto &row : rows)
-                {
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        if (fields[ij].name.size() > 0)
-                        {
-                            //or alias name
-                            std::invoke(std::forward<Callback>(callback), custom_record, fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type, 1);
-                        }
-                        else if (fields[ij].org_name.size() > 0)
-                        {
-                            std::invoke(std::forward<Callback>(callback), custom_record, fields[ij].org_name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type, 1);
-                        }
-                    }
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -4456,37 +4350,25 @@ namespace orm
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = select_conn->execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
+                    [this, &custom_struct](int col_count, char** col_names, auto get_data) -> bool {
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            std::string col_name = col_names[ij] ? col_names[ij] : "";
+                            if (!col_name.empty()) {
+                                custom_struct.set_val(col_name, ptr, len, 0);
+                            }
+                        }
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return 0;
-                }
-
-                for (auto &row : rows)
-                {
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        if (fields[ij].name.size() > 0)
-                        {
-                            //or alias name
-                            custom_struct.set_val(fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                        }
-                        else if (fields[ij].org_name.size() > 0)
-                        {
-                            custom_struct.set_val(fields[ij].org_name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                        }
-                    }
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -4582,37 +4464,25 @@ namespace orm
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await select_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
+                    [this, &custom_struct](int col_count, char** col_names, auto get_data) -> bool {
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            std::string col_name = col_names[ij] ? col_names[ij] : "";
+                            if (!col_name.empty()) {
+                                custom_struct.set_val(col_name, ptr, len, 0);
+                            }
+                        }
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     co_return 0;
-                }
-
-                for (auto &row : rows)
-                {
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        if (fields[ij].name.size() > 0)
-                        {
-                            //or alias name
-                            custom_struct.set_val(fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                        }
-                        else if (fields[ij].org_name.size() > 0)
-                        {
-                            custom_struct.set_val(fields[ij].org_name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                        }
-                    }
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -4714,52 +4584,40 @@ namespace orm
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = select_conn->execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
+                    [this, isappend](int col_count, char** col_names, auto get_data) -> bool {
+                        std::vector<unsigned char> field_pos;
+                        for (int ii = 0; ii < col_count; ii++) {
+                            field_pos.push_back(B_BASE::findcolpos(col_names[ii] ? col_names[ii] : ""));
+                        }
+                        if (isappend)
+                        {
+                            typename B_BASE::meta data_temp;
+                            for (int ij = 0; ij < col_count; ij++) {
+                                auto [ptr, len] = get_data(ij);
+                                if (ptr == nullptr) continue;
+                                assign_field_value(field_pos[ij], ptr, len, data_temp);
+                            }
+                            B_BASE::record.emplace_back(std::move(data_temp));
+                            effect_num++;
+                        }
+                        else
+                        {
+                            for (int ij = 0; ij < col_count; ij++) {
+                                auto [ptr, len] = get_data(ij);
+                                if (ptr == nullptr) continue;
+                                assign_field_value(field_pos[ij], ptr, len, B_BASE::data);
+                            }
+                            effect_num++;
+                        }
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return 0;
-                }
-
-                std::vector<unsigned char> field_pos;
-                for (unsigned int ii = 0; ii < fields.size(); ii++)
-                {
-                    field_pos.push_back(B_BASE::findcolpos(fields[ii].org_name));
-                }
-
-                for (auto &row : rows)
-                {
-                    if (isappend)
-                    {
-                        typename B_BASE::meta data_temp;
-                        for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                        {
-                            if (row.is_null[ij])
-                            {
-                                continue;
-                            }
-                            assign_field_value(field_pos[ij], (unsigned char *)row.values[ij].data(), row.values[ij].size(), data_temp);
-                        }
-                        B_BASE::record.emplace_back(std::move(data_temp));
-                        effect_num++;
-                    }
-                    else
-                    {
-                        for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                        {
-                            if (row.is_null[ij])
-                            {
-                                continue;
-                            }
-                            assign_field_value(field_pos[ij], (unsigned char *)row.values[ij].data(), row.values[ij].size(), B_BASE::data);
-                        }
-                        effect_num++;
-                    }
                 }
                 if (select_conn->isdebug)
                 {
@@ -4871,52 +4729,40 @@ namespace orm
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await select_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
+                    [this, isappend](int col_count, char** col_names, auto get_data) -> bool {
+                        std::vector<unsigned char> field_pos;
+                        for (int ii = 0; ii < col_count; ii++) {
+                            field_pos.push_back(B_BASE::findcolpos(col_names[ii] ? col_names[ii] : ""));
+                        }
+                        if (isappend)
+                        {
+                            typename B_BASE::meta data_temp;
+                            for (int ij = 0; ij < col_count; ij++) {
+                                auto [ptr, len] = get_data(ij);
+                                if (ptr == nullptr) continue;
+                                assign_field_value(field_pos[ij], ptr, len, data_temp);
+                            }
+                            B_BASE::record.emplace_back(std::move(data_temp));
+                            effect_num++;
+                        }
+                        else
+                        {
+                            for (int ij = 0; ij < col_count; ij++) {
+                                auto [ptr, len] = get_data(ij);
+                                if (ptr == nullptr) continue;
+                                assign_field_value(field_pos[ij], ptr, len, B_BASE::data);
+                            }
+                            effect_num++;
+                        }
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     co_return 0;
-                }
-
-                std::vector<unsigned char> field_pos;
-                for (unsigned int ii = 0; ii < fields.size(); ii++)
-                {
-                    field_pos.push_back(B_BASE::findcolpos(fields[ii].org_name));
-                }
-
-                for (auto &row : rows)
-                {
-                    if (isappend)
-                    {
-                        typename B_BASE::meta data_temp;
-                        for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                        {
-                            if (row.is_null[ij])
-                            {
-                                continue;
-                            }
-                            assign_field_value(field_pos[ij], (unsigned char *)row.values[ij].data(), row.values[ij].size(), data_temp);
-                        }
-                        B_BASE::record.emplace_back(std::move(data_temp));
-                        effect_num++;
-                    }
-                    else
-                    {
-                        for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                        {
-                            if (row.is_null[ij])
-                            {
-                                continue;
-                            }
-                            assign_field_value(field_pos[ij], (unsigned char *)row.values[ij].data(), row.values[ij].size(), B_BASE::data);
-                        }
-                        effect_num++;
-                    }
                 }
                 if (select_conn->isdebug)
                 {
@@ -5187,39 +5033,27 @@ namespace orm
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = select_conn->execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
+                    [this, &valuetemp](int col_count, char** col_names, auto get_data) -> bool {
+                        http::obj_val json_temp_v;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            std::string col_name = col_names[ij] ? col_names[ij] : "";
+                            if (!col_name.empty()) {
+                                json_temp_v[col_name] = std::string(reinterpret_cast<const char*>(ptr), len);
+                            }
+                        }
+                        valuetemp.push(json_temp_v);
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return 0;
-                }
-
-                for (auto &row : rows)
-                {
-                    http::obj_val json_temp_v;
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        if (fields[ij].name.size() > 0)
-                        {
-                            //or alias name
-                            json_temp_v[fields[ij].name] = row.values[ij];
-                        }
-                        else if (fields[ij].org_name.size() > 0)
-                        {
-                            json_temp_v[fields[ij].org_name] = row.values[ij];
-                        }
-                    }
-                    valuetemp.push(json_temp_v);
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -5310,39 +5144,27 @@ namespace orm
                 {
                     select_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await select_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
+                    [this, &valuetemp](int col_count, char** col_names, auto get_data) -> bool {
+                        http::obj_val json_temp_v;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            std::string col_name = col_names[ij] ? col_names[ij] : "";
+                            if (!col_name.empty()) {
+                                json_temp_v[col_name] = std::string(reinterpret_cast<const char*>(ptr), len);
+                            }
+                        }
+                        valuetemp.push(json_temp_v);
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     co_return valuetemp;
-                }
-
-                for (auto &row : rows)
-                {
-                    http::obj_val json_temp_v;
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        if (fields[ij].name.size() > 0)
-                        {
-                            //or alias name
-                            json_temp_v[fields[ij].name] = row.values[ij];
-                        }
-                        else if (fields[ij].org_name.size() > 0)
-                        {
-                            json_temp_v[fields[ij].org_name] = row.values[ij];
-                        }
-                    }
-                    valuetemp.push(json_temp_v);
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -5426,35 +5248,32 @@ namespace orm
                     select_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = select_conn->execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
+                    [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char** col_names, auto get_data) mutable -> bool {
+                        // 列位映射仅首行构建（同一结果集列序固定）：后续行按列号直接索引。
+                        if (first_row) {
+                            col_pos_map.assign(col_count, 255);
+                            for (int ii = 0; ii < col_count; ii++) {
+                                if (col_names[ii] && col_names[ii][0] != '\0') {
+                                    col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
+                                }
+                            }
+                            first_row = false;
+                        }
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
+                        }
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return 0;
-                }
-
-                std::vector<unsigned char> field_pos;
-                for (unsigned int ii = 0; ii < fields.size(); ii++)
-                {
-                    field_pos.push_back(B_BASE::findcolpos(fields[ii].org_name));
-                }
-
-                for (auto &row : rows)
-                {
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        assign_field_value(field_pos[ij], (unsigned char *)row.values[ij].data(), row.values[ij].size(), B_BASE::data);
-                    }
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -5548,35 +5367,32 @@ namespace orm
                 {
                     select_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await select_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
+                    [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char** col_names, auto get_data) mutable -> bool {
+                        // 列位映射仅首行构建（同一结果集列序固定）：后续行按列号直接索引。
+                        if (first_row) {
+                            col_pos_map.assign(col_count, 255);
+                            for (int ii = 0; ii < col_count; ii++) {
+                                if (col_names[ii] && col_names[ii][0] != '\0') {
+                                    col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
+                                }
+                            }
+                            first_row = false;
+                        }
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
+                        }
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     co_return 0;
-                }
-
-                std::vector<unsigned char> field_pos;
-                for (unsigned int ii = 0; ii < fields.size(); ii++)
-                {
-                    field_pos.push_back(B_BASE::findcolpos(fields[ii].org_name));
-                }
-
-                for (auto &row : rows)
-                {
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        assign_field_value(field_pos[ij], (unsigned char *)row.values[ij].data(), row.values[ij].size(), B_BASE::data);
-                    }
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -5682,10 +5498,7 @@ namespace orm
                     edit_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(sqlstring, fields, rows, affected);
+                unsigned int affected = edit_conn->exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -5693,7 +5506,7 @@ namespace orm
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -5790,10 +5603,7 @@ namespace orm
                     edit_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(sqlstring, fields, rows, affected);
+                unsigned int affected = edit_conn->exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -5801,7 +5611,7 @@ namespace orm
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -5899,10 +5709,7 @@ namespace orm
                 {
                     edit_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await edit_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
+                unsigned int affected = co_await edit_conn->async_exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -5910,7 +5717,7 @@ namespace orm
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -6007,10 +5814,7 @@ namespace orm
                 {
                     edit_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await edit_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
+                unsigned int affected = co_await edit_conn->async_exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -6018,7 +5822,7 @@ namespace orm
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -6088,10 +5892,7 @@ namespace orm
                 {
                     edit_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(sqlstring, fields, rows, affected);
+                unsigned int affected = edit_conn->exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -6099,7 +5900,7 @@ namespace orm
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -6197,10 +5998,7 @@ namespace orm
                 {
                     edit_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(sqlstring, fields, rows, affected);
+                unsigned int affected = edit_conn->exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -6208,7 +6006,7 @@ namespace orm
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -6307,10 +6105,7 @@ namespace orm
                 {
                     edit_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await edit_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
+                unsigned int affected = co_await edit_conn->async_exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -6318,7 +6113,7 @@ namespace orm
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -6382,10 +6177,7 @@ namespace orm
                 {
                     edit_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(sqlstring, fields, rows, affected);
+                unsigned int affected = edit_conn->exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -6393,7 +6185,7 @@ namespace orm
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -6457,10 +6249,7 @@ namespace orm
                 {
                     edit_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await edit_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
+                unsigned int affected = co_await edit_conn->async_exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -6468,7 +6257,7 @@ namespace orm
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -6570,10 +6359,7 @@ namespace orm
                 {
                     edit_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(sqlstring, fields, rows, affected);
+                unsigned int affected = edit_conn->exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -6581,7 +6367,7 @@ namespace orm
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -6691,10 +6477,7 @@ namespace orm
                 {
                     edit_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(sqlstring, fields, rows, affected);
+                unsigned int affected = edit_conn->exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -6702,7 +6485,7 @@ namespace orm
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -6763,10 +6546,17 @@ namespace orm
                 std::string insertsql = sqlstring;
                 insertsql.append(" RETURNING ");
                 insertsql.append(B_BASE::getPKname());
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(insertsql, fields, rows, affected);
+                long long insert_last_id = 0;
+                unsigned int fetch_count = edit_conn->fetch_directly(insertsql,
+                    [&insert_last_id](int col_count, char** col_names, auto get_data) -> bool {
+                        (void)col_count;
+                        (void)col_names;
+                        auto [ptr, len] = get_data(0);
+                        if (ptr != nullptr && len > 0) {
+                            long long v = 0; auto r = std::from_chars(reinterpret_cast<const char*>(ptr), reinterpret_cast<const char*>(ptr) + len, v, 10); if (r.ec == std::errc()) insert_last_id = v;
+                        }
+                        return true;
+                    });
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -6774,9 +6564,7 @@ namespace orm
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(insertsql, std::to_string(du_time));
                 }
-
-                long long insert_last_id = 0;
-                if (err > 0)
+                if (fetch_count == 0 && !edit_conn->error_msg.empty())
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -6784,11 +6572,7 @@ namespace orm
                 }
                 else
                 {
-                    effect_num = affected;
-                    if (!rows.empty() && !rows.back().values.empty() && !rows.back().is_null[0])
-                    {
-                        insert_last_id = std::strtoll(rows.back().values[0].c_str(), nullptr, 10);
-                    }
+                    effect_num = fetch_count;
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
@@ -6842,10 +6626,17 @@ namespace orm
                 std::string insertsql = sqlstring;
                 insertsql.append(" RETURNING ");
                 insertsql.append(B_BASE::getPKname());
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await edit_conn->async_execute_and_fetch(insertsql, fields, rows, affected);
+                long long insert_last_id = 0;
+                unsigned int fetch_count = co_await edit_conn->async_fetch_directly(insertsql,
+                    [&insert_last_id](int col_count, char** col_names, auto get_data) -> bool {
+                        (void)col_count;
+                        (void)col_names;
+                        auto [ptr, len] = get_data(0);
+                        if (ptr != nullptr && len > 0) {
+                            long long v = 0; auto r = std::from_chars(reinterpret_cast<const char*>(ptr), reinterpret_cast<const char*>(ptr) + len, v, 10); if (r.ec == std::errc()) insert_last_id = v;
+                        }
+                        return true;
+                    });
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -6853,9 +6644,7 @@ namespace orm
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(insertsql, std::to_string(du_time));
                 }
-
-                long long insert_last_id = 0;
-                if (err > 0)
+                if (fetch_count == 0 && !edit_conn->error_msg.empty())
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -6863,11 +6652,7 @@ namespace orm
                 }
                 else
                 {
-                    effect_num = affected;
-                    if (!rows.empty() && !rows.back().values.empty() && !rows.back().is_null[0])
-                    {
-                        insert_last_id = std::strtoll(rows.back().values[0].c_str(), nullptr, 10);
-                    }
+                    effect_num = fetch_count;
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
@@ -6921,10 +6706,17 @@ namespace orm
                 std::string insertsql = sqlstring;
                 insertsql.append(" RETURNING ");
                 insertsql.append(B_BASE::getPKname());
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(insertsql, fields, rows, affected);
+                long long insert_last_id = 0;
+                unsigned int fetch_count = edit_conn->fetch_directly(insertsql,
+                    [&insert_last_id](int col_count, char** col_names, auto get_data) -> bool {
+                        (void)col_count;
+                        (void)col_names;
+                        auto [ptr, len] = get_data(0);
+                        if (ptr != nullptr && len > 0) {
+                            long long v = 0; auto r = std::from_chars(reinterpret_cast<const char*>(ptr), reinterpret_cast<const char*>(ptr) + len, v, 10); if (r.ec == std::errc()) insert_last_id = v;
+                        }
+                        return true;
+                    });
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -6932,9 +6724,7 @@ namespace orm
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(insertsql, std::to_string(du_time));
                 }
-
-                long long insert_last_id = 0;
-                if (err > 0)
+                if (fetch_count == 0 && !edit_conn->error_msg.empty())
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -6942,11 +6732,7 @@ namespace orm
                 }
                 else
                 {
-                    effect_num = affected;
-                    if (!rows.empty() && !rows.back().values.empty() && !rows.back().is_null[0])
-                    {
-                        insert_last_id = std::strtoll(rows.back().values[0].c_str(), nullptr, 10);
-                    }
+                    effect_num = fetch_count;
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
@@ -7000,10 +6786,17 @@ namespace orm
                 std::string insertsql = sqlstring;
                 insertsql.append(" RETURNING ");
                 insertsql.append(B_BASE::getPKname());
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await edit_conn->async_execute_and_fetch(insertsql, fields, rows, affected);
+                long long insert_last_id = 0;
+                unsigned int fetch_count = co_await edit_conn->async_fetch_directly(insertsql,
+                    [&insert_last_id](int col_count, char** col_names, auto get_data) -> bool {
+                        (void)col_count;
+                        (void)col_names;
+                        auto [ptr, len] = get_data(0);
+                        if (ptr != nullptr && len > 0) {
+                            long long v = 0; auto r = std::from_chars(reinterpret_cast<const char*>(ptr), reinterpret_cast<const char*>(ptr) + len, v, 10); if (r.ec == std::errc()) insert_last_id = v;
+                        }
+                        return true;
+                    });
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -7011,9 +6804,7 @@ namespace orm
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(insertsql, std::to_string(du_time));
                 }
-
-                long long insert_last_id = 0;
-                if (err > 0)
+                if (fetch_count == 0 && !edit_conn->error_msg.empty())
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -7021,11 +6812,7 @@ namespace orm
                 }
                 else
                 {
-                    effect_num = affected;
-                    if (!rows.empty() && !rows.back().values.empty() && !rows.back().is_null[0])
-                    {
-                        insert_last_id = std::strtoll(rows.back().values[0].c_str(), nullptr, 10);
-                    }
+                    effect_num = fetch_count;
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
@@ -7079,10 +6866,17 @@ namespace orm
                 std::string insertsql = sqlstring;
                 insertsql.append(" RETURNING ");
                 insertsql.append(B_BASE::getPKname());
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(insertsql, fields, rows, affected);
+                long long insert_last_id = 0;
+                unsigned int fetch_count = edit_conn->fetch_directly(insertsql,
+                    [&insert_last_id](int col_count, char** col_names, auto get_data) -> bool {
+                        (void)col_count;
+                        (void)col_names;
+                        auto [ptr, len] = get_data(0);
+                        if (ptr != nullptr && len > 0) {
+                            long long v = 0; auto r = std::from_chars(reinterpret_cast<const char*>(ptr), reinterpret_cast<const char*>(ptr) + len, v, 10); if (r.ec == std::errc()) insert_last_id = v;
+                        }
+                        return true;
+                    });
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -7090,9 +6884,7 @@ namespace orm
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(insertsql, std::to_string(du_time));
                 }
-
-                long long insert_last_id = 0;
-                if (err > 0)
+                if (fetch_count == 0 && !edit_conn->error_msg.empty())
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -7100,11 +6892,7 @@ namespace orm
                 }
                 else
                 {
-                    effect_num = affected;
-                    if (!rows.empty() && !rows.back().values.empty() && !rows.back().is_null[0])
-                    {
-                        insert_last_id = std::strtoll(rows.back().values[0].c_str(), nullptr, 10);
-                    }
+                    effect_num = fetch_count;
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
@@ -7158,10 +6946,17 @@ namespace orm
                 std::string insertsql = sqlstring;
                 insertsql.append(" RETURNING ");
                 insertsql.append(B_BASE::getPKname());
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await edit_conn->async_execute_and_fetch(insertsql, fields, rows, affected);
+                long long insert_last_id = 0;
+                unsigned int fetch_count = co_await edit_conn->async_fetch_directly(insertsql,
+                    [&insert_last_id](int col_count, char** col_names, auto get_data) -> bool {
+                        (void)col_count;
+                        (void)col_names;
+                        auto [ptr, len] = get_data(0);
+                        if (ptr != nullptr && len > 0) {
+                            long long v = 0; auto r = std::from_chars(reinterpret_cast<const char*>(ptr), reinterpret_cast<const char*>(ptr) + len, v, 10); if (r.ec == std::errc()) insert_last_id = v;
+                        }
+                        return true;
+                    });
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -7169,9 +6964,7 @@ namespace orm
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(insertsql, std::to_string(du_time));
                 }
-
-                long long insert_last_id = 0;
-                if (err > 0)
+                if (fetch_count == 0 && !edit_conn->error_msg.empty())
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -7179,11 +6972,7 @@ namespace orm
                 }
                 else
                 {
-                    effect_num = affected;
-                    if (!rows.empty() && !rows.back().values.empty() && !rows.back().is_null[0])
-                    {
-                        insert_last_id = std::strtoll(rows.back().values[0].c_str(), nullptr, 10);
-                    }
+                    effect_num = fetch_count;
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
@@ -7264,10 +7053,7 @@ namespace orm
                 {
                     edit_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(sqlstring, fields, rows, affected);
+                unsigned int affected = edit_conn->exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -7275,7 +7061,7 @@ namespace orm
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -7319,10 +7105,17 @@ namespace orm
                 std::string insertsql = sqlstring;
                 insertsql.append(" RETURNING ");
                 insertsql.append(B_BASE::getPKname());
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(insertsql, fields, rows, affected);
+                long long insert_last_id = 0;
+                unsigned int fetch_count = edit_conn->fetch_directly(insertsql,
+                    [&insert_last_id](int col_count, char** col_names, auto get_data) -> bool {
+                        (void)col_count;
+                        (void)col_names;
+                        auto [ptr, len] = get_data(0);
+                        if (ptr != nullptr && len > 0) {
+                            long long v = 0; auto r = std::from_chars(reinterpret_cast<const char*>(ptr), reinterpret_cast<const char*>(ptr) + len, v, 10); if (r.ec == std::errc()) insert_last_id = v;
+                        }
+                        return true;
+                    });
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -7330,9 +7123,7 @@ namespace orm
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(insertsql, std::to_string(du_time));
                 }
-
-                long long insert_last_id = 0;
-                if (err > 0)
+                if (fetch_count == 0 && !edit_conn->error_msg.empty())
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -7340,11 +7131,7 @@ namespace orm
                 }
                 else
                 {
-                    effect_num = affected;
-                    if (!rows.empty() && !rows.back().values.empty() && !rows.back().is_null[0])
-                    {
-                        insert_last_id = std::strtoll(rows.back().values[0].c_str(), nullptr, 10);
-                    }
+                    effect_num = fetch_count;
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
@@ -7423,10 +7210,7 @@ namespace orm
                     {
                         edit_conn->begin_time();
                     }
-                    std::vector<field_info_t> fields;
-                    std::vector<pg_row_data_t> rows;
-                    unsigned int affected = 0;
-                    unsigned int err      = co_await edit_conn->async_execute_and_fetch(sqlstring, fields, rows, affected);
+                    unsigned int affected = co_await edit_conn->async_exec_dml(sqlstring);
                     if (edit_conn->isdebug)
                     {
                         edit_conn->finish_time();
@@ -7434,7 +7218,7 @@ namespace orm
                         long long du_time = edit_conn->count_time();
                         conn_mar.push_log(sqlstring, std::to_string(du_time));
                     }
-                    if (err > 0)
+                    if (affected == static_cast<unsigned int>(-1))
                     {
                         error_msg = edit_conn->error_msg;
                         iserror   = true;
@@ -7487,10 +7271,17 @@ namespace orm
                     std::string insertsql = sqlstring;
                     insertsql.append(" RETURNING ");
                     insertsql.append(B_BASE::getPKname());
-                    std::vector<field_info_t> fields;
-                    std::vector<pg_row_data_t> rows;
-                    unsigned int affected = 0;
-                    unsigned int err      = co_await edit_conn->async_execute_and_fetch(insertsql, fields, rows, affected);
+                    long long insert_last_id = 0;
+                    unsigned int fetch_count = co_await edit_conn->async_fetch_directly(insertsql,
+                        [&insert_last_id](int col_count, char** col_names, auto get_data) -> bool {
+                            (void)col_count;
+                            (void)col_names;
+                            auto [ptr, len] = get_data(0);
+                            if (ptr != nullptr && len > 0) {
+                                long long v = 0; auto r = std::from_chars(reinterpret_cast<const char*>(ptr), reinterpret_cast<const char*>(ptr) + len, v, 10); if (r.ec == std::errc()) insert_last_id = v;
+                            }
+                            return true;
+                        });
                     if (edit_conn->isdebug)
                     {
                         edit_conn->finish_time();
@@ -7498,9 +7289,7 @@ namespace orm
                         long long du_time = edit_conn->count_time();
                         conn_mar.push_log(insertsql, std::to_string(du_time));
                     }
-
-                    long long insert_last_id = 0;
-                    if (err > 0)
+                    if (fetch_count == 0 && !edit_conn->error_msg.empty())
                     {
                         error_msg = edit_conn->error_msg;
                         iserror   = true;
@@ -7508,11 +7297,7 @@ namespace orm
                     }
                     else
                     {
-                        effect_num = affected;
-                        if (!rows.empty() && !rows.back().values.empty() && !rows.back().is_null[0])
-                        {
-                            insert_last_id = std::strtoll(rows.back().values[0].c_str(), nullptr, 10);
-                        }
+                        effect_num = fetch_count;
                         B_BASE::setPK(insert_last_id);
                         if (!islock_conn)
                         {
@@ -7674,38 +7459,27 @@ namespace orm
                 {
                     select_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = select_conn->execute_and_fetch(rawsql, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = select_conn->fetch_directly(rawsql,
+                    [this, &result_record](int col_count, char** col_names, auto get_data) -> bool {
+                        T data_temp;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            std::string col_name = col_names[ij] ? col_names[ij] : "";
+                            if (!col_name.empty()) {
+                                data_temp.set_val(col_name, ptr, len, 0);
+                            }
+                        }
+                        result_record.emplace_back(std::move(data_temp));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return 0;
-                }
-
-                for (auto &row : rows)
-                {
-                    T data_temp;
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        if (fields[ij].name.size() > 0)
-                        {
-                            data_temp.set_val(fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                        }
-                        else if (fields[ij].org_name.size() > 0)
-                        {
-                            data_temp.set_val(fields[ij].org_name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                        }
-                    }
-                    result_record.emplace_back(std::move(data_temp));
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -7788,39 +7562,27 @@ namespace orm
                 {
                     select_conn->begin_time();
                 }
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await select_conn->async_execute_and_fetch(rawsql, fields, rows, affected);
-                if (err > 0)
+                unsigned int fetch_count = co_await select_conn->async_fetch_directly(rawsql,
+                    [this, &result_record](int col_count, char** col_names, auto get_data) -> bool {
+                        T data_temp;
+                        for (int ij = 0; ij < col_count; ij++) {
+                            auto [ptr, len] = get_data(ij);
+                            if (ptr == nullptr) continue;
+                            std::string col_name = col_names[ij] ? col_names[ij] : "";
+                            if (!col_name.empty()) {
+                                data_temp.set_val(col_name, ptr, len, 0);
+                            }
+                        }
+                        result_record.emplace_back(std::move(data_temp));
+                        effect_num++;
+                        return true;
+                    });
+                if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     co_return 0;
-                }
-
-                for (auto &row : rows)
-                {
-                    T data_temp;
-                    for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                    {
-                        if (row.is_null[ij])
-                        {
-                            continue;
-                        }
-                        if (fields[ij].name.size() > 0)
-                        {
-                            //or alias name
-                            data_temp.set_val(fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                        }
-                        else if (fields[ij].org_name.size() > 0)
-                        {
-                            data_temp.set_val(fields[ij].org_name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                        }
-                    }
-                    result_record.emplace_back(std::move(data_temp));
-                    effect_num++;
                 }
                 if (select_conn->isdebug)
                 {
@@ -7876,10 +7638,7 @@ namespace orm
                     edit_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = edit_conn->execute_and_fetch(rawsql, fields, rows, affected);
+                unsigned int affected = edit_conn->exec_dml(rawsql);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -7887,7 +7646,7 @@ namespace orm
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(rawsql, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
@@ -7944,10 +7703,7 @@ namespace orm
                     edit_conn->begin_time();
                 }
 
-                std::vector<field_info_t> fields;
-                std::vector<pg_row_data_t> rows;
-                unsigned int affected = 0;
-                unsigned int err      = co_await edit_conn->async_execute_and_fetch(rawsql, fields, rows, affected);
+                unsigned int affected = co_await edit_conn->async_exec_dml(rawsql);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -7955,7 +7711,7 @@ namespace orm
                     long long du_time = edit_conn->count_time();
                     conn_mar.push_log(rawsql, std::to_string(du_time));
                 }
-                if (err > 0)
+                if (affected == static_cast<unsigned int>(-1))
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;

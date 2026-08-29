@@ -16,7 +16,7 @@ std::string article_pg_list(std::shared_ptr<httppeer> peer)
     try
     {
         httppeer &client = peer->get_peer();
-        auto articles    = orm::ph::Fortune();
+        auto articles    = orm::pg::Fortune();
         int page         = client.get["page"].to_int();
         if (page < 0)
         {
@@ -59,7 +59,7 @@ std::string article_pg_show(std::shared_ptr<httppeer> peer)
 {
     // step4
     httppeer &client = peer->get_peer();
-    auto articles    = orm::ph::Fortune();
+    auto articles    = orm::pg::Fortune();
     int aid          = client.get["id"].to_int();
 
     articles.where("id", aid).fetch_one();

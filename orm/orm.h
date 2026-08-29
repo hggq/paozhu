@@ -26,8 +26,7 @@
 #include "cms/include/Xproject.h"
 #include "cms/include/Xtalk.h"
 #include "cms/include/Xtask.h"
-#include "ph/include/Fortune.h"
-#include "ph/include/World.h"
-
+#include "pg/include/Fortune.h"
+#include "pg/include/World.h"
 #include "lite/include/Fortune.h"
 #include "lite/include/World.h"

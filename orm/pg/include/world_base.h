@@ -1,8 +1,8 @@
-#ifndef ORM_PH_FORTUNEBASEMATA_H
-#define ORM_PH_FORTUNEBASEMATA_H
+#ifndef ORM_PG_WORLDBASEMATA_H
+#define ORM_PG_WORLDBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Mon, 17 Aug 2026 02:57:51 GMT
+*本文件为自动生成 Sat, 29 Aug 2026 05:49:37 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -21,28 +21,28 @@
 
 namespace orm { 
    
-     namespace ph { 
+     namespace pg { 
 
-namespace fortune_info
+namespace world_info
 {
  
     enum class cols : unsigned char 
     {
 		id = 0,
-		message = 1,
+		randomnumber = 1,
 
     };
 
     struct meta
     {
 		 int  id = 0; ///**/
-		 std::string  message = ""; ///**/
+		 int  randomnumber = 0; ///**/
 	};
   
     struct meta_tree
     {
 		 int  id = 0; ///**/
-		 std::string  message = ""; ///**/
+		 int  randomnumber = 0; ///**/
 
 	 std::vector<meta_tree> children;
  };
@@ -50,7 +50,7 @@ namespace fortune_info
     struct meta_tree_ptr
     {
 		 int  id = 0; ///**/
-		 std::string  message = ""; ///**/
+		 int  randomnumber = 0; ///**/
 
 	 std::vector<std::unique_ptr<meta_tree>> children;
  };
@@ -60,8 +60,8 @@ namespace fortune_info
     {
     	if constexpr (Col == cols::id) { 
 		 return m.id;
-		} else if constexpr (Col == cols::message) { 
-		 return m.message;
+		} else if constexpr (Col == cols::randomnumber) { 
+		 return m.randomnumber;
 		
         } else {
             //static_assert(false, "Unsupported column type");
@@ -70,360 +70,360 @@ namespace fortune_info
     
     namespace type {
 		using id =  int ;
-		using message =  std::string ;
+		using randomnumber =  int ;
 
     }
 
     
-    #define ORM_PH_FORTUNE_EXPAND(x) x 
+    #define ORM_PG_WORLD_EXPAND(x) x 
     
-    #define ORM_PH_FORTUNE_META_FIELD_TYPE(col) \
-         orm::ph::fortune_info::type::col 
+    #define ORM_PG_WORLD_META_FIELD_TYPE(col) \
+         orm::pg::world_info::type::col 
     
-    #define ORM_PH_FORTUNE_PROJ_MEMBER(col) \
-          ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_META_FIELD_TYPE(col)) col{};
+    #define ORM_PG_WORLD_PROJ_MEMBER(col) \
+          ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_META_FIELD_TYPE(col)) col{};
                  
-    #define ORM_PH_FORTUNE_PROJ_MEMBERS_1(c1) \
-        ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBER(c1)) 
+    #define ORM_PG_WORLD_PROJ_MEMBERS_1(c1) \
+        ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBER(c1)) 
      
-    #define ORM_PH_FORTUNE_PROJ_MEMBERS_2( c1, c2) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBERS_1( c1)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBER(c2))
+    #define ORM_PG_WORLD_PROJ_MEMBERS_2( c1, c2) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBERS_1( c1)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBER(c2))
          
-    #define ORM_PH_FORTUNE_PROJ_MEMBERS_3( c1, c2, c3) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBERS_2( c1, c2)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBER(c3))
+    #define ORM_PG_WORLD_PROJ_MEMBERS_3( c1, c2, c3) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBERS_2( c1, c2)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBER(c3))
          
-    #define ORM_PH_FORTUNE_PROJ_MEMBERS_4( c1, c2, c3, c4) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBERS_3( c1, c2, c3)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBER(c4))
+    #define ORM_PG_WORLD_PROJ_MEMBERS_4( c1, c2, c3, c4) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBERS_3( c1, c2, c3)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBER(c4))
          
-    #define ORM_PH_FORTUNE_PROJ_MEMBERS_5( c1, c2, c3, c4, c5) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBERS_4( c1, c2, c3, c4)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBER(c5))
+    #define ORM_PG_WORLD_PROJ_MEMBERS_5( c1, c2, c3, c4, c5) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBERS_4( c1, c2, c3, c4)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBER(c5))
          
-    #define ORM_PH_FORTUNE_PROJ_MEMBERS_6( c1, c2, c3, c4, c5, c6) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBERS_5( c1, c2, c3, c4, c5)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBER(c6))
+    #define ORM_PG_WORLD_PROJ_MEMBERS_6( c1, c2, c3, c4, c5, c6) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBERS_5( c1, c2, c3, c4, c5)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBER(c6))
          
-    #define ORM_PH_FORTUNE_PROJ_MEMBERS_7( c1, c2, c3, c4, c5, c6, c7) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBERS_6( c1, c2, c3, c4, c5, c6)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBER(c7))
+    #define ORM_PG_WORLD_PROJ_MEMBERS_7( c1, c2, c3, c4, c5, c6, c7) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBERS_6( c1, c2, c3, c4, c5, c6)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBER(c7))
          
-    #define ORM_PH_FORTUNE_PROJ_MEMBERS_8( c1, c2, c3, c4, c5, c6, c7, c8) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBERS_7( c1, c2, c3, c4, c5, c6, c7)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBER(c8))
+    #define ORM_PG_WORLD_PROJ_MEMBERS_8( c1, c2, c3, c4, c5, c6, c7, c8) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBERS_7( c1, c2, c3, c4, c5, c6, c7)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBER(c8))
          
-    #define ORM_PH_FORTUNE_PROJ_MEMBERS_9( c1, c2, c3, c4, c5, c6, c7, c8, c9) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBERS_8( c1, c2, c3, c4, c5, c6, c7, c8)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBER(c9))
+    #define ORM_PG_WORLD_PROJ_MEMBERS_9( c1, c2, c3, c4, c5, c6, c7, c8, c9) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBERS_8( c1, c2, c3, c4, c5, c6, c7, c8)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBER(c9))
          
-    #define ORM_PH_FORTUNE_PROJ_MEMBERS_10( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBERS_9( c1, c2, c3, c4, c5, c6, c7, c8, c9)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBER(c10))
+    #define ORM_PG_WORLD_PROJ_MEMBERS_10( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBERS_9( c1, c2, c3, c4, c5, c6, c7, c8, c9)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBER(c10))
          
-    #define ORM_PH_FORTUNE_PROJ_MEMBERS_11( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBERS_10( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBER(c11))
+    #define ORM_PG_WORLD_PROJ_MEMBERS_11( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBERS_10( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBER(c11))
          
-    #define ORM_PH_FORTUNE_PROJ_MEMBERS_12( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBERS_11( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBER(c12))
+    #define ORM_PG_WORLD_PROJ_MEMBERS_12( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBERS_11( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBER(c12))
          
-    #define ORM_PH_FORTUNE_PROJ_MEMBERS_13( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBERS_12( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBER(c13))
+    #define ORM_PG_WORLD_PROJ_MEMBERS_13( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBERS_12( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBER(c13))
          
-    #define ORM_PH_FORTUNE_PROJ_MEMBERS_14( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBERS_13( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBER(c14))
+    #define ORM_PG_WORLD_PROJ_MEMBERS_14( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBERS_13( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBER(c14))
          
-    #define ORM_PH_FORTUNE_PROJ_MEMBERS_15( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBERS_14( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBER(c15))
+    #define ORM_PG_WORLD_PROJ_MEMBERS_15( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBERS_14( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBER(c15))
          
-    #define ORM_PH_FORTUNE_PROJ_MEMBERS_16( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBERS_15( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBER(c16))
+    #define ORM_PG_WORLD_PROJ_MEMBERS_16( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBERS_15( c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBER(c16))
          
-    #define ORM_PH_FORTUNE_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,NAME,...) NAME 
+    #define ORM_PG_WORLD_GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,NAME,...) NAME 
     
      
-    #define ORM_PH_FORTUNE_PROJ_MEMBERS(...) \
-        ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_GET_MACRO(__VA_ARGS__, \
-            ORM_PH_FORTUNE_PROJ_MEMBERS_16, \
-            ORM_PH_FORTUNE_PROJ_MEMBERS_15, \
-            ORM_PH_FORTUNE_PROJ_MEMBERS_14, \
-            ORM_PH_FORTUNE_PROJ_MEMBERS_13, \
-            ORM_PH_FORTUNE_PROJ_MEMBERS_12, \
-            ORM_PH_FORTUNE_PROJ_MEMBERS_11, \
-            ORM_PH_FORTUNE_PROJ_MEMBERS_10, \
-            ORM_PH_FORTUNE_PROJ_MEMBERS_9, \
-            ORM_PH_FORTUNE_PROJ_MEMBERS_8, \
-            ORM_PH_FORTUNE_PROJ_MEMBERS_7, \
-            ORM_PH_FORTUNE_PROJ_MEMBERS_6, \
-            ORM_PH_FORTUNE_PROJ_MEMBERS_5, \
-            ORM_PH_FORTUNE_PROJ_MEMBERS_4, \
-            ORM_PH_FORTUNE_PROJ_MEMBERS_3, \
-            ORM_PH_FORTUNE_PROJ_MEMBERS_2, \
-            ORM_PH_FORTUNE_PROJ_MEMBERS_1, \
+    #define ORM_PG_WORLD_PROJ_MEMBERS(...) \
+        ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_GET_MACRO(__VA_ARGS__, \
+            ORM_PG_WORLD_PROJ_MEMBERS_16, \
+            ORM_PG_WORLD_PROJ_MEMBERS_15, \
+            ORM_PG_WORLD_PROJ_MEMBERS_14, \
+            ORM_PG_WORLD_PROJ_MEMBERS_13, \
+            ORM_PG_WORLD_PROJ_MEMBERS_12, \
+            ORM_PG_WORLD_PROJ_MEMBERS_11, \
+            ORM_PG_WORLD_PROJ_MEMBERS_10, \
+            ORM_PG_WORLD_PROJ_MEMBERS_9, \
+            ORM_PG_WORLD_PROJ_MEMBERS_8, \
+            ORM_PG_WORLD_PROJ_MEMBERS_7, \
+            ORM_PG_WORLD_PROJ_MEMBERS_6, \
+            ORM_PG_WORLD_PROJ_MEMBERS_5, \
+            ORM_PG_WORLD_PROJ_MEMBERS_4, \
+            ORM_PG_WORLD_PROJ_MEMBERS_3, \
+            ORM_PG_WORLD_PROJ_MEMBERS_2, \
+            ORM_PG_WORLD_PROJ_MEMBERS_1, \
         )(__VA_ARGS__))
 
     
-    #define ORM_PH_FORTUNE_COUNT(...) \
-        ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_GET_MACRO(__VA_ARGS__, 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1))
+    #define ORM_PG_WORLD_COUNT(...) \
+        ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_GET_MACRO(__VA_ARGS__, 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1))
     
     
-    #define ORM_PH_FORTUNE_TO_JSON_ITEM(c) \
+    #define ORM_PG_WORLD_TO_JSON_ITEM(c) \
         oss << "\"" #c "\":" << http::to_json_value(c)
     
-    #define ORM_PH_FORTUNE_TO_JSON_1(c1) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_ITEM(c1))
+    #define ORM_PG_WORLD_TO_JSON_1(c1) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_ITEM(c1))
         
-    #define ORM_PH_FORTUNE_TO_JSON_2(c1,c2) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_1(c1)); \
+    #define ORM_PG_WORLD_TO_JSON_2(c1,c2) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_1(c1)); \
             oss << ','; \
-            ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_ITEM(c2)) 
+            ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_ITEM(c2)) 
         
         
-    #define ORM_PH_FORTUNE_TO_JSON_3(c1,c2,c3) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_2(c1,c2)); \
+    #define ORM_PG_WORLD_TO_JSON_3(c1,c2,c3) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_2(c1,c2)); \
             oss << ','; \
-            ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_ITEM(c3)) 
+            ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_ITEM(c3)) 
         
         
-    #define ORM_PH_FORTUNE_TO_JSON_4(c1,c2,c3,c4) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_3(c1,c2,c3)); \
+    #define ORM_PG_WORLD_TO_JSON_4(c1,c2,c3,c4) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_3(c1,c2,c3)); \
             oss << ','; \
-            ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_ITEM(c4)) 
+            ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_ITEM(c4)) 
         
         
-    #define ORM_PH_FORTUNE_TO_JSON_5(c1,c2,c3,c4,c5) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_4(c1,c2,c3,c4)); \
+    #define ORM_PG_WORLD_TO_JSON_5(c1,c2,c3,c4,c5) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_4(c1,c2,c3,c4)); \
             oss << ','; \
-            ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_ITEM(c5)) 
+            ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_ITEM(c5)) 
         
         
-    #define ORM_PH_FORTUNE_TO_JSON_6(c1,c2,c3,c4,c5,c6) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_5(c1,c2,c3,c4,c5)); \
+    #define ORM_PG_WORLD_TO_JSON_6(c1,c2,c3,c4,c5,c6) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_5(c1,c2,c3,c4,c5)); \
             oss << ','; \
-            ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_ITEM(c6)) 
+            ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_ITEM(c6)) 
         
         
-    #define ORM_PH_FORTUNE_TO_JSON_7(c1,c2,c3,c4,c5,c6,c7) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_6(c1,c2,c3,c4,c5,c6)); \
+    #define ORM_PG_WORLD_TO_JSON_7(c1,c2,c3,c4,c5,c6,c7) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_6(c1,c2,c3,c4,c5,c6)); \
             oss << ','; \
-            ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_ITEM(c7)) 
+            ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_ITEM(c7)) 
         
         
-    #define ORM_PH_FORTUNE_TO_JSON_8(c1,c2,c3,c4,c5,c6,c7,c8) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_7(c1,c2,c3,c4,c5,c6,c7)); \
+    #define ORM_PG_WORLD_TO_JSON_8(c1,c2,c3,c4,c5,c6,c7,c8) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_7(c1,c2,c3,c4,c5,c6,c7)); \
             oss << ','; \
-            ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_ITEM(c8)) 
+            ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_ITEM(c8)) 
         
         
-    #define ORM_PH_FORTUNE_TO_JSON_9(c1,c2,c3,c4,c5,c6,c7,c8,c9) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_8(c1,c2,c3,c4,c5,c6,c7,c8)); \
+    #define ORM_PG_WORLD_TO_JSON_9(c1,c2,c3,c4,c5,c6,c7,c8,c9) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_8(c1,c2,c3,c4,c5,c6,c7,c8)); \
             oss << ','; \
-            ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_ITEM(c9)) 
+            ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_ITEM(c9)) 
         
         
-    #define ORM_PH_FORTUNE_TO_JSON_10(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_9(c1,c2,c3,c4,c5,c6,c7,c8,c9)); \
+    #define ORM_PG_WORLD_TO_JSON_10(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_9(c1,c2,c3,c4,c5,c6,c7,c8,c9)); \
             oss << ','; \
-            ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_ITEM(c10)) 
+            ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_ITEM(c10)) 
         
         
-    #define ORM_PH_FORTUNE_TO_JSON_11(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_10(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10)); \
+    #define ORM_PG_WORLD_TO_JSON_11(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_10(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10)); \
             oss << ','; \
-            ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_ITEM(c11)) 
+            ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_ITEM(c11)) 
         
         
-    #define ORM_PH_FORTUNE_TO_JSON_12(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_11(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11)); \
+    #define ORM_PG_WORLD_TO_JSON_12(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_11(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11)); \
             oss << ','; \
-            ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_ITEM(c12)) 
+            ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_ITEM(c12)) 
         
         
-    #define ORM_PH_FORTUNE_TO_JSON_13(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_12(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12)); \
+    #define ORM_PG_WORLD_TO_JSON_13(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_12(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12)); \
             oss << ','; \
-            ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_ITEM(c13)) 
+            ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_ITEM(c13)) 
         
         
-    #define ORM_PH_FORTUNE_TO_JSON_14(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_13(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13)); \
+    #define ORM_PG_WORLD_TO_JSON_14(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_13(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13)); \
             oss << ','; \
-            ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_ITEM(c14)) 
+            ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_ITEM(c14)) 
         
         
-    #define ORM_PH_FORTUNE_TO_JSON_15(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_14(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14)); \
+    #define ORM_PG_WORLD_TO_JSON_15(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_14(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14)); \
             oss << ','; \
-            ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_ITEM(c15)) 
+            ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_ITEM(c15)) 
         
         
-    #define ORM_PH_FORTUNE_TO_JSON_16(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15,c16) \
-         ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_15(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15)); \
+    #define ORM_PG_WORLD_TO_JSON_16(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15,c16) \
+         ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_15(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15)); \
             oss << ','; \
-            ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_ITEM(c16)) 
+            ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_ITEM(c16)) 
         
         
-    #define ORM_PH_FORTUNE_TO_JSON_BODY(...) \
-        ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_GET_MACRO(__VA_ARGS__, \
-            ORM_PH_FORTUNE_TO_JSON_16,ORM_PH_FORTUNE_TO_JSON_15,ORM_PH_FORTUNE_TO_JSON_14,ORM_PH_FORTUNE_TO_JSON_13,ORM_PH_FORTUNE_TO_JSON_12,ORM_PH_FORTUNE_TO_JSON_11,ORM_PH_FORTUNE_TO_JSON_10,ORM_PH_FORTUNE_TO_JSON_9,ORM_PH_FORTUNE_TO_JSON_8,ORM_PH_FORTUNE_TO_JSON_7,ORM_PH_FORTUNE_TO_JSON_6,ORM_PH_FORTUNE_TO_JSON_5,ORM_PH_FORTUNE_TO_JSON_4,ORM_PH_FORTUNE_TO_JSON_3,ORM_PH_FORTUNE_TO_JSON_2,ORM_PH_FORTUNE_TO_JSON_1 \
+    #define ORM_PG_WORLD_TO_JSON_BODY(...) \
+        ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_GET_MACRO(__VA_ARGS__, \
+            ORM_PG_WORLD_TO_JSON_16,ORM_PG_WORLD_TO_JSON_15,ORM_PG_WORLD_TO_JSON_14,ORM_PG_WORLD_TO_JSON_13,ORM_PG_WORLD_TO_JSON_12,ORM_PG_WORLD_TO_JSON_11,ORM_PG_WORLD_TO_JSON_10,ORM_PG_WORLD_TO_JSON_9,ORM_PG_WORLD_TO_JSON_8,ORM_PG_WORLD_TO_JSON_7,ORM_PG_WORLD_TO_JSON_6,ORM_PG_WORLD_TO_JSON_5,ORM_PG_WORLD_TO_JSON_4,ORM_PG_WORLD_TO_JSON_3,ORM_PG_WORLD_TO_JSON_2,ORM_PG_WORLD_TO_JSON_1 \
          )(__VA_ARGS__))
          
           
-    #define ORM_PH_FORTUNE_UNWRAP(...) __VA_ARGS__  
+    #define ORM_PG_WORLD_UNWRAP(...) __VA_ARGS__  
 
-    #define ORM_PH_FORTUNE_TO_JSON_CUSTOM_ITEM(name) \
+    #define ORM_PG_WORLD_TO_JSON_CUSTOM_ITEM(name) \
         oss << ",\"" #name "\":" << http::to_json_value(name);
 
-    #define ORM_PH_FORTUNE_TO_JSON_CUSTOM_1(n1)  ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_ITEM(n1)) 
+    #define ORM_PG_WORLD_TO_JSON_CUSTOM_1(n1)  ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_ITEM(n1)) 
 
-#define ORM_PH_FORTUNE_TO_JSON_CUSTOM_2(n1,n2)  ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_1(n1)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_ITEM(n2)) 
+#define ORM_PG_WORLD_TO_JSON_CUSTOM_2(n1,n2)  ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_1(n1)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_ITEM(n2)) 
 
-#define ORM_PH_FORTUNE_TO_JSON_CUSTOM_3(n1,n2,n3)  ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_2(n1,n2)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_ITEM(n3)) 
+#define ORM_PG_WORLD_TO_JSON_CUSTOM_3(n1,n2,n3)  ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_2(n1,n2)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_ITEM(n3)) 
 
-#define ORM_PH_FORTUNE_TO_JSON_CUSTOM_4(n1,n2,n3,n4)  ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_3(n1,n2,n3)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_ITEM(n4)) 
+#define ORM_PG_WORLD_TO_JSON_CUSTOM_4(n1,n2,n3,n4)  ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_3(n1,n2,n3)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_ITEM(n4)) 
 
-#define ORM_PH_FORTUNE_TO_JSON_CUSTOM_5(n1,n2,n3,n4,n5)  ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_4(n1,n2,n3,n4)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_ITEM(n5)) 
+#define ORM_PG_WORLD_TO_JSON_CUSTOM_5(n1,n2,n3,n4,n5)  ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_4(n1,n2,n3,n4)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_ITEM(n5)) 
 
-#define ORM_PH_FORTUNE_TO_JSON_CUSTOM_6(n1,n2,n3,n4,n5,n6)  ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_5(n1,n2,n3,n4,n5)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_ITEM(n6)) 
+#define ORM_PG_WORLD_TO_JSON_CUSTOM_6(n1,n2,n3,n4,n5,n6)  ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_5(n1,n2,n3,n4,n5)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_ITEM(n6)) 
 
-#define ORM_PH_FORTUNE_TO_JSON_CUSTOM_7(n1,n2,n3,n4,n5,n6,n7)  ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_6(n1,n2,n3,n4,n5,n6)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_ITEM(n7)) 
+#define ORM_PG_WORLD_TO_JSON_CUSTOM_7(n1,n2,n3,n4,n5,n6,n7)  ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_6(n1,n2,n3,n4,n5,n6)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_ITEM(n7)) 
 
-#define ORM_PH_FORTUNE_TO_JSON_CUSTOM_8(n1,n2,n3,n4,n5,n6,n7,n8)  ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_7(n1,n2,n3,n4,n5,n6,n7)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_ITEM(n8)) 
+#define ORM_PG_WORLD_TO_JSON_CUSTOM_8(n1,n2,n3,n4,n5,n6,n7,n8)  ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_7(n1,n2,n3,n4,n5,n6,n7)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_ITEM(n8)) 
 
-#define ORM_PH_FORTUNE_TO_JSON_CUSTOM_9(n1,n2,n3,n4,n5,n6,n7,n8,n9)  ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_8(n1,n2,n3,n4,n5,n6,n7,n8)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_ITEM(n9)) 
+#define ORM_PG_WORLD_TO_JSON_CUSTOM_9(n1,n2,n3,n4,n5,n6,n7,n8,n9)  ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_8(n1,n2,n3,n4,n5,n6,n7,n8)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_ITEM(n9)) 
 
-#define ORM_PH_FORTUNE_TO_JSON_CUSTOM_10(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10)  ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_9(n1,n2,n3,n4,n5,n6,n7,n8,n9)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_ITEM(n10)) 
+#define ORM_PG_WORLD_TO_JSON_CUSTOM_10(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10)  ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_9(n1,n2,n3,n4,n5,n6,n7,n8,n9)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_ITEM(n10)) 
 
-#define ORM_PH_FORTUNE_TO_JSON_CUSTOM_11(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11)  ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_10(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_ITEM(n11)) 
+#define ORM_PG_WORLD_TO_JSON_CUSTOM_11(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11)  ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_10(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_ITEM(n11)) 
 
-#define ORM_PH_FORTUNE_TO_JSON_CUSTOM_12(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12)  ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_11(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_ITEM(n12)) 
+#define ORM_PG_WORLD_TO_JSON_CUSTOM_12(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12)  ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_11(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_ITEM(n12)) 
 
-#define ORM_PH_FORTUNE_TO_JSON_CUSTOM_13(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13)  ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_12(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_ITEM(n13)) 
+#define ORM_PG_WORLD_TO_JSON_CUSTOM_13(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13)  ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_12(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_ITEM(n13)) 
 
-#define ORM_PH_FORTUNE_TO_JSON_CUSTOM_14(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14)  ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_13(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_ITEM(n14)) 
+#define ORM_PG_WORLD_TO_JSON_CUSTOM_14(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14)  ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_13(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_ITEM(n14)) 
 
-#define ORM_PH_FORTUNE_TO_JSON_CUSTOM_15(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14,n15)  ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_14(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_ITEM(n15)) 
+#define ORM_PG_WORLD_TO_JSON_CUSTOM_15(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14,n15)  ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_14(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_ITEM(n15)) 
 
-#define ORM_PH_FORTUNE_TO_JSON_CUSTOM_16(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14,n15,n16)  ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_15(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14,n15)) ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_ITEM(n16)) 
+#define ORM_PG_WORLD_TO_JSON_CUSTOM_16(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14,n15,n16)  ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_15(n1,n2,n3,n4,n5,n6,n7,n8,n9,n10,n11,n12,n13,n14,n15)) ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_ITEM(n16)) 
 
 
-    #define ORM_PH_FORTUNE_CAT(a, b) ORM_PH_FORTUNE_CAT_(a, b)
-    #define ORM_PH_FORTUNE_CAT_(a, b) a##b
+    #define ORM_PG_WORLD_CAT(a, b) ORM_PG_WORLD_CAT_(a, b)
+    #define ORM_PG_WORLD_CAT_(a, b) a##b
 
-    #define ORM_PH_FORTUNE_TO_JSON_CUSTOM_N(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16, N, ...) \
-        ORM_PH_FORTUNE_CAT(ORM_PH_FORTUNE_TO_JSON_CUSTOM_, N)
+    #define ORM_PG_WORLD_TO_JSON_CUSTOM_N(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16, N, ...) \
+        ORM_PG_WORLD_CAT(ORM_PG_WORLD_TO_JSON_CUSTOM_, N)
 
     
 
-    #define ORM_PH_FORTUNE_TO_JSON_CUSTOM(...) \
-        ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM_N(__VA_ARGS__, 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(__VA_ARGS__))
+    #define ORM_PG_WORLD_TO_JSON_CUSTOM(...) \
+        ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM_N(__VA_ARGS__, 16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(__VA_ARGS__))
 
 
-    #define ORM_PH_FORTUNE_SET_VAL_FIELD(field) \
+    #define ORM_PG_WORLD_SET_VAL_FIELD(field) \
     if (http::str_colname_casecmp(_orm_name , #field)) { \
         http::try_set_val(field, _buf, _length, _field_type); \
         return; \
     }
     
     
-    #define ORM_PH_FORTUNE_SET_VAL_1(c1) \
-        ORM_PH_FORTUNE_SET_VAL_FIELD(c1)
+    #define ORM_PG_WORLD_SET_VAL_1(c1) \
+        ORM_PG_WORLD_SET_VAL_FIELD(c1)
     
     
-    #define ORM_PH_FORTUNE_SET_VAL_2(c1,c2) \
-        ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_SET_VAL_1(c1)) \
-        ORM_PH_FORTUNE_SET_VAL_FIELD(c2)
+    #define ORM_PG_WORLD_SET_VAL_2(c1,c2) \
+        ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_SET_VAL_1(c1)) \
+        ORM_PG_WORLD_SET_VAL_FIELD(c2)
         
         
-    #define ORM_PH_FORTUNE_SET_VAL_3(c1,c2,c3) \
-        ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_SET_VAL_2(c1,c2)) \
-        ORM_PH_FORTUNE_SET_VAL_FIELD(c3)
+    #define ORM_PG_WORLD_SET_VAL_3(c1,c2,c3) \
+        ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_SET_VAL_2(c1,c2)) \
+        ORM_PG_WORLD_SET_VAL_FIELD(c3)
         
         
-    #define ORM_PH_FORTUNE_SET_VAL_4(c1,c2,c3,c4) \
-        ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_SET_VAL_3(c1,c2,c3)) \
-        ORM_PH_FORTUNE_SET_VAL_FIELD(c4)
+    #define ORM_PG_WORLD_SET_VAL_4(c1,c2,c3,c4) \
+        ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_SET_VAL_3(c1,c2,c3)) \
+        ORM_PG_WORLD_SET_VAL_FIELD(c4)
         
         
-    #define ORM_PH_FORTUNE_SET_VAL_5(c1,c2,c3,c4,c5) \
-        ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_SET_VAL_4(c1,c2,c3,c4)) \
-        ORM_PH_FORTUNE_SET_VAL_FIELD(c5)
+    #define ORM_PG_WORLD_SET_VAL_5(c1,c2,c3,c4,c5) \
+        ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_SET_VAL_4(c1,c2,c3,c4)) \
+        ORM_PG_WORLD_SET_VAL_FIELD(c5)
         
         
-    #define ORM_PH_FORTUNE_SET_VAL_6(c1,c2,c3,c4,c5,c6) \
-        ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_SET_VAL_5(c1,c2,c3,c4,c5)) \
-        ORM_PH_FORTUNE_SET_VAL_FIELD(c6)
+    #define ORM_PG_WORLD_SET_VAL_6(c1,c2,c3,c4,c5,c6) \
+        ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_SET_VAL_5(c1,c2,c3,c4,c5)) \
+        ORM_PG_WORLD_SET_VAL_FIELD(c6)
         
         
-    #define ORM_PH_FORTUNE_SET_VAL_7(c1,c2,c3,c4,c5,c6,c7) \
-        ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_SET_VAL_6(c1,c2,c3,c4,c5,c6)) \
-        ORM_PH_FORTUNE_SET_VAL_FIELD(c7)
+    #define ORM_PG_WORLD_SET_VAL_7(c1,c2,c3,c4,c5,c6,c7) \
+        ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_SET_VAL_6(c1,c2,c3,c4,c5,c6)) \
+        ORM_PG_WORLD_SET_VAL_FIELD(c7)
         
         
-    #define ORM_PH_FORTUNE_SET_VAL_8(c1,c2,c3,c4,c5,c6,c7,c8) \
-        ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_SET_VAL_7(c1,c2,c3,c4,c5,c6,c7)) \
-        ORM_PH_FORTUNE_SET_VAL_FIELD(c8)
+    #define ORM_PG_WORLD_SET_VAL_8(c1,c2,c3,c4,c5,c6,c7,c8) \
+        ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_SET_VAL_7(c1,c2,c3,c4,c5,c6,c7)) \
+        ORM_PG_WORLD_SET_VAL_FIELD(c8)
         
         
-    #define ORM_PH_FORTUNE_SET_VAL_9(c1,c2,c3,c4,c5,c6,c7,c8,c9) \
-        ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_SET_VAL_8(c1,c2,c3,c4,c5,c6,c7,c8)) \
-        ORM_PH_FORTUNE_SET_VAL_FIELD(c9)
+    #define ORM_PG_WORLD_SET_VAL_9(c1,c2,c3,c4,c5,c6,c7,c8,c9) \
+        ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_SET_VAL_8(c1,c2,c3,c4,c5,c6,c7,c8)) \
+        ORM_PG_WORLD_SET_VAL_FIELD(c9)
         
         
-    #define ORM_PH_FORTUNE_SET_VAL_10(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10) \
-        ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_SET_VAL_9(c1,c2,c3,c4,c5,c6,c7,c8,c9)) \
-        ORM_PH_FORTUNE_SET_VAL_FIELD(c10)
+    #define ORM_PG_WORLD_SET_VAL_10(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10) \
+        ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_SET_VAL_9(c1,c2,c3,c4,c5,c6,c7,c8,c9)) \
+        ORM_PG_WORLD_SET_VAL_FIELD(c10)
         
         
-    #define ORM_PH_FORTUNE_SET_VAL_11(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11) \
-        ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_SET_VAL_10(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10)) \
-        ORM_PH_FORTUNE_SET_VAL_FIELD(c11)
+    #define ORM_PG_WORLD_SET_VAL_11(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11) \
+        ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_SET_VAL_10(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10)) \
+        ORM_PG_WORLD_SET_VAL_FIELD(c11)
         
         
-    #define ORM_PH_FORTUNE_SET_VAL_12(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12) \
-        ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_SET_VAL_11(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11)) \
-        ORM_PH_FORTUNE_SET_VAL_FIELD(c12)
+    #define ORM_PG_WORLD_SET_VAL_12(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12) \
+        ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_SET_VAL_11(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11)) \
+        ORM_PG_WORLD_SET_VAL_FIELD(c12)
         
         
-    #define ORM_PH_FORTUNE_SET_VAL_13(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13) \
-        ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_SET_VAL_12(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12)) \
-        ORM_PH_FORTUNE_SET_VAL_FIELD(c13)
+    #define ORM_PG_WORLD_SET_VAL_13(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13) \
+        ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_SET_VAL_12(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12)) \
+        ORM_PG_WORLD_SET_VAL_FIELD(c13)
         
         
-    #define ORM_PH_FORTUNE_SET_VAL_14(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14) \
-        ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_SET_VAL_13(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13)) \
-        ORM_PH_FORTUNE_SET_VAL_FIELD(c14)
+    #define ORM_PG_WORLD_SET_VAL_14(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14) \
+        ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_SET_VAL_13(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13)) \
+        ORM_PG_WORLD_SET_VAL_FIELD(c14)
         
         
-    #define ORM_PH_FORTUNE_SET_VAL_15(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15) \
-        ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_SET_VAL_14(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14)) \
-        ORM_PH_FORTUNE_SET_VAL_FIELD(c15)
+    #define ORM_PG_WORLD_SET_VAL_15(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15) \
+        ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_SET_VAL_14(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14)) \
+        ORM_PG_WORLD_SET_VAL_FIELD(c15)
         
         
-    #define ORM_PH_FORTUNE_SET_VAL_16(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15,c16) \
-        ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_SET_VAL_15(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15)) \
-        ORM_PH_FORTUNE_SET_VAL_FIELD(c16)
+    #define ORM_PG_WORLD_SET_VAL_16(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15,c16) \
+        ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_SET_VAL_15(c1,c2,c3,c4,c5,c6,c7,c8,c9,c10,c11,c12,c13,c14,c15)) \
+        ORM_PG_WORLD_SET_VAL_FIELD(c16)
         
         
-    #define ORM_PH_FORTUNE_SET_VAL_N(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,N,...) \
-        ORM_PH_FORTUNE_CAT(ORM_PH_FORTUNE_SET_VAL_, N)
+    #define ORM_PG_WORLD_SET_VAL_N(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,N,...) \
+        ORM_PG_WORLD_CAT(ORM_PG_WORLD_SET_VAL_, N)
     
     
-    #define ORM_PH_FORTUNE_SET_VAL_FIELDS(...) \
-        ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_SET_VAL_N(__VA_ARGS__,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(__VA_ARGS__))
+    #define ORM_PG_WORLD_SET_VAL_FIELDS(...) \
+        ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_SET_VAL_N(__VA_ARGS__,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)(__VA_ARGS__))
     
     
-    #define ORM_PH_FORTUNE_SET_VAL_CUSTOM_FIELDS(...) \
-        ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_SET_VAL_FIELDS(ORM_PH_FORTUNE_UNWRAP __VA_ARGS__))
+    #define ORM_PG_WORLD_SET_VAL_CUSTOM_FIELDS(...) \
+        ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_SET_VAL_FIELDS(ORM_PG_WORLD_UNWRAP __VA_ARGS__))
     
     
-    #define ORM_PH_FORTUNE_DEFINE_STRUCT(StructName, ...) \
-        namespace orm::ph::fortune_info { \
+    #define ORM_PG_WORLD_DEFINE_STRUCT(StructName, ...) \
+        namespace orm::pg::world_info { \
             struct StructName { \
-                ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBERS(__VA_ARGS__)) \
+                ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBERS(__VA_ARGS__)) \
                 \
                 std::string to_json() const { \
                 std::ostringstream oss; \
                 oss << '{'; \
-                ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_BODY(__VA_ARGS__)); \
+                ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_BODY(__VA_ARGS__)); \
                 oss << '}'; \
                 return oss.str(); \
             } \
             void set_val(const std::string& _orm_name, \
                         const unsigned char* _buf,size_t _length,[[maybe_unused]] unsigned char _field_type) { \
-                        ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_SET_VAL_FIELDS(__VA_ARGS__)) \
+                        ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_SET_VAL_FIELDS(__VA_ARGS__)) \
             } \
             }; \
             std::string to_json(const std::vector<StructName> &vec_){\
@@ -438,25 +438,25 @@ namespace fortune_info
        }
         
     
-    #define ORM_PH_FORTUNE_SELF_STRUCT(StructName, CustomDecl, CustomNames, ...) \
-        namespace orm::ph::fortune_info { \
+    #define ORM_PG_WORLD_SELF_STRUCT(StructName, CustomDecl, CustomNames, ...) \
+        namespace orm::pg::world_info { \
             struct StructName { \
-                ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBERS(__VA_ARGS__)) \
+                ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBERS(__VA_ARGS__)) \
                 CustomDecl \
                 \
                 std::string to_json() const { \
                 std::ostringstream oss; \
                 oss << '{'; \
-                ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_BODY(__VA_ARGS__)); \
-                ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM(ORM_PH_FORTUNE_UNWRAP CustomNames));  \
+                ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_BODY(__VA_ARGS__)); \
+                ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM(ORM_PG_WORLD_UNWRAP CustomNames));  \
                 oss << '}'; \
                 return oss.str(); \
             } \
             \
             void set_val(const std::string& _orm_name, \
                         const unsigned char* _buf,size_t _length,[[maybe_unused]] unsigned char _field_type) { \
-                        ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_SET_VAL_FIELDS(__VA_ARGS__)) \
-                ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_SET_VAL_CUSTOM_FIELDS(CustomNames)) \
+                        ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_SET_VAL_FIELDS(__VA_ARGS__)) \
+                ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_SET_VAL_CUSTOM_FIELDS(CustomNames)) \
             } \
             }; \
             std::string to_json(const std::vector<StructName> &vec_){\
@@ -471,16 +471,16 @@ namespace fortune_info
        }
         
     
-    #define ORM_PH_FORTUNE_TREE_STRUCT(StructName, ...) \
-        namespace orm::ph::fortune_info { \
+    #define ORM_PG_WORLD_TREE_STRUCT(StructName, ...) \
+        namespace orm::pg::world_info { \
             struct StructName { \
-                ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBERS(__VA_ARGS__)) \
+                ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBERS(__VA_ARGS__)) \
                 std::vector<StructName> children; \
                 \
                 std::string to_json() const { \
                 std::ostringstream oss; \
                 oss << '{'; \
-                ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_BODY(__VA_ARGS__)); \
+                ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_BODY(__VA_ARGS__)); \
                 oss << ",\"children\":["; \
                 for(unsigned int i=0;i< children.size(); i++){ \
                     if(i>0) oss << ','; \
@@ -493,7 +493,7 @@ namespace fortune_info
                 \
                 void set_val(const std::string& _orm_name, \
                         const unsigned char* _buf,size_t _length,[[maybe_unused]] unsigned char _field_type) { \
-                        ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_SET_VAL_FIELDS(__VA_ARGS__)) \
+                        ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_SET_VAL_FIELDS(__VA_ARGS__)) \
                 } \
             }; \
             std::string to_json(const std::vector<StructName> &vec_){\
@@ -508,16 +508,16 @@ namespace fortune_info
        }
         
     
-    #define ORM_PH_FORTUNE_TREE_PTR_STRUCT(StructName, ...) \
-        namespace orm::ph::fortune_info { \
+    #define ORM_PG_WORLD_TREE_PTR_STRUCT(StructName, ...) \
+        namespace orm::pg::world_info { \
             struct StructName { \
-                ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBERS(__VA_ARGS__)) \
+                ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBERS(__VA_ARGS__)) \
                 std::vector<std::unique_ptr<StructName>> children; \
                 \
                 std::string to_json() const { \
                 std::ostringstream oss; \
                 oss << '{'; \
-                ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_BODY(__VA_ARGS__)); \
+                ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_BODY(__VA_ARGS__)); \
                 oss << ",\"children\":["; \
                 for(unsigned int i=0;i< children.size(); i++){ \
                     if(i>0) oss << ','; \
@@ -530,7 +530,7 @@ namespace fortune_info
                 \
                 void set_val(const std::string& _orm_name, \
                         const unsigned char* _buf,size_t _length,[[maybe_unused]] unsigned char _field_type) { \
-                        ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_SET_VAL_FIELDS(__VA_ARGS__)) \
+                        ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_SET_VAL_FIELDS(__VA_ARGS__)) \
                 } \
             }; \
             std::string to_json(const std::vector<StructName> &vec_){\
@@ -545,18 +545,18 @@ namespace fortune_info
        }
         
     
-    #define ORM_PH_FORTUNE_CUST_STRUCT(StructName, CustomDecl, CustomNames, ...) \
-        namespace orm::ph::fortune_info { \
+    #define ORM_PG_WORLD_CUST_STRUCT(StructName, CustomDecl, CustomNames, ...) \
+        namespace orm::pg::world_info { \
             struct StructName { \
-                ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_PROJ_MEMBERS(__VA_ARGS__)) \
+                ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_PROJ_MEMBERS(__VA_ARGS__)) \
                 CustomDecl \
                 std::vector<std::unique_ptr<StructName>> children; \
                 \
                 std::string to_json() const { \
                 std::ostringstream oss; \
                 oss << '{'; \
-                ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_BODY(__VA_ARGS__)); \
-    ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_TO_JSON_CUSTOM(ORM_PH_FORTUNE_UNWRAP CustomNames));  \
+                ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_BODY(__VA_ARGS__)); \
+    ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_TO_JSON_CUSTOM(ORM_PG_WORLD_UNWRAP CustomNames));  \
                 oss << ",\"children\":["; \
                 for(unsigned int i=0;i< children.size(); i++){ \
                     if(i>0) oss << ','; \
@@ -569,8 +569,8 @@ namespace fortune_info
                 \
                 void set_val(const std::string& _orm_name, \
                         const unsigned char* _buf,size_t _length,[[maybe_unused]] unsigned char _field_type) { \
-                        ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_SET_VAL_FIELDS(__VA_ARGS__)) \
-                    ORM_PH_FORTUNE_EXPAND(ORM_PH_FORTUNE_SET_VAL_CUSTOM_FIELDS(CustomNames)) \
+                        ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_SET_VAL_FIELDS(__VA_ARGS__)) \
+                    ORM_PG_WORLD_EXPAND(ORM_PG_WORLD_SET_VAL_CUSTOM_FIELDS(CustomNames)) \
                 } \
             }; \
             std::string to_json(const std::vector<StructName> &vec_){\
@@ -584,25 +584,25 @@ namespace fortune_info
                 return oss.str(); }\
        }
         
-    static constexpr std::array<std::string_view,2> col_names={"id","message"};
-	static constexpr std::array<unsigned char,2> col_types={3,253};
-	static constexpr std::array<unsigned char,2> col_length={4,0};
-	static constexpr std::array<unsigned char,2> col_decimals={0,0};
+    static constexpr std::array<std::string_view,2> col_names={"id","randomnumber"};
+	static constexpr std::array<unsigned char,2> col_types={3,3};
+	static constexpr std::array<unsigned char,2> col_length={4,4};
+	static constexpr std::array<unsigned char,2> col_decimals={8,8};
 
 }
 
-struct fortune_base
+struct world_base
 {
-      fortune_info::meta data;
-    std::vector<fortune_info::meta> record;
-std::string _rmstag="ph";//this value must be default or tag value, tag in mysqlconnect config file .
-std::vector<fortune_info::meta>::iterator begin(){     return record.begin(); }
-std::vector<fortune_info::meta>::iterator end(){     return record.end(); }
-std::vector<fortune_info::meta>::const_iterator begin() const{     return record.begin(); }
-std::vector<fortune_info::meta>::const_iterator end() const{     return record.end(); }
-std::string tablename="fortune";
-static constexpr std::string_view org_tablename="fortune";
-static constexpr std::string_view modelname="Fortune";
+      world_info::meta data;
+    std::vector<world_info::meta> record;
+std::string _rmstag="pg";//this value must be default or tag value, tag in mysqlconnect config file .
+std::vector<world_info::meta>::iterator begin(){     return record.begin(); }
+std::vector<world_info::meta>::iterator end(){     return record.end(); }
+std::vector<world_info::meta>::const_iterator begin() const{     return record.begin(); }
+std::vector<world_info::meta>::const_iterator end() const{     return record.end(); }
+std::string tablename="world";
+static constexpr std::string_view org_tablename="world";
+static constexpr std::string_view modelname="World";
 
 	  unsigned char findcolpos(const std::string &coln){
             if(coln.size()==0)
@@ -620,7 +620,7 @@ static constexpr std::string_view modelname="Fortune";
          case 'i':
    	 return 0;
 break;
-case 'm':
+case 'r':
    	 return 1;
 break;
 
@@ -639,7 +639,7 @@ break;
             record.clear();     
       }
       void data_reset(){
-     fortune_info::meta metatemp;    
+     world_info::meta metatemp;    
             data = metatemp; 
       }
       
@@ -685,13 +685,13 @@ break;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<fortune_info::col_names.size();j++){
+        for(;j<world_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<",";
                 }else{
                    // tempsql<<"`";
                 }
-                tempsql<<fortune_info::col_names[j];
+                tempsql<<world_info::col_names[j];
         }
         if(j>0){
             //tempsql<<"`";
@@ -703,26 +703,30 @@ tempsql<<"DEFAULT";
  }else{ 
 	tempsql<<std::to_string(data.id);
 }
-tempsql<<",'"<<stringaddslash(data.message)<<"'";
+if(data.randomnumber==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.randomnumber);
+}
 tempsql<<")";
 
      
        return tempsql.str();
    } 
       
-      std::string make_data_insert_sql(const fortune_info::meta &insert_data){
+      std::string make_data_insert_sql(const world_info::meta &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<fortune_info::col_names.size();j++){
+        for(;j<world_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<",";
                 }else{
                     //tempsql<<"`";
                 }
-                tempsql<<fortune_info::col_names[j];
+                tempsql<<world_info::col_names[j];
         }
         if(j>0){
            // tempsql<<"`";
@@ -734,26 +738,30 @@ tempsql<<"DEFAULT";
  }else{ 
 	tempsql<<std::to_string(insert_data.id);
 }
-tempsql<<",'"<<stringaddslash(insert_data.message)<<"'";
+if(insert_data.randomnumber==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.randomnumber);
+}
 tempsql<<")";
 
      
        return tempsql.str();
    } 
        
-    std::string make_vector_insert_sql(const std::vector<fortune_info::meta> &insert_data){
+    std::string make_vector_insert_sql(const std::vector<world_info::meta> &insert_data){
         unsigned int j=0;
         std::ostringstream tempsql;
         tempsql<<"INSERT INTO ";
         tempsql<<tablename;
         tempsql<<" (";
-        for(;j<fortune_info::col_names.size();j++){
+        for(;j<world_info::col_names.size();j++){
                 if(j>0){
                     tempsql<<",";
                 }else{
                    // tempsql<<"`";
                 }
-                tempsql<<fortune_info::col_names[j];
+                tempsql<<world_info::col_names[j];
         }
         if(j>0){
            //tempsql<<"`";
@@ -773,7 +781,11 @@ tempsql<<")";
 	 }else{ 
 	tempsql<<std::to_string(insert_data[i].id);
 	}
-		tempsql<<",'"<<stringaddslash(insert_data[i].message)<<"'";
+	if(insert_data[i].randomnumber==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].randomnumber);
+	}
 		tempsql<<")";
 	 } 
 
@@ -798,7 +810,11 @@ tempsql<<")";
  }else{ 
 	tempsql<<"id="<<std::to_string(data.id);
 }
-tempsql<<",message='"<<stringaddslash(data.message)<<"'";
+if(data.randomnumber==0){
+	tempsql<<",randomnumber=0";
+ }else{ 
+	tempsql<<",randomnumber="<<std::to_string(data.randomnumber);
+}
  }else{ 
 
      
@@ -853,7 +869,11 @@ if(data.id==0){
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"message='"<<stringaddslash(data.message)<<"'";
+if(data.randomnumber==0){
+	tempsql<<"randomnumber=0";
+ }else{ 
+	tempsql<<"randomnumber="<<std::to_string(data.randomnumber);
+}
  break;
 
      
@@ -874,7 +894,7 @@ tempsql<<"message='"<<stringaddslash(data.message)<<"'";
             tempsql << "INSERT INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < fortune_info::col_names.size(); j++)
+        for (; j < world_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -884,7 +904,7 @@ tempsql<<"message='"<<stringaddslash(data.message)<<"'";
             {
                 tempsql << "";
             }
-            tempsql << fortune_info::col_names[j];
+            tempsql << world_info::col_names[j];
         }
         if (j > 0)
         {
@@ -904,10 +924,15 @@ tempsql<<"message='"<<stringaddslash(data.message)<<"'";
 	 }else{ 
 	tempsql<<std::to_string(record[i].id);
 	}
-	tempsql<<",'"<<stringaddslash(record[i].message)<<"'";
+	if(record[i].randomnumber==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].randomnumber);
+	}
 	tempsql<<")";
   }
- 
+ 	tempsql<<" ON CONFLICT DO NOTHING";
+
  return tempsql.str();
 }
 
@@ -918,7 +943,7 @@ tempsql<<"message='"<<stringaddslash(data.message)<<"'";
         tempsql << "INSERT INTO ";
         tempsql << tablename;
         tempsql << " (";
-        for (; j < fortune_info::col_names.size(); j++)
+        for (; j < world_info::col_names.size(); j++)
         {
             if (j > 0)
             {
@@ -928,7 +953,7 @@ tempsql<<"message='"<<stringaddslash(data.message)<<"'";
             {
                 tempsql << "";
             }
-            tempsql << fortune_info::col_names[j];
+            tempsql << world_info::col_names[j];
         }
         if (j > 0)
         {
@@ -948,10 +973,14 @@ tempsql<<"message='"<<stringaddslash(data.message)<<"'";
 	 }else{ 
 	tempsql<<std::to_string(record[i].id);
 	}
-	tempsql<<",'"<<stringaddslash(record[i].message)<<"'";
+	if(record[i].randomnumber==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].randomnumber);
+	}
 	tempsql<<")";
 	 }
-	 tempsql<<" as new ON DUPLICATE KEY UPDATE ";
+	 tempsql<<" ON CONFLICT (id) DO UPDATE SET ";
 
      
         std::string keyname;
@@ -967,7 +996,7 @@ tempsql<<"message='"<<stringaddslash(data.message)<<"'";
                         tempsql<<",";
                     }
                     tempsql<<keyname;
-                    tempsql<<"=new.";
+                    tempsql<<"=EXCLUDED.";
                     tempsql<<keyname;
                 }
                 continue;   
@@ -986,7 +1015,7 @@ tempsql<<"message='"<<stringaddslash(data.message)<<"'";
                     tempsql<<",";
                 }
                 tempsql<<keyname;
-                tempsql<<"=new.";
+                tempsql<<"=EXCLUDED.";
                 tempsql<<keyname;
                 
             }
@@ -1027,7 +1056,7 @@ tempsql<<"message='"<<stringaddslash(data.message)<<"'";
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<fortune_info::col_names.size();jj++){
+            for(jj=0;jj<world_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1042,7 +1071,11 @@ if(data.id==0){
 }
  break;
  case 1:
-	temparray.push_back(data.message);
+if(data.randomnumber==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.randomnumber));
+}
  break;
 
                              default:
@@ -1083,7 +1116,7 @@ if(data.id==0){
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<fortune_info::col_names.size();jj++){
+            for(jj=0;jj<world_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1098,7 +1131,11 @@ if(data.id==0){
 }
  break;
  case 1:
-	tempsql.insert({"message",data.message});
+if(data.randomnumber==0){
+	tempsql.insert({"randomnumber","0"});
+ }else{ 
+	tempsql.insert({"randomnumber",std::to_string(data.randomnumber)});
+}
  break;
 
                              default:
@@ -1118,8 +1155,11 @@ if(data.id==0){
  }else{ 
 	tempsql<<"\"id\":"<<std::to_string(data.id);
 }
-tempsql<<",\"message\":\""<<http::utf8_to_jsonstring(data.message);
-tempsql<<"\"";
+if(data.randomnumber==0){
+	tempsql<<",\"randomnumber\":0";
+ }else{ 
+	tempsql<<",\"randomnumber\":"<<std::to_string(data.randomnumber);
+}
 tempsql<<"}";
 
      
@@ -1156,7 +1196,7 @@ tempsql<<"}";
             keyname.clear();
         }
         }else{
-            for(jj=0;jj<fortune_info::col_names.size();jj++){
+            for(jj=0;jj<world_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1173,7 +1213,11 @@ if(data.id==0){
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(data.message)<<"\"";
+if(data.randomnumber==0){
+	tempsql<<"\"randomnumber\":0";
+ }else{ 
+	tempsql<<"\"randomnumber\":"<<std::to_string(data.randomnumber);
+}
  break;
 
                              default:
@@ -1187,7 +1231,7 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(data.message)<<"\"";
     void from_json(const std::string &json_content)
    {
         record.clear();
-        fortune_info::meta metatemp; 
+        world_info::meta metatemp; 
         data = metatemp;
         unsigned int json_offset=0;
         bool isarray=false;
@@ -1436,7 +1480,7 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(data.message)<<"\"";
 		 break;
 		
 		case 1:
-		  http::json_set_val(data.message,set_value_name);
+		  http::json_set_val(data.randomnumber,set_value_name);
 		 break;
 		
 		default:
@@ -1477,7 +1521,7 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(data.message)<<"\"";
             keyname.clear();
         }
     }else{
-        for(jj=0;jj<fortune_info::col_names.size();jj++){
+        for(jj=0;jj<world_info::col_names.size();jj++){
             keypos.emplace_back(jj); 
         }
     }
@@ -1501,7 +1545,11 @@ if(record[n].id==0){
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(record[n].message)<<"\"";
+if(record[n].randomnumber==0){
+	tempsql<<"\"randomnumber\":0";
+ }else{ 
+	tempsql<<"\"randomnumber\":"<<std::to_string(record[n].randomnumber);
+}
  break;
 
                              default:
@@ -1514,7 +1562,7 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(record[n].message)<<"\"";
      return tempsql.str();             
    }   
    
-   std::string to_json(std::function<bool(std::string&,fortune_info::meta&)> func,std::string_view field=""){
+   std::string to_json(std::function<bool(std::string&,world_info::meta&)> func,std::string_view field=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -1544,7 +1592,7 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(record[n].message)<<"\"";
                 keyname.clear();
             }
         }else{
-            for(jj=0;jj<fortune_info::col_names.size();jj++){
+            for(jj=0;jj<world_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1575,7 +1623,11 @@ if(record[n].id==0){
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(record[n].message)<<"\"";
+if(record[n].randomnumber==0){
+	tempsql<<"\"randomnumber\":0";
+ }else{ 
+	tempsql<<"\"randomnumber\":"<<std::to_string(record[n].randomnumber);
+}
  break;
 
                              default:
@@ -1592,23 +1644,21 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(record[n].message)<<"\"";
  int  getId(){  return data.id; } 
  void setId( int  val){  data.id=val;} 
 
- std::string  getMessage(){  return data.message; } 
- std::string & getRefMessage(){  return std::ref(data.message); } 
- void setMessage( std::string  &val){  data.message=val;} 
- void setMessage(std::string_view val){  data.message=val;} 
+ int  getRandomnumber(){  return data.randomnumber; } 
+ void setRandomnumber( int  val){  data.randomnumber=val;} 
 
-fortune_info::meta getnewData(){
- 	 struct fortune_info::meta newdata;
+world_info::meta getnewData(){
+ 	 struct world_info::meta newdata;
 	 return newdata; 
 } 
-fortune_info::meta getData(){
+world_info::meta getData(){
  	 return data; 
 } 
-std::vector<fortune_info::meta> getRecord(){
+std::vector<world_info::meta> getRecord(){
  	 return record; 
 } 
 
-   std::string tree_tojson(const std::vector<fortune_info::meta_tree> &tree_data, std::string_view field=""){
+   std::string tree_tojson(const std::vector<world_info::meta_tree> &tree_data, std::string_view field=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -1638,7 +1688,7 @@ std::vector<fortune_info::meta> getRecord(){
                             keyname.clear();
             }
         }else{
-            for(jj=0;jj<fortune_info::col_names.size();jj++){
+            for(jj=0;jj<world_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1662,7 +1712,11 @@ if(tree_data[n].id==0){
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(tree_data[n].message)<<"\"";
+if(tree_data[n].randomnumber==0){
+	tempsql<<"\"randomnumber\":0";
+ }else{ 
+	tempsql<<"\"randomnumber\":"<<std::to_string(tree_data[n].randomnumber);
+}
  break;
 
                              default:
@@ -1678,7 +1732,7 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(tree_data[n].message)<<"\"";
      return tempsql.str();             
    }   
    
-   std::string tree_tojson(const std::vector<fortune_info::meta_tree> &tree_data,std::function<bool(std::string&,const fortune_info::meta_tree&)> func,std::string_view field=""){
+   std::string tree_tojson(const std::vector<world_info::meta_tree> &tree_data,std::function<bool(std::string&,const world_info::meta_tree&)> func,std::string_view field=""){
        std::ostringstream tempsql;
         std::string keyname;
         unsigned char jj=0;
@@ -1708,7 +1762,7 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(tree_data[n].message)<<"\"";
                             keyname.clear();
             }
         }else{
-            for(jj=0;jj<fortune_info::col_names.size();jj++){
+            for(jj=0;jj<world_info::col_names.size();jj++){
                 keypos.emplace_back(jj); 
             }
         }
@@ -1739,7 +1793,11 @@ if(tree_data[n].id==0){
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
-tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(tree_data[n].message)<<"\"";
+if(tree_data[n].randomnumber==0){
+	tempsql<<"\"randomnumber\":0";
+ }else{ 
+	tempsql<<"\"randomnumber\":"<<std::to_string(tree_data[n].randomnumber);
+}
  break;
 
                              default:
@@ -1754,15 +1812,15 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(tree_data[n].message)<<"\"";
      return tempsql.str();             
    }   
    
-    template<fortune_info::cols KeyCol, fortune_info::cols ValCol> 
+    template<world_info::cols KeyCol, world_info::cols ValCol> 
     auto get_cols()
     {
-        using KeyType = decltype(fortune_info::getField<KeyCol>(std::declval<const fortune_info::meta&>()));
-        using ValType = decltype(fortune_info::getField<ValCol>(std::declval<const fortune_info::meta&>()));
+        using KeyType = decltype(world_info::getField<KeyCol>(std::declval<const world_info::meta&>()));
+        using ValType = decltype(world_info::getField<ValCol>(std::declval<const world_info::meta&>()));
 
         std::map<KeyType, ValType> result;
         for (const auto& iter : record) {
-            result.emplace(fortune_info::getField<KeyCol>(iter), fortune_info::getField<ValCol>(iter));
+            result.emplace(world_info::getField<KeyCol>(iter), world_info::getField<ValCol>(iter));
         }
  
         return result;
@@ -1773,28 +1831,28 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(tree_data[n].message)<<"\"";
             return value > 150; 
         })
     */
-    template<fortune_info::cols KeyCol, fortune_info::cols ValCol, typename Callback> 
+    template<world_info::cols KeyCol, world_info::cols ValCol, typename Callback> 
     requires std::invocable<Callback, 
-            decltype(fortune_info::getField<KeyCol>(std::declval<const fortune_info::meta&>())), 
-            decltype(fortune_info::getField<ValCol>(std::declval<const fortune_info::meta&>()))> &&
+            decltype(world_info::getField<KeyCol>(std::declval<const world_info::meta&>())), 
+            decltype(world_info::getField<ValCol>(std::declval<const world_info::meta&>()))> &&
             std::convertible_to<
                 std::invoke_result_t<Callback&, 
-                    decltype(fortune_info::getField<KeyCol>(std::declval<const fortune_info::meta&>())), 
-                    decltype(fortune_info::getField<ValCol>(std::declval<const fortune_info::meta&>()))>, bool>
+                    decltype(world_info::getField<KeyCol>(std::declval<const world_info::meta&>())), 
+                    decltype(world_info::getField<ValCol>(std::declval<const world_info::meta&>()))>, bool>
     auto get_cols(Callback&& callback)
     {
-        using KeyType = decltype(fortune_info::getField<KeyCol>(std::declval<const fortune_info::meta&>()));
-        using ValType = decltype(fortune_info::getField<ValCol>(std::declval<const fortune_info::meta&>()));
+        using KeyType = decltype(world_info::getField<KeyCol>(std::declval<const world_info::meta&>()));
+        using ValType = decltype(world_info::getField<ValCol>(std::declval<const world_info::meta&>()));
 
         std::map<KeyType, ValType> result;
         for (const auto& iter : record) 
         {
             if constexpr (std::is_same_v<std::decay_t<Callback>, std::nullptr_t>) 
             {
-                result.emplace(fortune_info::getField<KeyCol>(iter), fortune_info::getField<ValCol>(iter));
+                result.emplace(world_info::getField<KeyCol>(iter), world_info::getField<ValCol>(iter));
             } else {
-                if (std::forward<Callback>(callback)(fortune_info::getField<KeyCol>(iter), fortune_info::getField<ValCol>(iter))) {
-                    result.emplace(fortune_info::getField<KeyCol>(iter), fortune_info::getField<ValCol>(iter));
+                if (std::forward<Callback>(callback)(world_info::getField<KeyCol>(iter), world_info::getField<ValCol>(iter))) {
+                    result.emplace(world_info::getField<KeyCol>(iter), world_info::getField<ValCol>(iter));
                 }
             }
         }
@@ -1802,15 +1860,15 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(tree_data[n].message)<<"\"";
         return result;
     }
     
-    template<fortune_info::cols KeyCol, fortune_info::cols ValCol> 
+    template<world_info::cols KeyCol, world_info::cols ValCol> 
     auto get_cols_vecs()
     {
-        using KeyType = decltype(fortune_info::getField<KeyCol>(std::declval<const fortune_info::meta&>()));
-        using ValType = decltype(fortune_info::getField<ValCol>(std::declval<const fortune_info::meta&>()));
+        using KeyType = decltype(world_info::getField<KeyCol>(std::declval<const world_info::meta&>()));
+        using ValType = decltype(world_info::getField<ValCol>(std::declval<const world_info::meta&>()));
 
         std::vector<std::pair<KeyType, ValType>> result;
         for (const auto& iter : record) {
-            result.emplace_back(fortune_info::getField<KeyCol>(iter), fortune_info::getField<ValCol>(iter));
+            result.emplace_back(world_info::getField<KeyCol>(iter), world_info::getField<ValCol>(iter));
         }
  
         return result;
@@ -1821,28 +1879,28 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(tree_data[n].message)<<"\"";
             return value > 150; 
         })
     */
-    template<fortune_info::cols KeyCol, fortune_info::cols ValCol, typename Callback> 
+    template<world_info::cols KeyCol, world_info::cols ValCol, typename Callback> 
     requires std::invocable<Callback, 
-            decltype(fortune_info::getField<KeyCol>(std::declval<const fortune_info::meta&>())), 
-            decltype(fortune_info::getField<ValCol>(std::declval<const fortune_info::meta&>()))> &&
+            decltype(world_info::getField<KeyCol>(std::declval<const world_info::meta&>())), 
+            decltype(world_info::getField<ValCol>(std::declval<const world_info::meta&>()))> &&
             std::convertible_to<
                 std::invoke_result_t<Callback&, 
-                    decltype(fortune_info::getField<KeyCol>(std::declval<const fortune_info::meta&>())), 
-                    decltype(fortune_info::getField<ValCol>(std::declval<const fortune_info::meta&>()))>, bool>
+                    decltype(world_info::getField<KeyCol>(std::declval<const world_info::meta&>())), 
+                    decltype(world_info::getField<ValCol>(std::declval<const world_info::meta&>()))>, bool>
     auto get_cols_vecs(Callback&& callback)
     {
-        using KeyType = decltype(fortune_info::getField<KeyCol>(std::declval<const fortune_info::meta&>()));
-        using ValType = decltype(fortune_info::getField<ValCol>(std::declval<const fortune_info::meta&>()));
+        using KeyType = decltype(world_info::getField<KeyCol>(std::declval<const world_info::meta&>()));
+        using ValType = decltype(world_info::getField<ValCol>(std::declval<const world_info::meta&>()));
 
         std::vector<std::pair<KeyType, ValType>> result;
         for (const auto& iter : record) 
         {
             if constexpr (std::is_same_v<std::decay_t<Callback>, std::nullptr_t>) 
             {
-                result.emplace_back(fortune_info::getField<KeyCol>(iter), fortune_info::getField<ValCol>(iter));
+                result.emplace_back(world_info::getField<KeyCol>(iter), world_info::getField<ValCol>(iter));
             } else {
-                if (std::forward<Callback>(callback)(fortune_info::getField<KeyCol>(iter), fortune_info::getField<ValCol>(iter))) {
-                    result.emplace_back(fortune_info::getField<KeyCol>(iter), fortune_info::getField<ValCol>(iter));
+                if (std::forward<Callback>(callback)(world_info::getField<KeyCol>(iter), world_info::getField<ValCol>(iter))) {
+                    result.emplace_back(world_info::getField<KeyCol>(iter), world_info::getField<ValCol>(iter));
                 }
             }
         }
@@ -1850,14 +1908,14 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(tree_data[n].message)<<"\"";
         return result;
     }
     
-    template<fortune_info::cols KeyCol>
+    template<world_info::cols KeyCol>
     auto get_cols_vec()
     {
-        using KeyType = decltype(fortune_info::getField<KeyCol>(std::declval<const fortune_info::meta&>()));
+        using KeyType = decltype(world_info::getField<KeyCol>(std::declval<const world_info::meta&>()));
 
         std::vector<KeyType> result;
         for (const auto& iter : record) {
-            result.emplace_back(fortune_info::getField<KeyCol>(iter));
+            result.emplace_back(world_info::getField<KeyCol>(iter));
         }
  
         return result;
@@ -1868,24 +1926,24 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(tree_data[n].message)<<"\"";
             return value > 150; 
         })
     */
-    template<fortune_info::cols KeyCol, typename Callback> 
+    template<world_info::cols KeyCol, typename Callback> 
     requires std::invocable<Callback, 
-            decltype(fortune_info::getField<KeyCol>(std::declval<const fortune_info::meta&>()))> &&
+            decltype(world_info::getField<KeyCol>(std::declval<const world_info::meta&>()))> &&
             std::convertible_to<
                 std::invoke_result_t<Callback&, 
-                    decltype(fortune_info::getField<KeyCol>(std::declval<const fortune_info::meta&>()))>, bool>
+                    decltype(world_info::getField<KeyCol>(std::declval<const world_info::meta&>()))>, bool>
     auto get_cols_vec(Callback&& callback)
     {
-        using KeyType = decltype(fortune_info::getField<KeyCol>(std::declval<const fortune_info::meta&>()));
+        using KeyType = decltype(world_info::getField<KeyCol>(std::declval<const world_info::meta&>()));
         std::vector<KeyType> result;
         for (const auto& iter : record) 
         {
             if constexpr (std::is_same_v<std::decay_t<Callback>, std::nullptr_t>) 
             {
-                result.emplace_back(fortune_info::getField<KeyCol>(iter));
+                result.emplace_back(world_info::getField<KeyCol>(iter));
             } else {
-                if (std::forward<Callback>(callback)(fortune_info::getField<KeyCol>(iter))) {
-                    result.emplace_back(fortune_info::getField<KeyCol>(iter));
+                if (std::forward<Callback>(callback)(world_info::getField<KeyCol>(iter))) {
+                    result.emplace_back(world_info::getField<KeyCol>(iter));
                 }
             }
         }
@@ -1893,8 +1951,8 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(tree_data[n].message)<<"\"";
         return result;
     }
     
-    template<fortune_info::cols Col>
-        requires requires(std::ostream& os, decltype(fortune_info::getField<Col>(std::declval<const fortune_info::meta&>())) t) {
+    template<world_info::cols Col>
+        requires requires(std::ostream& os, decltype(world_info::getField<Col>(std::declval<const world_info::meta&>())) t) {
             { os << t } -> std::same_as<std::ostream&>;
         }
     std::string get_cols_strs() 
@@ -1903,7 +1961,7 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(tree_data[n].message)<<"\"";
 
         for (const auto& iter : record) {
             oss << "\"";
-            oss << fortune_info::getField<Col>(iter); 
+            oss << world_info::getField<Col>(iter); 
             oss << "\",";
         }
         std::string temp=oss.str();
@@ -1914,8 +1972,8 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(tree_data[n].message)<<"\"";
         return temp;
     }
     
-    template<fortune_info::cols Col>
-        requires requires(std::ostream& os, decltype(fortune_info::getField<Col>(std::declval<const fortune_info::meta&>())) t) {
+    template<world_info::cols Col>
+        requires requires(std::ostream& os, decltype(world_info::getField<Col>(std::declval<const world_info::meta&>())) t) {
             { os << t } -> std::same_as<std::ostream&>;
         }
     std::string get_cols_str() 
@@ -1923,7 +1981,7 @@ tempsql<<"\"message\":\""<<http::utf8_to_jsonstring(tree_data[n].message)<<"\"";
         std::ostringstream oss;
 
         for (const auto& iter : record) {
-            oss << fortune_info::getField<Col>(iter); 
+            oss << world_info::getField<Col>(iter); 
             oss << ",";
         }
         std::string temp=oss.str();

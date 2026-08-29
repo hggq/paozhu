@@ -703,45 +703,45 @@ inline std::string mysql_col_type_to_pg_type(unsigned char col_type, unsigned in
 
     switch (col_type)
     {
-    case 0x01:// TINYINT
+    case 0x01: // TINYINT
         if (length == 1)
             return "boolean";
         return "smallint";
-    case 0x02:// SMALLINT
+    case 0x02: // SMALLINT
         return "smallint";
-    case 0x03:// INT
+    case 0x03: // INT
         return "integer";
-    case 0x08:// BIGINT
+    case 0x08: // BIGINT
         return "bigint";
-    case 0x09:// MEDIUMINT
+    case 0x09: // MEDIUMINT
         return "integer";
-    case 0x04:// FLOAT
+    case 0x04: // FLOAT
         return "real";
-    case 0x05:// DOUBLE
+    case 0x05: // DOUBLE
         return "double precision";
-    case 0xF6:// DECIMAL/NUMERIC
+    case 0xF6: // DECIMAL/NUMERIC
         if (length > 0)
             return "numeric(" + std::to_string(length) + ")";
         return "numeric";
-    case 0xFE:// CHAR/VARCHAR/ENUM/SET etc.
+    case 0xFE: // CHAR/VARCHAR/ENUM/SET etc.
         if (length > 0 && length < 256)
             return "varchar(" + std::to_string(length) + ")";
         return "text";
-    case 0xFD:// VARCHAR
+    case 0xFD: // VARCHAR
         if (length > 0)
             return "varchar(" + std::to_string(length) + ")";
         return "varchar(255)";
-    case 0xFC:// TEXT/BLOB
+    case 0xFC: // TEXT/BLOB
         return "text";
-    case 0x0A:// DATE
+    case 0x0A: // DATE
         return "date";
-    case 0x0B:// TIME
+    case 0x0B: // TIME
         return "time";
-    case 0x0C:// DATETIME/TIMESTAMP
+    case 0x0C: // DATETIME/TIMESTAMP
         return "timestamp";
-    case 0x07:// TIMESTAMP (old)
+    case 0x07: // TIMESTAMP (old)
         return "timestamp";
-    case 0xF5:// JSON
+    case 0xF5: // JSON
         return "jsonb";
     default:
         return "text";
@@ -1891,9 +1891,9 @@ inline db_table_info convert_columns_to_table_info(
     const std::string &table_comment = "")
 {
     db_table_info info;
-    info.table_name     = table_name;
-    info.table_comment  = table_comment;
-    info.source_db_type = DB_TYPE::POSTGRESQL;
+    info.table_name      = table_name;
+    info.table_comment   = table_comment;
+    info.source_db_type  = DB_TYPE::POSTGRESQL;
 
     for (const auto &col : columns)
     {
@@ -2365,14 +2365,12 @@ inline bool sqlite_get_table_schema(std::shared_ptr<orm::sqlite_conn_base> sqlit
     {
         orm::sqlite_query_result qr;
         if (sqlite_conn->query_fetch(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='sqlite_sequence'",
-                qr) &&
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='sqlite_sequence'", qr) &&
             !qr.rows.empty())
         {
             orm::sqlite_query_result qr2;
             if (sqlite_conn->query_fetch(
-                    "SELECT seq FROM sqlite_sequence WHERE name = '" + escape_sqlite_string(table_name) + "'",
-                    qr2) &&
+                    "SELECT seq FROM sqlite_sequence WHERE name = '" + escape_sqlite_string(table_name) + "'", qr2) &&
                 !qr2.rows.empty())
             {
                 has_autoincrement = true;
@@ -2969,7 +2967,7 @@ using db_conn_variant = std::variant<
 struct db_conn_result
 {
     db_conn_variant conn;
-    std::string error_msg;
+    std::string     error_msg;
 
     bool ok() const { return error_msg.empty(); }
 
@@ -2983,16 +2981,15 @@ struct db_conn_result
     // 运行时按类型获取 DB_TYPE
     DB_TYPE type() const
     {
-        return std::visit([](const auto &p) -> DB_TYPE
-                          {
+        return std::visit([](const auto &p) -> DB_TYPE {
             using T = std::decay_t<decltype(p)>;
             if constexpr (std::is_same_v<T, std::shared_ptr<orm::mysql_conn_base>>)
                 return DB_TYPE::MYSQL;
             else if constexpr (std::is_same_v<T, std::shared_ptr<orm::pg_conn_base>>)
                 return DB_TYPE::POSTGRESQL;
             else
-                return DB_TYPE::SQLITE; },
-                          conn);
+                return DB_TYPE::SQLITE;
+        }, conn);
     }
 };
 
@@ -3011,14 +3008,14 @@ inline std::string quote_identifier(DB_TYPE type, const std::string &identifier)
 {
     if (type == DB_TYPE::MYSQL)
         return "`" + identifier + "`";
-    return escape_pg_identifier(identifier);// PG/SQLite 共用双引号逻辑
+    return escape_pg_identifier(identifier); // PG/SQLite 共用双引号逻辑
 }
 
 // 统一连接创建 (替代三处重复的连接代码)
 inline db_conn_result create_connection(
     const orm::orm_conn_t &config,
-    DB_TYPE type,
-    asio::io_context &ioc)
+    DB_TYPE                type,
+    asio::io_context      &ioc)
 {
     db_conn_result result;
 
@@ -3051,7 +3048,7 @@ inline db_conn_result create_connection(
         }
         result.conn = std::move(pg);
     }
-    else// SQLITE
+    else // SQLITE
     {
         auto sqlite = std::make_shared<orm::sqlite_conn_base>();
         if (!sqlite->connect(config))
@@ -3107,7 +3104,8 @@ inline std::vector<std::string> get_tables(const db_conn_variant &conn, DB_TYPE 
 }
 
 // 统一获取表结构
-inline bool get_table_schema(const db_conn_variant &conn, DB_TYPE type, const std::string &table_name, db_table_info &info)
+inline bool get_table_schema(const db_conn_variant &conn, DB_TYPE type,
+                             const std::string &table_name, db_table_info &info)
 {
     switch (type)
     {
@@ -3122,7 +3120,8 @@ inline bool get_table_schema(const db_conn_variant &conn, DB_TYPE type, const st
 }
 
 // 统一执行查询获取行
-inline bool fetch_rows(const db_conn_variant &conn, DB_TYPE type, const std::string &sql, std::vector<row_data_t> &rows)
+inline bool fetch_rows(const db_conn_variant &conn, DB_TYPE type,
+                       const std::string &sql, std::vector<row_data_t> &rows)
 {
     switch (type)
     {
@@ -3137,7 +3136,8 @@ inline bool fetch_rows(const db_conn_variant &conn, DB_TYPE type, const std::str
 }
 
 // 统一检查表是否存在
-inline bool table_exists(const db_conn_variant &conn, DB_TYPE type, const std::string &table_name, const std::string &dbname = "")
+inline bool table_exists(const db_conn_variant &conn, DB_TYPE type,
+                         const std::string &table_name, const std::string &dbname = "")
 {
     std::string sql;
     switch (type)
@@ -3161,7 +3161,8 @@ inline bool table_exists(const db_conn_variant &conn, DB_TYPE type, const std::s
 }
 
 // 统一执行 DDL (处理三种完全不同的执行协议)
-inline bool exec_ddl(const db_conn_variant &conn, DB_TYPE type, const std::string &ddl, std::string &error_msg)
+inline bool exec_ddl(const db_conn_variant &conn, DB_TYPE type,
+                     const std::string &ddl, std::string &error_msg)
 {
     switch (type)
     {
@@ -3192,8 +3193,8 @@ inline bool exec_ddl(const db_conn_variant &conn, DB_TYPE type, const std::strin
     case DB_TYPE::POSTGRESQL:
     {
         auto pg = std::get<std::shared_ptr<orm::pg_conn_base>>(conn);
-        std::vector<orm::field_info_t> dummy_f;
-        std::vector<orm::pg_row_data_t> dummy_r;
+        std::vector<orm::field_info_t>   dummy_f;
+        std::vector<orm::pg_row_data_t>  dummy_r;
         unsigned int affected = 0;
         unsigned int err      = pg->execute_and_fetch(ddl, dummy_f, dummy_r, affected);
         if (err > 0)
@@ -3218,14 +3219,17 @@ inline bool exec_ddl(const db_conn_variant &conn, DB_TYPE type, const std::strin
 }
 
 // 统一插入单行
-inline bool insert_row(const db_conn_variant &conn, DB_TYPE type, const std::string &table_name, const std::vector<db_field_info> &fields, const row_data_t &row, std::string &error_msg)
+inline bool insert_row(const db_conn_variant &conn, DB_TYPE type,
+                       const std::string &table_name,
+                       const std::vector<db_field_info> &fields,
+                       const row_data_t &row, std::string &error_msg)
 {
     switch (type)
     {
     case DB_TYPE::MYSQL:
     {
-        auto mysql = std::get<std::shared_ptr<orm::mysql_conn_base>>(conn);
-        auto sql   = build_insert_sql_mysql(table_name, fields, row, 0, row.values.size());
+        auto mysql  = std::get<std::shared_ptr<orm::mysql_conn_base>>(conn);
+        auto sql    = build_insert_sql_mysql(table_name, fields, row, 0, row.values.size());
         if (mysql->write_sql(sql) == 0)
         {
             error_msg = mysql->error_msg;
@@ -3241,10 +3245,10 @@ inline bool insert_row(const db_conn_variant &conn, DB_TYPE type, const std::str
     }
     case DB_TYPE::POSTGRESQL:
     {
-        auto pg  = std::get<std::shared_ptr<orm::pg_conn_base>>(conn);
+        auto pg = std::get<std::shared_ptr<orm::pg_conn_base>>(conn);
         auto sql = build_insert_sql_pg(table_name, fields, row, 0, row.values.size());
-        std::vector<orm::field_info_t> df;
-        std::vector<orm::pg_row_data_t> dr;
+        std::vector<orm::field_info_t>   df;
+        std::vector<orm::pg_row_data_t>  dr;
         unsigned int affected = 0;
         unsigned int err      = pg->execute_and_fetch(sql, df, dr, affected);
         if (err > 0)
@@ -3269,13 +3273,16 @@ inline bool insert_row(const db_conn_variant &conn, DB_TYPE type, const std::str
 }
 
 // 统一 AUTOINCREMENT 重置
-inline bool reset_autoincrement(const db_conn_variant &conn, DB_TYPE type, const std::string &table_name, const std::string &auto_inc_field, std::string &error_msg)
+inline bool reset_autoincrement(const db_conn_variant &conn, DB_TYPE type,
+                                const std::string &table_name,
+                                const std::string &auto_inc_field,
+                                std::string &error_msg)
 {
     switch (type)
     {
     case DB_TYPE::MYSQL:
     {
-        auto mysql          = std::get<std::shared_ptr<orm::mysql_conn_base>>(conn);
+        auto mysql = std::get<std::shared_ptr<orm::mysql_conn_base>>(conn);
         std::string max_sql = "SELECT MAX(`" + auto_inc_field + "`) FROM `" + table_name + "`";
         std::vector<row_data_t> max_rows;
         if (mysql_fetch_rows(mysql, max_sql, max_rows) &&
@@ -3301,11 +3308,11 @@ inline bool reset_autoincrement(const db_conn_variant &conn, DB_TYPE type, const
     }
     case DB_TYPE::POSTGRESQL:
     {
-        auto pg               = std::get<std::shared_ptr<orm::pg_conn_base>>(conn);
+        auto pg = std::get<std::shared_ptr<orm::pg_conn_base>>(conn);
         std::string seq_name  = table_name + "_" + auto_inc_field + "_seq";
         std::string alter_sql = "SELECT setval('" + seq_name +
                                 "', (SELECT MAX(" + auto_inc_field + ") FROM " + table_name + "))";
-        std::vector<orm::field_info_t> df;
+        std::vector<orm::field_info_t>  df;
         std::vector<orm::pg_row_data_t> dr;
         unsigned int affected = 0;
         unsigned int err      = pg->execute_and_fetch(alter_sql, df, dr, affected);
@@ -3335,6 +3342,6 @@ inline bool reset_autoincrement(const db_conn_variant &conn, DB_TYPE type, const
     return false;
 }
 
-}// namespace dbtypes
+} // namespace dbtypes
 
 #endif

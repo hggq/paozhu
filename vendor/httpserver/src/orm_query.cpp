@@ -89,48 +89,14 @@ bool db_conn::mysql_begin_commit_impl()
         mysql_edit_conn = conn_obj->get_mysql_edit_conn();
     }
 
-    std::string sqlstring = "start transaction";
-    mysql_edit_conn->write_sql(sqlstring);
-    unsigned int offset = 0;
-    auto n              = mysql_edit_conn->read_loop();
-    if (n == 0)
+    unsigned int affected = mysql_edit_conn->exec_dml("START TRANSACTION");
+    if (affected == static_cast<unsigned int>(-1))
     {
-        error_msg = mysql_edit_conn->error_msg;
-        mysql_edit_conn.reset();
-        return false;
-    }
-    pack_info_t temp_pack_data;
-    temp_pack_data.seq_id = 1;
-    mysql_edit_conn->read_field_pack(mysql_edit_conn->_cache_data, n, offset, temp_pack_data);
-
-    if ((unsigned char)temp_pack_data.data[0] == 0xFF)
-    {
-        error_msg   = temp_pack_data.data.substr(3);
+        error_msg   = mysql_edit_conn->error_msg;
         islock_conn = false;
         iscommit    = false;
         mysql_edit_conn.reset();
         return false;
-    }
-    else if ((unsigned char)temp_pack_data.data[0] == 0x00)
-    {
-        unsigned int d_offset = 1;
-        effect_num            = mysql_edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
-        if (temp_pack_data.data.size() > 3)
-        {
-            unsigned char in_trans = temp_pack_data.data[3] & 0x01;
-            if (in_trans > 0)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        else
-        {
-            return false;
-        }
     }
     return true;
 }
@@ -149,11 +115,8 @@ bool db_conn::pg_begin_commit_impl()
         pg_edit_conn = conn_obj->get_pg_edit_conn();
     }
 
-    std::vector<field_info_t> fields;
-    std::vector<pg_row_data_t> rows;
-    unsigned int affected = 0;
-    unsigned int err      = pg_edit_conn->execute_and_fetch("BEGIN", fields, rows, affected);
-    if (err > 0)
+    unsigned int affected = pg_edit_conn->exec_dml("BEGIN");
+    if (affected == static_cast<unsigned int>(-1))
     {
         error_msg   = pg_edit_conn->error_msg;
         islock_conn = false;
@@ -199,36 +162,14 @@ bool db_conn::mysql_commit_impl()
         return false;
     }
 
-    std::string sqlstring = "commit";
-    mysql_edit_conn->write_sql(sqlstring);
-
-    unsigned int offset = 0;
-    auto n              = mysql_edit_conn->read_loop();
-    if (n == 0)
+    unsigned int affected = mysql_edit_conn->exec_dml("COMMIT");
+    if (affected == static_cast<unsigned int>(-1))
     {
         error_msg = mysql_edit_conn->error_msg;
-        mysql_edit_conn.reset();
+        this->mysql_rollback_impl();
         return false;
     }
-    pack_info_t temp_pack_data;
-    temp_pack_data.seq_id = 1;
-    mysql_edit_conn->read_field_pack(mysql_edit_conn->_cache_data, n, offset, temp_pack_data);
-
-    if ((unsigned char)temp_pack_data.data[0] == 0xFF)
-    {
-        error_msg = temp_pack_data.data.substr(3);
-        rollback();
-        iscommit    = false;
-        islock_conn = false;
-        return false;
-    }
-    else if ((unsigned char)temp_pack_data.data[0] == 0x00)
-    {
-        unsigned int d_offset = 1;
-        effect_num            = mysql_edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
-        conn_obj->back_mysql_edit_conn(std::move(mysql_edit_conn));
-        mysql_edit_conn = nullptr;
-    }
+    conn_obj->back_mysql_edit_conn(std::move(mysql_edit_conn));
     iscommit    = false;
     islock_conn = false;
     return true;
@@ -243,11 +184,8 @@ bool db_conn::pg_commit_impl()
         return false;
     }
 
-    std::vector<field_info_t> fields;
-    std::vector<pg_row_data_t> rows;
-    unsigned int affected = 0;
-    unsigned int err      = pg_edit_conn->execute_and_fetch("COMMIT", fields, rows, affected);
-    if (err > 0)
+    unsigned int affected = pg_edit_conn->exec_dml("COMMIT");
+    if (affected == static_cast<unsigned int>(-1))
     {
         error_msg = pg_edit_conn->error_msg;
         rollback();
@@ -297,32 +235,14 @@ void db_conn::mysql_rollback_impl()
         return;
     }
 
-    std::string sqlstring = "rollback";
-    mysql_edit_conn->write_sql(sqlstring);
-    unsigned int offset = 0;
-    auto n              = mysql_edit_conn->read_loop();
-    if (n == 0)
+    unsigned int affected = mysql_edit_conn->exec_dml("ROLLBACK");
+    if (affected == static_cast<unsigned int>(-1))
     {
         error_msg = mysql_edit_conn->error_msg;
-        mysql_edit_conn.reset();
-        return;
-    }
-    pack_info_t temp_pack_data;
-    temp_pack_data.seq_id = 1;
-    mysql_edit_conn->read_field_pack(mysql_edit_conn->_cache_data, n, offset, temp_pack_data);
-
-    if ((unsigned char)temp_pack_data.data[0] == 0xFF)
-    {
-        error_msg = temp_pack_data.data.substr(3);
-    }
-    else if ((unsigned char)temp_pack_data.data[0] == 0x00)
-    {
-        unsigned int d_offset = 1;
-        effect_num            = mysql_edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
     }
     iscommit    = false;
     islock_conn = false;
-    mysql_edit_conn.reset();
+    conn_obj->back_mysql_edit_conn(std::move(mysql_edit_conn));
 }
 
 void db_conn::pg_rollback_impl()
@@ -333,11 +253,8 @@ void db_conn::pg_rollback_impl()
         return;
     }
 
-    std::vector<field_info_t> fields;
-    std::vector<pg_row_data_t> rows;
-    unsigned int affected = 0;
-    unsigned int err      = pg_edit_conn->execute_and_fetch("ROLLBACK", fields, rows, affected);
-    if (err > 0)
+    unsigned int affected = pg_edit_conn->exec_dml("ROLLBACK");
+    if (affected == static_cast<unsigned int>(-1))
     {
         error_msg = pg_edit_conn->error_msg;
     }
@@ -383,56 +300,22 @@ asio::awaitable<bool> db_conn::mysql_async_begin_commit_impl()
     {
         if (!mysql_edit_conn)
         {
-            mysql_edit_conn = conn_obj->get_mysql_edit_conn();
+            mysql_edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
         }
     }
     else
     {
-        mysql_edit_conn = conn_obj->get_mysql_edit_conn();
+        mysql_edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
     }
 
-    std::string sqlstring = "start transaction";
-    co_await mysql_edit_conn->async_write_sql(sqlstring);
-    unsigned int offset = 0;
-    auto n              = co_await mysql_edit_conn->async_read_loop();
-    if (n == 0)
+    unsigned int affected = co_await mysql_edit_conn->async_exec_dml("START TRANSACTION");
+    if (affected == static_cast<unsigned int>(-1))
     {
-        error_msg = mysql_edit_conn->error_msg;
-        mysql_edit_conn.reset();
-        co_return false;
-    }
-    pack_info_t temp_pack_data;
-    temp_pack_data.seq_id = 1;
-    mysql_edit_conn->read_field_pack(mysql_edit_conn->_cache_data, n, offset, temp_pack_data);
-
-    if ((unsigned char)temp_pack_data.data[0] == 0xFF)
-    {
-        error_msg = temp_pack_data.data.substr(3);
-        mysql_edit_conn.reset();
+        error_msg   = mysql_edit_conn->error_msg;
         islock_conn = false;
         iscommit    = false;
+        mysql_edit_conn.reset();
         co_return false;
-    }
-    else if ((unsigned char)temp_pack_data.data[0] == 0x00)
-    {
-        unsigned int d_offset = 1;
-        effect_num            = mysql_edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
-        if (temp_pack_data.data.size() > 3)
-        {
-            unsigned char in_trans = temp_pack_data.data[3] & 0x01;
-            if (in_trans > 0)
-            {
-                co_return true;
-            }
-            else
-            {
-                co_return false;
-            }
-        }
-        else
-        {
-            co_return false;
-        }
     }
     co_return true;
 }
@@ -451,11 +334,8 @@ asio::awaitable<bool> db_conn::pg_async_begin_commit_impl()
         pg_edit_conn = conn_obj->get_pg_edit_conn();
     }
 
-    std::vector<field_info_t> fields;
-    std::vector<pg_row_data_t> rows;
-    unsigned int affected = 0;
-    unsigned int err      = co_await pg_edit_conn->async_execute_and_fetch("BEGIN", fields, rows, affected);
-    if (err > 0)
+    unsigned int affected = co_await pg_edit_conn->async_exec_dml("BEGIN");
+    if (affected == static_cast<unsigned int>(-1))
     {
         error_msg   = pg_edit_conn->error_msg;
         islock_conn = false;
@@ -501,35 +381,14 @@ asio::awaitable<bool> db_conn::mysql_async_commit_impl()
         co_return false;
     }
 
-    std::string sqlstring = "commit";
-    co_await mysql_edit_conn->async_write_sql(sqlstring);
-
-    unsigned int offset = 0;
-    auto n              = co_await mysql_edit_conn->async_read_loop();
-    if (n == 0)
+    unsigned int affected = co_await mysql_edit_conn->async_exec_dml("COMMIT");
+    if (affected == static_cast<unsigned int>(-1))
     {
         error_msg = mysql_edit_conn->error_msg;
-        mysql_edit_conn.reset();
+        co_await this->mysql_async_rollback_impl();
         co_return false;
     }
-    pack_info_t temp_pack_data;
-    temp_pack_data.seq_id = 1;
-    mysql_edit_conn->read_field_pack(mysql_edit_conn->_cache_data, n, offset, temp_pack_data);
-
-    if ((unsigned char)temp_pack_data.data[0] == 0xFF)
-    {
-        error_msg = temp_pack_data.data.substr(3);
-        co_await async_rollback();
-        iserror = true;
-        co_return false;
-    }
-    else if ((unsigned char)temp_pack_data.data[0] == 0x00)
-    {
-        unsigned int d_offset = 1;
-        effect_num            = mysql_edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
-        conn_obj->back_mysql_edit_conn(std::move(mysql_edit_conn));
-        mysql_edit_conn = nullptr;
-    }
+    conn_obj->back_mysql_edit_conn(std::move(mysql_edit_conn));
     iscommit    = false;
     islock_conn = false;
     co_return true;
@@ -544,11 +403,8 @@ asio::awaitable<bool> db_conn::pg_async_commit_impl()
         co_return false;
     }
 
-    std::vector<field_info_t> fields;
-    std::vector<pg_row_data_t> rows;
-    unsigned int affected = 0;
-    unsigned int err      = co_await pg_edit_conn->async_execute_and_fetch("COMMIT", fields, rows, affected);
-    if (err > 0)
+    unsigned int affected = co_await pg_edit_conn->async_exec_dml("COMMIT");
+    if (affected == static_cast<unsigned int>(-1))
     {
         error_msg = pg_edit_conn->error_msg;
         co_await async_rollback();
@@ -597,36 +453,14 @@ asio::awaitable<void> db_conn::mysql_async_rollback_impl()
         co_return;
     }
 
-    std::string sqlstring = "rollback";
-    co_await mysql_edit_conn->async_write_sql(sqlstring);
-    unsigned int offset = 0;
-    auto n              = co_await mysql_edit_conn->async_read_loop();
-    if (n == 0)
+    unsigned int affected = co_await mysql_edit_conn->async_exec_dml("ROLLBACK");
+    if (affected == static_cast<unsigned int>(-1))
     {
         error_msg = mysql_edit_conn->error_msg;
-        mysql_edit_conn.reset();
-        co_return;
     }
-    pack_info_t temp_pack_data;
-    temp_pack_data.seq_id = 1;
-    mysql_edit_conn->read_field_pack(mysql_edit_conn->_cache_data, n, offset, temp_pack_data);
-
-    if ((unsigned char)temp_pack_data.data[0] == 0xFF)
-    {
-        error_msg   = temp_pack_data.data.substr(3);
-        islock_conn = false;
-        iscommit    = false;
-        iserror     = true;
-    }
-    else if ((unsigned char)temp_pack_data.data[0] == 0x00)
-    {
-        unsigned int d_offset = 1;
-        effect_num            = mysql_edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
-    }
-
     iscommit    = false;
     islock_conn = false;
-    mysql_edit_conn.reset();
+    conn_obj->back_mysql_edit_conn(std::move(mysql_edit_conn));
 }
 
 asio::awaitable<void> db_conn::pg_async_rollback_impl()
@@ -637,11 +471,8 @@ asio::awaitable<void> db_conn::pg_async_rollback_impl()
         co_return;
     }
 
-    std::vector<field_info_t> fields;
-    std::vector<pg_row_data_t> rows;
-    unsigned int affected = 0;
-    unsigned int err      = co_await pg_edit_conn->async_execute_and_fetch("ROLLBACK", fields, rows, affected);
-    if (err > 0)
+    unsigned int affected = co_await pg_edit_conn->async_exec_dml("ROLLBACK");
+    if (affected == static_cast<unsigned int>(-1))
     {
         error_msg   = pg_edit_conn->error_msg;
         islock_conn = false;
@@ -674,8 +505,8 @@ bool db_conn::sqlite_begin_commit_impl()
         sqlite_edit_conn = conn_obj->get_sqlite_edit_conn();
     }
 
-    int affected = sqlite_edit_conn->exec_sql("BEGIN");
-    if (affected < 0)
+    unsigned int affected = sqlite_edit_conn->exec_dml("BEGIN");
+    if (affected == static_cast<unsigned int>(-1))
     {
         error_msg   = sqlite_edit_conn->error_msg;
         islock_conn = false;
@@ -695,8 +526,8 @@ bool db_conn::sqlite_commit_impl()
         return false;
     }
 
-    int affected = sqlite_edit_conn->exec_sql("COMMIT");
-    if (affected < 0)
+    unsigned int affected = sqlite_edit_conn->exec_dml("COMMIT");
+    if (affected == static_cast<unsigned int>(-1))
     {
         error_msg = sqlite_edit_conn->error_msg;
         this->sqlite_rollback_impl();
@@ -716,8 +547,8 @@ void db_conn::sqlite_rollback_impl()
         return;
     }
 
-    int affected = sqlite_edit_conn->exec_sql("ROLLBACK");
-    if (affected < 0)
+    unsigned int affected = sqlite_edit_conn->exec_dml("ROLLBACK");
+    if (affected == static_cast<unsigned int>(-1))
     {
         error_msg = sqlite_edit_conn->error_msg;
     }
@@ -740,8 +571,8 @@ asio::awaitable<bool> db_conn::sqlite_async_begin_commit_impl()
         sqlite_edit_conn = co_await conn_obj->async_get_sqlite_edit_conn();
     }
 
-    int affected = co_await sqlite_edit_conn->async_exec_sql("BEGIN");
-    if (affected < 0)
+    unsigned int affected = co_await sqlite_edit_conn->async_exec_dml("BEGIN");
+    if (affected == static_cast<unsigned int>(-1))
     {
         error_msg   = sqlite_edit_conn->error_msg;
         islock_conn = false;
@@ -761,8 +592,8 @@ asio::awaitable<bool> db_conn::sqlite_async_commit_impl()
         co_return false;
     }
 
-    int affected = co_await sqlite_edit_conn->async_exec_sql("COMMIT");
-    if (affected < 0)
+    unsigned int affected = co_await sqlite_edit_conn->async_exec_dml("COMMIT");
+    if (affected == static_cast<unsigned int>(-1))
     {
         error_msg = sqlite_edit_conn->error_msg;
         co_await this->sqlite_async_rollback_impl();
@@ -782,8 +613,8 @@ asio::awaitable<void> db_conn::sqlite_async_rollback_impl()
         co_return;
     }
 
-    int affected = co_await sqlite_edit_conn->async_exec_sql("ROLLBACK");
-    if (affected < 0)
+    unsigned int affected = co_await sqlite_edit_conn->async_exec_dml("ROLLBACK");
+    if (affected == static_cast<unsigned int>(-1))
     {
         error_msg = sqlite_edit_conn->error_msg;
     }
@@ -838,42 +669,21 @@ unsigned int db_conn::mysql_edit_query_impl(const std::string &rawsql)
             mysql_edit_conn->begin_time();
         }
 
-        std::size_t n = mysql_edit_conn->write_sql(rawsql);
-        if (n == 0)
+        unsigned int affected = mysql_edit_conn->exec_dml(rawsql);
+        if (affected == static_cast<unsigned int>(-1))
         {
             error_msg = mysql_edit_conn->error_msg;
             mysql_edit_conn.reset();
             return 0;
         }
+        effect_num = affected;
 
-        unsigned int offset = 0;
-        n                   = mysql_edit_conn->read_loop();
-        if (n == 0)
-        {
-            error_msg = mysql_edit_conn->error_msg;
-            mysql_edit_conn.reset();
-            return 0;
-        }
-        pack_info_t temp_pack_data;
-        temp_pack_data.seq_id = 1;
-        mysql_edit_conn->read_field_pack(mysql_edit_conn->_cache_data, n, offset, temp_pack_data);
         if (mysql_edit_conn->isdebug)
         {
             mysql_edit_conn->finish_time();
             auto &conn_mar    = get_orm_connect_mar();
             long long du_time = mysql_edit_conn->count_time();
             conn_mar.push_log(rawsql, std::to_string(du_time));
-        }
-
-        if ((unsigned char)temp_pack_data.data[0] == 0xFF)
-        {
-            error_msg = temp_pack_data.data.substr(3);
-            iserror   = true;
-        }
-        else if ((unsigned char)temp_pack_data.data[0] == 0x00)
-        {
-            unsigned int d_offset = 1;
-            effect_num            = mysql_edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
         }
         if (!islock_conn)
         {
@@ -923,11 +733,8 @@ unsigned int db_conn::pg_edit_query_impl(const std::string &rawsql)
             pg_edit_conn->begin_time();
         }
 
-        std::vector<field_info_t> fields;
-        std::vector<pg_row_data_t> rows;
-        unsigned int affected = 0;
-        unsigned int err      = pg_edit_conn->execute_and_fetch(rawsql, fields, rows, affected);
-        if (err > 0)
+        unsigned int affected = pg_edit_conn->exec_dml(rawsql);
+        if (affected == static_cast<unsigned int>(-1))
         {
             error_msg = pg_edit_conn->error_msg;
             pg_edit_conn.reset();
@@ -990,14 +797,14 @@ unsigned int db_conn::sqlite_edit_query_impl(const std::string &rawsql)
             sqlite_edit_conn->begin_time();
         }
 
-        int affected = sqlite_edit_conn->exec_sql(rawsql);
-        if (affected < 0)
+        unsigned int affected = sqlite_edit_conn->exec_dml(rawsql);
+        if (affected == static_cast<unsigned int>(-1))
         {
             error_msg = sqlite_edit_conn->error_msg;
             sqlite_edit_conn.reset();
             return 0;
         }
-        effect_num = static_cast<unsigned int>(affected);
+        effect_num = affected;
 
         if (sqlite_edit_conn->isdebug)
         {
@@ -1067,43 +874,21 @@ asio::awaitable<unsigned int> db_conn::mysql_async_edit_query_impl(const std::st
             mysql_edit_conn->begin_time();
         }
 
-        std::size_t n = co_await mysql_edit_conn->async_write_sql(rawsql);
-        if (n == 0)
+        unsigned int affected = co_await mysql_edit_conn->async_exec_dml(rawsql);
+        if (affected == static_cast<unsigned int>(-1))
         {
             error_msg = mysql_edit_conn->error_msg;
             mysql_edit_conn.reset();
             co_return 0;
         }
+        effect_num = affected;
 
-        unsigned int offset = 0;
-        n                   = co_await mysql_edit_conn->async_read_loop();
-        if (n == 0)
-        {
-            error_msg = mysql_edit_conn->error_msg;
-            mysql_edit_conn.reset();
-            co_return 0;
-        }
-        pack_info_t temp_pack_data;
-        temp_pack_data.seq_id = 1;
-        mysql_edit_conn->read_field_pack(mysql_edit_conn->_cache_data, n, offset, temp_pack_data);
         if (mysql_edit_conn->isdebug)
         {
             mysql_edit_conn->finish_time();
             auto &conn_mar    = get_orm_connect_mar();
             long long du_time = mysql_edit_conn->count_time();
             conn_mar.push_log(rawsql, std::to_string(du_time));
-        }
-
-        if ((unsigned char)temp_pack_data.data[0] == 0xFF)
-        {
-            error_msg = temp_pack_data.data.substr(3);
-            iserror   = true;
-        }
-        else if ((unsigned char)temp_pack_data.data[0] == 0x00)
-        {
-
-            unsigned int d_offset = 1;
-            effect_num            = mysql_edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), d_offset);
         }
         if (!islock_conn)
         {
@@ -1153,11 +938,8 @@ asio::awaitable<unsigned int> db_conn::pg_async_edit_query_impl(const std::strin
             pg_edit_conn->begin_time();
         }
 
-        std::vector<field_info_t> fields;
-        std::vector<pg_row_data_t> rows;
-        unsigned int affected = 0;
-        unsigned int err      = co_await pg_edit_conn->async_execute_and_fetch(rawsql, fields, rows, affected);
-        if (err > 0)
+        unsigned int affected = co_await pg_edit_conn->async_exec_dml(rawsql);
+        if (affected == static_cast<unsigned int>(-1))
         {
             error_msg = pg_edit_conn->error_msg;
             pg_edit_conn.reset();
@@ -1220,14 +1002,14 @@ asio::awaitable<unsigned int> db_conn::sqlite_async_edit_query_impl(const std::s
             sqlite_edit_conn->begin_time();
         }
 
-        int affected = co_await sqlite_edit_conn->async_exec_sql(rawsql);
-        if (affected < 0)
+        unsigned int affected = co_await sqlite_edit_conn->async_exec_dml(rawsql);
+        if (affected == static_cast<unsigned int>(-1))
         {
             error_msg = sqlite_edit_conn->error_msg;
             sqlite_edit_conn.reset();
             co_return 0;
         }
-        effect_num = static_cast<unsigned int>(affected);
+        effect_num = affected;
 
         if (sqlite_edit_conn->isdebug)
         {

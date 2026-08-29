@@ -195,6 +195,8 @@ std::string xor_strings(const std::string &a, const std::string &b)
 
 unsigned int pg_conn_base::read_pack(unsigned char *data, unsigned int offset)
 {
+    // NOTE: 此函数为遗留/死代码（未被调用），缺少缓冲区总长度参数无法做边界检查。
+    // PG 协议使用 peek_pg_message() 进行消息解析，该函数不再使用。
     unsigned int pack_length = buf_to_int32(data + offset);
     offset                   = offset + 4;
     offset                   = offset + pack_length;
@@ -374,10 +376,16 @@ void pg_conn_base::parse_error(const std::string &payload)
         char field = payload[pos++];
         if (field == '\0')
             break;
+        // 读取 value 直到 null 终止符或 payload 结束
         std::string value;
         while (pos < payload.size() && payload[pos] != '\0')
             value.push_back(payload[pos++]);
-        pos++;
+        if (pos >= payload.size())
+        {
+            // 消息截断：value 无 null 终止符，直接退出避免跳过不存在的 null
+            break;
+        }
+        pos++;  // 跳过 null 终止符
         if (field == 'M')
             error_msg = value;
     }
@@ -514,6 +522,13 @@ bool pg_conn_base::sasl_scram_sha256_sync(const std::string &mechanisms, const o
 
     if (!read_message_sync(msg_type, payload) || msg_type != 'R')
         return false;
+
+    if (payload.size() < 4)
+    {
+        error_msg = "SCRAM auth response too short";
+        isclose   = true;
+        return false;
+    }
     int32_t auth_type = buf_to_int32(reinterpret_cast<const unsigned char *>(payload.data()));
     if (auth_type == 0)
     {
@@ -595,8 +610,41 @@ bool pg_conn_base::process_server_messages_until_ready_sync(const orm_conn_t &co
             auth_done = true;
             break;
         case 'K':
-        case 'S':
+        {
+            // BackendKeyData: Int32 length + Int32 backend_pid + Int32 cancel_secret
+            if (payload.size() >= 8)
+            {
+                const unsigned char *p = reinterpret_cast<const unsigned char *>(payload.data());
+                // 经 uint32_t 移位，避免字节 >= 0x80 时有符号溢出 UB
+                uint32_t pid = (static_cast<uint32_t>(p[0]) << 24) | (static_cast<uint32_t>(p[1]) << 16) |
+                               (static_cast<uint32_t>(p[2]) << 8) | p[3];
+                uint32_t secret = (static_cast<uint32_t>(p[4]) << 24) | (static_cast<uint32_t>(p[5]) << 16) |
+                                  (static_cast<uint32_t>(p[6]) << 8) | p[7];
+                backend_pid_   = static_cast<int>(pid);
+                cancel_secret_ = static_cast<int>(secret);
+            }
             break;
+        }
+        case 'S':
+        {
+            // ParameterStatus: Int32 length + null-terminated name + null-terminated value
+            const unsigned char *p = reinterpret_cast<const unsigned char *>(payload.data());
+            const unsigned char *end = p + payload.size();
+            const char *name_start = reinterpret_cast<const char *>(p);
+            const char *name_end = static_cast<const char *>(memchr(name_start, '\0', end - p));
+            if (name_end && name_end < reinterpret_cast<const char *>(end))
+            {
+                std::string param_name(name_start, name_end);
+                const char *val_start = name_end + 1;
+                const char *val_end = static_cast<const char *>(memchr(val_start, '\0', end - reinterpret_cast<const unsigned char *>(val_start)));
+                std::string param_value(val_start, val_end ? val_end : reinterpret_cast<const char *>(end));
+                if (param_name == "client_encoding")
+                {
+                    server_client_encoding_ = param_value;
+                }
+            }
+            break;
+        }
         case 'Z':
             if (!auth_done)
             {
@@ -605,12 +653,35 @@ bool pg_conn_base::process_server_messages_until_ready_sync(const orm_conn_t &co
                 isclose    = true;
                 return false;
             }
+            // 认证成功建立连接时必为空闲态；后续查询循环按 'Z' 状态字节持续更新
+            in_transaction_.store(false);
             return true;
         case 'E':
             parse_error(payload);
             return false;
         case 'N':
+        {
+            const unsigned char *np = reinterpret_cast<const unsigned char *>(payload.data());
+            const unsigned char *ne = np + payload.size();
+            if (np < ne && *np == 'C')
+            {
+                const char *p = reinterpret_cast<const char *>(np + 1);
+                while (p < reinterpret_cast<const char *>(ne))
+                {
+                    char field = *p++;
+                    const char *val_start = p;
+                    const char *val_end = static_cast<const char *>(memchr(val_start, '\0', reinterpret_cast<const char *>(ne) - val_start));
+                    if (field == 'S' && val_end)
+                    {
+                        notices_.emplace_back(val_start, val_end);
+                        break;
+                    }
+                    if (!val_end) break;
+                    p = val_end + 1;
+                }
+            }
             break;
+        }
         default:
             break;
         }
@@ -623,6 +694,23 @@ bool pg_conn_base::connect(const orm_conn_t &conn_config)
     error_msg.clear();
     error_code = 0;
     isclose    = false;
+
+    // 重连场景：彻底重置连接层状态
+    conn_link->sock_type  = 0;
+    conn_link->sslsocket.reset();
+    conn_link->ssl_context.reset();
+    conn_link->localsocket.reset();
+    conn_link->socket     = std::make_unique<asio::ip::tcp::socket>(*conn_link->io_ctx);
+    conn_link->ec.clear();
+    server_enable_ssl     = false;
+    in_transaction_.store(false);
+    notices_.clear();
+
+    // 保存配置用于断线自动重连（仅在首次或配置变化时存储）
+    if (!has_conn_config_ || !(last_conn_config_ == conn_config)) {
+        last_conn_config_ = conn_config;
+        has_conn_config_ = true;
+    }
 
     asio::error_code ec;
     if (conn_config.issock)
@@ -731,7 +819,14 @@ bool pg_conn_base::connect(const orm_conn_t &conn_config)
         }
         else
         {
-            // Server does not support SSL, fallback to plain TCP
+            // 请求 SSL 但服务器回 'N' 不支持 —— 不允许静默降级
+            if (conn_config.isssl)
+            {
+                error_msg  = "server does not support SSL (requested by client config)";
+                error_code = 5;
+                isclose    = true;
+                return false;
+            }
             server_enable_ssl = false;
         }
     }
@@ -864,6 +959,23 @@ asio::awaitable<bool> pg_conn_base::async_connect(const orm_conn_t &conn_config)
     error_code = 0;
     isclose    = false;
 
+    // 重连场景：彻底重置连接层状态
+    conn_link->sock_type  = 0;
+    conn_link->sslsocket.reset();
+    conn_link->ssl_context.reset();
+    conn_link->localsocket.reset();
+    conn_link->socket     = std::make_unique<asio::ip::tcp::socket>(*conn_link->io_ctx);
+    conn_link->ec.clear();
+    server_enable_ssl     = false;
+    in_transaction_.store(false);
+    notices_.clear();
+
+    // 保存配置用于断线自动重连（仅在首次或配置变化时存储）
+    if (!has_conn_config_ || !(last_conn_config_ == conn_config)) {
+        last_conn_config_ = conn_config;
+        has_conn_config_ = true;
+    }
+
     constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
 
     if (conn_config.issock)
@@ -970,7 +1082,14 @@ asio::awaitable<bool> pg_conn_base::async_connect(const orm_conn_t &conn_config)
         }
         else
         {
-            // Server does not support SSL, fallback to plain TCP
+            // async：请求 SSL 但服务器回 'N' 不支持 —— 不允许静默降级
+            if (conn_config.isssl)
+            {
+                error_msg  = "server does not support SSL (requested by client config)";
+                error_code = 5;
+                isclose    = true;
+                co_return false;
+            }
             server_enable_ssl = false;
         }
     }
@@ -1316,6 +1435,14 @@ asio::awaitable<bool> pg_conn_base::async_connect(const orm_conn_t &conn_config)
                 }
 
                 msg_len = buf_to_int32(len_buf);
+                // 必须校验 msg_type == 'R'（SASL final 响应），否则可能读到 Error 等其它包
+                if (msg_type != 'R')
+                {
+                    error_msg  = "unexpected message type after SASL final request: got " + std::to_string(msg_type);
+                    error_code = 21;
+                    isclose    = true;
+                    co_return false;
+                }
                 if (msg_len >= 4 && msg_len <= 8 * 1024 * 1024)
                 {
                     // 读取实际的payload数据来获取auth_type
@@ -1429,8 +1556,39 @@ asio::awaitable<bool> pg_conn_base::async_connect(const orm_conn_t &conn_config)
             break;
         }
         case 'K':
-        case 'S':
+        {
+            if (payload.size() >= 8)
+            {
+                const unsigned char *p = reinterpret_cast<const unsigned char *>(payload.data());
+                // 经 uint32_t 移位，避免字节 >= 0x80 时有符号溢出 UB
+                uint32_t pid = (static_cast<uint32_t>(p[0]) << 24) | (static_cast<uint32_t>(p[1]) << 16) |
+                               (static_cast<uint32_t>(p[2]) << 8) | p[3];
+                uint32_t secret = (static_cast<uint32_t>(p[4]) << 24) | (static_cast<uint32_t>(p[5]) << 16) |
+                                  (static_cast<uint32_t>(p[6]) << 8) | p[7];
+                backend_pid_   = static_cast<int>(pid);
+                cancel_secret_ = static_cast<int>(secret);
+            }
             break;
+        }
+        case 'S':
+        {
+            const unsigned char *p = reinterpret_cast<const unsigned char *>(payload.data());
+            const unsigned char *end = p + payload.size();
+            const char *name_start = reinterpret_cast<const char *>(p);
+            const char *name_end = static_cast<const char *>(memchr(name_start, '\0', end - p));
+            if (name_end && name_end < reinterpret_cast<const char *>(end))
+            {
+                std::string param_name(name_start, name_end);
+                const char *val_start = name_end + 1;
+                const char *val_end = static_cast<const char *>(memchr(val_start, '\0', end - reinterpret_cast<const unsigned char *>(val_start)));
+                std::string param_value(val_start, val_end ? val_end : reinterpret_cast<const char *>(end));
+                if (param_name == "client_encoding")
+                {
+                    server_client_encoding_ = param_value;
+                }
+            }
+            break;
+        }
         case 'Z':
             if (!auth_done)
             {
@@ -1439,6 +1597,8 @@ asio::awaitable<bool> pg_conn_base::async_connect(const orm_conn_t &conn_config)
                 isclose    = true;
                 co_return false;
             }
+            // 认证成功建立连接时必为空闲态；后续查询循环按 'Z' 状态字节持续更新
+            in_transaction_.store(false);
             co_return true;
         case 'E':
         {
@@ -1446,7 +1606,28 @@ asio::awaitable<bool> pg_conn_base::async_connect(const orm_conn_t &conn_config)
             co_return false;
         }
         case 'N':
+        {
+            const unsigned char *np = reinterpret_cast<const unsigned char *>(payload.data());
+            const unsigned char *ne = np + payload.size();
+            if (np < ne && *np == 'C')
+            {
+                const char *p = reinterpret_cast<const char *>(np + 1);
+                while (p < reinterpret_cast<const char *>(ne))
+                {
+                    char field = *p++;
+                    const char *val_start = p;
+                    const char *val_end = static_cast<const char *>(memchr(val_start, '\0', reinterpret_cast<const char *>(ne) - val_start));
+                    if (field == 'S' && val_end)
+                    {
+                        notices_.emplace_back(val_start, val_end);
+                        break;
+                    }
+                    if (!val_end) break;
+                    p = val_end + 1;
+                }
+            }
             break;
+        }
         default:
             break;
         }
@@ -1496,39 +1677,42 @@ unsigned int pg_conn_base::read_loop()
 
 asio::awaitable<unsigned int> pg_conn_base::async_read_loop()
 {
-    try
+    if (isclose)
     {
-        if (isclose)
-        {
-            co_return 0;
-        }
-        std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
-        std::size_t n = 0;
-        if (conn_link->sock_type == 1)
-        {
-            n = co_await conn_link->socket->async_read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), asio::use_awaitable);
-        }
-        else if (conn_link->sock_type == 2)
-        {
-            n = co_await conn_link->sslsocket->async_read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), asio::use_awaitable);
-        }
-        else if (conn_link->sock_type == 3)
-        {
-            n = co_await conn_link->localsocket->async_read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), asio::use_awaitable);
-        }
-        if (n == 0)
-        {
-            error_code = 1;
-            co_return 0;
-        }
-        co_return n;
+        co_return 0;
     }
-    catch (const std::exception &e)
+    std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
+
+    constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
+    conn_link->ec.clear();
+
+    std::size_t n = 0;
+    if (conn_link->sock_type == 1)
+    {
+        std::tie(conn_link->ec, n) = co_await conn_link->socket->async_read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), tuple_awaitable);
+    }
+    else if (conn_link->sock_type == 2)
+    {
+        std::tie(conn_link->ec, n) = co_await conn_link->sslsocket->async_read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), tuple_awaitable);
+    }
+    else if (conn_link->sock_type == 3)
+    {
+        std::tie(conn_link->ec, n) = co_await conn_link->localsocket->async_read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), tuple_awaitable);
+    }
+
+    if (conn_link->ec)
     {
         error_code = 1;
-        error_msg.append(e.what());
+        error_msg  = conn_link->ec.message();
+        co_return 0;
     }
-    co_return 0;
+    if (n == 0)
+    {
+        error_code = 1;
+        error_msg  = "connection closed by peer";
+        co_return 0;
+    }
+    co_return n;
 }
 
 unsigned int pg_conn_base::write_sql(const std::string &sql)
@@ -1628,30 +1812,31 @@ asio::awaitable<unsigned int> pg_conn_base::async_write_sql(const std::string &s
     send_data.append(sql);
     send_data.push_back('\0');
 
-    try
+    if (isclose)
     {
-        if (isclose)
-        {
-            co_return 0;
-        }
-
-        if (conn_link->sock_type == 1)
-        {
-            n = co_await asio::async_write(*conn_link->socket, asio::buffer(send_data), asio::use_awaitable);
-        }
-        else if (conn_link->sock_type == 2)
-        {
-            n = co_await asio::async_write(*conn_link->sslsocket, asio::buffer(send_data), asio::use_awaitable);
-        }
-        else if (conn_link->sock_type == 3)
-        {
-            n = co_await asio::async_write(*conn_link->localsocket, asio::buffer(send_data), asio::use_awaitable);
-        }
+        co_return 0;
     }
-    catch (const std::exception &e)
+
+    constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
+    conn_link->ec.clear();
+
+    if (conn_link->sock_type == 1)
+    {
+        std::tie(conn_link->ec, n) = co_await asio::async_write(*conn_link->socket, asio::buffer(send_data), tuple_awaitable);
+    }
+    else if (conn_link->sock_type == 2)
+    {
+        std::tie(conn_link->ec, n) = co_await asio::async_write(*conn_link->sslsocket, asio::buffer(send_data), tuple_awaitable);
+    }
+    else if (conn_link->sock_type == 3)
+    {
+        std::tie(conn_link->ec, n) = co_await asio::async_write(*conn_link->localsocket, asio::buffer(send_data), tuple_awaitable);
+    }
+
+    if (conn_link->ec)
     {
         error_code = 20;
-        error_msg  = e.what();
+        error_msg  = conn_link->ec.message();
         co_return 0;
     }
     query_num++;
@@ -1661,30 +1846,31 @@ asio::awaitable<unsigned int> pg_conn_base::async_write_sql(const std::string &s
 asio::awaitable<unsigned int> pg_conn_base::async_write()
 {
     unsigned int n = 0;
-    try
+    if (isclose)
     {
-        if (isclose)
-        {
-            co_return 0;
-        }
-
-        if (conn_link->sock_type == 1)
-        {
-            n = co_await asio::async_write(*conn_link->socket, asio::buffer(send_data), asio::use_awaitable);
-        }
-        else if (conn_link->sock_type == 2)
-        {
-            n = co_await asio::async_write(*conn_link->sslsocket, asio::buffer(send_data), asio::use_awaitable);
-        }
-        else if (conn_link->sock_type == 3)
-        {
-            n = co_await asio::async_write(*conn_link->localsocket, asio::buffer(send_data), asio::use_awaitable);
-        }
+        co_return 0;
     }
-    catch (const std::exception &e)
+
+    constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
+    conn_link->ec.clear();
+
+    if (conn_link->sock_type == 1)
+    {
+        std::tie(conn_link->ec, n) = co_await asio::async_write(*conn_link->socket, asio::buffer(send_data), tuple_awaitable);
+    }
+    else if (conn_link->sock_type == 2)
+    {
+        std::tie(conn_link->ec, n) = co_await asio::async_write(*conn_link->sslsocket, asio::buffer(send_data), tuple_awaitable);
+    }
+    else if (conn_link->sock_type == 3)
+    {
+        std::tie(conn_link->ec, n) = co_await asio::async_write(*conn_link->localsocket, asio::buffer(send_data), tuple_awaitable);
+    }
+
+    if (conn_link->ec)
     {
         error_code = 20;
-        error_msg  = e.what();
+        error_msg  = conn_link->ec.message();
         co_return 0;
     }
     query_num++;
@@ -1702,13 +1888,16 @@ bool pg_conn_base::ping()
             return false;
         }
 
+        // 'Q' 消息：长度字段含自身 4 字节，须为 4 + 8 + 1 = 13。
+        // 曾误按 10 字节查询串算成 14，服务端会多等 1 字节导致 ping 双向死锁。
         std::string ping_msg;
         ping_msg.push_back('Q');
-        int32_t len = 4 + 10;
+        const char ping_sql[] = "SELECT 1";
+        int32_t len = 4 + static_cast<int32_t>(sizeof(ping_sql) - 1) + 1;
         unsigned char header[4];
         int32_to_buf(len, header);
         ping_msg.append(reinterpret_cast<char *>(header), 4);
-        ping_msg.append("SELECT 1");
+        ping_msg.append(ping_sql, sizeof(ping_sql) - 1);
         ping_msg.push_back('\0');
 
         if (conn_link->sock_type == 1)
@@ -2139,6 +2328,11 @@ pg_row_data_t pg_conn_base::parse_data_row(const unsigned char *data, unsigned i
             row.is_null[i] = true;
             row.values[i].clear();
         }
+        else if (col_len < 0)
+        {
+            // 其它负值 = 畸形/恶意包，拒绝
+            break;
+        }
         else
         {
             if (pos + static_cast<unsigned int>(col_len) > len)
@@ -2257,6 +2451,9 @@ unsigned int pg_conn_base::execute_and_fetch(
                 affected_rows_out = parse_command_complete(payload_start, payload_len);
                 break;
             case 'Z':// ReadyForQuery
+                // 'Z' 状态字节: 'I' 空闲 / 'T' 事务中 / 'E' 失败事务中 —— 事务状态的权威来源
+                if (payload_len >= 1)
+                    in_transaction_.store(payload_start[0] == 'T' || payload_start[0] == 'E');
                 got_ready = true;
                 break;
             case 'E':// ErrorResponse
@@ -2279,6 +2476,11 @@ unsigned int pg_conn_base::execute_and_fetch(
                     {
                         err_detail = val;
                     }
+                    if (str_end >= payload_len)
+                    {
+                        // 消息截断：无 null 终止符
+                        break;
+                    }
                     epos = str_end + 1;
                 }
                 error_msg  = err_detail.empty() ? "PG query error" : err_detail;
@@ -2286,8 +2488,31 @@ unsigned int pg_conn_base::execute_and_fetch(
                 // Continue reading until ReadyForQuery
                 break;
             }
-            case 'N':// NoticeResponse - ignore
-            case 'I':// EmptyQueryResponse - ignore
+            case 'N':// NoticeResponse - 收集警告/提示消息
+            {
+                const unsigned char *np = payload_start;
+                const unsigned char *ne = np + payload_len;
+                if (np < ne && *np == 'C')
+                {
+                    // 跳过 severity, 查找 'S' (message) 字段
+                    const char *p = reinterpret_cast<const char *>(np + 1);
+                    while (p < reinterpret_cast<const char *>(ne))
+                    {
+                        char field = *p++;
+                        const char *val_start = p;
+                        const char *val_end = static_cast<const char *>(memchr(val_start, '\0', reinterpret_cast<const char *>(ne) - val_start));
+                        if (field == 'S' && val_end)
+                        {
+                            notices_.emplace_back(val_start, val_end);
+                            break;
+                        }
+                        if (!val_end) break;
+                        p = val_end + 1;
+                    }
+                }
+                break;
+            }
+            case 'I':// EmptyQueryResponse - 正常忽略
                 break;
             default:
                 break;
@@ -2305,6 +2530,7 @@ unsigned int pg_conn_base::execute_and_fetch(
     {
         error_msg  = "execute_and_fetch: loop exceeded max iterations";
         error_code = 8;
+        isclose    = true;  // 挂死时必须断开连接，否则后续调用会在脏状态下继续
         return 1;
     }
     if (error_code == 10)
@@ -2370,6 +2596,8 @@ asio::awaitable<unsigned int> pg_conn_base::async_execute_and_fetch(
                 affected_rows_out = parse_command_complete(payload_start, payload_len);
                 break;
             case 'Z':
+                if (payload_len >= 1)
+                    in_transaction_.store(payload_start[0] == 'T' || payload_start[0] == 'E');
                 got_ready = true;
                 break;
             case 'E':
@@ -2390,6 +2618,11 @@ asio::awaitable<unsigned int> pg_conn_base::async_execute_and_fetch(
                     {
                         err_detail = val;
                     }
+                    if (str_end >= payload_len)
+                    {
+                        // 消息截断：无 null 终止符
+                        break;
+                    }
                     epos = str_end + 1;
                 }
                 error_msg  = err_detail.empty() ? "PG async query error" : err_detail;
@@ -2397,6 +2630,28 @@ asio::awaitable<unsigned int> pg_conn_base::async_execute_and_fetch(
                 break;
             }
             case 'N':
+            {
+                const unsigned char *np = reinterpret_cast<const unsigned char *>(payload_start);
+                const unsigned char *ne = np + payload_len;
+                if (np < ne && *np == 'C')
+                {
+                    const char *p = reinterpret_cast<const char *>(np + 1);
+                    while (p < reinterpret_cast<const char *>(ne))
+                    {
+                        char field = *p++;
+                        const char *val_start = p;
+                        const char *val_end = static_cast<const char *>(memchr(val_start, '\0', reinterpret_cast<const char *>(ne) - val_start));
+                        if (field == 'S' && val_end)
+                        {
+                            notices_.emplace_back(val_start, val_end);
+                            break;
+                        }
+                        if (!val_end) break;
+                        p = val_end + 1;
+                    }
+                }
+                break;
+            }
             case 'I':
                 break;
             default:
@@ -2415,6 +2670,7 @@ asio::awaitable<unsigned int> pg_conn_base::async_execute_and_fetch(
     {
         error_msg  = "async_execute_and_fetch: loop exceeded max iterations";
         error_code = 8;
+        isclose    = true;  // async：挂死时必须断开连接
         co_return 1;
     }
     if (error_code == 10)
@@ -2422,6 +2678,556 @@ asio::awaitable<unsigned int> pg_conn_base::async_execute_and_fetch(
         co_return 1;
     }
     co_return 0;
+}
+
+// ============================================================================
+// exec_dml / fetch_directly 实现（与 MySQL 侧同形态：容量池累积 + 消息循环）
+// ============================================================================
+
+void pg_conn_base::parse_error_from_payload(const unsigned char *data, unsigned int len)
+{
+    // E/N 消息载荷格式: field_type(1) + string\0 重复，以 \0 结束；只取 'M' (Message)
+    std::string err_detail;
+    unsigned int epos = 0;
+    while (epos < len)
+    {
+        unsigned char field_type = data[epos];
+        if (field_type == '\0')
+            break;
+        epos++;
+        size_t str_end = epos;
+        while (str_end < len && data[str_end] != '\0')
+            str_end++;
+        if (field_type == 'M')
+        {
+            err_detail.assign(reinterpret_cast<const char *>(data + epos), str_end - epos);
+        }
+        if (str_end >= len)
+        {
+            // 消息截断：无 null 终止符，直接退出
+            break;
+        }
+        epos = static_cast<unsigned int>(str_end) + 1;
+    }
+    error_msg  = err_detail.empty() ? "PG error response" : err_detail;
+    error_code = 10;
+}
+
+unsigned int pg_conn_base::exec_dml_impl(const std::string &sql)
+{
+    unsigned int retry = 0;
+RETRY_LABEL:
+    if (isclose)
+    {
+        return (unsigned int)-1;
+    }
+
+    error_msg.clear();
+    error_code = 0;
+
+    unsigned int n = write_sql(sql);
+    if (n == 0)
+    {
+        // write 失败 = SQL 还没发出去, 幂等安全, 可以重连
+        if (is_last_error_reconnectable() && retry < kMaxReconnect && try_reconnect())
+        {
+            retry++;
+            error_msg.clear();
+            goto RETRY_LABEL;
+        }
+        return (unsigned int)-1;
+    }
+
+    pooled_accum_buf accum_holder;// 全 ORM 共用容量池借出/归还（RAII，见 orm_common.h）
+    auto &accum_buf = accum_holder.buf;
+    unsigned int consumed = 0;
+
+    unsigned int affected = 0;
+    bool got_ready        = false;
+    bool has_error        = false;
+
+    while (!got_ready)
+    {
+        n = read_loop();
+        if (n == 0)
+        {
+            // 区分断线 vs 语法错误:
+            // - 语法错误: 服务器返回 'E' 错误消息, read_loop 能读到数据 (n > 0)
+            if (is_last_error_reconnectable())
+            {
+                isclose = true;
+            }
+            if (error_msg.empty())
+                error_msg = "exec_dml: read error";
+            return (unsigned int)-1;
+        }
+        accum_buf.insert(accum_buf.end(), _cache_data, _cache_data + n);
+
+        unsigned int parse_offset = consumed;
+        while (parse_offset < accum_buf.size())
+        {
+            const unsigned char *payload_start = nullptr;
+            unsigned int payload_len           = 0;
+            unsigned char msg_type             = peek_pg_message(
+                accum_buf.data(), static_cast<unsigned int>(accum_buf.size()),
+                parse_offset, payload_start, payload_len);
+            if (msg_type == 0)
+                break;// 不完整消息，留待下次读后继续
+
+            switch (msg_type)
+            {
+            case 'C':// CommandComplete
+                affected = parse_command_complete(payload_start, payload_len);
+                break;
+            case 'Z':// ReadyForQuery：唯一合法终止点
+                if (payload_len >= 1)
+                    in_transaction_.store(payload_start[0] == 'T' || payload_start[0] == 'E');
+                got_ready = true;
+                break;
+            case 'E':// ErrorResponse
+                parse_error_from_payload(payload_start, payload_len);
+                has_error = true;// 不直接返回：继续消费到 'Z'，保持连接可用
+                break;
+            default:
+                break;// 忽略 T, D, N, I 等
+            }
+        }
+        consumed = parse_offset;
+    }
+
+    if (has_error)
+    {
+        return (unsigned int)-1;
+    }
+    return affected;
+}
+
+asio::awaitable<unsigned int> pg_conn_base::async_exec_dml(const std::string &sql)
+{
+    unsigned int retry = 0;
+RETRY_LABEL:
+    if (isclose)
+    {
+        co_return (unsigned int)-1;
+    }
+
+    error_msg.clear();
+    error_code = 0;
+
+    unsigned int n = co_await async_write_sql(sql);
+    if (n == 0)
+    {
+        // write 失败 = SQL 还没发出去, 幂等安全, 可以重连
+        if (is_last_error_reconnectable() && retry < kMaxReconnect && co_await async_try_reconnect())
+        {
+            retry++;
+            error_msg.clear();
+            goto RETRY_LABEL;
+        }
+        co_return (unsigned int)-1;
+    }
+
+    pooled_accum_buf accum_holder;// 全 ORM 共用容量池借出/归还（RAII，见 orm_common.h）
+    auto &accum_buf = accum_holder.buf;
+    unsigned int consumed = 0;
+
+    unsigned int affected = 0;
+    bool got_ready        = false;
+    bool has_error        = false;
+
+    while (!got_ready)
+    {
+        n = co_await async_read_loop();
+        if (n == 0)
+        {
+            // 区分断线 vs 语法错误:
+            // - 语法错误: 服务器返回 'E' 错误消息, async_read_loop 能读到数据 (n > 0),
+            if (is_last_error_reconnectable())
+            {
+                isclose = true;
+            }
+            if (error_msg.empty())
+                error_msg = "async_exec_dml: read error";
+            co_return (unsigned int)-1;
+        }
+        accum_buf.insert(accum_buf.end(), _cache_data, _cache_data + n);
+
+        unsigned int parse_offset = consumed;
+        while (parse_offset < accum_buf.size())
+        {
+            const unsigned char *payload_start = nullptr;
+            unsigned int payload_len           = 0;
+            unsigned char msg_type             = peek_pg_message(
+                accum_buf.data(), static_cast<unsigned int>(accum_buf.size()),
+                parse_offset, payload_start, payload_len);
+            if (msg_type == 0)
+                break;
+
+            switch (msg_type)
+            {
+            case 'C':
+                affected = parse_command_complete(payload_start, payload_len);
+                break;
+            case 'Z':
+                if (payload_len >= 1)
+                    in_transaction_.store(payload_start[0] == 'T' || payload_start[0] == 'E');
+                got_ready = true;
+                break;
+            case 'E':
+                parse_error_from_payload(payload_start, payload_len);
+                has_error = true;
+                break;
+            default:
+                break;
+            }
+        }
+        consumed = parse_offset;
+    }
+
+    if (has_error)
+    {
+        co_return (unsigned int)-1;
+    }
+    co_return affected;
+}
+
+unsigned int pg_conn_base::fetch_directly_impl(
+    const std::string &sql,
+    std::function<bool(int, char **, std::function<std::tuple<unsigned char *, size_t>(int)>)> handler)
+{
+    if (isclose)
+    {
+        return 0;
+    }
+
+    error_msg.clear();
+    error_code = 0;
+
+    unsigned int n = write_sql(sql);
+    if (n == 0)
+    {
+        return 0;
+    }
+
+    pooled_accum_buf accum_holder;// 全 ORM 共用容量池借出/归还（RAII，见 orm_common.h）
+    auto &accum_buf = accum_holder.buf;
+    unsigned int consumed = 0;
+
+    std::vector<field_info_t> fields_cache;// T 消息解析一次，org_name 作为列名数组（与 MySQL/SQLite handler 约定一致）
+    std::vector<char *> name_ptrs_cache;   // 函数局部，生命周期覆盖本次查询（MySQL P0-7 悬垂指针教训）
+
+    // 行内各列 (ptr, len) 一遍扫描预存（避免 get_data 每列重扫）；函数局部，禁用 static thread_local
+    struct col_ref
+    {
+        unsigned char *ptr;// nullptr 即 NULL 值
+        size_t len;
+    };
+    std::vector<col_ref> cols_cache;
+
+    unsigned int row_num     = 0;
+    bool got_ready           = false;
+    bool handler_aborted     = false;
+
+    while (!got_ready)
+    {
+        n = read_loop();
+        if (n == 0)
+        {
+            if (error_msg.empty())
+                error_msg = "fetch_directly: read error";
+            return row_num;
+        }
+        accum_buf.insert(accum_buf.end(), _cache_data, _cache_data + n);
+
+        unsigned int parse_offset = consumed;
+        while (parse_offset < accum_buf.size())
+        {
+            const unsigned char *payload_start = nullptr;
+            unsigned int payload_len           = 0;
+            unsigned char msg_type             = peek_pg_message(
+                accum_buf.data(), static_cast<unsigned int>(accum_buf.size()),
+                parse_offset, payload_start, payload_len);
+            if (msg_type == 0)
+                break;
+
+            switch (msg_type)
+            {
+            case 'T':// RowDescription：列信息只解析一次（协议保证 T 在第一个 D 之前）
+                fields_cache = parse_row_description(payload_start, payload_len);
+                name_ptrs_cache.resize(fields_cache.size());
+                for (size_t i = 0; i < fields_cache.size(); i++)
+                {
+                    name_ptrs_cache[i] = const_cast<char *>(fields_cache[i].org_name.c_str());
+                }
+                break;
+            case 'D':// DataRow
+            {
+                if (handler_aborted)
+                    break;// 已中止/出错：只消费不解析，排干到 'Z' 保持连接可用
+                if (!handler)
+                    break;
+
+                cols_cache.clear();
+                unsigned int pos = 0;
+                if (payload_len >= 2)
+                {
+                    int16_t row_col_count = buf_to_int16(payload_start + pos);
+                    pos += 2;
+                    if (row_col_count > 0 && row_col_count <= 4096)
+                    {
+                        cols_cache.reserve(row_col_count);
+                        for (int16_t ci = 0; ci < row_col_count && pos + 4 <= payload_len; ci++)
+                        {
+                            int32_t col_len = buf_to_int32(payload_start + pos);
+                            pos += 4;
+                            if (col_len == -1)
+                            {
+                                cols_cache.push_back({nullptr, 0});
+                            }
+                            else if (col_len >= 0 && pos + static_cast<unsigned int>(col_len) <= payload_len)
+                            {
+                                cols_cache.push_back({const_cast<unsigned char *>(payload_start + pos),
+                                                      static_cast<size_t>(col_len)});
+                                pos += static_cast<unsigned int>(col_len);
+                            }
+                            else
+                            {
+                                break;// 行数据不完整，丢弃剩余列
+                            }
+                        }
+                    }
+                }
+
+                // get_data 闭包：O(1) 取列；指针指向 accum_buf 内，回调返回前有效，
+                // 回调内需保留的数据自行拷贝（assign_field_value 已拷贝进 model）
+                auto get_data = [&cols_cache](int col_idx) -> std::tuple<unsigned char *, size_t> {
+                    if (col_idx < 0 || static_cast<size_t>(col_idx) >= cols_cache.size())
+                        return {nullptr, 0};
+                    return {cols_cache[col_idx].ptr, cols_cache[col_idx].len};
+                };
+
+                char **col_names_arr = name_ptrs_cache.empty() ? nullptr : name_ptrs_cache.data();
+                bool keep_going      = handler(static_cast<int>(fields_cache.size()), col_names_arr, get_data);
+                row_num++;
+                if (!keep_going)
+                {
+                    handler_aborted = true;// 中止后不直接 return：'C'/'Z' 未消费，排干后再返回避免流错位
+                }
+                break;
+            }
+            case 'C':// CommandComplete：记录但不终止（'Z' 还在后面）
+                break;
+            case 'Z':// ReadyForQuery：唯一合法终止点
+                if (payload_len >= 1)
+                    in_transaction_.store(payload_start[0] == 'T' || payload_start[0] == 'E');
+                got_ready = true;
+                break;
+            case 'E':// ErrorResponse
+                parse_error_from_payload(payload_start, payload_len);
+                handler_aborted = true;// 同样排干到 'Z'，保持连接可用
+                break;
+            default:
+                break;// N, I 等忽略
+            }
+        }
+        consumed = parse_offset;
+        // 定期压缩已消费数据，避免大结果集 O(n^2) 拷贝（压缩发生在所有回调返回之后，指针安全）
+        if (consumed > 256 * 1024)
+        {
+            accum_buf.erase(accum_buf.begin(), accum_buf.begin() + consumed);
+            consumed = 0;
+        }
+    }
+
+    return row_num;
+}
+
+asio::awaitable<unsigned int> pg_conn_base::async_fetch_directly_impl(
+    const std::string &sql,
+    std::function<bool(int, char **, std::function<std::tuple<unsigned char *, size_t>(int)>)> handler)
+{
+    if (isclose)
+    {
+        co_return 0;
+    }
+
+    error_msg.clear();
+    error_code = 0;
+
+    unsigned int n = co_await async_write_sql(sql);
+    if (n == 0)
+    {
+        co_return 0;
+    }
+
+    pooled_accum_buf accum_holder;// 全 ORM 共用容量池借出/归还（RAII，见 orm_common.h）
+    auto &accum_buf = accum_holder.buf;
+    unsigned int consumed = 0;
+
+    std::vector<field_info_t> fields_cache;
+    std::vector<char *> name_ptrs_cache;
+
+    struct col_ref
+    {
+        unsigned char *ptr;
+        size_t len;
+    };
+    std::vector<col_ref> cols_cache;
+
+    unsigned int row_num     = 0;
+    bool got_ready           = false;
+    bool handler_aborted     = false;
+
+    while (!got_ready)
+    {
+        n = co_await async_read_loop();
+        if (n == 0)
+        {
+            if (error_msg.empty())
+                error_msg = "async_fetch_directly: read error";
+            co_return row_num;
+        }
+        accum_buf.insert(accum_buf.end(), _cache_data, _cache_data + n);
+
+        unsigned int parse_offset = consumed;
+        while (parse_offset < accum_buf.size())
+        {
+            const unsigned char *payload_start = nullptr;
+            unsigned int payload_len           = 0;
+            unsigned char msg_type             = peek_pg_message(
+                accum_buf.data(), static_cast<unsigned int>(accum_buf.size()),
+                parse_offset, payload_start, payload_len);
+            if (msg_type == 0)
+                break;
+
+            switch (msg_type)
+            {
+            case 'T':
+                fields_cache = parse_row_description(payload_start, payload_len);
+                name_ptrs_cache.resize(fields_cache.size());
+                for (size_t i = 0; i < fields_cache.size(); i++)
+                {
+                    name_ptrs_cache[i] = const_cast<char *>(fields_cache[i].org_name.c_str());
+                }
+                break;
+            case 'D':
+            {
+                if (handler_aborted)
+                    break;
+                if (!handler)
+                    break;
+
+                cols_cache.clear();
+                unsigned int pos = 0;
+                if (payload_len >= 2)
+                {
+                    int16_t row_col_count = buf_to_int16(payload_start + pos);
+                    pos += 2;
+                    if (row_col_count > 0 && row_col_count <= 4096)
+                    {
+                        cols_cache.reserve(row_col_count);
+                        for (int16_t ci = 0; ci < row_col_count && pos + 4 <= payload_len; ci++)
+                        {
+                            int32_t col_len = buf_to_int32(payload_start + pos);
+                            pos += 4;
+                            if (col_len == -1)
+                            {
+                                cols_cache.push_back({nullptr, 0});
+                            }
+                            else if (col_len >= 0 && pos + static_cast<unsigned int>(col_len) <= payload_len)
+                            {
+                                cols_cache.push_back({const_cast<unsigned char *>(payload_start + pos),
+                                                      static_cast<size_t>(col_len)});
+                                pos += static_cast<unsigned int>(col_len);
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                auto get_data = [&cols_cache](int col_idx) -> std::tuple<unsigned char *, size_t> {
+                    if (col_idx < 0 || static_cast<size_t>(col_idx) >= cols_cache.size())
+                        return {nullptr, 0};
+                    return {cols_cache[col_idx].ptr, cols_cache[col_idx].len};
+                };
+
+                char **col_names_arr = name_ptrs_cache.empty() ? nullptr : name_ptrs_cache.data();
+                bool keep_going      = handler(static_cast<int>(fields_cache.size()), col_names_arr, get_data);
+                row_num++;
+                if (!keep_going)
+                {
+                    handler_aborted = true;
+                }
+                break;
+            }
+            case 'C':
+                break;
+            case 'Z':
+                if (payload_len >= 1)
+                    in_transaction_.store(payload_start[0] == 'T' || payload_start[0] == 'E');
+                got_ready = true;
+                break;
+            case 'E':
+                parse_error_from_payload(payload_start, payload_len);
+                handler_aborted = true;
+                break;
+            default:
+                break;
+            }
+        }
+        consumed = parse_offset;
+        if (consumed > 256 * 1024)
+        {
+            accum_buf.erase(accum_buf.begin(), accum_buf.begin() + consumed);
+            consumed = 0;
+        }
+    }
+
+    co_return row_num;
+}
+
+// ===== 断线自动重连实现 =====
+
+bool pg_conn_base::is_last_error_reconnectable() const
+{
+    if (!conn_link) return false;
+    const auto &ec = conn_link->ec;
+    if (!ec) return false;
+
+    // 只认 asio 抽象错误码, 白名单策略
+    return ec == asio::error::eof              ||
+           ec == asio::error::connection_reset ||
+           ec == asio::error::timed_out        ||
+           ec == asio::error::broken_pipe      ||
+           ec == asio::error::not_connected;
+}
+
+bool pg_conn_base::try_reconnect()
+{
+    if (!has_conn_config_)   return false;
+    if (isclose)             return false;
+
+    hard_close();
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+    return connect(last_conn_config_);
+}
+
+asio::awaitable<bool> pg_conn_base::async_try_reconnect()
+{
+    if (!has_conn_config_)   co_return false;
+    if (isclose)             co_return false;
+
+    hard_close();
+
+    asio::steady_timer t(*conn_link->io_ctx, std::chrono::milliseconds(50));
+    co_await t.async_wait(asio::use_awaitable);
+
+    co_return co_await async_connect(last_conn_config_);
 }
 
 }// namespace orm

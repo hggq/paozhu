@@ -28,8 +28,6 @@ paozhu/
 │   ├── server.conf                # 服务器主配置
 │   ├── orm.conf                   # 数据库连接配置
 │   ├── acme.conf                  # ACME 证书配置
-│   ├── gcc.conf                   # 编译器配置
-│   ├── controlbuild.conf          # 控制器构建配置
 │   └── ...                        # 其他配置和 SQL 文件
 │
 ├── controller/                    # 控制器层
@@ -101,7 +99,7 @@ paozhu/
 ├── www/                           # Web 静态文件根目录
 ├── docs/                          # 示例资源（图片、字体等）
 ├── CMakeLists.txt                 # CMake 构建配置
-└── AI_RULES.md                    # 本文档
+└── AGENTS.md                      # 本文档
 ```
 
 ---

@@ -2,7 +2,7 @@
 #define ORM_LITE_WORLDBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Wed, 26 Aug 2026 14:08:09 GMT
+*本文件为自动生成 Sat, 29 Aug 2026 05:50:10 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -36,13 +36,13 @@ namespace world_info
     struct meta
     {
 		 int  id = 0; ///**/
-		 int  randomnumber = '0'; ///**/
+		 int  randomnumber = 0; ///**/
 	};
   
     struct meta_tree
     {
 		 int  id = 0; ///**/
-		 int  randomnumber = '0'; ///**/
+		 int  randomnumber = 0; ///**/
 
 	 std::vector<meta_tree> children;
  };
@@ -50,7 +50,7 @@ namespace world_info
     struct meta_tree_ptr
     {
 		 int  id = 0; ///**/
-		 int  randomnumber = '0'; ///**/
+		 int  randomnumber = 0; ///**/
 
 	 std::vector<std::unique_ptr<meta_tree>> children;
  };
@@ -979,7 +979,7 @@ if(data.randomnumber==0){
 	}
 	tempsql<<")";
 	 }
-	 tempsql<<" as new ON DUPLICATE KEY UPDATE ";
+	 tempsql<<" ON CONFLICT(id) DO UPDATE SET ";
 
      
         std::string keyname;
@@ -995,7 +995,7 @@ if(data.randomnumber==0){
                         tempsql<<",";
                     }
                     tempsql<<keyname;
-                    tempsql<<"=new.";
+                    tempsql<<"=excluded.";
                     tempsql<<keyname;
                 }
                 continue;   
@@ -1014,7 +1014,7 @@ if(data.randomnumber==0){
                     tempsql<<",";
                 }
                 tempsql<<keyname;
-                tempsql<<"=new.";
+                tempsql<<"=excluded.";
                 tempsql<<keyname;
                 
             }

@@ -2,7 +2,7 @@
 #define ORM_LITE_FORTUNEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Wed, 26 Aug 2026 14:08:09 GMT
+*本文件为自动生成 Sat, 29 Aug 2026 05:50:10 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -951,7 +951,7 @@ tempsql<<"message='"<<stringaddslash(data.message)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].message)<<"'";
 	tempsql<<")";
 	 }
-	 tempsql<<" as new ON DUPLICATE KEY UPDATE ";
+	 tempsql<<" ON CONFLICT(id) DO UPDATE SET ";
 
      
         std::string keyname;
@@ -967,7 +967,7 @@ tempsql<<"message='"<<stringaddslash(data.message)<<"'";
                         tempsql<<",";
                     }
                     tempsql<<keyname;
-                    tempsql<<"=new.";
+                    tempsql<<"=excluded.";
                     tempsql<<keyname;
                 }
                 continue;   
@@ -986,7 +986,7 @@ tempsql<<"message='"<<stringaddslash(data.message)<<"'";
                     tempsql<<",";
                 }
                 tempsql<<keyname;
-                tempsql<<"=new.";
+                tempsql<<"=excluded.";
                 tempsql<<keyname;
                 
             }

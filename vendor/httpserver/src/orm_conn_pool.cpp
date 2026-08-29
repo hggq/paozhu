@@ -855,10 +855,23 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::add_mysql_edit_connect()
 }
 void orm_conn_pool::back_mysql_edit_conn(std::shared_ptr<mysql_conn_base> conn)
 {
-    conn->issynch = false;
+    // 约定：事务经 orm_query.h edit_query 独立使用（外层异常包裹自管回滚），
+    // 归还仅检查连接未断开，不做事务清理
+    if (!conn || conn->isclose)
+    {
+        return;
+    }
     std::unique_lock<std::mutex> lock(conn_edit_mutex);
-    mysql_edit_pool.emplace_back(conn);
-    lock.unlock();
+    if (conn->pooled_)
+    {
+        std::cerr << "[orm_pool] duplicate return ignored: mysql_edit" << std::endl;
+    }
+    else
+    {
+        conn->pooled_ = true;
+        conn->issynch = false;
+        mysql_edit_pool.emplace_back(std::move(conn));
+    }
 }
 unsigned int orm_conn_pool::init_mysql_edit_conn(unsigned char n)
 {
@@ -954,10 +967,21 @@ unsigned int orm_conn_pool::init_mysql_select_conn(unsigned char n)
 }
 void orm_conn_pool::back_mysql_select_conn(std::shared_ptr<mysql_conn_base> conn)
 {
-    conn->issynch = false;
+    if (!conn || conn->isclose)
+    {
+        return;
+    }
     std::unique_lock<std::mutex> lock(conn_select_mutex);
-    mysql_select_pool.emplace_back(conn);
-    lock.unlock();
+    if (conn->pooled_)
+    {
+        std::cerr << "[orm_pool] duplicate return ignored: mysql_select" << std::endl;
+    }
+    else
+    {
+        conn->pooled_ = true;
+        conn->issynch = false;
+        mysql_select_pool.emplace_back(std::move(conn));
+    }
 }
 
 asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql_edit_conn()
@@ -971,6 +995,7 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql
 
     auto temp = std::move(mysql_edit_pool.front());
     mysql_edit_pool.pop_front();
+    temp->pooled_ = false;
     lock.unlock();
     if (!temp->is_closed())
     {
@@ -990,9 +1015,9 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::get_mysql_edit_conn()
 
     auto temp = std::move(mysql_edit_pool.front());
     mysql_edit_pool.pop_front();
+    temp->pooled_ = false;
     lock.unlock();
     temp->issynch = true;
-
     if (!temp->is_closed())
     {
         return temp;
@@ -1009,6 +1034,7 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql
     }
     auto temp = std::move(mysql_select_pool.front());
     mysql_select_pool.pop_front();
+    temp->pooled_ = false;
     lock.unlock();
 
     if (!temp->is_closed())
@@ -1028,6 +1054,7 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::get_mysql_select_conn()
 
     auto temp = std::move(mysql_select_pool.front());
     mysql_select_pool.pop_front();
+    temp->pooled_ = false;
     lock.unlock();
     temp->issynch = true;
     if (!temp->is_closed())
@@ -1071,10 +1098,21 @@ std::shared_ptr<pg_conn_base> orm_conn_pool::add_pg_edit_connect()
 }
 void orm_conn_pool::back_pg_edit_conn(std::shared_ptr<pg_conn_base> conn)
 {
-    conn->issynch = false;
+    if (!conn || conn->isclose)
+    {
+        return;
+    }
     std::unique_lock<std::mutex> lock(conn_edit_mutex);
-    pg_edit_pool.emplace_back(conn);
-    lock.unlock();
+    if (conn->pooled_)
+    {
+        std::cerr << "[orm_pool] duplicate return ignored: pg_edit" << std::endl;
+    }
+    else
+    {
+        conn->pooled_ = true;
+        conn->issynch = false;
+        pg_edit_pool.emplace_back(std::move(conn));
+    }
 }
 unsigned int orm_conn_pool::init_pg_edit_conn(unsigned char n)
 {
@@ -1171,10 +1209,21 @@ unsigned int orm_conn_pool::init_pg_select_conn(unsigned char n)
 }
 void orm_conn_pool::back_pg_select_conn(std::shared_ptr<pg_conn_base> conn)
 {
-    conn->issynch = false;
+    if (!conn || conn->isclose)
+    {
+        return;
+    }
     std::unique_lock<std::mutex> lock(conn_select_mutex);
-    pg_select_pool.emplace_back(conn);
-    lock.unlock();
+    if (conn->pooled_)
+    {
+        std::cerr << "[orm_pool] duplicate return ignored: pg_select" << std::endl;
+    }
+    else
+    {
+        conn->pooled_ = true;
+        conn->issynch = false;
+        pg_select_pool.emplace_back(std::move(conn));
+    }
 }
 
 asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_edit_conn()
@@ -1188,6 +1237,7 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_edit_
 
     auto temp = std::move(pg_edit_pool.front());
     pg_edit_pool.pop_front();
+    temp->pooled_ = false;
     lock.unlock();
     if (!temp->is_closed())
     {
@@ -1207,9 +1257,9 @@ std::shared_ptr<pg_conn_base> orm_conn_pool::get_pg_edit_conn()
 
     auto temp = std::move(pg_edit_pool.front());
     pg_edit_pool.pop_front();
+    temp->pooled_ = false;
     lock.unlock();
     temp->issynch = true;
-
     if (!temp->is_closed())
     {
         return temp;
@@ -1226,6 +1276,7 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_selec
     }
     auto temp = std::move(pg_select_pool.front());
     pg_select_pool.pop_front();
+    temp->pooled_ = false;
     lock.unlock();
 
     if (!temp->is_closed())
@@ -1245,6 +1296,7 @@ std::shared_ptr<pg_conn_base> orm_conn_pool::get_pg_select_conn()
 
     auto temp = std::move(pg_select_pool.front());
     pg_select_pool.pop_front();
+    temp->pooled_ = false;
     lock.unlock();
     temp->issynch = true;
     if (!temp->is_closed())
@@ -1497,6 +1549,7 @@ asio::awaitable<bool> orm_conn_pool::clear_select_conn_2hour()
         {
             auto temp = std::move(mysql_select_pool.front());
             mysql_select_pool.pop_front();
+            temp->pooled_ = false;
 
             if (temp->time_start < nowtimeid)
             {
@@ -1512,6 +1565,7 @@ asio::awaitable<bool> orm_conn_pool::clear_select_conn_2hour()
             }
             else
             {
+                temp->pooled_ = true;
                 mysql_select_pool.emplace_back(temp);
             }
         }
@@ -1522,6 +1576,7 @@ asio::awaitable<bool> orm_conn_pool::clear_select_conn_2hour()
         {
             auto temp = std::move(pg_select_pool.front());
             pg_select_pool.pop_front();
+            temp->pooled_ = false;
 
             if (temp->time_start < nowtimeid)
             {
@@ -1537,6 +1592,7 @@ asio::awaitable<bool> orm_conn_pool::clear_select_conn_2hour()
             }
             else
             {
+                temp->pooled_ = true;
                 pg_select_pool.emplace_back(temp);
             }
         }
@@ -1561,6 +1617,7 @@ asio::awaitable<bool> orm_conn_pool::clear_edit_conn_2hour()
         {
             auto temp = std::move(mysql_edit_pool.front());
             mysql_edit_pool.pop_front();
+            temp->pooled_ = false;
 
             if (temp->time_start < nowtimeid)
             {
@@ -1576,6 +1633,7 @@ asio::awaitable<bool> orm_conn_pool::clear_edit_conn_2hour()
             }
             else
             {
+                temp->pooled_ = true;
                 mysql_edit_pool.emplace_back(temp);
             }
         }
@@ -1586,6 +1644,7 @@ asio::awaitable<bool> orm_conn_pool::clear_edit_conn_2hour()
         {
             auto temp = std::move(pg_edit_pool.front());
             pg_edit_pool.pop_front();
+            temp->pooled_ = false;
 
             if (temp->time_start < nowtimeid)
             {
@@ -1601,6 +1660,7 @@ asio::awaitable<bool> orm_conn_pool::clear_edit_conn_2hour()
             }
             else
             {
+                temp->pooled_ = true;
                 pg_edit_pool.emplace_back(temp);
             }
         }

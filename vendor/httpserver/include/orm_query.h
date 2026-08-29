@@ -109,112 +109,38 @@ class db_conn : std::enable_shared_from_this<db_conn>
             {
                 mysql_select_conn->begin_time();
             }
-            std::size_t n = mysql_select_conn->write_sql(rawsql);
-            if (n == 0)
+
+            unsigned int fetch_count = mysql_select_conn->fetch_directly(rawsql,
+                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                    T data_temp;
+                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                    if (col_cache.empty() && col_count > 0) {
+                        col_cache.reserve(col_count);
+                        for (int k = 0; k < col_count; k++) {
+                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                        }
+                    }
+                    for (int ij = 0; ij < col_count; ij++) {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) {
+                            continue;
+                        }
+                        if (!col_cache[ij].empty()) {
+                            data_temp.set_val(col_cache[ij], ptr, len, 0);
+                        }
+                    }
+                    result_record.emplace_back(std::move(data_temp));
+                    effect_num++;
+                    return true;
+                });
+
+            if (fetch_count == 0 && !mysql_select_conn->error_msg.empty())
             {
                 error_msg = mysql_select_conn->error_msg;
                 mysql_select_conn.reset();
                 return 0;
             }
 
-            pack_info_t temp_pack_data;
-            temp_pack_data.seq_id = 1;
-            bool is_sql_item      = false;
-            std::vector<field_info_t> field_array;
-
-            unsigned char action_setup = 0;
-            unsigned int column_num    = 0;
-            unsigned int offset        = 0;
-            for (; is_sql_item == false;)
-            {
-                n      = mysql_select_conn->read_loop();
-                offset = 0;
-                if (n == 0)
-                {
-                    error_msg = mysql_select_conn->error_msg;
-                    mysql_select_conn.reset();
-                    return 0;
-                }
-                for (; offset < n;)
-                {
-                    mysql_select_conn->read_field_pack(mysql_select_conn->_cache_data, n, offset, temp_pack_data);
-                    if (temp_pack_data.error > 0)
-                    {
-                        iserror   = true;
-                        error_msg = temp_pack_data.data;
-                        mysql_select_conn.reset();
-                        return 0;
-                    }
-                    if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
-                    {
-                        if (mysql_select_conn->pack_eof_check(temp_pack_data))
-                        {
-                            is_sql_item = true;
-                            break;
-                        }
-
-                        if (action_setup == 0)
-                        {
-                            if (temp_pack_data.data.empty())
-                                break;
-                            if (temp_pack_data.length == 2 && (unsigned char)temp_pack_data.data[0] < 251 && (unsigned char)temp_pack_data.data[0] > 0)
-                            {
-                                action_setup = 1;
-                                column_num   = (unsigned char)temp_pack_data.data[0];
-                            }
-                        }
-                        else if (action_setup == 1)
-                        {
-                            field_info_t temp_filed_col;
-                            mysql_select_conn->read_col_info(temp_pack_data.data, temp_filed_col);
-
-                            field_array.emplace_back(std::move(temp_filed_col));
-                            column_num--;
-                            if (column_num == 0)
-                            {
-                                action_setup = 2;
-                            }
-                        }
-                        else if (action_setup == 2)
-                        {
-                            column_num           = field_array.size();
-                            unsigned int tempnum = 0;
-
-                            T data_temp;
-                            for (unsigned int ij = 0; ij < column_num; ij++)
-                            {
-                                unsigned long long name_length = 0;
-                                name_length                    = mysql_select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
-                                if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
-                                {
-                                    error_msg = "MySQL read pack error";
-                                    return 0;
-                                }
-                                if (field_array[ij].name.size() > 0)
-                                {
-                                    data_temp.set_val(field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
-                                }
-                                else if (field_array[ij].org_name.size() > 0)
-                                {
-                                    data_temp.set_val(field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
-                                }
-                                tempnum = tempnum + name_length;
-                            }
-                            result_record.emplace_back(std::move(data_temp));
-                            effect_num++;
-                        }
-                    }
-                    else
-                    {
-                        if (offset >= n)
-                        {
-                            break;
-                        }
-                        is_sql_item = true;
-                        break;
-                    }
-                }
-            }
             if (mysql_select_conn->isdebug)
             {
                 mysql_select_conn->finish_time();
@@ -270,29 +196,35 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 pg_select_conn->begin_time();
             }
 
-            std::vector<field_info_t> fields;
-            std::vector<pg_row_data_t> rows;
-            unsigned int affected = 0;
-            unsigned int err      = pg_select_conn->execute_and_fetch(rawsql, fields, rows, affected);
-            if (err > 0)
+            unsigned int fetch_count = pg_select_conn->fetch_directly(rawsql,
+                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                T data_temp;
+                // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                if (col_cache.empty() && col_count > 0) {
+                    col_cache.reserve(col_count);
+                    for (int k = 0; k < col_count; k++) {
+                        col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                    }
+                }
+                for (int ij = 0; ij < col_count; ij++) {
+                    auto [ptr, len] = get_data(ij);
+                    if (ptr == nullptr) {
+                        continue;
+                    }
+                        if (!col_cache[ij].empty()) {
+                            data_temp.set_val(col_cache[ij], ptr, len, 0);
+                        }
+                }
+                result_record.emplace_back(std::move(data_temp));
+                effect_num++;
+                return true;
+            });
+
+            if (fetch_count == 0 && !pg_select_conn->error_msg.empty())
             {
                 error_msg = pg_select_conn->error_msg;
                 pg_select_conn.reset();
                 return 0;
-            }
-
-            for (auto &row : rows)
-            {
-                T data_temp;
-                for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                {
-                    if (!row.is_null[ij] && fields[ij].name.size() > 0)
-                    {
-                        data_temp.set_val(fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                    }
-                }
-                result_record.emplace_back(std::move(data_temp));
-                effect_num++;
             }
 
             if (pg_select_conn->isdebug)
@@ -350,29 +282,35 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 sqlite_select_conn->begin_time();
             }
 
-            sqlite_query_result query_result;
-            bool isok = sqlite_select_conn->query_fetch(rawsql, query_result);
-            if (!isok)
+            unsigned int fetch_count = sqlite_select_conn->fetch_directly(rawsql,
+                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                    T data_temp;
+                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                    if (col_cache.empty() && col_count > 0) {
+                        col_cache.reserve(col_count);
+                        for (int k = 0; k < col_count; k++) {
+                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                        }
+                    }
+                    for (int ij = 0; ij < col_count; ij++) {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) {
+                            continue;
+                        }
+                        if (!col_cache[ij].empty()) {
+                            data_temp.set_val(col_cache[ij], ptr, len, 0);
+                        }
+                    }
+                    result_record.emplace_back(std::move(data_temp));
+                    effect_num++;
+                    return true;
+                });
+
+            if (fetch_count == 0 && !sqlite_select_conn->error_msg.empty())
             {
                 error_msg = sqlite_select_conn->error_msg;
                 sqlite_select_conn.reset();
                 return 0;
-            }
-
-            for (std::size_t ri = 0; ri < query_result.rows.size(); ri++)
-            {
-                T data_temp;
-                auto &row      = query_result.rows[ri];
-                auto &row_null = query_result.is_null[ri];
-                for (unsigned int ij = 0; ij < query_result.column_names.size() && ij < row.size(); ij++)
-                {
-                    if (!row_null[ij] && query_result.column_names[ij].size() > 0)
-                    {
-                        data_temp.set_val(query_result.column_names[ij], reinterpret_cast<const unsigned char *>(row[ij].data()), row[ij].size(), 0);
-                    }
-                }
-                result_record.emplace_back(std::move(data_temp));
-                effect_num++;
             }
 
             if (sqlite_select_conn->isdebug)
@@ -442,112 +380,38 @@ class db_conn : std::enable_shared_from_this<db_conn>
             {
                 mysql_select_conn->begin_time();
             }
-            std::size_t n = co_await mysql_select_conn->async_write_sql(rawsql);
-            if (n == 0)
+
+            unsigned int fetch_count = co_await mysql_select_conn->async_fetch_directly(rawsql,
+                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                    T data_temp;
+                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                    if (col_cache.empty() && col_count > 0) {
+                        col_cache.reserve(col_count);
+                        for (int k = 0; k < col_count; k++) {
+                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                        }
+                    }
+                    for (int ij = 0; ij < col_count; ij++) {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) {
+                            continue;
+                        }
+                        if (!col_cache[ij].empty()) {
+                            data_temp.set_val(col_cache[ij], ptr, len, 0);
+                        }
+                    }
+                    result_record.emplace_back(std::move(data_temp));
+                    effect_num++;
+                    return true;
+                });
+
+            if (fetch_count == 0 && !mysql_select_conn->error_msg.empty())
             {
                 error_msg = mysql_select_conn->error_msg;
                 mysql_select_conn.reset();
                 co_return 0;
             }
 
-            pack_info_t temp_pack_data;
-            temp_pack_data.seq_id = 1;
-            bool is_sql_item      = false;
-            std::vector<field_info_t> field_array;
-
-            unsigned char action_setup = 0;
-            unsigned int column_num    = 0;
-            unsigned int offset        = 0;
-            for (; is_sql_item == false;)
-            {
-                n      = co_await mysql_select_conn->async_read_loop();
-                offset = 0;
-                if (n == 0)
-                {
-                    error_msg = mysql_select_conn->error_msg;
-                    mysql_select_conn.reset();
-                    co_return 0;
-                }
-                for (; offset < n;)
-                {
-                    mysql_select_conn->read_field_pack(mysql_select_conn->_cache_data, n, offset, temp_pack_data);
-                    if (temp_pack_data.error > 0)
-                    {
-                        iserror   = true;
-                        error_msg = temp_pack_data.data;
-                        mysql_select_conn.reset();
-                        co_return 0;
-                    }
-                    if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
-                    {
-                        if (mysql_select_conn->pack_eof_check(temp_pack_data))
-                        {
-                            is_sql_item = true;
-                            break;
-                        }
-
-                        if (action_setup == 0)
-                        {
-                            if (temp_pack_data.data.empty())
-                                break;
-                            if (temp_pack_data.length == 2 && (unsigned char)temp_pack_data.data[0] < 251 && (unsigned char)temp_pack_data.data[0] > 0)
-                            {
-                                action_setup = 1;
-                                column_num   = (unsigned char)temp_pack_data.data[0];
-                            }
-                        }
-                        else if (action_setup == 1)
-                        {
-                            field_info_t temp_filed_col;
-                            mysql_select_conn->read_col_info(temp_pack_data.data, temp_filed_col);
-
-                            field_array.emplace_back(std::move(temp_filed_col));
-                            column_num--;
-                            if (column_num == 0)
-                            {
-                                action_setup = 2;
-                            }
-                        }
-                        else if (action_setup == 2)
-                        {
-                            column_num           = field_array.size();
-                            unsigned int tempnum = 0;
-
-                            T data_temp;
-                            for (unsigned int ij = 0; ij < column_num; ij++)
-                            {
-                                unsigned long long name_length = 0;
-                                name_length                    = mysql_select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
-                                if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
-                                {
-                                    error_msg = "MySQL read pack error";
-                                    co_return 0;
-                                }
-                                if (field_array[ij].name.size() > 0)
-                                {
-                                    data_temp.set_val(field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
-                                }
-                                else if (field_array[ij].org_name.size() > 0)
-                                {
-                                    data_temp.set_val(field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
-                                }
-                                tempnum = tempnum + name_length;
-                            }
-                            result_record.emplace_back(std::move(data_temp));
-                            effect_num++;
-                        }
-                    }
-                    else
-                    {
-                        if (offset >= n)
-                        {
-                            break;
-                        }
-                        is_sql_item = true;
-                        break;
-                    }
-                }
-            }
             if (mysql_select_conn->isdebug)
             {
                 mysql_select_conn->finish_time();
@@ -603,29 +467,35 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 pg_select_conn->begin_time();
             }
 
-            std::vector<field_info_t> fields;
-            std::vector<pg_row_data_t> rows;
-            unsigned int affected = 0;
-            unsigned int err      = co_await pg_select_conn->async_execute_and_fetch(rawsql, fields, rows, affected);
-            if (err > 0)
+            unsigned int fetch_count = co_await pg_select_conn->async_fetch_directly(rawsql,
+                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                T data_temp;
+                // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                if (col_cache.empty() && col_count > 0) {
+                    col_cache.reserve(col_count);
+                    for (int k = 0; k < col_count; k++) {
+                        col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                    }
+                }
+                for (int ij = 0; ij < col_count; ij++) {
+                    auto [ptr, len] = get_data(ij);
+                    if (ptr == nullptr) {
+                        continue;
+                    }
+                        if (!col_cache[ij].empty()) {
+                            data_temp.set_val(col_cache[ij], ptr, len, 0);
+                        }
+                }
+                result_record.emplace_back(std::move(data_temp));
+                effect_num++;
+                return true;
+            });
+
+            if (fetch_count == 0 && !pg_select_conn->error_msg.empty())
             {
                 error_msg = pg_select_conn->error_msg;
                 pg_select_conn.reset();
                 co_return 0;
-            }
-
-            for (auto &row : rows)
-            {
-                T data_temp;
-                for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                {
-                    if (!row.is_null[ij] && fields[ij].name.size() > 0)
-                    {
-                        data_temp.set_val(fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                    }
-                }
-                result_record.emplace_back(std::move(data_temp));
-                effect_num++;
             }
 
             if (pg_select_conn->isdebug)
@@ -683,29 +553,35 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 sqlite_select_conn->begin_time();
             }
 
-            sqlite_query_result query_result;
-            bool isok = co_await sqlite_select_conn->async_query_fetch(rawsql, query_result);
-            if (!isok)
+            unsigned int fetch_count = co_await sqlite_select_conn->async_fetch_directly(rawsql,
+                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                    T data_temp;
+                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                    if (col_cache.empty() && col_count > 0) {
+                        col_cache.reserve(col_count);
+                        for (int k = 0; k < col_count; k++) {
+                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                        }
+                    }
+                    for (int ij = 0; ij < col_count; ij++) {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) {
+                            continue;
+                        }
+                        if (!col_cache[ij].empty()) {
+                            data_temp.set_val(col_cache[ij], ptr, len, 0);
+                        }
+                    }
+                    result_record.emplace_back(std::move(data_temp));
+                    effect_num++;
+                    return true;
+                });
+
+            if (fetch_count == 0 && !sqlite_select_conn->error_msg.empty())
             {
                 error_msg = sqlite_select_conn->error_msg;
                 sqlite_select_conn.reset();
                 co_return 0;
-            }
-
-            for (std::size_t ri = 0; ri < query_result.rows.size(); ri++)
-            {
-                T data_temp;
-                auto &row      = query_result.rows[ri];
-                auto &row_null = query_result.is_null[ri];
-                for (unsigned int ij = 0; ij < query_result.column_names.size() && ij < row.size(); ij++)
-                {
-                    if (!row_null[ij] && query_result.column_names[ij].size() > 0)
-                    {
-                        data_temp.set_val(query_result.column_names[ij], reinterpret_cast<const unsigned char *>(row[ij].data()), row[ij].size(), 0);
-                    }
-                }
-                result_record.emplace_back(std::move(data_temp));
-                effect_num++;
             }
 
             if (sqlite_select_conn->isdebug)
@@ -776,110 +652,36 @@ class db_conn : std::enable_shared_from_this<db_conn>
             {
                 mysql_select_conn->begin_time();
             }
-            std::size_t n = mysql_select_conn->write_sql(rawsql);
-            if (n == 0)
+
+            unsigned int fetch_count = mysql_select_conn->fetch_directly(rawsql,
+                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                    if (col_cache.empty() && col_count > 0) {
+                        col_cache.reserve(col_count);
+                        for (int k = 0; k < col_count; k++) {
+                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                        }
+                    }
+                    for (int ij = 0; ij < col_count; ij++) {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) {
+                            continue;
+                        }
+                        if (!col_cache[ij].empty()) {
+                            result_record.set_val(col_cache[ij], ptr, len, 0);
+                        }
+                    }
+                    effect_num++;
+                    return false;
+                });
+
+            if (fetch_count == 0 && !mysql_select_conn->error_msg.empty())
             {
                 error_msg = mysql_select_conn->error_msg;
                 mysql_select_conn.reset();
                 return 0;
             }
 
-            pack_info_t temp_pack_data;
-            temp_pack_data.seq_id = 1;
-            bool is_sql_item      = false;
-            std::vector<field_info_t> field_array;
-
-            unsigned char action_setup = 0;
-            unsigned int column_num    = 0;
-            unsigned int offset        = 0;
-            for (; is_sql_item == false;)
-            {
-                n      = mysql_select_conn->read_loop();
-                offset = 0;
-                if (n == 0)
-                {
-                    error_msg = mysql_select_conn->error_msg;
-                    mysql_select_conn.reset();
-                    return 0;
-                }
-                for (; offset < n;)
-                {
-                    mysql_select_conn->read_field_pack(mysql_select_conn->_cache_data, n, offset, temp_pack_data);
-                    if (temp_pack_data.error > 0)
-                    {
-                        iserror   = true;
-                        error_msg = temp_pack_data.data;
-                        mysql_select_conn.reset();
-                        return 0;
-                    }
-                    if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
-                    {
-                        if (mysql_select_conn->pack_eof_check(temp_pack_data))
-                        {
-                            is_sql_item = true;
-                            break;
-                        }
-
-                        if (action_setup == 0)
-                        {
-                            if (temp_pack_data.data.empty())
-                                break;
-                            if (temp_pack_data.length == 2 && (unsigned char)temp_pack_data.data[0] < 251 && (unsigned char)temp_pack_data.data[0] > 0)
-                            {
-                                action_setup = 1;
-                                column_num   = (unsigned char)temp_pack_data.data[0];
-                            }
-                        }
-                        else if (action_setup == 1)
-                        {
-                            field_info_t temp_filed_col;
-                            mysql_select_conn->read_col_info(temp_pack_data.data, temp_filed_col);
-
-                            field_array.emplace_back(std::move(temp_filed_col));
-                            column_num--;
-                            if (column_num == 0)
-                            {
-                                action_setup = 2;
-                            }
-                        }
-                        else if (action_setup == 2)
-                        {
-                            column_num           = field_array.size();
-                            unsigned int tempnum = 0;
-
-                            for (unsigned int ij = 0; ij < column_num; ij++)
-                            {
-                                unsigned long long name_length = 0;
-                                name_length                    = mysql_select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
-                                if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
-                                {
-                                    error_msg = "MySQL read pack error";
-                                    return 0;
-                                }
-                                if (field_array[ij].name.size() > 0)
-                                {
-                                    result_record.set_val(field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
-                                }
-                                else if (field_array[ij].org_name.size() > 0)
-                                {
-                                    result_record.set_val(field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
-                                }
-                                tempnum = tempnum + name_length;
-                            }
-                            effect_num++;
-                        }
-                    }
-                    else
-                    {
-                        if (offset >= n)
-                        {
-                            break;
-                        }
-                        is_sql_item = true;
-                        break;
-                    }
-                }
-            }
             if (mysql_select_conn->isdebug)
             {
                 mysql_select_conn->finish_time();
@@ -935,28 +737,33 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 pg_select_conn->begin_time();
             }
 
-            std::vector<field_info_t> fields;
-            std::vector<pg_row_data_t> rows;
-            unsigned int affected = 0;
-            unsigned int err      = pg_select_conn->execute_and_fetch(rawsql, fields, rows, affected);
-            if (err > 0)
+            unsigned int fetch_count = pg_select_conn->fetch_directly(rawsql,
+                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                if (col_cache.empty() && col_count > 0) {
+                    col_cache.reserve(col_count);
+                    for (int k = 0; k < col_count; k++) {
+                        col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                    }
+                }
+                for (int ij = 0; ij < col_count; ij++) {
+                    auto [ptr, len] = get_data(ij);
+                    if (ptr == nullptr) {
+                        continue;
+                    }
+                        if (!col_cache[ij].empty()) {
+                            result_record.set_val(col_cache[ij], ptr, len, 0);
+                        }
+                }
+                effect_num++;
+                return false;// 只取首行
+            });
+
+            if (fetch_count == 0 && !pg_select_conn->error_msg.empty())
             {
                 error_msg = pg_select_conn->error_msg;
                 pg_select_conn.reset();
                 return 0;
-            }
-
-            if (!rows.empty())
-            {
-                auto &row = rows.front();
-                for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                {
-                    if (!row.is_null[ij] && fields[ij].name.size() > 0)
-                    {
-                        result_record.set_val(fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                    }
-                }
-                effect_num++;
             }
 
             if (pg_select_conn->isdebug)
@@ -1014,27 +821,33 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 sqlite_select_conn->begin_time();
             }
 
-            sqlite_query_result query_result;
-            bool isok = sqlite_select_conn->query_fetch(rawsql, query_result);
-            if (!isok)
+            unsigned int fetch_count = sqlite_select_conn->fetch_directly(rawsql,
+                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                    if (col_cache.empty() && col_count > 0) {
+                        col_cache.reserve(col_count);
+                        for (int k = 0; k < col_count; k++) {
+                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                        }
+                    }
+                    for (int ij = 0; ij < col_count; ij++) {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) {
+                            continue;
+                        }
+                        if (!col_cache[ij].empty()) {
+                            result_record.set_val(col_cache[ij], ptr, len, 0);
+                        }
+                    }
+                    effect_num++;
+                    return false; // only fetch first row
+                });
+
+            if (fetch_count == 0 && !sqlite_select_conn->error_msg.empty())
             {
                 error_msg = sqlite_select_conn->error_msg;
                 sqlite_select_conn.reset();
                 return 0;
-            }
-
-            if (!query_result.rows.empty())
-            {
-                auto &row      = query_result.rows.front();
-                auto &row_null = query_result.is_null.front();
-                for (unsigned int ij = 0; ij < query_result.column_names.size() && ij < row.size(); ij++)
-                {
-                    if (!row_null[ij] && query_result.column_names[ij].size() > 0)
-                    {
-                        result_record.set_val(query_result.column_names[ij], reinterpret_cast<const unsigned char *>(row[ij].data()), row[ij].size(), 0);
-                    }
-                }
-                effect_num++;
             }
 
             if (sqlite_select_conn->isdebug)
@@ -1104,111 +917,36 @@ class db_conn : std::enable_shared_from_this<db_conn>
             {
                 mysql_select_conn->begin_time();
             }
-            std::size_t n = co_await mysql_select_conn->async_write_sql(rawsql);
-            if (n == 0)
+
+            unsigned int fetch_count = co_await mysql_select_conn->async_fetch_directly(rawsql,
+                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                    if (col_cache.empty() && col_count > 0) {
+                        col_cache.reserve(col_count);
+                        for (int k = 0; k < col_count; k++) {
+                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                        }
+                    }
+                    for (int ij = 0; ij < col_count; ij++) {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) {
+                            continue;
+                        }
+                        if (!col_cache[ij].empty()) {
+                            result_record.set_val(col_cache[ij], ptr, len, 0);
+                        }
+                    }
+                    effect_num++;
+                    return false;
+                });
+
+            if (fetch_count == 0 && !mysql_select_conn->error_msg.empty())
             {
                 error_msg = mysql_select_conn->error_msg;
                 mysql_select_conn.reset();
                 co_return 0;
             }
 
-            pack_info_t temp_pack_data;
-            temp_pack_data.seq_id = 1;
-            bool is_sql_item      = false;
-            std::vector<field_info_t> field_array;
-
-            unsigned char action_setup = 0;
-            unsigned int column_num    = 0;
-            unsigned int offset        = 0;
-            for (; is_sql_item == false;)
-            {
-                n      = co_await mysql_select_conn->async_read_loop();
-                offset = 0;
-                if (n == 0)
-                {
-                    error_msg = mysql_select_conn->error_msg;
-                    mysql_select_conn.reset();
-                    co_return 0;
-                }
-                for (; offset < n;)
-                {
-                    mysql_select_conn->read_field_pack(mysql_select_conn->_cache_data, n, offset, temp_pack_data);
-                    if (temp_pack_data.error > 0)
-                    {
-                        iserror   = true;
-                        error_msg = temp_pack_data.data;
-                        mysql_select_conn.reset();
-                        co_return 0;
-                    }
-                    if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
-                    {
-                        if (mysql_select_conn->pack_eof_check(temp_pack_data))
-                        {
-                            is_sql_item = true;
-                            break;
-                        }
-
-                        if (action_setup == 0)
-                        {
-                            if (temp_pack_data.data.empty())
-                                break;
-                            if (temp_pack_data.length == 2 && (unsigned char)temp_pack_data.data[0] < 251 && (unsigned char)temp_pack_data.data[0] > 0)
-                            {
-                                action_setup = 1;
-                                column_num   = (unsigned char)temp_pack_data.data[0];
-                            }
-                        }
-                        else if (action_setup == 1)
-                        {
-                            field_info_t temp_filed_col;
-                            mysql_select_conn->read_col_info(temp_pack_data.data, temp_filed_col);
-
-                            field_array.emplace_back(std::move(temp_filed_col));
-                            column_num--;
-                            if (column_num == 0)
-                            {
-                                action_setup = 2;
-                            }
-                        }
-                        else if (action_setup == 2)
-                        {
-                            column_num           = field_array.size();
-                            unsigned int tempnum = 0;
-
-                            for (unsigned int ij = 0; ij < column_num; ij++)
-                            {
-                                unsigned long long name_length = 0;
-                                name_length                    = mysql_select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
-                                if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
-                                {
-                                    error_msg = "MySQL read pack error";
-                                    co_return 0;
-                                }
-                                if (field_array[ij].name.size() > 0)
-                                {
-                                    result_record.set_val(field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
-                                }
-                                else if (field_array[ij].org_name.size() > 0)
-                                {
-                                    result_record.set_val(field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
-                                }
-                                tempnum = tempnum + name_length;
-                            }
-
-                            effect_num++;
-                        }
-                    }
-                    else
-                    {
-                        if (offset >= n)
-                        {
-                            break;
-                        }
-                        is_sql_item = true;
-                        break;
-                    }
-                }
-            }
             if (mysql_select_conn->isdebug)
             {
                 mysql_select_conn->finish_time();
@@ -1264,28 +1002,33 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 pg_select_conn->begin_time();
             }
 
-            std::vector<field_info_t> fields;
-            std::vector<pg_row_data_t> rows;
-            unsigned int affected = 0;
-            unsigned int err      = co_await pg_select_conn->async_execute_and_fetch(rawsql, fields, rows, affected);
-            if (err > 0)
+            unsigned int fetch_count = co_await pg_select_conn->async_fetch_directly(rawsql,
+                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                if (col_cache.empty() && col_count > 0) {
+                    col_cache.reserve(col_count);
+                    for (int k = 0; k < col_count; k++) {
+                        col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                    }
+                }
+                for (int ij = 0; ij < col_count; ij++) {
+                    auto [ptr, len] = get_data(ij);
+                    if (ptr == nullptr) {
+                        continue;
+                    }
+                        if (!col_cache[ij].empty()) {
+                            result_record.set_val(col_cache[ij], ptr, len, 0);
+                        }
+                }
+                effect_num++;
+                return false;// 只取首行
+            });
+
+            if (fetch_count == 0 && !pg_select_conn->error_msg.empty())
             {
                 error_msg = pg_select_conn->error_msg;
                 pg_select_conn.reset();
                 co_return 0;
-            }
-
-            if (!rows.empty())
-            {
-                auto &row = rows.front();
-                for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                {
-                    if (!row.is_null[ij] && fields[ij].name.size() > 0)
-                    {
-                        result_record.set_val(fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                    }
-                }
-                effect_num++;
             }
 
             if (pg_select_conn->isdebug)
@@ -1343,27 +1086,33 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 sqlite_select_conn->begin_time();
             }
 
-            sqlite_query_result query_result;
-            bool isok = co_await sqlite_select_conn->async_query_fetch(rawsql, query_result);
-            if (!isok)
+            unsigned int fetch_count = co_await sqlite_select_conn->async_fetch_directly(rawsql,
+                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                    if (col_cache.empty() && col_count > 0) {
+                        col_cache.reserve(col_count);
+                        for (int k = 0; k < col_count; k++) {
+                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                        }
+                    }
+                    for (int ij = 0; ij < col_count; ij++) {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) {
+                            continue;
+                        }
+                        if (!col_cache[ij].empty()) {
+                            result_record.set_val(col_cache[ij], ptr, len, 0);
+                        }
+                    }
+                    effect_num++;
+                    return false; // only fetch first row
+                });
+
+            if (fetch_count == 0 && !sqlite_select_conn->error_msg.empty())
             {
                 error_msg = sqlite_select_conn->error_msg;
                 sqlite_select_conn.reset();
                 co_return 0;
-            }
-
-            if (!query_result.rows.empty())
-            {
-                auto &row      = query_result.rows.front();
-                auto &row_null = query_result.is_null.front();
-                for (unsigned int ij = 0; ij < query_result.column_names.size() && ij < row.size(); ij++)
-                {
-                    if (!row_null[ij] && query_result.column_names[ij].size() > 0)
-                    {
-                        result_record.set_val(query_result.column_names[ij], reinterpret_cast<const unsigned char *>(row[ij].data()), row[ij].size(), 0);
-                    }
-                }
-                effect_num++;
             }
 
             if (sqlite_select_conn->isdebug)
@@ -1435,111 +1184,38 @@ class db_conn : std::enable_shared_from_this<db_conn>
             {
                 mysql_select_conn->begin_time();
             }
-            std::size_t n = mysql_select_conn->write_sql(rawsql);
-            if (n == 0)
+
+            unsigned int fetch_count = mysql_select_conn->fetch_directly(rawsql,
+                [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                    T data_temp;
+                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                    if (col_cache.empty() && col_count > 0) {
+                        col_cache.reserve(col_count);
+                        for (int k = 0; k < col_count; k++) {
+                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                        }
+                    }
+                    for (int ij = 0; ij < col_count; ij++) {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) {
+                            continue;
+                        }
+                        if (!col_cache[ij].empty()) {
+                            std::invoke(callback, data_temp, col_cache[ij], ptr, len, ij % 255, 1);
+                        }
+                    }
+                    result_record.emplace_back(std::move(data_temp));
+                    effect_num++;
+                    return true;
+                });
+
+            if (fetch_count == 0 && !mysql_select_conn->error_msg.empty())
             {
                 error_msg = mysql_select_conn->error_msg;
                 mysql_select_conn.reset();
                 return 0;
             }
 
-            pack_info_t temp_pack_data;
-            temp_pack_data.seq_id = 1;
-            bool is_sql_item      = false;
-            std::vector<field_info_t> field_array;
-
-            unsigned char action_setup = 0;
-            unsigned int column_num    = 0;
-            unsigned int offset        = 0;
-            for (; is_sql_item == false;)
-            {
-                n      = mysql_select_conn->read_loop();
-                offset = 0;
-                if (n == 0)
-                {
-                    error_msg = mysql_select_conn->error_msg;
-                    mysql_select_conn.reset();
-                    return 0;
-                }
-                for (; offset < n;)
-                {
-                    mysql_select_conn->read_field_pack(mysql_select_conn->_cache_data, n, offset, temp_pack_data);
-                    if (temp_pack_data.error > 0)
-                    {
-                        iserror   = true;
-                        error_msg = temp_pack_data.data;
-                        mysql_select_conn.reset();
-                        return 0;
-                    }
-                    if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
-                    {
-                        if (mysql_select_conn->pack_eof_check(temp_pack_data))
-                        {
-                            is_sql_item = true;
-                            break;
-                        }
-
-                        if (action_setup == 0)
-                        {
-                            if (temp_pack_data.data.empty())
-                                break;
-                            if (temp_pack_data.length == 2 && (unsigned char)temp_pack_data.data[0] < 251 && (unsigned char)temp_pack_data.data[0] > 0)
-                            {
-                                action_setup = 1;
-                                column_num   = (unsigned char)temp_pack_data.data[0];
-                            }
-                        }
-                        else if (action_setup == 1)
-                        {
-                            field_info_t temp_filed_col;
-                            mysql_select_conn->read_col_info(temp_pack_data.data, temp_filed_col);
-
-                            field_array.emplace_back(std::move(temp_filed_col));
-                            column_num--;
-                            if (column_num == 0)
-                            {
-                                action_setup = 2;
-                            }
-                        }
-                        else if (action_setup == 2)
-                        {
-                            unsigned int tempnum = 0;
-
-                            T data_temp;
-                            for (unsigned int ij = 0; ij < field_array.size(); ij++)
-                            {
-                                unsigned long long name_length = 0;
-                                name_length                    = mysql_select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
-                                if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
-                                {
-                                    error_msg = "MySQL read pack error";
-                                    return 0;
-                                }
-                                if (field_array[ij].name.size() > 0)
-                                {
-                                    std::invoke(std::forward<Callback>(callback), data_temp, field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, ij % 255, 1);
-                                }
-                                else if (field_array[ij].org_name.size() > 0)
-                                {
-                                    std::invoke(std::forward<Callback>(callback), data_temp, field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, ij % 255, 1);
-                                }
-                                tempnum = tempnum + name_length;
-                            }
-                            result_record.emplace_back(std::move(data_temp));
-                            effect_num++;
-                        }
-                    }
-                    else
-                    {
-                        if (offset >= n)
-                        {
-                            break;
-                        }
-                        is_sql_item = true;
-                        break;
-                    }
-                }
-            }
             if (mysql_select_conn->isdebug)
             {
                 mysql_select_conn->finish_time();
@@ -1595,37 +1271,35 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 pg_select_conn->begin_time();
             }
 
-            std::vector<field_info_t> fields;
-            std::vector<pg_row_data_t> rows;
-            unsigned int affected = 0;
-            unsigned int err      = pg_select_conn->execute_and_fetch(rawsql, fields, rows, affected);
-            if (err > 0)
+            unsigned int fetch_count = pg_select_conn->fetch_directly(rawsql,
+                [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                T data_temp;
+                // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                if (col_cache.empty() && col_count > 0) {
+                    col_cache.reserve(col_count);
+                    for (int k = 0; k < col_count; k++) {
+                        col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                    }
+                }
+                for (int ij = 0; ij < col_count; ij++) {
+                    auto [ptr, len] = get_data(ij);
+                    if (ptr == nullptr) {
+                        continue;
+                    }
+                        if (!col_cache[ij].empty()) {
+                            std::invoke(callback, data_temp, col_cache[ij], ptr, len, ij % 255, 1);
+                        }
+                }
+                result_record.emplace_back(std::move(data_temp));
+                effect_num++;
+                return true;
+            });
+
+            if (fetch_count == 0 && !pg_select_conn->error_msg.empty())
             {
                 error_msg = pg_select_conn->error_msg;
                 pg_select_conn.reset();
                 return 0;
-            }
-
-            for (auto &row : rows)
-            {
-                T data_temp;
-                for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                {
-                    if (row.is_null[ij])
-                    {
-                        continue;
-                    }
-                    if (fields[ij].name.size() > 0)
-                    {
-                        std::invoke(std::forward<Callback>(callback), data_temp, fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), ij % 255, 1);
-                    }
-                    else if (fields[ij].org_name.size() > 0)
-                    {
-                        std::invoke(std::forward<Callback>(callback), data_temp, fields[ij].org_name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), ij % 255, 1);
-                    }
-                }
-                result_record.emplace_back(std::move(data_temp));
-                effect_num++;
             }
 
             if (pg_select_conn->isdebug)
@@ -1683,33 +1357,35 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 sqlite_select_conn->begin_time();
             }
 
-            sqlite_query_result query_result;
-            bool isok = sqlite_select_conn->query_fetch(rawsql, query_result);
-            if (!isok)
+            unsigned int fetch_count = sqlite_select_conn->fetch_directly(rawsql,
+                [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                    T data_temp;
+                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                    if (col_cache.empty() && col_count > 0) {
+                        col_cache.reserve(col_count);
+                        for (int k = 0; k < col_count; k++) {
+                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                        }
+                    }
+                    for (int ij = 0; ij < col_count; ij++) {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) {
+                            continue;
+                        }
+                        if (!col_cache[ij].empty()) {
+                            std::invoke(callback, data_temp, col_cache[ij], ptr, len, ij % 255, 1);
+                        }
+                    }
+                    result_record.emplace_back(std::move(data_temp));
+                    effect_num++;
+                    return true;
+                });
+
+            if (fetch_count == 0 && !sqlite_select_conn->error_msg.empty())
             {
                 error_msg = sqlite_select_conn->error_msg;
                 sqlite_select_conn.reset();
                 return 0;
-            }
-
-            for (std::size_t ri = 0; ri < query_result.rows.size(); ri++)
-            {
-                T data_temp;
-                auto &row      = query_result.rows[ri];
-                auto &row_null = query_result.is_null[ri];
-                for (unsigned int ij = 0; ij < query_result.column_names.size() && ij < row.size(); ij++)
-                {
-                    if (row_null[ij])
-                    {
-                        continue;
-                    }
-                    if (query_result.column_names[ij].size() > 0)
-                    {
-                        std::invoke(std::forward<Callback>(callback), data_temp, query_result.column_names[ij], reinterpret_cast<const unsigned char *>(row[ij].data()), row[ij].size(), ij % 255, 1);
-                    }
-                }
-                result_record.emplace_back(std::move(data_temp));
-                effect_num++;
             }
 
             if (sqlite_select_conn->isdebug)
@@ -1779,111 +1455,38 @@ class db_conn : std::enable_shared_from_this<db_conn>
             {
                 mysql_select_conn->begin_time();
             }
-            std::size_t n = co_await mysql_select_conn->async_write_sql(rawsql);
-            if (n == 0)
+
+            unsigned int fetch_count = co_await mysql_select_conn->async_fetch_directly(rawsql,
+                [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                    T data_temp;
+                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                    if (col_cache.empty() && col_count > 0) {
+                        col_cache.reserve(col_count);
+                        for (int k = 0; k < col_count; k++) {
+                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                        }
+                    }
+                    for (int ij = 0; ij < col_count; ij++) {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) {
+                            continue;
+                        }
+                        if (!col_cache[ij].empty()) {
+                            std::invoke(callback, data_temp, col_cache[ij], ptr, len, ij % 255, 1);
+                        }
+                    }
+                    result_record.emplace_back(std::move(data_temp));
+                    effect_num++;
+                    return true;
+                });
+
+            if (fetch_count == 0 && !mysql_select_conn->error_msg.empty())
             {
                 error_msg = mysql_select_conn->error_msg;
                 mysql_select_conn.reset();
                 co_return 0;
             }
 
-            pack_info_t temp_pack_data;
-            temp_pack_data.seq_id = 1;
-            bool is_sql_item      = false;
-            std::vector<field_info_t> field_array;
-
-            unsigned char action_setup = 0;
-            unsigned int column_num    = 0;
-            unsigned int offset        = 0;
-            for (; is_sql_item == false;)
-            {
-                n      = co_await mysql_select_conn->async_read_loop();
-                offset = 0;
-                if (n == 0)
-                {
-                    error_msg = mysql_select_conn->error_msg;
-                    mysql_select_conn.reset();
-                    co_return 0;
-                }
-                for (; offset < n;)
-                {
-                    mysql_select_conn->read_field_pack(mysql_select_conn->_cache_data, n, offset, temp_pack_data);
-                    if (temp_pack_data.error > 0)
-                    {
-                        iserror   = true;
-                        error_msg = temp_pack_data.data;
-                        mysql_select_conn.reset();
-                        co_return 0;
-                    }
-                    if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
-                    {
-                        if (mysql_select_conn->pack_eof_check(temp_pack_data))
-                        {
-                            is_sql_item = true;
-                            break;
-                        }
-
-                        if (action_setup == 0)
-                        {
-                            if (temp_pack_data.data.empty())
-                                break;
-                            if (temp_pack_data.length == 2 && (unsigned char)temp_pack_data.data[0] < 251 && (unsigned char)temp_pack_data.data[0] > 0)
-                            {
-                                action_setup = 1;
-                                column_num   = (unsigned char)temp_pack_data.data[0];
-                            }
-                        }
-                        else if (action_setup == 1)
-                        {
-                            field_info_t temp_filed_col;
-                            mysql_select_conn->read_col_info(temp_pack_data.data, temp_filed_col);
-
-                            field_array.emplace_back(std::move(temp_filed_col));
-                            column_num--;
-                            if (column_num == 0)
-                            {
-                                action_setup = 2;
-                            }
-                        }
-                        else if (action_setup == 2)
-                        {
-                            unsigned int tempnum = 0;
-
-                            T data_temp;
-                            for (unsigned int ij = 0; ij < field_array.size(); ij++)
-                            {
-                                unsigned long long name_length = 0;
-                                name_length                    = mysql_select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
-                                if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
-                                {
-                                    error_msg = "MySQL read pack error";
-                                    co_return 0;
-                                }
-                                if (field_array[ij].name.size() > 0)
-                                {
-                                    std::invoke(std::forward<Callback>(callback), data_temp, field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, ij % 255, 1);
-                                }
-                                else if (field_array[ij].org_name.size() > 0)
-                                {
-                                    std::invoke(std::forward<Callback>(callback), data_temp, field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, ij % 255, 1);
-                                }
-                                tempnum = tempnum + name_length;
-                            }
-                            result_record.emplace_back(std::move(data_temp));
-                            effect_num++;
-                        }
-                    }
-                    else
-                    {
-                        if (offset >= n)
-                        {
-                            break;
-                        }
-                        is_sql_item = true;
-                        break;
-                    }
-                }
-            }
             if (mysql_select_conn->isdebug)
             {
                 mysql_select_conn->finish_time();
@@ -1939,37 +1542,35 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 pg_select_conn->begin_time();
             }
 
-            std::vector<field_info_t> fields;
-            std::vector<pg_row_data_t> rows;
-            unsigned int affected = 0;
-            unsigned int err      = co_await pg_select_conn->async_execute_and_fetch(rawsql, fields, rows, affected);
-            if (err > 0)
+            unsigned int fetch_count = co_await pg_select_conn->async_fetch_directly(rawsql,
+                [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                T data_temp;
+                // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                if (col_cache.empty() && col_count > 0) {
+                    col_cache.reserve(col_count);
+                    for (int k = 0; k < col_count; k++) {
+                        col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                    }
+                }
+                for (int ij = 0; ij < col_count; ij++) {
+                    auto [ptr, len] = get_data(ij);
+                    if (ptr == nullptr) {
+                        continue;
+                    }
+                        if (!col_cache[ij].empty()) {
+                            std::invoke(callback, data_temp, col_cache[ij], ptr, len, ij % 255, 1);
+                        }
+                }
+                result_record.emplace_back(std::move(data_temp));
+                effect_num++;
+                return true;
+            });
+
+            if (fetch_count == 0 && !pg_select_conn->error_msg.empty())
             {
                 error_msg = pg_select_conn->error_msg;
                 pg_select_conn.reset();
                 co_return 0;
-            }
-
-            for (auto &row : rows)
-            {
-                T data_temp;
-                for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                {
-                    if (row.is_null[ij])
-                    {
-                        continue;
-                    }
-                    if (fields[ij].name.size() > 0)
-                    {
-                        std::invoke(std::forward<Callback>(callback), data_temp, fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), ij % 255, 1);
-                    }
-                    else if (fields[ij].org_name.size() > 0)
-                    {
-                        std::invoke(std::forward<Callback>(callback), data_temp, fields[ij].org_name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), ij % 255, 1);
-                    }
-                }
-                result_record.emplace_back(std::move(data_temp));
-                effect_num++;
             }
 
             if (pg_select_conn->isdebug)
@@ -2027,33 +1628,35 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 sqlite_select_conn->begin_time();
             }
 
-            sqlite_query_result query_result;
-            bool isok = co_await sqlite_select_conn->async_query_fetch(rawsql, query_result);
-            if (!isok)
+            unsigned int fetch_count = co_await sqlite_select_conn->async_fetch_directly(rawsql,
+                [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                    T data_temp;
+                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                    if (col_cache.empty() && col_count > 0) {
+                        col_cache.reserve(col_count);
+                        for (int k = 0; k < col_count; k++) {
+                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                        }
+                    }
+                    for (int ij = 0; ij < col_count; ij++) {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) {
+                            continue;
+                        }
+                        if (!col_cache[ij].empty()) {
+                            std::invoke(callback, data_temp, col_cache[ij], ptr, len, ij % 255, 1);
+                        }
+                    }
+                    result_record.emplace_back(std::move(data_temp));
+                    effect_num++;
+                    return true;
+                });
+
+            if (fetch_count == 0 && !sqlite_select_conn->error_msg.empty())
             {
                 error_msg = sqlite_select_conn->error_msg;
                 sqlite_select_conn.reset();
                 co_return 0;
-            }
-
-            for (std::size_t ri = 0; ri < query_result.rows.size(); ri++)
-            {
-                T data_temp;
-                auto &row      = query_result.rows[ri];
-                auto &row_null = query_result.is_null[ri];
-                for (unsigned int ij = 0; ij < query_result.column_names.size() && ij < row.size(); ij++)
-                {
-                    if (row_null[ij])
-                    {
-                        continue;
-                    }
-                    if (query_result.column_names[ij].size() > 0)
-                    {
-                        std::invoke(std::forward<Callback>(callback), data_temp, query_result.column_names[ij], reinterpret_cast<const unsigned char *>(row[ij].data()), row[ij].size(), ij % 255, 1);
-                    }
-                }
-                result_record.emplace_back(std::move(data_temp));
-                effect_num++;
             }
 
             if (sqlite_select_conn->isdebug)
@@ -2124,109 +1727,36 @@ class db_conn : std::enable_shared_from_this<db_conn>
             {
                 mysql_select_conn->begin_time();
             }
-            std::size_t n = mysql_select_conn->write_sql(rawsql);
-            if (n == 0)
+
+            unsigned int fetch_count = mysql_select_conn->fetch_directly(rawsql,
+                [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                    if (col_cache.empty() && col_count > 0) {
+                        col_cache.reserve(col_count);
+                        for (int k = 0; k < col_count; k++) {
+                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                        }
+                    }
+                    for (int ij = 0; ij < col_count; ij++) {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) {
+                            continue;
+                        }
+                        if (!col_cache[ij].empty()) {
+                            std::invoke(callback, result_record, col_cache[ij], ptr, len, ij % 255, 1);
+                        }
+                    }
+                    effect_num++;
+                    return false;
+                });
+
+            if (fetch_count == 0 && !mysql_select_conn->error_msg.empty())
             {
                 error_msg = mysql_select_conn->error_msg;
                 mysql_select_conn.reset();
                 return 0;
             }
 
-            pack_info_t temp_pack_data;
-            temp_pack_data.seq_id = 1;
-            bool is_sql_item      = false;
-            std::vector<field_info_t> field_array;
-
-            unsigned char action_setup = 0;
-            unsigned int column_num    = 0;
-            unsigned int offset        = 0;
-            for (; is_sql_item == false;)
-            {
-                n      = mysql_select_conn->read_loop();
-                offset = 0;
-                if (n == 0)
-                {
-                    error_msg = mysql_select_conn->error_msg;
-                    mysql_select_conn.reset();
-                    return 0;
-                }
-                for (; offset < n;)
-                {
-                    mysql_select_conn->read_field_pack(mysql_select_conn->_cache_data, n, offset, temp_pack_data);
-                    if (temp_pack_data.error > 0)
-                    {
-                        iserror   = true;
-                        error_msg = temp_pack_data.data;
-                        mysql_select_conn.reset();
-                        return 0;
-                    }
-                    if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
-                    {
-                        if (mysql_select_conn->pack_eof_check(temp_pack_data))
-                        {
-                            is_sql_item = true;
-                            break;
-                        }
-
-                        if (action_setup == 0)
-                        {
-                            if (temp_pack_data.data.empty())
-                                break;
-                            if (temp_pack_data.length == 2 && (unsigned char)temp_pack_data.data[0] < 251 && (unsigned char)temp_pack_data.data[0] > 0)
-                            {
-                                action_setup = 1;
-                                column_num   = (unsigned char)temp_pack_data.data[0];
-                            }
-                        }
-                        else if (action_setup == 1)
-                        {
-                            field_info_t temp_filed_col;
-                            mysql_select_conn->read_col_info(temp_pack_data.data, temp_filed_col);
-
-                            field_array.emplace_back(std::move(temp_filed_col));
-                            column_num--;
-                            if (column_num == 0)
-                            {
-                                action_setup = 2;
-                            }
-                        }
-                        else if (action_setup == 2)
-                        {
-                            unsigned int tempnum = 0;
-
-                            for (unsigned int ij = 0; ij < field_array.size(); ij++)
-                            {
-                                unsigned long long name_length = 0;
-                                name_length                    = mysql_select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
-                                if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
-                                {
-                                    error_msg = "MySQL read pack error";
-                                    return 0;
-                                }
-                                if (field_array[ij].name.size() > 0)
-                                {
-                                    std::invoke(std::forward<Callback>(callback), result_record, field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, ij % 255, 1);
-                                }
-                                else if (field_array[ij].org_name.size() > 0)
-                                {
-                                    std::invoke(std::forward<Callback>(callback), result_record, field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, ij % 255, 1);
-                                }
-                                tempnum = tempnum + name_length;
-                            }
-                            effect_num++;
-                        }
-                    }
-                    else
-                    {
-                        if (offset >= n)
-                        {
-                            break;
-                        }
-                        is_sql_item = true;
-                        break;
-                    }
-                }
-            }
             if (mysql_select_conn->isdebug)
             {
                 mysql_select_conn->finish_time();
@@ -2282,36 +1812,33 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 pg_select_conn->begin_time();
             }
 
-            std::vector<field_info_t> fields;
-            std::vector<pg_row_data_t> rows;
-            unsigned int affected = 0;
-            unsigned int err      = pg_select_conn->execute_and_fetch(rawsql, fields, rows, affected);
-            if (err > 0)
+            unsigned int fetch_count = pg_select_conn->fetch_directly(rawsql,
+                [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                if (col_cache.empty() && col_count > 0) {
+                    col_cache.reserve(col_count);
+                    for (int k = 0; k < col_count; k++) {
+                        col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                    }
+                }
+                for (int ij = 0; ij < col_count; ij++) {
+                    auto [ptr, len] = get_data(ij);
+                    if (ptr == nullptr) {
+                        continue;
+                    }
+                        if (!col_cache[ij].empty()) {
+                            std::invoke(callback, result_record, col_cache[ij], ptr, len, ij % 255, 1);
+                        }
+                }
+                effect_num++;
+                return false;// 只取首行
+            });
+
+            if (fetch_count == 0 && !pg_select_conn->error_msg.empty())
             {
                 error_msg = pg_select_conn->error_msg;
                 pg_select_conn.reset();
                 return 0;
-            }
-
-            if (!rows.empty())
-            {
-                auto &row = rows.front();
-                for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                {
-                    if (row.is_null[ij])
-                    {
-                        continue;
-                    }
-                    if (fields[ij].name.size() > 0)
-                    {
-                        std::invoke(std::forward<Callback>(callback), result_record, fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), ij % 255, 1);
-                    }
-                    else if (fields[ij].org_name.size() > 0)
-                    {
-                        std::invoke(std::forward<Callback>(callback), result_record, fields[ij].org_name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), ij % 255, 1);
-                    }
-                }
-                effect_num++;
             }
 
             if (pg_select_conn->isdebug)
@@ -2369,31 +1896,33 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 sqlite_select_conn->begin_time();
             }
 
-            sqlite_query_result query_result;
-            bool isok = sqlite_select_conn->query_fetch(rawsql, query_result);
-            if (!isok)
+            unsigned int fetch_count = sqlite_select_conn->fetch_directly(rawsql,
+                [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                    if (col_cache.empty() && col_count > 0) {
+                        col_cache.reserve(col_count);
+                        for (int k = 0; k < col_count; k++) {
+                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                        }
+                    }
+                    for (int ij = 0; ij < col_count; ij++) {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) {
+                            continue;
+                        }
+                        if (!col_cache[ij].empty()) {
+                            std::invoke(callback, result_record, col_cache[ij], ptr, len, ij % 255, 1);
+                        }
+                    }
+                    effect_num++;
+                    return false; // only fetch first row
+                });
+
+            if (fetch_count == 0 && !sqlite_select_conn->error_msg.empty())
             {
                 error_msg = sqlite_select_conn->error_msg;
                 sqlite_select_conn.reset();
                 return 0;
-            }
-
-            if (!query_result.rows.empty())
-            {
-                auto &row      = query_result.rows.front();
-                auto &row_null = query_result.is_null.front();
-                for (unsigned int ij = 0; ij < query_result.column_names.size() && ij < row.size(); ij++)
-                {
-                    if (row_null[ij])
-                    {
-                        continue;
-                    }
-                    if (query_result.column_names[ij].size() > 0)
-                    {
-                        std::invoke(std::forward<Callback>(callback), result_record, query_result.column_names[ij], reinterpret_cast<const unsigned char *>(row[ij].data()), row[ij].size(), ij % 255, 1);
-                    }
-                }
-                effect_num++;
             }
 
             if (sqlite_select_conn->isdebug)
@@ -2463,110 +1992,36 @@ class db_conn : std::enable_shared_from_this<db_conn>
             {
                 mysql_select_conn->begin_time();
             }
-            std::size_t n = co_await mysql_select_conn->async_write_sql(rawsql);
-            if (n == 0)
+
+            unsigned int fetch_count = co_await mysql_select_conn->async_fetch_directly(rawsql,
+                [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                    if (col_cache.empty() && col_count > 0) {
+                        col_cache.reserve(col_count);
+                        for (int k = 0; k < col_count; k++) {
+                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                        }
+                    }
+                    for (int ij = 0; ij < col_count; ij++) {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) {
+                            continue;
+                        }
+                        if (!col_cache[ij].empty()) {
+                            std::invoke(callback, result_record, col_cache[ij], ptr, len, ij % 255, 1);
+                        }
+                    }
+                    effect_num++;
+                    return false;
+                });
+
+            if (fetch_count == 0 && !mysql_select_conn->error_msg.empty())
             {
                 error_msg = mysql_select_conn->error_msg;
                 mysql_select_conn.reset();
                 co_return 0;
             }
 
-            pack_info_t temp_pack_data;
-            temp_pack_data.seq_id = 1;
-            bool is_sql_item      = false;
-            std::vector<field_info_t> field_array;
-
-            unsigned char action_setup = 0;
-            unsigned int column_num    = 0;
-            unsigned int offset        = 0;
-            for (; is_sql_item == false;)
-            {
-                n      = co_await mysql_select_conn->async_read_loop();
-                offset = 0;
-                if (n == 0)
-                {
-                    error_msg = mysql_select_conn->error_msg;
-                    mysql_select_conn.reset();
-                    co_return 0;
-                }
-                for (; offset < n;)
-                {
-                    mysql_select_conn->read_field_pack(mysql_select_conn->_cache_data, n, offset, temp_pack_data);
-                    if (temp_pack_data.error > 0)
-                    {
-                        iserror   = true;
-                        error_msg = temp_pack_data.data;
-                        mysql_select_conn.reset();
-                        co_return 0;
-                    }
-                    if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
-                    {
-                        if (mysql_select_conn->pack_eof_check(temp_pack_data))
-                        {
-                            is_sql_item = true;
-                            break;
-                        }
-
-                        if (action_setup == 0)
-                        {
-                            if (temp_pack_data.data.empty())
-                                break;
-                            if (temp_pack_data.length == 2 && (unsigned char)temp_pack_data.data[0] < 251 && (unsigned char)temp_pack_data.data[0] > 0)
-                            {
-                                action_setup = 1;
-                                column_num   = (unsigned char)temp_pack_data.data[0];
-                            }
-                        }
-                        else if (action_setup == 1)
-                        {
-                            field_info_t temp_filed_col;
-                            mysql_select_conn->read_col_info(temp_pack_data.data, temp_filed_col);
-
-                            field_array.emplace_back(std::move(temp_filed_col));
-                            column_num--;
-                            if (column_num == 0)
-                            {
-                                action_setup = 2;
-                            }
-                        }
-                        else if (action_setup == 2)
-                        {
-                            unsigned int tempnum = 0;
-
-                            for (unsigned int ij = 0; ij < field_array.size(); ij++)
-                            {
-                                unsigned long long name_length = 0;
-                                name_length                    = mysql_select_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
-                                if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
-                                {
-                                    error_msg = "MySQL read pack error";
-                                    co_return 0;
-                                }
-                                if (field_array[ij].name.size() > 0)
-                                {
-                                    std::invoke(std::forward<Callback>(callback), result_record, field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, ij % 255, 1);
-                                }
-                                else if (field_array[ij].org_name.size() > 0)
-                                {
-                                    std::invoke(std::forward<Callback>(callback), result_record, field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, ij % 255, 1);
-                                }
-                                tempnum = tempnum + name_length;
-                            }
-
-                            effect_num++;
-                        }
-                    }
-                    else
-                    {
-                        if (offset >= n)
-                        {
-                            break;
-                        }
-                        is_sql_item = true;
-                        break;
-                    }
-                }
-            }
             if (mysql_select_conn->isdebug)
             {
                 mysql_select_conn->finish_time();
@@ -2622,36 +2077,33 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 pg_select_conn->begin_time();
             }
 
-            std::vector<field_info_t> fields;
-            std::vector<pg_row_data_t> rows;
-            unsigned int affected = 0;
-            unsigned int err      = co_await pg_select_conn->async_execute_and_fetch(rawsql, fields, rows, affected);
-            if (err > 0)
+            unsigned int fetch_count = co_await pg_select_conn->async_fetch_directly(rawsql,
+                [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                if (col_cache.empty() && col_count > 0) {
+                    col_cache.reserve(col_count);
+                    for (int k = 0; k < col_count; k++) {
+                        col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                    }
+                }
+                for (int ij = 0; ij < col_count; ij++) {
+                    auto [ptr, len] = get_data(ij);
+                    if (ptr == nullptr) {
+                        continue;
+                    }
+                        if (!col_cache[ij].empty()) {
+                            std::invoke(callback, result_record, col_cache[ij], ptr, len, ij % 255, 1);
+                        }
+                }
+                effect_num++;
+                return false;// 只取首行
+            });
+
+            if (fetch_count == 0 && !pg_select_conn->error_msg.empty())
             {
                 error_msg = pg_select_conn->error_msg;
                 pg_select_conn.reset();
                 co_return 0;
-            }
-
-            if (!rows.empty())
-            {
-                auto &row = rows.front();
-                for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                {
-                    if (row.is_null[ij])
-                    {
-                        continue;
-                    }
-                    if (fields[ij].name.size() > 0)
-                    {
-                        std::invoke(std::forward<Callback>(callback), result_record, fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), ij % 255, 1);
-                    }
-                    else if (fields[ij].org_name.size() > 0)
-                    {
-                        std::invoke(std::forward<Callback>(callback), result_record, fields[ij].org_name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), ij % 255, 1);
-                    }
-                }
-                effect_num++;
             }
 
             if (pg_select_conn->isdebug)
@@ -2709,31 +2161,33 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 sqlite_select_conn->begin_time();
             }
 
-            sqlite_query_result query_result;
-            bool isok = co_await sqlite_select_conn->async_query_fetch(rawsql, query_result);
-            if (!isok)
+            unsigned int fetch_count = co_await sqlite_select_conn->async_fetch_directly(rawsql,
+                [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                    if (col_cache.empty() && col_count > 0) {
+                        col_cache.reserve(col_count);
+                        for (int k = 0; k < col_count; k++) {
+                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                        }
+                    }
+                    for (int ij = 0; ij < col_count; ij++) {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) {
+                            continue;
+                        }
+                        if (!col_cache[ij].empty()) {
+                            std::invoke(callback, result_record, col_cache[ij], ptr, len, ij % 255, 1);
+                        }
+                    }
+                    effect_num++;
+                    return false; // only fetch first row
+                });
+
+            if (fetch_count == 0 && !sqlite_select_conn->error_msg.empty())
             {
                 error_msg = sqlite_select_conn->error_msg;
                 sqlite_select_conn.reset();
                 co_return 0;
-            }
-
-            if (!query_result.rows.empty())
-            {
-                auto &row      = query_result.rows.front();
-                auto &row_null = query_result.is_null.front();
-                for (unsigned int ij = 0; ij < query_result.column_names.size() && ij < row.size(); ij++)
-                {
-                    if (row_null[ij])
-                    {
-                        continue;
-                    }
-                    if (query_result.column_names[ij].size() > 0)
-                    {
-                        std::invoke(std::forward<Callback>(callback), result_record, query_result.column_names[ij], reinterpret_cast<const unsigned char *>(row[ij].data()), row[ij].size(), ij % 255, 1);
-                    }
-                }
-                effect_num++;
             }
 
             if (sqlite_select_conn->isdebug)
@@ -2807,111 +2261,35 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 mysql_edit_conn->begin_time();
             }
 
-            std::size_t n = mysql_edit_conn->write_sql(rawsql);
-            if (n == 0)
+            unsigned int fetch_count = mysql_edit_conn->fetch_directly(rawsql,
+                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                    T data_temp;
+                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                    if (col_cache.empty() && col_count > 0) {
+                        col_cache.reserve(col_count);
+                        for (int k = 0; k < col_count; k++) {
+                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                        }
+                    }
+                    for (int ij = 0; ij < col_count; ij++) {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) {
+                            continue;
+                        }
+                        if (!col_cache[ij].empty()) {
+                            data_temp.set_val(col_cache[ij], ptr, len, 0);
+                        }
+                    }
+                    result_record.emplace_back(std::move(data_temp));
+                    effect_num++;
+                    return true;
+                });
+
+            if (fetch_count == 0 && !mysql_edit_conn->error_msg.empty())
             {
                 error_msg = mysql_edit_conn->error_msg;
                 mysql_edit_conn.reset();
                 return 0;
-            }
-
-            pack_info_t temp_pack_data;
-            temp_pack_data.seq_id = 1;
-            bool is_sql_item      = false;
-            std::vector<field_info_t> field_array;
-
-            unsigned char action_setup = 0;
-            unsigned int column_num    = 0;
-            unsigned int offset        = 0;
-            for (; is_sql_item == false;)
-            {
-                n      = mysql_edit_conn->read_loop();
-                offset = 0;
-                if (n == 0)
-                {
-                    error_msg = mysql_edit_conn->error_msg;
-                    mysql_edit_conn.reset();
-                    return 0;
-                }
-                for (; offset < n;)
-                {
-                    mysql_edit_conn->read_field_pack(mysql_edit_conn->_cache_data, n, offset, temp_pack_data);
-                    if (temp_pack_data.error > 0)
-                    {
-                        iserror   = true;
-                        error_msg = temp_pack_data.data;
-                        mysql_edit_conn.reset();
-                        return 0;
-                    }
-                    if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
-                    {
-                        if (mysql_edit_conn->pack_eof_check(temp_pack_data))
-                        {
-                            is_sql_item = true;
-                            break;
-                        }
-
-                        if (action_setup == 0)
-                        {
-                            if (temp_pack_data.data.empty())
-                                break;
-                            if (temp_pack_data.length == 2 && (unsigned char)temp_pack_data.data[0] < 251 && (unsigned char)temp_pack_data.data[0] > 0)
-                            {
-                                action_setup = 1;
-                                column_num   = (unsigned char)temp_pack_data.data[0];
-                            }
-                        }
-                        else if (action_setup == 1)
-                        {
-                            field_info_t temp_filed_col;
-                            mysql_edit_conn->read_col_info(temp_pack_data.data, temp_filed_col);
-
-                            field_array.emplace_back(std::move(temp_filed_col));
-                            column_num--;
-                            if (column_num == 0)
-                            {
-                                action_setup = 2;
-                            }
-                        }
-                        else if (action_setup == 2)
-                        {
-                            column_num           = field_array.size();
-                            unsigned int tempnum = 0;
-
-                            T data_temp;
-                            for (unsigned int ij = 0; ij < column_num; ij++)
-                            {
-                                unsigned long long name_length = 0;
-                                name_length                    = mysql_edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
-                                if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
-                                {
-                                    error_msg = "MySQL read pack error";
-                                    return 0;
-                                }
-                                if (field_array[ij].name.size() > 0)
-                                {
-                                    data_temp.set_val(field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
-                                }
-                                else if (field_array[ij].org_name.size() > 0)
-                                {
-                                    data_temp.set_val(field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
-                                }
-                                tempnum = tempnum + name_length;
-                            }
-                            result_record.emplace_back(std::move(data_temp));
-                            effect_num++;
-                        }
-                    }
-                    else
-                    {
-                        if (offset >= n)
-                        {
-                            break;
-                        }
-                        is_sql_item = true;
-                        break;
-                    }
-                }
             }
             if (mysql_edit_conn->isdebug)
             {
@@ -2968,29 +2346,35 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 pg_edit_conn->begin_time();
             }
 
-            std::vector<field_info_t> fields;
-            std::vector<pg_row_data_t> rows;
-            unsigned int affected = 0;
-            unsigned int err      = pg_edit_conn->execute_and_fetch(rawsql, fields, rows, affected);
-            if (err > 0)
+            unsigned int fetch_count = pg_edit_conn->fetch_directly(rawsql,
+                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                T data_temp;
+                // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                if (col_cache.empty() && col_count > 0) {
+                    col_cache.reserve(col_count);
+                    for (int k = 0; k < col_count; k++) {
+                        col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                    }
+                }
+                for (int ij = 0; ij < col_count; ij++) {
+                    auto [ptr, len] = get_data(ij);
+                    if (ptr == nullptr) {
+                        continue;
+                    }
+                        if (!col_cache[ij].empty()) {
+                            data_temp.set_val(col_cache[ij], ptr, len, 0);
+                        }
+                }
+                result_record.emplace_back(std::move(data_temp));
+                effect_num++;
+                return true;
+            });
+
+            if (fetch_count == 0 && !pg_edit_conn->error_msg.empty())
             {
                 error_msg = pg_edit_conn->error_msg;
                 pg_edit_conn.reset();
                 return 0;
-            }
-
-            for (auto &row : rows)
-            {
-                T data_temp;
-                for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                {
-                    if (!row.is_null[ij] && fields[ij].name.size() > 0)
-                    {
-                        data_temp.set_val(fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                    }
-                }
-                result_record.emplace_back(std::move(data_temp));
-                effect_num++;
             }
 
             if (pg_edit_conn->isdebug)
@@ -3048,29 +2432,35 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 sqlite_edit_conn->begin_time();
             }
 
-            sqlite_query_result query_result;
-            bool isok = sqlite_edit_conn->query_fetch(rawsql, query_result);
-            if (!isok)
+            unsigned int fetch_count = sqlite_edit_conn->fetch_directly(rawsql,
+                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                    T data_temp;
+                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                    if (col_cache.empty() && col_count > 0) {
+                        col_cache.reserve(col_count);
+                        for (int k = 0; k < col_count; k++) {
+                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                        }
+                    }
+                    for (int ij = 0; ij < col_count; ij++) {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) {
+                            continue;
+                        }
+                        if (!col_cache[ij].empty()) {
+                            data_temp.set_val(col_cache[ij], ptr, len, 0);
+                        }
+                    }
+                    result_record.emplace_back(std::move(data_temp));
+                    effect_num++;
+                    return true;
+                });
+
+            if (fetch_count == 0 && !sqlite_edit_conn->error_msg.empty())
             {
                 error_msg = sqlite_edit_conn->error_msg;
                 sqlite_edit_conn.reset();
                 return 0;
-            }
-
-            for (std::size_t ri = 0; ri < query_result.rows.size(); ri++)
-            {
-                T data_temp;
-                auto &row      = query_result.rows[ri];
-                auto &row_null = query_result.is_null[ri];
-                for (unsigned int ij = 0; ij < query_result.column_names.size() && ij < row.size(); ij++)
-                {
-                    if (!row_null[ij] && query_result.column_names[ij].size() > 0)
-                    {
-                        data_temp.set_val(query_result.column_names[ij], reinterpret_cast<const unsigned char *>(row[ij].data()), row[ij].size(), 0);
-                    }
-                }
-                result_record.emplace_back(std::move(data_temp));
-                effect_num++;
             }
 
             if (sqlite_edit_conn->isdebug)
@@ -3141,111 +2531,35 @@ class db_conn : std::enable_shared_from_this<db_conn>
             {
                 mysql_edit_conn->begin_time();
             }
-            std::size_t n = co_await mysql_edit_conn->async_write_sql(rawsql);
-            if (n == 0)
+            unsigned int fetch_count = co_await mysql_edit_conn->async_fetch_directly(rawsql,
+                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                    T data_temp;
+                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                    if (col_cache.empty() && col_count > 0) {
+                        col_cache.reserve(col_count);
+                        for (int k = 0; k < col_count; k++) {
+                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                        }
+                    }
+                    for (int ij = 0; ij < col_count; ij++) {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) {
+                            continue;
+                        }
+                        if (!col_cache[ij].empty()) {
+                            data_temp.set_val(col_cache[ij], ptr, len, 0);
+                        }
+                    }
+                    result_record.emplace_back(std::move(data_temp));
+                    effect_num++;
+                    return true;
+                });
+
+            if (fetch_count == 0 && !mysql_edit_conn->error_msg.empty())
             {
                 error_msg = mysql_edit_conn->error_msg;
                 mysql_edit_conn.reset();
                 co_return 0;
-            }
-
-            pack_info_t temp_pack_data;
-            temp_pack_data.seq_id = 1;
-            bool is_sql_item      = false;
-            std::vector<field_info_t> field_array;
-
-            unsigned char action_setup = 0;
-            unsigned int column_num    = 0;
-            unsigned int offset        = 0;
-            for (; is_sql_item == false;)
-            {
-                n      = co_await mysql_edit_conn->async_read_loop();
-                offset = 0;
-                if (n == 0)
-                {
-                    error_msg = mysql_edit_conn->error_msg;
-                    mysql_edit_conn.reset();
-                    co_return 0;
-                }
-                for (; offset < n;)
-                {
-                    mysql_edit_conn->read_field_pack(mysql_edit_conn->_cache_data, n, offset, temp_pack_data);
-                    if (temp_pack_data.error > 0)
-                    {
-                        iserror   = true;
-                        error_msg = temp_pack_data.data;
-                        mysql_edit_conn.reset();
-                        co_return 0;
-                    }
-                    if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
-                    {
-                        if (mysql_edit_conn->pack_eof_check(temp_pack_data))
-                        {
-                            is_sql_item = true;
-                            break;
-                        }
-
-                        if (action_setup == 0)
-                        {
-                            if (temp_pack_data.data.empty())
-                                break;
-                            if (temp_pack_data.length == 2 && (unsigned char)temp_pack_data.data[0] < 251 && (unsigned char)temp_pack_data.data[0] > 0)
-                            {
-                                action_setup = 1;
-                                column_num   = (unsigned char)temp_pack_data.data[0];
-                            }
-                        }
-                        else if (action_setup == 1)
-                        {
-                            field_info_t temp_filed_col;
-                            mysql_edit_conn->read_col_info(temp_pack_data.data, temp_filed_col);
-
-                            field_array.emplace_back(std::move(temp_filed_col));
-                            column_num--;
-                            if (column_num == 0)
-                            {
-                                action_setup = 2;
-                            }
-                        }
-                        else if (action_setup == 2)
-                        {
-                            column_num           = field_array.size();
-                            unsigned int tempnum = 0;
-
-                            T data_temp;
-                            for (unsigned int ij = 0; ij < column_num; ij++)
-                            {
-                                unsigned long long name_length = 0;
-                                name_length                    = mysql_edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
-                                if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
-                                {
-                                    error_msg = "MySQL read pack error";
-                                    co_return 0;
-                                }
-                                if (field_array[ij].name.size() > 0)
-                                {
-                                    data_temp.set_val(field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
-                                }
-                                else if (field_array[ij].org_name.size() > 0)
-                                {
-                                    data_temp.set_val(field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
-                                }
-                                tempnum = tempnum + name_length;
-                            }
-                            result_record.emplace_back(std::move(data_temp));
-                            effect_num++;
-                        }
-                    }
-                    else
-                    {
-                        if (offset >= n)
-                        {
-                            break;
-                        }
-                        is_sql_item = true;
-                        break;
-                    }
-                }
             }
             if (mysql_edit_conn->isdebug)
             {
@@ -3302,29 +2616,35 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 pg_edit_conn->begin_time();
             }
 
-            std::vector<field_info_t> fields;
-            std::vector<pg_row_data_t> rows;
-            unsigned int affected = 0;
-            unsigned int err      = co_await pg_edit_conn->async_execute_and_fetch(rawsql, fields, rows, affected);
-            if (err > 0)
+            unsigned int fetch_count = co_await pg_edit_conn->async_fetch_directly(rawsql,
+                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                T data_temp;
+                // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                if (col_cache.empty() && col_count > 0) {
+                    col_cache.reserve(col_count);
+                    for (int k = 0; k < col_count; k++) {
+                        col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                    }
+                }
+                for (int ij = 0; ij < col_count; ij++) {
+                    auto [ptr, len] = get_data(ij);
+                    if (ptr == nullptr) {
+                        continue;
+                    }
+                        if (!col_cache[ij].empty()) {
+                            data_temp.set_val(col_cache[ij], ptr, len, 0);
+                        }
+                }
+                result_record.emplace_back(std::move(data_temp));
+                effect_num++;
+                return true;
+            });
+
+            if (fetch_count == 0 && !pg_edit_conn->error_msg.empty())
             {
                 error_msg = pg_edit_conn->error_msg;
                 pg_edit_conn.reset();
                 co_return 0;
-            }
-
-            for (auto &row : rows)
-            {
-                T data_temp;
-                for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                {
-                    if (!row.is_null[ij] && fields[ij].name.size() > 0)
-                    {
-                        data_temp.set_val(fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                    }
-                }
-                result_record.emplace_back(std::move(data_temp));
-                effect_num++;
             }
 
             if (pg_edit_conn->isdebug)
@@ -3382,29 +2702,35 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 sqlite_edit_conn->begin_time();
             }
 
-            sqlite_query_result query_result;
-            bool isok = co_await sqlite_edit_conn->async_query_fetch(rawsql, query_result);
-            if (!isok)
+            unsigned int fetch_count = co_await sqlite_edit_conn->async_fetch_directly(rawsql,
+                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                    T data_temp;
+                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                    if (col_cache.empty() && col_count > 0) {
+                        col_cache.reserve(col_count);
+                        for (int k = 0; k < col_count; k++) {
+                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                        }
+                    }
+                    for (int ij = 0; ij < col_count; ij++) {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) {
+                            continue;
+                        }
+                        if (!col_cache[ij].empty()) {
+                            data_temp.set_val(col_cache[ij], ptr, len, 0);
+                        }
+                    }
+                    result_record.emplace_back(std::move(data_temp));
+                    effect_num++;
+                    return true;
+                });
+
+            if (fetch_count == 0 && !sqlite_edit_conn->error_msg.empty())
             {
                 error_msg = sqlite_edit_conn->error_msg;
                 sqlite_edit_conn.reset();
                 co_return 0;
-            }
-
-            for (std::size_t ri = 0; ri < query_result.rows.size(); ri++)
-            {
-                T data_temp;
-                auto &row      = query_result.rows[ri];
-                auto &row_null = query_result.is_null[ri];
-                for (unsigned int ij = 0; ij < query_result.column_names.size() && ij < row.size(); ij++)
-                {
-                    if (!row_null[ij] && query_result.column_names[ij].size() > 0)
-                    {
-                        data_temp.set_val(query_result.column_names[ij], reinterpret_cast<const unsigned char *>(row[ij].data()), row[ij].size(), 0);
-                    }
-                }
-                result_record.emplace_back(std::move(data_temp));
-                effect_num++;
             }
 
             if (sqlite_edit_conn->isdebug)
@@ -3476,109 +2802,33 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 mysql_edit_conn->begin_time();
             }
 
-            std::size_t n = mysql_edit_conn->write_sql(rawsql);
-            if (n == 0)
+            unsigned int fetch_count = mysql_edit_conn->fetch_directly(rawsql,
+                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                    if (col_cache.empty() && col_count > 0) {
+                        col_cache.reserve(col_count);
+                        for (int k = 0; k < col_count; k++) {
+                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                        }
+                    }
+                    for (int ij = 0; ij < col_count; ij++) {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) {
+                            continue;
+                        }
+                        if (!col_cache[ij].empty()) {
+                            result_record.set_val(col_cache[ij], ptr, len, 0);
+                        }
+                    }
+                    effect_num++;
+                    return false;
+                });
+
+            if (fetch_count == 0 && !mysql_edit_conn->error_msg.empty())
             {
                 error_msg = mysql_edit_conn->error_msg;
                 mysql_edit_conn.reset();
                 return 0;
-            }
-
-            pack_info_t temp_pack_data;
-            temp_pack_data.seq_id = 1;
-            bool is_sql_item      = false;
-            std::vector<field_info_t> field_array;
-
-            unsigned char action_setup = 0;
-            unsigned int column_num    = 0;
-            unsigned int offset        = 0;
-            for (; is_sql_item == false;)
-            {
-                n      = mysql_edit_conn->read_loop();
-                offset = 0;
-                if (n == 0)
-                {
-                    error_msg = mysql_edit_conn->error_msg;
-                    mysql_edit_conn.reset();
-                    return 0;
-                }
-                for (; offset < n;)
-                {
-                    mysql_edit_conn->read_field_pack(mysql_edit_conn->_cache_data, n, offset, temp_pack_data);
-                    if (temp_pack_data.error > 0)
-                    {
-                        iserror   = true;
-                        error_msg = temp_pack_data.data;
-                        mysql_edit_conn.reset();
-                        return 0;
-                    }
-                    if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
-                    {
-                        if (mysql_edit_conn->pack_eof_check(temp_pack_data))
-                        {
-                            is_sql_item = true;
-                            break;
-                        }
-
-                        if (action_setup == 0)
-                        {
-                            if (temp_pack_data.data.empty())
-                                break;
-                            if (temp_pack_data.length == 2 && (unsigned char)temp_pack_data.data[0] < 251 && (unsigned char)temp_pack_data.data[0] > 0)
-                            {
-                                action_setup = 1;
-                                column_num   = (unsigned char)temp_pack_data.data[0];
-                            }
-                        }
-                        else if (action_setup == 1)
-                        {
-                            field_info_t temp_filed_col;
-                            mysql_edit_conn->read_col_info(temp_pack_data.data, temp_filed_col);
-
-                            field_array.emplace_back(std::move(temp_filed_col));
-                            column_num--;
-                            if (column_num == 0)
-                            {
-                                action_setup = 2;
-                            }
-                        }
-                        else if (action_setup == 2)
-                        {
-                            column_num           = field_array.size();
-                            unsigned int tempnum = 0;
-
-                            for (unsigned int ij = 0; ij < column_num; ij++)
-                            {
-                                unsigned long long name_length = 0;
-                                name_length                    = mysql_edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
-                                if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
-                                {
-                                    error_msg = "MySQL read pack error";
-                                    return 0;
-                                }
-                                if (field_array[ij].name.size() > 0)
-                                {
-                                    result_record.set_val(field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
-                                }
-                                else if (field_array[ij].org_name.size() > 0)
-                                {
-                                    result_record.set_val(field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
-                                }
-                                tempnum = tempnum + name_length;
-                            }
-                            effect_num++;
-                        }
-                    }
-                    else
-                    {
-                        if (offset >= n)
-                        {
-                            break;
-                        }
-                        is_sql_item = true;
-                        break;
-                    }
-                }
             }
             if (mysql_edit_conn->isdebug)
             {
@@ -3635,28 +2885,33 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 pg_edit_conn->begin_time();
             }
 
-            std::vector<field_info_t> fields;
-            std::vector<pg_row_data_t> rows;
-            unsigned int affected = 0;
-            unsigned int err      = pg_edit_conn->execute_and_fetch(rawsql, fields, rows, affected);
-            if (err > 0)
+            unsigned int fetch_count = pg_edit_conn->fetch_directly(rawsql,
+                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                if (col_cache.empty() && col_count > 0) {
+                    col_cache.reserve(col_count);
+                    for (int k = 0; k < col_count; k++) {
+                        col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                    }
+                }
+                for (int ij = 0; ij < col_count; ij++) {
+                    auto [ptr, len] = get_data(ij);
+                    if (ptr == nullptr) {
+                        continue;
+                    }
+                        if (!col_cache[ij].empty()) {
+                            result_record.set_val(col_cache[ij], ptr, len, 0);
+                        }
+                }
+                effect_num++;
+                return false;// 只取首行
+            });
+
+            if (fetch_count == 0 && !pg_edit_conn->error_msg.empty())
             {
                 error_msg = pg_edit_conn->error_msg;
                 pg_edit_conn.reset();
                 return 0;
-            }
-
-            if (!rows.empty())
-            {
-                auto &row = rows.front();
-                for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                {
-                    if (!row.is_null[ij] && fields[ij].name.size() > 0)
-                    {
-                        result_record.set_val(fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                    }
-                }
-                effect_num++;
             }
 
             if (pg_edit_conn->isdebug)
@@ -3714,27 +2969,33 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 sqlite_edit_conn->begin_time();
             }
 
-            sqlite_query_result query_result;
-            bool isok = sqlite_edit_conn->query_fetch(rawsql, query_result);
-            if (!isok)
+            unsigned int fetch_count = sqlite_edit_conn->fetch_directly(rawsql,
+                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                    if (col_cache.empty() && col_count > 0) {
+                        col_cache.reserve(col_count);
+                        for (int k = 0; k < col_count; k++) {
+                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                        }
+                    }
+                    for (int ij = 0; ij < col_count; ij++) {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) {
+                            continue;
+                        }
+                        if (!col_cache[ij].empty()) {
+                            result_record.set_val(col_cache[ij], ptr, len, 0);
+                        }
+                    }
+                    effect_num++;
+                    return false; // only fetch first row
+                });
+
+            if (fetch_count == 0 && !sqlite_edit_conn->error_msg.empty())
             {
                 error_msg = sqlite_edit_conn->error_msg;
                 sqlite_edit_conn.reset();
                 return 0;
-            }
-
-            if (!query_result.rows.empty())
-            {
-                auto &row      = query_result.rows.front();
-                auto &row_null = query_result.is_null.front();
-                for (unsigned int ij = 0; ij < query_result.column_names.size() && ij < row.size(); ij++)
-                {
-                    if (!row_null[ij] && query_result.column_names[ij].size() > 0)
-                    {
-                        result_record.set_val(query_result.column_names[ij], reinterpret_cast<const unsigned char *>(row[ij].data()), row[ij].size(), 0);
-                    }
-                }
-                effect_num++;
             }
 
             if (sqlite_edit_conn->isdebug)
@@ -3806,110 +3067,33 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 mysql_edit_conn->begin_time();
             }
 
-            std::size_t n = co_await mysql_edit_conn->async_write_sql(rawsql);
-            if (n == 0)
+            unsigned int fetch_count = co_await mysql_edit_conn->async_fetch_directly(rawsql,
+                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                    if (col_cache.empty() && col_count > 0) {
+                        col_cache.reserve(col_count);
+                        for (int k = 0; k < col_count; k++) {
+                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                        }
+                    }
+                    for (int ij = 0; ij < col_count; ij++) {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) {
+                            continue;
+                        }
+                        if (!col_cache[ij].empty()) {
+                            result_record.set_val(col_cache[ij], ptr, len, 0);
+                        }
+                    }
+                    effect_num++;
+                    return false;
+                });
+
+            if (fetch_count == 0 && !mysql_edit_conn->error_msg.empty())
             {
                 error_msg = mysql_edit_conn->error_msg;
                 mysql_edit_conn.reset();
                 co_return 0;
-            }
-
-            pack_info_t temp_pack_data;
-            temp_pack_data.seq_id = 1;
-            bool is_sql_item      = false;
-            std::vector<field_info_t> field_array;
-
-            unsigned char action_setup = 0;
-            unsigned int column_num    = 0;
-            unsigned int offset        = 0;
-            for (; is_sql_item == false;)
-            {
-                n      = co_await mysql_edit_conn->async_read_loop();
-                offset = 0;
-                if (n == 0)
-                {
-                    error_msg = mysql_edit_conn->error_msg;
-                    mysql_edit_conn.reset();
-                    co_return 0;
-                }
-                for (; offset < n;)
-                {
-                    mysql_edit_conn->read_field_pack(mysql_edit_conn->_cache_data, n, offset, temp_pack_data);
-                    if (temp_pack_data.error > 0)
-                    {
-                        iserror   = true;
-                        error_msg = temp_pack_data.data;
-                        mysql_edit_conn.reset();
-                        co_return 0;
-                    }
-                    if (temp_pack_data.length == temp_pack_data.current_length && temp_pack_data.current_length > 0)
-                    {
-                        if (mysql_edit_conn->pack_eof_check(temp_pack_data))
-                        {
-                            is_sql_item = true;
-                            break;
-                        }
-
-                        if (action_setup == 0)
-                        {
-                            if (temp_pack_data.data.empty())
-                                break;
-                            if (temp_pack_data.length == 2 && (unsigned char)temp_pack_data.data[0] < 251 && (unsigned char)temp_pack_data.data[0] > 0)
-                            {
-                                action_setup = 1;
-                                column_num   = (unsigned char)temp_pack_data.data[0];
-                            }
-                        }
-                        else if (action_setup == 1)
-                        {
-                            field_info_t temp_filed_col;
-                            mysql_edit_conn->read_col_info(temp_pack_data.data, temp_filed_col);
-
-                            field_array.emplace_back(std::move(temp_filed_col));
-                            column_num--;
-                            if (column_num == 0)
-                            {
-                                action_setup = 2;
-                            }
-                        }
-                        else if (action_setup == 2)
-                        {
-                            column_num           = field_array.size();
-                            unsigned int tempnum = 0;
-
-                            for (unsigned int ij = 0; ij < column_num; ij++)
-                            {
-                                unsigned long long name_length = 0;
-                                name_length                    = mysql_edit_conn->pack_real_num((unsigned char *)&temp_pack_data.data[0], temp_pack_data.data.size(), tempnum);
-                                if (name_length > 16 * 1024 * 1024 || (tempnum + name_length) > temp_pack_data.data.size())
-                                {
-                                    error_msg = "MySQL read pack error";
-                                    co_return 0;
-                                }
-                                if (field_array[ij].name.size() > 0)
-                                {
-                                    result_record.set_val(field_array[ij].name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
-                                }
-                                else if (field_array[ij].org_name.size() > 0)
-                                {
-                                    result_record.set_val(field_array[ij].org_name, (unsigned char *)&temp_pack_data.data[tempnum], name_length, field_array[ij].field_type);
-                                }
-                                tempnum = tempnum + name_length;
-                            }
-
-                            effect_num++;
-                        }
-                    }
-                    else
-                    {
-                        if (offset >= n)
-                        {
-                            break;
-                        }
-                        is_sql_item = true;
-                        break;
-                    }
-                }
             }
             if (mysql_edit_conn->isdebug)
             {
@@ -3966,28 +3150,33 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 pg_edit_conn->begin_time();
             }
 
-            std::vector<field_info_t> fields;
-            std::vector<pg_row_data_t> rows;
-            unsigned int affected = 0;
-            unsigned int err      = co_await pg_edit_conn->async_execute_and_fetch(rawsql, fields, rows, affected);
-            if (err > 0)
+            unsigned int fetch_count = co_await pg_edit_conn->async_fetch_directly(rawsql,
+                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                if (col_cache.empty() && col_count > 0) {
+                    col_cache.reserve(col_count);
+                    for (int k = 0; k < col_count; k++) {
+                        col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                    }
+                }
+                for (int ij = 0; ij < col_count; ij++) {
+                    auto [ptr, len] = get_data(ij);
+                    if (ptr == nullptr) {
+                        continue;
+                    }
+                        if (!col_cache[ij].empty()) {
+                            result_record.set_val(col_cache[ij], ptr, len, 0);
+                        }
+                }
+                effect_num++;
+                return false;// 只取首行
+            });
+
+            if (fetch_count == 0 && !pg_edit_conn->error_msg.empty())
             {
                 error_msg = pg_edit_conn->error_msg;
                 pg_edit_conn.reset();
                 co_return 0;
-            }
-
-            if (!rows.empty())
-            {
-                auto &row = rows.front();
-                for (unsigned int ij = 0; ij < fields.size() && ij < row.values.size(); ij++)
-                {
-                    if (!row.is_null[ij] && fields[ij].name.size() > 0)
-                    {
-                        result_record.set_val(fields[ij].name, reinterpret_cast<const unsigned char *>(row.values[ij].data()), row.values[ij].size(), fields[ij].field_type);
-                    }
-                }
-                effect_num++;
             }
 
             if (pg_edit_conn->isdebug)
@@ -4045,27 +3234,33 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 sqlite_edit_conn->begin_time();
             }
 
-            sqlite_query_result query_result;
-            bool isok = co_await sqlite_edit_conn->async_query_fetch(rawsql, query_result);
-            if (!isok)
+            unsigned int fetch_count = co_await sqlite_edit_conn->async_fetch_directly(rawsql,
+                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
+                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                    if (col_cache.empty() && col_count > 0) {
+                        col_cache.reserve(col_count);
+                        for (int k = 0; k < col_count; k++) {
+                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                        }
+                    }
+                    for (int ij = 0; ij < col_count; ij++) {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) {
+                            continue;
+                        }
+                        if (!col_cache[ij].empty()) {
+                            result_record.set_val(col_cache[ij], ptr, len, 0);
+                        }
+                    }
+                    effect_num++;
+                    return false; // only fetch first row
+                });
+
+            if (fetch_count == 0 && !sqlite_edit_conn->error_msg.empty())
             {
                 error_msg = sqlite_edit_conn->error_msg;
                 sqlite_edit_conn.reset();
                 co_return 0;
-            }
-
-            if (!query_result.rows.empty())
-            {
-                auto &row      = query_result.rows.front();
-                auto &row_null = query_result.is_null.front();
-                for (unsigned int ij = 0; ij < query_result.column_names.size() && ij < row.size(); ij++)
-                {
-                    if (!row_null[ij] && query_result.column_names[ij].size() > 0)
-                    {
-                        result_record.set_val(query_result.column_names[ij], reinterpret_cast<const unsigned char *>(row[ij].data()), row[ij].size(), 0);
-                    }
-                }
-                effect_num++;
             }
 
             if (sqlite_edit_conn->isdebug)
