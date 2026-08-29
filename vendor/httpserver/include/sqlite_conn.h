@@ -78,9 +78,12 @@ class sqlite_worker_t;
 template <typename T>
 inline T sqlite_shutdown_error_value()
 {
-    if constexpr (std::is_same_v<T, bool>) return false;
-    else if constexpr (std::is_integral_v<T>) return static_cast<T>(-1);
-    else return T{};
+    if constexpr (std::is_same_v<T, bool>)
+        return false;
+    else if constexpr (std::is_integral_v<T>)
+        return static_cast<T>(-1);
+    else
+        return T{};
 }
 
 // fetch_directly 行回调列名缓存类型：同一查询列名不变，首行构建一次后续行复用，
@@ -119,7 +122,8 @@ class sqlite_stmt_cache
     void clear()
     {
         for (auto &[sql, pair] : cache_)
-            if (pair.first) sqlite3_finalize(pair.first);
+            if (pair.first)
+                sqlite3_finalize(pair.first);
         cache_.clear();
         order_.clear();
     }
@@ -127,8 +131,10 @@ class sqlite_stmt_cache
     void evict(const std::string &sql)
     {
         auto it = cache_.find(sql);
-        if (it == cache_.end()) return;
-        if (it->second.first) sqlite3_finalize(it->second.first);
+        if (it == cache_.end())
+            return;
+        if (it->second.first)
+            sqlite3_finalize(it->second.first);
         order_.erase(it->second.second);
         cache_.erase(it);
     }
@@ -136,9 +142,10 @@ class sqlite_stmt_cache
   private:
     void evict_one()
     {
-        if (order_.empty()) return;
+        if (order_.empty())
+            return;
         const std::string &oldest = order_.back();
-        auto it = cache_.find(oldest);
+        auto it                   = cache_.find(oldest);
         if (it != cache_.end() && it->second.first)
             sqlite3_finalize(it->second.first);
         cache_.erase(oldest);
@@ -155,7 +162,7 @@ class sqlite_conn_base
   public:
     sqlite_conn_base();
     ~sqlite_conn_base();
-    sqlite_conn_base(const sqlite_conn_base &) = delete;
+    sqlite_conn_base(const sqlite_conn_base &)            = delete;
     sqlite_conn_base &operator=(const sqlite_conn_base &) = delete;
 
     bool connect(const orm_conn_t &conn_config);
@@ -164,20 +171,20 @@ class sqlite_conn_base
     bool is_closed();
 
     int exec_sql(const std::string &sql);
-    
+
     /**
      * @brief 执行 DML 语句 (INSERT/UPDATE/DELETE) 并返回影响行数
      * @param sql SQL语句
      * @return 影响的行数，失败返回 (unsigned int)-1
      */
     unsigned int exec_dml(const std::string &sql);
-    
+
     /**
      * @brief 获取本连接最近一次 INSERT 产生的自增主键 (rowid)
      * @return rowid，未连接或无插入时返回 0
      */
     long long last_insert_rowid();
-    
+
     bool query_fetch(const std::string &sql, sqlite_query_result &result);
     bool query_scalar(const std::string &sql, sqlite_scalar_result &result);
 
@@ -204,17 +211,17 @@ class sqlite_conn_base
     asio::awaitable<bool> async_close();
     asio::awaitable<bool> async_ping();
     asio::awaitable<int> async_exec_sql(const std::string &sql);
-    
+
     /**
      * @brief exec_dml 的异步版本
      */
     asio::awaitable<unsigned int> async_exec_dml(const std::string &sql);
-    
+
     /**
      * @brief last_insert_rowid 的异步版本
      */
     asio::awaitable<long long> async_last_insert_rowid();
-    
+
     asio::awaitable<bool> async_query_fetch(const std::string &sql, sqlite_query_result &result);
     asio::awaitable<bool> async_query_scalar(const std::string &sql, sqlite_scalar_result &result);
 
@@ -244,15 +251,17 @@ class sqlite_conn_base
 
   public:
     std::string error_msg;
-    bool isdebug = false;
+    bool isdebug            = false;
     unsigned int time_start = 0;
-    unsigned int query_num = 0;
+    unsigned int query_num  = 0;
     std::chrono::time_point<std::chrono::steady_clock> time_begin;
     std::chrono::time_point<std::chrono::steady_clock> time_finish;
 
   private:
-    template <typename T> T submit_sync(std::function<T()> fn);
-    template <typename T> asio::awaitable<T> run_on_worker(std::function<T()> fn);
+    template <typename T>
+    T submit_sync(std::function<T()> fn);
+    template <typename T>
+    asio::awaitable<T> run_on_worker(std::function<T()> fn);
 
     bool connect_impl(const orm_conn_t &conn_config);
     bool close_impl();
@@ -262,13 +271,13 @@ class sqlite_conn_base
     long long last_insert_rowid_impl();
     bool query_fetch_impl(const std::string &sql, sqlite_query_result &result);
     bool query_scalar_impl(const std::string &sql, sqlite_scalar_result &result);
-    
+
     /**
      * @brief fetch_directly 的内部实现，直接操作 sqlite3_stmt
      */
-    unsigned int fetch_directly_impl(const std::string &sql, 
-                                     std::function<bool(int, char**, std::function<std::tuple<unsigned char*, size_t>(int)>)> handler);
-    
+    unsigned int fetch_directly_impl(const std::string &sql,
+                                     std::function<bool(int, char **, std::function<std::tuple<unsigned char *, size_t>(int)>)> handler);
+
     bool exec_bound_impl(const std::string &sql, const std::vector<sqlite_bind_param> &params);
     bool integrity_check_impl(std::string &report);
     bool repair_database_impl();
@@ -298,9 +307,13 @@ class sqlite_conn_base
     std::atomic<int> consecutive_errors_{0};
     std::chrono::steady_clock::time_point last_error_time_;
     static constexpr int k_max_reconnect_retries = 3;
-    static constexpr int k_reconnect_delay_ms = 100;
-    static constexpr int k_error_threshold = 5;
-    struct transaction_log_t { std::string sql; std::chrono::steady_clock::time_point timestamp; };
+    static constexpr int k_reconnect_delay_ms    = 100;
+    static constexpr int k_error_threshold       = 5;
+    struct transaction_log_t
+    {
+        std::string sql;
+        std::chrono::steady_clock::time_point timestamp;
+    };
     std::vector<transaction_log_t> transaction_log_;
     std::mutex error_mutex_;
     orm_conn_t conn_config_;
@@ -312,42 +325,70 @@ inline T sqlite_conn_base::submit_sync(std::function<T()> fn)
 {
     if (!worker_running_.load())
     {
-        try { return fn(); }
-        catch (const std::exception &e) { this->set_error(std::string("exception in sqlite task: ") + e.what()); return sqlite_shutdown_error_value<T>(); }
-        catch (...) { this->set_error("unknown exception in sqlite task"); return sqlite_shutdown_error_value<T>(); }
+        try
+        {
+            return fn();
+        }
+        catch (const std::exception &e)
+        {
+            this->set_error(std::string("exception in sqlite task: ") + e.what());
+            return sqlite_shutdown_error_value<T>();
+        }
+        catch (...)
+        {
+            this->set_error("unknown exception in sqlite task");
+            return sqlite_shutdown_error_value<T>();
+        }
     }
-    if (shutdown_error_.load()) { this->set_error("sqlite_conn is shutting down"); return sqlite_shutdown_error_value<T>(); }
+    if (shutdown_error_.load())
+    {
+        this->set_error("sqlite_conn is shutting down");
+        return sqlite_shutdown_error_value<T>();
+    }
 
     auto promise = std::make_shared<std::promise<T>>();
     auto future  = promise->get_future();
-    submit_to_worker_cached([fn, promise, this]() {
+    submit_to_worker_cached([fn, promise, this]()
+                            {
         try { promise->set_value(fn()); }
         catch (const std::exception &e) { this->set_error(std::string("exception in sqlite task: ") + e.what()); promise->set_value(sqlite_shutdown_error_value<T>()); }
-        catch (...) { this->set_error("unknown exception in sqlite task"); promise->set_value(sqlite_shutdown_error_value<T>()); }
-    });
-    try { return future.get(); }
-    catch (...) { return sqlite_shutdown_error_value<T>(); }
+        catch (...) { this->set_error("unknown exception in sqlite task"); promise->set_value(sqlite_shutdown_error_value<T>()); } });
+    try
+    {
+        return future.get();
+    }
+    catch (...)
+    {
+        return sqlite_shutdown_error_value<T>();
+    }
 }
 
 template <typename T>
 inline asio::awaitable<T> sqlite_conn_base::run_on_worker(std::function<T()> fn)
 {
-    if (!worker_running_.load()) co_return fn();
-    if (shutdown_error_.load()) { this->set_error("sqlite_conn is shutting down"); co_return sqlite_shutdown_error_value<T>(); }
+    if (!worker_running_.load())
+        co_return fn();
+    if (shutdown_error_.load())
+    {
+        this->set_error("sqlite_conn is shutting down");
+        co_return sqlite_shutdown_error_value<T>();
+    }
 
     auto caller_executor = co_await asio::this_coro::executor;
     asio::use_awaitable_t<> token;
     auto awaitable = asio::async_initiate<void(T)>(
-        [this, fn, caller_executor](auto handler) mutable {
+        [this, fn, caller_executor](auto handler) mutable
+        {
             auto hp = std::make_shared<std::decay_t<decltype(handler)>>(std::move(handler));
-            submit_to_worker_cached([fn = std::move(fn), hp, caller_executor, this]() mutable {
+            submit_to_worker_cached([fn = std::move(fn), hp, caller_executor, this]() mutable
+                                    {
                 T value{};
                 try { value = fn(); }
                 catch (const std::exception& e) { value = sqlite_shutdown_error_value<T>(); this->set_error(std::string("exception in sqlite task: ") + e.what()); }
                 catch (...) { value = sqlite_shutdown_error_value<T>(); this->set_error("unknown exception in sqlite task"); }
-                asio::post(caller_executor, [hp, value = std::move(value)]() mutable { (*hp)(std::move(value)); });
-            });
-        }, token);
+                asio::post(caller_executor, [hp, value = std::move(value)]() mutable { (*hp)(std::move(value)); }); });
+        },
+        token);
     co_return co_await std::move(awaitable);
 }
 
@@ -357,21 +398,19 @@ inline unsigned int sqlite_conn_base::fetch_directly(const std::string &sql, Row
     return this->submit_sync<unsigned int>([this, &sql, handler = std::move(handler)]() mutable
                                            {
         std::function<bool(int, char**, std::function<std::tuple<unsigned char*, size_t>(int)>)> func = std::move(handler);
-        return this->fetch_directly_impl(sql, std::move(func));
-    });
+        return this->fetch_directly_impl(sql, std::move(func)); });
 }
 
 template <typename RowHandler>
 inline asio::awaitable<unsigned int> sqlite_conn_base::async_fetch_directly(const std::string &sql, RowHandler handler)
 {
     return this->run_on_worker<unsigned int>([this, &sql, handler = std::move(handler)]() mutable
-                                              {
+                                             {
         std::function<bool(int, char**, std::function<std::tuple<unsigned char*, size_t>(int)>)> func = std::move(handler);
-        return this->fetch_directly_impl(sql, std::move(func));
-    });
+        return this->fetch_directly_impl(sql, std::move(func)); });
 }
 
-#endif  // def(ENABLE_SQLITE)
+#endif// def(ENABLE_SQLITE)
 
 #ifndef ENABLE_SQLITE
 
@@ -380,7 +419,7 @@ class sqlite_conn_base
   public:
     sqlite_conn_base();
     ~sqlite_conn_base();
-    sqlite_conn_base(const sqlite_conn_base &) = delete;
+    sqlite_conn_base(const sqlite_conn_base &)            = delete;
     sqlite_conn_base &operator=(const sqlite_conn_base &) = delete;
 
     bool connect(const orm_conn_t &conn_config);
@@ -389,20 +428,20 @@ class sqlite_conn_base
     bool is_closed();
 
     int exec_sql(const std::string &sql);
-    
+
     /**
      * @brief 执行 DML 语句 (INSERT/UPDATE/DELETE) 并返回影响行数
      * @param sql SQL语句
      * @return 影响的行数，失败返回 (unsigned int)-1
      */
     unsigned int exec_dml(const std::string &sql);
-    
+
     /**
      * @brief 获取本连接最近一次 INSERT 产生的自增主键 (rowid)
      * @return rowid，未连接或无插入时返回 0
      */
     long long last_insert_rowid();
-    
+
     bool query_fetch(const std::string &sql, sqlite_query_result &result);
     bool query_scalar(const std::string &sql, sqlite_scalar_result &result);
 
@@ -429,17 +468,17 @@ class sqlite_conn_base
     asio::awaitable<bool> async_close();
     asio::awaitable<bool> async_ping();
     asio::awaitable<int> async_exec_sql(const std::string &sql);
-    
+
     /**
      * @brief exec_dml 的异步版本
      */
     asio::awaitable<unsigned int> async_exec_dml(const std::string &sql);
-    
+
     /**
      * @brief last_insert_rowid 的异步版本
      */
     asio::awaitable<long long> async_last_insert_rowid();
-    
+
     asio::awaitable<bool> async_query_fetch(const std::string &sql, sqlite_query_result &result);
     asio::awaitable<bool> async_query_scalar(const std::string &sql, sqlite_scalar_result &result);
 
@@ -467,14 +506,16 @@ class sqlite_conn_base
     const std::string &db_file_path() const { return db_file_path_; }
     static const char *sqlite_version();
 
-    template <typename T> T submit_sync(std::function<T()> fn);
-    template <typename T> asio::awaitable<T> run_on_worker(std::function<T()> fn);
+    template <typename T>
+    T submit_sync(std::function<T()> fn);
+    template <typename T>
+    asio::awaitable<T> run_on_worker(std::function<T()> fn);
 
   public:
     std::string error_msg;
-    bool isdebug = false;
+    bool isdebug            = false;
     unsigned int time_start = 0;
-    unsigned int query_num = 0;
+    unsigned int query_num  = 0;
     std::chrono::time_point<std::chrono::steady_clock> time_begin;
     std::chrono::time_point<std::chrono::steady_clock> time_finish;
 
@@ -487,14 +528,32 @@ class sqlite_conn_base
 template <typename T>
 inline T sqlite_conn_base::submit_sync(std::function<T()> fn)
 {
-    if (fn) { try { return fn(); } catch (...) {} }
+    if (fn)
+    {
+        try
+        {
+            return fn();
+        }
+        catch (...)
+        {
+        }
+    }
     return sqlite_shutdown_error_value<T>();
 }
 
 template <typename T>
 inline asio::awaitable<T> sqlite_conn_base::run_on_worker(std::function<T()> fn)
 {
-    if (fn) { try { co_return fn(); } catch (...) {} }
+    if (fn)
+    {
+        try
+        {
+            co_return fn();
+        }
+        catch (...)
+        {
+        }
+    }
     co_return sqlite_shutdown_error_value<T>();
 }
 
@@ -516,7 +575,7 @@ inline asio::awaitable<unsigned int> sqlite_conn_base::async_fetch_directly(cons
     co_return 0;
 }
 
-#endif  // !def(ENABLE_SQLITE)
+#endif// !def(ENABLE_SQLITE)
 
 }// namespace orm
 

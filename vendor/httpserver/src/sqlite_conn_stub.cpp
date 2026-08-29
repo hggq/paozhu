@@ -1,6 +1,7 @@
 /*
  * @Description: SQLite 存根实现 (ENABLE_SQLITE=OFF 时使用)
- *
+ * SQLite stub implementation (used when ENABLE_SQLITE=OFF)
+ * 
  * 本文件始终参与编译，提供 ENABLE_SQLITE=OFF 时的所有存根函数定义。
  * 当 ENABLE_SQLITE=ON 时，本文件中的实现被 #ifndef ENABLE_SQLITE 守卫排除，
  * 实际实现由 sqlite_conn.cpp 提供。
@@ -27,7 +28,7 @@ static const char *SQLITE_NOT_COMPILED_MSG =
 
 // ======================== Worker 存根 ========================
 
-void sqlite_worker_submit(const std::string &/*db_path*/, std::function<void()> task)
+void sqlite_worker_submit(const std::string & /*db_path*/, std::function<void()> task)
 {
     if (task)
     {
@@ -47,7 +48,7 @@ void sqlite_worker_shutdown_all_safe()
 {
 }
 
-void sqlite_worker_shutdown(const std::string &/*db_path*/)
+void sqlite_worker_shutdown(const std::string & /*db_path*/)
 {
 }
 
@@ -99,25 +100,25 @@ bool sqlite_conn_base::is_closed()
     return true;
 }
 
-int sqlite_conn_base::exec_sql(const std::string &/*sql*/)
+int sqlite_conn_base::exec_sql(const std::string & /*sql*/)
 {
     error_msg = SQLITE_NOT_COMPILED_MSG;
     return -1;
 }
 
-bool sqlite_conn_base::query_fetch(const std::string &/*sql*/, sqlite_query_result &/*result*/)
+bool sqlite_conn_base::query_fetch(const std::string & /*sql*/, sqlite_query_result & /*result*/)
 {
     error_msg = SQLITE_NOT_COMPILED_MSG;
     return false;
 }
 
-bool sqlite_conn_base::query_scalar(const std::string &/*sql*/, sqlite_scalar_result &/*result*/)
+bool sqlite_conn_base::query_scalar(const std::string & /*sql*/, sqlite_scalar_result & /*result*/)
 {
     error_msg = SQLITE_NOT_COMPILED_MSG;
     return false;
 }
 
-unsigned int sqlite_conn_base::exec_dml(const std::string &/*sql*/)
+unsigned int sqlite_conn_base::exec_dml(const std::string & /*sql*/)
 {
     error_msg = SQLITE_NOT_COMPILED_MSG;
     return static_cast<unsigned int>(-1);
@@ -129,13 +130,13 @@ long long sqlite_conn_base::last_insert_rowid()
     return 0;
 }
 
-int sqlite_conn_base::exec_batch(const std::vector<std::string> &/*sqls*/)
+int sqlite_conn_base::exec_batch(const std::vector<std::string> & /*sqls*/)
 {
     error_msg = SQLITE_NOT_COMPILED_MSG;
     return -1;
 }
 
-bool sqlite_conn_base::exec_bound(const std::string &/*sql*/, const std::vector<sqlite_bind_param> &/*params*/)
+bool sqlite_conn_base::exec_bound(const std::string & /*sql*/, const std::vector<sqlite_bind_param> & /*params*/)
 {
     error_msg = SQLITE_NOT_COMPILED_MSG;
     return false;
@@ -147,7 +148,7 @@ std::vector<std::string> sqlite_conn_base::get_table_list()
     return {};
 }
 
-std::vector<std::map<std::string, std::string>> sqlite_conn_base::get_table_info(const std::string &/*table*/)
+std::vector<std::map<std::string, std::string>> sqlite_conn_base::get_table_info(const std::string & /*table*/)
 {
     error_msg = SQLITE_NOT_COMPILED_MSG;
     return {};
@@ -172,25 +173,25 @@ asio::awaitable<bool> sqlite_conn_base::async_ping()
     co_return false;
 }
 
-asio::awaitable<int> sqlite_conn_base::async_exec_sql(const std::string &/*sql*/)
+asio::awaitable<int> sqlite_conn_base::async_exec_sql(const std::string & /*sql*/)
 {
     error_msg = SQLITE_NOT_COMPILED_MSG;
     co_return -1;
 }
 
-asio::awaitable<bool> sqlite_conn_base::async_query_fetch(const std::string &/*sql*/, sqlite_query_result &/*result*/)
+asio::awaitable<bool> sqlite_conn_base::async_query_fetch(const std::string & /*sql*/, sqlite_query_result & /*result*/)
 {
     error_msg = SQLITE_NOT_COMPILED_MSG;
     co_return false;
 }
 
-asio::awaitable<bool> sqlite_conn_base::async_query_scalar(const std::string &/*sql*/, sqlite_scalar_result &/*result*/)
+asio::awaitable<bool> sqlite_conn_base::async_query_scalar(const std::string & /*sql*/, sqlite_scalar_result & /*result*/)
 {
     error_msg = SQLITE_NOT_COMPILED_MSG;
     co_return false;
 }
 
-asio::awaitable<unsigned int> sqlite_conn_base::async_exec_dml(const std::string &/*sql*/)
+asio::awaitable<unsigned int> sqlite_conn_base::async_exec_dml(const std::string & /*sql*/)
 {
     error_msg = SQLITE_NOT_COMPILED_MSG;
     co_return static_cast<unsigned int>(-1);
@@ -202,7 +203,7 @@ asio::awaitable<long long> sqlite_conn_base::async_last_insert_rowid()
     co_return 0;
 }
 
-void sqlite_conn_base::start_worker_thread(asio::io_context &/*ioc*/, const std::string &/*db_path*/)
+void sqlite_conn_base::start_worker_thread(asio::io_context & /*ioc*/, const std::string & /*db_path*/)
 {
     error_msg = SQLITE_NOT_COMPILED_MSG;
 }
@@ -214,7 +215,7 @@ void sqlite_conn_base::stop_worker_thread()
 bool sqlite_conn_base::integrity_check(std::string &report)
 {
     error_msg = SQLITE_NOT_COMPILED_MSG;
-    report = SQLITE_NOT_COMPILED_MSG;
+    report    = SQLITE_NOT_COMPILED_MSG;
     return false;
 }
 
@@ -257,6 +258,6 @@ const char *sqlite_conn_base::sqlite_version()
     return "SQLite support not compiled";
 }
 
-#endif  // !ENABLE_SQLITE (i.e. ENABLE_SQLITE not defined)
+#endif// !ENABLE_SQLITE (i.e. ENABLE_SQLITE not defined)
 
 }// namespace orm

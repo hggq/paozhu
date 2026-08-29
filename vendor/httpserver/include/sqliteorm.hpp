@@ -520,7 +520,7 @@ namespace orm
                 {
                     edit_conn->begin_time();
                 }
-                
+
                 unsigned int affected = edit_conn->exec_dml(countsql);
                 if (edit_conn->isdebug)
                 {
@@ -642,7 +642,7 @@ namespace orm
                 {
                     edit_conn->begin_time();
                 }
-                
+
                 unsigned int affected = co_await edit_conn->async_exec_dml(countsql);
                 if (edit_conn->isdebug)
                 {
@@ -2823,28 +2823,33 @@ namespace orm
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                    [this, &temprecord, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                        // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                        if (col_cache.empty() && col_count > 0) {
-                            col_cache.reserve(col_count);
-                            for (int k = 0; k < col_count; k++) {
-                                col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                            }
-                        }
-                        std::map<std::string, std::string> data_temp;
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) {
-                                continue; // NULL value
-                            }
-                            std::string value(reinterpret_cast<char*>(ptr), len);
-                            data_temp.insert({col_cache[ij], std::move(value)});
-                        }
-                        temprecord.emplace_back(std::move(data_temp));
-                        effect_num++;
-                        return true; // 继续下一行
-                    });
-                (void)fetch_count; // suppress unused warning
+                                                                       [this, &temprecord, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                       {
+                                                                           // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                           if (col_cache.empty() && col_count > 0)
+                                                                           {
+                                                                               col_cache.reserve(col_count);
+                                                                               for (int k = 0; k < col_count; k++)
+                                                                               {
+                                                                                   col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                               }
+                                                                           }
+                                                                           std::map<std::string, std::string> data_temp;
+                                                                           for (int ij = 0; ij < col_count; ij++)
+                                                                           {
+                                                                               auto [ptr, len] = get_data(ij);
+                                                                               if (ptr == nullptr)
+                                                                               {
+                                                                                   continue;// NULL value
+                                                                               }
+                                                                               std::string value(reinterpret_cast<char *>(ptr), len);
+                                                                               data_temp.insert({col_cache[ij], std::move(value)});
+                                                                           }
+                                                                           temprecord.emplace_back(std::move(data_temp));
+                                                                           effect_num++;
+                                                                           return true;// 继续下一行
+                                                                       });
+                (void)fetch_count;// suppress unused warning
 
                 if (select_conn->isdebug)
                 {
@@ -2970,31 +2975,38 @@ namespace orm
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                    [this, &temprecord, &table_fieldname, &table_fieldmap](int col_count, char** col_names, auto get_data) -> bool {
-                        // 只构建一次字段信息
-                        if (table_fieldname.empty()) {
-                            for (int ii = 0; ii < col_count; ii++) {
-                                std::string col_name = col_names[ii] ? col_names[ii] : "";
-                                table_fieldmap.emplace(col_name, table_fieldname.size());
-                                table_fieldname.push_back(col_name);
-                            }
-                        }
-                        
-                        std::vector<std::string> temp_v_record;
-                        temp_v_record.reserve(col_count);
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) {
-                                temp_v_record.push_back(""); // NULL value
-                            } else {
-                                temp_v_record.emplace_back(reinterpret_cast<char*>(ptr), len);
-                            }
-                        }
-                        temprecord.push_back(std::move(temp_v_record));
-                        effect_num++;
-                        return true; // 继续下一行
-                    });
-                (void)fetch_count; // suppress unused warning
+                                                                       [this, &temprecord, &table_fieldname, &table_fieldmap](int col_count, char **col_names, auto get_data) -> bool
+                                                                       {
+                                                                           // 只构建一次字段信息
+                                                                           if (table_fieldname.empty())
+                                                                           {
+                                                                               for (int ii = 0; ii < col_count; ii++)
+                                                                               {
+                                                                                   std::string col_name = col_names[ii] ? col_names[ii] : "";
+                                                                                   table_fieldmap.emplace(col_name, table_fieldname.size());
+                                                                                   table_fieldname.push_back(col_name);
+                                                                               }
+                                                                           }
+
+                                                                           std::vector<std::string> temp_v_record;
+                                                                           temp_v_record.reserve(col_count);
+                                                                           for (int ij = 0; ij < col_count; ij++)
+                                                                           {
+                                                                               auto [ptr, len] = get_data(ij);
+                                                                               if (ptr == nullptr)
+                                                                               {
+                                                                                   temp_v_record.push_back("");// NULL value
+                                                                               }
+                                                                               else
+                                                                               {
+                                                                                   temp_v_record.emplace_back(reinterpret_cast<char *>(ptr), len);
+                                                                               }
+                                                                           }
+                                                                           temprecord.push_back(std::move(temp_v_record));
+                                                                           effect_num++;
+                                                                           return true;// 继续下一行
+                                                                       });
+                (void)fetch_count;// suppress unused warning
 
                 if (select_conn->isdebug)
                 {
@@ -3116,29 +3128,35 @@ namespace orm
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                    [this, &custom_record, &callback, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                        T data_temp;
-                        // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                        if (col_cache.empty() && col_count > 0) {
-                            col_cache.reserve(col_count);
-                            for (int k = 0; k < col_count; k++) {
-                                col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                            }
-                        }
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) {
-                                continue; // NULL value
-                            }
-                            if (!col_cache[ij].empty()) {
-                                std::invoke(callback, data_temp, col_cache[ij], ptr, len, 0, 1);
-                            }
-                        }
-                        custom_record.emplace_back(std::move(data_temp));
-                        effect_num++;
-                        return true; // 继续下一行
-                    });
-                (void)fetch_count; // suppress unused warning
+                                                                       [this, &custom_record, &callback, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                       {
+                                                                           T data_temp;
+                                                                           // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                           if (col_cache.empty() && col_count > 0)
+                                                                           {
+                                                                               col_cache.reserve(col_count);
+                                                                               for (int k = 0; k < col_count; k++)
+                                                                               {
+                                                                                   col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                               }
+                                                                           }
+                                                                           for (int ij = 0; ij < col_count; ij++)
+                                                                           {
+                                                                               auto [ptr, len] = get_data(ij);
+                                                                               if (ptr == nullptr)
+                                                                               {
+                                                                                   continue;// NULL value
+                                                                               }
+                                                                               if (!col_cache[ij].empty())
+                                                                               {
+                                                                                   std::invoke(callback, data_temp, col_cache[ij], ptr, len, 0, 1);
+                                                                               }
+                                                                           }
+                                                                           custom_record.emplace_back(std::move(data_temp));
+                                                                           effect_num++;
+                                                                           return true;// 继续下一行
+                                                                       });
+                (void)fetch_count;// suppress unused warning
 
                 if (select_conn->isdebug)
                 {
@@ -3234,29 +3252,35 @@ namespace orm
                 }
 
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
-                    [this, &custom_record, &callback, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                        T data_temp;
-                        // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                        if (col_cache.empty() && col_count > 0) {
-                            col_cache.reserve(col_count);
-                            for (int k = 0; k < col_count; k++) {
-                                col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                            }
-                        }
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) {
-                                continue;
-                            }
-                            if (!col_cache[ij].empty()) {
-                                std::invoke(std::forward<Callback>(callback), data_temp, col_cache[ij], ptr, len, 0, 1);
-                            }
-                        }
-                        custom_record.emplace_back(std::move(data_temp));
-                        effect_num++;
-                        return true;
-                    });
-                (void)fetch_count; // suppress unused warning
+                                                                                      [this, &custom_record, &callback, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                      {
+                                                                                          T data_temp;
+                                                                                          // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                                          if (col_cache.empty() && col_count > 0)
+                                                                                          {
+                                                                                              col_cache.reserve(col_count);
+                                                                                              for (int k = 0; k < col_count; k++)
+                                                                                              {
+                                                                                                  col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                              }
+                                                                                          }
+                                                                                          for (int ij = 0; ij < col_count; ij++)
+                                                                                          {
+                                                                                              auto [ptr, len] = get_data(ij);
+                                                                                              if (ptr == nullptr)
+                                                                                              {
+                                                                                                  continue;
+                                                                                              }
+                                                                                              if (!col_cache[ij].empty())
+                                                                                              {
+                                                                                                  std::invoke(std::forward<Callback>(callback), data_temp, col_cache[ij], ptr, len, 0, 1);
+                                                                                              }
+                                                                                          }
+                                                                                          custom_record.emplace_back(std::move(data_temp));
+                                                                                          effect_num++;
+                                                                                          return true;
+                                                                                      });
+                (void)fetch_count;// suppress unused warning
 
                 if (select_conn->isdebug)
                 {
@@ -3350,29 +3374,35 @@ namespace orm
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                    [this, &custom_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                        T data_temp;
-                        // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                        if (col_cache.empty() && col_count > 0) {
-                            col_cache.reserve(col_count);
-                            for (int k = 0; k < col_count; k++) {
-                                col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                            }
-                        }
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) {
-                                continue;
-                            }
-                            if (!col_cache[ij].empty()) {
-                                data_temp.set_val(col_cache[ij], ptr, len, 0);
-                            }
-                        }
-                        custom_record.emplace_back(std::move(data_temp));
-                        effect_num++;
-                        return true;
-                    });
-                (void)fetch_count; // suppress unused warning
+                                                                       [this, &custom_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                       {
+                                                                           T data_temp;
+                                                                           // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                           if (col_cache.empty() && col_count > 0)
+                                                                           {
+                                                                               col_cache.reserve(col_count);
+                                                                               for (int k = 0; k < col_count; k++)
+                                                                               {
+                                                                                   col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                               }
+                                                                           }
+                                                                           for (int ij = 0; ij < col_count; ij++)
+                                                                           {
+                                                                               auto [ptr, len] = get_data(ij);
+                                                                               if (ptr == nullptr)
+                                                                               {
+                                                                                   continue;
+                                                                               }
+                                                                               if (!col_cache[ij].empty())
+                                                                               {
+                                                                                   data_temp.set_val(col_cache[ij], ptr, len, 0);
+                                                                               }
+                                                                           }
+                                                                           custom_record.emplace_back(std::move(data_temp));
+                                                                           effect_num++;
+                                                                           return true;
+                                                                       });
+                (void)fetch_count;// suppress unused warning
 
                 if (select_conn->isdebug)
                 {
@@ -3468,29 +3498,35 @@ namespace orm
                 }
 
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
-                    [this, &custom_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                        T data_temp;
-                        // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                        if (col_cache.empty() && col_count > 0) {
-                            col_cache.reserve(col_count);
-                            for (int k = 0; k < col_count; k++) {
-                                col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                            }
-                        }
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) {
-                                continue;
-                            }
-                            if (!col_cache[ij].empty()) {
-                                data_temp.set_val(col_cache[ij], ptr, len, 0);
-                            }
-                        }
-                        custom_record.emplace_back(std::move(data_temp));
-                        effect_num++;
-                        return true;
-                    });
-                (void)fetch_count; // suppress unused warning
+                                                                                      [this, &custom_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                      {
+                                                                                          T data_temp;
+                                                                                          // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                                          if (col_cache.empty() && col_count > 0)
+                                                                                          {
+                                                                                              col_cache.reserve(col_count);
+                                                                                              for (int k = 0; k < col_count; k++)
+                                                                                              {
+                                                                                                  col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                              }
+                                                                                          }
+                                                                                          for (int ij = 0; ij < col_count; ij++)
+                                                                                          {
+                                                                                              auto [ptr, len] = get_data(ij);
+                                                                                              if (ptr == nullptr)
+                                                                                              {
+                                                                                                  continue;
+                                                                                              }
+                                                                                              if (!col_cache[ij].empty())
+                                                                                              {
+                                                                                                  data_temp.set_val(col_cache[ij], ptr, len, 0);
+                                                                                              }
+                                                                                          }
+                                                                                          custom_record.emplace_back(std::move(data_temp));
+                                                                                          effect_num++;
+                                                                                          return true;
+                                                                                      });
+                (void)fetch_count;// suppress unused warning
 
                 if (select_conn->isdebug)
                 {
@@ -3593,30 +3629,36 @@ namespace orm
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                    [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char** col_names, auto get_data) mutable -> bool {
-                        // 列位映射仅首行构建（同一结果集列序固定）：消除每行重建映射的开销。
-                        if (first_row) {
-                            col_pos_map.assign(col_count, 255);
-                            for (int ii = 0; ii < col_count; ii++) {
-                                if (col_names[ii]) {
-                                    col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
-                                }
-                            }
-                            first_row = false;
-                        }
+                                                                       [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                       {
+                                                                           // 列位映射仅首行构建（同一结果集列序固定）：消除每行重建映射的开销。
+                                                                           if (first_row)
+                                                                           {
+                                                                               col_pos_map.assign(col_count, 255);
+                                                                               for (int ii = 0; ii < col_count; ii++)
+                                                                               {
+                                                                                   if (col_names[ii])
+                                                                                   {
+                                                                                       col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
+                                                                                   }
+                                                                               }
+                                                                               first_row = false;
+                                                                           }
 
-                        typename B_BASE::meta data_temp;
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) {
-                                continue; // NULL value
-                            }
-                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
-                        }
-                        B_BASE::record.emplace_back(std::move(data_temp));
-                        return true; // 继续下一行
-                    });
-                effect_num = fetch_count;
+                                                                           typename B_BASE::meta data_temp;
+                                                                           for (int ij = 0; ij < col_count; ij++)
+                                                                           {
+                                                                               auto [ptr, len] = get_data(ij);
+                                                                               if (ptr == nullptr)
+                                                                               {
+                                                                                   continue;// NULL value
+                                                                               }
+                                                                               assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
+                                                                           }
+                                                                           B_BASE::record.emplace_back(std::move(data_temp));
+                                                                           return true;// 继续下一行
+                                                                       });
+                effect_num               = fetch_count;
 
                 if (select_conn->isdebug)
                 {
@@ -3730,30 +3772,36 @@ namespace orm
 
                 std::vector<unsigned char> field_pos;
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
-                    [this, &field_pos](int col_count, char** col_names, auto get_data) -> bool {
-                        // Build field positions on first call
-                        if (field_pos.empty() && col_count > 0) {
-                            for (int ii = 0; ii < col_count; ii++) {
-                                const char* org_name = col_names[ii];
-                                field_pos.push_back(B_BASE::findcolpos(org_name ? org_name : ""));
-                            }
-                        }
+                                                                                      [this, &field_pos](int col_count, char **col_names, auto get_data) -> bool
+                                                                                      {
+                                                                                          // Build field positions on first call
+                                                                                          if (field_pos.empty() && col_count > 0)
+                                                                                          {
+                                                                                              for (int ii = 0; ii < col_count; ii++)
+                                                                                              {
+                                                                                                  const char *org_name = col_names[ii];
+                                                                                                  field_pos.push_back(B_BASE::findcolpos(org_name ? org_name : ""));
+                                                                                              }
+                                                                                          }
 
-                        typename B_BASE::meta data_temp;
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) {
-                                continue;
-                            }
-                            if (ij < static_cast<int>(field_pos.size())) {
-                                assign_field_value(field_pos[ij], ptr, len, data_temp);
-                            }
-                        }
-                        B_BASE::record.emplace_back(std::move(data_temp));
-                        effect_num++;
-                        return true;
-                    });
-                (void)fetch_count; // suppress unused warning
+                                                                                          typename B_BASE::meta data_temp;
+                                                                                          for (int ij = 0; ij < col_count; ij++)
+                                                                                          {
+                                                                                              auto [ptr, len] = get_data(ij);
+                                                                                              if (ptr == nullptr)
+                                                                                              {
+                                                                                                  continue;
+                                                                                              }
+                                                                                              if (ij < static_cast<int>(field_pos.size()))
+                                                                                              {
+                                                                                                  assign_field_value(field_pos[ij], ptr, len, data_temp);
+                                                                                              }
+                                                                                          }
+                                                                                          B_BASE::record.emplace_back(std::move(data_temp));
+                                                                                          effect_num++;
+                                                                                          return true;
+                                                                                      });
+                (void)fetch_count;// suppress unused warning
 
                 if (select_conn->isdebug)
                 {
@@ -3864,30 +3912,36 @@ namespace orm
                 }
                 std::vector<unsigned char> field_pos;
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                    [this, &field_pos](int col_count, char** col_names, auto get_data) -> bool {
-                        // Build field positions on first call
-                        if (field_pos.empty() && col_count > 0) {
-                            for (int ii = 0; ii < col_count; ii++) {
-                                const char* org_name = col_names[ii];
-                                field_pos.push_back(B_BASE::findcolpos(org_name ? org_name : ""));
-                            }
-                        }
+                                                                       [this, &field_pos](int col_count, char **col_names, auto get_data) -> bool
+                                                                       {
+                                                                           // Build field positions on first call
+                                                                           if (field_pos.empty() && col_count > 0)
+                                                                           {
+                                                                               for (int ii = 0; ii < col_count; ii++)
+                                                                               {
+                                                                                   const char *org_name = col_names[ii];
+                                                                                   field_pos.push_back(B_BASE::findcolpos(org_name ? org_name : ""));
+                                                                               }
+                                                                           }
 
-                        typename B_BASE::meta data_temp;
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) {
-                                continue;
-                            }
-                            if (ij < static_cast<int>(field_pos.size())) {
-                                assign_field_value(field_pos[ij], ptr, len, data_temp);
-                            }
-                        }
-                        B_BASE::record.emplace_back(std::move(data_temp));
-                        effect_num++;
-                        return true;
-                    });
-                (void)fetch_count; // suppress unused warning
+                                                                           typename B_BASE::meta data_temp;
+                                                                           for (int ij = 0; ij < col_count; ij++)
+                                                                           {
+                                                                               auto [ptr, len] = get_data(ij);
+                                                                               if (ptr == nullptr)
+                                                                               {
+                                                                                   continue;
+                                                                               }
+                                                                               if (ij < static_cast<int>(field_pos.size()))
+                                                                               {
+                                                                                   assign_field_value(field_pos[ij], ptr, len, data_temp);
+                                                                               }
+                                                                           }
+                                                                           B_BASE::record.emplace_back(std::move(data_temp));
+                                                                           effect_num++;
+                                                                           return true;
+                                                                       });
+                (void)fetch_count;// suppress unused warning
 
                 if (select_conn->isdebug)
                 {
@@ -4002,29 +4056,35 @@ namespace orm
                 }
                 std::vector<unsigned char> field_pos;
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
-                    [this, &field_pos](int col_count, char** col_names, auto get_data) -> bool {
-                        if (field_pos.empty() && col_count > 0) {
-                            for (int ii = 0; ii < col_count; ii++) {
-                                const char* org_name = col_names[ii];
-                                field_pos.push_back(B_BASE::findcolpos(org_name ? org_name : ""));
-                            }
-                        }
+                                                                                      [this, &field_pos](int col_count, char **col_names, auto get_data) -> bool
+                                                                                      {
+                                                                                          if (field_pos.empty() && col_count > 0)
+                                                                                          {
+                                                                                              for (int ii = 0; ii < col_count; ii++)
+                                                                                              {
+                                                                                                  const char *org_name = col_names[ii];
+                                                                                                  field_pos.push_back(B_BASE::findcolpos(org_name ? org_name : ""));
+                                                                                              }
+                                                                                          }
 
-                        typename B_BASE::meta data_temp;
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) {
-                                continue;
-                            }
-                            if (ij < static_cast<int>(field_pos.size())) {
-                                assign_field_value(field_pos[ij], ptr, len, data_temp);
-                            }
-                        }
-                        B_BASE::record.emplace_back(std::move(data_temp));
-                        effect_num++;
-                        return true;
-                    });
-                (void)fetch_count; // suppress unused warning
+                                                                                          typename B_BASE::meta data_temp;
+                                                                                          for (int ij = 0; ij < col_count; ij++)
+                                                                                          {
+                                                                                              auto [ptr, len] = get_data(ij);
+                                                                                              if (ptr == nullptr)
+                                                                                              {
+                                                                                                  continue;
+                                                                                              }
+                                                                                              if (ij < static_cast<int>(field_pos.size()))
+                                                                                              {
+                                                                                                  assign_field_value(field_pos[ij], ptr, len, data_temp);
+                                                                                              }
+                                                                                          }
+                                                                                          B_BASE::record.emplace_back(std::move(data_temp));
+                                                                                          effect_num++;
+                                                                                          return true;
+                                                                                      });
+                (void)fetch_count;// suppress unused warning
                 if (select_conn->isdebug)
                 {
                     select_conn->finish_time();
@@ -4127,27 +4187,33 @@ namespace orm
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                    [this, &custom_record, &callback, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                        // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                        if (col_cache.empty() && col_count > 0) {
-                            col_cache.reserve(col_count);
-                            for (int k = 0; k < col_count; k++) {
-                                col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                            }
-                        }
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) {
-                                continue; // NULL value
-                            }
-                            if (!col_cache[ij].empty()) {
-                                std::invoke(callback, custom_record, col_cache[ij], ptr, len, 0, 1);
-                            }
-                        }
-                        effect_num++;
-                        return false; // 只需一行，返回 false 终止查询
-                    });
-                (void)fetch_count; // suppress unused warning
+                                                                       [this, &custom_record, &callback, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                       {
+                                                                           // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                           if (col_cache.empty() && col_count > 0)
+                                                                           {
+                                                                               col_cache.reserve(col_count);
+                                                                               for (int k = 0; k < col_count; k++)
+                                                                               {
+                                                                                   col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                               }
+                                                                           }
+                                                                           for (int ij = 0; ij < col_count; ij++)
+                                                                           {
+                                                                               auto [ptr, len] = get_data(ij);
+                                                                               if (ptr == nullptr)
+                                                                               {
+                                                                                   continue;// NULL value
+                                                                               }
+                                                                               if (!col_cache[ij].empty())
+                                                                               {
+                                                                                   std::invoke(callback, custom_record, col_cache[ij], ptr, len, 0, 1);
+                                                                               }
+                                                                           }
+                                                                           effect_num++;
+                                                                           return false;// 只需一行，返回 false 终止查询
+                                                                       });
+                (void)fetch_count;// suppress unused warning
 
                 if (select_conn->isdebug)
                 {
@@ -4244,27 +4310,33 @@ namespace orm
                 }
 
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
-                    [this, &custom_record, &callback, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                        // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                        if (col_cache.empty() && col_count > 0) {
-                            col_cache.reserve(col_count);
-                            for (int k = 0; k < col_count; k++) {
-                                col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                            }
-                        }
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) {
-                                continue;
-                            }
-                            if (!col_cache[ij].empty()) {
-                                std::invoke(callback, custom_record, col_cache[ij], ptr, len, 0, 1);
-                            }
-                        }
-                        effect_num++;
-                        return true;
-                    });
-                (void)fetch_count; // suppress unused warning
+                                                                                      [this, &custom_record, &callback, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                      {
+                                                                                          // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                                          if (col_cache.empty() && col_count > 0)
+                                                                                          {
+                                                                                              col_cache.reserve(col_count);
+                                                                                              for (int k = 0; k < col_count; k++)
+                                                                                              {
+                                                                                                  col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                              }
+                                                                                          }
+                                                                                          for (int ij = 0; ij < col_count; ij++)
+                                                                                          {
+                                                                                              auto [ptr, len] = get_data(ij);
+                                                                                              if (ptr == nullptr)
+                                                                                              {
+                                                                                                  continue;
+                                                                                              }
+                                                                                              if (!col_cache[ij].empty())
+                                                                                              {
+                                                                                                  std::invoke(callback, custom_record, col_cache[ij], ptr, len, 0, 1);
+                                                                                              }
+                                                                                          }
+                                                                                          effect_num++;
+                                                                                          return true;
+                                                                                      });
+                (void)fetch_count;// suppress unused warning
                 if (select_conn->isdebug)
                 {
                     select_conn->finish_time();
@@ -4359,27 +4431,33 @@ namespace orm
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                    [this, &custom_struct, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                        // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                        if (col_cache.empty() && col_count > 0) {
-                            col_cache.reserve(col_count);
-                            for (int k = 0; k < col_count; k++) {
-                                col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                            }
-                        }
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) {
-                                continue; // NULL value
-                            }
-                            if (!col_cache[ij].empty()) {
-                                custom_struct.set_val(col_cache[ij], ptr, len, 0);
-                            }
-                        }
-                        effect_num++;
-                        return false; // 只需一行，返回 false 终止查询
-                    });
-                (void)fetch_count; // suppress unused warning
+                                                                       [this, &custom_struct, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                       {
+                                                                           // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                           if (col_cache.empty() && col_count > 0)
+                                                                           {
+                                                                               col_cache.reserve(col_count);
+                                                                               for (int k = 0; k < col_count; k++)
+                                                                               {
+                                                                                   col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                               }
+                                                                           }
+                                                                           for (int ij = 0; ij < col_count; ij++)
+                                                                           {
+                                                                               auto [ptr, len] = get_data(ij);
+                                                                               if (ptr == nullptr)
+                                                                               {
+                                                                                   continue;// NULL value
+                                                                               }
+                                                                               if (!col_cache[ij].empty())
+                                                                               {
+                                                                                   custom_struct.set_val(col_cache[ij], ptr, len, 0);
+                                                                               }
+                                                                           }
+                                                                           effect_num++;
+                                                                           return false;// 只需一行，返回 false 终止查询
+                                                                       });
+                (void)fetch_count;// suppress unused warning
 
                 if (select_conn->isdebug)
                 {
@@ -4476,27 +4554,33 @@ namespace orm
                 }
 
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
-                    [this, &custom_struct, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                        // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                        if (col_cache.empty() && col_count > 0) {
-                            col_cache.reserve(col_count);
-                            for (int k = 0; k < col_count; k++) {
-                                col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                            }
-                        }
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) {
-                                continue;
-                            }
-                            if (!col_cache[ij].empty()) {
-                                custom_struct.set_val(col_cache[ij], ptr, len, 0);
-                            }
-                        }
-                        effect_num++;
-                        return true;
-                    });
-                (void)fetch_count; // suppress unused warning
+                                                                                      [this, &custom_struct, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                      {
+                                                                                          // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                                          if (col_cache.empty() && col_count > 0)
+                                                                                          {
+                                                                                              col_cache.reserve(col_count);
+                                                                                              for (int k = 0; k < col_count; k++)
+                                                                                              {
+                                                                                                  col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                              }
+                                                                                          }
+                                                                                          for (int ij = 0; ij < col_count; ij++)
+                                                                                          {
+                                                                                              auto [ptr, len] = get_data(ij);
+                                                                                              if (ptr == nullptr)
+                                                                                              {
+                                                                                                  continue;
+                                                                                              }
+                                                                                              if (!col_cache[ij].empty())
+                                                                                              {
+                                                                                                  custom_struct.set_val(col_cache[ij], ptr, len, 0);
+                                                                                              }
+                                                                                          }
+                                                                                          effect_num++;
+                                                                                          return true;
+                                                                                      });
+                (void)fetch_count;// suppress unused warning
                 if (select_conn->isdebug)
                 {
                     select_conn->finish_time();
@@ -4598,35 +4682,44 @@ namespace orm
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                    [this, isappend](int col_count, char** col_names, auto get_data) -> bool {
-                        // 预先计算字段位置映射
-                        std::vector<unsigned char> field_pos(col_count);
-                        for (int ii = 0; ii < col_count; ii++) {
-                            field_pos[ii] = B_BASE::findcolpos(col_names[ii]);
-                        }
-                        
-                        if (isappend) {
-                            typename B_BASE::meta data_temp;
-                            for (int ij = 0; ij < col_count; ij++) {
-                                auto [ptr, len] = get_data(ij);
-                                if (ptr == nullptr) {
-                                    continue; // NULL value
-                                }
-                                assign_field_value(field_pos[ij], ptr, len, data_temp);
-                            }
-                            B_BASE::record.emplace_back(std::move(data_temp));
-                        } else {
-                            for (int ij = 0; ij < col_count; ij++) {
-                                auto [ptr, len] = get_data(ij);
-                                if (ptr == nullptr) {
-                                    continue; // NULL value
-                                }
-                                assign_field_value(field_pos[ij], ptr, len, B_BASE::data);
-                            }
-                        }
-                        return false; // fetch_one 只需一行，返回 false 终止查询
-                    });
-                effect_num = fetch_count;
+                                                                       [this, isappend](int col_count, char **col_names, auto get_data) -> bool
+                                                                       {
+                                                                           // 预先计算字段位置映射
+                                                                           std::vector<unsigned char> field_pos(col_count);
+                                                                           for (int ii = 0; ii < col_count; ii++)
+                                                                           {
+                                                                               field_pos[ii] = B_BASE::findcolpos(col_names[ii]);
+                                                                           }
+
+                                                                           if (isappend)
+                                                                           {
+                                                                               typename B_BASE::meta data_temp;
+                                                                               for (int ij = 0; ij < col_count; ij++)
+                                                                               {
+                                                                                   auto [ptr, len] = get_data(ij);
+                                                                                   if (ptr == nullptr)
+                                                                                   {
+                                                                                       continue;// NULL value
+                                                                                   }
+                                                                                   assign_field_value(field_pos[ij], ptr, len, data_temp);
+                                                                               }
+                                                                               B_BASE::record.emplace_back(std::move(data_temp));
+                                                                           }
+                                                                           else
+                                                                           {
+                                                                               for (int ij = 0; ij < col_count; ij++)
+                                                                               {
+                                                                                   auto [ptr, len] = get_data(ij);
+                                                                                   if (ptr == nullptr)
+                                                                                   {
+                                                                                       continue;// NULL value
+                                                                                   }
+                                                                                   assign_field_value(field_pos[ij], ptr, len, B_BASE::data);
+                                                                               }
+                                                                           }
+                                                                           return false;// fetch_one 只需一行，返回 false 终止查询
+                                                                       });
+                effect_num               = fetch_count;
                 if (select_conn->isdebug)
                 {
                     select_conn->finish_time();
@@ -4739,44 +4832,53 @@ namespace orm
 
                 std::vector<unsigned char> field_pos;
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
-                    [this, isappend, &field_pos](int col_count, char** col_names, auto get_data) -> bool {
-                        if (field_pos.empty() && col_count > 0) {
-                            for (int ii = 0; ii < col_count; ii++) {
-                                const char* org_name = col_names[ii];
-                                field_pos.push_back(B_BASE::findcolpos(org_name ? org_name : ""));
-                            }
-                        }
+                                                                                      [this, isappend, &field_pos](int col_count, char **col_names, auto get_data) -> bool
+                                                                                      {
+                                                                                          if (field_pos.empty() && col_count > 0)
+                                                                                          {
+                                                                                              for (int ii = 0; ii < col_count; ii++)
+                                                                                              {
+                                                                                                  const char *org_name = col_names[ii];
+                                                                                                  field_pos.push_back(B_BASE::findcolpos(org_name ? org_name : ""));
+                                                                                              }
+                                                                                          }
 
-                        if (isappend)
-                        {
-                            typename B_BASE::meta data_temp;
-                            for (int ij = 0; ij < col_count; ij++) {
-                                auto [ptr, len] = get_data(ij);
-                                if (ptr == nullptr) {
-                                    continue;
-                                }
-                                if (ij < static_cast<int>(field_pos.size())) {
-                                    assign_field_value(field_pos[ij], ptr, len, data_temp);
-                                }
-                            }
-                            B_BASE::record.emplace_back(std::move(data_temp));
-                        }
-                        else
-                        {
-                            for (int ij = 0; ij < col_count; ij++) {
-                                auto [ptr, len] = get_data(ij);
-                                if (ptr == nullptr) {
-                                    continue;
-                                }
-                                if (ij < static_cast<int>(field_pos.size())) {
-                                    assign_field_value(field_pos[ij], ptr, len, B_BASE::data);
-                                }
-                            }
-                        }
-                        effect_num++;
-                        return true;
-                    });
-                (void)fetch_count; // suppress unused warning
+                                                                                          if (isappend)
+                                                                                          {
+                                                                                              typename B_BASE::meta data_temp;
+                                                                                              for (int ij = 0; ij < col_count; ij++)
+                                                                                              {
+                                                                                                  auto [ptr, len] = get_data(ij);
+                                                                                                  if (ptr == nullptr)
+                                                                                                  {
+                                                                                                      continue;
+                                                                                                  }
+                                                                                                  if (ij < static_cast<int>(field_pos.size()))
+                                                                                                  {
+                                                                                                      assign_field_value(field_pos[ij], ptr, len, data_temp);
+                                                                                                  }
+                                                                                              }
+                                                                                              B_BASE::record.emplace_back(std::move(data_temp));
+                                                                                          }
+                                                                                          else
+                                                                                          {
+                                                                                              for (int ij = 0; ij < col_count; ij++)
+                                                                                              {
+                                                                                                  auto [ptr, len] = get_data(ij);
+                                                                                                  if (ptr == nullptr)
+                                                                                                  {
+                                                                                                      continue;
+                                                                                                  }
+                                                                                                  if (ij < static_cast<int>(field_pos.size()))
+                                                                                                  {
+                                                                                                      assign_field_value(field_pos[ij], ptr, len, B_BASE::data);
+                                                                                                  }
+                                                                                              }
+                                                                                          }
+                                                                                          effect_num++;
+                                                                                          return true;
+                                                                                      });
+                (void)fetch_count;// suppress unused warning
                 if (select_conn->isdebug)
                 {
                     select_conn->finish_time();
@@ -5047,29 +5149,35 @@ namespace orm
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                    [this, &valuetemp, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                        http::obj_val json_temp_v;
-                        // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                        if (col_cache.empty() && col_count > 0) {
-                            col_cache.reserve(col_count);
-                            for (int k = 0; k < col_count; k++) {
-                                col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                            }
-                        }
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) {
-                                continue;
-                            }
-                            if (!col_cache[ij].empty()) {
-                                json_temp_v[col_cache[ij]] = std::string(reinterpret_cast<char*>(ptr), len);
-                            }
-                        }
-                        valuetemp.push(json_temp_v);
-                        effect_num++;
-                        return true;
-                    });
-                (void)fetch_count; // suppress unused warning
+                                                                       [this, &valuetemp, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                       {
+                                                                           http::obj_val json_temp_v;
+                                                                           // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                           if (col_cache.empty() && col_count > 0)
+                                                                           {
+                                                                               col_cache.reserve(col_count);
+                                                                               for (int k = 0; k < col_count; k++)
+                                                                               {
+                                                                                   col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                               }
+                                                                           }
+                                                                           for (int ij = 0; ij < col_count; ij++)
+                                                                           {
+                                                                               auto [ptr, len] = get_data(ij);
+                                                                               if (ptr == nullptr)
+                                                                               {
+                                                                                   continue;
+                                                                               }
+                                                                               if (!col_cache[ij].empty())
+                                                                               {
+                                                                                   json_temp_v[col_cache[ij]] = std::string(reinterpret_cast<char *>(ptr), len);
+                                                                               }
+                                                                           }
+                                                                           valuetemp.push(json_temp_v);
+                                                                           effect_num++;
+                                                                           return true;
+                                                                       });
+                (void)fetch_count;// suppress unused warning
                 if (select_conn->isdebug)
                 {
                     select_conn->finish_time();
@@ -5160,29 +5268,35 @@ namespace orm
                     select_conn->begin_time();
                 }
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
-                    [this, &valuetemp, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                        http::obj_val json_temp_v;
-                        // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                        if (col_cache.empty() && col_count > 0) {
-                            col_cache.reserve(col_count);
-                            for (int k = 0; k < col_count; k++) {
-                                col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                            }
-                        }
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) {
-                                continue;
-                            }
-                            if (!col_cache[ij].empty()) {
-                                json_temp_v[col_cache[ij]] = std::string(reinterpret_cast<char*>(ptr), len);
-                            }
-                        }
-                        valuetemp.push(json_temp_v);
-                        effect_num++;
-                        return true;
-                    });
-                (void)fetch_count; // suppress unused warning
+                                                                                      [this, &valuetemp, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                      {
+                                                                                          http::obj_val json_temp_v;
+                                                                                          // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                                          if (col_cache.empty() && col_count > 0)
+                                                                                          {
+                                                                                              col_cache.reserve(col_count);
+                                                                                              for (int k = 0; k < col_count; k++)
+                                                                                              {
+                                                                                                  col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                              }
+                                                                                          }
+                                                                                          for (int ij = 0; ij < col_count; ij++)
+                                                                                          {
+                                                                                              auto [ptr, len] = get_data(ij);
+                                                                                              if (ptr == nullptr)
+                                                                                              {
+                                                                                                  continue;
+                                                                                              }
+                                                                                              if (!col_cache[ij].empty())
+                                                                                              {
+                                                                                                  json_temp_v[col_cache[ij]] = std::string(reinterpret_cast<char *>(ptr), len);
+                                                                                              }
+                                                                                          }
+                                                                                          valuetemp.push(json_temp_v);
+                                                                                          effect_num++;
+                                                                                          return true;
+                                                                                      });
+                (void)fetch_count;// suppress unused warning
                 if (select_conn->isdebug)
                 {
                     select_conn->finish_time();
@@ -5267,27 +5381,33 @@ namespace orm
 
                 std::vector<unsigned char> field_pos;
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                    [this, &field_pos](int col_count, char** col_names, auto get_data) -> bool {
-                        if (field_pos.empty() && col_count > 0) {
-                            for (int ii = 0; ii < col_count; ii++) {
-                                const char* org_name = col_names[ii];
-                                field_pos.push_back(B_BASE::findcolpos(org_name ? org_name : ""));
-                            }
-                        }
+                                                                       [this, &field_pos](int col_count, char **col_names, auto get_data) -> bool
+                                                                       {
+                                                                           if (field_pos.empty() && col_count > 0)
+                                                                           {
+                                                                               for (int ii = 0; ii < col_count; ii++)
+                                                                               {
+                                                                                   const char *org_name = col_names[ii];
+                                                                                   field_pos.push_back(B_BASE::findcolpos(org_name ? org_name : ""));
+                                                                               }
+                                                                           }
 
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) {
-                                continue;
-                            }
-                            if (ij < static_cast<int>(field_pos.size())) {
-                                assign_field_value(field_pos[ij], ptr, len, B_BASE::data);
-                            }
-                        }
-                        effect_num++;
-                        return true;
-                    });
-                (void)fetch_count; // suppress unused warning
+                                                                           for (int ij = 0; ij < col_count; ij++)
+                                                                           {
+                                                                               auto [ptr, len] = get_data(ij);
+                                                                               if (ptr == nullptr)
+                                                                               {
+                                                                                   continue;
+                                                                               }
+                                                                               if (ij < static_cast<int>(field_pos.size()))
+                                                                               {
+                                                                                   assign_field_value(field_pos[ij], ptr, len, B_BASE::data);
+                                                                               }
+                                                                           }
+                                                                           effect_num++;
+                                                                           return true;
+                                                                       });
+                (void)fetch_count;// suppress unused warning
                 if (select_conn->isdebug)
                 {
                     select_conn->finish_time();
@@ -5382,27 +5502,33 @@ namespace orm
                 }
                 std::vector<unsigned char> field_pos;
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
-                    [this, &field_pos](int col_count, char** col_names, auto get_data) -> bool {
-                        if (field_pos.empty() && col_count > 0) {
-                            for (int ii = 0; ii < col_count; ii++) {
-                                const char* org_name = col_names[ii];
-                                field_pos.push_back(B_BASE::findcolpos(org_name ? org_name : ""));
-                            }
-                        }
+                                                                                      [this, &field_pos](int col_count, char **col_names, auto get_data) -> bool
+                                                                                      {
+                                                                                          if (field_pos.empty() && col_count > 0)
+                                                                                          {
+                                                                                              for (int ii = 0; ii < col_count; ii++)
+                                                                                              {
+                                                                                                  const char *org_name = col_names[ii];
+                                                                                                  field_pos.push_back(B_BASE::findcolpos(org_name ? org_name : ""));
+                                                                                              }
+                                                                                          }
 
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) {
-                                continue;
-                            }
-                            if (ij < static_cast<int>(field_pos.size())) {
-                                assign_field_value(field_pos[ij], ptr, len, B_BASE::data);
-                            }
-                        }
-                        effect_num++;
-                        return true;
-                    });
-                (void)fetch_count; // suppress unused warning
+                                                                                          for (int ij = 0; ij < col_count; ij++)
+                                                                                          {
+                                                                                              auto [ptr, len] = get_data(ij);
+                                                                                              if (ptr == nullptr)
+                                                                                              {
+                                                                                                  continue;
+                                                                                              }
+                                                                                              if (ij < static_cast<int>(field_pos.size()))
+                                                                                              {
+                                                                                                  assign_field_value(field_pos[ij], ptr, len, B_BASE::data);
+                                                                                              }
+                                                                                          }
+                                                                                          effect_num++;
+                                                                                          return true;
+                                                                                      });
+                (void)fetch_count;// suppress unused warning
                 if (select_conn->isdebug)
                 {
                     select_conn->finish_time();
@@ -7397,29 +7523,35 @@ namespace orm
                     select_conn->begin_time();
                 }
                 unsigned int fetch_count = select_conn->fetch_directly(rawsql,
-                    [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                        T data_temp;
-                        // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                        if (col_cache.empty() && col_count > 0) {
-                            col_cache.reserve(col_count);
-                            for (int k = 0; k < col_count; k++) {
-                                col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                            }
-                        }
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) {
-                                continue;
-                            }
-                            if (!col_cache[ij].empty()) {
-                                data_temp.set_val(col_cache[ij], ptr, len, 0);
-                            }
-                        }
-                        result_record.emplace_back(std::move(data_temp));
-                        effect_num++;
-                        return true;
-                    });
-                (void)fetch_count; // suppress unused warning
+                                                                       [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                       {
+                                                                           T data_temp;
+                                                                           // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                           if (col_cache.empty() && col_count > 0)
+                                                                           {
+                                                                               col_cache.reserve(col_count);
+                                                                               for (int k = 0; k < col_count; k++)
+                                                                               {
+                                                                                   col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                               }
+                                                                           }
+                                                                           for (int ij = 0; ij < col_count; ij++)
+                                                                           {
+                                                                               auto [ptr, len] = get_data(ij);
+                                                                               if (ptr == nullptr)
+                                                                               {
+                                                                                   continue;
+                                                                               }
+                                                                               if (!col_cache[ij].empty())
+                                                                               {
+                                                                                   data_temp.set_val(col_cache[ij], ptr, len, 0);
+                                                                               }
+                                                                           }
+                                                                           result_record.emplace_back(std::move(data_temp));
+                                                                           effect_num++;
+                                                                           return true;
+                                                                       });
+                (void)fetch_count;// suppress unused warning
                 if (select_conn->isdebug)
                 {
                     select_conn->finish_time();
@@ -7502,29 +7634,35 @@ namespace orm
                     select_conn->begin_time();
                 }
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(rawsql,
-                    [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                        T data_temp;
-                        // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                        if (col_cache.empty() && col_count > 0) {
-                            col_cache.reserve(col_count);
-                            for (int k = 0; k < col_count; k++) {
-                                col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                            }
-                        }
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) {
-                                continue;
-                            }
-                            if (!col_cache[ij].empty()) {
-                                data_temp.set_val(col_cache[ij], ptr, len, 0);
-                            }
-                        }
-                        result_record.emplace_back(std::move(data_temp));
-                        effect_num++;
-                        return true;
-                    });
-                (void)fetch_count; // suppress unused warning
+                                                                                      [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                      {
+                                                                                          T data_temp;
+                                                                                          // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                                          if (col_cache.empty() && col_count > 0)
+                                                                                          {
+                                                                                              col_cache.reserve(col_count);
+                                                                                              for (int k = 0; k < col_count; k++)
+                                                                                              {
+                                                                                                  col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                              }
+                                                                                          }
+                                                                                          for (int ij = 0; ij < col_count; ij++)
+                                                                                          {
+                                                                                              auto [ptr, len] = get_data(ij);
+                                                                                              if (ptr == nullptr)
+                                                                                              {
+                                                                                                  continue;
+                                                                                              }
+                                                                                              if (!col_cache[ij].empty())
+                                                                                              {
+                                                                                                  data_temp.set_val(col_cache[ij], ptr, len, 0);
+                                                                                              }
+                                                                                          }
+                                                                                          result_record.emplace_back(std::move(data_temp));
+                                                                                          effect_num++;
+                                                                                          return true;
+                                                                                      });
+                (void)fetch_count;// suppress unused warning
                 if (select_conn->isdebug)
                 {
                     select_conn->finish_time();

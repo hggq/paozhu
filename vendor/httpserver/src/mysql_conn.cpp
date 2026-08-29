@@ -308,20 +308,21 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
     error_msg.clear();
 
     // 重连场景：彻底重置连接层状态
-    conn_link->sock_type  = 0;
+    conn_link->sock_type = 0;
     conn_link->sslsocket.reset();
     conn_link->ssl_context.reset();
     conn_link->localsocket.reset();
-    conn_link->socket     = std::make_unique<asio::ip::tcp::socket>(*conn_link->io_ctx);
+    conn_link->socket = std::make_unique<asio::ip::tcp::socket>(*conn_link->io_ctx);
     conn_link->ec.clear();
-    server_enable_ssl     = false;
-    seq_next_id           = 0;
+    server_enable_ssl = false;
+    seq_next_id       = 0;
     std::memset(static_cast<void *>(&server_hello), 0, sizeof(server_hello));
 
     // 保存配置用于断线自动重连（仅在首次或配置变化时存储）
-    if (!has_conn_config_ || !(last_conn_config_ == conn_config)) {
+    if (!has_conn_config_ || !(last_conn_config_ == conn_config))
+    {
         last_conn_config_ = conn_config;
-        has_conn_config_ = true;
+        has_conn_config_  = true;
     }
 
     if (conn_config.issock)
@@ -496,8 +497,8 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
         isclose    = true;
         return false;
     }
-    send_data[0] = (payload_len)       & 0xFF;
-    send_data[1] = (payload_len >>  8) & 0xFF;
+    send_data[0] = (payload_len) & 0xFF;
+    send_data[1] = (payload_len >> 8) & 0xFF;
     send_data[2] = (payload_len >> 16) & 0xFF;
     if (conn_link->sock_type == 3)
     {
@@ -615,8 +616,8 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
                     isclose    = true;
                     return false;
                 }
-                send_data[0] = (pl2)       & 0xFF;
-                send_data[1] = (pl2 >>  8) & 0xFF;
+                send_data[0] = (pl2) & 0xFF;
+                send_data[1] = (pl2 >> 8) & 0xFF;
                 send_data[2] = (pl2 >> 16) & 0xFF;
                 try
                 {
@@ -805,7 +806,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
         {
             n = conn_link->socket->read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), conn_link->ec);
         }
-        if (n < 5 || n > CACHE_DATA_LENGTH)
+        if (n < 255 || n > 2048)
         {
             error_msg.append(" get server_public_key return size: ");
             error_msg.append(std::to_string(n));
@@ -820,11 +821,12 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
         {
             // Error packet: [0xFF][ec_lo][ec_hi][#][state5][msg...]
             unsigned int ec = (unsigned char)_cache_data[5] | ((unsigned char)_cache_data[6] << 8);
-            error_code = ec;
+            error_code      = ec;
             // 跳过 4 字节 pkt header + 1 byte 0xFF + 2 byte ec + 1 byte '#' + 5 byte sql_state
             unsigned int msg_off = 4 + 1 + 2 + 1 + 5;
-            error_msg = "MySQL auth error: ";
-            if (n > msg_off) error_msg.append(reinterpret_cast<const char *>(_cache_data + msg_off), n - msg_off);
+            error_msg            = "MySQL auth error: ";
+            if (n > msg_off)
+                error_msg.append(reinterpret_cast<const char *>(_cache_data + msg_off), n - msg_off);
             isclose = true;
             return false;
         }
@@ -1072,20 +1074,21 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
     constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
 
     // 重连场景：彻底重置连接层状态
-    conn_link->sock_type  = 0;
+    conn_link->sock_type = 0;
     conn_link->sslsocket.reset();
     conn_link->ssl_context.reset();
     conn_link->localsocket.reset();
-    conn_link->socket     = std::make_unique<asio::ip::tcp::socket>(*conn_link->io_ctx);
+    conn_link->socket = std::make_unique<asio::ip::tcp::socket>(*conn_link->io_ctx);
     conn_link->ec.clear();
-    server_enable_ssl     = false;
-    seq_next_id           = 0;
+    server_enable_ssl = false;
+    seq_next_id       = 0;
     std::memset(static_cast<void *>(&server_hello), 0, sizeof(server_hello));
 
     // 保存配置用于断线自动重连（仅在首次或配置变化时存储）
-    if (!has_conn_config_ || !(last_conn_config_ == conn_config)) {
+    if (!has_conn_config_ || !(last_conn_config_ == conn_config))
+    {
         last_conn_config_ = conn_config;
-        has_conn_config_ = true;
+        has_conn_config_  = true;
     }
 
     if (conn_config.issock)
@@ -1259,8 +1262,8 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
         isclose    = true;
         co_return false;
     }
-    send_data[0] = (payload_len)       & 0xFF;
-    send_data[1] = (payload_len >>  8) & 0xFF;
+    send_data[0] = (payload_len) & 0xFF;
+    send_data[1] = (payload_len >> 8) & 0xFF;
     send_data[2] = (payload_len >> 16) & 0xFF;
     if (conn_link->sock_type == 3)
     {
@@ -1378,8 +1381,8 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
                     isclose    = true;
                     co_return false;
                 }
-                send_data[0] = (pl4)       & 0xFF;
-                send_data[1] = (pl4 >>  8) & 0xFF;
+                send_data[0] = (pl4) & 0xFF;
+                send_data[1] = (pl4 >> 8) & 0xFF;
                 send_data[2] = (pl4 >> 16) & 0xFF;
 
                 try
@@ -1627,11 +1630,12 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
         unsigned char pkt_type = (unsigned char)_cache_data[4];
         if (pkt_type == 0xFF && n >= 7)
         {
-            unsigned int ec = (unsigned char)_cache_data[5] | ((unsigned char)_cache_data[6] << 8);
-            error_code = ec;
+            unsigned int ec      = (unsigned char)_cache_data[5] | ((unsigned char)_cache_data[6] << 8);
+            error_code           = ec;
             unsigned int msg_off = 4 + 1 + 2 + 1 + 5;
-            error_msg = "MySQL auth error: ";
-            if (n > msg_off) error_msg.append(reinterpret_cast<const char *>(_cache_data + msg_off), n - msg_off);
+            error_msg            = "MySQL auth error: ";
+            if (n > msg_off)
+                error_msg.append(reinterpret_cast<const char *>(_cache_data + msg_off), n - msg_off);
             isclose = true;
             co_return false;
         }
@@ -2089,9 +2093,9 @@ asio::awaitable<unsigned int> mysql_conn_base::async_write()
 bool mysql_conn_base::ping()
 {
     // MySQL COM_PING OK 响应完整 = 4 字节包头 + 7 字节负载 = 11 字节
-    char send_buf[5]    = {0x01, 0x00, 0x00, 0x00, 0x0E};
-    char recv_buf[16]   = {0};
-    error_code         = 0;
+    char send_buf[5]  = {0x01, 0x00, 0x00, 0x00, 0x0E};
+    char recv_buf[16] = {0};
+    error_code        = 0;
     error_msg.clear();
     try
     {
@@ -2100,10 +2104,9 @@ bool mysql_conn_base::ping()
             return false;
         }
 
-        auto *sock = (conn_link->sock_type == 1) ? static_cast<void *>(conn_link->socket.get())
-                   : (conn_link->sock_type == 2) ? static_cast<void *>(conn_link->sslsocket.get())
-                   : (conn_link->sock_type == 3) ? static_cast<void *>(conn_link->localsocket.get())
-                   : nullptr;
+        auto *sock = (conn_link->sock_type == 1) ? static_cast<void *>(conn_link->socket.get()) : (conn_link->sock_type == 2) ? static_cast<void *>(conn_link->sslsocket.get()) :
+                                                                                              (conn_link->sock_type == 3)     ? static_cast<void *>(conn_link->localsocket.get()) :
+                                                                                                                                nullptr;
         if (!sock)
         {
             error_code = 3;
@@ -2111,27 +2114,35 @@ bool mysql_conn_base::ping()
             return false;
         }
 
-        auto do_write = [&](auto &stream) {
+        auto do_write = [&](auto &stream)
+        {
             asio::write(stream, asio::buffer(send_buf, 5), conn_link->ec);
             return !conn_link->ec;
         };
-        auto do_read_full = [&](auto &stream) {
+        auto do_read_full = [&](auto &stream)
+        {
             // 先读 4 字节包头拿 payload 长度，再读完整 payload，避免半包截断
             char header[4] = {0};
-            size_t n = asio::read(stream, asio::buffer(header, 4), conn_link->ec);
-            if (conn_link->ec || n < 4) return false;
-            size_t payload_len = (static_cast<unsigned char>(header[0])      ) |
-                                 (static_cast<unsigned char>(header[1]) <<  8) |
+            size_t n       = asio::read(stream, asio::buffer(header, 4), conn_link->ec);
+            if (conn_link->ec || n < 4)
+                return false;
+            size_t payload_len = (static_cast<unsigned char>(header[0])) |
+                                 (static_cast<unsigned char>(header[1]) << 8) |
                                  (static_cast<unsigned char>(header[2]) << 16);
-            if (payload_len > sizeof(recv_buf)) return false;
-            if (payload_len > 0) {
+            if (payload_len > sizeof(recv_buf))
+                return false;
+            if (payload_len > 0)
+            {
                 n = asio::read(stream, asio::buffer(recv_buf, payload_len), conn_link->ec);
-                if (conn_link->ec || n < payload_len) return false;
+                if (conn_link->ec || n < payload_len)
+                    return false;
             }
             // OK 判定：payload 至少 1 字节且首字节为 0x00；ERR 为 0xFF
-            if (payload_len == 0) return false;
+            if (payload_len == 0)
+                return false;
             unsigned char status = static_cast<unsigned char>(recv_buf[0]);
-            if (status == 0xFF && payload_len >= 2) {
+            if (status == 0xFF && payload_len >= 2)
+            {
                 error_code = static_cast<unsigned char>(recv_buf[1]) | (static_cast<unsigned char>(recv_buf[2]) << 8);
                 isclose    = true;
                 return false;
@@ -2140,18 +2151,27 @@ bool mysql_conn_base::ping()
         };
 
         bool ok = false;
-        if (conn_link->sock_type == 1) {
+        if (conn_link->sock_type == 1)
+        {
             ok = do_write(*conn_link->socket);
-            if (ok) ok = do_read_full(*conn_link->socket);
-        } else if (conn_link->sock_type == 2) {
+            if (ok)
+                ok = do_read_full(*conn_link->socket);
+        }
+        else if (conn_link->sock_type == 2)
+        {
             ok = do_write(*conn_link->sslsocket);
-            if (ok) ok = do_read_full(*conn_link->sslsocket);
-        } else {
+            if (ok)
+                ok = do_read_full(*conn_link->sslsocket);
+        }
+        else
+        {
             ok = do_write(*conn_link->localsocket);
-            if (ok) ok = do_read_full(*conn_link->localsocket);
+            if (ok)
+                ok = do_read_full(*conn_link->localsocket);
         }
 
-        if (!ok) {
+        if (!ok)
+        {
             error_code = 3;
             error_msg  = "ping failed: " + conn_link->ec.message();
             isclose    = true;
@@ -2735,8 +2755,8 @@ void mysql_conn_base::parse_error_packet(const unsigned char *data, unsigned int
     //
     // data 指向包起始位置, pkt_len 为完整包长度 (含 4 字节包头)。
 
-    constexpr unsigned int kPktHeader     = 4;   // 3-byte length + 1-byte seq_id
-    constexpr unsigned int kErrorMinTotal = 7;   // header + status(0xFF) + errcode(2)
+    constexpr unsigned int kPktHeader     = 4;// 3-byte length + 1-byte seq_id
+    constexpr unsigned int kErrorMinTotal = 7;// header + status(0xFF) + errcode(2)
 
     if (pkt_len < kErrorMinTotal)
     {
@@ -2746,18 +2766,18 @@ void mysql_conn_base::parse_error_packet(const unsigned char *data, unsigned int
     }
 
     // 从 error_code 字段开始解析 (跳过 packet header + status byte)
-    unsigned int offset = kPktHeader + 1;  // = 5
+    unsigned int offset = kPktHeader + 1;// = 5
 
     // ---- error_code (2 bytes) ----
     error_code = data[offset] | (data[offset + 1] << 8);
-    offset += 2;  // offset = 7
+    offset += 2;// offset = 7
 
     // ---- SQL state: '#' + 5 bytes state ----
     if (offset < pkt_len && data[offset] == 0x23)
     {
         if (offset + 6 <= pkt_len)
         {
-            offset += 6;  // skip '#'(1) + SQL state(5)
+            offset += 6;// skip '#'(1) + SQL state(5)
         }
         else
         {
@@ -2837,7 +2857,7 @@ unsigned int mysql_conn_base::fetch_directly_impl(
     }
 
     error_msg.clear();
-    error_code  = 0;
+    error_code      = 0;
     last_insert_id_ = 0;
 
     unsigned int n = write_sql(sql);
@@ -2847,7 +2867,7 @@ unsigned int mysql_conn_base::fetch_directly_impl(
     }
 
     pooled_accum_buf accum_holder;// 全 ORM 共用容量池借出/归还（RAII，见 orm_common.h）
-    auto &accum_buf = accum_holder.buf;
+    auto &accum_buf       = accum_holder.buf;
     unsigned int consumed = 0;
 
     std::vector<std::string> col_names;
@@ -2862,9 +2882,9 @@ unsigned int mysql_conn_base::fetch_directly_impl(
         ROWS,
         DONE
     };
-    phase current_phase = phase::INIT;
-    bool stop           = false;
-    unsigned int rows   = 0;
+    phase current_phase  = phase::INIT;
+    bool stop            = false;
+    unsigned int rows    = 0;
     bool handler_aborted = false;
 
     while (!stop)
@@ -2913,13 +2933,13 @@ unsigned int mysql_conn_base::fetch_directly_impl(
                     // INIT 阶段收到 OK 包（DML/INSERT 无结果集），直接 DONE
                     // 原逻辑错误地置 COLUMNS 继续等列，且 pkt_len<8 时无 else 分支 → 永挂
                     unsigned int iid = 0;
-                    unsigned int ar = parse_affected_rows_fast(&accum_buf[consumed], total_pkt_len, &iid);
+                    unsigned int ar  = parse_affected_rows_fast(&accum_buf[consumed], total_pkt_len, &iid);
                     if (ar != (unsigned int)-1)
                     {
                         last_insert_id_ = iid;
                     }
                     current_phase = phase::DONE;
-                    stop = true;
+                    stop          = true;
                     consumed += total_pkt_len;
                     break;
                 }
@@ -2927,7 +2947,7 @@ unsigned int mysql_conn_base::fetch_directly_impl(
                 {
                     // 列数包：经典格式为 1 字节；容忍 lenenc 变体（如服务端带
                     // metadata_follows 后缀的 2 字节形式），按 lenenc 取列数。
-                    unsigned int cc_off = consumed + 4;
+                    unsigned int cc_off   = consumed + 4;
                     unsigned long long cc = pack_real_num(accum_buf.data(), accum_buf.size(), cc_off);
                     if (cc <= 0xFFFFFFFFULL)
                     {
@@ -2950,8 +2970,8 @@ unsigned int mysql_conn_base::fetch_directly_impl(
                 {
                     // 0xFE 标记的 OK 包是结果集唯一终结符（可短至 7 字节）。
                     // 不支持经典 EOF 旧协议，无其他兜底。
-                    current_phase   = phase::DONE;
-                    stop            = true;
+                    current_phase = phase::DONE;
+                    stop          = true;
                     consumed += total_pkt_len;
                     break;
                 }
@@ -2961,25 +2981,27 @@ unsigned int mysql_conn_base::fetch_directly_impl(
                 // 防止把行包当列定义误吃）。
                 if (expected_cols > 0 && col_names.size() >= expected_cols)
                 {
-                    current_phase   = phase::ROWS;
+                    current_phase = phase::ROWS;
                     break;
                 }
 
                 unsigned int col_offset = consumed + 4;
                 unsigned int col_end    = consumed + total_pkt_len;
 
-                auto skip_len_str = [&](unsigned int &pos) {
+                auto skip_len_str = [&](unsigned int &pos)
+                {
                     if (pos >= col_end)
                         return;
                     unsigned char len = accum_buf[pos];
                     if (pos + 1 + len > col_end)
                     {
-                        pos = col_end;  // truncated, advance to end
+                        pos = col_end;// truncated, advance to end
                         return;
                     }
                     pos += 1 + len;
                 };
-                auto read_len_str = [&](unsigned int &pos) -> std::string {
+                auto read_len_str = [&](unsigned int &pos) -> std::string
+                {
                     if (pos >= col_end)
                         return {};
                     unsigned char len = accum_buf[pos];
@@ -3040,7 +3062,8 @@ unsigned int mysql_conn_base::fetch_directly_impl(
                 }
                 char **col_names_arr = name_ptrs.empty() ? nullptr : &name_ptrs[0];
 
-                auto get_data = [&](int col_idx) -> std::tuple<unsigned char *, size_t> {
+                auto get_data = [&](int col_idx) -> std::tuple<unsigned char *, size_t>
+                {
                     if (col_idx < 0 || (size_t)col_idx >= row_data_cache_ptrs_.size())
                         return {nullptr, 0};
                     auto &entry = row_data_cache_ptrs_[col_idx];
@@ -3161,7 +3184,7 @@ RETRY_LABEL:
     }
 
     error_msg.clear();
-    error_code  = 0;
+    error_code      = 0;
     last_insert_id_ = 0;
 
     unsigned int n = write_sql(sql);
@@ -3186,21 +3209,24 @@ RETRY_LABEL:
     while (accum_buf.size() < 4)
     {
         n = read_loop();
-        if (n == 0) break;
+        if (n == 0)
+            break;
         accum_buf.insert(accum_buf.end(), _cache_data, _cache_data + n);
     }
     unsigned int pkt_len = 0;
-    if (accum_buf.size() >= 4) {
+    if (accum_buf.size() >= 4)
+    {
         pkt_len = accum_buf[0] | (accum_buf[1] << 8) | (accum_buf[2] << 16);
     }
     while (accum_buf.size() < 4 + pkt_len)
     {
         n = read_loop();
-        if (n == 0) break;
+        if (n == 0)
+            break;
         accum_buf.insert(accum_buf.end(), _cache_data, _cache_data + n);
     }
 
-    unsigned int iid = 0;
+    unsigned int iid    = 0;
     unsigned int result = parse_affected_rows_fast(accum_buf.data(), accum_buf.size(), &iid);
     if (result != (unsigned int)-1)
     {
@@ -3226,7 +3252,7 @@ asio::awaitable<unsigned int> mysql_conn_base::async_fetch_directly_impl(
     }
 
     error_msg.clear();
-    error_code  = 0;
+    error_code      = 0;
     last_insert_id_ = 0;
 
     unsigned int n = co_await async_write_sql(sql);
@@ -3236,7 +3262,7 @@ asio::awaitable<unsigned int> mysql_conn_base::async_fetch_directly_impl(
     }
 
     pooled_accum_buf accum_holder;// 全 ORM 共用容量池借出/归还（RAII，见 orm_common.h）
-    auto &accum_buf = accum_holder.buf;
+    auto &accum_buf       = accum_holder.buf;
     unsigned int consumed = 0;
 
     std::vector<std::string> col_names;
@@ -3251,9 +3277,9 @@ asio::awaitable<unsigned int> mysql_conn_base::async_fetch_directly_impl(
         ROWS,
         DONE
     };
-    phase current_phase = phase::INIT;
-    bool stop           = false;
-    unsigned int rows   = 0;
+    phase current_phase  = phase::INIT;
+    bool stop            = false;
+    unsigned int rows    = 0;
     bool handler_aborted = false;
 
     while (!stop)
@@ -3301,13 +3327,13 @@ asio::awaitable<unsigned int> mysql_conn_base::async_fetch_directly_impl(
                 {
                     // async：INIT 阶段收到 OK 包（DML/INSERT 无结果集），直接 DONE
                     unsigned int iid = 0;
-                    unsigned int ar = parse_affected_rows_fast(&accum_buf[consumed], total_pkt_len, &iid);
+                    unsigned int ar  = parse_affected_rows_fast(&accum_buf[consumed], total_pkt_len, &iid);
                     if (ar != (unsigned int)-1)
                     {
                         last_insert_id_ = iid;
                     }
                     current_phase = phase::DONE;
-                    stop = true;
+                    stop          = true;
                     consumed += total_pkt_len;
                     break;
                 }
@@ -3315,7 +3341,7 @@ asio::awaitable<unsigned int> mysql_conn_base::async_fetch_directly_impl(
                 {
                     // 列数包：经典格式为 1 字节；容忍 lenenc 变体（如服务端带
                     // metadata_follows 后缀的 2 字节形式），按 lenenc 取列数。
-                    unsigned int cc_off = consumed + 4;
+                    unsigned int cc_off   = consumed + 4;
                     unsigned long long cc = pack_real_num(accum_buf.data(), accum_buf.size(), cc_off);
                     if (cc <= 0xFFFFFFFFULL)
                     {
@@ -3339,8 +3365,8 @@ asio::awaitable<unsigned int> mysql_conn_base::async_fetch_directly_impl(
                     // 0xFE 标记的 OK 包是结果集唯一终结符（可短至 7 字节）。
                     // 出现在 COLUMNS 阶段 = 空结果集，必须直接终止，否则阻塞挂死。
                     // 不支持经典 EOF 旧协议，无其他兜底。
-                    current_phase   = phase::DONE;
-                    stop            = true;
+                    current_phase = phase::DONE;
+                    stop          = true;
                     consumed += total_pkt_len;
                     break;
                 }
@@ -3348,25 +3374,27 @@ asio::awaitable<unsigned int> mysql_conn_base::async_fetch_directly_impl(
                 // 列定义已收齐而本包不是终结包：转入 ROWS 且不消费，重新判定。
                 if (expected_cols > 0 && col_names.size() >= expected_cols)
                 {
-                    current_phase   = phase::ROWS;
+                    current_phase = phase::ROWS;
                     break;
                 }
 
                 unsigned int col_offset = consumed + 4;
                 unsigned int col_end    = consumed + total_pkt_len;
 
-                auto skip_len_str = [&](unsigned int &pos) {
+                auto skip_len_str = [&](unsigned int &pos)
+                {
                     if (pos >= col_end)
                         return;
                     unsigned char len = accum_buf[pos];
                     if (pos + 1 + len > col_end)
                     {
-                        pos = col_end;  // truncated, advance to end
+                        pos = col_end;// truncated, advance to end
                         return;
                     }
                     pos += 1 + len;
                 };
-                auto read_len_str = [&](unsigned int &pos) -> std::string {
+                auto read_len_str = [&](unsigned int &pos) -> std::string
+                {
                     if (pos >= col_end)
                         return {};
                     unsigned char len = accum_buf[pos];
@@ -3427,7 +3455,8 @@ asio::awaitable<unsigned int> mysql_conn_base::async_fetch_directly_impl(
                 }
                 char **col_names_arr = name_ptrs.empty() ? nullptr : &name_ptrs[0];
 
-                auto get_data = [&](int col_idx) -> std::tuple<unsigned char *, size_t> {
+                auto get_data = [&](int col_idx) -> std::tuple<unsigned char *, size_t>
+                {
                     if (col_idx < 0 || (size_t)col_idx >= row_data_cache_ptrs_.size())
                         return {nullptr, 0};
                     auto &entry = row_data_cache_ptrs_[col_idx];
@@ -3494,11 +3523,11 @@ asio::awaitable<unsigned int> mysql_conn_base::async_exec_dml(const std::string 
 RETRY_LABEL:
     if (isclose)
     {
-        co_return (unsigned int)-1;
+        co_return (unsigned int) - 1;
     }
 
     error_msg.clear();
-    error_code  = 0;
+    error_code      = 0;
     last_insert_id_ = 0;
 
     unsigned int n = co_await async_write_sql(sql);
@@ -3511,7 +3540,7 @@ RETRY_LABEL:
             error_msg.clear();
             goto RETRY_LABEL;
         }
-        co_return (unsigned int)-1;
+        co_return (unsigned int) - 1;
     }
 
     n = co_await async_read_loop();
@@ -3522,21 +3551,24 @@ RETRY_LABEL:
     while (accum_buf.size() < 4)
     {
         n = co_await async_read_loop();
-        if (n == 0) break;
+        if (n == 0)
+            break;
         accum_buf.insert(accum_buf.end(), _cache_data, _cache_data + n);
     }
     unsigned int pkt_len = 0;
-    if (accum_buf.size() >= 4) {
+    if (accum_buf.size() >= 4)
+    {
         pkt_len = accum_buf[0] | (accum_buf[1] << 8) | (accum_buf[2] << 16);
     }
     while (accum_buf.size() < 4 + pkt_len)
     {
         n = co_await async_read_loop();
-        if (n == 0) break;
+        if (n == 0)
+            break;
         accum_buf.insert(accum_buf.end(), _cache_data, _cache_data + n);
     }
 
-    unsigned int iid = 0;
+    unsigned int iid    = 0;
     unsigned int result = parse_affected_rows_fast(accum_buf.data(), accum_buf.size(), &iid);
     if (result != (unsigned int)-1)
     {
@@ -3554,22 +3586,26 @@ RETRY_LABEL:
 
 bool mysql_conn_base::is_last_error_reconnectable() const
 {
-    if (!conn_link) return false;
+    if (!conn_link)
+        return false;
     const auto &ec = conn_link->ec;
-    if (!ec) return false;
+    if (!ec)
+        return false;
 
     // 只认 asio 抽象错误码, 白名单策略
-    return ec == asio::error::eof              ||
+    return ec == asio::error::eof ||
            ec == asio::error::connection_reset ||
-           ec == asio::error::timed_out        ||
-           ec == asio::error::broken_pipe      ||
+           ec == asio::error::timed_out ||
+           ec == asio::error::broken_pipe ||
            ec == asio::error::not_connected;
 }
 
 bool mysql_conn_base::try_reconnect()
 {
-    if (!has_conn_config_)   return false;
-    if (isclose)             return false;
+    if (!has_conn_config_)
+        return false;
+    if (isclose)
+        return false;
 
     hard_close();
 
@@ -3580,8 +3616,10 @@ bool mysql_conn_base::try_reconnect()
 
 asio::awaitable<bool> mysql_conn_base::async_try_reconnect()
 {
-    if (!has_conn_config_)   co_return false;
-    if (isclose)             co_return false;
+    if (!has_conn_config_)
+        co_return false;
+    if (isclose)
+        co_return false;
 
     hard_close();
 

@@ -174,7 +174,11 @@ class pg_conn_base
     template <typename RowHandler>
     asio::awaitable<unsigned int> async_fetch_directly(const std::string &sql, RowHandler handler);
 
-    void clear_error() { error_msg.clear(); error_code = 0; }
+    void clear_error()
+    {
+        error_msg.clear();
+        error_code = 0;
+    }
 
     // 连接层跟踪的事务状态：exec_dml 成功执行 BEGIN 置位，COMMIT/ROLLBACK/END 清除；
     // 连接池归还路径据此判断是否需要自动 ROLLBACK 清理
@@ -222,9 +226,9 @@ class pg_conn_base
 
     // fetch_directly / exec_dml 的内部实现（与 MySQL 侧同形态：模板包装在头文件，实现在 cpp）
     unsigned int fetch_directly_impl(const std::string &sql,
-                                     std::function<bool(int, char**, std::function<std::tuple<unsigned char*, size_t>(int)>)> handler);
+                                     std::function<bool(int, char **, std::function<std::tuple<unsigned char *, size_t>(int)>)> handler);
     asio::awaitable<unsigned int> async_fetch_directly_impl(const std::string &sql,
-                                                           std::function<bool(int, char**, std::function<std::tuple<unsigned char*, size_t>(int)>)> handler);
+                                                            std::function<bool(int, char **, std::function<std::tuple<unsigned char *, size_t>(int)>)> handler);
     unsigned int exec_dml_impl(const std::string &sql);
 
     // E/N 消息载荷解析：提取 'M' 字段写入 error_msg 并置 error_code
@@ -235,12 +239,12 @@ class pg_conn_base
     void build_ssl_request();
 
     // ===== 断线自动重连支持 =====
-    orm_conn_t    last_conn_config_;
-    bool          has_conn_config_ = false;
+    orm_conn_t last_conn_config_;
+    bool has_conn_config_                       = false;
     static constexpr unsigned int kMaxReconnect = 1;
 
-    bool            is_last_error_reconnectable() const;
-    bool            try_reconnect();
+    bool is_last_error_reconnectable() const;
+    bool try_reconnect();
     asio::awaitable<bool> async_try_reconnect();
 
   public:
@@ -265,10 +269,10 @@ class pg_conn_base
     std::string error_msg;
 
     // 协议级状态 (BackendKeyData / ParameterStatus / NoticeResponse)
-    int backend_pid_     = 0;   // BackendKeyData: 后端进程 PID
-    int cancel_secret_   = 0;   // BackendKeyData: 取消密钥
-    std::string server_client_encoding_;  // ParameterStatus: 服务器声明的 client_encoding
-    std::vector<std::string> notices_;     // NoticeResponse: 收集的警告/提示消息
+    int backend_pid_   = 0;             // BackendKeyData: 后端进程 PID
+    int cancel_secret_ = 0;             // BackendKeyData: 取消密钥
+    std::string server_client_encoding_;// ParameterStatus: 服务器声明的 client_encoding
+    std::vector<std::string> notices_;  // NoticeResponse: 收集的警告/提示消息
 
     // std::unique_ptr<asio::ip::tcp::socket> socket;
     // std::unique_ptr<asio::ssl::stream<asio::ip::tcp::socket>> sslsocket;
@@ -292,7 +296,7 @@ inline unsigned int pg_conn_base::fetch_directly(const std::string &sql, RowHand
 {
     unsigned int retry = 0;
 RETRY_LABEL:
-    unsigned int rows = this->fetch_directly_impl(sql, std::function<bool(int, char**, std::function<std::tuple<unsigned char*, size_t>(int)>)>(handler));
+    unsigned int rows = this->fetch_directly_impl(sql, std::function<bool(int, char **, std::function<std::tuple<unsigned char *, size_t>(int)>)>(handler));
 
     if (rows == 0 &&
         is_last_error_reconnectable() &&
@@ -308,7 +312,7 @@ RETRY_LABEL:
 template <typename RowHandler>
 inline asio::awaitable<unsigned int> pg_conn_base::async_fetch_directly(const std::string &sql, RowHandler handler)
 {
-    auto func = std::function<bool(int, char**, std::function<std::tuple<unsigned char*, size_t>(int)>)>(handler);
+    auto func          = std::function<bool(int, char **, std::function<std::tuple<unsigned char *, size_t>(int)>)>(handler);
     unsigned int retry = 0;
 RETRY_LABEL:
     unsigned int rows = co_await this->async_fetch_directly_impl(sql, func);

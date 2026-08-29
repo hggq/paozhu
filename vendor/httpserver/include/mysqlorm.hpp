@@ -190,21 +190,25 @@ namespace orm
                     select_conn->begin_time();
                 }
                 unsigned int querysql_len = 0;
-                unsigned int fetch_count = select_conn->fetch_directly(countsql,
-                    [&querysql_len](int col_count, char** col_names, auto get_data) -> bool {
-                        (void)col_count;
-                        (void)col_names;
-                        auto [ptr, len] = get_data(0);
-                        if (ptr != nullptr && len > 0) {
-                            querysql_len = 0;
-                            for (unsigned int ik = 0; ik < len; ik++) {
-                                if (ptr[ik] >= '0' && ptr[ik] <= '9') {
-                                    querysql_len = querysql_len * 10 + (ptr[ik] - '0');
-                                }
-                            }
-                        }
-                        return false;
-                    });
+                unsigned int fetch_count  = select_conn->fetch_directly(countsql,
+                                                                       [&querysql_len](int col_count, char **col_names, auto get_data) -> bool
+                                                                       {
+                                                                           (void)col_count;
+                                                                           (void)col_names;
+                                                                           auto [ptr, len] = get_data(0);
+                                                                           if (ptr != nullptr && len > 0)
+                                                                           {
+                                                                               querysql_len = 0;
+                                                                               for (unsigned int ik = 0; ik < len; ik++)
+                                                                               {
+                                                                                   if (ptr[ik] >= '0' && ptr[ik] <= '9')
+                                                                                   {
+                                                                                       querysql_len = querysql_len * 10 + (ptr[ik] - '0');
+                                                                                   }
+                                                                               }
+                                                                           }
+                                                                           return false;
+                                                                       });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     error_msg = select_conn->error_msg;
@@ -339,21 +343,25 @@ namespace orm
                     select_conn->begin_time();
                 }
                 unsigned int querysql_len = 0;
-                unsigned int fetch_count = co_await select_conn->async_fetch_directly(countsql,
-                    [&querysql_len](int col_count, char** col_names, auto get_data) -> bool {
-                        (void)col_count;
-                        (void)col_names;
-                        auto [ptr, len] = get_data(0);
-                        if (ptr != nullptr && len > 0) {
-                            querysql_len = 0;
-                            for (unsigned int ik = 0; ik < len; ik++) {
-                                if (ptr[ik] >= '0' && ptr[ik] <= '9') {
-                                    querysql_len = querysql_len * 10 + (ptr[ik] - '0');
-                                }
-                            }
-                        }
-                        return false;
-                    });
+                unsigned int fetch_count  = co_await select_conn->async_fetch_directly(countsql,
+                                                                                      [&querysql_len](int col_count, char **col_names, auto get_data) -> bool
+                                                                                      {
+                                                                                          (void)col_count;
+                                                                                          (void)col_names;
+                                                                                          auto [ptr, len] = get_data(0);
+                                                                                          if (ptr != nullptr && len > 0)
+                                                                                          {
+                                                                                              querysql_len = 0;
+                                                                                              for (unsigned int ik = 0; ik < len; ik++)
+                                                                                              {
+                                                                                                  if (ptr[ik] >= '0' && ptr[ik] <= '9')
+                                                                                                  {
+                                                                                                      querysql_len = querysql_len * 10 + (ptr[ik] - '0');
+                                                                                                  }
+                                                                                              }
+                                                                                          }
+                                                                                          return false;
+                                                                                      });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     error_msg = select_conn->error_msg;
@@ -2825,19 +2833,22 @@ namespace orm
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                    [this, &temprecord](int col_count, char** col_names, auto get_data) -> bool {
-                        std::map<std::string, std::string> data_temp;
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) continue;
-                            std::string col_name = col_names[ij] ? col_names[ij] : "";
-                            std::string value(reinterpret_cast<char*>(ptr), len);
-                            data_temp.insert({col_name, std::move(value)});
-                        }
-                        temprecord.emplace_back(std::move(data_temp));
-                        effect_num++;
-                        return true;
-                    });
+                                                                       [this, &temprecord](int col_count, char **col_names, auto get_data) -> bool
+                                                                       {
+                                                                           std::map<std::string, std::string> data_temp;
+                                                                           for (int ij = 0; ij < col_count; ij++)
+                                                                           {
+                                                                               auto [ptr, len] = get_data(ij);
+                                                                               if (ptr == nullptr)
+                                                                                   continue;
+                                                                               std::string col_name = col_names[ij] ? col_names[ij] : "";
+                                                                               std::string value(reinterpret_cast<char *>(ptr), len);
+                                                                               data_temp.insert({col_name, std::move(value)});
+                                                                           }
+                                                                           temprecord.emplace_back(std::move(data_temp));
+                                                                           effect_num++;
+                                                                           return true;
+                                                                       });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     error_msg = select_conn->error_msg;
@@ -2969,27 +2980,34 @@ namespace orm
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                    [this, &temprecord, &table_fieldname, &table_fieldmap](int col_count, char** col_names, auto get_data) -> bool {
-                        if (table_fieldname.empty()) {
-                            for (int ii = 0; ii < col_count; ii++) {
-                                std::string col_name = col_names[ii] ? col_names[ii] : "";
-                                table_fieldmap.emplace(col_name, table_fieldname.size());
-                                table_fieldname.push_back(col_name);
-                            }
-                        }
-                        std::vector<std::string> temp_v_record;
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) {
-                                temp_v_record.push_back("");
-                            } else {
-                                temp_v_record.emplace_back(reinterpret_cast<char*>(ptr), len);
-                            }
-                        }
-                        temprecord.push_back(std::move(temp_v_record));
-                        effect_num++;
-                        return true;
-                    });
+                                                                       [this, &temprecord, &table_fieldname, &table_fieldmap](int col_count, char **col_names, auto get_data) -> bool
+                                                                       {
+                                                                           if (table_fieldname.empty())
+                                                                           {
+                                                                               for (int ii = 0; ii < col_count; ii++)
+                                                                               {
+                                                                                   std::string col_name = col_names[ii] ? col_names[ii] : "";
+                                                                                   table_fieldmap.emplace(col_name, table_fieldname.size());
+                                                                                   table_fieldname.push_back(col_name);
+                                                                               }
+                                                                           }
+                                                                           std::vector<std::string> temp_v_record;
+                                                                           for (int ij = 0; ij < col_count; ij++)
+                                                                           {
+                                                                               auto [ptr, len] = get_data(ij);
+                                                                               if (ptr == nullptr)
+                                                                               {
+                                                                                   temp_v_record.push_back("");
+                                                                               }
+                                                                               else
+                                                                               {
+                                                                                   temp_v_record.emplace_back(reinterpret_cast<char *>(ptr), len);
+                                                                               }
+                                                                           }
+                                                                           temprecord.push_back(std::move(temp_v_record));
+                                                                           effect_num++;
+                                                                           return true;
+                                                                       });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     error_msg = select_conn->error_msg;
@@ -3117,20 +3135,24 @@ namespace orm
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                    [this, &custom_record, &callback](int col_count, char** col_names, auto get_data) -> bool {
-                        T data_temp;
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) continue;
-                            std::string col_name = col_names[ij] ? col_names[ij] : "";
-                            if (!col_name.empty()) {
-                                std::invoke(std::forward<Callback>(callback), data_temp, col_name, ptr, len, 0, 1);
-                            }
-                        }
-                        custom_record.emplace_back(std::move(data_temp));
-                        effect_num++;
-                        return true;
-                    });
+                                                                       [this, &custom_record, &callback](int col_count, char **col_names, auto get_data) -> bool
+                                                                       {
+                                                                           T data_temp;
+                                                                           for (int ij = 0; ij < col_count; ij++)
+                                                                           {
+                                                                               auto [ptr, len] = get_data(ij);
+                                                                               if (ptr == nullptr)
+                                                                                   continue;
+                                                                               std::string col_name = col_names[ij] ? col_names[ij] : "";
+                                                                               if (!col_name.empty())
+                                                                               {
+                                                                                   std::invoke(std::forward<Callback>(callback), data_temp, col_name, ptr, len, 0, 1);
+                                                                               }
+                                                                           }
+                                                                           custom_record.emplace_back(std::move(data_temp));
+                                                                           effect_num++;
+                                                                           return true;
+                                                                       });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
@@ -3232,20 +3254,24 @@ namespace orm
                 }
 
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
-                    [this, &custom_record, &callback](int col_count, char** col_names, auto get_data) -> bool {
-                        T data_temp;
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) continue;
-                            std::string col_name = col_names[ij] ? col_names[ij] : "";
-                            if (!col_name.empty()) {
-                                std::invoke(std::forward<Callback>(callback), data_temp, col_name, ptr, len, 0, 1);
-                            }
-                        }
-                        custom_record.emplace_back(std::move(data_temp));
-                        effect_num++;
-                        return true;
-                    });
+                                                                                      [this, &custom_record, &callback](int col_count, char **col_names, auto get_data) -> bool
+                                                                                      {
+                                                                                          T data_temp;
+                                                                                          for (int ij = 0; ij < col_count; ij++)
+                                                                                          {
+                                                                                              auto [ptr, len] = get_data(ij);
+                                                                                              if (ptr == nullptr)
+                                                                                                  continue;
+                                                                                              std::string col_name = col_names[ij] ? col_names[ij] : "";
+                                                                                              if (!col_name.empty())
+                                                                                              {
+                                                                                                  std::invoke(std::forward<Callback>(callback), data_temp, col_name, ptr, len, 0, 1);
+                                                                                              }
+                                                                                          }
+                                                                                          custom_record.emplace_back(std::move(data_temp));
+                                                                                          effect_num++;
+                                                                                          return true;
+                                                                                      });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
@@ -3345,20 +3371,24 @@ namespace orm
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                    [this, &custom_record](int col_count, char** col_names, auto get_data) -> bool {
-                        T data_temp;
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) continue;
-                            std::string col_name = col_names[ij] ? col_names[ij] : "";
-                            if (!col_name.empty()) {
-                                data_temp.set_val(col_name, ptr, len, 0);
-                            }
-                        }
-                        custom_record.emplace_back(std::move(data_temp));
-                        effect_num++;
-                        return true;
-                    });
+                                                                       [this, &custom_record](int col_count, char **col_names, auto get_data) -> bool
+                                                                       {
+                                                                           T data_temp;
+                                                                           for (int ij = 0; ij < col_count; ij++)
+                                                                           {
+                                                                               auto [ptr, len] = get_data(ij);
+                                                                               if (ptr == nullptr)
+                                                                                   continue;
+                                                                               std::string col_name = col_names[ij] ? col_names[ij] : "";
+                                                                               if (!col_name.empty())
+                                                                               {
+                                                                                   data_temp.set_val(col_name, ptr, len, 0);
+                                                                               }
+                                                                           }
+                                                                           custom_record.emplace_back(std::move(data_temp));
+                                                                           effect_num++;
+                                                                           return true;
+                                                                       });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
@@ -3460,20 +3490,24 @@ namespace orm
                 }
 
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
-                    [this, &custom_record](int col_count, char** col_names, auto get_data) -> bool {
-                        T data_temp;
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) continue;
-                            std::string col_name = col_names[ij] ? col_names[ij] : "";
-                            if (!col_name.empty()) {
-                                data_temp.set_val(col_name, ptr, len, 0);
-                            }
-                        }
-                        custom_record.emplace_back(std::move(data_temp));
-                        effect_num++;
-                        return true;
-                    });
+                                                                                      [this, &custom_record](int col_count, char **col_names, auto get_data) -> bool
+                                                                                      {
+                                                                                          T data_temp;
+                                                                                          for (int ij = 0; ij < col_count; ij++)
+                                                                                          {
+                                                                                              auto [ptr, len] = get_data(ij);
+                                                                                              if (ptr == nullptr)
+                                                                                                  continue;
+                                                                                              std::string col_name = col_names[ij] ? col_names[ij] : "";
+                                                                                              if (!col_name.empty())
+                                                                                              {
+                                                                                                  data_temp.set_val(col_name, ptr, len, 0);
+                                                                                              }
+                                                                                          }
+                                                                                          custom_record.emplace_back(std::move(data_temp));
+                                                                                          effect_num++;
+                                                                                          return true;
+                                                                                      });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
@@ -3582,28 +3616,32 @@ namespace orm
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                    [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char** col_names, auto get_data) mutable -> bool {
-                        
-                        
-                        if (first_row) {
-                            col_pos_map.assign(col_count, 255);
-                            for (int ij = 0; ij < col_count; ij++) {
-                                if (col_names[ij] && col_names[ij][0] != '\0') {
-                                    col_pos_map[ij] = B_BASE::findcolpos(col_names[ij]);
-                                }
-                            }
-                            first_row = false;
-                        }
-                        typename B_BASE::meta data_temp;
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) continue;
-                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
-                        }
-                        B_BASE::record.emplace_back(std::move(data_temp));
-                        effect_num++;
-                        return true;
-                    });
+                                                                       [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                       {
+                                                                           if (first_row)
+                                                                           {
+                                                                               col_pos_map.assign(col_count, 255);
+                                                                               for (int ij = 0; ij < col_count; ij++)
+                                                                               {
+                                                                                   if (col_names[ij] && col_names[ij][0] != '\0')
+                                                                                   {
+                                                                                       col_pos_map[ij] = B_BASE::findcolpos(col_names[ij]);
+                                                                                   }
+                                                                               }
+                                                                               first_row = false;
+                                                                           }
+                                                                           typename B_BASE::meta data_temp;
+                                                                           for (int ij = 0; ij < col_count; ij++)
+                                                                           {
+                                                                               auto [ptr, len] = get_data(ij);
+                                                                               if (ptr == nullptr)
+                                                                                   continue;
+                                                                               assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
+                                                                           }
+                                                                           B_BASE::record.emplace_back(std::move(data_temp));
+                                                                           effect_num++;
+                                                                           return true;
+                                                                       });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
@@ -3722,28 +3760,32 @@ namespace orm
                 }
 
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
-                    [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char** col_names, auto get_data) mutable -> bool {
-                        
-                        
-                        if (first_row) {
-                            col_pos_map.assign(col_count, 255);
-                            for (int ij = 0; ij < col_count; ij++) {
-                                if (col_names[ij] && col_names[ij][0] != '\0') {
-                                    col_pos_map[ij] = B_BASE::findcolpos(col_names[ij]);
-                                }
-                            }
-                            first_row = false;
-                        }
-                        typename B_BASE::meta data_temp;
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) continue;
-                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
-                        }
-                        B_BASE::record.emplace_back(std::move(data_temp));
-                        effect_num++;
-                        return true;
-                    });
+                                                                                      [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                      {
+                                                                                          if (first_row)
+                                                                                          {
+                                                                                              col_pos_map.assign(col_count, 255);
+                                                                                              for (int ij = 0; ij < col_count; ij++)
+                                                                                              {
+                                                                                                  if (col_names[ij] && col_names[ij][0] != '\0')
+                                                                                                  {
+                                                                                                      col_pos_map[ij] = B_BASE::findcolpos(col_names[ij]);
+                                                                                                  }
+                                                                                              }
+                                                                                              first_row = false;
+                                                                                          }
+                                                                                          typename B_BASE::meta data_temp;
+                                                                                          for (int ij = 0; ij < col_count; ij++)
+                                                                                          {
+                                                                                              auto [ptr, len] = get_data(ij);
+                                                                                              if (ptr == nullptr)
+                                                                                                  continue;
+                                                                                              assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
+                                                                                          }
+                                                                                          B_BASE::record.emplace_back(std::move(data_temp));
+                                                                                          effect_num++;
+                                                                                          return true;
+                                                                                      });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
@@ -3859,26 +3901,32 @@ namespace orm
                     select_conn->begin_time();
                 }
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                    [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char** col_names, auto get_data) mutable -> bool {
-                        if (first_row) {
-                            col_pos_map.assign(col_count, 255);
-                            for (int ij = 0; ij < col_count; ij++) {
-                                if (col_names[ij] && col_names[ij][0] != '\0') {
-                                    col_pos_map[ij] = B_BASE::findcolpos(col_names[ij]);
-                                }
-                            }
-                            first_row = false;
-                        }
-                        typename B_BASE::meta data_temp;
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) continue;
-                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
-                        }
-                        B_BASE::record.emplace_back(std::move(data_temp));
-                        effect_num++;
-                        return true;
-                    });
+                                                                       [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                       {
+                                                                           if (first_row)
+                                                                           {
+                                                                               col_pos_map.assign(col_count, 255);
+                                                                               for (int ij = 0; ij < col_count; ij++)
+                                                                               {
+                                                                                   if (col_names[ij] && col_names[ij][0] != '\0')
+                                                                                   {
+                                                                                       col_pos_map[ij] = B_BASE::findcolpos(col_names[ij]);
+                                                                                   }
+                                                                               }
+                                                                               first_row = false;
+                                                                           }
+                                                                           typename B_BASE::meta data_temp;
+                                                                           for (int ij = 0; ij < col_count; ij++)
+                                                                           {
+                                                                               auto [ptr, len] = get_data(ij);
+                                                                               if (ptr == nullptr)
+                                                                                   continue;
+                                                                               assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
+                                                                           }
+                                                                           B_BASE::record.emplace_back(std::move(data_temp));
+                                                                           effect_num++;
+                                                                           return true;
+                                                                       });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
@@ -3998,28 +4046,32 @@ namespace orm
                     select_conn->begin_time();
                 }
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
-                    [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char** col_names, auto get_data) mutable -> bool {
-                        
-                        
-                        if (first_row) {
-                            col_pos_map.assign(col_count, 255);
-                            for (int ij = 0; ij < col_count; ij++) {
-                                if (col_names[ij] && col_names[ij][0] != '\0') {
-                                    col_pos_map[ij] = B_BASE::findcolpos(col_names[ij]);
-                                }
-                            }
-                            first_row = false;
-                        }
-                        typename B_BASE::meta data_temp;
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) continue;
-                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
-                        }
-                        effect_num++;
-                        B_BASE::record.emplace_back(std::move(data_temp));
-                        return true;
-                    });
+                                                                                      [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                      {
+                                                                                          if (first_row)
+                                                                                          {
+                                                                                              col_pos_map.assign(col_count, 255);
+                                                                                              for (int ij = 0; ij < col_count; ij++)
+                                                                                              {
+                                                                                                  if (col_names[ij] && col_names[ij][0] != '\0')
+                                                                                                  {
+                                                                                                      col_pos_map[ij] = B_BASE::findcolpos(col_names[ij]);
+                                                                                                  }
+                                                                                              }
+                                                                                              first_row = false;
+                                                                                          }
+                                                                                          typename B_BASE::meta data_temp;
+                                                                                          for (int ij = 0; ij < col_count; ij++)
+                                                                                          {
+                                                                                              auto [ptr, len] = get_data(ij);
+                                                                                              if (ptr == nullptr)
+                                                                                                  continue;
+                                                                                              assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
+                                                                                          }
+                                                                                          effect_num++;
+                                                                                          B_BASE::record.emplace_back(std::move(data_temp));
+                                                                                          return true;
+                                                                                      });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
@@ -4129,18 +4181,22 @@ namespace orm
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                    [this, &custom_record, &callback](int col_count, char** col_names, auto get_data) -> bool {
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) continue;
-                            std::string col_name = col_names[ij] ? col_names[ij] : "";
-                            if (!col_name.empty()) {
-                                std::invoke(std::forward<Callback>(callback), custom_record, col_name, ptr, len, 0, 1);
-                            }
-                        }
-                        effect_num++;
-                        return true;
-                    });
+                                                                       [this, &custom_record, &callback](int col_count, char **col_names, auto get_data) -> bool
+                                                                       {
+                                                                           for (int ij = 0; ij < col_count; ij++)
+                                                                           {
+                                                                               auto [ptr, len] = get_data(ij);
+                                                                               if (ptr == nullptr)
+                                                                                   continue;
+                                                                               std::string col_name = col_names[ij] ? col_names[ij] : "";
+                                                                               if (!col_name.empty())
+                                                                               {
+                                                                                   std::invoke(std::forward<Callback>(callback), custom_record, col_name, ptr, len, 0, 1);
+                                                                               }
+                                                                           }
+                                                                           effect_num++;
+                                                                           return true;
+                                                                       });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
@@ -4243,18 +4299,22 @@ namespace orm
                 }
 
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
-                    [this, &custom_record, &callback](int col_count, char** col_names, auto get_data) -> bool {
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) continue;
-                            std::string col_name = col_names[ij] ? col_names[ij] : "";
-                            if (!col_name.empty()) {
-                                std::invoke(std::forward<Callback>(callback), custom_record, col_name, ptr, len, 0, 1);
-                            }
-                        }
-                        effect_num++;
-                        return true;
-                    });
+                                                                                      [this, &custom_record, &callback](int col_count, char **col_names, auto get_data) -> bool
+                                                                                      {
+                                                                                          for (int ij = 0; ij < col_count; ij++)
+                                                                                          {
+                                                                                              auto [ptr, len] = get_data(ij);
+                                                                                              if (ptr == nullptr)
+                                                                                                  continue;
+                                                                                              std::string col_name = col_names[ij] ? col_names[ij] : "";
+                                                                                              if (!col_name.empty())
+                                                                                              {
+                                                                                                  std::invoke(std::forward<Callback>(callback), custom_record, col_name, ptr, len, 0, 1);
+                                                                                              }
+                                                                                          }
+                                                                                          effect_num++;
+                                                                                          return true;
+                                                                                      });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
@@ -4356,18 +4416,22 @@ namespace orm
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                    [this, &custom_struct](int col_count, char** col_names, auto get_data) -> bool {
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) continue;
-                            std::string col_name = col_names[ij] ? col_names[ij] : "";
-                            if (!col_name.empty()) {
-                                custom_struct.set_val(col_name, ptr, len, 0);
-                            }
-                        }
-                        effect_num++;
-                        return true;
-                    });
+                                                                       [this, &custom_struct](int col_count, char **col_names, auto get_data) -> bool
+                                                                       {
+                                                                           for (int ij = 0; ij < col_count; ij++)
+                                                                           {
+                                                                               auto [ptr, len] = get_data(ij);
+                                                                               if (ptr == nullptr)
+                                                                                   continue;
+                                                                               std::string col_name = col_names[ij] ? col_names[ij] : "";
+                                                                               if (!col_name.empty())
+                                                                               {
+                                                                                   custom_struct.set_val(col_name, ptr, len, 0);
+                                                                               }
+                                                                           }
+                                                                           effect_num++;
+                                                                           return true;
+                                                                       });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
@@ -4470,18 +4534,22 @@ namespace orm
                 }
 
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
-                    [this, &custom_struct](int col_count, char** col_names, auto get_data) -> bool {
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) continue;
-                            std::string col_name = col_names[ij] ? col_names[ij] : "";
-                            if (!col_name.empty()) {
-                                custom_struct.set_val(col_name, ptr, len, 0);
-                            }
-                        }
-                        effect_num++;
-                        return true;
-                    });
+                                                                                      [this, &custom_struct](int col_count, char **col_names, auto get_data) -> bool
+                                                                                      {
+                                                                                          for (int ij = 0; ij < col_count; ij++)
+                                                                                          {
+                                                                                              auto [ptr, len] = get_data(ij);
+                                                                                              if (ptr == nullptr)
+                                                                                                  continue;
+                                                                                              std::string col_name = col_names[ij] ? col_names[ij] : "";
+                                                                                              if (!col_name.empty())
+                                                                                              {
+                                                                                                  custom_struct.set_val(col_name, ptr, len, 0);
+                                                                                              }
+                                                                                          }
+                                                                                          effect_num++;
+                                                                                          return true;
+                                                                                      });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
@@ -4590,38 +4658,46 @@ namespace orm
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                    [this, isappend, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char** col_names, auto get_data) mutable -> bool {
-                        // 列位映射仅首行构建（同一结果集列序固定），消除每行重建。
-                        if (first_row) {
-                            col_pos_map.assign(col_count, 255);
-                            for (int ii = 0; ii < col_count; ii++) {
-                                if (col_names[ii] && col_names[ii][0] != '\0') {
-                                    col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
-                                }
-                            }
-                            first_row = false;
-                        }
-                        if (isappend)
-                        {
-                            typename B_BASE::meta data_temp;
-                            for (int ij = 0; ij < col_count; ij++) {
-                                auto [ptr, len] = get_data(ij);
-                                if (ptr == nullptr) continue;
-                                assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
-                            }
-                            B_BASE::record.emplace_back(std::move(data_temp));
-                        }
-                        else
-                        {
-                            for (int ij = 0; ij < col_count; ij++) {
-                                auto [ptr, len] = get_data(ij);
-                                if (ptr == nullptr) continue;
-                                assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
-                            }
-                        }
-                        effect_num++;
-                        return true;
-                    });
+                                                                       [this, isappend, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                       {
+                                                                           // 列位映射仅首行构建（同一结果集列序固定），消除每行重建。
+                                                                           if (first_row)
+                                                                           {
+                                                                               col_pos_map.assign(col_count, 255);
+                                                                               for (int ii = 0; ii < col_count; ii++)
+                                                                               {
+                                                                                   if (col_names[ii] && col_names[ii][0] != '\0')
+                                                                                   {
+                                                                                       col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
+                                                                                   }
+                                                                               }
+                                                                               first_row = false;
+                                                                           }
+                                                                           if (isappend)
+                                                                           {
+                                                                               typename B_BASE::meta data_temp;
+                                                                               for (int ij = 0; ij < col_count; ij++)
+                                                                               {
+                                                                                   auto [ptr, len] = get_data(ij);
+                                                                                   if (ptr == nullptr)
+                                                                                       continue;
+                                                                                   assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
+                                                                               }
+                                                                               B_BASE::record.emplace_back(std::move(data_temp));
+                                                                           }
+                                                                           else
+                                                                           {
+                                                                               for (int ij = 0; ij < col_count; ij++)
+                                                                               {
+                                                                                   auto [ptr, len] = get_data(ij);
+                                                                                   if (ptr == nullptr)
+                                                                                       continue;
+                                                                                   assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
+                                                                               }
+                                                                           }
+                                                                           effect_num++;
+                                                                           return true;
+                                                                       });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
@@ -4740,38 +4816,46 @@ namespace orm
                 }
 
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
-                    [this, isappend, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char** col_names, auto get_data) mutable -> bool {
-                        // 列位映射仅首行构建（同一结果集列序固定），消除每行重建。
-                        if (first_row) {
-                            col_pos_map.assign(col_count, 255);
-                            for (int ii = 0; ii < col_count; ii++) {
-                                if (col_names[ii] && col_names[ii][0] != '\0') {
-                                    col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
-                                }
-                            }
-                            first_row = false;
-                        }
-                        if (isappend)
-                        {
-                            typename B_BASE::meta data_temp;
-                            for (int ij = 0; ij < col_count; ij++) {
-                                auto [ptr, len] = get_data(ij);
-                                if (ptr == nullptr) continue;
-                                assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
-                            }
-                            B_BASE::record.emplace_back(std::move(data_temp));
-                        }
-                        else
-                        {
-                            for (int ij = 0; ij < col_count; ij++) {
-                                auto [ptr, len] = get_data(ij);
-                                if (ptr == nullptr) continue;
-                                assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
-                            }
-                        }
-                        effect_num++;
-                        return true;
-                    });
+                                                                                      [this, isappend, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                      {
+                                                                                          // 列位映射仅首行构建（同一结果集列序固定），消除每行重建。
+                                                                                          if (first_row)
+                                                                                          {
+                                                                                              col_pos_map.assign(col_count, 255);
+                                                                                              for (int ii = 0; ii < col_count; ii++)
+                                                                                              {
+                                                                                                  if (col_names[ii] && col_names[ii][0] != '\0')
+                                                                                                  {
+                                                                                                      col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
+                                                                                                  }
+                                                                                              }
+                                                                                              first_row = false;
+                                                                                          }
+                                                                                          if (isappend)
+                                                                                          {
+                                                                                              typename B_BASE::meta data_temp;
+                                                                                              for (int ij = 0; ij < col_count; ij++)
+                                                                                              {
+                                                                                                  auto [ptr, len] = get_data(ij);
+                                                                                                  if (ptr == nullptr)
+                                                                                                      continue;
+                                                                                                  assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
+                                                                                              }
+                                                                                              B_BASE::record.emplace_back(std::move(data_temp));
+                                                                                          }
+                                                                                          else
+                                                                                          {
+                                                                                              for (int ij = 0; ij < col_count; ij++)
+                                                                                              {
+                                                                                                  auto [ptr, len] = get_data(ij);
+                                                                                                  if (ptr == nullptr)
+                                                                                                      continue;
+                                                                                                  assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
+                                                                                              }
+                                                                                          }
+                                                                                          effect_num++;
+                                                                                          return true;
+                                                                                      });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
@@ -5049,21 +5133,25 @@ namespace orm
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                    [this, &valuetemp](int col_count, char** col_names, auto get_data) -> bool {
-                        http::obj_val json_temp_v;
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) continue;
-                            std::string col_name = col_names[ij] ? col_names[ij] : "";
-                            std::string temp_str(reinterpret_cast<char*>(ptr), len);
-                            if (!col_name.empty()) {
-                                json_temp_v[col_name] = std::move(temp_str);
-                            }
-                        }
-                        valuetemp.push(json_temp_v);
-                        effect_num++;
-                        return true;
-                    });
+                                                                       [this, &valuetemp](int col_count, char **col_names, auto get_data) -> bool
+                                                                       {
+                                                                           http::obj_val json_temp_v;
+                                                                           for (int ij = 0; ij < col_count; ij++)
+                                                                           {
+                                                                               auto [ptr, len] = get_data(ij);
+                                                                               if (ptr == nullptr)
+                                                                                   continue;
+                                                                               std::string col_name = col_names[ij] ? col_names[ij] : "";
+                                                                               std::string temp_str(reinterpret_cast<char *>(ptr), len);
+                                                                               if (!col_name.empty())
+                                                                               {
+                                                                                   json_temp_v[col_name] = std::move(temp_str);
+                                                                               }
+                                                                           }
+                                                                           valuetemp.push(json_temp_v);
+                                                                           effect_num++;
+                                                                           return true;
+                                                                       });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
@@ -5161,21 +5249,25 @@ namespace orm
                     select_conn->begin_time();
                 }
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
-                    [this, &valuetemp](int col_count, char** col_names, auto get_data) -> bool {
-                        http::obj_val json_temp_v;
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) continue;
-                            std::string col_name = col_names[ij] ? col_names[ij] : "";
-                            std::string temp_str(reinterpret_cast<char*>(ptr), len);
-                            if (!col_name.empty()) {
-                                json_temp_v[col_name] = std::move(temp_str);
-                            }
-                        }
-                        valuetemp.push(json_temp_v);
-                        effect_num++;
-                        return true;
-                    });
+                                                                                      [this, &valuetemp](int col_count, char **col_names, auto get_data) -> bool
+                                                                                      {
+                                                                                          http::obj_val json_temp_v;
+                                                                                          for (int ij = 0; ij < col_count; ij++)
+                                                                                          {
+                                                                                              auto [ptr, len] = get_data(ij);
+                                                                                              if (ptr == nullptr)
+                                                                                                  continue;
+                                                                                              std::string col_name = col_names[ij] ? col_names[ij] : "";
+                                                                                              std::string temp_str(reinterpret_cast<char *>(ptr), len);
+                                                                                              if (!col_name.empty())
+                                                                                              {
+                                                                                                  json_temp_v[col_name] = std::move(temp_str);
+                                                                                              }
+                                                                                          }
+                                                                                          valuetemp.push(json_temp_v);
+                                                                                          effect_num++;
+                                                                                          return true;
+                                                                                      });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
@@ -5266,25 +5358,31 @@ namespace orm
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                    [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char** col_names, auto get_data) mutable -> bool {
-                        // 列位映射仅首行构建（同一结果集列序固定），消除每行重建。
-                        if (first_row) {
-                            col_pos_map.assign(col_count, 255);
-                            for (int ii = 0; ii < col_count; ii++) {
-                                if (col_names[ii] && col_names[ii][0] != '\0') {
-                                    col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
-                                }
-                            }
-                            first_row = false;
-                        }
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) continue;
-                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
-                        }
-                        effect_num++;
-                        return true;
-                    });
+                                                                       [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                       {
+                                                                           // 列位映射仅首行构建（同一结果集列序固定），消除每行重建。
+                                                                           if (first_row)
+                                                                           {
+                                                                               col_pos_map.assign(col_count, 255);
+                                                                               for (int ii = 0; ii < col_count; ii++)
+                                                                               {
+                                                                                   if (col_names[ii] && col_names[ii][0] != '\0')
+                                                                                   {
+                                                                                       col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
+                                                                                   }
+                                                                               }
+                                                                               first_row = false;
+                                                                           }
+                                                                           for (int ij = 0; ij < col_count; ij++)
+                                                                           {
+                                                                               auto [ptr, len] = get_data(ij);
+                                                                               if (ptr == nullptr)
+                                                                                   continue;
+                                                                               assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
+                                                                           }
+                                                                           effect_num++;
+                                                                           return true;
+                                                                       });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
@@ -5385,25 +5483,31 @@ namespace orm
                     select_conn->begin_time();
                 }
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
-                    [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char** col_names, auto get_data) mutable -> bool {
-                        // 列位映射仅首行构建（同一结果集列序固定），消除每行重建。
-                        if (first_row) {
-                            col_pos_map.assign(col_count, 255);
-                            for (int ii = 0; ii < col_count; ii++) {
-                                if (col_names[ii] && col_names[ii][0] != '\0') {
-                                    col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
-                                }
-                            }
-                            first_row = false;
-                        }
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) continue;
-                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
-                        }
-                        effect_num++;
-                        return true;
-                    });
+                                                                                      [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                      {
+                                                                                          // 列位映射仅首行构建（同一结果集列序固定），消除每行重建。
+                                                                                          if (first_row)
+                                                                                          {
+                                                                                              col_pos_map.assign(col_count, 255);
+                                                                                              for (int ii = 0; ii < col_count; ii++)
+                                                                                              {
+                                                                                                  if (col_names[ii] && col_names[ii][0] != '\0')
+                                                                                                  {
+                                                                                                      col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
+                                                                                                  }
+                                                                                              }
+                                                                                              first_row = false;
+                                                                                          }
+                                                                                          for (int ij = 0; ij < col_count; ij++)
+                                                                                          {
+                                                                                              auto [ptr, len] = get_data(ij);
+                                                                                              if (ptr == nullptr)
+                                                                                                  continue;
+                                                                                              assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
+                                                                                          }
+                                                                                          effect_num++;
+                                                                                          return true;
+                                                                                      });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
@@ -6608,7 +6712,7 @@ namespace orm
                 }
                 else
                 {
-                    effect_num = affected;
+                    effect_num     = affected;
                     insert_last_id = edit_conn->last_insert_id();
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
@@ -6678,7 +6782,7 @@ namespace orm
                 }
                 else
                 {
-                    effect_num = affected;
+                    effect_num     = affected;
                     insert_last_id = edit_conn->last_insert_id();
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
@@ -6748,7 +6852,7 @@ namespace orm
                 }
                 else
                 {
-                    effect_num = affected;
+                    effect_num     = affected;
                     insert_last_id = edit_conn->last_insert_id();
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
@@ -6818,7 +6922,7 @@ namespace orm
                 }
                 else
                 {
-                    effect_num = affected;
+                    effect_num     = affected;
                     insert_last_id = edit_conn->last_insert_id();
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
@@ -6888,7 +6992,7 @@ namespace orm
                 }
                 else
                 {
-                    effect_num = affected;
+                    effect_num     = affected;
                     insert_last_id = edit_conn->last_insert_id();
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
@@ -6958,7 +7062,7 @@ namespace orm
                 }
                 else
                 {
-                    effect_num = affected;
+                    effect_num     = affected;
                     insert_last_id = edit_conn->last_insert_id();
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
@@ -7108,7 +7212,7 @@ namespace orm
                 }
                 else
                 {
-                    effect_num = affected;
+                    effect_num     = affected;
                     insert_last_id = edit_conn->last_insert_id();
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
@@ -7265,7 +7369,7 @@ namespace orm
                     }
                     else
                     {
-                        effect_num = affected;
+                        effect_num     = affected;
                         insert_last_id = edit_conn->last_insert_id();
                         B_BASE::setPK(insert_last_id);
                         if (!islock_conn)
@@ -7428,20 +7532,24 @@ namespace orm
                     select_conn->begin_time();
                 }
                 unsigned int fetch_count = select_conn->fetch_directly(rawsql,
-                    [this, &result_record](int col_count, char** col_names, auto get_data) -> bool {
-                        T data_temp;
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) continue;
-                            std::string col_name = col_names[ij] ? col_names[ij] : "";
-                            if (!col_name.empty()) {
-                                data_temp.set_val(col_name, ptr, len, 0);
-                            }
-                        }
-                        result_record.emplace_back(std::move(data_temp));
-                        effect_num++;
-                        return true;
-                    });
+                                                                       [this, &result_record](int col_count, char **col_names, auto get_data) -> bool
+                                                                       {
+                                                                           T data_temp;
+                                                                           for (int ij = 0; ij < col_count; ij++)
+                                                                           {
+                                                                               auto [ptr, len] = get_data(ij);
+                                                                               if (ptr == nullptr)
+                                                                                   continue;
+                                                                               std::string col_name = col_names[ij] ? col_names[ij] : "";
+                                                                               if (!col_name.empty())
+                                                                               {
+                                                                                   data_temp.set_val(col_name, ptr, len, 0);
+                                                                               }
+                                                                           }
+                                                                           result_record.emplace_back(std::move(data_temp));
+                                                                           effect_num++;
+                                                                           return true;
+                                                                       });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;
@@ -7531,20 +7639,24 @@ namespace orm
                     select_conn->begin_time();
                 }
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(rawsql,
-                    [this, &result_record](int col_count, char** col_names, auto get_data) -> bool {
-                        T data_temp;
-                        for (int ij = 0; ij < col_count; ij++) {
-                            auto [ptr, len] = get_data(ij);
-                            if (ptr == nullptr) continue;
-                            std::string col_name = col_names[ij] ? col_names[ij] : "";
-                            if (!col_name.empty()) {
-                                data_temp.set_val(col_name, ptr, len, 0);
-                            }
-                        }
-                        result_record.emplace_back(std::move(data_temp));
-                        effect_num++;
-                        return true;
-                    });
+                                                                                      [this, &result_record](int col_count, char **col_names, auto get_data) -> bool
+                                                                                      {
+                                                                                          T data_temp;
+                                                                                          for (int ij = 0; ij < col_count; ij++)
+                                                                                          {
+                                                                                              auto [ptr, len] = get_data(ij);
+                                                                                              if (ptr == nullptr)
+                                                                                                  continue;
+                                                                                              std::string col_name = col_names[ij] ? col_names[ij] : "";
+                                                                                              if (!col_name.empty())
+                                                                                              {
+                                                                                                  data_temp.set_val(col_name, ptr, len, 0);
+                                                                                              }
+                                                                                          }
+                                                                                          result_record.emplace_back(std::move(data_temp));
+                                                                                          effect_num++;
+                                                                                          return true;
+                                                                                      });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
                     iserror   = true;

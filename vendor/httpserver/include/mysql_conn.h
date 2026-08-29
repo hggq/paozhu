@@ -18,7 +18,8 @@
 #include "unicode.h"
 
 // ---- 类型定义 ----
-struct _row_data_cache_ptr_t {
+struct _row_data_cache_ptr_t
+{
     unsigned char *ptr = nullptr;
     size_t len         = 0;
 };
@@ -139,7 +140,6 @@ struct Base
 {
     unsigned int from_json(std::string_view json_content)
     {
-
         //一层json深度，只有 { } 对象
 
         unsigned int offset_ = 0;
@@ -411,7 +411,7 @@ enum enum_field_types
     (CLIENT_LONG_PASSWORD | CLIENT_FOUND_ROWS | CLIENT_LONG_FLAG |       \
      CLIENT_CONNECT_WITH_DB | CLIENT_PROTOCOL_41 | CLIENT_TRANSACTIONS | \
      CLIENT_PLUGIN_AUTH | CLIENT_DEPRECATE_EOF)
-// 修复 #9：移除 CLIENT_MULTI_RESULTS。我们不支持多结果集，之前协商了却不排空 → 协议失步。
+// 移除 CLIENT_MULTI_RESULTS。我们不支持多结果集，之前协商了却不排空 → 协议失步。
 // 改为在 capability flags 层明确告诉服务器：不发多结果集。
 
 #define CLIENT_PZORM_SSL_FLAGS                                                  \
@@ -565,7 +565,11 @@ class mysql_conn_base
     asio::awaitable<unsigned int> async_fetch_directly(const std::string &sql, RowHandler handler);
 
     unsigned int last_insert_id() const { return last_insert_id_; }
-    void clear_error() { error_msg.clear(); error_code = 0; }
+    void clear_error()
+    {
+        error_msg.clear();
+        error_code = 0;
+    }
 
     // 连接层跟踪的事务状态：exec_dml 成功执行 BEGIN/START TRANSACTION 置位，
     // COMMIT/ROLLBACK 清除；连接池归还路径据此判断是否需要自动 ROLLBACK 清理
@@ -589,11 +593,11 @@ class mysql_conn_base
     bool pooled_ = false;
     // unsigned char sock_type  = 0;
     unsigned char seq_next_id;
-    unsigned short error_code = 0;
+    unsigned short error_code    = 0;
     unsigned int last_insert_id_ = 0;
-    unsigned int client_flags = 0;
-    unsigned int time_start   = 0;
-    unsigned int query_num    = 0;
+    unsigned int client_flags    = 0;
+    unsigned int time_start      = 0;
+    unsigned int query_num       = 0;
     std::chrono::time_point<std::chrono::steady_clock> time_begin;
     std::chrono::time_point<std::chrono::steady_clock> time_finish;
 
@@ -617,22 +621,22 @@ class mysql_conn_base
 
     // fetch_directly / exec_dml 的内部实现
     unsigned int fetch_directly_impl(const std::string &sql,
-                                     std::function<bool(int, char**, std::function<std::tuple<unsigned char*, size_t>(int)>)> handler);
+                                     std::function<bool(int, char **, std::function<std::tuple<unsigned char *, size_t>(int)>)> handler);
     asio::awaitable<unsigned int> async_fetch_directly_impl(const std::string &sql,
-                                                           std::function<bool(int, char**, std::function<std::tuple<unsigned char*, size_t>(int)>)> handler);
+                                                            std::function<bool(int, char **, std::function<std::tuple<unsigned char *, size_t>(int)>)> handler);
     unsigned int exec_dml_impl(const std::string &sql);
 
     // MySQL 协议辅助解析函数
-    unsigned int parse_affected_rows_fast(const unsigned char* data, size_t data_len, unsigned int* insert_id = nullptr);
-    void parse_error_packet(const unsigned char* data, unsigned int pkt_len);
+    unsigned int parse_affected_rows_fast(const unsigned char *data, size_t data_len, unsigned int *insert_id = nullptr);
+    void parse_error_packet(const unsigned char *data, unsigned int pkt_len);
 
     // ===== 断线自动重连支持 =====
-    orm_conn_t    last_conn_config_;
-    bool          has_conn_config_ = false;
+    orm_conn_t last_conn_config_;
+    bool has_conn_config_                       = false;
     static constexpr unsigned int kMaxReconnect = 1;
 
-    bool            is_last_error_reconnectable() const;
-    bool            try_reconnect();
+    bool is_last_error_reconnectable() const;
+    bool try_reconnect();
     asio::awaitable<bool> async_try_reconnect();
 };
 
@@ -650,7 +654,7 @@ inline unsigned int mysql_conn_base::fetch_directly(const std::string &sql, RowH
 {
     unsigned int retry = 0;
 RETRY_LABEL:
-    unsigned int rows = this->fetch_directly_impl(sql, std::function<bool(int, char**, std::function<std::tuple<unsigned char*, size_t>(int)>)>(handler));
+    unsigned int rows = this->fetch_directly_impl(sql, std::function<bool(int, char **, std::function<std::tuple<unsigned char *, size_t>(int)>)>(handler));
 
     if (rows == 0 &&
         is_last_error_reconnectable() &&
@@ -666,7 +670,7 @@ RETRY_LABEL:
 template <typename RowHandler>
 inline asio::awaitable<unsigned int> mysql_conn_base::async_fetch_directly(const std::string &sql, RowHandler handler)
 {
-    auto func = std::function<bool(int, char**, std::function<std::tuple<unsigned char*, size_t>(int)>)>(handler);
+    auto func          = std::function<bool(int, char **, std::function<std::tuple<unsigned char *, size_t>(int)>)>(handler);
     unsigned int retry = 0;
 RETRY_LABEL:
     unsigned int rows = co_await this->async_fetch_directly_impl(sql, func);

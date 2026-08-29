@@ -111,28 +111,34 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = mysql_select_conn->fetch_directly(rawsql,
-                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                    T data_temp;
-                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                    if (col_cache.empty() && col_count > 0) {
-                        col_cache.reserve(col_count);
-                        for (int k = 0; k < col_count; k++) {
-                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                        }
-                    }
-                    for (int ij = 0; ij < col_count; ij++) {
-                        auto [ptr, len] = get_data(ij);
-                        if (ptr == nullptr) {
-                            continue;
-                        }
-                        if (!col_cache[ij].empty()) {
-                            data_temp.set_val(col_cache[ij], ptr, len, 0);
-                        }
-                    }
-                    result_record.emplace_back(std::move(data_temp));
-                    effect_num++;
-                    return true;
-                });
+                                                                         [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                         {
+                                                                             T data_temp;
+                                                                             // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                             if (col_cache.empty() && col_count > 0)
+                                                                             {
+                                                                                 col_cache.reserve(col_count);
+                                                                                 for (int k = 0; k < col_count; k++)
+                                                                                 {
+                                                                                     col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                 }
+                                                                             }
+                                                                             for (int ij = 0; ij < col_count; ij++)
+                                                                             {
+                                                                                 auto [ptr, len] = get_data(ij);
+                                                                                 if (ptr == nullptr)
+                                                                                 {
+                                                                                     continue;
+                                                                                 }
+                                                                                 if (!col_cache[ij].empty())
+                                                                                 {
+                                                                                     data_temp.set_val(col_cache[ij], ptr, len, 0);
+                                                                                 }
+                                                                             }
+                                                                             result_record.emplace_back(std::move(data_temp));
+                                                                             effect_num++;
+                                                                             return true;
+                                                                         });
 
             if (fetch_count == 0 && !mysql_select_conn->error_msg.empty())
             {
@@ -197,28 +203,34 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = pg_select_conn->fetch_directly(rawsql,
-                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                T data_temp;
-                // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                if (col_cache.empty() && col_count > 0) {
-                    col_cache.reserve(col_count);
-                    for (int k = 0; k < col_count; k++) {
-                        col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                    }
-                }
-                for (int ij = 0; ij < col_count; ij++) {
-                    auto [ptr, len] = get_data(ij);
-                    if (ptr == nullptr) {
-                        continue;
-                    }
-                        if (!col_cache[ij].empty()) {
-                            data_temp.set_val(col_cache[ij], ptr, len, 0);
-                        }
-                }
-                result_record.emplace_back(std::move(data_temp));
-                effect_num++;
-                return true;
-            });
+                                                                      [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                      {
+                                                                          T data_temp;
+                                                                          // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                          if (col_cache.empty() && col_count > 0)
+                                                                          {
+                                                                              col_cache.reserve(col_count);
+                                                                              for (int k = 0; k < col_count; k++)
+                                                                              {
+                                                                                  col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                              }
+                                                                          }
+                                                                          for (int ij = 0; ij < col_count; ij++)
+                                                                          {
+                                                                              auto [ptr, len] = get_data(ij);
+                                                                              if (ptr == nullptr)
+                                                                              {
+                                                                                  continue;
+                                                                              }
+                                                                              if (!col_cache[ij].empty())
+                                                                              {
+                                                                                  data_temp.set_val(col_cache[ij], ptr, len, 0);
+                                                                              }
+                                                                          }
+                                                                          result_record.emplace_back(std::move(data_temp));
+                                                                          effect_num++;
+                                                                          return true;
+                                                                      });
 
             if (fetch_count == 0 && !pg_select_conn->error_msg.empty())
             {
@@ -283,28 +295,34 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = sqlite_select_conn->fetch_directly(rawsql,
-                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                    T data_temp;
-                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                    if (col_cache.empty() && col_count > 0) {
-                        col_cache.reserve(col_count);
-                        for (int k = 0; k < col_count; k++) {
-                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                        }
-                    }
-                    for (int ij = 0; ij < col_count; ij++) {
-                        auto [ptr, len] = get_data(ij);
-                        if (ptr == nullptr) {
-                            continue;
-                        }
-                        if (!col_cache[ij].empty()) {
-                            data_temp.set_val(col_cache[ij], ptr, len, 0);
-                        }
-                    }
-                    result_record.emplace_back(std::move(data_temp));
-                    effect_num++;
-                    return true;
-                });
+                                                                          [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                          {
+                                                                              T data_temp;
+                                                                              // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                              if (col_cache.empty() && col_count > 0)
+                                                                              {
+                                                                                  col_cache.reserve(col_count);
+                                                                                  for (int k = 0; k < col_count; k++)
+                                                                                  {
+                                                                                      col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                  }
+                                                                              }
+                                                                              for (int ij = 0; ij < col_count; ij++)
+                                                                              {
+                                                                                  auto [ptr, len] = get_data(ij);
+                                                                                  if (ptr == nullptr)
+                                                                                  {
+                                                                                      continue;
+                                                                                  }
+                                                                                  if (!col_cache[ij].empty())
+                                                                                  {
+                                                                                      data_temp.set_val(col_cache[ij], ptr, len, 0);
+                                                                                  }
+                                                                              }
+                                                                              result_record.emplace_back(std::move(data_temp));
+                                                                              effect_num++;
+                                                                              return true;
+                                                                          });
 
             if (fetch_count == 0 && !sqlite_select_conn->error_msg.empty())
             {
@@ -382,28 +400,34 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = co_await mysql_select_conn->async_fetch_directly(rawsql,
-                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                    T data_temp;
-                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                    if (col_cache.empty() && col_count > 0) {
-                        col_cache.reserve(col_count);
-                        for (int k = 0; k < col_count; k++) {
-                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                        }
-                    }
-                    for (int ij = 0; ij < col_count; ij++) {
-                        auto [ptr, len] = get_data(ij);
-                        if (ptr == nullptr) {
-                            continue;
-                        }
-                        if (!col_cache[ij].empty()) {
-                            data_temp.set_val(col_cache[ij], ptr, len, 0);
-                        }
-                    }
-                    result_record.emplace_back(std::move(data_temp));
-                    effect_num++;
-                    return true;
-                });
+                                                                                        [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                        {
+                                                                                            T data_temp;
+                                                                                            // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                                            if (col_cache.empty() && col_count > 0)
+                                                                                            {
+                                                                                                col_cache.reserve(col_count);
+                                                                                                for (int k = 0; k < col_count; k++)
+                                                                                                {
+                                                                                                    col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                                }
+                                                                                            }
+                                                                                            for (int ij = 0; ij < col_count; ij++)
+                                                                                            {
+                                                                                                auto [ptr, len] = get_data(ij);
+                                                                                                if (ptr == nullptr)
+                                                                                                {
+                                                                                                    continue;
+                                                                                                }
+                                                                                                if (!col_cache[ij].empty())
+                                                                                                {
+                                                                                                    data_temp.set_val(col_cache[ij], ptr, len, 0);
+                                                                                                }
+                                                                                            }
+                                                                                            result_record.emplace_back(std::move(data_temp));
+                                                                                            effect_num++;
+                                                                                            return true;
+                                                                                        });
 
             if (fetch_count == 0 && !mysql_select_conn->error_msg.empty())
             {
@@ -468,28 +492,34 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = co_await pg_select_conn->async_fetch_directly(rawsql,
-                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                T data_temp;
-                // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                if (col_cache.empty() && col_count > 0) {
-                    col_cache.reserve(col_count);
-                    for (int k = 0; k < col_count; k++) {
-                        col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                    }
-                }
-                for (int ij = 0; ij < col_count; ij++) {
-                    auto [ptr, len] = get_data(ij);
-                    if (ptr == nullptr) {
-                        continue;
-                    }
-                        if (!col_cache[ij].empty()) {
-                            data_temp.set_val(col_cache[ij], ptr, len, 0);
-                        }
-                }
-                result_record.emplace_back(std::move(data_temp));
-                effect_num++;
-                return true;
-            });
+                                                                                     [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                     {
+                                                                                         T data_temp;
+                                                                                         // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                                         if (col_cache.empty() && col_count > 0)
+                                                                                         {
+                                                                                             col_cache.reserve(col_count);
+                                                                                             for (int k = 0; k < col_count; k++)
+                                                                                             {
+                                                                                                 col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                             }
+                                                                                         }
+                                                                                         for (int ij = 0; ij < col_count; ij++)
+                                                                                         {
+                                                                                             auto [ptr, len] = get_data(ij);
+                                                                                             if (ptr == nullptr)
+                                                                                             {
+                                                                                                 continue;
+                                                                                             }
+                                                                                             if (!col_cache[ij].empty())
+                                                                                             {
+                                                                                                 data_temp.set_val(col_cache[ij], ptr, len, 0);
+                                                                                             }
+                                                                                         }
+                                                                                         result_record.emplace_back(std::move(data_temp));
+                                                                                         effect_num++;
+                                                                                         return true;
+                                                                                     });
 
             if (fetch_count == 0 && !pg_select_conn->error_msg.empty())
             {
@@ -554,28 +584,34 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = co_await sqlite_select_conn->async_fetch_directly(rawsql,
-                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                    T data_temp;
-                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                    if (col_cache.empty() && col_count > 0) {
-                        col_cache.reserve(col_count);
-                        for (int k = 0; k < col_count; k++) {
-                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                        }
-                    }
-                    for (int ij = 0; ij < col_count; ij++) {
-                        auto [ptr, len] = get_data(ij);
-                        if (ptr == nullptr) {
-                            continue;
-                        }
-                        if (!col_cache[ij].empty()) {
-                            data_temp.set_val(col_cache[ij], ptr, len, 0);
-                        }
-                    }
-                    result_record.emplace_back(std::move(data_temp));
-                    effect_num++;
-                    return true;
-                });
+                                                                                         [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                         {
+                                                                                             T data_temp;
+                                                                                             // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                                             if (col_cache.empty() && col_count > 0)
+                                                                                             {
+                                                                                                 col_cache.reserve(col_count);
+                                                                                                 for (int k = 0; k < col_count; k++)
+                                                                                                 {
+                                                                                                     col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                                 }
+                                                                                             }
+                                                                                             for (int ij = 0; ij < col_count; ij++)
+                                                                                             {
+                                                                                                 auto [ptr, len] = get_data(ij);
+                                                                                                 if (ptr == nullptr)
+                                                                                                 {
+                                                                                                     continue;
+                                                                                                 }
+                                                                                                 if (!col_cache[ij].empty())
+                                                                                                 {
+                                                                                                     data_temp.set_val(col_cache[ij], ptr, len, 0);
+                                                                                                 }
+                                                                                             }
+                                                                                             result_record.emplace_back(std::move(data_temp));
+                                                                                             effect_num++;
+                                                                                             return true;
+                                                                                         });
 
             if (fetch_count == 0 && !sqlite_select_conn->error_msg.empty())
             {
@@ -654,26 +690,32 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = mysql_select_conn->fetch_directly(rawsql,
-                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                    if (col_cache.empty() && col_count > 0) {
-                        col_cache.reserve(col_count);
-                        for (int k = 0; k < col_count; k++) {
-                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                        }
-                    }
-                    for (int ij = 0; ij < col_count; ij++) {
-                        auto [ptr, len] = get_data(ij);
-                        if (ptr == nullptr) {
-                            continue;
-                        }
-                        if (!col_cache[ij].empty()) {
-                            result_record.set_val(col_cache[ij], ptr, len, 0);
-                        }
-                    }
-                    effect_num++;
-                    return false;
-                });
+                                                                         [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                         {
+                                                                             // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                             if (col_cache.empty() && col_count > 0)
+                                                                             {
+                                                                                 col_cache.reserve(col_count);
+                                                                                 for (int k = 0; k < col_count; k++)
+                                                                                 {
+                                                                                     col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                 }
+                                                                             }
+                                                                             for (int ij = 0; ij < col_count; ij++)
+                                                                             {
+                                                                                 auto [ptr, len] = get_data(ij);
+                                                                                 if (ptr == nullptr)
+                                                                                 {
+                                                                                     continue;
+                                                                                 }
+                                                                                 if (!col_cache[ij].empty())
+                                                                                 {
+                                                                                     result_record.set_val(col_cache[ij], ptr, len, 0);
+                                                                                 }
+                                                                             }
+                                                                             effect_num++;
+                                                                             return false;
+                                                                         });
 
             if (fetch_count == 0 && !mysql_select_conn->error_msg.empty())
             {
@@ -738,26 +780,32 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = pg_select_conn->fetch_directly(rawsql,
-                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                if (col_cache.empty() && col_count > 0) {
-                    col_cache.reserve(col_count);
-                    for (int k = 0; k < col_count; k++) {
-                        col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                    }
-                }
-                for (int ij = 0; ij < col_count; ij++) {
-                    auto [ptr, len] = get_data(ij);
-                    if (ptr == nullptr) {
-                        continue;
-                    }
-                        if (!col_cache[ij].empty()) {
-                            result_record.set_val(col_cache[ij], ptr, len, 0);
-                        }
-                }
-                effect_num++;
-                return false;// 只取首行
-            });
+                                                                      [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                      {
+                                                                          // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                          if (col_cache.empty() && col_count > 0)
+                                                                          {
+                                                                              col_cache.reserve(col_count);
+                                                                              for (int k = 0; k < col_count; k++)
+                                                                              {
+                                                                                  col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                              }
+                                                                          }
+                                                                          for (int ij = 0; ij < col_count; ij++)
+                                                                          {
+                                                                              auto [ptr, len] = get_data(ij);
+                                                                              if (ptr == nullptr)
+                                                                              {
+                                                                                  continue;
+                                                                              }
+                                                                              if (!col_cache[ij].empty())
+                                                                              {
+                                                                                  result_record.set_val(col_cache[ij], ptr, len, 0);
+                                                                              }
+                                                                          }
+                                                                          effect_num++;
+                                                                          return false;// 只取首行
+                                                                      });
 
             if (fetch_count == 0 && !pg_select_conn->error_msg.empty())
             {
@@ -822,26 +870,32 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = sqlite_select_conn->fetch_directly(rawsql,
-                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                    if (col_cache.empty() && col_count > 0) {
-                        col_cache.reserve(col_count);
-                        for (int k = 0; k < col_count; k++) {
-                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                        }
-                    }
-                    for (int ij = 0; ij < col_count; ij++) {
-                        auto [ptr, len] = get_data(ij);
-                        if (ptr == nullptr) {
-                            continue;
-                        }
-                        if (!col_cache[ij].empty()) {
-                            result_record.set_val(col_cache[ij], ptr, len, 0);
-                        }
-                    }
-                    effect_num++;
-                    return false; // only fetch first row
-                });
+                                                                          [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                          {
+                                                                              // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                              if (col_cache.empty() && col_count > 0)
+                                                                              {
+                                                                                  col_cache.reserve(col_count);
+                                                                                  for (int k = 0; k < col_count; k++)
+                                                                                  {
+                                                                                      col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                  }
+                                                                              }
+                                                                              for (int ij = 0; ij < col_count; ij++)
+                                                                              {
+                                                                                  auto [ptr, len] = get_data(ij);
+                                                                                  if (ptr == nullptr)
+                                                                                  {
+                                                                                      continue;
+                                                                                  }
+                                                                                  if (!col_cache[ij].empty())
+                                                                                  {
+                                                                                      result_record.set_val(col_cache[ij], ptr, len, 0);
+                                                                                  }
+                                                                              }
+                                                                              effect_num++;
+                                                                              return false;// only fetch first row
+                                                                          });
 
             if (fetch_count == 0 && !sqlite_select_conn->error_msg.empty())
             {
@@ -919,26 +973,32 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = co_await mysql_select_conn->async_fetch_directly(rawsql,
-                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                    if (col_cache.empty() && col_count > 0) {
-                        col_cache.reserve(col_count);
-                        for (int k = 0; k < col_count; k++) {
-                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                        }
-                    }
-                    for (int ij = 0; ij < col_count; ij++) {
-                        auto [ptr, len] = get_data(ij);
-                        if (ptr == nullptr) {
-                            continue;
-                        }
-                        if (!col_cache[ij].empty()) {
-                            result_record.set_val(col_cache[ij], ptr, len, 0);
-                        }
-                    }
-                    effect_num++;
-                    return false;
-                });
+                                                                                        [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                        {
+                                                                                            // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                                            if (col_cache.empty() && col_count > 0)
+                                                                                            {
+                                                                                                col_cache.reserve(col_count);
+                                                                                                for (int k = 0; k < col_count; k++)
+                                                                                                {
+                                                                                                    col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                                }
+                                                                                            }
+                                                                                            for (int ij = 0; ij < col_count; ij++)
+                                                                                            {
+                                                                                                auto [ptr, len] = get_data(ij);
+                                                                                                if (ptr == nullptr)
+                                                                                                {
+                                                                                                    continue;
+                                                                                                }
+                                                                                                if (!col_cache[ij].empty())
+                                                                                                {
+                                                                                                    result_record.set_val(col_cache[ij], ptr, len, 0);
+                                                                                                }
+                                                                                            }
+                                                                                            effect_num++;
+                                                                                            return false;
+                                                                                        });
 
             if (fetch_count == 0 && !mysql_select_conn->error_msg.empty())
             {
@@ -1003,26 +1063,32 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = co_await pg_select_conn->async_fetch_directly(rawsql,
-                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                if (col_cache.empty() && col_count > 0) {
-                    col_cache.reserve(col_count);
-                    for (int k = 0; k < col_count; k++) {
-                        col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                    }
-                }
-                for (int ij = 0; ij < col_count; ij++) {
-                    auto [ptr, len] = get_data(ij);
-                    if (ptr == nullptr) {
-                        continue;
-                    }
-                        if (!col_cache[ij].empty()) {
-                            result_record.set_val(col_cache[ij], ptr, len, 0);
-                        }
-                }
-                effect_num++;
-                return false;// 只取首行
-            });
+                                                                                     [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                     {
+                                                                                         // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                                         if (col_cache.empty() && col_count > 0)
+                                                                                         {
+                                                                                             col_cache.reserve(col_count);
+                                                                                             for (int k = 0; k < col_count; k++)
+                                                                                             {
+                                                                                                 col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                             }
+                                                                                         }
+                                                                                         for (int ij = 0; ij < col_count; ij++)
+                                                                                         {
+                                                                                             auto [ptr, len] = get_data(ij);
+                                                                                             if (ptr == nullptr)
+                                                                                             {
+                                                                                                 continue;
+                                                                                             }
+                                                                                             if (!col_cache[ij].empty())
+                                                                                             {
+                                                                                                 result_record.set_val(col_cache[ij], ptr, len, 0);
+                                                                                             }
+                                                                                         }
+                                                                                         effect_num++;
+                                                                                         return false;// 只取首行
+                                                                                     });
 
             if (fetch_count == 0 && !pg_select_conn->error_msg.empty())
             {
@@ -1087,26 +1153,32 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = co_await sqlite_select_conn->async_fetch_directly(rawsql,
-                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                    if (col_cache.empty() && col_count > 0) {
-                        col_cache.reserve(col_count);
-                        for (int k = 0; k < col_count; k++) {
-                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                        }
-                    }
-                    for (int ij = 0; ij < col_count; ij++) {
-                        auto [ptr, len] = get_data(ij);
-                        if (ptr == nullptr) {
-                            continue;
-                        }
-                        if (!col_cache[ij].empty()) {
-                            result_record.set_val(col_cache[ij], ptr, len, 0);
-                        }
-                    }
-                    effect_num++;
-                    return false; // only fetch first row
-                });
+                                                                                         [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                         {
+                                                                                             // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                                             if (col_cache.empty() && col_count > 0)
+                                                                                             {
+                                                                                                 col_cache.reserve(col_count);
+                                                                                                 for (int k = 0; k < col_count; k++)
+                                                                                                 {
+                                                                                                     col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                                 }
+                                                                                             }
+                                                                                             for (int ij = 0; ij < col_count; ij++)
+                                                                                             {
+                                                                                                 auto [ptr, len] = get_data(ij);
+                                                                                                 if (ptr == nullptr)
+                                                                                                 {
+                                                                                                     continue;
+                                                                                                 }
+                                                                                                 if (!col_cache[ij].empty())
+                                                                                                 {
+                                                                                                     result_record.set_val(col_cache[ij], ptr, len, 0);
+                                                                                                 }
+                                                                                             }
+                                                                                             effect_num++;
+                                                                                             return false;// only fetch first row
+                                                                                         });
 
             if (fetch_count == 0 && !sqlite_select_conn->error_msg.empty())
             {
@@ -1186,28 +1258,34 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = mysql_select_conn->fetch_directly(rawsql,
-                [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                    T data_temp;
-                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                    if (col_cache.empty() && col_count > 0) {
-                        col_cache.reserve(col_count);
-                        for (int k = 0; k < col_count; k++) {
-                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                        }
-                    }
-                    for (int ij = 0; ij < col_count; ij++) {
-                        auto [ptr, len] = get_data(ij);
-                        if (ptr == nullptr) {
-                            continue;
-                        }
-                        if (!col_cache[ij].empty()) {
-                            std::invoke(callback, data_temp, col_cache[ij], ptr, len, ij % 255, 1);
-                        }
-                    }
-                    result_record.emplace_back(std::move(data_temp));
-                    effect_num++;
-                    return true;
-                });
+                                                                         [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                         {
+                                                                             T data_temp;
+                                                                             // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                             if (col_cache.empty() && col_count > 0)
+                                                                             {
+                                                                                 col_cache.reserve(col_count);
+                                                                                 for (int k = 0; k < col_count; k++)
+                                                                                 {
+                                                                                     col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                 }
+                                                                             }
+                                                                             for (int ij = 0; ij < col_count; ij++)
+                                                                             {
+                                                                                 auto [ptr, len] = get_data(ij);
+                                                                                 if (ptr == nullptr)
+                                                                                 {
+                                                                                     continue;
+                                                                                 }
+                                                                                 if (!col_cache[ij].empty())
+                                                                                 {
+                                                                                     std::invoke(callback, data_temp, col_cache[ij], ptr, len, ij % 255, 1);
+                                                                                 }
+                                                                             }
+                                                                             result_record.emplace_back(std::move(data_temp));
+                                                                             effect_num++;
+                                                                             return true;
+                                                                         });
 
             if (fetch_count == 0 && !mysql_select_conn->error_msg.empty())
             {
@@ -1272,28 +1350,34 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = pg_select_conn->fetch_directly(rawsql,
-                [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                T data_temp;
-                // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                if (col_cache.empty() && col_count > 0) {
-                    col_cache.reserve(col_count);
-                    for (int k = 0; k < col_count; k++) {
-                        col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                    }
-                }
-                for (int ij = 0; ij < col_count; ij++) {
-                    auto [ptr, len] = get_data(ij);
-                    if (ptr == nullptr) {
-                        continue;
-                    }
-                        if (!col_cache[ij].empty()) {
-                            std::invoke(callback, data_temp, col_cache[ij], ptr, len, ij % 255, 1);
-                        }
-                }
-                result_record.emplace_back(std::move(data_temp));
-                effect_num++;
-                return true;
-            });
+                                                                      [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                      {
+                                                                          T data_temp;
+                                                                          // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                          if (col_cache.empty() && col_count > 0)
+                                                                          {
+                                                                              col_cache.reserve(col_count);
+                                                                              for (int k = 0; k < col_count; k++)
+                                                                              {
+                                                                                  col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                              }
+                                                                          }
+                                                                          for (int ij = 0; ij < col_count; ij++)
+                                                                          {
+                                                                              auto [ptr, len] = get_data(ij);
+                                                                              if (ptr == nullptr)
+                                                                              {
+                                                                                  continue;
+                                                                              }
+                                                                              if (!col_cache[ij].empty())
+                                                                              {
+                                                                                  std::invoke(callback, data_temp, col_cache[ij], ptr, len, ij % 255, 1);
+                                                                              }
+                                                                          }
+                                                                          result_record.emplace_back(std::move(data_temp));
+                                                                          effect_num++;
+                                                                          return true;
+                                                                      });
 
             if (fetch_count == 0 && !pg_select_conn->error_msg.empty())
             {
@@ -1358,28 +1442,34 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = sqlite_select_conn->fetch_directly(rawsql,
-                [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                    T data_temp;
-                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                    if (col_cache.empty() && col_count > 0) {
-                        col_cache.reserve(col_count);
-                        for (int k = 0; k < col_count; k++) {
-                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                        }
-                    }
-                    for (int ij = 0; ij < col_count; ij++) {
-                        auto [ptr, len] = get_data(ij);
-                        if (ptr == nullptr) {
-                            continue;
-                        }
-                        if (!col_cache[ij].empty()) {
-                            std::invoke(callback, data_temp, col_cache[ij], ptr, len, ij % 255, 1);
-                        }
-                    }
-                    result_record.emplace_back(std::move(data_temp));
-                    effect_num++;
-                    return true;
-                });
+                                                                          [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                          {
+                                                                              T data_temp;
+                                                                              // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                              if (col_cache.empty() && col_count > 0)
+                                                                              {
+                                                                                  col_cache.reserve(col_count);
+                                                                                  for (int k = 0; k < col_count; k++)
+                                                                                  {
+                                                                                      col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                  }
+                                                                              }
+                                                                              for (int ij = 0; ij < col_count; ij++)
+                                                                              {
+                                                                                  auto [ptr, len] = get_data(ij);
+                                                                                  if (ptr == nullptr)
+                                                                                  {
+                                                                                      continue;
+                                                                                  }
+                                                                                  if (!col_cache[ij].empty())
+                                                                                  {
+                                                                                      std::invoke(callback, data_temp, col_cache[ij], ptr, len, ij % 255, 1);
+                                                                                  }
+                                                                              }
+                                                                              result_record.emplace_back(std::move(data_temp));
+                                                                              effect_num++;
+                                                                              return true;
+                                                                          });
 
             if (fetch_count == 0 && !sqlite_select_conn->error_msg.empty())
             {
@@ -1457,28 +1547,34 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = co_await mysql_select_conn->async_fetch_directly(rawsql,
-                [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                    T data_temp;
-                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                    if (col_cache.empty() && col_count > 0) {
-                        col_cache.reserve(col_count);
-                        for (int k = 0; k < col_count; k++) {
-                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                        }
-                    }
-                    for (int ij = 0; ij < col_count; ij++) {
-                        auto [ptr, len] = get_data(ij);
-                        if (ptr == nullptr) {
-                            continue;
-                        }
-                        if (!col_cache[ij].empty()) {
-                            std::invoke(callback, data_temp, col_cache[ij], ptr, len, ij % 255, 1);
-                        }
-                    }
-                    result_record.emplace_back(std::move(data_temp));
-                    effect_num++;
-                    return true;
-                });
+                                                                                        [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                        {
+                                                                                            T data_temp;
+                                                                                            // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                                            if (col_cache.empty() && col_count > 0)
+                                                                                            {
+                                                                                                col_cache.reserve(col_count);
+                                                                                                for (int k = 0; k < col_count; k++)
+                                                                                                {
+                                                                                                    col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                                }
+                                                                                            }
+                                                                                            for (int ij = 0; ij < col_count; ij++)
+                                                                                            {
+                                                                                                auto [ptr, len] = get_data(ij);
+                                                                                                if (ptr == nullptr)
+                                                                                                {
+                                                                                                    continue;
+                                                                                                }
+                                                                                                if (!col_cache[ij].empty())
+                                                                                                {
+                                                                                                    std::invoke(callback, data_temp, col_cache[ij], ptr, len, ij % 255, 1);
+                                                                                                }
+                                                                                            }
+                                                                                            result_record.emplace_back(std::move(data_temp));
+                                                                                            effect_num++;
+                                                                                            return true;
+                                                                                        });
 
             if (fetch_count == 0 && !mysql_select_conn->error_msg.empty())
             {
@@ -1543,28 +1639,34 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = co_await pg_select_conn->async_fetch_directly(rawsql,
-                [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                T data_temp;
-                // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                if (col_cache.empty() && col_count > 0) {
-                    col_cache.reserve(col_count);
-                    for (int k = 0; k < col_count; k++) {
-                        col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                    }
-                }
-                for (int ij = 0; ij < col_count; ij++) {
-                    auto [ptr, len] = get_data(ij);
-                    if (ptr == nullptr) {
-                        continue;
-                    }
-                        if (!col_cache[ij].empty()) {
-                            std::invoke(callback, data_temp, col_cache[ij], ptr, len, ij % 255, 1);
-                        }
-                }
-                result_record.emplace_back(std::move(data_temp));
-                effect_num++;
-                return true;
-            });
+                                                                                     [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                     {
+                                                                                         T data_temp;
+                                                                                         // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                                         if (col_cache.empty() && col_count > 0)
+                                                                                         {
+                                                                                             col_cache.reserve(col_count);
+                                                                                             for (int k = 0; k < col_count; k++)
+                                                                                             {
+                                                                                                 col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                             }
+                                                                                         }
+                                                                                         for (int ij = 0; ij < col_count; ij++)
+                                                                                         {
+                                                                                             auto [ptr, len] = get_data(ij);
+                                                                                             if (ptr == nullptr)
+                                                                                             {
+                                                                                                 continue;
+                                                                                             }
+                                                                                             if (!col_cache[ij].empty())
+                                                                                             {
+                                                                                                 std::invoke(callback, data_temp, col_cache[ij], ptr, len, ij % 255, 1);
+                                                                                             }
+                                                                                         }
+                                                                                         result_record.emplace_back(std::move(data_temp));
+                                                                                         effect_num++;
+                                                                                         return true;
+                                                                                     });
 
             if (fetch_count == 0 && !pg_select_conn->error_msg.empty())
             {
@@ -1629,28 +1731,34 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = co_await sqlite_select_conn->async_fetch_directly(rawsql,
-                [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                    T data_temp;
-                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                    if (col_cache.empty() && col_count > 0) {
-                        col_cache.reserve(col_count);
-                        for (int k = 0; k < col_count; k++) {
-                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                        }
-                    }
-                    for (int ij = 0; ij < col_count; ij++) {
-                        auto [ptr, len] = get_data(ij);
-                        if (ptr == nullptr) {
-                            continue;
-                        }
-                        if (!col_cache[ij].empty()) {
-                            std::invoke(callback, data_temp, col_cache[ij], ptr, len, ij % 255, 1);
-                        }
-                    }
-                    result_record.emplace_back(std::move(data_temp));
-                    effect_num++;
-                    return true;
-                });
+                                                                                         [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                         {
+                                                                                             T data_temp;
+                                                                                             // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                                             if (col_cache.empty() && col_count > 0)
+                                                                                             {
+                                                                                                 col_cache.reserve(col_count);
+                                                                                                 for (int k = 0; k < col_count; k++)
+                                                                                                 {
+                                                                                                     col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                                 }
+                                                                                             }
+                                                                                             for (int ij = 0; ij < col_count; ij++)
+                                                                                             {
+                                                                                                 auto [ptr, len] = get_data(ij);
+                                                                                                 if (ptr == nullptr)
+                                                                                                 {
+                                                                                                     continue;
+                                                                                                 }
+                                                                                                 if (!col_cache[ij].empty())
+                                                                                                 {
+                                                                                                     std::invoke(callback, data_temp, col_cache[ij], ptr, len, ij % 255, 1);
+                                                                                                 }
+                                                                                             }
+                                                                                             result_record.emplace_back(std::move(data_temp));
+                                                                                             effect_num++;
+                                                                                             return true;
+                                                                                         });
 
             if (fetch_count == 0 && !sqlite_select_conn->error_msg.empty())
             {
@@ -1729,26 +1837,32 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = mysql_select_conn->fetch_directly(rawsql,
-                [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                    if (col_cache.empty() && col_count > 0) {
-                        col_cache.reserve(col_count);
-                        for (int k = 0; k < col_count; k++) {
-                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                        }
-                    }
-                    for (int ij = 0; ij < col_count; ij++) {
-                        auto [ptr, len] = get_data(ij);
-                        if (ptr == nullptr) {
-                            continue;
-                        }
-                        if (!col_cache[ij].empty()) {
-                            std::invoke(callback, result_record, col_cache[ij], ptr, len, ij % 255, 1);
-                        }
-                    }
-                    effect_num++;
-                    return false;
-                });
+                                                                         [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                         {
+                                                                             // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                             if (col_cache.empty() && col_count > 0)
+                                                                             {
+                                                                                 col_cache.reserve(col_count);
+                                                                                 for (int k = 0; k < col_count; k++)
+                                                                                 {
+                                                                                     col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                 }
+                                                                             }
+                                                                             for (int ij = 0; ij < col_count; ij++)
+                                                                             {
+                                                                                 auto [ptr, len] = get_data(ij);
+                                                                                 if (ptr == nullptr)
+                                                                                 {
+                                                                                     continue;
+                                                                                 }
+                                                                                 if (!col_cache[ij].empty())
+                                                                                 {
+                                                                                     std::invoke(callback, result_record, col_cache[ij], ptr, len, ij % 255, 1);
+                                                                                 }
+                                                                             }
+                                                                             effect_num++;
+                                                                             return false;
+                                                                         });
 
             if (fetch_count == 0 && !mysql_select_conn->error_msg.empty())
             {
@@ -1813,26 +1927,32 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = pg_select_conn->fetch_directly(rawsql,
-                [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                if (col_cache.empty() && col_count > 0) {
-                    col_cache.reserve(col_count);
-                    for (int k = 0; k < col_count; k++) {
-                        col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                    }
-                }
-                for (int ij = 0; ij < col_count; ij++) {
-                    auto [ptr, len] = get_data(ij);
-                    if (ptr == nullptr) {
-                        continue;
-                    }
-                        if (!col_cache[ij].empty()) {
-                            std::invoke(callback, result_record, col_cache[ij], ptr, len, ij % 255, 1);
-                        }
-                }
-                effect_num++;
-                return false;// 只取首行
-            });
+                                                                      [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                      {
+                                                                          // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                          if (col_cache.empty() && col_count > 0)
+                                                                          {
+                                                                              col_cache.reserve(col_count);
+                                                                              for (int k = 0; k < col_count; k++)
+                                                                              {
+                                                                                  col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                              }
+                                                                          }
+                                                                          for (int ij = 0; ij < col_count; ij++)
+                                                                          {
+                                                                              auto [ptr, len] = get_data(ij);
+                                                                              if (ptr == nullptr)
+                                                                              {
+                                                                                  continue;
+                                                                              }
+                                                                              if (!col_cache[ij].empty())
+                                                                              {
+                                                                                  std::invoke(callback, result_record, col_cache[ij], ptr, len, ij % 255, 1);
+                                                                              }
+                                                                          }
+                                                                          effect_num++;
+                                                                          return false;// 只取首行
+                                                                      });
 
             if (fetch_count == 0 && !pg_select_conn->error_msg.empty())
             {
@@ -1897,26 +2017,32 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = sqlite_select_conn->fetch_directly(rawsql,
-                [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                    if (col_cache.empty() && col_count > 0) {
-                        col_cache.reserve(col_count);
-                        for (int k = 0; k < col_count; k++) {
-                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                        }
-                    }
-                    for (int ij = 0; ij < col_count; ij++) {
-                        auto [ptr, len] = get_data(ij);
-                        if (ptr == nullptr) {
-                            continue;
-                        }
-                        if (!col_cache[ij].empty()) {
-                            std::invoke(callback, result_record, col_cache[ij], ptr, len, ij % 255, 1);
-                        }
-                    }
-                    effect_num++;
-                    return false; // only fetch first row
-                });
+                                                                          [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                          {
+                                                                              // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                              if (col_cache.empty() && col_count > 0)
+                                                                              {
+                                                                                  col_cache.reserve(col_count);
+                                                                                  for (int k = 0; k < col_count; k++)
+                                                                                  {
+                                                                                      col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                  }
+                                                                              }
+                                                                              for (int ij = 0; ij < col_count; ij++)
+                                                                              {
+                                                                                  auto [ptr, len] = get_data(ij);
+                                                                                  if (ptr == nullptr)
+                                                                                  {
+                                                                                      continue;
+                                                                                  }
+                                                                                  if (!col_cache[ij].empty())
+                                                                                  {
+                                                                                      std::invoke(callback, result_record, col_cache[ij], ptr, len, ij % 255, 1);
+                                                                                  }
+                                                                              }
+                                                                              effect_num++;
+                                                                              return false;// only fetch first row
+                                                                          });
 
             if (fetch_count == 0 && !sqlite_select_conn->error_msg.empty())
             {
@@ -1994,26 +2120,32 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = co_await mysql_select_conn->async_fetch_directly(rawsql,
-                [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                    if (col_cache.empty() && col_count > 0) {
-                        col_cache.reserve(col_count);
-                        for (int k = 0; k < col_count; k++) {
-                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                        }
-                    }
-                    for (int ij = 0; ij < col_count; ij++) {
-                        auto [ptr, len] = get_data(ij);
-                        if (ptr == nullptr) {
-                            continue;
-                        }
-                        if (!col_cache[ij].empty()) {
-                            std::invoke(callback, result_record, col_cache[ij], ptr, len, ij % 255, 1);
-                        }
-                    }
-                    effect_num++;
-                    return false;
-                });
+                                                                                        [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                        {
+                                                                                            // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                                            if (col_cache.empty() && col_count > 0)
+                                                                                            {
+                                                                                                col_cache.reserve(col_count);
+                                                                                                for (int k = 0; k < col_count; k++)
+                                                                                                {
+                                                                                                    col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                                }
+                                                                                            }
+                                                                                            for (int ij = 0; ij < col_count; ij++)
+                                                                                            {
+                                                                                                auto [ptr, len] = get_data(ij);
+                                                                                                if (ptr == nullptr)
+                                                                                                {
+                                                                                                    continue;
+                                                                                                }
+                                                                                                if (!col_cache[ij].empty())
+                                                                                                {
+                                                                                                    std::invoke(callback, result_record, col_cache[ij], ptr, len, ij % 255, 1);
+                                                                                                }
+                                                                                            }
+                                                                                            effect_num++;
+                                                                                            return false;
+                                                                                        });
 
             if (fetch_count == 0 && !mysql_select_conn->error_msg.empty())
             {
@@ -2078,26 +2210,32 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = co_await pg_select_conn->async_fetch_directly(rawsql,
-                [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                if (col_cache.empty() && col_count > 0) {
-                    col_cache.reserve(col_count);
-                    for (int k = 0; k < col_count; k++) {
-                        col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                    }
-                }
-                for (int ij = 0; ij < col_count; ij++) {
-                    auto [ptr, len] = get_data(ij);
-                    if (ptr == nullptr) {
-                        continue;
-                    }
-                        if (!col_cache[ij].empty()) {
-                            std::invoke(callback, result_record, col_cache[ij], ptr, len, ij % 255, 1);
-                        }
-                }
-                effect_num++;
-                return false;// 只取首行
-            });
+                                                                                     [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                     {
+                                                                                         // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                                         if (col_cache.empty() && col_count > 0)
+                                                                                         {
+                                                                                             col_cache.reserve(col_count);
+                                                                                             for (int k = 0; k < col_count; k++)
+                                                                                             {
+                                                                                                 col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                             }
+                                                                                         }
+                                                                                         for (int ij = 0; ij < col_count; ij++)
+                                                                                         {
+                                                                                             auto [ptr, len] = get_data(ij);
+                                                                                             if (ptr == nullptr)
+                                                                                             {
+                                                                                                 continue;
+                                                                                             }
+                                                                                             if (!col_cache[ij].empty())
+                                                                                             {
+                                                                                                 std::invoke(callback, result_record, col_cache[ij], ptr, len, ij % 255, 1);
+                                                                                             }
+                                                                                         }
+                                                                                         effect_num++;
+                                                                                         return false;// 只取首行
+                                                                                     });
 
             if (fetch_count == 0 && !pg_select_conn->error_msg.empty())
             {
@@ -2162,26 +2300,32 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = co_await sqlite_select_conn->async_fetch_directly(rawsql,
-                [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                    if (col_cache.empty() && col_count > 0) {
-                        col_cache.reserve(col_count);
-                        for (int k = 0; k < col_count; k++) {
-                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                        }
-                    }
-                    for (int ij = 0; ij < col_count; ij++) {
-                        auto [ptr, len] = get_data(ij);
-                        if (ptr == nullptr) {
-                            continue;
-                        }
-                        if (!col_cache[ij].empty()) {
-                            std::invoke(callback, result_record, col_cache[ij], ptr, len, ij % 255, 1);
-                        }
-                    }
-                    effect_num++;
-                    return false; // only fetch first row
-                });
+                                                                                         [this, &result_record, callback = std::forward<Callback>(callback), col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                         {
+                                                                                             // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                                             if (col_cache.empty() && col_count > 0)
+                                                                                             {
+                                                                                                 col_cache.reserve(col_count);
+                                                                                                 for (int k = 0; k < col_count; k++)
+                                                                                                 {
+                                                                                                     col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                                 }
+                                                                                             }
+                                                                                             for (int ij = 0; ij < col_count; ij++)
+                                                                                             {
+                                                                                                 auto [ptr, len] = get_data(ij);
+                                                                                                 if (ptr == nullptr)
+                                                                                                 {
+                                                                                                     continue;
+                                                                                                 }
+                                                                                                 if (!col_cache[ij].empty())
+                                                                                                 {
+                                                                                                     std::invoke(callback, result_record, col_cache[ij], ptr, len, ij % 255, 1);
+                                                                                                 }
+                                                                                             }
+                                                                                             effect_num++;
+                                                                                             return false;// only fetch first row
+                                                                                         });
 
             if (fetch_count == 0 && !sqlite_select_conn->error_msg.empty())
             {
@@ -2262,28 +2406,34 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = mysql_edit_conn->fetch_directly(rawsql,
-                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                    T data_temp;
-                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                    if (col_cache.empty() && col_count > 0) {
-                        col_cache.reserve(col_count);
-                        for (int k = 0; k < col_count; k++) {
-                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                        }
-                    }
-                    for (int ij = 0; ij < col_count; ij++) {
-                        auto [ptr, len] = get_data(ij);
-                        if (ptr == nullptr) {
-                            continue;
-                        }
-                        if (!col_cache[ij].empty()) {
-                            data_temp.set_val(col_cache[ij], ptr, len, 0);
-                        }
-                    }
-                    result_record.emplace_back(std::move(data_temp));
-                    effect_num++;
-                    return true;
-                });
+                                                                       [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                       {
+                                                                           T data_temp;
+                                                                           // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                           if (col_cache.empty() && col_count > 0)
+                                                                           {
+                                                                               col_cache.reserve(col_count);
+                                                                               for (int k = 0; k < col_count; k++)
+                                                                               {
+                                                                                   col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                               }
+                                                                           }
+                                                                           for (int ij = 0; ij < col_count; ij++)
+                                                                           {
+                                                                               auto [ptr, len] = get_data(ij);
+                                                                               if (ptr == nullptr)
+                                                                               {
+                                                                                   continue;
+                                                                               }
+                                                                               if (!col_cache[ij].empty())
+                                                                               {
+                                                                                   data_temp.set_val(col_cache[ij], ptr, len, 0);
+                                                                               }
+                                                                           }
+                                                                           result_record.emplace_back(std::move(data_temp));
+                                                                           effect_num++;
+                                                                           return true;
+                                                                       });
 
             if (fetch_count == 0 && !mysql_edit_conn->error_msg.empty())
             {
@@ -2347,28 +2497,34 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = pg_edit_conn->fetch_directly(rawsql,
-                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                T data_temp;
-                // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                if (col_cache.empty() && col_count > 0) {
-                    col_cache.reserve(col_count);
-                    for (int k = 0; k < col_count; k++) {
-                        col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                    }
-                }
-                for (int ij = 0; ij < col_count; ij++) {
-                    auto [ptr, len] = get_data(ij);
-                    if (ptr == nullptr) {
-                        continue;
-                    }
-                        if (!col_cache[ij].empty()) {
-                            data_temp.set_val(col_cache[ij], ptr, len, 0);
-                        }
-                }
-                result_record.emplace_back(std::move(data_temp));
-                effect_num++;
-                return true;
-            });
+                                                                    [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                    {
+                                                                        T data_temp;
+                                                                        // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                        if (col_cache.empty() && col_count > 0)
+                                                                        {
+                                                                            col_cache.reserve(col_count);
+                                                                            for (int k = 0; k < col_count; k++)
+                                                                            {
+                                                                                col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                            }
+                                                                        }
+                                                                        for (int ij = 0; ij < col_count; ij++)
+                                                                        {
+                                                                            auto [ptr, len] = get_data(ij);
+                                                                            if (ptr == nullptr)
+                                                                            {
+                                                                                continue;
+                                                                            }
+                                                                            if (!col_cache[ij].empty())
+                                                                            {
+                                                                                data_temp.set_val(col_cache[ij], ptr, len, 0);
+                                                                            }
+                                                                        }
+                                                                        result_record.emplace_back(std::move(data_temp));
+                                                                        effect_num++;
+                                                                        return true;
+                                                                    });
 
             if (fetch_count == 0 && !pg_edit_conn->error_msg.empty())
             {
@@ -2433,28 +2589,34 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = sqlite_edit_conn->fetch_directly(rawsql,
-                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                    T data_temp;
-                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                    if (col_cache.empty() && col_count > 0) {
-                        col_cache.reserve(col_count);
-                        for (int k = 0; k < col_count; k++) {
-                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                        }
-                    }
-                    for (int ij = 0; ij < col_count; ij++) {
-                        auto [ptr, len] = get_data(ij);
-                        if (ptr == nullptr) {
-                            continue;
-                        }
-                        if (!col_cache[ij].empty()) {
-                            data_temp.set_val(col_cache[ij], ptr, len, 0);
-                        }
-                    }
-                    result_record.emplace_back(std::move(data_temp));
-                    effect_num++;
-                    return true;
-                });
+                                                                        [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                        {
+                                                                            T data_temp;
+                                                                            // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                            if (col_cache.empty() && col_count > 0)
+                                                                            {
+                                                                                col_cache.reserve(col_count);
+                                                                                for (int k = 0; k < col_count; k++)
+                                                                                {
+                                                                                    col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                }
+                                                                            }
+                                                                            for (int ij = 0; ij < col_count; ij++)
+                                                                            {
+                                                                                auto [ptr, len] = get_data(ij);
+                                                                                if (ptr == nullptr)
+                                                                                {
+                                                                                    continue;
+                                                                                }
+                                                                                if (!col_cache[ij].empty())
+                                                                                {
+                                                                                    data_temp.set_val(col_cache[ij], ptr, len, 0);
+                                                                                }
+                                                                            }
+                                                                            result_record.emplace_back(std::move(data_temp));
+                                                                            effect_num++;
+                                                                            return true;
+                                                                        });
 
             if (fetch_count == 0 && !sqlite_edit_conn->error_msg.empty())
             {
@@ -2532,28 +2694,34 @@ class db_conn : std::enable_shared_from_this<db_conn>
                 mysql_edit_conn->begin_time();
             }
             unsigned int fetch_count = co_await mysql_edit_conn->async_fetch_directly(rawsql,
-                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                    T data_temp;
-                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                    if (col_cache.empty() && col_count > 0) {
-                        col_cache.reserve(col_count);
-                        for (int k = 0; k < col_count; k++) {
-                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                        }
-                    }
-                    for (int ij = 0; ij < col_count; ij++) {
-                        auto [ptr, len] = get_data(ij);
-                        if (ptr == nullptr) {
-                            continue;
-                        }
-                        if (!col_cache[ij].empty()) {
-                            data_temp.set_val(col_cache[ij], ptr, len, 0);
-                        }
-                    }
-                    result_record.emplace_back(std::move(data_temp));
-                    effect_num++;
-                    return true;
-                });
+                                                                                      [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                      {
+                                                                                          T data_temp;
+                                                                                          // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                                          if (col_cache.empty() && col_count > 0)
+                                                                                          {
+                                                                                              col_cache.reserve(col_count);
+                                                                                              for (int k = 0; k < col_count; k++)
+                                                                                              {
+                                                                                                  col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                              }
+                                                                                          }
+                                                                                          for (int ij = 0; ij < col_count; ij++)
+                                                                                          {
+                                                                                              auto [ptr, len] = get_data(ij);
+                                                                                              if (ptr == nullptr)
+                                                                                              {
+                                                                                                  continue;
+                                                                                              }
+                                                                                              if (!col_cache[ij].empty())
+                                                                                              {
+                                                                                                  data_temp.set_val(col_cache[ij], ptr, len, 0);
+                                                                                              }
+                                                                                          }
+                                                                                          result_record.emplace_back(std::move(data_temp));
+                                                                                          effect_num++;
+                                                                                          return true;
+                                                                                      });
 
             if (fetch_count == 0 && !mysql_edit_conn->error_msg.empty())
             {
@@ -2617,28 +2785,34 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = co_await pg_edit_conn->async_fetch_directly(rawsql,
-                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                T data_temp;
-                // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                if (col_cache.empty() && col_count > 0) {
-                    col_cache.reserve(col_count);
-                    for (int k = 0; k < col_count; k++) {
-                        col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                    }
-                }
-                for (int ij = 0; ij < col_count; ij++) {
-                    auto [ptr, len] = get_data(ij);
-                    if (ptr == nullptr) {
-                        continue;
-                    }
-                        if (!col_cache[ij].empty()) {
-                            data_temp.set_val(col_cache[ij], ptr, len, 0);
-                        }
-                }
-                result_record.emplace_back(std::move(data_temp));
-                effect_num++;
-                return true;
-            });
+                                                                                   [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                   {
+                                                                                       T data_temp;
+                                                                                       // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                                       if (col_cache.empty() && col_count > 0)
+                                                                                       {
+                                                                                           col_cache.reserve(col_count);
+                                                                                           for (int k = 0; k < col_count; k++)
+                                                                                           {
+                                                                                               col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                           }
+                                                                                       }
+                                                                                       for (int ij = 0; ij < col_count; ij++)
+                                                                                       {
+                                                                                           auto [ptr, len] = get_data(ij);
+                                                                                           if (ptr == nullptr)
+                                                                                           {
+                                                                                               continue;
+                                                                                           }
+                                                                                           if (!col_cache[ij].empty())
+                                                                                           {
+                                                                                               data_temp.set_val(col_cache[ij], ptr, len, 0);
+                                                                                           }
+                                                                                       }
+                                                                                       result_record.emplace_back(std::move(data_temp));
+                                                                                       effect_num++;
+                                                                                       return true;
+                                                                                   });
 
             if (fetch_count == 0 && !pg_edit_conn->error_msg.empty())
             {
@@ -2703,28 +2877,34 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = co_await sqlite_edit_conn->async_fetch_directly(rawsql,
-                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                    T data_temp;
-                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                    if (col_cache.empty() && col_count > 0) {
-                        col_cache.reserve(col_count);
-                        for (int k = 0; k < col_count; k++) {
-                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                        }
-                    }
-                    for (int ij = 0; ij < col_count; ij++) {
-                        auto [ptr, len] = get_data(ij);
-                        if (ptr == nullptr) {
-                            continue;
-                        }
-                        if (!col_cache[ij].empty()) {
-                            data_temp.set_val(col_cache[ij], ptr, len, 0);
-                        }
-                    }
-                    result_record.emplace_back(std::move(data_temp));
-                    effect_num++;
-                    return true;
-                });
+                                                                                       [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                       {
+                                                                                           T data_temp;
+                                                                                           // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                                           if (col_cache.empty() && col_count > 0)
+                                                                                           {
+                                                                                               col_cache.reserve(col_count);
+                                                                                               for (int k = 0; k < col_count; k++)
+                                                                                               {
+                                                                                                   col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                               }
+                                                                                           }
+                                                                                           for (int ij = 0; ij < col_count; ij++)
+                                                                                           {
+                                                                                               auto [ptr, len] = get_data(ij);
+                                                                                               if (ptr == nullptr)
+                                                                                               {
+                                                                                                   continue;
+                                                                                               }
+                                                                                               if (!col_cache[ij].empty())
+                                                                                               {
+                                                                                                   data_temp.set_val(col_cache[ij], ptr, len, 0);
+                                                                                               }
+                                                                                           }
+                                                                                           result_record.emplace_back(std::move(data_temp));
+                                                                                           effect_num++;
+                                                                                           return true;
+                                                                                       });
 
             if (fetch_count == 0 && !sqlite_edit_conn->error_msg.empty())
             {
@@ -2803,26 +2983,32 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = mysql_edit_conn->fetch_directly(rawsql,
-                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                    if (col_cache.empty() && col_count > 0) {
-                        col_cache.reserve(col_count);
-                        for (int k = 0; k < col_count; k++) {
-                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                        }
-                    }
-                    for (int ij = 0; ij < col_count; ij++) {
-                        auto [ptr, len] = get_data(ij);
-                        if (ptr == nullptr) {
-                            continue;
-                        }
-                        if (!col_cache[ij].empty()) {
-                            result_record.set_val(col_cache[ij], ptr, len, 0);
-                        }
-                    }
-                    effect_num++;
-                    return false;
-                });
+                                                                       [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                       {
+                                                                           // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                           if (col_cache.empty() && col_count > 0)
+                                                                           {
+                                                                               col_cache.reserve(col_count);
+                                                                               for (int k = 0; k < col_count; k++)
+                                                                               {
+                                                                                   col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                               }
+                                                                           }
+                                                                           for (int ij = 0; ij < col_count; ij++)
+                                                                           {
+                                                                               auto [ptr, len] = get_data(ij);
+                                                                               if (ptr == nullptr)
+                                                                               {
+                                                                                   continue;
+                                                                               }
+                                                                               if (!col_cache[ij].empty())
+                                                                               {
+                                                                                   result_record.set_val(col_cache[ij], ptr, len, 0);
+                                                                               }
+                                                                           }
+                                                                           effect_num++;
+                                                                           return false;
+                                                                       });
 
             if (fetch_count == 0 && !mysql_edit_conn->error_msg.empty())
             {
@@ -2886,26 +3072,32 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = pg_edit_conn->fetch_directly(rawsql,
-                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                if (col_cache.empty() && col_count > 0) {
-                    col_cache.reserve(col_count);
-                    for (int k = 0; k < col_count; k++) {
-                        col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                    }
-                }
-                for (int ij = 0; ij < col_count; ij++) {
-                    auto [ptr, len] = get_data(ij);
-                    if (ptr == nullptr) {
-                        continue;
-                    }
-                        if (!col_cache[ij].empty()) {
-                            result_record.set_val(col_cache[ij], ptr, len, 0);
-                        }
-                }
-                effect_num++;
-                return false;// 只取首行
-            });
+                                                                    [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                    {
+                                                                        // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                        if (col_cache.empty() && col_count > 0)
+                                                                        {
+                                                                            col_cache.reserve(col_count);
+                                                                            for (int k = 0; k < col_count; k++)
+                                                                            {
+                                                                                col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                            }
+                                                                        }
+                                                                        for (int ij = 0; ij < col_count; ij++)
+                                                                        {
+                                                                            auto [ptr, len] = get_data(ij);
+                                                                            if (ptr == nullptr)
+                                                                            {
+                                                                                continue;
+                                                                            }
+                                                                            if (!col_cache[ij].empty())
+                                                                            {
+                                                                                result_record.set_val(col_cache[ij], ptr, len, 0);
+                                                                            }
+                                                                        }
+                                                                        effect_num++;
+                                                                        return false;// 只取首行
+                                                                    });
 
             if (fetch_count == 0 && !pg_edit_conn->error_msg.empty())
             {
@@ -2970,26 +3162,32 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = sqlite_edit_conn->fetch_directly(rawsql,
-                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                    if (col_cache.empty() && col_count > 0) {
-                        col_cache.reserve(col_count);
-                        for (int k = 0; k < col_count; k++) {
-                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                        }
-                    }
-                    for (int ij = 0; ij < col_count; ij++) {
-                        auto [ptr, len] = get_data(ij);
-                        if (ptr == nullptr) {
-                            continue;
-                        }
-                        if (!col_cache[ij].empty()) {
-                            result_record.set_val(col_cache[ij], ptr, len, 0);
-                        }
-                    }
-                    effect_num++;
-                    return false; // only fetch first row
-                });
+                                                                        [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                        {
+                                                                            // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                            if (col_cache.empty() && col_count > 0)
+                                                                            {
+                                                                                col_cache.reserve(col_count);
+                                                                                for (int k = 0; k < col_count; k++)
+                                                                                {
+                                                                                    col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                }
+                                                                            }
+                                                                            for (int ij = 0; ij < col_count; ij++)
+                                                                            {
+                                                                                auto [ptr, len] = get_data(ij);
+                                                                                if (ptr == nullptr)
+                                                                                {
+                                                                                    continue;
+                                                                                }
+                                                                                if (!col_cache[ij].empty())
+                                                                                {
+                                                                                    result_record.set_val(col_cache[ij], ptr, len, 0);
+                                                                                }
+                                                                            }
+                                                                            effect_num++;
+                                                                            return false;// only fetch first row
+                                                                        });
 
             if (fetch_count == 0 && !sqlite_edit_conn->error_msg.empty())
             {
@@ -3068,26 +3266,32 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = co_await mysql_edit_conn->async_fetch_directly(rawsql,
-                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                    if (col_cache.empty() && col_count > 0) {
-                        col_cache.reserve(col_count);
-                        for (int k = 0; k < col_count; k++) {
-                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                        }
-                    }
-                    for (int ij = 0; ij < col_count; ij++) {
-                        auto [ptr, len] = get_data(ij);
-                        if (ptr == nullptr) {
-                            continue;
-                        }
-                        if (!col_cache[ij].empty()) {
-                            result_record.set_val(col_cache[ij], ptr, len, 0);
-                        }
-                    }
-                    effect_num++;
-                    return false;
-                });
+                                                                                      [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                      {
+                                                                                          // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                                          if (col_cache.empty() && col_count > 0)
+                                                                                          {
+                                                                                              col_cache.reserve(col_count);
+                                                                                              for (int k = 0; k < col_count; k++)
+                                                                                              {
+                                                                                                  col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                              }
+                                                                                          }
+                                                                                          for (int ij = 0; ij < col_count; ij++)
+                                                                                          {
+                                                                                              auto [ptr, len] = get_data(ij);
+                                                                                              if (ptr == nullptr)
+                                                                                              {
+                                                                                                  continue;
+                                                                                              }
+                                                                                              if (!col_cache[ij].empty())
+                                                                                              {
+                                                                                                  result_record.set_val(col_cache[ij], ptr, len, 0);
+                                                                                              }
+                                                                                          }
+                                                                                          effect_num++;
+                                                                                          return false;
+                                                                                      });
 
             if (fetch_count == 0 && !mysql_edit_conn->error_msg.empty())
             {
@@ -3151,26 +3355,32 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = co_await pg_edit_conn->async_fetch_directly(rawsql,
-                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                if (col_cache.empty() && col_count > 0) {
-                    col_cache.reserve(col_count);
-                    for (int k = 0; k < col_count; k++) {
-                        col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                    }
-                }
-                for (int ij = 0; ij < col_count; ij++) {
-                    auto [ptr, len] = get_data(ij);
-                    if (ptr == nullptr) {
-                        continue;
-                    }
-                        if (!col_cache[ij].empty()) {
-                            result_record.set_val(col_cache[ij], ptr, len, 0);
-                        }
-                }
-                effect_num++;
-                return false;// 只取首行
-            });
+                                                                                   [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                   {
+                                                                                       // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                                       if (col_cache.empty() && col_count > 0)
+                                                                                       {
+                                                                                           col_cache.reserve(col_count);
+                                                                                           for (int k = 0; k < col_count; k++)
+                                                                                           {
+                                                                                               col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                           }
+                                                                                       }
+                                                                                       for (int ij = 0; ij < col_count; ij++)
+                                                                                       {
+                                                                                           auto [ptr, len] = get_data(ij);
+                                                                                           if (ptr == nullptr)
+                                                                                           {
+                                                                                               continue;
+                                                                                           }
+                                                                                           if (!col_cache[ij].empty())
+                                                                                           {
+                                                                                               result_record.set_val(col_cache[ij], ptr, len, 0);
+                                                                                           }
+                                                                                       }
+                                                                                       effect_num++;
+                                                                                       return false;// 只取首行
+                                                                                   });
 
             if (fetch_count == 0 && !pg_edit_conn->error_msg.empty())
             {
@@ -3235,26 +3445,32 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
 
             unsigned int fetch_count = co_await sqlite_edit_conn->async_fetch_directly(rawsql,
-                [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char** col_names, auto get_data) mutable -> bool {
-                    // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
-                    if (col_cache.empty() && col_count > 0) {
-                        col_cache.reserve(col_count);
-                        for (int k = 0; k < col_count; k++) {
-                            col_cache.emplace_back(col_names[k] ? col_names[k] : "");
-                        }
-                    }
-                    for (int ij = 0; ij < col_count; ij++) {
-                        auto [ptr, len] = get_data(ij);
-                        if (ptr == nullptr) {
-                            continue;
-                        }
-                        if (!col_cache[ij].empty()) {
-                            result_record.set_val(col_cache[ij], ptr, len, 0);
-                        }
-                    }
-                    effect_num++;
-                    return false; // only fetch first row
-                });
+                                                                                       [this, &result_record, col_cache = sqlite_conn_col_name_cache_t{}](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                       {
+                                                                                           // 列名缓存：同一查询列名不变，首行构建一次，避免每行每列构造临时 std::string
+                                                                                           if (col_cache.empty() && col_count > 0)
+                                                                                           {
+                                                                                               col_cache.reserve(col_count);
+                                                                                               for (int k = 0; k < col_count; k++)
+                                                                                               {
+                                                                                                   col_cache.emplace_back(col_names[k] ? col_names[k] : "");
+                                                                                               }
+                                                                                           }
+                                                                                           for (int ij = 0; ij < col_count; ij++)
+                                                                                           {
+                                                                                               auto [ptr, len] = get_data(ij);
+                                                                                               if (ptr == nullptr)
+                                                                                               {
+                                                                                                   continue;
+                                                                                               }
+                                                                                               if (!col_cache[ij].empty())
+                                                                                               {
+                                                                                                   result_record.set_val(col_cache[ij], ptr, len, 0);
+                                                                                               }
+                                                                                           }
+                                                                                           effect_num++;
+                                                                                           return false;// only fetch first row
+                                                                                       });
 
             if (fetch_count == 0 && !sqlite_edit_conn->error_msg.empty())
             {

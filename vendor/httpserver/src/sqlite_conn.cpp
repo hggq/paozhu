@@ -249,7 +249,7 @@ void apply_conn_pragmas(sqlite3 *db)
     sqlite3_exec(db, "PRAGMA foreign_keys=ON", nullptr, nullptr, nullptr);
     sqlite3_exec(db, "PRAGMA cache_size=10000", nullptr, nullptr, nullptr);
     sqlite3_exec(db, "PRAGMA temp_store=MEMORY", nullptr, nullptr, nullptr);
-    sqlite3_busy_timeout(db, 5000);  // 跨进程/多线程写冲突等待 5 秒重试，立即返回而不立即报 SQLITE_BUSY
+    sqlite3_busy_timeout(db, 5000);// 跨进程/多线程写冲突等待 5 秒重试，立即返回而不立即报 SQLITE_BUSY
 }
 }// namespace
 
@@ -882,7 +882,7 @@ int sqlite_conn_base::exec_sql(const std::string &sql)
 unsigned int sqlite_conn_base::exec_dml(const std::string &sql)
 {
     return this->submit_sync<unsigned int>([this, &sql]()
-                                            { return this->exec_dml_impl(sql); });
+                                           { return this->exec_dml_impl(sql); });
 }
 
 long long sqlite_conn_base::last_insert_rowid()
@@ -905,7 +905,7 @@ bool sqlite_conn_base::query_scalar(const std::string &sql, sqlite_scalar_result
 
 unsigned int sqlite_conn_base::fetch_directly_impl(
     const std::string &sql,
-    std::function<bool(int, char**, std::function<std::tuple<unsigned char*, size_t>(int)>)> handler)
+    std::function<bool(int, char **, std::function<std::tuple<unsigned char *, size_t>(int)>)> handler)
 {
     this->clear_error();
 
@@ -927,9 +927,9 @@ unsigned int sqlite_conn_base::fetch_directly_impl(
     int col_count = sqlite3_column_count(stmt);
 
     // 列名数组优先用栈上小数组，超限时回退堆分配，避免每次查询 new/delete
-    char              *col_names_stack[64];
+    char *col_names_stack[64];
     std::vector<char *> col_names_heap;
-    char              **col_names = col_names_stack;
+    char **col_names = col_names_stack;
     if (col_count > static_cast<int>(sizeof(col_names_stack) / sizeof(col_names_stack[0])))
     {
         col_names_heap.resize(static_cast<size_t>(col_count));
@@ -941,7 +941,7 @@ unsigned int sqlite_conn_base::fetch_directly_impl(
     }
 
     // get_data 仅捕获 stmt，提到行循环外避免每行重建
-    auto get_data = [stmt](int col_idx) -> std::tuple<unsigned char*, size_t>
+    auto get_data = [stmt](int col_idx) -> std::tuple<unsigned char *, size_t>
     {
         int col_type = sqlite3_column_type(stmt, col_idx);
         if (col_type == SQLITE_NULL)
@@ -951,10 +951,10 @@ unsigned int sqlite_conn_base::fetch_directly_impl(
         else if (col_type == SQLITE_BLOB)
         {
             const void *blob = sqlite3_column_blob(stmt, col_idx);
-            int len = sqlite3_column_bytes(stmt, col_idx);
+            int len          = sqlite3_column_bytes(stmt, col_idx);
             if (blob && len > 0)
             {
-                return {const_cast<unsigned char*>(static_cast<const unsigned char*>(blob)), static_cast<size_t>(len)};
+                return {const_cast<unsigned char *>(static_cast<const unsigned char *>(blob)), static_cast<size_t>(len)};
             }
             return {nullptr, 0};
         }
@@ -964,14 +964,14 @@ unsigned int sqlite_conn_base::fetch_directly_impl(
             if (val)
             {
                 int len = sqlite3_column_bytes(stmt, col_idx);
-                return {const_cast<unsigned char*>(reinterpret_cast<const unsigned char*>(val)), static_cast<size_t>(len)};
+                return {const_cast<unsigned char *>(reinterpret_cast<const unsigned char *>(val)), static_cast<size_t>(len)};
             }
             return {nullptr, 0};
         }
     };
 
     unsigned int row_num = 0;
-    int          rc      = SQLITE_OK;
+    int rc               = SQLITE_OK;
 
     // 复用的语句若仍停在 SQLITE_ROW（上次调用方提前中止），先强制 reset，
     // 避免其保持的旧读事务/快照影响本次查询结果。
@@ -987,7 +987,7 @@ unsigned int sqlite_conn_base::fetch_directly_impl(
 
         if (!should_continue)
         {
-            rc = SQLITE_DONE;  // 调用方主动中止，非错误；统一在循环后 reset 释放读事务
+            rc = SQLITE_DONE;// 调用方主动中止，非错误；统一在循环后 reset 释放读事务
             break;
         }
     }
