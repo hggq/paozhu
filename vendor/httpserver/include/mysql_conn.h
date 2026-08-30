@@ -405,18 +405,34 @@ enum enum_field_types
 #define CLIENT_SESSION_TRACK (1UL << 23)                 // 24
 #define CLIENT_DEPRECATE_EOF (1UL << 24)                 // 25     Client no longer needs @ref page_protocol_basic_eof_packet and will use
 #define CLIENT_OPTIONAL_RESULTSET_METADATA (1UL << 25)
-#define CLIENT_ZSTD_COMPRESSION_ALGORITHM (1UL << 26)// 27    Compression protocol extended to support zstd compression method
+#define CLIENT_ZSTD_COMPRESSION_ALGORITHM (1UL << 26)    // 27    Compression protocol extended to support zstd compression method
 
-#define CLIENT_PZORM_FLAGS                                               \
-    (CLIENT_LONG_PASSWORD | CLIENT_FOUND_ROWS | CLIENT_LONG_FLAG |       \
-     CLIENT_CONNECT_WITH_DB | CLIENT_PROTOCOL_41 | CLIENT_TRANSACTIONS | \
-     CLIENT_PLUGIN_AUTH | CLIENT_DEPRECATE_EOF)
+#define CLIENT_SECURE_CONNECTION CLIENT_RESERVED2        // 16    4.1+ The authentication response adopts the format of 
+                                                         //       [1 byte length][data] (caching_sha2_password is required), as the password may contain 0x00
+                                                         
+// ---------- MySQL 8.0+ capability flags ----------
 // 移除 CLIENT_MULTI_RESULTS。我们不支持多结果集，之前协商了却不排空 → 协议失步。
 // 改为在 capability flags 层明确告诉服务器：不发多结果集。
+#define CLIENT_PZORM_MYSQL_FLAGS                                          \
+    (CLIENT_LONG_PASSWORD | CLIENT_FOUND_ROWS | CLIENT_LONG_FLAG |        \
+     CLIENT_CONNECT_WITH_DB | CLIENT_PROTOCOL_41 | CLIENT_TRANSACTIONS | CLIENT_SECURE_CONNECTION |  \
+     CLIENT_PLUGIN_AUTH | CLIENT_DEPRECATE_EOF)
 
-#define CLIENT_PZORM_SSL_FLAGS                                                  \
+#define CLIENT_PZORM_MYSQL_SSL_FLAGS                                      \
     (CLIENT_LONG_PASSWORD | CLIENT_FOUND_ROWS | CLIENT_LONG_FLAG | CLIENT_SSL | \
-     CLIENT_CONNECT_WITH_DB | CLIENT_PROTOCOL_41 | CLIENT_TRANSACTIONS |        \
+     CLIENT_CONNECT_WITH_DB | CLIENT_PROTOCOL_41 | CLIENT_TRANSACTIONS | CLIENT_SECURE_CONNECTION |        \
+     CLIENT_PLUGIN_AUTH | CLIENT_DEPRECATE_EOF)
+
+// ---------- MariaDB 12.3+ capability flags ----------
+// 当前值与 MySQL 组相同，但分开定义以便未来 MariaDB 特有 flag 独立演进。
+#define CLIENT_PZORM_MARIADB_FLAGS                                        \
+    (CLIENT_LONG_PASSWORD | CLIENT_FOUND_ROWS | CLIENT_LONG_FLAG |        \
+     CLIENT_CONNECT_WITH_DB | CLIENT_PROTOCOL_41 | CLIENT_TRANSACTIONS | CLIENT_SECURE_CONNECTION |  \
+     CLIENT_PLUGIN_AUTH | CLIENT_DEPRECATE_EOF)
+
+#define CLIENT_PZORM_MARIADB_SSL_FLAGS                                    \
+    (CLIENT_LONG_PASSWORD | CLIENT_FOUND_ROWS | CLIENT_LONG_FLAG | CLIENT_SSL | \
+     CLIENT_CONNECT_WITH_DB | CLIENT_PROTOCOL_41 | CLIENT_TRANSACTIONS | CLIENT_SECURE_CONNECTION |        \
      CLIENT_PLUGIN_AUTH | CLIENT_DEPRECATE_EOF)
 
 struct mysql_server_hello_data_t
@@ -510,6 +526,11 @@ class mysql_conn_base
     ~mysql_conn_base();
     void read_server_hello(unsigned int offset, unsigned int length);
     bool server_public_key_encrypt(const std::string &password, unsigned char *data, unsigned int length);
+    // Auth Switch Request 支持：按目标插件与新 salt 计算认证应答。
+    // 仅支持 caching_sha2_password（32 字节）；禁止实现 mysql_native_password 与
+    // sha256_password（MySQL 9 已移除旧插件，MariaDB 12.3+ 支持 caching_sha2_password）。
+    // 密码为空返回空串（协议要求零长度应答）；不支持的插件返回空串并置 error_msg。
+    std::string compute_auth_response(const std::string &plugin, const std::string &salt, const std::string &password);
     bool connect(const orm_conn_t &conn_config);
     asio::awaitable<bool> async_connect(const orm_conn_t &conn_config);
 

@@ -62,7 +62,7 @@ std::string articleloginpost(std::shared_ptr<httppeer> peer)
         }
         else
         {
-            client.goto_url("/cms/login", 3, "用户名或密码错误！");
+            client.goto_url("/cms/login", 3, "用户名或密码错误！" + users.error_msg);
             return "";
         }
     }
@@ -100,9 +100,7 @@ std::string articlelist(std::shared_ptr<httppeer> peer)
 
         //自动分页 automatic pagination
         articles.order(" aid desc ").fetch();
-        // 也可以直接返回OBJ_VALUE 对象; 不过正常业务会要处理下结果集
-        // You can also return the OBJ_VALUE object directly; but normal business process will need to process the result
-        // set
+
         if (articles.error_msg.size() > 0)
         {
             client.val["msg"] = client.val["msg"].to_string() + articles.error_msg;
@@ -117,7 +115,6 @@ std::string articlelist(std::shared_ptr<httppeer> peer)
                 item["title"]      = bb.title;
                 item["createtime"] = bb.createtime;
                 item["summary"]    = bb.summary;
-                // client<<"<p><a href=\"/cms/show?id="<<bb.aid<<"\">"<<bb.title<<"</a>  "<<bb.createtime<<" </p>";
                 client.val["list"].push(std::move(item));
             }
         }

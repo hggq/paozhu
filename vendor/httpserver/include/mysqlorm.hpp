@@ -7555,7 +7555,7 @@ namespace orm
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
-                    return result_record;
+                    return effect_num;
                 }
                 if (select_conn->isdebug)
                 {
@@ -7662,7 +7662,7 @@ namespace orm
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
-                    co_return result_record;
+                    co_return effect_num;
                 }
                 if (select_conn->isdebug)
                 {

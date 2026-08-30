@@ -308,6 +308,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
     error_msg.clear();
 
     // 重连场景：彻底重置连接层状态
+    isclose            = false;
     conn_link->sock_type = 0;
     conn_link->sslsocket.reset();
     conn_link->ssl_context.reset();
@@ -422,30 +423,21 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
         return false;
     }
 
-    constexpr std::size_t challenge_length = 20;
-    constexpr std::size_t response_length  = 32;
-
-    using sha_buffer = std::uint8_t[response_length];
-    sha_buffer password_sha;
-
-    SHA256(reinterpret_cast<const unsigned char *>(conn_config.password.data()), conn_config.password.size(), password_sha);
-
-    std::memset(_cache_data, 0x00, (response_length + challenge_length));
-    SHA256(password_sha, response_length, _cache_data);
-    std::memcpy(_cache_data + response_length, server_hello.auth_plugin_salt_data.data(), challenge_length);
-
-    sha_buffer salted_password;
-    SHA256(_cache_data, (response_length + challenge_length), salted_password);
-
-    std::memset(_cache_data, 0x00, (response_length + challenge_length));
-
-    for (unsigned i = 0; i < response_length; ++i)
+    // 仅支持 caching_sha2_password（禁止实现 mysql_native_password：MySQL 9 已移除，
+    // MariaDB 12.3+ 支持 caching_sha2_password）。初始应答固定按该插件计算并声明；
+    // 服务器插件不一致时由 Auth Switch 携带新 salt 重协商
+    std::string init_plugin = "caching_sha2_password";
+    std::string init_resp   = compute_auth_response(init_plugin, server_hello.auth_plugin_salt_data, conn_config.password);
+    if (init_resp.empty() && !conn_config.password.empty())
     {
-        _cache_data[i] = salted_password[i] ^ password_sha[i];
+        error_code = 2;
+        isclose    = true;
+        return false;
     }
 
-    client_flags = CLIENT_PZORM_FLAGS;
-    seq_next_id  = 0;
+    const bool is_mariadb = server_hello.server_version.find("MariaDB") != std::string::npos;
+    client_flags          = is_mariadb ? CLIENT_PZORM_MARIADB_FLAGS : CLIENT_PZORM_MYSQL_FLAGS;
+    seq_next_id           = 0;
     seq_next_id++;
     send_data.clear();
 
@@ -478,14 +470,11 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
     }
     send_data.append(conn_config.user);
     send_data.push_back(0x00);
-    send_data.push_back(0x20);
-    for (unsigned i = 0; i < response_length; ++i)
-    {
-        send_data.push_back(_cache_data[i]);
-    }
+    send_data.push_back(static_cast<char>(init_resp.size() & 0xFF));
+    send_data.append(init_resp);
     send_data.append(conn_config.dbname);
     send_data.push_back(0x00);
-    send_data.append("caching_sha2_password");
+    send_data.append(init_plugin);
     send_data.push_back(0x00);
 
     // 握手头部没有大于4K
@@ -514,7 +503,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
         {
             //.sock please use localsocket
             send_data[0] = 32;
-            client_flags = CLIENT_PZORM_SSL_FLAGS;
+            client_flags = is_mariadb ? CLIENT_PZORM_MARIADB_SSL_FLAGS : CLIENT_PZORM_MYSQL_SSL_FLAGS;
             send_data[4] = client_flags & 0xFF;
             send_data[5] = client_flags >> 8 & 0xFF;
             send_data[6] = client_flags >> 16 & 0xFF;
@@ -580,6 +569,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
                 return false;
             }
 
+        ssl_auth_resp_read:
             std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
             try
             {
@@ -598,10 +588,18 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
                 return false;
             }
 
-            if (_cache_data[0] == 0x02 && _cache_data[4] == 0x01 && _cache_data[5] == 0x04)
+            unsigned char pkt_type = (unsigned char)_cache_data[4];
+
+            // caching_sha2_password Auth More Data under SSL:
+            //   subtype 0x03 → plaintext password (TLS already encrypts channel)
+            //   subtype 0x04 → public key request (still plaintext over TLS)
+            if (pkt_type == 0x01 && n >= 6 && _cache_data[5] == 0x04)
             {
+                // Public key request under TLS: send plaintext password
+                // (channel is already encrypted by TLS, no RSA needed)
                 send_data.clear();
-                seq_next_id += 1;
+                unsigned char more_seq = (unsigned char)(_cache_data[3] & 0xFF);
+                seq_next_id = more_seq + 1;
                 send_data.push_back(0x00);
                 send_data.push_back(0x00);
                 send_data.push_back(0x00);
@@ -609,13 +607,6 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
                 send_data.append(conn_config.password);
                 send_data.push_back(0x00);
                 auto pl2 = send_data.size() - 4;
-                if (pl2 > 0xFFFFFF)
-                {
-                    error_msg  = "auth packet payload too large: " + std::to_string(pl2);
-                    error_code = 1;
-                    isclose    = true;
-                    return false;
-                }
                 send_data[0] = (pl2) & 0xFF;
                 send_data[1] = (pl2 >> 8) & 0xFF;
                 send_data[2] = (pl2 >> 16) & 0xFF;
@@ -630,48 +621,112 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
                     isclose    = true;
                     return false;
                 }
+                goto ssl_auth_resp_read;
+            }
+            else if (pkt_type == 0x01 && n >= 6 && _cache_data[5] == 0x03)
+            {
+                // subtype 0x03: fast auth success（缓存命中），客户端不应答，
+                // 终态 OK/Error 可能合并在同一读缓冲内（与非 SSL 路径语义一致）
+                unsigned int pack_length = _cache_data[0] | (_cache_data[1] << 8) | (_cache_data[2] << 16);
+                unsigned int offset      = pack_length + 4;
+                if (n >= offset + 5)
+                {
+                    if ((unsigned char)_cache_data[offset + 4] == 0xFF)
+                    {
+                        parse_error_packet(_cache_data + offset, n - offset);
+                        isclose = true;
+                        return false;
+                    }
+                    if ((unsigned char)_cache_data[offset + 4] == 0x00)
+                    {
+                        seq_next_id = static_cast<unsigned char>((_cache_data[offset + 3] & 0xFF) + 1);
+                        return true;
+                    }
+                }
+                goto ssl_auth_resp_read;
+            }
 
-                std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
+            // Auth Switch Request (0xFE): server switches auth plugin
+            // (MariaDB 12.3 + caching_sha2_password always triggers this
+            //  because server hello declares mysql_native_password first).
+            if (pkt_type == 0xFE && n >= 6)
+            {
+                unsigned int off = 5;
+                std::string sw_plugin;
+                while (off < n && _cache_data[off] != 0)
+                {
+                    sw_plugin.push_back(_cache_data[off]);
+                    off++;
+                }
+                if (off < n)
+                {
+                    off++;
+                }
+                std::string sw_salt;
+                while (off < n)
+                {
+                    sw_salt.push_back(_cache_data[off]);
+                    off++;
+                }
+                while (!sw_salt.empty() && sw_salt.back() == '\0')
+                {
+                    sw_salt.pop_back();
+                }
+
+                server_hello.auth_plugin_salt_data = sw_salt;
+                server_hello.auth_plugin_name      = sw_plugin;
+                std::string auth_resp              = compute_auth_response(sw_plugin, sw_salt, conn_config.password);
+                if (auth_resp.empty() && !conn_config.password.empty())
+                {
+                    error_code = 2;
+                    isclose    = true;
+                    return false;
+                }
+
+                unsigned char sw_seq = static_cast<unsigned char>((_cache_data[3] & 0xFF) + 1);
+                send_data.clear();
+                send_data.push_back(0x00);
+                send_data.push_back(0x00);
+                send_data.push_back(0x00);
+                send_data.push_back(sw_seq);
+                send_data.append(auth_resp);
+                auto sw_len  = auth_resp.size();
+                send_data[0] = static_cast<char>(sw_len & 0xFF);
+                send_data[1] = static_cast<char>((sw_len >> 8) & 0xFF);
+                send_data[2] = static_cast<char>((sw_len >> 16) & 0xFF);
+                seq_next_id  = sw_seq;
+
                 try
                 {
-                    n = conn_link->sslsocket->read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH));
+                    n = asio::write(*conn_link->sslsocket, asio::buffer(send_data));
                 }
                 catch (const std::exception &e)
                 {
                     error_msg.append(e.what());
-                    isclose = true;
+                    error_code = 2;
+                    isclose    = true;
                     return false;
                 }
+                goto ssl_auth_resp_read;
             }
 
-            if (n < 5)
+            // Error packet
+            if (pkt_type == 0xFF)
             {
-                error_msg = "response too short";
+                parse_error_packet(_cache_data, n);
+                isclose = true;
                 return false;
             }
 
-            //feedback
-            if ((unsigned char)_cache_data[4] == 0xFE)
+            // OK packet
+            if (pkt_type == 0x00)
             {
-                for (unsigned int i = 5; i < n; i++)
-                {
-                    error_msg.push_back(_cache_data[i]);
-                }
-                error_code = 2;
-                isclose    = true;
-                return false;
+                seq_next_id = static_cast<unsigned char>((_cache_data[3] & 0xFF) + 1);
+                return true;
             }
-            else if ((unsigned char)_cache_data[4] == 0xFF)
-            {
-                for (unsigned int i = 5; i < n; i++)
-                {
-                    error_msg.push_back(_cache_data[i]);
-                }
-                error_code = 6;
-                isclose    = true;
-                return false;
-            }
-            else if ((unsigned char)_cache_data[5] == 0x03)
+
+            // Multi-result OK (status packet with 0x03 type)
+            if (pkt_type == 0x03)
             {
                 unsigned int pack_length = _cache_data[2];
                 pack_length              = pack_length << 8 | (_cache_data[1]);
@@ -703,7 +758,16 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
                 else
                 {
                     std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
-                    n = conn_link->sslsocket->read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), conn_link->ec);
+                    try
+                    {
+                        n = conn_link->sslsocket->read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH));
+                    }
+                    catch (const std::exception &e)
+                    {
+                        error_msg.append(e.what());
+                        isclose = true;
+                        return false;
+                    }
 
                     if (n < 5)
                     {
@@ -713,12 +777,8 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
 
                     if ((unsigned char)_cache_data[4] == 0xFF)
                     {
-                        for (unsigned int i = 5; i < n; i++)
-                        {
-                            error_msg.push_back(_cache_data[i]);
-                        }
-                        error_code = 8;
-                        isclose    = true;
+                        parse_error_packet(_cache_data, n);
+                        isclose = true;
                         return false;
                     }
                     else if ((unsigned char)_cache_data[4] == 0x00)
@@ -727,16 +787,11 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
                     }
                 }
             }
-            else
-            {
-                error_msg  = " connect fail! ";
-                error_code = 8;
-                isclose    = true;
-                return false;
-            }
 
-            seq_next_id = 0;
-            return true;
+            error_msg  = " connect fail! unexpected auth response";
+            error_code = 9;
+            isclose    = true;
+            return false;
         }
     }
 
@@ -749,6 +804,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
         n = asio::write(*conn_link->socket, asio::buffer(send_data));
     }
 
+auth_resp_read:
     std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
     if (conn_link->sock_type == 3)
     {
@@ -905,13 +961,71 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
     }
     else if ((unsigned char)_cache_data[4] == 0xFE)
     {
-        for (unsigned int i = 5; i < n; i++)
+        // Auth Switch Request: [0xFE][plugin][NUL][salt]
+        unsigned int off = 5;
+        std::string sw_plugin;
+        while (off < n && _cache_data[off] != 0)
         {
-            error_msg.push_back(_cache_data[i]);
+            sw_plugin.push_back(_cache_data[off]);
+            off++;
         }
-        error_code = 2;
-        isclose    = true;
-        return false;
+        if (off < n)
+        {
+            off++;
+        }
+        std::string sw_salt;
+        while (off < n)
+        {
+            sw_salt.push_back(_cache_data[off]);
+            off++;
+        }
+        while (!sw_salt.empty() && sw_salt.back() == '\0')
+        {
+            sw_salt.pop_back();
+        }
+
+        server_hello.auth_plugin_salt_data = sw_salt;
+        server_hello.auth_plugin_name      = sw_plugin;
+        std::string auth_resp              = compute_auth_response(sw_plugin, sw_salt, conn_config.password);
+        if (auth_resp.empty() && !conn_config.password.empty())
+        {
+            error_code = 2;
+            isclose    = true;
+            return false;
+        }
+
+        unsigned char sw_seq = static_cast<unsigned char>((_cache_data[3] & 0xFF) + 1);
+        send_data.clear();
+        send_data.push_back(0x00);
+        send_data.push_back(0x00);
+        send_data.push_back(0x00);
+        send_data.push_back(sw_seq);
+        send_data.append(auth_resp);
+        auto sw_len = auth_resp.size();
+        send_data[0] = static_cast<char>(sw_len & 0xFF);
+        send_data[1] = static_cast<char>((sw_len >> 8) & 0xFF);
+        send_data[2] = static_cast<char>((sw_len >> 16) & 0xFF);
+        seq_next_id  = sw_seq;
+
+        try
+        {
+            if (conn_link->sock_type == 3)
+            {
+                n = asio::write(*conn_link->localsocket, asio::buffer(send_data));
+            }
+            else
+            {
+                n = asio::write(*conn_link->socket, asio::buffer(send_data));
+            }
+        }
+        catch (const std::exception &e)
+        {
+            error_msg.append(e.what());
+            error_code = 2;
+            isclose    = true;
+            return false;
+        }
+        goto auth_resp_read;
     }
     else if ((unsigned char)_cache_data[4] == 0xFF)
     {
@@ -922,6 +1036,11 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
         error_code = 6;
         isclose    = true;
         return false;
+    }
+    else if ((unsigned char)_cache_data[4] == 0x00)
+    {
+        seq_next_id = static_cast<unsigned char>((_cache_data[3] & 0xFF) + 1);
+        return true;
     }
     else if ((unsigned char)_cache_data[5] == 0x03)
     {
@@ -995,6 +1114,43 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
     }
 
     return true;
+}
+
+std::string mysql_conn_base::compute_auth_response(const std::string &plugin, const std::string &salt, const std::string &password)
+{
+    if (password.empty())
+    {
+        return std::string();
+    }
+    if (salt.size() < 20)
+    {
+        error_msg = "auth switch salt too short";
+        return std::string();
+    }
+
+    std::string resp;
+    if (plugin == "caching_sha2_password")
+    {
+        // SHA256(pwd) XOR SHA256( SHA256(SHA256(pwd)) || salt )
+        unsigned char h1[32], h2[32], h3[32];
+        SHA256(reinterpret_cast<const unsigned char *>(password.data()), password.size(), h1);
+        SHA256(h1, 32, h2);
+        unsigned char buf[52];
+        std::memcpy(buf, h2, 32);
+        std::memcpy(buf + 32, salt.data(), 20);
+        SHA256(buf, 52, h3);
+        resp.resize(32);
+        for (unsigned i = 0; i < 32; ++i)
+        {
+            resp[i] = static_cast<char>(h1[i] ^ h3[i]);
+        }
+    }
+    else
+    {
+        error_msg = "unsupported auth switch plugin: " + plugin;
+        return std::string();
+    }
+    return resp;
 }
 
 bool mysql_conn_base::server_public_key_encrypt(const std::string &password, unsigned char *data, unsigned int length)
@@ -1074,6 +1230,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
     constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
 
     // 重连场景：彻底重置连接层状态
+    isclose            = false;
     conn_link->sock_type = 0;
     conn_link->sslsocket.reset();
     conn_link->ssl_context.reset();
@@ -1187,30 +1344,22 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
         co_return false;
     }
 
-    constexpr std::size_t challenge_length = 20;
-    constexpr std::size_t response_length  = 32;
-
-    using sha_buffer = std::uint8_t[response_length];
-    sha_buffer password_sha;
-
-    SHA256(reinterpret_cast<const unsigned char *>(conn_config.password.data()), conn_config.password.size(), password_sha);
-
-    std::memset(_cache_data, 0x00, (response_length + challenge_length));
-    SHA256(password_sha, response_length, _cache_data);
-    std::memcpy(_cache_data + response_length, server_hello.auth_plugin_salt_data.data(), challenge_length);
-
-    sha_buffer salted_password;
-    SHA256(_cache_data, (response_length + challenge_length), salted_password);
-
-    std::memset(_cache_data, 0x00, (response_length + challenge_length));
-
-    for (unsigned i = 0; i < response_length; ++i)
+    // Only caching_sha2_password is supported, and mysql_native_password is prohibited
+    // 仅支持 caching_sha2_password（禁止实现 mysql_native_password：MySQL 9 已移除，
+    // MariaDB 12.3+ 支持 caching_sha2_password）。初始应答固定按该插件计算并声明；
+    // 服务器插件不一致时由 Auth Switch 携带新 salt 重协商
+    std::string init_plugin = "caching_sha2_password";
+    std::string init_resp   = compute_auth_response(init_plugin, server_hello.auth_plugin_salt_data, conn_config.password);
+    if (init_resp.empty() && !conn_config.password.empty())
     {
-        _cache_data[i] = salted_password[i] ^ password_sha[i];
+        error_code = 2;
+        isclose    = true;
+        co_return false;
     }
 
-    client_flags = CLIENT_PZORM_FLAGS;
-    seq_next_id  = 0;
+    const bool is_mariadb = server_hello.server_version.find("MariaDB") != std::string::npos;
+    client_flags          = is_mariadb ? CLIENT_PZORM_MARIADB_FLAGS : CLIENT_PZORM_MYSQL_FLAGS;
+    seq_next_id           = 0;
     seq_next_id++;
     send_data.clear();
 
@@ -1243,14 +1392,11 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
     }
     send_data.append(conn_config.user);
     send_data.push_back(0x00);
-    send_data.push_back(0x20);
-    for (unsigned i = 0; i < response_length; ++i)
-    {
-        send_data.push_back(_cache_data[i]);
-    }
+    send_data.push_back(static_cast<char>(init_resp.size() & 0xFF));
+    send_data.append(init_resp);
     send_data.append(conn_config.dbname);
     send_data.push_back(0x00);
-    send_data.append("caching_sha2_password");
+    send_data.append(init_plugin);
     send_data.push_back(0x00);
 
     // 握手没有大于4K
@@ -1279,7 +1425,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
         {
             //.sock please use localsocket
             send_data[0] = 32;
-            client_flags = CLIENT_PZORM_SSL_FLAGS;
+            client_flags = is_mariadb ? CLIENT_PZORM_MARIADB_SSL_FLAGS : CLIENT_PZORM_MYSQL_SSL_FLAGS;
             send_data[4] = client_flags & 0xFF;
             send_data[5] = client_flags >> 8 & 0xFF;
             send_data[6] = client_flags >> 16 & 0xFF;
@@ -1345,58 +1491,9 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
                 co_return false;
             }
 
-            std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
-            try
+            // Auth Switch may happen multiple rounds under TLS; loop until terminal packet.
+            for (int auth_round = 0; auth_round < 4; ++auth_round)
             {
-                n = co_await conn_link->sslsocket->async_read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), asio::use_awaitable);
-            }
-            catch (const std::exception &e)
-            {
-                error_msg.append(e.what());
-                isclose = true;
-                co_return false;
-            }
-
-            if (n < 5)
-            {
-                error_msg = "response too short";
-                co_return false;
-            }
-
-            if (_cache_data[0] == 0x02 && _cache_data[4] == 0x01 && _cache_data[5] == 0x04)
-            {
-                send_data.clear();
-                seq_next_id += 1;
-                send_data.push_back(0x00);
-                send_data.push_back(0x00);
-                send_data.push_back(0x00);
-                send_data.push_back(seq_next_id);
-                send_data.append(conn_config.password);
-                send_data.push_back(0x00);
-                auto pl4 = send_data.size() - 4;
-                if (pl4 > 0xFFFFFF)
-                {
-                    error_msg  = "auth packet payload too large: " + std::to_string(pl4);
-                    error_code = 1;
-                    isclose    = true;
-                    co_return false;
-                }
-                send_data[0] = (pl4) & 0xFF;
-                send_data[1] = (pl4 >> 8) & 0xFF;
-                send_data[2] = (pl4 >> 16) & 0xFF;
-
-                try
-                {
-                    n = co_await asio::async_write(*conn_link->sslsocket, asio::buffer(send_data), asio::use_awaitable);
-                }
-                catch (const std::exception &e)
-                {
-                    error_msg  = e.what();
-                    error_code = 1;
-                    isclose    = true;
-                    co_return false;
-                }
-
                 std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
                 try
                 {
@@ -1408,119 +1505,173 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
                     isclose = true;
                     co_return false;
                 }
-            }
 
-            if (n < 5)
-            {
-                error_msg = "response too short";
-                co_return false;
-            }
+                if (n < 5)
+                {
+                    error_msg = "response too short";
+                    co_return false;
+                }
 
-            //feedback
-            if ((unsigned char)_cache_data[4] == 0xFE)
-            {
-                for (unsigned int i = 5; i < n; i++)
+                unsigned char pkt_type = (unsigned char)_cache_data[4];
+
+                // Auth More Data (0x01)
+                if (pkt_type == 0x01 && n >= 6)
                 {
-                    error_msg.push_back(_cache_data[i]);
-                }
-                error_code = 2;
-                isclose    = true;
-                co_return false;
-            }
-            else if ((unsigned char)_cache_data[4] == 0xFF)
-            {
-                for (unsigned int i = 5; i < n; i++)
-                {
-                    error_msg.push_back(_cache_data[i]);
-                }
-                error_code = 6;
-                isclose    = true;
-                co_return false;
-            }
-            else if ((unsigned char)_cache_data[5] == 0x03)
-            {
-                unsigned int pack_length = _cache_data[2];
-                pack_length              = pack_length << 8 | (_cache_data[1]);
-                pack_length              = pack_length << 8 | (_cache_data[0]);
-                unsigned int offset      = pack_length + 4;
-                if (n >= offset + 3)
-                {
-                    pack_length = _cache_data[offset + 2];
-                    pack_length = pack_length << 8 | (_cache_data[offset + 1]);
-                    pack_length = pack_length << 8 | (_cache_data[offset]);
-                    if (pack_length < 5)
+                    unsigned char subtype = (unsigned char)_cache_data[5];
+                    unsigned char recv_seq = (unsigned char)(_cache_data[3] & 0xFF);
+                    seq_next_id = recv_seq + 1;
+
+                    if (subtype == 0x04)
                     {
-                        error_msg  = " connect fail! server status error! ";
-                        error_code = 8;
-                        isclose    = true;
-                        co_return false;
+                        // Public key request under TLS: send plaintext password
+                        // (channel is already encrypted by TLS, no RSA needed)
+                        send_data.clear();
+                        send_data.push_back(0x00);
+                        send_data.push_back(0x00);
+                        send_data.push_back(0x00);
+                        send_data.push_back(seq_next_id);
+                        send_data.append(conn_config.password);
+                        send_data.push_back(0x00);
+                        auto pl = send_data.size() - 4;
+                        if (pl > 0xFFFFFF)
+                        {
+                            error_msg  = "auth packet payload too large: " + std::to_string(pl);
+                            error_code = 1;
+                            isclose    = true;
+                            co_return false;
+                        }
+                        send_data[0] = (pl) & 0xFF;
+                        send_data[1] = (pl >> 8) & 0xFF;
+                        send_data[2] = (pl >> 16) & 0xFF;
+                        try
+                        {
+                            n = co_await asio::async_write(*conn_link->sslsocket, asio::buffer(send_data), asio::use_awaitable);
+                        }
+                        catch (const std::exception &e)
+                        {
+                            error_msg  = e.what();
+                            error_code = 1;
+                            isclose    = true;
+                            co_return false;
+                        }
+                        continue;
                     }
-
-                    if (_cache_data[offset + 4] == 0x00)
+                    else if (subtype == 0x03)
                     {
-                        co_return true;
+                        // subtype 0x03: fast auth success（缓存命中），客户端不应答，
+                        // 终态 OK/Error 可能合并在同一读缓冲内
+                        unsigned int pack_length = _cache_data[0] | (_cache_data[1] << 8) | (_cache_data[2] << 16);
+                        unsigned int offset      = pack_length + 4;
+                        if (n >= offset + 5)
+                        {
+                            if ((unsigned char)_cache_data[offset + 4] == 0xFF)
+                            {
+                                parse_error_packet(_cache_data + offset, n - offset);
+                                isclose = true;
+                                co_return false;
+                            }
+                            if ((unsigned char)_cache_data[offset + 4] == 0x00)
+                            {
+                                seq_next_id = static_cast<unsigned char>((_cache_data[offset + 3] & 0xFF) + 1);
+                                co_return true;
+                            }
+                        }
+                        continue;
                     }
                     else
                     {
-                        error_msg  = " connect fail! ";
-                        error_code = 8;
+                        error_msg  = " unknown auth more data subtype: " + std::to_string(subtype);
+                        error_code = 2;
                         isclose    = true;
                         co_return false;
                     }
                 }
-                else
+                // Auth Switch Request (0xFE)
+                else if (pkt_type == 0xFE)
                 {
-                    std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
+                    unsigned int off = 5;
+                    std::string sw_plugin;
+                    while (off < n && _cache_data[off] != 0)
+                    {
+                        sw_plugin.push_back(_cache_data[off]);
+                        off++;
+                    }
+                    if (off < n) { off++; }
+                    std::string sw_salt;
+                    while (off < n)
+                    {
+                        sw_salt.push_back(_cache_data[off]);
+                        off++;
+                    }
+                    while (!sw_salt.empty() && sw_salt.back() == '\0')
+                        sw_salt.pop_back();
+
+                    server_hello.auth_plugin_salt_data = sw_salt;
+                    server_hello.auth_plugin_name      = sw_plugin;
+                    std::string auth_resp = compute_auth_response(sw_plugin, sw_salt, conn_config.password);
+                    if (auth_resp.empty() && !conn_config.password.empty())
+                    {
+                        error_code = 2;
+                        isclose    = true;
+                        co_return false;
+                    }
+
+                    unsigned char sw_seq = static_cast<unsigned char>((_cache_data[3] & 0xFF) + 1);
+                    send_data.clear();
+                    send_data.push_back(0x00);
+                    send_data.push_back(0x00);
+                    send_data.push_back(0x00);
+                    send_data.push_back(sw_seq);
+                    send_data.append(auth_resp);
+                    auto sw_len = auth_resp.size();
+                    send_data[0] = static_cast<char>(sw_len & 0xFF);
+                    send_data[1] = static_cast<char>((sw_len >> 8) & 0xFF);
+                    send_data[2] = static_cast<char>((sw_len >> 16) & 0xFF);
+                    seq_next_id  = sw_seq;
+
                     try
                     {
-                        n = co_await conn_link->sslsocket->async_read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), asio::use_awaitable);// socket->read_some(asio::buffer(data), ec);
+                        n = co_await asio::async_write(*conn_link->sslsocket, asio::buffer(send_data), asio::use_awaitable);
                     }
                     catch (const std::exception &e)
                     {
                         error_msg.append(e.what());
-                        isclose = true;
-                        co_return false;
-                    }
-
-                    if (n < 5)
-                    {
-                        error_msg = "response too short";
-                        co_return false;
-                    }
-
-                    if ((unsigned char)_cache_data[4] == 0xFF)
-                    {
-                        for (unsigned int i = 5; i < n; i++)
-                        {
-                            error_msg.push_back(_cache_data[i]);
-                        }
-                        error_code = 7;
+                        error_code = 2;
                         isclose    = true;
                         co_return false;
                     }
-                    else if ((unsigned char)_cache_data[4] == 0x00)
-                    {
-                        co_return true;
-                    }
-                    else
-                    {
-                        error_msg  = " async read status connect fail! ";
-                        error_code = 9;
-                        isclose    = true;
-                        co_return false;
-                    }
+                    continue;
+                }
+                // Error packet
+                else if (pkt_type == 0xFF)
+                {
+                    parse_error_packet(_cache_data, n);
+                    isclose = true;
+                    co_return false;
+                }
+                // OK / EOF packet — auth success
+                else if (pkt_type == 0x00 || pkt_type == 0xFE)
+                {
+                    seq_next_id = static_cast<unsigned char>((_cache_data[3] & 0xFF) + 1);
+                    co_return true;
+                }
+                // Multi-result OK packet (type 0x03)
+                else if (pkt_type == 0x03)
+                {
+                    seq_next_id = static_cast<unsigned char>((_cache_data[3] & 0xFF) + 1);
+                    co_return true;
+                }
+                else
+                {
+                    error_msg  = " unexpected auth response pkt_type: " + std::to_string(pkt_type);
+                    error_code = 8;
+                    isclose    = true;
+                    co_return false;
                 }
             }
-            else
-            {
-                error_msg  = " connect fail! ";
-                error_code = 8;
-                isclose    = true;
-                co_return false;
-            }
-
-            seq_next_id = 0;
-            isclose     = true;
+            error_msg  = " auth handshake exceeded max rounds ";
+            error_code = 8;
+            isclose    = true;
             co_return false;
         }
     }
@@ -1542,6 +1693,9 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
         isclose = true;
         co_return false;
     }
+    // Auth Switch 可能多轮挑战-应答：循环读取直到终态包（协程下以循环替代 goto）
+    for (int auth_round = 0; auth_round < 4; ++auth_round)
+    {
     std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
     try
     {
@@ -1709,13 +1863,71 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
     }
     else if ((unsigned char)_cache_data[4] == 0xFE)
     {
-        for (unsigned int i = 5; i < n; i++)
+        // Auth Switch Request: [0xFE][plugin][NUL][salt]
+        unsigned int off = 5;
+        std::string sw_plugin;
+        while (off < n && _cache_data[off] != 0)
         {
-            error_msg.push_back(_cache_data[i]);
+            sw_plugin.push_back(_cache_data[off]);
+            off++;
         }
-        error_code = 2;
-        isclose    = true;
-        co_return false;
+        if (off < n)
+        {
+            off++;
+        }
+        std::string sw_salt;
+        while (off < n)
+        {
+            sw_salt.push_back(_cache_data[off]);
+            off++;
+        }
+        while (!sw_salt.empty() && sw_salt.back() == '\0')
+        {
+            sw_salt.pop_back();
+        }
+
+        server_hello.auth_plugin_salt_data = sw_salt;
+        server_hello.auth_plugin_name      = sw_plugin;
+        std::string auth_resp              = compute_auth_response(sw_plugin, sw_salt, conn_config.password);
+        if (auth_resp.empty() && !conn_config.password.empty())
+        {
+            error_code = 2;
+            isclose    = true;
+            co_return false;
+        }
+
+        unsigned char sw_seq = static_cast<unsigned char>((_cache_data[3] & 0xFF) + 1);
+        send_data.clear();
+        send_data.push_back(0x00);
+        send_data.push_back(0x00);
+        send_data.push_back(0x00);
+        send_data.push_back(sw_seq);
+        send_data.append(auth_resp);
+        auto sw_len = auth_resp.size();
+        send_data[0] = static_cast<char>(sw_len & 0xFF);
+        send_data[1] = static_cast<char>((sw_len >> 8) & 0xFF);
+        send_data[2] = static_cast<char>((sw_len >> 16) & 0xFF);
+        seq_next_id  = sw_seq;
+
+        try
+        {
+            if (conn_link->sock_type == 3)
+            {
+                n = co_await asio::async_write(*conn_link->localsocket, asio::buffer(send_data), asio::use_awaitable);
+            }
+            else
+            {
+                n = co_await asio::async_write(*conn_link->socket, asio::buffer(send_data), asio::use_awaitable);
+            }
+        }
+        catch (const std::exception &e)
+        {
+            error_msg.append(e.what());
+            error_code = 2;
+            isclose    = true;
+            co_return false;
+        }
+        continue;
     }
     else if ((unsigned char)_cache_data[4] == 0xFF)
     {
@@ -1726,6 +1938,11 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
         error_code = 6;
         isclose    = true;
         co_return false;
+    }
+    else if ((unsigned char)_cache_data[4] == 0x00)
+    {
+        seq_next_id = static_cast<unsigned char>((_cache_data[3] & 0xFF) + 1);
+        co_return true;
     }
     else if ((unsigned char)_cache_data[5] == 0x03)
     {
@@ -1817,6 +2034,12 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
     }
 
     co_return true;
+    }
+
+    error_msg  = " auth switch rounds exhausted ";
+    error_code = 9;
+    isclose    = true;
+    co_return false;
 }
 asio::awaitable<unsigned int> mysql_conn_base::async_read_loop()
 {

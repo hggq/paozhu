@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sun, 16 Aug 2026 04:43:42 GMT
+*本文件为自动生成 Sun, 30 Aug 2026 07:49:53 GMT
 ***/
 #include <iostream>
 #include <charconv>
