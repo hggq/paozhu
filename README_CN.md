@@ -14,13 +14,13 @@ controller目录是实际使用例子，还在完善中，目前框架压力测�
 ### 1.特性🔥🔥🔥🔥🔥
 
 ✅ 1. 自带json编解码不用第三方库，标准json支持  
-✅ 2. 支持多域名网站  
+✅ 2. 支持多域名网站，支持SAAS租户和主题  
 ✅ 3. 支持多域名ssl 服务端  
 ✅ 4. 支持http/1.1、http/2协议  
 ✅ 5. 支持WebSocket服务端和客户端，双工收发  
 ✅ 6. 框架自带WebSocket推送，支持定时推送到WebSocket客户端  
 ✅ 7. 支持httpclient get post，同步异步、协程模式，数据采集  
-✅ 8. 框架自带ORM，使用链接池方式，支持MySQL、PostgreSQL、SQLite、MariaDB（12.3+）支持协程和同步模式  
+✅ 8. 框架自带ORM，使用链接池方式，支持MySQL、PostgreSQL、SQLite、MariaDB支持协程和同步模式  
 ✅ 9. 框架自带线程池，和用户代码运行的线程池  
 ✅10. 框架使用asio自带的协程  
 ✅11. 框架特色是I/O 使用协程池 用户代码运行使用线程池,类似GO那种调度，只是针对http请求调度  

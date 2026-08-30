@@ -12,13 +12,13 @@ Discussing the joy of C++ web development with community developers.
 ### 1.Features🔥🔥🔥🔥🔥
 
 ✅ 1. Supports json decode encode, not use thirdparty, support json standard  
-✅ 2. Supports multiple domain name websites  
+✅ 2. Supports multiple domain name websites, support SAAS tenants and themes  
 ✅ 3. Supports multiple domain name ssl server  
 ✅ 4. Supports http/1.1 and http/2 protocols  
 ✅ 5. Supports WebSocket server and client, with duplex sending and receiving  
 ✅ 6. The framework comes with WebSocket push, which supports regular push to WebSocket client  
 ✅ 7. Supports httpclient GET and POST requests, in both synchronous and asynchronous modes  
-✅ 8. Built in ORM, supports MySQL PostgreSQL SQLite MariaDB(12.3+) supports both coroutine and synchronous modes  
+✅ 8. Built in ORM, supports MySQL PostgreSQL SQLite MariaDB supports both coroutine and synchronous modes  
 ✅ 9. Framework has two thread pool,framework thread pool,user program runing thread pool  
 ✅10. The framework uses asio Coroutines  
 ✅11. The framework features that I/O uses the coroutine pool to run and thread pool to run  
