@@ -27,6 +27,7 @@ namespace dbconver
 
 using dbtypes::build_insert_sql_mysql;
 using dbtypes::build_insert_sql_pg;
+using dbtypes::collect_pk_columns;
 using dbtypes::convert_type_for_target;
 using dbtypes::create_connection;
 using dbtypes::db_field_info;
@@ -52,6 +53,7 @@ using dbtypes::remove_quotes;
 using dbtypes::reset_autoincrement;
 using dbtypes::row_data_t;
 using dbtypes::starts_with_icase;
+using dbtypes::strip_pg_cast;
 using dbtypes::table_exists;
 using dbtypes::to_lower;
 using dbtypes::trim;
@@ -74,6 +76,14 @@ inline std::string gen_mysql_drop_table(const std::string &table_name)
 
 inline std::string build_mysql_create_table(const db_table_info &info)
 {
+    std::vector<std::string> pk_cols = collect_pk_columns(info);
+    std::vector<const db_index_info *> secondary_indexes;
+    for (const auto &idx : info.indexes)
+    {
+        if (!idx.is_primary)
+            secondary_indexes.push_back(&idx);
+    }
+
     std::ostringstream oss;
     oss << "CREATE TABLE `" << info.table_name << "` (\n";
 
@@ -128,14 +138,20 @@ inline std::string build_mysql_create_table(const db_table_info &info)
             std::string dl = to_lower(f.default_value);
             if (dl.find("nextval") == std::string::npos)
             {
-                if (f.default_value == "CURRENT_TIMESTAMP" || f.default_value == "now()")
+                if (f.default_value == "CURRENT_TIMESTAMP")
                 {
                     oss << " DEFAULT " << f.default_value;
+                }
+                else if (f.default_value == "now()")
+                {
+                    // MySQL 8.0.13+ 表达式默认值要求括号
+                    oss << " DEFAULT (now())";
                 }
                 else if (f.default_value.size() >= 2 &&
                          (f.default_value.front() == '\'' || f.default_value.front() == '"'))
                 {
-                    oss << " DEFAULT " << f.default_value;
+                    // 剥离 PG 风格 ::type cast (MySQL 不支持该语法)
+                    oss << " DEFAULT " << strip_pg_cast(f.default_value);
                 }
                 else
                 {
@@ -148,14 +164,43 @@ inline std::string build_mysql_create_table(const db_table_info &info)
         if (!f.comment.empty())
             oss << " COMMENT '" << escape_mysql_string(f.comment) << "'";
 
-        if (i < info.fields.size() - 1)
+        if (i < info.fields.size() - 1 || !pk_cols.empty() || !secondary_indexes.empty())
             oss << ",";
         oss << "\n";
     }
 
-    if (!info.pk_name.empty())
+    if (!pk_cols.empty())
     {
-        oss << ",  PRIMARY KEY (`" << info.pk_name << "`)\n";
+        oss << "  PRIMARY KEY (";
+        for (size_t pi = 0; pi < pk_cols.size(); pi++)
+        {
+            if (pi > 0)
+                oss << ", ";
+            oss << "`" << pk_cols[pi] << "`";
+        }
+        oss << ")";
+        if (!secondary_indexes.empty())
+            oss << ",";
+        oss << "\n";
+    }
+
+    for (size_t ii = 0; ii < secondary_indexes.size(); ii++)
+    {
+        const db_index_info &idx = *secondary_indexes[ii];
+        oss << "  ";
+        if (idx.is_unique)
+            oss << "UNIQUE ";
+        oss << "KEY `" << idx.index_name << "` (";
+        for (size_t j = 0; j < idx.columns.size(); j++)
+        {
+            if (j > 0)
+                oss << ", ";
+            oss << "`" << idx.columns[j] << "`";
+        }
+        oss << ")";
+        if (ii < secondary_indexes.size() - 1)
+            oss << ",";
+        oss << "\n";
     }
 
     oss << ")";
@@ -184,6 +229,9 @@ inline std::string gen_pg_drop_table(const std::string &table_name)
 
 inline std::string build_pg_create_table(const db_table_info &info)
 {
+    std::vector<std::string> pk_cols = collect_pk_columns(info);
+    bool composite_pk                = pk_cols.size() > 1;
+
     std::ostringstream oss;
     oss << "CREATE TABLE " << escape_pg_identifier(info.table_name) << " (\n";
 
@@ -197,16 +245,19 @@ inline std::string build_pg_create_table(const db_table_info &info)
             std::string tl = to_lower(f.field_type);
             if (tl == "bigint" || tl == "bigserial")
             {
-                oss << "BIGSERIAL PRIMARY KEY";
+                oss << "BIGSERIAL";
             }
             else if (tl == "smallint" || tl == "smallserial")
             {
-                oss << "SMALLSERIAL PRIMARY KEY";
+                oss << "SMALLSERIAL";
             }
             else
             {
-                oss << "SERIAL PRIMARY KEY";
+                oss << "SERIAL";
             }
+            // 复合主键时不内联 PRIMARY KEY, 改在字段循环后输出表级约束
+            if (!composite_pk)
+                oss << " PRIMARY KEY";
         }
         else
         {
@@ -242,16 +293,49 @@ inline std::string build_pg_create_table(const db_table_info &info)
                     }
                 }
             }
-            if (f.is_pk)
+            if (f.is_pk && !composite_pk)
                 oss << " PRIMARY KEY";
         }
 
-        if (i < info.fields.size() - 1)
+        if (i < info.fields.size() - 1 || composite_pk)
             oss << ",";
         oss << "\n";
     }
 
+    if (composite_pk)
+    {
+        oss << "  PRIMARY KEY (";
+        for (size_t pi = 0; pi < pk_cols.size(); pi++)
+        {
+            if (pi > 0)
+                oss << ", ";
+            oss << escape_pg_identifier(pk_cols[pi]);
+        }
+        oss << ")\n";
+    }
+
     oss << ");\n";
+
+    // 二级索引 (exec_ddl 支持多语句, 与 SQLite 路径一致)
+    for (const auto &idx : info.indexes)
+    {
+        if (idx.is_primary)
+            continue;
+
+        oss << "CREATE ";
+        if (idx.is_unique)
+            oss << "UNIQUE ";
+        oss << "INDEX " << escape_pg_identifier(idx.index_name) << " ON "
+            << escape_pg_identifier(info.table_name) << " (";
+        for (size_t j = 0; j < idx.columns.size(); j++)
+        {
+            if (j > 0)
+                oss << ", ";
+            oss << escape_pg_identifier(idx.columns[j]);
+        }
+        oss << ");\n";
+    }
+
     return oss.str();
 }
 
@@ -486,7 +570,8 @@ inline int dbconvercli(const std::string &dbtag1 = "", const std::string &dbtag2
                     f.length,
                     f.is_unsigned,
                     src_type,
-                    dst_type);
+                    dst_type,
+                    f.decimals);
                 f.field_type = target_type;
                 if (src_type == DB_TYPE::SQLITE)
                 {

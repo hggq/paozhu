@@ -29,6 +29,25 @@ std::string parse_ini::line_trim(const std::string &s)
     return (start < end) ? std::string(start, end) : std::string();
 }
 
+// ---------- 节标题行识别：[section] 与 [[section]] ----------
+bool parse_ini::section_header(const std::string &trimmed, std::string &name, bool &is_array)
+{
+    name.clear();
+    is_array = false;
+
+    if (trimmed.size() < 2 || trimmed.front() != '[' || trimmed.back() != ']')
+        return false;
+
+    std::string inner = trimmed.substr(1, trimmed.size() - 2);
+    if (inner.size() >= 2 && inner.front() == '[' && inner.back() == ']')
+    {
+        is_array = true;
+        inner    = inner.substr(1, inner.size() - 2);
+    }
+    name = line_trim(inner);
+    return true;
+}
+
 // ---------- 解析文件 ----------
 void parse_ini::parse_file(const std::string &filename)
 {
@@ -39,7 +58,8 @@ void parse_ini::parse_file(const std::string &filename)
     }
 
     config.clear();
-    std::string line, current_section;
+    std::string line;
+    ini_section_value_t *cur = nullptr;
 
     while (std::getline(file, line))
     {
@@ -52,7 +72,7 @@ void parse_ini::parse_file(const std::string &filename)
         // 注释行：存储到当前 section 的 comment 字段
         if (trimmed.front() == ';' || trimmed.front() == '#')
         {
-            if (!current_section.empty())
+            if (cur != nullptr)
             {
                 std::string comment_text = trimmed.substr(1);
                 auto start               = std::find_if_not(comment_text.begin(), comment_text.end(), [](unsigned char c)
@@ -61,29 +81,32 @@ void parse_ini::parse_file(const std::string &filename)
                     comment_text = std::string(start, comment_text.end());
                 else
                     comment_text.clear();
-                config[current_section].push_back(ini_key_value_t{"", "", comment_text});
+                cur->push_back(ini_key_value_t{"", "", comment_text});
             }
             continue;
         }
 
-        // 节标题 [section]
-        if (trimmed.front() == '[' && trimmed.back() == ']')
+        // 节标题 [section] 或数组节标题 [[section]]
         {
-            current_section = trimmed.substr(1, trimmed.size() - 2);
-            if (current_section.empty())
+            std::string header_name;
+            bool header_is_array = false;
+            if (section_header(trimmed, header_name, header_is_array))
             {
-                continue;// 跳过空节名 []
+                if (header_name.empty())
+                {
+                    cur = nullptr;// 空节名 [] / [[]]：丢弃
+                }
+                else
+                {
+                    // [[xxx]] 每次新开一个数组元素；[xxx] 合并进第一个同名元素
+                    cur = &config.get_or_add(header_name, header_is_array);
+                }
+                continue;
             }
-            // 确保该节存在
-            if (config.find(current_section) == config.end())
-            {
-                config[current_section] = {};
-            }
-            continue;
         }
 
         // 键值对
-        if (!current_section.empty())
+        if (cur != nullptr)
         {
             auto eqPos = trimmed.find('=');
             if (eqPos != std::string::npos)
@@ -165,7 +188,7 @@ void parse_ini::parse_file(const std::string &filename)
                 if (!key.empty())
                 {
                     bool found = false;
-                    for (auto &item : config[current_section].data)
+                    for (auto &item : cur->value.data)
                     {
                         if (item.name == key)
                         {
@@ -177,7 +200,7 @@ void parse_ini::parse_file(const std::string &filename)
                     }
                     if (!found)
                     {
-                        config[current_section].push_back(ini_key_value_t{key, value_temp, comment_temp});
+                        cur->push_back(ini_key_value_t{key, value_temp, comment_temp});
                     }
                 }
             }
@@ -190,11 +213,11 @@ void parse_ini::parse_file(const std::string &filename)
 // ---------- 获取值 ----------
 std::string parse_ini::get_value(const std::string &section, const std::string &name, const std::string &default_value)
 {
-    auto itSec = config.find(section);
-    if (itSec != config.end())
+    auto [pSec, found] = config.try_section(section);
+    if (found)
     {
-        auto [pVal, found] = itSec->second.try_find(name);
-        if (found)
+        auto [pVal, key_found] = pSec->try_find(name);
+        if (key_found)
         {
             return *pVal;
         }
@@ -205,10 +228,10 @@ std::string parse_ini::get_value(const std::string &section, const std::string &
 // ---------- 获取整个节 ----------
 ini_item_t parse_ini::get_section(const std::string &section)
 {
-    auto itSec = config.find(section);
-    if (itSec != config.end())
+    auto [pSec, found] = config.try_section(section);
+    if (found)
     {
-        return itSec->second;
+        return pSec->value;
     }
     return {};
 }
@@ -290,7 +313,7 @@ bool parse_ini::save_value(const std::string &section, const std::string &name, 
         lines.push_back(line_one);
     inFile.close();
 
-    // 2. 遍历每一行，查找目标节和键
+    // 2. 遍历每一行，查找目标节和键（同名段只取文件中第一个块）
     std::string current_section;
     bool found = false;
     std::string old_comment;// 保存原文件中的注释
@@ -303,11 +326,15 @@ bool parse_ini::save_value(const std::string &section, const std::string &name, 
         if (trimmed.empty() || trimmed.front() == ';' || trimmed.front() == '#')
             continue;
 
-        // 检测节标题
-        if (trimmed.front() == '[' && trimmed.back() == ']')
+        // 检测节标题 [section] / [[section]]
         {
-            current_section = trimmed.substr(1, trimmed.size() - 2);
-            continue;
+            std::string header_name;
+            bool header_is_array = false;
+            if (section_header(trimmed, header_name, header_is_array))
+            {
+                current_section = header_name;
+                continue;
+            }
         }
 
         // 在目标节内，且该行包含 '='
@@ -433,6 +460,7 @@ bool parse_ini::save_value(const std::string &section, const std::string &name, 
                     }
 
                     found = true;
+                    break;// 只改文件中第一个匹配块，与内存里"第一个匹配元素"规则一致
                 }
             }
         }
@@ -446,10 +474,10 @@ bool parse_ini::save_value(const std::string &section, const std::string &name, 
         return false;
 
     // 6. 同步内存中的 config
-    auto itSec = config.find(section);
-    if (itSec != config.end())
+    auto [pSec, sec_found] = config.try_section(section);
+    if (sec_found)
     {
-        for (auto &item : itSec->second.data)
+        for (auto &item : pSec->value.data)
         {
             if (item.name == name)
             {
@@ -490,8 +518,10 @@ bool parse_ini::add_value(const std::string &section, const std::string &name, c
     if (comment.find('\n') != std::string::npos || comment.find('\r') != std::string::npos)
         return false;
 
-    // 节名和键名不能为空，键名不能包含 '='
+    // 节名和键名不能为空，键名不能包含 '='，节名不能包含中括号
     if (section.empty() || name.empty() || name.find('=') != std::string::npos)
+        return false;
+    if (section.find('[') != std::string::npos || section.find(']') != std::string::npos)
         return false;
 
     // 规范化注释
@@ -505,10 +535,12 @@ bool parse_ini::add_value(const std::string &section, const std::string &name, c
     }
 
     // 如果键已存在，直接更新
-    auto itSec = config.find(section);
-    if (itSec != config.end() && itSec->second.contains(name))
     {
-        return save_value(section, name, new_value, comment);
+        auto [pSec, sec_found] = config.try_section(section);
+        if (sec_found && pSec->contains(name))
+        {
+            return save_value(section, name, new_value, comment);
+        }
     }
 
     // 读取文件
@@ -521,7 +553,7 @@ bool parse_ini::add_value(const std::string &section, const std::string &name, c
         lines.push_back(line_one);
     inFile.close();
 
-    // 查找目标节，并计算插入位置
+    // 查找目标节，并计算插入位置（同名段取文件中第一个块）
     std::string current_section;
     bool section_found = false;
     size_t insert_pos  = lines.size();// 默认文件末尾
@@ -532,9 +564,11 @@ bool parse_ini::add_value(const std::string &section, const std::string &name, c
         if (trimmed.empty() || trimmed.front() == ';' || trimmed.front() == '#')
             continue;
 
-        if (trimmed.front() == '[' && trimmed.back() == ']')
+        std::string header_name;
+        bool header_is_array = false;
+        if (section_header(trimmed, header_name, header_is_array))
         {
-            current_section = trimmed.substr(1, trimmed.size() - 2);
+            current_section = header_name;
             if (current_section == section)
             {
                 section_found = true;
@@ -543,7 +577,9 @@ bool parse_ini::add_value(const std::string &section, const std::string &name, c
                 for (size_t j = i + 1; j < lines.size(); ++j)
                 {
                     std::string t = line_trim(lines[j]);
-                    if (!t.empty() && t.front() == '[' && t.back() == ']')
+                    std::string next_name;
+                    bool next_is_array = false;
+                    if (!t.empty() && section_header(t, next_name, next_is_array))
                     {
                         next_sec = j;
                         if (j > (i + 1))
@@ -626,11 +662,15 @@ bool parse_ini::delete_value(const std::string &section, const std::string &name
         if (trimmed.empty() || trimmed.front() == ';' || trimmed.front() == '#')
             continue;
 
-        // 检测节标题
-        if (trimmed.front() == '[' && trimmed.back() == ']')
+        // 检测节标题 [section] / [[section]]
         {
-            current_section = trimmed.substr(1, trimmed.size() - 2);
-            continue;
+            std::string header_name;
+            bool header_is_array = false;
+            if (section_header(trimmed, header_name, header_is_array))
+            {
+                current_section = header_name;
+                continue;
+            }
         }
 
         // 在目标节内，且该行包含 '='
@@ -642,7 +682,7 @@ bool parse_ini::delete_value(const std::string &section, const std::string &name
             {
                 delete_index = i;// 记录要删除的行索引
                 found        = true;
-                break;// 找到后即可退出循环
+                break;// 找到后即可退出循环（同名段只删第一个块）
             }
         }
     }
@@ -658,10 +698,10 @@ bool parse_ini::delete_value(const std::string &section, const std::string &name
         return false;
 
     // 5. 同步内存中的 config（删除该键）
-    auto itSec = config.find(section);
-    if (itSec != config.end())
+    auto [pSec, sec_found] = config.try_section(section);
+    if (sec_found)
     {
-        itSec->second.erase(name);// 删除键
+        pSec->erase(name);// 删除键
     }
 
     return true;
@@ -696,35 +736,38 @@ bool parse_ini::delete_section(const std::string &section)
         if (trimmed.empty() || trimmed.front() == ';' || trimmed.front() == '#')
             continue;
 
-        // 检测节标题 [section]
-        if (trimmed.front() == '[' && trimmed.back() == ']')
+        // 检测节标题 [section] / [[section]]（只删除文件中第一个同名块）
         {
-            std::string cur_section = trimmed.substr(1, trimmed.size() - 2);
-            if (cur_section == section)
+            std::string header_name;
+            bool header_is_array = false;
+            if (section_header(trimmed, header_name, header_is_array))
             {
-                start_idx = i;// 节标题行本身的索引
-                // 向后查找下一个节标题（或文件末尾）
-                for (size_t j = i + 1; j < lines.size(); ++j)
+                if (header_name == section)
                 {
-                    std::string t2 = line_trim(lines[j]);
-                    if (!t2.empty() && t2.front() == '[' && t2.back() == ']')
+                    start_idx = i;// 节标题行本身的索引
+                    // 向后查找下一个节标题（或文件末尾）
+                    for (size_t j = i + 1; j < lines.size(); ++j)
                     {
-                        end_idx = j;// 下一个节的标题行索引
-                        if (j > (start_idx + 1))
+                        std::string t2 = line_trim(lines[j]);
+                        std::string next_name;
+                        bool next_is_array = false;
+                        if (!t2.empty() && section_header(t2, next_name, next_is_array))
                         {
-                            //保留 下一个节的标题 前一行，可能是 下一个节的标题的注释
-                            t2 = line_trim(lines[j - 1]);
-                            if (!t2.empty() && (t2.front() == ';' || t2.front() == '#'))
+                            end_idx = j;// 下一个节的标题行索引
+                            if (j > (start_idx + 1))
                             {
-                                end_idx = end_idx - 1;
+                                //保留 下一个节的标题 前一行，可能是 下一个节的标题的注释
+                                t2 = line_trim(lines[j - 1]);
+                                if (!t2.empty() && (t2.front() == ';' || t2.front() == '#'))
+                                {
+                                    end_idx = end_idx - 1;
+                                }
                             }
+                            break;
                         }
-                        break;
                     }
+                    break;// 找到目标节，退出外层循环
                 }
-                if (end_idx == lines.size())// 未找到下一个节，则到文件末尾
-                    end_idx = lines.size();
-                break;// 找到目标节，退出外层循环
             }
         }
     }
@@ -745,39 +788,32 @@ bool parse_ini::delete_section(const std::string &section)
     return true;
 }
 
+// ---------- 删除文件中全部同名段（含 [[xxx]] 数组的所有元素） ----------
+bool parse_ini::delete_all_sections(const std::string &section)
+{
+    if (filename_.empty())
+        return false;
+
+    bool any = false;
+    // delete_section 每次删除文件中第一个同名块并同步删除对应内存元素
+    while (delete_section(section))
+        any = true;
+
+    // 兜底：清掉内存里可能残留的同名元素（例如多个 [xxx] 块在内存中合并成一个）
+    config.erase_all(section);
+    return any;
+}
+
 // ---------- 将内存中的配置保存到文件 ----------
 bool parse_ini::save_file(const std::string &filename)
 {
-    // 构建行列表
+    // 序列化统一走 ini_parse_t::out_put()，避免两处格式实现（含 [[array]] 段头）不一致
+    std::string text = config.out_put();
     std::vector<std::string> lines;
-    for (const auto &secPair : config)
-    {
-        lines.push_back("[" + secPair.first + "]");
-        for (const auto &kv : secPair.second)
-        {
-            if (kv.name.empty())
-            {
-                // 纯注释行
-                if (!kv.comment.empty())
-                    lines.push_back("; " + kv.comment);
-                else
-                    lines.push_back("");
-            }
-            else
-            {
-                std::string line = kv.name + " = " + kv.value;
-                if (!kv.comment.empty())
-                {
-                    if (kv.comment[0] == ';' || kv.comment[0] == '#')
-                        line += " " + kv.comment;
-                    else
-                        line += " ; " + kv.comment;
-                }
-                lines.push_back(line);
-            }
-        }
-        lines.push_back("");// 节之间空行
-    }
+    std::istringstream iss(text);
+    std::string one_line;
+    while (std::getline(iss, one_line))
+        lines.push_back(one_line);
 
     // 原子写入：临时文件 + rename，保留 .bak 备份
     if (!atomic_write_file(filename, lines))

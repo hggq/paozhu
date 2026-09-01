@@ -1,0 +1,9 @@
+CREATE TABLE `testb` (
+  `tid` int NOT NULL AUTO_INCREMENT,
+  `score` bigint NOT NULL DEFAULT '0' COMMENT '分数[num*100]',
+  `name` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `pricenum` double NOT NULL,
+  `orgprice` float NOT NULL,
+  `subprice` decimal(10,2) NOT NULL,
+  PRIMARY KEY (`tid`)
+) ENGINE=InnoDB AUTO_INCREMENT=122 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci

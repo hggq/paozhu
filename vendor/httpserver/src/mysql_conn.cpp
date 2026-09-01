@@ -553,7 +553,14 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
             }
             conn_link->sock_type = 2;// 握手成功后才标记 SSL 已建立
 
-            send_data[0] = send_data.size() - 4;
+            // SSL 通道建立后重发握手响应，包长必须写满 3 字节
+            //（此前只写低 8 位，payload > 255 字节时协议失步）
+            {
+                auto pl = send_data.size() - 4;
+                send_data[0] = (pl) & 0xFF;
+                send_data[1] = (pl >> 8) & 0xFF;
+                send_data[2] = (pl >> 16) & 0xFF;
+            }
             seq_next_id += 1;
             send_data[3] = seq_next_id;
 
@@ -1063,12 +1070,22 @@ auth_resp_read:
                 return false;
             }
 
-            if (_cache_data[offset + 4] != 0x00)
+            // 第二个包必须整体到达后才能判定终态（与 SSL 路径一致），
+            // 否则读到的是零初始化/残留数据，终态判定语义错误
+            if (n >= offset + pack_length + 5)
             {
-                error_msg  = " connect fail! ";
-                error_code = 8;
-                isclose    = true;
-                return false;
+                if (_cache_data[offset + 4] != 0x00)
+                {
+                    error_msg  = " connect fail! ";
+                    error_code = 8;
+                    isclose    = true;
+                    return false;
+                }
+            }
+            else
+            {
+                // 第二包未完整到达，重新读取
+                goto auth_resp_read;
             }
         }
         else
@@ -1475,7 +1492,14 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
             }
             conn_link->sock_type = 2;// 握手成功后才标记 SSL 已建立
 
-            send_data[0] = send_data.size() - 4;
+            // SSL 通道建立后重发握手响应，包长必须写满 3 字节
+            //（此前只写低 8 位，payload > 255 字节时协议失步）
+            {
+                auto pl = send_data.size() - 4;
+                send_data[0] = (pl) & 0xFF;
+                send_data[1] = (pl >> 8) & 0xFF;
+                send_data[2] = (pl >> 16) & 0xFF;
+            }
             seq_next_id += 1;
             send_data[3] = seq_next_id;
 
@@ -1963,16 +1987,70 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
                 co_return false;
             }
 
-            if (_cache_data[offset + 4] == 0x00)
+            // 第二个包必须整体到达后才能判定终态（与 SSL 路径一致）
+            if (n >= offset + pack_length + 5)
             {
-                co_return true;
+                if (_cache_data[offset + 4] == 0x00)
+                {
+                    co_return true;
+                }
+                else
+                {
+                    error_msg  = " connect fail! ";
+                    error_code = 8;
+                    isclose    = true;
+                    co_return false;
+                }
             }
             else
             {
-                error_msg  = " connect fail! ";
-                error_code = 8;
-                isclose    = true;
-                co_return false;
+                // 第二包未完整到达 → 重新读取
+                std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
+                try
+                {
+                    if (conn_link->sock_type == 3)
+                    {
+                        n = co_await conn_link->localsocket->async_read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), asio::use_awaitable);
+                    }
+                    else
+                    {
+                        n = co_await conn_link->socket->async_read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), asio::use_awaitable);
+                    }
+                }
+                catch (const std::exception &e)
+                {
+                    error_msg.append(e.what());
+                    isclose = true;
+                    co_return false;
+                }
+
+                if (n < 5)
+                {
+                    error_msg = "response too short";
+                    co_return false;
+                }
+
+                if ((unsigned char)_cache_data[4] == 0xFF)
+                {
+                    for (unsigned int i = 5; i < n; i++)
+                    {
+                        error_msg.push_back(_cache_data[i]);
+                    }
+                    error_code = 7;
+                    isclose    = true;
+                    co_return false;
+                }
+                else if ((unsigned char)_cache_data[4] == 0x00)
+                {
+                    co_return true;
+                }
+                else
+                {
+                    error_msg  = " async read status connect fail! ";
+                    error_code = 9;
+                    isclose    = true;
+                    co_return false;
+                }
             }
         }
         else
@@ -2149,6 +2227,16 @@ unsigned int mysql_conn_base::write_sql(const std::string &sql)
 
     n = sql.length() + 1;
 
+    // MySQL 协议包长度字段为 3 字节，上限 0xFFFFFF（16MB-1）。
+    // 超过即拒绝发送（未实现 >16MB 分片，直接报错避免长度溢出导致协议失步）
+    if (n > 0xFFFFFF)
+    {
+        error_msg  = "write_sql: SQL too large (>16MB), cannot send in single packet: " + std::to_string(sql.length());
+        error_code = 20;
+        isclose    = true;
+        return 0;
+    }
+
     send_data.clear();
     send_data.push_back((n & 0xFF));
     send_data.push_back((n >> 8 & 0xFF));
@@ -2238,6 +2326,15 @@ asio::awaitable<unsigned int> mysql_conn_base::async_write_sql(const std::string
     unsigned int n = 0;
 
     n = sql.length() + 1;
+
+    // 与同步版一致：超过 16MB 拒绝发送，避免 3 字节长度字段溢出
+    if (n > 0xFFFFFF)
+    {
+        error_msg  = "async_write_sql: SQL too large (>16MB), cannot send in single packet: " + std::to_string(sql.length());
+        error_code = 20;
+        isclose    = true;
+        co_return 0;
+    }
 
     send_data.clear();
     send_data.push_back((n & 0xFF));
@@ -3306,7 +3403,9 @@ unsigned int mysql_conn_base::fetch_directly_impl(
                     }
                     else
                     {
-                        unsigned long long length = pack_real_num(accum_buf.data(), accum_buf.size(), pos);
+                        // 以 row_end 为长度边界：防止行内最后字段的长度前缀
+                        // 跨行读取下一行字节作为长度（M-4）
+                        unsigned long long length = pack_real_num(accum_buf.data(), row_end, pos);
                         if (length > 0 && pos + (unsigned int)length <= row_end)
                         {
                             row_data_cache_ptrs_.push_back({&accum_buf[pos], (size_t)length});
@@ -3361,9 +3460,34 @@ enum class txn_keyword : unsigned char
 
 txn_keyword detect_txn_keyword(const std::string &sql)
 {
+    // 跳过前导空白与 SQL 注释（-- 行注释、/* */ 块注释）后再取首个有效词，
+    // 避免 "/* x */ BEGIN"、" -- 注释\nBEGIN" 等场景误判/漏判事务关键字
     size_t i = 0;
-    while (i < sql.size() && isspace((unsigned char)sql[i]))
-        i++;
+    while (i < sql.size())
+    {
+        unsigned char c = static_cast<unsigned char>(sql[i]);
+        if (isspace(c))
+        {
+            i++;
+            continue;
+        }
+        if (i + 1 < sql.size() && sql[i] == '-' && sql[i + 1] == '-')
+        {
+            i += 2;
+            while (i < sql.size() && sql[i] != '\n')
+                i++;
+            continue;
+        }
+        if (i + 1 < sql.size() && sql[i] == '/' && sql[i + 1] == '*')
+        {
+            i += 2;
+            while (i + 1 < sql.size() && !(sql[i] == '*' && sql[i + 1] == '/'))
+                i++;
+            i += 2;
+            continue;
+        }
+        break;
+    }
     size_t j = i;
     while (j < sql.size() && isalpha((unsigned char)sql[j]))
         j++;
@@ -3699,7 +3823,9 @@ asio::awaitable<unsigned int> mysql_conn_base::async_fetch_directly_impl(
                     }
                     else
                     {
-                        unsigned long long length = pack_real_num(accum_buf.data(), accum_buf.size(), pos);
+                        // 以 row_end 为长度边界：防止行内最后字段的长度前缀
+                        // 跨行读取下一行字节作为长度
+                        unsigned long long length = pack_real_num(accum_buf.data(), row_end, pos);
                         if (length > 0 && pos + (unsigned int)length <= row_end)
                         {
                             row_data_cache_ptrs_.push_back({&accum_buf[pos], (size_t)length});

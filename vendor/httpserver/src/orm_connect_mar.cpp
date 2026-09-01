@@ -218,6 +218,9 @@ void orm_connect_mar_t::clear_connect()
             }
         }
         // Clear PostgreSQL connections
+        // 计数器 j 必须重置：否则 MySQL 列表 ≥11 项时 j>10，
+        // PG 循环首轮即 break，PG 连接永不清理（并发泄漏）
+        j = 0;
         for (auto iter = pg_conn_list.begin(); iter != pg_conn_list.end();)
         {
             std::shared_ptr<pg_conn_base> p_session = iter->lock();

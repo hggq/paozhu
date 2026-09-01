@@ -388,6 +388,7 @@ add_executable(${PAOZHU_PRE} ${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpcli/autopick
 
 # Non-recursive include directories from original script
 target_include_directories(paozhu PRIVATE
+  "${CMAKE_CURRENT_SOURCE_DIR}"
   "${CMAKE_CURRENT_SOURCE_DIR}/viewsrc/include"
   "${CMAKE_CURRENT_SOURCE_DIR}/viewsrc"
   "${CMAKE_CURRENT_SOURCE_DIR}/websockets"

@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sun, 30 Aug 2026 07:49:53 GMT
+ *  Creation time Tue, 01 Sep 2026 03:58:37 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -43314,7 +43314,7 @@ M_MODEL& or_leItemnote(T val)
         }
 
         template <typename T2>
-        M_MODEL &where(std::string_view field1, orm::wq opwq, T2 &&field2)
+        M_MODEL &where(std::string_view field, orm::wq opwq, T2 &&value)
         {
             if (wheresql.empty())
             {
@@ -43338,14 +43338,14 @@ M_MODEL& or_leItemnote(T val)
                 ishascontent = true;
             }
 
-            wheresql.append(field1);
+            wheresql.append(field);
 
             if (opwq == orm::wq::in)
             {
                 wheresql.append(" IN (");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    wheresql.append(std::string_view(field2));
+                    wheresql.append(std::string_view(value));
                 }
                 wheresql.append(") ");
                 return *mod;
@@ -43353,9 +43353,9 @@ M_MODEL& or_leItemnote(T val)
             else if (opwq == orm::wq::like)
             {
                 wheresql.append(" like '%");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    wheresql.append(std::string_view(field2));
+                    wheresql.append(std::string_view(value));
                 }
                 wheresql.append("%' ");
                 return *mod;
@@ -43378,18 +43378,21 @@ M_MODEL& or_leItemnote(T val)
             case orm::wq::le:
                 wheresql.append(" <= ");
                 break;
+            case orm::wq::nq:
+                wheresql.append(" != ");
+                break;                 
             default:
                 wheresql.append(" = ");
                 break;
             }
 
-            wheresql.append(to_sql_value(std::forward<T2>(field2)));
+            wheresql.append(to_sql_value(std::forward<T2>(value)));
             wheresql.append(" ");
             return *mod;
         }
 
         template <typename T2>
-        M_MODEL &whereOr(std::string_view field1, orm::wq opwq, T2 &&field2)
+        M_MODEL &whereOr(std::string_view field, orm::wq opwq, T2 &&value)
         {
             if (wheresql.empty())
             {
@@ -43413,14 +43416,14 @@ M_MODEL& or_leItemnote(T val)
                 ishascontent = true;
             }
 
-            wheresql.append(field1);
+            wheresql.append(field);
 
             if (opwq == orm::wq::in)
             {
                 wheresql.append(" IN (");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    wheresql.append(std::string_view(field2));
+                    wheresql.append(std::string_view(value));
                 }
                 wheresql.append(") ");
                 return *mod;
@@ -43428,9 +43431,9 @@ M_MODEL& or_leItemnote(T val)
             else if (opwq == orm::wq::like)
             {
                 wheresql.append(" like '%");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    wheresql.append(std::string_view(field2));
+                    wheresql.append(std::string_view(value));
                 }
                 wheresql.append("%' ");
                 return *mod;
@@ -43453,18 +43456,21 @@ M_MODEL& or_leItemnote(T val)
             case orm::wq::le:
                 wheresql.append(" <= ");
                 break;
+            case orm::wq::nq:
+                wheresql.append(" != ");
+                break;                 
             default:
                 wheresql.append(" = ");
                 break;
             }
 
-            wheresql.append(to_sql_value(std::forward<T2>(field2)));
+            wheresql.append(to_sql_value(std::forward<T2>(value)));
             wheresql.append(" ");
             return *mod;
         }
 
         template <typename T2>
-        M_MODEL &where(xtask_info::cols field1, orm::wq opwq, T2 &&field2)
+        M_MODEL &where(xtask_info::cols field, orm::wq opwq, T2 &&value)
         {
             if (wheresql.empty())
             {
@@ -43488,7 +43494,7 @@ M_MODEL& or_leItemnote(T val)
                 ishascontent = true;
             }
 
-            switch (field1)
+            switch (field)
             {
             
 			case xtask_info::cols::xtaskid:
@@ -43589,9 +43595,9 @@ M_MODEL& or_leItemnote(T val)
             if (opwq == orm::wq::in)
             {
                 wheresql.append(" IN (");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    wheresql.append(std::string_view(field2));
+                    wheresql.append(std::string_view(value));
                 }
                 wheresql.append(") ");
                 return *mod;
@@ -43599,9 +43605,9 @@ M_MODEL& or_leItemnote(T val)
             else if (opwq == orm::wq::like)
             {
                 wheresql.append(" like '%");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    wheresql.append(std::string_view(field2));
+                    wheresql.append(std::string_view(value));
                 }
                 wheresql.append("%' ");
                 return *mod;
@@ -43624,18 +43630,21 @@ M_MODEL& or_leItemnote(T val)
             case orm::wq::le:
                 wheresql.append(" <= ");
                 break;
+            case orm::wq::nq:
+                wheresql.append(" != ");
+                break;    
             default:
                 wheresql.append(" = ");
                 break;
             }
 
-            wheresql.append(to_sql_value(std::forward<T2>(field2)));
+            wheresql.append(to_sql_value(std::forward<T2>(value)));
             wheresql.append(" ");
             return *mod;
         }
 
         template <typename T2>
-        M_MODEL &whereOr(xtask_info::cols field1, orm::wq opwq, T2 &&field2)
+        M_MODEL &whereOr(xtask_info::cols field, orm::wq opwq, T2 &&value)
         {
             if (wheresql.empty())
             {
@@ -43659,7 +43668,7 @@ M_MODEL& or_leItemnote(T val)
                 ishascontent = true;
             }
 
-            switch (field1)
+            switch (field)
             {
             
 			case xtask_info::cols::xtaskid:
@@ -43760,9 +43769,9 @@ M_MODEL& or_leItemnote(T val)
             if (opwq == orm::wq::in)
             {
                 wheresql.append(" IN (");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    wheresql.append(std::string_view(field2));
+                    wheresql.append(std::string_view(value));
                 }
                 wheresql.append(") ");
                 return *mod;
@@ -43770,9 +43779,9 @@ M_MODEL& or_leItemnote(T val)
             else if (opwq == orm::wq::like)
             {
                 wheresql.append(" like '%");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    wheresql.append(std::string_view(field2));
+                    wheresql.append(std::string_view(value));
                 }
                 wheresql.append("%' ");
                 return *mod;
@@ -43795,26 +43804,342 @@ M_MODEL& or_leItemnote(T val)
             case orm::wq::le:
                 wheresql.append(" <= ");
                 break;
+            case orm::wq::nq:
+                wheresql.append(" != ");
+                break;                 
             default:
                 wheresql.append(" = ");
                 break;
             }
 
-            wheresql.append(to_sql_value(std::forward<T2>(field2)));
+            wheresql.append(to_sql_value(std::forward<T2>(value)));
             wheresql.append(" ");
+            return *mod;
+        }
+
+        M_MODEL &order(xtask_info::cols field, const std::string &asc_or_desc)
+        {
+            ordersql.append(" ORDER BY ");
+            switch (field)
+            {
+            
+			case xtask_info::cols::xtaskid:
+				ordersql.append("xtaskid");
+				break;
+			case xtask_info::cols::userid:
+				ordersql.append("userid");
+				break;
+			case xtask_info::cols::xpjid:
+				ordersql.append("xpjid");
+				break;
+			case xtask_info::cols::adminid:
+				ordersql.append("adminid");
+				break;
+			case xtask_info::cols::parentid:
+				ordersql.append("parentid");
+				break;
+			case xtask_info::cols::begindate:
+				ordersql.append("begindate");
+				break;
+			case xtask_info::cols::enddate:
+				ordersql.append("enddate");
+				break;
+			case xtask_info::cols::expectbegindate:
+				ordersql.append("expectbegindate");
+				break;
+			case xtask_info::cols::expectenddate:
+				ordersql.append("expectenddate");
+				break;
+			case xtask_info::cols::milestone:
+				ordersql.append("milestone");
+				break;
+			case xtask_info::cols::subxpjid:
+				ordersql.append("subxpjid");
+				break;
+			case xtask_info::cols::depxtaskid:
+				ordersql.append("depxtaskid");
+				break;
+			case xtask_info::cols::referdocid:
+				ordersql.append("referdocid");
+				break;
+			case xtask_info::cols::isfinish:
+				ordersql.append("isfinish");
+				break;
+			case xtask_info::cols::updatedate:
+				ordersql.append("updatedate");
+				break;
+			case xtask_info::cols::finishdate:
+				ordersql.append("finishdate");
+				break;
+			case xtask_info::cols::iscore:
+				ordersql.append("iscore");
+				break;
+			case xtask_info::cols::xvalue:
+				ordersql.append("xvalue");
+				break;
+			case xtask_info::cols::expectday:
+				ordersql.append("expectday");
+				break;
+			case xtask_info::cols::realday:
+				ordersql.append("realday");
+				break;
+			case xtask_info::cols::pricevalue:
+				ordersql.append("pricevalue");
+				break;
+			case xtask_info::cols::title:
+				ordersql.append("title");
+				break;
+			case xtask_info::cols::introduce:
+				ordersql.append("introduce");
+				break;
+			case xtask_info::cols::xlogo:
+				ordersql.append("xlogo");
+				break;
+			case xtask_info::cols::xcolor:
+				ordersql.append("xcolor");
+				break;
+			case xtask_info::cols::pullurl:
+				ordersql.append("pullurl");
+				break;
+			case xtask_info::cols::pulltitle:
+				ordersql.append("pulltitle");
+				break;
+			case xtask_info::cols::pullauthor:
+				ordersql.append("pullauthor");
+				break;
+			case xtask_info::cols::note:
+				ordersql.append("note");
+				break;
+			case xtask_info::cols::itemnote:
+				ordersql.append("itemnote");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(asc_or_desc);
+            return *mod;
+        }
+
+        M_MODEL &asc(xtask_info::cols field)
+        {
+            ordersql.append(" ORDER BY ");
+            switch (field)
+            {
+            
+			case xtask_info::cols::xtaskid:
+				ordersql.append("xtaskid");
+				break;
+			case xtask_info::cols::userid:
+				ordersql.append("userid");
+				break;
+			case xtask_info::cols::xpjid:
+				ordersql.append("xpjid");
+				break;
+			case xtask_info::cols::adminid:
+				ordersql.append("adminid");
+				break;
+			case xtask_info::cols::parentid:
+				ordersql.append("parentid");
+				break;
+			case xtask_info::cols::begindate:
+				ordersql.append("begindate");
+				break;
+			case xtask_info::cols::enddate:
+				ordersql.append("enddate");
+				break;
+			case xtask_info::cols::expectbegindate:
+				ordersql.append("expectbegindate");
+				break;
+			case xtask_info::cols::expectenddate:
+				ordersql.append("expectenddate");
+				break;
+			case xtask_info::cols::milestone:
+				ordersql.append("milestone");
+				break;
+			case xtask_info::cols::subxpjid:
+				ordersql.append("subxpjid");
+				break;
+			case xtask_info::cols::depxtaskid:
+				ordersql.append("depxtaskid");
+				break;
+			case xtask_info::cols::referdocid:
+				ordersql.append("referdocid");
+				break;
+			case xtask_info::cols::isfinish:
+				ordersql.append("isfinish");
+				break;
+			case xtask_info::cols::updatedate:
+				ordersql.append("updatedate");
+				break;
+			case xtask_info::cols::finishdate:
+				ordersql.append("finishdate");
+				break;
+			case xtask_info::cols::iscore:
+				ordersql.append("iscore");
+				break;
+			case xtask_info::cols::xvalue:
+				ordersql.append("xvalue");
+				break;
+			case xtask_info::cols::expectday:
+				ordersql.append("expectday");
+				break;
+			case xtask_info::cols::realday:
+				ordersql.append("realday");
+				break;
+			case xtask_info::cols::pricevalue:
+				ordersql.append("pricevalue");
+				break;
+			case xtask_info::cols::title:
+				ordersql.append("title");
+				break;
+			case xtask_info::cols::introduce:
+				ordersql.append("introduce");
+				break;
+			case xtask_info::cols::xlogo:
+				ordersql.append("xlogo");
+				break;
+			case xtask_info::cols::xcolor:
+				ordersql.append("xcolor");
+				break;
+			case xtask_info::cols::pullurl:
+				ordersql.append("pullurl");
+				break;
+			case xtask_info::cols::pulltitle:
+				ordersql.append("pulltitle");
+				break;
+			case xtask_info::cols::pullauthor:
+				ordersql.append("pullauthor");
+				break;
+			case xtask_info::cols::note:
+				ordersql.append("note");
+				break;
+			case xtask_info::cols::itemnote:
+				ordersql.append("itemnote");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(" ASC ");
+            return *mod;
+        }
+
+        M_MODEL &desc(xtask_info::cols field)
+        {
+
+            ordersql.append(" ORDER BY ");
+            switch (field)
+            {
+            
+			case xtask_info::cols::xtaskid:
+				ordersql.append("xtaskid");
+				break;
+			case xtask_info::cols::userid:
+				ordersql.append("userid");
+				break;
+			case xtask_info::cols::xpjid:
+				ordersql.append("xpjid");
+				break;
+			case xtask_info::cols::adminid:
+				ordersql.append("adminid");
+				break;
+			case xtask_info::cols::parentid:
+				ordersql.append("parentid");
+				break;
+			case xtask_info::cols::begindate:
+				ordersql.append("begindate");
+				break;
+			case xtask_info::cols::enddate:
+				ordersql.append("enddate");
+				break;
+			case xtask_info::cols::expectbegindate:
+				ordersql.append("expectbegindate");
+				break;
+			case xtask_info::cols::expectenddate:
+				ordersql.append("expectenddate");
+				break;
+			case xtask_info::cols::milestone:
+				ordersql.append("milestone");
+				break;
+			case xtask_info::cols::subxpjid:
+				ordersql.append("subxpjid");
+				break;
+			case xtask_info::cols::depxtaskid:
+				ordersql.append("depxtaskid");
+				break;
+			case xtask_info::cols::referdocid:
+				ordersql.append("referdocid");
+				break;
+			case xtask_info::cols::isfinish:
+				ordersql.append("isfinish");
+				break;
+			case xtask_info::cols::updatedate:
+				ordersql.append("updatedate");
+				break;
+			case xtask_info::cols::finishdate:
+				ordersql.append("finishdate");
+				break;
+			case xtask_info::cols::iscore:
+				ordersql.append("iscore");
+				break;
+			case xtask_info::cols::xvalue:
+				ordersql.append("xvalue");
+				break;
+			case xtask_info::cols::expectday:
+				ordersql.append("expectday");
+				break;
+			case xtask_info::cols::realday:
+				ordersql.append("realday");
+				break;
+			case xtask_info::cols::pricevalue:
+				ordersql.append("pricevalue");
+				break;
+			case xtask_info::cols::title:
+				ordersql.append("title");
+				break;
+			case xtask_info::cols::introduce:
+				ordersql.append("introduce");
+				break;
+			case xtask_info::cols::xlogo:
+				ordersql.append("xlogo");
+				break;
+			case xtask_info::cols::xcolor:
+				ordersql.append("xcolor");
+				break;
+			case xtask_info::cols::pullurl:
+				ordersql.append("pullurl");
+				break;
+			case xtask_info::cols::pulltitle:
+				ordersql.append("pulltitle");
+				break;
+			case xtask_info::cols::pullauthor:
+				ordersql.append("pullauthor");
+				break;
+			case xtask_info::cols::note:
+				ordersql.append("note");
+				break;
+			case xtask_info::cols::itemnote:
+				ordersql.append("itemnote");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(" DESC ");
             return *mod;
         }
 
         M_MODEL &order(std::string_view wq)
         {
-            ordersql.append(" ORDER by ");
+            ordersql.append(" ORDER BY ");
             ordersql.append(wq);
             return *mod;
         }
         M_MODEL &asc(std::string_view wq)
         {
 
-            ordersql.append(" ORDER by ");
+            ordersql.append(" ORDER BY ");
             ordersql.append(wq);
             ordersql.append(" ASC ");
             return *mod;
@@ -43823,7 +44148,7 @@ M_MODEL& or_leItemnote(T val)
         M_MODEL &desc(std::string_view wq)
         {
 
-            ordersql.append(" ORDER by ");
+            ordersql.append(" ORDER BY ");
             ordersql.append(wq);
             ordersql.append(" DESC ");
             return *mod;
@@ -43831,15 +44156,218 @@ M_MODEL& or_leItemnote(T val)
 
         M_MODEL &having(std::string_view wq)
         {
-
-            groupsql.append(" HAVING by ");
+            groupsql.append(" HAVING BY ");
             groupsql.append(wq);
             return *mod;
         }
 
+        M_MODEL &having(xtask_info::cols field)
+        {
+            groupsql.append(" HAVING BY ");
+            switch (field)
+            {
+            
+			case xtask_info::cols::xtaskid:
+				groupsql.append("xtaskid");
+				break;
+			case xtask_info::cols::userid:
+				groupsql.append("userid");
+				break;
+			case xtask_info::cols::xpjid:
+				groupsql.append("xpjid");
+				break;
+			case xtask_info::cols::adminid:
+				groupsql.append("adminid");
+				break;
+			case xtask_info::cols::parentid:
+				groupsql.append("parentid");
+				break;
+			case xtask_info::cols::begindate:
+				groupsql.append("begindate");
+				break;
+			case xtask_info::cols::enddate:
+				groupsql.append("enddate");
+				break;
+			case xtask_info::cols::expectbegindate:
+				groupsql.append("expectbegindate");
+				break;
+			case xtask_info::cols::expectenddate:
+				groupsql.append("expectenddate");
+				break;
+			case xtask_info::cols::milestone:
+				groupsql.append("milestone");
+				break;
+			case xtask_info::cols::subxpjid:
+				groupsql.append("subxpjid");
+				break;
+			case xtask_info::cols::depxtaskid:
+				groupsql.append("depxtaskid");
+				break;
+			case xtask_info::cols::referdocid:
+				groupsql.append("referdocid");
+				break;
+			case xtask_info::cols::isfinish:
+				groupsql.append("isfinish");
+				break;
+			case xtask_info::cols::updatedate:
+				groupsql.append("updatedate");
+				break;
+			case xtask_info::cols::finishdate:
+				groupsql.append("finishdate");
+				break;
+			case xtask_info::cols::iscore:
+				groupsql.append("iscore");
+				break;
+			case xtask_info::cols::xvalue:
+				groupsql.append("xvalue");
+				break;
+			case xtask_info::cols::expectday:
+				groupsql.append("expectday");
+				break;
+			case xtask_info::cols::realday:
+				groupsql.append("realday");
+				break;
+			case xtask_info::cols::pricevalue:
+				groupsql.append("pricevalue");
+				break;
+			case xtask_info::cols::title:
+				groupsql.append("title");
+				break;
+			case xtask_info::cols::introduce:
+				groupsql.append("introduce");
+				break;
+			case xtask_info::cols::xlogo:
+				groupsql.append("xlogo");
+				break;
+			case xtask_info::cols::xcolor:
+				groupsql.append("xcolor");
+				break;
+			case xtask_info::cols::pullurl:
+				groupsql.append("pullurl");
+				break;
+			case xtask_info::cols::pulltitle:
+				groupsql.append("pulltitle");
+				break;
+			case xtask_info::cols::pullauthor:
+				groupsql.append("pullauthor");
+				break;
+			case xtask_info::cols::note:
+				groupsql.append("note");
+				break;
+			case xtask_info::cols::itemnote:
+				groupsql.append("itemnote");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            return *mod;
+        }
+
+        M_MODEL &group(xtask_info::cols field)
+        {
+            groupsql.append(" GROUP BY ");
+            switch (field)
+            {
+            
+			case xtask_info::cols::xtaskid:
+				groupsql.append("xtaskid");
+				break;
+			case xtask_info::cols::userid:
+				groupsql.append("userid");
+				break;
+			case xtask_info::cols::xpjid:
+				groupsql.append("xpjid");
+				break;
+			case xtask_info::cols::adminid:
+				groupsql.append("adminid");
+				break;
+			case xtask_info::cols::parentid:
+				groupsql.append("parentid");
+				break;
+			case xtask_info::cols::begindate:
+				groupsql.append("begindate");
+				break;
+			case xtask_info::cols::enddate:
+				groupsql.append("enddate");
+				break;
+			case xtask_info::cols::expectbegindate:
+				groupsql.append("expectbegindate");
+				break;
+			case xtask_info::cols::expectenddate:
+				groupsql.append("expectenddate");
+				break;
+			case xtask_info::cols::milestone:
+				groupsql.append("milestone");
+				break;
+			case xtask_info::cols::subxpjid:
+				groupsql.append("subxpjid");
+				break;
+			case xtask_info::cols::depxtaskid:
+				groupsql.append("depxtaskid");
+				break;
+			case xtask_info::cols::referdocid:
+				groupsql.append("referdocid");
+				break;
+			case xtask_info::cols::isfinish:
+				groupsql.append("isfinish");
+				break;
+			case xtask_info::cols::updatedate:
+				groupsql.append("updatedate");
+				break;
+			case xtask_info::cols::finishdate:
+				groupsql.append("finishdate");
+				break;
+			case xtask_info::cols::iscore:
+				groupsql.append("iscore");
+				break;
+			case xtask_info::cols::xvalue:
+				groupsql.append("xvalue");
+				break;
+			case xtask_info::cols::expectday:
+				groupsql.append("expectday");
+				break;
+			case xtask_info::cols::realday:
+				groupsql.append("realday");
+				break;
+			case xtask_info::cols::pricevalue:
+				groupsql.append("pricevalue");
+				break;
+			case xtask_info::cols::title:
+				groupsql.append("title");
+				break;
+			case xtask_info::cols::introduce:
+				groupsql.append("introduce");
+				break;
+			case xtask_info::cols::xlogo:
+				groupsql.append("xlogo");
+				break;
+			case xtask_info::cols::xcolor:
+				groupsql.append("xcolor");
+				break;
+			case xtask_info::cols::pullurl:
+				groupsql.append("pullurl");
+				break;
+			case xtask_info::cols::pulltitle:
+				groupsql.append("pulltitle");
+				break;
+			case xtask_info::cols::pullauthor:
+				groupsql.append("pullauthor");
+				break;
+			case xtask_info::cols::note:
+				groupsql.append("note");
+				break;
+			case xtask_info::cols::itemnote:
+				groupsql.append("itemnote");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            return *mod;
+        }
         M_MODEL &group(std::string_view wq)
         {
-
             groupsql.append(" GROUP BY ");
             groupsql.append(wq);
             return *mod;
@@ -48760,7 +49288,7 @@ M_MODEL& or_leItemnote(T val)
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
-                    return effect_num;
+                    return 0;
                 }
                 if (select_conn->isdebug)
                 {
@@ -48867,7 +49395,7 @@ M_MODEL& or_leItemnote(T val)
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
-                    co_return effect_num;
+                    co_return result_record;
                 }
                 if (select_conn->isdebug)
                 {
@@ -49919,7 +50447,7 @@ M_MODEL& or_leItemnote(T val)
             }
         }
         template <typename T2>
-        M_MODEL &joinWhere(std::string_view field1, T2 &&field2)
+        M_MODEL &joinWhere(std::string_view field, T2 &&value)
         {
             if (join_ptr == nullptr)
             {
@@ -49931,14 +50459,14 @@ M_MODEL& or_leItemnote(T val)
                 join_ptr->subsql.append(" AND ");
             }
 
-            join_ptr->subsql.append(field1);
+            join_ptr->subsql.append(field);
             join_ptr->subsql.append(" = ");
-            join_ptr->subsql.append(to_sql_value(std::forward<T2>(field2)));
+            join_ptr->subsql.append(to_sql_value(std::forward<T2>(value)));
             return *mod;
         }
 
         template <typename T2>
-        M_MODEL &joinWhere(std::string_view field1, orm::wq opwq, T2 &&field2)
+        M_MODEL &joinWhere(std::string_view field, orm::wq opwq, T2 &&value)
         {
             if (join_ptr == nullptr)
             {
@@ -49950,14 +50478,14 @@ M_MODEL& or_leItemnote(T val)
                 join_ptr->subsql.append(" AND ");
             }
 
-            join_ptr->subsql.append(field1);
+            join_ptr->subsql.append(field);
 
             if (opwq == orm::wq::in)
             {
                 join_ptr->subsql.append(" IN (");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    join_ptr->subsql.append(std::string_view(field2));
+                    join_ptr->subsql.append(std::string_view(value));
                 }
                 join_ptr->subsql.append(") ");
                 return *mod;
@@ -49973,6 +50501,9 @@ M_MODEL& or_leItemnote(T val)
             case orm::wq::eq:
                 join_ptr->subsql.append(" = ");
                 break;
+            case orm::wq::nq:
+                join_ptr->subsql.append(" != ");
+                break;                
             case orm::wq::lt:
                 join_ptr->subsql.append(" < ");
                 break;
@@ -49987,13 +50518,13 @@ M_MODEL& or_leItemnote(T val)
                 break;
             }
 
-            join_ptr->subsql.append(to_sql_value(std::forward<T2>(field2)));
+            join_ptr->subsql.append(to_sql_value(std::forward<T2>(value)));
             wheresql.append(" ");
             return *mod;
         }
 
         template <typename T2>
-        M_MODEL &joinWhereOr(std::string_view field1, orm::wq opwq, T2 &&field2)
+        M_MODEL &joinWhereOr(std::string_view field, orm::wq opwq, T2 &&value)
         {
             if (join_ptr == nullptr)
             {
@@ -50005,14 +50536,14 @@ M_MODEL& or_leItemnote(T val)
                 join_ptr->subsql.append(" OR ");
             }
 
-            join_ptr->subsql.append(field1);
+            join_ptr->subsql.append(field);
 
             if (opwq == orm::wq::in)
             {
                 join_ptr->subsql.append(" IN (");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    join_ptr->subsql.append(std::string_view(field2));
+                    join_ptr->subsql.append(std::string_view(value));
                 }
                 join_ptr->subsql.append(") ");
                 return *mod;
@@ -50028,6 +50559,9 @@ M_MODEL& or_leItemnote(T val)
             case orm::wq::eq:
                 join_ptr->subsql.append(" = ");
                 break;
+            case orm::wq::nq:
+                join_ptr->subsql.append(" != ");
+                break;                 
             case orm::wq::lt:
                 join_ptr->subsql.append(" < ");
                 break;
@@ -50042,7 +50576,7 @@ M_MODEL& or_leItemnote(T val)
                 break;
             }
 
-            join_ptr->subsql.append(to_sql_value(std::forward<T2>(field2)));
+            join_ptr->subsql.append(to_sql_value(std::forward<T2>(value)));
             wheresql.append(" ");
             return *mod;
         }
@@ -50057,7 +50591,7 @@ M_MODEL& or_leItemnote(T val)
             join_ptr->limitsql.append(std::to_string(n));
             return *mod;
         }
-        M_MODEL &joinParAppend(std::string_view field1)
+        M_MODEL &joinParAppend(std::string_view field)
         {
             if (join_ptr == nullptr)
             {
@@ -50068,23 +50602,23 @@ M_MODEL& or_leItemnote(T val)
             {
                 join_ptr->parbysql.append(",");
             }
-            join_ptr->parbysql.append(field1);
+            join_ptr->parbysql.append(field);
             return *mod;
         }
 
         //分组
-        M_MODEL &joinGroup(std::string_view field1)
+        M_MODEL &joinGroup(std::string_view field)
         {
             if (join_ptr == nullptr)
             {
                 join_ptr = std::make_unique<orm::orm_left_join_t>();
             }
 
-            join_ptr->parbysql = field1;
+            join_ptr->parbysql = field;
             return *mod;
         }
 
-        M_MODEL &joinDesc(std::string_view field1)
+        M_MODEL &joinDesc(std::string_view field)
         {
             if (join_ptr == nullptr)
             {
@@ -50093,19 +50627,19 @@ M_MODEL& or_leItemnote(T val)
             if (join_ptr->ordersql.empty())
             {
                 join_ptr->ordersql = " ORDER BY ";
-                join_ptr->ordersql.append(field1);
+                join_ptr->ordersql.append(field);
                 join_ptr->ordersql.append(" DESC ");
             }
             else
             {
                 join_ptr->ordersql.append(" , ");
-                join_ptr->ordersql.append(field1);
+                join_ptr->ordersql.append(field);
                 join_ptr->ordersql.append(" DESC ");
             }
             return *mod;
         }
 
-        M_MODEL &joinAsc(std::string_view field1)
+        M_MODEL &joinAsc(std::string_view field)
         {
             if (join_ptr == nullptr)
             {
@@ -50115,13 +50649,13 @@ M_MODEL& or_leItemnote(T val)
             if (join_ptr->ordersql.empty())
             {
                 join_ptr->ordersql = " ORDER BY ";
-                join_ptr->ordersql.append(field1);
+                join_ptr->ordersql.append(field);
                 join_ptr->ordersql.append(" ASC ");
             }
             else
             {
                 join_ptr->ordersql.append(" , ");
-                join_ptr->ordersql.append(field1);
+                join_ptr->ordersql.append(field);
                 join_ptr->ordersql.append(" ASC ");
             }
             return *mod;

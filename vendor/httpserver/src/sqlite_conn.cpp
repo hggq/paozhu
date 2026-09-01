@@ -120,7 +120,7 @@ std::map<std::string, std::shared_ptr<sqlite_worker_t>> &sqlite_worker_map()
 }
 }// namespace
 
-void sqlite_worker_submit(const std::string &db_path, std::function<void()> task)
+bool sqlite_worker_submit(const std::string &db_path, std::function<void()> task)
 {
     std::shared_ptr<sqlite_worker_t> worker;
     {
@@ -135,8 +135,11 @@ void sqlite_worker_submit(const std::string &db_path, std::function<void()> task
     }
     if (!worker->submit(std::move(task)))
     {
-        // worker 已停止意味着程序退出，丢弃任务是合理的（析构/停机期间不应该再投递）
+        // worker 已停止：任务未投递，由调用方决定（通常立即在调用线程执行，
+        // 避免 submit_sync 的 future 永久阻塞，见 submit_to_worker_cached）
+        return false;
     }
+    return true;
 }
 
 void sqlite_worker_shutdown(const std::string &db_path)
@@ -219,29 +222,6 @@ void sqlite_conn_base::clear_error()
 
 namespace
 {
-// 仅检查语句开头的非空白字符，大小写不敏感匹配事务关键字，
-// 避免对大 SQL（如批量插入）做整串 toupper 复制，开销降为 O(1)
-bool sql_starts_with(const std::string &sql, const char *keyword)
-{
-    size_t i = sql.find_first_not_of(" \t\n\r");
-    if (i == std::string::npos)
-    {
-        return false;
-    }
-    for (const char *k = keyword; *k != '\0'; ++k, ++i)
-    {
-        if (i >= sql.size())
-        {
-            return false;
-        }
-        if (std::toupper(static_cast<unsigned char>(sql[i])) != *k)
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
 // 每次打开连接都必须设置的 PRAGMA（WAL 是文件级持久设置，由 connect_impl 去重处理）
 void apply_conn_pragmas(sqlite3 *db)
 {
@@ -289,8 +269,19 @@ bool sqlite_conn_base::connect_impl(const orm_conn_t &conn_config)
 
         if (initialized_dbs.find(path) == initialized_dbs.end())
         {
-            sqlite3_exec(db_, "PRAGMA journal_mode=WAL", nullptr, nullptr, nullptr);
-            initialized_dbs.insert(path);
+            // WAL 失败不得吞掉：失败时不标记，下次连接会重试；
+            // 否则模式差异（journal_mode 仍是 DELETE）会被静默忽略
+            char *errmsg = nullptr;
+            int exec_rc  = sqlite3_exec(db_, "PRAGMA journal_mode=WAL", nullptr, nullptr, &errmsg);
+            if (exec_rc != SQLITE_OK)
+            {
+                this->set_error(errmsg ? errmsg : sqlite3_errmsg(db_));
+                sqlite3_free(errmsg);
+            }
+            else
+            {
+                initialized_dbs.insert(path);
+            }
         }
     }
 
@@ -308,6 +299,8 @@ bool sqlite_conn_base::close_impl()
         in_transaction_.store(false);
         transaction_log_.clear();
     }
+    // 关闭连接时归还事务权，避免残留锁影响后续连接
+    txn_lock_.clear(std::memory_order_release);
 
     stmt_cache_.clear();
 
@@ -370,21 +363,17 @@ int sqlite_conn_base::exec_sql_impl(const std::string &sql)
 
     consecutive_errors_.store(0);
 
-    // 检测事务相关语句（前缀匹配，不复制整串）
-    if (sql_starts_with(sql, "BEGIN") || sql_starts_with(sql, "SAVEPOINT"))
+    // 以 sqlite3_get_autocommit 为准跟踪事务状态：
+    // 比前缀匹配可靠——BEGIN IMMEDIATE/EXCLUSIVE、/*注释*/BEGIN、
+    // BEGIN 失败等场景均能正确反映真实事务状态
     {
-        in_transaction_.store(true);
-        transaction_log_.clear();
-    }
-    else if (sql_starts_with(sql, "COMMIT") || sql_starts_with(sql, "RELEASE"))
-    {
-        in_transaction_.store(false);
-        transaction_log_.clear();
-    }
-    else if (sql_starts_with(sql, "ROLLBACK"))
-    {
-        in_transaction_.store(false);
-        transaction_log_.clear();
+        bool now_in_txn = (sqlite3_get_autocommit(db_) == 0);
+        bool was_in_txn = in_transaction_.load();
+        in_transaction_.store(now_in_txn);
+        if (now_in_txn != was_in_txn)
+        {
+            transaction_log_.clear();
+        }
     }
 
     return sqlite3_changes(db_);
@@ -414,21 +403,17 @@ unsigned int sqlite_conn_base::exec_dml_impl(const std::string &sql)
 
     consecutive_errors_.store(0);
 
-    // 检测事务相关语句（前缀匹配，不复制整串）
-    if (sql_starts_with(sql, "BEGIN") || sql_starts_with(sql, "SAVEPOINT"))
+    // 以 sqlite3_get_autocommit 为准跟踪事务状态：
+    // 比前缀匹配可靠——BEGIN IMMEDIATE/EXCLUSIVE、/*注释*/BEGIN、
+    // BEGIN 失败等场景均能正确反映真实事务状态
     {
-        in_transaction_.store(true);
-        transaction_log_.clear();
-    }
-    else if (sql_starts_with(sql, "COMMIT") || sql_starts_with(sql, "RELEASE"))
-    {
-        in_transaction_.store(false);
-        transaction_log_.clear();
-    }
-    else if (sql_starts_with(sql, "ROLLBACK"))
-    {
-        in_transaction_.store(false);
-        transaction_log_.clear();
+        bool now_in_txn = (sqlite3_get_autocommit(db_) == 0);
+        bool was_in_txn = in_transaction_.load();
+        in_transaction_.store(now_in_txn);
+        if (now_in_txn != was_in_txn)
+        {
+            transaction_log_.clear();
+        }
     }
 
     return static_cast<unsigned int>(sqlite3_changes(db_));
@@ -711,6 +696,8 @@ bool sqlite_conn_base::reconnect_impl(int max_retries)
     }
 
     isclose_.store(true);
+    // 重连后底层连接已更换，必须归还旧连接上的事务权
+    txn_lock_.clear(std::memory_order_release);
 
     for (int attempt = 0; attempt < max_retries; attempt++)
     {
@@ -725,6 +712,9 @@ bool sqlite_conn_base::reconnect_impl(int max_retries)
             apply_conn_pragmas(db_);// 重开是新连接，foreign_keys/busy_timeout 等 PRAGMA 必须全部重设
             isclose_.store(false);
             consecutive_errors_.store(0);
+            // 重连是新连接，必须重置事务状态，否则恢复逻辑基于陈旧状态误判
+            in_transaction_.store(false);
+            transaction_log_.clear();
             return true;
         }
 
@@ -752,6 +742,8 @@ bool sqlite_conn_base::rollback_unfinished_impl()
     }
 
     int rc = sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr);
+    // 恢复路径同样归还事务权（事务已结束）
+    txn_lock_.clear(std::memory_order_release);
     if (rc == SQLITE_OK)
     {
         in_transaction_.store(false);
@@ -798,6 +790,15 @@ bool sqlite_conn_base::begin_transaction_impl()
         return false;
     }
 
+    // 单连接模式下同一底层连接同时只能有一个事务拥有者：
+    // test_and_set 成功(原子置位并返回旧值 false)才取得事务权，
+    // 阻止其他 db_conn 实例重复 begin / 意外 commit 破坏本事务
+    if (txn_lock_.test_and_set(std::memory_order_acquire))
+    {
+        this->set_error("begin transaction failed: another db_conn owns the transaction on this shared connection");
+        return false;
+    }
+
     int rc = sqlite3_exec(db_, "BEGIN", nullptr, nullptr, nullptr);
     if (rc == SQLITE_OK)
     {
@@ -806,6 +807,8 @@ bool sqlite_conn_base::begin_transaction_impl()
         return true;
     }
 
+    // BEGIN 失败必须归还事务权
+    txn_lock_.clear(std::memory_order_release);
     this->set_error(sqlite3_errmsg(db_));
     return false;
 }
@@ -818,6 +821,8 @@ bool sqlite_conn_base::commit_transaction_impl()
     }
 
     int rc = sqlite3_exec(db_, "COMMIT", nullptr, nullptr, nullptr);
+    // 无论成功失败，事务均已结束，必须归还事务权
+    txn_lock_.clear(std::memory_order_release);
     if (rc == SQLITE_OK)
     {
         in_transaction_.store(false);
@@ -837,6 +842,8 @@ bool sqlite_conn_base::rollback_transaction_impl()
     }
 
     int rc = sqlite3_exec(db_, "ROLLBACK", nullptr, nullptr, nullptr);
+    // 无论成功失败，事务均已结束，必须归还事务权
+    txn_lock_.clear(std::memory_order_release);
     if (rc == SQLITE_OK)
     {
         in_transaction_.store(false);
@@ -1183,8 +1190,11 @@ void sqlite_conn_base::start_worker_thread(asio::io_context &ioc, const std::str
     std::promise<void> ready_promise;
     auto ready_future = ready_promise.get_future();
 
-    sqlite_worker_submit(db_path, [&ready_promise]()
-                         { ready_promise.set_value(); });
+    if (!sqlite_worker_submit(db_path, [&ready_promise]()
+                              { ready_promise.set_value(); }))
+    {
+        ready_promise.set_value();// worker 已停止，避免 ready_future 永久阻塞
+    }
 
     ready_future.get();
 
@@ -1227,7 +1237,12 @@ void sqlite_conn_base::submit_to_worker_cached(std::function<void()> task)
     }
 
     // 缓存失效或提交失败, 回退到全局 map
-    sqlite_worker_submit(worker_key_, std::move(task));
+    if (!sqlite_worker_submit(worker_key_, task))
+    {
+        // worker 已停止（程序关闭/停服）：直接在调用线程执行任务，
+        // 否则 submit_sync 的 future.get() 将永久阻塞
+        task();
+    }
 }
 
 void sqlite_conn_base::drain_worker_tasks()

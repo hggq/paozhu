@@ -28,12 +28,13 @@ static const char *SQLITE_NOT_COMPILED_MSG =
 
 // ======================== Worker 存根 ========================
 
-void sqlite_worker_submit(const std::string & /*db_path*/, std::function<void()> task)
+bool sqlite_worker_submit(const std::string & /*db_path*/, std::function<void()> task)
 {
     if (task)
     {
         task();
     }
+    return true;
 }
 
 void sqlite_init()

@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sun, 30 Aug 2026 07:49:53 GMT
+ *  Creation time Tue, 01 Sep 2026 03:58:37 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -7882,7 +7882,7 @@ M_MODEL& or_ltSubprice(T val)
         }
 
         template <typename T2>
-        M_MODEL &where(std::string_view field1, orm::wq opwq, T2 &&field2)
+        M_MODEL &where(std::string_view field, orm::wq opwq, T2 &&value)
         {
             if (wheresql.empty())
             {
@@ -7906,14 +7906,14 @@ M_MODEL& or_ltSubprice(T val)
                 ishascontent = true;
             }
 
-            wheresql.append(field1);
+            wheresql.append(field);
 
             if (opwq == orm::wq::in)
             {
                 wheresql.append(" IN (");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    wheresql.append(std::string_view(field2));
+                    wheresql.append(std::string_view(value));
                 }
                 wheresql.append(") ");
                 return *mod;
@@ -7921,9 +7921,9 @@ M_MODEL& or_ltSubprice(T val)
             else if (opwq == orm::wq::like)
             {
                 wheresql.append(" like '%");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    wheresql.append(std::string_view(field2));
+                    wheresql.append(std::string_view(value));
                 }
                 wheresql.append("%' ");
                 return *mod;
@@ -7946,18 +7946,21 @@ M_MODEL& or_ltSubprice(T val)
             case orm::wq::le:
                 wheresql.append(" <= ");
                 break;
+            case orm::wq::nq:
+                wheresql.append(" != ");
+                break;                 
             default:
                 wheresql.append(" = ");
                 break;
             }
 
-            wheresql.append(to_sql_value(std::forward<T2>(field2)));
+            wheresql.append(to_sql_value(std::forward<T2>(value)));
             wheresql.append(" ");
             return *mod;
         }
 
         template <typename T2>
-        M_MODEL &whereOr(std::string_view field1, orm::wq opwq, T2 &&field2)
+        M_MODEL &whereOr(std::string_view field, orm::wq opwq, T2 &&value)
         {
             if (wheresql.empty())
             {
@@ -7981,14 +7984,14 @@ M_MODEL& or_ltSubprice(T val)
                 ishascontent = true;
             }
 
-            wheresql.append(field1);
+            wheresql.append(field);
 
             if (opwq == orm::wq::in)
             {
                 wheresql.append(" IN (");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    wheresql.append(std::string_view(field2));
+                    wheresql.append(std::string_view(value));
                 }
                 wheresql.append(") ");
                 return *mod;
@@ -7996,9 +7999,9 @@ M_MODEL& or_ltSubprice(T val)
             else if (opwq == orm::wq::like)
             {
                 wheresql.append(" like '%");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    wheresql.append(std::string_view(field2));
+                    wheresql.append(std::string_view(value));
                 }
                 wheresql.append("%' ");
                 return *mod;
@@ -8021,18 +8024,21 @@ M_MODEL& or_ltSubprice(T val)
             case orm::wq::le:
                 wheresql.append(" <= ");
                 break;
+            case orm::wq::nq:
+                wheresql.append(" != ");
+                break;                 
             default:
                 wheresql.append(" = ");
                 break;
             }
 
-            wheresql.append(to_sql_value(std::forward<T2>(field2)));
+            wheresql.append(to_sql_value(std::forward<T2>(value)));
             wheresql.append(" ");
             return *mod;
         }
 
         template <typename T2>
-        M_MODEL &where(testb_info::cols field1, orm::wq opwq, T2 &&field2)
+        M_MODEL &where(testb_info::cols field, orm::wq opwq, T2 &&value)
         {
             if (wheresql.empty())
             {
@@ -8056,7 +8062,7 @@ M_MODEL& or_ltSubprice(T val)
                 ishascontent = true;
             }
 
-            switch (field1)
+            switch (field)
             {
             
 			case testb_info::cols::tid:
@@ -8085,9 +8091,9 @@ M_MODEL& or_ltSubprice(T val)
             if (opwq == orm::wq::in)
             {
                 wheresql.append(" IN (");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    wheresql.append(std::string_view(field2));
+                    wheresql.append(std::string_view(value));
                 }
                 wheresql.append(") ");
                 return *mod;
@@ -8095,9 +8101,9 @@ M_MODEL& or_ltSubprice(T val)
             else if (opwq == orm::wq::like)
             {
                 wheresql.append(" like '%");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    wheresql.append(std::string_view(field2));
+                    wheresql.append(std::string_view(value));
                 }
                 wheresql.append("%' ");
                 return *mod;
@@ -8120,18 +8126,21 @@ M_MODEL& or_ltSubprice(T val)
             case orm::wq::le:
                 wheresql.append(" <= ");
                 break;
+            case orm::wq::nq:
+                wheresql.append(" != ");
+                break;    
             default:
                 wheresql.append(" = ");
                 break;
             }
 
-            wheresql.append(to_sql_value(std::forward<T2>(field2)));
+            wheresql.append(to_sql_value(std::forward<T2>(value)));
             wheresql.append(" ");
             return *mod;
         }
 
         template <typename T2>
-        M_MODEL &whereOr(testb_info::cols field1, orm::wq opwq, T2 &&field2)
+        M_MODEL &whereOr(testb_info::cols field, orm::wq opwq, T2 &&value)
         {
             if (wheresql.empty())
             {
@@ -8155,7 +8164,7 @@ M_MODEL& or_ltSubprice(T val)
                 ishascontent = true;
             }
 
-            switch (field1)
+            switch (field)
             {
             
 			case testb_info::cols::tid:
@@ -8184,9 +8193,9 @@ M_MODEL& or_ltSubprice(T val)
             if (opwq == orm::wq::in)
             {
                 wheresql.append(" IN (");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    wheresql.append(std::string_view(field2));
+                    wheresql.append(std::string_view(value));
                 }
                 wheresql.append(") ");
                 return *mod;
@@ -8194,9 +8203,9 @@ M_MODEL& or_ltSubprice(T val)
             else if (opwq == orm::wq::like)
             {
                 wheresql.append(" like '%");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    wheresql.append(std::string_view(field2));
+                    wheresql.append(std::string_view(value));
                 }
                 wheresql.append("%' ");
                 return *mod;
@@ -8219,26 +8228,126 @@ M_MODEL& or_ltSubprice(T val)
             case orm::wq::le:
                 wheresql.append(" <= ");
                 break;
+            case orm::wq::nq:
+                wheresql.append(" != ");
+                break;                 
             default:
                 wheresql.append(" = ");
                 break;
             }
 
-            wheresql.append(to_sql_value(std::forward<T2>(field2)));
+            wheresql.append(to_sql_value(std::forward<T2>(value)));
             wheresql.append(" ");
+            return *mod;
+        }
+
+        M_MODEL &order(testb_info::cols field, const std::string &asc_or_desc)
+        {
+            ordersql.append(" ORDER BY ");
+            switch (field)
+            {
+            
+			case testb_info::cols::tid:
+				ordersql.append("tid");
+				break;
+			case testb_info::cols::score:
+				ordersql.append("score");
+				break;
+			case testb_info::cols::name:
+				ordersql.append("name");
+				break;
+			case testb_info::cols::pricenum:
+				ordersql.append("pricenum");
+				break;
+			case testb_info::cols::orgprice:
+				ordersql.append("orgprice");
+				break;
+			case testb_info::cols::subprice:
+				ordersql.append("subprice");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(asc_or_desc);
+            return *mod;
+        }
+
+        M_MODEL &asc(testb_info::cols field)
+        {
+            ordersql.append(" ORDER BY ");
+            switch (field)
+            {
+            
+			case testb_info::cols::tid:
+				ordersql.append("tid");
+				break;
+			case testb_info::cols::score:
+				ordersql.append("score");
+				break;
+			case testb_info::cols::name:
+				ordersql.append("name");
+				break;
+			case testb_info::cols::pricenum:
+				ordersql.append("pricenum");
+				break;
+			case testb_info::cols::orgprice:
+				ordersql.append("orgprice");
+				break;
+			case testb_info::cols::subprice:
+				ordersql.append("subprice");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(" ASC ");
+            return *mod;
+        }
+
+        M_MODEL &desc(testb_info::cols field)
+        {
+
+            ordersql.append(" ORDER BY ");
+            switch (field)
+            {
+            
+			case testb_info::cols::tid:
+				ordersql.append("tid");
+				break;
+			case testb_info::cols::score:
+				ordersql.append("score");
+				break;
+			case testb_info::cols::name:
+				ordersql.append("name");
+				break;
+			case testb_info::cols::pricenum:
+				ordersql.append("pricenum");
+				break;
+			case testb_info::cols::orgprice:
+				ordersql.append("orgprice");
+				break;
+			case testb_info::cols::subprice:
+				ordersql.append("subprice");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(" DESC ");
             return *mod;
         }
 
         M_MODEL &order(std::string_view wq)
         {
-            ordersql.append(" ORDER by ");
+            ordersql.append(" ORDER BY ");
             ordersql.append(wq);
             return *mod;
         }
         M_MODEL &asc(std::string_view wq)
         {
 
-            ordersql.append(" ORDER by ");
+            ordersql.append(" ORDER BY ");
             ordersql.append(wq);
             ordersql.append(" ASC ");
             return *mod;
@@ -8247,7 +8356,7 @@ M_MODEL& or_ltSubprice(T val)
         M_MODEL &desc(std::string_view wq)
         {
 
-            ordersql.append(" ORDER by ");
+            ordersql.append(" ORDER BY ");
             ordersql.append(wq);
             ordersql.append(" DESC ");
             return *mod;
@@ -8255,15 +8364,74 @@ M_MODEL& or_ltSubprice(T val)
 
         M_MODEL &having(std::string_view wq)
         {
-
-            groupsql.append(" HAVING by ");
+            groupsql.append(" HAVING BY ");
             groupsql.append(wq);
             return *mod;
         }
 
+        M_MODEL &having(testb_info::cols field)
+        {
+            groupsql.append(" HAVING BY ");
+            switch (field)
+            {
+            
+			case testb_info::cols::tid:
+				groupsql.append("tid");
+				break;
+			case testb_info::cols::score:
+				groupsql.append("score");
+				break;
+			case testb_info::cols::name:
+				groupsql.append("name");
+				break;
+			case testb_info::cols::pricenum:
+				groupsql.append("pricenum");
+				break;
+			case testb_info::cols::orgprice:
+				groupsql.append("orgprice");
+				break;
+			case testb_info::cols::subprice:
+				groupsql.append("subprice");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            return *mod;
+        }
+
+        M_MODEL &group(testb_info::cols field)
+        {
+            groupsql.append(" GROUP BY ");
+            switch (field)
+            {
+            
+			case testb_info::cols::tid:
+				groupsql.append("tid");
+				break;
+			case testb_info::cols::score:
+				groupsql.append("score");
+				break;
+			case testb_info::cols::name:
+				groupsql.append("name");
+				break;
+			case testb_info::cols::pricenum:
+				groupsql.append("pricenum");
+				break;
+			case testb_info::cols::orgprice:
+				groupsql.append("orgprice");
+				break;
+			case testb_info::cols::subprice:
+				groupsql.append("subprice");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            return *mod;
+        }
         M_MODEL &group(std::string_view wq)
         {
-
             groupsql.append(" GROUP BY ");
             groupsql.append(wq);
             return *mod;
@@ -13184,7 +13352,7 @@ M_MODEL& or_ltSubprice(T val)
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
-                    return effect_num;
+                    return 0;
                 }
                 if (select_conn->isdebug)
                 {
@@ -13291,7 +13459,7 @@ M_MODEL& or_ltSubprice(T val)
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
-                    co_return effect_num;
+                    co_return result_record;
                 }
                 if (select_conn->isdebug)
                 {
@@ -14343,7 +14511,7 @@ M_MODEL& or_ltSubprice(T val)
             }
         }
         template <typename T2>
-        M_MODEL &joinWhere(std::string_view field1, T2 &&field2)
+        M_MODEL &joinWhere(std::string_view field, T2 &&value)
         {
             if (join_ptr == nullptr)
             {
@@ -14355,14 +14523,14 @@ M_MODEL& or_ltSubprice(T val)
                 join_ptr->subsql.append(" AND ");
             }
 
-            join_ptr->subsql.append(field1);
+            join_ptr->subsql.append(field);
             join_ptr->subsql.append(" = ");
-            join_ptr->subsql.append(to_sql_value(std::forward<T2>(field2)));
+            join_ptr->subsql.append(to_sql_value(std::forward<T2>(value)));
             return *mod;
         }
 
         template <typename T2>
-        M_MODEL &joinWhere(std::string_view field1, orm::wq opwq, T2 &&field2)
+        M_MODEL &joinWhere(std::string_view field, orm::wq opwq, T2 &&value)
         {
             if (join_ptr == nullptr)
             {
@@ -14374,14 +14542,14 @@ M_MODEL& or_ltSubprice(T val)
                 join_ptr->subsql.append(" AND ");
             }
 
-            join_ptr->subsql.append(field1);
+            join_ptr->subsql.append(field);
 
             if (opwq == orm::wq::in)
             {
                 join_ptr->subsql.append(" IN (");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    join_ptr->subsql.append(std::string_view(field2));
+                    join_ptr->subsql.append(std::string_view(value));
                 }
                 join_ptr->subsql.append(") ");
                 return *mod;
@@ -14397,6 +14565,9 @@ M_MODEL& or_ltSubprice(T val)
             case orm::wq::eq:
                 join_ptr->subsql.append(" = ");
                 break;
+            case orm::wq::nq:
+                join_ptr->subsql.append(" != ");
+                break;                
             case orm::wq::lt:
                 join_ptr->subsql.append(" < ");
                 break;
@@ -14411,13 +14582,13 @@ M_MODEL& or_ltSubprice(T val)
                 break;
             }
 
-            join_ptr->subsql.append(to_sql_value(std::forward<T2>(field2)));
+            join_ptr->subsql.append(to_sql_value(std::forward<T2>(value)));
             wheresql.append(" ");
             return *mod;
         }
 
         template <typename T2>
-        M_MODEL &joinWhereOr(std::string_view field1, orm::wq opwq, T2 &&field2)
+        M_MODEL &joinWhereOr(std::string_view field, orm::wq opwq, T2 &&value)
         {
             if (join_ptr == nullptr)
             {
@@ -14429,14 +14600,14 @@ M_MODEL& or_ltSubprice(T val)
                 join_ptr->subsql.append(" OR ");
             }
 
-            join_ptr->subsql.append(field1);
+            join_ptr->subsql.append(field);
 
             if (opwq == orm::wq::in)
             {
                 join_ptr->subsql.append(" IN (");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    join_ptr->subsql.append(std::string_view(field2));
+                    join_ptr->subsql.append(std::string_view(value));
                 }
                 join_ptr->subsql.append(") ");
                 return *mod;
@@ -14452,6 +14623,9 @@ M_MODEL& or_ltSubprice(T val)
             case orm::wq::eq:
                 join_ptr->subsql.append(" = ");
                 break;
+            case orm::wq::nq:
+                join_ptr->subsql.append(" != ");
+                break;                 
             case orm::wq::lt:
                 join_ptr->subsql.append(" < ");
                 break;
@@ -14466,7 +14640,7 @@ M_MODEL& or_ltSubprice(T val)
                 break;
             }
 
-            join_ptr->subsql.append(to_sql_value(std::forward<T2>(field2)));
+            join_ptr->subsql.append(to_sql_value(std::forward<T2>(value)));
             wheresql.append(" ");
             return *mod;
         }
@@ -14481,7 +14655,7 @@ M_MODEL& or_ltSubprice(T val)
             join_ptr->limitsql.append(std::to_string(n));
             return *mod;
         }
-        M_MODEL &joinParAppend(std::string_view field1)
+        M_MODEL &joinParAppend(std::string_view field)
         {
             if (join_ptr == nullptr)
             {
@@ -14492,23 +14666,23 @@ M_MODEL& or_ltSubprice(T val)
             {
                 join_ptr->parbysql.append(",");
             }
-            join_ptr->parbysql.append(field1);
+            join_ptr->parbysql.append(field);
             return *mod;
         }
 
         //分组
-        M_MODEL &joinGroup(std::string_view field1)
+        M_MODEL &joinGroup(std::string_view field)
         {
             if (join_ptr == nullptr)
             {
                 join_ptr = std::make_unique<orm::orm_left_join_t>();
             }
 
-            join_ptr->parbysql = field1;
+            join_ptr->parbysql = field;
             return *mod;
         }
 
-        M_MODEL &joinDesc(std::string_view field1)
+        M_MODEL &joinDesc(std::string_view field)
         {
             if (join_ptr == nullptr)
             {
@@ -14517,19 +14691,19 @@ M_MODEL& or_ltSubprice(T val)
             if (join_ptr->ordersql.empty())
             {
                 join_ptr->ordersql = " ORDER BY ";
-                join_ptr->ordersql.append(field1);
+                join_ptr->ordersql.append(field);
                 join_ptr->ordersql.append(" DESC ");
             }
             else
             {
                 join_ptr->ordersql.append(" , ");
-                join_ptr->ordersql.append(field1);
+                join_ptr->ordersql.append(field);
                 join_ptr->ordersql.append(" DESC ");
             }
             return *mod;
         }
 
-        M_MODEL &joinAsc(std::string_view field1)
+        M_MODEL &joinAsc(std::string_view field)
         {
             if (join_ptr == nullptr)
             {
@@ -14539,13 +14713,13 @@ M_MODEL& or_ltSubprice(T val)
             if (join_ptr->ordersql.empty())
             {
                 join_ptr->ordersql = " ORDER BY ";
-                join_ptr->ordersql.append(field1);
+                join_ptr->ordersql.append(field);
                 join_ptr->ordersql.append(" ASC ");
             }
             else
             {
                 join_ptr->ordersql.append(" , ");
-                join_ptr->ordersql.append(field1);
+                join_ptr->ordersql.append(field);
                 join_ptr->ordersql.append(" ASC ");
             }
             return *mod;

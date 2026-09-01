@@ -53,7 +53,7 @@ bool db_conn::begin_commit()
 {
     if (iscommit)
     {
-        error_msg = "not begin_commit";
+        error_msg = "already begin_commit";
         iserror   = true;
         return false;
     }
@@ -193,7 +193,7 @@ bool db_conn::pg_commit_impl()
         islock_conn = false;
         return false;
     }
-    effect_num = affected;
+    // 设置 effect_num 会误导上层（恒 0 而非真实影响行数）；与 MySQL 路径一致不设置
     conn_obj->back_pg_edit_conn(std::move(pg_edit_conn));
     pg_edit_conn = nullptr;
     iscommit     = false;
@@ -271,7 +271,7 @@ asio::awaitable<bool> db_conn::async_begin_commit()
 {
     if (iscommit)
     {
-        error_msg = "begin_commit has begin";
+        error_msg = "already begin_commit";
         iserror   = true;
         co_return false;
     }
@@ -326,12 +326,12 @@ asio::awaitable<bool> db_conn::pg_async_begin_commit_impl()
     {
         if (!pg_edit_conn)
         {
-            pg_edit_conn = conn_obj->get_pg_edit_conn();
+            pg_edit_conn = co_await conn_obj->async_get_pg_edit_conn();
         }
     }
     else
     {
-        pg_edit_conn = conn_obj->get_pg_edit_conn();
+        pg_edit_conn = co_await conn_obj->async_get_pg_edit_conn();
     }
 
     unsigned int affected = co_await pg_edit_conn->async_exec_dml("BEGIN");

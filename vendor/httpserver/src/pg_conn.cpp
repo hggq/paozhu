@@ -173,19 +173,44 @@ std::string pbkdf2_hmac_sha256(const std::string &password, const std::string &s
     return derived;
 }
 
+// SASL 用户名转义——用户名可含 '=' 与 ','（RFC 5802），
+// 必须转义为 =3D / =2C，否则服务器解析用户名出错（认证失败或错位）
+std::string escape_sasl_name(const std::string &name)
+{
+    std::string out;
+    out.reserve(name.size());
+    for (unsigned char c : name)
+    {
+        if (c == '=')
+            out += "=3D";
+        else if (c == ',')
+            out += "=2C";
+        else
+            out.push_back(static_cast<char>(c));
+    }
+    return out;
+}
+
 std::string generate_nonce(size_t len = 18)
 {
     if (len > 18)
         len = 18;
     unsigned char buf[18];
-    RAND_bytes(buf, len);
+    // RAND_bytes 失败（随机源不可用）时返回空 nonce，使认证必然失败，
+    // 绝不静默使用弱/确定性数据
+    if (RAND_bytes(buf, len) != 1)
+    {
+        return std::string();
+    }
     return base64_encode(buf, len);
 }
 
 std::string xor_strings(const std::string &a, const std::string &b)
 {
-    if (a.size() > b.size())
-        return a;
+    // 长度不匹配说明 SCRAM 实现/协议错误（两值应为 32 字节），
+    // 不得再静默返回明文；返回空串使 proof 无效、认证失败
+    if (a.size() != b.size())
+        return std::string();
     std::string res;
     res.resize(a.size());
     for (size_t i = 0; i < a.size(); ++i)
@@ -428,7 +453,8 @@ bool pg_conn_base::sasl_scram_sha256_sync(const std::string &mechanisms, const o
     }
 
     std::string client_nonce         = generate_nonce(18);
-    std::string client_first_bare    = "n=" + conn_config.user + ",r=" + client_nonce;
+    // 用户名必须 SASL 转义
+    std::string client_first_bare    = "n=" + escape_sasl_name(conn_config.user) + ",r=" + client_nonce;
     std::string client_first_message = "n,," + client_first_bare;
 
     std::string sasl_init;
@@ -804,9 +830,12 @@ bool pg_conn_base::connect(const orm_conn_t &conn_config)
             {
                 SSL_set_tlsext_host_name(conn_link->sslsocket->native_handle(), sni_host.c_str());
             }
-            if (conn_config.sslverify && !conn_config.sslhost.empty())
+            if (conn_config.sslverify)
             {
-                conn_link->sslsocket->set_verify_callback(asio::ssl::host_name_verification(conn_config.sslhost));
+                // sslverify 开启时做主机名校验；未显式配置 sslhost 时以连接 host 兜底，
+                // 避免"只验证书链不验主机名"的中间人缝隙
+                conn_link->sslsocket->set_verify_callback(
+                    asio::ssl::host_name_verification(conn_config.sslhost.empty() ? conn_config.host : conn_config.sslhost));
             }
             conn_link->sslsocket->handshake(asio::ssl::stream_base::client, ec);
             if (ec)
@@ -892,7 +921,8 @@ bool pg_conn_base::sasl_scram_sha256_async(const std::string &mechanisms, const 
     }
 
     std::string client_nonce         = generate_nonce(18);
-    std::string client_first_bare    = "n=" + conn_config.user + ",r=" + client_nonce;
+    // 用户名必须 SASL 转义
+    std::string client_first_bare    = "n=" + escape_sasl_name(conn_config.user) + ",r=" + client_nonce;
     std::string client_first_message = "n,," + client_first_bare;
 
     std::string sasl_init;
@@ -1067,9 +1097,11 @@ asio::awaitable<bool> pg_conn_base::async_connect(const orm_conn_t &conn_config)
             {
                 SSL_set_tlsext_host_name(conn_link->sslsocket->native_handle(), sni_host.c_str());
             }
-            if (conn_config.sslverify && !conn_config.sslhost.empty())
+            if (conn_config.sslverify)
             {
-                conn_link->sslsocket->set_verify_callback(asio::ssl::host_name_verification(conn_config.sslhost));
+                // sslverify 开启时做主机名校验；未显式配置 sslhost 时以连接 host 兜底
+                conn_link->sslsocket->set_verify_callback(
+                    asio::ssl::host_name_verification(conn_config.sslhost.empty() ? conn_config.host : conn_config.sslhost));
             }
 
             std::tie(conn_link->ec) = co_await conn_link->sslsocket->async_handshake(asio::ssl::stream_base::client, tuple_awaitable);
@@ -2248,6 +2280,62 @@ long long pg_conn_base::count_time()
 
 // ======================== PG Query Result Parsing ========================
 
+// PG 类型 OID -> MySQL 字段类型码映射（field_type 以 MySQL 为准，
+// 不能直接取 type_oid 低 8 位，否则与 MySQL 类型码语义冲突）
+unsigned char pg_oid_to_mysql_type(unsigned int type_oid)
+{
+    switch (type_oid)
+    {
+    case 16:// bool
+        return 0x01;// MYSQL_TYPE_TINY
+    case 17:// bytea
+        return 0xFC;// MYSQL_TYPE_BLOB
+    case 18:// char
+        return 0xFE;// MYSQL_TYPE_STRING
+    case 19:// name
+        return 0xFD;// MYSQL_TYPE_VAR_STRING
+    case 20:// int8 (bigint)
+        return 0x08;// MYSQL_TYPE_LONGLONG
+    case 21:// int2
+        return 0x02;// MYSQL_TYPE_SHORT
+    case 23:// int4
+        return 0x03;// MYSQL_TYPE_LONG
+    case 25:// text
+        return 0xFC;// MySQL text 对应 BLOB 类型码
+    case 26:// oid
+        return 0x08;// MYSQL_TYPE_LONGLONG
+    case 114:// json
+    case 3802:// jsonb
+        return 0xF5;// MYSQL_TYPE_JSON
+    case 700:// float4
+        return 0x04;// MYSQL_TYPE_FLOAT
+    case 701:// float8
+        return 0x05;// MYSQL_TYPE_DOUBLE
+    case 790:// money
+        return 0xF6;// MYSQL_TYPE_NEWDECIMAL
+    case 869:// inet
+    case 2950:// uuid
+    case 1042:// bpchar
+        return 0xFE;// MYSQL_TYPE_STRING
+    case 1043:// varchar
+        return 0xFD;// MYSQL_TYPE_VAR_STRING
+    case 1082:// date
+        return 0x0A;// MYSQL_TYPE_DATE
+    case 1083:// time
+    case 1266:// timetz
+        return 0x0B;// MYSQL_TYPE_TIME
+    case 1114:// timestamp
+    case 1184:// timestamptz
+        return 0x0C;// MYSQL_TYPE_DATETIME
+    case 1560:// bit
+        return 0x10;// MYSQL_TYPE_BIT
+    case 1700:// numeric / decimal（定点数，既非 int 也非 float）
+        return 0xF6;// MYSQL_TYPE_NEWDECIMAL
+    default:
+        return 0xFD;// MYSQL_TYPE_VAR_STRING
+    }
+}
+
 std::vector<field_info_t> pg_conn_base::parse_row_description(const unsigned char *data, unsigned int len)
 {
     std::vector<field_info_t> fields;
@@ -2280,9 +2368,9 @@ std::vector<field_info_t> pg_conn_base::parse_row_description(const unsigned cha
         // int16_t col_num = buf_to_int16(data + pos);
         pos += 2;
 
-        // type OID (4 bytes)
+        // type OID (4 bytes) —— 映射为 MySQL 字段类型码（以 MySQL 类型为准）
         uint32_t type_oid = static_cast<uint32_t>(buf_to_int32(data + pos));
-        fi.field_type     = static_cast<unsigned char>(type_oid & 0xFF);
+        fi.field_type     = pg_oid_to_mysql_type(type_oid);
         pos += 4;
 
         // type length (2 bytes)
@@ -2415,14 +2503,25 @@ unsigned int pg_conn_base::execute_and_fetch(
     std::string accum_buf;
     bool got_ready        = false;
     unsigned int consumed = 0;
-    int max_iterations    = 1000;
+    // 结果集上限 16MB，与 MySQL 协议单包上限保持一致；
+    // 按累计读取字节数限制（替代原先 1000 轮 * 4KB 的轮次上限）
+    size_t total_read_bytes  = 0;
+    constexpr size_t k_max_result_bytes = 16u * 1024u * 1024u;
 
-    while (!got_ready && max_iterations-- > 0)
+    while (!got_ready)
     {
         n = read_loop();
         if (n == 0)
         {
             error_msg = "read error during query";
+            return 1;
+        }
+        total_read_bytes += static_cast<size_t>(n);
+        if (total_read_bytes > k_max_result_bytes)
+        {
+            error_msg  = "execute_and_fetch: result set exceeds 16MB limit";
+            error_code = 8;
+            isclose    = true;// 结果集过大，断开连接避免脏状态
             return 1;
         }
         accum_buf.append(reinterpret_cast<char *>(_cache_data), n);
@@ -2531,13 +2630,6 @@ unsigned int pg_conn_base::execute_and_fetch(
             consumed = 0;
         }
     }
-    if (max_iterations <= 0)
-    {
-        error_msg  = "execute_and_fetch: loop exceeded max iterations";
-        error_code = 8;
-        isclose    = true;// 挂死时必须断开连接，否则后续调用会在脏状态下继续
-        return 1;
-    }
     if (error_code == 10)
     {
         return 1;
@@ -2562,14 +2654,24 @@ asio::awaitable<unsigned int> pg_conn_base::async_execute_and_fetch(
     std::string accum_buf;
     bool got_ready        = false;
     unsigned int consumed = 0;
-    int max_iterations    = 1000;
+    // 结果集上限 16MB，与 MySQL 协议单包上限保持一致
+    size_t total_read_bytes  = 0;
+    constexpr size_t k_max_result_bytes = 16u * 1024u * 1024u;
 
-    while (!got_ready && max_iterations-- > 0)
+    while (!got_ready)
     {
         n = co_await async_read_loop();
         if (n == 0)
         {
             error_msg = "async read error during query";
+            co_return 1;
+        }
+        total_read_bytes += static_cast<size_t>(n);
+        if (total_read_bytes > k_max_result_bytes)
+        {
+            error_msg  = "async_execute_and_fetch: result set exceeds 16MB limit";
+            error_code = 8;
+            isclose    = true;
             co_return 1;
         }
         accum_buf.append(reinterpret_cast<char *>(_cache_data), n);
@@ -2671,13 +2773,6 @@ asio::awaitable<unsigned int> pg_conn_base::async_execute_and_fetch(
             accum_buf.erase(0, consumed);
             consumed = 0;
         }
-    }
-    if (max_iterations <= 0)
-    {
-        error_msg  = "async_execute_and_fetch: loop exceeded max iterations";
-        error_code = 8;
-        isclose    = true;// async：挂死时必须断开连接
-        co_return 1;
     }
     if (error_code == 10)
     {

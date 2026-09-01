@@ -330,9 +330,13 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
                             }
                         }
 
-                        mysqlconf.issock  = false;
-                        mysqlconf.isssl   = false;
-                        mysqlconf.isdebug = false;
+                        mysqlconf.issock    = false;
+                        mysqlconf.isssl     = false;
+                        mysqlconf.isdebug   = false;
+                        mysqlconf.islocal   = false;// 必须重置，否则跨配置块泄漏
+                        mysqlconf.sslverify = false;
+                        mysqlconf.sslhost.clear();
+                        mysqlconf.db_type = DB_TYPE::MYSQL;
                         //mysqlconf.link_type = 0;
                     }
                 }
@@ -382,7 +386,8 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
                 {
                     try
                     {
-                        mysqlconf.max_pool = std::stoi(strval) % 256;
+                        int pool_val = std::stoi(strval);
+                        mysqlconf.max_pool = static_cast<unsigned char>((pool_val < 0) ? 0 : ((pool_val > 255) ? 255 : pool_val));
                     }
                     catch (const std::exception &)
                     {
@@ -393,7 +398,8 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
                 {
                     try
                     {
-                        mysqlconf.min_pool = std::stoi(strval) % 256;
+                        int pool_val = std::stoi(strval);
+                        mysqlconf.min_pool = static_cast<unsigned char>((pool_val < 0) ? 0 : ((pool_val > 255) ? 255 : pool_val));
                     }
                     catch (const std::exception &)
                     {
@@ -469,14 +475,22 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
             continue;
         }
 
-        // 忽略空白字符
-        if (s[i] == 0x20)
+        // 键名阶段忽略空白与引号
+        if (!isvalue)
         {
-            continue;
+            if (s[i] == 0x20 || s[i] == '\t')
+            {
+                continue;
+            }
         }
-        if (s[i] == '\t')
+        else if (strval.empty())
         {
-            continue;
+            // 值阶段: 仅跳过 "=" 后的前导空白（兼容 "key = value" 格式），
+            // 值内部及后续空格保留（密码/主机名中的空格不丢失）
+            if (s[i] == 0x20 || s[i] == '\t')
+            {
+                continue;
+            }
         }
         if (s[i] == '"')
         {
@@ -555,7 +569,8 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
         {
             try
             {
-                mysqlconf.max_pool = std::stoi(strval) % 256;
+                int pool_val = std::stoi(strval);
+                mysqlconf.max_pool = static_cast<unsigned char>((pool_val < 0) ? 0 : ((pool_val > 255) ? 255 : pool_val));
             }
             catch (const std::exception &)
             {
@@ -566,7 +581,8 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
         {
             try
             {
-                mysqlconf.min_pool = std::stoi(strval) % 256;
+                int pool_val = std::stoi(strval);
+                mysqlconf.min_pool = static_cast<unsigned char>((pool_val < 0) ? 0 : ((pool_val > 255) ? 255 : pool_val));
             }
             catch (const std::exception &)
             {
@@ -651,6 +667,7 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
         myconfig.push_back(mysqlconf);
     }
     charset_obj->mysql_charset_clear();
+
     return myconfig;
 }
 std::string init_orm_conn_pool_release()
@@ -834,7 +851,7 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_add_mysql
         }
         co_return conn;
     }
-    throw std::runtime_error(" add_mysql_edit_connect failed for tag ");
+    throw std::runtime_error(" add_mysql_edit_connect failed for tag " + conn->error_msg);
 }
 
 std::shared_ptr<mysql_conn_base> orm_conn_pool::add_mysql_edit_connect()
@@ -851,14 +868,19 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::add_mysql_edit_connect()
         conn->issynch = true;
         return conn;
     }
-    throw std::runtime_error(" add_mysql_edit_connect failed for tag ");
+    throw std::runtime_error(" add_mysql_edit_connect failed for tag " + conn->error_msg);
 }
 void orm_conn_pool::back_mysql_edit_conn(std::shared_ptr<mysql_conn_base> conn)
 {
     // 约定：事务经 orm_query.h edit_query 独立使用（外层异常包裹自管回滚），
     // 归还仅检查连接未断开，不做事务清理
-    if (!conn || conn->isclose)
+    if (!conn)
     {
+        return;
+    }
+    if (conn->isclose)
+    {
+        // 连接已断开：销毁
         return;
     }
     std::unique_lock<std::mutex> lock(conn_edit_mutex);
@@ -954,6 +976,7 @@ unsigned int orm_conn_pool::init_mysql_select_conn(unsigned char n)
                 std::unique_lock<std::mutex> lock(conn_select_mutex);
                 mysql_select_pool.emplace_back(conn);
                 lock.unlock();
+                continue;
             }
             error_msg = conn->error_msg;
             throw std::runtime_error(error_msg);
@@ -967,7 +990,11 @@ unsigned int orm_conn_pool::init_mysql_select_conn(unsigned char n)
 }
 void orm_conn_pool::back_mysql_select_conn(std::shared_ptr<mysql_conn_base> conn)
 {
-    if (!conn || conn->isclose)
+    if (!conn)
+    {
+        return;
+    }
+    if (conn->isclose)
     {
         return;
     }
@@ -986,11 +1013,13 @@ void orm_conn_pool::back_mysql_select_conn(std::shared_ptr<mysql_conn_base> conn
 
 asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql_edit_conn()
 {
+    // 不理会 max_pool：池中无空闲连接时直接从数据库新建
     std::unique_lock<std::mutex> lock(conn_edit_mutex);
     if (mysql_edit_pool.empty())
     {
         lock.unlock();
-        co_return co_await async_add_mysql_edit_connect();
+        auto conn = co_await async_add_mysql_edit_connect();
+        co_return conn;
     }
 
     auto temp = std::move(mysql_edit_pool.front());
@@ -1001,16 +1030,19 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql
     {
         co_return temp;
     }
-    co_return co_await async_add_mysql_edit_connect();
+    auto conn = co_await async_add_mysql_edit_connect();
+    co_return conn;
 }
 
 std::shared_ptr<mysql_conn_base> orm_conn_pool::get_mysql_edit_conn()
 {
+    // 不理会 max_pool：池中无空闲连接时直接从数据库新建
     std::unique_lock<std::mutex> lock(conn_edit_mutex);
     if (mysql_edit_pool.empty())
     {
         lock.unlock();
-        return add_mysql_edit_connect();
+        auto conn = add_mysql_edit_connect();
+        return conn;
     }
 
     auto temp = std::move(mysql_edit_pool.front());
@@ -1022,15 +1054,18 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::get_mysql_edit_conn()
     {
         return temp;
     }
-    return add_mysql_edit_connect();
+    auto conn = add_mysql_edit_connect();
+    return conn;
 }
 asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql_select_conn()
 {
+    // 不理会 max_pool：池中无空闲连接时直接从数据库新建
     std::unique_lock<std::mutex> lock(conn_select_mutex);
     if (mysql_select_pool.empty())
     {
         lock.unlock();
-        co_return co_await async_add_mysql_select_connect();
+        auto conn = co_await async_add_mysql_select_connect();
+        co_return conn;
     }
     auto temp = std::move(mysql_select_pool.front());
     mysql_select_pool.pop_front();
@@ -1041,15 +1076,18 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql
     {
         co_return temp;
     }
-    co_return co_await async_add_mysql_select_connect();
+    auto conn = co_await async_add_mysql_select_connect();
+    co_return conn;
 }
 std::shared_ptr<mysql_conn_base> orm_conn_pool::get_mysql_select_conn()
 {
+    // 不理会 max_pool：池中无空闲连接时直接从数据库新建
     std::unique_lock<std::mutex> lock(conn_select_mutex);
     if (mysql_select_pool.empty())
     {
         lock.unlock();
-        return add_mysql_select_connect();
+        auto conn = add_mysql_select_connect();
+        return conn;
     };
 
     auto temp = std::move(mysql_select_pool.front());
@@ -1061,7 +1099,8 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::get_mysql_select_conn()
     {
         return temp;
     }
-    return add_mysql_select_connect();
+    auto conn = add_mysql_select_connect();
+    return conn;
 }
 
 asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_add_pg_edit_connect()
@@ -1098,7 +1137,11 @@ std::shared_ptr<pg_conn_base> orm_conn_pool::add_pg_edit_connect()
 }
 void orm_conn_pool::back_pg_edit_conn(std::shared_ptr<pg_conn_base> conn)
 {
-    if (!conn || conn->isclose)
+    if (!conn)
+    {
+        return;
+    }
+    if (conn->isclose)
     {
         return;
     }
@@ -1209,7 +1252,11 @@ unsigned int orm_conn_pool::init_pg_select_conn(unsigned char n)
 }
 void orm_conn_pool::back_pg_select_conn(std::shared_ptr<pg_conn_base> conn)
 {
-    if (!conn || conn->isclose)
+    if (!conn)
+    {
+        return;
+    }
+    if (conn->isclose)
     {
         return;
     }
@@ -1228,11 +1275,13 @@ void orm_conn_pool::back_pg_select_conn(std::shared_ptr<pg_conn_base> conn)
 
 asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_edit_conn()
 {
+    // 不理会 max_pool：池中无空闲连接时直接从数据库新建
     std::unique_lock<std::mutex> lock(conn_edit_mutex);
     if (pg_edit_pool.empty())
     {
         lock.unlock();
-        co_return co_await async_add_pg_edit_connect();
+        auto conn = co_await async_add_pg_edit_connect();
+        co_return conn;
     }
 
     auto temp = std::move(pg_edit_pool.front());
@@ -1243,16 +1292,19 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_edit_
     {
         co_return temp;
     }
-    co_return co_await async_add_pg_edit_connect();
+    auto conn = co_await async_add_pg_edit_connect();
+    co_return conn;
 }
 
 std::shared_ptr<pg_conn_base> orm_conn_pool::get_pg_edit_conn()
 {
+    // 不理会 max_pool：池中无空闲连接时直接从数据库新建
     std::unique_lock<std::mutex> lock(conn_edit_mutex);
     if (pg_edit_pool.empty())
     {
         lock.unlock();
-        return add_pg_edit_connect();
+        auto conn = add_pg_edit_connect();
+        return conn;
     }
 
     auto temp = std::move(pg_edit_pool.front());
@@ -1264,15 +1316,18 @@ std::shared_ptr<pg_conn_base> orm_conn_pool::get_pg_edit_conn()
     {
         return temp;
     }
-    return add_pg_edit_connect();
+    auto conn = add_pg_edit_connect();
+    return conn;
 }
 asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_select_conn()
 {
+    // 不理会 max_pool：池中无空闲连接时直接从数据库新建
     std::unique_lock<std::mutex> lock(conn_select_mutex);
     if (pg_select_pool.empty())
     {
         lock.unlock();
-        co_return co_await async_add_pg_select_connect();
+        auto conn = co_await async_add_pg_select_connect();
+        co_return conn;
     }
     auto temp = std::move(pg_select_pool.front());
     pg_select_pool.pop_front();
@@ -1283,15 +1338,18 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_selec
     {
         co_return temp;
     }
-    co_return co_await async_add_pg_select_connect();
+    auto conn = co_await async_add_pg_select_connect();
+    co_return conn;
 }
 std::shared_ptr<pg_conn_base> orm_conn_pool::get_pg_select_conn()
 {
+    // 不理会 max_pool：池中无空闲连接时直接从数据库新建
     std::unique_lock<std::mutex> lock(conn_select_mutex);
     if (pg_select_pool.empty())
     {
         lock.unlock();
-        return add_pg_select_connect();
+        auto conn = add_pg_select_connect();
+        return conn;
     };
 
     auto temp = std::move(pg_select_pool.front());
@@ -1303,7 +1361,8 @@ std::shared_ptr<pg_conn_base> orm_conn_pool::get_pg_select_conn()
     {
         return temp;
     }
-    return add_pg_select_connect();
+    auto conn = add_pg_select_connect();
+    return conn;
 }
 
 // ======================== SQLite connections ========================

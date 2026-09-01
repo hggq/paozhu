@@ -64,7 +64,8 @@ namespace orm
 {
 
 // ======================== Worker 线程接口 ========================
-void sqlite_worker_submit(const std::string &db_path, std::function<void()> task);
+// 向指定数据库的 worker 投递任务；worker 已停止时返回 false（任务未投递）
+bool sqlite_worker_submit(const std::string &db_path, std::function<void()> task);
 void sqlite_init();
 void sqlite_shutdown();
 void sqlite_worker_shutdown_all_safe();
@@ -304,6 +305,10 @@ class sqlite_conn_base
     sqlite_stmt_cache stmt_cache_{64};
 
     std::atomic<bool> in_transaction_{false};
+    // 事务互斥锁：SQLite 单连接模式下多个 db_conn 实例共享同一底层连接，
+    // 通过原子锁保证同一时刻只有一个事务拥有者，防止跨实例事务串扰
+    // （A 开启事务后 B 再次 begin 将被拒绝，B 的 commit 无法破坏 A 的事务）
+    std::atomic_flag txn_lock_ = ATOMIC_FLAG_INIT;
     std::atomic<int> consecutive_errors_{0};
     std::chrono::steady_clock::time_point last_error_time_;
     static constexpr int k_max_reconnect_retries = 3;

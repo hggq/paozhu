@@ -27,6 +27,7 @@ enum class wq
     bt = 1,
     be,
     eq,
+    nq,
     lt,
     le,
     in,

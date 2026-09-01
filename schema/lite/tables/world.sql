@@ -1,0 +1,5 @@
+CREATE TABLE "world" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "randomnumber" INT4 NOT NULL DEFAULT '0'
+
+);

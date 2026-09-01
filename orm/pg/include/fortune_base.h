@@ -2,7 +2,7 @@
 #define ORM_PG_FORTUNEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 29 Aug 2026 05:49:37 GMT
+*本文件为自动生成 Tue, 01 Sep 2026 03:58:47 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -587,7 +587,7 @@ namespace fortune_info
     static constexpr std::array<std::string_view,2> col_names={"id","message"};
 	static constexpr std::array<unsigned char,2> col_types={3,253};
 	static constexpr std::array<unsigned char,2> col_length={4,0};
-	static constexpr std::array<unsigned char,2> col_decimals={0,0};
+	static constexpr std::array<unsigned char,2> col_decimals={241,241};
 
 }
 

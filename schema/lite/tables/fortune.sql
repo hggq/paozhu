@@ -1,0 +1,5 @@
+CREATE TABLE "fortune" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "message" VARCHAR(2048) NOT NULL
+
+);

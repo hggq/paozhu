@@ -116,12 +116,12 @@ std::string test_parse_ini(std::shared_ptr<httppeer> peer)
     client << "www.abc.com::csspath = " << ini.get_value("www.abc.com", "csspath", "(not found)") << "\n<br>";
 
     client << "<p>----raw key name-----</p>";
-    for (auto [first, second] : ini.config)
+    for (auto& second : ini.config)
     {
         client << "<p>----begin-----</p>";
-        client << "<p>|" << first << "|</p>";
+        client << "<p>|" << second.name << "|</p>";
         client << "<p>------------begin-2----</p>";
-        for (auto [name, value, comment] : second)
+        for (auto [name, value, comment] : second.value)
         {
             client << "<p>|" << name << ":" << value << (comment.size() > 0 ? ":" : "") << comment << "|</p>";
         }

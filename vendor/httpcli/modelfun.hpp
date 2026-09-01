@@ -24,6 +24,9 @@
 
 namespace fs = std::filesystem;
 
+// 边界语义: 仅累加前导连续数字, 遇任何非数字字符 (含空格/负号) 立即停止并返回已累加值;
+// 首字符即非数字 (如 "-1"/"abc"/空串) 返回 0, 无符号处理也无回绕; 不检测 int 溢出。
+// 调用方需保证输入为无符号十进制串 (如 PG 元数据 attlen/atttypmod)
 int strtointval(std::string vval)
 {
     int temp = 0;
@@ -105,7 +108,7 @@ struct table_columns_info_t
     unsigned char col_type;
     unsigned int col_length;
     unsigned char decimals;
-    unsigned char big_type;//string number float
+    unsigned char big_type = 1;//string number float, 默认字符串类, 避免未分类类型码读未初始化值
     bool is_pk       = false;
     bool is_auto_inc = false;
     bool is_unsigned = false;
@@ -275,6 +278,7 @@ unsigned char pg_get_big_type(unsigned char col_type)
     }
     else if (col_type == 0xF6 || col_type == 0x05 || col_type == 0x04 || col_type == 0x00)
     {
+        // 0x00 为 MySQL 5.0.3 前旧 DECIMAL (服务端不再发送), 按浮点类兜底保留
         return 3;
     }
     else if (col_type == 0x01 || col_type == 0x02 || col_type == 0x03 || col_type == 0x08)
@@ -283,7 +287,8 @@ unsigned char pg_get_big_type(unsigned char col_type)
     }
     else if (col_type == 0x09)
     {
-        return 3;
+        // MEDIUMINT 为整数类
+        return 2;
     }
     else if (col_type == 0x07 || col_type == 0x0A || col_type == 0x0B)
     {
@@ -291,6 +296,16 @@ unsigned char pg_get_big_type(unsigned char col_type)
     }
     else if (col_type == 0x0C)
     {
+        return 1;
+    }
+    else if (col_type == 0x0D)
+    {
+        //YEAR 按整数存储
+        return 2;
+    }
+    else if (col_type == 0x10)
+    {
+        //BIT 位串按字符串处理
         return 1;
     }
     return 1;
@@ -514,8 +529,18 @@ bool pg_get_column_info(std::shared_ptr<orm::pg_conn_base> pg_conn, const std::s
                 } else if (col_names[i] == "atttypmod") {
                     if (!value.empty()) {
                         int32_t mod = strtointval(value);
-                        if (mod > 0) {
-                            col_info.col_length = mod - 4;
+                        if (mod > 4) {
+                            // typname 先于 atttypmod 处理, col_type 已由 pg_type_to_mysql_type 转换
+                            if (col_info.col_type == 0xF6) {
+                                // numeric(p,s) 编码: ((p << 16) | s) + 4
+                                int32_t raw         = mod - 4;
+                                col_info.col_length = static_cast<unsigned int>((raw >> 16) & 0xFFFF);
+                                unsigned int s      = static_cast<unsigned int>(raw & 0xFFFF);
+                                col_info.decimals   = static_cast<unsigned char>(s > 255 ? 255 : s);
+                            } else if (col_info.col_type == 0xFD || col_info.col_type == 0xFE) {
+                                col_info.col_length = mod - 4;
+                            }
+                            // 其余类型的 atttypmod 编码各异, 忽略避免产生错误长度
                         }
                     }
                 } else if (col_names[i] == "comment") {
@@ -641,8 +666,11 @@ unsigned char sqlite_type_to_mysql_type(const std::string &decl_type)
         {
             return 0x08;
         }
-        if (base.find("smallint") != std::string::npos || base.find("tinyint") != std::string::npos ||
-            base.find("int2") != std::string::npos || base.find("int1") != std::string::npos)
+        if (base.find("tinyint") != std::string::npos || base.find("int1") != std::string::npos)
+        {
+            return 0x01;
+        }
+        if (base.find("smallint") != std::string::npos || base.find("int2") != std::string::npos)
         {
             return 0x02;
         }
@@ -923,6 +951,7 @@ enum class protocol_field_type : std::uint8_t
 */
 std::string get_field_type(const table_columns_info_t &tp)
 {
+    // 未使用 (全项目无调用点, 保留备用); 时间类型与生效 switch 路径对齐为 std::string
     std::string a;
     if (tp.col_type == 0x01)
     {
@@ -993,14 +1022,8 @@ std::string get_field_type(const table_columns_info_t &tp)
     }
     else if (tp.col_type == 0x0A || tp.col_type == 0x0B || tp.col_type == 0x0C || tp.col_type == 0x0D)
     {
-        if (tp.is_unsigned)
-        {
-            a = "unsigned int ";
-        }
-        else
-        {
-            a = "int ";
-        }
+        // DATE/TIME/DATETIME/YEAR 生效路径按字符串处理
+        a = "std::string ";
     }
     else if (tp.col_type == 0xF6)
     {
@@ -1015,6 +1038,7 @@ std::string get_field_type(const table_columns_info_t &tp)
 
 std::string get_field_type_num_arg(const table_columns_info_t &tp)
 {
+    // 未使用 (全项目无调用点, 保留备用); 字符串语义类型与 get_field_type 对齐, 避免未来误用
     std::string a;
     if (tp.col_type == 0x01)
     {
@@ -1059,7 +1083,8 @@ std::string get_field_type_num_arg(const table_columns_info_t &tp)
     }
     else if (tp.col_type == 0x07)
     {
-        a = "long long val";
+        // TIMESTAMP 生效路径按字符串处理
+        a = "const std::string& val";
     }
     else if (tp.col_type == 0x08)
     {
@@ -1085,14 +1110,8 @@ std::string get_field_type_num_arg(const table_columns_info_t &tp)
     }
     else if (tp.col_type == 0x0A || tp.col_type == 0x0B || tp.col_type == 0x0C || tp.col_type == 0x0D)
     {
-        if (tp.is_unsigned)
-        {
-            a = "unsigned int val";
-        }
-        else
-        {
-            a = "int val";
-        }
+        // DATE/TIME/DATETIME/YEAR 生效路径按字符串处理
+        a = "const std::string& val";
     }
     else if (tp.col_type == 0xF6)
     {
@@ -1100,7 +1119,8 @@ std::string get_field_type_num_arg(const table_columns_info_t &tp)
     }
     else if (tp.col_type == 0xF9 || tp.col_type == 0xFA || tp.col_type == 0xFB || tp.col_type == 0xFC || tp.col_type == 0xFD || tp.col_type == 0xFE)
     {
-        a = "long long val";
+        // 字符串/BLOB 类生效路径按字符串处理
+        a = "const std::string& val";
     }
     return a;
 }
@@ -1114,6 +1134,7 @@ std::string get_field_type_string_arg([[maybe_unused]] const table_columns_info_
 
 std::string get_field_type_in_arg(const table_columns_info_t &tp)
 {
+    // 未使用 (全项目无调用点, 保留备用)
     std::string a;
     if (tp.col_type == 0x01)
     {
@@ -1158,7 +1179,8 @@ std::string get_field_type_in_arg(const table_columns_info_t &tp)
     }
     else if (tp.col_type == 0x07)
     {
-        a = "const std::vector<long long>& val ";
+        // TIMESTAMP 生效路径按字符串处理
+        a = "const std::vector<std::string>& val";
     }
     else if (tp.col_type == 0x08)
     {
@@ -1199,6 +1221,7 @@ std::string get_field_type_in_arg(const table_columns_info_t &tp)
 
 std::string get_field_type_in2_arg(const table_columns_info_t &tp)
 {
+    // 未使用 (全项目无调用点, 保留备用)
     std::string a;
     if (tp.col_type == 0x01)
     {
@@ -5740,6 +5763,80 @@ std::string create_mysql_orm_string_feild_where(const std::string &modelName_fil
     return append_content;
 }
 
+// ============================================================================
+// tag 目录布局与 include 路径 (唯一事实来源, 所有生成/落盘代码都必须走这里)
+// ----------------------------------------------------------------------------
+//   orm/<tag>/include/<table>_base.h        (default 时无 <tag>/ 段)
+//   orm/<tag>/include/<table>_opsql.h
+//   models/<tag>/include/<Model>.h
+//   models/<tag>/<Model>.cpp
+//   orm/orm.h                               汇总入口
+//
+// 生成的 #include 一律写成"相对项目根"的完整相对路径
+// (orm/lite/include/world_base.h、models/lite/include/World.h),
+// 不再用 "lite/include/world_base.h" 这种要靠 -I 才能落到正确子树的写法:
+// 后者在 orm/ 与 models/ 两个 -I 根下含义不同 (一个解析到 orm/, 一个解析到 models/),
+// 曾导致 default 标签的产物被 -I 顺序带偏, 解析到 lite 标签下的同名文件。
+// 项目根始终在 -I 中, 因此相对项目根的写法零歧义、不依赖 -I 顺序。
+// ============================================================================
+
+// tag 目录段: 非空且非 default 的 tag 返回 "tag/", 否则返回空串
+inline std::string orm_tag_segment(const std::string &tag)
+{
+    if (tag.empty() || tag == "default")
+    {
+        return std::string();
+    }
+    return tag + "/";
+}
+
+// orm 侧产物目录 (相对项目根, 以 '/' 结尾)
+inline std::string orm_include_dir(const std::string &tag)
+{
+    return "orm/" + orm_tag_segment(tag) + "include/";
+}
+
+// models 侧产物目录 (相对项目根, 无尾 '/')
+inline std::string model_dir(const std::string &tag)
+{
+    std::string d = "models/" + orm_tag_segment(tag);
+    if (d.size() > 0 && d.back() == '/')
+    {
+        d.pop_back();
+    }
+    return d;
+}
+
+// models 侧头文件目录 (相对项目根, 以 '/' 结尾)
+inline std::string model_include_dir(const std::string &tag)
+{
+    return model_dir(tag) + "/include/";
+}
+
+// 供生成的源码书写的 include 路径 (相对项目根)
+inline std::string orm_include_path(const std::string &tag, const std::string &filename)
+{
+    return orm_include_dir(tag) + filename;
+}
+
+inline std::string model_include_path(const std::string &tag, const std::string &filename)
+{
+    return model_include_dir(tag) + filename;
+}
+
+// 确保目录存在 (权限与既有 models 侧创建逻辑一致)
+inline void orm_ensure_dir(const fs::path &dir)
+{
+    if (dir.empty() || fs::exists(dir))
+    {
+        return;
+    }
+    fs::create_directories(dir);
+    fs::permissions(dir,
+                    fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+                    fs::perm_options::add);
+}
+
 void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::string &db_tag, const std::string &table_name, const std::string &model_name, const std::vector<orm::field_info_t> &field_array, const std::vector<table_columns_info_t> &table_column_info_lists, DBType db_type)
 {
     //read orm template
@@ -6050,6 +6147,7 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
     ///*appendwhere*/
     n = string_replace(template_content, "/*appendwhere*/", append_content);
     append_content.clear();
+    std::string ordersql_content;
 
         for (unsigned int j = 0; j < table_column_info_lists.size(); j++)
         {
@@ -6061,7 +6159,34 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
             append_content.append(table_column_info_lists[j].col_name);
             append_content.append("\");\n\t\t\t\tbreak;");
         }
-    n = string_replace_all(template_content, "/*cols_name_where*/", append_content);    
+    n = string_replace_all(template_content, "/*cols_name_where*/", append_content);  
+    
+        for (unsigned int j = 0; j < table_column_info_lists.size(); j++)
+        {
+            ordersql_content.append("\n\t\t\tcase ");
+            ordersql_content.append(real_model_name);
+            ordersql_content.append("_info::cols::");
+            ordersql_content.append(table_column_info_lists[j].col_name);
+            ordersql_content.append(":\n\t\t\t\tordersql.append(\"");
+            ordersql_content.append(table_column_info_lists[j].col_name);
+            ordersql_content.append("\");\n\t\t\t\tbreak;");
+        }
+
+    n = string_replace_all(template_content, "/*ordersql_name_where*/", ordersql_content); 
+
+    ordersql_content.clear();
+        for (unsigned int j = 0; j < table_column_info_lists.size(); j++)
+        {
+            ordersql_content.append("\n\t\t\tcase ");
+            ordersql_content.append(real_model_name);
+            ordersql_content.append("_info::cols::");
+            ordersql_content.append(table_column_info_lists[j].col_name);
+            ordersql_content.append(":\n\t\t\t\tgroupsql.append(\"");
+            ordersql_content.append(table_column_info_lists[j].col_name);
+            ordersql_content.append("\");\n\t\t\t\tbreak;");
+        }
+    n = string_replace_all(template_content, "/*groupsql_name_where*/", ordersql_content); 
+
     //save template
     template_file.clear();
     template_file = prj_root_path;
@@ -6070,15 +6195,12 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
     {
         template_file.push_back('/');
     }
-    template_file.append("orm/");
+    template_file.append(orm_include_dir(db_tag));
 
-    if (db_tag != "default")
-    {
-        template_file.append(db_tag);
-        template_file.push_back('/');
-    }
+    // 输出目录必须先创建: 首次生成某 tag 时 orm/<tag>/include 可能不存在,
+    // 否则 fopen 失败会留下"只有模型类、没有 opsql"的残缺产物
+    orm_ensure_dir(fs::path(template_file).parent_path());
 
-    template_file.append("include/");
     template_file.append(model_name);//fix pre table_name
     template_file.append("_opsql");
     template_file.append(".h");
@@ -6120,57 +6242,25 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
         //
     }
 
-    if (rmstag == "default")
-    {
-        basefilepath = prj_root_path;
-        if (basefilepath.size() > 0 && basefilepath.back() != '/')
-        {
-            basefilepath.push_back('/');
-        }
-        basefilepath = basefilepath + "orm/";
-    }
-    else
-    {
-        basefilepath = prj_root_path;
-        if (basefilepath.size() > 0 && basefilepath.back() != '/')
-        {
-            basefilepath.push_back('/');
-        }
-        basefilepath = basefilepath + "orm/" + rmstag;
-    }
+    basefilepath = prj_root_path;
     if (basefilepath.size() > 0 && basefilepath.back() != '/')
     {
         basefilepath.push_back('/');
     }
+    basefilepath.append(orm_include_dir(rmstag));
 
     modelspath = prj_root_path;
     if (modelspath.size() > 0 && modelspath.back() != '/')
     {
         modelspath.push_back('/');
     }
-    modelspath.append("models/");
-    if (rmstag != "default")
-    {
-        modelspath.append(rmstag);
-        modelspath.push_back('/');
-    }
+    modelspath.append(model_dir(rmstag));
+    modelspath.push_back('/');
 
     fs::path paths = modelspath;
-    if (!fs::exists(paths))
-    {
-        fs::create_directories(paths);
-        fs::permissions(paths,
-                        fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
-                        fs::perm_options::add);
-    }
-    paths = modelspath + "include";
-    if (!fs::exists(paths))
-    {
-        fs::create_directories(paths);
-        fs::permissions(paths,
-                        fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
-                        fs::perm_options::add);
-    }
+    orm_ensure_dir(paths);
+    paths = modelspath + "include/";
+    orm_ensure_dir(paths);
 
     int num_fields = table_column_info_lists.size();// mysql_num_fields(result);
 
@@ -6499,30 +6589,9 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
 
     std::ostringstream filemodelstremcpp;
 
-    if (rmstag != "default")
-    {
-        filemodelstremcpp << "\n#include \"";
-        filemodelstremcpp << rmstag;
-        filemodelstremcpp << "/include/";
-        filemodelstremcpp << tablenamebase;
-        filemodelstremcpp << "_opsql.h\"";
-        filemodelstremcpp << "\n#include \"";
-        filemodelstremcpp << rmstag;
-        filemodelstremcpp << "/include/";
-        filemodelstremcpp << tablenamebase << "_base.h\"\n";
-        filemodelstremcpp << "#include \"";
-        filemodelstremcpp << rmstag;
-        filemodelstremcpp << "/include/";
-        filemodelstremcpp << model_name_obj << ".h\"\n";
-    }
-    else
-    {
-        filemodelstremcpp << "\n#include \"";
-        filemodelstremcpp << tablenamebase;
-        filemodelstremcpp << "_opsql.h\"";
-        filemodelstremcpp << "\n#include \"" << tablenamebase << "_base.h\"\n#include \""
-                          << model_name_obj << ".h\"\n";
-    }
+    filemodelstremcpp << "\n#include \"" << orm_include_path(rmstag, tablenamebase + "_opsql.h") << "\"";
+    filemodelstremcpp << "\n#include \"" << orm_include_path(rmstag, tablenamebase + "_base.h") << "\"";
+    filemodelstremcpp << "\n#include \"" << model_include_path(rmstag, model_name_obj + ".h") << "\"\n";
     filemodelstremcpp << "\n/* ";
     filemodelstremcpp << getgmtdatetime();
     filemodelstremcpp << " */";
@@ -6586,25 +6655,8 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
     filemodelstremcpp << "#ifndef " << headtxt;
     filemodelstremcpp << "\n#define " << headtxt;
 
-    if (rmstag != "default")
-    {
-        filemodelstremcpp << "\n#include \"";
-        filemodelstremcpp << rmstag;
-        filemodelstremcpp << "/include/";
-        filemodelstremcpp << tablenamebase;
-        filemodelstremcpp << "_opsql.h\" \n#include \"";
-        filemodelstremcpp << rmstag;
-        filemodelstremcpp << "/include/";
-        filemodelstremcpp << tablenamebase << "_base.h\"\n";
-
-    }
-    else
-    {
-        filemodelstremcpp << "\n#include \"";
-        filemodelstremcpp << tablenamebase;
-        filemodelstremcpp << "_opsql.h\" \n#include \"";
-        filemodelstremcpp << tablenamebase << "_base.h\"\n";
-    }
+    filemodelstremcpp << "\n#include \"" << orm_include_path(rmstag, tablenamebase + "_opsql.h") << "\" \n";
+    filemodelstremcpp << "#include \"" << orm_include_path(rmstag, tablenamebase + "_base.h") << "\"\n";
     filemodelstremcpp << "\n/* ";
     filemodelstremcpp << getgmtdatetime();
     filemodelstremcpp << " */";
@@ -6653,7 +6705,20 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
     {
         filebasename.push_back('/');
     }
-    filebasename.append("include/");
+    // 输出目录必须先创建: 首次生成某 tag 时 orm/<tag>/include 可能不存在。
+    // 此前缺失该步骤且 fopen 失败直接 return, 而 models 侧的 .h/.cpp 在更前面已写入,
+    // 会留下"只有模型类、没有 base"的残缺产物 (模型类随后解析到别的 tag 的同名 base,
+    // 导致 unknown type name / 命名空间不匹配)
+    {
+        fs::path base_dir = fs::path(filebasename).parent_path();
+        if (!base_dir.empty() && !fs::exists(base_dir))
+        {
+            fs::create_directories(base_dir);
+            fs::permissions(base_dir,
+                            fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+                            fs::perm_options::add);
+        }
+    }
 
     filebasename.append(filebasefilename);
     filebasename.append("_base.h");
@@ -6661,7 +6726,7 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
     FILE *f = fopen(filebasename.c_str(), "wb");
     if (!f)
     {
-        std::cout << "file fail:" << filebasename << std::endl;
+        std::cout << "\033[1m\033[31mError\033[0m open file fail: " << filebasename << std::endl;
         return 0;
     }
     headtxt.append("ORM_");
@@ -12304,91 +12369,95 @@ headtxt += R"(::meta data;
     return 0;
 }
 
-void addhfiletoormfile(std::string mpath, std::string modelname, std::string rmstag, DBType /**/)
+// orm.h 汇总入口按"磁盘文件为准"自愈重建:
+// 只保留目标头文件仍存在的 #include 条目 (表被删除、tag 改库后遗留的失效条目会被剔除),
+// 新条目仅在模型头文件确实已生成时才追加, 避免悬空 include 导致编译失败。
+void addhfiletoormfile(const std::string &prj_root_path, const std::string &modelname, const std::string &rmstag, DBType /**/)
 {
-    std::string ormfilename = mpath;
-    if (ormfilename.back() != '/')
+    std::string root = prj_root_path;
+    if (root.empty() || root.back() != '/')
     {
-        ormfilename.push_back('/');
+        root.push_back('/');
     }
-    ormfilename.append("orm.h");
+    std::string ormfilename = root + "orm/orm.h";
 
+    std::string s;
     FILE *f = fopen(ormfilename.c_str(), "rb");
-    if (f == NULL)
+    if (f != NULL)
     {
-        if (!fs::exists(ormfilename))
+        fseek(f, 0, SEEK_END);
+        long const size = ftell(f);
+        fseek(f, 0, SEEK_SET);
+        if (size > 0)
         {
-
-            f = fopen(ormfilename.c_str(), "wb");
-            if (f == NULL)
-            {
-                return;
-            }
-            std::string tempc = "/*build this file time ";
-            tempc.append(getgmtdatetime());
-            tempc.append("*/\n");
-            fwrite(&tempc[0], 1, tempc.size(), f);
-            fclose(f);
+            s.resize(static_cast<size_t>(size));
+            size_t nread = fread(&s[0], 1, s.size(), f);
+            s.resize(nread);
         }
-        f = fopen(ormfilename.c_str(), "rb");
-        if (f == NULL)
-        {
-            return;
-        }
+        fclose(f);
     }
-    fseek(f, 0, SEEK_END);
-    auto const size = ftell(f);
-    fseek(f, 0, SEEK_SET);
-
-    std::string s, contenttxt;
 
     std::string real_model_name = modelname;
     colname_first_touper(real_model_name);
     real_model_name = colname_to_hump(real_model_name);
-    s.resize(size);
+    // 相对项目根书写, 不再依赖 -I 里有 models/
+    std::string includename = "\"" + model_include_path(rmstag, real_model_name + ".h") + "\"";
 
-    auto nread = fread(&s[0], 1, size, f);
-    s.resize(nread);
-    fclose(f);
-    std::string includename;
-    if (rmstag == "default")
+    std::string rebuilt;
+    bool already_listed = false;
+    const std::string inc_prefix = "#include \"";
+    size_t pos = 0;
+    while (pos < s.size())
     {
-        includename = "\"" + real_model_name + ".h\"";
-    }
-    else
-    {
-        includename = "\"" + rmstag + "/include/" + real_model_name + ".h\"";
-    }
-
-    auto itepos = s.find(includename);
-    if (itepos == std::string::npos)
-    {
-        int j = s.size();
-        for (; j > 0; j--)
+        size_t eol = s.find('\n', pos);
+        if (eol == std::string::npos)
         {
-            if (s[j] == 0x20 || s[j] == '\t')
+            eol = s.size();
+        }
+        std::string line = s.substr(pos, eol - pos);
+        pos = eol + 1;
+        while (!line.empty() && (line.back() == '\r' || line.back() == ' ' || line.back() == '\t'))
+        {
+            line.pop_back();
+        }
+        if (line.compare(0, inc_prefix.size(), inc_prefix) == 0 && line.size() > inc_prefix.size() + 1 && line.back() == '"')
+        {
+            std::string inc = line.substr(inc_prefix.size(), line.size() - inc_prefix.size() - 1);
+            if (fs::exists(root + inc))
             {
-                continue;
+                rebuilt += line;
+                rebuilt += "\n";
+                if ("\"" + inc + "\"" == includename)
+                {
+                    already_listed = true;
+                }
             }
-            break;
+            // 目标文件不存在的条目直接丢弃 (自愈)
         }
-
-        s.append("\n#include ");
-
-        s.append(includename);
-
-        FILE *mfd = fopen(ormfilename.c_str(), "wb");
-        if (mfd == NULL)
-        {
-            return;
-        }
-        fwrite(&s[0], 1, s.size(), mfd);
-
-        fclose(mfd);
+        // 其余行不保留: 本文件由程序生成, 只有时间戳注释与 include 行
     }
 
-    s.clear();
-    s.shrink_to_fit();
+    if (!already_listed && fs::exists(root + model_include_path(rmstag, real_model_name + ".h")))
+    {
+        rebuilt += "#include ";
+        rebuilt += includename;
+        rebuilt += "\n";
+    }
+
+    FILE *mfd = fopen(ormfilename.c_str(), "wb");
+    if (mfd == NULL)
+    {
+        return;
+    }
+    std::string header = "/*build this file time ";
+    header.append(getgmtdatetime());
+    header.append("*/\n");
+    fwrite(header.data(), 1, header.size(), mfd);
+    if (!rebuilt.empty())
+    {
+        fwrite(rebuilt.data(), 1, rebuilt.size(), mfd);
+    }
+    fclose(mfd);
 }
 
 int modelcli(const std::string &dbtag = "")
@@ -12398,6 +12467,7 @@ int modelcli(const std::string &dbtag = "")
 
     std::cout << "\033[36m 🍄 current path:\033[0m \033[1m\033[35m" << current_path.string() << "\033[0m" << std::endl;
     std::string ormfilepath     = "orm/";
+    std::string schemafilepath     = "schema/";
     std::string ormnowpath      = "orm/";
     std::string rootcontrolpath = "models/";
     std::string controlpath     = rootcontrolpath;
@@ -12409,13 +12479,23 @@ int modelcli(const std::string &dbtag = "")
     }
 
     fs::path vpath   = controlpath;
-    fs::path ormpath = ormfilepath;
+    
     if (!fs::exists(vpath))
     {
         std::cout << " ⛑ \033[1m\033[31m Error\033[0m Current path not project root path " << std::endl;
         return 0;
     }
 
+    fs::path ormpath = schemafilepath;
+    if (!fs::exists(ormpath))
+    {
+        fs::create_directories(ormpath);
+        fs::permissions(ormpath,
+                        fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+                        fs::perm_options::add);
+    }
+
+    ormpath = ormfilepath;
     if (!fs::exists(ormpath))
     {
         fs::create_directories(ormpath);
@@ -12635,61 +12715,11 @@ dbtype=mysql
 
     }
     //create tag directories
-    if (rmstag != "default")
-    {
-        if (controlpath.back() != '/')
-        {
-            controlpath.push_back('/');
-        }
-        controlpath.append(rmstag);
-        controlpath.push_back('/');
-        controlrunpath = controlpath;
-
-        paths = controlrunpath;
-        if (!fs::exists(paths))
-        {
-            fs::create_directories(paths);
-            fs::permissions(paths,
-                            fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
-                            fs::perm_options::add);
-        }
-        controlrunpath = controlpath + "include";
-        paths          = controlrunpath;
-        if (!fs::exists(paths))
-        {
-            fs::create_directories(paths);
-            fs::permissions(paths,
-                            fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
-                            fs::perm_options::add);
-        }
-
-        ormnowpath = ormfilepath;
-        ormnowpath.append(rmstag);
-        ormnowpath.push_back('/');
-        ormpath = ormnowpath;
-
-        if (!fs::exists(ormpath))
-        {
-            fs::create_directories(ormpath);
-            fs::permissions(ormpath,
-                            fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
-                            fs::perm_options::add);
-        }
-        ormnowpath = ormnowpath + "include";
-        ormpath    = ormnowpath;
-
-        ormnowpath = ormfilepath;
-        ormnowpath.append(rmstag);
-        ormnowpath.push_back('/');
-
-        if (!fs::exists(ormpath))
-        {
-            fs::create_directories(ormpath);
-            fs::permissions(ormpath,
-                            fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
-                            fs::perm_options::add);
-        }
-    }
+    // default 同样需要: 其产物直接落在 orm/include 与 models[/include] 下,
+    // 此前只在 rmstag != "default" 时创建, 首次用 default 生成会缺目录
+    orm_ensure_dir(model_dir(rmstag));
+    orm_ensure_dir(model_include_dir(rmstag));
+    orm_ensure_dir(orm_include_dir(rmstag));
 
     std::vector<std::string> table_lists;
 
@@ -12808,6 +12838,7 @@ dbtype=mysql
     {
         std::vector<table_columns_info_t> table_column_info_lists;
         std::vector<orm::field_info_t> field_array;
+        fs::path paths_a;
 
         if (db_type == DBType::POSTGRESQL)
         {
@@ -12815,21 +12846,11 @@ dbtype=mysql
             std::cout << "\nTable: " << table_lists[i_table] << " - " << table_column_info_lists.size() << " columns" << std::endl;
 
             // === 生成 _rawsqlfile (类似 MySQL 的 SHOW CREATE TABLE) ===
-            std::string ormsqlfile = ormfilepath;
+            std::string ormsqlfile = schemafilepath;
             if (ormsqlfile.back() != '/')
             {
                 ormsqlfile.push_back('/');
             }
-            ormsqlfile.append("/_rawsqlfile");
-            fs::path paths_a = ormsqlfile;
-            if (!fs::exists(paths_a))
-            {
-                fs::create_directories(paths_a);
-                fs::permissions(paths_a,
-                                fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
-                                fs::perm_options::add);
-            }
-            ormsqlfile.push_back('/');
             ormsqlfile.append(rmstag);
 
             paths_a = ormsqlfile;
@@ -12840,6 +12861,17 @@ dbtype=mysql
                                 fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                                 fs::perm_options::add);
             }
+
+            ormsqlfile.append("/tables");
+            paths_a = ormsqlfile;
+            if (!fs::exists(paths_a))
+            {
+                fs::create_directories(paths_a);
+                fs::permissions(paths_a,
+                                fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+                                fs::perm_options::add);
+            }
+
             ormsqlfile.push_back('/');
 
             // 获取表注释
@@ -12875,7 +12907,7 @@ dbtype=mysql
                 field.decimals      = col.decimals;
 
                 // 将 MySQL 协议类型码转换为 PostgreSQL 类型字符串
-                field.field_type = dbtypes::mysql_col_type_to_pg_type(col.col_type, col.col_length, col.is_unsigned);
+                field.field_type = dbtypes::mysql_col_type_to_pg_type(col.col_type, col.col_length, col.is_unsigned, col.decimals);
 
                 table_info.fields.push_back(field);
 
@@ -12891,11 +12923,9 @@ dbtype=mysql
 
             std::string create_sql = dbtypes::gen_pg_create_table(table_info);
 
-            // 构建文件名: tablename_hash.sql
+            // 构建文件名: tablename.sql
             std::string fieldname = ormsqlfile;
             fieldname.append(table_lists[i_table]);
-            fieldname.push_back('_');
-            fieldname.append(std::to_string(std::hash<std::string>{}(create_sql)));
             fieldname.append(".sql");
 
             if (fs::exists(fieldname))
@@ -12920,21 +12950,11 @@ dbtype=mysql
             std::cout << "\nTable: " << table_lists[i_table] << " - " << table_column_info_lists.size() << " columns" << std::endl;
 
             // === 生成 _rawsqlfile (直接取 sqlite_master 中的原始建表语句) ===
-            std::string ormsqlfile = ormfilepath;
+            std::string ormsqlfile = schemafilepath;
             if (ormsqlfile.back() != '/')
             {
                 ormsqlfile.push_back('/');
             }
-            ormsqlfile.append("/_rawsqlfile");
-            fs::path paths_a = ormsqlfile;
-            if (!fs::exists(paths_a))
-            {
-                fs::create_directories(paths_a);
-                fs::permissions(paths_a,
-                                fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
-                                fs::perm_options::add);
-            }
-            ormsqlfile.push_back('/');
             ormsqlfile.append(rmstag);
 
             paths_a = ormsqlfile;
@@ -12945,6 +12965,17 @@ dbtype=mysql
                                 fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                                 fs::perm_options::add);
             }
+
+            ormsqlfile.append("/tables");
+            paths_a = ormsqlfile;
+            if (!fs::exists(paths_a))
+            {
+                fs::create_directories(paths_a);
+                fs::permissions(paths_a,
+                                fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+                                fs::perm_options::add);
+            }
+
             ormsqlfile.push_back('/');
 
             // 从 sqlite_master 取原始 CREATE TABLE 语句
@@ -12964,11 +12995,9 @@ dbtype=mysql
             }
             create_sql.append(";");
 
-            // 构建文件名: tablename_hash.sql
+            // 构建文件名: tablename.sql
             std::string fieldname = ormsqlfile;
             fieldname.append(table_lists[i_table]);
-            fieldname.push_back('_');
-            fieldname.append(std::to_string(std::hash<std::string>{}(create_sql)));
             fieldname.append(".sql");
 
             if (fs::exists(fieldname))
@@ -13084,7 +13113,7 @@ dbtype=mysql
                 }
             }
 
-            std::string ormsqlfile = ormfilepath;
+            std::string ormsqlfile = schemafilepath;
 
             if (table_create_info_lists.size() == 2)
             {
@@ -13092,16 +13121,6 @@ dbtype=mysql
                 {
                     ormsqlfile.push_back('/');
                 }
-                ormsqlfile.append("/_rawsqlfile");
-                fs::path paths_a = ormsqlfile;
-                if (!fs::exists(paths_a))
-                {
-                    fs::create_directories(paths_a);
-                    fs::permissions(paths_a,
-                                    fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
-                                    fs::perm_options::add);
-                }
-                ormsqlfile.push_back('/');
                 ormsqlfile.append(rmstag);
 
                 paths_a = ormsqlfile;
@@ -13112,11 +13131,20 @@ dbtype=mysql
                                     fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                                     fs::perm_options::add);
                 }
+                ormsqlfile.append("/tables");
+
+                paths_a = ormsqlfile;
+                if (!fs::exists(paths_a))
+                {
+                    fs::create_directories(paths_a);
+                    fs::permissions(paths_a,
+                                    fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
+                                    fs::perm_options::add);
+                }
                 ormsqlfile.push_back('/');
+
                 std::string fieldname = ormsqlfile;
                 fieldname.append(table_create_info_lists[0]);
-                fieldname.push_back('_');
-                fieldname.append(std::to_string(std::hash<std::string>{}(table_create_info_lists[1])));
                 fieldname.append(".sql");
 
                 if (fs::exists(fieldname))
@@ -13367,6 +13395,7 @@ dbtype=mysql
                             }
                             else if (table_column_info_lists[m].col_type == 0xF6 || table_column_info_lists[m].col_type == 0x05 || table_column_info_lists[m].col_type == 0x04 || table_column_info_lists[m].col_type == 0x00)
                             {
+                                // 0x00 为 MySQL 5.0.3 前旧 DECIMAL (服务端不再发送), 按浮点类兜底保留
                                 table_column_info_lists[m].big_type = 3;
                             }
                             else if (table_column_info_lists[m].col_type == 0x01 || table_column_info_lists[m].col_type == 0x02 || table_column_info_lists[m].col_type == 0x03 || table_column_info_lists[m].col_type == 0x08)
@@ -13375,7 +13404,8 @@ dbtype=mysql
                             }
                             else if (table_column_info_lists[m].col_type == 0x09)
                             {
-                                table_column_info_lists[m].big_type = 3;
+                                // MEDIUMINT 为整数类
+                                table_column_info_lists[m].big_type = 2;
                             }
                             else if (table_column_info_lists[m].col_type == 0x07 || table_column_info_lists[m].col_type == 0x0A || table_column_info_lists[m].col_type == 0x0B)
                             {
@@ -13390,6 +13420,16 @@ dbtype=mysql
                             else if (table_column_info_lists[m].col_type == 0xF5)
                             {
                                 //json
+                                table_column_info_lists[m].big_type = 1;
+                            }
+                            else if (table_column_info_lists[m].col_type == 0x0D)
+                            {
+                                //YEAR 按整数存储
+                                table_column_info_lists[m].big_type = 2;
+                            }
+                            else if (table_column_info_lists[m].col_type == 0x10)
+                            {
+                                //BIT 位串按字符串处理
                                 table_column_info_lists[m].big_type = 1;
                             }
 
@@ -13417,7 +13457,7 @@ dbtype=mysql
         //create orm operate file
         create_mysql_orm_operate_file(prj_root_path, rmstag, table_lists[i_table], model_name, field_array, table_column_info_lists, db_type);
         create_orm_model_baseinfo_file(prj_root_path, rmstag, table_lists[i_table], model_name, field_array, table_column_info_lists, db_type);
-        addhfiletoormfile(prj_root_path + "orm/", model_name, rmstag, db_type);
+        addhfiletoormfile(prj_root_path, model_name, rmstag, db_type);
     }
 
     return 0;

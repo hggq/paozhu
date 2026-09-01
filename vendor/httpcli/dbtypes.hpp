@@ -94,6 +94,7 @@ inline std::string escape_mysql_string(const std::string &val)
         case '\n': result += "\\n"; break;
         case '\r': result += "\\r"; break;
         case '\0': result += "\\0"; break;
+        case '\x1A': result += "\\Z"; break;
         default: result += c; break;
         }
     }
@@ -300,6 +301,37 @@ inline std::string escape_sqlite_string(const std::string &val)
     return result;
 }
 
+// 剥离默认值的 PG 风格 ::type 后缀 (如 'abc'::character varying → 'abc')
+// 仅 MySQL/SQLite 目标调用 (::cast 不是其合法语法); PG 目标保留 cast (合法且有类型语义)
+// 引号字面量先定位闭合引号再找 :: (引号翻倍为转义), 避免字面量内部的 :: 被误切
+inline std::string strip_pg_cast(const std::string &default_value)
+{
+    if (default_value.size() >= 2 &&
+        (default_value.front() == '\'' || default_value.front() == '"'))
+    {
+        char q = default_value.front();
+        for (size_t i = 1; i < default_value.size(); i++)
+        {
+            if (default_value[i] != q)
+                continue;
+            if (i + 1 < default_value.size() && default_value[i + 1] == q)
+            {
+                i++;// 引号翻倍转义, 跳过继续
+                continue;
+            }
+            size_t cast_pos = default_value.find("::", i + 1);
+            if (cast_pos != std::string::npos)
+                return default_value.substr(0, cast_pos);
+            return default_value;
+        }
+        return default_value;
+    }
+    size_t cast_pos = default_value.find("::");
+    if (cast_pos != std::string::npos)
+        return default_value.substr(0, cast_pos);
+    return default_value;
+}
+
 // SQLite 标识符: 双引号包裹, 规则与 PG 一致
 inline std::string escape_sqlite_identifier(const std::string &identifier)
 {
@@ -373,7 +405,7 @@ struct row_data_t
 // 两套映射层次不同, 不合并: dbtypes.hpp 操作 SQL 类型名 (如 "varchar(255)" → "text"),
 // modelfun.hpp 操作 MySQL 线协议类型码 (如 MYSQL_TYPE_VARCHAR → MYSQL_TYPE_VAR_STRING)
 
-inline std::string mysql_type_to_pg(const std::string &mysql_type, unsigned int length, bool is_unsigned)
+inline std::string mysql_type_to_pg(const std::string &mysql_type, unsigned int length, bool is_unsigned, unsigned char decimals = 0)
 {
     std::string type_lower = to_lower(mysql_type);
 
@@ -405,6 +437,8 @@ inline std::string mysql_type_to_pg(const std::string &mysql_type, unsigned int 
     {
         if (length > 0)
         {
+            if (decimals > 0)
+                return "numeric(" + std::to_string(length) + "," + std::to_string(static_cast<unsigned int>(decimals)) + ")";
             return "numeric(" + std::to_string(length) + ")";
         }
         return "numeric";
@@ -438,7 +472,7 @@ inline std::string mysql_type_to_pg(const std::string &mysql_type, unsigned int 
     if (type_lower == "year")
         return "smallint";
     if (type_lower == "json")
-        return "text";
+        return "json";
     if (type_lower == "enum" || type_lower == "set")
     {
         std::cout << "  [WARN] ENUM/SET type mapped to TEXT" << std::endl;
@@ -447,7 +481,7 @@ inline std::string mysql_type_to_pg(const std::string &mysql_type, unsigned int 
     return type_lower;
 }
 
-inline std::string pg_type_to_mysql(const std::string &pg_type, unsigned int length)
+inline std::string pg_type_to_mysql(const std::string &pg_type, unsigned int length, unsigned char decimals = 0)
 {
     std::string type_lower = to_lower(pg_type);
 
@@ -465,6 +499,8 @@ inline std::string pg_type_to_mysql(const std::string &pg_type, unsigned int len
     {
         if (length > 0)
         {
+            if (decimals > 0)
+                return "decimal(" + std::to_string(length) + "," + std::to_string(static_cast<unsigned int>(decimals)) + ")";
             return "decimal(" + std::to_string(length) + ")";
         }
         return "decimal";
@@ -573,7 +609,7 @@ inline std::string sqlite_type_to_mysql(const std::string &sqlite_type)
     if (tl == "double" || tl == "double precision" || tl == "float8")
         return "double";
     if (tl == "text" || tl == "clob")
-        return "text";
+        return "longtext";
     if (tl == "blob")
         return "longblob";
     if (tl == "date")
@@ -655,7 +691,8 @@ inline std::string convert_type_for_target(const std::string &source_type,
                                            unsigned int length,
                                            bool is_unsigned,
                                            DB_TYPE src_type,
-                                           DB_TYPE target_type)
+                                           DB_TYPE target_type,
+                                           unsigned char decimals = 0)
 {
     if (src_type == DB_TYPE::SQLITE)
     {
@@ -667,13 +704,13 @@ inline std::string convert_type_for_target(const std::string &source_type,
     }
     if (target_type == DB_TYPE::SQLITE)
     {
-        return sqlite_decl_type_for(source_type, length, 0, src_type);
+        return sqlite_decl_type_for(source_type, length, decimals, src_type);
     }
     if (target_type == DB_TYPE::POSTGRESQL)
     {
-        return mysql_type_to_pg(source_type, length, is_unsigned);
+        return mysql_type_to_pg(source_type, length, is_unsigned, decimals);
     }
-    return pg_type_to_mysql(source_type, length);
+    return pg_type_to_mysql(source_type, length, decimals);
 }
 
 inline DB_TYPE parse_target_type(const std::string &target_str)
@@ -692,7 +729,7 @@ inline DB_TYPE parse_target_type(const std::string &target_str)
 
 // ===================== MySQL 类型码转 PostgreSQL 类型字符串 =====================
 // 用于将 modelfun.hpp 中 pg_get_column_info 获取的 col_type (MySQL 协议类型码) 转换为 PG 类型
-inline std::string mysql_col_type_to_pg_type(unsigned char col_type, unsigned int length, [[maybe_unused]] bool is_unsigned)
+inline std::string mysql_col_type_to_pg_type(unsigned char col_type, unsigned int length, [[maybe_unused]] bool is_unsigned, unsigned char decimals = 0)
 {
     // MySQL 协议类型码定义参考:
     // 0x01=TINYINT, 0x02=SMALLINT, 0x03=INT, 0x08=BIGINT, 0x09=MEDIUMINT
@@ -721,9 +758,13 @@ inline std::string mysql_col_type_to_pg_type(unsigned char col_type, unsigned in
         return "double precision";
     case 0xF6:// DECIMAL/NUMERIC
         if (length > 0)
+        {
+            if (decimals > 0)
+                return "numeric(" + std::to_string(length) + "," + std::to_string(static_cast<unsigned int>(decimals)) + ")";
             return "numeric(" + std::to_string(length) + ")";
+        }
         return "numeric";
-    case 0xFE:// CHAR/VARCHAR/ENUM/SET etc.
+    case 0xFE:// STRING: CHAR/BINARY/ENUM/SET 共用此码, 协议层无法区分, 统一按 varchar/text 近似 (ENUM/SET 丢枚举值语义, 已知取舍)
         if (length > 0 && length < 256)
             return "varchar(" + std::to_string(length) + ")";
         return "text";
@@ -731,7 +772,7 @@ inline std::string mysql_col_type_to_pg_type(unsigned char col_type, unsigned in
         if (length > 0)
             return "varchar(" + std::to_string(length) + ")";
         return "varchar(255)";
-    case 0xFC:// TEXT/BLOB
+    case 0xFC:// TEXT/BLOB 共用此码 (mysql_conn.h: 0xFC "Used for all TEXT and BLOB types"), 无法区分, 统一 text (已知取舍)
         return "text";
     case 0x0A:// DATE
         return "date";
@@ -741,8 +782,12 @@ inline std::string mysql_col_type_to_pg_type(unsigned char col_type, unsigned in
         return "timestamp";
     case 0x07:// TIMESTAMP (old)
         return "timestamp";
-    case 0xF5:// JSON
-        return "jsonb";
+    case 0xF5:// JSON (与字符串映射统一为 json)
+        return "json";
+    case 0x0D:// YEAR
+        return "smallint";
+    case 0x10:// BIT
+        return "bit varying(" + std::to_string(length > 0 ? length : 1) + ")";
     default:
         return "text";
     }
@@ -757,7 +802,7 @@ inline void convert_table_for_target(db_table_info &table, DB_TYPE src_type, DB_
     {
         if (src_type == DB_TYPE::MYSQL && target_type == DB_TYPE::POSTGRESQL)
         {
-            f.field_type = mysql_type_to_pg(f.field_type, f.length, f.is_unsigned);
+            f.field_type = mysql_type_to_pg(f.field_type, f.length, f.is_unsigned, f.decimals);
             if (f.is_auto_inc && f.is_pk)
             {
                 std::string type_lower = to_lower(f.field_type);
@@ -774,7 +819,7 @@ inline void convert_table_for_target(db_table_info &table, DB_TYPE src_type, DB_
         }
         else if (src_type == DB_TYPE::POSTGRESQL && target_type == DB_TYPE::MYSQL)
         {
-            f.field_type = pg_type_to_mysql(f.field_type, f.length);
+            f.field_type = pg_type_to_mysql(f.field_type, f.length, f.decimals);
         }
         else if (target_type == DB_TYPE::SQLITE)
         {
@@ -804,6 +849,59 @@ inline void convert_table_for_target(db_table_info &table, DB_TYPE src_type, DB_
 }
 
 // ===================== MySQL SHOW CREATE TABLE 解析 =====================
+
+// 从 "UNIQUE KEY `name` (...)" / "KEY `name` (...)" 等索引定义中解析索引名
+// MySQL SHOW CREATE TABLE 的索引名以反引号包裹; 回退: 无引号时取 '(' 前最后一个非关键字 token
+inline std::string parse_index_name_from_def(const std::string &field_def)
+{
+    size_t paren_open = field_def.find('(');
+    std::string head  = (paren_open != std::string::npos) ? field_def.substr(0, paren_open) : field_def;
+    size_t bt1        = head.find('`');
+    if (bt1 != std::string::npos)
+    {
+        size_t bt2 = head.find('`', bt1 + 1);
+        if (bt2 != std::string::npos)
+            return head.substr(bt1 + 1, bt2 - bt1 - 1);
+    }
+    std::istringstream iss(head);
+    std::string tok, last;
+    while (iss >> tok)
+        last = tok;
+    std::string ll = to_lower(last);
+    if (ll == "key" || ll == "index" || ll == "unique")
+        return "";
+    return last;
+}
+
+// 收集主键列 (供各目标库 DDL 生成使用)
+// 复合主键优先按 pk_name 中的原始列序 (影响隐式索引最左前缀), 其余按 is_pk 标记的字段顺序
+inline std::vector<std::string> collect_pk_columns(const db_table_info &info)
+{
+    std::vector<std::string> from_name;
+    if (!info.pk_name.empty())
+    {
+        std::istringstream pk_iss(info.pk_name);
+        std::string pk_token;
+        while (std::getline(pk_iss, pk_token, ','))
+        {
+            pk_token = remove_quotes(trim(pk_token));
+            if (!pk_token.empty())
+                from_name.push_back(pk_token);
+        }
+    }
+    if (from_name.size() > 1)
+        return from_name;
+
+    std::vector<std::string> pk_cols;
+    for (const auto &f : info.fields)
+    {
+        if (f.is_pk)
+            pk_cols.push_back(f.field_name);
+    }
+    if (!pk_cols.empty())
+        return pk_cols;
+    return from_name;
+}
 
 inline bool parse_mysql_show_create(const std::string &show_create_sql, db_table_info &table)
 {
@@ -924,12 +1022,37 @@ inline bool parse_mysql_show_create(const std::string &show_create_sql, db_table
             size_t pk_close = field_def.find(')');
             if (pk_open != std::string::npos && pk_close != std::string::npos)
             {
-                std::string pk_cols = trim(field_def.substr(pk_open + 1, pk_close - pk_open - 1));
-                table.pk_name       = remove_quotes(pk_cols);
-                for (auto &f : table.fields)
+                std::string pk_cols_str = trim(field_def.substr(pk_open + 1, pk_close - pk_open - 1));
+                // 逐列解析, 支持复合主键 `a`,`b` (pk_name 存逗号连接的列名)
+                std::vector<std::string> pk_col_names;
+                std::istringstream pk_iss(pk_cols_str);
+                std::string pk_token;
+                while (std::getline(pk_iss, pk_token, ','))
                 {
-                    if (f.field_name == table.pk_name)
-                        f.is_pk = true;
+                    std::string col = remove_quotes(trim(pk_token));
+                    if (!col.empty())
+                        pk_col_names.push_back(col);
+                }
+                if (!pk_col_names.empty())
+                {
+                    table.pk_name.clear();
+                    for (size_t pi = 0; pi < pk_col_names.size(); pi++)
+                    {
+                        if (pi > 0)
+                            table.pk_name += ",";
+                        table.pk_name += pk_col_names[pi];
+                    }
+                    for (auto &f : table.fields)
+                    {
+                        for (const auto &pc : pk_col_names)
+                        {
+                            if (f.field_name == pc)
+                            {
+                                f.is_pk = true;
+                                break;
+                            }
+                        }
+                    }
                 }
             }
             pos++;
@@ -943,16 +1066,7 @@ inline bool parse_mysql_show_create(const std::string &show_create_sql, db_table
             idx.is_unique  = true;
             idx.is_primary = false;
 
-            size_t name_end = field_def.find_first_of(" \t(");
-            if (name_end != std::string::npos)
-            {
-                std::string idx_part = field_def.substr(0, name_end);
-                size_t space_pos     = idx_part.find_first_of(" \t");
-                if (space_pos != std::string::npos)
-                {
-                    idx.index_name = remove_quotes(trim(idx_part.substr(space_pos)));
-                }
-            }
+            idx.index_name = parse_index_name_from_def(field_def);
 
             size_t paren_open  = field_def.find('(');
             size_t paren_close = field_def.find(')');
@@ -979,16 +1093,7 @@ inline bool parse_mysql_show_create(const std::string &show_create_sql, db_table
             idx.is_unique  = false;
             idx.is_primary = false;
 
-            size_t name_end = field_def.find_first_of(" \t(");
-            if (name_end != std::string::npos)
-            {
-                std::string idx_part = field_def.substr(0, name_end);
-                size_t space_pos     = idx_part.find_first_of(" \t");
-                if (space_pos != std::string::npos)
-                {
-                    idx.index_name = remove_quotes(trim(idx_part.substr(space_pos)));
-                }
-            }
+            idx.index_name = parse_index_name_from_def(field_def);
 
             size_t paren_open  = field_def.find('(');
             size_t paren_close = field_def.find(')');
@@ -1237,7 +1342,7 @@ inline bool parse_mysql_show_create(const std::string &show_create_sql, db_table
         }
         else if (type_lower == "mediumint")
         {
-            field.mysql_type = 0x03;
+            field.mysql_type = 0x09;
         }
         else if (type_lower == "int" || type_lower == "integer")
         {
@@ -1297,6 +1402,14 @@ inline bool parse_mysql_show_create(const std::string &show_create_sql, db_table
         {
             field.mysql_type = 0xF5;
         }
+        else if (type_lower == "year")
+        {
+            field.mysql_type = 0x0D;
+        }
+        else if (type_lower == "bit")
+        {
+            field.mysql_type = 0x10;
+        }
 
         table.fields.push_back(field);
         pos++;
@@ -1307,34 +1420,68 @@ inline bool parse_mysql_show_create(const std::string &show_create_sql, db_table
     std::string tail_token;
     while (tail_iss >> tail_token)
     {
-        std::string lower_token = to_lower(tail_token);
-        if (lower_token == "engine")
+        // MySQL 输出格式为 key=value (等号两侧无空格): ENGINE=InnoDB / DEFAULT CHARSET=utf8mb4 / COMMENT='...'
+        size_t eq_pos = tail_token.find('=');
+        if (eq_pos == std::string::npos)
+            continue; // DEFAULT 等独立关键字或无关选项
+        std::string key   = to_lower(tail_token.substr(0, eq_pos));
+        std::string value = tail_token.substr(eq_pos + 1);
+        if (key == "engine")
         {
-            tail_iss >> table.engine;
+            table.engine = value;
         }
-        else if (lower_token == "charset")
+        else if (key == "charset" || key == "default_charset")
         {
-            tail_iss >> tail_token;
-            if (to_lower(tail_token) == "=")
-                tail_iss >> table.charset;
-            else
-                table.charset = tail_token;
+            table.charset = value;
         }
-        else if (lower_token == "collate")
+        else if (key == "collate")
         {
-            tail_iss >> table.collation;
+            table.collation = value;
         }
-        else if (lower_token == "comment")
+        else if (key == "comment")
         {
-            std::string comment;
-            std::getline(tail_iss, comment);
-            table.table_comment = trim(comment);
-            size_t fq           = table.table_comment.find_first_of("'\"");
-            size_t lq           = table.table_comment.find_last_of("'\"");
-            if (fq != std::string::npos && lq != std::string::npos && fq < lq)
+            std::string comment_val = value;
+            // 注释含空格时会被流拆分成多个 token, 续读直到引号闭合 (识别 \' 转义)
+            auto comment_closed = [](const std::string &s) -> bool
             {
-                table.table_comment = table.table_comment.substr(fq + 1, lq - fq - 1);
+                if (s.empty() || s.front() != '\'')
+                    return true;
+                for (size_t ci = 1; ci < s.size(); ci++)
+                {
+                    if (s[ci] == '\\' && ci + 1 < s.size())
+                    {
+                        ci++;
+                        continue;
+                    }
+                    if (s[ci] == '\'')
+                        return true;
+                }
+                return false;
+            };
+            while (!comment_closed(comment_val) && (tail_iss >> tail_token))
+            {
+                comment_val += " ";
+                comment_val += tail_token;
             }
+            if (comment_val.size() >= 2 && comment_val.front() == '\'')
+            {
+                size_t last_q = comment_val.find_last_of('\'');
+                if (last_q > 0)
+                    comment_val = comment_val.substr(1, last_q - 1);
+            }
+            std::string unescaped;
+            for (size_t ci = 0; ci < comment_val.size(); ci++)
+            {
+                if (comment_val[ci] == '\\' && ci + 1 < comment_val.size() &&
+                    (comment_val[ci + 1] == '\'' || comment_val[ci + 1] == '\\'))
+                {
+                    unescaped += comment_val[ci + 1];
+                    ci++;
+                    continue;
+                }
+                unescaped += comment_val[ci];
+            }
+            table.table_comment = unescaped;
         }
     }
 
@@ -1347,6 +1494,8 @@ inline std::string gen_mysql_create_table(const db_table_info &info)
 {
     if (info.fields.empty())
         return "";
+
+    std::vector<std::string> pk_cols = collect_pk_columns(info);
 
     std::ostringstream oss;
     oss << "DROP TABLE IF EXISTS `" << info.table_name << "`;\n\n";
@@ -1468,14 +1617,20 @@ inline std::string gen_mysql_create_table(const db_table_info &info)
             else
             {
                 oss << " DEFAULT ";
-                if (f.default_value == "CURRENT_TIMESTAMP" || f.default_value == "now()")
+                if (f.default_value == "CURRENT_TIMESTAMP")
                 {
                     oss << f.default_value;
+                }
+                else if (f.default_value == "now()")
+                {
+                    // MySQL 8.0.13+ 表达式默认值要求括号
+                    oss << "(now())";
                 }
                 else if (f.default_value.size() >= 2 &&
                          (f.default_value.front() == '\'' || f.default_value.front() == '"'))
                 {
-                    oss << f.default_value;
+                    // 剥离 PG 风格 ::type cast (MySQL 不支持该语法)
+                    oss << strip_pg_cast(f.default_value);
                 }
                 else
                 {
@@ -1488,14 +1643,21 @@ inline std::string gen_mysql_create_table(const db_table_info &info)
         if (!f.comment.empty())
             oss << " COMMENT '" << escape_mysql_string(f.comment) << "'";
 
-        if (i < info.fields.size() - 1 || !info.pk_name.empty() || !info.indexes.empty())
+        if (i < info.fields.size() - 1 || !pk_cols.empty() || !info.indexes.empty())
             oss << ",";
         oss << "\n";
     }
 
-    if (!info.pk_name.empty())
+    if (!pk_cols.empty())
     {
-        oss << "  PRIMARY KEY (`" << info.pk_name << "`)";
+        oss << "  PRIMARY KEY (";
+        for (size_t pi = 0; pi < pk_cols.size(); pi++)
+        {
+            if (pi > 0)
+                oss << ", ";
+            oss << "`" << pk_cols[pi] << "`";
+        }
+        oss << ")";
         if (!info.indexes.empty())
             oss << ",";
         oss << "\n";
@@ -1552,6 +1714,9 @@ inline std::string gen_pg_create_table(const db_table_info &info)
     if (info.fields.empty())
         return "";
 
+    std::vector<std::string> pk_cols = collect_pk_columns(info);
+    bool composite_pk                = pk_cols.size() > 1;
+
     std::ostringstream oss;
     oss << "DROP TABLE IF EXISTS " << escape_pg_identifier(info.table_name) << ";\n\n";
     oss << "CREATE TABLE " << escape_pg_identifier(info.table_name) << " (\n";
@@ -1580,7 +1745,9 @@ inline std::string gen_pg_create_table(const db_table_info &info)
             {
                 oss << "SERIAL";
             }
-            oss << " PRIMARY KEY";
+            // 复合主键时不内联 PRIMARY KEY, 改在字段循环后输出表级约束
+            if (!composite_pk)
+                oss << " PRIMARY KEY";
         }
         else if (needs_serial && !f.is_pk)
         {
@@ -1659,13 +1826,25 @@ inline std::string gen_pg_create_table(const db_table_info &info)
                 }
             }
 
-            if (f.is_pk)
+            if (f.is_pk && !composite_pk)
                 oss << " PRIMARY KEY";
         }
 
-        if (i < info.fields.size() - 1)
+        if (i < info.fields.size() - 1 || composite_pk)
             oss << ",";
         oss << "\n";
+    }
+
+    if (composite_pk)
+    {
+        oss << "  PRIMARY KEY (";
+        for (size_t pi = 0; pi < pk_cols.size(); pi++)
+        {
+            if (pi > 0)
+                oss << ", ";
+            oss << escape_pg_identifier(pk_cols[pi]);
+        }
+        oss << ")\n";
     }
 
     oss << ");\n";
@@ -1723,24 +1902,8 @@ inline std::string gen_sqlite_create_table(const db_table_info &info)
     std::ostringstream oss;
 
     // 收集主键列 (优先用 is_pk 标记, 回退拆分 pk_name)
-    std::vector<std::string> pk_cols;
-    for (const auto &f : info.fields)
-    {
-        if (f.is_pk)
-            pk_cols.push_back(f.field_name);
-    }
-    if (pk_cols.empty() && !info.pk_name.empty())
-    {
-        std::istringstream pk_iss(info.pk_name);
-        std::string pk_token;
-        while (std::getline(pk_iss, pk_token, ','))
-        {
-            pk_token = trim(pk_token);
-            if (!pk_token.empty())
-                pk_cols.push_back(pk_token);
-        }
-    }
-    bool composite_pk = pk_cols.size() > 1;
+    std::vector<std::string> pk_cols = collect_pk_columns(info);
+    bool composite_pk                = pk_cols.size() > 1;
 
     if (!info.table_comment.empty())
     {
@@ -1803,11 +1966,7 @@ inline std::string gen_sqlite_create_table(const db_table_info &info)
                     else if (f.default_value.size() >= 2 && f.default_value.front() == '\'')
                     {
                         // 去除 PG 风格 ::type 后缀后原样输出 (已带引号)
-                        size_t cast_pos = f.default_value.find("::");
-                        if (cast_pos != std::string::npos)
-                            oss << f.default_value.substr(0, cast_pos);
-                        else
-                            oss << f.default_value;
+                        oss << strip_pg_cast(f.default_value);
                     }
                     else
                     {
@@ -1908,7 +2067,7 @@ inline db_table_info convert_columns_to_table_info(
         field.decimals      = col.decimals;
 
         // 将 MySQL 协议类型码转换为 PostgreSQL 类型字符串
-        field.field_type = mysql_col_type_to_pg_type(col.col_type, col.col_length, col.is_unsigned);
+        field.field_type = mysql_col_type_to_pg_type(col.col_type, col.col_length, col.is_unsigned, col.decimals);
 
         info.fields.push_back(field);
 
@@ -2019,7 +2178,22 @@ inline bool pg_get_table_schema(std::shared_ptr<orm::pg_conn_base> pg_conn,
                         int32_t mod = std::stoi(col_val);
                         if (mod > 4 && mod <= 0x7FFFFFF0)
                         {
-                            field.length = static_cast<unsigned int>(mod - 4);
+                            // typname 在本查询中先于 atttypmod 处理, field.field_type 已就绪
+                            std::string tl = to_lower(field.field_type);
+                            if (tl == "numeric" || tl == "decimal")
+                            {
+                                // numeric(p,s) 编码: ((p << 16) | s) + 4
+                                int32_t raw    = mod - 4;
+                                field.length   = static_cast<unsigned int>((raw >> 16) & 0xFFFF);
+                                unsigned int s = static_cast<unsigned int>(raw & 0xFFFF);
+                                field.decimals = static_cast<unsigned char>(s > 255 ? 255 : s);
+                            }
+                            else if (tl == "varchar" || tl == "bpchar" || tl == "char" ||
+                                     tl == "character varying" || tl == "character")
+                            {
+                                field.length = static_cast<unsigned int>(mod - 4);
+                            }
+                            // 其余类型的 atttypmod 编码各异, 忽略避免产生无意义长度
                         }
                     }
                     catch (...)

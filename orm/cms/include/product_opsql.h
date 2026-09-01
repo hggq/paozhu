@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sun, 30 Aug 2026 07:49:53 GMT
+ *  Creation time Tue, 01 Sep 2026 03:58:37 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -38981,7 +38981,7 @@ M_MODEL& or_leEditdate(T val)
         }
 
         template <typename T2>
-        M_MODEL &where(std::string_view field1, orm::wq opwq, T2 &&field2)
+        M_MODEL &where(std::string_view field, orm::wq opwq, T2 &&value)
         {
             if (wheresql.empty())
             {
@@ -39005,14 +39005,14 @@ M_MODEL& or_leEditdate(T val)
                 ishascontent = true;
             }
 
-            wheresql.append(field1);
+            wheresql.append(field);
 
             if (opwq == orm::wq::in)
             {
                 wheresql.append(" IN (");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    wheresql.append(std::string_view(field2));
+                    wheresql.append(std::string_view(value));
                 }
                 wheresql.append(") ");
                 return *mod;
@@ -39020,9 +39020,9 @@ M_MODEL& or_leEditdate(T val)
             else if (opwq == orm::wq::like)
             {
                 wheresql.append(" like '%");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    wheresql.append(std::string_view(field2));
+                    wheresql.append(std::string_view(value));
                 }
                 wheresql.append("%' ");
                 return *mod;
@@ -39045,18 +39045,21 @@ M_MODEL& or_leEditdate(T val)
             case orm::wq::le:
                 wheresql.append(" <= ");
                 break;
+            case orm::wq::nq:
+                wheresql.append(" != ");
+                break;                 
             default:
                 wheresql.append(" = ");
                 break;
             }
 
-            wheresql.append(to_sql_value(std::forward<T2>(field2)));
+            wheresql.append(to_sql_value(std::forward<T2>(value)));
             wheresql.append(" ");
             return *mod;
         }
 
         template <typename T2>
-        M_MODEL &whereOr(std::string_view field1, orm::wq opwq, T2 &&field2)
+        M_MODEL &whereOr(std::string_view field, orm::wq opwq, T2 &&value)
         {
             if (wheresql.empty())
             {
@@ -39080,14 +39083,14 @@ M_MODEL& or_leEditdate(T val)
                 ishascontent = true;
             }
 
-            wheresql.append(field1);
+            wheresql.append(field);
 
             if (opwq == orm::wq::in)
             {
                 wheresql.append(" IN (");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    wheresql.append(std::string_view(field2));
+                    wheresql.append(std::string_view(value));
                 }
                 wheresql.append(") ");
                 return *mod;
@@ -39095,9 +39098,9 @@ M_MODEL& or_leEditdate(T val)
             else if (opwq == orm::wq::like)
             {
                 wheresql.append(" like '%");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    wheresql.append(std::string_view(field2));
+                    wheresql.append(std::string_view(value));
                 }
                 wheresql.append("%' ");
                 return *mod;
@@ -39120,18 +39123,21 @@ M_MODEL& or_leEditdate(T val)
             case orm::wq::le:
                 wheresql.append(" <= ");
                 break;
+            case orm::wq::nq:
+                wheresql.append(" != ");
+                break;                 
             default:
                 wheresql.append(" = ");
                 break;
             }
 
-            wheresql.append(to_sql_value(std::forward<T2>(field2)));
+            wheresql.append(to_sql_value(std::forward<T2>(value)));
             wheresql.append(" ");
             return *mod;
         }
 
         template <typename T2>
-        M_MODEL &where(product_info::cols field1, orm::wq opwq, T2 &&field2)
+        M_MODEL &where(product_info::cols field, orm::wq opwq, T2 &&value)
         {
             if (wheresql.empty())
             {
@@ -39155,7 +39161,7 @@ M_MODEL& or_leEditdate(T val)
                 ishascontent = true;
             }
 
-            switch (field1)
+            switch (field)
             {
             
 			case product_info::cols::pid:
@@ -39238,9 +39244,9 @@ M_MODEL& or_leEditdate(T val)
             if (opwq == orm::wq::in)
             {
                 wheresql.append(" IN (");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    wheresql.append(std::string_view(field2));
+                    wheresql.append(std::string_view(value));
                 }
                 wheresql.append(") ");
                 return *mod;
@@ -39248,9 +39254,9 @@ M_MODEL& or_leEditdate(T val)
             else if (opwq == orm::wq::like)
             {
                 wheresql.append(" like '%");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    wheresql.append(std::string_view(field2));
+                    wheresql.append(std::string_view(value));
                 }
                 wheresql.append("%' ");
                 return *mod;
@@ -39273,18 +39279,21 @@ M_MODEL& or_leEditdate(T val)
             case orm::wq::le:
                 wheresql.append(" <= ");
                 break;
+            case orm::wq::nq:
+                wheresql.append(" != ");
+                break;    
             default:
                 wheresql.append(" = ");
                 break;
             }
 
-            wheresql.append(to_sql_value(std::forward<T2>(field2)));
+            wheresql.append(to_sql_value(std::forward<T2>(value)));
             wheresql.append(" ");
             return *mod;
         }
 
         template <typename T2>
-        M_MODEL &whereOr(product_info::cols field1, orm::wq opwq, T2 &&field2)
+        M_MODEL &whereOr(product_info::cols field, orm::wq opwq, T2 &&value)
         {
             if (wheresql.empty())
             {
@@ -39308,7 +39317,7 @@ M_MODEL& or_leEditdate(T val)
                 ishascontent = true;
             }
 
-            switch (field1)
+            switch (field)
             {
             
 			case product_info::cols::pid:
@@ -39391,9 +39400,9 @@ M_MODEL& or_leEditdate(T val)
             if (opwq == orm::wq::in)
             {
                 wheresql.append(" IN (");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    wheresql.append(std::string_view(field2));
+                    wheresql.append(std::string_view(value));
                 }
                 wheresql.append(") ");
                 return *mod;
@@ -39401,9 +39410,9 @@ M_MODEL& or_leEditdate(T val)
             else if (opwq == orm::wq::like)
             {
                 wheresql.append(" like '%");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    wheresql.append(std::string_view(field2));
+                    wheresql.append(std::string_view(value));
                 }
                 wheresql.append("%' ");
                 return *mod;
@@ -39426,26 +39435,288 @@ M_MODEL& or_leEditdate(T val)
             case orm::wq::le:
                 wheresql.append(" <= ");
                 break;
+            case orm::wq::nq:
+                wheresql.append(" != ");
+                break;                 
             default:
                 wheresql.append(" = ");
                 break;
             }
 
-            wheresql.append(to_sql_value(std::forward<T2>(field2)));
+            wheresql.append(to_sql_value(std::forward<T2>(value)));
             wheresql.append(" ");
+            return *mod;
+        }
+
+        M_MODEL &order(product_info::cols field, const std::string &asc_or_desc)
+        {
+            ordersql.append(" ORDER BY ");
+            switch (field)
+            {
+            
+			case product_info::cols::pid:
+				ordersql.append("pid");
+				break;
+			case product_info::cols::userid:
+				ordersql.append("userid");
+				break;
+			case product_info::cols::topicid:
+				ordersql.append("topicid");
+				break;
+			case product_info::cols::bigid:
+				ordersql.append("bigid");
+				break;
+			case product_info::cols::smallid:
+				ordersql.append("smallid");
+				break;
+			case product_info::cols::brandid:
+				ordersql.append("brandid");
+				break;
+			case product_info::cols::isview:
+				ordersql.append("isview");
+				break;
+			case product_info::cols::isstore:
+				ordersql.append("isstore");
+				break;
+			case product_info::cols::ishome:
+				ordersql.append("ishome");
+				break;
+			case product_info::cols::showtype:
+				ordersql.append("showtype");
+				break;
+			case product_info::cols::sntype:
+				ordersql.append("sntype");
+				break;
+			case product_info::cols::name:
+				ordersql.append("name");
+				break;
+			case product_info::cols::keywords:
+				ordersql.append("keywords");
+				break;
+			case product_info::cols::introduce:
+				ordersql.append("introduce");
+				break;
+			case product_info::cols::listimg:
+				ordersql.append("listimg");
+				break;
+			case product_info::cols::bigimg:
+				ordersql.append("bigimg");
+				break;
+			case product_info::cols::maincontent:
+				ordersql.append("maincontent");
+				break;
+			case product_info::cols::paracontent:
+				ordersql.append("paracontent");
+				break;
+			case product_info::cols::samepro:
+				ordersql.append("samepro");
+				break;
+			case product_info::cols::attatchfiles:
+				ordersql.append("attatchfiles");
+				break;
+			case product_info::cols::price:
+				ordersql.append("price");
+				break;
+			case product_info::cols::sortid:
+				ordersql.append("sortid");
+				break;
+			case product_info::cols::adddate:
+				ordersql.append("adddate");
+				break;
+			case product_info::cols::editdate:
+				ordersql.append("editdate");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(asc_or_desc);
+            return *mod;
+        }
+
+        M_MODEL &asc(product_info::cols field)
+        {
+            ordersql.append(" ORDER BY ");
+            switch (field)
+            {
+            
+			case product_info::cols::pid:
+				ordersql.append("pid");
+				break;
+			case product_info::cols::userid:
+				ordersql.append("userid");
+				break;
+			case product_info::cols::topicid:
+				ordersql.append("topicid");
+				break;
+			case product_info::cols::bigid:
+				ordersql.append("bigid");
+				break;
+			case product_info::cols::smallid:
+				ordersql.append("smallid");
+				break;
+			case product_info::cols::brandid:
+				ordersql.append("brandid");
+				break;
+			case product_info::cols::isview:
+				ordersql.append("isview");
+				break;
+			case product_info::cols::isstore:
+				ordersql.append("isstore");
+				break;
+			case product_info::cols::ishome:
+				ordersql.append("ishome");
+				break;
+			case product_info::cols::showtype:
+				ordersql.append("showtype");
+				break;
+			case product_info::cols::sntype:
+				ordersql.append("sntype");
+				break;
+			case product_info::cols::name:
+				ordersql.append("name");
+				break;
+			case product_info::cols::keywords:
+				ordersql.append("keywords");
+				break;
+			case product_info::cols::introduce:
+				ordersql.append("introduce");
+				break;
+			case product_info::cols::listimg:
+				ordersql.append("listimg");
+				break;
+			case product_info::cols::bigimg:
+				ordersql.append("bigimg");
+				break;
+			case product_info::cols::maincontent:
+				ordersql.append("maincontent");
+				break;
+			case product_info::cols::paracontent:
+				ordersql.append("paracontent");
+				break;
+			case product_info::cols::samepro:
+				ordersql.append("samepro");
+				break;
+			case product_info::cols::attatchfiles:
+				ordersql.append("attatchfiles");
+				break;
+			case product_info::cols::price:
+				ordersql.append("price");
+				break;
+			case product_info::cols::sortid:
+				ordersql.append("sortid");
+				break;
+			case product_info::cols::adddate:
+				ordersql.append("adddate");
+				break;
+			case product_info::cols::editdate:
+				ordersql.append("editdate");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(" ASC ");
+            return *mod;
+        }
+
+        M_MODEL &desc(product_info::cols field)
+        {
+
+            ordersql.append(" ORDER BY ");
+            switch (field)
+            {
+            
+			case product_info::cols::pid:
+				ordersql.append("pid");
+				break;
+			case product_info::cols::userid:
+				ordersql.append("userid");
+				break;
+			case product_info::cols::topicid:
+				ordersql.append("topicid");
+				break;
+			case product_info::cols::bigid:
+				ordersql.append("bigid");
+				break;
+			case product_info::cols::smallid:
+				ordersql.append("smallid");
+				break;
+			case product_info::cols::brandid:
+				ordersql.append("brandid");
+				break;
+			case product_info::cols::isview:
+				ordersql.append("isview");
+				break;
+			case product_info::cols::isstore:
+				ordersql.append("isstore");
+				break;
+			case product_info::cols::ishome:
+				ordersql.append("ishome");
+				break;
+			case product_info::cols::showtype:
+				ordersql.append("showtype");
+				break;
+			case product_info::cols::sntype:
+				ordersql.append("sntype");
+				break;
+			case product_info::cols::name:
+				ordersql.append("name");
+				break;
+			case product_info::cols::keywords:
+				ordersql.append("keywords");
+				break;
+			case product_info::cols::introduce:
+				ordersql.append("introduce");
+				break;
+			case product_info::cols::listimg:
+				ordersql.append("listimg");
+				break;
+			case product_info::cols::bigimg:
+				ordersql.append("bigimg");
+				break;
+			case product_info::cols::maincontent:
+				ordersql.append("maincontent");
+				break;
+			case product_info::cols::paracontent:
+				ordersql.append("paracontent");
+				break;
+			case product_info::cols::samepro:
+				ordersql.append("samepro");
+				break;
+			case product_info::cols::attatchfiles:
+				ordersql.append("attatchfiles");
+				break;
+			case product_info::cols::price:
+				ordersql.append("price");
+				break;
+			case product_info::cols::sortid:
+				ordersql.append("sortid");
+				break;
+			case product_info::cols::adddate:
+				ordersql.append("adddate");
+				break;
+			case product_info::cols::editdate:
+				ordersql.append("editdate");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(" DESC ");
             return *mod;
         }
 
         M_MODEL &order(std::string_view wq)
         {
-            ordersql.append(" ORDER by ");
+            ordersql.append(" ORDER BY ");
             ordersql.append(wq);
             return *mod;
         }
         M_MODEL &asc(std::string_view wq)
         {
 
-            ordersql.append(" ORDER by ");
+            ordersql.append(" ORDER BY ");
             ordersql.append(wq);
             ordersql.append(" ASC ");
             return *mod;
@@ -39454,7 +39725,7 @@ M_MODEL& or_leEditdate(T val)
         M_MODEL &desc(std::string_view wq)
         {
 
-            ordersql.append(" ORDER by ");
+            ordersql.append(" ORDER BY ");
             ordersql.append(wq);
             ordersql.append(" DESC ");
             return *mod;
@@ -39462,15 +39733,182 @@ M_MODEL& or_leEditdate(T val)
 
         M_MODEL &having(std::string_view wq)
         {
-
-            groupsql.append(" HAVING by ");
+            groupsql.append(" HAVING BY ");
             groupsql.append(wq);
             return *mod;
         }
 
+        M_MODEL &having(product_info::cols field)
+        {
+            groupsql.append(" HAVING BY ");
+            switch (field)
+            {
+            
+			case product_info::cols::pid:
+				groupsql.append("pid");
+				break;
+			case product_info::cols::userid:
+				groupsql.append("userid");
+				break;
+			case product_info::cols::topicid:
+				groupsql.append("topicid");
+				break;
+			case product_info::cols::bigid:
+				groupsql.append("bigid");
+				break;
+			case product_info::cols::smallid:
+				groupsql.append("smallid");
+				break;
+			case product_info::cols::brandid:
+				groupsql.append("brandid");
+				break;
+			case product_info::cols::isview:
+				groupsql.append("isview");
+				break;
+			case product_info::cols::isstore:
+				groupsql.append("isstore");
+				break;
+			case product_info::cols::ishome:
+				groupsql.append("ishome");
+				break;
+			case product_info::cols::showtype:
+				groupsql.append("showtype");
+				break;
+			case product_info::cols::sntype:
+				groupsql.append("sntype");
+				break;
+			case product_info::cols::name:
+				groupsql.append("name");
+				break;
+			case product_info::cols::keywords:
+				groupsql.append("keywords");
+				break;
+			case product_info::cols::introduce:
+				groupsql.append("introduce");
+				break;
+			case product_info::cols::listimg:
+				groupsql.append("listimg");
+				break;
+			case product_info::cols::bigimg:
+				groupsql.append("bigimg");
+				break;
+			case product_info::cols::maincontent:
+				groupsql.append("maincontent");
+				break;
+			case product_info::cols::paracontent:
+				groupsql.append("paracontent");
+				break;
+			case product_info::cols::samepro:
+				groupsql.append("samepro");
+				break;
+			case product_info::cols::attatchfiles:
+				groupsql.append("attatchfiles");
+				break;
+			case product_info::cols::price:
+				groupsql.append("price");
+				break;
+			case product_info::cols::sortid:
+				groupsql.append("sortid");
+				break;
+			case product_info::cols::adddate:
+				groupsql.append("adddate");
+				break;
+			case product_info::cols::editdate:
+				groupsql.append("editdate");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            return *mod;
+        }
+
+        M_MODEL &group(product_info::cols field)
+        {
+            groupsql.append(" GROUP BY ");
+            switch (field)
+            {
+            
+			case product_info::cols::pid:
+				groupsql.append("pid");
+				break;
+			case product_info::cols::userid:
+				groupsql.append("userid");
+				break;
+			case product_info::cols::topicid:
+				groupsql.append("topicid");
+				break;
+			case product_info::cols::bigid:
+				groupsql.append("bigid");
+				break;
+			case product_info::cols::smallid:
+				groupsql.append("smallid");
+				break;
+			case product_info::cols::brandid:
+				groupsql.append("brandid");
+				break;
+			case product_info::cols::isview:
+				groupsql.append("isview");
+				break;
+			case product_info::cols::isstore:
+				groupsql.append("isstore");
+				break;
+			case product_info::cols::ishome:
+				groupsql.append("ishome");
+				break;
+			case product_info::cols::showtype:
+				groupsql.append("showtype");
+				break;
+			case product_info::cols::sntype:
+				groupsql.append("sntype");
+				break;
+			case product_info::cols::name:
+				groupsql.append("name");
+				break;
+			case product_info::cols::keywords:
+				groupsql.append("keywords");
+				break;
+			case product_info::cols::introduce:
+				groupsql.append("introduce");
+				break;
+			case product_info::cols::listimg:
+				groupsql.append("listimg");
+				break;
+			case product_info::cols::bigimg:
+				groupsql.append("bigimg");
+				break;
+			case product_info::cols::maincontent:
+				groupsql.append("maincontent");
+				break;
+			case product_info::cols::paracontent:
+				groupsql.append("paracontent");
+				break;
+			case product_info::cols::samepro:
+				groupsql.append("samepro");
+				break;
+			case product_info::cols::attatchfiles:
+				groupsql.append("attatchfiles");
+				break;
+			case product_info::cols::price:
+				groupsql.append("price");
+				break;
+			case product_info::cols::sortid:
+				groupsql.append("sortid");
+				break;
+			case product_info::cols::adddate:
+				groupsql.append("adddate");
+				break;
+			case product_info::cols::editdate:
+				groupsql.append("editdate");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            return *mod;
+        }
         M_MODEL &group(std::string_view wq)
         {
-
             groupsql.append(" GROUP BY ");
             groupsql.append(wq);
             return *mod;
@@ -44391,7 +44829,7 @@ M_MODEL& or_leEditdate(T val)
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
-                    return effect_num;
+                    return 0;
                 }
                 if (select_conn->isdebug)
                 {
@@ -44498,7 +44936,7 @@ M_MODEL& or_leEditdate(T val)
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
-                    co_return effect_num;
+                    co_return result_record;
                 }
                 if (select_conn->isdebug)
                 {
@@ -45550,7 +45988,7 @@ M_MODEL& or_leEditdate(T val)
             }
         }
         template <typename T2>
-        M_MODEL &joinWhere(std::string_view field1, T2 &&field2)
+        M_MODEL &joinWhere(std::string_view field, T2 &&value)
         {
             if (join_ptr == nullptr)
             {
@@ -45562,14 +46000,14 @@ M_MODEL& or_leEditdate(T val)
                 join_ptr->subsql.append(" AND ");
             }
 
-            join_ptr->subsql.append(field1);
+            join_ptr->subsql.append(field);
             join_ptr->subsql.append(" = ");
-            join_ptr->subsql.append(to_sql_value(std::forward<T2>(field2)));
+            join_ptr->subsql.append(to_sql_value(std::forward<T2>(value)));
             return *mod;
         }
 
         template <typename T2>
-        M_MODEL &joinWhere(std::string_view field1, orm::wq opwq, T2 &&field2)
+        M_MODEL &joinWhere(std::string_view field, orm::wq opwq, T2 &&value)
         {
             if (join_ptr == nullptr)
             {
@@ -45581,14 +46019,14 @@ M_MODEL& or_leEditdate(T val)
                 join_ptr->subsql.append(" AND ");
             }
 
-            join_ptr->subsql.append(field1);
+            join_ptr->subsql.append(field);
 
             if (opwq == orm::wq::in)
             {
                 join_ptr->subsql.append(" IN (");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    join_ptr->subsql.append(std::string_view(field2));
+                    join_ptr->subsql.append(std::string_view(value));
                 }
                 join_ptr->subsql.append(") ");
                 return *mod;
@@ -45604,6 +46042,9 @@ M_MODEL& or_leEditdate(T val)
             case orm::wq::eq:
                 join_ptr->subsql.append(" = ");
                 break;
+            case orm::wq::nq:
+                join_ptr->subsql.append(" != ");
+                break;                
             case orm::wq::lt:
                 join_ptr->subsql.append(" < ");
                 break;
@@ -45618,13 +46059,13 @@ M_MODEL& or_leEditdate(T val)
                 break;
             }
 
-            join_ptr->subsql.append(to_sql_value(std::forward<T2>(field2)));
+            join_ptr->subsql.append(to_sql_value(std::forward<T2>(value)));
             wheresql.append(" ");
             return *mod;
         }
 
         template <typename T2>
-        M_MODEL &joinWhereOr(std::string_view field1, orm::wq opwq, T2 &&field2)
+        M_MODEL &joinWhereOr(std::string_view field, orm::wq opwq, T2 &&value)
         {
             if (join_ptr == nullptr)
             {
@@ -45636,14 +46077,14 @@ M_MODEL& or_leEditdate(T val)
                 join_ptr->subsql.append(" OR ");
             }
 
-            join_ptr->subsql.append(field1);
+            join_ptr->subsql.append(field);
 
             if (opwq == orm::wq::in)
             {
                 join_ptr->subsql.append(" IN (");
-                if constexpr (std::is_convertible_v<decltype(field2), std::string_view>)
+                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
                 {
-                    join_ptr->subsql.append(std::string_view(field2));
+                    join_ptr->subsql.append(std::string_view(value));
                 }
                 join_ptr->subsql.append(") ");
                 return *mod;
@@ -45659,6 +46100,9 @@ M_MODEL& or_leEditdate(T val)
             case orm::wq::eq:
                 join_ptr->subsql.append(" = ");
                 break;
+            case orm::wq::nq:
+                join_ptr->subsql.append(" != ");
+                break;                 
             case orm::wq::lt:
                 join_ptr->subsql.append(" < ");
                 break;
@@ -45673,7 +46117,7 @@ M_MODEL& or_leEditdate(T val)
                 break;
             }
 
-            join_ptr->subsql.append(to_sql_value(std::forward<T2>(field2)));
+            join_ptr->subsql.append(to_sql_value(std::forward<T2>(value)));
             wheresql.append(" ");
             return *mod;
         }
@@ -45688,7 +46132,7 @@ M_MODEL& or_leEditdate(T val)
             join_ptr->limitsql.append(std::to_string(n));
             return *mod;
         }
-        M_MODEL &joinParAppend(std::string_view field1)
+        M_MODEL &joinParAppend(std::string_view field)
         {
             if (join_ptr == nullptr)
             {
@@ -45699,23 +46143,23 @@ M_MODEL& or_leEditdate(T val)
             {
                 join_ptr->parbysql.append(",");
             }
-            join_ptr->parbysql.append(field1);
+            join_ptr->parbysql.append(field);
             return *mod;
         }
 
         //分组
-        M_MODEL &joinGroup(std::string_view field1)
+        M_MODEL &joinGroup(std::string_view field)
         {
             if (join_ptr == nullptr)
             {
                 join_ptr = std::make_unique<orm::orm_left_join_t>();
             }
 
-            join_ptr->parbysql = field1;
+            join_ptr->parbysql = field;
             return *mod;
         }
 
-        M_MODEL &joinDesc(std::string_view field1)
+        M_MODEL &joinDesc(std::string_view field)
         {
             if (join_ptr == nullptr)
             {
@@ -45724,19 +46168,19 @@ M_MODEL& or_leEditdate(T val)
             if (join_ptr->ordersql.empty())
             {
                 join_ptr->ordersql = " ORDER BY ";
-                join_ptr->ordersql.append(field1);
+                join_ptr->ordersql.append(field);
                 join_ptr->ordersql.append(" DESC ");
             }
             else
             {
                 join_ptr->ordersql.append(" , ");
-                join_ptr->ordersql.append(field1);
+                join_ptr->ordersql.append(field);
                 join_ptr->ordersql.append(" DESC ");
             }
             return *mod;
         }
 
-        M_MODEL &joinAsc(std::string_view field1)
+        M_MODEL &joinAsc(std::string_view field)
         {
             if (join_ptr == nullptr)
             {
@@ -45746,13 +46190,13 @@ M_MODEL& or_leEditdate(T val)
             if (join_ptr->ordersql.empty())
             {
                 join_ptr->ordersql = " ORDER BY ";
-                join_ptr->ordersql.append(field1);
+                join_ptr->ordersql.append(field);
                 join_ptr->ordersql.append(" ASC ");
             }
             else
             {
                 join_ptr->ordersql.append(" , ");
-                join_ptr->ordersql.append(field1);
+                join_ptr->ordersql.append(field);
                 join_ptr->ordersql.append(" ASC ");
             }
             return *mod;
