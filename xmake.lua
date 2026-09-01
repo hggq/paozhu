@@ -28,6 +28,7 @@ end
 add_requires("openssl3")
 add_requires("asio", "zlib", "brotli", "sqlite3")
 
+add_includedirs(".")
 add_includedirs("common")
 add_includedirs("controller")
 add_includedirs("vendor/httpcli")
