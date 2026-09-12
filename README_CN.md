@@ -325,7 +325,7 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
         if (searchword.size() > 0)
         {
             artmodel.andsub().whereLike("title", str_addslash(searchword));
-            artmodel.whereOrLike("content", str_addslash(searchword)).andsub();
+            artmodel.whereOrLike("content", str_addslash(searchword)).endsub();
             client.val["searchword"] = searchword;
         }
         auto [bar_min, bar_max, current_page, total_page] = artmodel.page(page, 10, 5);

@@ -4716,7 +4716,7 @@ struct )";
     filemodelstrem.str("");
 
     filemodelstrem << "std::vector<" << model_info_name << "::meta> record;\n";
-    filemodelstrem << "std::string _rmstag=\"" << rmstag
+    filemodelstrem << "static constexpr std::string_view _rmstag=\"" << rmstag
                    << "\";//this value must be default or tag value, tag in mysqlconnect config file .\n";
     //filemodelstrem << "MYSQL_ROW _row;\n";
 

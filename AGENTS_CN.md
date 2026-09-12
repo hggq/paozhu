@@ -555,12 +555,24 @@ asio::awaitable<std::string> techempowerupdates(std::shared_ptr<httppeer> peer)
 | 同步方法 | 异步方法 | 说明 |
 |----------|----------|------|
 | `fetch()` | `async_fetch()` | 查询所有匹配记录 |
-| `fetch_one()` | `async_fetch_one()` | 查询单条记录 |
+| `fetch_one()` | `async_fetch_one(isappend = false)` | 查询单条记录 |
 | `fetch_append()` | `async_fetch_append()` | 查询并追加到现有结果集 |
+| `fetch_to(vec)` | `async_fetch_to(vec)` | 填充自定义 `orm::Base` 结构体数组 |
+| `fetch_one_to(obj)` | `async_fetch_one_to(obj)` | 填充一个自定义 `orm::Base` 结构体 |
 | `count()` | `async_count()` | 统计匹配记录数 |
-| `save()` | `async_save()` | 新增记录 |
-| `update()` | `async_update()` | 更新记录 |
-| `remove()` | `async_remove()` | 删除记录 |
+| `page(p, pp, ln)` | `async_page(p, pp = 10, ln = 5)` | 同样返回 `[bar_min, bar_max, current, total]` 四元组 |
+| `save(isrealnew)` | `async_save(isrealnew = false)` | 新增记录 |
+| `insert()` / `insert(row)` / `insert(rows)` | `async_insert()` / `async_insert(row)` / `async_insert(rows)` | 同样返回 `[effect, id]` 二元组；`row` 是一个 `meta` 结构体，`rows` 是 `std::vector<meta>` |
+| `update()` / `update(fields)` | `async_update()` / `async_update(fields)` | 更新记录 |
+| `update_dirty()` | `async_update_dirty()` | 只更新经生成的逐字段 setter 写过的列（§5.6） |
+| `update_col(col, n, sign)` | `async_update_col(col, n, sign = '+')` | 自增或自减 |
+| `replace_col(col, old, new)` | `async_replace_col(col, old, new)` | 在 UPDATE 中使用 `REPLACE()` |
+| `remove()` / `remove(id)` | `async_remove()` / `async_remove(id)` | 删除记录 |
+
+`async_fetch_to` 与 `async_fetch_one_to` 各还有一个带回调参数的重载
+`(vec, callback)` / `(obj, callback)`。它在读取每一行的过程中，对每一个非 `NULL` 列触发一次，
+形参为 `(row&, col_name, const unsigned char *data, std::size_t len, unsigned char field_type, unsigned char flag)`，
+回调返回后该行仍会被追加进结果集 —— 它是一个按列钩子，不是流式模式。
 
 预编译路径（值作为参数绑定，见 §5.8）—— 每个 `exec_` 方法都有一个签名与返回值完全
 一致的 `async_exec_` 版本:
@@ -795,6 +807,94 @@ model.where("aid", id).replace_col("content", "old", "new");
 model.where("aid", id).fetch_one();
 ```
 
+**只更新你动过的列** —— `update_dirty()`，协程版 `async_update_dirty()`，以及预编译的
+`exec_update_dirty()` / `async_exec_update_dirty()`。只有经生成的逐字段 setter 写入的列
+才算"脏"；直接给 `model.data.x` 赋值不留痕迹，主键的 `setAid`、`setPK` 也永不标脏。
+
+```cpp
+auto model = orm::cms::Article();
+model.setTopicid(7);            // topicid 标脏
+model.setTitle("新标题");        // title 标脏
+model.data.content = "静音";     // 不标脏 —— 这一列不会出现在 UPDATE 里
+
+model.where("aid", id).update_dirty();       // UPDATE ... SET topicid=7,title='新标题'
+model.clear_dirty();                         // 需要时手动清零
+model.where("aid", id).exec_update_dirty();  // 同一组列，值改为参数绑定
+```
+
+守卫行为在文本与预编译两种形式下一致：没有脏列时，文本路径返回 `0` 且不发送任何语句，
+`exec_update_dirty()` 则置 `iserror` 并返回 `(unsigned int)-1`。`wheresql` 为空时语句回退
+到主键（`getPK() > 0`）；两者都没有时，文本路径返回 `0`，预编译路径拒绝发出语句。更新
+成功后脏位自动清零。
+
+**`save()` 是一个开关，不是插入** —— 当模型已经带着主键（`getPK() > 0`）且 `isrealnew`
+为 false 时，`save()` 发出的是 `UPDATE ... WHERE pk = ...`，而不是 INSERT。需要新行时请用
+`insert()` 或 `save(true)`。
+
+```cpp
+auto articles = orm::cms::Article();
+articles.data.title = "标题";
+auto [effect, newId] = articles.insert();   // 永远 INSERT，返回 [影响行数, 新 id]
+
+articles.data.title = "第二条";
+auto [e2, id2] = articles.save(true);       // 已有主键也仍然 INSERT
+
+articles.data.title = "补丁";
+auto [e3, _] = articles.save();             // UPDATE pk == id2 的那一行
+```
+
+`insert()` 有三个重载 —— `insert()` 取 `data` 作为行，`insert(row)` 取一个 `meta`，
+`insert(rows)` 取 `std::vector<meta>` 并只发一条多行语句
+`INSERT INTO t (全部列) VALUES (...),(...)`，所以你没填的那一列写入的是 `0` / `''`，
+而不是列默认值。三个重载都返回 `[影响行数, 插入 id]` 并用该 id 调用 `setPK()`。一条多行
+语句整体只有 **一个** id（MySQL 返回的是首个自增值），因此它最多只能定位其中一行 ——
+如果调用方需要每一行的主键，请重新查询。
+
+```cpp
+auto rows = std::vector<orm::cms::article_info::meta>();
+// 把每一行的每个列都填好，然后：
+auto [batch_effect, batch_id] = articles.insert(rows);
+```
+
+`set_data(row)` 把一整个 `meta` 赋给 `data` 并返回调用链；`get()` 只是返回模型自身的
+引用，方便把一长串链式调用拆成多条语句。这两个方法在本仓库里都还没有调用点 ——
+现有控制器用的是 `model.data = row;`。
+
+```cpp
+orm::cms::Article one_row;                 // 别处查出来的
+articles.set_data(one_row.data).insert();  // data = one_row.data，然后 INSERT
+```
+
+**整批 upsert / 替换 `record`** —— `update_batch(fieldname)` 发送的是由 `record`（不是
+`data`）构造的一条语句，`record` 为空时直接返回 `0`。具体是哪条语句取决于方言和参数：
+
+| 方言 | `update_batch("a,b")` | `update_batch("")` |
+|---|---|---|
+| MySQL | `INSERT ... ON DUPLICATE KEY UPDATE` | `REPLACE INTO` |
+| PostgreSQL | `INSERT ... ON CONFLICT (pk) DO UPDATE SET` | `INSERT ... ON CONFLICT DO NOTHING` |
+| SQLite | `INSERT ... ON CONFLICT(pk) DO UPDATE SET` | `REPLACE INTO` |
+
+upsert 形式需要冲突目标，所以 `record` 里每一行的主键都必须有值。它没有协程版，也没有
+预编译版 —— 预编译的批量插入请用 `exec_insert_batch()`。
+
+**软删除** —— `soft_remove()` / `soft_remove("额外的 set 片段")` 执行的是生成器依据表列名
+写出的那条 `UPDATE`，也就是给行打标记而不是删行。`paozhu_cli orm` 认下面这一组固定命名，
+并把对应的赋值写进 `{table}_base.h::soft_remove_sql()`：
+
+| 列名 | 生成的赋值 |
+|---|---|
+| `isdelete`、`deleted`、`isdeleted`、`is_deleted`、`is_delete`、`order_deleted`、`order_delete` | `col=1` |
+| `deletetime`、`delete_time`、`deletedtime`、`deleted_time`、`deleted_at`、`delete_at` | `col=<unix 时间戳>`（选中该列时，这个值也会写回 `data`） |
+
+没有这类列的表会得到一个空的函数体，此时 `soft_remove()` 置
+`error_msg = "soft delete field empty."` 并返回 `0`，不发送任何语句。本仓库目前的任何一张
+表都没有符合条件的列，所以这个 API 只对新建表有意义。和 `remove()` 一样，`wheresql` 为空
+时回退到主键，并且 `group()/order()/limit()` 会被拼到语句尾部。
+
+```cpp
+articles.where("aid", id).soft_remove();   // UPDATE article SET isdelete=1 WHERE aid = id
+```
+
 ### 5.7 原生 SQL 查询
 
 当需要执行复杂 SQL 或 ORM 不支持的查询时，使用 `orm::db_conn` 独立数据库连接：
@@ -837,6 +937,41 @@ for (auto &row : loaduser)
 ```
 
 **注意**: SQL 中 SELECT 的字段必须与返回结构体的字段一一对应。
+
+**模型对象自己也能跑原生 SQL。** `orm::db_conn` 是一条独立连接；每个模型还自带一组入口，
+复用模型自己的连接池与标签。
+
+```cpp
+auto articles = orm::cms::Article();
+
+std::vector<orm::cust::ArticleTopSql> top;
+unsigned int rows = articles.query("SELECT aid,title FROM article WHERE isopen=1 LIMIT 3", top);
+// rows == top.size()；结构体需满足 orm::Base / ResultHasSetVal
+
+co_await articles.async_query(sqlstring, top);          // 协程版
+
+int affected = articles.edit_query("UPDATE article SET readnum=readnum+1 WHERE topicid=3");
+co_await articles.async_edit_query(sql);                // 协程版
+```
+
+| 方法 | 返回 | 行为 |
+|------|------|------|
+| `query(sql, rows)` / `async_query(sql, rows)` | 取回的行数 | SELECT 路径；非 SELECT 会转交 `edit_query`，结果集被丢弃 |
+| `edit_query(sql)` / `async_edit_query(sql)` | 影响行数 | 经写连接发送任意语句；不改动 `sqlstring` |
+| `get_query()` | `std::string` | 上一条生成的语句，用于日志；`edit_query` 不会设置它 |
+| `effect()` | `unsigned int` | 即 `effect_num` —— 写操作是影响行数，读操作是行数 |
+| `commit_insert()` / `commit_insert(row)` | `std::string` | 只拼出 INSERT 文本，不发送 |
+| `commit_update(fields)` / `commit_remove()` | `std::string` | 只拼出 UPDATE / DELETE 文本，不发送 |
+
+读取用 `query(sql, rows)`，写入用 `edit_query(sql)`；不存在只吃一条语句的 `query(sql)`，
+所以遗留的这种调用是编译错误，而不是一次悄悄返回 0 行的读取。任何一路都不要把请求数据
+拼进语句 —— 只拼你自己代码产生的值，就像上面 `orm::db_conn` 的例子那样。
+
+`commit_*` 是查询 DSL 表达不出来的语句的出口：它们拼出的文本与对应的
+`save()`/`update()`/`remove()` 将要发送的完全相同，你可以查看、记日志，或者交给
+`edit_query()` / 批量导入器。`commit_update()` 与 `commit_remove()` 拒绝生成无边界语句 ——
+`wheresql` 为空时回退到主键，两者都没有时返回 `""`（`commit_update()` 还会置
+`error_msg = "warning empty where sql!"`）。`commit_insert()` 没有这道守卫。
 
 ### 5.8 预编译语句查询
 
@@ -1014,6 +1149,103 @@ asio::awaitable<void> handle_request()
 }
 ```
 
+### 5.13 结果缓存（`use_cache`，进程内）
+
+`vendor/httpserver/include/orm_cache.hpp`，加上被复制进每个生成模型的 `use_cache` 代码块，
+构成一个查询结果的读穿（read-through）缓存。它只是进程内存：没有 Redis、没有文件、没有序
+列化，也没有任何 `orm.conf` / `server.conf` 配置项能开启或关闭它 —— 调用本身就是唯一的开
+关。这段代码在三个方言模板中逐字节相同。
+
+**存的是什么。** 缓存键是 `std::hash<std::string>{}(sqlstring)`，即完整拼好的语句，所以
+select 列表、WHERE 文本、group/order 和 limit 全部参与构成键；DB 标签不参与，标签在模型构
+造时就固定了。按值类型分成两个存储，彼此永不冲突：
+
+| 存储 | 值 | 写入者 | 读取者 |
+|------|-----|--------|--------|
+| `meta` | `data`（单行） | `fetch_one()`、`get_one()`、`save_data_cache()` | `fetch_one()`、`get_one()`、`get_data_cache()` |
+| `std::vector<meta>` | `record`（结果集） | `fetch()`、`fetch_append()`、`save_cache()` | `fetch()`、`fetch_append()`、`get_record_cache()` |
+
+`fetch_row()` 把行存放在另外三个存储里 —— `std::vector<std::vector<std::string>>` 本身、
+列名向量、以及 名 → 下标 的映射 —— 键的算法相同。这三个值类型都不携带模型信息，所以它们
+是全进程共享的：与上面两个存储不同，它们不按 `meta` 类型分份。
+`fetch_to()` / `fetch_one_to()` 永不走缓存，预编译路径上的任何方法也都不走。
+
+**装填一次读穿。** `use_cache(int cache_time = 0)` 可链式调用，为下一次读取装填；
+`cache_time` 是以秒为单位的 TTL，`0` 表示 *永不过期*。
+
+```cpp
+auto articles = orm::cms::Article();
+articles.where("isopen", 1).where("topicid", 3).use_cache(60).fetch();  // record 存储，60 秒
+```
+
+语句发出之前，读取方法先查自己那个存储；命中就填充 `record` / `data`、解除装填并返回。
+真正读完之后，只在 `if (iscache && exptime > 0)` 成立时回写，然后解除装填。严格按这段代码
+理解，会得到三条结论：
+
+- 使用默认 TTL 的 `use_cache()` 什么都不会存 —— 回写要求 `exptime > 0`。它的含义是“装填，
+  然后什么都不做”，不是“永久缓存”。
+- 命中时 `fetch()` / `async_fetch()` / `fetch_one()` / `get_one()` 返回 `0`，与结果集为空时
+  的返回值完全一样，所以 `if (model.fetch_one() > 0)` 会把每一次缓存命中都当成失败。
+- 没有别的东西会解除装填。`clear()` 和 `clearWhere()` 重置 `iscache` 但把 `exptime` 留在
+  原处；`set_cache_state(bool)` 只设置这个标志。
+
+**写操作从不失效。** `save()`、`update()`、`update_dirty()`、`update_col()`、
+`replace_col()`、`remove()` 都不碰任何一个存储；`exec_*` / `async_exec_*` 路径既不查缓存也
+不填缓存。凡是经这些方法、经 `orm::db_conn`、或被其他进程改动过的行，都会被一直返回，直到
+TTL 到期。
+
+**不存在就地刷新。** `model_meta_cache::save()` 做的是插入；若键已存在，它只重写存储项的
+`exptime`，行数据原样保留（`cover_data` 默认 `false`，且没有任何包装函数传它）。对仍然有效
+的键重新缓存，只延长寿命，不改变内容。删除 / 清理这一族 —— `clear_cache()`、两种形式的
+`remove_cache()`、`remove_exptime_cache()` —— 现在同时覆盖 `meta` 和 `record` 两个存储，
+两种结果集都能被丢掉；只要任一存储里还有这个键，`remove_cache()` 就返回 `true`。
+`check_cache()` 与 `update_cache()` 仍是单存储的（分别对应 `meta` 与 `record`）。而
+`fetch_row()` 用的三个存储以通用值类型为键，所有模型共用，模型上没有清理它们的入口，只能
+靠 TTL 到期。
+
+**未命中有副作用。** `get_data_cache()` 与 `get_record_cache()` 在键不存在时会写 `error_msg`
+并调用 `unlock_conn()`。`iserror` 仍为 false，但在 `lock_conn()` 批次里做一次冷读取，会把连
+接放回连接池。
+
+**具名键。** 手动 API 接受调用方自选的 `std::string` 并自行哈希，这正是给“SQL 文本由 DSL
+拼得不稳定”的查询做缓存的办法。返回存储值的两个访问器 —— `get_cache(name)` 与
+`get_vector_cache(name)` —— 用抛异常表达未命中：先写 `error_msg`、调用 `unlock_conn()`，再
+抛 `std::runtime_error("Not in cache")`，所以必须放在 `try` 里。而 `check_cache()`、
+`get_record_cache()`、`update_cache()` 要的是 `std::size_t`，同一个名字请用
+`std::hash<std::string>{}(name)` 自己哈希。
+
+```cpp
+const std::string key = "cms:article:top3:" + std::to_string(topicid);
+try
+{
+    articles.record = articles.get_vector_cache(key);   // 未命中会抛异常
+}
+catch (const std::exception &)
+{
+    articles.clearWhere();
+    articles.where("isopen", 1).desc("aid").limit(3).fetch();
+    articles.save_vector_cache(key, articles.record, 60);
+}
+```
+
+`save_vector_cache(name, rows, ttl)` 与 `save_cache(name, rows, ttl)` 是同一个调用。无参的
+`remove_cache()` 以 `sqlstring` 为键，所以在该对象上先拼出语句才有意义。
+
+**`isuse_cache()` 不是命中标志。** 无参时它表示装填是否还在。`isuse_cache(true)` 返回
+`exptime == 0 && iscache == false`，而这个条件的含义随 TTL 模式翻转：在 `use_cache(60)` 下
+真正读完之后，回写恰好把两者都清零，于是它返回 `true`；而命中时 `exptime` 仍是 `60`，于是
+返回 `false`。在 `use_cache()`（TTL `0`）下又反过来。请把它理解成“装填已被消耗”，而不是
+“这些行来自缓存”。
+
+**冷缓存下的 `fetch_row()` 不再抛异常。** 它的读取要在同一个键上查三个存储，而
+`model_meta_cache::get()` 在未命中或条目已过期时会抛，所以这三个 `get()` 现在写在 `try`
+里：未命中、或者三个存储过期得不一致，都会落到真正的查询上。只有三者全部成功才算命中，因
+此返回的元组不会带着行数据却配一个空的列名列表。`fetch_obj()` 两个方向都不碰缓存：每次都
+从数据库读，也不回写，所以它不可能把 `fetch()` 读穿的那个 `record` 存储掏空。
+`fetch_row()` 命中时消耗掉 `use_cache(ttl)` 的装填，未命中时保留它，于是真正读完之后的回写
+照常执行；`fetch_obj()` 根本不看它，留在对象上的装填会活到下一次读取。上面那组具名键访问
+器仍然按设计抛异常。
+
 ---
 
 ## 六、CLI 工具使用
@@ -1144,7 +1376,9 @@ client.val["list"].push(item);
 
 **条件** —— 第一个参数可以是列名（`"status"`），也可以是
 `{tag}::{table}_info::cols` 枚举值。它不会是 SQL 片段；不存在
-`where("isopen=1")` 这种重载（见 §5.3）。
+`where("isopen=1")` 这种重载（见 §5.3）。下面每个 `whereXxx` 都有一个 `whereOrXxx`
+同参兄弟；它唯一的区别是与前一个条件用 `OR` 相连，这正是 `andsub()` / `orsub()`
+括号内部需要的写法。
 
 | 方法 | SQL | 示例 |
 |------|-----|------|
@@ -1159,7 +1393,13 @@ client.val["list"].push(item);
 | `whereNull(col)` / `whereNotNull(col)` | `IS NULL` / `IS NOT NULL` | `.whereNull("deleted_at")` |
 | `whereAnd(col, val)` | 显式 AND | `.whereAnd("type", 2)` |
 | `whereOr(col, val)` | 显式 OR | `.whereOr("tag", 3)` |
+| `whereOrBT` / `whereOrBE` / `whereOrLT` / `whereOrLE` / `whereOrNQ` | 用 `OR` 相连的 `>` / `>=` / `<` / `<=` / `!=` | `.whereOrLT("price", 100)` |
+| `whereOrIn(col, vals)` / `whereOrNotIn(col, vals)` | `OR IN (...)` / `OR NOT IN (...)` | `.whereOrIn("id", ids)` |
+| `whereOrNull(col)` / `whereOrNotNull(col)` | `OR IS NULL` / `OR IS NOT NULL` | `.whereOrNull("deleted_at")` |
 | `where(col, "op", val)` | 运算符以字符串给出（`"="`、`"!="`、`">"`、`"<"`、`"LIKE"`、`"NOT LIKE"` …） | `.where("title", "NOT LIKE", "kw")` |
+
+不存在 `whereOrGT` / `whereOrGE`，也不存在 `whereOrEQ` / `whereOrNE`：`whereOr(col, val)`
+本身就是 `OR col = val`，而 `>` / `>=` 要写成 `whereOrBT` / `whereOrBE`。
 
 **LIKE** —— `%` 通配符由 ORM 附加，调用方绝不要自己传。
 
@@ -1181,6 +1421,9 @@ client.val["list"].push(item);
 | `clearWhere()` | 清空全部条件与括号标记 | |
 | `clear()` | 清空条件、数据与已生成的 SQL | |
 | `desc(col)` / `asc(col)` | `ORDER BY` | `.desc("aid")` |
+| `order(col, "ASC")` / `order(col, "DESC")` | 由 `cols` 枚举加方向字符串拼出 `ORDER BY` —— 列必须是枚举，不存在 `order("aid", "DESC")` 这个重载 | `.order(orm::cms::article_info::cols::aid, "DESC")` |
+| `order("expr")` / `asc("expr")` / `desc("expr")` | 参数原样拼进 `ORDER BY` | `.order("aid DESC, title ASC")` |
+| `asc()` / `desc()` | 按主键 `ORDER BY` | `.desc()` |
 | `limit(n)` / `limit(offset, n)` | `LIMIT` | `.limit(0, 20)` |
 | `select(fields)` | 字段列表，允许表达式与别名 | `.select("id,title")` |
 | `group(col)` | `GROUP BY` | `.group("topicid")` |
@@ -1197,11 +1440,16 @@ client.val["list"].push(item);
 | `count()` | 匹配行数 |
 | `page(page, per_page, list_num)` | `[bar_min, bar_max, current, total]` |
 | `save()` / `update(fields)` / `remove()` | `[effect, id]` / 生效行数 / 生效行数 |
+| `insert()` / `insert(row)` / `insert(rows)` | `[effect, id]`；永远执行 INSERT，`rows` 是一条多行语句（§5.6） |
+| `update_batch(fields)` | 生效行数；由 `record` 构造的一条 upsert（参数为空时是 replace）（§5.6） |
+| `soft_remove()` / `soft_remove(extra)` | 生效行数；执行生成的“标记列”UPDATE，表没有该列时返回 `0`（§5.6） |
 | `update_col(col, n, sign)` | 自增（`'+'`）或自减（`'-'`） |
 | `replace_col(col, old, new)` | 在 UPDATE 中使用 `REPLACE()` |
+| `update_dirty()` | 生效行数；没有脏列时返回 `0` 且不发送语句（§5.6） |
 
-**执行 —— 预编译路径**（§5.8）：上述每个方法都有 `exec_` 版本，协程形式再加 `async_`
-前缀。
+**执行 —— 预编译路径**（§5.8）：上述每个读取和单行写方法都有 `exec_` 版本，协程形式再加
+`async_` 前缀。没有预编译对应版本的是：`insert(rows)`（批量场景由 `exec_insert_batch()`
+覆盖）、`update_batch()`、`soft_remove()`，以及 `query()`/`edit_query()` 这一族。
 
 | 文本 | 预编译 | 异步预编译 |
 |------|--------|------------|
@@ -1231,6 +1479,71 @@ client.val["list"].push(item);
 | `one{Camel}()` / `one{Camel}(id)` / `one{Camel}(obj&)` | 生成的外键：单条关联行 |
 | `many{Camel}()` / `many{Camel}(obj&)` | 生成的外键：当前结果集的全部关联行 |
 | `get_cols_vec<{table}_info::cols::col>()` | 取 `record` 中该列的值集合，即 `many{Camel}` 用来限定的集合。按表生成于 `_base.h`；另一个重载接受 `bool(const value&)` 过滤回调 |
+
+**结果缓存**（§5.13）—— “存储”一列指明该方法落在两个 map 的哪一个上：`meta` 存单行
+（`data`），`vector` 存结果集（`record`）。
+
+| 方法 | 存储 | 说明 |
+|------|------|------|
+| `use_cache(ttl = 0)` | — | 可链式调用；为下一次文本路径读取装填 |
+| `isuse_cache(bydate = false)` | — | 装填标志，不是命中指示器 |
+| `set_cache_state(bool)` | — | 强制设置 `iscache`，不动 `exptime` |
+| `save_data_cache(ttl = 0)` | `meta` | 以 `hash(sqlstring)` 为键存 `data` |
+| `save_data_cache(name, row, ttl = 0)` | `meta` | 调用方指定的键 |
+| `save_cache(ttl = 0)` | `vector` | 以 `hash(sqlstring)` 为键存 `record` |
+| `save_cache(key, rows, ttl = 0)` / `save_cache(name, rows, ttl = 0)` / `save_vector_cache(name, rows, ttl = 0)` | `vector` | 调用方指定的键 |
+| `save_cache(name, row, ttl = 0)` | `meta` | 用名字存单行 |
+| `get_data_cache(key)` / `get_record_cache(key)` | `meta` / `vector` | 填充 `data` / `record`，返回 `bool`；未命中会写 `error_msg` 并调用 `unlock_conn()` |
+| `get_cache(name)` / `get_vector_cache(name)` | `meta` / `vector` | 返回存储的值；未命中**抛** `std::runtime_error` |
+| `check_cache(key)` | `meta` | `-1` 不存在，`0` 永不过期，其余为剩余秒数 |
+| `update_cache(ttl = 0)` / `update_cache(key, ttl)` | `vector` | 只改 TTL；键不存在返回 `-1` |
+| `remove_cache()` / `remove_cache(key)` | `meta` + `record` | 无参版本以 `sqlstring` 为键；任一存储里有这个键就返回 `true` |
+| `clear_cache()` / `remove_exptime_cache()` | `meta` + `record` | 整个存储 / TTL 已到期的条目 |
+
+读穿逻辑内置在 `fetch()`、`fetch_append()`、`fetch_one()`、`get_one()` 及其 `async_` 兄弟
+里，另有 `fetch_row()`；`fetch_obj()` 既不读也不写，任何 `exec_*` 方法都不读写缓存。
+
+**无类型结果形态** —— 用于类型化的 `meta` 表达不出的列组合。它们读取与 `fetch()` 相同的
+`select()/where()/limit()` 状态。
+
+| 方法 | 返回 | 说明 |
+|------|------|------|
+| `fetch_obj()` | `std::vector<std::map<std::string, std::string>>` | 一行一个 map；所有值都是字符串，`NULL` 变成 `""`，因此 `0` 与空列无法区分 |
+| `fetch_row()` | `tuple<vector<string>, map<string, unsigned int>, vector<vector<string>>>` | 列名、名 → 下标、以及行数据；按下标访问可以保留重复列名 |
+| `fetch_json()` / `async_fetch_json()` | `http::obj_val` | 一个由字符串值对象组成的数组，可直接输出 |
+| `get_one(id)` / `async_get_one(id)` | `long long` | 按主键取一行进 `data`；完全忽略 `wheresql`，所以链式 `where()` 会被静默丢弃 |
+
+两种 `get_one()` 都返回读到的行数，所以 `if (m.get_one(id) > 0)` 就意味着这一行已经落进
+`data`。唯一的例外是结果缓存：命中时每一个读穿方法（包括 `get_one()`）都返回 `0`，所以可
+能用到缓存时，判断依据请用 `data` 而不是返回值。
+
+**表名与连接切换**
+
+| 方法 | 说明 |
+|------|------|
+| `set_table(name)` | 覆盖后续语句使用的表名；空参数被忽略 |
+| `reset_table()` | 恢复为 `org_tablename` |
+| `switchDB(tag)` | 把模型重新绑定到另一个 `orm.conf` 标签，且必须**同引擎** —— MySQL 模型会拒绝 `postgresql`/`sqlite` 标签。成功时 `dbtag` 跟着切换，后续语句与报错文本指的就是真正在用的那个池 |
+| `resetDB()` | 反向操作：重新绑定到 `B_BASE::_rmstag`，也就是这张表**生成时**所用的标签，从而丢掉 `switchDB()` 指过去的目标。可链式，引擎校验与 `switchDB()` 相同 |
+| `get_db_type()` | 模型编译期的引擎：`DB_TYPE::MYSQL` / `POSTGRESQL` / `SQLITE` —— 属于生成出来的类，而不是连接 |
+| `data` | 当前行（`{table}_info::meta`） |
+| `record` | 已加载的行集（`std::vector<meta>`） |
+| `error_msg` | 最近一次错误文本 |
+| `iserror` | 一旦置位就锁住 —— 它为真时，大多数读写方法不接触数据库直接返回 `0`。只有 `clear()` / `clearWhere()` 会复位（两者同时清空 `error_msg`） |
+
+`switchDB()` 只改变模型借用连接的池，这正是同引擎分库分表的入口。它是返回 `M_MODEL &` 的
+链式方法，`model.switchDB("cms").where("aid", id).fetch()` 就是预期的写法。被拒绝的切换会
+清空连接并置 `iserror`，而链式调用仍然落在这个对象上 —— 后面的读取不接触数据库直接返回
+`0`，所以要在链式调用结束后检查 `error_msg`，而不是在 `switchDB()` 之后。两种拒绝报错点名
+的都是**被请求的那个标签**：标签不存在是 `conn_pool not found <标签>`，标签在另一个引擎上
+是 `conn_pool db type error <标签>`。
+
+`resetDB()` 就是配对的回程 —— `model.switchDB("cms").fetch()` 之后再
+`model.resetDB().fetch()`，同一个对象先读分片、再回到本表自己的库。它只是重新绑定，不是
+修复：连接池接回来了，但和其它方法一样，**不会**复位已经锁住的 `iserror`。所以在一次
+**失败的** `switchDB()` 之后，`resetDB()` 会恢复 `conn_obj` 与 `dbtag`，模型却仍然拒绝读取
+—— 要调用 `clear()`（或 `clearWhere()`）才能解开锁，且 `clear()` 连 `error_msg` 一起清空，
+所以先读它再清。
 
 ---
 

@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM SQLITE intermediate connection layer, sourced from MySQL, PostgreSQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sat, 12 Sep 2026 09:33:46 GMT
+ *  Creation time Sat, 12 Sep 2026 15:37:20 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -115,6 +115,35 @@ namespace pg
                 {
                     conn_obj  = nullptr;
                     iserror   = true;
+                    error_msg = "conn_pool db type error " + temptag;
+                }
+                else
+                {
+                    conn_obj = iter->second;
+                    dbtag    = temptag;
+                }
+            }
+            else
+            {
+                conn_obj  = nullptr;
+                iserror   = true;
+                error_msg = "conn_pool not found " + temptag;
+            }
+            return *mod;
+        }
+
+        M_MODEL &resetDB()
+        {
+            dbtag = B_BASE::_rmstag;
+            std::map<std::string, std::shared_ptr<orm_conn_pool>> &conn_pool_obj = get_orm_conn_pool_obj();
+            auto iter                                                            = conn_pool_obj.find(dbtag);
+            if (iter != conn_pool_obj.end())
+            {
+                //必须是 DB_TYPE::POSTGRESQL 类型链接
+                if (iter->second->conf_data[0].db_type != DB_TYPE::POSTGRESQL)
+                {
+                    conn_obj  = nullptr;
+                    iserror   = true;
                     error_msg = "conn_pool db type error " + dbtag;
                 }
                 else
@@ -126,9 +155,11 @@ namespace pg
             {
                 conn_obj  = nullptr;
                 iserror   = true;
-                error_msg = "conn_pool not found " + temptag;
+                error_msg = "conn_pool not found " + dbtag;
             }
+            return *mod;
         }
+
         M_MODEL &set_table(const std::string &table_name)
         {
             if (table_name.size() > 0)
@@ -3093,16 +3124,6 @@ M_MODEL& ornotnullExtra()
                 {
                     conn_obj->back_pg_select_conn(std::move(select_conn));
                 }
-
-                if (iscache)
-                {
-                    if (exptime > 0)
-                    {
-                        save_cache(exptime);
-                        exptime = 0;
-                        iscache = false;
-                    }
-                }
             }
             catch (const std::exception &e)
             {
@@ -3163,17 +3184,30 @@ M_MODEL& ornotnullExtra()
 
                 model_meta_cache<std::vector<std::vector<std::string>>> &temp_cache =
                     model_meta_cache<std::vector<std::vector<std::string>>>::getinstance();
-                temprecord = temp_cache.get(sqlhashid);
-                if (temprecord.size() > 0)
+                model_meta_cache<std::vector<std::string>> &table_cache =
+                    model_meta_cache<std::vector<std::string>>::getinstance();
+                model_meta_cache<std::map<std::string, unsigned int>> &tablemap_cache =
+                    model_meta_cache<std::map<std::string, unsigned int>>::getinstance();
+
+                bool iscache_hit = false;
+                try
                 {
-                    iscache                                                 = false;
-                    model_meta_cache<std::vector<std::string>> &table_cache = model_meta_cache<std::vector<std::string>>::getinstance();
-                    table_fieldname                                         = table_cache.get(sqlhashid);
+                    std::vector<std::vector<std::string>> cache_rows  = temp_cache.get(sqlhashid);
+                    std::vector<std::string> cache_fieldname           = table_cache.get(sqlhashid);
+                    std::map<std::string, unsigned int> cache_fieldmap = tablemap_cache.get(sqlhashid);
 
-                    model_meta_cache<std::map<std::string, unsigned int>> &tablemap_cache =
-                        model_meta_cache<std::map<std::string, unsigned int>>::getinstance();
-                    table_fieldmap = tablemap_cache.get(sqlhashid);
-
+                    temprecord      = std::move(cache_rows);
+                    table_fieldname = std::move(cache_fieldname);
+                    table_fieldmap  = std::move(cache_fieldmap);
+                    iscache_hit     = true;
+                }
+                catch (const std::exception &)
+                {
+                    iscache_hit = false;
+                }
+                if (iscache_hit && temprecord.size() > 0)
+                {
+                    iscache = false;
                     return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
                 }
             }
@@ -5195,24 +5229,37 @@ M_MODEL& ornotnullExtra()
         void set_cache_state(bool isrestatus = false) { iscache = isrestatus; }
         void remove_exptime_cache()
         {
-            model_meta_cache<fk_child_info::meta> &temp_cache = model_meta_cache<fk_child_info::meta>::getinstance();
-            temp_cache.remove_exptime();
+            model_meta_cache<fk_child_info::meta> &data_cache = model_meta_cache<fk_child_info::meta>::getinstance();
+            data_cache.remove_exptime();
+
+            model_meta_cache<std::vector<fk_child_info::meta>> &record_cache = model_meta_cache<std::vector<fk_child_info::meta>>::getinstance();
+            record_cache.remove_exptime();
         }
         void clear_cache()
         {
-            model_meta_cache<fk_child_info::meta> &temp_cache = model_meta_cache<fk_child_info::meta>::getinstance();
-            temp_cache.clear();
+            model_meta_cache<fk_child_info::meta> &data_cache = model_meta_cache<fk_child_info::meta>::getinstance();
+            data_cache.clear();
+
+            model_meta_cache<std::vector<fk_child_info::meta>> &record_cache = model_meta_cache<std::vector<fk_child_info::meta>>::getinstance();
+            record_cache.clear();
         }
         bool remove_cache()
         {
-            model_meta_cache<fk_child_info::meta> &temp_cache = model_meta_cache<fk_child_info::meta>::getinstance();
-            std::size_t sqlhashid                               = std::hash<std::string>{}(sqlstring);
-            return temp_cache.remove(sqlhashid);
+            std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
+
+            model_meta_cache<fk_child_info::meta> &data_cache = model_meta_cache<fk_child_info::meta>::getinstance();
+            bool state = data_cache.remove(sqlhashid);
+
+            model_meta_cache<std::vector<fk_child_info::meta>> &record_cache = model_meta_cache<std::vector<fk_child_info::meta>>::getinstance();
+            return record_cache.remove(sqlhashid) || state;
         }
         bool remove_cache(std::size_t cache_key_name)
         {
-            model_meta_cache<fk_child_info::meta> &temp_cache = model_meta_cache<fk_child_info::meta>::getinstance();
-            return temp_cache.remove(cache_key_name);
+            model_meta_cache<fk_child_info::meta> &data_cache = model_meta_cache<fk_child_info::meta>::getinstance();
+            bool state = data_cache.remove(cache_key_name);
+
+            model_meta_cache<std::vector<fk_child_info::meta>> &record_cache = model_meta_cache<std::vector<fk_child_info::meta>>::getinstance();
+            return record_cache.remove(cache_key_name) || state;
         }
         int check_cache(std::size_t cache_key_name)
         {
@@ -5712,7 +5759,7 @@ M_MODEL& ornotnullExtra()
                         iscache = false;
                     }
                 }
-                return 0;
+                return effect_num;
             }
             catch (const std::exception &e)
             {
@@ -5721,7 +5768,7 @@ M_MODEL& ornotnullExtra()
                 return 0;
             }
 
-            return 0;
+            return effect_num;
         }
 
         asio::awaitable<long long> async_get_one(long long id)
@@ -8063,87 +8110,6 @@ M_MODEL& ornotnullExtra()
                 co_return std::make_tuple(0, 0);
             }
             co_return std::make_tuple(0, 0);
-        }
-
-        unsigned int query(const std::string &rawsql)
-        {
-            effect_num = 0;
-            if (rawsql.size() > 10)
-            {
-                unsigned int i = 0;
-                for (; i < rawsql.size(); i++)
-                {
-                    if (rawsql[i] != 0x20)
-                    {
-                        break;
-                    }
-                }
-                if (i < 5)
-                {
-                    //must be select
-                    if (rawsql[i] != 's' && rawsql[i] != 'S')
-                    {
-                        effect_num = edit_query(rawsql);
-                        return effect_num;
-                    }
-                }
-                else
-                {
-                    iserror = true;
-                }
-            }
-            else
-            {
-                iserror = true;
-            }
-
-            if (iserror)
-            {
-                return 0;
-            }
-
-            return 0;
-        }
-
-        asio::awaitable<unsigned int> async_query(const std::string &rawsql)
-        {
-            effect_num = 0;
-
-            if (rawsql.size() > 10)
-            {
-                unsigned int i = 0;
-                for (; i < rawsql.size(); i++)
-                {
-                    if (rawsql[i] != 0x20)
-                    {
-                        break;
-                    }
-                }
-                if (i < 5)
-                {
-                    //must be select
-                    if (rawsql[i] != 's' && rawsql[i] != 'S')
-                    {
-                        effect_num = co_await async_edit_query(rawsql);
-                        co_return effect_num;
-                    }
-                }
-                else
-                {
-                    iserror = true;
-                }
-            }
-            else
-            {
-                iserror = true;
-            }
-
-            if (iserror)
-            {
-                co_return 0;
-            }
-
-            co_return 0;
         }
 
         template <ResultHasSetVal T>

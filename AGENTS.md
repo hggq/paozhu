@@ -555,12 +555,25 @@ Text path (values escaped into the statement):
 | Sync method | Async method | Description |
 |-------------|-------------|-------------|
 | `fetch()` | `async_fetch()` | Fetch all matching records |
-| `fetch_one()` | `async_fetch_one()` | Fetch single record |
+| `fetch_one()` | `async_fetch_one(isappend = false)` | Fetch single record |
 | `fetch_append()` | `async_fetch_append()` | Fetch and append to existing record set |
+| `fetch_to(vec)` | `async_fetch_to(vec)` | Fill a vector of custom `orm::Base` structs |
+| `fetch_one_to(obj)` | `async_fetch_one_to(obj)` | Fill one custom `orm::Base` struct |
 | `count()` | `async_count()` | Count matching records |
-| `save()` | `async_save()` | Insert new record |
-| `update()` | `async_update()` | Update existing record |
-| `remove()` | `async_remove()` | Delete record |
+| `page(p, pp, ln)` | `async_page(p, pp = 10, ln = 5)` | Same `[bar_min, bar_max, current, total]` tuple |
+| `save(isrealnew)` | `async_save(isrealnew = false)` | Insert new record |
+| `insert()` / `insert(row)` / `insert(rows)` | `async_insert()` / `async_insert(row)` / `async_insert(rows)` | Same `[effect, id]` tuple; `row` is a `meta` struct, `rows` a `std::vector<meta>` |
+| `update()` / `update(fields)` | `async_update()` / `async_update(fields)` | Update existing record |
+| `update_dirty()` | `async_update_dirty()` | Update only columns written through the generated setters (§5.6) |
+| `update_col(col, n, sign)` | `async_update_col(col, n, sign = '+')` | Increment or decrement |
+| `replace_col(col, old, new)` | `async_replace_col(col, old, new)` | `REPLACE()` inside an UPDATE |
+| `remove()` / `remove(id)` | `async_remove()` / `async_remove(id)` | Delete record |
+
+`async_fetch_to` and `async_fetch_one_to` each have a second overload that takes a
+callback, `(vec, callback)` / `(obj, callback)`. It fires once per non-`NULL` column of
+every row as that row is read, with
+`(row&, col_name, const unsigned char *data, std::size_t len, unsigned char field_type, unsigned char flag)`,
+and the row is still appended afterwards — it is a column hook, not a streaming mode.
 
 Prepared path (values bound as parameters, see §5.8) — every `exec_` method gains an
 `async_exec_` twin with the same signature and return type:
@@ -806,6 +819,103 @@ model.where("aid", id).replace_col("content", "old", "new");
 model.where("aid", id).fetch_one();
 ```
 
+**Update only the columns you touched** — `update_dirty()`, its coroutine twin
+`async_update_dirty()`, and the prepared pair `exec_update_dirty()` /
+`async_exec_update_dirty()`. A column counts as touched only when the generated
+per-field setter writes it; assigning `model.data.x` directly leaves no trace, and the
+primary-key setters (`setAid`, `setPK`) never mark dirty.
+
+```cpp
+auto model = orm::cms::Article();
+model.setTopicid(7);            // marks topicid dirty
+model.setTitle("New Title");    // marks title dirty
+model.data.content = "quiet";   // NOT dirty — this column is not in the UPDATE
+
+model.where("aid", id).update_dirty();       // UPDATE ... SET topicid=7,title='New Title'
+model.clear_dirty();                         // reset by hand if needed
+model.where("aid", id).exec_update_dirty();  // same set, values bound as parameters
+```
+
+Guard rails, in both the text and the prepared form: with no dirty column the text path
+returns `0` and sends nothing, while `exec_update_dirty()` sets `iserror` and returns
+`(unsigned int)-1`. When `wheresql` is empty the statement falls back to the primary key
+(`getPK() > 0`); with neither, the text path returns `0` and the prepared path refuses to
+emit the statement. A successful update clears the dirty bits.
+
+**`save()` is a switch, not an insert** — when the model already carries a primary key
+(`getPK() > 0`) and `isrealnew` is false, `save()` emits `UPDATE ... WHERE pk = ...`
+instead of an INSERT. Use `insert()` or `save(true)` when a new row is what you want.
+
+```cpp
+auto articles = orm::cms::Article();
+articles.data.title = "Title";
+auto [effect, newId] = articles.insert();   // always INSERT, returns [affected rows, new id]
+
+articles.data.title = "Second";
+auto [e2, id2] = articles.save(true);       // always INSERT even though a PK is set
+
+articles.data.title = "Patched";
+auto [e3, _] = articles.save();             // UPDATE the row whose pk == id2
+```
+
+`insert()` has three overloads — `insert()` takes the row from `data`, `insert(row)` takes
+one `meta`, `insert(rows)` takes a `std::vector<meta>` and emits a single multi-row
+`INSERT INTO t (every column) VALUES (...),(...)`, so a row you did not fill writes `0` /
+`''` rather than the column default. All three return `[affected rows, insert id]` and call
+`setPK()` with that id. A multi-row statement yields **one** id for the whole batch (MySQL
+reports the first generated key), so it identifies a single row at best — re-query if the
+callers need every new primary key.
+
+```cpp
+auto rows = std::vector<orm::cms::article_info::meta>();
+// fill every column of each row, then:
+auto [batch_effect, batch_id] = articles.insert(rows);
+```
+
+`set_data(row)` assigns a whole `meta` into `data` and returns the chain; `get()` is a
+no-op that returns the model reference, so a long chain can be split across statements.
+Neither has a call site in this repository yet — `model.data = row;` is what the existing
+controllers use.
+
+```cpp
+orm::cms::Article one_row;                 // fetched elsewhere
+articles.set_data(one_row.data).insert();  // data = one_row.data, then INSERT
+```
+
+**Batch upsert / replace of the whole `record` set** — `update_batch(fieldname)` sends one
+statement built from `record`, not from `data`, and returns `0` immediately when `record`
+is empty. Which statement it is depends on the dialect and on the argument:
+
+| Dialect | `update_batch("a,b")` | `update_batch("")` |
+|---|---|---|
+| MySQL | `INSERT ... ON DUPLICATE KEY UPDATE` | `REPLACE INTO` |
+| PostgreSQL | `INSERT ... ON CONFLICT (pk) DO UPDATE SET` | `INSERT ... ON CONFLICT DO NOTHING` |
+| SQLite | `INSERT ... ON CONFLICT(pk) DO UPDATE SET` | `REPLACE INTO` |
+
+The upsert form needs the conflict target, so the primary key must be set in every row of
+`record`. There is no async twin and no prepared twin — use `exec_insert_batch()` for a
+prepared batch insert.
+
+**Soft delete** — `soft_remove()` / `soft_remove("extra, set, clauses")` run the `UPDATE`
+that the generator emits from the table's column names, so a row is flagged rather than
+deleted. `paozhu_cli orm` recognises a fixed set of conventions and writes the matching
+assignment into `{table}_base.h::soft_remove_sql()`:
+
+| Column name | Emitted assignment |
+|---|---|
+| `isdelete`, `deleted`, `isdeleted`, `is_deleted`, `is_delete`, `order_deleted`, `order_delete` | `col=1` |
+| `deletetime`, `delete_time`, `deletedtime`, `deleted_time`, `deleted_at`, `delete_at` | `col=<unix time>` (the value is also copied into `data` when that column is selected) |
+
+A table with none of those columns gets an empty body, and then `soft_remove()` sets
+`error_msg = "soft delete field empty."` and returns `0` without sending anything. No table
+in this repository currently has a matching column, so treat the API as available for new
+schemas only. Like `remove()`, an empty `wheresql` falls back to the primary key and
+`group()/order()/limit()` are appended to the statement.
+
+```cpp
+articles.where("aid", id).soft_remove();   // UPDATE article SET isdelete=1 WHERE aid = id
+```
+
 ### 5.7 Raw SQL Queries
 
 When complex SQL is needed or ORM does not support the query, use `orm::db_conn` as an independent database connection:
@@ -848,6 +958,44 @@ for (auto &row : loaduser)
 ```
 
 **Note**: The fields selected in the SQL must correspond one‑to‑one with the fields in the returned structure.
+
+**The model object also runs raw SQL.** `orm::db_conn` is a standalone connection;
+every model has its own set of entry points that reuse its connection pool and tag.
+
+```cpp
+auto articles = orm::cms::Article();
+
+std::vector<orm::cust::ArticleTopSql> top;
+unsigned int rows = articles.query("SELECT aid,title FROM article WHERE isopen=1 LIMIT 3", top);
+// rows == top.size(); the struct must satisfy orm::Base / ResultHasSetVal
+
+co_await articles.async_query(sqlstring, top);          // coroutine form
+
+int affected = articles.edit_query("UPDATE article SET readnum=readnum+1 WHERE topicid=3");
+co_await articles.async_edit_query(sql);                // coroutine form
+```
+
+| Method | Returns | Behaviour |
+|--------|---------|-----------|
+| `query(sql, rows)` / `async_query(sql, rows)` | rows fetched | SELECT path; a non‑SELECT is handed to `edit_query` and its result set is discarded |
+| `edit_query(sql)` / `async_edit_query(sql)` | affected rows | sends anything through the edit connection; `sqlstring` is left alone |
+| `get_query()` | `std::string` | the last generated statement, for logging; not set by `edit_query` |
+| `effect()` | `unsigned int` | `effect_num` — affected rows for a write, row count for a fetch |
+| `commit_insert()` / `commit_insert(row)` | `std::string` | the INSERT text, without sending it |
+| `commit_update(fields)` / `commit_remove()` | `std::string` | the UPDATE / DELETE text, without sending it |
+
+Reading takes `query(sql, rows)`, writing takes `edit_query(sql)`; there is no
+`query(sql)` that takes only a statement, so a leftover call of that shape is a compile
+error rather than a read that quietly returns zero rows. Never splice request data into any
+of them — interpolate only values your own code produced, as in the `orm::db_conn` example
+above.
+
+`commit_*` are the escape hatch for statements the query DSL cannot express: they build the
+same text the corresponding `save()`/`update()`/`remove()` would have sent, so you can
+inspect it, log it, or pass it to `edit_query()` / a bulk importer. `commit_update()` and
+`commit_remove()` refuse to produce an unbounded statement — with an empty `wheresql` they
+fall back to the primary key, and with neither they return `""` (`commit_update()` also
+sets `error_msg = "warning empty where sql!"`). `commit_insert()` has no such guard.
 
 ### 5.8 Prepared Statement Queries
 
@@ -1032,6 +1180,115 @@ asio::awaitable<void> handle_request()
 }
 ```
 
+### 5.13 Result Cache (`use_cache`, in-process)
+
+`vendor/httpserver/include/orm_cache.hpp`, plus the `use_cache` block copied into every
+generated model, is a read-through cache of query results. It is process-local memory only:
+no Redis, no file, no serialization, and no `orm.conf` / `server.conf` key enables or
+disables it — the call is the only switch. The block is byte-identical in all three dialect
+templates.
+
+**What is stored.** The key is `std::hash<std::string>{}(sqlstring)`, the fully built
+statement, so the select list, the WHERE text, the group/order and the limit are all part
+of it. The DB tag is not; a model's tag is fixed when it is constructed. Two stores exist,
+selected by the value type, and they never collide:
+
+| Store | Value | Written by | Read by |
+|-------|-------|------------|---------|
+| `meta` | `data` (one row) | `fetch_one()`, `get_one()`, `save_data_cache()` | `fetch_one()`, `get_one()`, `get_data_cache()` |
+| `std::vector<meta>` | `record` (row set) | `fetch()`, `fetch_append()`, `save_cache()` | `fetch()`, `fetch_append()`, `get_record_cache()` |
+
+`fetch_row()` keeps its rows in three further stores — the
+`std::vector<std::vector<std::string>>` itself, the column-name vector and the name → index
+map — keyed the same way. Their value types say nothing about the model, so all three are
+shared process-wide: unlike the two stores above, they are not per-`meta`-type.
+`fetch_to()` / `fetch_one_to()` are never cached, and neither is anything on the prepared
+path.
+
+**Arming a read-through.** `use_cache(int cache_time = 0)` is chainable and arms the next
+read; `cache_time` is a TTL in seconds, `0` meaning *never expires*.
+
+```cpp
+auto articles = orm::cms::Article();
+articles.where("isopen", 1).where("topicid", 3).use_cache(60).fetch();  // record store, 60s
+```
+
+Before the statement goes out, the read consults its store; on a hit it fills `record` /
+`data`, disarms and returns. After a real read it writes back only
+`if (iscache && exptime > 0)`, then disarms. Taken literally, that yields three rules:
+
+- `use_cache()` with the default TTL never stores anything — the write-back needs
+  `exptime > 0`. It means "arm, then do nothing", not "cache forever".
+- A hit returns `0` from `fetch()` / `async_fetch()` / `fetch_one()` / `get_one()`, exactly
+  what an empty result set returns, so `if (model.fetch_one() > 0)` reads every cache hit as
+  a failure.
+- Nothing else disarms the slot. `clear()` and `clearWhere()` reset `iscache` but leave
+  `exptime` behind; `set_cache_state(bool)` sets the flag alone.
+
+**Writes never invalidate.** No `save()`, `update()`, `update_dirty()`, `update_col()`,
+`replace_col()` or `remove()` touches either store, and the `exec_*` / `async_exec_*` path
+neither consults nor fills the cache. Rows changed through those methods, through
+`orm::db_conn`, or by any other process keep being served until the TTL lapses.
+
+**There is no refresh in place.** `model_meta_cache::save()` inserts; if the key is already
+present it rewrites only the stored `exptime` and leaves the old rows untouched
+(`cover_data` defaults to `false` and no wrapper passes it). Re-caching a live key extends
+its life, never changes its content. The delete/clear family — `clear_cache()`,
+`remove_cache()` in both forms, and `remove_exptime_cache()` — reaches the `meta` and the
+`record` store, so either row set can be dropped, and `remove_cache()` reports `true` when
+either store held the key. `check_cache()` and `update_cache()` stay single-store (`meta`
+and `record` respectively). The three stores `fetch_row()` uses are keyed by generic value
+types, so every model shares them; nothing on a model clears them and they age out by TTL
+alone.
+
+**A miss has side effects.** `get_data_cache()` and `get_record_cache()` set `error_msg`
+and call `unlock_conn()` when the key is absent. `iserror` stays false, but a cold read
+inside a `lock_conn()` batch hands the connection back to the pool.
+
+**Named keys.** The manual API takes a caller-chosen `std::string` and hashes it itself,
+which is how you cache anything whose SQL the DSL builds differently. The accessors that
+return a stored value — `get_cache(name)` and `get_vector_cache(name)` — signal a miss by
+throwing `std::runtime_error("Not in cache")` after setting `error_msg` and calling
+`unlock_conn()`, so they need a `try`. `check_cache()`, `get_record_cache()` and
+`update_cache()` take the `std::size_t` instead, so hash the same name with
+`std::hash<std::string>{}(name)`.
+
+```cpp
+const std::string key = "cms:article:top3:" + std::to_string(topicid);
+try
+{
+    articles.record = articles.get_vector_cache(key);   // throws on a miss
+}
+catch (const std::exception &)
+{
+    articles.clearWhere();
+    articles.where("isopen", 1).desc("aid").limit(3).fetch();
+    articles.save_vector_cache(key, articles.record, 60);
+}
+```
+
+`save_vector_cache(name, rows, ttl)` and `save_cache(name, rows, ttl)` are the same call.
+`remove_cache()` with no argument keys off `sqlstring`, so it does something only after a
+statement has been built on that object.
+
+**`isuse_cache()` is not a hit flag.** With no argument it reports whether the slot is still
+armed. `isuse_cache(true)` returns `exptime == 0 && iscache == false`, whose meaning flips
+with the TTL mode: after a real read under `use_cache(60)` the write-back has just zeroed
+both, so it returns `true`, while a hit leaves `exptime` at `60` and returns `false`. Under
+`use_cache()` (TTL `0`) it is the other way round. Treat it as "the arming was consumed",
+not as "the rows came from cache".
+
+**A cold `fetch_row()` does not throw.** Its read consults three stores under one key, and
+`model_meta_cache::get()` throws on a miss or an expired entry, so the three gets sit in a
+`try` and a miss — or a set that lapsed unevenly — falls through to a real query. A hit
+counts only when all three succeed, which is why the returned tuple never carries rows with
+an empty column-name list. `fetch_obj()` touches the cache in neither direction: it reads
+from the database every time and writes nothing back, so it cannot empty out the `record`
+store that `fetch()` reads through. `fetch_row()` consumes the `use_cache(ttl)` arming on a
+hit and keeps it on a miss, so the write-back at the end of a real read still runs;
+`fetch_obj()` never looks at it, so an arming left on the object survives to the next read.
+The named-key accessors above still throw by design.
+
 ---
 
 ## VI. CLI Tool Usage
@@ -1163,7 +1420,9 @@ same set.
 
 **Conditions** — the first argument is either a column name (`"status"`) or a
 `{tag}::{table}_info::cols` value. It is never a SQL fragment; there is no
-`where("isopen=1")` overload (§5.3).
+`where("isopen=1")` overload (§5.3). Every `whereXxx` below has a `whereOrXxx` sibling
+taking the same arguments; it only differs in joining with `OR` to the condition that
+precedes it, which is what you want inside a group opened by `andsub()` / `orsub()`.
 
 | Method | SQL | Example |
 |--------|-----|---------|
@@ -1178,7 +1437,13 @@ same set.
 | `whereNull(col)` / `whereNotNull(col)` | `IS NULL` / `IS NOT NULL` | `.whereNull("deleted_at")` |
 | `whereAnd(col, val)` | explicit AND | `.whereAnd("type", 2)` |
 | `whereOr(col, val)` | explicit OR | `.whereOr("tag", 3)` |
+| `whereOrBT` / `whereOrBE` / `whereOrLT` / `whereOrLE` / `whereOrNQ` | `OR` with `>` / `>=` / `<` / `<=` / `!=` | `.whereOrLT("price", 100)` |
+| `whereOrIn(col, vals)` / `whereOrNotIn(col, vals)` | `OR IN (...)` / `OR NOT IN (...)` | `.whereOrIn("id", ids)` |
+| `whereOrNull(col)` / `whereOrNotNull(col)` | `OR IS NULL` / `OR IS NOT NULL` | `.whereOrNull("deleted_at")` |
 | `where(col, "op", val)` | operator as a string (`"="`, `"!="`, `">"`, `"<"`, `"LIKE"`, `"NOT LIKE"`, …) | `.where("title", "NOT LIKE", "kw")` |
+
+`whereOrGT` / `whereOrGE` and `whereOrEQ` / `whereOrNE` do not exist: `whereOr(col, val)`
+already means `OR col = val`, and `>` / `>=` are spelled `whereOrBT` / `whereOrBE`.
 
 **LIKE** — the ORM attaches the `%` wildcards; never pass them yourself.
 
@@ -1200,6 +1465,9 @@ same set.
 | `clearWhere()` | drop all conditions and group markers | |
 | `clear()` | drop conditions, data and generated SQL | |
 | `desc(col)` / `asc(col)` | `ORDER BY` | `.desc("aid")` |
+| `order(col, "ASC")` / `order(col, "DESC")` | `ORDER BY` from a `cols` enum and a direction string — the column must be the enum, there is no `order("aid", "DESC")` overload | `.order(orm::cms::article_info::cols::aid, "DESC")` |
+| `order("expr")` / `asc("expr")` / `desc("expr")` | `ORDER BY` with the argument copied verbatim | `.order("aid DESC, title ASC")` |
+| `asc()` / `desc()` | `ORDER BY` on the primary key | `.desc()` |
 | `limit(n)` / `limit(offset, n)` | `LIMIT` | `.limit(0, 20)` |
 | `select(fields)` | column list, expressions and aliases allowed | `.select("id,title")` |
 | `group(col)` | `GROUP BY` | `.group("topicid")` |
@@ -1216,11 +1484,17 @@ same set.
 | `count()` | number of matching rows |
 | `page(page, per_page, list_num)` | `[bar_min, bar_max, current, total]` |
 | `save()` / `update(fields)` / `remove()` | `[effect, id]` / effect / effect |
+| `insert()` / `insert(row)` / `insert(rows)` | `[effect, id]`; always INSERT, `rows` is one multi-row statement (§5.6) |
+| `update_batch(fields)` | effect; one upsert (or replace, with an empty argument) built from `record` (§5.6) |
+| `soft_remove()` / `soft_remove(extra)` | effect; the generated flag-column UPDATE, `0` when the table has none (§5.6) |
 | `update_col(col, n, sign)` | increment (`'+'`) or decrement (`'-'`) |
 | `replace_col(col, old, new)` | `REPLACE()` inside an UPDATE |
+| `update_dirty()` | effect; `0` and no statement when no column is dirty (§5.6) |
 
-**Execution — prepared path** (§5.8): every method above has an `exec_` twin, and the
-coroutine form prefixes `async_`.
+**Execution — prepared path** (§5.8): every read and single-row write above has an `exec_`
+twin, and the coroutine form prefixes `async_`. No prepared equivalent exists for
+`insert(rows)` (`exec_insert_batch()` covers the batch case), `update_batch()`,
+`soft_remove()`, or the `query()`/`edit_query()` family.
 
 | Text | Prepared | Async prepared |
 |------|----------|----------------|
@@ -1250,6 +1524,76 @@ coroutine form prefixes `async_`.
 | `one{Camel}()` / `one{Camel}(id)` / `one{Camel}(obj&)` | generated FK: the single related row |
 | `many{Camel}()` / `many{Camel}(obj&)` | generated FK: all related rows for the loaded set |
 | `get_cols_vec<{table}_info::cols::col>()` | the column values of `record`, the set `many{Camel}` scopes with. Generated per table in `_base.h`; an overload takes a `bool(const value&)` filter |
+
+**Result cache** (§5.13) — "store" says which of the two maps a method touches: `meta`
+holds one row (`data`), `vector` holds a row set (`record`).
+
+| Method | Store | Notes |
+|--------|-------|-------|
+| `use_cache(ttl = 0)` | — | chainable; arms the next text-path read |
+| `isuse_cache(bydate = false)` | — | the arming flag, not a hit indicator |
+| `set_cache_state(bool)` | — | force `iscache`, leaves `exptime` |
+| `save_data_cache(ttl = 0)` | `meta` | stores `data` under `hash(sqlstring)` |
+| `save_data_cache(name, row, ttl = 0)` | `meta` | caller-named key |
+| `save_cache(ttl = 0)` | `vector` | stores `record` under `hash(sqlstring)` |
+| `save_cache(key, rows, ttl = 0)` / `save_cache(name, rows, ttl = 0)` / `save_vector_cache(name, rows, ttl = 0)` | `vector` | caller-named key |
+| `save_cache(name, row, ttl = 0)` | `meta` | one row under a name |
+| `get_data_cache(key)` / `get_record_cache(key)` | `meta` / `vector` | fill `data` / `record`, return `bool`; a miss writes `error_msg` and calls `unlock_conn()` |
+| `get_cache(name)` / `get_vector_cache(name)` | `meta` / `vector` | return the stored value; **throw** `std::runtime_error` on a miss |
+| `check_cache(key)` | `meta` | `-1` absent, `0` permanent, else seconds remaining |
+| `update_cache(ttl = 0)` / `update_cache(key, ttl)` | `vector` | TTL only; `-1` when the key is absent |
+| `remove_cache()` / `remove_cache(key)` | `meta` + `record` | the no-arg form keys off `sqlstring`; `true` when either store held the key |
+| `clear_cache()` / `remove_exptime_cache()` | `meta` + `record` | whole stores / entries whose TTL lapsed |
+
+Read-through is built into `fetch()`, `fetch_append()`, `fetch_one()`, `get_one()` and their
+`async_` twins, plus `fetch_row()`; `fetch_obj()` neither reads nor writes, and no `exec_*`
+method reads or writes.
+
+**Untyped result shapes** — for a column list the typed `meta` cannot express. These read
+the same `select()/where()/limit()` state as `fetch()`.
+
+| Method | Returns | Notes |
+|--------|---------|-------|
+| `fetch_obj()` | `std::vector<std::map<std::string, std::string>>` | one map per row; every value is a string and `NULL` becomes `""`, so a `0` and an empty column are indistinguishable |
+| `fetch_row()` | `tuple<vector<string>, map<string, unsigned int>, vector<vector<string>>>` | column names, name → index, and the rows; positional access keeps duplicate column names |
+| `fetch_json()` / `async_fetch_json()` | `http::obj_val` | an array of string-valued objects, ready to output |
+| `get_one(id)` / `async_get_one(id)` | `long long` | one row by primary key into `data`; ignores `wheresql` entirely, so a chained `where()` is silently dropped |
+
+Both forms of `get_one()` return the number of rows read, so `if (m.get_one(id) > 0)` means
+the row landed in `data`. The one exception is the result cache: a `use_cache()` hit returns
+`0` from every read-through method, `get_one()` included, so when a cache may be armed test
+`data` rather than the return code.
+
+**Table and connection switching**
+
+| Method | Description |
+|--------|-------------|
+| `set_table(name)` | overrides the table name for subsequent statements; an empty argument is ignored |
+| `reset_table()` | restores `org_tablename` |
+| `switchDB(tag)` | rebinds the model to another `orm.conf` tag **of the same engine** — a MySQL model refuses a `postgresql`/`sqlite` tag. On success `dbtag` follows the switch, so later statements and error text name the pool actually in use |
+| `resetDB()` | the inverse: rebinds to `B_BASE::_rmstag`, the tag this model was **generated** from, and so drops whatever `switchDB()` pointed the object at. Chainable, same engine guard as `switchDB()` |
+| `get_db_type()` | the model's compile-time engine, `DB_TYPE::MYSQL` / `POSTGRESQL` / `SQLITE` — a property of the generated class, not of the connection |
+| `data` | the current row (`{table}_info::meta`) |
+| `record` | the loaded row set (`std::vector<meta>`) |
+| `error_msg` | last error text |
+| `iserror` | latches once set — while it is true, most reads and writes return `0` without touching the database. Only `clear()` / `clearWhere()` reset it (both also clear `error_msg`) |
+
+`switchDB()` changes only the pool the model borrows connections from, which makes it the
+hook for same-engine sharding. It is a chainable `M_MODEL &` method, so
+`model.switchDB("cms").where("aid", id).fetch()` is the intended spelling. A rejected switch
+clears the connection and latches `iserror`, and the chain continues onto that object — the
+read that follows returns `0` without touching a database, so check `error_msg` after the
+chain rather than after the call. Both rejection texts name **the tag being asked for**:
+`conn_pool not found <tag>` when no such section exists, `conn_pool db type error <tag>` when
+the section is on another engine.
+
+`resetDB()` is the matching return trip — `model.switchDB("cms").fetch()` then
+`model.resetDB().fetch()` reads the shard and then the table's own database again, on one
+object. It is a plain rebind, not a repair: it re-attaches the connection pool but, like
+every other method, leaves a latched `iserror` alone. After a **failed** `switchDB()`, a
+`resetDB()` restores `conn_obj` and `dbtag` yet the model still refuses to read — call
+`clear()` (or `clearWhere()`) to drop the latch, and note that `clear()` also wipes
+`error_msg`, so read it first.
 
 ---
 

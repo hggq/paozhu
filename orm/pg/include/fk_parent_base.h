@@ -2,7 +2,7 @@
 #define ORM_PG_FK_PARENTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 12 Sep 2026 09:33:46 GMT
+*本文件为自动生成 Sat, 12 Sep 2026 15:37:20 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -606,7 +606,7 @@ struct fk_parent_base
     using cols = fk_parent_info::cols;
       fk_parent_info::meta data;
     std::vector<fk_parent_info::meta> record;
-std::string _rmstag="pg";//this value must be default or tag value, tag in mysqlconnect config file .
+static constexpr std::string_view _rmstag="pg";//this value must be default or tag value, tag in mysqlconnect config file .
 std::vector<fk_parent_info::meta>::iterator begin(){     return record.begin(); }
 std::vector<fk_parent_info::meta>::iterator end(){     return record.end(); }
 std::vector<fk_parent_info::meta>::const_iterator begin() const{     return record.begin(); }
