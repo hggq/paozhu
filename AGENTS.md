@@ -38,17 +38,21 @@ paozhu/
 │       ├── admin/                 # Admin implementations
 │       └── test*.cpp              # Functional test implementations
 │
-├── models/                        # Data model layer
-│   ├── cms/                       # CMS‑related models
-│   ├── ph/                        # PostgreSQL test models
-│   └── include/                   # Model headers
+├── models/                        # Data model layer (one tree per DB tag)
+│   ├── cms/                       # CMS-related models (MySQL)
+│   ├── pg/                        # PostgreSQL models
+│   ├── lite/                      # SQLite models
+│   └── include/                   # Models of the default DB tag
 │
-├── orm/                           # ORM layer (auto‑generated)
+├── orm/                           # ORM layer (auto-generated)
 │   ├── cms/include/               # CMS ORM operation classes
-│   │   ├── *_base.h               # Base field definitions (auto‑generated)
-│   │   └── *_opsql.h              # SQL operation intermediate layer (auto‑generated)
-│   ├── include/                   # Common ORM files
-│   └── orm.h                      # ORM unified entry
+│   │   ├── *_base.h               # Base field definitions (auto-generated)
+│   │   └── *_opsql.h              # SQL operation intermediate layer (auto-generated)
+│   ├── pg/include/                # PostgreSQL variants of the same layout
+│   ├── lite/include/              # SQLite variants of the same layout
+│   ├── include/                   # Generated files of the default DB tag
+│   ├── {table}_opsql.cpp          # Out-of-line oneXXX/manyXXX bodies for FK models
+│   └── orm.h                      # ORM unified entry (includes every dialect)
 │
 ├── view/                          # View templates (HTML)
 │   ├── admin/                     # Admin views
@@ -154,27 +158,31 @@ upload_max_size = 16777216  ; Maximum upload size (16 MB)
 ### 3.2 orm.conf – Database Configuration
 
 ```ini
-[section_name]     ; Database identifier (e.g., default, cms, ph)
+[section_name]     ; Database tag, e.g. default, cms, pg, lite
 type = main        ; main (primary) or second (replica)
-host = 127.0.0.1   ; Database host
-port = 3306        ; Port (MySQL: 3306, PG: 5432)
+host = 127.0.0.1   ; Database host; for dbtype = sqlite this is the DB file path
+port = 3306        ; Port (MySQL: 3306, PostgreSQL: 5432); empty for sqlite
 dbname = database_name  ; Database name
 user = username    ; Username
 password = pass    ; Password
 pretable =         ; Table prefix
 maxpool = 5        ; Maximum connection pool size
-dbtype = mysql     ; mysql or postgresql
+dbtype = mysql     ; mysql | postgresql | sqlite
 charset = utf8mb4  ; Character set
 #ssl = ON          ; Enable SSL
 #sslverify = ON    ; Verify certificate chain
 #sslhost =         ; Certificate domain
 ```
 
-**Database identifier conventions**:
-- `default` – Benchmark testing database
+A section name **is** the DB tag: it is what you pass to `paozhu_cli orm <tag>`, what
+`model.dbtag` holds, and what generated code passes to `orm::db_conn("cms")`.
+
+**Database tag conventions** (in this repository):
+- `default` – benchmark tables (`world`, `fortune`, `fk_parent`, `fk_child`)
 - `cms` – CMS system database
-- `docs` – Documentation database
-- `ph` – PostgreSQL test database
+- `docs` – documentation database
+- `pg` – PostgreSQL test database (`dbtype = postgresql`)
+- `lite` – SQLite test database (`dbtype = sqlite`, `host = ./docs/sqlite_lite.db`, `port` empty)
 
 ### 3.3 acme.conf – ACME Certificate Configuration
 
@@ -542,6 +550,8 @@ asio::awaitable<std::string> techempowerupdates(std::shared_ptr<httppeer> peer)
 
 **Available async ORM methods**:
 
+Text path (values escaped into the statement):
+
 | Sync method | Async method | Description |
 |-------------|-------------|-------------|
 | `fetch()` | `async_fetch()` | Fetch all matching records |
@@ -552,6 +562,29 @@ asio::awaitable<std::string> techempowerupdates(std::shared_ptr<httppeer> peer)
 | `update()` | `async_update()` | Update existing record |
 | `remove()` | `async_remove()` | Delete record |
 
+Prepared path (values bound as parameters, see §5.8) — every `exec_` method gains an
+`async_exec_` twin with the same signature and return type:
+
+| Sync method | Async method |
+|-------------|-------------|
+| `exec_count()` | `async_exec_count()` |
+| `exec_page()` | `async_exec_page()` |
+| `exec_fetch()` | `async_exec_fetch()` |
+| `exec_fetch_to(rows)` | `async_exec_fetch_to(rows)` |
+| `exec_fetch_append()` | `async_exec_fetch_append()` |
+| `exec_one()` | `async_exec_one()` |
+| `exec_one_to(rec)` | `async_exec_one_to(rec)` |
+| `exec_one_append(vec)` | `async_exec_one_append(vec)` |
+| `exec_insert()` | `async_exec_insert()` |
+| `exec_insert_batch()` | `async_exec_insert_batch()` |
+| `exec_update()` | `async_exec_update()` |
+| `exec_update_dirty()` | `async_exec_update_dirty()` |
+| `exec_update_col()` | `async_exec_update_col()` |
+| `exec_replace_col()` | `async_exec_replace_col()` |
+| `exec_remove()` | `async_exec_remove()` |
+
+`exec_update_fields()` has no async twin; use `async_exec_update("col1,col2")` instead.
+
 **Note**: Synchronous controllers (returning `std::string`) and coroutine controllers (returning `asio::awaitable<std::string>`) can coexist in the same project. The framework automatically selects the correct execution path based on the function signature.
 
 ---
@@ -560,46 +593,99 @@ asio::awaitable<std::string> techempowerupdates(std::shared_ptr<httppeer> peer)
 
 ### 5.1 Generating ORM Code
 
-Use the CLI tool to automatically generate ORM code from the database:
+Use the CLI tool to automatically generate ORM code from a live database:
 
 ```bash
-# Generate ORM for the specified database
-./bin/paozhu_cli orm cms      # Generate from the [cms] database configuration
-./bin/paozhu_cli orm default  # Generate from the [default] database configuration
-./bin/paozhu_cli orm ph       # Generate from the [ph] PostgreSQL configuration
+# One command per DB tag (the tag is the section name in conf/orm.conf)
+./bin/paozhu_cli orm default   # MySQL tables of [default]   -> orm/include/,   models/include/
+./bin/paozhu_cli orm cms       # MySQL tables of [cms]       -> orm/cms/include/, models/cms/
+./bin/paozhu_cli orm pg        # PostgreSQL tables of [pg]   -> orm/pg/include/,  models/pg/
+./bin/paozhu_cli orm lite      # SQLite tables of [lite]     -> orm/lite/include/, models/lite/
 ```
+
+**The templates are not compiled.** `vendor/httpserver/include/mysqlorm.hpp`,
+`sqliteorm.hpp` and `postgresqlorm.hpp` are code-generation templates: `paozhu_cli orm`
+reads them as text and copies the whole class body into every generated `_opsql.h`.
+Editing a template therefore changes **nothing** at build time — the generated files keep
+the body they were generated from. After any change to a template, or to `orm_common.h`,
+regenerate every tag you use and rebuild; otherwise queries built through the new API
+silently keep the old behaviour (typically returning 0 rows).
 
 ### 5.2 Model File Composition
 
-Each table corresponds to three files:
-- `models/{db}/ModelName.cpp` – Model implementation
-- `orm/{db}/include/modelname_base.h` – Field base definitions (auto‑generated, do not modify manually)
-- `orm/{db}/include/modelname_opsql.h` – SQL operation layer (auto‑generated, do not modify manually)
+Each table corresponds to these files (`{tag}` is the DB tag; omitted for `default`):
+
+- `orm/{tag}/include/{table}_base.h` – field metadata, `cols` enum, row `meta` struct
+  (auto-generated, do not modify manually)
+- `orm/{tag}/include/{table}_opsql.h` – SQL operation layer: a full copy of the template
+  body plus the per-table column switch and the generated per-field DSL
+  (auto-generated, do not modify manually)
+- `orm/{tag}/{table}_opsql.cpp` – only for tables with foreign keys: out-of-line
+  specializations of the `oneXXX` / `manyXXX` accessors
+- `models/{tag}/ModelName.cpp` + `models/{tag}/include/ModelName.h` – the concrete model
+  class that binds the two templates above, e.g.
+  `class Fortune : public fortune_opsql<Fortune, fortune_base>`
+
+`orm/orm.h` includes the models of every tag, so one `#include "orm.h"` gives access to
+`orm::Fortune`, `orm::cms::Article`, `orm::pg::Fortune` and `orm::lite::Fortune`.
 
 ### 5.3 Basic ORM Queries
+
+A condition can be written three equivalent ways. Pick one per call chain; all three end
+up in the same `wheresql` vector.
 
 ```cpp
 #include "orm.h"
 
-// Get all records
 auto model = orm::cms::Article();
-model.fetch();
 
-// Conditional query
+// 1. column name as a string
 model.where("userid", 123).fetch();
-model.whereLike("title", "keyword");       // LIKE query
-model.where("status", 1);                  // Equals
-model.whereBT("price", 100);               // Greater than >
-model.whereBE("price", 100);               // Greater than or equal >=
 
-// Multiple conditions
+// 2. type-safe column enum  (orm::{tag}::{table}_info::cols)
+model.where(orm::cms::article_info::cols::userid, 123).fetch();
+
+// 3. generated per-field DSL — one method per column, {op}{Field}
+//    ops: eq nq bt be lt le like null notnull, each with an or{op}{Field} sibling
+model.eqUserid(123).fetch();
+```
+
+The first argument is always a **column name**, never a SQL fragment. There is no
+`where("isopen=1")`: that single-argument overload was removed from all three templates
+because it stamped `op_type` with `orm::wq::qb`, no builder had a case for it, and the
+condition was silently dropped — which could widen an `update()` or `remove()` to the
+whole table. Writing the operator inside the column string is not a supported spelling
+either; `where(" aid=", aid)` fails the `findcolpos` check and sets
+`field is not table column`. Pass the column and the value separately
+(`where("isopen", 1).where("aid", aid)`), and when the query shape really is exotic, run
+the statement through `orm::db_conn` (§5.7).
+
+```cpp
+// Comparison helpers (string or cols enum as the first argument)
+model.whereBE("price", 100);      // >=
+model.whereBT("price", 100);      // >
+model.whereLT("price", 100);      // <
+model.whereLE("price", 100);      // <=
+model.whereNQ("price", 100);      // !=
+model.whereNull("deleted_at");
+model.whereNotNull("deleted_at");
+
+// Several conditions AND together by default; whereAnd/whereOr state it explicitly
 model.where("userid", 123)
      .whereAnd("status", 1)
      .fetch();
 
+// LIKE: the ORM attaches the % wildcards, callers must NOT write them
+model.whereLike("title", "kw");        // LIKE '%kw%'
+model.whereLikeLeft("title", "kw");    // LIKE '%kw'  (suffix match)
+model.whereLikeRight("title", "kw");   // LIKE 'kw%'  (prefix match)
+model.whereNotLike("title", "kw");     // NOT LIKE '%kw%'
+// the same four exist with an Or prefix: whereOrLike / whereOrLikeLeft /
+// whereOrLikeRight / whereOrNotLike. Passing "kw%" yourself yields "kw%%".
+
 // Ordering
-model.desc("aid").fetch();           // Descending
-model.asc("addtime").fetch();        // Ascending
+model.desc("aid").fetch();             // ORDER BY aid DESC
+model.asc("addtime").fetch();
 
 // Pagination
 auto [minpage, maxpage, curpage, total] = model.page(1, 10);
@@ -607,12 +693,43 @@ model.fetch();
 
 // Count
 unsigned int total = model.count();
-
-// Aggregation
-unsigned int total = model.where("status", 1).count();
 ```
 
-### 5.4 Advanced ORM Queries
+### 5.4 Parenthesis Grouping (Boolean Logic)
+
+`andsub()` and `orsub()` open a parenthesis and choose how it joins to what precedes it
+(`andsub` = `AND (`, `orsub` = `OR (`); `endsub()` closes it with `)`. They take no
+conditions themselves, and nothing is auto-balanced — an unclosed group yields invalid SQL.
+
+```cpp
+// WHERE isopen >= 1 AND aid > 0 AND (title LIKE '%kw%' OR content LIKE '%kw%')
+art.beIsopen(1)
+   .btAid(0)
+   .andsub()
+   .likeTitle("kw")
+   .orlikeContent("kw")
+   .endsub()
+   .fetch();
+```
+
+The same three methods feed the prepared path (§5.8), where the generic `AND()` / `OR()`
+spelling is available too:
+
+```cpp
+// WHERE id >= 1 AND id <= 200 AND (randomnumber > 5000 OR randomnumber < 200)
+world.AND("id", orm::wq::be, 1)
+     .AND("id", orm::wq::le, 200)
+     .orsub()
+     .AND("randomnumber", orm::wq::bt, 5000)
+     .OR("randomnumber", orm::wq::lt, 200)
+     .endsub();
+world.exec_count();
+```
+
+`clearWhere()` drops every accumulated condition (including group markers) so one model
+object can be reused for the next query.
+
+### 5.5 Advanced ORM Queries
 
 ```cpp
 // Limit results
@@ -639,8 +756,14 @@ std::vector<orm::cust::SumStruct> result;
 model.select("sum(price) as total");
 model.fetch_to(result);    // result[0].total holds the aggregate
 
-// Subqueries
-model.whereIn("category_id", subQuery);
+// IN lists: a container of values, or a comma-separated string
+std::vector<long long> ids = {1, 2, 3};
+model.whereIn("category_id", ids).fetch();
+model.whereIn("category_id", "1,2,3").fetch();
+model.whereNotIn("category_id", ids).fetch();
+// No overload takes a query object, so a subquery is either a fetch-then-bind
+// (run the inner query, collect its ids into a vector, pass it above) or a raw
+// statement through orm::db_conn (§5.7).
 
 // Batch operations: keep the same connection (within transactions)
 model.lock_conn();
@@ -649,7 +772,7 @@ model.where("id", 1).fetch_one();
 model.unlock_conn();
 ```
 
-### 5.5 ORM Data Manipulation
+### 5.6 ORM Data Manipulation
 
 ```cpp
 auto model = orm::cms::Article();
@@ -683,7 +806,7 @@ model.where("aid", id).replace_col("content", "old", "new");
 model.where("aid", id).fetch_one();
 ```
 
-### 5.6 Raw SQL Queries
+### 5.7 Raw SQL Queries
 
 When complex SQL is needed or ORM does not support the query, use `orm::db_conn` as an independent database connection:
 
@@ -726,34 +849,186 @@ for (auto &row : loaduser)
 
 **Note**: The fields selected in the SQL must correspond one‑to‑one with the fields in the returned structure.
 
-### 5.7 PostgreSQL Support
+### 5.8 Prepared Statement Queries
+
+Every read and write has a prepared twin. The condition-building API is shared, so
+`where()`, the per-field DSL and `andsub()/orsub()/endsub()` all work unchanged — the
+difference is only in how the SQL reaches the server: values are bound as parameters
+(`?` on MySQL and SQLite, `$1…$n` on PostgreSQL) instead of being escaped into the
+statement text, so no value can alter the query shape.
 
 ```cpp
-// PostgreSQL models use a separate namespace
-auto model = orm::ph::Forture();   // The "ph" namespace corresponds to the [ph] configuration in orm.conf
-model.fetch();
+auto world = orm::World();
+world.AND("id", orm::wq::be, 1)
+     .AND("id", orm::wq::le, 200)
+     .orsub()
+     .AND("randomnumber", orm::wq::bt, 5000)
+     .OR("randomnumber", orm::wq::lt, 200)
+     .endsub();
 
-// Important: MySQL models (orm::cms) and PostgreSQL models (orm::ph) are independent.
-// Generated MySQL models are hard‑bound to MySQL connections and cannot be switched to PostgreSQL.
-// To use PostgreSQL, you must use models from the orm::ph namespace.
+unsigned int total = world.exec_count();          // vs. count()
+world.select("id,randomnumber");
+world.exec_fetch();                               // rows into world.record
+std::vector<orm::cust::WorldRowStruct> rows;
+world.exec_fetch_to(rows);                         // rows into a custom struct
+world.exec_one();                                   // single row lands in world.data
 ```
 
-### 5.8 Asynchronous ORM Operations
+Writes follow the same naming, and mirror the text-path return values:
+
+```cpp
+auto model = orm::cms::Testa();
+model.data.parentid = 7;
+model.data.content  = "prepared insert";
+auto [effect, newid] = model.exec_insert();       // same tuple as save()
+
+model.clear();
+model.data.content = "prepared update";
+model.where(orm::cms::testa_info::cols::id, newid);
+model.exec_update("content");                     // or exec_update() for all set fields
+model.exec_update_fields({{"content", "x"}});     // explicit name/value pairs
+model.exec_update_col("parentid", 3, '+');        // += 3   ('-' decrements)
+model.exec_replace_col("content", "old", "new");
+model.exec_remove();
+
+auto batch = orm::cms::Testa();
+batch.record.push_back(row1);                     // meta structs
+batch.record.push_back(row2);
+auto [batch_effect, first_id] = batch.exec_insert_batch();
+```
+
+`exec_page(page, per_page, list_num)` and `exec_count()` are the prepared equivalents of
+`page()` and `count()`. Async versions prefix `async_exec_` (§5.12). Prefer the `exec_`
+family for anything whose value comes from a request; the text family is kept for
+compatibility and for SQL fragments (raw `whereIn("id", "1,2,3")`, expressions in
+`select()`) that must be spliced into the statement.
+
+### 5.9 LEFT JOIN / INNER JOIN
+
+`leftJoin<T>()` / `innerJoin<T>()` take the joined **model type**, then a `join*` chain
+configures the join. The joined columns appear in the outer SELECT, and the result rows
+land in the main model's `record`.
+
+```cpp
+// SELECT world.id, world.randomnumber, fortune.message
+// FROM world LEFT JOIN fortune ON fortune.id = world.id
+auto world = orm::World();
+world.btId(2).ltId(6);
+world.select("id,randomnumber");
+world.leftJoin<orm::Fortune>().joinOn("id", "id").joinSelect("message");
+world.fetch();
+```
+
+`joinOn(join_col, main_col)` compares one column of the joined table with one column of
+the main table; the right-hand name may be a `cols` enum.
+
+`joinWhere()` / `joinWhereOr()` / `joinDesc()` / `joinAsc()` / `joinGroup()` only take
+effect once `joinLimit()` is also set: without a limit the ORM emits a plain
+`LEFT JOIN tbl ON …` and never builds the sub-query those methods feed. With a limit it
+wraps the joined table in `( SELECT … WHERE … ORDER BY … LIMIT n )`, and adding
+`joinGroup()` turns that into a `ROW_NUMBER() OVER (PARTITION BY …)` window, i.e. top-N
+rows **per group**:
+
+```cpp
+// 2 newest articles per topic, for topics owned by user 1
+auto topic = orm::cms::Topic();
+topic.eqUserid(1);
+topic.select("topicid,title AS topictitle");
+topic.innerJoin<orm::cms::Article>()
+     .joinOn("topicid", orm::cms::topic_info::cols::topicid)
+     .joinSelect("aid, title AS arttitle")
+     .joinWhere("userid", orm::wq::eq, 1)
+     .joinGroup("topicid")
+     .joinDesc("aid")
+     .joinLimit(2);
+topic.fetch();
+```
+
+`joinParAppend()` adds further `PARTITION BY` columns.
+
+### 5.10 Foreign Keys: oneXXX / manyXXX
+
+`paozhu_cli orm` reads the database's real single-column foreign keys and, for each
+related table `{Camel}`, emits `one{Camel}` / `many{Camel}` on both sides of the
+relationship. Their bodies live in the generated `orm/{tag}/{table}_opsql.cpp`, so that
+file must be in the build for the accessors to link.
+
+```cpp
+// child side: fk_child.parent_id -> fk_parent.id
+auto child = orm::FkChild();
+child.where(orm::fk_child_info::cols::id, 1);
+child.fetch_one();                       // oneXXX keys off data, so load the row first
+
+auto parent = child.oneFkParent();       // FkParent scoped to this row's parent_id
+parent.fetch_one();
+
+auto parent2 = child.oneFkParent(2);     // explicit key instead of the current row
+
+auto decorated = orm::FkParent();        // void overload: decorate, then keep chaining
+child.oneFkParent(decorated);
+decorated.select("id,name");
+
+// parent side: all children of every row currently in record
+auto parents = orm::FkParent();
+parents.fetch();                         // manyXXX keys off record, so fetch first
+auto children = parents.manyFkChild();   // WHERE parent_id IN (<ids in record>)
+children.fetch();
+```
+
+`many{Camel}` builds its `IN (...)` list from
+`get_cols_vec<{self}_info::cols::pk>()`, i.e. the primary keys of the rows already
+loaded. Load children once and group them in memory instead of
+calling the accessor per row — per-row calls are one query each. The `one{Camel}(obj&)`
+and `many{Camel}(obj&)` overloads return `void` and add the scope to the model you pass
+in, which is how you attach a `select()` or an extra `where()` to the relation.
+
+### 5.11 Cross-Dialect Usage: MySQL / PostgreSQL / SQLite
+
+The three dialects expose the same public API — `mysqlorm.hpp`, `sqliteorm.hpp` and
+`postgresqlorm.hpp` differ only in private escaping and placeholder helpers. What differs
+is which generated model you use, because a model is bound to the tag it was generated
+from at codegen time; there is no runtime switch.
+
+```cpp
+auto a = orm::Fortune();          // [default]   MySQL      namespace orm
+auto b = orm::cms::Article();     // [cms]       MySQL      namespace orm::cms
+auto c = orm::pg::Fortune();      // [pg]        PostgreSQL namespace orm::pg
+auto d = orm::lite::Fortune();    // [lite]      SQLite     namespace orm::lite
+```
+
+| | MySQL | PostgreSQL | SQLite |
+|---|---|---|---|
+| `orm.conf` `dbtype` | `mysql` | `postgresql` | `sqlite` |
+| `host` / `port` | host / 3306 | host / 5432 | DB file path / empty |
+| model namespace | `orm` or `orm::{tag}` | `orm::pg` | `orm::lite` |
+| generated tree | `orm/{tag}/` | `orm/pg/` | `orm/lite/` |
+| prepared placeholder | `?` | `$1…$n` | `?` |
+
+PostgreSQL emits `DEFAULT` for a zero auto-increment primary key so the sequence assigns
+it; SQLite binds `NULL` for the same case. Everything else — `exec_*`, joins, FK
+accessors, `andsub()/orsub()/endsub()` — behaves identically across the three.
+
+### 5.12 Asynchronous ORM Operations
 
 ```cpp
 // Use asynchronous ORM inside a coroutine
 asio::awaitable<void> handle_request()
 {
     auto model = orm::cms::Article();
-    
-    // Asynchronous queries
+
+    // Asynchronous queries (text path)
     co_await model.async_fetch();
     co_await model.async_count();
-    
-    // Asynchronous operations
+
+    // Asynchronous operations (text path)
     co_await model.async_save();
     co_await model.async_update();
     co_await model.async_remove();
+
+    // Asynchronous prepared path
+    co_await model.async_exec_count();
+    co_await model.async_exec_fetch();
+    co_await model.async_exec_insert();
 }
 ```
 
@@ -774,11 +1049,16 @@ asio::awaitable<void> handle_request()
 ### 6.2 ORM Generation
 
 ```bash
-# Generate ORM code
-./bin/paozhu_cli orm cms
+# Generate ORM code for one DB tag (section name in conf/orm.conf)
 ./bin/paozhu_cli orm default
-./bin/paozhu_cli orm ph
+./bin/paozhu_cli orm cms
+./bin/paozhu_cli orm pg
+./bin/paozhu_cli orm lite
 ```
+
+Always re-run this for every tag after editing `vendor/httpserver/include/{mysql,sqlite,
+postgresql}orm.hpp` or `orm_common.h`: the generated `_opsql.h` files embed a copy of the
+template body, so an unregenerated tree keeps compiling the old code (§5.1).
 
 ### 6.3 JSON Reflection Generation
 
@@ -877,29 +1157,99 @@ View templates are compiled into C++ source files in `viewsrc/` via the CLI tool
 
 ### 8.2 ORM Chainable Query Methods
 
+Method names below are the ones defined in
+`vendor/httpserver/include/{mysql,sqlite,postgresql}orm.hpp`; the three dialects expose the
+same set.
+
+**Conditions** — the first argument is either a column name (`"status"`) or a
+`{tag}::{table}_info::cols` value. It is never a SQL fragment; there is no
+`where("isopen=1")` overload (§5.3).
+
+| Method | SQL | Example |
+|--------|-----|---------|
+| `where(col, val)` | `AND col = ?` | `.where("status", 1)` |
+| `whereEQ` / `whereNE` | `=` / `!=` | `.whereNE("status", 0)` |
+| `whereBT` / `whereBE` | `>` / `>=` | `.whereBE("price", 100)` |
+| `whereLT` / `whereLE` | `<` / `<=` | `.whereLT("price", 100)` |
+| `whereGT` / `whereGE` | aliases of `whereBT` / `whereBE` | `.whereGE("price", 100)` |
+| `whereNQ(col, val)` | `!=` | `.whereNQ("status", 0)` |
+| `whereIn(col, vals)` | `IN (...)` — array, `std::vector`, or raw csv | `.whereIn("id", std::vector<int>{1,2,3})` |
+| `whereNotIn(col, vals)` | `NOT IN (...)` | `.whereNotIn("id", "4,5")` |
+| `whereNull(col)` / `whereNotNull(col)` | `IS NULL` / `IS NOT NULL` | `.whereNull("deleted_at")` |
+| `whereAnd(col, val)` | explicit AND | `.whereAnd("type", 2)` |
+| `whereOr(col, val)` | explicit OR | `.whereOr("tag", 3)` |
+| `where(col, "op", val)` | operator as a string (`"="`, `"!="`, `">"`, `"<"`, `"LIKE"`, `"NOT LIKE"`, …) | `.where("title", "NOT LIKE", "kw")` |
+
+**LIKE** — the ORM attaches the `%` wildcards; never pass them yourself.
+
+| Method | SQL | Example |
+|--------|-----|---------|
+| `whereLike(col, v)` | `LIKE '%v%'` | `.whereLike("title", "kw")` |
+| `whereLikeLeft(col, v)` | `LIKE '%v'` (suffix match) | `.whereLikeLeft("title", "kw")` |
+| `whereLikeRight(col, v)` | `LIKE 'v%'` (prefix match) | `.whereLikeRight("title", "kw")` |
+| `whereNotLike(col, v)` | `NOT LIKE '%v%'` | `.whereNotLike("title", "kw")` |
+| `whereOrLike` / `whereOrLikeLeft` / `whereOrLikeRight` / `whereOrNotLike` | same four, joined with `OR` | `.whereOrLike("content", "kw")` |
+
+**Grouping and modifiers**
+
 | Method | Description | Example |
 |--------|-------------|---------|
-| `where(col, val)` | Add WHERE condition | `.where("status", 1)` |
-| `whereAnd(col, val)` | AND condition | `.whereAnd("type", 2)` |
-| `whereOr(col, val)` | OR condition | `.whereOr("tag", 3)` |
-| `whereLike(col, val)` | LIKE fuzzy match | `.whereLike("title","kw")` |
-| `whereOrLike(col, val)` | OR LIKE query | `.whereOrLike("title","kw")` |
-| `whereBT(col, val)` | Greater than `>` | `.whereBT("price", 100)` |
-| `whereBE(col, val)` | Greater or equal `>=` | `.whereBE("price", 100)` |
-| `whereLT(col, val)` | Less than `<` | `.whereLT("price", 100)` |
-| `whereLE(col, val)` | Less or equal `<=` | `.whereLE("price", 100)` |
-| `whereIn(col, vals)` | IN query | `.whereIn("id", "1,2,3")` |
-| `whereNotIn(col, vals)` | NOT IN | `.whereNotIn("id", "4,5")` |
-| `desc(col)` | Descending order | `.desc("id")` |
-| `asc(col)` | Ascending order | `.asc("time")` |
-| `limit(n)` | Limit count | `.limit(10)` |
-| `limit(offset, n)` | Limit with offset | `.limit(0, 20)` |
-| `select(fields)` | Select fields | `.select("id,name")` |
-| `group(col)` | Group by | `.group("category")` |
-| `fetch()` | Execute query | Get result set |
-| `fetch_one()` | Fetch single record | Get one record |
-| `count()` | Count records | Return number |
-| `page(page, per)` | Pagination calculation | Return pagination info |
+| `andsub()` | opens `AND (` | see §5.4 |
+| `orsub()` | opens `OR (` | see §5.4 |
+| `endsub()` | closes the parenthesis with `)` | see §5.4 |
+| `clearWhere()` | drop all conditions and group markers | |
+| `clear()` | drop conditions, data and generated SQL | |
+| `desc(col)` / `asc(col)` | `ORDER BY` | `.desc("aid")` |
+| `limit(n)` / `limit(offset, n)` | `LIMIT` | `.limit(0, 20)` |
+| `select(fields)` | column list, expressions and aliases allowed | `.select("id,title")` |
+| `group(col)` | `GROUP BY` | `.group("topicid")` |
+| `having(cond)` | `HAVING` | `.having("count(*) > 1")` |
+| `lock_conn()` / `unlock_conn()` | reuse one connection across a batch | §5.5 |
+
+**Execution — text path** (values escaped into the statement)
+
+| Method | Returns |
+|--------|---------|
+| `fetch()` / `fetch_one()` | effect count; rows in `record`, first row in `data` |
+| `fetch_append()` | appends rows to `record` |
+| `fetch_to(vec)` / `fetch_one_to(obj)` | fill a custom `orm::Base` struct |
+| `count()` | number of matching rows |
+| `page(page, per_page, list_num)` | `[bar_min, bar_max, current, total]` |
+| `save()` / `update(fields)` / `remove()` | `[effect, id]` / effect / effect |
+| `update_col(col, n, sign)` | increment (`'+'`) or decrement (`'-'`) |
+| `replace_col(col, old, new)` | `REPLACE()` inside an UPDATE |
+
+**Execution — prepared path** (§5.8): every method above has an `exec_` twin, and the
+coroutine form prefixes `async_`.
+
+| Text | Prepared | Async prepared |
+|------|----------|----------------|
+| `count()` | `exec_count()` | `async_exec_count()` |
+| `page(...)` | `exec_page(...)` | `async_exec_page(...)` |
+| `fetch()` | `exec_fetch()` / `exec_fetch_to(v)` | `async_exec_fetch()` / `async_exec_fetch_to(v)` |
+| `fetch_one()` | `exec_one()` / `exec_one_to(v)` | `async_exec_one()` / `async_exec_one_to(v)` |
+| `fetch_append()` | `exec_fetch_append()` | `async_exec_fetch_append()` |
+| `save()` | `exec_insert()` | `async_exec_insert()` |
+| batch insert | `exec_insert_batch()` | `async_exec_insert_batch()` |
+| `update(...)` | `exec_update()` / `exec_update(fields)` / `exec_update_fields(pairs)` / `exec_update_dirty()` | `async_exec_update*()` (no `async_exec_update_fields`) |
+| `update_col(...)` | `exec_update_col(...)` | `async_exec_update_col(...)` |
+| `replace_col(...)` | `exec_replace_col(...)` | `async_exec_replace_col(...)` |
+| `remove()` | `exec_remove()` | `async_exec_remove()` |
+
+**Joins and foreign keys** (§5.9, §5.10)
+
+| Method | Description |
+|--------|-------------|
+| `leftJoin<T>()` / `innerJoin<T>()` | start a join with model type `T` |
+| `joinOn(join_col, main_col)` | `ON` condition, column to column |
+| `joinSelect(fields)` | columns of the joined table to return |
+| `joinWhere(col, op, val)` / `joinWhereOr(...)` | condition inside the joined sub-query (needs `joinLimit`) |
+| `joinAsc(col)` / `joinDesc(col)` | order inside the joined sub-query (needs `joinLimit`) |
+| `joinGroup(col)` / `joinParAppend(col)` | `PARTITION BY` column (needs `joinLimit`) |
+| `joinLimit(n)` | switches to the sub-query form; with `joinGroup` = top-N per group |
+| `one{Camel}()` / `one{Camel}(id)` / `one{Camel}(obj&)` | generated FK: the single related row |
+| `many{Camel}()` / `many{Camel}(obj&)` | generated FK: all related rows for the loaded set |
+| `get_cols_vec<{table}_info::cols::col>()` | the column values of `record`, the set `many{Camel}` scopes with. Generated per table in `_base.h`; an overload takes a `bool(const value&)` filter |
 
 ---
 
@@ -931,18 +1281,20 @@ View templates are compiled into C++ source files in `viewsrc/` via the CLI tool
 
 ### 10.1 Adding a New Controller
 
-1. Create a header file in `controller/include/` (e.g., `newfeature.h`).
-2. Create an implementation file in `controller/src/` (e.g., `newfeature.cpp`).
-3. Register routes using `//@urlpath`.
-4. Add the source file in CMakeLists.txt.
-5. Rebuild the project.
+1. Create an implementation file in `controller/src/` (e.g., `newfeature.cpp`) and
+   register its routes with `//@urlpath` comments.
+2. The matching `controller/include/newfeature.h` is optional: CMake touches an empty
+   header for every `controller/src/*.cpp` that has none.
+3. There is no CMakeLists.txt edit — `controller/src/*.cpp` is collected with
+   `file(GLOB_RECURSE ... CONFIGURE_DEPENDS)`, so a plain rebuild picks the new file up.
 
 ### 10.2 Adding a New Database Model
 
 1. Create the table in the database.
 2. Run `./bin/paozhu_cli orm <tag>` to generate ORM code.
-3. Implement business logic in `models/<db>/ModelName.cpp`.
-4. Access data in controllers via `orm::<db>::ModelName()`.
+3. Add business logic to `models/<tag>/ModelName.cpp`.
+4. Access data in controllers via `orm::<tag>::ModelName()` (`orm::ModelName()` for the
+   default tag).
 
 ### 10.3 Adding a New View
 
@@ -956,7 +1308,7 @@ View templates are compiled into C++ source files in `viewsrc/` via the CLI tool
 ```bash
 # CMake configuration
 mkdir build && cd build
-cmake ..
+cmake ..                 # add -DENABLE_SQLITE=ON to build the [lite] tag (§XII)
 
 # Compile
 make -j$(nproc)
@@ -971,13 +1323,31 @@ make -j$(nproc)
 ## XI. Frequently Asked Questions
 
 **Q: How can I add a new database connection?**  
-Add a new section in `conf/orm.conf` and then use the corresponding namespace in your code.
+Add a new section in `conf/orm.conf`, run `./bin/paozhu_cli orm <tag>` to generate its
+models, then use the matching namespace (`orm::<tag>::ModelName`) in your code.
 
 **Q: Can ORM code be modified manually?**  
-The `_base.h` and `_opsql.h` files are auto‑generated and should not be manually modified. Business logic should be implemented in model classes under `models/`.
+The `_base.h` and `_opsql.h` files are auto‑generated and should not be manually
+modified. Business logic belongs in the model classes under `models/`. Changing the
+shared behaviour instead means editing the templates under `vendor/httpserver/include/`,
+and that requires regenerating every tag afterwards — see §5.1.
 
 **Q: How do I switch between PostgreSQL and MySQL?**  
-Change the `dbtype` parameter in `orm.conf`, or use the CLI tool’s `dbconver` feature to migrate data.
+You don't switch at runtime. Each generated model is bound to its `orm.conf` tag at
+code-generation time, so `orm::Fortune` can only ever talk to the MySQL `[default]`
+section, while `orm::pg::Fortune` and `orm::lite::Fortune` are separate generated classes
+tied to PostgreSQL and SQLite. To run on another engine, generate that tag with
+`./bin/paozhu_cli orm <tag>` and use its namespace; `dbtype` in `orm.conf` decides which
+client a *new* tag gets, and `./bin/paozhu_cli dbconver <from> <to>` moves the data
+across.
+
+**Q: A predicate the query DSL does not cover — how do I express it in `where()`?**  
+You cannot hand a SQL fragment to `where()`. Its first argument is a column name and the
+operator is a separate argument (`where("price", orm::wq::be, 100)`, or
+`where("price", ">=", 100)`). For anything the DSL does not cover — full‑text matches,
+`EXISTS`, expressions over several columns — run the statement verbatim through
+`orm::db_conn` (§5.7) with a custom `orm::Base` struct, and interpolate only values your
+code produced, not request data.
 
 **Q: What special tags does the view template support?**  
 - `<%c echo<<obj["variable"].to_string(); %>` – variable output
@@ -998,9 +1368,18 @@ Set `debug_enable = 1` in `server.conf`; ORM will log the generated SQL statemen
 - **OpenSSL 3.0+** – SSL/TLS encryption
 
 ### Built‑in Database Clients
-- The framework integrates MySQL and PostgreSQL clients directly – no need to install MySQL Connector/C++ or libpq separately.
+- The framework integrates the MySQL, PostgreSQL and SQLite clients directly – no need to
+  install MySQL Connector/C++, libpq or link SQLite by hand.
 - Supports **MySQL 8.0.4 and above** (including `caching_sha2_password` authentication plugin).
 - Supports **MariaDB 12.1+** (starting from 12.1, it supports the `caching_sha2_password` authentication plugin, compatible with MySQL 8.0’s default authentication).
+- **SQLite** is behind the `ENABLE_SQLITE` CMake option (default `OFF`). Turn it on to
+  build the `[lite]` tag: CMake then adds `sqlite_conn.cpp` and locates the library —
+  `find_package(SQLite3 REQUIRED)` in the vcpkg branch, `find_path`/`find_library` in the
+  system branch. `vcpkg.json` / `xmake.lua` already list `sqlite3` as a dependency.
+- With `ENABLE_SQLITE=OFF`, `vendor/httpserver/src/sqlite_conn_stub.cpp` still compiles
+  (it is always in the source list) but its `#ifndef ENABLE_SQLITE` stubs win, so a
+  `dbtype = sqlite` section fails at connect time with
+  `SQLite support not compiled. Rebuild with -DENABLE_SQLITE=ON` instead of crashing.
 - Supports both **C++20 coroutines** (asynchronous) and **synchronous** operation.
 
 ### Optional Dependencies
@@ -1022,5 +1401,14 @@ Set `debug_enable = 1` in `server.conf`; ORM will log the generated SQL statemen
 
 ---
 
-*Document generated: 2026-08-15*  
-*Version: Based on Paozhu Framework codebase analysis*
+*Last updated: 2026-09-12*  
+*ORM sections were written against the current `vendor/httpserver/include/*orm.hpp`
+templates, not a snapshot: every documented method name is grep-checked, the call chains in
+§5.4–§5.10 are the ones exercised by `controller/src/test_ormprepared.cpp` and
+`controller/src/test_ormfk.cpp` (both compile clean), and all three dialect templates are
+compile-probed with these examples by `build/ormprobe/gen.py`, which since 2026-09-12 also
+runs a negative probe: the single-argument raw-SQL `where()`/`whereOr()` overloads were
+deleted from all three templates, and `build/ormprobe/neg_control.py` shows that probe keys
+on the deletion (re-adding the overloads makes it compile clean again). String literals in
+the docs are placeholders and may differ from the sample files. None of it changes runtime
+behaviour until `paozhu_cli orm` regenerates the existing `_opsql.h` copies (§5.1).*

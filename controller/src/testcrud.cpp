@@ -169,7 +169,7 @@ std::string articleeditpost(std::shared_ptr<httppeer> peer)
     unsigned int aid    = client.post["aid"].to_int();
 
     auto articles = orm::cms::Article();
-    // articles.where("isopen=1").where(" aid=",aid).limit(1).fetch();
+    // articles.where("isopen", 1).where("aid", aid).limit(1).fetch();
     // articles.data.aid=aid;
     // articles.data.title=title;
     // articles.setAid(aid);

@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSROLEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 01 Sep 2026 03:58:37 GMT
+*本文件为自动生成 Sat, 12 Sep 2026 07:38:47 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -12,11 +12,15 @@
 #include <map> 
 #include <string_view> 
 #include <string> 
+#include <cstring>
 #include <vector>
+#include <set>
 #include <ctime>
 #include <array>
 #include <concepts>
 #include <utility>
+#include <bit>
+#include <algorithm>
 #include "unicode.h"
 
 namespace orm { 
@@ -26,6 +30,7 @@ namespace orm {
 namespace sysrole_info
 {
  
+    static constexpr std::size_t col_count = 7;
     enum class cols : unsigned char 
     {
 		roleid = 0,
@@ -621,13 +626,18 @@ namespace sysrole_info
         
     static constexpr std::array<std::string_view,7> col_names={"roleid","userid","name","status","rolecode","sortid","rolevalue"};
 	static constexpr std::array<unsigned char,7> col_types={3,3,253,1,8,3,3};
-	static constexpr std::array<unsigned char,7> col_length={0,0,60,0,0,0,0};
+	static constexpr std::array<unsigned short,7> col_length={0,0,60,0,0,0,0};
 	static constexpr std::array<unsigned char,7> col_decimals={0,0,0,0,0,0,0};
+	static constexpr std::array<bool,7> col_null={false,false,false,false,false,false,false};
+	static constexpr std::array<bool,7> col_indexed={true,false,false,false,false,false,false};
+	static constexpr std::string_view auto_pk_name ="roleid";
+	static constexpr int auto_pk_index = 0;
 
 }
 
 struct sysrole_base
 {
+    using cols = sysrole_info::cols;
       sysrole_info::meta data;
     std::vector<sysrole_info::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -638,13 +648,74 @@ std::vector<sysrole_info::meta>::const_iterator end() const{     return record.e
 std::string tablename="sysrole";
 static constexpr std::string_view org_tablename="sysrole";
 static constexpr std::string_view modelname="Sysrole";
+	static constexpr std::array<bool,7> col_need_quote={false,false,true,false,false,false,false};
 
-	  unsigned char findcolpos(const std::string &coln){
+            std::bitset<7> dirty_bits;
+            void clear_dirty() noexcept {
+                dirty_bits.reset();
+            }
+
+            void set_dirty(std::size_t idx) noexcept {
+                if(idx < 7)
+                dirty_bits.set(idx);
+            }
+
+            [[nodiscard]] std::vector<unsigned char> get_dirty_indices() const noexcept {
+                std::vector<unsigned char> result;
+                for (std::size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(static_cast<unsigned char>(i));
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::vector<std::string_view> get_dirty_names() const
+            {
+                std::vector<std::string_view> result;
+                result.reserve(dirty_bits.size()); // 预分配
+                for (size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(sysrole_info::col_names[i]);
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::string get_dirty_names_str(std::string_view sep = ",") const
+            {
+                auto names = get_dirty_names();
+
+                if (names.empty()) {
+                    return {};
+                }
+                
+                std::size_t total_len = 0;
+                for (const auto& name : names) {
+                    total_len += name.size();
+                }
+                total_len += sep.size() * (names.size() - 1);
+
+                std::string result;
+                result.reserve(total_len);
+
+                bool first = true;
+                for (const auto& name : names) {
+                    if (!first) {
+                        result.append(sep);
+                    }
+                    result.append(name);
+                    first = false;
+                }
+                return result;
+            }
+    
+	  [[nodiscard]] static constexpr unsigned char findcolpos(std::string_view coln) noexcept {
             if(coln.size()==0)
             {
                 return 255;
             }
-		    unsigned char  bi=coln[0];
+		    unsigned char  bi= static_cast<unsigned char>(coln[0]);
          char colpospppc;
 
 	         if(bi<91&&bi>64){
@@ -1071,6 +1142,73 @@ if(data.rolevalue==0){
         return tempsql.str();
    } 
    
+   std::string make_update_dirty_sql()
+   {
+    std::ostringstream tempsql;
+    tempsql << "UPDATE " << tablename << " SET ";
+
+    constexpr std::size_t total = sysrole_info::col_names.size();
+
+    bool first = true;
+    for (std::size_t idx = 0; idx < total; ++idx) {
+        if (dirty_bits.test(idx)) {
+            if (idx < total) {
+                if (!first) tempsql << ",";
+                switch (idx) {
+                    case 0:
+                        if(data.roleid==0){
+                            tempsql<<"roleid=0";
+                        }else{ 
+                            tempsql<<"roleid="<<std::to_string(data.roleid);
+                        }
+                        break;
+                    case 1:
+                        if(data.userid==0){
+                            tempsql<<"userid=0";
+                        }else{ 
+                            tempsql<<"userid="<<std::to_string(data.userid);
+                        }
+                        break;
+                    case 2:
+                        tempsql<<"name='"<<stringaddslash(data.name)<<"'";
+                        break;
+                    case 3:
+                        if(data.status==0){
+                            tempsql<<"status=0";
+                        }else{ 
+                            tempsql<<"status="<<std::to_string(data.status);
+                        }
+                        break;
+                    case 4:
+                        if(data.rolecode==0){
+                            tempsql<<"rolecode=0";
+                        }else{ 
+                            tempsql<<"rolecode="<<std::to_string(data.rolecode);
+                        }
+                        break;
+                    case 5:
+                        if(data.sortid==0){
+                            tempsql<<"sortid=0";
+                        }else{ 
+                            tempsql<<"sortid="<<std::to_string(data.sortid);
+                        }
+                        break;
+                    case 6:
+                        if(data.rolevalue==0){
+                            tempsql<<"rolevalue=0";
+                        }else{ 
+                            tempsql<<"rolevalue="<<std::to_string(data.rolevalue);
+                        }
+                        break;
+                }
+                first = false;
+            }
+        }
+    }
+    if (first) return "";
+    return tempsql.str();
+   } 
+
     std::string make_record_replace_sql()
     {
         unsigned int j = 0;
@@ -2082,24 +2220,31 @@ if(record[n].rolevalue==0){
  void setRoleid( unsigned  int  val){  data.roleid=val;} 
 
  unsigned  int  getUserid(){  return data.userid; } 
- void setUserid( unsigned  int  val){  data.userid=val;} 
+ void setUserid( unsigned  int  val){  data.userid=val;
+		 set_dirty(1);  }
 
  std::string  getName(){  return data.name; } 
  std::string & getRefName(){  return std::ref(data.name); } 
- void setName( std::string  &val){  data.name=val;} 
- void setName(std::string_view val){  data.name=val;} 
+ void setName( std::string  &val){  data.name=val;
+		 set_dirty(2);  }
+ void setName(std::string_view val){  data.name=val;
+		 set_dirty(2);  }
 
  unsigned  char  getStatus(){  return data.status; } 
- void setStatus( unsigned  char  val){  data.status=val;} 
+ void setStatus( unsigned  char  val){  data.status=val;
+		 set_dirty(3);  }
 
  unsigned  long long  getRolecode(){  return data.rolecode; } 
- void setRolecode( unsigned  long long  val){  data.rolecode=val;} 
+ void setRolecode( unsigned  long long  val){  data.rolecode=val;
+		 set_dirty(4);  }
 
  int  getSortid(){  return data.sortid; } 
- void setSortid( int  val){  data.sortid=val;} 
+ void setSortid( int  val){  data.sortid=val;
+		 set_dirty(5);  }
 
  unsigned  int  getRolevalue(){  return data.rolevalue; } 
- void setRolevalue( unsigned  int  val){  data.rolevalue=val;} 
+ void setRolevalue( unsigned  int  val){  data.rolevalue=val;
+		 set_dirty(6);  }
 
 sysrole_info::meta getnewData(){
  	 struct sysrole_info::meta newdata;

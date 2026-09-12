@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.2.0
+-- version 5.2.2
 -- https://www.phpmyadmin.net/
 --
 -- 主机： localhost
--- 生成日期： 2024-01-05 05:10:20
--- 服务器版本： 8.0.28
--- PHP 版本： 8.2.7
+-- 生成日期： 2026-09-12 07:45:34
+-- 服务器版本： 8.4.4
+-- PHP 版本： 8.5.7
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -44,12 +44,35 @@ DELIMITER ;
 -- --------------------------------------------------------
 
 --
+-- 表的结构 `fk_child`
+--
+
+CREATE TABLE `fk_child` (
+  `id` int NOT NULL,
+  `parent_id` int DEFAULT NULL,
+  `extra` varchar(100) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
+-- 表的结构 `fk_parent`
+--
+
+CREATE TABLE `fk_parent` (
+  `id` int NOT NULL,
+  `name` varchar(100) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
 -- 表的结构 `fortune`
 --
 
 CREATE TABLE `fortune` (
   `id` int UNSIGNED NOT NULL,
-  `message` varchar(2048) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL
+  `message` varchar(2048) CHARACTER SET utf8mb3 COLLATE utf8mb3_general_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
@@ -69,6 +92,52 @@ INSERT INTO `fortune` (`id`, `message`) VALUES
 (10, 'Computers make very fast, very accurate mistakes.'),
 (11, '<script>alert(\"This should not be displayed in a browser alert box.\");</script>'),
 (12, 'フレームワークのベンチマーク');
+
+-- --------------------------------------------------------
+
+--
+-- 表的结构 `orm_probe`
+--
+
+CREATE TABLE `orm_probe` (
+  `id` int NOT NULL,
+  `v` varchar(64) DEFAULT NULL,
+  `dec_col` decimal(20,4) DEFAULT NULL,
+  `t_col` time DEFAULT NULL,
+  `dt_col` datetime(6) DEFAULT NULL,
+  `big` longblob
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- 转存表中的数据 `orm_probe`
+--
+
+INSERT INTO `orm_probe` (`id`, `v`, `dec_col`, `t_col`, `dt_col`, `big`) VALUES
+(1, 'e', NULL, NULL, NULL, NULL);
+
+-- --------------------------------------------------------
+
+--
+-- 表的结构 `orm_probe2`
+--
+
+CREATE TABLE `orm_probe2` (
+  `id` int NOT NULL,
+  `v` varchar(64) DEFAULT NULL,
+  `big_id` bigint UNSIGNED DEFAULT NULL,
+  `pad` varchar(2000) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
+-- 表的结构 `orm_probe3`
+--
+
+CREATE TABLE `orm_probe3` (
+  `tag` varchar(16) NOT NULL,
+  `v` longblob
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -10094,10 +10163,41 @@ INSERT INTO `world` (`id`, `randomNumber`) VALUES
 --
 
 --
+-- 表的索引 `fk_child`
+--
+ALTER TABLE `fk_child`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `fk_child_ibfk_1` (`parent_id`);
+
+--
+-- 表的索引 `fk_parent`
+--
+ALTER TABLE `fk_parent`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- 表的索引 `fortune`
 --
 ALTER TABLE `fortune`
   ADD PRIMARY KEY (`id`);
+
+--
+-- 表的索引 `orm_probe`
+--
+ALTER TABLE `orm_probe`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- 表的索引 `orm_probe2`
+--
+ALTER TABLE `orm_probe2`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- 表的索引 `orm_probe3`
+--
+ALTER TABLE `orm_probe3`
+  ADD PRIMARY KEY (`tag`);
 
 --
 -- 表的索引 `world`
@@ -10110,6 +10210,18 @@ ALTER TABLE `world`
 --
 
 --
+-- 使用表AUTO_INCREMENT `fk_child`
+--
+ALTER TABLE `fk_child`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+
+--
+-- 使用表AUTO_INCREMENT `fk_parent`
+--
+ALTER TABLE `fk_parent`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+
+--
 -- 使用表AUTO_INCREMENT `fortune`
 --
 ALTER TABLE `fortune`
@@ -10120,6 +10232,16 @@ ALTER TABLE `fortune`
 --
 ALTER TABLE `world`
   MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10001;
+
+--
+-- 限制导出的表
+--
+
+--
+-- 限制表 `fk_child`
+--
+ALTER TABLE `fk_child`
+  ADD CONSTRAINT `fk_child_ibfk_1` FOREIGN KEY (`parent_id`) REFERENCES `fk_parent` (`id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

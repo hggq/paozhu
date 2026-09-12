@@ -243,7 +243,7 @@ std::string testhello(std::shared_ptr<httppeer> peer)
 ```
 Open the browser and enter `http://localhost/hello`  
 
-`//@urlpath(null,hello)` is annotation  
+`//@urlpath(null,hello)` is an annotation function, and the `testhello.h` file will be automatically generated, so there is no need to create it yourself  
 
 
 ###  8.2 Sample Article list,search,pagebar

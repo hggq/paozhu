@@ -2,7 +2,7 @@
 #define ORM_CMS_TOPICSETBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 01 Sep 2026 03:58:37 GMT
+*本文件为自动生成 Sat, 12 Sep 2026 07:38:47 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -12,11 +12,15 @@
 #include <map> 
 #include <string_view> 
 #include <string> 
+#include <cstring>
 #include <vector>
+#include <set>
 #include <ctime>
 #include <array>
 #include <concepts>
 #include <utility>
+#include <bit>
+#include <algorithm>
 #include "unicode.h"
 
 namespace orm { 
@@ -26,6 +30,7 @@ namespace orm {
 namespace topicset_info
 {
  
+    static constexpr std::size_t col_count = 9;
     enum class cols : unsigned char 
     {
 		topicsetid = 0,
@@ -635,13 +640,18 @@ namespace topicset_info
         
     static constexpr std::array<std::string_view,9> col_names={"topicsetid","userid","topicid","linktopicid","linkrownum","sidetype","sidename","txtcontent","sort"};
 	static constexpr std::array<unsigned char,9> col_types={3,3,3,3,1,1,253,252,3};
-	static constexpr std::array<unsigned char,9> col_length={0,0,0,0,0,0,80,0,0};
+	static constexpr std::array<unsigned short,9> col_length={0,0,0,0,0,0,80,0,0};
 	static constexpr std::array<unsigned char,9> col_decimals={0,0,0,0,0,0,0,0,0};
+	static constexpr std::array<bool,9> col_null={false,false,false,false,false,false,false,false,false};
+	static constexpr std::array<bool,9> col_indexed={true,false,false,false,false,false,false,false,false};
+	static constexpr std::string_view auto_pk_name ="topicsetid";
+	static constexpr int auto_pk_index = 0;
 
 }
 
 struct topicset_base
 {
+    using cols = topicset_info::cols;
       topicset_info::meta data;
     std::vector<topicset_info::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -652,13 +662,74 @@ std::vector<topicset_info::meta>::const_iterator end() const{     return record.
 std::string tablename="topicset";
 static constexpr std::string_view org_tablename="topicset";
 static constexpr std::string_view modelname="Topicset";
+	static constexpr std::array<bool,9> col_need_quote={false,false,false,false,false,false,true,true,false};
 
-	  unsigned char findcolpos(const std::string &coln){
+            std::bitset<9> dirty_bits;
+            void clear_dirty() noexcept {
+                dirty_bits.reset();
+            }
+
+            void set_dirty(std::size_t idx) noexcept {
+                if(idx < 9)
+                dirty_bits.set(idx);
+            }
+
+            [[nodiscard]] std::vector<unsigned char> get_dirty_indices() const noexcept {
+                std::vector<unsigned char> result;
+                for (std::size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(static_cast<unsigned char>(i));
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::vector<std::string_view> get_dirty_names() const
+            {
+                std::vector<std::string_view> result;
+                result.reserve(dirty_bits.size()); // 预分配
+                for (size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(topicset_info::col_names[i]);
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::string get_dirty_names_str(std::string_view sep = ",") const
+            {
+                auto names = get_dirty_names();
+
+                if (names.empty()) {
+                    return {};
+                }
+                
+                std::size_t total_len = 0;
+                for (const auto& name : names) {
+                    total_len += name.size();
+                }
+                total_len += sep.size() * (names.size() - 1);
+
+                std::string result;
+                result.reserve(total_len);
+
+                bool first = true;
+                for (const auto& name : names) {
+                    if (!first) {
+                        result.append(sep);
+                    }
+                    result.append(name);
+                    first = false;
+                }
+                return result;
+            }
+    
+	  [[nodiscard]] static constexpr unsigned char findcolpos(std::string_view coln) noexcept {
             if(coln.size()==0)
             {
                 return 255;
             }
-		    unsigned char  bi=coln[0];
+		    unsigned char  bi= static_cast<unsigned char>(coln[0]);
          char colpospppc;
 
 	         if(bi<91&&bi>64){
@@ -1129,6 +1200,83 @@ if(data.sort==0){
         return tempsql.str();
    } 
    
+   std::string make_update_dirty_sql()
+   {
+    std::ostringstream tempsql;
+    tempsql << "UPDATE " << tablename << " SET ";
+
+    constexpr std::size_t total = topicset_info::col_names.size();
+
+    bool first = true;
+    for (std::size_t idx = 0; idx < total; ++idx) {
+        if (dirty_bits.test(idx)) {
+            if (idx < total) {
+                if (!first) tempsql << ",";
+                switch (idx) {
+                    case 0:
+                        if(data.topicsetid==0){
+                            tempsql<<"topicsetid=0";
+                        }else{ 
+                            tempsql<<"topicsetid="<<std::to_string(data.topicsetid);
+                        }
+                        break;
+                    case 1:
+                        if(data.userid==0){
+                            tempsql<<"userid=0";
+                        }else{ 
+                            tempsql<<"userid="<<std::to_string(data.userid);
+                        }
+                        break;
+                    case 2:
+                        if(data.topicid==0){
+                            tempsql<<"topicid=0";
+                        }else{ 
+                            tempsql<<"topicid="<<std::to_string(data.topicid);
+                        }
+                        break;
+                    case 3:
+                        if(data.linktopicid==0){
+                            tempsql<<"linktopicid=0";
+                        }else{ 
+                            tempsql<<"linktopicid="<<std::to_string(data.linktopicid);
+                        }
+                        break;
+                    case 4:
+                        if(data.linkrownum==0){
+                            tempsql<<"linkrownum=0";
+                        }else{ 
+                            tempsql<<"linkrownum="<<std::to_string(data.linkrownum);
+                        }
+                        break;
+                    case 5:
+                        if(data.sidetype==0){
+                            tempsql<<"sidetype=0";
+                        }else{ 
+                            tempsql<<"sidetype="<<std::to_string(data.sidetype);
+                        }
+                        break;
+                    case 6:
+                        tempsql<<"sidename='"<<stringaddslash(data.sidename)<<"'";
+                        break;
+                    case 7:
+                        tempsql<<"txtcontent='"<<stringaddslash(data.txtcontent)<<"'";
+                        break;
+                    case 8:
+                        if(data.sort==0){
+                            tempsql<<"sort=0";
+                        }else{ 
+                            tempsql<<"sort="<<std::to_string(data.sort);
+                        }
+                        break;
+                }
+                first = false;
+            }
+        }
+    }
+    if (first) return "";
+    return tempsql.str();
+   } 
+
     std::string make_record_replace_sql()
     {
         unsigned int j = 0;
@@ -2223,32 +2371,42 @@ if(record[n].sort==0){
  void setTopicsetid( unsigned  int  val){  data.topicsetid=val;} 
 
  unsigned  int  getUserid(){  return data.userid; } 
- void setUserid( unsigned  int  val){  data.userid=val;} 
+ void setUserid( unsigned  int  val){  data.userid=val;
+		 set_dirty(1);  }
 
  unsigned  int  getTopicid(){  return data.topicid; } 
- void setTopicid( unsigned  int  val){  data.topicid=val;} 
+ void setTopicid( unsigned  int  val){  data.topicid=val;
+		 set_dirty(2);  }
 
  unsigned  int  getLinktopicid(){  return data.linktopicid; } 
- void setLinktopicid( unsigned  int  val){  data.linktopicid=val;} 
+ void setLinktopicid( unsigned  int  val){  data.linktopicid=val;
+		 set_dirty(3);  }
 
  unsigned  char  getLinkrownum(){  return data.linkrownum; } 
- void setLinkrownum( unsigned  char  val){  data.linkrownum=val;} 
+ void setLinkrownum( unsigned  char  val){  data.linkrownum=val;
+		 set_dirty(4);  }
 
  unsigned  char  getSidetype(){  return data.sidetype; } 
- void setSidetype( unsigned  char  val){  data.sidetype=val;} 
+ void setSidetype( unsigned  char  val){  data.sidetype=val;
+		 set_dirty(5);  }
 
  std::string  getSidename(){  return data.sidename; } 
  std::string & getRefSidename(){  return std::ref(data.sidename); } 
- void setSidename( std::string  &val){  data.sidename=val;} 
- void setSidename(std::string_view val){  data.sidename=val;} 
+ void setSidename( std::string  &val){  data.sidename=val;
+		 set_dirty(6);  }
+ void setSidename(std::string_view val){  data.sidename=val;
+		 set_dirty(6);  }
 
  std::string  getTxtcontent(){  return data.txtcontent; } 
  std::string & getRefTxtcontent(){  return std::ref(data.txtcontent); } 
- void setTxtcontent( std::string  &val){  data.txtcontent=val;} 
- void setTxtcontent(std::string_view val){  data.txtcontent=val;} 
+ void setTxtcontent( std::string  &val){  data.txtcontent=val;
+		 set_dirty(7);  }
+ void setTxtcontent(std::string_view val){  data.txtcontent=val;
+		 set_dirty(7);  }
 
  unsigned  int  getSort(){  return data.sort; } 
- void setSort( unsigned  int  val){  data.sort=val;} 
+ void setSort( unsigned  int  val){  data.sort=val;
+		 set_dirty(8);  }
 
 topicset_info::meta getnewData(){
  	 struct topicset_info::meta newdata;

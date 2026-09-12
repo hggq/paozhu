@@ -2,7 +2,7 @@
 #define ORM_CMS_DEPARTMENTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 01 Sep 2026 03:58:37 GMT
+*本文件为自动生成 Sat, 12 Sep 2026 07:38:47 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -12,11 +12,15 @@
 #include <map> 
 #include <string_view> 
 #include <string> 
+#include <cstring>
 #include <vector>
+#include <set>
 #include <ctime>
 #include <array>
 #include <concepts>
 #include <utility>
+#include <bit>
+#include <algorithm>
 #include "unicode.h"
 
 namespace orm { 
@@ -26,6 +30,7 @@ namespace orm {
 namespace department_info
 {
  
+    static constexpr std::size_t col_count = 16;
     enum class cols : unsigned char 
     {
 		dpid = 0,
@@ -684,13 +689,18 @@ namespace department_info
         
     static constexpr std::array<std::string_view,16> col_names={"dpid","userid","parentid","name","depart_code","bianzhi_num","real_num","quan_weight","isopen","memo","created_time","created_user","updated_time","updated_user","isvirtual","linkdpid"};
 	static constexpr std::array<unsigned char,16> col_types={3,3,3,253,253,3,3,3,1,252,3,3,3,3,1,253};
-	static constexpr std::array<unsigned char,16> col_length={0,0,0,40,20,0,0,0,0,0,0,0,0,0,0,0};
+	static constexpr std::array<unsigned short,16> col_length={0,0,0,40,20,0,0,0,0,0,0,0,0,0,0,256};
 	static constexpr std::array<unsigned char,16> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	static constexpr std::array<bool,16> col_null={false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::array<bool,16> col_indexed={true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::string_view auto_pk_name ="dpid";
+	static constexpr int auto_pk_index = 0;
 
 }
 
 struct department_base
 {
+    using cols = department_info::cols;
       department_info::meta data;
     std::vector<department_info::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -701,13 +711,74 @@ std::vector<department_info::meta>::const_iterator end() const{     return recor
 std::string tablename="department";
 static constexpr std::string_view org_tablename="department";
 static constexpr std::string_view modelname="Department";
+	static constexpr std::array<bool,16> col_need_quote={false,false,false,true,true,false,false,false,false,true,false,false,false,false,false,true};
 
-	  unsigned char findcolpos(const std::string &coln){
+            std::bitset<16> dirty_bits;
+            void clear_dirty() noexcept {
+                dirty_bits.reset();
+            }
+
+            void set_dirty(std::size_t idx) noexcept {
+                if(idx < 16)
+                dirty_bits.set(idx);
+            }
+
+            [[nodiscard]] std::vector<unsigned char> get_dirty_indices() const noexcept {
+                std::vector<unsigned char> result;
+                for (std::size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(static_cast<unsigned char>(i));
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::vector<std::string_view> get_dirty_names() const
+            {
+                std::vector<std::string_view> result;
+                result.reserve(dirty_bits.size()); // 预分配
+                for (size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(department_info::col_names[i]);
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::string get_dirty_names_str(std::string_view sep = ",") const
+            {
+                auto names = get_dirty_names();
+
+                if (names.empty()) {
+                    return {};
+                }
+                
+                std::size_t total_len = 0;
+                for (const auto& name : names) {
+                    total_len += name.size();
+                }
+                total_len += sep.size() * (names.size() - 1);
+
+                std::string result;
+                result.reserve(total_len);
+
+                bool first = true;
+                for (const auto& name : names) {
+                    if (!first) {
+                        result.append(sep);
+                    }
+                    result.append(name);
+                    first = false;
+                }
+                return result;
+            }
+    
+	  [[nodiscard]] static constexpr unsigned char findcolpos(std::string_view coln) noexcept {
             if(coln.size()==0)
             {
                 return 255;
             }
-		    unsigned char  bi=coln[0];
+		    unsigned char  bi= static_cast<unsigned char>(coln[0]);
          char colpospppc;
 
 	         if(bi<91&&bi>64){
@@ -1361,6 +1432,124 @@ tempsql<<"linkdpid='"<<stringaddslash(data.linkdpid)<<"'";
         return tempsql.str();
    } 
    
+   std::string make_update_dirty_sql()
+   {
+    std::ostringstream tempsql;
+    tempsql << "UPDATE " << tablename << " SET ";
+
+    constexpr std::size_t total = department_info::col_names.size();
+
+    bool first = true;
+    for (std::size_t idx = 0; idx < total; ++idx) {
+        if (dirty_bits.test(idx)) {
+            if (idx < total) {
+                if (!first) tempsql << ",";
+                switch (idx) {
+                    case 0:
+                        if(data.dpid==0){
+                            tempsql<<"dpid=0";
+                        }else{ 
+                            tempsql<<"dpid="<<std::to_string(data.dpid);
+                        }
+                        break;
+                    case 1:
+                        if(data.userid==0){
+                            tempsql<<"userid=0";
+                        }else{ 
+                            tempsql<<"userid="<<std::to_string(data.userid);
+                        }
+                        break;
+                    case 2:
+                        if(data.parentid==0){
+                            tempsql<<"parentid=0";
+                        }else{ 
+                            tempsql<<"parentid="<<std::to_string(data.parentid);
+                        }
+                        break;
+                    case 3:
+                        tempsql<<"name='"<<stringaddslash(data.name)<<"'";
+                        break;
+                    case 4:
+                        tempsql<<"depart_code='"<<stringaddslash(data.depart_code)<<"'";
+                        break;
+                    case 5:
+                        if(data.bianzhi_num==0){
+                            tempsql<<"bianzhi_num=0";
+                        }else{ 
+                            tempsql<<"bianzhi_num="<<std::to_string(data.bianzhi_num);
+                        }
+                        break;
+                    case 6:
+                        if(data.real_num==0){
+                            tempsql<<"real_num=0";
+                        }else{ 
+                            tempsql<<"real_num="<<std::to_string(data.real_num);
+                        }
+                        break;
+                    case 7:
+                        if(data.quan_weight==0){
+                            tempsql<<"quan_weight=0";
+                        }else{ 
+                            tempsql<<"quan_weight="<<std::to_string(data.quan_weight);
+                        }
+                        break;
+                    case 8:
+                        if(data.isopen==0){
+                            tempsql<<"isopen=0";
+                        }else{ 
+                            tempsql<<"isopen="<<std::to_string(data.isopen);
+                        }
+                        break;
+                    case 9:
+                        tempsql<<"memo='"<<stringaddslash(data.memo)<<"'";
+                        break;
+                    case 10:
+                        if(data.created_time==0){
+                            tempsql<<"created_time=0";
+                        }else{ 
+                            tempsql<<"created_time="<<std::to_string(data.created_time);
+                        }
+                        break;
+                    case 11:
+                        if(data.created_user==0){
+                            tempsql<<"created_user=0";
+                        }else{ 
+                            tempsql<<"created_user="<<std::to_string(data.created_user);
+                        }
+                        break;
+                    case 12:
+                        if(data.updated_time==0){
+                            tempsql<<"updated_time=0";
+                        }else{ 
+                            tempsql<<"updated_time="<<std::to_string(data.updated_time);
+                        }
+                        break;
+                    case 13:
+                        if(data.updated_user==0){
+                            tempsql<<"updated_user=0";
+                        }else{ 
+                            tempsql<<"updated_user="<<std::to_string(data.updated_user);
+                        }
+                        break;
+                    case 14:
+                        if(data.isvirtual==0){
+                            tempsql<<"isvirtual=0";
+                        }else{ 
+                            tempsql<<"isvirtual="<<std::to_string(data.isvirtual);
+                        }
+                        break;
+                    case 15:
+                        tempsql<<"linkdpid='"<<stringaddslash(data.linkdpid)<<"'";
+                        break;
+                }
+                first = false;
+            }
+        }
+    }
+    if (first) return "";
+    return tempsql.str();
+   } 
+
     std::string make_record_replace_sql()
     {
         unsigned int j = 0;
@@ -2792,57 +2981,76 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(record[n].linkdpid)<<"\"";
  void setDpid( unsigned  int  val){  data.dpid=val;} 
 
  unsigned  int  getUserid(){  return data.userid; } 
- void setUserid( unsigned  int  val){  data.userid=val;} 
+ void setUserid( unsigned  int  val){  data.userid=val;
+		 set_dirty(1);  }
 
  unsigned  int  getParentid(){  return data.parentid; } 
- void setParentid( unsigned  int  val){  data.parentid=val;} 
+ void setParentid( unsigned  int  val){  data.parentid=val;
+		 set_dirty(2);  }
 
  std::string  getName(){  return data.name; } 
  std::string & getRefName(){  return std::ref(data.name); } 
- void setName( std::string  &val){  data.name=val;} 
- void setName(std::string_view val){  data.name=val;} 
+ void setName( std::string  &val){  data.name=val;
+		 set_dirty(3);  }
+ void setName(std::string_view val){  data.name=val;
+		 set_dirty(3);  }
 
  std::string  getDepartCode(){  return data.depart_code; } 
  std::string & getRefDepartCode(){  return std::ref(data.depart_code); } 
- void setDepartCode( std::string  &val){  data.depart_code=val;} 
- void setDepartCode(std::string_view val){  data.depart_code=val;} 
+ void setDepartCode( std::string  &val){  data.depart_code=val;
+		 set_dirty(4);  }
+ void setDepartCode(std::string_view val){  data.depart_code=val;
+		 set_dirty(4);  }
 
  int  getBianzhiNum(){  return data.bianzhi_num; } 
- void setBianzhiNum( int  val){  data.bianzhi_num=val;} 
+ void setBianzhiNum( int  val){  data.bianzhi_num=val;
+		 set_dirty(5);  }
 
  int  getRealNum(){  return data.real_num; } 
- void setRealNum( int  val){  data.real_num=val;} 
+ void setRealNum( int  val){  data.real_num=val;
+		 set_dirty(6);  }
 
  int  getQuanWeight(){  return data.quan_weight; } 
- void setQuanWeight( int  val){  data.quan_weight=val;} 
+ void setQuanWeight( int  val){  data.quan_weight=val;
+		 set_dirty(7);  }
 
  char  getIsopen(){  return data.isopen; } 
- void setIsopen( char  val){  data.isopen=val;} 
+ void setIsopen( char  val){  data.isopen=val;
+		 set_dirty(8);  }
 
  std::string  getMemo(){  return data.memo; } 
  std::string & getRefMemo(){  return std::ref(data.memo); } 
- void setMemo( std::string  &val){  data.memo=val;} 
- void setMemo(std::string_view val){  data.memo=val;} 
+ void setMemo( std::string  &val){  data.memo=val;
+		 set_dirty(9);  }
+ void setMemo(std::string_view val){  data.memo=val;
+		 set_dirty(9);  }
 
  unsigned  int  getCreatedTime(){  return data.created_time; } 
- void setCreatedTime( unsigned  int  val){  data.created_time=val;} 
+ void setCreatedTime( unsigned  int  val){  data.created_time=val;
+		 set_dirty(10);  }
 
  unsigned  int  getCreatedUser(){  return data.created_user; } 
- void setCreatedUser( unsigned  int  val){  data.created_user=val;} 
+ void setCreatedUser( unsigned  int  val){  data.created_user=val;
+		 set_dirty(11);  }
 
  unsigned  int  getUpdatedTime(){  return data.updated_time; } 
- void setUpdatedTime( unsigned  int  val){  data.updated_time=val;} 
+ void setUpdatedTime( unsigned  int  val){  data.updated_time=val;
+		 set_dirty(12);  }
 
  unsigned  int  getUpdatedUser(){  return data.updated_user; } 
- void setUpdatedUser( unsigned  int  val){  data.updated_user=val;} 
+ void setUpdatedUser( unsigned  int  val){  data.updated_user=val;
+		 set_dirty(13);  }
 
  char  getIsvirtual(){  return data.isvirtual; } 
- void setIsvirtual( char  val){  data.isvirtual=val;} 
+ void setIsvirtual( char  val){  data.isvirtual=val;
+		 set_dirty(14);  }
 
  std::string  getLinkdpid(){  return data.linkdpid; } 
  std::string & getRefLinkdpid(){  return std::ref(data.linkdpid); } 
- void setLinkdpid( std::string  &val){  data.linkdpid=val;} 
- void setLinkdpid(std::string_view val){  data.linkdpid=val;} 
+ void setLinkdpid( std::string  &val){  data.linkdpid=val;
+		 set_dirty(15);  }
+ void setLinkdpid(std::string_view val){  data.linkdpid=val;
+		 set_dirty(15);  }
 
 department_info::meta getnewData(){
  	 struct department_info::meta newdata;

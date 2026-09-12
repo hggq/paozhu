@@ -213,6 +213,8 @@ set(PGCONN_SRCS
   "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/clientdatacache.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/unicode.cpp"
   "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/sqlite_conn_stub.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/parse_ini.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpserver/src/request.cpp"
 )
 
 # SQLite connection sources (always compile; sqlite_conn.cpp has #ifdef ENABLE_SQLITE guard)

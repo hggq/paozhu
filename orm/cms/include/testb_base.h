@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTBBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 01 Sep 2026 03:58:37 GMT
+*本文件为自动生成 Sat, 12 Sep 2026 07:38:47 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -12,11 +12,15 @@
 #include <map> 
 #include <string_view> 
 #include <string> 
+#include <cstring>
 #include <vector>
+#include <set>
 #include <ctime>
 #include <array>
 #include <concepts>
 #include <utility>
+#include <bit>
+#include <algorithm>
 #include "unicode.h"
 
 namespace orm { 
@@ -26,6 +30,7 @@ namespace orm {
 namespace testb_info
 {
  
+    static constexpr std::size_t col_count = 6;
     enum class cols : unsigned char 
     {
 		tid = 0,
@@ -44,7 +49,7 @@ namespace testb_info
 		 std::string  name = ""; ///**/
 		 double  pricenum = 0; ///**/
 		 float  orgprice = 0; ///**/
-		 double  subprice = 0; ///**/
+		 std::string  subprice = ""; ///**/
 	};
   
     struct meta_tree
@@ -54,7 +59,7 @@ namespace testb_info
 		 std::string  name = ""; ///**/
 		 double  pricenum = 0; ///**/
 		 float  orgprice = 0; ///**/
-		 double  subprice = 0; ///**/
+		 std::string  subprice = ""; ///**/
 
 	 std::vector<meta_tree> children;
  };
@@ -66,7 +71,7 @@ namespace testb_info
 		 std::string  name = ""; ///**/
 		 double  pricenum = 0; ///**/
 		 float  orgprice = 0; ///**/
-		 double  subprice = 0; ///**/
+		 std::string  subprice = ""; ///**/
 
 	 std::vector<std::unique_ptr<meta_tree>> children;
  };
@@ -98,7 +103,7 @@ namespace testb_info
 		using name =  std::string ;
 		using pricenum =  double ;
 		using orgprice =  float ;
-		using subprice =  double ;
+		using subprice =  std::string ;
 
     }
 
@@ -614,13 +619,18 @@ namespace testb_info
         
     static constexpr std::array<std::string_view,6> col_names={"tid","score","name","pricenum","orgprice","subprice"};
 	static constexpr std::array<unsigned char,6> col_types={3,8,253,5,4,246};
-	static constexpr std::array<unsigned char,6> col_length={0,0,30,0,0,10};
+	static constexpr std::array<unsigned short,6> col_length={0,0,30,0,0,10};
 	static constexpr std::array<unsigned char,6> col_decimals={0,0,0,0,0,2};
+	static constexpr std::array<bool,6> col_null={false,false,false,false,false,false};
+	static constexpr std::array<bool,6> col_indexed={true,false,false,false,false,false};
+	static constexpr std::string_view auto_pk_name ="tid";
+	static constexpr int auto_pk_index = 0;
 
 }
 
 struct testb_base
 {
+    using cols = testb_info::cols;
       testb_info::meta data;
     std::vector<testb_info::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -631,13 +641,74 @@ std::vector<testb_info::meta>::const_iterator end() const{     return record.end
 std::string tablename="testb";
 static constexpr std::string_view org_tablename="testb";
 static constexpr std::string_view modelname="Testb";
+	static constexpr std::array<bool,6> col_need_quote={false,false,true,false,false,true};
 
-	  unsigned char findcolpos(const std::string &coln){
+            std::bitset<6> dirty_bits;
+            void clear_dirty() noexcept {
+                dirty_bits.reset();
+            }
+
+            void set_dirty(std::size_t idx) noexcept {
+                if(idx < 6)
+                dirty_bits.set(idx);
+            }
+
+            [[nodiscard]] std::vector<unsigned char> get_dirty_indices() const noexcept {
+                std::vector<unsigned char> result;
+                for (std::size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(static_cast<unsigned char>(i));
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::vector<std::string_view> get_dirty_names() const
+            {
+                std::vector<std::string_view> result;
+                result.reserve(dirty_bits.size()); // 预分配
+                for (size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(testb_info::col_names[i]);
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::string get_dirty_names_str(std::string_view sep = ",") const
+            {
+                auto names = get_dirty_names();
+
+                if (names.empty()) {
+                    return {};
+                }
+                
+                std::size_t total_len = 0;
+                for (const auto& name : names) {
+                    total_len += name.size();
+                }
+                total_len += sep.size() * (names.size() - 1);
+
+                std::string result;
+                result.reserve(total_len);
+
+                bool first = true;
+                for (const auto& name : names) {
+                    if (!first) {
+                        result.append(sep);
+                    }
+                    result.append(name);
+                    first = false;
+                }
+                return result;
+            }
+    
+	  [[nodiscard]] static constexpr unsigned char findcolpos(std::string_view coln) noexcept {
             if(coln.size()==0)
             {
                 return 255;
             }
-		    unsigned char  bi=coln[0];
+		    unsigned char  bi= static_cast<unsigned char>(coln[0]);
          
 
 	         if(bi<91&&bi>64){
@@ -769,11 +840,7 @@ if(data.orgprice==0){
  }else{ 
 	tempsql<<","<<std::to_string(data.orgprice);
 }
-if(data.subprice==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(data.subprice);
-}
+tempsql<<",'"<<stringaddslash(data.subprice)<<"'";
 tempsql<<")";
 
      
@@ -820,11 +887,7 @@ if(insert_data.orgprice==0){
  }else{ 
 	tempsql<<","<<std::to_string(insert_data.orgprice);
 }
-if(insert_data.subprice==0){
-	tempsql<<",0";
- }else{ 
-	tempsql<<","<<std::to_string(insert_data.subprice);
-}
+tempsql<<",'"<<stringaddslash(insert_data.subprice)<<"'";
 tempsql<<")";
 
      
@@ -879,11 +942,7 @@ tempsql<<")";
 	 }else{ 
 	tempsql<<","<<std::to_string(insert_data[i].orgprice);
 	}
-	if(insert_data[i].subprice==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(insert_data[i].subprice);
-	}
+		tempsql<<",'"<<stringaddslash(insert_data[i].subprice)<<"'";
 		tempsql<<")";
 	 } 
 
@@ -924,11 +983,7 @@ if(data.orgprice==0){
  }else{ 
 	tempsql<<",orgprice="<<std::to_string(data.orgprice);
 }
-if(data.subprice==0){
-	tempsql<<",subprice=0";
- }else{ 
-	tempsql<<",subprice="<<std::to_string(data.subprice);
-}
+tempsql<<",subprice='"<<stringaddslash(data.subprice)<<"'";
  }else{ 
 
      
@@ -1011,11 +1066,7 @@ if(data.orgprice==0){
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-if(data.subprice==0){
-	tempsql<<"subprice=0";
- }else{ 
-	tempsql<<"subprice="<<std::to_string(data.subprice);
-}
+tempsql<<"subprice='"<<stringaddslash(data.subprice)<<"'";
  break;
 
      
@@ -1029,6 +1080,62 @@ if(data.subprice==0){
         return tempsql.str();
    } 
    
+   std::string make_update_dirty_sql()
+   {
+    std::ostringstream tempsql;
+    tempsql << "UPDATE " << tablename << " SET ";
+
+    constexpr std::size_t total = testb_info::col_names.size();
+
+    bool first = true;
+    for (std::size_t idx = 0; idx < total; ++idx) {
+        if (dirty_bits.test(idx)) {
+            if (idx < total) {
+                if (!first) tempsql << ",";
+                switch (idx) {
+                    case 0:
+                        if(data.tid==0){
+                            tempsql<<"tid=0";
+                        }else{ 
+                            tempsql<<"tid="<<std::to_string(data.tid);
+                        }
+                        break;
+                    case 1:
+                        if(data.score==0){
+                            tempsql<<"score=0";
+                        }else{ 
+                            tempsql<<"score="<<std::to_string(data.score);
+                        }
+                        break;
+                    case 2:
+                        tempsql<<"name='"<<stringaddslash(data.name)<<"'";
+                        break;
+                    case 3:
+                        if(data.pricenum==0){
+                            tempsql<<"pricenum=0";
+                        }else{ 
+                            tempsql<<"pricenum="<<std::to_string(data.pricenum);
+                        }
+                        break;
+                    case 4:
+                        if(data.orgprice==0){
+                            tempsql<<"orgprice=0";
+                        }else{ 
+                            tempsql<<"orgprice="<<std::to_string(data.orgprice);
+                        }
+                        break;
+                    case 5:
+                        tempsql<<"subprice='"<<stringaddslash(data.subprice)<<"'";
+                        break;
+                }
+                first = false;
+            }
+        }
+    }
+    if (first) return "";
+    return tempsql.str();
+   } 
+
     std::string make_record_replace_sql()
     {
         unsigned int j = 0;
@@ -1082,11 +1189,7 @@ if(data.subprice==0){
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].orgprice);
 	}
-	if(record[i].subprice==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].subprice);
-	}
+	tempsql<<",'"<<stringaddslash(record[i].subprice)<<"'";
 	tempsql<<")";
   }
  
@@ -1146,11 +1249,7 @@ if(data.subprice==0){
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].orgprice);
 	}
-	if(record[i].subprice==0){
-	tempsql<<",0";
-	 }else{ 
-	tempsql<<","<<std::to_string(record[i].subprice);
-	}
+	tempsql<<",'"<<stringaddslash(record[i].subprice)<<"'";
 	tempsql<<")";
 	 }
 	 tempsql<<" as new ON DUPLICATE KEY UPDATE ";
@@ -1268,11 +1367,7 @@ if(data.orgprice==0){
 }
  break;
  case 5:
-if(data.subprice==0){
-	temparray.push_back("0");
- }else{ 
-	temparray.push_back(std::to_string(data.subprice));
-}
+	temparray.push_back(data.subprice);
  break;
 
                              default:
@@ -1352,11 +1447,7 @@ if(data.orgprice==0){
 }
  break;
  case 5:
-if(data.subprice==0){
-	tempsql.insert({"subprice","0"});
- }else{ 
-	tempsql.insert({"subprice",std::to_string(data.subprice)});
-}
+	tempsql.insert({"subprice",data.subprice});
  break;
 
                              default:
@@ -1393,11 +1484,8 @@ if(data.orgprice==0){
  }else{ 
 	tempsql<<",\"orgprice\":"<<std::to_string(data.orgprice);
 }
-if(data.subprice==0){
-	tempsql<<",\"subprice\":0";
- }else{ 
-	tempsql<<",\"subprice\":"<<std::to_string(data.subprice);
-}
+tempsql<<",\"subprice\":\""<<http::utf8_to_jsonstring(data.subprice);
+tempsql<<"\"";
 tempsql<<"}";
 
      
@@ -1479,11 +1567,7 @@ if(data.orgprice==0){
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-if(data.subprice==0){
-	tempsql<<"\"subprice\":0";
- }else{ 
-	tempsql<<"\"subprice\":"<<std::to_string(data.subprice);
-}
+tempsql<<"\"subprice\":\""<<http::utf8_to_jsonstring(data.subprice)<<"\"";
  break;
 
                              default:
@@ -1855,11 +1939,7 @@ if(record[n].orgprice==0){
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-if(record[n].subprice==0){
-	tempsql<<"\"subprice\":0";
- }else{ 
-	tempsql<<"\"subprice\":"<<std::to_string(record[n].subprice);
-}
+tempsql<<"\"subprice\":\""<<http::utf8_to_jsonstring(record[n].subprice)<<"\"";
  break;
 
                              default:
@@ -1961,11 +2041,7 @@ if(record[n].orgprice==0){
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-if(record[n].subprice==0){
-	tempsql<<"\"subprice\":0";
- }else{ 
-	tempsql<<"\"subprice\":"<<std::to_string(record[n].subprice);
-}
+tempsql<<"\"subprice\":\""<<http::utf8_to_jsonstring(record[n].subprice)<<"\"";
  break;
 
                              default:
@@ -1983,21 +2059,30 @@ if(record[n].subprice==0){
  void setTid( int  val){  data.tid=val;} 
 
  long long  getScore(){  return data.score; } 
- void setScore( long long  val){  data.score=val;} 
+ void setScore( long long  val){  data.score=val;
+		 set_dirty(1);  }
 
  std::string  getName(){  return data.name; } 
  std::string & getRefName(){  return std::ref(data.name); } 
- void setName( std::string  &val){  data.name=val;} 
- void setName(std::string_view val){  data.name=val;} 
+ void setName( std::string  &val){  data.name=val;
+		 set_dirty(2);  }
+ void setName(std::string_view val){  data.name=val;
+		 set_dirty(2);  }
 
  double  getPricenum(){  return data.pricenum; } 
- void setPricenum( double  val){  data.pricenum=val;} 
+ void setPricenum( double  val){  data.pricenum=val;
+		 set_dirty(3);  }
 
  float  getOrgprice(){  return data.orgprice; } 
- void setOrgprice( float  val){  data.orgprice=val;} 
+ void setOrgprice( float  val){  data.orgprice=val;
+		 set_dirty(4);  }
 
- double  getSubprice(){  return data.subprice; } 
- void setSubprice( double  val){  data.subprice=val;} 
+ std::string  getSubprice(){  return data.subprice; } 
+ std::string & getRefSubprice(){  return std::ref(data.subprice); } 
+ void setSubprice( std::string  &val){  data.subprice=val;
+		 set_dirty(5);  }
+ void setSubprice(std::string_view val){  data.subprice=val;
+		 set_dirty(5);  }
 
 testb_info::meta getnewData(){
  	 struct testb_info::meta newdata;
@@ -2118,11 +2203,7 @@ if(tree_data[n].orgprice==0){
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-if(tree_data[n].subprice==0){
-	tempsql<<"\"subprice\":0";
- }else{ 
-	tempsql<<"\"subprice\":"<<std::to_string(tree_data[n].subprice);
-}
+tempsql<<"\"subprice\":\""<<http::utf8_to_jsonstring(tree_data[n].subprice)<<"\"";
  break;
 
                              default:
@@ -2227,11 +2308,7 @@ if(tree_data[n].orgprice==0){
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
-if(tree_data[n].subprice==0){
-	tempsql<<"\"subprice\":0";
- }else{ 
-	tempsql<<"\"subprice\":"<<std::to_string(tree_data[n].subprice);
-}
+tempsql<<"\"subprice\":\""<<http::utf8_to_jsonstring(tree_data[n].subprice)<<"\"";
  break;
 
                              default:

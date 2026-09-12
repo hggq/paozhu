@@ -249,7 +249,7 @@ std::string testhello(std::shared_ptr<httppeer> peer)
 ```
 浏览器打开 `http://localhost/hello`  
 
-`//@urlpath(null,hello)` 为注解功能
+`//@urlpath(null,hello)` 为注解功能，`testhello.h` 文件会自动生成，无需自己创建
 
 ###  8.2 代码例子 文章列表、搜索、分页
 

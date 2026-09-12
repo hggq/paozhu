@@ -25,40 +25,28 @@ namespace fs = std::filesystem;
 namespace dbconver
 {
 
-using dbtypes::build_insert_sql_mysql;
-using dbtypes::build_insert_sql_pg;
+using dbtypes::build_source_column_expr;
 using dbtypes::collect_pk_columns;
 using dbtypes::convert_type_for_target;
 using dbtypes::create_connection;
-using dbtypes::db_field_info;
-using dbtypes::db_index_info;
 using dbtypes::db_table_info;
 using dbtypes::db_type_display;
-using dbtypes::escape_mysql_string;
-using dbtypes::escape_pg_identifier;
-using dbtypes::escape_pg_string;
+using dbtypes::dedup_global_index_names;
 using dbtypes::exec_ddl;
 using dbtypes::fetch_rows;
-using dbtypes::gen_sqlite_create_table;
+using dbtypes::gen_ddl;
+using dbtypes::gen_drop_table;
 using dbtypes::get_table_schema;
 using dbtypes::get_tables;
 using dbtypes::insert_row;
 using dbtypes::is_safe_dbtag;
-using dbtypes::is_valid_mysql_charset;
-using dbtypes::is_valid_mysql_engine;
 using dbtypes::is_valid_sql_identifier;
 using dbtypes::parse_target_type;
 using dbtypes::quote_identifier;
-using dbtypes::remove_quotes;
 using dbtypes::reset_autoincrement;
 using dbtypes::row_data_t;
-using dbtypes::starts_with_icase;
-using dbtypes::strip_pg_cast;
 using dbtypes::table_exists;
-using dbtypes::to_lower;
-using dbtypes::trim;
 using dbtypes::validate_database_name;
-using dbtypes::validate_table_name;
 using orm::DB_TYPE;
 
 // SQLite 数据库文件路径 (host 字段, 回退 dbname)
@@ -67,290 +55,13 @@ inline std::string sqlite_conn_path(const orm::orm_conn_t &cfg)
     return cfg.host.empty() ? cfg.dbname : cfg.host;
 }
 
-// ===================== DDL 生成 (迁移专用) =====================
+// ===================== DDL 生成 (统一走 dbtypes 共用实现) =====================
 
-inline std::string gen_mysql_drop_table(const std::string &table_name)
-{
-    return "DROP TABLE IF EXISTS `" + table_name + "`";
-}
-
-inline std::string build_mysql_create_table(const db_table_info &info)
-{
-    std::vector<std::string> pk_cols = collect_pk_columns(info);
-    std::vector<const db_index_info *> secondary_indexes;
-    for (const auto &idx : info.indexes)
-    {
-        if (!idx.is_primary)
-            secondary_indexes.push_back(&idx);
-    }
-
-    std::ostringstream oss;
-    oss << "CREATE TABLE `" << info.table_name << "` (\n";
-
-    for (size_t i = 0; i < info.fields.size(); i++)
-    {
-        const auto &f = info.fields[i];
-        oss << "  `" << f.field_name << "` ";
-
-        std::string type_str = f.field_type;
-
-        if (f.is_auto_inc && f.is_pk)
-        {
-            if (to_lower(type_str) == "integer" || to_lower(type_str) == "int" || to_lower(type_str) == "serial")
-            {
-                type_str = "INT";
-            }
-            else if (to_lower(type_str) == "bigint" || to_lower(type_str) == "bigserial")
-            {
-                type_str = "BIGINT";
-            }
-            else if (to_lower(type_str) == "smallint" || to_lower(type_str) == "smallserial")
-            {
-                type_str = "SMALLINT";
-            }
-        }
-
-        oss << type_str;
-
-        std::string tl = to_lower(type_str);
-        if (f.length > 0 && (tl == "varchar" || tl == "char" || tl == "character varying" || tl == "character"))
-        {
-            oss << "(" << f.length << ")";
-        }
-        else if (f.length > 0 && (tl == "decimal" || tl == "numeric"))
-        {
-            if (f.decimals > 0)
-            {
-                oss << "(" << f.length << "," << (unsigned int)f.decimals << ")";
-            }
-            else
-            {
-                oss << "(" << f.length << ")";
-            }
-        }
-
-        if (f.is_unsigned)
-            oss << " UNSIGNED";
-        if (!f.is_nullable)
-            oss << " NOT NULL";
-        if (!f.default_value.empty())
-        {
-            std::string dl = to_lower(f.default_value);
-            if (dl.find("nextval") == std::string::npos)
-            {
-                if (f.default_value == "CURRENT_TIMESTAMP")
-                {
-                    oss << " DEFAULT " << f.default_value;
-                }
-                else if (f.default_value == "now()")
-                {
-                    // MySQL 8.0.13+ 表达式默认值要求括号
-                    oss << " DEFAULT (now())";
-                }
-                else if (f.default_value.size() >= 2 &&
-                         (f.default_value.front() == '\'' || f.default_value.front() == '"'))
-                {
-                    // 剥离 PG 风格 ::type cast (MySQL 不支持该语法)
-                    oss << " DEFAULT " << strip_pg_cast(f.default_value);
-                }
-                else
-                {
-                    oss << " DEFAULT '" << escape_mysql_string(f.default_value) << "'";
-                }
-            }
-        }
-        if (f.is_auto_inc)
-            oss << " AUTO_INCREMENT";
-        if (!f.comment.empty())
-            oss << " COMMENT '" << escape_mysql_string(f.comment) << "'";
-
-        if (i < info.fields.size() - 1 || !pk_cols.empty() || !secondary_indexes.empty())
-            oss << ",";
-        oss << "\n";
-    }
-
-    if (!pk_cols.empty())
-    {
-        oss << "  PRIMARY KEY (";
-        for (size_t pi = 0; pi < pk_cols.size(); pi++)
-        {
-            if (pi > 0)
-                oss << ", ";
-            oss << "`" << pk_cols[pi] << "`";
-        }
-        oss << ")";
-        if (!secondary_indexes.empty())
-            oss << ",";
-        oss << "\n";
-    }
-
-    for (size_t ii = 0; ii < secondary_indexes.size(); ii++)
-    {
-        const db_index_info &idx = *secondary_indexes[ii];
-        oss << "  ";
-        if (idx.is_unique)
-            oss << "UNIQUE ";
-        oss << "KEY `" << idx.index_name << "` (";
-        for (size_t j = 0; j < idx.columns.size(); j++)
-        {
-            if (j > 0)
-                oss << ", ";
-            oss << "`" << idx.columns[j] << "`";
-        }
-        oss << ")";
-        if (ii < secondary_indexes.size() - 1)
-            oss << ",";
-        oss << "\n";
-    }
-
-    oss << ")";
-
-    if (!info.engine.empty() && is_valid_mysql_engine(info.engine))
-        oss << " ENGINE=" << info.engine;
-    else
-        oss << " ENGINE=InnoDB";
-
-    if (!info.charset.empty() && is_valid_mysql_charset(info.charset))
-        oss << " DEFAULT CHARSET=" << info.charset;
-    else
-        oss << " DEFAULT CHARSET=utf8mb4";
-
-    if (!info.table_comment.empty())
-        oss << " COMMENT='" << escape_mysql_string(info.table_comment) << "'";
-
-    oss << ";\n";
-    return oss.str();
-}
-
-inline std::string gen_pg_drop_table(const std::string &table_name)
-{
-    return "DROP TABLE IF EXISTS " + escape_pg_identifier(table_name);
-}
-
-inline std::string build_pg_create_table(const db_table_info &info)
-{
-    std::vector<std::string> pk_cols = collect_pk_columns(info);
-    bool composite_pk                = pk_cols.size() > 1;
-
-    std::ostringstream oss;
-    oss << "CREATE TABLE " << escape_pg_identifier(info.table_name) << " (\n";
-
-    for (size_t i = 0; i < info.fields.size(); i++)
-    {
-        const auto &f = info.fields[i];
-        oss << "  " << escape_pg_identifier(f.field_name) << " ";
-
-        if (f.is_auto_inc && f.is_pk)
-        {
-            std::string tl = to_lower(f.field_type);
-            if (tl == "bigint" || tl == "bigserial")
-            {
-                oss << "BIGSERIAL";
-            }
-            else if (tl == "smallint" || tl == "smallserial")
-            {
-                oss << "SMALLSERIAL";
-            }
-            else
-            {
-                oss << "SERIAL";
-            }
-            // 复合主键时不内联 PRIMARY KEY, 改在字段循环后输出表级约束
-            if (!composite_pk)
-                oss << " PRIMARY KEY";
-        }
-        else
-        {
-            std::string target_type = f.field_type;
-
-            std::string tl = to_lower(f.field_type);
-            if (tl == "serial" || tl == "smallserial" || tl == "bigserial")
-            {
-                target_type = "integer";
-            }
-
-            oss << target_type;
-
-            if (!f.is_nullable)
-                oss << " NOT NULL";
-            if (!f.default_value.empty())
-            {
-                std::string dl = to_lower(f.default_value);
-                if (dl.find("nextval") == std::string::npos)
-                {
-                    if (f.default_value == "CURRENT_TIMESTAMP" || f.default_value == "now()")
-                    {
-                        oss << " DEFAULT " << f.default_value;
-                    }
-                    else if (f.default_value.size() >= 2 &&
-                             (f.default_value.front() == '\'' || f.default_value.front() == '"'))
-                    {
-                        oss << " DEFAULT " << f.default_value;
-                    }
-                    else
-                    {
-                        oss << " DEFAULT '" << escape_pg_string(f.default_value) << "'";
-                    }
-                }
-            }
-            if (f.is_pk && !composite_pk)
-                oss << " PRIMARY KEY";
-        }
-
-        if (i < info.fields.size() - 1 || composite_pk)
-            oss << ",";
-        oss << "\n";
-    }
-
-    if (composite_pk)
-    {
-        oss << "  PRIMARY KEY (";
-        for (size_t pi = 0; pi < pk_cols.size(); pi++)
-        {
-            if (pi > 0)
-                oss << ", ";
-            oss << escape_pg_identifier(pk_cols[pi]);
-        }
-        oss << ")\n";
-    }
-
-    oss << ");\n";
-
-    // 二级索引 (exec_ddl 支持多语句, 与 SQLite 路径一致)
-    for (const auto &idx : info.indexes)
-    {
-        if (idx.is_primary)
-            continue;
-
-        oss << "CREATE ";
-        if (idx.is_unique)
-            oss << "UNIQUE ";
-        oss << "INDEX " << escape_pg_identifier(idx.index_name) << " ON "
-            << escape_pg_identifier(info.table_name) << " (";
-        for (size_t j = 0; j < idx.columns.size(); j++)
-        {
-            if (j > 0)
-                oss << ", ";
-            oss << escape_pg_identifier(idx.columns[j]);
-        }
-        oss << ");\n";
-    }
-
-    return oss.str();
-}
-
+// include_drop=false: DROP 与 CREATE 必须分开执行。MySQL 握手未启用
+// CLIENT_MULTI_STATEMENTS, "DROP;CREATE" 拼一条 COM_QUERY 会被服务端 1064 拒绝。
 inline std::string build_create_table(const db_table_info &info, DB_TYPE target_type)
 {
-    if (target_type == DB_TYPE::POSTGRESQL)
-    {
-        return build_pg_create_table(info);
-    }
-    if (target_type == DB_TYPE::SQLITE)
-    {
-        // 含 DROP TABLE IF EXISTS + CREATE TABLE + 索引, 一次 exec_sql 全部执行 (幂等)
-        return gen_sqlite_create_table(info);
-    }
-    return build_mysql_create_table(info);
+    return gen_ddl(info, target_type, false);
 }
 
 // ===================== 主迁移逻辑 =====================
@@ -522,7 +233,15 @@ inline int dbconvercli(const std::string &dbtag1 = "", const std::string &dbtag2
 
     std::cout << "  [OK] Target database '" << dst_config.dbname << "' exists" << std::endl;
 
-    auto table_list = get_tables(src.conn, src_type);
+    bool tables_ok  = false;
+    auto table_list = get_tables(src.conn, src_type, &tables_ok);
+
+    if (!tables_ok)
+    {
+        // 列表查询失败 != 源库没表: 当成成功空跑会让一次迁移静默什么都没做
+        std::cerr << "  [ERROR] Failed to list source tables, nothing migrated." << std::endl;
+        return 1;
+    }
 
     if (table_list.empty())
     {
@@ -533,30 +252,32 @@ inline int dbconvercli(const std::string &dbtag1 = "", const std::string &dbtag2
     std::cout << "\n  Found " << table_list.size() << " tables in source." << std::endl;
     std::cout << "  ===============================" << std::endl;
 
-    unsigned int total_success = 0;
-    unsigned int total_fail    = 0;
-    unsigned int total_rows    = 0;
-    unsigned int batch_size    = 500;
+    std::size_t total_success      = 0;
+    std::size_t total_fail         = 0;
+    std::size_t total_skip         = 0;
+    std::size_t total_rows         = 0;
+    std::size_t total_row_failures = 0;
+    std::size_t batch_size         = 500;
 
-    for (size_t ti = 0; ti < table_list.size(); ti++)
+    // ---- 阶段 1: 先把全部源表结构读进来 ----
+    // 索引名去重必须是全局视角: PG/SQLite 的索引名在整个 schema 内唯一,
+    // 逐表边读边建看不到后面的表, 重名索引会让整表 DDL 失败。
+    std::vector<db_table_info> staged;
+    staged.reserve(table_list.size());
+
+    for (const auto &table_name : table_list)
     {
-        const std::string &table_name = table_list[ti];
-
         if (!is_valid_sql_identifier(table_name))
         {
-            std::cerr << " \033[33m[SKIP]\033[0m Invalid table name: '" << table_name << "'" << std::endl;
+            std::cerr << "  \033[31m[FAIL]\033[0m Invalid table name: '" << table_name << "'" << std::endl;
             total_fail++;
             continue;
         }
 
-        std::cout << "\n  [" << (ti + 1) << "/" << table_list.size() << "] " << table_name << std::flush;
-
         db_table_info table_info;
-        bool schema_ok = get_table_schema(src.conn, src_type, table_name, table_info);
-
-        if (!schema_ok)
+        if (!get_table_schema(src.conn, src_type, table_name, table_info))
         {
-            std::cout << " \033[31m[SKIP]\033[0m (read schema failed)" << std::endl;
+            std::cerr << "  \033[31m[FAIL]\033[0m " << table_name << " (read schema failed)" << std::endl;
             total_fail++;
             continue;
         }
@@ -565,14 +286,13 @@ inline int dbconvercli(const std::string &dbtag1 = "", const std::string &dbtag2
         {
             for (auto &f : table_info.fields)
             {
-                std::string target_type = convert_type_for_target(
+                f.field_type = convert_type_for_target(
                     f.field_type,
                     f.length,
                     f.is_unsigned,
                     src_type,
                     dst_type,
                     f.decimals);
-                f.field_type = target_type;
                 if (src_type == DB_TYPE::SQLITE)
                 {
                     // SQLite 源声明自带参数 (如 varchar(255)), 清零避免目标 DDL 重复追加
@@ -583,58 +303,49 @@ inline int dbconvercli(const std::string &dbtag1 = "", const std::string &dbtag2
             }
         }
         table_info.source_db_type = src_type;
+        staged.push_back(std::move(table_info));
+    }
+
+    int renamed = dedup_global_index_names(staged, dst_type);
+    if (renamed > 0)
+    {
+        std::cout << "  [INFO] Deduplicated " << renamed << " colliding index name(s)." << std::endl;
+    }
+
+    // ---- 阶段 2: 建表 + 搬数据 ----
+    for (size_t ti = 0; ti < staged.size(); ti++)
+    {
+        db_table_info &table_info     = staged[ti];
+        const std::string &table_name = table_info.table_name;
+
+        std::cout << "\n  [" << (ti + 1) << "/" << staged.size() << "] " << table_name << std::flush;
 
         bool tbl_exists = table_exists(dst.conn, dst_type, table_name, dst_config.dbname);
 
         if (tbl_exists && !force_overwrite)
         {
             std::cout << " \033[33m[SKIP]\033[0m (table already exists in target, use 'force' to overwrite)" << std::endl;
+            total_skip++;
             continue;
         }
 
-        std::string ddl = build_create_table(table_info, dst_type);
-
-        bool create_ok = false;
         std::string ddl_err;
-        if (!tbl_exists)
+        if (tbl_exists)
         {
-            create_ok = exec_ddl(dst.conn, dst_type, ddl, ddl_err);
-            if (!create_ok)
+            // force: DROP 与 CREATE 分别执行 (MySQL 未启用 CLIENT_MULTI_STATEMENTS)
+            // DROP 没成功就不能往下走, 否则会往没清掉的旧表里追加行
+            if (!exec_ddl(dst.conn, dst_type, gen_drop_table(table_name, dst_type), ddl_err))
             {
-                std::cerr << " \033[31m[FAIL]\033[0m DDL error: " << ddl_err << std::endl;
+                std::cout << " \033[31m[FAIL]\033[0m DROP TABLE failed: " << ddl_err << std::endl;
+                total_fail++;
+                continue;
             }
         }
-        else
-        {
-            // force_overwrite: 先 DROP 再 CREATE
-            if (dst_type == DB_TYPE::MYSQL)
-            {
-                std::string drop_sql = gen_mysql_drop_table(table_info.table_name);
-                std::string drop_err;
-                if (!exec_ddl(dst.conn, dst_type, drop_sql, drop_err))
-                {
-                    std::cerr << " \033[33m[WARN]\033[0m DROP TABLE failed: " << drop_err << std::endl;
-                }
-            }
-            else if (dst_type == DB_TYPE::POSTGRESQL)
-            {
-                std::string drop_sql = gen_pg_drop_table(table_info.table_name);
-                std::string drop_err;
-                if (!exec_ddl(dst.conn, dst_type, drop_sql, drop_err))
-                {
-                    std::cerr << " \033[33m[WARN]\033[0m DROP TABLE failed: " << drop_err << std::endl;
-                }
-            }
-            // SQLite: DDL 自带 DROP TABLE IF EXISTS, 无需单独 DROP
-            create_ok = exec_ddl(dst.conn, dst_type, ddl, ddl_err);
-            if (!create_ok)
-            {
-                std::cerr << " \033[31m[FAIL]\033[0m DDL: " << ddl_err << std::endl;
-            }
-        }
-
+        bool create_ok =
+            exec_ddl(dst.conn, dst_type, build_create_table(table_info, dst_type), ddl_err);
         if (!create_ok)
         {
+            std::cout << " \033[31m[FAIL]\033[0m DDL error: " << ddl_err << std::endl;
             total_fail++;
             continue;
         }
@@ -642,98 +353,169 @@ inline int dbconvercli(const std::string &dbtag1 = "", const std::string &dbtag2
         std::cout << " \033[33m[CREATED]\033[0m " << std::flush;
 
         unsigned long long total_count = 0;
+        bool count_ok                  = false;
         {
             std::string count_sql = "SELECT COUNT(*) FROM " + quote_identifier(src_type, table_name);
             std::vector<row_data_t> count_rows;
-            bool count_ok = fetch_rows(src.conn, src_type, count_sql, count_rows);
-            if (count_ok && !count_rows.empty() && !count_rows[0].values.empty())
+            if (fetch_rows(src.conn, src_type, count_sql, count_rows) &&
+                !count_rows.empty() && !count_rows[0].values.empty())
             {
                 try
                 {
                     total_count = std::stoull(count_rows[0].values[0]);
+                    count_ok    = true;
                 }
-                catch (...)
+                catch (const std::exception &)
                 {
                 }
             }
         }
-
-        unsigned long long total_rows_migrated = 0;
-        unsigned long long offset              = 0;
-
-        while (total_rows_migrated < total_count)
+        if (!count_ok)
         {
-            std::string select_sql = "SELECT * FROM " + quote_identifier(src_type, table_name) +
-                                     " LIMIT " + std::to_string(batch_size) + " OFFSET " + std::to_string(offset);
+            // 拿不到源表行数就无法验证写出数, 不能算成功
+            std::cout << " \033[31m[FAIL]\033[0m COUNT(*) failed or unparsable" << std::endl;
+            total_fail++;
+            continue;
+        }
+
+        std::vector<std::string> pk_cols = collect_pk_columns(table_info);
+        bool can_page                    = !pk_cols.empty();
+        if (!can_page && total_count > batch_size)
+        {
+            // 无 ORDER BY 的 LIMIT/OFFSET 不保证行序稳定, 会重读或漏读
+            std::cout << " \033[31m[FAIL]\033[0m no primary key: refusing unstable LIMIT/OFFSET paging over "
+                      << total_count << " rows" << std::endl;
+            total_fail++;
+            continue;
+        }
+
+        // 读取列清单与插入列表同源 (table_info.fields), 列数与顺序天然一致
+        std::string select_cols;
+        for (size_t i = 0; i < table_info.fields.size(); i++)
+        {
+            if (i > 0)
+                select_cols += ", ";
+            select_cols += build_source_column_expr(src_type, table_info.fields[i]);
+        }
+
+        unsigned long long rows_read    = 0;
+        unsigned long long rows_written = 0;
+        unsigned long long rows_failed  = 0;
+        bool read_failed                = false;
+
+        while (rows_read < total_count)
+        {
+            std::string select_sql = "SELECT " + select_cols + " FROM " + quote_identifier(src_type, table_name);
+            if (can_page)
+            {
+                select_sql += " ORDER BY ";
+                for (size_t i = 0; i < pk_cols.size(); i++)
+                {
+                    if (i > 0)
+                        select_sql += ", ";
+                    select_sql += quote_identifier(src_type, pk_cols[i]);
+                }
+                select_sql += " LIMIT " + std::to_string(batch_size) + " OFFSET " + std::to_string(rows_read);
+            }
 
             std::vector<row_data_t> batch_rows;
-            bool read_ok = fetch_rows(src.conn, src_type, select_sql, batch_rows);
-
-            if (!read_ok || batch_rows.empty())
+            if (!fetch_rows(src.conn, src_type, select_sql, batch_rows))
+            {
+                read_failed = true;
+                std::cerr << "\n  \033[31m[FAIL]\033[0m " << table_name << " batch read failed" << std::flush;
                 break;
+            }
+            if (batch_rows.empty())
+                break;// 源表实际行数少于 COUNT(*) (并发写入), 由下面的写出数比对兜住
 
+            bool in_txn = false;
             if (dst_type == DB_TYPE::SQLITE)
             {
                 // SQLite 目标: 参数绑定插入 (二进制安全), 每批次包裹事务提速
-                auto dst_sqlite = std::get<std::shared_ptr<orm::sqlite_conn_base>>(dst.conn);
-                dst_sqlite->exec_sql("BEGIN");
-                std::string ins_err;
-                for (auto &row : batch_rows)
+                auto dst_sqlite = dst.get<orm::sqlite_conn_base>();
+                if (dst_sqlite->exec_sql("BEGIN") < 0)
                 {
-                    if (!insert_row(dst.conn, dst_type, table_info.table_name, table_info.fields, row, ins_err))
-                    {
-                        std::cerr << "\n  \033[31m[WARN]\033[0m SQLite INSERT failed: " << ins_err << std::endl;
-                    }
+                    std::cerr << "\n  \033[33m[WARN]\033[0m BEGIN failed: " << dst_sqlite->error_msg << std::flush;
                 }
-                dst_sqlite->exec_sql("COMMIT");
+                else
+                {
+                    in_txn = true;
+                }
             }
-            else
+
+            for (auto &row : batch_rows)
             {
                 std::string ins_err;
-                for (auto &row : batch_rows)
+                if (insert_row(dst.conn, dst_type, table_info.table_name, table_info.fields, row, ins_err))
+                    rows_written++;
+                else
                 {
-                    if (!insert_row(dst.conn, dst_type, table_info.table_name, table_info.fields, row, ins_err))
-                    {
-                        std::cerr << " \033[31m[WARN]\033[0m INSERT failed: " << ins_err << std::endl;
-                    }
+                    rows_failed++;
+                    std::cerr << "\n  \033[31m[WARN]\033[0m INSERT failed: " << ins_err << std::flush;
                 }
             }
 
-            total_rows_migrated += batch_rows.size();
-            offset += batch_rows.size();
+            if (in_txn)
+            {
+                auto dst_sqlite = dst.get<orm::sqlite_conn_base>();
+                if (dst_sqlite->exec_sql("COMMIT") < 0)
+                {
+                    // COMMIT 失败 = 整批回滚, 这批不能算写出
+                    std::cerr << "\n  \033[31m[FAIL]\033[0m COMMIT failed: " << dst_sqlite->error_msg << std::flush;
+                    rows_written = rows_written > batch_rows.size() ? rows_written - batch_rows.size() : 0;
+                    rows_failed += batch_rows.size();
+                }
+            }
 
-            std::cout << "\r  [" << (ti + 1) << "/" << table_list.size() << "] " << table_name
-                      << " \033[33m[MIGRATING]\033[0m " << total_rows_migrated << "/" << total_count << " rows" << std::flush;
+            rows_read += batch_rows.size();
+
+            std::cout << "\r  [" << (ti + 1) << "/" << staged.size() << "] " << table_name
+                      << " \033[33m[MIGRATING]\033[0m written " << rows_written << "/" << total_count
+                      << " rows" << std::flush;
         }
 
         if (!table_info.auto_inc_field.empty())
         {
             if (!is_valid_sql_identifier(table_info.auto_inc_field))
             {
-                std::cerr << " \033[33m[WARN]\033[0m Invalid auto increment field name: '"
-                          << table_info.auto_inc_field << "', skip reset" << std::endl;
+                std::cout << "\n  \033[33m[WARN]\033[0m Invalid auto increment field name: '"
+                          << table_info.auto_inc_field << "', skip reset" << std::flush;
             }
             else
             {
                 std::string ai_err;
                 if (!reset_autoincrement(dst.conn, dst_type, table_info.table_name, table_info.auto_inc_field, ai_err))
                 {
-                    std::cerr << " \033[33m[WARN]\033[0m Failed to reset auto-increment: " << ai_err << std::endl;
+                    std::cout << "\n  \033[33m[WARN]\033[0m Failed to reset auto-increment: " << ai_err << std::flush;
                 }
             }
         }
 
-        std::cout << " \033[32m[OK]\033[0m " << total_rows_migrated << " rows migrated" << std::endl;
-        total_success++;
-        total_rows += total_rows_migrated;
+        total_rows += rows_written;
+        total_row_failures += rows_failed;
+
+        // 判据是"写出数 == 源表行数", 不是"有没有逐行报错"
+        if (!read_failed && rows_written == total_count)
+        {
+            std::cout << " \033[32m[OK]\033[0m " << rows_written << " rows migrated" << std::endl;
+            total_success++;
+        }
+        else
+        {
+            std::cout << "\n  \033[31m[FAIL]\033[0m " << table_name << ": written " << rows_written << "/"
+                      << total_count << " rows, " << rows_failed << " insert failures" << std::endl;
+            total_fail++;
+        }
     }
 
     std::cout << "\n  ===============================" << std::endl;
     std::cout << "  Migration Summary:" << std::endl;
-    std::cout << "    Total tables:  " << table_list.size() << std::endl;
-    std::cout << "    Success:       \033[32m" << total_success << "\033[0m" << std::endl;
-    std::cout << "    Failed:        \033[31m" << total_fail << "\033[0m" << std::endl;
-    std::cout << "    Total rows:    " << total_rows << std::endl;
+    std::cout << "    Total tables:     " << table_list.size() << std::endl;
+    std::cout << "    Success:          \033[32m" << total_success << "\033[0m" << std::endl;
+    std::cout << "    Failed:           \033[31m" << total_fail << "\033[0m" << std::endl;
+    std::cout << "    Skipped:          " << total_skip << std::endl;
+    std::cout << "    Total rows:       " << total_rows << std::endl;
+    std::cout << "    Insert failures:  " << total_row_failures << std::endl;
     std::cout << "  ===============================" << std::endl;
 
     if (total_fail > 0)

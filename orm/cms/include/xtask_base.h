@@ -2,7 +2,7 @@
 #define ORM_CMS_XTASKBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 01 Sep 2026 03:58:37 GMT
+*本文件为自动生成 Sat, 12 Sep 2026 07:38:47 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -12,11 +12,15 @@
 #include <map> 
 #include <string_view> 
 #include <string> 
+#include <cstring>
 #include <vector>
+#include <set>
 #include <ctime>
 #include <array>
 #include <concepts>
 #include <utility>
+#include <bit>
+#include <algorithm>
 #include "unicode.h"
 
 namespace orm { 
@@ -26,6 +30,7 @@ namespace orm {
 namespace xtask_info
 {
  
+    static constexpr std::size_t col_count = 30;
     enum class cols : unsigned char 
     {
 		xtaskid = 0,
@@ -782,13 +787,18 @@ namespace xtask_info
         
     static constexpr std::array<std::string_view,30> col_names={"xtaskid","userid","xpjid","adminid","parentid","begindate","enddate","expectbegindate","expectenddate","milestone","subxpjid","depxtaskid","referdocid","isfinish","updatedate","finishdate","iscore","xvalue","expectday","realday","pricevalue","title","introduce","xlogo","xcolor","pullurl","pulltitle","pullauthor","note","itemnote"};
 	static constexpr std::array<unsigned char,30> col_types={3,3,3,3,3,3,3,3,3,3,3,3,3,1,3,3,3,5,4,4,4,253,252,253,253,253,253,253,252,252};
-	static constexpr std::array<unsigned char,30> col_length={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,60,0,0,60,0,0};
+	static constexpr std::array<unsigned short,30> col_length={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,256,0,256,60,256,256,60,0,0};
 	static constexpr std::array<unsigned char,30> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	static constexpr std::array<bool,30> col_null={false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::array<bool,30> col_indexed={true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::string_view auto_pk_name ="xtaskid";
+	static constexpr int auto_pk_index = 0;
 
 }
 
 struct xtask_base
 {
+    using cols = xtask_info::cols;
       xtask_info::meta data;
     std::vector<xtask_info::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -799,13 +809,74 @@ std::vector<xtask_info::meta>::const_iterator end() const{     return record.end
 std::string tablename="xtask";
 static constexpr std::string_view org_tablename="xtask";
 static constexpr std::string_view modelname="Xtask";
+	static constexpr std::array<bool,30> col_need_quote={false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,true,true,true,true,true,true,true,true};
 
-	  unsigned char findcolpos(const std::string &coln){
+            std::bitset<30> dirty_bits;
+            void clear_dirty() noexcept {
+                dirty_bits.reset();
+            }
+
+            void set_dirty(std::size_t idx) noexcept {
+                if(idx < 30)
+                dirty_bits.set(idx);
+            }
+
+            [[nodiscard]] std::vector<unsigned char> get_dirty_indices() const noexcept {
+                std::vector<unsigned char> result;
+                for (std::size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(static_cast<unsigned char>(i));
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::vector<std::string_view> get_dirty_names() const
+            {
+                std::vector<std::string_view> result;
+                result.reserve(dirty_bits.size()); // 预分配
+                for (size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(xtask_info::col_names[i]);
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::string get_dirty_names_str(std::string_view sep = ",") const
+            {
+                auto names = get_dirty_names();
+
+                if (names.empty()) {
+                    return {};
+                }
+                
+                std::size_t total_len = 0;
+                for (const auto& name : names) {
+                    total_len += name.size();
+                }
+                total_len += sep.size() * (names.size() - 1);
+
+                std::string result;
+                result.reserve(total_len);
+
+                bool first = true;
+                for (const auto& name : names) {
+                    if (!first) {
+                        result.append(sep);
+                    }
+                    result.append(name);
+                    first = false;
+                }
+                return result;
+            }
+    
+	  [[nodiscard]] static constexpr unsigned char findcolpos(std::string_view coln) noexcept {
             if(coln.size()==0)
             {
                 return 255;
             }
-		    unsigned char  bi=coln[0];
+		    unsigned char  bi= static_cast<unsigned char>(coln[0]);
          char colpospppc;
 
 	         if(bi<91&&bi>64){
@@ -1801,6 +1872,202 @@ tempsql<<"itemnote='"<<stringaddslash(data.itemnote)<<"'";
         return tempsql.str();
    } 
    
+   std::string make_update_dirty_sql()
+   {
+    std::ostringstream tempsql;
+    tempsql << "UPDATE " << tablename << " SET ";
+
+    constexpr std::size_t total = xtask_info::col_names.size();
+
+    bool first = true;
+    for (std::size_t idx = 0; idx < total; ++idx) {
+        if (dirty_bits.test(idx)) {
+            if (idx < total) {
+                if (!first) tempsql << ",";
+                switch (idx) {
+                    case 0:
+                        if(data.xtaskid==0){
+                            tempsql<<"xtaskid=0";
+                        }else{ 
+                            tempsql<<"xtaskid="<<std::to_string(data.xtaskid);
+                        }
+                        break;
+                    case 1:
+                        if(data.userid==0){
+                            tempsql<<"userid=0";
+                        }else{ 
+                            tempsql<<"userid="<<std::to_string(data.userid);
+                        }
+                        break;
+                    case 2:
+                        if(data.xpjid==0){
+                            tempsql<<"xpjid=0";
+                        }else{ 
+                            tempsql<<"xpjid="<<std::to_string(data.xpjid);
+                        }
+                        break;
+                    case 3:
+                        if(data.adminid==0){
+                            tempsql<<"adminid=0";
+                        }else{ 
+                            tempsql<<"adminid="<<std::to_string(data.adminid);
+                        }
+                        break;
+                    case 4:
+                        if(data.parentid==0){
+                            tempsql<<"parentid=0";
+                        }else{ 
+                            tempsql<<"parentid="<<std::to_string(data.parentid);
+                        }
+                        break;
+                    case 5:
+                        if(data.begindate==0){
+                            tempsql<<"begindate=0";
+                        }else{ 
+                            tempsql<<"begindate="<<std::to_string(data.begindate);
+                        }
+                        break;
+                    case 6:
+                        if(data.enddate==0){
+                            tempsql<<"enddate=0";
+                        }else{ 
+                            tempsql<<"enddate="<<std::to_string(data.enddate);
+                        }
+                        break;
+                    case 7:
+                        if(data.expectbegindate==0){
+                            tempsql<<"expectbegindate=0";
+                        }else{ 
+                            tempsql<<"expectbegindate="<<std::to_string(data.expectbegindate);
+                        }
+                        break;
+                    case 8:
+                        if(data.expectenddate==0){
+                            tempsql<<"expectenddate=0";
+                        }else{ 
+                            tempsql<<"expectenddate="<<std::to_string(data.expectenddate);
+                        }
+                        break;
+                    case 9:
+                        if(data.milestone==0){
+                            tempsql<<"milestone=0";
+                        }else{ 
+                            tempsql<<"milestone="<<std::to_string(data.milestone);
+                        }
+                        break;
+                    case 10:
+                        if(data.subxpjid==0){
+                            tempsql<<"subxpjid=0";
+                        }else{ 
+                            tempsql<<"subxpjid="<<std::to_string(data.subxpjid);
+                        }
+                        break;
+                    case 11:
+                        if(data.depxtaskid==0){
+                            tempsql<<"depxtaskid=0";
+                        }else{ 
+                            tempsql<<"depxtaskid="<<std::to_string(data.depxtaskid);
+                        }
+                        break;
+                    case 12:
+                        if(data.referdocid==0){
+                            tempsql<<"referdocid=0";
+                        }else{ 
+                            tempsql<<"referdocid="<<std::to_string(data.referdocid);
+                        }
+                        break;
+                    case 13:
+                        if(data.isfinish==0){
+                            tempsql<<"isfinish=0";
+                        }else{ 
+                            tempsql<<"isfinish="<<std::to_string(data.isfinish);
+                        }
+                        break;
+                    case 14:
+                        if(data.updatedate==0){
+                            tempsql<<"updatedate=0";
+                        }else{ 
+                            tempsql<<"updatedate="<<std::to_string(data.updatedate);
+                        }
+                        break;
+                    case 15:
+                        if(data.finishdate==0){
+                            tempsql<<"finishdate=0";
+                        }else{ 
+                            tempsql<<"finishdate="<<std::to_string(data.finishdate);
+                        }
+                        break;
+                    case 16:
+                        if(data.iscore==0){
+                            tempsql<<"iscore=0";
+                        }else{ 
+                            tempsql<<"iscore="<<std::to_string(data.iscore);
+                        }
+                        break;
+                    case 17:
+                        if(data.xvalue==0){
+                            tempsql<<"xvalue=0";
+                        }else{ 
+                            tempsql<<"xvalue="<<std::to_string(data.xvalue);
+                        }
+                        break;
+                    case 18:
+                        if(data.expectday==0){
+                            tempsql<<"expectday=0";
+                        }else{ 
+                            tempsql<<"expectday="<<std::to_string(data.expectday);
+                        }
+                        break;
+                    case 19:
+                        if(data.realday==0){
+                            tempsql<<"realday=0";
+                        }else{ 
+                            tempsql<<"realday="<<std::to_string(data.realday);
+                        }
+                        break;
+                    case 20:
+                        if(data.pricevalue==0){
+                            tempsql<<"pricevalue=0";
+                        }else{ 
+                            tempsql<<"pricevalue="<<std::to_string(data.pricevalue);
+                        }
+                        break;
+                    case 21:
+                        tempsql<<"title='"<<stringaddslash(data.title)<<"'";
+                        break;
+                    case 22:
+                        tempsql<<"introduce='"<<stringaddslash(data.introduce)<<"'";
+                        break;
+                    case 23:
+                        tempsql<<"xlogo='"<<stringaddslash(data.xlogo)<<"'";
+                        break;
+                    case 24:
+                        tempsql<<"xcolor='"<<stringaddslash(data.xcolor)<<"'";
+                        break;
+                    case 25:
+                        tempsql<<"pullurl='"<<stringaddslash(data.pullurl)<<"'";
+                        break;
+                    case 26:
+                        tempsql<<"pulltitle='"<<stringaddslash(data.pulltitle)<<"'";
+                        break;
+                    case 27:
+                        tempsql<<"pullauthor='"<<stringaddslash(data.pullauthor)<<"'";
+                        break;
+                    case 28:
+                        tempsql<<"note='"<<stringaddslash(data.note)<<"'";
+                        break;
+                    case 29:
+                        tempsql<<"itemnote='"<<stringaddslash(data.itemnote)<<"'";
+                        break;
+                }
+                first = false;
+            }
+        }
+    }
+    if (first) return "";
+    return tempsql.str();
+   } 
+
     std::string make_record_replace_sql()
     {
         unsigned int j = 0;
@@ -3875,109 +4142,147 @@ tempsql<<"\"itemnote\":\""<<http::utf8_to_jsonstring(record[n].itemnote)<<"\"";
  void setXtaskid( unsigned  int  val){  data.xtaskid=val;} 
 
  unsigned  int  getUserid(){  return data.userid; } 
- void setUserid( unsigned  int  val){  data.userid=val;} 
+ void setUserid( unsigned  int  val){  data.userid=val;
+		 set_dirty(1);  }
 
  unsigned  int  getXpjid(){  return data.xpjid; } 
- void setXpjid( unsigned  int  val){  data.xpjid=val;} 
+ void setXpjid( unsigned  int  val){  data.xpjid=val;
+		 set_dirty(2);  }
 
  unsigned  int  getAdminid(){  return data.adminid; } 
- void setAdminid( unsigned  int  val){  data.adminid=val;} 
+ void setAdminid( unsigned  int  val){  data.adminid=val;
+		 set_dirty(3);  }
 
  unsigned  int  getParentid(){  return data.parentid; } 
- void setParentid( unsigned  int  val){  data.parentid=val;} 
+ void setParentid( unsigned  int  val){  data.parentid=val;
+		 set_dirty(4);  }
 
  unsigned  int  getBegindate(){  return data.begindate; } 
- void setBegindate( unsigned  int  val){  data.begindate=val;} 
+ void setBegindate( unsigned  int  val){  data.begindate=val;
+		 set_dirty(5);  }
 
  unsigned  int  getEnddate(){  return data.enddate; } 
- void setEnddate( unsigned  int  val){  data.enddate=val;} 
+ void setEnddate( unsigned  int  val){  data.enddate=val;
+		 set_dirty(6);  }
 
  unsigned  int  getExpectbegindate(){  return data.expectbegindate; } 
- void setExpectbegindate( unsigned  int  val){  data.expectbegindate=val;} 
+ void setExpectbegindate( unsigned  int  val){  data.expectbegindate=val;
+		 set_dirty(7);  }
 
  unsigned  int  getExpectenddate(){  return data.expectenddate; } 
- void setExpectenddate( unsigned  int  val){  data.expectenddate=val;} 
+ void setExpectenddate( unsigned  int  val){  data.expectenddate=val;
+		 set_dirty(8);  }
 
  unsigned  int  getMilestone(){  return data.milestone; } 
- void setMilestone( unsigned  int  val){  data.milestone=val;} 
+ void setMilestone( unsigned  int  val){  data.milestone=val;
+		 set_dirty(9);  }
 
  unsigned  int  getSubxpjid(){  return data.subxpjid; } 
- void setSubxpjid( unsigned  int  val){  data.subxpjid=val;} 
+ void setSubxpjid( unsigned  int  val){  data.subxpjid=val;
+		 set_dirty(10);  }
 
  unsigned  int  getDepxtaskid(){  return data.depxtaskid; } 
- void setDepxtaskid( unsigned  int  val){  data.depxtaskid=val;} 
+ void setDepxtaskid( unsigned  int  val){  data.depxtaskid=val;
+		 set_dirty(11);  }
 
  unsigned  int  getReferdocid(){  return data.referdocid; } 
- void setReferdocid( unsigned  int  val){  data.referdocid=val;} 
+ void setReferdocid( unsigned  int  val){  data.referdocid=val;
+		 set_dirty(12);  }
 
  unsigned  char  getIsfinish(){  return data.isfinish; } 
- void setIsfinish( unsigned  char  val){  data.isfinish=val;} 
+ void setIsfinish( unsigned  char  val){  data.isfinish=val;
+		 set_dirty(13);  }
 
  unsigned  int  getUpdatedate(){  return data.updatedate; } 
- void setUpdatedate( unsigned  int  val){  data.updatedate=val;} 
+ void setUpdatedate( unsigned  int  val){  data.updatedate=val;
+		 set_dirty(14);  }
 
  unsigned  int  getFinishdate(){  return data.finishdate; } 
- void setFinishdate( unsigned  int  val){  data.finishdate=val;} 
+ void setFinishdate( unsigned  int  val){  data.finishdate=val;
+		 set_dirty(15);  }
 
  unsigned  int  getIscore(){  return data.iscore; } 
- void setIscore( unsigned  int  val){  data.iscore=val;} 
+ void setIscore( unsigned  int  val){  data.iscore=val;
+		 set_dirty(16);  }
 
  double  getXvalue(){  return data.xvalue; } 
- void setXvalue( double  val){  data.xvalue=val;} 
+ void setXvalue( double  val){  data.xvalue=val;
+		 set_dirty(17);  }
 
  float  getExpectday(){  return data.expectday; } 
- void setExpectday( float  val){  data.expectday=val;} 
+ void setExpectday( float  val){  data.expectday=val;
+		 set_dirty(18);  }
 
  float  getRealday(){  return data.realday; } 
- void setRealday( float  val){  data.realday=val;} 
+ void setRealday( float  val){  data.realday=val;
+		 set_dirty(19);  }
 
  float  getPricevalue(){  return data.pricevalue; } 
- void setPricevalue( float  val){  data.pricevalue=val;} 
+ void setPricevalue( float  val){  data.pricevalue=val;
+		 set_dirty(20);  }
 
  std::string  getTitle(){  return data.title; } 
  std::string & getRefTitle(){  return std::ref(data.title); } 
- void setTitle( std::string  &val){  data.title=val;} 
- void setTitle(std::string_view val){  data.title=val;} 
+ void setTitle( std::string  &val){  data.title=val;
+		 set_dirty(21);  }
+ void setTitle(std::string_view val){  data.title=val;
+		 set_dirty(21);  }
 
  std::string  getIntroduce(){  return data.introduce; } 
  std::string & getRefIntroduce(){  return std::ref(data.introduce); } 
- void setIntroduce( std::string  &val){  data.introduce=val;} 
- void setIntroduce(std::string_view val){  data.introduce=val;} 
+ void setIntroduce( std::string  &val){  data.introduce=val;
+		 set_dirty(22);  }
+ void setIntroduce(std::string_view val){  data.introduce=val;
+		 set_dirty(22);  }
 
  std::string  getXlogo(){  return data.xlogo; } 
  std::string & getRefXlogo(){  return std::ref(data.xlogo); } 
- void setXlogo( std::string  &val){  data.xlogo=val;} 
- void setXlogo(std::string_view val){  data.xlogo=val;} 
+ void setXlogo( std::string  &val){  data.xlogo=val;
+		 set_dirty(23);  }
+ void setXlogo(std::string_view val){  data.xlogo=val;
+		 set_dirty(23);  }
 
  std::string  getXcolor(){  return data.xcolor; } 
  std::string & getRefXcolor(){  return std::ref(data.xcolor); } 
- void setXcolor( std::string  &val){  data.xcolor=val;} 
- void setXcolor(std::string_view val){  data.xcolor=val;} 
+ void setXcolor( std::string  &val){  data.xcolor=val;
+		 set_dirty(24);  }
+ void setXcolor(std::string_view val){  data.xcolor=val;
+		 set_dirty(24);  }
 
  std::string  getPullurl(){  return data.pullurl; } 
  std::string & getRefPullurl(){  return std::ref(data.pullurl); } 
- void setPullurl( std::string  &val){  data.pullurl=val;} 
- void setPullurl(std::string_view val){  data.pullurl=val;} 
+ void setPullurl( std::string  &val){  data.pullurl=val;
+		 set_dirty(25);  }
+ void setPullurl(std::string_view val){  data.pullurl=val;
+		 set_dirty(25);  }
 
  std::string  getPulltitle(){  return data.pulltitle; } 
  std::string & getRefPulltitle(){  return std::ref(data.pulltitle); } 
- void setPulltitle( std::string  &val){  data.pulltitle=val;} 
- void setPulltitle(std::string_view val){  data.pulltitle=val;} 
+ void setPulltitle( std::string  &val){  data.pulltitle=val;
+		 set_dirty(26);  }
+ void setPulltitle(std::string_view val){  data.pulltitle=val;
+		 set_dirty(26);  }
 
  std::string  getPullauthor(){  return data.pullauthor; } 
  std::string & getRefPullauthor(){  return std::ref(data.pullauthor); } 
- void setPullauthor( std::string  &val){  data.pullauthor=val;} 
- void setPullauthor(std::string_view val){  data.pullauthor=val;} 
+ void setPullauthor( std::string  &val){  data.pullauthor=val;
+		 set_dirty(27);  }
+ void setPullauthor(std::string_view val){  data.pullauthor=val;
+		 set_dirty(27);  }
 
  std::string  getNote(){  return data.note; } 
  std::string & getRefNote(){  return std::ref(data.note); } 
- void setNote( std::string  &val){  data.note=val;} 
- void setNote(std::string_view val){  data.note=val;} 
+ void setNote( std::string  &val){  data.note=val;
+		 set_dirty(28);  }
+ void setNote(std::string_view val){  data.note=val;
+		 set_dirty(28);  }
 
  std::string  getItemnote(){  return data.itemnote; } 
  std::string & getRefItemnote(){  return std::ref(data.itemnote); } 
- void setItemnote( std::string  &val){  data.itemnote=val;} 
- void setItemnote(std::string_view val){  data.itemnote=val;} 
+ void setItemnote( std::string  &val){  data.itemnote=val;
+		 set_dirty(29);  }
+ void setItemnote(std::string_view val){  data.itemnote=val;
+		 set_dirty(29);  }
 
 xtask_info::meta getnewData(){
  	 struct xtask_info::meta newdata;

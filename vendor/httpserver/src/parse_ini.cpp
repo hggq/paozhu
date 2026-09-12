@@ -187,21 +187,7 @@ void parse_ini::parse_file(const std::string &filename)
 
                 if (!key.empty())
                 {
-                    bool found = false;
-                    for (auto &item : cur->value.data)
-                    {
-                        if (item.name == key)
-                        {
-                            item.value   = value_temp;
-                            item.comment = comment_temp;
-                            found        = true;
-                            break;
-                        }
-                    }
-                    if (!found)
-                    {
-                        cur->push_back(ini_key_value_t{key, value_temp, comment_temp});
-                    }
+                    cur->push_back(ini_key_value_t{key, value_temp, comment_temp});
                 }
             }
         }

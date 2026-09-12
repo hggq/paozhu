@@ -2,7 +2,7 @@
 #define ORM_CMS_XTALKBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 01 Sep 2026 03:58:37 GMT
+*本文件为自动生成 Sat, 12 Sep 2026 07:38:47 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -12,11 +12,15 @@
 #include <map> 
 #include <string_view> 
 #include <string> 
+#include <cstring>
 #include <vector>
+#include <set>
 #include <ctime>
 #include <array>
 #include <concepts>
 #include <utility>
+#include <bit>
+#include <algorithm>
 #include "unicode.h"
 
 namespace orm { 
@@ -26,6 +30,7 @@ namespace orm {
 namespace xtalk_info
 {
  
+    static constexpr std::size_t col_count = 11;
     enum class cols : unsigned char 
     {
 		talkid = 0,
@@ -649,13 +654,18 @@ namespace xtalk_info
         
     static constexpr std::array<std::string_view,11> col_names={"talkid","userid","adminid","taskid","projectid","content","isdelete","addtime","update_at","islock","replyid"};
 	static constexpr std::array<unsigned char,11> col_types={3,3,3,3,3,252,1,3,3,1,3};
-	static constexpr std::array<unsigned char,11> col_length={0,0,0,0,0,0,0,0,0,0,0};
+	static constexpr std::array<unsigned short,11> col_length={0,0,0,0,0,0,0,0,0,0,0};
 	static constexpr std::array<unsigned char,11> col_decimals={0,0,0,0,0,0,0,0,0,0,0};
+	static constexpr std::array<bool,11> col_null={false,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::array<bool,11> col_indexed={true,true,false,false,true,false,false,false,false,false,false};
+	static constexpr std::string_view auto_pk_name ="talkid";
+	static constexpr int auto_pk_index = 0;
 
 }
 
 struct xtalk_base
 {
+    using cols = xtalk_info::cols;
       xtalk_info::meta data;
     std::vector<xtalk_info::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -666,13 +676,74 @@ std::vector<xtalk_info::meta>::const_iterator end() const{     return record.end
 std::string tablename="xtalk";
 static constexpr std::string_view org_tablename="xtalk";
 static constexpr std::string_view modelname="Xtalk";
+	static constexpr std::array<bool,11> col_need_quote={false,false,false,false,false,true,false,false,false,false,false};
 
-	  unsigned char findcolpos(const std::string &coln){
+            std::bitset<11> dirty_bits;
+            void clear_dirty() noexcept {
+                dirty_bits.reset();
+            }
+
+            void set_dirty(std::size_t idx) noexcept {
+                if(idx < 11)
+                dirty_bits.set(idx);
+            }
+
+            [[nodiscard]] std::vector<unsigned char> get_dirty_indices() const noexcept {
+                std::vector<unsigned char> result;
+                for (std::size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(static_cast<unsigned char>(i));
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::vector<std::string_view> get_dirty_names() const
+            {
+                std::vector<std::string_view> result;
+                result.reserve(dirty_bits.size()); // 预分配
+                for (size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(xtalk_info::col_names[i]);
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::string get_dirty_names_str(std::string_view sep = ",") const
+            {
+                auto names = get_dirty_names();
+
+                if (names.empty()) {
+                    return {};
+                }
+                
+                std::size_t total_len = 0;
+                for (const auto& name : names) {
+                    total_len += name.size();
+                }
+                total_len += sep.size() * (names.size() - 1);
+
+                std::string result;
+                result.reserve(total_len);
+
+                bool first = true;
+                for (const auto& name : names) {
+                    if (!first) {
+                        result.append(sep);
+                    }
+                    result.append(name);
+                    first = false;
+                }
+                return result;
+            }
+    
+	  [[nodiscard]] static constexpr unsigned char findcolpos(std::string_view coln) noexcept {
             if(coln.size()==0)
             {
                 return 255;
             }
-		    unsigned char  bi=coln[0];
+		    unsigned char  bi= static_cast<unsigned char>(coln[0]);
          char colpospppc;
 
 	         if(bi<91&&bi>64){
@@ -1257,6 +1328,101 @@ if(data.replyid==0){
         return tempsql.str();
    } 
    
+   std::string make_update_dirty_sql()
+   {
+    std::ostringstream tempsql;
+    tempsql << "UPDATE " << tablename << " SET ";
+
+    constexpr std::size_t total = xtalk_info::col_names.size();
+
+    bool first = true;
+    for (std::size_t idx = 0; idx < total; ++idx) {
+        if (dirty_bits.test(idx)) {
+            if (idx < total) {
+                if (!first) tempsql << ",";
+                switch (idx) {
+                    case 0:
+                        if(data.talkid==0){
+                            tempsql<<"talkid=0";
+                        }else{ 
+                            tempsql<<"talkid="<<std::to_string(data.talkid);
+                        }
+                        break;
+                    case 1:
+                        if(data.userid==0){
+                            tempsql<<"userid=0";
+                        }else{ 
+                            tempsql<<"userid="<<std::to_string(data.userid);
+                        }
+                        break;
+                    case 2:
+                        if(data.adminid==0){
+                            tempsql<<"adminid=0";
+                        }else{ 
+                            tempsql<<"adminid="<<std::to_string(data.adminid);
+                        }
+                        break;
+                    case 3:
+                        if(data.taskid==0){
+                            tempsql<<"taskid=0";
+                        }else{ 
+                            tempsql<<"taskid="<<std::to_string(data.taskid);
+                        }
+                        break;
+                    case 4:
+                        if(data.projectid==0){
+                            tempsql<<"projectid=0";
+                        }else{ 
+                            tempsql<<"projectid="<<std::to_string(data.projectid);
+                        }
+                        break;
+                    case 5:
+                        tempsql<<"content='"<<stringaddslash(data.content)<<"'";
+                        break;
+                    case 6:
+                        if(data.isdelete==0){
+                            tempsql<<"isdelete=0";
+                        }else{ 
+                            tempsql<<"isdelete="<<std::to_string(data.isdelete);
+                        }
+                        break;
+                    case 7:
+                        if(data.addtime==0){
+                            tempsql<<"addtime=0";
+                        }else{ 
+                            tempsql<<"addtime="<<std::to_string(data.addtime);
+                        }
+                        break;
+                    case 8:
+                        if(data.update_at==0){
+                            tempsql<<"update_at=0";
+                        }else{ 
+                            tempsql<<"update_at="<<std::to_string(data.update_at);
+                        }
+                        break;
+                    case 9:
+                        if(data.islock==0){
+                            tempsql<<"islock=0";
+                        }else{ 
+                            tempsql<<"islock="<<std::to_string(data.islock);
+                        }
+                        break;
+                    case 10:
+                        if(data.replyid==0){
+                            tempsql<<"replyid=0";
+                        }else{ 
+                            tempsql<<"replyid="<<std::to_string(data.replyid);
+                        }
+                        break;
+                }
+                first = false;
+            }
+        }
+    }
+    if (first) return "";
+    return tempsql.str();
+   } 
+
     std::string make_record_replace_sql()
     {
         unsigned int j = 0;
@@ -2496,36 +2662,47 @@ if(record[n].replyid==0){
  void setTalkid( unsigned  int  val){  data.talkid=val;} 
 
  unsigned  int  getUserid(){  return data.userid; } 
- void setUserid( unsigned  int  val){  data.userid=val;} 
+ void setUserid( unsigned  int  val){  data.userid=val;
+		 set_dirty(1);  }
 
  unsigned  int  getAdminid(){  return data.adminid; } 
- void setAdminid( unsigned  int  val){  data.adminid=val;} 
+ void setAdminid( unsigned  int  val){  data.adminid=val;
+		 set_dirty(2);  }
 
  unsigned  int  getTaskid(){  return data.taskid; } 
- void setTaskid( unsigned  int  val){  data.taskid=val;} 
+ void setTaskid( unsigned  int  val){  data.taskid=val;
+		 set_dirty(3);  }
 
  unsigned  int  getProjectid(){  return data.projectid; } 
- void setProjectid( unsigned  int  val){  data.projectid=val;} 
+ void setProjectid( unsigned  int  val){  data.projectid=val;
+		 set_dirty(4);  }
 
  std::string  getContent(){  return data.content; } 
  std::string & getRefContent(){  return std::ref(data.content); } 
- void setContent( std::string  &val){  data.content=val;} 
- void setContent(std::string_view val){  data.content=val;} 
+ void setContent( std::string  &val){  data.content=val;
+		 set_dirty(5);  }
+ void setContent(std::string_view val){  data.content=val;
+		 set_dirty(5);  }
 
  unsigned  char  getIsdelete(){  return data.isdelete; } 
- void setIsdelete( unsigned  char  val){  data.isdelete=val;} 
+ void setIsdelete( unsigned  char  val){  data.isdelete=val;
+		 set_dirty(6);  }
 
  unsigned  int  getAddtime(){  return data.addtime; } 
- void setAddtime( unsigned  int  val){  data.addtime=val;} 
+ void setAddtime( unsigned  int  val){  data.addtime=val;
+		 set_dirty(7);  }
 
  unsigned  int  getUpdateAt(){  return data.update_at; } 
- void setUpdateAt( unsigned  int  val){  data.update_at=val;} 
+ void setUpdateAt( unsigned  int  val){  data.update_at=val;
+		 set_dirty(8);  }
 
  unsigned  char  getIslock(){  return data.islock; } 
- void setIslock( unsigned  char  val){  data.islock=val;} 
+ void setIslock( unsigned  char  val){  data.islock=val;
+		 set_dirty(9);  }
 
  unsigned  int  getReplyid(){  return data.replyid; } 
- void setReplyid( unsigned  int  val){  data.replyid=val;} 
+ void setReplyid( unsigned  int  val){  data.replyid=val;
+		 set_dirty(10);  }
 
 xtalk_info::meta getnewData(){
  	 struct xtalk_info::meta newdata;

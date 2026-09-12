@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 01 Sep 2026 03:58:37 GMT
+*本文件为自动生成 Sat, 12 Sep 2026 07:38:47 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -12,11 +12,15 @@
 #include <map> 
 #include <string_view> 
 #include <string> 
+#include <cstring>
 #include <vector>
+#include <set>
 #include <ctime>
 #include <array>
 #include <concepts>
 #include <utility>
+#include <bit>
+#include <algorithm>
 #include "unicode.h"
 
 namespace orm { 
@@ -26,6 +30,7 @@ namespace orm {
 namespace article_info
 {
  
+    static constexpr std::size_t col_count = 27;
     enum class cols : unsigned char 
     {
 		aid = 0,
@@ -761,13 +766,18 @@ namespace article_info
         
     static constexpr std::array<std::string_view,27> col_names={"aid","topicid","classtype","userid","sortid","topicname","title","keywords","fromsource","author","addip","createtime","addtime","readnum","review","icoimg","content","mdcontent","isopen","ishome","iscomment","showtype","fromlocal","texturl","summary","editauthor","relatecontent"};
 	static constexpr std::array<unsigned char,27> col_types={3,3,3,3,3,253,253,253,253,253,253,253,8,3,3,253,252,252,1,1,1,1,253,253,253,253,253};
-	static constexpr std::array<unsigned char,27> col_length={0,0,0,0,0,140,128,128,60,40,20,20,0,0,0,255,0,0,0,0,0,0,60,255,255,40,0};
+	static constexpr std::array<unsigned short,27> col_length={0,0,0,0,0,140,128,128,60,40,20,20,0,0,0,255,0,0,0,0,0,0,60,255,255,40,256};
 	static constexpr std::array<unsigned char,27> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	static constexpr std::array<bool,27> col_null={false,false,false,false,false,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::array<bool,27> col_indexed={true,false,false,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::string_view auto_pk_name ="aid";
+	static constexpr int auto_pk_index = 0;
 
 }
 
 struct article_base
 {
+    using cols = article_info::cols;
       article_info::meta data;
     std::vector<article_info::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -778,13 +788,74 @@ std::vector<article_info::meta>::const_iterator end() const{     return record.e
 std::string tablename="article";
 static constexpr std::string_view org_tablename="article";
 static constexpr std::string_view modelname="Article";
+	static constexpr std::array<bool,27> col_need_quote={false,false,false,false,false,true,true,true,true,true,true,true,false,false,false,true,true,true,false,false,false,false,true,true,true,true,true};
 
-	  unsigned char findcolpos(const std::string &coln){
+            std::bitset<27> dirty_bits;
+            void clear_dirty() noexcept {
+                dirty_bits.reset();
+            }
+
+            void set_dirty(std::size_t idx) noexcept {
+                if(idx < 27)
+                dirty_bits.set(idx);
+            }
+
+            [[nodiscard]] std::vector<unsigned char> get_dirty_indices() const noexcept {
+                std::vector<unsigned char> result;
+                for (std::size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(static_cast<unsigned char>(i));
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::vector<std::string_view> get_dirty_names() const
+            {
+                std::vector<std::string_view> result;
+                result.reserve(dirty_bits.size()); // 预分配
+                for (size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(article_info::col_names[i]);
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::string get_dirty_names_str(std::string_view sep = ",") const
+            {
+                auto names = get_dirty_names();
+
+                if (names.empty()) {
+                    return {};
+                }
+                
+                std::size_t total_len = 0;
+                for (const auto& name : names) {
+                    total_len += name.size();
+                }
+                total_len += sep.size() * (names.size() - 1);
+
+                std::string result;
+                result.reserve(total_len);
+
+                bool first = true;
+                for (const auto& name : names) {
+                    if (!first) {
+                        result.append(sep);
+                    }
+                    result.append(name);
+                    first = false;
+                }
+                return result;
+            }
+    
+	  [[nodiscard]] static constexpr unsigned char findcolpos(std::string_view coln) noexcept {
             if(coln.size()==0)
             {
                 return 255;
             }
-		    unsigned char  bi=coln[0];
+		    unsigned char  bi= static_cast<unsigned char>(coln[0]);
          char colpospppc;
 
 	         if(bi<91&&bi>64){
@@ -1569,6 +1640,157 @@ tempsql<<"relatecontent='"<<stringaddslash(data.relatecontent)<<"'";
         return tempsql.str();
    } 
    
+   std::string make_update_dirty_sql()
+   {
+    std::ostringstream tempsql;
+    tempsql << "UPDATE " << tablename << " SET ";
+
+    constexpr std::size_t total = article_info::col_names.size();
+
+    bool first = true;
+    for (std::size_t idx = 0; idx < total; ++idx) {
+        if (dirty_bits.test(idx)) {
+            if (idx < total) {
+                if (!first) tempsql << ",";
+                switch (idx) {
+                    case 0:
+                        if(data.aid==0){
+                            tempsql<<"aid=0";
+                        }else{ 
+                            tempsql<<"aid="<<std::to_string(data.aid);
+                        }
+                        break;
+                    case 1:
+                        if(data.topicid==0){
+                            tempsql<<"topicid=0";
+                        }else{ 
+                            tempsql<<"topicid="<<std::to_string(data.topicid);
+                        }
+                        break;
+                    case 2:
+                        if(data.classtype==0){
+                            tempsql<<"classtype=0";
+                        }else{ 
+                            tempsql<<"classtype="<<std::to_string(data.classtype);
+                        }
+                        break;
+                    case 3:
+                        if(data.userid==0){
+                            tempsql<<"userid=0";
+                        }else{ 
+                            tempsql<<"userid="<<std::to_string(data.userid);
+                        }
+                        break;
+                    case 4:
+                        if(data.sortid==0){
+                            tempsql<<"sortid=0";
+                        }else{ 
+                            tempsql<<"sortid="<<std::to_string(data.sortid);
+                        }
+                        break;
+                    case 5:
+                        tempsql<<"topicname='"<<stringaddslash(data.topicname)<<"'";
+                        break;
+                    case 6:
+                        tempsql<<"title='"<<stringaddslash(data.title)<<"'";
+                        break;
+                    case 7:
+                        tempsql<<"keywords='"<<stringaddslash(data.keywords)<<"'";
+                        break;
+                    case 8:
+                        tempsql<<"fromsource='"<<stringaddslash(data.fromsource)<<"'";
+                        break;
+                    case 9:
+                        tempsql<<"author='"<<stringaddslash(data.author)<<"'";
+                        break;
+                    case 10:
+                        tempsql<<"addip='"<<stringaddslash(data.addip)<<"'";
+                        break;
+                    case 11:
+                        tempsql<<"createtime='"<<stringaddslash(data.createtime)<<"'";
+                        break;
+                    case 12:
+                        if(data.addtime==0){
+                            tempsql<<"addtime=0";
+                        }else{ 
+                            tempsql<<"addtime="<<std::to_string(data.addtime);
+                        }
+                        break;
+                    case 13:
+                        if(data.readnum==0){
+                            tempsql<<"readnum=0";
+                        }else{ 
+                            tempsql<<"readnum="<<std::to_string(data.readnum);
+                        }
+                        break;
+                    case 14:
+                        if(data.review==0){
+                            tempsql<<"review=0";
+                        }else{ 
+                            tempsql<<"review="<<std::to_string(data.review);
+                        }
+                        break;
+                    case 15:
+                        tempsql<<"icoimg='"<<stringaddslash(data.icoimg)<<"'";
+                        break;
+                    case 16:
+                        tempsql<<"content='"<<stringaddslash(data.content)<<"'";
+                        break;
+                    case 17:
+                        tempsql<<"mdcontent='"<<stringaddslash(data.mdcontent)<<"'";
+                        break;
+                    case 18:
+                        if(data.isopen==0){
+                            tempsql<<"isopen=0";
+                        }else{ 
+                            tempsql<<"isopen="<<std::to_string(data.isopen);
+                        }
+                        break;
+                    case 19:
+                        if(data.ishome==0){
+                            tempsql<<"ishome=0";
+                        }else{ 
+                            tempsql<<"ishome="<<std::to_string(data.ishome);
+                        }
+                        break;
+                    case 20:
+                        if(data.iscomment==0){
+                            tempsql<<"iscomment=0";
+                        }else{ 
+                            tempsql<<"iscomment="<<std::to_string(data.iscomment);
+                        }
+                        break;
+                    case 21:
+                        if(data.showtype==0){
+                            tempsql<<"showtype=0";
+                        }else{ 
+                            tempsql<<"showtype="<<std::to_string(data.showtype);
+                        }
+                        break;
+                    case 22:
+                        tempsql<<"fromlocal='"<<stringaddslash(data.fromlocal)<<"'";
+                        break;
+                    case 23:
+                        tempsql<<"texturl='"<<stringaddslash(data.texturl)<<"'";
+                        break;
+                    case 24:
+                        tempsql<<"summary='"<<stringaddslash(data.summary)<<"'";
+                        break;
+                    case 25:
+                        tempsql<<"editauthor='"<<stringaddslash(data.editauthor)<<"'";
+                        break;
+                    case 26:
+                        tempsql<<"relatecontent='"<<stringaddslash(data.relatecontent)<<"'";
+                        break;
+                }
+                first = false;
+            }
+        }
+    }
+    if (first) return "";
+    return tempsql.str();
+   } 
+
     std::string make_record_replace_sql()
     {
         unsigned int j = 0;
@@ -3286,112 +3508,153 @@ tempsql<<"\"relatecontent\":\""<<http::utf8_to_jsonstring(record[n].relateconten
  void setAid( unsigned  int  val){  data.aid=val;} 
 
  unsigned  int  getTopicid(){  return data.topicid; } 
- void setTopicid( unsigned  int  val){  data.topicid=val;} 
+ void setTopicid( unsigned  int  val){  data.topicid=val;
+		 set_dirty(1);  }
 
  unsigned  int  getClasstype(){  return data.classtype; } 
- void setClasstype( unsigned  int  val){  data.classtype=val;} 
+ void setClasstype( unsigned  int  val){  data.classtype=val;
+		 set_dirty(2);  }
 
  unsigned  int  getUserid(){  return data.userid; } 
- void setUserid( unsigned  int  val){  data.userid=val;} 
+ void setUserid( unsigned  int  val){  data.userid=val;
+		 set_dirty(3);  }
 
  int  getSortid(){  return data.sortid; } 
- void setSortid( int  val){  data.sortid=val;} 
+ void setSortid( int  val){  data.sortid=val;
+		 set_dirty(4);  }
 
  std::string  getTopicname(){  return data.topicname; } 
  std::string & getRefTopicname(){  return std::ref(data.topicname); } 
- void setTopicname( std::string  &val){  data.topicname=val;} 
- void setTopicname(std::string_view val){  data.topicname=val;} 
+ void setTopicname( std::string  &val){  data.topicname=val;
+		 set_dirty(5);  }
+ void setTopicname(std::string_view val){  data.topicname=val;
+		 set_dirty(5);  }
 
  std::string  getTitle(){  return data.title; } 
  std::string & getRefTitle(){  return std::ref(data.title); } 
- void setTitle( std::string  &val){  data.title=val;} 
- void setTitle(std::string_view val){  data.title=val;} 
+ void setTitle( std::string  &val){  data.title=val;
+		 set_dirty(6);  }
+ void setTitle(std::string_view val){  data.title=val;
+		 set_dirty(6);  }
 
  std::string  getKeywords(){  return data.keywords; } 
  std::string & getRefKeywords(){  return std::ref(data.keywords); } 
- void setKeywords( std::string  &val){  data.keywords=val;} 
- void setKeywords(std::string_view val){  data.keywords=val;} 
+ void setKeywords( std::string  &val){  data.keywords=val;
+		 set_dirty(7);  }
+ void setKeywords(std::string_view val){  data.keywords=val;
+		 set_dirty(7);  }
 
  std::string  getFromsource(){  return data.fromsource; } 
  std::string & getRefFromsource(){  return std::ref(data.fromsource); } 
- void setFromsource( std::string  &val){  data.fromsource=val;} 
- void setFromsource(std::string_view val){  data.fromsource=val;} 
+ void setFromsource( std::string  &val){  data.fromsource=val;
+		 set_dirty(8);  }
+ void setFromsource(std::string_view val){  data.fromsource=val;
+		 set_dirty(8);  }
 
  std::string  getAuthor(){  return data.author; } 
  std::string & getRefAuthor(){  return std::ref(data.author); } 
- void setAuthor( std::string  &val){  data.author=val;} 
- void setAuthor(std::string_view val){  data.author=val;} 
+ void setAuthor( std::string  &val){  data.author=val;
+		 set_dirty(9);  }
+ void setAuthor(std::string_view val){  data.author=val;
+		 set_dirty(9);  }
 
  std::string  getAddip(){  return data.addip; } 
  std::string & getRefAddip(){  return std::ref(data.addip); } 
- void setAddip( std::string  &val){  data.addip=val;} 
- void setAddip(std::string_view val){  data.addip=val;} 
+ void setAddip( std::string  &val){  data.addip=val;
+		 set_dirty(10);  }
+ void setAddip(std::string_view val){  data.addip=val;
+		 set_dirty(10);  }
 
  std::string  getCreatetime(){  return data.createtime; } 
  std::string & getRefCreatetime(){  return std::ref(data.createtime); } 
- void setCreatetime( std::string  &val){  data.createtime=val;} 
- void setCreatetime(std::string_view val){  data.createtime=val;} 
+ void setCreatetime( std::string  &val){  data.createtime=val;
+		 set_dirty(11);  }
+ void setCreatetime(std::string_view val){  data.createtime=val;
+		 set_dirty(11);  }
 
  unsigned  long long  getAddtime(){  return data.addtime; } 
- void setAddtime( unsigned  long long  val){  data.addtime=val;} 
+ void setAddtime( unsigned  long long  val){  data.addtime=val;
+		 set_dirty(12);  }
 
  int  getReadnum(){  return data.readnum; } 
- void setReadnum( int  val){  data.readnum=val;} 
+ void setReadnum( int  val){  data.readnum=val;
+		 set_dirty(13);  }
 
  int  getReview(){  return data.review; } 
- void setReview( int  val){  data.review=val;} 
+ void setReview( int  val){  data.review=val;
+		 set_dirty(14);  }
 
  std::string  getIcoimg(){  return data.icoimg; } 
  std::string & getRefIcoimg(){  return std::ref(data.icoimg); } 
- void setIcoimg( std::string  &val){  data.icoimg=val;} 
- void setIcoimg(std::string_view val){  data.icoimg=val;} 
+ void setIcoimg( std::string  &val){  data.icoimg=val;
+		 set_dirty(15);  }
+ void setIcoimg(std::string_view val){  data.icoimg=val;
+		 set_dirty(15);  }
 
  std::string  getContent(){  return data.content; } 
  std::string & getRefContent(){  return std::ref(data.content); } 
- void setContent( std::string  &val){  data.content=val;} 
- void setContent(std::string_view val){  data.content=val;} 
+ void setContent( std::string  &val){  data.content=val;
+		 set_dirty(16);  }
+ void setContent(std::string_view val){  data.content=val;
+		 set_dirty(16);  }
 
  std::string  getMdcontent(){  return data.mdcontent; } 
  std::string & getRefMdcontent(){  return std::ref(data.mdcontent); } 
- void setMdcontent( std::string  &val){  data.mdcontent=val;} 
- void setMdcontent(std::string_view val){  data.mdcontent=val;} 
+ void setMdcontent( std::string  &val){  data.mdcontent=val;
+		 set_dirty(17);  }
+ void setMdcontent(std::string_view val){  data.mdcontent=val;
+		 set_dirty(17);  }
 
  char  getIsopen(){  return data.isopen; } 
- void setIsopen( char  val){  data.isopen=val;} 
+ void setIsopen( char  val){  data.isopen=val;
+		 set_dirty(18);  }
 
  char  getIshome(){  return data.ishome; } 
- void setIshome( char  val){  data.ishome=val;} 
+ void setIshome( char  val){  data.ishome=val;
+		 set_dirty(19);  }
 
  char  getIscomment(){  return data.iscomment; } 
- void setIscomment( char  val){  data.iscomment=val;} 
+ void setIscomment( char  val){  data.iscomment=val;
+		 set_dirty(20);  }
 
  char  getShowtype(){  return data.showtype; } 
- void setShowtype( char  val){  data.showtype=val;} 
+ void setShowtype( char  val){  data.showtype=val;
+		 set_dirty(21);  }
 
  std::string  getFromlocal(){  return data.fromlocal; } 
  std::string & getRefFromlocal(){  return std::ref(data.fromlocal); } 
- void setFromlocal( std::string  &val){  data.fromlocal=val;} 
- void setFromlocal(std::string_view val){  data.fromlocal=val;} 
+ void setFromlocal( std::string  &val){  data.fromlocal=val;
+		 set_dirty(22);  }
+ void setFromlocal(std::string_view val){  data.fromlocal=val;
+		 set_dirty(22);  }
 
  std::string  getTexturl(){  return data.texturl; } 
  std::string & getRefTexturl(){  return std::ref(data.texturl); } 
- void setTexturl( std::string  &val){  data.texturl=val;} 
- void setTexturl(std::string_view val){  data.texturl=val;} 
+ void setTexturl( std::string  &val){  data.texturl=val;
+		 set_dirty(23);  }
+ void setTexturl(std::string_view val){  data.texturl=val;
+		 set_dirty(23);  }
 
  std::string  getSummary(){  return data.summary; } 
  std::string & getRefSummary(){  return std::ref(data.summary); } 
- void setSummary( std::string  &val){  data.summary=val;} 
- void setSummary(std::string_view val){  data.summary=val;} 
+ void setSummary( std::string  &val){  data.summary=val;
+		 set_dirty(24);  }
+ void setSummary(std::string_view val){  data.summary=val;
+		 set_dirty(24);  }
 
  std::string  getEditauthor(){  return data.editauthor; } 
  std::string & getRefEditauthor(){  return std::ref(data.editauthor); } 
- void setEditauthor( std::string  &val){  data.editauthor=val;} 
- void setEditauthor(std::string_view val){  data.editauthor=val;} 
+ void setEditauthor( std::string  &val){  data.editauthor=val;
+		 set_dirty(25);  }
+ void setEditauthor(std::string_view val){  data.editauthor=val;
+		 set_dirty(25);  }
 
  std::string  getRelatecontent(){  return data.relatecontent; } 
  std::string & getRefRelatecontent(){  return std::ref(data.relatecontent); } 
- void setRelatecontent( std::string  &val){  data.relatecontent=val;} 
- void setRelatecontent(std::string_view val){  data.relatecontent=val;} 
+ void setRelatecontent( std::string  &val){  data.relatecontent=val;
+		 set_dirty(26);  }
+ void setRelatecontent(std::string_view val){  data.relatecontent=val;
+		 set_dirty(26);  }
 
 article_info::meta getnewData(){
  	 struct article_info::meta newdata;

@@ -472,7 +472,7 @@ std::string admin_listproduct(std::shared_ptr<httppeer> peer)
     if (searchword.size() > 0)
     {
         pro.andsub().whereLike("name", str_addslash(searchword));
-        pro.whereOrLike("maincontent", str_addslash(searchword)).andsub();
+        pro.whereOrLike("maincontent", str_addslash(searchword)).endsub();
         client.val["searchword"] = searchword;
     }
     if (categoryid > 0)
@@ -552,7 +552,7 @@ std::string admin_marproductattach(std::shared_ptr<httppeer> peer)
     if (searchword.size() > 0)
     {
         pro.andsub().whereLike("name", str_addslash(searchword));
-        pro.whereOrLike("maincontent", str_addslash(searchword)).andsub();
+        pro.whereOrLike("maincontent", str_addslash(searchword)).endsub();
         client.val["searchword"] = searchword;
     }
     if (categoryid > 0)

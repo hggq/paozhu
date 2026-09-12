@@ -28,6 +28,10 @@
 #include "sqlite_conn.h"
 #include "orm_common.h"
 #include "cost_define.h"
+#include "parse_ini.h"
+#include <algorithm>
+#include <filesystem>
+#include <cctype>
 
 namespace orm
 {
@@ -73,603 +77,193 @@ std::map<std::string, std::shared_ptr<orm_conn_pool>> &get_orm_conn_pool_obj()
     static std::map<std::string, std::shared_ptr<orm_conn_pool>> instance;
     return instance;
 }
+// ---- 4 个内部 helper ----
+static std::string normalize_tag(const std::string &raw)
+{
+    std::string out;
+    for (char ch : raw)
+    {
+        if (out.size() > 20)
+            break;
+        if (ch >= '0' && ch <= '9')
+            out += ch;
+        else if (ch == '_')
+            out += ch;
+        else if (ch >= 'A' && ch <= 'Z')
+            out += (ch + 32);
+        else if (ch >= 'a' && ch <= 'z')
+            out += ch;
+    }
+    return out;
+}
+
+static bool issock_suffix(const std::string &host)
+{
+    if (host.size() < 5)
+        return false;
+    return host.compare(host.size() - 5, 5, ".sock") == 0;
+}
+
+static bool parse_bool(const std::string &v)
+{
+    return v == "1" || v == "true" || v == "True" || v == "TRUE" || v == "On" || v == "ON";
+}
+
+static DB_TYPE parse_dbtype(const std::string &v)
+{
+    if (v == "postgresql" || v == "pg" || v == "POSTGRESQL" || v == "PG")
+        return DB_TYPE::POSTGRESQL;
+    if (v == "sqlite" || v == "sqlite3" || v == "sq3" || v == "SQLITE" || v == "SQLITE3")
+        return DB_TYPE::SQLITE;
+    return DB_TYPE::MYSQL;
+}
+
+static unsigned char clamp_stoi(const std::string &s, unsigned char def)
+{
+    try
+    {
+        int v = std::stoi(s);
+        if (v < 0)
+            return 0;
+        if (v > 255)
+            return 255;
+        return (unsigned char)v;
+    }
+    catch (...)
+    {
+        return def;
+    }
+}
+
+// 判断字符串是否含口令不允许的字节。统一约束：orm.conf 中 mysql/pg/sqlite 的口令只允许
+// 可打印 ASCII 的 0x21 ~ 0x7E（! 到 ~），空格(0x20)、全部控制码(0x00~0x1F、0x7F)以及
+// 非 ASCII 字节(>=0x80)一律非法，解析时发现即打印错误并跳过该条配置，而非等到连接阶段才失败。
+static bool contains_forbidden_password_char(const std::string &s)
+{
+    for (unsigned char ch : s)
+    {
+        if (ch < 0x21 || ch > 0x7E)
+            return true;
+    }
+    return false;
+}
+
 std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
 {
-    std::vector<orm_conn_t> myconfig;
-    //auto &charset_obj = get_orm_mysql_charset();
+    std::vector<orm_conn_t> result;
     auto charset_obj = std::make_unique<mysql_charset_store>();
     charset_obj->mysql_charset_init();
-    // 打开文件
-    FILE *f = fopen(filename.c_str(), "rt");
-    if (f == nullptr)
+
+    namespace fs = std::filesystem;
+    if (!fs::exists(filename))
+        return result;
+
+    http::parse_ini ini;
+    ini.parse_file(filename);
+
+    for (auto &section : ini.config)
     {
-        return myconfig;
-    }
+        std::string tag = normalize_tag(section.name);
+        if (tag.empty())
+            continue;
 
-    // 移动文件指针到文件末尾，获取文件大小
-    fseek(f, 0, SEEK_END);
-    auto const size = ftell(f);
-    fseek(f, 0, SEEK_SET);
-
-    // 读取文件内容到字符串
-    std::string s, linestr, keyname, strval;
-    s.resize(size);
-
-    auto nread = fread(&s[0], 1, size, f);
-    s.resize(nread);
-    fclose(f);
-
-    // 初始化配置结构体
-    struct orm_conn_t mysqlconf;
-    bool readkey = false;
-    bool isvalue = false;
-
-    // 初始化键名为默认值
-    keyname = "default";
-    std::string typeone;
-
-    for (unsigned int i = 0; i < s.size(); i++)
-    {
-        // 忽略注释行
-        if (s[i] == ';' || s[i] == '#')
+        auto groups = section.value.splits();// 默认 skip_empty_name=true, 跳过注释行
+        for (const auto &group : groups)
         {
-            i++;
-            if (linestr.size() > 0)
+            orm_conn_t c;
+            c.tag         = tag;
+            c.db_type     = DB_TYPE::MYSQL;// 默认
+            c.link_type   = 0;
+            c.max_pool    = 0;
+            c.min_pool    = 0;
+            c.issock      = false;
+            c.islocal     = false;
+            c.isssl       = false;
+            c.sslverify   = false;
+            c.isdebug     = false;
+            c.charset_val = 0;
+
+            for (const auto &kv : group)
             {
-                //  mysqldbconfig[keyname][linestr]=strval;
-                if (linestr == "type")
-                {
-                    if (typeone.empty())
-                    {
-                        typeone = strval;
-                        //mysqlconf.tag = keyname;
+                const std::string &k = kv.name;
+                const std::string &v = kv.value;
 
-                        mysqlconf.tag.clear();
-                        for (unsigned int jj = 0; jj < keyname.size(); jj++)
-                        {
-                            if (keyname[jj] >= '0' && keyname[jj] <= '9')
-                            {
-                                mysqlconf.tag.push_back(keyname[jj]);
-                            }
-                            else if (keyname[jj] == '_')
-                            {
-                                mysqlconf.tag.push_back(keyname[jj]);
-                            }
-                            else if (keyname[jj] >= 'A' && keyname[jj] <= 'Z')
-                            {
-                                mysqlconf.tag.push_back(keyname[jj] + 32);
-                            }
-                            else if (keyname[jj] >= 'a' && keyname[jj] <= 'z')
-                            {
-                                mysqlconf.tag.push_back(keyname[jj]);
-                            }
-
-                            if (jj > 20)
-                            {
-                                break;
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // 保存当前配置到列表中
-                        myconfig.push_back(mysqlconf);
-                        typeone = strval;
-                        //mysqlconf.type = strval;
-                        if (strval == "main")
-                        {
-                            mysqlconf.link_type = 0;
-                        }
-                        else
-                        {
-                            mysqlconf.link_type = 1;
-                        }
-                        mysqlconf.host.clear();
-                        mysqlconf.port.clear();
-                        mysqlconf.dbname.clear();
-                        mysqlconf.user.clear();
-                        mysqlconf.password.clear();
-                        mysqlconf.pretable.clear();
-                        mysqlconf.charset.clear();
-                        mysqlconf.charset_val = 0;
-                        //mysqlconf.tag = keyname;
-
-                        mysqlconf.tag.clear();
-                        for (unsigned int jj = 0; jj < keyname.size(); jj++)
-                        {
-                            if (keyname[jj] >= '0' && keyname[jj] <= '9')
-                            {
-                                mysqlconf.tag.push_back(keyname[jj]);
-                            }
-                            else if (keyname[jj] == '_')
-                            {
-                                mysqlconf.tag.push_back(keyname[jj]);
-                            }
-                            else if (keyname[jj] >= 'A' && keyname[jj] <= 'Z')
-                            {
-                                mysqlconf.tag.push_back(keyname[jj] + 32);
-                            }
-                            else if (keyname[jj] >= 'a' && keyname[jj] <= 'z')
-                            {
-                                mysqlconf.tag.push_back(keyname[jj]);
-                            }
-
-                            if (jj > 20)
-                            {
-                                break;
-                            }
-                        }
-
-                        mysqlconf.dbtype.clear();
-
-                        mysqlconf.max_pool  = 0;
-                        mysqlconf.min_pool  = 0;
-                        mysqlconf.issock    = false;
-                        mysqlconf.isssl     = false;
-                        mysqlconf.sslverify = false;
-                        mysqlconf.sslhost.clear();
-                        mysqlconf.isdebug = false;
-                        //mysqlconf.link_type = 0;
-                    }
-                }
-            }
-            linestr.clear();
-            strval.clear();
-            isvalue = false;
-            // 跳过注释行的剩余部分
-            for (; i < s.size(); i++)
-            {
-                if (s[i] == 0x0A)
+                if (k == "type")
+                    c.link_type = (v == "main") ? 0 : 1;
+                else if (k == "host")
                 {
-                    break;
+                    c.host    = v;
+                    c.issock  = issock_suffix(v);
+                    c.islocal = (v == "127.0.0.1" || v == "localhost");
                 }
-            }
-        }
-
-        // 处理换行符
-        if (i < s.size() && s[i] == 0x0A)
-        {
-            readkey = false;
-            // myconfig[linestr]=strval;
-            if (linestr.size() > 0)
-            {
-                // mysqldbconfig[keyname][linestr]=strval;
-                if (str_casecmp(linestr, "type"))
+                else if (k == "port")
+                    c.port = v;
+                else if (k == "dbname")
+                    c.dbname = v;
+                else if (k == "user")
+                    c.user = v;
+                else if (k == "password")
+                    c.password = v;
+                else if (k == "pretable")
+                    c.pretable = v;
+                else if (k == "maxpool")
+                    c.max_pool = clamp_stoi(v, 2);
+                else if (k == "minpool")
+                    c.min_pool = clamp_stoi(v, 2);
+                else if (k == "ssl")
+                    c.isssl = parse_bool(v);
+                else if (k == "sslverify")
+                    c.sslverify = parse_bool(v);
+                else if (k == "sslhost")
+                    c.sslhost = v;
+                else if (k == "server_public_key")
+                    c.server_public_key = v;
+                else if (k == "debug")
+                    c.isdebug = parse_bool(v);
+                else if (k == "dbtype")
                 {
-                    if (typeone.empty())
-                    {
-                        typeone = strval;
-                        //mysqlconf.tag = keyname;
-
-                        mysqlconf.tag.clear();
-                        for (unsigned int jj = 0; jj < keyname.size(); jj++)
-                        {
-                            if (keyname[jj] >= '0' && keyname[jj] <= '9')
-                            {
-                                mysqlconf.tag.push_back(keyname[jj]);
-                            }
-                            else if (keyname[jj] == '_')
-                            {
-                                mysqlconf.tag.push_back(keyname[jj]);
-                            }
-                            else if (keyname[jj] >= 'A' && keyname[jj] <= 'Z')
-                            {
-                                mysqlconf.tag.push_back(keyname[jj] + 32);
-                            }
-                            else if (keyname[jj] >= 'a' && keyname[jj] <= 'z')
-                            {
-                                mysqlconf.tag.push_back(keyname[jj]);
-                            }
-
-                            if (jj > 20)
-                            {
-                                break;
-                            }
-                        }
-
-                        if (strval == "main")
-                        {
-                            mysqlconf.link_type = 0;
-                        }
-                        else
-                        {
-                            mysqlconf.link_type = 1;
-                        }
-                    }
-                    else
-                    {
-                        // 保存当前配置到列表中
-                        myconfig.push_back(mysqlconf);
-                        typeone = strval;
-
-                        if (strval == "main")
-                        {
-                            mysqlconf.link_type = 0;
-                        }
-                        else
-                        {
-                            mysqlconf.link_type = 1;
-                        }
-
-                        //mysqlconf.type = strval;
-                        mysqlconf.host.clear();
-                        mysqlconf.port.clear();
-                        mysqlconf.dbname.clear();
-                        mysqlconf.user.clear();
-                        mysqlconf.password.clear();
-                        mysqlconf.pretable.clear();
-                        mysqlconf.charset.clear();
-                        mysqlconf.charset_val = 0;
-                        mysqlconf.max_pool    = 0;
-                        mysqlconf.min_pool    = 0;
-                        //mysqlconf.tag      = keyname;
-
-                        mysqlconf.tag.clear();
-                        for (unsigned int jj = 0; jj < keyname.size(); jj++)
-                        {
-                            if (keyname[jj] >= '0' && keyname[jj] <= '9')
-                            {
-                                mysqlconf.tag.push_back(keyname[jj]);
-                            }
-                            else if (keyname[jj] == '_')
-                            {
-                                mysqlconf.tag.push_back(keyname[jj]);
-                            }
-                            else if (keyname[jj] >= 'A' && keyname[jj] <= 'Z')
-                            {
-                                mysqlconf.tag.push_back(keyname[jj] + 32);
-                            }
-                            else if (keyname[jj] >= 'a' && keyname[jj] <= 'z')
-                            {
-                                mysqlconf.tag.push_back(keyname[jj]);
-                            }
-
-                            if (jj > 20)
-                            {
-                                break;
-                            }
-                        }
-
-                        mysqlconf.issock    = false;
-                        mysqlconf.isssl     = false;
-                        mysqlconf.isdebug   = false;
-                        mysqlconf.islocal   = false;// 必须重置，否则跨配置块泄漏
-                        mysqlconf.sslverify = false;
-                        mysqlconf.sslhost.clear();
-                        mysqlconf.db_type = DB_TYPE::MYSQL;
-                        //mysqlconf.link_type = 0;
-                    }
+                    c.dbtype  = v;
+                    c.db_type = parse_dbtype(v);
                 }
-                // 处理各个配置项
-                if (str_casecmp(linestr, "host"))
+                else if (k == "charset")
                 {
-                    if (strval.size() > 5)
-                    {
-                        // 处理 socket 文件
-                        if (strval[strval.size() - 1] == 'k' && strval[strval.size() - 2] == 'c' && strval[strval.size() - 3] == 'o' && strval[strval.size() - 4] == 's' && strval[strval.size() - 5] == '.')
-                        {
-                            mysqlconf.issock = true;
-                        }
-                    }
-                    mysqlconf.host = strval;
-                    if (str_casecmp(strval, "127.0.0.1"))
-                    {
-                        mysqlconf.islocal = true;
-                    }
-                    if (str_casecmp(strval, "localhost"))
-                    {
-                        mysqlconf.islocal = true;
-                    }
-                }
-
-                if (str_casecmp(linestr, "port"))
-                {
-                    mysqlconf.port = strval;
-                }
-                if (str_casecmp(linestr, "dbname"))
-                {
-                    mysqlconf.dbname = strval;
-                }
-                if (str_casecmp(linestr, "user"))
-                {
-                    mysqlconf.user = strval;
-                }
-                if (str_casecmp(linestr, "password"))
-                {
-                    mysqlconf.password = strval;
-                }
-                if (str_casecmp(linestr, "pretable"))
-                {
-                    mysqlconf.pretable = strval;
-                }
-                if (str_casecmp(linestr, "maxpool"))
-                {
-                    try
-                    {
-                        int pool_val = std::stoi(strval);
-                        mysqlconf.max_pool = static_cast<unsigned char>((pool_val < 0) ? 0 : ((pool_val > 255) ? 255 : pool_val));
-                    }
-                    catch (const std::exception &)
-                    {
-                        mysqlconf.max_pool = 2;// 异常时设置默认值
-                    }
-                }
-                if (str_casecmp(linestr, "minpool"))
-                {
-                    try
-                    {
-                        int pool_val = std::stoi(strval);
-                        mysqlconf.min_pool = static_cast<unsigned char>((pool_val < 0) ? 0 : ((pool_val > 255) ? 255 : pool_val));
-                    }
-                    catch (const std::exception &)
-                    {
-                        mysqlconf.min_pool = 2;// 异常时设置默认值
-                    }
-                }
-                if (str_casecmp(linestr, "ssl"))
-                {
-                    if (strval == "1" || strval == "true" || strval == "True" || strval == "TRUE" || strval == "On" || strval == "ON")
-                    {
-                        mysqlconf.isssl = true;
-                    }
-                }
-                if (str_casecmp(linestr, "sslverify"))
-                {
-                    if (strval == "1" || strval == "true" || strval == "True" || strval == "TRUE" || strval == "On" || strval == "ON")
-                    {
-                        mysqlconf.sslverify = true;
-                    }
-                }
-                if (str_casecmp(linestr, "sslhost"))
-                {
-                    mysqlconf.sslhost = strval;
-                }
-                if (str_casecmp(linestr, "debug"))
-                {
-                    if (strval == "1" || strval == "true" || strval == "True" || strval == "TRUE" || strval == "On" || strval == "ON")
-                    {
-                        mysqlconf.isdebug = true;
-                    }
-                }
-                if (str_casecmp(linestr, "dbtype"))
-                {
-                    mysqlconf.dbtype = strval;
-                    if (strval == "postgresql" || strval == "pg" || strval == "POSTGRESQL" || strval == "PG")
-                    {
-                        mysqlconf.db_type = DB_TYPE::POSTGRESQL;
-                    }
-                    else if (strval == "sqlite" || strval == "sqlite3" || strval == "sq3" ||
-                             strval == "SQLITE" || strval == "SQLITE3")
-                    {
-                        mysqlconf.db_type = DB_TYPE::SQLITE;
-                    }
-                    else
-                    {
-                        mysqlconf.db_type = DB_TYPE::MYSQL;
-                    }
-                }
-                if (str_casecmp(linestr, "charset"))
-                {
-                    mysqlconf.charset = strval;
-                    std::transform(mysqlconf.charset.begin(), mysqlconf.charset.end(), mysqlconf.charset.begin(), ::tolower);
-                    mysqlconf.charset_val = charset_obj->mysql_charset_find(mysqlconf.charset);
+                    std::string low = v;
+                    std::transform(low.begin(), low.end(), low.begin(), [](unsigned char x)
+                                   { return std::tolower(x); });
+                    c.charset     = low;
+                    c.charset_val = charset_obj->mysql_charset_find(low);
                 }
             }
 
-            linestr.clear();
-            strval.clear();
-            isvalue = false;
-            continue;
-        }
-
-        // 处理方括号，用于分隔不同的配置块
-        if (s[i] == '[')
-        {
-            keyname.clear();
-            readkey = true;
-            continue;
-        }
-        if (s[i] == ']')
-        {
-            readkey = false;
-            continue;
-        }
-
-        // 键名阶段忽略空白与引号
-        if (!isvalue)
-        {
-            if (s[i] == 0x20 || s[i] == '\t')
+            // 统一口令规则：mysql/pg/sqlite 的口令只允许可打印 ASCII 0x21~0x7E
+            // （不含空格 0x20 与控制码），发现非法字节即报错并跳过该条配置，不进入连接池。
+            if (!c.password.empty() && contains_forbidden_password_char(c.password))
             {
+                std::string dtype_name = "mysql";
+                if (c.db_type == DB_TYPE::POSTGRESQL)
+                    dtype_name = "postgresql";
+                else if (c.db_type == DB_TYPE::SQLITE)
+                    dtype_name = "sqlite";
+
+                std::cerr << "[orm.conf] ERROR: password allows printable ASCII 0x21-0x7E only "
+                             "(spaces/control/non-ASCII bytes are forbidden). "
+                          << "Skip config [tag=" << tag
+                          << ", dbtype=" << dtype_name
+                          << (c.host.empty() ? "" : ", host=" + c.host)
+                          << (c.dbname.empty() ? "" : ", dbname=" + c.dbname)
+                          << (c.user.empty() ? "" : ", user=" + c.user)
+                          << "]. Reset the database password to characters in 0x21-0x7E."
+                          << std::endl;
                 continue;
             }
-        }
-        else if (strval.empty())
-        {
-            // 值阶段: 仅跳过 "=" 后的前导空白（兼容 "key = value" 格式），
-            // 值内部及后续空格保留（密码/主机名中的空格不丢失）
-            if (s[i] == 0x20 || s[i] == '\t')
-            {
-                continue;
-            }
-        }
-        if (s[i] == '"')
-        {
-            continue;
-        }
-
-        // 处理等号，用于分隔键和值
-        if (s[i] == '=')
-        {
-            isvalue = true;
-            continue;
-        }
-
-        // 读取键或值
-        if (readkey)
-        {
-            keyname.push_back(s[i]);
-        }
-        else
-        {
-            if (isvalue)
-            {
-                strval.push_back(s[i]);
-            }
-            else
-            {
-                linestr.push_back(s[i]);
-            }
+            result.push_back(std::move(c));
         }
     }
 
-    // 处理最后一个配置块
-    if (mysqlconf.host.size() > 0)
-    {
-        if (str_casecmp(linestr, "host"))
-        {
-            if (strval.size() > 5)
-            {
-                // 处理 socket 文件
-                if (strval[strval.size() - 1] == 'k' && strval[strval.size() - 2] == 'c' && strval[strval.size() - 3] == 'o' && strval[strval.size() - 4] == 's' && strval[strval.size() - 5] == '.')
-                {
-                    mysqlconf.issock = true;
-                }
-            }
-            mysqlconf.host = strval;
-            if (str_casecmp(strval, "127.0.0.1"))
-            {
-                mysqlconf.islocal = true;
-            }
-            if (str_casecmp(strval, "localhost"))
-            {
-                mysqlconf.islocal = true;
-            }
-        }
-        if (str_casecmp(linestr, "port"))
-        {
-            mysqlconf.port = strval;
-        }
-        if (str_casecmp(linestr, "dbname"))
-        {
-            mysqlconf.dbname = strval;
-        }
-        if (str_casecmp(linestr, "user"))
-        {
-            mysqlconf.user = strval;
-        }
-        if (str_casecmp(linestr, "password"))
-        {
-            mysqlconf.password = strval;
-        }
-        if (str_casecmp(linestr, "pretable"))
-        {
-            mysqlconf.pretable = strval;
-        }
-        if (str_casecmp(linestr, "maxpool"))
-        {
-            try
-            {
-                int pool_val = std::stoi(strval);
-                mysqlconf.max_pool = static_cast<unsigned char>((pool_val < 0) ? 0 : ((pool_val > 255) ? 255 : pool_val));
-            }
-            catch (const std::exception &)
-            {
-                mysqlconf.max_pool = 2;// 异常时设置默认值
-            }
-        }
-        if (str_casecmp(linestr, "minpool"))
-        {
-            try
-            {
-                int pool_val = std::stoi(strval);
-                mysqlconf.min_pool = static_cast<unsigned char>((pool_val < 0) ? 0 : ((pool_val > 255) ? 255 : pool_val));
-            }
-            catch (const std::exception &)
-            {
-                mysqlconf.min_pool = 2;// 异常时设置默认值
-            }
-        }
-        if (str_casecmp(linestr, "ssl"))
-        {
-            if (strval == "1" || strval == "true" || strval == "True" || strval == "TRUE" || strval == "On" || strval == "ON")
-            {
-                mysqlconf.isssl = true;
-            }
-        }
-        if (str_casecmp(linestr, "sslverify"))
-        {
-            if (strval == "1" || strval == "true" || strval == "True" || strval == "TRUE" || strval == "On" || strval == "ON")
-            {
-                mysqlconf.sslverify = true;
-            }
-        }
-        if (str_casecmp(linestr, "sslhost"))
-        {
-            mysqlconf.sslhost = strval;
-        }
-        if (str_casecmp(linestr, "debug"))
-        {
-            if (strval == "1" || strval == "true" || strval == "True" || strval == "TRUE" || strval == "On" || strval == "ON")
-            {
-                mysqlconf.isdebug = true;
-            }
-        }
-        if (str_casecmp(linestr, "dbtype"))
-        {
-            mysqlconf.dbtype = strval;
-            if (strval == "postgresql" || strval == "pg" || strval == "POSTGRESQL" || strval == "PG")
-            {
-                mysqlconf.db_type = DB_TYPE::POSTGRESQL;
-            }
-            else if (strval == "sqlite" || strval == "sqlite3" || strval == "sq3" ||
-                     strval == "SQLITE" || strval == "SQLITE3")
-            {
-                mysqlconf.db_type = DB_TYPE::SQLITE;
-            }
-            else
-            {
-                mysqlconf.db_type = DB_TYPE::MYSQL;
-            }
-        }
-        if (str_casecmp(linestr, "charset"))
-        {
-            mysqlconf.charset = strval;
-            std::transform(mysqlconf.charset.begin(), mysqlconf.charset.end(), mysqlconf.charset.begin(), ::tolower);
-            mysqlconf.charset_val = charset_obj->mysql_charset_find(mysqlconf.charset);
-        }
-        //mysqlconf.tag = keyname;
-        mysqlconf.tag.clear();
-        for (unsigned int jj = 0; jj < keyname.size(); jj++)
-        {
-            if (keyname[jj] >= '0' && keyname[jj] <= '9')
-            {
-                mysqlconf.tag.push_back(keyname[jj]);
-            }
-            else if (keyname[jj] == '_')
-            {
-                mysqlconf.tag.push_back(keyname[jj]);
-            }
-            else if (keyname[jj] >= 'A' && keyname[jj] <= 'Z')
-            {
-                mysqlconf.tag.push_back(keyname[jj] + 32);
-            }
-            else if (keyname[jj] >= 'a' && keyname[jj] <= 'z')
-            {
-                mysqlconf.tag.push_back(keyname[jj]);
-            }
-
-            if (jj > 20)
-            {
-                break;
-            }
-        }
-
-        myconfig.push_back(mysqlconf);
-    }
     charset_obj->mysql_charset_clear();
-
-    return myconfig;
+    return result;
 }
+
 std::string init_orm_conn_pool_release()
 {
     std::map<std::string, std::shared_ptr<orm_conn_pool>> &int_pool = get_orm_conn_pool_obj();

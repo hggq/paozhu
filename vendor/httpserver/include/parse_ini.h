@@ -22,6 +22,9 @@ struct ini_key_value_t
     std::string name;
     std::string value;
     std::string comment;
+    ini_key_value_t() = default;
+    ini_key_value_t(std::string n, std::string v, std::string c = {})
+        : name(std::move(n)), value(std::move(v)), comment(std::move(c)) {}
 };
 
 struct ini_item_t
@@ -107,8 +110,9 @@ struct ini_item_t
         return {nullptr, false};
     }
 
-    //重复键值 分成一个数组 比如 orm.conf 那样
-    std::vector<std::vector<ini_key_value_t>> splits()
+    // 重复键值 分成一个数组 比如 orm.conf 那样
+    // skip_empty_name=true (默认): 跳过 name="" 的纯注释/空行, 不参与切组也不进结果
+    std::vector<std::vector<ini_key_value_t>> splits(bool skip_empty_name = true)
     {
         std::vector<std::vector<ini_key_value_t>> out_data;
         if (data.empty())
@@ -120,6 +124,9 @@ struct ini_item_t
 
         for (const auto &item : data)
         {
+            if (skip_empty_name && item.name.empty())
+                continue;// 纯注释/空行, 跳过
+
             if (used_keys.find(item.name) != used_keys.end())
             {
                 // 键重复 → 结束当前组，存入结果
@@ -233,7 +240,7 @@ struct ini_section_value_t
 {
     std::string name;
     ini_item_t value;
-    bool is_array   = false; // 如果是 true 表示是数组 [[xxx]] 这种两个中括号
+    bool is_array = false;// 如果是 true 表示是数组 [[xxx]] 这种两个中括号
 
     ini_section_value_t() = default;
     ini_section_value_t(std::string n, ini_item_t v, bool a)

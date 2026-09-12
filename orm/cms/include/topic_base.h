@@ -2,7 +2,7 @@
 #define ORM_CMS_TOPICBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 01 Sep 2026 03:58:37 GMT
+*本文件为自动生成 Sat, 12 Sep 2026 07:38:47 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -12,11 +12,15 @@
 #include <map> 
 #include <string_view> 
 #include <string> 
+#include <cstring>
 #include <vector>
+#include <set>
 #include <ctime>
 #include <array>
 #include <concepts>
 #include <utility>
+#include <bit>
+#include <algorithm>
 #include "unicode.h"
 
 namespace orm { 
@@ -26,6 +30,7 @@ namespace orm {
 namespace topic_info
 {
  
+    static constexpr std::size_t col_count = 18;
     enum class cols : unsigned char 
     {
 		topicid = 0,
@@ -698,13 +703,18 @@ namespace topic_info
         
     static constexpr std::array<std::string_view,18> col_names={"topicid","userid","parentid","cateid","sorttype","languagetype","isview","isside","sortid","title","twotitle","memo","templatename","url","urlpath","imgurl","topimg","accesscode"};
 	static constexpr std::array<unsigned char,18> col_types={3,3,3,3,1,3,1,1,3,253,253,253,253,253,253,253,252,3};
-	static constexpr std::array<unsigned char,18> col_length={0,0,0,0,0,0,0,0,0,120,120,254,254,255,60,254,0,0};
+	static constexpr std::array<unsigned short,18> col_length={0,0,0,0,0,0,0,0,0,120,120,254,254,255,60,254,0,0};
 	static constexpr std::array<unsigned char,18> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	static constexpr std::array<bool,18> col_null={false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::array<bool,18> col_indexed={true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::string_view auto_pk_name ="topicid";
+	static constexpr int auto_pk_index = 0;
 
 }
 
 struct topic_base
 {
+    using cols = topic_info::cols;
       topic_info::meta data;
     std::vector<topic_info::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -715,13 +725,74 @@ std::vector<topic_info::meta>::const_iterator end() const{     return record.end
 std::string tablename="topic";
 static constexpr std::string_view org_tablename="topic";
 static constexpr std::string_view modelname="Topic";
+	static constexpr std::array<bool,18> col_need_quote={false,false,false,false,false,false,false,false,false,true,true,true,true,true,true,true,true,false};
 
-	  unsigned char findcolpos(const std::string &coln){
+            std::bitset<18> dirty_bits;
+            void clear_dirty() noexcept {
+                dirty_bits.reset();
+            }
+
+            void set_dirty(std::size_t idx) noexcept {
+                if(idx < 18)
+                dirty_bits.set(idx);
+            }
+
+            [[nodiscard]] std::vector<unsigned char> get_dirty_indices() const noexcept {
+                std::vector<unsigned char> result;
+                for (std::size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(static_cast<unsigned char>(i));
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::vector<std::string_view> get_dirty_names() const
+            {
+                std::vector<std::string_view> result;
+                result.reserve(dirty_bits.size()); // 预分配
+                for (size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(topic_info::col_names[i]);
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::string get_dirty_names_str(std::string_view sep = ",") const
+            {
+                auto names = get_dirty_names();
+
+                if (names.empty()) {
+                    return {};
+                }
+                
+                std::size_t total_len = 0;
+                for (const auto& name : names) {
+                    total_len += name.size();
+                }
+                total_len += sep.size() * (names.size() - 1);
+
+                std::string result;
+                result.reserve(total_len);
+
+                bool first = true;
+                for (const auto& name : names) {
+                    if (!first) {
+                        result.append(sep);
+                    }
+                    result.append(name);
+                    first = false;
+                }
+                return result;
+            }
+    
+	  [[nodiscard]] static constexpr unsigned char findcolpos(std::string_view coln) noexcept {
             if(coln.size()==0)
             {
                 return 255;
             }
-		    unsigned char  bi=coln[0];
+		    unsigned char  bi= static_cast<unsigned char>(coln[0]);
          char colpospppc;
 
 	         if(bi<91&&bi>64){
@@ -1355,6 +1426,122 @@ if(data.accesscode==0){
         return tempsql.str();
    } 
    
+   std::string make_update_dirty_sql()
+   {
+    std::ostringstream tempsql;
+    tempsql << "UPDATE " << tablename << " SET ";
+
+    constexpr std::size_t total = topic_info::col_names.size();
+
+    bool first = true;
+    for (std::size_t idx = 0; idx < total; ++idx) {
+        if (dirty_bits.test(idx)) {
+            if (idx < total) {
+                if (!first) tempsql << ",";
+                switch (idx) {
+                    case 0:
+                        if(data.topicid==0){
+                            tempsql<<"topicid=0";
+                        }else{ 
+                            tempsql<<"topicid="<<std::to_string(data.topicid);
+                        }
+                        break;
+                    case 1:
+                        if(data.userid==0){
+                            tempsql<<"userid=0";
+                        }else{ 
+                            tempsql<<"userid="<<std::to_string(data.userid);
+                        }
+                        break;
+                    case 2:
+                        if(data.parentid==0){
+                            tempsql<<"parentid=0";
+                        }else{ 
+                            tempsql<<"parentid="<<std::to_string(data.parentid);
+                        }
+                        break;
+                    case 3:
+                        if(data.cateid==0){
+                            tempsql<<"cateid=0";
+                        }else{ 
+                            tempsql<<"cateid="<<std::to_string(data.cateid);
+                        }
+                        break;
+                    case 4:
+                        if(data.sorttype==0){
+                            tempsql<<"sorttype=0";
+                        }else{ 
+                            tempsql<<"sorttype="<<std::to_string(data.sorttype);
+                        }
+                        break;
+                    case 5:
+                        if(data.languagetype==0){
+                            tempsql<<"languagetype=0";
+                        }else{ 
+                            tempsql<<"languagetype="<<std::to_string(data.languagetype);
+                        }
+                        break;
+                    case 6:
+                        if(data.isview==0){
+                            tempsql<<"isview=0";
+                        }else{ 
+                            tempsql<<"isview="<<std::to_string(data.isview);
+                        }
+                        break;
+                    case 7:
+                        if(data.isside==0){
+                            tempsql<<"isside=0";
+                        }else{ 
+                            tempsql<<"isside="<<std::to_string(data.isside);
+                        }
+                        break;
+                    case 8:
+                        if(data.sortid==0){
+                            tempsql<<"sortid=0";
+                        }else{ 
+                            tempsql<<"sortid="<<std::to_string(data.sortid);
+                        }
+                        break;
+                    case 9:
+                        tempsql<<"title='"<<stringaddslash(data.title)<<"'";
+                        break;
+                    case 10:
+                        tempsql<<"twotitle='"<<stringaddslash(data.twotitle)<<"'";
+                        break;
+                    case 11:
+                        tempsql<<"memo='"<<stringaddslash(data.memo)<<"'";
+                        break;
+                    case 12:
+                        tempsql<<"templatename='"<<stringaddslash(data.templatename)<<"'";
+                        break;
+                    case 13:
+                        tempsql<<"url='"<<stringaddslash(data.url)<<"'";
+                        break;
+                    case 14:
+                        tempsql<<"urlpath='"<<stringaddslash(data.urlpath)<<"'";
+                        break;
+                    case 15:
+                        tempsql<<"imgurl='"<<stringaddslash(data.imgurl)<<"'";
+                        break;
+                    case 16:
+                        tempsql<<"topimg='"<<stringaddslash(data.topimg)<<"'";
+                        break;
+                    case 17:
+                        if(data.accesscode==0){
+                            tempsql<<"accesscode=0";
+                        }else{ 
+                            tempsql<<"accesscode="<<std::to_string(data.accesscode);
+                        }
+                        break;
+                }
+                first = false;
+            }
+        }
+    }
+    if (first) return "";
+    return tempsql.str();
+   } 
+
     std::string make_record_replace_sql()
     {
         unsigned int j = 0;
@@ -2776,71 +2963,96 @@ if(record[n].accesscode==0){
  void setTopicid( unsigned  int  val){  data.topicid=val;} 
 
  unsigned  int  getUserid(){  return data.userid; } 
- void setUserid( unsigned  int  val){  data.userid=val;} 
+ void setUserid( unsigned  int  val){  data.userid=val;
+		 set_dirty(1);  }
 
  unsigned  int  getParentid(){  return data.parentid; } 
- void setParentid( unsigned  int  val){  data.parentid=val;} 
+ void setParentid( unsigned  int  val){  data.parentid=val;
+		 set_dirty(2);  }
 
  unsigned  int  getCateid(){  return data.cateid; } 
- void setCateid( unsigned  int  val){  data.cateid=val;} 
+ void setCateid( unsigned  int  val){  data.cateid=val;
+		 set_dirty(3);  }
 
  unsigned  char  getSorttype(){  return data.sorttype; } 
- void setSorttype( unsigned  char  val){  data.sorttype=val;} 
+ void setSorttype( unsigned  char  val){  data.sorttype=val;
+		 set_dirty(4);  }
 
  unsigned  int  getLanguagetype(){  return data.languagetype; } 
- void setLanguagetype( unsigned  int  val){  data.languagetype=val;} 
+ void setLanguagetype( unsigned  int  val){  data.languagetype=val;
+		 set_dirty(5);  }
 
  unsigned  char  getIsview(){  return data.isview; } 
- void setIsview( unsigned  char  val){  data.isview=val;} 
+ void setIsview( unsigned  char  val){  data.isview=val;
+		 set_dirty(6);  }
 
  unsigned  char  getIsside(){  return data.isside; } 
- void setIsside( unsigned  char  val){  data.isside=val;} 
+ void setIsside( unsigned  char  val){  data.isside=val;
+		 set_dirty(7);  }
 
  unsigned  int  getSortid(){  return data.sortid; } 
- void setSortid( unsigned  int  val){  data.sortid=val;} 
+ void setSortid( unsigned  int  val){  data.sortid=val;
+		 set_dirty(8);  }
 
  std::string  getTitle(){  return data.title; } 
  std::string & getRefTitle(){  return std::ref(data.title); } 
- void setTitle( std::string  &val){  data.title=val;} 
- void setTitle(std::string_view val){  data.title=val;} 
+ void setTitle( std::string  &val){  data.title=val;
+		 set_dirty(9);  }
+ void setTitle(std::string_view val){  data.title=val;
+		 set_dirty(9);  }
 
  std::string  getTwotitle(){  return data.twotitle; } 
  std::string & getRefTwotitle(){  return std::ref(data.twotitle); } 
- void setTwotitle( std::string  &val){  data.twotitle=val;} 
- void setTwotitle(std::string_view val){  data.twotitle=val;} 
+ void setTwotitle( std::string  &val){  data.twotitle=val;
+		 set_dirty(10);  }
+ void setTwotitle(std::string_view val){  data.twotitle=val;
+		 set_dirty(10);  }
 
  std::string  getMemo(){  return data.memo; } 
  std::string & getRefMemo(){  return std::ref(data.memo); } 
- void setMemo( std::string  &val){  data.memo=val;} 
- void setMemo(std::string_view val){  data.memo=val;} 
+ void setMemo( std::string  &val){  data.memo=val;
+		 set_dirty(11);  }
+ void setMemo(std::string_view val){  data.memo=val;
+		 set_dirty(11);  }
 
  std::string  getTemplatename(){  return data.templatename; } 
  std::string & getRefTemplatename(){  return std::ref(data.templatename); } 
- void setTemplatename( std::string  &val){  data.templatename=val;} 
- void setTemplatename(std::string_view val){  data.templatename=val;} 
+ void setTemplatename( std::string  &val){  data.templatename=val;
+		 set_dirty(12);  }
+ void setTemplatename(std::string_view val){  data.templatename=val;
+		 set_dirty(12);  }
 
  std::string  getUrl(){  return data.url; } 
  std::string & getRefUrl(){  return std::ref(data.url); } 
- void setUrl( std::string  &val){  data.url=val;} 
- void setUrl(std::string_view val){  data.url=val;} 
+ void setUrl( std::string  &val){  data.url=val;
+		 set_dirty(13);  }
+ void setUrl(std::string_view val){  data.url=val;
+		 set_dirty(13);  }
 
  std::string  getUrlpath(){  return data.urlpath; } 
  std::string & getRefUrlpath(){  return std::ref(data.urlpath); } 
- void setUrlpath( std::string  &val){  data.urlpath=val;} 
- void setUrlpath(std::string_view val){  data.urlpath=val;} 
+ void setUrlpath( std::string  &val){  data.urlpath=val;
+		 set_dirty(14);  }
+ void setUrlpath(std::string_view val){  data.urlpath=val;
+		 set_dirty(14);  }
 
  std::string  getImgurl(){  return data.imgurl; } 
  std::string & getRefImgurl(){  return std::ref(data.imgurl); } 
- void setImgurl( std::string  &val){  data.imgurl=val;} 
- void setImgurl(std::string_view val){  data.imgurl=val;} 
+ void setImgurl( std::string  &val){  data.imgurl=val;
+		 set_dirty(15);  }
+ void setImgurl(std::string_view val){  data.imgurl=val;
+		 set_dirty(15);  }
 
  std::string  getTopimg(){  return data.topimg; } 
  std::string & getRefTopimg(){  return std::ref(data.topimg); } 
- void setTopimg( std::string  &val){  data.topimg=val;} 
- void setTopimg(std::string_view val){  data.topimg=val;} 
+ void setTopimg( std::string  &val){  data.topimg=val;
+		 set_dirty(16);  }
+ void setTopimg(std::string_view val){  data.topimg=val;
+		 set_dirty(16);  }
 
  unsigned  int  getAccesscode(){  return data.accesscode; } 
- void setAccesscode( unsigned  int  val){  data.accesscode=val;} 
+ void setAccesscode( unsigned  int  val){  data.accesscode=val;
+		 set_dirty(17);  }
 
 topic_info::meta getnewData(){
  	 struct topic_info::meta newdata;

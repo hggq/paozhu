@@ -2,7 +2,7 @@
 #define ORM_CMS_XPROJECTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 01 Sep 2026 03:58:37 GMT
+*本文件为自动生成 Sat, 12 Sep 2026 07:38:47 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -12,11 +12,15 @@
 #include <map> 
 #include <string_view> 
 #include <string> 
+#include <cstring>
 #include <vector>
+#include <set>
 #include <ctime>
 #include <array>
 #include <concepts>
 #include <utility>
+#include <bit>
+#include <algorithm>
 #include "unicode.h"
 
 namespace orm { 
@@ -26,6 +30,7 @@ namespace orm {
 namespace xproject_info
 {
  
+    static constexpr std::size_t col_count = 25;
     enum class cols : unsigned char 
     {
 		xpjid = 0,
@@ -747,13 +752,18 @@ namespace xproject_info
         
     static constexpr std::array<std::string_view,25> col_names={"xpjid","userid","prexpjid","dpid","grouptype","title","adminuserid","regdate","begindate","expiredate","isopen","clientid","totalnum","referdocverion","xtheme","xlogo","introduce","giturl","gitname","gitpwd","xcolor","fupan","totalvalue","expectday","realday"};
 	static constexpr std::array<unsigned char,25> col_types={3,3,3,3,3,253,3,3,3,3,1,3,3,3,3,253,252,253,252,253,253,252,5,4,4};
-	static constexpr std::array<unsigned char,25> col_length={0,0,0,0,0,120,0,0,0,0,0,0,0,0,0,0,0,0,0,0,60,0,0,0,0};
+	static constexpr std::array<unsigned short,25> col_length={0,0,0,0,0,120,0,0,0,0,0,0,0,0,0,256,0,256,0,256,60,0,0,0,0};
 	static constexpr std::array<unsigned char,25> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	static constexpr std::array<bool,25> col_null={false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::array<bool,25> col_indexed={true,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::string_view auto_pk_name ="xpjid";
+	static constexpr int auto_pk_index = 0;
 
 }
 
 struct xproject_base
 {
+    using cols = xproject_info::cols;
       xproject_info::meta data;
     std::vector<xproject_info::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -764,13 +774,74 @@ std::vector<xproject_info::meta>::const_iterator end() const{     return record.
 std::string tablename="xproject";
 static constexpr std::string_view org_tablename="xproject";
 static constexpr std::string_view modelname="Xproject";
+	static constexpr std::array<bool,25> col_need_quote={false,false,false,false,false,true,false,false,false,false,false,false,false,false,false,true,true,true,true,true,true,true,false,false,false};
 
-	  unsigned char findcolpos(const std::string &coln){
+            std::bitset<25> dirty_bits;
+            void clear_dirty() noexcept {
+                dirty_bits.reset();
+            }
+
+            void set_dirty(std::size_t idx) noexcept {
+                if(idx < 25)
+                dirty_bits.set(idx);
+            }
+
+            [[nodiscard]] std::vector<unsigned char> get_dirty_indices() const noexcept {
+                std::vector<unsigned char> result;
+                for (std::size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(static_cast<unsigned char>(i));
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::vector<std::string_view> get_dirty_names() const
+            {
+                std::vector<std::string_view> result;
+                result.reserve(dirty_bits.size()); // 预分配
+                for (size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(xproject_info::col_names[i]);
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::string get_dirty_names_str(std::string_view sep = ",") const
+            {
+                auto names = get_dirty_names();
+
+                if (names.empty()) {
+                    return {};
+                }
+                
+                std::size_t total_len = 0;
+                for (const auto& name : names) {
+                    total_len += name.size();
+                }
+                total_len += sep.size() * (names.size() - 1);
+
+                std::string result;
+                result.reserve(total_len);
+
+                bool first = true;
+                for (const auto& name : names) {
+                    if (!first) {
+                        result.append(sep);
+                    }
+                    result.append(name);
+                    first = false;
+                }
+                return result;
+            }
+    
+	  [[nodiscard]] static constexpr unsigned char findcolpos(std::string_view coln) noexcept {
             if(coln.size()==0)
             {
                 return 255;
             }
-		    unsigned char  bi=coln[0];
+		    unsigned char  bi= static_cast<unsigned char>(coln[0]);
          char colpospppc;
 
 	         if(bi<91&&bi>64){
@@ -1631,6 +1702,171 @@ if(data.realday==0){
         return tempsql.str();
    } 
    
+   std::string make_update_dirty_sql()
+   {
+    std::ostringstream tempsql;
+    tempsql << "UPDATE " << tablename << " SET ";
+
+    constexpr std::size_t total = xproject_info::col_names.size();
+
+    bool first = true;
+    for (std::size_t idx = 0; idx < total; ++idx) {
+        if (dirty_bits.test(idx)) {
+            if (idx < total) {
+                if (!first) tempsql << ",";
+                switch (idx) {
+                    case 0:
+                        if(data.xpjid==0){
+                            tempsql<<"xpjid=0";
+                        }else{ 
+                            tempsql<<"xpjid="<<std::to_string(data.xpjid);
+                        }
+                        break;
+                    case 1:
+                        if(data.userid==0){
+                            tempsql<<"userid=0";
+                        }else{ 
+                            tempsql<<"userid="<<std::to_string(data.userid);
+                        }
+                        break;
+                    case 2:
+                        if(data.prexpjid==0){
+                            tempsql<<"prexpjid=0";
+                        }else{ 
+                            tempsql<<"prexpjid="<<std::to_string(data.prexpjid);
+                        }
+                        break;
+                    case 3:
+                        if(data.dpid==0){
+                            tempsql<<"dpid=0";
+                        }else{ 
+                            tempsql<<"dpid="<<std::to_string(data.dpid);
+                        }
+                        break;
+                    case 4:
+                        if(data.grouptype==0){
+                            tempsql<<"grouptype=0";
+                        }else{ 
+                            tempsql<<"grouptype="<<std::to_string(data.grouptype);
+                        }
+                        break;
+                    case 5:
+                        tempsql<<"title='"<<stringaddslash(data.title)<<"'";
+                        break;
+                    case 6:
+                        if(data.adminuserid==0){
+                            tempsql<<"adminuserid=0";
+                        }else{ 
+                            tempsql<<"adminuserid="<<std::to_string(data.adminuserid);
+                        }
+                        break;
+                    case 7:
+                        if(data.regdate==0){
+                            tempsql<<"regdate=0";
+                        }else{ 
+                            tempsql<<"regdate="<<std::to_string(data.regdate);
+                        }
+                        break;
+                    case 8:
+                        if(data.begindate==0){
+                            tempsql<<"begindate=0";
+                        }else{ 
+                            tempsql<<"begindate="<<std::to_string(data.begindate);
+                        }
+                        break;
+                    case 9:
+                        if(data.expiredate==0){
+                            tempsql<<"expiredate=0";
+                        }else{ 
+                            tempsql<<"expiredate="<<std::to_string(data.expiredate);
+                        }
+                        break;
+                    case 10:
+                        if(data.isopen==0){
+                            tempsql<<"isopen=0";
+                        }else{ 
+                            tempsql<<"isopen="<<std::to_string(data.isopen);
+                        }
+                        break;
+                    case 11:
+                        if(data.clientid==0){
+                            tempsql<<"clientid=0";
+                        }else{ 
+                            tempsql<<"clientid="<<std::to_string(data.clientid);
+                        }
+                        break;
+                    case 12:
+                        if(data.totalnum==0){
+                            tempsql<<"totalnum=0";
+                        }else{ 
+                            tempsql<<"totalnum="<<std::to_string(data.totalnum);
+                        }
+                        break;
+                    case 13:
+                        if(data.referdocverion==0){
+                            tempsql<<"referdocverion=0";
+                        }else{ 
+                            tempsql<<"referdocverion="<<std::to_string(data.referdocverion);
+                        }
+                        break;
+                    case 14:
+                        if(data.xtheme==0){
+                            tempsql<<"xtheme=0";
+                        }else{ 
+                            tempsql<<"xtheme="<<std::to_string(data.xtheme);
+                        }
+                        break;
+                    case 15:
+                        tempsql<<"xlogo='"<<stringaddslash(data.xlogo)<<"'";
+                        break;
+                    case 16:
+                        tempsql<<"introduce='"<<stringaddslash(data.introduce)<<"'";
+                        break;
+                    case 17:
+                        tempsql<<"giturl='"<<stringaddslash(data.giturl)<<"'";
+                        break;
+                    case 18:
+                        tempsql<<"gitname='"<<stringaddslash(data.gitname)<<"'";
+                        break;
+                    case 19:
+                        tempsql<<"gitpwd='"<<stringaddslash(data.gitpwd)<<"'";
+                        break;
+                    case 20:
+                        tempsql<<"xcolor='"<<stringaddslash(data.xcolor)<<"'";
+                        break;
+                    case 21:
+                        tempsql<<"fupan='"<<stringaddslash(data.fupan)<<"'";
+                        break;
+                    case 22:
+                        if(data.totalvalue==0){
+                            tempsql<<"totalvalue=0";
+                        }else{ 
+                            tempsql<<"totalvalue="<<std::to_string(data.totalvalue);
+                        }
+                        break;
+                    case 23:
+                        if(data.expectday==0){
+                            tempsql<<"expectday=0";
+                        }else{ 
+                            tempsql<<"expectday="<<std::to_string(data.expectday);
+                        }
+                        break;
+                    case 24:
+                        if(data.realday==0){
+                            tempsql<<"realday=0";
+                        }else{ 
+                            tempsql<<"realday="<<std::to_string(data.realday);
+                        }
+                        break;
+                }
+                first = false;
+            }
+        }
+    }
+    if (first) return "";
+    return tempsql.str();
+   } 
+
     std::string make_record_replace_sql()
     {
         unsigned int j = 0;
@@ -3451,92 +3687,124 @@ if(record[n].realday==0){
  void setXpjid( unsigned  int  val){  data.xpjid=val;} 
 
  unsigned  int  getUserid(){  return data.userid; } 
- void setUserid( unsigned  int  val){  data.userid=val;} 
+ void setUserid( unsigned  int  val){  data.userid=val;
+		 set_dirty(1);  }
 
  unsigned  int  getPrexpjid(){  return data.prexpjid; } 
- void setPrexpjid( unsigned  int  val){  data.prexpjid=val;} 
+ void setPrexpjid( unsigned  int  val){  data.prexpjid=val;
+		 set_dirty(2);  }
 
  unsigned  int  getDpid(){  return data.dpid; } 
- void setDpid( unsigned  int  val){  data.dpid=val;} 
+ void setDpid( unsigned  int  val){  data.dpid=val;
+		 set_dirty(3);  }
 
  unsigned  int  getGrouptype(){  return data.grouptype; } 
- void setGrouptype( unsigned  int  val){  data.grouptype=val;} 
+ void setGrouptype( unsigned  int  val){  data.grouptype=val;
+		 set_dirty(4);  }
 
  std::string  getTitle(){  return data.title; } 
  std::string & getRefTitle(){  return std::ref(data.title); } 
- void setTitle( std::string  &val){  data.title=val;} 
- void setTitle(std::string_view val){  data.title=val;} 
+ void setTitle( std::string  &val){  data.title=val;
+		 set_dirty(5);  }
+ void setTitle(std::string_view val){  data.title=val;
+		 set_dirty(5);  }
 
  unsigned  int  getAdminuserid(){  return data.adminuserid; } 
- void setAdminuserid( unsigned  int  val){  data.adminuserid=val;} 
+ void setAdminuserid( unsigned  int  val){  data.adminuserid=val;
+		 set_dirty(6);  }
 
  unsigned  int  getRegdate(){  return data.regdate; } 
- void setRegdate( unsigned  int  val){  data.regdate=val;} 
+ void setRegdate( unsigned  int  val){  data.regdate=val;
+		 set_dirty(7);  }
 
  unsigned  int  getBegindate(){  return data.begindate; } 
- void setBegindate( unsigned  int  val){  data.begindate=val;} 
+ void setBegindate( unsigned  int  val){  data.begindate=val;
+		 set_dirty(8);  }
 
  unsigned  int  getExpiredate(){  return data.expiredate; } 
- void setExpiredate( unsigned  int  val){  data.expiredate=val;} 
+ void setExpiredate( unsigned  int  val){  data.expiredate=val;
+		 set_dirty(9);  }
 
  char  getIsopen(){  return data.isopen; } 
- void setIsopen( char  val){  data.isopen=val;} 
+ void setIsopen( char  val){  data.isopen=val;
+		 set_dirty(10);  }
 
  unsigned  int  getClientid(){  return data.clientid; } 
- void setClientid( unsigned  int  val){  data.clientid=val;} 
+ void setClientid( unsigned  int  val){  data.clientid=val;
+		 set_dirty(11);  }
 
  unsigned  int  getTotalnum(){  return data.totalnum; } 
- void setTotalnum( unsigned  int  val){  data.totalnum=val;} 
+ void setTotalnum( unsigned  int  val){  data.totalnum=val;
+		 set_dirty(12);  }
 
  unsigned  int  getReferdocverion(){  return data.referdocverion; } 
- void setReferdocverion( unsigned  int  val){  data.referdocverion=val;} 
+ void setReferdocverion( unsigned  int  val){  data.referdocverion=val;
+		 set_dirty(13);  }
 
  unsigned  int  getXtheme(){  return data.xtheme; } 
- void setXtheme( unsigned  int  val){  data.xtheme=val;} 
+ void setXtheme( unsigned  int  val){  data.xtheme=val;
+		 set_dirty(14);  }
 
  std::string  getXlogo(){  return data.xlogo; } 
  std::string & getRefXlogo(){  return std::ref(data.xlogo); } 
- void setXlogo( std::string  &val){  data.xlogo=val;} 
- void setXlogo(std::string_view val){  data.xlogo=val;} 
+ void setXlogo( std::string  &val){  data.xlogo=val;
+		 set_dirty(15);  }
+ void setXlogo(std::string_view val){  data.xlogo=val;
+		 set_dirty(15);  }
 
  std::string  getIntroduce(){  return data.introduce; } 
  std::string & getRefIntroduce(){  return std::ref(data.introduce); } 
- void setIntroduce( std::string  &val){  data.introduce=val;} 
- void setIntroduce(std::string_view val){  data.introduce=val;} 
+ void setIntroduce( std::string  &val){  data.introduce=val;
+		 set_dirty(16);  }
+ void setIntroduce(std::string_view val){  data.introduce=val;
+		 set_dirty(16);  }
 
  std::string  getGiturl(){  return data.giturl; } 
  std::string & getRefGiturl(){  return std::ref(data.giturl); } 
- void setGiturl( std::string  &val){  data.giturl=val;} 
- void setGiturl(std::string_view val){  data.giturl=val;} 
+ void setGiturl( std::string  &val){  data.giturl=val;
+		 set_dirty(17);  }
+ void setGiturl(std::string_view val){  data.giturl=val;
+		 set_dirty(17);  }
 
  std::string  getGitname(){  return data.gitname; } 
  std::string & getRefGitname(){  return std::ref(data.gitname); } 
- void setGitname( std::string  &val){  data.gitname=val;} 
- void setGitname(std::string_view val){  data.gitname=val;} 
+ void setGitname( std::string  &val){  data.gitname=val;
+		 set_dirty(18);  }
+ void setGitname(std::string_view val){  data.gitname=val;
+		 set_dirty(18);  }
 
  std::string  getGitpwd(){  return data.gitpwd; } 
  std::string & getRefGitpwd(){  return std::ref(data.gitpwd); } 
- void setGitpwd( std::string  &val){  data.gitpwd=val;} 
- void setGitpwd(std::string_view val){  data.gitpwd=val;} 
+ void setGitpwd( std::string  &val){  data.gitpwd=val;
+		 set_dirty(19);  }
+ void setGitpwd(std::string_view val){  data.gitpwd=val;
+		 set_dirty(19);  }
 
  std::string  getXcolor(){  return data.xcolor; } 
  std::string & getRefXcolor(){  return std::ref(data.xcolor); } 
- void setXcolor( std::string  &val){  data.xcolor=val;} 
- void setXcolor(std::string_view val){  data.xcolor=val;} 
+ void setXcolor( std::string  &val){  data.xcolor=val;
+		 set_dirty(20);  }
+ void setXcolor(std::string_view val){  data.xcolor=val;
+		 set_dirty(20);  }
 
  std::string  getFupan(){  return data.fupan; } 
  std::string & getRefFupan(){  return std::ref(data.fupan); } 
- void setFupan( std::string  &val){  data.fupan=val;} 
- void setFupan(std::string_view val){  data.fupan=val;} 
+ void setFupan( std::string  &val){  data.fupan=val;
+		 set_dirty(21);  }
+ void setFupan(std::string_view val){  data.fupan=val;
+		 set_dirty(21);  }
 
  double  getTotalvalue(){  return data.totalvalue; } 
- void setTotalvalue( double  val){  data.totalvalue=val;} 
+ void setTotalvalue( double  val){  data.totalvalue=val;
+		 set_dirty(22);  }
 
  float  getExpectday(){  return data.expectday; } 
- void setExpectday( float  val){  data.expectday=val;} 
+ void setExpectday( float  val){  data.expectday=val;
+		 set_dirty(23);  }
 
  float  getRealday(){  return data.realday; } 
- void setRealday( float  val){  data.realday=val;} 
+ void setRealday( float  val){  data.realday=val;
+		 set_dirty(24);  }
 
 xproject_info::meta getnewData(){
  	 struct xproject_info::meta newdata;

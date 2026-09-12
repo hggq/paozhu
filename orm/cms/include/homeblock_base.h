@@ -2,7 +2,7 @@
 #define ORM_CMS_HOMEBLOCKBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 01 Sep 2026 03:58:37 GMT
+*本文件为自动生成 Sat, 12 Sep 2026 07:38:47 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -12,11 +12,15 @@
 #include <map> 
 #include <string_view> 
 #include <string> 
+#include <cstring>
 #include <vector>
+#include <set>
 #include <ctime>
 #include <array>
 #include <concepts>
 #include <utility>
+#include <bit>
+#include <algorithm>
 #include "unicode.h"
 
 namespace orm { 
@@ -26,6 +30,7 @@ namespace orm {
 namespace homeblock_info
 {
  
+    static constexpr std::size_t col_count = 12;
     enum class cols : unsigned char 
     {
 		hbid = 0,
@@ -656,13 +661,18 @@ namespace homeblock_info
         
     static constexpr std::array<std::string_view,12> col_names={"hbid","userid","title","content","jsonconfig","viewtype","gettype","rownum","width","height","strlength","sortid"};
 	static constexpr std::array<unsigned char,12> col_types={3,3,253,252,252,1,1,3,3,3,3,3};
-	static constexpr std::array<unsigned char,12> col_length={0,0,120,0,0,0,0,0,0,0,0,0};
+	static constexpr std::array<unsigned short,12> col_length={0,0,120,0,0,0,0,0,0,0,0,0};
 	static constexpr std::array<unsigned char,12> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0};
+	static constexpr std::array<bool,12> col_null={false,false,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::array<bool,12> col_indexed={true,false,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::string_view auto_pk_name ="hbid";
+	static constexpr int auto_pk_index = 0;
 
 }
 
 struct homeblock_base
 {
+    using cols = homeblock_info::cols;
       homeblock_info::meta data;
     std::vector<homeblock_info::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -673,13 +683,74 @@ std::vector<homeblock_info::meta>::const_iterator end() const{     return record
 std::string tablename="homeblock";
 static constexpr std::string_view org_tablename="homeblock";
 static constexpr std::string_view modelname="Homeblock";
+	static constexpr std::array<bool,12> col_need_quote={false,false,true,true,true,false,false,false,false,false,false,false};
 
-	  unsigned char findcolpos(const std::string &coln){
+            std::bitset<12> dirty_bits;
+            void clear_dirty() noexcept {
+                dirty_bits.reset();
+            }
+
+            void set_dirty(std::size_t idx) noexcept {
+                if(idx < 12)
+                dirty_bits.set(idx);
+            }
+
+            [[nodiscard]] std::vector<unsigned char> get_dirty_indices() const noexcept {
+                std::vector<unsigned char> result;
+                for (std::size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(static_cast<unsigned char>(i));
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::vector<std::string_view> get_dirty_names() const
+            {
+                std::vector<std::string_view> result;
+                result.reserve(dirty_bits.size()); // 预分配
+                for (size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(homeblock_info::col_names[i]);
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::string get_dirty_names_str(std::string_view sep = ",") const
+            {
+                auto names = get_dirty_names();
+
+                if (names.empty()) {
+                    return {};
+                }
+                
+                std::size_t total_len = 0;
+                for (const auto& name : names) {
+                    total_len += name.size();
+                }
+                total_len += sep.size() * (names.size() - 1);
+
+                std::string result;
+                result.reserve(total_len);
+
+                bool first = true;
+                for (const auto& name : names) {
+                    if (!first) {
+                        result.append(sep);
+                    }
+                    result.append(name);
+                    first = false;
+                }
+                return result;
+            }
+    
+	  [[nodiscard]] static constexpr unsigned char findcolpos(std::string_view coln) noexcept {
             if(coln.size()==0)
             {
                 return 255;
             }
-		    unsigned char  bi=coln[0];
+		    unsigned char  bi= static_cast<unsigned char>(coln[0]);
          
 
 	         if(bi<91&&bi>64){
@@ -1221,6 +1292,100 @@ if(data.sortid==0){
         return tempsql.str();
    } 
    
+   std::string make_update_dirty_sql()
+   {
+    std::ostringstream tempsql;
+    tempsql << "UPDATE " << tablename << " SET ";
+
+    constexpr std::size_t total = homeblock_info::col_names.size();
+
+    bool first = true;
+    for (std::size_t idx = 0; idx < total; ++idx) {
+        if (dirty_bits.test(idx)) {
+            if (idx < total) {
+                if (!first) tempsql << ",";
+                switch (idx) {
+                    case 0:
+                        if(data.hbid==0){
+                            tempsql<<"hbid=0";
+                        }else{ 
+                            tempsql<<"hbid="<<std::to_string(data.hbid);
+                        }
+                        break;
+                    case 1:
+                        if(data.userid==0){
+                            tempsql<<"userid=0";
+                        }else{ 
+                            tempsql<<"userid="<<std::to_string(data.userid);
+                        }
+                        break;
+                    case 2:
+                        tempsql<<"title='"<<stringaddslash(data.title)<<"'";
+                        break;
+                    case 3:
+                        tempsql<<"content='"<<stringaddslash(data.content)<<"'";
+                        break;
+                    case 4:
+                        tempsql<<"jsonconfig='"<<stringaddslash(data.jsonconfig)<<"'";
+                        break;
+                    case 5:
+                        if(data.viewtype==0){
+                            tempsql<<"viewtype=0";
+                        }else{ 
+                            tempsql<<"viewtype="<<std::to_string(data.viewtype);
+                        }
+                        break;
+                    case 6:
+                        if(data.gettype==0){
+                            tempsql<<"gettype=0";
+                        }else{ 
+                            tempsql<<"gettype="<<std::to_string(data.gettype);
+                        }
+                        break;
+                    case 7:
+                        if(data.rownum==0){
+                            tempsql<<"rownum=0";
+                        }else{ 
+                            tempsql<<"rownum="<<std::to_string(data.rownum);
+                        }
+                        break;
+                    case 8:
+                        if(data.width==0){
+                            tempsql<<"width=0";
+                        }else{ 
+                            tempsql<<"width="<<std::to_string(data.width);
+                        }
+                        break;
+                    case 9:
+                        if(data.height==0){
+                            tempsql<<"height=0";
+                        }else{ 
+                            tempsql<<"height="<<std::to_string(data.height);
+                        }
+                        break;
+                    case 10:
+                        if(data.strlength==0){
+                            tempsql<<"strlength=0";
+                        }else{ 
+                            tempsql<<"strlength="<<std::to_string(data.strlength);
+                        }
+                        break;
+                    case 11:
+                        if(data.sortid==0){
+                            tempsql<<"sortid=0";
+                        }else{ 
+                            tempsql<<"sortid="<<std::to_string(data.sortid);
+                        }
+                        break;
+                }
+                first = false;
+            }
+        }
+    }
+    if (first) return "";
+    return tempsql.str();
+   } 
+
     std::string make_record_replace_sql()
     {
         unsigned int j = 0;
@@ -2455,43 +2620,57 @@ if(record[n].sortid==0){
  void setHbid( unsigned  int  val){  data.hbid=val;} 
 
  unsigned  int  getUserid(){  return data.userid; } 
- void setUserid( unsigned  int  val){  data.userid=val;} 
+ void setUserid( unsigned  int  val){  data.userid=val;
+		 set_dirty(1);  }
 
  std::string  getTitle(){  return data.title; } 
  std::string & getRefTitle(){  return std::ref(data.title); } 
- void setTitle( std::string  &val){  data.title=val;} 
- void setTitle(std::string_view val){  data.title=val;} 
+ void setTitle( std::string  &val){  data.title=val;
+		 set_dirty(2);  }
+ void setTitle(std::string_view val){  data.title=val;
+		 set_dirty(2);  }
 
  std::string  getContent(){  return data.content; } 
  std::string & getRefContent(){  return std::ref(data.content); } 
- void setContent( std::string  &val){  data.content=val;} 
- void setContent(std::string_view val){  data.content=val;} 
+ void setContent( std::string  &val){  data.content=val;
+		 set_dirty(3);  }
+ void setContent(std::string_view val){  data.content=val;
+		 set_dirty(3);  }
 
  std::string  getJsonconfig(){  return data.jsonconfig; } 
  std::string & getRefJsonconfig(){  return std::ref(data.jsonconfig); } 
- void setJsonconfig( std::string  &val){  data.jsonconfig=val;} 
- void setJsonconfig(std::string_view val){  data.jsonconfig=val;} 
+ void setJsonconfig( std::string  &val){  data.jsonconfig=val;
+		 set_dirty(4);  }
+ void setJsonconfig(std::string_view val){  data.jsonconfig=val;
+		 set_dirty(4);  }
 
  unsigned  char  getViewtype(){  return data.viewtype; } 
- void setViewtype( unsigned  char  val){  data.viewtype=val;} 
+ void setViewtype( unsigned  char  val){  data.viewtype=val;
+		 set_dirty(5);  }
 
  unsigned  char  getGettype(){  return data.gettype; } 
- void setGettype( unsigned  char  val){  data.gettype=val;} 
+ void setGettype( unsigned  char  val){  data.gettype=val;
+		 set_dirty(6);  }
 
  unsigned  int  getRownum(){  return data.rownum; } 
- void setRownum( unsigned  int  val){  data.rownum=val;} 
+ void setRownum( unsigned  int  val){  data.rownum=val;
+		 set_dirty(7);  }
 
  unsigned  int  getWidth(){  return data.width; } 
- void setWidth( unsigned  int  val){  data.width=val;} 
+ void setWidth( unsigned  int  val){  data.width=val;
+		 set_dirty(8);  }
 
  unsigned  int  getHeight(){  return data.height; } 
- void setHeight( unsigned  int  val){  data.height=val;} 
+ void setHeight( unsigned  int  val){  data.height=val;
+		 set_dirty(9);  }
 
  unsigned  int  getStrlength(){  return data.strlength; } 
- void setStrlength( unsigned  int  val){  data.strlength=val;} 
+ void setStrlength( unsigned  int  val){  data.strlength=val;
+		 set_dirty(10);  }
 
  int  getSortid(){  return data.sortid; } 
- void setSortid( int  val){  data.sortid=val;} 
+ void setSortid( int  val){  data.sortid=val;
+		 set_dirty(11);  }
 
 homeblock_info::meta getnewData(){
  	 struct homeblock_info::meta newdata;

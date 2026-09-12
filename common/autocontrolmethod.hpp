@@ -50,6 +50,7 @@
 #include "admin/main.h"
 #include "test_webpdf.h"
 #include "testformpost.h"
+#include "test_ormprepared.h"
 #include "test_httppeersend.h"
 #include "test_parse_ini.h"
 #include "test_socket_handle.h"
@@ -79,6 +80,7 @@
 #include "testmoney_num.h"
 #include "test_sqlite_crud.h"
 #include "testipsearch.h"
+#include "test_ormfk.h"
 #include "testcowaitclient.h"
 #include "testcors.h"
 #include "testsqltuple.h"
@@ -634,6 +636,15 @@ namespace http
 		temp.regfun = testuploadpostfile;
 		methodcallback.emplace("addpostfile",temp);
 		temp.pre = nullptr;
+		temp.regfun = test_ormprepared_dsl;
+		methodcallback.emplace("test_ormprepared_dsl",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_ormprepared_exec;
+		methodcallback.emplace("test_ormprepared_exec",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_ormprepared_write;
+		methodcallback.emplace("test_ormprepared_write",temp);
+		temp.pre = nullptr;
 		temp.regfun = test_httppeersend;
 		methodcallback.emplace("test_httppeersend",temp);
 		temp.pre = nullptr;
@@ -820,6 +831,15 @@ namespace http
 		temp.regfun = testipsearchget;
 		methodcallback.emplace("ipsearchget",temp);
 		temp.pre = nullptr;
+		temp.regfun = test_ormfk_one;
+		methodcallback.emplace("test_ormfk_one",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_ormfk_many;
+		methodcallback.emplace("test_ormfk_many",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_ormfk_join;
+		methodcallback.emplace("test_ormfk_join",temp);
+		temp.pre = nullptr;
 		temp.regfun = testhttpclient_cowait_php;
 		methodcallback.emplace("testcowaitclient4",temp);
 		temp.pre = nullptr;
@@ -923,6 +943,9 @@ namespace http
 		temp.regfun = test_co_sendmaildo;
 		methodcallback.emplace("testcosendmaildo",temp);
 		temp.pre = nullptr;
+		temp.regfun = test_ormprepared_co;
+		methodcallback.emplace("test_ormprepared_co",temp);
+		temp.pre = nullptr;
 		temp.regfun = test_httppeersend_async;
 		methodcallback.emplace("test_httppeersend_async",temp);
 		temp.pre = nullptr;
@@ -940,6 +963,9 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = test_leftjoin;
 		methodcallback.emplace("test_leftjoin",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_ormfk_co;
+		methodcallback.emplace("test_ormfk_co",temp);
 		temp.pre = nullptr;
 		temp.regfun = testhttpclient21_cowait_body;
 		methodcallback.emplace("testcowaitclient21",temp);

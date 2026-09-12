@@ -2,7 +2,7 @@
 #define ORM_LITE_WORLDBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 01 Sep 2026 03:58:50 GMT
+*本文件为自动生成 Sat, 12 Sep 2026 07:38:37 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -12,11 +12,15 @@
 #include <map> 
 #include <string_view> 
 #include <string> 
+#include <cstring>
 #include <vector>
+#include <set>
 #include <ctime>
 #include <array>
 #include <concepts>
 #include <utility>
+#include <bit>
+#include <algorithm>
 #include "unicode.h"
 
 namespace orm { 
@@ -26,6 +30,7 @@ namespace orm {
 namespace world_info
 {
  
+    static constexpr std::size_t col_count = 2;
     enum class cols : unsigned char 
     {
 		id = 0,
@@ -586,13 +591,18 @@ namespace world_info
         
     static constexpr std::array<std::string_view,2> col_names={"id","randomnumber"};
 	static constexpr std::array<unsigned char,2> col_types={3,3};
-	static constexpr std::array<unsigned char,2> col_length={0,0};
+	static constexpr std::array<unsigned short,2> col_length={0,0};
 	static constexpr std::array<unsigned char,2> col_decimals={0,0};
+	static constexpr std::array<bool,2> col_null={true,false};
+	static constexpr std::array<bool,2> col_indexed={true,false};
+	static constexpr std::string_view auto_pk_name ="id";
+	static constexpr int auto_pk_index = 0;
 
 }
 
 struct world_base
 {
+    using cols = world_info::cols;
       world_info::meta data;
     std::vector<world_info::meta> record;
 std::string _rmstag="lite";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -603,13 +613,74 @@ std::vector<world_info::meta>::const_iterator end() const{     return record.end
 std::string tablename="world";
 static constexpr std::string_view org_tablename="world";
 static constexpr std::string_view modelname="World";
+	static constexpr std::array<bool,2> col_need_quote={false,false};
 
-	  unsigned char findcolpos(const std::string &coln){
+            std::bitset<2> dirty_bits;
+            void clear_dirty() noexcept {
+                dirty_bits.reset();
+            }
+
+            void set_dirty(std::size_t idx) noexcept {
+                if(idx < 2)
+                dirty_bits.set(idx);
+            }
+
+            [[nodiscard]] std::vector<unsigned char> get_dirty_indices() const noexcept {
+                std::vector<unsigned char> result;
+                for (std::size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(static_cast<unsigned char>(i));
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::vector<std::string_view> get_dirty_names() const
+            {
+                std::vector<std::string_view> result;
+                result.reserve(dirty_bits.size()); // 预分配
+                for (size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(world_info::col_names[i]);
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::string get_dirty_names_str(std::string_view sep = ",") const
+            {
+                auto names = get_dirty_names();
+
+                if (names.empty()) {
+                    return {};
+                }
+                
+                std::size_t total_len = 0;
+                for (const auto& name : names) {
+                    total_len += name.size();
+                }
+                total_len += sep.size() * (names.size() - 1);
+
+                std::string result;
+                result.reserve(total_len);
+
+                bool first = true;
+                for (const auto& name : names) {
+                    if (!first) {
+                        result.append(sep);
+                    }
+                    result.append(name);
+                    first = false;
+                }
+                return result;
+            }
+    
+	  [[nodiscard]] static constexpr unsigned char findcolpos(std::string_view coln) noexcept {
             if(coln.size()==0)
             {
                 return 255;
             }
-		    unsigned char  bi=coln[0];
+		    unsigned char  bi= static_cast<unsigned char>(coln[0]);
          
 
 	         if(bi<91&&bi>64){
@@ -887,6 +958,42 @@ if(data.randomnumber==0){
         return tempsql.str();
    } 
    
+   std::string make_update_dirty_sql()
+   {
+    std::ostringstream tempsql;
+    tempsql << "UPDATE " << tablename << " SET ";
+
+    constexpr std::size_t total = world_info::col_names.size();
+
+    bool first = true;
+    for (std::size_t idx = 0; idx < total; ++idx) {
+        if (dirty_bits.test(idx)) {
+            if (idx < total) {
+                if (!first) tempsql << ",";
+                switch (idx) {
+                    case 0:
+                        if(data.id==0){
+                            tempsql<<"id=0";
+                        }else{ 
+                            tempsql<<"id="<<std::to_string(data.id);
+                        }
+                        break;
+                    case 1:
+                        if(data.randomnumber==0){
+                            tempsql<<"randomnumber=0";
+                        }else{ 
+                            tempsql<<"randomnumber="<<std::to_string(data.randomnumber);
+                        }
+                        break;
+                }
+                first = false;
+            }
+        }
+    }
+    if (first) return "";
+    return tempsql.str();
+   } 
+
     std::string make_record_replace_sql()
     {
         unsigned int j = 0;
@@ -1644,7 +1751,8 @@ if(record[n].randomnumber==0){
  void setId( int  val){  data.id=val;} 
 
  int  getRandomnumber(){  return data.randomnumber; } 
- void setRandomnumber( int  val){  data.randomnumber=val;} 
+ void setRandomnumber( int  val){  data.randomnumber=val;
+		 set_dirty(1);  }
 
 world_info::meta getnewData(){
  	 struct world_info::meta newdata;

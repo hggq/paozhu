@@ -22,6 +22,8 @@
 #include "dbconver.hpp"
 #include "dbtable.hpp"
 #include "dbexport.hpp"
+#include "dbscheme_check.hpp"
+#include "dbcreatedb.hpp"
 
 #include "tmplatefunfile.hpp"
 #include "templateparsefile.hpp"
@@ -61,6 +63,9 @@ int main(int argc, char *argv[])
                      "  paozhu_cli dbtable pg ./mysql.sql -target=mysql export PG as MySQL DDL\n"
                      "  paozhu_cli dbexport cms ./dump.sql              export MySQL schema+data\n"
                      "  paozhu_cli dbexport pg ./mysql.sql -target=mysql export PG as MySQL DDL+data\n"
+                     "  paozhu_cli schema-check [tag]                   verifies schema/<tag>/tables/*.sql whole\n"
+                     "  paozhu_cli schema-regen <tag> [-dry-run]        use gen_ddl() rewrite normalized SQL\n"
+                     "  paozhu_cli schema-createdb <dbtag> [-u <admin>] Create database + user + optional import\n"
                      "Input f create view, from view directory to viewsrc c++ cpp file, next input a create all modify html to c++ cpp\n"
                      "Input m create ORM file, from database to ORM c++ cpp file, next select db front number to create.\n"
                      "Input j create json file, scan libs directory *.json, annotation [//@reflect json to_json from_json] struct to json.cpp\n";
@@ -152,6 +157,34 @@ int main(int argc, char *argv[])
 
         return dbexport::dbexportcli(argv[2], argv[3], target_arg);
     }
+    
+    if (commandstr == "schema-check")
+        return dbscheme::dbschemacheckcli(argc, argv);
+
+    if (commandstr == "schema-regen")
+        return dbscheme::dbschemaregencli(argc, argv);
+
+    if (commandstr == "schema-createdb")
+    {
+        std::string dbtag;
+        std::string admin_user;
+        for (int i = 2; i < argc; i++) {
+            std::string arg = argv[i];
+            if (arg == "-u" && i + 1 < argc) {
+                admin_user = argv[++i];
+            } else if (dbtag.empty()) {
+                dbtag = arg;
+            }
+        }
+        if (dbtag.empty()) {
+            std::cout << "Usage: paozhu_cli schema-createdb <dbtag> [-u <admin_username>]" << std::endl;
+            std::cout << "  MySQL/PG: -u Specify a user with CREATE DATABASE permission (required)" << std::endl;
+            std::cout << "  SQLite:   -u Optional (ignored)" << std::endl;
+            return 1;
+        }
+        return dbcreatedb::createdb_cli(dbtag, admin_user);
+    }
+
 
     // std::string commandstr{argv[1]};
     while (1)

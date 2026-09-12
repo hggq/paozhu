@@ -1,7 +1,7 @@
 /*
  * @Description: SQLite 存根实现 (ENABLE_SQLITE=OFF 时使用)
  * SQLite stub implementation (used when ENABLE_SQLITE=OFF)
- * 
+ *
  * 本文件始终参与编译，提供 ENABLE_SQLITE=OFF 时的所有存根函数定义。
  * 当 ENABLE_SQLITE=ON 时，本文件中的实现被 #ifndef ENABLE_SQLITE 守卫排除，
  * 实际实现由 sqlite_conn.cpp 提供。
@@ -137,10 +137,44 @@ int sqlite_conn_base::exec_batch(const std::vector<std::string> & /*sqls*/)
     return -1;
 }
 
+bool sqlite_conn_base::begin_transaction()
+{
+    error_msg = SQLITE_NOT_COMPILED_MSG;
+    return false;
+}
+
+bool sqlite_conn_base::commit_transaction()
+{
+    error_msg = SQLITE_NOT_COMPILED_MSG;
+    return false;
+}
+
+bool sqlite_conn_base::rollback_transaction()
+{
+    error_msg = SQLITE_NOT_COMPILED_MSG;
+    return false;
+}
+
 bool sqlite_conn_base::exec_bound(const std::string & /*sql*/, const std::vector<sqlite_bind_param> & /*params*/)
 {
     error_msg = SQLITE_NOT_COMPILED_MSG;
     return false;
+}
+
+// ---------------- 预编译语句存根 ----------------
+
+unsigned int sqlite_conn_base::exec_dml_prepared(const std::string & /*sql*/,
+                                                 const std::vector<http::obj_val> & /*params*/)
+{
+    error_msg = SQLITE_NOT_COMPILED_MSG;
+    return static_cast<unsigned int>(-1);
+}
+
+asio::awaitable<unsigned int> sqlite_conn_base::async_exec_dml_prepared(
+    const std::string & /*sql*/, const std::vector<http::obj_val> & /*params*/)
+{
+    error_msg = SQLITE_NOT_COMPILED_MSG;
+    co_return static_cast<unsigned int>(-1);
 }
 
 std::vector<std::string> sqlite_conn_base::get_table_list()
@@ -196,6 +230,24 @@ asio::awaitable<unsigned int> sqlite_conn_base::async_exec_dml(const std::string
 {
     error_msg = SQLITE_NOT_COMPILED_MSG;
     co_return static_cast<unsigned int>(-1);
+}
+
+asio::awaitable<bool> sqlite_conn_base::async_begin_transaction()
+{
+    error_msg = SQLITE_NOT_COMPILED_MSG;
+    co_return false;
+}
+
+asio::awaitable<bool> sqlite_conn_base::async_commit_transaction()
+{
+    error_msg = SQLITE_NOT_COMPILED_MSG;
+    co_return false;
+}
+
+asio::awaitable<bool> sqlite_conn_base::async_rollback_transaction()
+{
+    error_msg = SQLITE_NOT_COMPILED_MSG;
+    co_return false;
 }
 
 asio::awaitable<long long> sqlite_conn_base::async_last_insert_rowid()

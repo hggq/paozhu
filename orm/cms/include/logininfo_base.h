@@ -2,7 +2,7 @@
 #define ORM_CMS_LOGININFOBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 01 Sep 2026 03:58:37 GMT
+*本文件为自动生成 Sat, 12 Sep 2026 07:38:47 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -12,11 +12,15 @@
 #include <map> 
 #include <string_view> 
 #include <string> 
+#include <cstring>
 #include <vector>
+#include <set>
 #include <ctime>
 #include <array>
 #include <concepts>
 #include <utility>
+#include <bit>
+#include <algorithm>
 #include "unicode.h"
 
 namespace orm { 
@@ -26,6 +30,7 @@ namespace orm {
 namespace logininfo_info
 {
  
+    static constexpr std::size_t col_count = 10;
     enum class cols : unsigned char 
     {
 		lgid = 0,
@@ -642,13 +647,18 @@ namespace logininfo_info
         
     static constexpr std::array<std::string_view,10> col_names={"lgid","userid","logtype","username","addtime","addip","addregion","loginstate","agent","urlpath"};
 	static constexpr std::array<unsigned char,10> col_types={3,3,1,253,253,253,253,253,253,253};
-	static constexpr std::array<unsigned char,10> col_length={0,0,0,40,20,70,70,20,120,120};
+	static constexpr std::array<unsigned short,10> col_length={0,0,0,40,20,70,70,20,120,120};
 	static constexpr std::array<unsigned char,10> col_decimals={0,0,0,0,0,0,0,0,0,0};
+	static constexpr std::array<bool,10> col_null={false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::array<bool,10> col_indexed={true,false,false,false,false,false,false,false,false,false};
+	static constexpr std::string_view auto_pk_name ="lgid";
+	static constexpr int auto_pk_index = 0;
 
 }
 
 struct logininfo_base
 {
+    using cols = logininfo_info::cols;
       logininfo_info::meta data;
     std::vector<logininfo_info::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -659,13 +669,74 @@ std::vector<logininfo_info::meta>::const_iterator end() const{     return record
 std::string tablename="logininfo";
 static constexpr std::string_view org_tablename="logininfo";
 static constexpr std::string_view modelname="Logininfo";
+	static constexpr std::array<bool,10> col_need_quote={false,false,false,true,true,true,true,true,true,true};
 
-	  unsigned char findcolpos(const std::string &coln){
+            std::bitset<10> dirty_bits;
+            void clear_dirty() noexcept {
+                dirty_bits.reset();
+            }
+
+            void set_dirty(std::size_t idx) noexcept {
+                if(idx < 10)
+                dirty_bits.set(idx);
+            }
+
+            [[nodiscard]] std::vector<unsigned char> get_dirty_indices() const noexcept {
+                std::vector<unsigned char> result;
+                for (std::size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(static_cast<unsigned char>(i));
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::vector<std::string_view> get_dirty_names() const
+            {
+                std::vector<std::string_view> result;
+                result.reserve(dirty_bits.size()); // 预分配
+                for (size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(logininfo_info::col_names[i]);
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::string get_dirty_names_str(std::string_view sep = ",") const
+            {
+                auto names = get_dirty_names();
+
+                if (names.empty()) {
+                    return {};
+                }
+                
+                std::size_t total_len = 0;
+                for (const auto& name : names) {
+                    total_len += name.size();
+                }
+                total_len += sep.size() * (names.size() - 1);
+
+                std::string result;
+                result.reserve(total_len);
+
+                bool first = true;
+                for (const auto& name : names) {
+                    if (!first) {
+                        result.append(sep);
+                    }
+                    result.append(name);
+                    first = false;
+                }
+                return result;
+            }
+    
+	  [[nodiscard]] static constexpr unsigned char findcolpos(std::string_view coln) noexcept {
             if(coln.size()==0)
             {
                 return 255;
             }
-		    unsigned char  bi=coln[0];
+		    unsigned char  bi= static_cast<unsigned char>(coln[0]);
          char colpospppc;
 
 	         if(bi<91&&bi>64){
@@ -1069,6 +1140,70 @@ tempsql<<"urlpath='"<<stringaddslash(data.urlpath)<<"'";
         return tempsql.str();
    } 
    
+   std::string make_update_dirty_sql()
+   {
+    std::ostringstream tempsql;
+    tempsql << "UPDATE " << tablename << " SET ";
+
+    constexpr std::size_t total = logininfo_info::col_names.size();
+
+    bool first = true;
+    for (std::size_t idx = 0; idx < total; ++idx) {
+        if (dirty_bits.test(idx)) {
+            if (idx < total) {
+                if (!first) tempsql << ",";
+                switch (idx) {
+                    case 0:
+                        if(data.lgid==0){
+                            tempsql<<"lgid=0";
+                        }else{ 
+                            tempsql<<"lgid="<<std::to_string(data.lgid);
+                        }
+                        break;
+                    case 1:
+                        if(data.userid==0){
+                            tempsql<<"userid=0";
+                        }else{ 
+                            tempsql<<"userid="<<std::to_string(data.userid);
+                        }
+                        break;
+                    case 2:
+                        if(data.logtype==0){
+                            tempsql<<"logtype=0";
+                        }else{ 
+                            tempsql<<"logtype="<<std::to_string(data.logtype);
+                        }
+                        break;
+                    case 3:
+                        tempsql<<"username='"<<stringaddslash(data.username)<<"'";
+                        break;
+                    case 4:
+                        tempsql<<"addtime='"<<stringaddslash(data.addtime)<<"'";
+                        break;
+                    case 5:
+                        tempsql<<"addip='"<<stringaddslash(data.addip)<<"'";
+                        break;
+                    case 6:
+                        tempsql<<"addregion='"<<stringaddslash(data.addregion)<<"'";
+                        break;
+                    case 7:
+                        tempsql<<"loginstate='"<<stringaddslash(data.loginstate)<<"'";
+                        break;
+                    case 8:
+                        tempsql<<"agent='"<<stringaddslash(data.agent)<<"'";
+                        break;
+                    case 9:
+                        tempsql<<"urlpath='"<<stringaddslash(data.urlpath)<<"'";
+                        break;
+                }
+                first = false;
+            }
+        }
+    }
+    if (first) return "";
+    return tempsql.str();
+   } 
+
     std::string make_record_replace_sql()
     {
         unsigned int j = 0;
@@ -2065,45 +2200,61 @@ tempsql<<"\"urlpath\":\""<<http::utf8_to_jsonstring(record[n].urlpath)<<"\"";
  void setLgid( unsigned  int  val){  data.lgid=val;} 
 
  unsigned  int  getUserid(){  return data.userid; } 
- void setUserid( unsigned  int  val){  data.userid=val;} 
+ void setUserid( unsigned  int  val){  data.userid=val;
+		 set_dirty(1);  }
 
  unsigned  char  getLogtype(){  return data.logtype; } 
- void setLogtype( unsigned  char  val){  data.logtype=val;} 
+ void setLogtype( unsigned  char  val){  data.logtype=val;
+		 set_dirty(2);  }
 
  std::string  getUsername(){  return data.username; } 
  std::string & getRefUsername(){  return std::ref(data.username); } 
- void setUsername( std::string  &val){  data.username=val;} 
- void setUsername(std::string_view val){  data.username=val;} 
+ void setUsername( std::string  &val){  data.username=val;
+		 set_dirty(3);  }
+ void setUsername(std::string_view val){  data.username=val;
+		 set_dirty(3);  }
 
  std::string  getAddtime(){  return data.addtime; } 
  std::string & getRefAddtime(){  return std::ref(data.addtime); } 
- void setAddtime( std::string  &val){  data.addtime=val;} 
- void setAddtime(std::string_view val){  data.addtime=val;} 
+ void setAddtime( std::string  &val){  data.addtime=val;
+		 set_dirty(4);  }
+ void setAddtime(std::string_view val){  data.addtime=val;
+		 set_dirty(4);  }
 
  std::string  getAddip(){  return data.addip; } 
  std::string & getRefAddip(){  return std::ref(data.addip); } 
- void setAddip( std::string  &val){  data.addip=val;} 
- void setAddip(std::string_view val){  data.addip=val;} 
+ void setAddip( std::string  &val){  data.addip=val;
+		 set_dirty(5);  }
+ void setAddip(std::string_view val){  data.addip=val;
+		 set_dirty(5);  }
 
  std::string  getAddregion(){  return data.addregion; } 
  std::string & getRefAddregion(){  return std::ref(data.addregion); } 
- void setAddregion( std::string  &val){  data.addregion=val;} 
- void setAddregion(std::string_view val){  data.addregion=val;} 
+ void setAddregion( std::string  &val){  data.addregion=val;
+		 set_dirty(6);  }
+ void setAddregion(std::string_view val){  data.addregion=val;
+		 set_dirty(6);  }
 
  std::string  getLoginstate(){  return data.loginstate; } 
  std::string & getRefLoginstate(){  return std::ref(data.loginstate); } 
- void setLoginstate( std::string  &val){  data.loginstate=val;} 
- void setLoginstate(std::string_view val){  data.loginstate=val;} 
+ void setLoginstate( std::string  &val){  data.loginstate=val;
+		 set_dirty(7);  }
+ void setLoginstate(std::string_view val){  data.loginstate=val;
+		 set_dirty(7);  }
 
  std::string  getAgent(){  return data.agent; } 
  std::string & getRefAgent(){  return std::ref(data.agent); } 
- void setAgent( std::string  &val){  data.agent=val;} 
- void setAgent(std::string_view val){  data.agent=val;} 
+ void setAgent( std::string  &val){  data.agent=val;
+		 set_dirty(8);  }
+ void setAgent(std::string_view val){  data.agent=val;
+		 set_dirty(8);  }
 
  std::string  getUrlpath(){  return data.urlpath; } 
  std::string & getRefUrlpath(){  return std::ref(data.urlpath); } 
- void setUrlpath( std::string  &val){  data.urlpath=val;} 
- void setUrlpath(std::string_view val){  data.urlpath=val;} 
+ void setUrlpath( std::string  &val){  data.urlpath=val;
+		 set_dirty(9);  }
+ void setUrlpath(std::string_view val){  data.urlpath=val;
+		 set_dirty(9);  }
 
 logininfo_info::meta getnewData(){
  	 struct logininfo_info::meta newdata;

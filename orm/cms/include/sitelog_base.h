@@ -2,7 +2,7 @@
 #define ORM_CMS_SITELOGBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 01 Sep 2026 03:58:37 GMT
+*本文件为自动生成 Sat, 12 Sep 2026 07:38:47 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -12,11 +12,15 @@
 #include <map> 
 #include <string_view> 
 #include <string> 
+#include <cstring>
 #include <vector>
+#include <set>
 #include <ctime>
 #include <array>
 #include <concepts>
 #include <utility>
+#include <bit>
+#include <algorithm>
 #include "unicode.h"
 
 namespace orm { 
@@ -26,6 +30,7 @@ namespace orm {
 namespace sitelog_info
 {
  
+    static constexpr std::size_t col_count = 14;
     enum class cols : unsigned char 
     {
 		logid = 0,
@@ -670,13 +675,18 @@ namespace sitelog_info
         
     static constexpr std::array<std::string_view,14> col_names={"logid","userid","memberid","ipport","httpv","ipaddress","visittime","useragent","referer","cururl","address","hostname","derefererurl","deurl"};
 	static constexpr std::array<unsigned char,14> col_types={3,3,3,3,1,253,253,253,253,253,253,253,253,253};
-	static constexpr std::array<unsigned char,14> col_length={0,0,0,0,0,60,30,0,0,0,120,60,0,0};
+	static constexpr std::array<unsigned short,14> col_length={0,0,0,0,0,60,30,512,512,512,120,60,512,512};
 	static constexpr std::array<unsigned char,14> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	static constexpr std::array<bool,14> col_null={false,false,false,false,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::array<bool,14> col_indexed={true,true,false,false,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::string_view auto_pk_name ="logid";
+	static constexpr int auto_pk_index = 0;
 
 }
 
 struct sitelog_base
 {
+    using cols = sitelog_info::cols;
       sitelog_info::meta data;
     std::vector<sitelog_info::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -687,13 +697,74 @@ std::vector<sitelog_info::meta>::const_iterator end() const{     return record.e
 std::string tablename="sitelog";
 static constexpr std::string_view org_tablename="sitelog";
 static constexpr std::string_view modelname="Sitelog";
+	static constexpr std::array<bool,14> col_need_quote={false,false,false,false,false,true,true,true,true,true,true,true,true,true};
 
-	  unsigned char findcolpos(const std::string &coln){
+            std::bitset<14> dirty_bits;
+            void clear_dirty() noexcept {
+                dirty_bits.reset();
+            }
+
+            void set_dirty(std::size_t idx) noexcept {
+                if(idx < 14)
+                dirty_bits.set(idx);
+            }
+
+            [[nodiscard]] std::vector<unsigned char> get_dirty_indices() const noexcept {
+                std::vector<unsigned char> result;
+                for (std::size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(static_cast<unsigned char>(i));
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::vector<std::string_view> get_dirty_names() const
+            {
+                std::vector<std::string_view> result;
+                result.reserve(dirty_bits.size()); // 预分配
+                for (size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(sitelog_info::col_names[i]);
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::string get_dirty_names_str(std::string_view sep = ",") const
+            {
+                auto names = get_dirty_names();
+
+                if (names.empty()) {
+                    return {};
+                }
+                
+                std::size_t total_len = 0;
+                for (const auto& name : names) {
+                    total_len += name.size();
+                }
+                total_len += sep.size() * (names.size() - 1);
+
+                std::string result;
+                result.reserve(total_len);
+
+                bool first = true;
+                for (const auto& name : names) {
+                    if (!first) {
+                        result.append(sep);
+                    }
+                    result.append(name);
+                    first = false;
+                }
+                return result;
+            }
+    
+	  [[nodiscard]] static constexpr unsigned char findcolpos(std::string_view coln) noexcept {
             if(coln.size()==0)
             {
                 return 255;
             }
-		    unsigned char  bi=coln[0];
+		    unsigned char  bi= static_cast<unsigned char>(coln[0]);
          
 
 	         if(bi<91&&bi>64){
@@ -1185,6 +1256,90 @@ tempsql<<"deurl='"<<stringaddslash(data.deurl)<<"'";
         return tempsql.str();
    } 
    
+   std::string make_update_dirty_sql()
+   {
+    std::ostringstream tempsql;
+    tempsql << "UPDATE " << tablename << " SET ";
+
+    constexpr std::size_t total = sitelog_info::col_names.size();
+
+    bool first = true;
+    for (std::size_t idx = 0; idx < total; ++idx) {
+        if (dirty_bits.test(idx)) {
+            if (idx < total) {
+                if (!first) tempsql << ",";
+                switch (idx) {
+                    case 0:
+                        if(data.logid==0){
+                            tempsql<<"logid=0";
+                        }else{ 
+                            tempsql<<"logid="<<std::to_string(data.logid);
+                        }
+                        break;
+                    case 1:
+                        if(data.userid==0){
+                            tempsql<<"userid=0";
+                        }else{ 
+                            tempsql<<"userid="<<std::to_string(data.userid);
+                        }
+                        break;
+                    case 2:
+                        if(data.memberid==0){
+                            tempsql<<"memberid=0";
+                        }else{ 
+                            tempsql<<"memberid="<<std::to_string(data.memberid);
+                        }
+                        break;
+                    case 3:
+                        if(data.ipport==0){
+                            tempsql<<"ipport=0";
+                        }else{ 
+                            tempsql<<"ipport="<<std::to_string(data.ipport);
+                        }
+                        break;
+                    case 4:
+                        if(data.httpv==0){
+                            tempsql<<"httpv=0";
+                        }else{ 
+                            tempsql<<"httpv="<<std::to_string(data.httpv);
+                        }
+                        break;
+                    case 5:
+                        tempsql<<"ipaddress='"<<stringaddslash(data.ipaddress)<<"'";
+                        break;
+                    case 6:
+                        tempsql<<"visittime='"<<stringaddslash(data.visittime)<<"'";
+                        break;
+                    case 7:
+                        tempsql<<"useragent='"<<stringaddslash(data.useragent)<<"'";
+                        break;
+                    case 8:
+                        tempsql<<"referer='"<<stringaddslash(data.referer)<<"'";
+                        break;
+                    case 9:
+                        tempsql<<"cururl='"<<stringaddslash(data.cururl)<<"'";
+                        break;
+                    case 10:
+                        tempsql<<"address='"<<stringaddslash(data.address)<<"'";
+                        break;
+                    case 11:
+                        tempsql<<"hostname='"<<stringaddslash(data.hostname)<<"'";
+                        break;
+                    case 12:
+                        tempsql<<"derefererurl='"<<stringaddslash(data.derefererurl)<<"'";
+                        break;
+                    case 13:
+                        tempsql<<"deurl='"<<stringaddslash(data.deurl)<<"'";
+                        break;
+                }
+                first = false;
+            }
+        }
+    }
+    if (first) return "";
+    return tempsql.str();
+   } 
+
     std::string make_record_replace_sql()
     {
         unsigned int j = 0;
@@ -2347,61 +2502,83 @@ tempsql<<"\"deurl\":\""<<http::utf8_to_jsonstring(record[n].deurl)<<"\"";
  void setLogid( unsigned  int  val){  data.logid=val;} 
 
  unsigned  int  getUserid(){  return data.userid; } 
- void setUserid( unsigned  int  val){  data.userid=val;} 
+ void setUserid( unsigned  int  val){  data.userid=val;
+		 set_dirty(1);  }
 
  unsigned  int  getMemberid(){  return data.memberid; } 
- void setMemberid( unsigned  int  val){  data.memberid=val;} 
+ void setMemberid( unsigned  int  val){  data.memberid=val;
+		 set_dirty(2);  }
 
  unsigned  int  getIpport(){  return data.ipport; } 
- void setIpport( unsigned  int  val){  data.ipport=val;} 
+ void setIpport( unsigned  int  val){  data.ipport=val;
+		 set_dirty(3);  }
 
  unsigned  char  getHttpv(){  return data.httpv; } 
- void setHttpv( unsigned  char  val){  data.httpv=val;} 
+ void setHttpv( unsigned  char  val){  data.httpv=val;
+		 set_dirty(4);  }
 
  std::string  getIpaddress(){  return data.ipaddress; } 
  std::string & getRefIpaddress(){  return std::ref(data.ipaddress); } 
- void setIpaddress( std::string  &val){  data.ipaddress=val;} 
- void setIpaddress(std::string_view val){  data.ipaddress=val;} 
+ void setIpaddress( std::string  &val){  data.ipaddress=val;
+		 set_dirty(5);  }
+ void setIpaddress(std::string_view val){  data.ipaddress=val;
+		 set_dirty(5);  }
 
  std::string  getVisittime(){  return data.visittime; } 
  std::string & getRefVisittime(){  return std::ref(data.visittime); } 
- void setVisittime( std::string  &val){  data.visittime=val;} 
- void setVisittime(std::string_view val){  data.visittime=val;} 
+ void setVisittime( std::string  &val){  data.visittime=val;
+		 set_dirty(6);  }
+ void setVisittime(std::string_view val){  data.visittime=val;
+		 set_dirty(6);  }
 
  std::string  getUseragent(){  return data.useragent; } 
  std::string & getRefUseragent(){  return std::ref(data.useragent); } 
- void setUseragent( std::string  &val){  data.useragent=val;} 
- void setUseragent(std::string_view val){  data.useragent=val;} 
+ void setUseragent( std::string  &val){  data.useragent=val;
+		 set_dirty(7);  }
+ void setUseragent(std::string_view val){  data.useragent=val;
+		 set_dirty(7);  }
 
  std::string  getReferer(){  return data.referer; } 
  std::string & getRefReferer(){  return std::ref(data.referer); } 
- void setReferer( std::string  &val){  data.referer=val;} 
- void setReferer(std::string_view val){  data.referer=val;} 
+ void setReferer( std::string  &val){  data.referer=val;
+		 set_dirty(8);  }
+ void setReferer(std::string_view val){  data.referer=val;
+		 set_dirty(8);  }
 
  std::string  getCururl(){  return data.cururl; } 
  std::string & getRefCururl(){  return std::ref(data.cururl); } 
- void setCururl( std::string  &val){  data.cururl=val;} 
- void setCururl(std::string_view val){  data.cururl=val;} 
+ void setCururl( std::string  &val){  data.cururl=val;
+		 set_dirty(9);  }
+ void setCururl(std::string_view val){  data.cururl=val;
+		 set_dirty(9);  }
 
  std::string  getAddress(){  return data.address; } 
  std::string & getRefAddress(){  return std::ref(data.address); } 
- void setAddress( std::string  &val){  data.address=val;} 
- void setAddress(std::string_view val){  data.address=val;} 
+ void setAddress( std::string  &val){  data.address=val;
+		 set_dirty(10);  }
+ void setAddress(std::string_view val){  data.address=val;
+		 set_dirty(10);  }
 
  std::string  getHostname(){  return data.hostname; } 
  std::string & getRefHostname(){  return std::ref(data.hostname); } 
- void setHostname( std::string  &val){  data.hostname=val;} 
- void setHostname(std::string_view val){  data.hostname=val;} 
+ void setHostname( std::string  &val){  data.hostname=val;
+		 set_dirty(11);  }
+ void setHostname(std::string_view val){  data.hostname=val;
+		 set_dirty(11);  }
 
  std::string  getDerefererurl(){  return data.derefererurl; } 
  std::string & getRefDerefererurl(){  return std::ref(data.derefererurl); } 
- void setDerefererurl( std::string  &val){  data.derefererurl=val;} 
- void setDerefererurl(std::string_view val){  data.derefererurl=val;} 
+ void setDerefererurl( std::string  &val){  data.derefererurl=val;
+		 set_dirty(12);  }
+ void setDerefererurl(std::string_view val){  data.derefererurl=val;
+		 set_dirty(12);  }
 
  std::string  getDeurl(){  return data.deurl; } 
  std::string & getRefDeurl(){  return std::ref(data.deurl); } 
- void setDeurl( std::string  &val){  data.deurl=val;} 
- void setDeurl(std::string_view val){  data.deurl=val;} 
+ void setDeurl( std::string  &val){  data.deurl=val;
+		 set_dirty(13);  }
+ void setDeurl(std::string_view val){  data.deurl=val;
+		 set_dirty(13);  }
 
 sitelog_info::meta getnewData(){
  	 struct sitelog_info::meta newdata;

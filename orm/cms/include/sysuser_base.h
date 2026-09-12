@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSUSERBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 01 Sep 2026 03:58:37 GMT
+*本文件为自动生成 Sat, 12 Sep 2026 07:38:47 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -12,11 +12,15 @@
 #include <map> 
 #include <string_view> 
 #include <string> 
+#include <cstring>
 #include <vector>
+#include <set>
 #include <ctime>
 #include <array>
 #include <concepts>
 #include <utility>
+#include <bit>
+#include <algorithm>
 #include "unicode.h"
 
 namespace orm { 
@@ -26,6 +30,7 @@ namespace orm {
 namespace sysuser_info
 {
  
+    static constexpr std::size_t col_count = 21;
     enum class cols : unsigned char 
     {
 		adminid = 0,
@@ -719,13 +724,18 @@ namespace sysuser_info
         
     static constexpr std::array<std::string_view,21> col_names={"adminid","name","password","textword","isopen","level","companyid","dpid","jobid","roleid","postid","created_at","enddate","qrtemp","gender","nickname","realname","avatar","mobile","email","wxuuid"};
 	static constexpr std::array<unsigned char,21> col_types={3,253,253,253,1,3,3,3,3,3,3,3,3,3,1,253,253,253,253,253,253};
-	static constexpr std::array<unsigned char,21> col_length={0,40,40,40,1,0,0,0,0,0,0,0,0,0,0,60,40,0,40,60,40};
+	static constexpr std::array<unsigned short,21> col_length={0,40,40,40,1,0,0,0,0,0,0,0,0,0,0,60,40,256,40,60,40};
 	static constexpr std::array<unsigned char,21> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	static constexpr std::array<bool,21> col_null={false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::array<bool,21> col_indexed={true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::string_view auto_pk_name ="adminid";
+	static constexpr int auto_pk_index = 0;
 
 }
 
 struct sysuser_base
 {
+    using cols = sysuser_info::cols;
       sysuser_info::meta data;
     std::vector<sysuser_info::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -736,13 +746,74 @@ std::vector<sysuser_info::meta>::const_iterator end() const{     return record.e
 std::string tablename="sysuser";
 static constexpr std::string_view org_tablename="sysuser";
 static constexpr std::string_view modelname="Sysuser";
+	static constexpr std::array<bool,21> col_need_quote={false,true,true,true,false,false,false,false,false,false,false,false,false,false,false,true,true,true,true,true,true};
 
-	  unsigned char findcolpos(const std::string &coln){
+            std::bitset<21> dirty_bits;
+            void clear_dirty() noexcept {
+                dirty_bits.reset();
+            }
+
+            void set_dirty(std::size_t idx) noexcept {
+                if(idx < 21)
+                dirty_bits.set(idx);
+            }
+
+            [[nodiscard]] std::vector<unsigned char> get_dirty_indices() const noexcept {
+                std::vector<unsigned char> result;
+                for (std::size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(static_cast<unsigned char>(i));
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::vector<std::string_view> get_dirty_names() const
+            {
+                std::vector<std::string_view> result;
+                result.reserve(dirty_bits.size()); // 预分配
+                for (size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(sysuser_info::col_names[i]);
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::string get_dirty_names_str(std::string_view sep = ",") const
+            {
+                auto names = get_dirty_names();
+
+                if (names.empty()) {
+                    return {};
+                }
+                
+                std::size_t total_len = 0;
+                for (const auto& name : names) {
+                    total_len += name.size();
+                }
+                total_len += sep.size() * (names.size() - 1);
+
+                std::string result;
+                result.reserve(total_len);
+
+                bool first = true;
+                for (const auto& name : names) {
+                    if (!first) {
+                        result.append(sep);
+                    }
+                    result.append(name);
+                    first = false;
+                }
+                return result;
+            }
+    
+	  [[nodiscard]] static constexpr unsigned char findcolpos(std::string_view coln) noexcept {
             if(coln.size()==0)
             {
                 return 255;
             }
-		    unsigned char  bi=coln[0];
+		    unsigned char  bi= static_cast<unsigned char>(coln[0]);
          
 
 	         if(bi<91&&bi>64){
@@ -1459,6 +1530,139 @@ tempsql<<"wxuuid='"<<stringaddslash(data.wxuuid)<<"'";
         return tempsql.str();
    } 
    
+   std::string make_update_dirty_sql()
+   {
+    std::ostringstream tempsql;
+    tempsql << "UPDATE " << tablename << " SET ";
+
+    constexpr std::size_t total = sysuser_info::col_names.size();
+
+    bool first = true;
+    for (std::size_t idx = 0; idx < total; ++idx) {
+        if (dirty_bits.test(idx)) {
+            if (idx < total) {
+                if (!first) tempsql << ",";
+                switch (idx) {
+                    case 0:
+                        if(data.adminid==0){
+                            tempsql<<"adminid=0";
+                        }else{ 
+                            tempsql<<"adminid="<<std::to_string(data.adminid);
+                        }
+                        break;
+                    case 1:
+                        tempsql<<"name='"<<stringaddslash(data.name)<<"'";
+                        break;
+                    case 2:
+                        tempsql<<"password='"<<stringaddslash(data.password)<<"'";
+                        break;
+                    case 3:
+                        tempsql<<"textword='"<<stringaddslash(data.textword)<<"'";
+                        break;
+                    case 4:
+                        if(data.isopen==0){
+                            tempsql<<"isopen=0";
+                        }else{ 
+                            tempsql<<"isopen="<<std::to_string(data.isopen);
+                        }
+                        break;
+                    case 5:
+                        if(data.level==0){
+                            tempsql<<"level=0";
+                        }else{ 
+                            tempsql<<"level="<<std::to_string(data.level);
+                        }
+                        break;
+                    case 6:
+                        if(data.companyid==0){
+                            tempsql<<"companyid=0";
+                        }else{ 
+                            tempsql<<"companyid="<<std::to_string(data.companyid);
+                        }
+                        break;
+                    case 7:
+                        if(data.dpid==0){
+                            tempsql<<"dpid=0";
+                        }else{ 
+                            tempsql<<"dpid="<<std::to_string(data.dpid);
+                        }
+                        break;
+                    case 8:
+                        if(data.jobid==0){
+                            tempsql<<"jobid=0";
+                        }else{ 
+                            tempsql<<"jobid="<<std::to_string(data.jobid);
+                        }
+                        break;
+                    case 9:
+                        if(data.roleid==0){
+                            tempsql<<"roleid=0";
+                        }else{ 
+                            tempsql<<"roleid="<<std::to_string(data.roleid);
+                        }
+                        break;
+                    case 10:
+                        if(data.postid==0){
+                            tempsql<<"postid=0";
+                        }else{ 
+                            tempsql<<"postid="<<std::to_string(data.postid);
+                        }
+                        break;
+                    case 11:
+                        if(data.created_at==0){
+                            tempsql<<"created_at=0";
+                        }else{ 
+                            tempsql<<"created_at="<<std::to_string(data.created_at);
+                        }
+                        break;
+                    case 12:
+                        if(data.enddate==0){
+                            tempsql<<"enddate=0";
+                        }else{ 
+                            tempsql<<"enddate="<<std::to_string(data.enddate);
+                        }
+                        break;
+                    case 13:
+                        if(data.qrtemp==0){
+                            tempsql<<"qrtemp=0";
+                        }else{ 
+                            tempsql<<"qrtemp="<<std::to_string(data.qrtemp);
+                        }
+                        break;
+                    case 14:
+                        if(data.gender==0){
+                            tempsql<<"gender=0";
+                        }else{ 
+                            tempsql<<"gender="<<std::to_string(data.gender);
+                        }
+                        break;
+                    case 15:
+                        tempsql<<"nickname='"<<stringaddslash(data.nickname)<<"'";
+                        break;
+                    case 16:
+                        tempsql<<"realname='"<<stringaddslash(data.realname)<<"'";
+                        break;
+                    case 17:
+                        tempsql<<"avatar='"<<stringaddslash(data.avatar)<<"'";
+                        break;
+                    case 18:
+                        tempsql<<"mobile='"<<stringaddslash(data.mobile)<<"'";
+                        break;
+                    case 19:
+                        tempsql<<"email='"<<stringaddslash(data.email)<<"'";
+                        break;
+                    case 20:
+                        tempsql<<"wxuuid='"<<stringaddslash(data.wxuuid)<<"'";
+                        break;
+                }
+                first = false;
+            }
+        }
+    }
+    if (first) return "";
+    return tempsql.str();
+   } 
+
     std::string make_record_replace_sql()
     {
         unsigned int j = 0;
@@ -3021,81 +3225,110 @@ tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(record[n].wxuuid)<<"\"";
 
  std::string  getName(){  return data.name; } 
  std::string & getRefName(){  return std::ref(data.name); } 
- void setName( std::string  &val){  data.name=val;} 
- void setName(std::string_view val){  data.name=val;} 
+ void setName( std::string  &val){  data.name=val;
+		 set_dirty(1);  }
+ void setName(std::string_view val){  data.name=val;
+		 set_dirty(1);  }
 
  std::string  getPassword(){  return data.password; } 
  std::string & getRefPassword(){  return std::ref(data.password); } 
- void setPassword( std::string  &val){  data.password=val;} 
- void setPassword(std::string_view val){  data.password=val;} 
+ void setPassword( std::string  &val){  data.password=val;
+		 set_dirty(2);  }
+ void setPassword(std::string_view val){  data.password=val;
+		 set_dirty(2);  }
 
  std::string  getTextword(){  return data.textword; } 
  std::string & getRefTextword(){  return std::ref(data.textword); } 
- void setTextword( std::string  &val){  data.textword=val;} 
- void setTextword(std::string_view val){  data.textword=val;} 
+ void setTextword( std::string  &val){  data.textword=val;
+		 set_dirty(3);  }
+ void setTextword(std::string_view val){  data.textword=val;
+		 set_dirty(3);  }
 
  char  getIsopen(){  return data.isopen; } 
- void setIsopen( char  val){  data.isopen=val;} 
+ void setIsopen( char  val){  data.isopen=val;
+		 set_dirty(4);  }
 
  int  getLevel(){  return data.level; } 
- void setLevel( int  val){  data.level=val;} 
+ void setLevel( int  val){  data.level=val;
+		 set_dirty(5);  }
 
  unsigned  int  getCompanyid(){  return data.companyid; } 
- void setCompanyid( unsigned  int  val){  data.companyid=val;} 
+ void setCompanyid( unsigned  int  val){  data.companyid=val;
+		 set_dirty(6);  }
 
  unsigned  int  getDpid(){  return data.dpid; } 
- void setDpid( unsigned  int  val){  data.dpid=val;} 
+ void setDpid( unsigned  int  val){  data.dpid=val;
+		 set_dirty(7);  }
 
  unsigned  int  getJobid(){  return data.jobid; } 
- void setJobid( unsigned  int  val){  data.jobid=val;} 
+ void setJobid( unsigned  int  val){  data.jobid=val;
+		 set_dirty(8);  }
 
  unsigned  int  getRoleid(){  return data.roleid; } 
- void setRoleid( unsigned  int  val){  data.roleid=val;} 
+ void setRoleid( unsigned  int  val){  data.roleid=val;
+		 set_dirty(9);  }
 
  unsigned  int  getPostid(){  return data.postid; } 
- void setPostid( unsigned  int  val){  data.postid=val;} 
+ void setPostid( unsigned  int  val){  data.postid=val;
+		 set_dirty(10);  }
 
  unsigned  int  getCreatedAt(){  return data.created_at; } 
- void setCreatedAt( unsigned  int  val){  data.created_at=val;} 
+ void setCreatedAt( unsigned  int  val){  data.created_at=val;
+		 set_dirty(11);  }
 
  unsigned  int  getEnddate(){  return data.enddate; } 
- void setEnddate( unsigned  int  val){  data.enddate=val;} 
+ void setEnddate( unsigned  int  val){  data.enddate=val;
+		 set_dirty(12);  }
 
  unsigned  int  getQrtemp(){  return data.qrtemp; } 
- void setQrtemp( unsigned  int  val){  data.qrtemp=val;} 
+ void setQrtemp( unsigned  int  val){  data.qrtemp=val;
+		 set_dirty(13);  }
 
  unsigned  char  getGender(){  return data.gender; } 
- void setGender( unsigned  char  val){  data.gender=val;} 
+ void setGender( unsigned  char  val){  data.gender=val;
+		 set_dirty(14);  }
 
  std::string  getNickname(){  return data.nickname; } 
  std::string & getRefNickname(){  return std::ref(data.nickname); } 
- void setNickname( std::string  &val){  data.nickname=val;} 
- void setNickname(std::string_view val){  data.nickname=val;} 
+ void setNickname( std::string  &val){  data.nickname=val;
+		 set_dirty(15);  }
+ void setNickname(std::string_view val){  data.nickname=val;
+		 set_dirty(15);  }
 
  std::string  getRealname(){  return data.realname; } 
  std::string & getRefRealname(){  return std::ref(data.realname); } 
- void setRealname( std::string  &val){  data.realname=val;} 
- void setRealname(std::string_view val){  data.realname=val;} 
+ void setRealname( std::string  &val){  data.realname=val;
+		 set_dirty(16);  }
+ void setRealname(std::string_view val){  data.realname=val;
+		 set_dirty(16);  }
 
  std::string  getAvatar(){  return data.avatar; } 
  std::string & getRefAvatar(){  return std::ref(data.avatar); } 
- void setAvatar( std::string  &val){  data.avatar=val;} 
- void setAvatar(std::string_view val){  data.avatar=val;} 
+ void setAvatar( std::string  &val){  data.avatar=val;
+		 set_dirty(17);  }
+ void setAvatar(std::string_view val){  data.avatar=val;
+		 set_dirty(17);  }
 
  std::string  getMobile(){  return data.mobile; } 
  std::string & getRefMobile(){  return std::ref(data.mobile); } 
- void setMobile( std::string  &val){  data.mobile=val;} 
- void setMobile(std::string_view val){  data.mobile=val;} 
+ void setMobile( std::string  &val){  data.mobile=val;
+		 set_dirty(18);  }
+ void setMobile(std::string_view val){  data.mobile=val;
+		 set_dirty(18);  }
 
  std::string  getEmail(){  return data.email; } 
  std::string & getRefEmail(){  return std::ref(data.email); } 
- void setEmail( std::string  &val){  data.email=val;} 
- void setEmail(std::string_view val){  data.email=val;} 
+ void setEmail( std::string  &val){  data.email=val;
+		 set_dirty(19);  }
+ void setEmail(std::string_view val){  data.email=val;
+		 set_dirty(19);  }
 
  std::string  getWxuuid(){  return data.wxuuid; } 
  std::string & getRefWxuuid(){  return std::ref(data.wxuuid); } 
- void setWxuuid( std::string  &val){  data.wxuuid=val;} 
- void setWxuuid(std::string_view val){  data.wxuuid=val;} 
+ void setWxuuid( std::string  &val){  data.wxuuid=val;
+		 set_dirty(20);  }
+ void setWxuuid(std::string_view val){  data.wxuuid=val;
+		 set_dirty(20);  }
 
 sysuser_info::meta getnewData(){
  	 struct sysuser_info::meta newdata;

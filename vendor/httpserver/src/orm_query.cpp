@@ -505,8 +505,9 @@ bool db_conn::sqlite_begin_commit_impl()
         sqlite_edit_conn = conn_obj->get_sqlite_edit_conn();
     }
 
-    unsigned int affected = sqlite_edit_conn->exec_dml("BEGIN");
-    if (affected == static_cast<unsigned int>(-1))
+    // 走 sqlite 连接公开的事务入口：取得 txn_lock_、以引擎 autocommit
+    // 为唯一事实来源维护事务状态；不再由 ORM 层手工发裸 BEGIN
+    if (!sqlite_edit_conn->begin_transaction())
     {
         error_msg   = sqlite_edit_conn->error_msg;
         islock_conn = false;
@@ -526,11 +527,16 @@ bool db_conn::sqlite_commit_impl()
         return false;
     }
 
-    unsigned int affected = sqlite_edit_conn->exec_dml("COMMIT");
-    if (affected == static_cast<unsigned int>(-1))
+    if (!sqlite_edit_conn->commit_transaction())
     {
-        error_msg = sqlite_edit_conn->error_msg;
+        // 提交失败（如 SQLITE_BUSY）时引擎事务通常仍打开，需回滚收尾；
+        // error_msg 保留提交的根因错误，rollback 失败不覆盖它
+        std::string commit_err = sqlite_edit_conn->error_msg;
         this->sqlite_rollback_impl();
+        if (!commit_err.empty())
+        {
+            error_msg = commit_err;
+        }
         return false;
     }
     conn_obj->back_sqlite_edit_conn(std::move(sqlite_edit_conn));
@@ -547,8 +553,7 @@ void db_conn::sqlite_rollback_impl()
         return;
     }
 
-    unsigned int affected = sqlite_edit_conn->exec_dml("ROLLBACK");
-    if (affected == static_cast<unsigned int>(-1))
+    if (!sqlite_edit_conn->rollback_transaction())
     {
         error_msg = sqlite_edit_conn->error_msg;
     }
@@ -571,8 +576,7 @@ asio::awaitable<bool> db_conn::sqlite_async_begin_commit_impl()
         sqlite_edit_conn = co_await conn_obj->async_get_sqlite_edit_conn();
     }
 
-    unsigned int affected = co_await sqlite_edit_conn->async_exec_dml("BEGIN");
-    if (affected == static_cast<unsigned int>(-1))
+    if (!co_await sqlite_edit_conn->async_begin_transaction())
     {
         error_msg   = sqlite_edit_conn->error_msg;
         islock_conn = false;
@@ -592,11 +596,14 @@ asio::awaitable<bool> db_conn::sqlite_async_commit_impl()
         co_return false;
     }
 
-    unsigned int affected = co_await sqlite_edit_conn->async_exec_dml("COMMIT");
-    if (affected == static_cast<unsigned int>(-1))
+    if (!co_await sqlite_edit_conn->async_commit_transaction())
     {
-        error_msg = sqlite_edit_conn->error_msg;
+        std::string commit_err = sqlite_edit_conn->error_msg;
         co_await this->sqlite_async_rollback_impl();
+        if (!commit_err.empty())
+        {
+            error_msg = commit_err;
+        }
         co_return false;
     }
     conn_obj->back_sqlite_edit_conn(std::move(sqlite_edit_conn));
@@ -613,8 +620,7 @@ asio::awaitable<void> db_conn::sqlite_async_rollback_impl()
         co_return;
     }
 
-    unsigned int affected = co_await sqlite_edit_conn->async_exec_dml("ROLLBACK");
-    if (affected == static_cast<unsigned int>(-1))
+    if (!co_await sqlite_edit_conn->async_rollback_transaction())
     {
         error_msg = sqlite_edit_conn->error_msg;
     }

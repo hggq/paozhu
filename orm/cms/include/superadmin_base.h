@@ -2,7 +2,7 @@
 #define ORM_CMS_SUPERADMINBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 01 Sep 2026 03:58:37 GMT
+*本文件为自动生成 Sat, 12 Sep 2026 07:38:47 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -12,11 +12,15 @@
 #include <map> 
 #include <string_view> 
 #include <string> 
+#include <cstring>
 #include <vector>
+#include <set>
 #include <ctime>
 #include <array>
 #include <concepts>
 #include <utility>
+#include <bit>
+#include <algorithm>
 #include "unicode.h"
 
 namespace orm { 
@@ -26,6 +30,7 @@ namespace orm {
 namespace superadmin_info
 {
  
+    static constexpr std::size_t col_count = 14;
     enum class cols : unsigned char 
     {
 		adminid = 0,
@@ -670,13 +675,18 @@ namespace superadmin_info
         
     static constexpr std::array<std::string_view,14> col_names={"adminid","name","password","nickname","isopen","begindate","enddate","regdate","mobile","email","loginnum","qrtemp","wxuuid","basesitepath"};
 	static constexpr std::array<unsigned char,14> col_types={3,253,253,253,1,3,3,253,253,253,3,3,253,253};
-	static constexpr std::array<unsigned char,14> col_length={0,40,40,30,0,0,0,30,40,40,0,0,40,0};
+	static constexpr std::array<unsigned short,14> col_length={0,40,40,30,0,0,0,30,40,40,0,0,40,256};
 	static constexpr std::array<unsigned char,14> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	static constexpr std::array<bool,14> col_null={false,false,false,false,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::array<bool,14> col_indexed={true,false,false,false,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::string_view auto_pk_name ="adminid";
+	static constexpr int auto_pk_index = 0;
 
 }
 
 struct superadmin_base
 {
+    using cols = superadmin_info::cols;
       superadmin_info::meta data;
     std::vector<superadmin_info::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -687,13 +697,74 @@ std::vector<superadmin_info::meta>::const_iterator end() const{     return recor
 std::string tablename="superadmin";
 static constexpr std::string_view org_tablename="superadmin";
 static constexpr std::string_view modelname="Superadmin";
+	static constexpr std::array<bool,14> col_need_quote={false,true,true,true,false,false,false,true,true,true,false,false,true,true};
 
-	  unsigned char findcolpos(const std::string &coln){
+            std::bitset<14> dirty_bits;
+            void clear_dirty() noexcept {
+                dirty_bits.reset();
+            }
+
+            void set_dirty(std::size_t idx) noexcept {
+                if(idx < 14)
+                dirty_bits.set(idx);
+            }
+
+            [[nodiscard]] std::vector<unsigned char> get_dirty_indices() const noexcept {
+                std::vector<unsigned char> result;
+                for (std::size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(static_cast<unsigned char>(i));
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::vector<std::string_view> get_dirty_names() const
+            {
+                std::vector<std::string_view> result;
+                result.reserve(dirty_bits.size()); // 预分配
+                for (size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(superadmin_info::col_names[i]);
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::string get_dirty_names_str(std::string_view sep = ",") const
+            {
+                auto names = get_dirty_names();
+
+                if (names.empty()) {
+                    return {};
+                }
+                
+                std::size_t total_len = 0;
+                for (const auto& name : names) {
+                    total_len += name.size();
+                }
+                total_len += sep.size() * (names.size() - 1);
+
+                std::string result;
+                result.reserve(total_len);
+
+                bool first = true;
+                for (const auto& name : names) {
+                    if (!first) {
+                        result.append(sep);
+                    }
+                    result.append(name);
+                    first = false;
+                }
+                return result;
+            }
+    
+	  [[nodiscard]] static constexpr unsigned char findcolpos(std::string_view coln) noexcept {
             if(coln.size()==0)
             {
                 return 255;
             }
-		    unsigned char  bi=coln[0];
+		    unsigned char  bi= static_cast<unsigned char>(coln[0]);
          
 
 	         if(bi<91&&bi>64){
@@ -1201,6 +1272,94 @@ tempsql<<"basesitepath='"<<stringaddslash(data.basesitepath)<<"'";
         return tempsql.str();
    } 
    
+   std::string make_update_dirty_sql()
+   {
+    std::ostringstream tempsql;
+    tempsql << "UPDATE " << tablename << " SET ";
+
+    constexpr std::size_t total = superadmin_info::col_names.size();
+
+    bool first = true;
+    for (std::size_t idx = 0; idx < total; ++idx) {
+        if (dirty_bits.test(idx)) {
+            if (idx < total) {
+                if (!first) tempsql << ",";
+                switch (idx) {
+                    case 0:
+                        if(data.adminid==0){
+                            tempsql<<"adminid=0";
+                        }else{ 
+                            tempsql<<"adminid="<<std::to_string(data.adminid);
+                        }
+                        break;
+                    case 1:
+                        tempsql<<"name='"<<stringaddslash(data.name)<<"'";
+                        break;
+                    case 2:
+                        tempsql<<"password='"<<stringaddslash(data.password)<<"'";
+                        break;
+                    case 3:
+                        tempsql<<"nickname='"<<stringaddslash(data.nickname)<<"'";
+                        break;
+                    case 4:
+                        if(data.isopen==0){
+                            tempsql<<"isopen=0";
+                        }else{ 
+                            tempsql<<"isopen="<<std::to_string(data.isopen);
+                        }
+                        break;
+                    case 5:
+                        if(data.begindate==0){
+                            tempsql<<"begindate=0";
+                        }else{ 
+                            tempsql<<"begindate="<<std::to_string(data.begindate);
+                        }
+                        break;
+                    case 6:
+                        if(data.enddate==0){
+                            tempsql<<"enddate=0";
+                        }else{ 
+                            tempsql<<"enddate="<<std::to_string(data.enddate);
+                        }
+                        break;
+                    case 7:
+                        tempsql<<"regdate='"<<stringaddslash(data.regdate)<<"'";
+                        break;
+                    case 8:
+                        tempsql<<"mobile='"<<stringaddslash(data.mobile)<<"'";
+                        break;
+                    case 9:
+                        tempsql<<"email='"<<stringaddslash(data.email)<<"'";
+                        break;
+                    case 10:
+                        if(data.loginnum==0){
+                            tempsql<<"loginnum=0";
+                        }else{ 
+                            tempsql<<"loginnum="<<std::to_string(data.loginnum);
+                        }
+                        break;
+                    case 11:
+                        if(data.qrtemp==0){
+                            tempsql<<"qrtemp=0";
+                        }else{ 
+                            tempsql<<"qrtemp="<<std::to_string(data.qrtemp);
+                        }
+                        break;
+                    case 12:
+                        tempsql<<"wxuuid='"<<stringaddslash(data.wxuuid)<<"'";
+                        break;
+                    case 13:
+                        tempsql<<"basesitepath='"<<stringaddslash(data.basesitepath)<<"'";
+                        break;
+                }
+                first = false;
+            }
+        }
+    }
+    if (first) return "";
+    return tempsql.str();
+   } 
+
     std::string make_record_replace_sql()
     {
         unsigned int j = 0;
@@ -2395,58 +2554,79 @@ tempsql<<"\"basesitepath\":\""<<http::utf8_to_jsonstring(record[n].basesitepath)
 
  std::string  getName(){  return data.name; } 
  std::string & getRefName(){  return std::ref(data.name); } 
- void setName( std::string  &val){  data.name=val;} 
- void setName(std::string_view val){  data.name=val;} 
+ void setName( std::string  &val){  data.name=val;
+		 set_dirty(1);  }
+ void setName(std::string_view val){  data.name=val;
+		 set_dirty(1);  }
 
  std::string  getPassword(){  return data.password; } 
  std::string & getRefPassword(){  return std::ref(data.password); } 
- void setPassword( std::string  &val){  data.password=val;} 
- void setPassword(std::string_view val){  data.password=val;} 
+ void setPassword( std::string  &val){  data.password=val;
+		 set_dirty(2);  }
+ void setPassword(std::string_view val){  data.password=val;
+		 set_dirty(2);  }
 
  std::string  getNickname(){  return data.nickname; } 
  std::string & getRefNickname(){  return std::ref(data.nickname); } 
- void setNickname( std::string  &val){  data.nickname=val;} 
- void setNickname(std::string_view val){  data.nickname=val;} 
+ void setNickname( std::string  &val){  data.nickname=val;
+		 set_dirty(3);  }
+ void setNickname(std::string_view val){  data.nickname=val;
+		 set_dirty(3);  }
 
  char  getIsopen(){  return data.isopen; } 
- void setIsopen( char  val){  data.isopen=val;} 
+ void setIsopen( char  val){  data.isopen=val;
+		 set_dirty(4);  }
 
  unsigned  int  getBegindate(){  return data.begindate; } 
- void setBegindate( unsigned  int  val){  data.begindate=val;} 
+ void setBegindate( unsigned  int  val){  data.begindate=val;
+		 set_dirty(5);  }
 
  unsigned  int  getEnddate(){  return data.enddate; } 
- void setEnddate( unsigned  int  val){  data.enddate=val;} 
+ void setEnddate( unsigned  int  val){  data.enddate=val;
+		 set_dirty(6);  }
 
  std::string  getRegdate(){  return data.regdate; } 
  std::string & getRefRegdate(){  return std::ref(data.regdate); } 
- void setRegdate( std::string  &val){  data.regdate=val;} 
- void setRegdate(std::string_view val){  data.regdate=val;} 
+ void setRegdate( std::string  &val){  data.regdate=val;
+		 set_dirty(7);  }
+ void setRegdate(std::string_view val){  data.regdate=val;
+		 set_dirty(7);  }
 
  std::string  getMobile(){  return data.mobile; } 
  std::string & getRefMobile(){  return std::ref(data.mobile); } 
- void setMobile( std::string  &val){  data.mobile=val;} 
- void setMobile(std::string_view val){  data.mobile=val;} 
+ void setMobile( std::string  &val){  data.mobile=val;
+		 set_dirty(8);  }
+ void setMobile(std::string_view val){  data.mobile=val;
+		 set_dirty(8);  }
 
  std::string  getEmail(){  return data.email; } 
  std::string & getRefEmail(){  return std::ref(data.email); } 
- void setEmail( std::string  &val){  data.email=val;} 
- void setEmail(std::string_view val){  data.email=val;} 
+ void setEmail( std::string  &val){  data.email=val;
+		 set_dirty(9);  }
+ void setEmail(std::string_view val){  data.email=val;
+		 set_dirty(9);  }
 
  unsigned  int  getLoginnum(){  return data.loginnum; } 
- void setLoginnum( unsigned  int  val){  data.loginnum=val;} 
+ void setLoginnum( unsigned  int  val){  data.loginnum=val;
+		 set_dirty(10);  }
 
  unsigned  int  getQrtemp(){  return data.qrtemp; } 
- void setQrtemp( unsigned  int  val){  data.qrtemp=val;} 
+ void setQrtemp( unsigned  int  val){  data.qrtemp=val;
+		 set_dirty(11);  }
 
  std::string  getWxuuid(){  return data.wxuuid; } 
  std::string & getRefWxuuid(){  return std::ref(data.wxuuid); } 
- void setWxuuid( std::string  &val){  data.wxuuid=val;} 
- void setWxuuid(std::string_view val){  data.wxuuid=val;} 
+ void setWxuuid( std::string  &val){  data.wxuuid=val;
+		 set_dirty(12);  }
+ void setWxuuid(std::string_view val){  data.wxuuid=val;
+		 set_dirty(12);  }
 
  std::string  getBasesitepath(){  return data.basesitepath; } 
  std::string & getRefBasesitepath(){  return std::ref(data.basesitepath); } 
- void setBasesitepath( std::string  &val){  data.basesitepath=val;} 
- void setBasesitepath(std::string_view val){  data.basesitepath=val;} 
+ void setBasesitepath( std::string  &val){  data.basesitepath=val;
+		 set_dirty(13);  }
+ void setBasesitepath(std::string_view val){  data.basesitepath=val;
+		 set_dirty(13);  }
 
 superadmin_info::meta getnewData(){
  	 struct superadmin_info::meta newdata;

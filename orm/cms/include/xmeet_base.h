@@ -2,7 +2,7 @@
 #define ORM_CMS_XMEETBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 01 Sep 2026 03:58:37 GMT
+*本文件为自动生成 Sat, 12 Sep 2026 07:38:47 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -12,11 +12,15 @@
 #include <map> 
 #include <string_view> 
 #include <string> 
+#include <cstring>
 #include <vector>
+#include <set>
 #include <ctime>
 #include <array>
 #include <concepts>
 #include <utility>
+#include <bit>
+#include <algorithm>
 #include "unicode.h"
 
 namespace orm { 
@@ -26,6 +30,7 @@ namespace orm {
 namespace xmeet_info
 {
  
+    static constexpr std::size_t col_count = 20;
     enum class cols : unsigned char 
     {
 		xmeetid = 0,
@@ -712,13 +717,18 @@ namespace xmeet_info
         
     static constexpr std::array<std::string_view,20> col_names={"xmeetid","userid","xpjid","xtaskid","adminid","title","zhuchi","jilu","meetnotice","meetfiles","address","meettime","regdate","expecttime","endtime","presents","content","postresult","postfiles","jiluphoto"};
 	static constexpr std::array<unsigned char,20> col_types={3,3,3,3,3,253,253,253,252,253,253,253,3,3,3,253,252,252,252,253};
-	static constexpr std::array<unsigned char,20> col_length={0,0,0,0,0,120,120,120,0,0,120,120,0,0,0,0,0,0,0,0};
+	static constexpr std::array<unsigned short,20> col_length={0,0,0,0,0,120,120,120,0,256,120,120,0,0,0,256,0,0,0,256};
 	static constexpr std::array<unsigned char,20> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	static constexpr std::array<bool,20> col_null={false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::array<bool,20> col_indexed={true,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::string_view auto_pk_name ="xmeetid";
+	static constexpr int auto_pk_index = 0;
 
 }
 
 struct xmeet_base
 {
+    using cols = xmeet_info::cols;
       xmeet_info::meta data;
     std::vector<xmeet_info::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -729,13 +739,74 @@ std::vector<xmeet_info::meta>::const_iterator end() const{     return record.end
 std::string tablename="xmeet";
 static constexpr std::string_view org_tablename="xmeet";
 static constexpr std::string_view modelname="Xmeet";
+	static constexpr std::array<bool,20> col_need_quote={false,false,false,false,false,true,true,true,true,true,true,true,false,false,false,true,true,true,true,true};
 
-	  unsigned char findcolpos(const std::string &coln){
+            std::bitset<20> dirty_bits;
+            void clear_dirty() noexcept {
+                dirty_bits.reset();
+            }
+
+            void set_dirty(std::size_t idx) noexcept {
+                if(idx < 20)
+                dirty_bits.set(idx);
+            }
+
+            [[nodiscard]] std::vector<unsigned char> get_dirty_indices() const noexcept {
+                std::vector<unsigned char> result;
+                for (std::size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(static_cast<unsigned char>(i));
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::vector<std::string_view> get_dirty_names() const
+            {
+                std::vector<std::string_view> result;
+                result.reserve(dirty_bits.size()); // 预分配
+                for (size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(xmeet_info::col_names[i]);
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::string get_dirty_names_str(std::string_view sep = ",") const
+            {
+                auto names = get_dirty_names();
+
+                if (names.empty()) {
+                    return {};
+                }
+                
+                std::size_t total_len = 0;
+                for (const auto& name : names) {
+                    total_len += name.size();
+                }
+                total_len += sep.size() * (names.size() - 1);
+
+                std::string result;
+                result.reserve(total_len);
+
+                bool first = true;
+                for (const auto& name : names) {
+                    if (!first) {
+                        result.append(sep);
+                    }
+                    result.append(name);
+                    first = false;
+                }
+                return result;
+            }
+    
+	  [[nodiscard]] static constexpr unsigned char findcolpos(std::string_view coln) noexcept {
             if(coln.size()==0)
             {
                 return 255;
             }
-		    unsigned char  bi=coln[0];
+		    unsigned char  bi= static_cast<unsigned char>(coln[0]);
          char colpospppc;
 
 	         if(bi<91&&bi>64){
@@ -1359,6 +1430,120 @@ tempsql<<"jiluphoto='"<<stringaddslash(data.jiluphoto)<<"'";
         return tempsql.str();
    } 
    
+   std::string make_update_dirty_sql()
+   {
+    std::ostringstream tempsql;
+    tempsql << "UPDATE " << tablename << " SET ";
+
+    constexpr std::size_t total = xmeet_info::col_names.size();
+
+    bool first = true;
+    for (std::size_t idx = 0; idx < total; ++idx) {
+        if (dirty_bits.test(idx)) {
+            if (idx < total) {
+                if (!first) tempsql << ",";
+                switch (idx) {
+                    case 0:
+                        if(data.xmeetid==0){
+                            tempsql<<"xmeetid=0";
+                        }else{ 
+                            tempsql<<"xmeetid="<<std::to_string(data.xmeetid);
+                        }
+                        break;
+                    case 1:
+                        if(data.userid==0){
+                            tempsql<<"userid=0";
+                        }else{ 
+                            tempsql<<"userid="<<std::to_string(data.userid);
+                        }
+                        break;
+                    case 2:
+                        if(data.xpjid==0){
+                            tempsql<<"xpjid=0";
+                        }else{ 
+                            tempsql<<"xpjid="<<std::to_string(data.xpjid);
+                        }
+                        break;
+                    case 3:
+                        if(data.xtaskid==0){
+                            tempsql<<"xtaskid=0";
+                        }else{ 
+                            tempsql<<"xtaskid="<<std::to_string(data.xtaskid);
+                        }
+                        break;
+                    case 4:
+                        if(data.adminid==0){
+                            tempsql<<"adminid=0";
+                        }else{ 
+                            tempsql<<"adminid="<<std::to_string(data.adminid);
+                        }
+                        break;
+                    case 5:
+                        tempsql<<"title='"<<stringaddslash(data.title)<<"'";
+                        break;
+                    case 6:
+                        tempsql<<"zhuchi='"<<stringaddslash(data.zhuchi)<<"'";
+                        break;
+                    case 7:
+                        tempsql<<"jilu='"<<stringaddslash(data.jilu)<<"'";
+                        break;
+                    case 8:
+                        tempsql<<"meetnotice='"<<stringaddslash(data.meetnotice)<<"'";
+                        break;
+                    case 9:
+                        tempsql<<"meetfiles='"<<stringaddslash(data.meetfiles)<<"'";
+                        break;
+                    case 10:
+                        tempsql<<"address='"<<stringaddslash(data.address)<<"'";
+                        break;
+                    case 11:
+                        tempsql<<"meettime='"<<stringaddslash(data.meettime)<<"'";
+                        break;
+                    case 12:
+                        if(data.regdate==0){
+                            tempsql<<"regdate=0";
+                        }else{ 
+                            tempsql<<"regdate="<<std::to_string(data.regdate);
+                        }
+                        break;
+                    case 13:
+                        if(data.expecttime==0){
+                            tempsql<<"expecttime=0";
+                        }else{ 
+                            tempsql<<"expecttime="<<std::to_string(data.expecttime);
+                        }
+                        break;
+                    case 14:
+                        if(data.endtime==0){
+                            tempsql<<"endtime=0";
+                        }else{ 
+                            tempsql<<"endtime="<<std::to_string(data.endtime);
+                        }
+                        break;
+                    case 15:
+                        tempsql<<"presents='"<<stringaddslash(data.presents)<<"'";
+                        break;
+                    case 16:
+                        tempsql<<"content='"<<stringaddslash(data.content)<<"'";
+                        break;
+                    case 17:
+                        tempsql<<"postresult='"<<stringaddslash(data.postresult)<<"'";
+                        break;
+                    case 18:
+                        tempsql<<"postfiles='"<<stringaddslash(data.postfiles)<<"'";
+                        break;
+                    case 19:
+                        tempsql<<"jiluphoto='"<<stringaddslash(data.jiluphoto)<<"'";
+                        break;
+                }
+                first = false;
+            }
+        }
+    }
+    if (first) return "";
+    return tempsql.str();
+   } 
+
     std::string make_record_replace_sql()
     {
         unsigned int j = 0;
@@ -2770,85 +2955,116 @@ tempsql<<"\"jiluphoto\":\""<<http::utf8_to_jsonstring(record[n].jiluphoto)<<"\""
  void setXmeetid( unsigned  int  val){  data.xmeetid=val;} 
 
  unsigned  int  getUserid(){  return data.userid; } 
- void setUserid( unsigned  int  val){  data.userid=val;} 
+ void setUserid( unsigned  int  val){  data.userid=val;
+		 set_dirty(1);  }
 
  unsigned  int  getXpjid(){  return data.xpjid; } 
- void setXpjid( unsigned  int  val){  data.xpjid=val;} 
+ void setXpjid( unsigned  int  val){  data.xpjid=val;
+		 set_dirty(2);  }
 
  unsigned  int  getXtaskid(){  return data.xtaskid; } 
- void setXtaskid( unsigned  int  val){  data.xtaskid=val;} 
+ void setXtaskid( unsigned  int  val){  data.xtaskid=val;
+		 set_dirty(3);  }
 
  unsigned  int  getAdminid(){  return data.adminid; } 
- void setAdminid( unsigned  int  val){  data.adminid=val;} 
+ void setAdminid( unsigned  int  val){  data.adminid=val;
+		 set_dirty(4);  }
 
  std::string  getTitle(){  return data.title; } 
  std::string & getRefTitle(){  return std::ref(data.title); } 
- void setTitle( std::string  &val){  data.title=val;} 
- void setTitle(std::string_view val){  data.title=val;} 
+ void setTitle( std::string  &val){  data.title=val;
+		 set_dirty(5);  }
+ void setTitle(std::string_view val){  data.title=val;
+		 set_dirty(5);  }
 
  std::string  getZhuchi(){  return data.zhuchi; } 
  std::string & getRefZhuchi(){  return std::ref(data.zhuchi); } 
- void setZhuchi( std::string  &val){  data.zhuchi=val;} 
- void setZhuchi(std::string_view val){  data.zhuchi=val;} 
+ void setZhuchi( std::string  &val){  data.zhuchi=val;
+		 set_dirty(6);  }
+ void setZhuchi(std::string_view val){  data.zhuchi=val;
+		 set_dirty(6);  }
 
  std::string  getJilu(){  return data.jilu; } 
  std::string & getRefJilu(){  return std::ref(data.jilu); } 
- void setJilu( std::string  &val){  data.jilu=val;} 
- void setJilu(std::string_view val){  data.jilu=val;} 
+ void setJilu( std::string  &val){  data.jilu=val;
+		 set_dirty(7);  }
+ void setJilu(std::string_view val){  data.jilu=val;
+		 set_dirty(7);  }
 
  std::string  getMeetnotice(){  return data.meetnotice; } 
  std::string & getRefMeetnotice(){  return std::ref(data.meetnotice); } 
- void setMeetnotice( std::string  &val){  data.meetnotice=val;} 
- void setMeetnotice(std::string_view val){  data.meetnotice=val;} 
+ void setMeetnotice( std::string  &val){  data.meetnotice=val;
+		 set_dirty(8);  }
+ void setMeetnotice(std::string_view val){  data.meetnotice=val;
+		 set_dirty(8);  }
 
  std::string  getMeetfiles(){  return data.meetfiles; } 
  std::string & getRefMeetfiles(){  return std::ref(data.meetfiles); } 
- void setMeetfiles( std::string  &val){  data.meetfiles=val;} 
- void setMeetfiles(std::string_view val){  data.meetfiles=val;} 
+ void setMeetfiles( std::string  &val){  data.meetfiles=val;
+		 set_dirty(9);  }
+ void setMeetfiles(std::string_view val){  data.meetfiles=val;
+		 set_dirty(9);  }
 
  std::string  getAddress(){  return data.address; } 
  std::string & getRefAddress(){  return std::ref(data.address); } 
- void setAddress( std::string  &val){  data.address=val;} 
- void setAddress(std::string_view val){  data.address=val;} 
+ void setAddress( std::string  &val){  data.address=val;
+		 set_dirty(10);  }
+ void setAddress(std::string_view val){  data.address=val;
+		 set_dirty(10);  }
 
  std::string  getMeettime(){  return data.meettime; } 
  std::string & getRefMeettime(){  return std::ref(data.meettime); } 
- void setMeettime( std::string  &val){  data.meettime=val;} 
- void setMeettime(std::string_view val){  data.meettime=val;} 
+ void setMeettime( std::string  &val){  data.meettime=val;
+		 set_dirty(11);  }
+ void setMeettime(std::string_view val){  data.meettime=val;
+		 set_dirty(11);  }
 
  unsigned  int  getRegdate(){  return data.regdate; } 
- void setRegdate( unsigned  int  val){  data.regdate=val;} 
+ void setRegdate( unsigned  int  val){  data.regdate=val;
+		 set_dirty(12);  }
 
  unsigned  int  getExpecttime(){  return data.expecttime; } 
- void setExpecttime( unsigned  int  val){  data.expecttime=val;} 
+ void setExpecttime( unsigned  int  val){  data.expecttime=val;
+		 set_dirty(13);  }
 
  unsigned  int  getEndtime(){  return data.endtime; } 
- void setEndtime( unsigned  int  val){  data.endtime=val;} 
+ void setEndtime( unsigned  int  val){  data.endtime=val;
+		 set_dirty(14);  }
 
  std::string  getPresents(){  return data.presents; } 
  std::string & getRefPresents(){  return std::ref(data.presents); } 
- void setPresents( std::string  &val){  data.presents=val;} 
- void setPresents(std::string_view val){  data.presents=val;} 
+ void setPresents( std::string  &val){  data.presents=val;
+		 set_dirty(15);  }
+ void setPresents(std::string_view val){  data.presents=val;
+		 set_dirty(15);  }
 
  std::string  getContent(){  return data.content; } 
  std::string & getRefContent(){  return std::ref(data.content); } 
- void setContent( std::string  &val){  data.content=val;} 
- void setContent(std::string_view val){  data.content=val;} 
+ void setContent( std::string  &val){  data.content=val;
+		 set_dirty(16);  }
+ void setContent(std::string_view val){  data.content=val;
+		 set_dirty(16);  }
 
  std::string  getPostresult(){  return data.postresult; } 
  std::string & getRefPostresult(){  return std::ref(data.postresult); } 
- void setPostresult( std::string  &val){  data.postresult=val;} 
- void setPostresult(std::string_view val){  data.postresult=val;} 
+ void setPostresult( std::string  &val){  data.postresult=val;
+		 set_dirty(17);  }
+ void setPostresult(std::string_view val){  data.postresult=val;
+		 set_dirty(17);  }
 
  std::string  getPostfiles(){  return data.postfiles; } 
  std::string & getRefPostfiles(){  return std::ref(data.postfiles); } 
- void setPostfiles( std::string  &val){  data.postfiles=val;} 
- void setPostfiles(std::string_view val){  data.postfiles=val;} 
+ void setPostfiles( std::string  &val){  data.postfiles=val;
+		 set_dirty(18);  }
+ void setPostfiles(std::string_view val){  data.postfiles=val;
+		 set_dirty(18);  }
 
  std::string  getJiluphoto(){  return data.jiluphoto; } 
  std::string & getRefJiluphoto(){  return std::ref(data.jiluphoto); } 
- void setJiluphoto( std::string  &val){  data.jiluphoto=val;} 
- void setJiluphoto(std::string_view val){  data.jiluphoto=val;} 
+ void setJiluphoto( std::string  &val){  data.jiluphoto=val;
+		 set_dirty(19);  }
+ void setJiluphoto(std::string_view val){  data.jiluphoto=val;
+		 set_dirty(19);  }
 
 xmeet_info::meta getnewData(){
  	 struct xmeet_info::meta newdata;

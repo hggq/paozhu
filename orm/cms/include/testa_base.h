@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTABASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 01 Sep 2026 03:58:37 GMT
+*本文件为自动生成 Sat, 12 Sep 2026 07:38:47 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -12,11 +12,15 @@
 #include <map> 
 #include <string_view> 
 #include <string> 
+#include <cstring>
 #include <vector>
+#include <set>
 #include <ctime>
 #include <array>
 #include <concepts>
 #include <utility>
+#include <bit>
+#include <algorithm>
 #include "unicode.h"
 
 namespace orm { 
@@ -26,6 +30,7 @@ namespace orm {
 namespace testa_info
 {
  
+    static constexpr std::size_t col_count = 6;
     enum class cols : unsigned char 
     {
 		id = 0,
@@ -614,13 +619,18 @@ namespace testa_info
         
     static constexpr std::array<std::string_view,6> col_names={"id","parentid","value_id","content","deleted","deletetime"};
 	static constexpr std::array<unsigned char,6> col_types={3,3,1,253,1,3};
-	static constexpr std::array<unsigned char,6> col_length={0,0,0,200,0,0};
+	static constexpr std::array<unsigned short,6> col_length={0,0,0,200,0,0};
 	static constexpr std::array<unsigned char,6> col_decimals={0,0,0,0,0,0};
+	static constexpr std::array<bool,6> col_null={false,false,true,false,false,false};
+	static constexpr std::array<bool,6> col_indexed={true,false,false,false,false,false};
+	static constexpr std::string_view auto_pk_name ="id";
+	static constexpr int auto_pk_index = 0;
 
 }
 
 struct testa_base
 {
+    using cols = testa_info::cols;
       testa_info::meta data;
     std::vector<testa_info::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -631,13 +641,74 @@ std::vector<testa_info::meta>::const_iterator end() const{     return record.end
 std::string tablename="testa";
 static constexpr std::string_view org_tablename="testa";
 static constexpr std::string_view modelname="Testa";
+	static constexpr std::array<bool,6> col_need_quote={false,false,false,true,false,false};
 
-	  unsigned char findcolpos(const std::string &coln){
+            std::bitset<6> dirty_bits;
+            void clear_dirty() noexcept {
+                dirty_bits.reset();
+            }
+
+            void set_dirty(std::size_t idx) noexcept {
+                if(idx < 6)
+                dirty_bits.set(idx);
+            }
+
+            [[nodiscard]] std::vector<unsigned char> get_dirty_indices() const noexcept {
+                std::vector<unsigned char> result;
+                for (std::size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(static_cast<unsigned char>(i));
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::vector<std::string_view> get_dirty_names() const
+            {
+                std::vector<std::string_view> result;
+                result.reserve(dirty_bits.size()); // 预分配
+                for (size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(testa_info::col_names[i]);
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::string get_dirty_names_str(std::string_view sep = ",") const
+            {
+                auto names = get_dirty_names();
+
+                if (names.empty()) {
+                    return {};
+                }
+                
+                std::size_t total_len = 0;
+                for (const auto& name : names) {
+                    total_len += name.size();
+                }
+                total_len += sep.size() * (names.size() - 1);
+
+                std::string result;
+                result.reserve(total_len);
+
+                bool first = true;
+                for (const auto& name : names) {
+                    if (!first) {
+                        result.append(sep);
+                    }
+                    result.append(name);
+                    first = false;
+                }
+                return result;
+            }
+    
+	  [[nodiscard]] static constexpr unsigned char findcolpos(std::string_view coln) noexcept {
             if(coln.size()==0)
             {
                 return 255;
             }
-		    unsigned char  bi=coln[0];
+		    unsigned char  bi= static_cast<unsigned char>(coln[0]);
          
 
 	         if(bi<91&&bi>64){
@@ -1063,6 +1134,66 @@ if(data.deletetime==0){
         return tempsql.str();
    } 
    
+   std::string make_update_dirty_sql()
+   {
+    std::ostringstream tempsql;
+    tempsql << "UPDATE " << tablename << " SET ";
+
+    constexpr std::size_t total = testa_info::col_names.size();
+
+    bool first = true;
+    for (std::size_t idx = 0; idx < total; ++idx) {
+        if (dirty_bits.test(idx)) {
+            if (idx < total) {
+                if (!first) tempsql << ",";
+                switch (idx) {
+                    case 0:
+                        if(data.id==0){
+                            tempsql<<"id=0";
+                        }else{ 
+                            tempsql<<"id="<<std::to_string(data.id);
+                        }
+                        break;
+                    case 1:
+                        if(data.parentid==0){
+                            tempsql<<"parentid=0";
+                        }else{ 
+                            tempsql<<"parentid="<<std::to_string(data.parentid);
+                        }
+                        break;
+                    case 2:
+                        if(data.value_id==0){
+                            tempsql<<"value_id=0";
+                        }else{ 
+                            tempsql<<"value_id="<<std::to_string(data.value_id);
+                        }
+                        break;
+                    case 3:
+                        tempsql<<"content='"<<stringaddslash(data.content)<<"'";
+                        break;
+                    case 4:
+                        if(data.deleted==0){
+                            tempsql<<"deleted=0";
+                        }else{ 
+                            tempsql<<"deleted="<<std::to_string(data.deleted);
+                        }
+                        break;
+                    case 5:
+                        if(data.deletetime==0){
+                            tempsql<<"deletetime=0";
+                        }else{ 
+                            tempsql<<"deletetime="<<std::to_string(data.deletetime);
+                        }
+                        break;
+                }
+                first = false;
+            }
+        }
+    }
+    if (first) return "";
+    return tempsql.str();
+   } 
+
     std::string make_record_replace_sql()
     {
         unsigned int j = 0;
@@ -2017,21 +2148,27 @@ if(record[n].deletetime==0){
  void setId( unsigned  int  val){  data.id=val;} 
 
  unsigned  int  getParentid(){  return data.parentid; } 
- void setParentid( unsigned  int  val){  data.parentid=val;} 
+ void setParentid( unsigned  int  val){  data.parentid=val;
+		 set_dirty(1);  }
 
  char  getValueId(){  return data.value_id; } 
- void setValueId( char  val){  data.value_id=val;} 
+ void setValueId( char  val){  data.value_id=val;
+		 set_dirty(2);  }
 
  std::string  getContent(){  return data.content; } 
  std::string & getRefContent(){  return std::ref(data.content); } 
- void setContent( std::string  &val){  data.content=val;} 
- void setContent(std::string_view val){  data.content=val;} 
+ void setContent( std::string  &val){  data.content=val;
+		 set_dirty(3);  }
+ void setContent(std::string_view val){  data.content=val;
+		 set_dirty(3);  }
 
  unsigned  char  getDeleted(){  return data.deleted; } 
- void setDeleted( unsigned  char  val){  data.deleted=val;} 
+ void setDeleted( unsigned  char  val){  data.deleted=val;
+		 set_dirty(4);  }
 
  unsigned  int  getDeletetime(){  return data.deletetime; } 
- void setDeletetime( unsigned  int  val){  data.deletetime=val;} 
+ void setDeletetime( unsigned  int  val){  data.deletetime=val;
+		 set_dirty(5);  }
 
 testa_info::meta getnewData(){
  	 struct testa_info::meta newdata;

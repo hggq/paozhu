@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Tue, 01 Sep 2026 03:58:37 GMT
+ *  Creation time Sat, 12 Sep 2026 07:38:47 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -19,6 +19,7 @@
 #include <charconv>
 #include <thread>
 #include "request.h"
+
 #include "unicode.h"
 #include "datetime.h"
 #include <stdexcept>
@@ -35,6 +36,7 @@
 #include <algorithm>
 #include <vector>
 
+#include "orm_common.h"
 #include "mysql_conn.h"
 #include "orm_conn_pool.h"
 #include "orm_cache.hpp"
@@ -140,25 +142,27 @@ namespace cms
         }
         unsigned int count()
         {
-            std::string countsql;
-            countsql = "SELECT count(*) as total_countnum  FROM ";
-            countsql.append(B_BASE::tablename);
-            countsql.append(" WHERE ");
-            if (wheresql.empty())
+            std::string where_clause;
+            build_text_where(where_clause);
+
+            sqlstring = "SELECT count(*) as total_countnum  FROM ";
+            sqlstring.append(B_BASE::tablename);
+            sqlstring.append(" WHERE ");
+            if (where_clause.empty())
             {
-                countsql.append(" 1 ");
+                sqlstring.append(" 1 ");
             }
             else
             {
-                countsql.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
-                countsql.append(groupsql);
+                sqlstring.append(groupsql);
             }
             if (!limitsql.empty())
             {
-                countsql.append(limitsql);
+                sqlstring.append(limitsql);
             }
 
             if (iserror)
@@ -176,7 +180,7 @@ namespace cms
                 //auto conn = conn_obj->get_mysql_select_conn();
                 if (islock_conn)
                 {
-                    if (!select_conn)
+                    if (!select_conn || select_conn->isclose)
                     {
                         select_conn = conn_obj->get_mysql_select_conn();
                     }
@@ -191,7 +195,7 @@ namespace cms
                     select_conn->begin_time();
                 }
                 unsigned int querysql_len = 0;
-                unsigned int fetch_count  = select_conn->fetch_directly(countsql,
+                unsigned int fetch_count  = select_conn->fetch_directly(sqlstring,
                                                                        [&querysql_len](int col_count, char **col_names, auto get_data) -> bool
                                                                        {
                                                                            (void)col_count;
@@ -212,6 +216,7 @@ namespace cms
                                                                        });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
+                    iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return 0;
@@ -223,7 +228,7 @@ namespace cms
                     select_conn->finish_time();
                     auto &conn_mar    = get_orm_connect_mar();
                     long long du_time = select_conn->count_time();
-                    conn_mar.push_log(countsql, std::to_string(du_time));
+                    conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
 
                 if (!islock_conn)
@@ -236,11 +241,67 @@ namespace cms
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 return 0;
             }
 
             return 0;
         }
+
+        // ===== exec_count / exec_page：预编译 COUNT(*) + 分页 =====
+        unsigned int exec_count()
+        {
+            effect_num = 0;
+            std::vector<http::obj_val> params;
+            std::string sql = "SELECT count(*) as total_countnum FROM ";
+            sql.append(B_BASE::tablename);
+
+            std::string where_clause;
+            build_prepared_where(where_clause, params);
+            sql.append(" WHERE ").append(where_clause);
+
+            if (!groupsql.empty())
+                sql.append(groupsql);
+            if (!limitsql.empty())
+                sql.append(limitsql);
+
+            if (iserror)
+                return 0;
+            if (conn_empty())
+                return 0;
+
+            auto conn = _get_prepared_select_conn();
+            if (conn->isdebug)
+                conn->begin_time();
+
+            unsigned int count_val = 0;
+            conn->fetch_prepared(sql, params, [&count_val]([[maybe_unused]] int col_count, [[maybe_unused]] char **col_names, auto get_data) -> bool
+                                 {
+                    auto [ptr, len] = get_data(0);
+                    if (ptr) {
+                        for (size_t i = 0; i < len; i++)
+                            if (ptr[i] >= '0' && ptr[i] <= '9')
+                                count_val = count_val * 10 + (ptr[i] - '0');
+                    }
+                    return false; });
+
+            if (conn->isdebug)
+                conn->finish_time();
+            if (count_val == 0 && !conn->error_msg.empty())
+            {
+                iserror   = true;
+                error_msg = conn->error_msg;
+                if (!islock_conn)
+                    conn_obj->back_mysql_select_conn(std::move(conn));
+                return 0;
+            }
+
+            effect_num = count_val;
+            if (!islock_conn)
+                conn_obj->back_mysql_select_conn(std::move(conn));
+            return count_val;
+        }
+
         std::tuple<unsigned int, unsigned int, unsigned int, unsigned int>
         page(unsigned int page, unsigned int per_page = 10, unsigned int list_num = 5)
         {
@@ -291,27 +352,64 @@ namespace cms
             limit((page - 1) * per_page, per_page);
             return std::make_tuple(minpage, maxpage, page, total_page);
         }
+
+        // --- exec_page：预编译分页（内部调 exec_count + limit）---
+        auto exec_page(unsigned int page, unsigned int per_page = 10, unsigned int list_num = 5)
+        {
+            unsigned int total_page = exec_count();
+            if (per_page == 0)
+                per_page = 10;
+            if (list_num < 1)
+                list_num = 1;
+            total_page = std::ceil((float)total_page / per_page);
+            if (total_page < 1)
+                total_page = 1;
+            if (page > total_page)
+                page = total_page;
+            if (page < 1)
+                page = 1;
+
+            unsigned int mid_num  = std::floor(list_num / 2);
+            unsigned int last_num = list_num - 1;
+            int temp_num          = page - mid_num;
+            unsigned int minpage  = temp_num < 1 ? 1 : temp_num;
+            unsigned int maxpage  = minpage + last_num;
+
+            if (maxpage > total_page)
+            {
+                maxpage  = total_page;
+                temp_num = (int)(maxpage - last_num);
+                if (temp_num < 1)
+                    minpage = 1;
+                else
+                    minpage = temp_num;
+            }
+            limit((page - 1) * per_page, per_page);
+            return std::make_tuple(minpage, maxpage, page, total_page);
+        }
+
         asio::awaitable<unsigned int> async_count()
         {
-            std::string countsql;
-            countsql = "SELECT count(*) as total_countnum  FROM ";
-            countsql.append(B_BASE::tablename);
-            countsql.append(" WHERE ");
-            if (wheresql.empty())
+            std::string where_clause;
+            build_text_where(where_clause);
+            sqlstring = "SELECT count(*) as total_countnum  FROM ";
+            sqlstring.append(B_BASE::tablename);
+            sqlstring.append(" WHERE ");
+            if (where_clause.empty())
             {
-                countsql.append(" 1 ");
+                sqlstring.append(" 1 ");
             }
             else
             {
-                countsql.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
-                countsql.append(groupsql);
+                sqlstring.append(groupsql);
             }
             if (!limitsql.empty())
             {
-                countsql.append(limitsql);
+                sqlstring.append(limitsql);
             }
 
             if (iserror)
@@ -329,7 +427,7 @@ namespace cms
                 //auto conn = co_await conn_obj->async_get_mysql_select_conn();
                 if (islock_conn)
                 {
-                    if (!select_conn)
+                    if (!select_conn || select_conn->isclose)
                     {
                         select_conn = co_await conn_obj->async_get_mysql_select_conn();
                     }
@@ -344,7 +442,7 @@ namespace cms
                     select_conn->begin_time();
                 }
                 unsigned int querysql_len = 0;
-                unsigned int fetch_count  = co_await select_conn->async_fetch_directly(countsql,
+                unsigned int fetch_count  = co_await select_conn->async_fetch_directly(sqlstring,
                                                                                       [&querysql_len](int col_count, char **col_names, auto get_data) -> bool
                                                                                       {
                                                                                           (void)col_count;
@@ -365,6 +463,7 @@ namespace cms
                                                                                       });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
+                    iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
                     co_return 0;
@@ -376,7 +475,7 @@ namespace cms
                     select_conn->finish_time();
                     auto &conn_mar    = get_orm_connect_mar();
                     long long du_time = select_conn->count_time();
-                    conn_mar.push_log(countsql, std::to_string(du_time));
+                    conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
                 if (!islock_conn)
                 {
@@ -387,10 +486,74 @@ namespace cms
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 co_return 0;
             }
 
             co_return 0;
+        }
+
+        // --- async_exec_count：异步预编译 COUNT(*) ---
+        asio::awaitable<unsigned int> async_exec_count()
+        {
+            effect_num = 0;
+            std::vector<http::obj_val> params;
+            std::string sql = "SELECT count(*) as total_countnum FROM ";
+            sql.append(B_BASE::tablename);
+
+            std::string where_clause;
+            build_prepared_where(where_clause, params);
+            sql.append(" WHERE ").append(where_clause);
+
+            if (!groupsql.empty())
+                sql.append(groupsql);
+            if (!limitsql.empty())
+                sql.append(limitsql);
+
+            if (iserror)
+                co_return 0;
+
+            std::shared_ptr<mysql_conn_base> select_conn_l;
+            if (islock_conn)
+            {
+                if (!this->select_conn || this->select_conn->isclose)
+                    this->select_conn = co_await conn_obj->async_get_mysql_select_conn();
+                select_conn_l = this->select_conn;
+            }
+            else
+            {
+                select_conn_l = co_await conn_obj->async_get_mysql_select_conn();
+            }
+
+            if (select_conn_l->isdebug)
+                select_conn_l->begin_time();
+
+            unsigned int count_val = 0;
+            co_await select_conn_l->async_fetch_prepared(sql, params, [&count_val]([[maybe_unused]] int col_count, [[maybe_unused]] char **col_names, auto get_data) -> bool
+                                                         {
+                    auto [ptr, len] = get_data(0);
+                    if (ptr) {
+                        for (size_t i = 0; i < len; i++)
+                            if (ptr[i] >= '0' && ptr[i] <= '9')
+                                count_val = count_val * 10 + (ptr[i] - '0');
+                    }
+                    return false; });
+
+            if (select_conn_l->isdebug)
+                select_conn_l->finish_time();
+            if (count_val == 0 && !select_conn_l->error_msg.empty())
+            {
+                iserror   = true;
+                error_msg = select_conn_l->error_msg;
+                if (!islock_conn)
+                    conn_obj->back_mysql_select_conn(std::move(select_conn_l));
+                co_return 0;
+            }
+
+            effect_num = count_val;
+            if (!islock_conn)
+                conn_obj->back_mysql_select_conn(std::move(select_conn_l));
+            co_return count_val;
         }
 
         asio::awaitable<std::tuple<unsigned int, unsigned int, unsigned int, unsigned int>>
@@ -444,35 +607,71 @@ namespace cms
             co_return std::make_tuple(minpage, maxpage, page, total_page);
         }
 
+        asio::awaitable<std::tuple<unsigned int, unsigned int, unsigned int, unsigned int>>
+        async_exec_page(unsigned int page, unsigned int per_page = 10, unsigned int list_num = 5)
+        {
+            unsigned int total_page = co_await async_exec_count();
+            if (per_page == 0)
+                per_page = 10;
+            if (list_num < 1)
+                list_num = 1;
+            total_page = std::ceil((float)total_page / per_page);
+            if (total_page < 1)
+                total_page = 1;
+            if (page > total_page)
+                page = total_page;
+            if (page < 1)
+                page = 1;
+
+            unsigned int mid_num  = std::floor(list_num / 2);
+            unsigned int last_num = list_num - 1;
+            int temp_num          = page - mid_num;
+            unsigned int minpage  = temp_num < 1 ? 1 : temp_num;
+            unsigned int maxpage  = minpage + last_num;
+
+            if (maxpage > total_page)
+            {
+                maxpage  = total_page;
+                temp_num = (int)(maxpage - last_num);
+                if (temp_num < 1)
+                    minpage = 1;
+                else
+                    minpage = temp_num;
+            }
+            limit((page - 1) * per_page, per_page);
+            co_return std::make_tuple(minpage, maxpage, page, total_page);
+        }
+
         unsigned int update_col(std::string colname, int num, char symbol = '+')
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
-            std::string countsql;
-            countsql = "UPDATE ";
-            countsql.append(B_BASE::tablename);
-            countsql.append(" SET ");
-            countsql.append(colname);
+            sqlstring  = "UPDATE ";
+            sqlstring.append(B_BASE::tablename);
+            sqlstring.append(" SET ");
+            sqlstring.append(colname);
             if (num > 0)
             {
-                countsql.append(" = ");
-                countsql.append(colname);
-                countsql.push_back(' ');
-                countsql.push_back(symbol);
-                countsql.append(std::to_string(num));
+                sqlstring.append(" = ");
+                sqlstring.append(colname);
+                sqlstring.push_back(' ');
+                sqlstring.push_back(symbol);
+                sqlstring.append(std::to_string(num));
             }
             else
             {
-                countsql.append(" = ");
-                countsql.append(colname);
-                countsql.push_back(' ');
-                countsql.push_back(symbol);
-                countsql.push_back('(');
-                countsql.push_back('-');
-                countsql.append(std::to_string(std::abs(num)));
-                countsql.push_back(')');
+                sqlstring.append(" = ");
+                sqlstring.append(colname);
+                sqlstring.push_back(' ');
+                sqlstring.push_back(symbol);
+                sqlstring.push_back('(');
+                sqlstring.push_back('-');
+                sqlstring.append(std::to_string(std::abs(num)));
+                sqlstring.push_back(')');
             }
-            countsql.append(" where ");
-            if (wheresql.empty())
+            sqlstring.append(" where ");
+            if (where_clause.empty())
             {
                 if (B_BASE::getPK() > 0)
                 {
@@ -482,7 +681,7 @@ namespace cms
                     tempsql << " = '";
                     tempsql << B_BASE::getPK();
                     tempsql << "' ";
-                    countsql.append(tempsql.str());
+                    sqlstring.append(tempsql.str());
                 }
                 else
                 {
@@ -491,15 +690,15 @@ namespace cms
             }
             else
             {
-                countsql.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
-                countsql.append(groupsql);
+                sqlstring.append(groupsql);
             }
             if (!limitsql.empty())
             {
-                countsql.append(limitsql);
+                sqlstring.append(limitsql);
             }
 
             if (iserror)
@@ -517,7 +716,7 @@ namespace cms
 
                 if (islock_conn)
                 {
-                    if (!edit_conn)
+                    if (!edit_conn || edit_conn->isclose)
                     {
                         edit_conn = conn_obj->get_mysql_edit_conn();
                     }
@@ -531,13 +730,13 @@ namespace cms
                 {
                     edit_conn->begin_time();
                 }
-                unsigned int affected = edit_conn->exec_dml(countsql);
+                unsigned int affected = edit_conn->exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
                     auto &conn_mar    = get_orm_connect_mar();
                     long long du_time = edit_conn->count_time();
-                    conn_mar.push_log(countsql, std::to_string(du_time));
+                    conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
                 if (affected == static_cast<unsigned int>(-1))
                 {
@@ -559,41 +758,102 @@ namespace cms
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 return 0;
             }
 
             return 0;
+        }
+
+        // ===== exec_update_col / exec_replace_col：预编译 UPDATE =====
+        unsigned int exec_update_col(std::string colname, int num, char symbol = '+')
+        {
+            effect_num = 0;
+            std::vector<http::obj_val> params;
+            std::string sql = "UPDATE ";
+            sql.append(B_BASE::tablename);
+            sql.append(" SET ");
+            sql.append(colname);
+            sql.append(" = ");
+            sql.append(colname);
+            sql.push_back(' ');
+            sql.push_back(symbol);
+            sql.append(std::to_string(num > 0 ? num : -num));
+
+            sql.append(" WHERE ");
+            std::string where_clause;
+            build_prepared_where(where_clause, params);
+            sql.append(where_clause);
+
+            // 缺 WHERE 守卫
+            if (where_clause.empty())
+            {
+                sqlstring = "exec_update_col: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition";
+                iserror   = true;
+                return 0;
+            }
+            if (!groupsql.empty())
+                sql.append(groupsql);
+            if (!limitsql.empty())
+                sql.append(limitsql);
+
+            if (iserror)
+                return 0;
+            if (conn_empty())
+                return 0;
+
+            auto conn = _get_prepared_edit_conn();
+            if (conn->isdebug)
+                conn->begin_time();
+
+            unsigned int affected = conn->exec_dml_prepared(sql, params);
+            effect_num            = affected;
+
+            if (conn->isdebug)
+                conn->finish_time();
+            if (affected == static_cast<unsigned int>(-1))
+            {
+                error_msg = conn->error_msg;
+                iserror   = true;
+                if (!islock_conn)
+                    conn_obj->back_mysql_edit_conn(std::move(conn));
+                return affected;
+            }
+            if (!islock_conn)
+                conn_obj->back_mysql_edit_conn(std::move(conn));
+            return affected;
         }
 
         asio::awaitable<unsigned int> async_update_col(std::string colname, int num, char symbol = '+')
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
-            std::string countsql;
-            countsql = "UPDATE ";
-            countsql.append(B_BASE::tablename);
-            countsql.append(" SET ");
-            countsql.append(colname);
+            sqlstring  = "UPDATE ";
+            sqlstring.append(B_BASE::tablename);
+            sqlstring.append(" SET ");
+            sqlstring.append(colname);
             if (num > 0)
             {
-                countsql.append(" = ");
-                countsql.append(colname);
-                countsql.push_back(' ');
-                countsql.push_back(symbol);
-                countsql.append(std::to_string(num));
+                sqlstring.append(" = ");
+                sqlstring.append(colname);
+                sqlstring.push_back(' ');
+                sqlstring.push_back(symbol);
+                sqlstring.append(std::to_string(num));
             }
             else
             {
-                countsql.append(" = ");
-                countsql.append(colname);
-                countsql.push_back(' ');
-                countsql.push_back(symbol);
-                countsql.push_back('(');
-                countsql.push_back('-');
-                countsql.append(std::to_string(std::abs(num)));
-                countsql.push_back(')');
+                sqlstring.append(" = ");
+                sqlstring.append(colname);
+                sqlstring.push_back(' ');
+                sqlstring.push_back(symbol);
+                sqlstring.push_back('(');
+                sqlstring.push_back('-');
+                sqlstring.append(std::to_string(std::abs(num)));
+                sqlstring.push_back(')');
             }
-            countsql.append(" where ");
-            if (wheresql.empty())
+            sqlstring.append(" where ");
+            if (where_clause.empty())
             {
                 if (B_BASE::getPK() > 0)
                 {
@@ -603,7 +863,7 @@ namespace cms
                     tempsql << " = '";
                     tempsql << B_BASE::getPK();
                     tempsql << "' ";
-                    countsql.append(tempsql.str());
+                    sqlstring.append(tempsql.str());
                 }
                 else
                 {
@@ -612,15 +872,15 @@ namespace cms
             }
             else
             {
-                countsql.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
-                countsql.append(groupsql);
+                sqlstring.append(groupsql);
             }
             if (!limitsql.empty())
             {
-                countsql.append(limitsql);
+                sqlstring.append(limitsql);
             }
 
             if (iserror)
@@ -638,7 +898,7 @@ namespace cms
 
                 if (islock_conn)
                 {
-                    if (!edit_conn)
+                    if (!edit_conn || edit_conn->isclose)
                     {
                         edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                     }
@@ -652,13 +912,13 @@ namespace cms
                 {
                     edit_conn->begin_time();
                 }
-                unsigned int affected = co_await edit_conn->async_exec_dml(countsql);
+                unsigned int affected = co_await edit_conn->async_exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
                     auto &conn_mar    = get_orm_connect_mar();
                     long long du_time = edit_conn->count_time();
-                    conn_mar.push_log(countsql, std::to_string(du_time));
+                    conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
                 if (affected == static_cast<unsigned int>(-1))
                 {
@@ -680,31 +940,100 @@ namespace cms
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 co_return 0;
             }
 
             co_return 0;
         }
 
-        int replace_col(std::string colname, const std::string &old_string, const std::string &new_string)
+        // --- async_exec_update_col：异步预编译计数器 UPDATE ---
+        asio::awaitable<unsigned int> async_exec_update_col(std::string colname, int num, char symbol = '+')
         {
             effect_num = 0;
-            std::string countsql;
-            countsql = "UPDATE ";
-            countsql.append(B_BASE::tablename);
-            countsql.append(" SET ");
-            countsql.append(colname);
+            std::vector<http::obj_val> params;
+            std::string sql = "UPDATE ";
+            sql.append(B_BASE::tablename);
+            sql.append(" SET ");
+            sql.append(colname);
+            sql.append(" = ");
+            sql.append(colname);
+            sql.push_back(' ');
+            sql.push_back(symbol);
+            sql.append(std::to_string(num > 0 ? num : -num));
 
-            countsql.append(" = REPLACE(");
-            countsql.append(colname);
-            countsql.append(",'");
-            countsql.append(old_string);
-            countsql.append("','");
-            countsql.append(new_string);
-            countsql.append("') ");
+            sql.append(" WHERE ");
+            std::string where_clause;
+            build_prepared_where(where_clause, params);
+            sql.append(where_clause);
 
-            countsql.append(" where ");
-            if (wheresql.empty())
+            if (where_clause.empty())
+            {
+                sqlstring = "async_exec_update_col: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition";
+                iserror   = true;
+                co_return 0;
+            }
+            if (!groupsql.empty())
+                sql.append(groupsql);
+            if (!limitsql.empty())
+                sql.append(limitsql);
+
+            if (iserror)
+                co_return 0;
+
+            std::shared_ptr<mysql_conn_base> edit_conn_l;
+            if (islock_conn)
+            {
+                if (!this->edit_conn || this->edit_conn->isclose)
+                    this->edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
+                edit_conn_l = this->edit_conn;
+            }
+            else
+            {
+                edit_conn_l = co_await conn_obj->async_get_mysql_edit_conn();
+            }
+
+            if (edit_conn_l->isdebug)
+                edit_conn_l->begin_time();
+
+            unsigned int affected = co_await edit_conn_l->async_exec_dml_prepared(sql, params);
+            effect_num            = affected;
+
+            if (edit_conn_l->isdebug)
+                edit_conn_l->finish_time();
+            if (affected == static_cast<unsigned int>(-1))
+            {
+                error_msg = edit_conn_l->error_msg;
+                iserror   = true;
+                if (!islock_conn)
+                    conn_obj->back_mysql_edit_conn(std::move(edit_conn_l));
+                co_return affected;
+            }
+            if (!islock_conn)
+                conn_obj->back_mysql_edit_conn(std::move(edit_conn_l));
+            co_return affected;
+        }
+
+        int replace_col(std::string colname, const std::string &old_string, const std::string &new_string)
+        {
+            std::string where_clause;
+            build_text_where(where_clause);
+            effect_num = 0;
+            sqlstring  = "UPDATE ";
+            sqlstring.append(B_BASE::tablename);
+            sqlstring.append(" SET ");
+            sqlstring.append(colname);
+
+            sqlstring.append(" = REPLACE(");
+            sqlstring.append(colname);
+            sqlstring.append(",'");
+            sqlstring.append(B_BASE::stringaddslash(old_string));
+            sqlstring.append("','");
+            sqlstring.append(B_BASE::stringaddslash(new_string));
+            sqlstring.append("') ");
+
+            sqlstring.append(" where ");
+            if (where_clause.empty())
             {
                 if (B_BASE::getPK() > 0)
                 {
@@ -714,7 +1043,7 @@ namespace cms
                     tempsql << " = '";
                     tempsql << B_BASE::getPK();
                     tempsql << "' ";
-                    countsql.append(tempsql.str());
+                    sqlstring.append(tempsql.str());
                 }
                 else
                 {
@@ -723,15 +1052,15 @@ namespace cms
             }
             else
             {
-                countsql.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
-                countsql.append(groupsql);
+                sqlstring.append(groupsql);
             }
             if (!limitsql.empty())
             {
-                countsql.append(limitsql);
+                sqlstring.append(limitsql);
             }
 
             if (iserror)
@@ -749,7 +1078,7 @@ namespace cms
 
                 if (islock_conn)
                 {
-                    if (!edit_conn)
+                    if (!edit_conn || edit_conn->isclose)
                     {
                         edit_conn = conn_obj->get_mysql_edit_conn();
                     }
@@ -764,13 +1093,13 @@ namespace cms
                     edit_conn->begin_time();
                 }
 
-                unsigned int affected = edit_conn->exec_dml(countsql);
+                unsigned int affected = edit_conn->exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
                     auto &conn_mar    = get_orm_connect_mar();
                     long long du_time = edit_conn->count_time();
-                    conn_mar.push_log(countsql, std::to_string(du_time));
+                    conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
                 if (affected == static_cast<unsigned int>(-1))
                 {
@@ -791,31 +1120,92 @@ namespace cms
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 return 0;
             }
 
             return 0;
         }
 
-        asio::awaitable<unsigned int> async_replace_col(std::string colname, std::string_view old_string, std::string_view new_string)
+        // --- exec_replace_col：预编译 REPLACE(col, old, new) UPDATE ---
+        unsigned int exec_replace_col(std::string colname, std::string_view old_str, std::string_view new_str)
         {
             effect_num = 0;
-            std::string countsql;
-            countsql = "UPDATE ";
-            countsql.append(B_BASE::tablename);
-            countsql.append(" SET ");
-            countsql.append(colname);
+            std::vector<http::obj_val> params;
+            std::string sql = "UPDATE ";
+            sql.append(B_BASE::tablename);
+            sql.append(" SET ");
+            sql.append(colname);
+            sql.append(" = REPLACE(");
+            sql.append(colname);
+            sql.append(", ?, ?)");
 
-            countsql.append(" = REPLACE(");
-            countsql.append(colname);
-            countsql.append(",'");
-            countsql.append(old_string);
-            countsql.append("','");
-            countsql.append(new_string);
-            countsql.append("') ");
+            params.push_back(http::obj_val(std::string(old_str)));
+            params.push_back(http::obj_val(std::string(new_str)));
 
-            countsql.append(" where ");
-            if (wheresql.empty())
+            sql.append(" WHERE ");
+            std::string where_clause;
+            build_prepared_where(where_clause, params);
+            sql.append(where_clause);
+
+            if (where_clause.empty())
+            {
+                sqlstring = "exec_replace_col: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition";
+                iserror   = true;
+                return 0;
+            }
+            if (!groupsql.empty())
+                sql.append(groupsql);
+            if (!limitsql.empty())
+                sql.append(limitsql);
+
+            if (iserror)
+                return 0;
+            if (conn_empty())
+                return 0;
+
+            auto conn = _get_prepared_edit_conn();
+            if (conn->isdebug)
+                conn->begin_time();
+
+            unsigned int affected = conn->exec_dml_prepared(sql, params);
+            effect_num            = affected;
+
+            if (conn->isdebug)
+                conn->finish_time();
+            if (affected == static_cast<unsigned int>(-1))
+            {
+                error_msg = conn->error_msg;
+                iserror   = true;
+                if (!islock_conn)
+                    conn_obj->back_mysql_edit_conn(std::move(conn));
+                return affected;
+            }
+            if (!islock_conn)
+                conn_obj->back_mysql_edit_conn(std::move(conn));
+            return affected;
+        }
+
+        asio::awaitable<unsigned int> async_replace_col(std::string colname, std::string_view old_string, std::string_view new_string)
+        {
+            std::string where_clause;
+            build_text_where(where_clause);
+            effect_num = 0;
+            sqlstring  = "UPDATE ";
+            sqlstring.append(B_BASE::tablename);
+            sqlstring.append(" SET ");
+            sqlstring.append(colname);
+
+            sqlstring.append(" = REPLACE(");
+            sqlstring.append(colname);
+            sqlstring.append(",'");
+            sqlstring.append(B_BASE::stringaddslash(old_string));
+            sqlstring.append("','");
+            sqlstring.append(B_BASE::stringaddslash(new_string));
+            sqlstring.append("') ");
+
+            sqlstring.append(" where ");
+            if (where_clause.empty())
             {
                 if (B_BASE::getPK() > 0)
                 {
@@ -825,7 +1215,7 @@ namespace cms
                     tempsql << " = '";
                     tempsql << B_BASE::getPK();
                     tempsql << "' ";
-                    countsql.append(tempsql.str());
+                    sqlstring.append(tempsql.str());
                 }
                 else
                 {
@@ -834,15 +1224,15 @@ namespace cms
             }
             else
             {
-                countsql.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
-                countsql.append(groupsql);
+                sqlstring.append(groupsql);
             }
             if (!limitsql.empty())
             {
-                countsql.append(limitsql);
+                sqlstring.append(limitsql);
             }
 
             if (iserror)
@@ -860,7 +1250,7 @@ namespace cms
 
                 if (islock_conn)
                 {
-                    if (!edit_conn)
+                    if (!edit_conn || edit_conn->isclose)
                     {
                         edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                     }
@@ -875,13 +1265,13 @@ namespace cms
                     edit_conn->begin_time();
                 }
 
-                unsigned int affected = co_await edit_conn->async_exec_dml(countsql);
+                unsigned int affected = co_await edit_conn->async_exec_dml(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
                     auto &conn_mar    = get_orm_connect_mar();
                     long long du_time = edit_conn->count_time();
-                    conn_mar.push_log(countsql, std::to_string(du_time));
+                    conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
                 if (affected == static_cast<unsigned int>(-1))
                 {
@@ -903,10 +1293,79 @@ namespace cms
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 co_return 0;
             }
 
             co_return 0;
+        }
+
+        // --- async_exec_replace_col：异步预编译 REPLACE(col, old, new) ---
+        asio::awaitable<unsigned int> async_exec_replace_col(std::string colname, std::string_view old_str, std::string_view new_str)
+        {
+            effect_num = 0;
+            std::vector<http::obj_val> params;
+            std::string sql = "UPDATE ";
+            sql.append(B_BASE::tablename);
+            sql.append(" SET ");
+            sql.append(colname);
+            sql.append(" = REPLACE(");
+            sql.append(colname);
+            sql.append(", ?, ?)");
+
+            params.push_back(http::obj_val(std::string(old_str)));
+            params.push_back(http::obj_val(std::string(new_str)));
+
+            sql.append(" WHERE ");
+            std::string where_clause;
+            build_prepared_where(where_clause, params);
+            sql.append(where_clause);
+
+            if (where_clause.empty())
+            {
+                sqlstring = "async_exec_replace_col: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition";
+                iserror   = true;
+                co_return 0;
+            }
+            if (!groupsql.empty())
+                sql.append(groupsql);
+            if (!limitsql.empty())
+                sql.append(limitsql);
+
+            if (iserror)
+                co_return 0;
+
+            std::shared_ptr<mysql_conn_base> edit_conn_l;
+            if (islock_conn)
+            {
+                if (!this->edit_conn || this->edit_conn->isclose)
+                    this->edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
+                edit_conn_l = this->edit_conn;
+            }
+            else
+            {
+                edit_conn_l = co_await conn_obj->async_get_mysql_edit_conn();
+            }
+
+            if (edit_conn_l->isdebug)
+                edit_conn_l->begin_time();
+
+            unsigned int affected = co_await edit_conn_l->async_exec_dml_prepared(sql, params);
+            effect_num            = affected;
+
+            if (edit_conn_l->isdebug)
+                edit_conn_l->finish_time();
+            if (affected == static_cast<unsigned int>(-1))
+            {
+                error_msg = edit_conn_l->error_msg;
+                iserror   = true;
+                if (!islock_conn)
+                    conn_obj->back_mysql_edit_conn(std::move(edit_conn_l));
+                co_return affected;
+            }
+            if (!islock_conn)
+                conn_obj->back_mysql_edit_conn(std::move(edit_conn_l));
+            co_return affected;
         }
 
         void assign_field_value(unsigned char index_pos, unsigned char *result_temp_data, unsigned long long value_size, superadmin_info::meta &data_temp)
@@ -1037,21302 +1496,1642 @@ namespace cms
         }
     }
     
+        void assign_field_value_binary(unsigned char index_pos, col_value_variant val, superadmin_info::meta &data_temp)
+    {
+        switch(index_pos)
+        {
+            case 0: {
+                std::visit([&](auto&& v){
+                    using T = std::decay_t<decltype(v)>;
+                    if constexpr (std::is_same_v<T, std::monostate>)
+                        data_temp.adminid = 0;
+                    else if constexpr (std::is_same_v<T, int64_t>)
+                        data_temp.adminid = static_cast<decltype(data_temp.adminid )>(v);
+                    else if constexpr (std::is_same_v<T, uint64_t>)
+                        data_temp.adminid = static_cast<decltype(data_temp.adminid )>(v);
+                    else if constexpr (std::is_same_v<T, double>)
+                        data_temp.adminid = static_cast<decltype(data_temp.adminid )>(v);
+                    else
+                        data_temp.adminid = 0;
+                }, val);
+            } break;
+            case 1: {
+                std::visit([&](auto&& v){
+                    using T = std::decay_t<decltype(v)>;
+                    if constexpr (std::is_same_v<T, std::monostate>)
+                        data_temp.name.clear();
+                    else if constexpr (std::is_same_v<T, std::string_view>)
+                        data_temp.name.assign(v.data(), v.size());
+                    else
+                        data_temp.name.clear();
+                }, val);
+            } break;
+            case 2: {
+                std::visit([&](auto&& v){
+                    using T = std::decay_t<decltype(v)>;
+                    if constexpr (std::is_same_v<T, std::monostate>)
+                        data_temp.password.clear();
+                    else if constexpr (std::is_same_v<T, std::string_view>)
+                        data_temp.password.assign(v.data(), v.size());
+                    else
+                        data_temp.password.clear();
+                }, val);
+            } break;
+            case 3: {
+                std::visit([&](auto&& v){
+                    using T = std::decay_t<decltype(v)>;
+                    if constexpr (std::is_same_v<T, std::monostate>)
+                        data_temp.nickname.clear();
+                    else if constexpr (std::is_same_v<T, std::string_view>)
+                        data_temp.nickname.assign(v.data(), v.size());
+                    else
+                        data_temp.nickname.clear();
+                }, val);
+            } break;
+            case 4: {
+                std::visit([&](auto&& v){
+                    using T = std::decay_t<decltype(v)>;
+                    if constexpr (std::is_same_v<T, std::monostate>)
+                        data_temp.isopen = 0;
+                    else if constexpr (std::is_same_v<T, int64_t>)
+                        data_temp.isopen = static_cast<decltype(data_temp.isopen )>(v);
+                    else if constexpr (std::is_same_v<T, uint64_t>)
+                        data_temp.isopen = static_cast<decltype(data_temp.isopen )>(v);
+                    else if constexpr (std::is_same_v<T, double>)
+                        data_temp.isopen = static_cast<decltype(data_temp.isopen )>(v);
+                    else
+                        data_temp.isopen = 0;
+                }, val);
+            } break;
+            case 5: {
+                std::visit([&](auto&& v){
+                    using T = std::decay_t<decltype(v)>;
+                    if constexpr (std::is_same_v<T, std::monostate>)
+                        data_temp.begindate = 0;
+                    else if constexpr (std::is_same_v<T, int64_t>)
+                        data_temp.begindate = static_cast<decltype(data_temp.begindate )>(v);
+                    else if constexpr (std::is_same_v<T, uint64_t>)
+                        data_temp.begindate = static_cast<decltype(data_temp.begindate )>(v);
+                    else if constexpr (std::is_same_v<T, double>)
+                        data_temp.begindate = static_cast<decltype(data_temp.begindate )>(v);
+                    else
+                        data_temp.begindate = 0;
+                }, val);
+            } break;
+            case 6: {
+                std::visit([&](auto&& v){
+                    using T = std::decay_t<decltype(v)>;
+                    if constexpr (std::is_same_v<T, std::monostate>)
+                        data_temp.enddate = 0;
+                    else if constexpr (std::is_same_v<T, int64_t>)
+                        data_temp.enddate = static_cast<decltype(data_temp.enddate )>(v);
+                    else if constexpr (std::is_same_v<T, uint64_t>)
+                        data_temp.enddate = static_cast<decltype(data_temp.enddate )>(v);
+                    else if constexpr (std::is_same_v<T, double>)
+                        data_temp.enddate = static_cast<decltype(data_temp.enddate )>(v);
+                    else
+                        data_temp.enddate = 0;
+                }, val);
+            } break;
+            case 7: {
+                std::visit([&](auto&& v){
+                    using T = std::decay_t<decltype(v)>;
+                    if constexpr (std::is_same_v<T, std::monostate>)
+                        data_temp.regdate.clear();
+                    else if constexpr (std::is_same_v<T, std::string_view>)
+                        data_temp.regdate.assign(v.data(), v.size());
+                    else
+                        data_temp.regdate.clear();
+                }, val);
+            } break;
+            case 8: {
+                std::visit([&](auto&& v){
+                    using T = std::decay_t<decltype(v)>;
+                    if constexpr (std::is_same_v<T, std::monostate>)
+                        data_temp.mobile.clear();
+                    else if constexpr (std::is_same_v<T, std::string_view>)
+                        data_temp.mobile.assign(v.data(), v.size());
+                    else
+                        data_temp.mobile.clear();
+                }, val);
+            } break;
+            case 9: {
+                std::visit([&](auto&& v){
+                    using T = std::decay_t<decltype(v)>;
+                    if constexpr (std::is_same_v<T, std::monostate>)
+                        data_temp.email.clear();
+                    else if constexpr (std::is_same_v<T, std::string_view>)
+                        data_temp.email.assign(v.data(), v.size());
+                    else
+                        data_temp.email.clear();
+                }, val);
+            } break;
+            case 10: {
+                std::visit([&](auto&& v){
+                    using T = std::decay_t<decltype(v)>;
+                    if constexpr (std::is_same_v<T, std::monostate>)
+                        data_temp.loginnum = 0;
+                    else if constexpr (std::is_same_v<T, int64_t>)
+                        data_temp.loginnum = static_cast<decltype(data_temp.loginnum )>(v);
+                    else if constexpr (std::is_same_v<T, uint64_t>)
+                        data_temp.loginnum = static_cast<decltype(data_temp.loginnum )>(v);
+                    else if constexpr (std::is_same_v<T, double>)
+                        data_temp.loginnum = static_cast<decltype(data_temp.loginnum )>(v);
+                    else
+                        data_temp.loginnum = 0;
+                }, val);
+            } break;
+            case 11: {
+                std::visit([&](auto&& v){
+                    using T = std::decay_t<decltype(v)>;
+                    if constexpr (std::is_same_v<T, std::monostate>)
+                        data_temp.qrtemp = 0;
+                    else if constexpr (std::is_same_v<T, int64_t>)
+                        data_temp.qrtemp = static_cast<decltype(data_temp.qrtemp )>(v);
+                    else if constexpr (std::is_same_v<T, uint64_t>)
+                        data_temp.qrtemp = static_cast<decltype(data_temp.qrtemp )>(v);
+                    else if constexpr (std::is_same_v<T, double>)
+                        data_temp.qrtemp = static_cast<decltype(data_temp.qrtemp )>(v);
+                    else
+                        data_temp.qrtemp = 0;
+                }, val);
+            } break;
+            case 12: {
+                std::visit([&](auto&& v){
+                    using T = std::decay_t<decltype(v)>;
+                    if constexpr (std::is_same_v<T, std::monostate>)
+                        data_temp.wxuuid.clear();
+                    else if constexpr (std::is_same_v<T, std::string_view>)
+                        data_temp.wxuuid.assign(v.data(), v.size());
+                    else
+                        data_temp.wxuuid.clear();
+                }, val);
+            } break;
+            case 13: {
+                std::visit([&](auto&& v){
+                    using T = std::decay_t<decltype(v)>;
+                    if constexpr (std::is_same_v<T, std::monostate>)
+                        data_temp.basesitepath.clear();
+                    else if constexpr (std::is_same_v<T, std::string_view>)
+                        data_temp.basesitepath.assign(v.data(), v.size());
+                    else
+                        data_temp.basesitepath.clear();
+                }, val);
+            } break;
+        }
+    }
+    
+        http::obj_val get_field_value(unsigned char index_pos, const superadmin_info::meta &data_temp)
+    {
+        switch(index_pos)
+        {
+            case 0:
+                return http::obj_val(static_cast<long long>(data_temp.adminid));
+                break;
+            case 1:
+                return http::obj_val(std::string(data_temp.name));
+                break;
+            case 2:
+                return http::obj_val(std::string(data_temp.password));
+                break;
+            case 3:
+                return http::obj_val(std::string(data_temp.nickname));
+                break;
+            case 4:
+                return http::obj_val(static_cast<long long>(data_temp.isopen));
+                break;
+            case 5:
+                return http::obj_val(static_cast<long long>(data_temp.begindate));
+                break;
+            case 6:
+                return http::obj_val(static_cast<long long>(data_temp.enddate));
+                break;
+            case 7:
+                return http::obj_val(std::string(data_temp.regdate));
+                break;
+            case 8:
+                return http::obj_val(std::string(data_temp.mobile));
+                break;
+            case 9:
+                return http::obj_val(std::string(data_temp.email));
+                break;
+            case 10:
+                return http::obj_val(static_cast<long long>(data_temp.loginnum));
+                break;
+            case 11:
+                return http::obj_val(static_cast<long long>(data_temp.qrtemp));
+                break;
+            case 12:
+                return http::obj_val(std::string(data_temp.wxuuid));
+                break;
+            case 13:
+                return http::obj_val(std::string(data_temp.basesitepath));
+                break;
+            default:
+                return http::obj_val(nullptr);
+        }
+    }
+    
+        http::obj_val get_insert_field_value(unsigned char index_pos, const superadmin_info::meta &data_temp)
+    {
+        // Auto-increment primary key adminid == 0 bind NULL at runtime, and let the database automatically generate the primary key
+        if (index_pos == 0 && data_temp.adminid == 0)
+            return http::obj_val(nullptr);
+        return get_field_value(index_pos, data_temp);
+    }
+    
 
 M_MODEL& eqAdminid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid = ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::adminid, orm::wq::eq, val);
+	}
 
 M_MODEL& nqAdminid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid != ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& inAdminid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid IN('");
-
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& inAdminid(const T &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid IN(");
-
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& inAdminid(const std::vector<T>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-            wheresql.append(std::to_string(val[i]));
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& inAdminid(const std::vector<std::string>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninAdminid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid NOT IN('");
-
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& ninAdminid(const T &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid NOT IN(");
-
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& ninAdminid(const std::vector<T>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-            wheresql.append(std::to_string(val[i]));
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninAdminid(const std::vector<std::string>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::adminid, orm::wq::nq, val);
+	}
 
 M_MODEL& btAdminid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid > ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::adminid, orm::wq::bt, val);
+	}
 
 M_MODEL& beAdminid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid >= ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::adminid, orm::wq::be, val);
+	}
 
 M_MODEL& ltAdminid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid < ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::adminid, orm::wq::lt, val);
+	}
 
 M_MODEL& leAdminid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid <= ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_eqAdminid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid = ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_nqAdminid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid != ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_inAdminid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid IN('");
-
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_inAdminid(const T &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid IN(");
-
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_inAdminid(const std::vector<T>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-            wheresql.append(std::to_string(val[i]));
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_inAdminid(const std::vector<std::string>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninAdminid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid NOT IN('");
-
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_ninAdminid(const T &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid NOT IN(");
-
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_ninAdminid(const std::vector<T>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-            wheresql.append(std::to_string(val[i]));
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninAdminid(const std::vector<std::string>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_btAdminid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid > ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_beAdminid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid >= ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ltAdminid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid < ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_leAdminid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid <= ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::adminid, orm::wq::le, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& eqAdminid(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid = ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::adminid, orm::wq::eq, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& nqAdminid(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid != ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::adminid, orm::wq::nq, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& btAdminid(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid > ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::adminid, orm::wq::bt, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& beAdminid(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid >= ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::adminid, orm::wq::be, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& ltAdminid(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid < ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::adminid, orm::wq::lt, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& leAdminid(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid <= ");
+	{return where(B_BASE::cols::adminid, orm::wq::le, val);
+	}
 
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& nullAdminid()
+	{return whereNull(B_BASE::cols::adminid);
+	}
 
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_eqAdminid(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid = ");
+M_MODEL& notnullAdminid()
+	{return whereNotNull(B_BASE::cols::adminid);
+	}
 
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& oreqAdminid(const std::string &val)
+	{return whereOr(B_BASE::cols::adminid, orm::wq::eq, val);
+	}
+
+M_MODEL& ornqAdminid(const std::string &val)
+	{return whereOr(B_BASE::cols::adminid, orm::wq::nq, val);
+	}
+
+M_MODEL& orbtAdminid(const std::string &val)
+	{return whereOr(B_BASE::cols::adminid, orm::wq::bt, val);
+	}
+
+M_MODEL& orbeAdminid(const std::string &val)
+	{return whereOr(B_BASE::cols::adminid, orm::wq::be, val);
+	}
+
+M_MODEL& orltAdminid(const std::string &val)
+	{return whereOr(B_BASE::cols::adminid, orm::wq::lt, val);
+	}
+
+M_MODEL& orleAdminid(const std::string &val)
+	{return whereOr(B_BASE::cols::adminid, orm::wq::le, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_nqAdminid(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid != ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& oreqAdminid(T val)
+	{return whereOr(B_BASE::cols::adminid, orm::wq::eq, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_btAdminid(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid > ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& ornqAdminid(T val)
+	{return whereOr(B_BASE::cols::adminid, orm::wq::nq, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_beAdminid(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid >= ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& orbtAdminid(T val)
+	{return whereOr(B_BASE::cols::adminid, orm::wq::bt, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_ltAdminid(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid < ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& orbeAdminid(T val)
+	{return whereOr(B_BASE::cols::adminid, orm::wq::be, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_leAdminid(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" adminid <= ");
+M_MODEL& orltAdminid(T val)
+	{return whereOr(B_BASE::cols::adminid, orm::wq::lt, val);
+	}
 
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& orleAdminid(T val)
+	{return whereOr(B_BASE::cols::adminid, orm::wq::le, val);
+	}
 
-M_MODEL& nullName()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name IS NULL ");
+M_MODEL& ornullAdminid()
+	{return whereOrNull(B_BASE::cols::adminid);
+	}
 
-        return *mod;   
-    }   
-    
-
-M_MODEL& nnullName()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name IS NOT NULL ");
-
-        return *mod;   
-    }   
-    
+M_MODEL& ornotnullAdminid()
+	{return whereOrNotNull(B_BASE::cols::adminid);
+	}
 
 M_MODEL& eqName(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name = '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::name, orm::wq::eq, val);
+	}
 
 M_MODEL& nqName(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name != '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& inName(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& inName(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& inName(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninName(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name NOT IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninName(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& ninName(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& likeName(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& l_likeName(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& r_likeName(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name LIKE '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::name, orm::wq::nq, val);
+	}
 
 M_MODEL& btName(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name > '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::name, orm::wq::bt, val);
+	}
 
 M_MODEL& beName(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name >= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::name, orm::wq::be, val);
+	}
 
 M_MODEL& ltName(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name < '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::name, orm::wq::lt, val);
+	}
 
 M_MODEL& leName(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name <= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_nullName()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name IS NULL ");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_nnullName()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name IS NOT NULL ");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_eqName(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name = '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_nqName(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name != '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_inName(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_inName(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_inName(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninName(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name NOT IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninName(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_ninName(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_likeName(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& orl_likeName(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& orr_likeName(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name LIKE '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_btName(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name > '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_beName(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name >= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ltName(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name < '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_leName(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name <= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& eqName(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name = '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& nqName(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name != '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& btName(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name > '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& beName(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name >= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& ltName(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name < '");
-		wheresql.append(std::to_string(val));
-		wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& leName(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name <= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_eqName(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name = '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_nqName(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name != '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_btName(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name > '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_beName(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name >= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_ltName(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name < '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_leName(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" name <= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& nullPassword()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password IS NULL ");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& nnullPassword()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password IS NOT NULL ");
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::name, orm::wq::le, val);
+	}
+
+M_MODEL& likeName(const std::string &val)
+	{return where(B_BASE::cols::name, orm::wq::like, val);
+	}
+
+M_MODEL& nullName()
+	{return whereNull(B_BASE::cols::name);
+	}
+
+M_MODEL& notnullName()
+	{return whereNotNull(B_BASE::cols::name);
+	}
+
+M_MODEL& oreqName(const std::string &val)
+	{return whereOr(B_BASE::cols::name, orm::wq::eq, val);
+	}
+
+M_MODEL& ornqName(const std::string &val)
+	{return whereOr(B_BASE::cols::name, orm::wq::nq, val);
+	}
+
+M_MODEL& orbtName(const std::string &val)
+	{return whereOr(B_BASE::cols::name, orm::wq::bt, val);
+	}
+
+M_MODEL& orbeName(const std::string &val)
+	{return whereOr(B_BASE::cols::name, orm::wq::be, val);
+	}
+
+M_MODEL& orltName(const std::string &val)
+	{return whereOr(B_BASE::cols::name, orm::wq::lt, val);
+	}
+
+M_MODEL& orleName(const std::string &val)
+	{return whereOr(B_BASE::cols::name, orm::wq::le, val);
+	}
+
+M_MODEL& orlikeName(const std::string &val)
+	{return whereOr(B_BASE::cols::name, orm::wq::like, val);
+	}
+
+M_MODEL& ornullName()
+	{return whereOrNull(B_BASE::cols::name);
+	}
+
+M_MODEL& ornotnullName()
+	{return whereOrNotNull(B_BASE::cols::name);
+	}
 
 M_MODEL& eqPassword(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password = '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::password, orm::wq::eq, val);
+	}
 
 M_MODEL& nqPassword(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password != '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& inPassword(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& inPassword(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& inPassword(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninPassword(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password NOT IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninPassword(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& ninPassword(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& likePassword(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& l_likePassword(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& r_likePassword(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password LIKE '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::password, orm::wq::nq, val);
+	}
 
 M_MODEL& btPassword(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password > '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::password, orm::wq::bt, val);
+	}
 
 M_MODEL& bePassword(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password >= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::password, orm::wq::be, val);
+	}
 
 M_MODEL& ltPassword(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password < '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::password, orm::wq::lt, val);
+	}
 
 M_MODEL& lePassword(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password <= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_nullPassword()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password IS NULL ");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_nnullPassword()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password IS NOT NULL ");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_eqPassword(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password = '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_nqPassword(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password != '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_inPassword(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_inPassword(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_inPassword(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninPassword(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password NOT IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninPassword(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_ninPassword(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_likePassword(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& orl_likePassword(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& orr_likePassword(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password LIKE '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_btPassword(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password > '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_bePassword(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password >= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ltPassword(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password < '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_lePassword(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password <= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& eqPassword(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password = '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& nqPassword(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password != '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& btPassword(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password > '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& bePassword(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password >= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& ltPassword(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password < '");
-		wheresql.append(std::to_string(val));
-		wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& lePassword(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password <= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_eqPassword(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password = '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_nqPassword(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password != '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_btPassword(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password > '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_bePassword(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password >= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_ltPassword(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password < '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_lePassword(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" password <= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& nullNickname()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname IS NULL ");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& nnullNickname()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname IS NOT NULL ");
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::password, orm::wq::le, val);
+	}
+
+M_MODEL& likePassword(const std::string &val)
+	{return where(B_BASE::cols::password, orm::wq::like, val);
+	}
+
+M_MODEL& nullPassword()
+	{return whereNull(B_BASE::cols::password);
+	}
+
+M_MODEL& notnullPassword()
+	{return whereNotNull(B_BASE::cols::password);
+	}
+
+M_MODEL& oreqPassword(const std::string &val)
+	{return whereOr(B_BASE::cols::password, orm::wq::eq, val);
+	}
+
+M_MODEL& ornqPassword(const std::string &val)
+	{return whereOr(B_BASE::cols::password, orm::wq::nq, val);
+	}
+
+M_MODEL& orbtPassword(const std::string &val)
+	{return whereOr(B_BASE::cols::password, orm::wq::bt, val);
+	}
+
+M_MODEL& orbePassword(const std::string &val)
+	{return whereOr(B_BASE::cols::password, orm::wq::be, val);
+	}
+
+M_MODEL& orltPassword(const std::string &val)
+	{return whereOr(B_BASE::cols::password, orm::wq::lt, val);
+	}
+
+M_MODEL& orlePassword(const std::string &val)
+	{return whereOr(B_BASE::cols::password, orm::wq::le, val);
+	}
+
+M_MODEL& orlikePassword(const std::string &val)
+	{return whereOr(B_BASE::cols::password, orm::wq::like, val);
+	}
+
+M_MODEL& ornullPassword()
+	{return whereOrNull(B_BASE::cols::password);
+	}
+
+M_MODEL& ornotnullPassword()
+	{return whereOrNotNull(B_BASE::cols::password);
+	}
 
 M_MODEL& eqNickname(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname = '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::nickname, orm::wq::eq, val);
+	}
 
 M_MODEL& nqNickname(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname != '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& inNickname(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& inNickname(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& inNickname(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninNickname(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname NOT IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninNickname(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& ninNickname(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& likeNickname(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& l_likeNickname(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& r_likeNickname(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname LIKE '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::nickname, orm::wq::nq, val);
+	}
 
 M_MODEL& btNickname(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname > '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::nickname, orm::wq::bt, val);
+	}
 
 M_MODEL& beNickname(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname >= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::nickname, orm::wq::be, val);
+	}
 
 M_MODEL& ltNickname(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname < '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::nickname, orm::wq::lt, val);
+	}
 
 M_MODEL& leNickname(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname <= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
+	{return where(B_BASE::cols::nickname, orm::wq::le, val);
+	}
 
-        return *mod;   
-    }   
-    
+M_MODEL& likeNickname(const std::string &val)
+	{return where(B_BASE::cols::nickname, orm::wq::like, val);
+	}
 
-M_MODEL& or_nullNickname()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname IS NULL ");
+M_MODEL& nullNickname()
+	{return whereNull(B_BASE::cols::nickname);
+	}
 
-        return *mod;   
-    }   
-    
+M_MODEL& notnullNickname()
+	{return whereNotNull(B_BASE::cols::nickname);
+	}
 
-M_MODEL& or_nnullNickname()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname IS NOT NULL ");
+M_MODEL& oreqNickname(const std::string &val)
+	{return whereOr(B_BASE::cols::nickname, orm::wq::eq, val);
+	}
 
-        return *mod;   
-    }   
-    
+M_MODEL& ornqNickname(const std::string &val)
+	{return whereOr(B_BASE::cols::nickname, orm::wq::nq, val);
+	}
 
-M_MODEL& or_eqNickname(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname = '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
+M_MODEL& orbtNickname(const std::string &val)
+	{return whereOr(B_BASE::cols::nickname, orm::wq::bt, val);
+	}
 
-        return *mod;   
-    }   
-    
+M_MODEL& orbeNickname(const std::string &val)
+	{return whereOr(B_BASE::cols::nickname, orm::wq::be, val);
+	}
 
-M_MODEL& or_nqNickname(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname != '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
+M_MODEL& orltNickname(const std::string &val)
+	{return whereOr(B_BASE::cols::nickname, orm::wq::lt, val);
+	}
 
-        return *mod;   
-    }   
-    
+M_MODEL& orleNickname(const std::string &val)
+	{return whereOr(B_BASE::cols::nickname, orm::wq::le, val);
+	}
 
-M_MODEL& or_inNickname(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
+M_MODEL& orlikeNickname(const std::string &val)
+	{return whereOr(B_BASE::cols::nickname, orm::wq::like, val);
+	}
 
-        return *mod;   
-    }   
-    
+M_MODEL& ornullNickname()
+	{return whereOrNull(B_BASE::cols::nickname);
+	}
 
-M_MODEL& or_inNickname(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_inNickname(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninNickname(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname NOT IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninNickname(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_ninNickname(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_likeNickname(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& orl_likeNickname(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& orr_likeNickname(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname LIKE '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_btNickname(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname > '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_beNickname(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname >= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ltNickname(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname < '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_leNickname(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname <= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& eqNickname(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname = '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& nqNickname(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname != '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& btNickname(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname > '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& beNickname(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname >= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& ltNickname(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname < '");
-		wheresql.append(std::to_string(val));
-		wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& leNickname(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname <= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_eqNickname(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname = '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_nqNickname(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname != '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_btNickname(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname > '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_beNickname(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname >= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_ltNickname(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname < '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_leNickname(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" nickname <= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+M_MODEL& ornotnullNickname()
+	{return whereOrNotNull(B_BASE::cols::nickname);
+	}
 
 M_MODEL& eqIsopen(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen = ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::isopen, orm::wq::eq, val);
+	}
 
 M_MODEL& nqIsopen(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen != ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& inIsopen(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen IN('");
-
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& inIsopen(const T &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen IN(");
-
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& inIsopen(const std::vector<T>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-            wheresql.append(std::to_string(val[i]));
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& inIsopen(const std::vector<std::string>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninIsopen(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen NOT IN('");
-
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& ninIsopen(const T &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen NOT IN(");
-
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& ninIsopen(const std::vector<T>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-            wheresql.append(std::to_string(val[i]));
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninIsopen(const std::vector<std::string>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::isopen, orm::wq::nq, val);
+	}
 
 M_MODEL& btIsopen(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen > ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::isopen, orm::wq::bt, val);
+	}
 
 M_MODEL& beIsopen(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen >= ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::isopen, orm::wq::be, val);
+	}
 
 M_MODEL& ltIsopen(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen < ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::isopen, orm::wq::lt, val);
+	}
 
 M_MODEL& leIsopen(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen <= ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_eqIsopen(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen = ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_nqIsopen(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen != ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_inIsopen(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen IN('");
-
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_inIsopen(const T &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen IN(");
-
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_inIsopen(const std::vector<T>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-            wheresql.append(std::to_string(val[i]));
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_inIsopen(const std::vector<std::string>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninIsopen(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen NOT IN('");
-
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_ninIsopen(const T &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen NOT IN(");
-
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_ninIsopen(const std::vector<T>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-            wheresql.append(std::to_string(val[i]));
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninIsopen(const std::vector<std::string>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_btIsopen(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen > ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_beIsopen(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen >= ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ltIsopen(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen < ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_leIsopen(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen <= ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::isopen, orm::wq::le, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& eqIsopen(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen = ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::isopen, orm::wq::eq, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& nqIsopen(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen != ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::isopen, orm::wq::nq, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& btIsopen(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen > ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::isopen, orm::wq::bt, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& beIsopen(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen >= ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::isopen, orm::wq::be, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& ltIsopen(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen < ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::isopen, orm::wq::lt, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& leIsopen(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen <= ");
+	{return where(B_BASE::cols::isopen, orm::wq::le, val);
+	}
 
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& nullIsopen()
+	{return whereNull(B_BASE::cols::isopen);
+	}
 
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_eqIsopen(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen = ");
+M_MODEL& notnullIsopen()
+	{return whereNotNull(B_BASE::cols::isopen);
+	}
 
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& oreqIsopen(const std::string &val)
+	{return whereOr(B_BASE::cols::isopen, orm::wq::eq, val);
+	}
+
+M_MODEL& ornqIsopen(const std::string &val)
+	{return whereOr(B_BASE::cols::isopen, orm::wq::nq, val);
+	}
+
+M_MODEL& orbtIsopen(const std::string &val)
+	{return whereOr(B_BASE::cols::isopen, orm::wq::bt, val);
+	}
+
+M_MODEL& orbeIsopen(const std::string &val)
+	{return whereOr(B_BASE::cols::isopen, orm::wq::be, val);
+	}
+
+M_MODEL& orltIsopen(const std::string &val)
+	{return whereOr(B_BASE::cols::isopen, orm::wq::lt, val);
+	}
+
+M_MODEL& orleIsopen(const std::string &val)
+	{return whereOr(B_BASE::cols::isopen, orm::wq::le, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_nqIsopen(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen != ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& oreqIsopen(T val)
+	{return whereOr(B_BASE::cols::isopen, orm::wq::eq, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_btIsopen(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen > ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& ornqIsopen(T val)
+	{return whereOr(B_BASE::cols::isopen, orm::wq::nq, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_beIsopen(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen >= ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& orbtIsopen(T val)
+	{return whereOr(B_BASE::cols::isopen, orm::wq::bt, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_ltIsopen(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen < ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& orbeIsopen(T val)
+	{return whereOr(B_BASE::cols::isopen, orm::wq::be, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_leIsopen(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" isopen <= ");
+M_MODEL& orltIsopen(T val)
+	{return whereOr(B_BASE::cols::isopen, orm::wq::lt, val);
+	}
 
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& orleIsopen(T val)
+	{return whereOr(B_BASE::cols::isopen, orm::wq::le, val);
+	}
+
+M_MODEL& ornullIsopen()
+	{return whereOrNull(B_BASE::cols::isopen);
+	}
+
+M_MODEL& ornotnullIsopen()
+	{return whereOrNotNull(B_BASE::cols::isopen);
+	}
 
 M_MODEL& eqBegindate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate = ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::begindate, orm::wq::eq, val);
+	}
 
 M_MODEL& nqBegindate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate != ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& inBegindate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate IN('");
-
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& inBegindate(const T &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate IN(");
-
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& inBegindate(const std::vector<T>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-            wheresql.append(std::to_string(val[i]));
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& inBegindate(const std::vector<std::string>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninBegindate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate NOT IN('");
-
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& ninBegindate(const T &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate NOT IN(");
-
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& ninBegindate(const std::vector<T>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-            wheresql.append(std::to_string(val[i]));
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninBegindate(const std::vector<std::string>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::begindate, orm::wq::nq, val);
+	}
 
 M_MODEL& btBegindate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate > ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::begindate, orm::wq::bt, val);
+	}
 
 M_MODEL& beBegindate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate >= ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::begindate, orm::wq::be, val);
+	}
 
 M_MODEL& ltBegindate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate < ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::begindate, orm::wq::lt, val);
+	}
 
 M_MODEL& leBegindate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate <= ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_eqBegindate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate = ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_nqBegindate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate != ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_inBegindate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate IN('");
-
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_inBegindate(const T &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate IN(");
-
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_inBegindate(const std::vector<T>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-            wheresql.append(std::to_string(val[i]));
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_inBegindate(const std::vector<std::string>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninBegindate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate NOT IN('");
-
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_ninBegindate(const T &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate NOT IN(");
-
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_ninBegindate(const std::vector<T>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-            wheresql.append(std::to_string(val[i]));
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninBegindate(const std::vector<std::string>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_btBegindate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate > ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_beBegindate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate >= ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ltBegindate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate < ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_leBegindate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate <= ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::begindate, orm::wq::le, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& eqBegindate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate = ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::begindate, orm::wq::eq, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& nqBegindate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate != ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::begindate, orm::wq::nq, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& btBegindate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate > ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::begindate, orm::wq::bt, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& beBegindate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate >= ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::begindate, orm::wq::be, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& ltBegindate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate < ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::begindate, orm::wq::lt, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& leBegindate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate <= ");
+	{return where(B_BASE::cols::begindate, orm::wq::le, val);
+	}
 
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& nullBegindate()
+	{return whereNull(B_BASE::cols::begindate);
+	}
 
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_eqBegindate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate = ");
+M_MODEL& notnullBegindate()
+	{return whereNotNull(B_BASE::cols::begindate);
+	}
 
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& oreqBegindate(const std::string &val)
+	{return whereOr(B_BASE::cols::begindate, orm::wq::eq, val);
+	}
+
+M_MODEL& ornqBegindate(const std::string &val)
+	{return whereOr(B_BASE::cols::begindate, orm::wq::nq, val);
+	}
+
+M_MODEL& orbtBegindate(const std::string &val)
+	{return whereOr(B_BASE::cols::begindate, orm::wq::bt, val);
+	}
+
+M_MODEL& orbeBegindate(const std::string &val)
+	{return whereOr(B_BASE::cols::begindate, orm::wq::be, val);
+	}
+
+M_MODEL& orltBegindate(const std::string &val)
+	{return whereOr(B_BASE::cols::begindate, orm::wq::lt, val);
+	}
+
+M_MODEL& orleBegindate(const std::string &val)
+	{return whereOr(B_BASE::cols::begindate, orm::wq::le, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_nqBegindate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate != ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& oreqBegindate(T val)
+	{return whereOr(B_BASE::cols::begindate, orm::wq::eq, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_btBegindate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate > ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& ornqBegindate(T val)
+	{return whereOr(B_BASE::cols::begindate, orm::wq::nq, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_beBegindate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate >= ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& orbtBegindate(T val)
+	{return whereOr(B_BASE::cols::begindate, orm::wq::bt, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_ltBegindate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate < ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& orbeBegindate(T val)
+	{return whereOr(B_BASE::cols::begindate, orm::wq::be, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_leBegindate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" begindate <= ");
+M_MODEL& orltBegindate(T val)
+	{return whereOr(B_BASE::cols::begindate, orm::wq::lt, val);
+	}
 
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& orleBegindate(T val)
+	{return whereOr(B_BASE::cols::begindate, orm::wq::le, val);
+	}
+
+M_MODEL& ornullBegindate()
+	{return whereOrNull(B_BASE::cols::begindate);
+	}
+
+M_MODEL& ornotnullBegindate()
+	{return whereOrNotNull(B_BASE::cols::begindate);
+	}
 
 M_MODEL& eqEnddate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate = ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::enddate, orm::wq::eq, val);
+	}
 
 M_MODEL& nqEnddate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate != ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& inEnddate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate IN('");
-
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& inEnddate(const T &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate IN(");
-
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& inEnddate(const std::vector<T>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-            wheresql.append(std::to_string(val[i]));
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& inEnddate(const std::vector<std::string>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninEnddate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate NOT IN('");
-
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& ninEnddate(const T &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate NOT IN(");
-
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& ninEnddate(const std::vector<T>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-            wheresql.append(std::to_string(val[i]));
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninEnddate(const std::vector<std::string>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::enddate, orm::wq::nq, val);
+	}
 
 M_MODEL& btEnddate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate > ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::enddate, orm::wq::bt, val);
+	}
 
 M_MODEL& beEnddate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate >= ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::enddate, orm::wq::be, val);
+	}
 
 M_MODEL& ltEnddate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate < ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::enddate, orm::wq::lt, val);
+	}
 
 M_MODEL& leEnddate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate <= ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_eqEnddate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate = ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_nqEnddate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate != ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_inEnddate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate IN('");
-
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_inEnddate(const T &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate IN(");
-
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_inEnddate(const std::vector<T>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-            wheresql.append(std::to_string(val[i]));
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_inEnddate(const std::vector<std::string>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninEnddate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate NOT IN('");
-
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_ninEnddate(const T &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate NOT IN(");
-
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_ninEnddate(const std::vector<T>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-            wheresql.append(std::to_string(val[i]));
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninEnddate(const std::vector<std::string>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_btEnddate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate > ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_beEnddate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate >= ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ltEnddate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate < ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_leEnddate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate <= ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::enddate, orm::wq::le, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& eqEnddate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate = ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::enddate, orm::wq::eq, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& nqEnddate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate != ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::enddate, orm::wq::nq, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& btEnddate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate > ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::enddate, orm::wq::bt, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& beEnddate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate >= ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::enddate, orm::wq::be, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& ltEnddate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate < ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::enddate, orm::wq::lt, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& leEnddate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate <= ");
+	{return where(B_BASE::cols::enddate, orm::wq::le, val);
+	}
 
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& nullEnddate()
+	{return whereNull(B_BASE::cols::enddate);
+	}
 
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_eqEnddate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate = ");
+M_MODEL& notnullEnddate()
+	{return whereNotNull(B_BASE::cols::enddate);
+	}
 
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& oreqEnddate(const std::string &val)
+	{return whereOr(B_BASE::cols::enddate, orm::wq::eq, val);
+	}
+
+M_MODEL& ornqEnddate(const std::string &val)
+	{return whereOr(B_BASE::cols::enddate, orm::wq::nq, val);
+	}
+
+M_MODEL& orbtEnddate(const std::string &val)
+	{return whereOr(B_BASE::cols::enddate, orm::wq::bt, val);
+	}
+
+M_MODEL& orbeEnddate(const std::string &val)
+	{return whereOr(B_BASE::cols::enddate, orm::wq::be, val);
+	}
+
+M_MODEL& orltEnddate(const std::string &val)
+	{return whereOr(B_BASE::cols::enddate, orm::wq::lt, val);
+	}
+
+M_MODEL& orleEnddate(const std::string &val)
+	{return whereOr(B_BASE::cols::enddate, orm::wq::le, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_nqEnddate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate != ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& oreqEnddate(T val)
+	{return whereOr(B_BASE::cols::enddate, orm::wq::eq, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_btEnddate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate > ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& ornqEnddate(T val)
+	{return whereOr(B_BASE::cols::enddate, orm::wq::nq, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_beEnddate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate >= ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& orbtEnddate(T val)
+	{return whereOr(B_BASE::cols::enddate, orm::wq::bt, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_ltEnddate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate < ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& orbeEnddate(T val)
+	{return whereOr(B_BASE::cols::enddate, orm::wq::be, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_leEnddate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" enddate <= ");
+M_MODEL& orltEnddate(T val)
+	{return whereOr(B_BASE::cols::enddate, orm::wq::lt, val);
+	}
 
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& orleEnddate(T val)
+	{return whereOr(B_BASE::cols::enddate, orm::wq::le, val);
+	}
 
-M_MODEL& nullRegdate()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate IS NULL ");
+M_MODEL& ornullEnddate()
+	{return whereOrNull(B_BASE::cols::enddate);
+	}
 
-        return *mod;   
-    }   
-    
-
-M_MODEL& nnullRegdate()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate IS NOT NULL ");
-
-        return *mod;   
-    }   
-    
+M_MODEL& ornotnullEnddate()
+	{return whereOrNotNull(B_BASE::cols::enddate);
+	}
 
 M_MODEL& eqRegdate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate = '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::regdate, orm::wq::eq, val);
+	}
 
 M_MODEL& nqRegdate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate != '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& inRegdate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& inRegdate(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& inRegdate(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninRegdate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate NOT IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninRegdate(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& ninRegdate(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& likeRegdate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& l_likeRegdate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& r_likeRegdate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate LIKE '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::regdate, orm::wq::nq, val);
+	}
 
 M_MODEL& btRegdate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate > '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::regdate, orm::wq::bt, val);
+	}
 
 M_MODEL& beRegdate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate >= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::regdate, orm::wq::be, val);
+	}
 
 M_MODEL& ltRegdate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate < '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::regdate, orm::wq::lt, val);
+	}
 
 M_MODEL& leRegdate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate <= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_nullRegdate()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate IS NULL ");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_nnullRegdate()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate IS NOT NULL ");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_eqRegdate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate = '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_nqRegdate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate != '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_inRegdate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_inRegdate(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_inRegdate(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninRegdate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate NOT IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninRegdate(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_ninRegdate(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_likeRegdate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& orl_likeRegdate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& orr_likeRegdate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate LIKE '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_btRegdate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate > '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_beRegdate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate >= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ltRegdate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate < '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_leRegdate(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate <= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& eqRegdate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate = '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& nqRegdate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate != '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& btRegdate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate > '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& beRegdate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate >= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& ltRegdate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate < '");
-		wheresql.append(std::to_string(val));
-		wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& leRegdate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate <= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_eqRegdate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate = '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_nqRegdate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate != '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_btRegdate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate > '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_beRegdate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate >= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_ltRegdate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate < '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_leRegdate(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" regdate <= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& nullMobile()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile IS NULL ");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& nnullMobile()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile IS NOT NULL ");
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::regdate, orm::wq::le, val);
+	}
+
+M_MODEL& likeRegdate(const std::string &val)
+	{return where(B_BASE::cols::regdate, orm::wq::like, val);
+	}
+
+M_MODEL& nullRegdate()
+	{return whereNull(B_BASE::cols::regdate);
+	}
+
+M_MODEL& notnullRegdate()
+	{return whereNotNull(B_BASE::cols::regdate);
+	}
+
+M_MODEL& oreqRegdate(const std::string &val)
+	{return whereOr(B_BASE::cols::regdate, orm::wq::eq, val);
+	}
+
+M_MODEL& ornqRegdate(const std::string &val)
+	{return whereOr(B_BASE::cols::regdate, orm::wq::nq, val);
+	}
+
+M_MODEL& orbtRegdate(const std::string &val)
+	{return whereOr(B_BASE::cols::regdate, orm::wq::bt, val);
+	}
+
+M_MODEL& orbeRegdate(const std::string &val)
+	{return whereOr(B_BASE::cols::regdate, orm::wq::be, val);
+	}
+
+M_MODEL& orltRegdate(const std::string &val)
+	{return whereOr(B_BASE::cols::regdate, orm::wq::lt, val);
+	}
+
+M_MODEL& orleRegdate(const std::string &val)
+	{return whereOr(B_BASE::cols::regdate, orm::wq::le, val);
+	}
+
+M_MODEL& orlikeRegdate(const std::string &val)
+	{return whereOr(B_BASE::cols::regdate, orm::wq::like, val);
+	}
+
+M_MODEL& ornullRegdate()
+	{return whereOrNull(B_BASE::cols::regdate);
+	}
+
+M_MODEL& ornotnullRegdate()
+	{return whereOrNotNull(B_BASE::cols::regdate);
+	}
 
 M_MODEL& eqMobile(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile = '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::mobile, orm::wq::eq, val);
+	}
 
 M_MODEL& nqMobile(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile != '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& inMobile(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& inMobile(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& inMobile(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninMobile(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile NOT IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninMobile(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& ninMobile(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& likeMobile(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& l_likeMobile(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& r_likeMobile(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile LIKE '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::mobile, orm::wq::nq, val);
+	}
 
 M_MODEL& btMobile(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile > '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::mobile, orm::wq::bt, val);
+	}
 
 M_MODEL& beMobile(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile >= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::mobile, orm::wq::be, val);
+	}
 
 M_MODEL& ltMobile(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile < '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::mobile, orm::wq::lt, val);
+	}
 
 M_MODEL& leMobile(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile <= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_nullMobile()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile IS NULL ");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_nnullMobile()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile IS NOT NULL ");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_eqMobile(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile = '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_nqMobile(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile != '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_inMobile(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_inMobile(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_inMobile(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninMobile(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile NOT IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninMobile(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_ninMobile(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_likeMobile(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& orl_likeMobile(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& orr_likeMobile(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile LIKE '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_btMobile(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile > '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_beMobile(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile >= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ltMobile(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile < '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_leMobile(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile <= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& eqMobile(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile = '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& nqMobile(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile != '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& btMobile(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile > '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& beMobile(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile >= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& ltMobile(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile < '");
-		wheresql.append(std::to_string(val));
-		wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& leMobile(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile <= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_eqMobile(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile = '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_nqMobile(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile != '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_btMobile(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile > '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_beMobile(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile >= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_ltMobile(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile < '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_leMobile(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" mobile <= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& nullEmail()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email IS NULL ");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& nnullEmail()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email IS NOT NULL ");
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::mobile, orm::wq::le, val);
+	}
+
+M_MODEL& likeMobile(const std::string &val)
+	{return where(B_BASE::cols::mobile, orm::wq::like, val);
+	}
+
+M_MODEL& nullMobile()
+	{return whereNull(B_BASE::cols::mobile);
+	}
+
+M_MODEL& notnullMobile()
+	{return whereNotNull(B_BASE::cols::mobile);
+	}
+
+M_MODEL& oreqMobile(const std::string &val)
+	{return whereOr(B_BASE::cols::mobile, orm::wq::eq, val);
+	}
+
+M_MODEL& ornqMobile(const std::string &val)
+	{return whereOr(B_BASE::cols::mobile, orm::wq::nq, val);
+	}
+
+M_MODEL& orbtMobile(const std::string &val)
+	{return whereOr(B_BASE::cols::mobile, orm::wq::bt, val);
+	}
+
+M_MODEL& orbeMobile(const std::string &val)
+	{return whereOr(B_BASE::cols::mobile, orm::wq::be, val);
+	}
+
+M_MODEL& orltMobile(const std::string &val)
+	{return whereOr(B_BASE::cols::mobile, orm::wq::lt, val);
+	}
+
+M_MODEL& orleMobile(const std::string &val)
+	{return whereOr(B_BASE::cols::mobile, orm::wq::le, val);
+	}
+
+M_MODEL& orlikeMobile(const std::string &val)
+	{return whereOr(B_BASE::cols::mobile, orm::wq::like, val);
+	}
+
+M_MODEL& ornullMobile()
+	{return whereOrNull(B_BASE::cols::mobile);
+	}
+
+M_MODEL& ornotnullMobile()
+	{return whereOrNotNull(B_BASE::cols::mobile);
+	}
 
 M_MODEL& eqEmail(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email = '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::email, orm::wq::eq, val);
+	}
 
 M_MODEL& nqEmail(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email != '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& inEmail(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& inEmail(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& inEmail(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninEmail(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email NOT IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninEmail(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& ninEmail(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& likeEmail(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& l_likeEmail(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& r_likeEmail(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email LIKE '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::email, orm::wq::nq, val);
+	}
 
 M_MODEL& btEmail(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email > '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::email, orm::wq::bt, val);
+	}
 
 M_MODEL& beEmail(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email >= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::email, orm::wq::be, val);
+	}
 
 M_MODEL& ltEmail(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email < '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::email, orm::wq::lt, val);
+	}
 
 M_MODEL& leEmail(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email <= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
+	{return where(B_BASE::cols::email, orm::wq::le, val);
+	}
 
-        return *mod;   
-    }   
-    
+M_MODEL& likeEmail(const std::string &val)
+	{return where(B_BASE::cols::email, orm::wq::like, val);
+	}
 
-M_MODEL& or_nullEmail()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email IS NULL ");
+M_MODEL& nullEmail()
+	{return whereNull(B_BASE::cols::email);
+	}
 
-        return *mod;   
-    }   
-    
+M_MODEL& notnullEmail()
+	{return whereNotNull(B_BASE::cols::email);
+	}
 
-M_MODEL& or_nnullEmail()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email IS NOT NULL ");
+M_MODEL& oreqEmail(const std::string &val)
+	{return whereOr(B_BASE::cols::email, orm::wq::eq, val);
+	}
 
-        return *mod;   
-    }   
-    
+M_MODEL& ornqEmail(const std::string &val)
+	{return whereOr(B_BASE::cols::email, orm::wq::nq, val);
+	}
 
-M_MODEL& or_eqEmail(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email = '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
+M_MODEL& orbtEmail(const std::string &val)
+	{return whereOr(B_BASE::cols::email, orm::wq::bt, val);
+	}
 
-        return *mod;   
-    }   
-    
+M_MODEL& orbeEmail(const std::string &val)
+	{return whereOr(B_BASE::cols::email, orm::wq::be, val);
+	}
 
-M_MODEL& or_nqEmail(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email != '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
+M_MODEL& orltEmail(const std::string &val)
+	{return whereOr(B_BASE::cols::email, orm::wq::lt, val);
+	}
 
-        return *mod;   
-    }   
-    
+M_MODEL& orleEmail(const std::string &val)
+	{return whereOr(B_BASE::cols::email, orm::wq::le, val);
+	}
 
-M_MODEL& or_inEmail(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
+M_MODEL& orlikeEmail(const std::string &val)
+	{return whereOr(B_BASE::cols::email, orm::wq::like, val);
+	}
 
-        return *mod;   
-    }   
-    
+M_MODEL& ornullEmail()
+	{return whereOrNull(B_BASE::cols::email);
+	}
 
-M_MODEL& or_inEmail(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_inEmail(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninEmail(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email NOT IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninEmail(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_ninEmail(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_likeEmail(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& orl_likeEmail(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& orr_likeEmail(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email LIKE '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_btEmail(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email > '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_beEmail(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email >= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ltEmail(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email < '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_leEmail(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email <= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& eqEmail(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email = '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& nqEmail(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email != '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& btEmail(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email > '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& beEmail(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email >= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& ltEmail(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email < '");
-		wheresql.append(std::to_string(val));
-		wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& leEmail(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email <= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_eqEmail(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email = '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_nqEmail(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email != '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_btEmail(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email > '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_beEmail(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email >= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_ltEmail(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email < '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_leEmail(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" email <= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+M_MODEL& ornotnullEmail()
+	{return whereOrNotNull(B_BASE::cols::email);
+	}
 
 M_MODEL& eqLoginnum(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum = ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::loginnum, orm::wq::eq, val);
+	}
 
 M_MODEL& nqLoginnum(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum != ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& inLoginnum(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum IN('");
-
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& inLoginnum(const T &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum IN(");
-
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& inLoginnum(const std::vector<T>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-            wheresql.append(std::to_string(val[i]));
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& inLoginnum(const std::vector<std::string>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninLoginnum(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum NOT IN('");
-
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& ninLoginnum(const T &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum NOT IN(");
-
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& ninLoginnum(const std::vector<T>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-            wheresql.append(std::to_string(val[i]));
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninLoginnum(const std::vector<std::string>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::loginnum, orm::wq::nq, val);
+	}
 
 M_MODEL& btLoginnum(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum > ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::loginnum, orm::wq::bt, val);
+	}
 
 M_MODEL& beLoginnum(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum >= ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::loginnum, orm::wq::be, val);
+	}
 
 M_MODEL& ltLoginnum(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum < ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::loginnum, orm::wq::lt, val);
+	}
 
 M_MODEL& leLoginnum(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum <= ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_eqLoginnum(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum = ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_nqLoginnum(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum != ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_inLoginnum(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum IN('");
-
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_inLoginnum(const T &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum IN(");
-
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_inLoginnum(const std::vector<T>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-            wheresql.append(std::to_string(val[i]));
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_inLoginnum(const std::vector<std::string>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninLoginnum(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum NOT IN('");
-
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_ninLoginnum(const T &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum NOT IN(");
-
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_ninLoginnum(const std::vector<T>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-            wheresql.append(std::to_string(val[i]));
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninLoginnum(const std::vector<std::string>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_btLoginnum(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum > ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_beLoginnum(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum >= ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ltLoginnum(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum < ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_leLoginnum(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum <= ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::loginnum, orm::wq::le, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& eqLoginnum(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum = ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::loginnum, orm::wq::eq, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& nqLoginnum(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum != ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::loginnum, orm::wq::nq, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& btLoginnum(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum > ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::loginnum, orm::wq::bt, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& beLoginnum(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum >= ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::loginnum, orm::wq::be, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& ltLoginnum(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum < ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::loginnum, orm::wq::lt, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& leLoginnum(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum <= ");
+	{return where(B_BASE::cols::loginnum, orm::wq::le, val);
+	}
 
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& nullLoginnum()
+	{return whereNull(B_BASE::cols::loginnum);
+	}
 
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_eqLoginnum(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum = ");
+M_MODEL& notnullLoginnum()
+	{return whereNotNull(B_BASE::cols::loginnum);
+	}
 
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& oreqLoginnum(const std::string &val)
+	{return whereOr(B_BASE::cols::loginnum, orm::wq::eq, val);
+	}
+
+M_MODEL& ornqLoginnum(const std::string &val)
+	{return whereOr(B_BASE::cols::loginnum, orm::wq::nq, val);
+	}
+
+M_MODEL& orbtLoginnum(const std::string &val)
+	{return whereOr(B_BASE::cols::loginnum, orm::wq::bt, val);
+	}
+
+M_MODEL& orbeLoginnum(const std::string &val)
+	{return whereOr(B_BASE::cols::loginnum, orm::wq::be, val);
+	}
+
+M_MODEL& orltLoginnum(const std::string &val)
+	{return whereOr(B_BASE::cols::loginnum, orm::wq::lt, val);
+	}
+
+M_MODEL& orleLoginnum(const std::string &val)
+	{return whereOr(B_BASE::cols::loginnum, orm::wq::le, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_nqLoginnum(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum != ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& oreqLoginnum(T val)
+	{return whereOr(B_BASE::cols::loginnum, orm::wq::eq, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_btLoginnum(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum > ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& ornqLoginnum(T val)
+	{return whereOr(B_BASE::cols::loginnum, orm::wq::nq, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_beLoginnum(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum >= ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& orbtLoginnum(T val)
+	{return whereOr(B_BASE::cols::loginnum, orm::wq::bt, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_ltLoginnum(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum < ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& orbeLoginnum(T val)
+	{return whereOr(B_BASE::cols::loginnum, orm::wq::be, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_leLoginnum(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" loginnum <= ");
+M_MODEL& orltLoginnum(T val)
+	{return whereOr(B_BASE::cols::loginnum, orm::wq::lt, val);
+	}
 
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& orleLoginnum(T val)
+	{return whereOr(B_BASE::cols::loginnum, orm::wq::le, val);
+	}
+
+M_MODEL& ornullLoginnum()
+	{return whereOrNull(B_BASE::cols::loginnum);
+	}
+
+M_MODEL& ornotnullLoginnum()
+	{return whereOrNotNull(B_BASE::cols::loginnum);
+	}
 
 M_MODEL& eqQrtemp(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp = ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::qrtemp, orm::wq::eq, val);
+	}
 
 M_MODEL& nqQrtemp(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp != ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& inQrtemp(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp IN('");
-
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& inQrtemp(const T &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp IN(");
-
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& inQrtemp(const std::vector<T>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-            wheresql.append(std::to_string(val[i]));
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& inQrtemp(const std::vector<std::string>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninQrtemp(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp NOT IN('");
-
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& ninQrtemp(const T &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp NOT IN(");
-
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& ninQrtemp(const std::vector<T>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-            wheresql.append(std::to_string(val[i]));
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninQrtemp(const std::vector<std::string>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::qrtemp, orm::wq::nq, val);
+	}
 
 M_MODEL& btQrtemp(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp > ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::qrtemp, orm::wq::bt, val);
+	}
 
 M_MODEL& beQrtemp(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp >= ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::qrtemp, orm::wq::be, val);
+	}
 
 M_MODEL& ltQrtemp(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp < ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::qrtemp, orm::wq::lt, val);
+	}
 
 M_MODEL& leQrtemp(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp <= ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_eqQrtemp(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp = ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_nqQrtemp(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp != ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_inQrtemp(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp IN('");
-
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_inQrtemp(const T &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp IN(");
-
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_inQrtemp(const std::vector<T>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-            wheresql.append(std::to_string(val[i]));
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_inQrtemp(const std::vector<std::string>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninQrtemp(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp NOT IN('");
-
-        wheresql.append(B_BASE::stringaddslash(val));
-        wheresql.push_back('\'');
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_ninQrtemp(const T &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp NOT IN(");
-
-        wheresql.append(std::to_string(val));
-        wheresql.push_back(')');
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_ninQrtemp(const std::vector<T>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-            wheresql.append(std::to_string(val[i]));
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninQrtemp(const std::vector<std::string>& val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i > 0)
-            {
-                wheresql.push_back(',');
-            }
-
-            try
-            {
-                wheresql.append(std::to_string(std::stoll(val[i])));
-            }
-            catch (std::invalid_argument const& ex)
-            {
-                wheresql.push_back('0');
-            }
-            catch (std::out_of_range const& ex)
-            {
-                wheresql.push_back('0');
-            }
-        }
-        wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_btQrtemp(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp > ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_beQrtemp(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp >= ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ltQrtemp(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp < ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_leQrtemp(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp <= ");
-
-        try
-        {
-            wheresql.append(std::to_string(std::stoll(val)));
-        }
-        catch (std::invalid_argument const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        catch (std::out_of_range const& ex)
-        {
-           wheresql.push_back('0');
-        }
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::qrtemp, orm::wq::le, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& eqQrtemp(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp = ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::qrtemp, orm::wq::eq, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& nqQrtemp(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp != ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::qrtemp, orm::wq::nq, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& btQrtemp(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp > ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::qrtemp, orm::wq::bt, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& beQrtemp(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp >= ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::qrtemp, orm::wq::be, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& ltQrtemp(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp < ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::qrtemp, orm::wq::lt, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
 M_MODEL& leQrtemp(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp <= ");
+	{return where(B_BASE::cols::qrtemp, orm::wq::le, val);
+	}
 
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& nullQrtemp()
+	{return whereNull(B_BASE::cols::qrtemp);
+	}
 
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_eqQrtemp(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp = ");
+M_MODEL& notnullQrtemp()
+	{return whereNotNull(B_BASE::cols::qrtemp);
+	}
 
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& oreqQrtemp(const std::string &val)
+	{return whereOr(B_BASE::cols::qrtemp, orm::wq::eq, val);
+	}
+
+M_MODEL& ornqQrtemp(const std::string &val)
+	{return whereOr(B_BASE::cols::qrtemp, orm::wq::nq, val);
+	}
+
+M_MODEL& orbtQrtemp(const std::string &val)
+	{return whereOr(B_BASE::cols::qrtemp, orm::wq::bt, val);
+	}
+
+M_MODEL& orbeQrtemp(const std::string &val)
+	{return whereOr(B_BASE::cols::qrtemp, orm::wq::be, val);
+	}
+
+M_MODEL& orltQrtemp(const std::string &val)
+	{return whereOr(B_BASE::cols::qrtemp, orm::wq::lt, val);
+	}
+
+M_MODEL& orleQrtemp(const std::string &val)
+	{return whereOr(B_BASE::cols::qrtemp, orm::wq::le, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_nqQrtemp(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp != ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& oreqQrtemp(T val)
+	{return whereOr(B_BASE::cols::qrtemp, orm::wq::eq, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_btQrtemp(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp > ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& ornqQrtemp(T val)
+	{return whereOr(B_BASE::cols::qrtemp, orm::wq::nq, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_beQrtemp(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp >= ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& orbtQrtemp(T val)
+	{return whereOr(B_BASE::cols::qrtemp, orm::wq::bt, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_ltQrtemp(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp < ");
-
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+M_MODEL& orbeQrtemp(T val)
+	{return whereOr(B_BASE::cols::qrtemp, orm::wq::be, val);
+	}
 
 template <typename T>
 	requires std::is_integral_v<T>
-M_MODEL& or_leQrtemp(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" qrtemp <= ");
+M_MODEL& orltQrtemp(T val)
+	{return whereOr(B_BASE::cols::qrtemp, orm::wq::lt, val);
+	}
 
-        wheresql.append(std::to_string(val));
-        return *mod;   
-    }   
-    
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& orleQrtemp(T val)
+	{return whereOr(B_BASE::cols::qrtemp, orm::wq::le, val);
+	}
 
-M_MODEL& nullWxuuid()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid IS NULL ");
+M_MODEL& ornullQrtemp()
+	{return whereOrNull(B_BASE::cols::qrtemp);
+	}
 
-        return *mod;   
-    }   
-    
-
-M_MODEL& nnullWxuuid()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid IS NOT NULL ");
-
-        return *mod;   
-    }   
-    
+M_MODEL& ornotnullQrtemp()
+	{return whereOrNotNull(B_BASE::cols::qrtemp);
+	}
 
 M_MODEL& eqWxuuid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid = '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::wxuuid, orm::wq::eq, val);
+	}
 
 M_MODEL& nqWxuuid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid != '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& inWxuuid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& inWxuuid(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& inWxuuid(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninWxuuid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid NOT IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninWxuuid(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& ninWxuuid(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& likeWxuuid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& l_likeWxuuid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& r_likeWxuuid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid LIKE '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::wxuuid, orm::wq::nq, val);
+	}
 
 M_MODEL& btWxuuid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid > '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::wxuuid, orm::wq::bt, val);
+	}
 
 M_MODEL& beWxuuid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid >= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::wxuuid, orm::wq::be, val);
+	}
 
 M_MODEL& ltWxuuid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid < '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::wxuuid, orm::wq::lt, val);
+	}
 
 M_MODEL& leWxuuid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid <= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_nullWxuuid()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid IS NULL ");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_nnullWxuuid()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid IS NOT NULL ");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_eqWxuuid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid = '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_nqWxuuid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid != '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_inWxuuid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_inWxuuid(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_inWxuuid(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninWxuuid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid NOT IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninWxuuid(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_ninWxuuid(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_likeWxuuid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& orl_likeWxuuid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& orr_likeWxuuid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid LIKE '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_btWxuuid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid > '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_beWxuuid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid >= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ltWxuuid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid < '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_leWxuuid(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid <= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& eqWxuuid(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid = '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& nqWxuuid(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid != '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& btWxuuid(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid > '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& beWxuuid(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid >= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& ltWxuuid(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid < '");
-		wheresql.append(std::to_string(val));
-		wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& leWxuuid(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid <= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_eqWxuuid(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid = '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_nqWxuuid(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid != '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_btWxuuid(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid > '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_beWxuuid(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid >= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_ltWxuuid(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid < '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_leWxuuid(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" wxuuid <= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& nullBasesitepath()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath IS NULL ");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& nnullBasesitepath()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath IS NOT NULL ");
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::wxuuid, orm::wq::le, val);
+	}
+
+M_MODEL& likeWxuuid(const std::string &val)
+	{return where(B_BASE::cols::wxuuid, orm::wq::like, val);
+	}
+
+M_MODEL& nullWxuuid()
+	{return whereNull(B_BASE::cols::wxuuid);
+	}
+
+M_MODEL& notnullWxuuid()
+	{return whereNotNull(B_BASE::cols::wxuuid);
+	}
+
+M_MODEL& oreqWxuuid(const std::string &val)
+	{return whereOr(B_BASE::cols::wxuuid, orm::wq::eq, val);
+	}
+
+M_MODEL& ornqWxuuid(const std::string &val)
+	{return whereOr(B_BASE::cols::wxuuid, orm::wq::nq, val);
+	}
+
+M_MODEL& orbtWxuuid(const std::string &val)
+	{return whereOr(B_BASE::cols::wxuuid, orm::wq::bt, val);
+	}
+
+M_MODEL& orbeWxuuid(const std::string &val)
+	{return whereOr(B_BASE::cols::wxuuid, orm::wq::be, val);
+	}
+
+M_MODEL& orltWxuuid(const std::string &val)
+	{return whereOr(B_BASE::cols::wxuuid, orm::wq::lt, val);
+	}
+
+M_MODEL& orleWxuuid(const std::string &val)
+	{return whereOr(B_BASE::cols::wxuuid, orm::wq::le, val);
+	}
+
+M_MODEL& orlikeWxuuid(const std::string &val)
+	{return whereOr(B_BASE::cols::wxuuid, orm::wq::like, val);
+	}
+
+M_MODEL& ornullWxuuid()
+	{return whereOrNull(B_BASE::cols::wxuuid);
+	}
+
+M_MODEL& ornotnullWxuuid()
+	{return whereOrNotNull(B_BASE::cols::wxuuid);
+	}
 
 M_MODEL& eqBasesitepath(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath = '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::basesitepath, orm::wq::eq, val);
+	}
 
 M_MODEL& nqBasesitepath(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath != '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& inBasesitepath(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& inBasesitepath(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& inBasesitepath(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninBasesitepath(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath NOT IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& ninBasesitepath(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& ninBasesitepath(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& likeBasesitepath(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& l_likeBasesitepath(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& r_likeBasesitepath(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath LIKE '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::basesitepath, orm::wq::nq, val);
+	}
 
 M_MODEL& btBasesitepath(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath > '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::basesitepath, orm::wq::bt, val);
+	}
 
 M_MODEL& beBasesitepath(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath >= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::basesitepath, orm::wq::be, val);
+	}
 
 M_MODEL& ltBasesitepath(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath < '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+	{return where(B_BASE::cols::basesitepath, orm::wq::lt, val);
+	}
 
 M_MODEL& leBasesitepath(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath <= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
+	{return where(B_BASE::cols::basesitepath, orm::wq::le, val);
+	}
 
-        return *mod;   
-    }   
-    
+M_MODEL& likeBasesitepath(const std::string &val)
+	{return where(B_BASE::cols::basesitepath, orm::wq::like, val);
+	}
 
-M_MODEL& or_nullBasesitepath()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath IS NULL ");
+M_MODEL& nullBasesitepath()
+	{return whereNull(B_BASE::cols::basesitepath);
+	}
 
-        return *mod;   
-    }   
-    
+M_MODEL& notnullBasesitepath()
+	{return whereNotNull(B_BASE::cols::basesitepath);
+	}
 
-M_MODEL& or_nnullBasesitepath()
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath IS NOT NULL ");
+M_MODEL& oreqBasesitepath(const std::string &val)
+	{return whereOr(B_BASE::cols::basesitepath, orm::wq::eq, val);
+	}
 
-        return *mod;   
-    }   
-    
+M_MODEL& ornqBasesitepath(const std::string &val)
+	{return whereOr(B_BASE::cols::basesitepath, orm::wq::nq, val);
+	}
 
-M_MODEL& or_eqBasesitepath(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath = '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
+M_MODEL& orbtBasesitepath(const std::string &val)
+	{return whereOr(B_BASE::cols::basesitepath, orm::wq::bt, val);
+	}
 
-        return *mod;   
-    }   
-    
+M_MODEL& orbeBasesitepath(const std::string &val)
+	{return whereOr(B_BASE::cols::basesitepath, orm::wq::be, val);
+	}
 
-M_MODEL& or_nqBasesitepath(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath != '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
+M_MODEL& orltBasesitepath(const std::string &val)
+	{return whereOr(B_BASE::cols::basesitepath, orm::wq::lt, val);
+	}
 
-        return *mod;   
-    }   
-    
+M_MODEL& orleBasesitepath(const std::string &val)
+	{return whereOr(B_BASE::cols::basesitepath, orm::wq::le, val);
+	}
 
-M_MODEL& or_inBasesitepath(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
+M_MODEL& orlikeBasesitepath(const std::string &val)
+	{return whereOr(B_BASE::cols::basesitepath, orm::wq::like, val);
+	}
 
-        return *mod;   
-    }   
-    
+M_MODEL& ornullBasesitepath()
+	{return whereOrNull(B_BASE::cols::basesitepath);
+	}
 
-M_MODEL& or_inBasesitepath(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_inBasesitepath(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninBasesitepath(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath NOT IN('");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-				wheresql.push_back(')');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ninBasesitepath(const std::vector<std::string> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(B_BASE::stringaddslash(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-template <typename T>
-	requires std::is_integral_v<T>
-M_MODEL& or_ninBasesitepath(const std::vector<T> &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath NOT IN(");
-
-        for(unsigned int i=0;i<val.size(); i++)
-        {
-            if(i>0)
-            {
-                wheresql.push_back(',');  
-            }
-            wheresql.push_back('\'');  
-            wheresql.append(std::to_string(val[i]));
-            wheresql.push_back('\'');    
-        }
-
-    
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_likeBasesitepath(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& orl_likeBasesitepath(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath LIKE '%");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& orr_likeBasesitepath(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath LIKE '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.append("%'");
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_btBasesitepath(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath > '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_beBasesitepath(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath >= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_ltBasesitepath(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath < '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-M_MODEL& or_leBasesitepath(const std::string &val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath <= '");
-				wheresql.append(B_BASE::stringaddslash(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& eqBasesitepath(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath = '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& nqBasesitepath(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath != '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& btBasesitepath(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath > '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& beBasesitepath(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath >= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& ltBasesitepath(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath < '");
-		wheresql.append(std::to_string(val));
-		wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& leBasesitepath(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" AND ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" AND ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath <= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_eqBasesitepath(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath = '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_nqBasesitepath(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath != '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_btBasesitepath(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath > '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_beBasesitepath(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath >= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_ltBasesitepath(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath < '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
-
-template <typename T>
-		requires std::is_floating_point_v<T>||std::is_integral_v<T>
-M_MODEL& or_leBasesitepath(T val)
-	{
-        if (wheresql.empty())
-        {
-        }
-        else
-        {
-            if (ishascontent)
-            {
-                wheresql.append(" OR ");
-            }
-            else
-            {
-                if (!iskuohao)
-                {
-                    wheresql.append(" OR ");
-                }
-            }
-        }
-        if (iskuohao)
-        {
-            ishascontent = true;
-        }
-        wheresql.append(" basesitepath <= '");
-				wheresql.append(std::to_string(val));
-				wheresql.push_back('\'');
-
-        return *mod;   
-    }   
-    
+M_MODEL& ornotnullBasesitepath()
+	{return whereOrNotNull(B_BASE::cols::basesitepath);
+	}
 
         M_MODEL &select(std::string_view fields)
         {
@@ -22344,1780 +3143,1020 @@ M_MODEL& or_leBasesitepath(T val)
             return *mod;
         }
 
-        M_MODEL &where(std::string_view wq)
+        // === 兼容旧版 char/string 操作符 ===
+        static orm::wq char_to_wq(char op)
         {
-            if (wheresql.empty())
+            switch (op)
             {
+            case '=': return orm::wq::eq;
+            case '>': return orm::wq::bt;
+            case '<': return orm::wq::lt;
+            case '!': return orm::wq::nq;// '!='
+            default: return orm::wq::eq;
             }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-
-            wheresql.append(wq);
-            return *mod;
         }
-        template <typename _SQL_Value>
-            requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &where(std::string_view wq, _SQL_Value val)
+        static orm::wq str_to_wq(std::string_view op)
         {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.push_back('=');
-            wheresql.append(std::to_string(val));
-            return *mod;
+            if (op == "=" || op == "==")
+                return orm::wq::eq;
+            if (op == ">=")
+                return orm::wq::be;
+            if (op == "<=")
+                return orm::wq::le;
+            if (op == "!=" || op == "<>")
+                return orm::wq::nq;
+            if (op == ">")
+                return orm::wq::bt;
+            if (op == "<")
+                return orm::wq::lt;
+            if (op == "LIKE" || op == "like")
+                return orm::wq::like;
+            if (op == "NOT LIKE" || op == "not like")
+                return orm::wq::nlike;
+            return orm::wq::eq;
         }
 
-        template <typename _SQL_Value>
-            requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &where(std::string_view wq, char bi, _SQL_Value val)
+        // 3 参数兼容: where(str, '>', val) = where(str, orm::wq::bt, val)
+        template <typename T>
+        M_MODEL &where(std::string_view wq, char op, T &&val)
         {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.push_back(bi);
-            wheresql.append(std::to_string(val));
-            return *mod;
+            return where(wq, char_to_wq(op), std::forward<T>(val));
+        }
+        template <typename T>
+        M_MODEL &whereOr(std::string_view wq, char op, T &&val)
+        {
+            return whereOr(wq, char_to_wq(op), std::forward<T>(val));
+        }
+        // 3 参数兼容: where(str, ">=", val)
+        template <typename T>
+        M_MODEL &where(std::string_view wq, std::string_view op, T &&val)
+        {
+            return where(wq, str_to_wq(op), std::forward<T>(val));
+        }
+        template <typename T>
+        M_MODEL &whereOr(std::string_view wq, std::string_view op, T &&val)
+        {
+            return whereOr(wq, str_to_wq(op), std::forward<T>(val));
         }
 
-        M_MODEL &where(std::string_view wq, std::string_view val)
-        {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.push_back('=');
+        // ===== where 核心入口（所有具名函数转发到此）=====
 
-            wheresql.push_back('\'');
-            wheresql.append(B_BASE::stringaddslash(val));
-            wheresql.push_back('\'');
+        // cols 版 — 带 switch 校验        // 2 参数兼容: where(col, val) = where(col, orm::wq::eq, val)
+        template <typename T>
+        M_MODEL &where(B_BASE::cols field, T &&val)
+        {
+            return where(field, orm::wq::eq, std::forward<T>(val));
+        }
+
+        template <typename T>
+        M_MODEL &where(B_BASE::cols field, orm::wq op, T &&val)
+        {
+            orm_where_sql_t item;
+            item.pre_op      = wheresql.empty() ? 0 : 1;
+            item.op_type     = op;
+            item.col_idx     = static_cast<unsigned char>(field);
+            item.need_quote  = B_BASE::col_need_quote[static_cast<unsigned char>(field)];
+            item.filed_name  = superadmin_info::col_names[item.col_idx];
+            item.filed_value = std::forward<T>(val);
+            wheresql.push_back(std::move(item));
+            return *mod;
+        }// 2 参数兼容: whereOr(col, val) = whereOr(col, orm::wq::eq, val)
+        template <typename T>
+        M_MODEL &whereOr(B_BASE::cols field, T &&val)
+        {
+            return whereOr(field, orm::wq::eq, std::forward<T>(val));
+        }
+
+        template <typename T>
+        M_MODEL &whereOr(B_BASE::cols field, orm::wq op, T &&val)
+        {
+            orm_where_sql_t item;
+            item.pre_op      = wheresql.empty() ? 0 : 2;
+            item.op_type     = op;
+            item.col_idx     = static_cast<unsigned char>(field);
+            item.need_quote  = B_BASE::col_need_quote[static_cast<unsigned char>(field)];
+            item.filed_name  = superadmin_info::col_names[item.col_idx];
+            item.filed_value = std::forward<T>(val);
+            wheresql.push_back(std::move(item));
             return *mod;
         }
 
-        M_MODEL &whereBT(std::string_view wq, std::string_view val)
+        // string_view 版        // 2 参数兼容: where(str, val) = where(str, orm::wq::eq, val)
+        template <typename T>
+        M_MODEL &where(std::string_view wq, T &&val)
         {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.push_back('>');
+            return where(wq, orm::wq::eq, std::forward<T>(val));
+        }
 
-            wheresql.push_back('\'');
-            wheresql.append(B_BASE::stringaddslash(val));
-            wheresql.push_back('\'');
+        template <typename T>
+        M_MODEL &where(std::string_view wq, orm::wq op, T &&val)
+        {
+            orm_where_sql_t item;
+            item.pre_op  = wheresql.empty() ? 0 : 1;
+            item.op_type = op;
+            item.col_idx = B_BASE::findcolpos(wq);
+
+            if (item.col_idx == 255)
+            {
+                error_msg = "field is not table column";
+                iserror   = true;
+            }
+
+            item.need_quote  = (item.col_idx != 255) ? B_BASE::col_need_quote[item.col_idx] : true;
+            item.filed_name  = wq;
+            item.filed_value = std::forward<T>(val);
+            wheresql.push_back(std::move(item));
+            return *mod;
+        }// 2 参数兼容: whereOr(str, val) = whereOr(str, orm::wq::eq, val)
+        template <typename T>
+        M_MODEL &whereOr(std::string_view wq, T &&val)
+        {
+            return whereOr(wq, orm::wq::eq, std::forward<T>(val));
+        }
+
+        template <typename T>
+        M_MODEL &whereOr(std::string_view wq, orm::wq op, T &&val)
+        {
+            orm_where_sql_t item;
+            item.pre_op  = wheresql.empty() ? 0 : 2;
+            item.op_type = op;
+            item.col_idx = B_BASE::findcolpos(wq);
+
+            if (item.col_idx == 255)
+            {
+                error_msg = "field is not table column";
+                iserror   = true;
+            }
+
+            item.need_quote  = (item.col_idx != 255) ? B_BASE::col_need_quote[item.col_idx] : true;
+            item.filed_name  = wq;
+            item.filed_value = std::forward<T>(val);
+            wheresql.push_back(std::move(item));
             return *mod;
         }
 
-        M_MODEL &whereBE(std::string_view wq, std::string_view val)
-        {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.append(">=");
+        // IN / NOT IN 专用（set_array）
 
-            wheresql.push_back('\'');
-            wheresql.append(B_BASE::stringaddslash(val));
-            wheresql.push_back('\'');
+        // IN 核心入口（接收 vector，内部 set_array + 填充）
+        template <typename T>
+        M_MODEL &whereIn(std::string_view wq, orm::wq op, const std::vector<T> &a)
+        {
+            orm_where_sql_t item;
+            item.pre_op  = wheresql.empty() ? 0 : 1;
+            item.op_type = op;
+            item.col_idx = B_BASE::findcolpos(wq);
+
+            if (item.col_idx == 255)
+            {
+                error_msg = "field is not table column";
+                iserror   = true;
+            }
+
+            item.need_quote = (item.col_idx != 255) ? B_BASE::col_need_quote[item.col_idx] : true;
+            item.filed_name = wq;
+            item.filed_value.set_array();
+            for (auto &v : a)
+                item.filed_value.push(v);
+            wheresql.push_back(std::move(item));
             return *mod;
         }
 
-        M_MODEL &whereLT(std::string_view wq, std::string_view val)
+        template <typename T>
+        M_MODEL &whereOrIn(std::string_view wq, orm::wq op, const std::vector<T> &a)
         {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.append(" < ");
+            orm_where_sql_t item;
+            item.pre_op  = wheresql.empty() ? 0 : 2;
+            item.op_type = op;
+            item.col_idx = B_BASE::findcolpos(wq);
 
-            wheresql.push_back('\'');
-            wheresql.append(B_BASE::stringaddslash(val));
-            wheresql.push_back('\'');
+            if (item.col_idx == 255)
+            {
+                error_msg = "field is not table column";
+                iserror   = true;
+            }
+
+            item.need_quote = (item.col_idx != 255) ? B_BASE::col_need_quote[item.col_idx] : true;
+            item.filed_name = wq;
+            item.filed_value.set_array();
+            for (auto &v : a)
+                item.filed_value.push(v);
+            wheresql.push_back(std::move(item));
             return *mod;
         }
 
-        M_MODEL &whereLE(std::string_view wq, std::string_view val)
+        template <typename T>
+        M_MODEL &whereIn(B_BASE::cols field, orm::wq op, const std::vector<T> &a)
         {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.append(" <= ");
-
-            wheresql.push_back('\'');
-            wheresql.append(B_BASE::stringaddslash(val));
-            wheresql.push_back('\'');
+            orm_where_sql_t item;
+            item.pre_op     = wheresql.empty() ? 0 : 1;
+            item.op_type    = op;
+            item.col_idx    = static_cast<unsigned char>(field);
+            item.need_quote = B_BASE::col_need_quote[static_cast<unsigned char>(field)];
+            item.filed_name = superadmin_info::col_names[item.col_idx];
+            item.filed_value.set_array();
+            for (auto &v : a)
+                item.filed_value.push(v);
+            wheresql.push_back(std::move(item));
             return *mod;
         }
 
-        template <typename _SQL_Value>
-            requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &betWeen(std::string_view &wq, _SQL_Value a, _SQL_Value b)
+        template <typename T>
+        M_MODEL &whereOrIn(B_BASE::cols field, orm::wq op, const std::vector<T> &a)
         {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(" ");
-            wheresql.append(wq);
-            wheresql.append(" BETWEEN ");
-            wheresql.append(a);
-            wheresql.append(" AND ");
-            wheresql.append(b);
-            wheresql.append(" ");
+            orm_where_sql_t item;
+            item.pre_op     = wheresql.empty() ? 0 : 2;
+            item.op_type    = op;
+            item.col_idx    = static_cast<unsigned char>(field);
+            item.need_quote = B_BASE::col_need_quote[static_cast<unsigned char>(field)];
+            item.filed_name = superadmin_info::col_names[item.col_idx];
+            item.filed_value.set_array();
+            for (auto &v : a)
+                item.filed_value.push(v);
+            wheresql.push_back(std::move(item));
             return *mod;
         }
 
-        M_MODEL &orBetWeen(std::string_view wq, std::string_view a, std::string_view b)
+        // ===== 核心入口结束 =====
+
+        // ===== IN / NOT IN 具名转发 =====
+
+        template <typename T2>
+        M_MODEL &whereIn(superadmin_info::cols field, const std::vector<T2> &a)
         {
-            if (wheresql.empty())
+            return whereIn(field, orm::wq::in, a);
+        }
+
+        template <typename T2>
+        M_MODEL &whereNotIn(superadmin_info::cols field, const std::vector<T2> &a)
+        {
+            return whereIn(field, orm::wq::notin, a);
+        }
+
+        template <typename T2>
+        M_MODEL &whereOrIn(superadmin_info::cols field, const std::vector<T2> &a)
+        {
+            return whereOrIn(field, orm::wq::in, a);
+        }
+
+        template <typename T2>
+        M_MODEL &whereOrNotIn(superadmin_info::cols field, const std::vector<T2> &a)
+        {
+            return whereOrIn(field, orm::wq::notin, a);
+        }
+
+        M_MODEL &whereIn(std::string_view wq, const std::vector<std::string> &a)
+        {
+            return whereIn(wq, orm::wq::in, a);
+        }
+        // 2 参数旧版兼容: whereIn("id", "1,2,3") = whereIn("id", split_csv("1,2,3"))
+        M_MODEL &whereIn(std::string_view wq, std::string_view csv_val)
+        {
+            std::vector<std::string> vec;
+            std::string cur;
+            for (char c : csv_val)
             {
-            }
-            else
-            {
-                if (ishascontent)
+                if (c == ',')
                 {
-                    wheresql.append(" OR ");
+                    if (!cur.empty())
+                        vec.push_back(std::move(cur));
+                    cur.clear();
                 }
+
                 else
                 {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" OR ");
-                    }
+                    cur.push_back(c);
                 }
             }
-            if (iskuohao)
+            if (!cur.empty())
+                vec.push_back(std::move(cur));
+            return whereIn(wq, vec);
+        }
+
+        // 2 参数模板版: whereIn("id", vector<T>) — 把任意 T 转成 string 再转发
+        template <typename T>
+        M_MODEL &whereIn(std::string_view wq, const std::vector<T> &a)
+        {
+            std::vector<std::string> str_vec;
+            str_vec.reserve(a.size());
+            for (const auto &v : a)
             {
-                ishascontent = true;
+                std::ostringstream oss;
+                oss << v;
+                str_vec.push_back(oss.str());
             }
-            wheresql.append(" ");
-            wheresql.append(wq);
-            wheresql.append(" BETWEEN ");
-            wheresql.append(a);
-            wheresql.append(" AND ");
-            wheresql.append(b);
-            wheresql.append(" ");
+            return whereIn(wq, str_vec);
+        }
+
+        M_MODEL &whereNotIn(std::string_view wq, const std::vector<std::string> &a)
+        {
+            return whereIn(wq, orm::wq::notin, a);
+        }
+
+        M_MODEL &whereOrIn(std::string_view wq, const std::vector<std::string> &a)
+        {
+            return whereOrIn(wq, orm::wq::in, a);
+        }
+
+        M_MODEL &whereOrNotIn(std::string_view wq, const std::vector<std::string> &a)
+        {
+            return whereOrIn(wq, orm::wq::notin, a);
+        }
+
+        // ===== IN 具名转发结束 =====
+
+        // ===== Null 条件（无 value）=====
+
+        M_MODEL &whereNull(superadmin_info::cols field)
+        {
+            orm_where_sql_t item;
+            item.pre_op     = wheresql.empty() ? 0 : 1;
+            item.op_type    = orm::wq::isnull;
+            item.col_idx    = static_cast<unsigned char>(field);
+            item.need_quote = B_BASE::col_need_quote[static_cast<unsigned char>(field)];
+            item.filed_name = superadmin_info::col_names[item.col_idx];
+            // filed_value 不设
+            wheresql.push_back(std::move(item));
             return *mod;
         }
 
-        template <typename _SQL_Value>
-            requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &orBetWeen(std::string_view wq, _SQL_Value a, _SQL_Value b)
+        M_MODEL &whereNull(std::string_view wq)
         {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" OR ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" OR ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(" ");
-            wheresql.append(wq);
-            wheresql.append(" BETWEEN ");
-            wheresql.append(std::to_string(a));
-            wheresql.append(" AND ");
-            wheresql.append(std::to_string(b));
-            wheresql.append(" ");
-            return *mod;
-        }
-        M_MODEL &whereLike(std::string_view wq, std::string_view val)
-        {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.append(" like '");
-            if (val.size() > 0 && (val[0] == '%' || val.back() == '%'))
-            {
-                wheresql.append(B_BASE::stringaddslash(val));
-                wheresql.append("' ");
-            }
-            else
-            {
-                wheresql.push_back('%');
-                wheresql.append(B_BASE::stringaddslash(val));
-                wheresql.append("%' ");
-            }
-            return *mod;
-        }
-        M_MODEL &whereLikeLeft(std::string_view wq, std::string_view val)
-        {
+            orm_where_sql_t item;
+            item.pre_op  = wheresql.empty() ? 0 : 1;
+            item.op_type = orm::wq::isnull;
+            item.col_idx = B_BASE::findcolpos(wq);
 
-            if (wheresql.empty())
+            if (item.col_idx == 255)
             {
+                error_msg = "field is not table column";
+                iserror   = true;
             }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.append(" like '");
-            wheresql.push_back('%');
-            wheresql.append(B_BASE::stringaddslash(val));
-            wheresql.append("' ");
-            return *mod;
-        }
-        M_MODEL &whereLikeRight(std::string_view wq, std::string_view val)
-        {
 
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.append(" like '");
-            wheresql.append(B_BASE::stringaddslash(val));
-            wheresql.append("%' ");
-            return *mod;
-        }
-        M_MODEL &whereOrLike(std::string_view wq, std::string_view val)
-        {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" OR ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" OR ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.append(" like '");
-            if (val[0] == '%' || val.back() == '%')
-            {
-                wheresql.append(B_BASE::stringaddslash(val));
-                wheresql.append("' ");
-            }
-            else
-            {
-                wheresql.push_back('%');
-                wheresql.append(B_BASE::stringaddslash(val));
-                wheresql.append("%' ");
-            }
-            return *mod;
-        }
-        M_MODEL &whereAnd(std::string_view wq)
-        {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            return *mod;
-        }
-        template <typename _SQL_Value>
-            requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &whereAnd(std::string_view wq, _SQL_Value val)
-        {
-
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.push_back('=');
-            wheresql.append(std::to_string(val));
+            item.need_quote = (item.col_idx != 255) ? B_BASE::col_need_quote[item.col_idx] : true;
+            item.filed_name = wq;
+            wheresql.push_back(std::move(item));
             return *mod;
         }
 
-        template <typename _SQL_Value>
-            requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &whereBT(std::string_view wq, _SQL_Value val)
+        M_MODEL &whereOrNull(superadmin_info::cols field)
         {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.append(" > ");
-            wheresql.append(std::to_string(val));
+            orm_where_sql_t item;
+            item.pre_op     = wheresql.empty() ? 0 : 2;
+            item.op_type    = orm::wq::isnull;
+            item.col_idx    = static_cast<unsigned char>(field);
+            item.need_quote = B_BASE::col_need_quote[static_cast<unsigned char>(field)];
+            item.filed_name = superadmin_info::col_names[item.col_idx];
+            wheresql.push_back(std::move(item));
             return *mod;
         }
 
-        template <typename _SQL_Value>
-            requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &whereBE(std::string_view wq, _SQL_Value val)
+        M_MODEL &whereOrNull(std::string_view wq)
         {
-            if (wheresql.empty())
+            orm_where_sql_t item;
+            item.pre_op  = wheresql.empty() ? 0 : 2;
+            item.op_type = orm::wq::isnull;
+            item.col_idx = B_BASE::findcolpos(wq);
+
+            if (item.col_idx == 255)
             {
+                error_msg = "field is not table column";
+                iserror   = true;
             }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.append(" >= ");
-            wheresql.append(std::to_string(val));
+
+            item.need_quote = (item.col_idx != 255) ? B_BASE::col_need_quote[item.col_idx] : true;
+            item.filed_name = wq;
+            wheresql.push_back(std::move(item));
             return *mod;
         }
 
-        template <typename _SQL_Value>
-            requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &whereLT(std::string_view wq, _SQL_Value val)
+        // ===== Not Null 条件（无 value）=====
+
+        M_MODEL &whereNotNull(superadmin_info::cols field)
         {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.append(" < ");
-            wheresql.append(std::to_string(val));
+            orm_where_sql_t item;
+            item.pre_op     = wheresql.empty() ? 0 : 1;
+            item.op_type    = orm::wq::notnull;
+            item.col_idx    = static_cast<unsigned char>(field);
+            item.need_quote = B_BASE::col_need_quote[static_cast<unsigned char>(field)];
+            item.filed_name = superadmin_info::col_names[item.col_idx];
+            wheresql.push_back(std::move(item));
             return *mod;
         }
 
-        template <typename _SQL_Value>
-            requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &whereLE(std::string_view wq, _SQL_Value val)
+        M_MODEL &whereNotNull(std::string_view wq)
         {
-            if (wheresql.empty())
+            orm_where_sql_t item;
+            item.pre_op  = wheresql.empty() ? 0 : 1;
+            item.op_type = orm::wq::notnull;
+            item.col_idx = B_BASE::findcolpos(wq);
+
+            if (item.col_idx == 255)
             {
+                error_msg = "field is not table column";
+                iserror   = true;
             }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.append(" <= ");
-            wheresql.append(std::to_string(val));
+
+            item.need_quote = (item.col_idx != 255) ? B_BASE::col_need_quote[item.col_idx] : true;
+            item.filed_name = wq;
+            wheresql.push_back(std::move(item));
             return *mod;
         }
-        //where and
+
+        M_MODEL &whereOrNotNull(superadmin_info::cols field)
+        {
+            orm_where_sql_t item;
+            item.pre_op     = wheresql.empty() ? 0 : 2;
+            item.op_type    = orm::wq::notnull;
+            item.col_idx    = static_cast<unsigned char>(field);
+            item.need_quote = B_BASE::col_need_quote[static_cast<unsigned char>(field)];
+            item.filed_name = superadmin_info::col_names[item.col_idx];
+            wheresql.push_back(std::move(item));
+            return *mod;
+        }
+
+        M_MODEL &whereOrNotNull(std::string_view wq)
+        {
+            orm_where_sql_t item;
+            item.pre_op  = wheresql.empty() ? 0 : 2;
+            item.op_type = orm::wq::notnull;
+            item.col_idx = B_BASE::findcolpos(wq);
+
+            if (item.col_idx == 255)
+            {
+                error_msg = "field is not table column";
+                iserror   = true;
+            }
+
+            item.need_quote = (item.col_idx != 255) ? B_BASE::col_need_quote[item.col_idx] : true;
+            item.filed_name = wq;
+            wheresql.push_back(std::move(item));
+            return *mod;
+        }
+
+        template <typename T2>
+        M_MODEL &whereEQ(superadmin_info::cols field, T2 &&value)
+        {
+            return where(field, orm::wq::eq, std::forward<T2>(value));
+        }
+
         M_MODEL &whereEQ(std::string_view wq, std::string_view val)
         {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.push_back('=');
-            wheresql.push_back('\'');
-            wheresql.append(B_BASE::stringaddslash(val));
-            wheresql.push_back('\'');
+            return where(wq, orm::wq::eq, val);
+        }
 
-            return *mod;
+        template <typename _SQL_Value>
+        M_MODEL &whereEQ(std::string_view wq, _SQL_Value val)
+        {
+            return where(wq, orm::wq::eq, val);
+        }
+
+        template <typename T2>
+        M_MODEL &whereAnd(superadmin_info::cols field, T2 &&value)
+        {
+            return where(field, orm::wq::eq, std::forward<T2>(value));
         }
 
         M_MODEL &whereAnd(std::string_view wq, std::string_view val)
         {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.push_back('=');
-            wheresql.push_back('\'');
-            wheresql.append(B_BASE::stringaddslash(val));
-            wheresql.push_back('\'');
-
-            return *mod;
+            return where(wq, orm::wq::eq, val);
         }
-        //where string or
+
+        template <typename _SQL_Value>
+        M_MODEL &whereAnd(std::string_view wq, _SQL_Value val)
+        {
+            return where(wq, orm::wq::eq, val);
+        }
+
+        template <typename T2>
+        M_MODEL &whereBT(superadmin_info::cols field, T2 &&value)
+        {
+            return where(field, orm::wq::bt, std::forward<T2>(value));
+        }
+
+        M_MODEL &whereBT(std::string_view wq, std::string_view val)
+        {
+            return where(wq, orm::wq::bt, val);
+        }
+
+        template <typename _SQL_Value>
+        M_MODEL &whereBT(std::string_view wq, _SQL_Value val)
+        {
+            return where(wq, orm::wq::bt, val);
+        }
+
+        template <typename T2>
+        M_MODEL &whereGT(superadmin_info::cols field, T2 &&value)
+        {
+            return where(field, orm::wq::bt, std::forward<T2>(value));
+        }
+
+        M_MODEL &whereGT(std::string_view wq, std::string_view val)
+        {
+            return where(wq, orm::wq::bt, val);
+        }
+
+        template <typename _SQL_Value>
+        M_MODEL &whereGT(std::string_view wq, _SQL_Value val)
+        {
+            return where(wq, orm::wq::bt, val);
+        }
+
+        template <typename T2>
+        M_MODEL &whereBE(superadmin_info::cols field, T2 &&value)
+        {
+            return where(field, orm::wq::be, std::forward<T2>(value));
+        }
+
+        M_MODEL &whereBE(std::string_view wq, std::string_view val)
+        {
+            return where(wq, orm::wq::be, val);
+        }
+
+        template <typename _SQL_Value>
+        M_MODEL &whereBE(std::string_view wq, _SQL_Value val)
+        {
+            return where(wq, orm::wq::be, val);
+        }
+
+        template <typename T2>
+        M_MODEL &whereGE(superadmin_info::cols field, T2 &&value)
+        {
+            return where(field, orm::wq::be, std::forward<T2>(value));
+        }
+
+        M_MODEL &whereGE(std::string_view wq, std::string_view val)
+        {
+            return where(wq, orm::wq::be, val);
+        }
+
+        template <typename _SQL_Value>
+        M_MODEL &whereGE(std::string_view wq, _SQL_Value val)
+        {
+            return where(wq, orm::wq::be, val);
+        }
+
+        template <typename T2>
+        M_MODEL &whereLT(superadmin_info::cols field, T2 &&value)
+        {
+            return where(field, orm::wq::lt, std::forward<T2>(value));
+        }
+
+        M_MODEL &whereLT(std::string_view wq, std::string_view val)
+        {
+            return where(wq, orm::wq::lt, val);
+        }
+
+        template <typename _SQL_Value>
+        M_MODEL &whereLT(std::string_view wq, _SQL_Value val)
+        {
+            return where(wq, orm::wq::lt, val);
+        }
+
+        template <typename T2>
+        M_MODEL &whereLE(superadmin_info::cols field, T2 &&value)
+        {
+            return where(field, orm::wq::le, std::forward<T2>(value));
+        }
+
+        M_MODEL &whereLE(std::string_view wq, std::string_view val)
+        {
+            return where(wq, orm::wq::le, val);
+        }
+
+        template <typename _SQL_Value>
+        M_MODEL &whereLE(std::string_view wq, _SQL_Value val)
+        {
+            return where(wq, orm::wq::le, val);
+        }
+
+        template <typename T2>
+        M_MODEL &whereNQ(superadmin_info::cols field, T2 &&value)
+        {
+            return where(field, orm::wq::nq, std::forward<T2>(value));
+        }
+
+        M_MODEL &whereNQ(std::string_view wq, std::string_view val)
+        {
+            return where(wq, orm::wq::nq, val);
+        }
+
+        template <typename _SQL_Value>
+        M_MODEL &whereNQ(std::string_view wq, _SQL_Value val)
+        {
+            return where(wq, orm::wq::nq, val);
+        }
+
+        template <typename T2>
+        M_MODEL &whereNE(superadmin_info::cols field, T2 &&value)
+        {
+            return where(field, orm::wq::nq, std::forward<T2>(value));
+        }
+
+        M_MODEL &whereNE(std::string_view wq, std::string_view val)
+        {
+            return where(wq, orm::wq::nq, val);
+        }
+
+        template <typename _SQL_Value>
+        M_MODEL &whereNE(std::string_view wq, _SQL_Value val)
+        {
+            return where(wq, orm::wq::nq, val);
+        }
+
+        template <typename T2>
+        M_MODEL &whereLike(superadmin_info::cols field, T2 &&value)
+        {
+            return where(field, orm::wq::like, std::forward<T2>(value));
+        }
+
+        M_MODEL &whereLike(std::string_view wq, std::string_view val)
+        {
+            return where(wq, orm::wq::like, val);
+        }
+
+        template <typename _SQL_Value>
+        M_MODEL &whereLike(std::string_view wq, _SQL_Value val)
+        {
+            return where(wq, orm::wq::like, val);
+        }
+
+        template <typename T2>
+        M_MODEL &whereLikeLeft(superadmin_info::cols field, T2 &&value)
+        {
+            return where(field, orm::wq::llike, std::forward<T2>(value));
+        }
+
+        M_MODEL &whereLikeLeft(std::string_view wq, std::string_view val)
+        {
+            return where(wq, orm::wq::llike, val);
+        }
+
+        template <typename _SQL_Value>
+        M_MODEL &whereLikeLeft(std::string_view wq, _SQL_Value val)
+        {
+            return where(wq, orm::wq::llike, val);
+        }
+
+        template <typename T2>
+        M_MODEL &whereLikeRight(superadmin_info::cols field, T2 &&value)
+        {
+            return where(field, orm::wq::rlike, std::forward<T2>(value));
+        }
+
+        M_MODEL &whereLikeRight(std::string_view wq, std::string_view val)
+        {
+            return where(wq, orm::wq::rlike, val);
+        }
+
+        template <typename _SQL_Value>
+        M_MODEL &whereLikeRight(std::string_view wq, _SQL_Value val)
+        {
+            return where(wq, orm::wq::rlike, val);
+        }
+
+        template <typename T2>
+        M_MODEL &whereNotLike(superadmin_info::cols field, T2 &&value)
+        {
+            return where(field, orm::wq::nlike, std::forward<T2>(value));
+        }
+
+        M_MODEL &whereNotLike(std::string_view wq, std::string_view val)
+        {
+            return where(wq, orm::wq::nlike, val);
+        }
+
+        template <typename _SQL_Value>
+        M_MODEL &whereNotLike(std::string_view wq, _SQL_Value val)
+        {
+            return where(wq, orm::wq::nlike, val);
+        }
+
+        template <typename T2>
+        M_MODEL &whereOrBT(superadmin_info::cols field, T2 &&value)
+        {
+            return whereOr(field, orm::wq::bt, std::forward<T2>(value));
+        }
 
         M_MODEL &whereOrBT(std::string_view wq, std::string_view val)
         {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" OR ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" OR ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.push_back('>');
+            return whereOr(wq, orm::wq::bt, val);
+        }
 
-            wheresql.push_back('\'');
-            wheresql.append(B_BASE::stringaddslash(val));
-            wheresql.push_back('\'');
-            return *mod;
+        template <typename _SQL_Value>
+        M_MODEL &whereOrBT(std::string_view wq, _SQL_Value val)
+        {
+            return whereOr(wq, orm::wq::bt, val);
+        }
+
+        template <typename T2>
+        M_MODEL &whereOrBE(superadmin_info::cols field, T2 &&value)
+        {
+            return whereOr(field, orm::wq::be, std::forward<T2>(value));
         }
 
         M_MODEL &whereOrBE(std::string_view wq, std::string_view val)
         {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" OR ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" OR ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.append(">=");
+            return whereOr(wq, orm::wq::be, val);
+        }
 
-            wheresql.push_back('\'');
-            wheresql.append(B_BASE::stringaddslash(val));
-            wheresql.push_back('\'');
-            return *mod;
+        template <typename _SQL_Value>
+        M_MODEL &whereOrBE(std::string_view wq, _SQL_Value val)
+        {
+            return whereOr(wq, orm::wq::be, val);
+        }
+
+        template <typename T2>
+        M_MODEL &whereOrLT(superadmin_info::cols field, T2 &&value)
+        {
+            return whereOr(field, orm::wq::lt, std::forward<T2>(value));
         }
 
         M_MODEL &whereOrLT(std::string_view wq, std::string_view val)
         {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" OR ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" OR ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.append(" < ");
+            return whereOr(wq, orm::wq::lt, val);
+        }
 
-            wheresql.push_back('\'');
-            wheresql.append(B_BASE::stringaddslash(val));
-            wheresql.push_back('\'');
-            return *mod;
+        template <typename _SQL_Value>
+        M_MODEL &whereOrLT(std::string_view wq, _SQL_Value val)
+        {
+            return whereOr(wq, orm::wq::lt, val);
+        }
+
+        template <typename T2>
+        M_MODEL &whereOrLE(superadmin_info::cols field, T2 &&value)
+        {
+            return whereOr(field, orm::wq::le, std::forward<T2>(value));
         }
 
         M_MODEL &whereOrLE(std::string_view wq, std::string_view val)
         {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" OR ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" OR ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.append(" <= ");
-
-            wheresql.push_back('\'');
-            wheresql.append(B_BASE::stringaddslash(val));
-            wheresql.push_back('\'');
-            return *mod;
-        }
-
-        //where or
-        template <typename _SQL_Value>
-            requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &whereOrBT(std::string_view wq, _SQL_Value val)
-        {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" OR ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" OR ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.append(" > ");
-            wheresql.append(val);
-            return *mod;
+            return whereOr(wq, orm::wq::le, val);
         }
 
         template <typename _SQL_Value>
-            requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &whereOrBE(std::string_view wq, _SQL_Value val)
-        {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" OR ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" OR ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.append(" >= ");
-            wheresql.append(val);
-            return *mod;
-        }
-
-        template <typename _SQL_Value>
-            requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &whereOrLT(std::string_view wq, _SQL_Value val)
-        {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" OR ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" OR ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.append(" < ");
-            wheresql.append(val);
-            return *mod;
-        }
-
-        template <typename _SQL_Value>
-            requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
         M_MODEL &whereOrLE(std::string_view wq, _SQL_Value val)
         {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" OR ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" OR ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.append(" <= ");
-            wheresql.append(val);
-            return *mod;
+            return whereOr(wq, orm::wq::le, val);
         }
 
-        M_MODEL &whereOr(std::string_view wq)
+        template <typename T2>
+        M_MODEL &whereOrNQ(superadmin_info::cols field, T2 &&value)
         {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" OR ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" OR ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            return *mod;
+            return whereOr(field, orm::wq::nq, std::forward<T2>(value));
         }
+
+        M_MODEL &whereOrNQ(std::string_view wq, std::string_view val)
+        {
+            return whereOr(wq, orm::wq::nq, val);
+        }
+
         template <typename _SQL_Value>
-            requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &whereOr(std::string_view wq, _SQL_Value val)
+        M_MODEL &whereOrNQ(std::string_view wq, _SQL_Value val)
         {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" OR ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" OR ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.push_back('=');
-            wheresql.append(std::to_string(val));
-            return *mod;
+            return whereOr(wq, orm::wq::nq, val);
         }
-        M_MODEL &whereOr(std::string_view wq, std::string_view val)
-        {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" OR ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" OR ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(wq);
-            wheresql.push_back('=');
-            wheresql.push_back('\'');
-            wheresql.append(B_BASE::stringaddslash(val));
-            wheresql.push_back('\'');
-            return *mod;
-        }
-        M_MODEL &whereIn(std::string_view k)
-        {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(k);
-            return *mod;
-        }
-        M_MODEL &whereIn(std::string_view k, std::string_view val)
-        {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
 
-            wheresql.append(k);
-            wheresql.append(" IN(");
+        template <typename T2>
+        M_MODEL &whereOrLike(superadmin_info::cols field, T2 &&value)
+        {
+            return whereOr(field, orm::wq::like, std::forward<T2>(value));
+        }
+
+        M_MODEL &whereOrLike(std::string_view wq, std::string_view val)
+        {
+            return whereOr(wq, orm::wq::like, val);
+        }
+
+        template <typename _SQL_Value>
+        M_MODEL &whereOrLike(std::string_view wq, _SQL_Value val)
+        {
+            return whereOr(wq, orm::wq::like, val);
+        }
+
+        template <typename T2>
+        M_MODEL &whereOrLikeLeft(superadmin_info::cols field, T2 &&value)
+        {
+            return whereOr(field, orm::wq::llike, std::forward<T2>(value));
+        }
+
+        M_MODEL &whereOrLikeLeft(std::string_view wq, std::string_view val)
+        {
+            return whereOr(wq, orm::wq::llike, val);
+        }
+
+        template <typename _SQL_Value>
+        M_MODEL &whereOrLikeLeft(std::string_view wq, _SQL_Value val)
+        {
+            return whereOr(wq, orm::wq::llike, val);
+        }
+
+        template <typename T2>
+        M_MODEL &whereOrLikeRight(superadmin_info::cols field, T2 &&value)
+        {
+            return whereOr(field, orm::wq::rlike, std::forward<T2>(value));
+        }
+
+        M_MODEL &whereOrLikeRight(std::string_view wq, std::string_view val)
+        {
+            return whereOr(wq, orm::wq::rlike, val);
+        }
+
+        template <typename _SQL_Value>
+        M_MODEL &whereOrLikeRight(std::string_view wq, _SQL_Value val)
+        {
+            return whereOr(wq, orm::wq::rlike, val);
+        }
+
+        template <typename T2>
+        M_MODEL &whereOrNotLike(superadmin_info::cols field, T2 &&value)
+        {
+            return whereOr(field, orm::wq::nlike, std::forward<T2>(value));
+        }
+
+        M_MODEL &whereOrNotLike(std::string_view wq, std::string_view val)
+        {
+            return whereOr(wq, orm::wq::nlike, val);
+        }
+
+        template <typename _SQL_Value>
+        M_MODEL &whereOrNotLike(std::string_view wq, _SQL_Value val)
+        {
+            return whereOr(wq, orm::wq::nlike, val);
+        }
+
+        void escape_text_value(std::string &out, const http::obj_val &v, bool need_quote)
+        {
+            if (!need_quote)
             {
-                std::string _in_part;
-                for (char _c : val)
+                out.append(v.to_string());
+                return;
+            }
+            std::string s = v.to_string();
+            size_t p      = 0;
+            while ((p = s.find('\'', p)) != std::string::npos)
+            {
+                s.insert(p, "\\'");
+                p += 2;
+            }
+            out.append("'");
+
+            out.append(s);
+            out.append("'");
+        }
+
+        // LIKE 通配符只进值，不进 SQL 结构：
+        // 文本路径拼进转义后的字面量，预编译路径拼进绑定参数
+        static http::obj_val wrap_like_value(const http::obj_val &v, bool left, bool right)
+        {
+            std::string s = v.to_string();
+            if (left)
+            {
+                s.insert(s.begin(), '%');
+            }
+            if (right)
+            {
+                s.push_back('%');
+            }
+            return http::obj_val(std::move(s));
+        }
+
+        void append_like_text(std::string &out, const http::obj_val &v, bool left, bool right)
+        {
+            // LIKE 模式恒为字符串字面量，不按列类型走 need_quote
+            escape_text_value(out, wrap_like_value(v, left, right), true);
+        }
+
+        static http::obj_val prepared_like_bind(const orm_where_sql_t &item)
+        {
+            switch (item.op_type)
+            {
+            case orm::wq::like: return wrap_like_value(item.filed_value, true, true);
+            case orm::wq::llike: return wrap_like_value(item.filed_value, true, false);
+            case orm::wq::rlike: return wrap_like_value(item.filed_value, false, true);
+            case orm::wq::nlike: return wrap_like_value(item.filed_value, true, true);
+            default: return item.filed_value;
+            }
+        }
+
+        void build_text_where(std::string &where_clause)
+        {
+            const bool need_table_prefix = (join_ptr != nullptr);
+            auto append_field            = [&](const std::string &fname)
+            {
+                if (need_table_prefix && fname.find('.') == std::string::npos)
                 {
-                    if (_c == ',')
+                    where_clause.append(B_BASE::tablename);
+                    where_clause.append(".");
+                }
+                where_clause.append(escape_mysql_col(fname));
+            };
+
+            for (size_t i = 0; i < wheresql.size(); ++i)
+            {
+                auto &item = wheresql[i];
+                if (item.end_sub)
+                {
+                    where_clause.push_back(')');
+                    continue;
+                }
+                // 连接词：仅当前面已有内容且不紧邻左括号（括号内首项不加 AND/OR）
+                if (!where_clause.empty() && where_clause.back() != '(')
+                {
+                    if (item.pre_op == 2)
+                        where_clause.append(" OR ");
+                    else if (item.pre_op == 1)
+                        where_clause.append(" AND ");
+                }
+                if (item.begin_sub)
+                {
+                    where_clause.push_back('(');
+                    if (item.filed_name.empty())
+                        continue;
+                }
+
+                switch (item.op_type)
+                {
+                case orm::wq::eq:
+                    append_field(item.filed_name);
+                    where_clause.append(" = ");
+                    escape_text_value(where_clause, item.filed_value, item.need_quote);
+                    break;
+                case orm::wq::nq:
+                    append_field(item.filed_name);
+                    where_clause.append(" != ");
+                    escape_text_value(where_clause, item.filed_value, item.need_quote);
+                    break;
+                case orm::wq::lt:
+                    append_field(item.filed_name);
+                    where_clause.append(" < ");
+                    escape_text_value(where_clause, item.filed_value, item.need_quote);
+                    break;
+                case orm::wq::le:
+                    append_field(item.filed_name);
+                    where_clause.append(" <= ");
+                    escape_text_value(where_clause, item.filed_value, item.need_quote);
+                    break;
+                case orm::wq::bt:
+                    append_field(item.filed_name);
+                    where_clause.append(" > ");
+                    escape_text_value(where_clause, item.filed_value, item.need_quote);
+                    break;
+                case orm::wq::be:
+                    append_field(item.filed_name);
+                    where_clause.append(" >= ");
+                    escape_text_value(where_clause, item.filed_value, item.need_quote);
+                    break;
+                case orm::wq::like:
+                    append_field(item.filed_name);
+                    where_clause.append(" LIKE ");
+                    append_like_text(where_clause, item.filed_value, true, true);
+                    break;
+                case orm::wq::llike:
+                    append_field(item.filed_name);
+                    where_clause.append(" LIKE ");
+                    append_like_text(where_clause, item.filed_value, true, false);
+                    break;
+                case orm::wq::rlike:
+                    append_field(item.filed_name);
+                    where_clause.append(" LIKE ");
+                    append_like_text(where_clause, item.filed_value, false, true);
+                    break;
+                case orm::wq::nlike:
+                    append_field(item.filed_name);
+                    where_clause.append(" NOT LIKE ");
+                    append_like_text(where_clause, item.filed_value, true, true);
+                    break;
+                case orm::wq::in:
+                case orm::wq::notin:
+                    append_field(item.filed_name);
+                    where_clause.append(item.op_type == orm::wq::in ? " IN (" : " NOT IN (");
+                    if (item.filed_value.is_array())
                     {
-                        wheresql.append(B_BASE::stringaddslash(_in_part));
-                        wheresql.push_back('\'');
-                        wheresql.push_back(',');
-                        _in_part.clear();
+                        for (size_t a = 0; a < item.filed_value.size(); ++a)
+                        {
+                            if (a > 0)
+                                where_clause.append(", ");
+                            escape_text_value(where_clause, item.filed_value[a], item.need_quote);
+                        }
                     }
                     else
-                        _in_part.push_back(_c);
-                }
-                wheresql.append(B_BASE::stringaddslash(_in_part));
-                wheresql.push_back('\'');
-            }
-            wheresql.append(") ");
-            return *mod;
-        }
-
-        M_MODEL &whereIn(std::string_view k, const std::vector<std::string> &a)
-        {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
                     {
-                        wheresql.append(" AND ");
+                        escape_text_value(where_clause, item.filed_value, item.need_quote);
                     }
+                    where_clause.append(")");
+                    break;
+                case orm::wq::isnull:
+                    append_field(item.filed_name);
+                    where_clause.append(" IS NULL");
+                    break;
+                case orm::wq::notnull:
+                    append_field(item.filed_name);
+                    where_clause.append(" IS NOT NULL");
+                    break;
+                default:
+                    break;
                 }
             }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-            wheresql.append(k);
-            wheresql.append(" in(");
-            int i = 0;
-            for (auto &key : a)
-            {
-                if (i > 0)
-                {
-                    wheresql.append(",\'");
-                }
-                else
-                {
-                    wheresql.append("\'");
-                }
-                wheresql.append(to_escape(key));
-                wheresql.append("\'");
-                i++;
-            }
-            wheresql.append(") ");
-            return *mod;
-        }
-        M_MODEL &whereNotIn(std::string_view k, const std::vector<std::string> &a)
-        {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-
-            wheresql.append(k);
-            wheresql.append(" NOT IN(");
-            int i = 0;
-            for (auto &key : a)
-            {
-                if (i > 0)
-                {
-                    wheresql.append(",\'");
-                }
-                else
-                {
-                    wheresql.append("\'");
-                }
-                wheresql.append(to_escape(key));
-                wheresql.append("\'");
-                i++;
-            }
-            wheresql.append(") ");
-            return *mod;
-        }
-        template <typename _SQL_Value>
-            requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &whereIn(std::string_view k, const std::list<_SQL_Value> &a)
-        {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-
-            wheresql.append(k);
-            wheresql.append(" in(");
-            int i = 0;
-            std::stringstream _stream;
-            for (auto &key : a)
-            {
-                if (i > 0)
-                {
-                    wheresql.append(",");
-                }
-                _stream << key;
-                wheresql.append(_stream.str());
-                i++;
-                _stream.str("");
-            }
-            wheresql.append(") ");
-            return *mod;
-        }
-
-        template <typename _SQL_Value>
-            requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &whereIn(std::string_view k, const std::vector<_SQL_Value> &a)
-        {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-
-            wheresql.append(k);
-            wheresql.append(" IN(");
-            int i = 0;
-            std::stringstream _stream;
-            for (auto &key : a)
-            {
-                if (i > 0)
-                {
-                    wheresql.append(",");
-                }
-                _stream << key;
-                wheresql.append(_stream.str());
-                i++;
-                _stream.str("");
-            }
-            wheresql.append(") ");
-            return *mod;
-        }
-        template <typename _SQL_Value>
-            requires std::is_integral_v<_SQL_Value> || std::is_floating_point_v<_SQL_Value>
-        M_MODEL &whereNotIn(std::string_view k, const std::vector<_SQL_Value> &a)
-        {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-
-            wheresql.append(k);
-            wheresql.append(" NOT IN(");
-            int i = 0;
-            std::stringstream _stream;
-            for (auto &key : a)
-            {
-                if (i > 0)
-                {
-                    wheresql.append(",");
-                }
-                _stream << key;
-                wheresql.append(_stream.str());
-                i++;
-                _stream.str("");
-            }
-            wheresql.append(") ");
-            return *mod;
-        }
-
-        template <typename T2>
-        M_MODEL &where(std::string_view field, orm::wq opwq, T2 &&value)
-        {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-
-            wheresql.append(field);
-
-            if (opwq == orm::wq::in)
-            {
-                wheresql.append(" IN (");
-                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
-                {
-                    wheresql.append(std::string_view(value));
-                }
-                wheresql.append(") ");
-                return *mod;
-            }
-            else if (opwq == orm::wq::like)
-            {
-                wheresql.append(" like '%");
-                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
-                {
-                    wheresql.append(std::string_view(value));
-                }
-                wheresql.append("%' ");
-                return *mod;
-            }
-
-            switch (opwq)
-            {
-            case orm::wq::bt:
-                wheresql.append(" > ");
-                break;
-            case orm::wq::be:
-                wheresql.append(" >= ");
-                break;
-            case orm::wq::eq:
-                wheresql.append(" = ");
-                break;
-            case orm::wq::lt:
-                wheresql.append(" < ");
-                break;
-            case orm::wq::le:
-                wheresql.append(" <= ");
-                break;
-            case orm::wq::nq:
-                wheresql.append(" != ");
-                break;                 
-            default:
-                wheresql.append(" = ");
-                break;
-            }
-
-            wheresql.append(to_sql_value(std::forward<T2>(value)));
-            wheresql.append(" ");
-            return *mod;
-        }
-
-        template <typename T2>
-        M_MODEL &whereOr(std::string_view field, orm::wq opwq, T2 &&value)
-        {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" OR ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" OR ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-
-            wheresql.append(field);
-
-            if (opwq == orm::wq::in)
-            {
-                wheresql.append(" IN (");
-                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
-                {
-                    wheresql.append(std::string_view(value));
-                }
-                wheresql.append(") ");
-                return *mod;
-            }
-            else if (opwq == orm::wq::like)
-            {
-                wheresql.append(" like '%");
-                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
-                {
-                    wheresql.append(std::string_view(value));
-                }
-                wheresql.append("%' ");
-                return *mod;
-            }
-
-            switch (opwq)
-            {
-            case orm::wq::bt:
-                wheresql.append(" > ");
-                break;
-            case orm::wq::be:
-                wheresql.append(" >= ");
-                break;
-            case orm::wq::eq:
-                wheresql.append(" = ");
-                break;
-            case orm::wq::lt:
-                wheresql.append(" < ");
-                break;
-            case orm::wq::le:
-                wheresql.append(" <= ");
-                break;
-            case orm::wq::nq:
-                wheresql.append(" != ");
-                break;                 
-            default:
-                wheresql.append(" = ");
-                break;
-            }
-
-            wheresql.append(to_sql_value(std::forward<T2>(value)));
-            wheresql.append(" ");
-            return *mod;
-        }
-
-        template <typename T2>
-        M_MODEL &where(superadmin_info::cols field, orm::wq opwq, T2 &&value)
-        {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" AND ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" AND ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-
-            switch (field)
-            {
-            
-			case superadmin_info::cols::adminid:
-				wheresql.append("adminid");
-				break;
-			case superadmin_info::cols::name:
-				wheresql.append("name");
-				break;
-			case superadmin_info::cols::password:
-				wheresql.append("password");
-				break;
-			case superadmin_info::cols::nickname:
-				wheresql.append("nickname");
-				break;
-			case superadmin_info::cols::isopen:
-				wheresql.append("isopen");
-				break;
-			case superadmin_info::cols::begindate:
-				wheresql.append("begindate");
-				break;
-			case superadmin_info::cols::enddate:
-				wheresql.append("enddate");
-				break;
-			case superadmin_info::cols::regdate:
-				wheresql.append("regdate");
-				break;
-			case superadmin_info::cols::mobile:
-				wheresql.append("mobile");
-				break;
-			case superadmin_info::cols::email:
-				wheresql.append("email");
-				break;
-			case superadmin_info::cols::loginnum:
-				wheresql.append("loginnum");
-				break;
-			case superadmin_info::cols::qrtemp:
-				wheresql.append("qrtemp");
-				break;
-			case superadmin_info::cols::wxuuid:
-				wheresql.append("wxuuid");
-				break;
-			case superadmin_info::cols::basesitepath:
-				wheresql.append("basesitepath");
-				break;
-            default:
-                return *mod;
-                break;
-            }
-
-            if (opwq == orm::wq::in)
-            {
-                wheresql.append(" IN (");
-                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
-                {
-                    wheresql.append(std::string_view(value));
-                }
-                wheresql.append(") ");
-                return *mod;
-            }
-            else if (opwq == orm::wq::like)
-            {
-                wheresql.append(" like '%");
-                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
-                {
-                    wheresql.append(std::string_view(value));
-                }
-                wheresql.append("%' ");
-                return *mod;
-            }
-
-            switch (opwq)
-            {
-            case orm::wq::bt:
-                wheresql.append(" > ");
-                break;
-            case orm::wq::be:
-                wheresql.append(" >= ");
-                break;
-            case orm::wq::eq:
-                wheresql.append(" = ");
-                break;
-            case orm::wq::lt:
-                wheresql.append(" < ");
-                break;
-            case orm::wq::le:
-                wheresql.append(" <= ");
-                break;
-            case orm::wq::nq:
-                wheresql.append(" != ");
-                break;    
-            default:
-                wheresql.append(" = ");
-                break;
-            }
-
-            wheresql.append(to_sql_value(std::forward<T2>(value)));
-            wheresql.append(" ");
-            return *mod;
-        }
-
-        template <typename T2>
-        M_MODEL &whereOr(superadmin_info::cols field, orm::wq opwq, T2 &&value)
-        {
-            if (wheresql.empty())
-            {
-            }
-            else
-            {
-                if (ishascontent)
-                {
-                    wheresql.append(" OR ");
-                }
-                else
-                {
-                    if (!iskuohao)
-                    {
-                        wheresql.append(" OR ");
-                    }
-                }
-            }
-            if (iskuohao)
-            {
-                ishascontent = true;
-            }
-
-            switch (field)
-            {
-            
-			case superadmin_info::cols::adminid:
-				wheresql.append("adminid");
-				break;
-			case superadmin_info::cols::name:
-				wheresql.append("name");
-				break;
-			case superadmin_info::cols::password:
-				wheresql.append("password");
-				break;
-			case superadmin_info::cols::nickname:
-				wheresql.append("nickname");
-				break;
-			case superadmin_info::cols::isopen:
-				wheresql.append("isopen");
-				break;
-			case superadmin_info::cols::begindate:
-				wheresql.append("begindate");
-				break;
-			case superadmin_info::cols::enddate:
-				wheresql.append("enddate");
-				break;
-			case superadmin_info::cols::regdate:
-				wheresql.append("regdate");
-				break;
-			case superadmin_info::cols::mobile:
-				wheresql.append("mobile");
-				break;
-			case superadmin_info::cols::email:
-				wheresql.append("email");
-				break;
-			case superadmin_info::cols::loginnum:
-				wheresql.append("loginnum");
-				break;
-			case superadmin_info::cols::qrtemp:
-				wheresql.append("qrtemp");
-				break;
-			case superadmin_info::cols::wxuuid:
-				wheresql.append("wxuuid");
-				break;
-			case superadmin_info::cols::basesitepath:
-				wheresql.append("basesitepath");
-				break;
-            default:
-                return *mod;
-                break;
-            }
-
-            if (opwq == orm::wq::in)
-            {
-                wheresql.append(" IN (");
-                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
-                {
-                    wheresql.append(std::string_view(value));
-                }
-                wheresql.append(") ");
-                return *mod;
-            }
-            else if (opwq == orm::wq::like)
-            {
-                wheresql.append(" like '%");
-                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
-                {
-                    wheresql.append(std::string_view(value));
-                }
-                wheresql.append("%' ");
-                return *mod;
-            }
-
-            switch (opwq)
-            {
-            case orm::wq::bt:
-                wheresql.append(" > ");
-                break;
-            case orm::wq::be:
-                wheresql.append(" >= ");
-                break;
-            case orm::wq::eq:
-                wheresql.append(" = ");
-                break;
-            case orm::wq::lt:
-                wheresql.append(" < ");
-                break;
-            case orm::wq::le:
-                wheresql.append(" <= ");
-                break;
-            case orm::wq::nq:
-                wheresql.append(" != ");
-                break;                 
-            default:
-                wheresql.append(" = ");
-                break;
-            }
-
-            wheresql.append(to_sql_value(std::forward<T2>(value)));
-            wheresql.append(" ");
-            return *mod;
         }
 
         M_MODEL &order(superadmin_info::cols field, const std::string &asc_or_desc)
@@ -24232,9 +4271,22 @@ M_MODEL& or_leBasesitepath(T val)
             return *mod;
         }
 
+        M_MODEL &asc()
+        {
+            ordersql.append(" ORDER BY ");
+            ordersql.append(B_BASE::getPKname());
+            ordersql.append(" ASC ");
+            return *mod;
+        }
+        M_MODEL &desc()
+        {
+            ordersql.append(" ORDER BY ");
+            ordersql.append(B_BASE::getPKname());
+            ordersql.append(" DESC ");
+            return *mod;
+        }
         M_MODEL &desc(superadmin_info::cols field)
         {
-
             ordersql.append(" ORDER BY ");
             switch (field)
             {
@@ -24315,14 +4367,14 @@ M_MODEL& or_leBasesitepath(T val)
 
         M_MODEL &having(std::string_view wq)
         {
-            groupsql.append(" HAVING BY ");
+            groupsql.append(" HAVING ");
             groupsql.append(wq);
             return *mod;
         }
 
         M_MODEL &having(superadmin_info::cols field)
         {
-            groupsql.append(" HAVING BY ");
+            groupsql.append(" HAVING ");
             switch (field)
             {
             
@@ -24436,111 +4488,6 @@ M_MODEL& or_leBasesitepath(T val)
             return *mod;
         }
 
-        M_MODEL &orsub()
-        {
-
-            if (iskuohao == true)
-            {
-                iskuohao     = false;
-                ishascontent = false;
-                wheresql.append(" )");
-            }
-            else
-            {
-                wheresql.append(" OR (");
-                iskuohao     = true;
-                ishascontent = false;
-            }
-            return *mod;
-        }
-        M_MODEL &andsub()
-        {
-
-            if (iskuohao == true)
-            {
-                iskuohao = false;
-                wheresql.append(" )");
-                ishascontent = false;
-            }
-            else
-            {
-                wheresql.append(" AND (");
-                iskuohao     = true;
-                ishascontent = false;
-            }
-
-            return *mod;
-        }
-
-        M_MODEL &endsub()
-        {
-            if (iskuohao == true)
-            {
-                iskuohao     = false;
-                ishascontent = false;
-                wheresql.append(" )");
-            }
-            return *mod;
-        }
-
-        M_MODEL &or_b()
-        {
-
-            if (iskuohao == true)
-            {
-                iskuohao     = false;
-                ishascontent = false;
-                wheresql.append(" )");
-            }
-            else
-            {
-                wheresql.append(" OR (");
-                iskuohao     = true;
-                ishascontent = false;
-            }
-            return *mod;
-        }
-        M_MODEL &and_b()
-        {
-
-            if (iskuohao == true)
-            {
-                iskuohao = false;
-                wheresql.append(" )");
-                ishascontent = false;
-            }
-            else
-            {
-                wheresql.append(" AND (");
-                iskuohao     = true;
-                ishascontent = false;
-            }
-
-            return *mod;
-        }
-
-        M_MODEL &or_e()
-        {
-            if (iskuohao == true)
-            {
-                iskuohao     = false;
-                ishascontent = false;
-                wheresql.append(" )");
-            }
-            return *mod;
-        }
-
-        M_MODEL &and_e()
-        {
-            if (iskuohao == true)
-            {
-                iskuohao     = false;
-                ishascontent = false;
-                wheresql.append(" )");
-            }
-            return *mod;
-        }
-
         M_MODEL &limit(unsigned int num)
         {
             limitsql.clear();
@@ -24560,6 +4507,8 @@ M_MODEL& or_leBasesitepath(T val)
 
         std::vector<std::map<std::string, std::string>> fetch_obj()
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
             if (selectsql.empty())
             {
@@ -24575,13 +4524,13 @@ M_MODEL& or_leBasesitepath(T val)
             sqlstring.append(B_BASE::tablename);
             sqlstring.append(" WHERE ");
 
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 sqlstring.append(" 1 ");
             }
             else
             {
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
@@ -24613,7 +4562,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = conn_obj->get_mysql_select_conn();
                 if (islock_conn)
                 {
-                    if (!select_conn)
+                    if (!select_conn || select_conn->isclose)
                     {
                         select_conn = conn_obj->get_mysql_select_conn();
                     }
@@ -24636,7 +4585,10 @@ M_MODEL& or_leBasesitepath(T val)
                                                                            {
                                                                                auto [ptr, len] = get_data(ij);
                                                                                if (ptr == nullptr)
+                                                                               {
+                                                                                   data_temp.insert({col_names[ij] ? col_names[ij] : "", ""});
                                                                                    continue;
+                                                                               }
                                                                                std::string col_name = col_names[ij] ? col_names[ij] : "";
                                                                                std::string value(reinterpret_cast<char *>(ptr), len);
                                                                                data_temp.insert({col_name, std::move(value)});
@@ -24647,8 +4599,8 @@ M_MODEL& or_leBasesitepath(T val)
                                                                        });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
-                    error_msg = select_conn->error_msg;
                     iserror   = true;
+                    error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return temprecord;
                 }
@@ -24678,6 +4630,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
             }
 
             return temprecord;
@@ -24685,6 +4638,8 @@ M_MODEL& or_leBasesitepath(T val)
         std::tuple<std::vector<std::string>, std::map<std::string, unsigned int>, std::vector<std::vector<std::string>>>
         fetch_row()
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
             if (selectsql.empty())
             {
@@ -24700,13 +4655,13 @@ M_MODEL& or_leBasesitepath(T val)
             sqlstring.append(B_BASE::tablename);
             sqlstring.append(" WHERE ");
 
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 sqlstring.append(" 1 ");
             }
             else
             {
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
@@ -24760,7 +4715,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = conn_obj->get_mysql_select_conn();
                 if (islock_conn)
                 {
-                    if (!select_conn)
+                    if (!select_conn || select_conn->isclose)
                     {
                         select_conn = conn_obj->get_mysql_select_conn();
                     }
@@ -24806,8 +4761,8 @@ M_MODEL& or_leBasesitepath(T val)
                                                                        });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
-                    error_msg = select_conn->error_msg;
                     iserror   = true;
+                    error_msg = select_conn->error_msg;
                     select_conn.reset();
                     return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
                 }
@@ -24854,6 +4809,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
             }
 
             return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
@@ -24862,6 +4818,8 @@ M_MODEL& or_leBasesitepath(T val)
         template <typename T, RecordLineCallback<T> Callback>
         unsigned int fetch_to(std::vector<T> &custom_record, Callback &&callback)
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
             parse_leftjion();
             if (selectsql.empty())
@@ -24879,14 +4837,13 @@ M_MODEL& or_leBasesitepath(T val)
 
             sqlstring.append(" WHERE ");
 
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 sqlstring.append(" 1 ");
             }
             else
             {
-                parse_wheresql();
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
 
             if (!groupsql.empty())
@@ -24916,7 +4873,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = conn_obj->get_mysql_select_conn();
                 if (islock_conn)
                 {
-                    if (!select_conn)
+                    if (!select_conn || select_conn->isclose)
                     {
                         select_conn = conn_obj->get_mysql_select_conn();
                     }
@@ -24974,6 +4931,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 return 0;
             }
 
@@ -24983,6 +4941,8 @@ M_MODEL& or_leBasesitepath(T val)
         template <typename T, RecordLineCallback<T> Callback>
         asio::awaitable<unsigned int> async_fetch_to(std::vector<T> &custom_record, Callback &&callback)
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
             parse_leftjion();
             if (selectsql.empty())
@@ -24999,14 +4959,13 @@ M_MODEL& or_leBasesitepath(T val)
             get_join_table();
             sqlstring.append(" WHERE ");
 
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 sqlstring.append(" 1 ");
             }
             else
             {
-                parse_wheresql();
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
@@ -25035,7 +4994,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = co_await conn_obj->async_get_mysql_select_conn();
                 if (islock_conn)
                 {
-                    if (!select_conn)
+                    if (!select_conn || select_conn->isclose)
                     {
                         select_conn = co_await conn_obj->async_get_mysql_select_conn();
                     }
@@ -25092,6 +5051,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 co_return 0;
             }
 
@@ -25101,6 +5061,8 @@ M_MODEL& or_leBasesitepath(T val)
         template <ResultHasSetVal T>
         unsigned int fetch_to(std::vector<T> &custom_record)
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
             parse_leftjion();
             if (selectsql.empty())
@@ -25116,14 +5078,13 @@ M_MODEL& or_leBasesitepath(T val)
             sqlstring.append(B_BASE::tablename);
             get_join_table();
             sqlstring.append(" WHERE ");
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 sqlstring.append(" 1 ");
             }
             else
             {
-                parse_wheresql();
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
@@ -25152,7 +5113,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = conn_obj->get_mysql_select_conn();
                 if (islock_conn)
                 {
-                    if (!select_conn)
+                    if (!select_conn || select_conn->isclose)
                     {
                         select_conn = conn_obj->get_mysql_select_conn();
                     }
@@ -25210,6 +5171,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 return 0;
             }
 
@@ -25219,6 +5181,8 @@ M_MODEL& or_leBasesitepath(T val)
         template <ResultHasSetVal T>
         asio::awaitable<unsigned int> async_fetch_to(std::vector<T> &custom_record)
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
             parse_leftjion();
             if (selectsql.empty())
@@ -25235,14 +5199,13 @@ M_MODEL& or_leBasesitepath(T val)
             get_join_table();
             sqlstring.append(" WHERE ");
 
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 sqlstring.append(" 1 ");
             }
             else
             {
-                parse_wheresql();
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
@@ -25271,7 +5234,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = co_await conn_obj->async_get_mysql_select_conn();
                 if (islock_conn)
                 {
-                    if (!select_conn)
+                    if (!select_conn || select_conn->isclose)
                     {
                         select_conn = co_await conn_obj->async_get_mysql_select_conn();
                     }
@@ -25328,6 +5291,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 co_return 0;
             }
 
@@ -25336,6 +5300,9 @@ M_MODEL& or_leBasesitepath(T val)
 
         unsigned int fetch()
         {
+            std::string where_clause;
+            build_text_where(where_clause);
+
             effect_num = 0;
             if (selectsql.empty())
             {
@@ -25351,13 +5318,13 @@ M_MODEL& or_leBasesitepath(T val)
             sqlstring.append(B_BASE::tablename);
             sqlstring.append(" WHERE ");
 
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 sqlstring.append(" 1 ");
             }
             else
             {
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
@@ -25397,7 +5364,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = conn_obj->get_mysql_select_conn();
                 if (islock_conn)
                 {
-                    if (!select_conn)
+                    if (!select_conn || select_conn->isclose)
                     {
                         select_conn = conn_obj->get_mysql_select_conn();
                     }
@@ -25431,7 +5398,11 @@ M_MODEL& or_leBasesitepath(T val)
                                                                            {
                                                                                auto [ptr, len] = get_data(ij);
                                                                                if (ptr == nullptr)
+                                                                               {
+                                                                                   static const unsigned char null_value = 0;
+                                                                                   assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
                                                                                    continue;
+                                                                               }
                                                                                assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
                                                                            }
                                                                            B_BASE::record.emplace_back(std::move(data_temp));
@@ -25472,6 +5443,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 return 0;
             }
 
@@ -25480,6 +5452,8 @@ M_MODEL& or_leBasesitepath(T val)
 
         asio::awaitable<unsigned int> async_fetch()
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
             if (selectsql.empty())
             {
@@ -25495,13 +5469,13 @@ M_MODEL& or_leBasesitepath(T val)
             sqlstring.append(B_BASE::tablename);
             sqlstring.append(" WHERE ");
 
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 sqlstring.append(" 1 ");
             }
             else
             {
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
@@ -25541,7 +5515,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = co_await conn_obj->async_get_mysql_select_conn();
                 if (islock_conn)
                 {
-                    if (!select_conn)
+                    if (!select_conn || select_conn->isclose)
                     {
                         select_conn = co_await conn_obj->async_get_mysql_select_conn();
                     }
@@ -25575,7 +5549,11 @@ M_MODEL& or_leBasesitepath(T val)
                                                                                           {
                                                                                               auto [ptr, len] = get_data(ij);
                                                                                               if (ptr == nullptr)
+                                                                                              {
+                                                                                                  static const unsigned char null_value = 0;
+                                                                                                  assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
                                                                                                   continue;
+                                                                                              }
                                                                                               assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
                                                                                           }
                                                                                           B_BASE::record.emplace_back(std::move(data_temp));
@@ -25614,6 +5592,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 co_return 0;
             }
 
@@ -25621,6 +5600,8 @@ M_MODEL& or_leBasesitepath(T val)
         }
         M_MODEL &fetch_append()
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
             if (selectsql.empty())
             {
@@ -25636,13 +5617,13 @@ M_MODEL& or_leBasesitepath(T val)
             sqlstring.append(B_BASE::tablename);
             sqlstring.append(" WHERE ");
 
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 sqlstring.append(" 1 ");
             }
             else
             {
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
@@ -25682,7 +5663,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = conn_obj->get_mysql_select_conn();
                 if (islock_conn)
                 {
-                    if (!select_conn)
+                    if (!select_conn || select_conn->isclose)
                     {
                         select_conn = conn_obj->get_mysql_select_conn();
                     }
@@ -25716,7 +5697,11 @@ M_MODEL& or_leBasesitepath(T val)
                                                                            {
                                                                                auto [ptr, len] = get_data(ij);
                                                                                if (ptr == nullptr)
+                                                                               {
+                                                                                   static const unsigned char null_value = 0;
+                                                                                   assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
                                                                                    continue;
+                                                                               }
                                                                                assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
                                                                            }
                                                                            B_BASE::record.emplace_back(std::move(data_temp));
@@ -25757,6 +5742,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 return *mod;
             }
 
@@ -25765,6 +5751,8 @@ M_MODEL& or_leBasesitepath(T val)
 
         asio::awaitable<unsigned int> async_fetch_append()
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
             if (selectsql.empty())
             {
@@ -25780,13 +5768,13 @@ M_MODEL& or_leBasesitepath(T val)
             sqlstring.append(B_BASE::tablename);
             sqlstring.append(" WHERE ");
 
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 sqlstring.append(" 1 ");
             }
             else
             {
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
@@ -25827,7 +5815,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = co_await conn_obj->async_get_mysql_select_conn();
                 if (islock_conn)
                 {
-                    if (!select_conn)
+                    if (!select_conn || select_conn->isclose)
                     {
                         select_conn = co_await conn_obj->async_get_mysql_select_conn();
                     }
@@ -25861,7 +5849,11 @@ M_MODEL& or_leBasesitepath(T val)
                                                                                           {
                                                                                               auto [ptr, len] = get_data(ij);
                                                                                               if (ptr == nullptr)
+                                                                                              {
+                                                                                                  static const unsigned char null_value = 0;
+                                                                                                  assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
                                                                                                   continue;
+                                                                                              }
                                                                                               assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
                                                                                           }
                                                                                           effect_num++;
@@ -25900,6 +5892,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 co_return 0;
             }
 
@@ -25909,6 +5902,8 @@ M_MODEL& or_leBasesitepath(T val)
         template <typename T, RecordLineCallback<T> Callback>
         unsigned int fetch_one_to(T &custom_record, Callback &&callback)
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
             parse_leftjion();
             if (selectsql.empty())
@@ -25926,14 +5921,13 @@ M_MODEL& or_leBasesitepath(T val)
             get_join_table();
             sqlstring.append(" WHERE ");
 
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 sqlstring.append(" 1 ");
             }
             else
             {
-                parse_wheresql();
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
@@ -25961,7 +5955,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = conn_obj->get_mysql_select_conn();
                 if (islock_conn)
                 {
-                    if (!select_conn)
+                    if (!select_conn || select_conn->isclose)
                     {
                         select_conn = conn_obj->get_mysql_select_conn();
                     }
@@ -25991,7 +5985,7 @@ M_MODEL& or_leBasesitepath(T val)
                                                                                }
                                                                            }
                                                                            effect_num++;
-                                                                           return true;
+                                                                           return false;
                                                                        });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
@@ -26018,6 +6012,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 return 0;
             }
 
@@ -26027,6 +6022,8 @@ M_MODEL& or_leBasesitepath(T val)
         template <typename T, RecordLineCallback<T> Callback>
         asio::awaitable<unsigned int> async_fetch_one_to(T &custom_record, Callback &&callback)
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
             parse_leftjion();
             if (selectsql.empty())
@@ -26044,14 +6041,13 @@ M_MODEL& or_leBasesitepath(T val)
             get_join_table();
             sqlstring.append(" WHERE ");
 
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 sqlstring.append(" 1 ");
             }
             else
             {
-                parse_wheresql();
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
@@ -26080,7 +6076,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = co_await conn_obj->async_get_mysql_select_conn();
                 if (islock_conn)
                 {
-                    if (!select_conn)
+                    if (!select_conn || select_conn->isclose)
                     {
                         select_conn = co_await conn_obj->async_get_mysql_select_conn();
                     }
@@ -26109,7 +6105,7 @@ M_MODEL& or_leBasesitepath(T val)
                                                                                               }
                                                                                           }
                                                                                           effect_num++;
-                                                                                          return true;
+                                                                                          return false;
                                                                                       });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
@@ -26135,6 +6131,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 co_return 0;
             }
 
@@ -26144,6 +6141,8 @@ M_MODEL& or_leBasesitepath(T val)
         template <ResultHasSetVal T>
         unsigned int fetch_one_to(T &custom_struct)
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
             parse_leftjion();
             if (selectsql.empty())
@@ -26161,14 +6160,13 @@ M_MODEL& or_leBasesitepath(T val)
             get_join_table();
             sqlstring.append(" WHERE ");
 
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 sqlstring.append(" 1 ");
             }
             else
             {
-                parse_wheresql();
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
@@ -26196,7 +6194,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = conn_obj->get_mysql_select_conn();
                 if (islock_conn)
                 {
-                    if (!select_conn)
+                    if (!select_conn || select_conn->isclose)
                     {
                         select_conn = conn_obj->get_mysql_select_conn();
                     }
@@ -26226,7 +6224,7 @@ M_MODEL& or_leBasesitepath(T val)
                                                                                }
                                                                            }
                                                                            effect_num++;
-                                                                           return true;
+                                                                           return false;
                                                                        });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
@@ -26253,6 +6251,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 return 0;
             }
 
@@ -26262,6 +6261,8 @@ M_MODEL& or_leBasesitepath(T val)
         template <ResultHasSetVal T>
         asio::awaitable<unsigned int> async_fetch_one_to(T &custom_struct)
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
             parse_leftjion();
             if (selectsql.empty())
@@ -26279,14 +6280,13 @@ M_MODEL& or_leBasesitepath(T val)
             get_join_table();
             sqlstring.append(" WHERE ");
 
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 sqlstring.append(" 1 ");
             }
             else
             {
-                parse_wheresql();
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
@@ -26315,7 +6315,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = co_await conn_obj->async_get_mysql_select_conn();
                 if (islock_conn)
                 {
-                    if (!select_conn)
+                    if (!select_conn || select_conn->isclose)
                     {
                         select_conn = co_await conn_obj->async_get_mysql_select_conn();
                     }
@@ -26344,7 +6344,7 @@ M_MODEL& or_leBasesitepath(T val)
                                                                                               }
                                                                                           }
                                                                                           effect_num++;
-                                                                                          return true;
+                                                                                          return false;
                                                                                       });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
@@ -26370,6 +6370,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 co_return 0;
             }
 
@@ -26378,6 +6379,8 @@ M_MODEL& or_leBasesitepath(T val)
 
         unsigned int fetch_one(bool isappend = false)
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
             if (selectsql.empty())
             {
@@ -26393,13 +6396,13 @@ M_MODEL& or_leBasesitepath(T val)
             sqlstring.append(B_BASE::tablename);
             sqlstring.append(" WHERE ");
 
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 sqlstring.append(" 1 ");
             }
             else
             {
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
@@ -26438,7 +6441,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = conn_obj->get_mysql_select_conn();
                 if (islock_conn)
                 {
-                    if (!select_conn)
+                    if (!select_conn || select_conn->isclose)
                     {
                         select_conn = conn_obj->get_mysql_select_conn();
                     }
@@ -26462,7 +6465,7 @@ M_MODEL& or_leBasesitepath(T val)
                                                                                col_pos_map.assign(col_count, 255);
                                                                                for (int ii = 0; ii < col_count; ii++)
                                                                                {
-                                                                                   if (col_names[ii] && col_names[ii][0] != '\0')
+                                                                                   if (col_names[ii] && col_names[ii][0] != 0x00)
                                                                                    {
                                                                                        col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
                                                                                    }
@@ -26476,7 +6479,11 @@ M_MODEL& or_leBasesitepath(T val)
                                                                                {
                                                                                    auto [ptr, len] = get_data(ij);
                                                                                    if (ptr == nullptr)
+                                                                                   {
+                                                                                       static const unsigned char null_value = 0;
+                                                                                       assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
                                                                                        continue;
+                                                                                   }
                                                                                    assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
                                                                                }
                                                                                B_BASE::record.emplace_back(std::move(data_temp));
@@ -26487,12 +6494,16 @@ M_MODEL& or_leBasesitepath(T val)
                                                                                {
                                                                                    auto [ptr, len] = get_data(ij);
                                                                                    if (ptr == nullptr)
+                                                                                   {
+                                                                                       static const unsigned char null_value = 0;
+                                                                                       assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
                                                                                        continue;
+                                                                                   }
                                                                                    assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
                                                                                }
                                                                            }
                                                                            effect_num++;
-                                                                           return true;
+                                                                           return false;
                                                                        });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
@@ -26528,6 +6539,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 return 0;
             }
 
@@ -26536,6 +6548,8 @@ M_MODEL& or_leBasesitepath(T val)
 
         asio::awaitable<unsigned int> async_fetch_one(bool isappend = false)
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
             if (selectsql.empty())
             {
@@ -26551,13 +6565,13 @@ M_MODEL& or_leBasesitepath(T val)
             sqlstring.append(B_BASE::tablename);
             sqlstring.append(" WHERE ");
 
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 sqlstring.append(" 1 ");
             }
             else
             {
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
@@ -26597,7 +6611,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = co_await conn_obj->async_get_mysql_select_conn();
                 if (islock_conn)
                 {
-                    if (!select_conn)
+                    if (!select_conn || select_conn->isclose)
                     {
                         select_conn = co_await conn_obj->async_get_mysql_select_conn();
                     }
@@ -26620,7 +6634,7 @@ M_MODEL& or_leBasesitepath(T val)
                                                                                               col_pos_map.assign(col_count, 255);
                                                                                               for (int ii = 0; ii < col_count; ii++)
                                                                                               {
-                                                                                                  if (col_names[ii] && col_names[ii][0] != '\0')
+                                                                                                  if (col_names[ii] && col_names[ii][0] != 0x00)
                                                                                                   {
                                                                                                       col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
                                                                                                   }
@@ -26634,7 +6648,11 @@ M_MODEL& or_leBasesitepath(T val)
                                                                                               {
                                                                                                   auto [ptr, len] = get_data(ij);
                                                                                                   if (ptr == nullptr)
+                                                                                                  {
+                                                                                                      static const unsigned char null_value = 0;
+                                                                                                      assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
                                                                                                       continue;
+                                                                                                  }
                                                                                                   assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
                                                                                               }
                                                                                               B_BASE::record.emplace_back(std::move(data_temp));
@@ -26645,12 +6663,16 @@ M_MODEL& or_leBasesitepath(T val)
                                                                                               {
                                                                                                   auto [ptr, len] = get_data(ij);
                                                                                                   if (ptr == nullptr)
+                                                                                                  {
+                                                                                                      static const unsigned char null_value = 0;
+                                                                                                      assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
                                                                                                       continue;
+                                                                                                  }
                                                                                                   assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
                                                                                               }
                                                                                           }
                                                                                           effect_num++;
-                                                                                          return true;
+                                                                                          return false;
                                                                                       });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
@@ -26684,6 +6706,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 co_return 0;
             }
 
@@ -26743,6 +6766,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
             }
 
             B_BASE::data_reset();
@@ -26821,6 +6845,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
             }
 
             throw std::runtime_error("Not in cache");
@@ -26837,6 +6862,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
             }
 
             throw std::runtime_error("Not in cache");
@@ -26853,6 +6879,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
             }
 
             B_BASE::record.clear();
@@ -26860,6 +6887,8 @@ M_MODEL& or_leBasesitepath(T val)
         }
         http::obj_val fetch_json()
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
             if (selectsql.empty())
             {
@@ -26875,13 +6904,13 @@ M_MODEL& or_leBasesitepath(T val)
             sqlstring.append(B_BASE::tablename);
             sqlstring.append(" WHERE ");
 
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 sqlstring.append(" 1 ");
             }
             else
             {
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
@@ -26913,7 +6942,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = conn_obj->get_mysql_select_conn();
                 if (islock_conn)
                 {
-                    if (!select_conn)
+                    if (!select_conn || select_conn->isclose)
                     {
                         select_conn = conn_obj->get_mysql_select_conn();
                     }
@@ -26936,7 +6965,10 @@ M_MODEL& or_leBasesitepath(T val)
                                                                            {
                                                                                auto [ptr, len] = get_data(ij);
                                                                                if (ptr == nullptr)
+                                                                               {
+                                                                                   json_temp_v[col_names[ij] ? col_names[ij] : ""] = "";
                                                                                    continue;
+                                                                               }
                                                                                std::string col_name = col_names[ij] ? col_names[ij] : "";
                                                                                std::string temp_str(reinterpret_cast<char *>(ptr), len);
                                                                                if (!col_name.empty())
@@ -26970,6 +7002,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
             }
 
             return valuetemp;
@@ -26977,6 +7010,8 @@ M_MODEL& or_leBasesitepath(T val)
 
         asio::awaitable<http::obj_val> async_fetch_json()
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
             if (selectsql.empty())
             {
@@ -26992,13 +7027,13 @@ M_MODEL& or_leBasesitepath(T val)
             sqlstring.append(B_BASE::tablename);
             sqlstring.append(" WHERE ");
 
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 sqlstring.append(" 1 ");
             }
             else
             {
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
@@ -27030,7 +7065,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = co_await conn_obj->async_get_mysql_select_conn();
                 if (islock_conn)
                 {
-                    if (!select_conn)
+                    if (!select_conn || select_conn->isclose)
                     {
                         select_conn = co_await conn_obj->async_get_mysql_select_conn();
                     }
@@ -27050,10 +7085,13 @@ M_MODEL& or_leBasesitepath(T val)
                                                                                           http::obj_val json_temp_v;
                                                                                           for (int ij = 0; ij < col_count; ij++)
                                                                                           {
-                                                                                              auto [ptr, len] = get_data(ij);
-                                                                                              if (ptr == nullptr)
-                                                                                                  continue;
+                                                                                              auto [ptr, len]      = get_data(ij);
                                                                                               std::string col_name = col_names[ij] ? col_names[ij] : "";
+                                                                                              if (ptr == nullptr)
+                                                                                              {
+                                                                                                  json_temp_v[col_name] = "";
+                                                                                                  continue;
+                                                                                              }
                                                                                               std::string temp_str(reinterpret_cast<char *>(ptr), len);
                                                                                               if (!col_name.empty())
                                                                                               {
@@ -27086,6 +7124,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
             }
 
             co_return valuetemp;
@@ -27138,7 +7177,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = conn_obj->get_mysql_select_conn();
                 if (islock_conn)
                 {
-                    if (!select_conn)
+                    if (!select_conn || select_conn->isclose)
                     {
                         select_conn = conn_obj->get_mysql_select_conn();
                     }
@@ -27162,7 +7201,7 @@ M_MODEL& or_leBasesitepath(T val)
                                                                                col_pos_map.assign(col_count, 255);
                                                                                for (int ii = 0; ii < col_count; ii++)
                                                                                {
-                                                                                   if (col_names[ii] && col_names[ii][0] != '\0')
+                                                                                   if (col_names[ii] && col_names[ii][0] != 0x00)
                                                                                    {
                                                                                        col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
                                                                                    }
@@ -27173,11 +7212,15 @@ M_MODEL& or_leBasesitepath(T val)
                                                                            {
                                                                                auto [ptr, len] = get_data(ij);
                                                                                if (ptr == nullptr)
+                                                                               {
+                                                                                   static const unsigned char null_value = 0;
+                                                                                   assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
                                                                                    continue;
+                                                                               }
                                                                                assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
                                                                            }
                                                                            effect_num++;
-                                                                           return true;
+                                                                           return false;
                                                                        });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
@@ -27211,6 +7254,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 return 0;
             }
 
@@ -27264,7 +7308,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = co_await conn_obj->async_get_mysql_select_conn();
                 if (islock_conn)
                 {
-                    if (!select_conn)
+                    if (!select_conn || select_conn->isclose)
                     {
                         select_conn = co_await conn_obj->async_get_mysql_select_conn();
                     }
@@ -27287,7 +7331,7 @@ M_MODEL& or_leBasesitepath(T val)
                                                                                               col_pos_map.assign(col_count, 255);
                                                                                               for (int ii = 0; ii < col_count; ii++)
                                                                                               {
-                                                                                                  if (col_names[ii] && col_names[ii][0] != '\0')
+                                                                                                  if (col_names[ii] && col_names[ii][0] != 0x00)
                                                                                                   {
                                                                                                       col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
                                                                                                   }
@@ -27298,11 +7342,15 @@ M_MODEL& or_leBasesitepath(T val)
                                                                                           {
                                                                                               auto [ptr, len] = get_data(ij);
                                                                                               if (ptr == nullptr)
+                                                                                              {
+                                                                                                  static const unsigned char null_value = 0;
+                                                                                                  assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
                                                                                                   continue;
+                                                                                              }
                                                                                               assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
                                                                                           }
                                                                                           effect_num++;
-                                                                                          return true;
+                                                                                          return false;
                                                                                       });
                 if (fetch_count == 0 && !select_conn->error_msg.empty())
                 {
@@ -27336,6 +7384,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 co_return 0;
             }
 
@@ -27344,8 +7393,10 @@ M_MODEL& or_leBasesitepath(T val)
 
         int update()
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 if (B_BASE::getPK() > 0)
                 {
@@ -27355,7 +7406,7 @@ M_MODEL& or_leBasesitepath(T val)
                     tempsql << " = '";
                     tempsql << B_BASE::getPK();
                     tempsql << "' ";
-                    wheresql = tempsql.str();
+                    where_clause = tempsql.str();
                 }
                 else
                 {
@@ -27364,13 +7415,13 @@ M_MODEL& or_leBasesitepath(T val)
             }
             sqlstring = B_BASE::make_update_sql("");
             sqlstring.append(" where ");
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 return 0;
             }
             else
             {
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
@@ -27400,7 +7451,7 @@ M_MODEL& or_leBasesitepath(T val)
 
                 if (islock_conn)
                 {
-                    if (!edit_conn)
+                    if (!edit_conn || edit_conn->isclose)
                     {
                         edit_conn = conn_obj->get_mysql_edit_conn();
                     }
@@ -27445,15 +7496,29 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 return 0;
             }
 
             return 0;
         }
-        int update(const std::string &fieldname)
+
+        // --- update_dirty：仅更新 __dirty_bits 标记的脏字段，文本协议 ---
+        int update_dirty()
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
-            if (wheresql.empty())
+
+            // 1. 生成 dirty SQL（空则短路，避免全字段误更新）
+            sqlstring = B_BASE::make_update_dirty_sql();
+            if (sqlstring.empty())
+            {
+                return 0;
+            }
+
+            // 2. WHERE 处理（同 update()：where_clause 空则自动用 PK）
+            if (where_clause.empty())
             {
                 if (B_BASE::getPK() > 0)
                 {
@@ -27463,7 +7528,117 @@ M_MODEL& or_leBasesitepath(T val)
                     tempsql << " = '";
                     tempsql << B_BASE::getPK();
                     tempsql << "' ";
-                    wheresql = tempsql.str();
+                    where_clause = tempsql.str();
+                }
+                else
+                {
+                    return 0;
+                }
+            }
+
+            sqlstring.append(" where ");
+            if (where_clause.empty())
+            {
+                return 0;
+            }
+            else
+            {
+                sqlstring.append(where_clause);
+            }
+            if (!groupsql.empty())
+            {
+                sqlstring.append(groupsql);
+            }
+            if (!ordersql.empty())
+            {
+                sqlstring.append(ordersql);
+            }
+            if (!limitsql.empty())
+            {
+                sqlstring.append(limitsql);
+            }
+
+            if (iserror)
+            {
+                return 0;
+            }
+
+            try
+            {
+                if (conn_empty())
+                {
+                    return 0;
+                }
+
+                if (islock_conn)
+                {
+                    if (!edit_conn || edit_conn->isclose)
+                    {
+                        edit_conn = conn_obj->get_mysql_edit_conn();
+                    }
+                }
+                else
+                {
+                    edit_conn = conn_obj->get_mysql_edit_conn();
+                }
+
+                if (edit_conn->isdebug)
+                {
+                    edit_conn->begin_time();
+                }
+
+                unsigned int affected = edit_conn->exec_dml(sqlstring);
+                if (edit_conn->isdebug)
+                {
+                    edit_conn->finish_time();
+                    auto &conn_mar    = get_orm_connect_mar();
+                    long long du_time = edit_conn->count_time();
+                    conn_mar.push_log(sqlstring, std::to_string(du_time));
+                }
+                if (affected == static_cast<unsigned int>(-1))
+                {
+                    error_msg = edit_conn->error_msg;
+                    iserror   = true;
+                    edit_conn.reset();
+                }
+                else
+                {
+                    effect_num = affected;
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
+                    // 成功才清脏
+                    B_BASE::clear_dirty();
+                }
+                return effect_num;
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+                unlock_conn();
+                return 0;
+            }
+
+            return 0;
+        }
+
+        int update(const std::string &fieldname)
+        {
+            std::string where_clause;
+            build_text_where(where_clause);
+            effect_num = 0;
+            if (where_clause.empty())
+            {
+                if (B_BASE::getPK() > 0)
+                {
+                    std::ostringstream tempsql;
+                    tempsql << " ";
+                    tempsql << B_BASE::getPKname();
+                    tempsql << " = '";
+                    tempsql << B_BASE::getPK();
+                    tempsql << "' ";
+                    where_clause = tempsql.str();
                 }
                 else
                 {
@@ -27474,13 +7649,13 @@ M_MODEL& or_leBasesitepath(T val)
 
             sqlstring = B_BASE::make_update_sql(fieldname);
             sqlstring.append(" where ");
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 return 0;
             }
             else
             {
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
@@ -27509,7 +7684,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = conn_obj->get_mysql_edit_conn();
                 if (islock_conn)
                 {
-                    if (!edit_conn)
+                    if (!edit_conn || edit_conn->isclose)
                     {
                         edit_conn = conn_obj->get_mysql_edit_conn();
                     }
@@ -27553,6 +7728,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 return 0;
             }
 
@@ -27561,8 +7737,10 @@ M_MODEL& or_leBasesitepath(T val)
 
         asio::awaitable<int> async_update(const std::string &fieldname)
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 if (B_BASE::getPK() > 0)
                 {
@@ -27572,7 +7750,7 @@ M_MODEL& or_leBasesitepath(T val)
                     tempsql << " = '";
                     tempsql << B_BASE::getPK();
                     tempsql << "' ";
-                    wheresql = tempsql.str();
+                    where_clause = tempsql.str();
                 }
                 else
                 {
@@ -27583,13 +7761,13 @@ M_MODEL& or_leBasesitepath(T val)
 
             sqlstring = B_BASE::make_update_sql(fieldname);
             sqlstring.append(" where ");
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 co_return 0;
             }
             else
             {
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
@@ -27618,7 +7796,7 @@ M_MODEL& or_leBasesitepath(T val)
 
                 if (islock_conn)
                 {
-                    if (!edit_conn)
+                    if (!edit_conn || edit_conn->isclose)
                     {
                         edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                     }
@@ -27661,6 +7839,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 co_return 0;
             }
 
@@ -27668,8 +7847,10 @@ M_MODEL& or_leBasesitepath(T val)
         }
         asio::awaitable<int> async_update()
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 if (B_BASE::getPK() > 0)
                 {
@@ -27679,7 +7860,7 @@ M_MODEL& or_leBasesitepath(T val)
                     tempsql << " = '";
                     tempsql << B_BASE::getPK();
                     tempsql << "' ";
-                    wheresql = tempsql.str();
+                    where_clause = tempsql.str();
                 }
                 else
                 {
@@ -27690,13 +7871,13 @@ M_MODEL& or_leBasesitepath(T val)
 
             sqlstring = B_BASE::make_update_sql("");
             sqlstring.append(" where ");
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 co_return 0;
             }
             else
             {
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
@@ -27725,7 +7906,7 @@ M_MODEL& or_leBasesitepath(T val)
 
                 if (islock_conn)
                 {
-                    if (!edit_conn)
+                    if (!edit_conn || edit_conn->isclose)
                     {
                         edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                     }
@@ -27768,6 +7949,126 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
+                co_return 0;
+            }
+
+            co_return 0;
+        }
+
+        // --- async_update_dirty：异步仅更新脏字段，文本协议 ---
+        asio::awaitable<int> async_update_dirty()
+        {
+            std::string where_clause;
+            build_text_where(where_clause);
+            effect_num = 0;
+
+            // 1. 生成 dirty SQL（空则短路）
+            sqlstring = B_BASE::make_update_dirty_sql();
+            if (sqlstring.empty())
+            {
+                co_return 0;
+            }
+
+            // 2. WHERE 处理
+            if (where_clause.empty())
+            {
+                if (B_BASE::getPK() > 0)
+                {
+                    std::ostringstream tempsql;
+                    tempsql << " ";
+                    tempsql << B_BASE::getPKname();
+                    tempsql << " = '";
+                    tempsql << B_BASE::getPK();
+                    tempsql << "' ";
+                    where_clause = tempsql.str();
+                }
+                else
+                {
+                    error_msg = "warning empty where sql!";
+                    co_return 0;
+                }
+            }
+
+            sqlstring.append(" where ");
+            if (where_clause.empty())
+            {
+                co_return 0;
+            }
+            else
+            {
+                sqlstring.append(where_clause);
+            }
+            if (!groupsql.empty())
+            {
+                sqlstring.append(groupsql);
+            }
+            if (!ordersql.empty())
+            {
+                sqlstring.append(ordersql);
+            }
+            if (!limitsql.empty())
+            {
+                sqlstring.append(limitsql);
+            }
+
+            if (iserror)
+            {
+                co_return 0;
+            }
+            try
+            {
+                if (conn_empty())
+                {
+                    co_return 0;
+                }
+
+                if (islock_conn)
+                {
+                    if (!edit_conn || edit_conn->isclose)
+                    {
+                        edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
+                    }
+                }
+                else
+                {
+                    edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
+                }
+
+                if (edit_conn->isdebug)
+                {
+                    edit_conn->begin_time();
+                }
+                unsigned int affected = co_await edit_conn->async_exec_dml(sqlstring);
+                if (edit_conn->isdebug)
+                {
+                    edit_conn->finish_time();
+                    auto &conn_mar    = get_orm_connect_mar();
+                    long long du_time = edit_conn->count_time();
+                    conn_mar.push_log(sqlstring, std::to_string(du_time));
+                }
+                if (affected == static_cast<unsigned int>(-1))
+                {
+                    error_msg = edit_conn->error_msg;
+                    iserror   = true;
+                    edit_conn.reset();
+                }
+                else
+                {
+                    effect_num = affected;
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
+                    // 成功才清脏
+                    B_BASE::clear_dirty();
+                }
+                co_return effect_num;
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+                unlock_conn();
                 co_return 0;
             }
 
@@ -27805,7 +8106,7 @@ M_MODEL& or_leBasesitepath(T val)
 
                 if (islock_conn)
                 {
-                    if (!edit_conn)
+                    if (!edit_conn || edit_conn->isclose)
                     {
                         edit_conn = conn_obj->get_mysql_edit_conn();
                     }
@@ -27849,6 +8150,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 return 0;
             }
 
@@ -27856,8 +8158,10 @@ M_MODEL& or_leBasesitepath(T val)
         }
         int remove()
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 if (B_BASE::getPK() > 0)
                 {
@@ -27867,7 +8171,7 @@ M_MODEL& or_leBasesitepath(T val)
                     tempsql << " = '";
                     tempsql << B_BASE::getPK();
                     tempsql << "' ";
-                    wheresql = tempsql.str();
+                    where_clause = tempsql.str();
                 }
                 else
                 {
@@ -27879,13 +8183,13 @@ M_MODEL& or_leBasesitepath(T val)
             sqlstring.append(B_BASE::tablename);
             sqlstring.append(" WHERE ");
 
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 return 0;
             }
             else
             {
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
@@ -27914,7 +8218,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = conn_obj->get_mysql_edit_conn();
                 if (islock_conn)
                 {
-                    if (!edit_conn)
+                    if (!edit_conn || edit_conn->isclose)
                     {
                         edit_conn = conn_obj->get_mysql_edit_conn();
                     }
@@ -27958,6 +8262,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 return 0;
             }
 
@@ -27966,8 +8271,10 @@ M_MODEL& or_leBasesitepath(T val)
 
         asio::awaitable<unsigned int> async_remove()
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 if (B_BASE::getPK() > 0)
                 {
@@ -27977,7 +8284,7 @@ M_MODEL& or_leBasesitepath(T val)
                     tempsql << " = '";
                     tempsql << B_BASE::getPK();
                     tempsql << "' ";
-                    wheresql = tempsql.str();
+                    where_clause = tempsql.str();
                 }
                 else
                 {
@@ -27989,13 +8296,13 @@ M_MODEL& or_leBasesitepath(T val)
             sqlstring.append(B_BASE::tablename);
             sqlstring.append(" WHERE ");
 
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 co_return 0;
             }
             else
             {
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
@@ -28024,7 +8331,7 @@ M_MODEL& or_leBasesitepath(T val)
 
                 if (islock_conn)
                 {
-                    if (!edit_conn)
+                    if (!edit_conn || edit_conn->isclose)
                     {
                         edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                     }
@@ -28067,6 +8374,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 co_return 0;
             }
 
@@ -28098,7 +8406,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = conn_obj->get_mysql_edit_conn();
                 if (islock_conn)
                 {
-                    if (!edit_conn)
+                    if (!edit_conn || edit_conn->isclose)
                     {
                         edit_conn = conn_obj->get_mysql_edit_conn();
                     }
@@ -28142,6 +8450,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 return 0;
             }
 
@@ -28173,7 +8482,7 @@ M_MODEL& or_leBasesitepath(T val)
 
                 if (islock_conn)
                 {
-                    if (!edit_conn)
+                    if (!edit_conn || edit_conn->isclose)
                     {
                         edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                     }
@@ -28216,6 +8525,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 co_return 0;
             }
 
@@ -28224,8 +8534,10 @@ M_MODEL& or_leBasesitepath(T val)
 
         int soft_remove(const std::string &fieldsql)
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 if (B_BASE::getPK() > 0)
                 {
@@ -28235,7 +8547,7 @@ M_MODEL& or_leBasesitepath(T val)
                     tempsql << " = '";
                     tempsql << B_BASE::getPK();
                     tempsql << "' ";
-                    wheresql = tempsql.str();
+                    where_clause = tempsql.str();
                 }
                 else
                 {
@@ -28250,13 +8562,13 @@ M_MODEL& or_leBasesitepath(T val)
                 return 0;
             }
             sqlstring.append(" where ");
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 return 0;
             }
             else
             {
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
@@ -28285,7 +8597,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = conn_obj->get_mysql_edit_conn();
                 if (islock_conn)
                 {
-                    if (!edit_conn)
+                    if (!edit_conn || edit_conn->isclose)
                     {
                         edit_conn = conn_obj->get_mysql_edit_conn();
                     }
@@ -28329,6 +8641,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 return 0;
             }
 
@@ -28336,8 +8649,10 @@ M_MODEL& or_leBasesitepath(T val)
         }
         int soft_remove()
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 if (B_BASE::getPK() > 0)
                 {
@@ -28348,7 +8663,7 @@ M_MODEL& or_leBasesitepath(T val)
                     tempsql << " = '";
                     tempsql << B_BASE::getPK();
                     tempsql << "' ";
-                    wheresql = tempsql.str();
+                    where_clause = tempsql.str();
                 }
                 else
                 {
@@ -28370,13 +8685,13 @@ M_MODEL& or_leBasesitepath(T val)
                 return 0;
             }
             sqlstring.append(" where ");
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 return 0;
             }
             else
             {
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
@@ -28406,7 +8721,7 @@ M_MODEL& or_leBasesitepath(T val)
 
                 if (islock_conn)
                 {
-                    if (!edit_conn)
+                    if (!edit_conn || edit_conn->isclose)
                     {
                         edit_conn = conn_obj->get_mysql_edit_conn();
                     }
@@ -28450,6 +8765,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 return 0;
             }
 
@@ -28475,7 +8791,7 @@ M_MODEL& or_leBasesitepath(T val)
 
                 if (islock_conn)
                 {
-                    if (!edit_conn)
+                    if (!edit_conn || edit_conn->isclose)
                     {
                         edit_conn = conn_obj->get_mysql_edit_conn();
                     }
@@ -28521,6 +8837,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
             }
 
             return std::make_tuple(0, 0);
@@ -28545,7 +8862,7 @@ M_MODEL& or_leBasesitepath(T val)
 
                 if (islock_conn)
                 {
-                    if (!edit_conn)
+                    if (!edit_conn || edit_conn->isclose)
                     {
                         edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                     }
@@ -28591,6 +8908,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
             }
 
             co_return std::make_tuple(0, 0);
@@ -28615,7 +8933,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = conn_obj->get_mysql_edit_conn();
                 if (islock_conn)
                 {
-                    if (!edit_conn)
+                    if (!edit_conn || edit_conn->isclose)
                     {
                         edit_conn = conn_obj->get_mysql_edit_conn();
                     }
@@ -28661,6 +8979,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
             }
 
             return std::make_tuple(0, 0);
@@ -28685,7 +9004,7 @@ M_MODEL& or_leBasesitepath(T val)
 
                 if (islock_conn)
                 {
-                    if (!edit_conn)
+                    if (!edit_conn || edit_conn->isclose)
                     {
                         edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                     }
@@ -28731,6 +9050,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
             }
 
             co_return std::make_tuple(0, 0);
@@ -28755,7 +9075,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = conn_obj->get_mysql_edit_conn();
                 if (islock_conn)
                 {
-                    if (!edit_conn)
+                    if (!edit_conn || edit_conn->isclose)
                     {
                         edit_conn = conn_obj->get_mysql_edit_conn();
                     }
@@ -28801,6 +9121,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
             }
 
             return std::make_tuple(0, 0);
@@ -28825,7 +9146,7 @@ M_MODEL& or_leBasesitepath(T val)
 
                 if (islock_conn)
                 {
-                    if (!edit_conn)
+                    if (!edit_conn || edit_conn->isclose)
                     {
                         edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                     }
@@ -28871,6 +9192,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
             }
 
             co_return std::make_tuple(0, 0);
@@ -28878,10 +9200,12 @@ M_MODEL& or_leBasesitepath(T val)
 
         std::tuple<unsigned int, unsigned long long> save(bool isrealnew = false)
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
             if (B_BASE::getPK() > 0 && isrealnew == false)
             {
-                if (wheresql.empty())
+                if (where_clause.empty())
                 {
                     std::ostringstream tempsql;
                     tempsql << " ";
@@ -28889,17 +9213,17 @@ M_MODEL& or_leBasesitepath(T val)
                     tempsql << " = '";
                     tempsql << B_BASE::getPK();
                     tempsql << "' ";
-                    wheresql = tempsql.str();
+                    where_clause = tempsql.str();
                 }
                 sqlstring = B_BASE::make_update_sql("");
                 sqlstring.append(" where ");
-                if (wheresql.empty())
+                if (where_clause.empty())
                 {
                     return std::make_tuple(0, 0);
                 }
                 else
                 {
-                    sqlstring.append(wheresql);
+                    sqlstring.append(where_clause);
                 }
                 if (!groupsql.empty())
                 {
@@ -28925,7 +9249,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = conn_obj->get_mysql_edit_conn();
                 if (islock_conn)
                 {
-                    if (!edit_conn)
+                    if (!edit_conn || edit_conn->isclose)
                     {
                         edit_conn = conn_obj->get_mysql_edit_conn();
                     }
@@ -28975,7 +9299,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = conn_obj->get_mysql_edit_conn();
                 if (islock_conn)
                 {
-                    if (!edit_conn)
+                    if (!edit_conn || edit_conn->isclose)
                     {
                         edit_conn = conn_obj->get_mysql_edit_conn();
                     }
@@ -29023,10 +9347,12 @@ M_MODEL& or_leBasesitepath(T val)
 
         asio::awaitable<std::tuple<unsigned int, unsigned long long>> async_save(bool isrealnew = false)
         {
+            std::string where_clause;
+            build_text_where(where_clause);
             effect_num = 0;
             if (B_BASE::getPK() > 0 && isrealnew == false)
             {
-                if (wheresql.empty())
+                if (where_clause.empty())
                 {
                     std::ostringstream tempsql;
                     tempsql << " ";
@@ -29034,17 +9360,17 @@ M_MODEL& or_leBasesitepath(T val)
                     tempsql << " = '";
                     tempsql << B_BASE::getPK();
                     tempsql << "' ";
-                    wheresql = tempsql.str();
+                    where_clause = tempsql.str();
                 }
                 sqlstring = B_BASE::make_update_sql("");
                 sqlstring.append(" where ");
-                if (wheresql.empty())
+                if (where_clause.empty())
                 {
                     co_return std::make_tuple(0, 0);
                 }
                 else
                 {
-                    sqlstring.append(wheresql);
+                    sqlstring.append(where_clause);
                 }
                 if (!groupsql.empty())
                 {
@@ -29073,7 +9399,7 @@ M_MODEL& or_leBasesitepath(T val)
 
                     if (islock_conn)
                     {
-                        if (!edit_conn)
+                        if (!edit_conn || edit_conn->isclose)
                         {
                             edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                         }
@@ -29116,6 +9442,7 @@ M_MODEL& or_leBasesitepath(T val)
                 catch (const std::exception &e)
                 {
                     error_msg = std::string(e.what());
+                    unlock_conn();
                     co_return std::make_tuple(0, 0);
                 }
 
@@ -29132,7 +9459,7 @@ M_MODEL& or_leBasesitepath(T val)
                     }
                     if (islock_conn)
                     {
-                        if (!edit_conn)
+                        if (!edit_conn || edit_conn->isclose)
                         {
                             edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                         }
@@ -29178,6 +9505,7 @@ M_MODEL& or_leBasesitepath(T val)
                 catch (const std::exception &e)
                 {
                     error_msg = std::string(e.what());
+                    unlock_conn();
                 }
 
                 co_return std::make_tuple(0, 0);
@@ -29313,7 +9641,7 @@ M_MODEL& or_leBasesitepath(T val)
                 //auto conn = conn_obj->get_mysql_select_conn();
                 if (islock_conn)
                 {
-                    if (!select_conn)
+                    if (!select_conn || select_conn->isclose)
                     {
                         select_conn = conn_obj->get_mysql_select_conn();
                     }
@@ -29369,6 +9697,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
             }
 
             return 0;
@@ -29420,7 +9749,7 @@ M_MODEL& or_leBasesitepath(T val)
                 }
                 if (islock_conn)
                 {
-                    if (!select_conn)
+                    if (!select_conn || select_conn->isclose)
                     {
                         select_conn = co_await conn_obj->async_get_mysql_select_conn();
                     }
@@ -29458,7 +9787,7 @@ M_MODEL& or_leBasesitepath(T val)
                     iserror   = true;
                     error_msg = select_conn->error_msg;
                     select_conn.reset();
-                    co_return result_record;
+                    co_return 0;
                 }
                 if (select_conn->isdebug)
                 {
@@ -29476,6 +9805,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
             }
 
             co_return 0;
@@ -29499,7 +9829,7 @@ M_MODEL& or_leBasesitepath(T val)
 
                 if (islock_conn)
                 {
-                    if (!edit_conn)
+                    if (!edit_conn || edit_conn->isclose)
                     {
                         edit_conn = conn_obj->get_mysql_edit_conn();
                     }
@@ -29544,6 +9874,7 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 return 0;
             }
 
@@ -29567,7 +9898,7 @@ M_MODEL& or_leBasesitepath(T val)
 
                 if (islock_conn)
                 {
-                    if (!edit_conn)
+                    if (!edit_conn || edit_conn->isclose)
                     {
                         edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
                     }
@@ -29612,544 +9943,25 @@ M_MODEL& or_leBasesitepath(T val)
             catch (const std::exception &e)
             {
                 error_msg = std::string(e.what());
+                unlock_conn();
                 co_return 0;
             }
 
             co_return 0;
         }
 
-        unsigned int parse_value(unsigned int i)
-        {
-            i++;
-            if (i >= wheresql.size())
-            {
-                return i;
-            }
-            if (wheresql[i] == '>')
-            {
-                i++;
-            }
-
-            if (i >= wheresql.size())
-            {
-                return i;
-            }
-
-            if (wheresql[i] == '=')
-            {
-                i++;
-                if (i >= wheresql.size())
-                {
-                    return i;
-                }
-
-                if (wheresql[i] == '>')
-                {
-                    i++;
-                }
-
-                if (i >= wheresql.size())
-                {
-                    return i;
-                }
-
-                // spache
-                if (wheresql[i] == ' ')
-                {
-                    i++;
-                    for (; i < wheresql.size(); i++)
-                    {
-                        if (wheresql[i] == ' ')
-                        {
-                            continue;
-                        }
-                        break;
-                    }
-                }
-
-                if (i >= wheresql.size())
-                {
-                    return i;
-                }
-            }
-            else if (wheresql[i] == ' ')
-            {
-                i++;
-                for (; i < wheresql.size(); i++)
-                {
-                    if (wheresql[i] == ' ')
-                    {
-                        continue;
-                    }
-                    break;
-                }
-            }
-
-            //begin value
-            if (wheresql[i] == '\'')
-            {
-                i++;
-                for (; i < wheresql.size(); i++)
-                {
-                    if (wheresql[i] == '\'')
-                    {
-                        if (wheresql[i - 1] == '\\')
-                        {
-                            continue;
-                        }
-                        i++;
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                for (; i < wheresql.size(); i++)
-                {
-                    if (wheresql[i] == ' ')
-                    {
-                        break;
-                    }
-                }
-            }
-            //end value
-            return i;
-        }
-
-        unsigned int parse_between(unsigned int i)
-        {
-            for (; i < wheresql.size(); i++)
-            {
-                //find space
-                if (wheresql[i] == ' ')
-                {
-                    i++;
-                    break;
-                }
-            }
-
-            for (; i < wheresql.size(); i++)
-            {
-                if (wheresql[i] == ' ')
-                {
-                    continue;
-                }
-                break;
-            }
-
-            //1 value
-            for (; i < wheresql.size(); i++)
-            {
-                //find space
-                if (wheresql[i] == ' ')
-                {
-                    i++;
-                    break;
-                }
-            }
-
-            for (; i < wheresql.size(); i++)
-            {
-                if (wheresql[i] == ' ')
-                {
-                    continue;
-                }
-                break;
-            }
-
-            //and
-            for (; i < wheresql.size(); i++)
-            {
-                //find space
-                if (wheresql[i] == ' ')
-                {
-                    i++;
-                    break;
-                }
-            }
-
-            for (; i < wheresql.size(); i++)
-            {
-                if (wheresql[i] == ' ')
-                {
-                    continue;
-                }
-                break;
-            }
-
-            for (; i < wheresql.size(); i++)
-            {
-                //find space
-                if (wheresql[i] == ' ')
-                {
-                    i++;
-                    break;
-                }
-            }
-            return i;
-        }
-        unsigned int parse_like(unsigned int i)
-        {
-            for (; i < wheresql.size(); i++)
-            {
-                //find space
-                if (wheresql[i] == ' ')
-                {
-                    i++;
-                    break;
-                }
-            }
-
-            for (; i < wheresql.size(); i++)
-            {
-                if (wheresql[i] == ' ')
-                {
-                    continue;
-                }
-                break;
-            }
-
-            i++;
-            for (; i < wheresql.size(); i++)
-            {
-                if (wheresql[i] == '\'')
-                {
-                    if (wheresql[i - 1] == '\\')
-                    {
-                        continue;
-                    }
-
-                    i++;
-                    break;
-                }
-            }
-            return i;
-        }
-
-        unsigned int parse_in(unsigned int i)
-        {
-            for (; i < wheresql.size(); i++)
-            {
-                //find space
-                if (wheresql[i] == ' ')
-                {
-                    i++;
-                    break;
-                }
-            }
-
-            for (; i < wheresql.size(); i++)
-            {
-                if (wheresql[i] == ' ')
-                {
-                    continue;
-                }
-                break;
-            }
-
-            i++;
-            for (; i < wheresql.size(); i++)
-            {
-                if (wheresql[i] == ')')
-                {
-                    i++;
-                    break;
-                }
-            }
-            return i;
-        }
-
-        unsigned int parse_exists(unsigned int i)
-        {
-            for (; i < wheresql.size(); i++)
-            {
-                //find space
-                if (wheresql[i] == ' ')
-                {
-                    i++;
-                    break;
-                }
-            }
-
-            for (; i < wheresql.size(); i++)
-            {
-                if (wheresql[i] == ' ')
-                {
-                    continue;
-                }
-                break;
-            }
-
-            i++;
-            for (; i < wheresql.size(); i++)
-            {
-                if (wheresql[i] == ')')
-                {
-                    i++;
-                    break;
-                }
-            }
-            return i;
-        }
-
-        unsigned int parse_notexists(unsigned int i)
-        {
-            for (; i < wheresql.size(); i++)
-            {
-                //find space
-                if (wheresql[i] == ' ')
-                {
-                    i++;
-                    break;
-                }
-            }
-
-            for (; i < wheresql.size(); i++)
-            {
-                if (wheresql[i] == ' ')
-                {
-                    continue;
-                }
-                break;
-            }
-
-            for (; i < wheresql.size(); i++)
-            {
-                //find space
-                if (wheresql[i] == ' ')
-                {
-                    i++;
-                    break;
-                }
-            }
-
-            for (; i < wheresql.size(); i++)
-            {
-                if (wheresql[i] == ' ')
-                {
-                    continue;
-                }
-                break;
-            }
-
-            i++;
-            for (; i < wheresql.size(); i++)
-            {
-                if (wheresql[i] == ')')
-                {
-                    i++;
-                    break;
-                }
-            }
-            return i;
-        }
-
-        void parse_wheresql()
-        {
-            if (join_ptr == nullptr)
-            {
-                return;
-            }
-            bool ishastabname = false;
-            unsigned int i    = 0;
-            for (; i < wheresql.size(); i++)
-            {
-                if (wheresql[i] == ' ')
-                {
-                    continue;
-                }
-                break;
-            }
-
-            for (; i < wheresql.size(); i++)
-            {
-                if (wheresql[i] == '.')
-                {
-                    ishastabname = true;
-                    break;
-                }
-                else if (wheresql[i] == ' ' || wheresql[i] == '>' || wheresql[i] == '!' || wheresql[i] == '<' || wheresql[i] == '=' || wheresql[i] == '(')
-                {
-                    break;
-                }
-            }
-            if (ishastabname)
-            {
-                return;
-            }
-
-            std::string newwheresql_;
-            newwheresql_.append(B_BASE::tablename);
-            newwheresql_.append(".");
-            i = 0;
-            for (; i < wheresql.size(); i++)
-            {
-                if (wheresql[i] == ' ')
-                {
-                    continue;
-                }
-                break;
-            }
-
-            for (; i < wheresql.size(); i++)
-            {
-                if (wheresql[i] == ' ' || wheresql[i] == '>' || wheresql[i] == '!' || wheresql[i] == '<' || wheresql[i] == '=' || wheresql[i] == '(')
-                {
-                    unsigned begin_offset = i;
-                    if (wheresql[i] == ' ')
-                    {
-                        newwheresql_.push_back(' ');
-                        for (; i < wheresql.size(); i++)
-                        {
-                            if (wheresql[i] != ' ')
-                            {
-                                break;
-                            }
-                        }
-                    }
-                    // > >= = < <= is null, in , not in , like , exists , not exists, between and
-                    //value area
-
-                    for (; i < wheresql.size(); i++)
-                    {
-                        if (wheresql[i] == '>')
-                        {
-                            i = parse_value(i);
-                            break;
-                        }
-                        else if (wheresql[i] == '<')
-                        {
-                            i = parse_value(i);
-                        }
-                        else if (wheresql[i] == '=')
-                        {
-                            i = parse_value(i);
-                        }
-                        else if (wheresql[i] == '!')
-                        {
-                            i = parse_value(i);
-                        }
-                        else if (wheresql[i] == 'b' || wheresql[i] == 'B')
-                        {
-                            i = parse_between(i);
-                        }
-                        else if (wheresql[i] == 'l' || wheresql[i] == 'L')
-                        {
-                            i = parse_like(i);
-                        }
-                        else if (wheresql[i] == 'e' || wheresql[i] == 'E')
-                        {
-                            i = parse_exists(i);
-                        }
-                        else if (wheresql[i] == 'n' || wheresql[i] == 'N')
-                        {
-                            i = parse_notexists(i);
-                        }
-                        else if (wheresql[i] == 'i' || wheresql[i] == 'I')
-                        {
-                            if ((i + 1) < wheresql.size() && (wheresql[i] == 'n' || wheresql[i] == 'N'))
-                            {
-                                i = parse_in(i);
-                            }
-                            else
-                            {
-                                if ((i + 1) < wheresql.size() && (wheresql[i] == 's' || wheresql[i] == 'S'))
-                                {
-                                    i += 2;
-                                    for (; i < wheresql.size(); i++)
-                                    {
-                                        if (wheresql[i] != ' ')
-                                        {
-                                            break;
-                                        }
-                                    }
-
-                                    if ((i + 3) < wheresql.size() && (((wheresql[i] == 'N' || wheresql[i + 1] == 'O' || wheresql[i + 2] == 'T')) || (wheresql[i] == 'n' || wheresql[i + 1] == 'o' || wheresql[i + 2] == 't')))
-                                    {
-                                        i += 3;
-
-                                        for (; i < wheresql.size(); i++)
-                                        {
-                                            if (wheresql[i] != ' ')
-                                            {
-                                                break;
-                                            }
-                                        }
-
-                                        for (; i < wheresql.size(); i++)
-                                        {
-                                            if (wheresql[i] == ' ')
-                                            {
-                                                break;
-                                            }
-                                        }
-                                    }
-                                    else
-                                    {
-                                        for (; i < wheresql.size(); i++)
-                                        {
-                                            if (wheresql[i] == ' ')
-                                            {
-                                                break;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        else
-                        {
-                            break;
-                        }
-                    }
-
-                    for (; i < wheresql.size(); i++)
-                    {
-                        if (wheresql[i] != ' ')
-                        {
-                            break;
-                        }
-                    }
-                    //in and or AND OR xor
-                    for (; i < wheresql.size(); i++)
-                    {
-                        if (wheresql[i] == ' ')
-                        {
-                            break;
-                        }
-                    }
-                    //pass
-                    //and or AND OR xor
-                    for (; i < wheresql.size(); i++)
-                    {
-                        if (wheresql[i] == ' ')
-                        {
-                            continue;
-                        }
-                        break;
-                    }
-                    newwheresql_.append(wheresql.substr(begin_offset, (i - begin_offset)));
-
-                    if (i < wheresql.size())
-                    {
-                        newwheresql_.append(B_BASE::tablename);
-                        newwheresql_.append(".");
-                    }
-                    else
-                    {
-                        break;
-                    }
-                }
-                newwheresql_.push_back(wheresql[i]);
-            }
-            wheresql = newwheresql_;
-        }
         void parse_leftjion()
         {
             if (join_ptr == nullptr)
             {
                 return;
             }
+
+            if (join_ptr->parsed)
+            {
+                return;
+            }
+            join_ptr->parsed = true;
 
             std::string sqlselect_;
             if (selectsql.size() == 0)
@@ -30304,63 +10116,324 @@ M_MODEL& or_leBasesitepath(T val)
             join_ptr->join_table = T::org_tablename;
             return *mod;
         }
-        M_MODEL &leftJoin(std::string_view table1)
+        template <HasOrgTablename T>
+        M_MODEL &leftJoin(const T &)
+        {
+            return leftJoin<T>();
+        }
+
+        template <HasOrgTablename T>
+        M_MODEL &innerJoin()
         {
             if (join_ptr == nullptr)
             {
                 join_ptr = std::make_unique<orm::orm_left_join_t>();
             }
-            join_ptr->join_table = table1;
+            join_ptr->join_table = T::org_tablename;
+            join_ptr->isleft     = false;
             return *mod;
         }
+        template <HasOrgTablename T>
+        M_MODEL &innerJoin(const T &)
+        {
+            return innerJoin<T>();
+        }
+
+        // 从 on_sqls 统一组装 LEFT JOIN 的 ON 条件
+        void build_join_on_sql(std::string &on_clause)
+        {
+            if (!join_ptr || join_ptr->on_sqls.empty())
+                return;
+
+            const std::string &main_tbl = B_BASE::tablename;
+            const std::string &join_tbl = join_ptr->join_table;
+
+            for (const auto &item : join_ptr->on_sqls)
+            {
+                if (!on_clause.empty())
+                {
+                    if (item.pre_op == 2)
+                        on_clause.append(" OR ");
+                    else if (item.pre_op == 1)
+                        on_clause.append(" AND ");
+                }
+                on_clause.append(join_tbl);
+                on_clause.append(".");
+                on_clause.append(item.right_filed_name);
+
+                switch (item.op_type)
+                {
+                case orm::wq::eq: on_clause.append(" = "); break;
+                case orm::wq::nq: on_clause.append(" != "); break;
+                case orm::wq::lt: on_clause.append(" < "); break;
+                case orm::wq::le: on_clause.append(" <= "); break;
+                case orm::wq::bt: on_clause.append(" > "); break;
+                case orm::wq::be: on_clause.append(" >= "); break;
+                case orm::wq::like: on_clause.append(" LIKE "); break;
+                // ON 是列与列比较，通配符无处安放，只取关键字
+                case orm::wq::llike: on_clause.append(" LIKE "); break;
+                case orm::wq::rlike: on_clause.append(" LIKE "); break;
+                case orm::wq::nlike: on_clause.append(" NOT LIKE "); break;
+                default: on_clause.append(" = "); break;
+                }
+
+                on_clause.append(main_tbl);
+                on_clause.append(".");
+                on_clause.append(item.left_filed_name);
+            }
+        }
+
+        // 从 sub_sqls 组装子查询内部 WHERE（joinWhere 填充）
+        void build_join_sub_sql(std::string &sub_where)
+        {
+            if (!join_ptr || join_ptr->sub_sqls.empty())
+                return;
+
+            for (const auto &item : join_ptr->sub_sqls)
+            {
+                if (!sub_where.empty())
+                {
+                    if (item.pre_op == 2)
+                        sub_where.append(" OR ");
+                    else if (item.pre_op == 1)
+                        sub_where.append(" AND ");
+                }
+                // 子查询单表，字段名不需要表名前缀
+                sub_where.append(escape_mysql_col(item.left_filed_name));
+
+                switch (item.op_type)
+                {
+                case orm::wq::eq:
+                    sub_where.append(" = ");
+                    escape_text_value(sub_where, item.filed_value, item.need_quote);
+                    break;
+                case orm::wq::nq:
+                    sub_where.append(" != ");
+                    escape_text_value(sub_where, item.filed_value, item.need_quote);
+                    break;
+                case orm::wq::lt:
+                    sub_where.append(" < ");
+                    escape_text_value(sub_where, item.filed_value, item.need_quote);
+                    break;
+                case orm::wq::le:
+                    sub_where.append(" <= ");
+                    escape_text_value(sub_where, item.filed_value, item.need_quote);
+                    break;
+                case orm::wq::bt:
+                    sub_where.append(" > ");
+                    escape_text_value(sub_where, item.filed_value, item.need_quote);
+                    break;
+                case orm::wq::be:
+                    sub_where.append(" >= ");
+                    escape_text_value(sub_where, item.filed_value, item.need_quote);
+                    break;
+                case orm::wq::like:
+                    sub_where.append(" LIKE ");
+                    append_like_text(sub_where, item.filed_value, true, true);
+                    break;
+                case orm::wq::llike:
+                    sub_where.append(" LIKE ");
+                    append_like_text(sub_where, item.filed_value, true, false);
+                    break;
+                case orm::wq::rlike:
+                    sub_where.append(" LIKE ");
+                    append_like_text(sub_where, item.filed_value, false, true);
+                    break;
+                case orm::wq::nlike:
+                    sub_where.append(" NOT LIKE ");
+                    append_like_text(sub_where, item.filed_value, true, true);
+                    break;
+                case orm::wq::in:
+                case orm::wq::notin:
+                    sub_where.append(item.op_type == orm::wq::in ? " IN (" : " NOT IN (");
+                    if (item.filed_value.is_array())
+                    {
+                        for (size_t a = 0; a < item.filed_value.size(); ++a)
+                        {
+                            if (a > 0)
+                                sub_where.append(", ");
+                            escape_text_value(sub_where, item.filed_value[a], item.need_quote);
+                        }
+                    }
+                    else
+                    {
+                        sub_where.append(item.filed_value.to_string());
+                    }
+                    sub_where.append(")");
+                    break;
+                case orm::wq::isnull: sub_where.append(" IS NULL"); break;
+                case orm::wq::notnull: sub_where.append(" IS NOT NULL"); break;
+                default:
+                    sub_where.append(" = ");
+                    escape_text_value(sub_where, item.filed_value, item.need_quote);
+                    break;
+                }
+            }
+        }
+
         void get_join_table()
+        {
+            get_join_table(sqlstring);
+        }
+        void get_join_table(std::string &out)
         {
             if (join_ptr == nullptr)
             {
                 return;
             }
 
-            sqlstring.append(" LEFT JOIN ");
-
-            if (join_ptr->limitsql.empty())
+            if (join_ptr->isleft)
             {
-                sqlstring.append(join_ptr->join_table);
-                sqlstring.append(" ON ");
-                sqlstring.append(join_ptr->wheresql);
+                out.append(" LEFT JOIN ");
             }
             else
             {
-                sqlstring.append(" ( SELECT ");
+                out.append(" INNER JOIN ");
+            }
+
+            std::string on_clause;
+            build_join_on_sql(on_clause);
+
+            if (on_clause.empty())
+            {
+                iserror = true;
+                out.append(join_ptr->join_table);
+                out.append(" ON 1");
+                return;
+            }
+
+            if (join_ptr->limitsql.empty())
+            {
+                // 分支 1: 没有限制, 简单 JOIN
+                out.append(join_ptr->join_table);
+                out.append(" ON ");
+                out.append(on_clause);
+            }
+            else if (join_ptr->parbysql.empty())
+            {
+                // 分支 2: 有 LIMIT 但无 PARTITION → 直接包一层子查询 LIMIT
+                out.append(" ( SELECT ");
                 if (join_ptr->selectsql.empty())
                 {
-                    sqlstring.append(" *,");
+                    out.append(" * ");
                 }
                 else
                 {
+                    out.append(join_ptr->selectsql);
+                }
+                out.append(" FROM ");
+                out.append(join_ptr->join_table);
 
-                    sqlstring.append(trip_as_field(join_ptr->selectsql));
+                std::string sub_where;
+                build_join_sub_sql(sub_where);
+                if (!sub_where.empty())
+                {
+                    out.append(" WHERE ");
+                    out.append(sub_where);
+                }
+                if (!join_ptr->ordersql.empty())
+                {
+                    out.append(" ");
+                    out.append(join_ptr->ordersql);
+                }
+                out.append(" LIMIT ");
+                out.append(join_ptr->limitsql);
 
-                    sqlstring.append(", ROW_NUMBER() OVER(PARTITION BY ");
-                    sqlstring.append(join_ptr->parbysql);
-                    sqlstring.append(" ");
-                    sqlstring.append(join_ptr->ordersql);
-                    sqlstring.append(") AS rn FROM ");
-                    sqlstring.append(join_ptr->join_table);
-
-                    if (join_ptr->subsql.size() > 0)
+                out.append(" ) ");
+                out.append(join_ptr->join_table);
+                out.append(" ON ");
+                out.append(on_clause);
+            }
+            else
+            {
+                // 分支 3: 有 LIMIT 且有 PARTITION → ROW_NUMBER() 窗口函数
+                // parbysql 由 joinGroup/joinParAppend 设置, 这里把 joinOn 的 JOIN 表字段补上;
+                // parbysql 与 joinOn 右列同为 JOIN 表字段, 只能按列名精确去重:
+                // 主表的 findcolpos 按首字母哈希且属另一张表的命名空间, 会把 item_id 误判成与 id 同列
+                std::vector<std::string> parby_cols;
+                {
+                    std::string_view par_by = join_ptr->parbysql;
+                    while (!par_by.empty())
                     {
-                        sqlstring.append(" WHERE ");
-                        sqlstring.append(join_ptr->subsql);
+                        auto cut             = par_by.find(',');
+                        std::string_view one = (cut == std::string_view::npos) ? par_by : par_by.substr(0, cut);
+                        while (!one.empty() && (one.front() == ' ' || one.front() == '\t'))
+                        {
+                            one.remove_prefix(1);
+                        }
+                        while (!one.empty() && (one.back() == ' ' || one.back() == '\t'))
+                        {
+                            one.remove_suffix(1);
+                        }
+                        if (!one.empty())
+                        {
+                            parby_cols.emplace_back(one);
+                        }
+                        if (cut == std::string_view::npos)
+                        {
+                            break;
+                        }
+                        par_by.remove_prefix(cut + 1);
                     }
                 }
-                sqlstring.append(" ) ");
-                sqlstring.append(join_ptr->join_table);
-                sqlstring.append(" ON ");
-                sqlstring.append(join_ptr->wheresql);
-                sqlstring.append(" AND ");
-                sqlstring.append(join_ptr->join_table);
-                sqlstring.append(".rn <= ");
-                sqlstring.append(join_ptr->limitsql);
+
+                for (const auto &cond : join_ptr->on_sqls)
+                {
+                    if (cond.right_filed_name.empty())
+                    {
+                        continue;
+                    }
+                    bool exist_pos = false;
+                    for (const std::string &one_col : parby_cols)
+                    {
+                        if (one_col == cond.right_filed_name)
+                        {
+                            exist_pos = true;
+                            break;
+                        }
+                    }
+                    if (exist_pos)
+                    {
+                        continue;
+                    }
+                    join_ptr->parbysql.append(",");
+                    join_ptr->parbysql.append(cond.right_filed_name);
+                }
+
+                out.append(" ( SELECT ");
+                std::string sub_where;
+                build_join_sub_sql(sub_where);
+
+                if (join_ptr->selectsql.empty())
+                {
+                    out.append(" *, ");
+                }
+                else
+                {
+                    out.append(trip_as_field(join_ptr->selectsql));
+                    out.append(", ");
+                }
+
+                out.append("ROW_NUMBER() OVER(PARTITION BY ");
+                out.append(join_ptr->parbysql);
+                out.append(" ");
+                out.append(join_ptr->ordersql);
+                out.append(") AS rn FROM ");
+                out.append(join_ptr->join_table);
+
+                if (!sub_where.empty())
+                {
+                    out.append(" WHERE ");
+                    out.append(sub_where);
+                }
+                out.append(" ) ");
+                out.append(join_ptr->join_table);
+                out.append(" ON ");
+                out.append(on_clause);
+                out.append(" AND ");
+                out.append(join_ptr->join_table);
+                out.append(".rn <= ");
+                out.append(join_ptr->limitsql);
             }
         }
         std::string trip_as_field(std::string_view fields)
@@ -30456,29 +10529,41 @@ M_MODEL& or_leBasesitepath(T val)
 
             return *mod;
         }
-        M_MODEL &joinOn(std::string_view field1, std::string_view field2)
+        // joinOn 通用版本: join_field(join表字段) = main_field(主表字段)
+        M_MODEL &joinOn(std::string_view join_field, std::string_view main_field)
         {
             if (join_ptr == nullptr)
             {
                 join_ptr = std::make_unique<orm::orm_left_join_t>();
             }
 
-            if (join_ptr->wheresql.size() > 0)
-            {
-                join_ptr->wheresql.append(" AND ");
-            }
-            join_ptr->wheresql.append(join_ptr->join_table);
-            join_ptr->wheresql.append(".");
-            join_ptr->wheresql.append(field1);
-            join_ptr->wheresql.append(" = ");
-            join_ptr->wheresql.append(B_BASE::tablename);
-            join_ptr->wheresql.append(".");
-            join_ptr->wheresql.append(field2);
+            orm::orm_where_join_t item;
+            item.pre_op           = join_ptr->on_sqls.empty() ? 0 : 1;
+            item.op_type          = orm::wq::eq;
+            item.right_filed_name = join_field;
+            item.left_filed_name  = main_field;
+            join_ptr->on_sqls.push_back(std::move(item));
 
-            if (join_ptr->parbysql.empty())
+            return *mod;
+        }
+
+        // joinOn 模板版: 主表字段用 cols 枚举
+        M_MODEL &joinOn(std::string_view join_field, B_BASE::cols main_field)
+        {
+            if (join_ptr == nullptr)
             {
-                join_ptr->parbysql.append(field1);
+                join_ptr = std::make_unique<orm::orm_left_join_t>();
             }
+
+            orm::orm_where_join_t item;
+            item.pre_op           = join_ptr->on_sqls.empty() ? 0 : 1;
+            item.op_type          = orm::wq::eq;
+            item.left_idx         = static_cast<unsigned char>(main_field);
+            item.need_quote       = B_BASE::col_need_quote[item.left_idx];
+            item.left_filed_name  = superadmin_info::col_names[item.left_idx];
+            item.right_filed_name = join_field;
+            join_ptr->on_sqls.push_back(std::move(item));
+
             return *mod;
         }
         template <typename T>
@@ -30517,14 +10602,23 @@ M_MODEL& or_leBasesitepath(T val)
                 join_ptr = std::make_unique<orm::orm_left_join_t>();
             }
 
-            if (!join_ptr->subsql.empty())
+            orm::orm_where_join_t item;
+            item.pre_op          = join_ptr->sub_sqls.empty() ? 0 : 1;
+            item.op_type         = orm::wq::eq;
+            item.left_filed_name = field;
+
+            if (join_ptr->find_join_col_indexd_ptr != nullptr)
             {
-                join_ptr->subsql.append(" AND ");
+                item.left_idx = join_ptr->find_join_col_indexd_ptr(field);
+                if (item.left_idx == 255)
+                {
+                    error_msg = "field is not join table column";
+                    iserror   = true;
+                }
             }
 
-            join_ptr->subsql.append(field);
-            join_ptr->subsql.append(" = ");
-            join_ptr->subsql.append(to_sql_value(std::forward<T2>(value)));
+            item.filed_value = std::forward<T2>(value);
+            join_ptr->sub_sqls.push_back(std::move(item));
             return *mod;
         }
 
@@ -30536,53 +10630,21 @@ M_MODEL& or_leBasesitepath(T val)
                 join_ptr = std::make_unique<orm::orm_left_join_t>();
             }
 
-            if (!join_ptr->subsql.empty())
+            orm::orm_where_join_t item;
+            item.pre_op          = join_ptr->sub_sqls.empty() ? 0 : 1;
+            item.op_type         = opwq;
+            item.left_filed_name = field;
+
+            if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
             {
-                join_ptr->subsql.append(" AND ");
+                item.filed_value = std::string(value);
+            }
+            else
+            {
+                item.filed_value = std::forward<T2>(value);
             }
 
-            join_ptr->subsql.append(field);
-
-            if (opwq == orm::wq::in)
-            {
-                join_ptr->subsql.append(" IN (");
-                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
-                {
-                    join_ptr->subsql.append(std::string_view(value));
-                }
-                join_ptr->subsql.append(") ");
-                return *mod;
-            }
-            switch (opwq)
-            {
-            case orm::wq::bt:
-                join_ptr->subsql.append(" > ");
-                break;
-            case orm::wq::be:
-                join_ptr->subsql.append(" >= ");
-                break;
-            case orm::wq::eq:
-                join_ptr->subsql.append(" = ");
-                break;
-            case orm::wq::nq:
-                join_ptr->subsql.append(" != ");
-                break;                
-            case orm::wq::lt:
-                join_ptr->subsql.append(" < ");
-                break;
-            case orm::wq::le:
-                join_ptr->subsql.append(" <= ");
-                break;
-            case orm::wq::like:
-                join_ptr->subsql.append(" LIKE ");
-                break;
-            default:
-                join_ptr->subsql.append(" = ");
-                break;
-            }
-
-            join_ptr->subsql.append(to_sql_value(std::forward<T2>(value)));
-            wheresql.append(" ");
+            join_ptr->sub_sqls.push_back(std::move(item));
             return *mod;
         }
 
@@ -30594,53 +10656,21 @@ M_MODEL& or_leBasesitepath(T val)
                 join_ptr = std::make_unique<orm::orm_left_join_t>();
             }
 
-            if (!join_ptr->subsql.empty())
+            orm::orm_where_join_t item;
+            item.pre_op          = join_ptr->sub_sqls.empty() ? 0 : 2;
+            item.op_type         = opwq;
+            item.left_filed_name = field;
+
+            if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
             {
-                join_ptr->subsql.append(" OR ");
+                item.filed_value = std::string(value);
+            }
+            else
+            {
+                item.filed_value = std::forward<T2>(value);
             }
 
-            join_ptr->subsql.append(field);
-
-            if (opwq == orm::wq::in)
-            {
-                join_ptr->subsql.append(" IN (");
-                if constexpr (std::is_convertible_v<decltype(value), std::string_view>)
-                {
-                    join_ptr->subsql.append(std::string_view(value));
-                }
-                join_ptr->subsql.append(") ");
-                return *mod;
-            }
-            switch (opwq)
-            {
-            case orm::wq::bt:
-                join_ptr->subsql.append(" > ");
-                break;
-            case orm::wq::be:
-                join_ptr->subsql.append(" >= ");
-                break;
-            case orm::wq::eq:
-                join_ptr->subsql.append(" = ");
-                break;
-            case orm::wq::nq:
-                join_ptr->subsql.append(" != ");
-                break;                 
-            case orm::wq::lt:
-                join_ptr->subsql.append(" < ");
-                break;
-            case orm::wq::le:
-                join_ptr->subsql.append(" <= ");
-                break;
-            case orm::wq::like:
-                join_ptr->subsql.append(" LIKE ");
-                break;
-            default:
-                join_ptr->subsql.append(" = ");
-                break;
-            }
-
-            join_ptr->subsql.append(to_sql_value(std::forward<T2>(value)));
-            wheresql.append(" ");
+            join_ptr->sub_sqls.push_back(std::move(item));
             return *mod;
         }
 
@@ -30735,7 +10765,9 @@ M_MODEL& or_leBasesitepath(T val)
         }
         std::string commit_update(const std::string &fieldname)
         {
-            if (wheresql.empty())
+            std::string where_clause;
+            build_text_where(where_clause);
+            if (where_clause.empty())
             {
                 if (B_BASE::getPK() > 0)
                 {
@@ -30745,7 +10777,7 @@ M_MODEL& or_leBasesitepath(T val)
                     tempsql << " = '";
                     tempsql << B_BASE::getPK();
                     tempsql << "' ";
-                    wheresql = tempsql.str();
+                    where_clause = tempsql.str();
                 }
                 else
                 {
@@ -30756,13 +10788,13 @@ M_MODEL& or_leBasesitepath(T val)
 
             sqlstring = B_BASE::make_update_sql(fieldname);
             sqlstring.append(" WHERE ");
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 return "";
             }
             else
             {
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
@@ -30781,7 +10813,9 @@ M_MODEL& or_leBasesitepath(T val)
 
         std::string commit_remove()
         {
-            if (wheresql.empty())
+            std::string where_clause;
+            build_text_where(where_clause);
+            if (where_clause.empty())
             {
                 if (B_BASE::getPK() > 0)
                 {
@@ -30791,7 +10825,7 @@ M_MODEL& or_leBasesitepath(T val)
                     tempsql << " = '";
                     tempsql << B_BASE::getPK();
                     tempsql << "' ";
-                    wheresql = tempsql.str();
+                    where_clause = tempsql.str();
                 }
                 else
                 {
@@ -30803,13 +10837,13 @@ M_MODEL& or_leBasesitepath(T val)
             sqlstring.append(B_BASE::tablename);
             sqlstring.append(" WHERE ");
 
-            if (wheresql.empty())
+            if (where_clause.empty())
             {
                 return "";
             }
             else
             {
-                sqlstring.append(wheresql);
+                sqlstring.append(where_clause);
             }
             if (!groupsql.empty())
             {
@@ -30829,20 +10863,17 @@ M_MODEL& or_leBasesitepath(T val)
         M_MODEL &clear(bool both = true)
         {
             selectsql.clear();
-            wheresql.clear();
             ordersql.clear();
             groupsql.clear();
             limitsql.clear();
             sqlstring.clear();
             error_msg.clear();
-
             join_ptr.reset();
+            wheresql.clear();
 
-            iskuohao     = false;
-            ishascontent = false;
-            iscache      = false;
-            iserror      = false;
-            effect_num   = 0;
+            iscache    = false;
+            iserror    = false;
+            effect_num = 0;
             if (both)
             {
                 B_BASE::record_reset();
@@ -30853,18 +10884,16 @@ M_MODEL& or_leBasesitepath(T val)
         M_MODEL &clearWhere()
         {
             selectsql.clear();
-            wheresql.clear();
             ordersql.clear();
             groupsql.clear();
             limitsql.clear();
             sqlstring.clear();
             error_msg.clear();
+            wheresql.clear();
 
-            iskuohao     = false;
-            ishascontent = false;
-            iscache      = false;
-            iserror      = false;
-            effect_num   = 0;
+            iscache    = false;
+            iserror    = false;
+            effect_num = 0;
             join_ptr.reset();
             return *mod;
         }
@@ -30903,11 +10932,81 @@ M_MODEL& or_leBasesitepath(T val)
                 {
                     conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
+
                 if (edit_conn)
                 {
                     conn_obj->back_mysql_edit_conn(std::move(edit_conn));
                 }
             }
+        }
+        // lock_conn 模式下析构时自动清理连接（防忘记 unlock_conn）
+        // 断连的连接直接 reset，不归还池（避免污染池）
+        ~superadmin_opsql()
+        {
+            if (islock_conn)
+            {
+                if (select_conn)
+                    select_conn.reset();
+                if (edit_conn)
+                    edit_conn.reset();
+                islock_conn = false;
+            }
+        }
+
+        // 移动构造，unique_ptr join_ptr 又使隐式拷贝成为 deleted。
+        // mod 必须重指到新对象：链式接口全部 return *mod，否则 SQL 会写进被搬空的那个临时量。
+        superadmin_opsql(const superadmin_opsql &)            = delete;
+        superadmin_opsql &operator=(const superadmin_opsql &) = delete;
+        superadmin_opsql(superadmin_opsql &&o) noexcept : B_BASE(std::move(o))
+        {
+            selectsql     = std::move(o.selectsql);
+            ordersql      = std::move(o.ordersql);
+            groupsql      = std::move(o.groupsql);
+            limitsql      = std::move(o.limitsql);
+            sqlstring     = std::move(o.sqlstring);
+            dbtag         = std::move(o.dbtag);
+            error_msg     = std::move(o.error_msg);
+            iscache       = o.iscache;
+            iserror       = o.iserror;
+            islock_conn   = o.islock_conn;
+            exptime       = o.exptime;
+            effect_num    = o.effect_num;
+            wheresql      = std::move(o.wheresql);
+            join_ptr      = std::move(o.join_ptr);
+            select_conn   = std::move(o.select_conn);
+            edit_conn     = std::move(o.edit_conn);
+            conn_obj      = std::move(o.conn_obj);
+            mod           = static_cast<M_MODEL *>(this);
+            o.mod         = static_cast<M_MODEL *>(&o);
+            o.islock_conn = false;
+        }
+        superadmin_opsql &operator=(superadmin_opsql &&o) noexcept
+        {
+            if (this != &o)
+            {
+                static_cast<B_BASE &>(*this) = std::move(static_cast<B_BASE &>(o));
+                selectsql                    = std::move(o.selectsql);
+                ordersql                     = std::move(o.ordersql);
+                groupsql                     = std::move(o.groupsql);
+                limitsql                     = std::move(o.limitsql);
+                sqlstring                    = std::move(o.sqlstring);
+                dbtag                        = std::move(o.dbtag);
+                error_msg                    = std::move(o.error_msg);
+                iscache                      = o.iscache;
+                iserror                      = o.iserror;
+                islock_conn                  = o.islock_conn;
+                exptime                      = o.exptime;
+                effect_num                   = o.effect_num;
+                wheresql                     = std::move(o.wheresql);
+                join_ptr                     = std::move(o.join_ptr);
+                select_conn                  = std::move(o.select_conn);
+                edit_conn                    = std::move(o.edit_conn);
+                conn_obj                     = std::move(o.conn_obj);
+                mod                          = static_cast<M_MODEL *>(this);
+                o.mod                        = static_cast<M_MODEL *>(&o);
+                o.islock_conn                = false;
+            }
+            return *this;
         }
 
         DB_TYPE get_db_type()
@@ -30915,9 +11014,2545 @@ M_MODEL& or_leBasesitepath(T val)
             return DB_TYPE::MYSQL;
         }
 
+        // ===== 预编译语句（Prepared Statements）=====
+        // --- AND / OR（string_view 版本，共享）---
+        template <typename T>
+        M_MODEL &AND(std::string_view field, orm::wq opwq, T val)
+        {
+            orm_where_sql_t item;
+            item.pre_op      = wheresql.empty() ? 0 : 1;
+            item.op_type     = opwq;
+            item.col_idx     = 255;
+            item.filed_name  = std::string(field);
+            item.filed_value = http::obj_val(val);
+            wheresql.push_back(std::move(item));
+            return *mod;
+        }
+
+        template <typename T>
+        M_MODEL &OR(std::string_view field, orm::wq opwq, T val)
+        {
+            orm_where_sql_t item;
+            item.pre_op      = wheresql.empty() ? 0 : 2;
+            item.op_type     = opwq;
+            item.col_idx     = 255;
+            item.filed_name  = std::string(field);
+            item.filed_value = http::obj_val(val);
+            wheresql.push_back(std::move(item));
+            return *mod;
+        }
+
+        // --- 括号方法 ---
+        M_MODEL &andsub()
+        {
+            orm_where_sql_t item;
+            item.pre_op    = wheresql.empty() ? 0 : 1;
+            item.begin_sub = true;
+            wheresql.push_back(std::move(item));
+            return *mod;
+        }
+
+        M_MODEL &orsub()
+        {
+            orm_where_sql_t item;
+            item.pre_op    = wheresql.empty() ? 0 : 2;
+            item.begin_sub = true;
+            wheresql.push_back(std::move(item));
+            return *mod;
+        }
+
+        M_MODEL &endsub()
+        {
+            orm_where_sql_t item;
+            item.end_sub = true;
+            wheresql.push_back(std::move(item));
+            return *mod;
+        }
+
+      private:
+        // --- 构建预编译 WHERE ---
+        void build_prepared_where(std::string &where_clause,
+                                  std::vector<http::obj_val> &params)
+        {
+            const bool need_table_prefix = (join_ptr != nullptr);
+            auto append_field            = [&](const std::string &fname)
+            {
+                if (need_table_prefix && fname.find('.') == std::string::npos)
+                {
+                    where_clause.append(B_BASE::tablename);
+                    where_clause.append(".");
+                }
+                where_clause.append(escape_mysql_col(fname));
+            };
+
+            for (const auto &item : wheresql)
+            {
+                if (item.end_sub)
+                {
+                    where_clause.push_back(')');
+                    continue;
+                }
+
+                // 连接词：仅当前面已有内容且不紧邻左括号时才输出，
+                // 避免括号内首项被多加 AND/OR（如 "AND ( AND x = ?"）
+                if (!where_clause.empty() && where_clause.back() != '(')
+                {
+                    switch (item.pre_op)
+                    {
+                    case 1: where_clause.append(" AND "); break;
+                    case 2: where_clause.append(" OR "); break;
+                    default: break;
+                    }
+                }
+
+                if (item.begin_sub)
+                {
+                    where_clause.push_back('(');
+                    if (item.filed_name.empty())
+                        continue;
+                }
+
+                append_field(item.filed_name);
+                switch (item.op_type)
+                {
+                case orm::wq::eq: where_clause.append(" = ?"); break;
+                case orm::wq::bt: where_clause.append(" > ?"); break;
+                case orm::wq::be: where_clause.append(" >= ?"); break;
+                case orm::wq::lt: where_clause.append(" < ?"); break;
+                case orm::wq::le: where_clause.append(" <= ?"); break;
+                case orm::wq::nq: where_clause.append(" != ?"); break;
+                case orm::wq::like: where_clause.append(" LIKE ?"); break;
+                case orm::wq::llike: where_clause.append(" LIKE ?"); break;
+                case orm::wq::rlike: where_clause.append(" LIKE ?"); break;
+                case orm::wq::nlike: where_clause.append(" NOT LIKE ?"); break;
+                case orm::wq::in:
+                case orm::wq::notin:
+                {
+                    where_clause.append(item.op_type == orm::wq::in ? " IN (" : " NOT IN (");
+                    if (item.filed_value.is_array())
+                    {
+                        for (size_t a = 0; a < item.filed_value.size(); ++a)
+                        {
+                            if (a > 0)
+                                where_clause.append(", ");
+                            where_clause.append("?");
+                            params.push_back(item.filed_value[a]);
+                        }
+                    }
+                    else
+                    {
+                        where_clause.append("?");
+                        params.push_back(item.filed_value);
+                    }
+                    where_clause.append(")");
+                    break;
+                }
+                case orm::wq::isnull: where_clause.append(" IS NULL"); break;
+                case orm::wq::notnull: where_clause.append(" IS NOT NULL"); break;
+                default:
+#ifdef _ORM_DEBUG
+                    std::cerr << "[orm] mysql build_prepared_where: unknown op_type=" << int(item.op_type) << std::endl;
+#endif
+                    break;
+                }
+                if (item.op_type != orm::wq::isnull && item.op_type != orm::wq::notnull && item.op_type != orm::wq::in && item.op_type != orm::wq::notin)
+                    params.push_back(prepared_like_bind(item));
+            }
+
+            // 兼容旧版 async_update/fetch：wheresql 为空时，若 pk > 0 自动用 pk 做 WHERE
+            if (wheresql.empty() && B_BASE::getPK() > 0)
+            {
+                if (!where_clause.empty())
+                    where_clause.append(" AND ");
+                append_field(B_BASE::getPKname());
+                where_clause.append(" = ?");
+                params.push_back(http::obj_val(B_BASE::getPK()));
+            }
+        }
+
+        // --- 构建完整 SELECT SQL + 参数 ---
+        std::string build_prepared_select(std::vector<http::obj_val> &params, bool limit_one = false)
+        {
+            std::string where_clause;
+            build_prepared_where(where_clause, params);
+
+            parse_leftjion();
+
+            std::string sql;
+            if (selectsql.empty())
+                sql = "SELECT * FROM ";
+            else
+            {
+                sql = "SELECT ";
+                sql.append(selectsql);
+                sql.append(" FROM ");
+            }
+            sql.append(B_BASE::tablename);
+            get_join_table(sql);
+            if (!where_clause.empty())
+            {
+                sql.append(" WHERE ");
+                sql.append(where_clause);
+            }
+            sql.append(groupsql);
+            sql.append(ordersql);
+            if (limit_one)
+                sql.append(" LIMIT 1");
+            else
+                sql.append(limitsql);
+            return sql;
+        }
+
+        // --- 获取 select_conn（预编译版复用现有连接池逻辑）---
+        auto _get_prepared_select_conn()
+        {
+            if (islock_conn)
+            {
+                if (!select_conn || select_conn->isclose)
+                    select_conn = conn_obj->get_mysql_select_conn();
+            }
+            else
+            {
+                select_conn = conn_obj->get_mysql_select_conn();
+            }
+            return select_conn;
+        }
+
+        auto _get_prepared_edit_conn()
+        {
+            if (islock_conn)
+            {
+                if (!edit_conn || edit_conn->isclose)
+                    edit_conn = conn_obj->get_mysql_edit_conn();
+            }
+            else
+            {
+                edit_conn = conn_obj->get_mysql_edit_conn();
+            }
+            return edit_conn;
+        }
+
+      public:
+        // ===== SELECT 类（参考 fetch_one / fetch_to / fetch_append 命名）=====
+
+        // --- exec_one：预编译 SELECT LIMIT 1，结果写入 this->data ---
+        unsigned int exec_one()
+        {
+            std::vector<http::obj_val> params;
+            std::string sql = build_prepared_select(params, true);
+            sqlstring       = sql;
+
+            B_BASE::data_reset();
+            if (iserror)
+            {
+                return 0;
+            }
+            if (conn_empty())
+            {
+                return 0;
+            }
+
+            auto conn = _get_prepared_select_conn();
+            if (conn->isdebug)
+                conn->begin_time();
+
+            auto col_pos_map  = std::vector<unsigned char>();
+            bool first_row    = true;
+            unsigned int rows = conn->fetch_prepared(sql, params, [this, conn, &col_pos_map, &first_row](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                     {
+                                                         if (first_row)
+                                                         {
+                                                             col_pos_map.assign(col_count, 255);
+                                                             const auto &org_names = conn->prepared_col_org_names();
+                                                             for (int ii = 0; ii < col_count; ii++)
+                                                             {
+                                                                 if (col_names[ii] && col_names[ii][0] != 0x00)
+                                                                     col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
+                                                                 // 显示名是别名/表达式名，本表无同名字段时用原始(物理)列名兜底
+                                                                 if (col_pos_map[ii] == 255 && ii < static_cast<int>(org_names.size()))
+                                                                     col_pos_map[ii] = B_BASE::findcolpos(org_names[ii]);
+                                                             }
+                                                             first_row = false;
+                                                         }
+                                                         for (int ij = 0; ij < col_count; ij++)
+                                                         {
+                                                             auto [ptr, len] = get_data(ij);
+                                                             if (ptr == nullptr)
+                                                             {
+                                                                 static const unsigned char null_value = 0;
+                                                                 assign_field_value(col_pos_map[ij], (unsigned char *)&null_value, 0, B_BASE::data);
+                                                                 continue;
+                                                             }
+                                                             assign_field_value(col_pos_map[ij], ptr, len, B_BASE::data);
+                                                         }
+                                                         return false;// LIMIT 1，一行后停止
+                                                     });
+
+            if (conn->isdebug)
+                conn->finish_time();
+            if (rows == 0 && !conn->error_msg.empty())
+            {
+                iserror   = true;
+                error_msg = conn->error_msg;
+            }
+            effect_num = rows;
+            if (!islock_conn)
+            {
+                conn_obj->back_mysql_select_conn(std::move(conn));
+            }
+            return rows;
+        }
+
+        // --- exec_fetch_append：预编译 SELECT，追加到 record ---
+        unsigned int exec_fetch_append()
+        {
+            std::vector<http::obj_val> params;
+            std::string sql = build_prepared_select(params);
+            sqlstring       = sql;
+
+            // 追加语义：不清空 record（exec_fetch_to 会先自行 record_reset 再调用本函数）
+            if (iserror)
+            {
+                return 0;
+            }
+            if (conn_empty())
+            {
+                return 0;
+            }
+
+            auto conn = _get_prepared_select_conn();
+            if (conn->isdebug)
+                conn->begin_time();
+
+            // 先空跑一次拿到列名映射（fetch_prepared 内部会缓存列信息）
+            auto col_pos_map = std::vector<unsigned char>();
+            bool first_row   = true;
+
+            unsigned int rows = conn->fetch_prepared(sql, params, [this, conn, &col_pos_map, &first_row](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                     {
+                    if (first_row)
+                    {
+                        col_pos_map.assign(col_count, 255);
+                        const auto &org_names = conn->prepared_col_org_names();
+                        for (int ii = 0; ii < col_count; ii++)
+                        {
+                            if (col_names[ii] && col_names[ii][0] != 0x00)
+                                col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
+                            // 显示名是别名/表达式名，本表无同名字段时用原始(物理)列名兜底
+                            if (col_pos_map[ii] == 255 && ii < static_cast<int>(org_names.size()))
+                                col_pos_map[ii] = B_BASE::findcolpos(org_names[ii]);
+                        }
+                        first_row = false;
+                    }
+                    superadmin_info::meta data_temp;
+                    for (int ij = 0; ij < col_count; ij++)
+                    {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr)
+                        {
+                            static const unsigned char null_value = 0;
+                            assign_field_value(col_pos_map[ij], (unsigned char *)&null_value, 0, data_temp);
+                            continue;
+                        }
+                        assign_field_value(col_pos_map[ij], ptr, len, data_temp);
+                    }
+                    B_BASE::record.emplace_back(std::move(data_temp));
+                    return true; });
+
+            if (conn->isdebug)
+                conn->finish_time();
+            if (rows == 0 && !conn->error_msg.empty())
+            {
+                iserror   = true;
+                error_msg = conn->error_msg;
+            }
+            // effect_num 反映追加后 record 的总行数（exec_fetch_to 因先 reset，总数即本次抓取数）
+            effect_num = static_cast<unsigned int>(B_BASE::record.size());
+            if (!islock_conn)
+            {
+                conn_obj->back_mysql_select_conn(std::move(conn));
+            }
+            return rows;
+        }
+
+        // --- exec_fetch_to：预编译 SELECT，覆盖 record（不追加）---
+        unsigned int exec_fetch()
+        {
+            B_BASE::record_reset();
+            return exec_fetch_append();
+        }
+        unsigned int exec_fetch_to()
+        {
+            return exec_fetch();
+        }
+
+        // ===== SELECT 类：自定义结构体模板版（参照 fetch_to / fetch_one_to）=====
+
+        // --- exec_fetch_to(cb)：预编译 SELECT，覆盖写入自定义 vector<T>（多行，RecordLineCallback<T> 版）---
+        template <typename T, RecordLineCallback<T> Callback>
+        unsigned int exec_fetch_to(std::vector<T> &custom_record, Callback &&callback)
+        {
+            std::vector<http::obj_val> params;
+            std::string sql = build_prepared_select(params);
+            sqlstring       = sql;
+
+            custom_record.clear();
+            effect_num = 0;
+            if (iserror)
+            {
+                return 0;
+            }
+            if (conn_empty())
+            {
+                return 0;
+            }
+
+            auto conn = _get_prepared_select_conn();
+            if (conn->isdebug)
+                conn->begin_time();
+
+            unsigned int rows = conn->fetch_prepared(sql, params, [this, &custom_record, &callback](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                     {
+                    T data_temp;
+                    for (int ij = 0; ij < col_count; ij++)
+                    {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) continue;
+                        std::string col_name = col_names[ij] ? col_names[ij] : "";
+                        if (!col_name.empty())
+                        {
+                            std::invoke(std::forward<Callback>(callback), data_temp, col_name, ptr, len, 0, 1);
+                        }
+                    }
+                    custom_record.emplace_back(std::move(data_temp));
+                    effect_num++;
+                    return true; });
+
+            if (conn->isdebug)
+                conn->finish_time();
+            if (rows == 0 && !conn->error_msg.empty())
+            {
+                iserror   = true;
+                error_msg = conn->error_msg;
+            }
+            effect_num = rows;
+            if (!islock_conn)
+            {
+                conn_obj->back_mysql_select_conn(std::move(conn));
+            }
+            return rows;
+        }
+
+        // --- exec_fetch_to(set_val)：预编译 SELECT，覆盖写入自定义 vector<T>（多行，ResultHasSetVal 版）---
+        template <ResultHasSetVal T>
+        unsigned int exec_fetch_to(std::vector<T> &custom_record)
+        {
+            std::vector<http::obj_val> params;
+            std::string sql = build_prepared_select(params);
+            sqlstring       = sql;
+
+            custom_record.clear();
+            effect_num = 0;
+            if (iserror)
+            {
+                return 0;
+            }
+            if (conn_empty())
+            {
+                return 0;
+            }
+
+            auto conn = _get_prepared_select_conn();
+            if (conn->isdebug)
+                conn->begin_time();
+
+            unsigned int rows = conn->fetch_prepared(sql, params, [this, &custom_record](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                     {
+                    T data_temp;
+                    for (int ij = 0; ij < col_count; ij++)
+                    {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) continue;
+                        std::string col_name = col_names[ij] ? col_names[ij] : "";
+                        if (!col_name.empty())
+                        {
+                            data_temp.set_val(col_name, ptr, len, 0);
+                        }
+                    }
+                    custom_record.emplace_back(std::move(data_temp));
+                    effect_num++;
+                    return true; });
+
+            if (conn->isdebug)
+                conn->finish_time();
+            if (rows == 0 && !conn->error_msg.empty())
+            {
+                iserror   = true;
+                error_msg = conn->error_msg;
+            }
+            effect_num = rows;
+            if (!islock_conn)
+            {
+                conn_obj->back_mysql_select_conn(std::move(conn));
+            }
+            return rows;
+        }
+
+        // --- exec_fetch_append(cb)：预编译 SELECT，追加到自定义 vector<T>（多行，RecordLineCallback<T> 版）---
+        template <typename T, RecordLineCallback<T> Callback>
+        unsigned int exec_fetch_append(std::vector<T> &custom_record, Callback &&callback)
+        {
+            std::vector<http::obj_val> params;
+            std::string sql = build_prepared_select(params);
+            sqlstring       = sql;
+
+            // 追加语义：不清空 custom_record
+            effect_num = 0;
+            if (iserror)
+            {
+                return 0;
+            }
+            if (conn_empty())
+            {
+                return 0;
+            }
+
+            auto conn = _get_prepared_select_conn();
+            if (conn->isdebug)
+                conn->begin_time();
+
+            unsigned int rows = conn->fetch_prepared(sql, params, [this, &custom_record, &callback](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                     {
+                    T data_temp;
+                    for (int ij = 0; ij < col_count; ij++)
+                    {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) continue;
+                        std::string col_name = col_names[ij] ? col_names[ij] : "";
+                        if (!col_name.empty())
+                        {
+                            std::invoke(std::forward<Callback>(callback), data_temp, col_name, ptr, len, 0, 1);
+                        }
+                    }
+                    custom_record.emplace_back(std::move(data_temp));
+                    effect_num++;
+                    return true; });
+
+            if (conn->isdebug)
+                conn->finish_time();
+            if (rows == 0 && !conn->error_msg.empty())
+            {
+                iserror   = true;
+                error_msg = conn->error_msg;
+            }
+            effect_num = static_cast<unsigned int>(custom_record.size());
+            if (!islock_conn)
+            {
+                conn_obj->back_mysql_select_conn(std::move(conn));
+            }
+            return rows;
+        }
+
+        // --- exec_fetch_append(set_val)：预编译 SELECT，追加到自定义 vector<T>（多行，ResultHasSetVal 版）---
+        template <ResultHasSetVal T>
+        unsigned int exec_fetch_append(std::vector<T> &custom_record)
+        {
+            std::vector<http::obj_val> params;
+            std::string sql = build_prepared_select(params);
+            sqlstring       = sql;
+
+            // 追加语义：不清空 custom_record
+            effect_num = 0;
+            if (iserror)
+            {
+                return 0;
+            }
+            if (conn_empty())
+            {
+                return 0;
+            }
+
+            auto conn = _get_prepared_select_conn();
+            if (conn->isdebug)
+                conn->begin_time();
+
+            unsigned int rows = conn->fetch_prepared(sql, params, [this, &custom_record](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                     {
+                    T data_temp;
+                    for (int ij = 0; ij < col_count; ij++)
+                    {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) continue;
+                        std::string col_name = col_names[ij] ? col_names[ij] : "";
+                        if (!col_name.empty())
+                        {
+                            data_temp.set_val(col_name, ptr, len, 0);
+                        }
+                    }
+                    custom_record.emplace_back(std::move(data_temp));
+                    effect_num++;
+                    return true; });
+
+            if (conn->isdebug)
+                conn->finish_time();
+            if (rows == 0 && !conn->error_msg.empty())
+            {
+                iserror   = true;
+                error_msg = conn->error_msg;
+            }
+            effect_num = static_cast<unsigned int>(custom_record.size());
+            if (!islock_conn)
+            {
+                conn_obj->back_mysql_select_conn(std::move(conn));
+            }
+            return rows;
+        }
+
+        // --- exec_one_to(cb)：预编译 SELECT LIMIT 1，写入自定义 T（单行，RecordLineCallback<T> 版）---
+        template <typename T, RecordLineCallback<T> Callback>
+        unsigned int exec_one_to(T &custom_record, Callback &&callback)
+        {
+            std::vector<http::obj_val> params;
+            std::string sql = build_prepared_select(params, true);
+            sqlstring       = sql;
+
+            effect_num = 0;
+            if (iserror)
+            {
+                return 0;
+            }
+            if (conn_empty())
+            {
+                return 0;
+            }
+
+            auto conn = _get_prepared_select_conn();
+            if (conn->isdebug)
+                conn->begin_time();
+
+            unsigned int rows = conn->fetch_prepared(sql, params, [&custom_record, &callback](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                     {
+                                                         for (int ij = 0; ij < col_count; ij++)
+                                                         {
+                                                             auto [ptr, len] = get_data(ij);
+                                                             if (ptr == nullptr)
+                                                                 continue;
+                                                             std::string col_name = col_names[ij] ? col_names[ij] : "";
+                                                             if (!col_name.empty())
+                                                             {
+                                                                 std::invoke(std::forward<Callback>(callback), custom_record, col_name, ptr, len, 0, 1);
+                                                             }
+                                                         }
+                                                         return false;// LIMIT 1，一行后停止
+                                                     });
+
+            if (conn->isdebug)
+                conn->finish_time();
+            if (rows == 0 && !conn->error_msg.empty())
+            {
+                iserror   = true;
+                error_msg = conn->error_msg;
+            }
+            effect_num = rows;
+            if (!islock_conn)
+            {
+                conn_obj->back_mysql_select_conn(std::move(conn));
+            }
+            return rows;
+        }
+
+        // --- exec_one_to(set_val)：预编译 SELECT LIMIT 1，写入自定义 T（单行，ResultHasSetVal 版）---
+        template <ResultHasSetVal T>
+        unsigned int exec_one_to(T &custom_record)
+        {
+            std::vector<http::obj_val> params;
+            std::string sql = build_prepared_select(params, true);
+            sqlstring       = sql;
+
+            effect_num = 0;
+            if (iserror)
+            {
+                return 0;
+            }
+            if (conn_empty())
+            {
+                return 0;
+            }
+
+            auto conn = _get_prepared_select_conn();
+            if (conn->isdebug)
+                conn->begin_time();
+
+            unsigned int rows = conn->fetch_prepared(sql, params, [&custom_record](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                     {
+                                                         for (int ij = 0; ij < col_count; ij++)
+                                                         {
+                                                             auto [ptr, len] = get_data(ij);
+                                                             if (ptr == nullptr)
+                                                                 continue;
+                                                             std::string col_name = col_names[ij] ? col_names[ij] : "";
+                                                             if (!col_name.empty())
+                                                             {
+                                                                 custom_record.set_val(col_name, ptr, len, 0);
+                                                             }
+                                                         }
+                                                         return false;// LIMIT 1，一行后停止
+                                                     });
+
+            if (conn->isdebug)
+                conn->finish_time();
+            if (rows == 0 && !conn->error_msg.empty())
+            {
+                iserror   = true;
+                error_msg = conn->error_msg;
+            }
+            effect_num = rows;
+            if (!islock_conn)
+            {
+                conn_obj->back_mysql_select_conn(std::move(conn));
+            }
+            return rows;
+        }
+
+        // --- exec_one_append(cb)：预编译 SELECT LIMIT 1，追加到自定义 vector<T>（单行追加，RecordLineCallback<T> 版）---
+        template <typename T, RecordLineCallback<T> Callback>
+        unsigned int exec_one_append(std::vector<T> &custom_record, Callback &&callback)
+        {
+            std::vector<http::obj_val> params;
+            std::string sql = build_prepared_select(params, true);
+            sqlstring       = sql;
+
+            effect_num = 0;
+            if (iserror)
+            {
+                return 0;
+            }
+            if (conn_empty())
+            {
+                return 0;
+            }
+
+            auto conn = _get_prepared_select_conn();
+            if (conn->isdebug)
+                conn->begin_time();
+
+            unsigned int rows = conn->fetch_prepared(sql, params, [this, &custom_record, &callback](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                     {
+                                                         T data_temp;
+                                                         for (int ij = 0; ij < col_count; ij++)
+                                                         {
+                                                             auto [ptr, len] = get_data(ij);
+                                                             if (ptr == nullptr)
+                                                                 continue;
+                                                             std::string col_name = col_names[ij] ? col_names[ij] : "";
+                                                             if (!col_name.empty())
+                                                             {
+                                                                 std::invoke(std::forward<Callback>(callback), data_temp, col_name, ptr, len, 0, 1);
+                                                             }
+                                                         }
+                                                         custom_record.emplace_back(std::move(data_temp));
+                                                         effect_num++;
+                                                         return false;// LIMIT 1，一行后停止
+                                                     });
+
+            if (conn->isdebug)
+                conn->finish_time();
+            if (rows == 0 && !conn->error_msg.empty())
+            {
+                iserror   = true;
+                error_msg = conn->error_msg;
+            }
+            effect_num = static_cast<unsigned int>(custom_record.size());
+            if (!islock_conn)
+            {
+                conn_obj->back_mysql_select_conn(std::move(conn));
+            }
+            return rows;
+        }
+
+        // --- exec_one_append(set_val)：预编译 SELECT LIMIT 1，追加到自定义 vector<T>（单行追加，ResultHasSetVal 版）---
+        template <ResultHasSetVal T>
+        unsigned int exec_one_append(std::vector<T> &custom_record)
+        {
+            std::vector<http::obj_val> params;
+            std::string sql = build_prepared_select(params, true);
+            sqlstring       = sql;
+
+            effect_num = 0;
+            if (iserror)
+            {
+                return 0;
+            }
+            if (conn_empty())
+            {
+                return 0;
+            }
+
+            auto conn = _get_prepared_select_conn();
+            if (conn->isdebug)
+                conn->begin_time();
+
+            unsigned int rows = conn->fetch_prepared(sql, params, [this, &custom_record](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                     {
+                                                         T data_temp;
+                                                         for (int ij = 0; ij < col_count; ij++)
+                                                         {
+                                                             auto [ptr, len] = get_data(ij);
+                                                             if (ptr == nullptr)
+                                                                 continue;
+                                                             std::string col_name = col_names[ij] ? col_names[ij] : "";
+                                                             if (!col_name.empty())
+                                                             {
+                                                                 data_temp.set_val(col_name, ptr, len, 0);
+                                                             }
+                                                         }
+                                                         custom_record.emplace_back(std::move(data_temp));
+                                                         effect_num++;
+                                                         return false;// LIMIT 1，一行后停止
+                                                     });
+
+            if (conn->isdebug)
+                conn->finish_time();
+            if (rows == 0 && !conn->error_msg.empty())
+            {
+                iserror   = true;
+                error_msg = conn->error_msg;
+            }
+            effect_num = static_cast<unsigned int>(custom_record.size());
+            if (!islock_conn)
+            {
+                conn_obj->back_mysql_select_conn(std::move(conn));
+            }
+            return rows;
+        }
+
+        // ===== SELECT 类：异步协程版 =====
+
+        // --- async_exec_one：预编译 SELECT LIMIT 1 异步版 ---
+        asio::awaitable<unsigned int> async_exec_one()
+        {
+            std::vector<http::obj_val> params;
+            std::string sql = build_prepared_select(params, true);
+            sqlstring       = sql;
+
+            B_BASE::data_reset();
+            if (iserror)
+            {
+                co_return 0;
+            }
+            if (conn_empty())
+            {
+                co_return 0;
+            }
+
+            if (islock_conn)
+            {
+                if (!select_conn || select_conn->isclose)
+                    select_conn = co_await conn_obj->async_get_mysql_select_conn();
+            }
+            else
+            {
+                select_conn = co_await conn_obj->async_get_mysql_select_conn();
+            }
+            auto conn = select_conn;
+            if (conn->isdebug)
+                conn->begin_time();
+
+            auto col_pos_map  = std::vector<unsigned char>();
+            bool first_row    = true;
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, conn, &col_pos_map, &first_row](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                    {
+                    if (first_row)
+                    {
+                        col_pos_map.assign(col_count, 255);
+                        const auto &org_names = conn->prepared_col_org_names();
+                        for (int ii = 0; ii < col_count; ii++)
+                        {
+                            if (col_names[ii] && col_names[ii][0] != 0x00)
+                                col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
+                            // 显示名是别名/表达式名，本表无同名字段时用原始(物理)列名兜底 mysql特有
+                            if (col_pos_map[ii] == 255 && ii < static_cast<int>(org_names.size()))
+                                col_pos_map[ii] = B_BASE::findcolpos(org_names[ii]);
+                        }
+                        first_row = false;
+                    }
+                    for (int ij = 0; ij < col_count; ij++)
+                    {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr)
+                        {
+                            static const unsigned char null_value = 0;
+                            assign_field_value(col_pos_map[ij], (unsigned char *)&null_value, 0, B_BASE::data);
+                            continue;
+                        }
+                        assign_field_value(col_pos_map[ij], ptr, len, B_BASE::data);
+                    }
+                    return false; });
+
+            if (conn->isdebug)
+                conn->finish_time();
+            if (rows == 0 && !conn->error_msg.empty())
+            {
+                iserror   = true;
+                error_msg = conn->error_msg;
+            }
+            if (!islock_conn)
+                conn_obj->back_mysql_select_conn(std::move(select_conn));
+            effect_num = rows;
+            co_return rows;
+        }
+
+        // --- async_exec_fetch_append：预编译 SELECT 异步版（追加到 record）---
+        asio::awaitable<unsigned int> async_exec_fetch_append()
+        {
+            std::vector<http::obj_val> params;
+            std::string sql = build_prepared_select(params);
+            sqlstring       = sql;
+
+            if (iserror)
+            {
+                co_return 0;
+            }
+            if (conn_empty())
+            {
+                co_return 0;
+            }
+
+            if (islock_conn)
+            {
+                if (!select_conn || select_conn->isclose)
+                    select_conn = co_await conn_obj->async_get_mysql_select_conn();
+            }
+            else
+            {
+                select_conn = co_await conn_obj->async_get_mysql_select_conn();
+            }
+            auto conn = select_conn;
+            if (conn->isdebug)
+                conn->begin_time();
+
+            auto col_pos_map  = std::vector<unsigned char>();
+            bool first_row    = true;
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, conn, &col_pos_map, &first_row](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                    {
+                    if (first_row)
+                    {
+                        col_pos_map.assign(col_count, 255);
+                        const auto &org_names = conn->prepared_col_org_names();
+                        for (int ii = 0; ii < col_count; ii++)
+                        {
+                            if (col_names[ii] && col_names[ii][0] != 0x00)
+                                col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
+                            // 显示名是别名/表达式名，本表无同名字段时用原始(物理)列名兜底
+                            if (col_pos_map[ii] == 255 && ii < static_cast<int>(org_names.size()))
+                                col_pos_map[ii] = B_BASE::findcolpos(org_names[ii]);
+                        }
+                        first_row = false;
+                    }
+                    superadmin_info::meta data_temp;
+                    for (int ij = 0; ij < col_count; ij++)
+                    {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr)
+                        {
+                            static const unsigned char null_value = 0;
+                            assign_field_value(col_pos_map[ij], (unsigned char *)&null_value, 0, data_temp);
+                            continue;
+                        }
+                        assign_field_value(col_pos_map[ij], ptr, len, data_temp);
+                    }
+                    B_BASE::record.emplace_back(std::move(data_temp));
+                    return true; });
+
+            if (conn->isdebug)
+                conn->finish_time();
+            if (rows == 0 && !conn->error_msg.empty())
+            {
+                iserror   = true;
+                error_msg = conn->error_msg;
+            }
+            if (!islock_conn)
+                conn_obj->back_mysql_select_conn(std::move(select_conn));
+            effect_num = static_cast<unsigned int>(B_BASE::record.size());
+            co_return rows;
+        }
+
+        // --- async_exec_fetch / async_exec_fetch_to：预编译 SELECT 异步版（覆盖 record）---
+        asio::awaitable<unsigned int> async_exec_fetch()
+        {
+            B_BASE::record_reset();
+            co_return co_await async_exec_fetch_append();
+        }
+        asio::awaitable<unsigned int> async_exec_fetch_to() { co_return co_await async_exec_fetch(); }
+
+        // ===== SELECT 异步模板版 =====
+
+        // --- async_exec_fetch_to(cb) ---
+        template <typename T, RecordLineCallback<T> Callback>
+        asio::awaitable<unsigned int> async_exec_fetch_to(std::vector<T> &custom_record, Callback &&callback)
+        {
+            std::vector<http::obj_val> params;
+            std::string sql = build_prepared_select(params);
+            sqlstring       = sql;
+
+            custom_record.clear();
+            effect_num = 0;
+            if (iserror)
+            {
+                co_return 0;
+            }
+            if (conn_empty())
+            {
+                co_return 0;
+            }
+
+            if (islock_conn)
+            {
+                if (!select_conn || select_conn->isclose)
+                    select_conn = co_await conn_obj->async_get_mysql_select_conn();
+            }
+            else
+            {
+                select_conn = co_await conn_obj->async_get_mysql_select_conn();
+            }
+            auto conn = select_conn;
+            if (conn->isdebug)
+                conn->begin_time();
+
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, &custom_record, &callback](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                    {
+                    T data_temp;
+                    for (int ij = 0; ij < col_count; ij++)
+                    {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) continue;
+                        std::string col_name = col_names[ij] ? col_names[ij] : "";
+                        if (!col_name.empty())
+                        {
+                            std::invoke(std::forward<Callback>(callback), data_temp, col_name, ptr, len, 0, 1);
+                        }
+                    }
+                    custom_record.emplace_back(std::move(data_temp));
+                    effect_num++;
+                    return true; });
+
+            if (conn->isdebug)
+                conn->finish_time();
+            if (rows == 0 && !conn->error_msg.empty())
+            {
+                iserror   = true;
+                error_msg = conn->error_msg;
+            }
+            if (!islock_conn)
+                conn_obj->back_mysql_select_conn(std::move(select_conn));
+            effect_num = rows;
+            co_return rows;
+        }
+
+        // --- async_exec_fetch_to(set_val) ---
+        template <ResultHasSetVal T>
+        asio::awaitable<unsigned int> async_exec_fetch_to(std::vector<T> &custom_record)
+        {
+            std::vector<http::obj_val> params;
+            std::string sql = build_prepared_select(params);
+            sqlstring       = sql;
+
+            custom_record.clear();
+            effect_num = 0;
+            if (iserror)
+            {
+                co_return 0;
+            }
+            if (conn_empty())
+            {
+                co_return 0;
+            }
+
+            if (islock_conn)
+            {
+                if (!select_conn || select_conn->isclose)
+                    select_conn = co_await conn_obj->async_get_mysql_select_conn();
+            }
+            else
+            {
+                select_conn = co_await conn_obj->async_get_mysql_select_conn();
+            }
+            auto conn = select_conn;
+            if (conn->isdebug)
+                conn->begin_time();
+
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, &custom_record](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                    {
+                    T data_temp;
+                    for (int ij = 0; ij < col_count; ij++)
+                    {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) continue;
+                        std::string col_name = col_names[ij] ? col_names[ij] : "";
+                        if (!col_name.empty())
+                        {
+                            data_temp.set_val(col_name, ptr, len, 0);
+                        }
+                    }
+                    custom_record.emplace_back(std::move(data_temp));
+                    effect_num++;
+                    return true; });
+
+            if (conn->isdebug)
+                conn->finish_time();
+            if (rows == 0 && !conn->error_msg.empty())
+            {
+                iserror   = true;
+                error_msg = conn->error_msg;
+            }
+            if (!islock_conn)
+                conn_obj->back_mysql_select_conn(std::move(select_conn));
+            effect_num = rows;
+            co_return rows;
+        }
+
+        // --- async_exec_fetch_append(cb) ---
+        template <typename T, RecordLineCallback<T> Callback>
+        asio::awaitable<unsigned int> async_exec_fetch_append(std::vector<T> &custom_record, Callback &&callback)
+        {
+            std::vector<http::obj_val> params;
+            std::string sql = build_prepared_select(params);
+            sqlstring       = sql;
+
+            effect_num = 0;
+            if (iserror)
+            {
+                co_return 0;
+            }
+            if (conn_empty())
+            {
+                co_return 0;
+            }
+
+            if (islock_conn)
+            {
+                if (!select_conn || select_conn->isclose)
+                    select_conn = co_await conn_obj->async_get_mysql_select_conn();
+            }
+            else
+            {
+                select_conn = co_await conn_obj->async_get_mysql_select_conn();
+            }
+            auto conn = select_conn;
+            if (conn->isdebug)
+                conn->begin_time();
+
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, &custom_record, &callback](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                    {
+                    T data_temp;
+                    for (int ij = 0; ij < col_count; ij++)
+                    {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) continue;
+                        std::string col_name = col_names[ij] ? col_names[ij] : "";
+                        if (!col_name.empty())
+                        {
+                            std::invoke(std::forward<Callback>(callback), data_temp, col_name, ptr, len, 0, 1);
+                        }
+                    }
+                    custom_record.emplace_back(std::move(data_temp));
+                    effect_num++;
+                    return true; });
+
+            if (conn->isdebug)
+                conn->finish_time();
+            if (rows == 0 && !conn->error_msg.empty())
+            {
+                iserror   = true;
+                error_msg = conn->error_msg;
+            }
+            if (!islock_conn)
+                conn_obj->back_mysql_select_conn(std::move(select_conn));
+            effect_num = static_cast<unsigned int>(custom_record.size());
+            co_return rows;
+        }
+
+        // --- async_exec_fetch_append(set_val) ---
+        template <ResultHasSetVal T>
+        asio::awaitable<unsigned int> async_exec_fetch_append(std::vector<T> &custom_record)
+        {
+            std::vector<http::obj_val> params;
+            std::string sql = build_prepared_select(params);
+            sqlstring       = sql;
+
+            effect_num = 0;
+            if (iserror)
+            {
+                co_return 0;
+            }
+            if (conn_empty())
+            {
+                co_return 0;
+            }
+
+            if (islock_conn)
+            {
+                if (!select_conn || select_conn->isclose)
+                    select_conn = co_await conn_obj->async_get_mysql_select_conn();
+            }
+            else
+            {
+                select_conn = co_await conn_obj->async_get_mysql_select_conn();
+            }
+            auto conn = select_conn;
+            if (conn->isdebug)
+                conn->begin_time();
+
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, &custom_record](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                    {
+                    T data_temp;
+                    for (int ij = 0; ij < col_count; ij++)
+                    {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) continue;
+                        std::string col_name = col_names[ij] ? col_names[ij] : "";
+                        if (!col_name.empty())
+                        {
+                            data_temp.set_val(col_name, ptr, len, 0);
+                        }
+                    }
+                    custom_record.emplace_back(std::move(data_temp));
+                    effect_num++;
+                    return true; });
+
+            if (conn->isdebug)
+                conn->finish_time();
+            if (rows == 0 && !conn->error_msg.empty())
+            {
+                iserror   = true;
+                error_msg = conn->error_msg;
+            }
+            if (!islock_conn)
+                conn_obj->back_mysql_select_conn(std::move(select_conn));
+            effect_num = static_cast<unsigned int>(custom_record.size());
+            co_return rows;
+        }
+
+        // --- async_exec_one_to(cb) ---
+        template <typename T, RecordLineCallback<T> Callback>
+        asio::awaitable<unsigned int> async_exec_one_to(T &custom_record, Callback &&callback)
+        {
+            std::vector<http::obj_val> params;
+            std::string sql = build_prepared_select(params, true);
+            sqlstring       = sql;
+
+            effect_num = 0;
+            if (iserror)
+            {
+                co_return 0;
+            }
+            if (conn_empty())
+            {
+                co_return 0;
+            }
+
+            if (islock_conn)
+            {
+                if (!select_conn || select_conn->isclose)
+                    select_conn = co_await conn_obj->async_get_mysql_select_conn();
+            }
+            else
+            {
+                select_conn = co_await conn_obj->async_get_mysql_select_conn();
+            }
+            auto conn = select_conn;
+            if (conn->isdebug)
+                conn->begin_time();
+
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [&custom_record, &callback](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                    {
+                    for (int ij = 0; ij < col_count; ij++)
+                    {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) continue;
+                        std::string col_name = col_names[ij] ? col_names[ij] : "";
+                        if (!col_name.empty())
+                        {
+                            std::invoke(std::forward<Callback>(callback), custom_record, col_name, ptr, len, 0, 1);
+                        }
+                    }
+                    return false; });
+
+            if (conn->isdebug)
+                conn->finish_time();
+            if (rows == 0 && !conn->error_msg.empty())
+            {
+                iserror   = true;
+                error_msg = conn->error_msg;
+            }
+            if (!islock_conn)
+                conn_obj->back_mysql_select_conn(std::move(select_conn));
+            effect_num = rows;
+            co_return rows;
+        }
+
+        // --- async_exec_one_to(set_val) ---
+        template <ResultHasSetVal T>
+        asio::awaitable<unsigned int> async_exec_one_to(T &custom_record)
+        {
+            std::vector<http::obj_val> params;
+            std::string sql = build_prepared_select(params, true);
+            sqlstring       = sql;
+
+            effect_num = 0;
+            if (iserror)
+            {
+                co_return 0;
+            }
+            if (conn_empty())
+            {
+                co_return 0;
+            }
+
+            if (islock_conn)
+            {
+                if (!select_conn || select_conn->isclose)
+                    select_conn = co_await conn_obj->async_get_mysql_select_conn();
+            }
+            else
+            {
+                select_conn = co_await conn_obj->async_get_mysql_select_conn();
+            }
+            auto conn = select_conn;
+            if (conn->isdebug)
+                conn->begin_time();
+
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [&custom_record](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                    {
+                    for (int ij = 0; ij < col_count; ij++)
+                    {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) continue;
+                        std::string col_name = col_names[ij] ? col_names[ij] : "";
+                        if (!col_name.empty())
+                        {
+                            custom_record.set_val(col_name, ptr, len, 0);
+                        }
+                    }
+                    return false; });
+
+            if (conn->isdebug)
+                conn->finish_time();
+            if (rows == 0 && !conn->error_msg.empty())
+            {
+                iserror   = true;
+                error_msg = conn->error_msg;
+            }
+            if (!islock_conn)
+                conn_obj->back_mysql_select_conn(std::move(select_conn));
+            effect_num = rows;
+            co_return rows;
+        }
+
+        // --- async_exec_one_append(cb) ---
+        template <typename T, RecordLineCallback<T> Callback>
+        asio::awaitable<unsigned int> async_exec_one_append(std::vector<T> &custom_record, Callback &&callback)
+        {
+            std::vector<http::obj_val> params;
+            std::string sql = build_prepared_select(params, true);
+            sqlstring       = sql;
+
+            effect_num = 0;
+            if (iserror)
+            {
+                co_return 0;
+            }
+            if (conn_empty())
+            {
+                co_return 0;
+            }
+
+            if (islock_conn)
+            {
+                if (!select_conn || select_conn->isclose)
+                    select_conn = co_await conn_obj->async_get_mysql_select_conn();
+            }
+            else
+            {
+                select_conn = co_await conn_obj->async_get_mysql_select_conn();
+            }
+            auto conn = select_conn;
+            if (conn->isdebug)
+                conn->begin_time();
+
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, &custom_record, &callback](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                    {
+                    T data_temp;
+                    for (int ij = 0; ij < col_count; ij++)
+                    {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) continue;
+                        std::string col_name = col_names[ij] ? col_names[ij] : "";
+                        if (!col_name.empty())
+                        {
+                            std::invoke(std::forward<Callback>(callback), data_temp, col_name, ptr, len, 0, 1);
+                        }
+                    }
+                    custom_record.emplace_back(std::move(data_temp));
+                    effect_num++;
+                    return false; });
+
+            if (conn->isdebug)
+                conn->finish_time();
+            if (rows == 0 && !conn->error_msg.empty())
+            {
+                iserror   = true;
+                error_msg = conn->error_msg;
+            }
+            if (!islock_conn)
+                conn_obj->back_mysql_select_conn(std::move(select_conn));
+            effect_num = static_cast<unsigned int>(custom_record.size());
+            co_return rows;
+        }
+
+        // --- async_exec_one_append(set_val) ---
+        template <ResultHasSetVal T>
+        asio::awaitable<unsigned int> async_exec_one_append(std::vector<T> &custom_record)
+        {
+            std::vector<http::obj_val> params;
+            std::string sql = build_prepared_select(params, true);
+            sqlstring       = sql;
+
+            effect_num = 0;
+            if (iserror)
+            {
+                co_return 0;
+            }
+            if (conn_empty())
+            {
+                co_return 0;
+            }
+
+            if (islock_conn)
+            {
+                if (!select_conn || select_conn->isclose)
+                    select_conn = co_await conn_obj->async_get_mysql_select_conn();
+            }
+            else
+            {
+                select_conn = co_await conn_obj->async_get_mysql_select_conn();
+            }
+            auto conn = select_conn;
+            if (conn->isdebug)
+                conn->begin_time();
+
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, &custom_record](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                    {
+                    T data_temp;
+                    for (int ij = 0; ij < col_count; ij++)
+                    {
+                        auto [ptr, len] = get_data(ij);
+                        if (ptr == nullptr) continue;
+                        std::string col_name = col_names[ij] ? col_names[ij] : "";
+                        if (!col_name.empty())
+                        {
+                            data_temp.set_val(col_name, ptr, len, 0);
+                        }
+                    }
+                    custom_record.emplace_back(std::move(data_temp));
+                    effect_num++;
+                    return false; });
+
+            if (conn->isdebug)
+                conn->finish_time();
+            if (rows == 0 && !conn->error_msg.empty())
+            {
+                iserror   = true;
+                error_msg = conn->error_msg;
+            }
+            if (!islock_conn)
+                conn_obj->back_mysql_select_conn(std::move(select_conn));
+            effect_num = static_cast<unsigned int>(custom_record.size());
+            co_return rows;
+        }
+
+        // ===== DML 类 =====
+
+        // --- _split_fields_csv：把 "字段1,字段2" 切成字段列表（去首尾空格、跳过空段）---
+        // 供 exec_update(fields_csv) / async_exec_update(fields_csv) 共用，避免两处解析逻辑漂移
+        static std::vector<std::string_view> _split_fields_csv(std::string_view fields_csv)
+        {
+            std::vector<std::string_view> fields;
+            std::string::size_type start = 0;
+            for (auto pos = fields_csv.find(','); pos != std::string_view::npos; pos = fields_csv.find(',', start))
+            {
+                auto f = fields_csv.substr(start, pos - start);
+                while (!f.empty() && f.front() == ' ')
+                    f.remove_prefix(1);
+                while (!f.empty() && f.back() == ' ')
+                    f.remove_suffix(1);
+                if (!f.empty())
+                    fields.push_back(f);
+                start = pos + 1;
+            }
+            auto last = fields_csv.substr(start);
+            while (!last.empty() && last.front() == ' ')
+                last.remove_prefix(1);
+            while (!last.empty() && last.back() == ' ')
+                last.remove_suffix(1);
+            if (!last.empty())
+                fields.push_back(last);
+            return fields;
+        }
+
+        // --- exec_update：预编译 UPDATE，全量 SET = 从 this->data 取 ---
+        // 依赖 paozhu_cli 生成 get_field_value(unsigned char idx, const meta &data) -> http::obj_val
+        unsigned int exec_update()
+        {
+            std::string sql = "UPDATE ";
+            sql.append(B_BASE::tablename);
+            sql.append(" SET ");
+
+            std::vector<http::obj_val> params;
+            bool first = true;
+            for (unsigned char i = 0; i < superadmin_info::col_names.size(); i++)
+            {
+                // 跳过自增主键：全字段更新不修改身份列（“自增主键跳过”约定），避免把主键误改为 0
+                if (static_cast<int>(i) == superadmin_info::auto_pk_index)
+                    continue;
+                if (!first)
+                    sql.append(", ");
+                sql.append(superadmin_info::col_names[i]);
+                sql.append(" = ?");
+                params.push_back(get_field_value(i, B_BASE::data));
+                first = false;
+            }
+            if (first)
+            {
+                sqlstring = "exec_update: no columns";
+                iserror   = true;
+                return (unsigned int)-1;
+            }
+
+            std::string where_clause;
+            build_prepared_where(where_clause, params);
+            // 缺 WHERE 的 UPDATE 会把整表所有行改成同一组值。条件来源只有 wheresql 与 pk，
+            // 两者皆无时拒绝发出语句（与 exec_remove 的守卫同构）。
+            if (where_clause.empty())
+            {
+                sqlstring = "exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                error_msg = sqlstring;
+                iserror   = true;
+                return (unsigned int)-1;
+            }
+            sql.append(" WHERE ");
+            sql.append(where_clause);
+
+            sqlstring = sql;
+            if (iserror)
+            {
+                return (unsigned int)-1;
+            }
+            if (conn_empty())
+            {
+                return (unsigned int)-1;
+            }
+
+            auto conn             = _get_prepared_edit_conn();
+            unsigned int affected = conn->exec_dml_prepared(sql, params);
+            effect_num            = affected;
+            if (affected == static_cast<unsigned int>(-1))
+            {
+                error_msg = conn->error_msg;
+                iserror   = true;
+            }
+            if (!islock_conn)
+            {
+                conn_obj->back_mysql_edit_conn(std::move(conn));
+            }
+            return affected;
+        }
+
+        // --- async_exec_update：异步预编译 UPDATE，全量 SET = 从 this->data 取 ---
+        // 与同步 exec_update() 同轨（跳过自增主键、缺 WHERE 拒绝执行），仅取连接与执行改为协程
+        asio::awaitable<unsigned int> async_exec_update()
+        {
+            effect_num = 0;
+
+            std::string sql = "UPDATE ";
+            sql.append(B_BASE::tablename);
+            sql.append(" SET ");
+
+            std::vector<http::obj_val> params;
+            bool first = true;
+            for (unsigned char i = 0; i < superadmin_info::col_names.size(); i++)
+            {
+                // 跳过自增主键：全字段更新不修改身份列（“自增主键跳过”约定），避免把主键误改为 0
+                if (static_cast<int>(i) == superadmin_info::auto_pk_index)
+                    continue;
+                if (!first)
+                    sql.append(", ");
+                sql.append(superadmin_info::col_names[i]);
+                sql.append(" = ?");
+                params.push_back(get_field_value(i, B_BASE::data));
+                first = false;
+            }
+            if (first)
+            {
+                sqlstring = "async_exec_update: no columns";
+                iserror   = true;
+                co_return (unsigned int) - 1;
+            }
+
+            std::string where_clause;
+            build_prepared_where(where_clause, params);
+            // 缺 WHERE 的 UPDATE 会把整表所有行改成同一组值。条件来源只有 wheresql 与 pk，
+            // 两者皆无时拒绝发出语句（与 async_exec_remove 的守卫同构）。
+            if (where_clause.empty())
+            {
+                sqlstring = "async_exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                error_msg = sqlstring;
+                iserror   = true;
+                co_return (unsigned int) - 1;
+            }
+            sql.append(" WHERE ");
+            sql.append(where_clause);
+
+            sqlstring = sql;
+            if (iserror)
+            {
+                co_return (unsigned int) - 1;
+            }
+            if (conn_empty())
+            {
+                co_return (unsigned int) - 1;
+            }
+
+            try
+            {
+                if (islock_conn)
+                {
+                    if (!edit_conn || edit_conn->isclose)
+                    {
+                        edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
+                    }
+                }
+                else
+                {
+                    edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
+                }
+
+                if (edit_conn->isdebug)
+                {
+                    edit_conn->begin_time();
+                }
+                unsigned int affected = co_await edit_conn->async_exec_dml_prepared(sql, params);
+                if (edit_conn->isdebug)
+                {
+                    edit_conn->finish_time();
+                    auto &conn_mar    = get_orm_connect_mar();
+                    long long du_time = edit_conn->count_time();
+                    conn_mar.push_log(sqlstring, std::to_string(du_time));
+                }
+
+                if (affected == static_cast<unsigned int>(-1))
+                {
+                    error_msg = edit_conn->error_msg;
+                    iserror   = true;
+                    edit_conn.reset();
+                    co_return (unsigned int) - 1;
+                }
+
+                effect_num = affected;
+                if (!islock_conn)
+                {
+                    conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                }
+                co_return affected;
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+                unlock_conn();
+            }
+            co_return (unsigned int) - 1;
+        }
+
+        // --- exec_update_dirty：预编译仅更新脏字段 ---
+        unsigned int exec_update_dirty()
+        {
+            effect_num = 0;
+
+            // 1. 拿脏 idx（源头已禁 auto_pk 标脏，无需额外过滤）
+            auto dirty_indices = B_BASE::get_dirty_indices();
+            if (dirty_indices.empty())
+            {
+                sqlstring = "exec_update_dirty: no dirty fields";
+                iserror   = true;
+                return (unsigned int)-1;
+            }
+
+            // 2. 拼 prepared SQL + params（直接用 idx，跳过 findcolpos）
+            std::string sql = "UPDATE ";
+            sql.append(B_BASE::tablename);
+            sql.append(" SET ");
+
+            std::vector<http::obj_val> params;
+            bool first = true;
+            for (auto idx : dirty_indices)
+            {
+                if (!first)
+                    sql.append(", ");
+                sql.append(superadmin_info::col_names[idx]);
+                sql.append(" = ?");
+                params.push_back(get_field_value(idx, B_BASE::data));
+                first = false;
+            }
+
+            // 3. WHERE（复用 exec_update 的 build_prepared_where）
+            std::string where_clause;
+            build_prepared_where(where_clause, params);
+            // 缺 WHERE 的 UPDATE 会把整表所有行改成同一组值。条件来源只有 wheresql 与 pk，
+            // 两者皆无时拒绝发出语句（与 exec_remove 的守卫同构）。
+            if (where_clause.empty())
+            {
+                sqlstring = "exec_update_dirty: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                error_msg = sqlstring;
+                iserror   = true;
+                return (unsigned int)-1;
+            }
+            sql.append(" WHERE ");
+            sql.append(where_clause);
+
+            sqlstring = sql;
+            if (iserror)
+            {
+                return (unsigned int)-1;
+            }
+            if (conn_empty())
+            {
+                return (unsigned int)-1;
+            }
+
+            auto conn             = _get_prepared_edit_conn();
+            unsigned int affected = conn->exec_dml_prepared(sql, params);
+            effect_num            = affected;
+            if (affected == static_cast<unsigned int>(-1))
+            {
+                error_msg = conn->error_msg;
+                iserror   = true;
+            }
+            if (affected != static_cast<unsigned int>(-1))
+                B_BASE::clear_dirty();
+            if (!islock_conn)
+            {
+                conn_obj->back_mysql_edit_conn(std::move(conn));
+            }
+            return affected;
+        }
+
+        // --- async_exec_update_dirty：异步预编译仅更新脏字段 ---
+        asio::awaitable<unsigned int> async_exec_update_dirty()
+        {
+            effect_num = 0;
+
+            // 1. 拿脏 idx
+            auto dirty_indices = B_BASE::get_dirty_indices();
+            if (dirty_indices.empty())
+            {
+                sqlstring = "async_exec_update_dirty: no dirty fields";
+                iserror   = true;
+                co_return (unsigned int) - 1;
+            }
+
+            // 2. 拼 prepared SQL + params
+            std::string sql = "UPDATE ";
+            sql.append(B_BASE::tablename);
+            sql.append(" SET ");
+
+            std::vector<http::obj_val> params;
+            bool first = true;
+            for (auto idx : dirty_indices)
+            {
+                if (!first)
+                    sql.append(", ");
+                sql.append(superadmin_info::col_names[idx]);
+                sql.append(" = ?");
+                params.push_back(get_field_value(idx, B_BASE::data));
+                first = false;
+            }
+
+            // 3. WHERE
+            std::string where_clause;
+            build_prepared_where(where_clause, params);
+            // 缺 WHERE 的 UPDATE 会把整表所有行改成同一组值。条件来源只有 wheresql 与 pk，
+            // 两者皆无时拒绝发出语句（与 exec_remove 的守卫同构）。
+            if (where_clause.empty())
+            {
+                sqlstring = "async_exec_update_dirty: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                error_msg = sqlstring;
+                iserror   = true;
+                co_return (unsigned int) - 1;
+            }
+            sql.append(" WHERE ");
+            sql.append(where_clause);
+
+            sqlstring = sql;
+            if (iserror)
+            {
+                co_return (unsigned int) - 1;
+            }
+            if (conn_empty())
+            {
+                co_return (unsigned int) - 1;
+            }
+
+            // 4. 异步拿 conn + 执行预编译
+            if (islock_conn)
+            {
+                if (!edit_conn || edit_conn->isclose)
+                {
+                    edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
+                }
+            }
+            else
+            {
+                edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
+            }
+
+            unsigned int affected = co_await edit_conn->async_exec_dml_prepared(sql, params);
+            effect_num            = affected;
+            if (affected == static_cast<unsigned int>(-1))
+            {
+                error_msg = edit_conn->error_msg;
+                iserror   = true;
+            }
+            if (affected != static_cast<unsigned int>(-1))
+                B_BASE::clear_dirty();
+            co_return affected;
+        }
+
+        // --- exec_update(fields)：指定字段更新，值从 this->data 取 ---
+        // 参数格式: "字段1,字段2,字段3"（逗号分隔）
+        unsigned int exec_update(std::string_view fields_csv)
+        {
+            auto fields = _split_fields_csv(fields_csv);
+            if (fields.empty())
+            {
+                sqlstring = "exec_update: empty fields";
+                iserror   = true;
+                return (unsigned int)-1;
+            }
+
+            std::string sql = "UPDATE ";
+            sql.append(B_BASE::tablename);
+            sql.append(" SET ");
+
+            std::vector<http::obj_val> params;
+            bool first = true;
+            for (auto &f : fields)
+            {
+                if (!first)
+                    sql.append(", ");
+                sql.append(f);
+                sql.append(" = ?");
+                unsigned char idx = B_BASE::findcolpos(std::string(f));
+                if (idx == 255)
+                {
+                    sqlstring = std::string("exec_update: field not found: ") + std::string(f);
+                    iserror   = true;
+                    return (unsigned int)-1;
+                }
+                params.push_back(get_field_value(idx, B_BASE::data));
+                first = false;
+            }
+
+            std::string where_clause;
+            build_prepared_where(where_clause, params);
+            // 缺 WHERE 的 UPDATE 会把整表所有行改成同一组值。条件来源只有 wheresql 与 pk，
+            // 两者皆无时拒绝发出语句（与 exec_remove 的守卫同构）。
+            if (where_clause.empty())
+            {
+                sqlstring = "exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                error_msg = sqlstring;
+                iserror   = true;
+                return (unsigned int)-1;
+            }
+            sql.append(" WHERE ");
+            sql.append(where_clause);
+
+            sqlstring = sql;
+            if (iserror)
+            {
+                return (unsigned int)-1;
+            }
+            if (conn_empty())
+            {
+                return (unsigned int)-1;
+            }
+
+            auto conn             = _get_prepared_edit_conn();
+            unsigned int affected = conn->exec_dml_prepared(sql, params);
+            effect_num            = affected;
+            if (affected == static_cast<unsigned int>(-1))
+            {
+                error_msg = conn->error_msg;
+                iserror   = true;
+            }
+            if (!islock_conn)
+            {
+                conn_obj->back_mysql_edit_conn(std::move(conn));
+            }
+            return affected;
+        }
+
+        // --- async_exec_update(fields)：异步预编译指定字段更新，值从 this->data 取 ---
+        // 参数格式: "字段1,字段2,字段3"（逗号分隔）
+        asio::awaitable<unsigned int> async_exec_update(std::string_view fields_csv)
+        {
+            effect_num = 0;
+
+            auto fields = _split_fields_csv(fields_csv);
+            if (fields.empty())
+            {
+                sqlstring = "async_exec_update: empty fields";
+                iserror   = true;
+                co_return (unsigned int) - 1;
+            }
+
+            std::string sql = "UPDATE ";
+            sql.append(B_BASE::tablename);
+            sql.append(" SET ");
+
+            std::vector<http::obj_val> params;
+            bool first = true;
+            for (auto &f : fields)
+            {
+                if (!first)
+                    sql.append(", ");
+                sql.append(f);
+                sql.append(" = ?");
+                unsigned char idx = B_BASE::findcolpos(std::string(f));
+                if (idx == 255)
+                {
+                    sqlstring = std::string("async_exec_update: field not found: ") + std::string(f);
+                    iserror   = true;
+                    co_return (unsigned int) - 1;
+                }
+                params.push_back(get_field_value(idx, B_BASE::data));
+                first = false;
+            }
+
+            std::string where_clause;
+            build_prepared_where(where_clause, params);
+            // 缺 WHERE 的 UPDATE 会把整表所有行改成同一组值。条件来源只有 wheresql 与 pk，
+            // 两者皆无时拒绝发出语句（与 async_exec_remove 的守卫同构）。
+            if (where_clause.empty())
+            {
+                sqlstring = "async_exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                error_msg = sqlstring;
+                iserror   = true;
+                co_return (unsigned int) - 1;
+            }
+            sql.append(" WHERE ");
+            sql.append(where_clause);
+
+            sqlstring = sql;
+            if (iserror)
+            {
+                co_return (unsigned int) - 1;
+            }
+            if (conn_empty())
+            {
+                co_return (unsigned int) - 1;
+            }
+
+            try
+            {
+                if (islock_conn)
+                {
+                    if (!edit_conn || edit_conn->isclose)
+                    {
+                        edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
+                    }
+                }
+                else
+                {
+                    edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
+                }
+
+                if (edit_conn->isdebug)
+                {
+                    edit_conn->begin_time();
+                }
+                unsigned int affected = co_await edit_conn->async_exec_dml_prepared(sql, params);
+                if (edit_conn->isdebug)
+                {
+                    edit_conn->finish_time();
+                    auto &conn_mar    = get_orm_connect_mar();
+                    long long du_time = edit_conn->count_time();
+                    conn_mar.push_log(sqlstring, std::to_string(du_time));
+                }
+
+                if (affected == static_cast<unsigned int>(-1))
+                {
+                    error_msg = edit_conn->error_msg;
+                    iserror   = true;
+                    edit_conn.reset();
+                    co_return (unsigned int) - 1;
+                }
+
+                effect_num = affected;
+                if (!islock_conn)
+                {
+                    conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                }
+                co_return affected;
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+                unlock_conn();
+            }
+            co_return (unsigned int) - 1;
+        }
+
+        // --- exec_update_fields：预编译 UPDATE，显式传入 SET 字段 ---
+        unsigned int exec_update_fields(const std::vector<std::pair<std::string, http::obj_val>> &sets)
+        {
+            if (sets.empty())
+            {
+                sqlstring = "exec_update_fields: empty sets";
+                iserror   = true;
+                return (unsigned int)-1;
+            }
+
+            std::string sql = "UPDATE ";
+            sql.append(B_BASE::tablename);
+            sql.append(" SET ");
+            std::vector<http::obj_val> params;
+            for (size_t i = 0; i < sets.size(); i++)
+            {
+                if (i > 0)
+                    sql.append(", ");
+                sql.append(sets[i].first);
+                sql.append(" = ?");
+                params.push_back(sets[i].second);
+            }
+
+            std::string where_clause;
+            build_prepared_where(where_clause, params);
+            // 缺 WHERE 的 UPDATE 会把整表所有行改成同一组值。条件来源只有 wheresql 与 pk，
+            // 两者皆无时拒绝发出语句（与 exec_remove 的守卫同构）。
+            if (where_clause.empty())
+            {
+                sqlstring = "exec_update_fields: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                error_msg = sqlstring;
+                iserror   = true;
+                return (unsigned int)-1;
+            }
+            sql.append(" WHERE ");
+            sql.append(where_clause);
+
+            sqlstring = sql;
+            if (iserror)
+            {
+                return (unsigned int)-1;
+            }
+            if (conn_empty())
+            {
+                return (unsigned int)-1;
+            }
+
+            auto conn             = _get_prepared_edit_conn();
+            unsigned int affected = conn->exec_dml_prepared(sql, params);
+            effect_num            = affected;
+            if (affected == static_cast<unsigned int>(-1))
+            {
+                error_msg = conn->error_msg;
+                iserror   = true;
+            }
+            if (!islock_conn)
+            {
+                conn_obj->back_mysql_edit_conn(std::move(conn));
+            }
+            return affected;
+        }
+
+        // --- exec_remove：预编译 DELETE ---
+        unsigned int exec_remove()
+        {
+            std::string sql = "DELETE FROM ";
+            sql.append(B_BASE::tablename);
+
+            std::vector<http::obj_val> params;
+            std::string where_clause;
+            build_prepared_where(where_clause, params);
+            // 缺 WHERE 的 DELETE 会清空整表。条件来源只有 wheresql 与 pk，两者皆无时
+            // 拒绝发出语句（与文本路径 build_remove_sql 的"返回空串"约定同构）。
+            if (where_clause.empty())
+            {
+                sqlstring = "exec_remove: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                error_msg = sqlstring;
+                iserror   = true;
+                return (unsigned int)-1;
+            }
+            sql.append(" WHERE ");
+            sql.append(where_clause);
+
+            sqlstring = sql;
+            if (iserror)
+            {
+                return (unsigned int)-1;
+            }
+            if (conn_empty())
+            {
+                return (unsigned int)-1;
+            }
+
+            auto conn             = _get_prepared_edit_conn();
+            unsigned int affected = conn->exec_dml_prepared(sql, params);
+            effect_num            = affected;
+            if (affected == static_cast<unsigned int>(-1))
+            {
+                error_msg = conn->error_msg;
+                iserror   = true;
+            }
+            if (!islock_conn)
+            {
+                conn_obj->back_mysql_edit_conn(std::move(conn));
+            }
+            return affected;
+        }
+
+        // --- async_exec_remove：异步预编译 DELETE ---
+        // 与同步 exec_remove() 同轨：WHERE 来自 wheresql / pk，两者皆空则拒绝执行（防整表清空）
+        asio::awaitable<unsigned int> async_exec_remove()
+        {
+            effect_num = 0;
+
+            std::string sql = "DELETE FROM ";
+            sql.append(B_BASE::tablename);
+
+            std::vector<http::obj_val> params;
+            std::string where_clause;
+            build_prepared_where(where_clause, params);
+            // 缺 WHERE 的 DELETE 会清空整表。条件来源只有 wheresql 与 pk，两者皆无时
+            // 拒绝发出语句（与同步 exec_remove 的守卫同构）。
+            if (where_clause.empty())
+            {
+                sqlstring = "async_exec_remove: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                error_msg = sqlstring;
+                iserror   = true;
+                co_return (unsigned int) - 1;
+            }
+            sql.append(" WHERE ");
+            sql.append(where_clause);
+
+            sqlstring = sql;
+            if (iserror)
+            {
+                co_return (unsigned int) - 1;
+            }
+            if (conn_empty())
+            {
+                co_return (unsigned int) - 1;
+            }
+
+            try
+            {
+                if (islock_conn)
+                {
+                    if (!edit_conn || edit_conn->isclose)
+                    {
+                        edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
+                    }
+                }
+                else
+                {
+                    edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
+                }
+
+                if (edit_conn->isdebug)
+                {
+                    edit_conn->begin_time();
+                }
+                unsigned int affected = co_await edit_conn->async_exec_dml_prepared(sql, params);
+                if (edit_conn->isdebug)
+                {
+                    edit_conn->finish_time();
+                    auto &conn_mar    = get_orm_connect_mar();
+                    long long du_time = edit_conn->count_time();
+                    conn_mar.push_log(sqlstring, std::to_string(du_time));
+                }
+
+                if (affected == static_cast<unsigned int>(-1))
+                {
+                    error_msg = edit_conn->error_msg;
+                    iserror   = true;
+                    edit_conn.reset();
+                    co_return (unsigned int) - 1;
+                }
+
+                effect_num = affected;
+                if (!islock_conn)
+                {
+                    conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                }
+                co_return affected;
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+                unlock_conn();
+            }
+            co_return (unsigned int) - 1;
+        }
+
+        // --- exec_insert：预编译 INSERT，值从 this->data 全字段取 ---
+        // 返回 tuple<effect_num, last_insert_id>
+        std::tuple<unsigned int, unsigned long long> exec_insert()
+        {
+            std::string sql = "INSERT INTO ";
+            sql.append(B_BASE::tablename);
+            sql.append(" (");
+
+            std::vector<http::obj_val> params;
+            for (unsigned char i = 0; i < superadmin_info::col_names.size(); i++)
+            {
+                if (i > 0)
+                    sql.append(", ");
+                sql.append(superadmin_info::col_names[i]);
+                params.push_back(get_insert_field_value(i, B_BASE::data));
+            }
+            sql.append(") VALUES (");
+            for (unsigned char i = 0; i < superadmin_info::col_names.size(); i++)
+            {
+                if (i > 0)
+                    sql.append(", ");
+                sql.append("?");
+            }
+            sql.append(")");
+
+            sqlstring = sql;
+            if (iserror)
+            {
+                return std::make_tuple(0, 0ULL);
+            }
+            if (conn_empty())
+            {
+                return std::make_tuple(0, 0ULL);
+            }
+
+            auto conn = _get_prepared_edit_conn();
+            if (conn->isdebug)
+                conn->begin_time();
+
+            unsigned int affected = conn->exec_dml_prepared(sql, params);
+
+            if (conn->isdebug)
+                conn->finish_time();
+
+            long long last_id = 0;
+            if (affected != static_cast<unsigned int>(-1))
+            {
+                last_id = conn->last_insert_id();
+                B_BASE::setPK(last_id);
+            }
+            else
+            {
+                error_msg = conn->error_msg;
+                iserror   = true;
+            }
+
+            effect_num = affected;
+            if (!islock_conn)
+            {
+                conn_obj->back_mysql_edit_conn(std::move(conn));
+            }
+            return std::make_tuple(effect_num, static_cast<unsigned long long>(last_id));
+        }
+
+        // --- async_exec_insert：异步预编译 INSERT，值从 this->data 全字段取 ---
+        // 返回 tuple<effect_num, last_insert_id>
+        asio::awaitable<std::tuple<unsigned int, unsigned long long>> async_exec_insert()
+        {
+            effect_num      = 0;
+            std::string sql = "INSERT INTO ";
+            sql.append(B_BASE::tablename);
+            sql.append(" (");
+            std::vector<http::obj_val> params;
+            for (unsigned char i = 0; i < superadmin_info::col_names.size(); i++)
+            {
+                if (i > 0)
+                    sql.append(", ");
+                sql.append(superadmin_info::col_names[i]);
+                params.push_back(get_insert_field_value(i, B_BASE::data));
+            }
+            sql.append(") VALUES (");
+            for (unsigned char i = 0; i < superadmin_info::col_names.size(); i++)
+            {
+                if (i > 0)
+                    sql.append(", ");
+                sql.append("?");
+            }
+            sql.append(")");
+
+            sqlstring = sql;
+            if (iserror)
+            {
+                co_return std::make_tuple(0, 0ULL);
+            }
+            if (conn_empty())
+            {
+                co_return std::make_tuple(0, 0ULL);
+            }
+
+            try
+            {
+                if (islock_conn)
+                {
+                    if (!edit_conn || edit_conn->isclose)
+                    {
+                        edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
+                    }
+                }
+                else
+                {
+                    edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
+                }
+
+                if (edit_conn->isdebug)
+                {
+                    edit_conn->begin_time();
+                }
+                unsigned int affected = co_await edit_conn->async_exec_dml_prepared(sql, params);
+                if (edit_conn->isdebug)
+                {
+                    edit_conn->finish_time();
+                    auto &conn_mar    = get_orm_connect_mar();
+                    long long du_time = edit_conn->count_time();
+                    conn_mar.push_log(sqlstring, std::to_string(du_time));
+                }
+
+                if (affected == static_cast<unsigned int>(-1))
+                {
+                    error_msg = edit_conn->error_msg;
+                    iserror   = true;
+                    edit_conn.reset();
+                    co_return std::make_tuple(0, 0ULL);
+                }
+
+                long long last_id = edit_conn->last_insert_id();
+                B_BASE::setPK(last_id);
+                effect_num = affected;
+                if (!islock_conn)
+                {
+                    conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                }
+                co_return std::make_tuple(effect_num, static_cast<unsigned long long>(last_id));
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+                unlock_conn();
+            }
+            co_return std::make_tuple(0, 0ULL);
+        }
+
+        // ========================================================================
+        // exec_insert_batch —— 预编译批量 INSERT
+        // ------------------------------------------------------------------------
+        // 数据源: this->record (std::vector<meta>) —— 每行 = 一个 meta 结构体
+        // SQL:    INSERT INTO tablename (c1, c2, ...) VALUES (?, ?), (?, ?), ...
+        // 返回:   tuple<影响行数, 第一个 last_insert_id>
+
+        std::tuple<unsigned int, unsigned long long> exec_insert_batch()
+        {
+            if (B_BASE::record.empty())
+            {
+                sqlstring = "exec_insert_batch: record is empty";
+                iserror   = true;
+                return std::make_tuple(0, 0ULL);
+            }
+
+            const unsigned char ncols = superadmin_info::col_names.size();
+            const size_t nrows        = B_BASE::record.size();
+
+            std::string sql = "INSERT INTO ";
+            sql.append(B_BASE::tablename);
+            sql.append(" (");
+            for (unsigned char i = 0; i < ncols; i++)
+            {
+                if (i > 0)
+                    sql.append(", ");
+                sql.append(superadmin_info::col_names[i]);
+            }
+            sql.append(") VALUES ");
+
+            std::vector<http::obj_val> params;
+            params.reserve(ncols * nrows);
+            for (size_t r = 0; r < nrows; r++)
+            {
+                if (r > 0)
+                    sql.append(", ");
+                sql.append("(");
+                for (unsigned char c = 0; c < ncols; c++)
+                {
+                    if (c > 0)
+                        sql.append(", ");
+                    sql.append("?");
+                    params.push_back(get_insert_field_value(c, B_BASE::record[r]));
+                }
+                sql.append(")");
+            }
+
+            sqlstring = sql;
+            if (iserror)
+            {
+                return std::make_tuple(0, 0ULL);
+            }
+            if (conn_empty())
+            {
+                return std::make_tuple(0, 0ULL);
+            }
+
+            auto conn = _get_prepared_edit_conn();
+            if (conn->isdebug)
+                conn->begin_time();
+
+            unsigned int affected = conn->exec_dml_prepared(sql, params);
+
+            if (conn->isdebug)
+                conn->finish_time();
+
+            long long first_id = 0;
+            if (affected != static_cast<unsigned int>(-1))
+            {
+                first_id = conn->last_insert_id();
+            }
+            else
+            {
+                error_msg = conn->error_msg;
+                iserror   = true;
+            }
+
+            effect_num = affected;
+            if (!islock_conn)
+            {
+                conn_obj->back_mysql_edit_conn(std::move(conn));
+            }
+            return std::make_tuple(effect_num, static_cast<unsigned long long>(first_id));
+        }
+
+        // ========================================================================
+        // async_exec_insert_batch —— 异步预编译批量 INSERT
+        // ------------------------------------------------------------------------
+        // 数据源: this->record (std::vector<meta>)；每行 = 一个 meta 结构体
+        // SQL:    INSERT INTO tablename (c1, c2, ...) VALUES (?, ?), (?, ?), ...
+        // 返回:   tuple<影响行数, 第一个 last_insert_id>
+        // ========================================================================
+        asio::awaitable<std::tuple<unsigned int, unsigned long long>> async_exec_insert_batch()
+        {
+            if (B_BASE::record.empty())
+            {
+                sqlstring = "async_exec_insert_batch: record is empty";
+                iserror   = true;
+                co_return std::make_tuple(0, 0ULL);
+            }
+
+            const unsigned char ncols = superadmin_info::col_names.size();
+            const size_t nrows        = B_BASE::record.size();
+
+            std::string sql = "INSERT INTO ";
+            sql.append(B_BASE::tablename);
+            sql.append(" (");
+            for (unsigned char i = 0; i < ncols; i++)
+            {
+                if (i > 0)
+                    sql.append(", ");
+                sql.append(superadmin_info::col_names[i]);
+            }
+            sql.append(") VALUES ");
+
+            std::vector<http::obj_val> params;
+            params.reserve(ncols * nrows);
+            for (size_t r = 0; r < nrows; r++)
+            {
+                if (r > 0)
+                    sql.append(", ");
+                sql.append("(");
+                for (unsigned char c = 0; c < ncols; c++)
+                {
+                    if (c > 0)
+                        sql.append(", ");
+                    sql.append("?");
+                    params.push_back(get_insert_field_value(c, B_BASE::record[r]));
+                }
+                sql.append(")");
+            }
+
+            sqlstring = sql;
+            if (iserror)
+            {
+                co_return std::make_tuple(0, 0ULL);
+            }
+            if (conn_empty())
+            {
+                co_return std::make_tuple(0, 0ULL);
+            }
+
+            try
+            {
+                if (islock_conn)
+                {
+                    if (!edit_conn || edit_conn->isclose)
+                    {
+                        edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
+                    }
+                }
+                else
+                {
+                    edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
+                }
+
+                if (edit_conn->isdebug)
+                {
+                    edit_conn->begin_time();
+                }
+                unsigned int affected = co_await edit_conn->async_exec_dml_prepared(sql, params);
+                if (edit_conn->isdebug)
+                {
+                    edit_conn->finish_time();
+                    auto &conn_mar    = get_orm_connect_mar();
+                    long long du_time = edit_conn->count_time();
+                    conn_mar.push_log(sqlstring, std::to_string(du_time));
+                }
+
+                if (affected == static_cast<unsigned int>(-1))
+                {
+                    error_msg = edit_conn->error_msg;
+                    iserror   = true;
+                    edit_conn.reset();
+                    co_return std::make_tuple(0, 0ULL);
+                }
+
+                long long first_id = edit_conn->last_insert_id();
+                effect_num         = affected;
+                if (!islock_conn)
+                {
+                    conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                }
+                co_return std::make_tuple(effect_num, static_cast<unsigned long long>(first_id));
+            }
+            catch (const std::exception &e)
+            {
+                error_msg = std::string(e.what());
+                unlock_conn();
+            }
+            co_return std::make_tuple(0, 0ULL);
+        }
+
+      public:
+            // no foreign keys
+
       public:
         std::string selectsql;
-        std::string wheresql;
         std::string ordersql;
         std::string groupsql;
         std::string limitsql;
@@ -30926,14 +13561,13 @@ M_MODEL& or_leBasesitepath(T val)
         std::string error_msg;
 
         // std::list<std::string> commit_sqllist;
-        bool iskuohao           = false;
-        bool ishascontent       = false;
         bool iscache            = false;
         bool iserror            = false;
         bool islock_conn        = false;
         int exptime             = 0;
         unsigned int effect_num = 0;
 
+        std::vector<orm_where_sql_t> wheresql;
         M_MODEL *mod;
 
         std::unique_ptr<orm::orm_left_join_t> join_ptr = nullptr;

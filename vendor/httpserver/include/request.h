@@ -82,8 +82,8 @@ struct obj_val
     double to_double() const;
     char to_char() const;
     obj_val &from_char(char c);
-    obj_type get_type() const;
-    void set_type(obj_type _type);
+    obj_type get_type() const { return _val_type; }
+    void set_type(obj_type _type) { _val_type = _type; }
 
     float str_to_float();
     double str_to_double();
@@ -97,7 +97,7 @@ struct obj_val
     const obj_val &operator[](std::string_view key) const;
     const obj_val &operator[](unsigned int index) const;
 
-    unsigned int size();
+    unsigned int size() const;
 
     void append(const std::string &v);
     void append(const char *_str, unsigned int str_length);

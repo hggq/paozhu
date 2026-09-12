@@ -2,7 +2,7 @@
 #define ORM_CMS_SITEINFOBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 01 Sep 2026 03:58:37 GMT
+*本文件为自动生成 Sat, 12 Sep 2026 07:38:47 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -12,11 +12,15 @@
 #include <map> 
 #include <string_view> 
 #include <string> 
+#include <cstring>
 #include <vector>
+#include <set>
 #include <ctime>
 #include <array>
 #include <concepts>
 #include <utility>
+#include <bit>
+#include <algorithm>
 #include "unicode.h"
 
 namespace orm { 
@@ -26,6 +30,7 @@ namespace orm {
 namespace siteinfo_info
 {
  
+    static constexpr std::size_t col_count = 33;
     enum class cols : unsigned char 
     {
 		sid = 0,
@@ -803,13 +808,18 @@ namespace siteinfo_info
         
     static constexpr std::array<std::string_view,33> col_names={"sid","userid","agentid","languagetype","sitename","sitedomain","metakeys","metadesc","copyright","beiansn","footscript","headscript","introduce","sitelogo","sitebanner","contactman","phone","mobile","email","bankname","banksn","address","zipnum","taxsn","companyname","linkname","linkmobile","linkaddress","theme","sitepath","isopen","created_at","enddate"};
 	static constexpr std::array<unsigned char,33> col_types={3,3,3,3,253,253,252,252,252,253,252,252,252,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,253,1,3,3};
-	static constexpr std::array<unsigned char,33> col_length={0,0,0,0,120,120,0,0,0,0,0,0,0,0,0,30,60,60,60,120,60,200,20,120,200,30,30,200,60,200,0,0,0};
+	static constexpr std::array<unsigned short,33> col_length={0,0,0,0,120,120,0,0,0,256,0,0,0,256,256,30,60,60,60,120,60,200,20,120,200,30,30,200,60,200,0,0,0};
 	static constexpr std::array<unsigned char,33> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	static constexpr std::array<bool,33> col_null={false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::array<bool,33> col_indexed={true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::string_view auto_pk_name ="sid";
+	static constexpr int auto_pk_index = 0;
 
 }
 
 struct siteinfo_base
 {
+    using cols = siteinfo_info::cols;
       siteinfo_info::meta data;
     std::vector<siteinfo_info::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -820,13 +830,74 @@ std::vector<siteinfo_info::meta>::const_iterator end() const{     return record.
 std::string tablename="siteinfo";
 static constexpr std::string_view org_tablename="siteinfo";
 static constexpr std::string_view modelname="Siteinfo";
+	static constexpr std::array<bool,33> col_need_quote={false,false,false,false,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,true,false,false,false};
 
-	  unsigned char findcolpos(const std::string &coln){
+            std::bitset<33> dirty_bits;
+            void clear_dirty() noexcept {
+                dirty_bits.reset();
+            }
+
+            void set_dirty(std::size_t idx) noexcept {
+                if(idx < 33)
+                dirty_bits.set(idx);
+            }
+
+            [[nodiscard]] std::vector<unsigned char> get_dirty_indices() const noexcept {
+                std::vector<unsigned char> result;
+                for (std::size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(static_cast<unsigned char>(i));
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::vector<std::string_view> get_dirty_names() const
+            {
+                std::vector<std::string_view> result;
+                result.reserve(dirty_bits.size()); // 预分配
+                for (size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(siteinfo_info::col_names[i]);
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::string get_dirty_names_str(std::string_view sep = ",") const
+            {
+                auto names = get_dirty_names();
+
+                if (names.empty()) {
+                    return {};
+                }
+                
+                std::size_t total_len = 0;
+                for (const auto& name : names) {
+                    total_len += name.size();
+                }
+                total_len += sep.size() * (names.size() - 1);
+
+                std::string result;
+                result.reserve(total_len);
+
+                bool first = true;
+                for (const auto& name : names) {
+                    if (!first) {
+                        result.append(sep);
+                    }
+                    result.append(name);
+                    first = false;
+                }
+                return result;
+            }
+    
+	  [[nodiscard]] static constexpr unsigned char findcolpos(std::string_view coln) noexcept {
             if(coln.size()==0)
             {
                 return 255;
             }
-		    unsigned char  bi=coln[0];
+		    unsigned char  bi= static_cast<unsigned char>(coln[0]);
          char colpospppc;
 
 	         if(bi<91&&bi>64){
@@ -1585,6 +1656,155 @@ if(data.enddate==0){
         return tempsql.str();
    } 
    
+   std::string make_update_dirty_sql()
+   {
+    std::ostringstream tempsql;
+    tempsql << "UPDATE " << tablename << " SET ";
+
+    constexpr std::size_t total = siteinfo_info::col_names.size();
+
+    bool first = true;
+    for (std::size_t idx = 0; idx < total; ++idx) {
+        if (dirty_bits.test(idx)) {
+            if (idx < total) {
+                if (!first) tempsql << ",";
+                switch (idx) {
+                    case 0:
+                        if(data.sid==0){
+                            tempsql<<"sid=0";
+                        }else{ 
+                            tempsql<<"sid="<<std::to_string(data.sid);
+                        }
+                        break;
+                    case 1:
+                        if(data.userid==0){
+                            tempsql<<"userid=0";
+                        }else{ 
+                            tempsql<<"userid="<<std::to_string(data.userid);
+                        }
+                        break;
+                    case 2:
+                        if(data.agentid==0){
+                            tempsql<<"agentid=0";
+                        }else{ 
+                            tempsql<<"agentid="<<std::to_string(data.agentid);
+                        }
+                        break;
+                    case 3:
+                        if(data.languagetype==0){
+                            tempsql<<"languagetype=0";
+                        }else{ 
+                            tempsql<<"languagetype="<<std::to_string(data.languagetype);
+                        }
+                        break;
+                    case 4:
+                        tempsql<<"sitename='"<<stringaddslash(data.sitename)<<"'";
+                        break;
+                    case 5:
+                        tempsql<<"sitedomain='"<<stringaddslash(data.sitedomain)<<"'";
+                        break;
+                    case 6:
+                        tempsql<<"metakeys='"<<stringaddslash(data.metakeys)<<"'";
+                        break;
+                    case 7:
+                        tempsql<<"metadesc='"<<stringaddslash(data.metadesc)<<"'";
+                        break;
+                    case 8:
+                        tempsql<<"copyright='"<<stringaddslash(data.copyright)<<"'";
+                        break;
+                    case 9:
+                        tempsql<<"beiansn='"<<stringaddslash(data.beiansn)<<"'";
+                        break;
+                    case 10:
+                        tempsql<<"footscript='"<<stringaddslash(data.footscript)<<"'";
+                        break;
+                    case 11:
+                        tempsql<<"headscript='"<<stringaddslash(data.headscript)<<"'";
+                        break;
+                    case 12:
+                        tempsql<<"introduce='"<<stringaddslash(data.introduce)<<"'";
+                        break;
+                    case 13:
+                        tempsql<<"sitelogo='"<<stringaddslash(data.sitelogo)<<"'";
+                        break;
+                    case 14:
+                        tempsql<<"sitebanner='"<<stringaddslash(data.sitebanner)<<"'";
+                        break;
+                    case 15:
+                        tempsql<<"contactman='"<<stringaddslash(data.contactman)<<"'";
+                        break;
+                    case 16:
+                        tempsql<<"phone='"<<stringaddslash(data.phone)<<"'";
+                        break;
+                    case 17:
+                        tempsql<<"mobile='"<<stringaddslash(data.mobile)<<"'";
+                        break;
+                    case 18:
+                        tempsql<<"email='"<<stringaddslash(data.email)<<"'";
+                        break;
+                    case 19:
+                        tempsql<<"bankname='"<<stringaddslash(data.bankname)<<"'";
+                        break;
+                    case 20:
+                        tempsql<<"banksn='"<<stringaddslash(data.banksn)<<"'";
+                        break;
+                    case 21:
+                        tempsql<<"address='"<<stringaddslash(data.address)<<"'";
+                        break;
+                    case 22:
+                        tempsql<<"zipnum='"<<stringaddslash(data.zipnum)<<"'";
+                        break;
+                    case 23:
+                        tempsql<<"taxsn='"<<stringaddslash(data.taxsn)<<"'";
+                        break;
+                    case 24:
+                        tempsql<<"companyname='"<<stringaddslash(data.companyname)<<"'";
+                        break;
+                    case 25:
+                        tempsql<<"linkname='"<<stringaddslash(data.linkname)<<"'";
+                        break;
+                    case 26:
+                        tempsql<<"linkmobile='"<<stringaddslash(data.linkmobile)<<"'";
+                        break;
+                    case 27:
+                        tempsql<<"linkaddress='"<<stringaddslash(data.linkaddress)<<"'";
+                        break;
+                    case 28:
+                        tempsql<<"theme='"<<stringaddslash(data.theme)<<"'";
+                        break;
+                    case 29:
+                        tempsql<<"sitepath='"<<stringaddslash(data.sitepath)<<"'";
+                        break;
+                    case 30:
+                        if(data.isopen==0){
+                            tempsql<<"isopen=0";
+                        }else{ 
+                            tempsql<<"isopen="<<std::to_string(data.isopen);
+                        }
+                        break;
+                    case 31:
+                        if(data.created_at==0){
+                            tempsql<<"created_at=0";
+                        }else{ 
+                            tempsql<<"created_at="<<std::to_string(data.created_at);
+                        }
+                        break;
+                    case 32:
+                        if(data.enddate==0){
+                            tempsql<<"enddate=0";
+                        }else{ 
+                            tempsql<<"enddate="<<std::to_string(data.enddate);
+                        }
+                        break;
+                }
+                first = false;
+            }
+        }
+    }
+    if (first) return "";
+    return tempsql.str();
+   } 
+
     std::string make_record_replace_sql()
     {
         unsigned int j = 0;
@@ -3303,152 +3523,210 @@ if(record[n].enddate==0){
  void setSid( int  val){  data.sid=val;} 
 
  int  getUserid(){  return data.userid; } 
- void setUserid( int  val){  data.userid=val;} 
+ void setUserid( int  val){  data.userid=val;
+		 set_dirty(1);  }
 
  unsigned  int  getAgentid(){  return data.agentid; } 
- void setAgentid( unsigned  int  val){  data.agentid=val;} 
+ void setAgentid( unsigned  int  val){  data.agentid=val;
+		 set_dirty(2);  }
 
  unsigned  int  getLanguagetype(){  return data.languagetype; } 
- void setLanguagetype( unsigned  int  val){  data.languagetype=val;} 
+ void setLanguagetype( unsigned  int  val){  data.languagetype=val;
+		 set_dirty(3);  }
 
  std::string  getSitename(){  return data.sitename; } 
  std::string & getRefSitename(){  return std::ref(data.sitename); } 
- void setSitename( std::string  &val){  data.sitename=val;} 
- void setSitename(std::string_view val){  data.sitename=val;} 
+ void setSitename( std::string  &val){  data.sitename=val;
+		 set_dirty(4);  }
+ void setSitename(std::string_view val){  data.sitename=val;
+		 set_dirty(4);  }
 
  std::string  getSitedomain(){  return data.sitedomain; } 
  std::string & getRefSitedomain(){  return std::ref(data.sitedomain); } 
- void setSitedomain( std::string  &val){  data.sitedomain=val;} 
- void setSitedomain(std::string_view val){  data.sitedomain=val;} 
+ void setSitedomain( std::string  &val){  data.sitedomain=val;
+		 set_dirty(5);  }
+ void setSitedomain(std::string_view val){  data.sitedomain=val;
+		 set_dirty(5);  }
 
  std::string  getMetakeys(){  return data.metakeys; } 
  std::string & getRefMetakeys(){  return std::ref(data.metakeys); } 
- void setMetakeys( std::string  &val){  data.metakeys=val;} 
- void setMetakeys(std::string_view val){  data.metakeys=val;} 
+ void setMetakeys( std::string  &val){  data.metakeys=val;
+		 set_dirty(6);  }
+ void setMetakeys(std::string_view val){  data.metakeys=val;
+		 set_dirty(6);  }
 
  std::string  getMetadesc(){  return data.metadesc; } 
  std::string & getRefMetadesc(){  return std::ref(data.metadesc); } 
- void setMetadesc( std::string  &val){  data.metadesc=val;} 
- void setMetadesc(std::string_view val){  data.metadesc=val;} 
+ void setMetadesc( std::string  &val){  data.metadesc=val;
+		 set_dirty(7);  }
+ void setMetadesc(std::string_view val){  data.metadesc=val;
+		 set_dirty(7);  }
 
  std::string  getCopyright(){  return data.copyright; } 
  std::string & getRefCopyright(){  return std::ref(data.copyright); } 
- void setCopyright( std::string  &val){  data.copyright=val;} 
- void setCopyright(std::string_view val){  data.copyright=val;} 
+ void setCopyright( std::string  &val){  data.copyright=val;
+		 set_dirty(8);  }
+ void setCopyright(std::string_view val){  data.copyright=val;
+		 set_dirty(8);  }
 
  std::string  getBeiansn(){  return data.beiansn; } 
  std::string & getRefBeiansn(){  return std::ref(data.beiansn); } 
- void setBeiansn( std::string  &val){  data.beiansn=val;} 
- void setBeiansn(std::string_view val){  data.beiansn=val;} 
+ void setBeiansn( std::string  &val){  data.beiansn=val;
+		 set_dirty(9);  }
+ void setBeiansn(std::string_view val){  data.beiansn=val;
+		 set_dirty(9);  }
 
  std::string  getFootscript(){  return data.footscript; } 
  std::string & getRefFootscript(){  return std::ref(data.footscript); } 
- void setFootscript( std::string  &val){  data.footscript=val;} 
- void setFootscript(std::string_view val){  data.footscript=val;} 
+ void setFootscript( std::string  &val){  data.footscript=val;
+		 set_dirty(10);  }
+ void setFootscript(std::string_view val){  data.footscript=val;
+		 set_dirty(10);  }
 
  std::string  getHeadscript(){  return data.headscript; } 
  std::string & getRefHeadscript(){  return std::ref(data.headscript); } 
- void setHeadscript( std::string  &val){  data.headscript=val;} 
- void setHeadscript(std::string_view val){  data.headscript=val;} 
+ void setHeadscript( std::string  &val){  data.headscript=val;
+		 set_dirty(11);  }
+ void setHeadscript(std::string_view val){  data.headscript=val;
+		 set_dirty(11);  }
 
  std::string  getIntroduce(){  return data.introduce; } 
  std::string & getRefIntroduce(){  return std::ref(data.introduce); } 
- void setIntroduce( std::string  &val){  data.introduce=val;} 
- void setIntroduce(std::string_view val){  data.introduce=val;} 
+ void setIntroduce( std::string  &val){  data.introduce=val;
+		 set_dirty(12);  }
+ void setIntroduce(std::string_view val){  data.introduce=val;
+		 set_dirty(12);  }
 
  std::string  getSitelogo(){  return data.sitelogo; } 
  std::string & getRefSitelogo(){  return std::ref(data.sitelogo); } 
- void setSitelogo( std::string  &val){  data.sitelogo=val;} 
- void setSitelogo(std::string_view val){  data.sitelogo=val;} 
+ void setSitelogo( std::string  &val){  data.sitelogo=val;
+		 set_dirty(13);  }
+ void setSitelogo(std::string_view val){  data.sitelogo=val;
+		 set_dirty(13);  }
 
  std::string  getSitebanner(){  return data.sitebanner; } 
  std::string & getRefSitebanner(){  return std::ref(data.sitebanner); } 
- void setSitebanner( std::string  &val){  data.sitebanner=val;} 
- void setSitebanner(std::string_view val){  data.sitebanner=val;} 
+ void setSitebanner( std::string  &val){  data.sitebanner=val;
+		 set_dirty(14);  }
+ void setSitebanner(std::string_view val){  data.sitebanner=val;
+		 set_dirty(14);  }
 
  std::string  getContactman(){  return data.contactman; } 
  std::string & getRefContactman(){  return std::ref(data.contactman); } 
- void setContactman( std::string  &val){  data.contactman=val;} 
- void setContactman(std::string_view val){  data.contactman=val;} 
+ void setContactman( std::string  &val){  data.contactman=val;
+		 set_dirty(15);  }
+ void setContactman(std::string_view val){  data.contactman=val;
+		 set_dirty(15);  }
 
  std::string  getPhone(){  return data.phone; } 
  std::string & getRefPhone(){  return std::ref(data.phone); } 
- void setPhone( std::string  &val){  data.phone=val;} 
- void setPhone(std::string_view val){  data.phone=val;} 
+ void setPhone( std::string  &val){  data.phone=val;
+		 set_dirty(16);  }
+ void setPhone(std::string_view val){  data.phone=val;
+		 set_dirty(16);  }
 
  std::string  getMobile(){  return data.mobile; } 
  std::string & getRefMobile(){  return std::ref(data.mobile); } 
- void setMobile( std::string  &val){  data.mobile=val;} 
- void setMobile(std::string_view val){  data.mobile=val;} 
+ void setMobile( std::string  &val){  data.mobile=val;
+		 set_dirty(17);  }
+ void setMobile(std::string_view val){  data.mobile=val;
+		 set_dirty(17);  }
 
  std::string  getEmail(){  return data.email; } 
  std::string & getRefEmail(){  return std::ref(data.email); } 
- void setEmail( std::string  &val){  data.email=val;} 
- void setEmail(std::string_view val){  data.email=val;} 
+ void setEmail( std::string  &val){  data.email=val;
+		 set_dirty(18);  }
+ void setEmail(std::string_view val){  data.email=val;
+		 set_dirty(18);  }
 
  std::string  getBankname(){  return data.bankname; } 
  std::string & getRefBankname(){  return std::ref(data.bankname); } 
- void setBankname( std::string  &val){  data.bankname=val;} 
- void setBankname(std::string_view val){  data.bankname=val;} 
+ void setBankname( std::string  &val){  data.bankname=val;
+		 set_dirty(19);  }
+ void setBankname(std::string_view val){  data.bankname=val;
+		 set_dirty(19);  }
 
  std::string  getBanksn(){  return data.banksn; } 
  std::string & getRefBanksn(){  return std::ref(data.banksn); } 
- void setBanksn( std::string  &val){  data.banksn=val;} 
- void setBanksn(std::string_view val){  data.banksn=val;} 
+ void setBanksn( std::string  &val){  data.banksn=val;
+		 set_dirty(20);  }
+ void setBanksn(std::string_view val){  data.banksn=val;
+		 set_dirty(20);  }
 
  std::string  getAddress(){  return data.address; } 
  std::string & getRefAddress(){  return std::ref(data.address); } 
- void setAddress( std::string  &val){  data.address=val;} 
- void setAddress(std::string_view val){  data.address=val;} 
+ void setAddress( std::string  &val){  data.address=val;
+		 set_dirty(21);  }
+ void setAddress(std::string_view val){  data.address=val;
+		 set_dirty(21);  }
 
  std::string  getZipnum(){  return data.zipnum; } 
  std::string & getRefZipnum(){  return std::ref(data.zipnum); } 
- void setZipnum( std::string  &val){  data.zipnum=val;} 
- void setZipnum(std::string_view val){  data.zipnum=val;} 
+ void setZipnum( std::string  &val){  data.zipnum=val;
+		 set_dirty(22);  }
+ void setZipnum(std::string_view val){  data.zipnum=val;
+		 set_dirty(22);  }
 
  std::string  getTaxsn(){  return data.taxsn; } 
  std::string & getRefTaxsn(){  return std::ref(data.taxsn); } 
- void setTaxsn( std::string  &val){  data.taxsn=val;} 
- void setTaxsn(std::string_view val){  data.taxsn=val;} 
+ void setTaxsn( std::string  &val){  data.taxsn=val;
+		 set_dirty(23);  }
+ void setTaxsn(std::string_view val){  data.taxsn=val;
+		 set_dirty(23);  }
 
  std::string  getCompanyname(){  return data.companyname; } 
  std::string & getRefCompanyname(){  return std::ref(data.companyname); } 
- void setCompanyname( std::string  &val){  data.companyname=val;} 
- void setCompanyname(std::string_view val){  data.companyname=val;} 
+ void setCompanyname( std::string  &val){  data.companyname=val;
+		 set_dirty(24);  }
+ void setCompanyname(std::string_view val){  data.companyname=val;
+		 set_dirty(24);  }
 
  std::string  getLinkname(){  return data.linkname; } 
  std::string & getRefLinkname(){  return std::ref(data.linkname); } 
- void setLinkname( std::string  &val){  data.linkname=val;} 
- void setLinkname(std::string_view val){  data.linkname=val;} 
+ void setLinkname( std::string  &val){  data.linkname=val;
+		 set_dirty(25);  }
+ void setLinkname(std::string_view val){  data.linkname=val;
+		 set_dirty(25);  }
 
  std::string  getLinkmobile(){  return data.linkmobile; } 
  std::string & getRefLinkmobile(){  return std::ref(data.linkmobile); } 
- void setLinkmobile( std::string  &val){  data.linkmobile=val;} 
- void setLinkmobile(std::string_view val){  data.linkmobile=val;} 
+ void setLinkmobile( std::string  &val){  data.linkmobile=val;
+		 set_dirty(26);  }
+ void setLinkmobile(std::string_view val){  data.linkmobile=val;
+		 set_dirty(26);  }
 
  std::string  getLinkaddress(){  return data.linkaddress; } 
  std::string & getRefLinkaddress(){  return std::ref(data.linkaddress); } 
- void setLinkaddress( std::string  &val){  data.linkaddress=val;} 
- void setLinkaddress(std::string_view val){  data.linkaddress=val;} 
+ void setLinkaddress( std::string  &val){  data.linkaddress=val;
+		 set_dirty(27);  }
+ void setLinkaddress(std::string_view val){  data.linkaddress=val;
+		 set_dirty(27);  }
 
  std::string  getTheme(){  return data.theme; } 
  std::string & getRefTheme(){  return std::ref(data.theme); } 
- void setTheme( std::string  &val){  data.theme=val;} 
- void setTheme(std::string_view val){  data.theme=val;} 
+ void setTheme( std::string  &val){  data.theme=val;
+		 set_dirty(28);  }
+ void setTheme(std::string_view val){  data.theme=val;
+		 set_dirty(28);  }
 
  std::string  getSitepath(){  return data.sitepath; } 
  std::string & getRefSitepath(){  return std::ref(data.sitepath); } 
- void setSitepath( std::string  &val){  data.sitepath=val;} 
- void setSitepath(std::string_view val){  data.sitepath=val;} 
+ void setSitepath( std::string  &val){  data.sitepath=val;
+		 set_dirty(29);  }
+ void setSitepath(std::string_view val){  data.sitepath=val;
+		 set_dirty(29);  }
 
  unsigned  char  getIsopen(){  return data.isopen; } 
- void setIsopen( unsigned  char  val){  data.isopen=val;} 
+ void setIsopen( unsigned  char  val){  data.isopen=val;
+		 set_dirty(30);  }
 
  unsigned  int  getCreatedAt(){  return data.created_at; } 
- void setCreatedAt( unsigned  int  val){  data.created_at=val;} 
+ void setCreatedAt( unsigned  int  val){  data.created_at=val;
+		 set_dirty(31);  }
 
  unsigned  int  getEnddate(){  return data.enddate; } 
- void setEnddate( unsigned  int  val){  data.enddate=val;} 
+ void setEnddate( unsigned  int  val){  data.enddate=val;
+		 set_dirty(32);  }
 
 siteinfo_info::meta getnewData(){
  	 struct siteinfo_info::meta newdata;

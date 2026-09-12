@@ -177,16 +177,7 @@ std::string obj_val::mb_substr(int begin_pos, int cut_size)
     return temp;
 }
 
-obj_type obj_val::get_type() const
-{
-    return _val_type;
-}
-
-void obj_val::set_type(obj_type _type)
-{
-    _val_type = _type;
-}
-
+// get_type() / set_type() 已 inline 定义在 include/request.h
 const char *obj_val::c_str() const
 {
     if (_val_type == obj_type::STRING)
@@ -324,7 +315,7 @@ void obj_val::append(const char *_str, unsigned int str_length)
     str_.append(_str, str_length);
 }
 
-unsigned int obj_val::size()
+unsigned int obj_val::size() const
 {
     if (_val_type == obj_type::ARRAY)
         return array_val->_data.size();

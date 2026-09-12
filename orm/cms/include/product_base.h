@@ -2,7 +2,7 @@
 #define ORM_CMS_PRODUCTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 01 Sep 2026 03:58:37 GMT
+*本文件为自动生成 Sat, 12 Sep 2026 07:38:47 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -12,11 +12,15 @@
 #include <map> 
 #include <string_view> 
 #include <string> 
+#include <cstring>
 #include <vector>
+#include <set>
 #include <ctime>
 #include <array>
 #include <concepts>
 #include <utility>
+#include <bit>
+#include <algorithm>
 #include "unicode.h"
 
 namespace orm { 
@@ -26,6 +30,7 @@ namespace orm {
 namespace product_info
 {
  
+    static constexpr std::size_t col_count = 24;
     enum class cols : unsigned char 
     {
 		pid = 0,
@@ -740,13 +745,18 @@ namespace product_info
         
     static constexpr std::array<std::string_view,24> col_names={"pid","userid","topicid","bigid","smallid","brandid","isview","isstore","ishome","showtype","sntype","name","keywords","introduce","listimg","bigimg","maincontent","paracontent","samepro","attatchfiles","price","sortid","adddate","editdate"};
 	static constexpr std::array<unsigned char,24> col_types={3,3,3,3,3,3,1,1,1,1,253,253,253,252,252,253,252,252,253,252,3,3,253,253};
-	static constexpr std::array<unsigned char,24> col_length={0,0,0,0,0,0,0,0,0,0,128,253,0,0,0,254,0,0,254,0,0,0,20,20};
+	static constexpr std::array<unsigned short,24> col_length={0,0,0,0,0,0,0,0,0,0,128,253,256,0,0,254,0,0,254,0,0,0,20,20};
 	static constexpr std::array<unsigned char,24> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	static constexpr std::array<bool,24> col_null={false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::array<bool,24> col_indexed={true,true,false,false,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,false,false};
+	static constexpr std::string_view auto_pk_name ="pid";
+	static constexpr int auto_pk_index = 0;
 
 }
 
 struct product_base
 {
+    using cols = product_info::cols;
       product_info::meta data;
     std::vector<product_info::meta> record;
 std::string _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -757,13 +767,74 @@ std::vector<product_info::meta>::const_iterator end() const{     return record.e
 std::string tablename="product";
 static constexpr std::string_view org_tablename="product";
 static constexpr std::string_view modelname="Product";
+	static constexpr std::array<bool,24> col_need_quote={false,false,false,false,false,false,false,false,false,false,true,true,true,true,true,true,true,true,true,true,false,false,true,true};
 
-	  unsigned char findcolpos(const std::string &coln){
+            std::bitset<24> dirty_bits;
+            void clear_dirty() noexcept {
+                dirty_bits.reset();
+            }
+
+            void set_dirty(std::size_t idx) noexcept {
+                if(idx < 24)
+                dirty_bits.set(idx);
+            }
+
+            [[nodiscard]] std::vector<unsigned char> get_dirty_indices() const noexcept {
+                std::vector<unsigned char> result;
+                for (std::size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(static_cast<unsigned char>(i));
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::vector<std::string_view> get_dirty_names() const
+            {
+                std::vector<std::string_view> result;
+                result.reserve(dirty_bits.size()); // 预分配
+                for (size_t i = 0; i < dirty_bits.size(); ++i) {
+                    if (dirty_bits.test(i)) {
+                        result.push_back(product_info::col_names[i]);
+                    }
+                }
+                return result;
+            }
+
+            [[nodiscard]] std::string get_dirty_names_str(std::string_view sep = ",") const
+            {
+                auto names = get_dirty_names();
+
+                if (names.empty()) {
+                    return {};
+                }
+                
+                std::size_t total_len = 0;
+                for (const auto& name : names) {
+                    total_len += name.size();
+                }
+                total_len += sep.size() * (names.size() - 1);
+
+                std::string result;
+                result.reserve(total_len);
+
+                bool first = true;
+                for (const auto& name : names) {
+                    if (!first) {
+                        result.append(sep);
+                    }
+                    result.append(name);
+                    first = false;
+                }
+                return result;
+            }
+    
+	  [[nodiscard]] static constexpr unsigned char findcolpos(std::string_view coln) noexcept {
             if(coln.size()==0)
             {
                 return 255;
             }
-		    unsigned char  bi=coln[0];
+		    unsigned char  bi= static_cast<unsigned char>(coln[0]);
          char colpospppc;
 
 	         if(bi<91&&bi>64){
@@ -1509,6 +1580,148 @@ tempsql<<"editdate='"<<stringaddslash(data.editdate)<<"'";
         return tempsql.str();
    } 
    
+   std::string make_update_dirty_sql()
+   {
+    std::ostringstream tempsql;
+    tempsql << "UPDATE " << tablename << " SET ";
+
+    constexpr std::size_t total = product_info::col_names.size();
+
+    bool first = true;
+    for (std::size_t idx = 0; idx < total; ++idx) {
+        if (dirty_bits.test(idx)) {
+            if (idx < total) {
+                if (!first) tempsql << ",";
+                switch (idx) {
+                    case 0:
+                        if(data.pid==0){
+                            tempsql<<"pid=0";
+                        }else{ 
+                            tempsql<<"pid="<<std::to_string(data.pid);
+                        }
+                        break;
+                    case 1:
+                        if(data.userid==0){
+                            tempsql<<"userid=0";
+                        }else{ 
+                            tempsql<<"userid="<<std::to_string(data.userid);
+                        }
+                        break;
+                    case 2:
+                        if(data.topicid==0){
+                            tempsql<<"topicid=0";
+                        }else{ 
+                            tempsql<<"topicid="<<std::to_string(data.topicid);
+                        }
+                        break;
+                    case 3:
+                        if(data.bigid==0){
+                            tempsql<<"bigid=0";
+                        }else{ 
+                            tempsql<<"bigid="<<std::to_string(data.bigid);
+                        }
+                        break;
+                    case 4:
+                        if(data.smallid==0){
+                            tempsql<<"smallid=0";
+                        }else{ 
+                            tempsql<<"smallid="<<std::to_string(data.smallid);
+                        }
+                        break;
+                    case 5:
+                        if(data.brandid==0){
+                            tempsql<<"brandid=0";
+                        }else{ 
+                            tempsql<<"brandid="<<std::to_string(data.brandid);
+                        }
+                        break;
+                    case 6:
+                        if(data.isview==0){
+                            tempsql<<"isview=0";
+                        }else{ 
+                            tempsql<<"isview="<<std::to_string(data.isview);
+                        }
+                        break;
+                    case 7:
+                        if(data.isstore==0){
+                            tempsql<<"isstore=0";
+                        }else{ 
+                            tempsql<<"isstore="<<std::to_string(data.isstore);
+                        }
+                        break;
+                    case 8:
+                        if(data.ishome==0){
+                            tempsql<<"ishome=0";
+                        }else{ 
+                            tempsql<<"ishome="<<std::to_string(data.ishome);
+                        }
+                        break;
+                    case 9:
+                        if(data.showtype==0){
+                            tempsql<<"showtype=0";
+                        }else{ 
+                            tempsql<<"showtype="<<std::to_string(data.showtype);
+                        }
+                        break;
+                    case 10:
+                        tempsql<<"sntype='"<<stringaddslash(data.sntype)<<"'";
+                        break;
+                    case 11:
+                        tempsql<<"name='"<<stringaddslash(data.name)<<"'";
+                        break;
+                    case 12:
+                        tempsql<<"keywords='"<<stringaddslash(data.keywords)<<"'";
+                        break;
+                    case 13:
+                        tempsql<<"introduce='"<<stringaddslash(data.introduce)<<"'";
+                        break;
+                    case 14:
+                        tempsql<<"listimg='"<<stringaddslash(data.listimg)<<"'";
+                        break;
+                    case 15:
+                        tempsql<<"bigimg='"<<stringaddslash(data.bigimg)<<"'";
+                        break;
+                    case 16:
+                        tempsql<<"maincontent='"<<stringaddslash(data.maincontent)<<"'";
+                        break;
+                    case 17:
+                        tempsql<<"paracontent='"<<stringaddslash(data.paracontent)<<"'";
+                        break;
+                    case 18:
+                        tempsql<<"samepro='"<<stringaddslash(data.samepro)<<"'";
+                        break;
+                    case 19:
+                        tempsql<<"attatchfiles='"<<stringaddslash(data.attatchfiles)<<"'";
+                        break;
+                    case 20:
+                        if(data.price==0){
+                            tempsql<<"price=0";
+                        }else{ 
+                            tempsql<<"price="<<std::to_string(data.price);
+                        }
+                        break;
+                    case 21:
+                        if(data.sortid==0){
+                            tempsql<<"sortid=0";
+                        }else{ 
+                            tempsql<<"sortid="<<std::to_string(data.sortid);
+                        }
+                        break;
+                    case 22:
+                        tempsql<<"adddate='"<<stringaddslash(data.adddate)<<"'";
+                        break;
+                    case 23:
+                        tempsql<<"editdate='"<<stringaddslash(data.editdate)<<"'";
+                        break;
+                }
+                first = false;
+            }
+        }
+    }
+    if (first) return "";
+    return tempsql.str();
+   } 
+
     std::string make_record_replace_sql()
     {
         unsigned int j = 0;
@@ -3148,97 +3361,132 @@ tempsql<<"\"editdate\":\""<<http::utf8_to_jsonstring(record[n].editdate)<<"\"";
  void setPid( unsigned  int  val){  data.pid=val;} 
 
  unsigned  int  getUserid(){  return data.userid; } 
- void setUserid( unsigned  int  val){  data.userid=val;} 
+ void setUserid( unsigned  int  val){  data.userid=val;
+		 set_dirty(1);  }
 
  unsigned  int  getTopicid(){  return data.topicid; } 
- void setTopicid( unsigned  int  val){  data.topicid=val;} 
+ void setTopicid( unsigned  int  val){  data.topicid=val;
+		 set_dirty(2);  }
 
  unsigned  int  getBigid(){  return data.bigid; } 
- void setBigid( unsigned  int  val){  data.bigid=val;} 
+ void setBigid( unsigned  int  val){  data.bigid=val;
+		 set_dirty(3);  }
 
  unsigned  int  getSmallid(){  return data.smallid; } 
- void setSmallid( unsigned  int  val){  data.smallid=val;} 
+ void setSmallid( unsigned  int  val){  data.smallid=val;
+		 set_dirty(4);  }
 
  unsigned  int  getBrandid(){  return data.brandid; } 
- void setBrandid( unsigned  int  val){  data.brandid=val;} 
+ void setBrandid( unsigned  int  val){  data.brandid=val;
+		 set_dirty(5);  }
 
  char  getIsview(){  return data.isview; } 
- void setIsview( char  val){  data.isview=val;} 
+ void setIsview( char  val){  data.isview=val;
+		 set_dirty(6);  }
 
  char  getIsstore(){  return data.isstore; } 
- void setIsstore( char  val){  data.isstore=val;} 
+ void setIsstore( char  val){  data.isstore=val;
+		 set_dirty(7);  }
 
  unsigned  char  getIshome(){  return data.ishome; } 
- void setIshome( unsigned  char  val){  data.ishome=val;} 
+ void setIshome( unsigned  char  val){  data.ishome=val;
+		 set_dirty(8);  }
 
  char  getShowtype(){  return data.showtype; } 
- void setShowtype( char  val){  data.showtype=val;} 
+ void setShowtype( char  val){  data.showtype=val;
+		 set_dirty(9);  }
 
  std::string  getSntype(){  return data.sntype; } 
  std::string & getRefSntype(){  return std::ref(data.sntype); } 
- void setSntype( std::string  &val){  data.sntype=val;} 
- void setSntype(std::string_view val){  data.sntype=val;} 
+ void setSntype( std::string  &val){  data.sntype=val;
+		 set_dirty(10);  }
+ void setSntype(std::string_view val){  data.sntype=val;
+		 set_dirty(10);  }
 
  std::string  getName(){  return data.name; } 
  std::string & getRefName(){  return std::ref(data.name); } 
- void setName( std::string  &val){  data.name=val;} 
- void setName(std::string_view val){  data.name=val;} 
+ void setName( std::string  &val){  data.name=val;
+		 set_dirty(11);  }
+ void setName(std::string_view val){  data.name=val;
+		 set_dirty(11);  }
 
  std::string  getKeywords(){  return data.keywords; } 
  std::string & getRefKeywords(){  return std::ref(data.keywords); } 
- void setKeywords( std::string  &val){  data.keywords=val;} 
- void setKeywords(std::string_view val){  data.keywords=val;} 
+ void setKeywords( std::string  &val){  data.keywords=val;
+		 set_dirty(12);  }
+ void setKeywords(std::string_view val){  data.keywords=val;
+		 set_dirty(12);  }
 
  std::string  getIntroduce(){  return data.introduce; } 
  std::string & getRefIntroduce(){  return std::ref(data.introduce); } 
- void setIntroduce( std::string  &val){  data.introduce=val;} 
- void setIntroduce(std::string_view val){  data.introduce=val;} 
+ void setIntroduce( std::string  &val){  data.introduce=val;
+		 set_dirty(13);  }
+ void setIntroduce(std::string_view val){  data.introduce=val;
+		 set_dirty(13);  }
 
  std::string  getListimg(){  return data.listimg; } 
  std::string & getRefListimg(){  return std::ref(data.listimg); } 
- void setListimg( std::string  &val){  data.listimg=val;} 
- void setListimg(std::string_view val){  data.listimg=val;} 
+ void setListimg( std::string  &val){  data.listimg=val;
+		 set_dirty(14);  }
+ void setListimg(std::string_view val){  data.listimg=val;
+		 set_dirty(14);  }
 
  std::string  getBigimg(){  return data.bigimg; } 
  std::string & getRefBigimg(){  return std::ref(data.bigimg); } 
- void setBigimg( std::string  &val){  data.bigimg=val;} 
- void setBigimg(std::string_view val){  data.bigimg=val;} 
+ void setBigimg( std::string  &val){  data.bigimg=val;
+		 set_dirty(15);  }
+ void setBigimg(std::string_view val){  data.bigimg=val;
+		 set_dirty(15);  }
 
  std::string  getMaincontent(){  return data.maincontent; } 
  std::string & getRefMaincontent(){  return std::ref(data.maincontent); } 
- void setMaincontent( std::string  &val){  data.maincontent=val;} 
- void setMaincontent(std::string_view val){  data.maincontent=val;} 
+ void setMaincontent( std::string  &val){  data.maincontent=val;
+		 set_dirty(16);  }
+ void setMaincontent(std::string_view val){  data.maincontent=val;
+		 set_dirty(16);  }
 
  std::string  getParacontent(){  return data.paracontent; } 
  std::string & getRefParacontent(){  return std::ref(data.paracontent); } 
- void setParacontent( std::string  &val){  data.paracontent=val;} 
- void setParacontent(std::string_view val){  data.paracontent=val;} 
+ void setParacontent( std::string  &val){  data.paracontent=val;
+		 set_dirty(17);  }
+ void setParacontent(std::string_view val){  data.paracontent=val;
+		 set_dirty(17);  }
 
  std::string  getSamepro(){  return data.samepro; } 
  std::string & getRefSamepro(){  return std::ref(data.samepro); } 
- void setSamepro( std::string  &val){  data.samepro=val;} 
- void setSamepro(std::string_view val){  data.samepro=val;} 
+ void setSamepro( std::string  &val){  data.samepro=val;
+		 set_dirty(18);  }
+ void setSamepro(std::string_view val){  data.samepro=val;
+		 set_dirty(18);  }
 
  std::string  getAttatchfiles(){  return data.attatchfiles; } 
  std::string & getRefAttatchfiles(){  return std::ref(data.attatchfiles); } 
- void setAttatchfiles( std::string  &val){  data.attatchfiles=val;} 
- void setAttatchfiles(std::string_view val){  data.attatchfiles=val;} 
+ void setAttatchfiles( std::string  &val){  data.attatchfiles=val;
+		 set_dirty(19);  }
+ void setAttatchfiles(std::string_view val){  data.attatchfiles=val;
+		 set_dirty(19);  }
 
  unsigned  int  getPrice(){  return data.price; } 
- void setPrice( unsigned  int  val){  data.price=val;} 
+ void setPrice( unsigned  int  val){  data.price=val;
+		 set_dirty(20);  }
 
  unsigned  int  getSortid(){  return data.sortid; } 
- void setSortid( unsigned  int  val){  data.sortid=val;} 
+ void setSortid( unsigned  int  val){  data.sortid=val;
+		 set_dirty(21);  }
 
  std::string  getAdddate(){  return data.adddate; } 
  std::string & getRefAdddate(){  return std::ref(data.adddate); } 
- void setAdddate( std::string  &val){  data.adddate=val;} 
- void setAdddate(std::string_view val){  data.adddate=val;} 
+ void setAdddate( std::string  &val){  data.adddate=val;
+		 set_dirty(22);  }
+ void setAdddate(std::string_view val){  data.adddate=val;
+		 set_dirty(22);  }
 
  std::string  getEditdate(){  return data.editdate; } 
  std::string & getRefEditdate(){  return std::ref(data.editdate); } 
- void setEditdate( std::string  &val){  data.editdate=val;} 
- void setEditdate(std::string_view val){  data.editdate=val;} 
+ void setEditdate( std::string  &val){  data.editdate=val;
+		 set_dirty(23);  }
+ void setEditdate(std::string_view val){  data.editdate=val;
+		 set_dirty(23);  }
 
 product_info::meta getnewData(){
  	 struct product_info::meta newdata;

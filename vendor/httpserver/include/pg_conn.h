@@ -19,6 +19,8 @@
 #include <cstring>
 #include <functional>
 #include <tuple>
+#include <cstdint>
+#include <unordered_map>
 #include <asio.hpp>
 #include <asio/ssl.hpp>
 #include <asio/io_context.hpp>
@@ -63,6 +65,7 @@
 #define PG_AUTH_SCM_CREDENTIAL 6
 #define PG_AUTH_GSS 7
 #define PG_AUTH_GSS_CONTINUE 8
+#define PG_AUTH_SSPI 9
 #define PG_AUTH_SASL 10
 #define PG_AUTH_SASL_CONTINUE 11
 #define PG_AUTH_SASL_FINAL 12
@@ -174,6 +177,61 @@ class pg_conn_base
     template <typename RowHandler>
     asio::awaitable<unsigned int> async_fetch_directly(const std::string &sql, RowHandler handler);
 
+    // ===== 预编译语句（Prepared Statements）接口 =====
+    // 使用 PostgreSQL Extended Query 协议，全部 text format
+
+    /**
+     * @brief 预编译查询（同步）
+     */
+    template <typename RowHandler>
+    unsigned int fetch_prepared(const std::string &sql,
+                                const std::vector<http::obj_val> &params,
+                                RowHandler handler);
+
+    /**
+     * @brief 预编译 DML（同步）
+     */
+    unsigned int exec_dml_prepared(const std::string &sql,
+                                   const std::vector<http::obj_val> &params);
+
+    /**
+     * @brief 预编译查询（异步）
+     */
+    template <typename RowHandler>
+    asio::awaitable<unsigned int> async_fetch_prepared(const std::string &sql,
+                                                       const std::vector<http::obj_val> &params,
+                                                       RowHandler handler);
+
+    /**
+     * @brief 预编译查询（同步, binary 协议）— 与 fetch_prepared 并行的新入口
+     *
+     * 行值有效期（硬约束）：handler 收到的列名数组与 getter 返回的 col_value_variant
+     * **只到 handler() 返回为止有效**（文本/numeric/时间列指向连接内部的行缓冲，下一行即复用）。
+     * handler 若要留下数据必须当场拷走（如 `s.assign(p, n)`），不得持有 string_view / char*。
+     */
+    template <typename H>
+        requires orm::BinaryRowHandler<H>
+    unsigned int fetch_prepared_binary(const std::string &sql,
+                                       const std::vector<http::obj_val> &params,
+                                       H handler);
+
+    /**
+     * @brief 预编译查询（异步, binary 协议）
+     *
+     * 行值有效期同 fetch_prepared_binary。
+     */
+    template <typename H>
+        requires orm::BinaryRowHandler<H>
+    asio::awaitable<unsigned int> async_fetch_prepared_binary(const std::string &sql,
+                                                              const std::vector<http::obj_val> &params,
+                                                              H handler);
+
+    /**
+     * @brief 预编译 DML（异步）
+     */
+    asio::awaitable<unsigned int> async_exec_dml_prepared(const std::string &sql,
+                                                          const std::vector<http::obj_val> &params);
+
     void clear_error()
     {
         error_msg.clear();
@@ -183,6 +241,14 @@ class pg_conn_base
     // 连接层跟踪的事务状态：exec_dml 成功执行 BEGIN 置位，COMMIT/ROLLBACK/END 清除；
     // 连接池归还路径据此判断是否需要自动 ROLLBACK 清理
     bool in_transaction() const { return in_transaction_.load(); }
+
+    // 诊断用：本连接 prepared 结果列元数据缓存的当前条目数（§17.4 判据 4 的容量断言）
+    size_t prepared_meta_size() const { return prepared_meta_.size(); }
+    uint64_t prepared_hits() const { return prepared_meta_.hits(); }
+    uint64_t prepared_misses() const { return prepared_meta_.misses(); }
+    double prepared_hit_rate() const { return prepared_meta_.hit_rate(); }
+    void prepared_reset_stats() { prepared_meta_.reset_stats(); }
+    void prepared_clear_cache() { prepared_meta_.clear_cache(); }
 
     // Connection control
     bool ping();
@@ -221,15 +287,135 @@ class pg_conn_base
     bool sasl_scram_sha256_sync(const std::string &mechanisms, const orm_conn_t &conn_config);
     bool process_server_messages_until_ready_sync(const orm_conn_t &conn_config);
 
-    // Asynchronous helper methods
-    bool sasl_scram_sha256_async(const std::string &mechanisms, const orm_conn_t &conn_config);
-
     // fetch_directly / exec_dml 的内部实现（与 MySQL 侧同形态：模板包装在头文件，实现在 cpp）
     unsigned int fetch_directly_impl(const std::string &sql,
                                      std::function<bool(int, char **, std::function<std::tuple<unsigned char *, size_t>(int)>)> handler);
     asio::awaitable<unsigned int> async_fetch_directly_impl(const std::string &sql,
                                                             std::function<bool(int, char **, std::function<std::tuple<unsigned char *, size_t>(int)>)> handler);
     unsigned int exec_dml_impl(const std::string &sql);
+
+    // Extended Query 内部实现
+    unsigned int fetch_prepared_impl(
+        const std::string &sql,
+        const std::vector<http::obj_val> &params,
+        std::function<bool(int, char **, std::function<std::tuple<unsigned char *, size_t>(int)>)> handler);
+    unsigned int exec_dml_prepared_impl(const std::string &sql,
+                                        const std::vector<http::obj_val> &params);
+    asio::awaitable<unsigned int> async_fetch_prepared_impl(
+        const std::string &sql,
+        const std::vector<http::obj_val> &params,
+        std::function<bool(int, char **, std::function<std::tuple<unsigned char *, size_t>(int)>)> handler);
+    asio::awaitable<unsigned int> async_exec_dml_prepared_impl(
+        const std::string &sql,
+        const std::vector<http::obj_val> &params);
+
+    // ===== PostgreSQL prepared binary (新路径,不干预原版) =====
+    unsigned int fetch_prepared_impl_binary(
+        const std::string &sql,
+        const std::vector<http::obj_val> &params,
+        std::function<bool(int, char **, std::function<orm::col_value_variant(int)>)> handler);
+    asio::awaitable<unsigned int> async_fetch_prepared_impl_binary(
+        const std::string &sql,
+        const std::vector<http::obj_val> &params,
+        std::function<bool(int, char **, std::function<orm::col_value_variant(int)>)> handler);
+
+    // ===== 连接级 SQL→结果列元数据 + 命名 statement 缓存 =====
+    // 终版：完全对齐 MySQL COM_STMT 架构 —— 命名 Parse 持久化 + 热路径跳过 Parse + 跳过 Describe
+    struct pg_stmt_meta_t
+    {
+        std::string stmt_name;             // 命名语句名（如 "pg_42"），服务器端持久化键
+        std::vector<uint32_t> col_oids;    // 上一轮 'T' 给的结果列类型 OID（解码真值）
+        std::vector<uint16_t> col_fmt;     // 上一轮 'T' 给的逐列格式码（解码真值）
+        std::vector<std::string> col_names;// 上一轮解析出的列名（热路径服务器不返回 RowDescription，客户端直接用缓存）
+        bool needs_reparse = false;        // DDL 后标记，下次 attempt 强制冷路径 Close+ReParse
+        uint64_t lru_seq   = 0;
+    };
+    // 成员所有权即隔离：只有本连接能查本连接的缓存，不需要全局 id。
+    // 同一连接不得被两个线程同时使用（沿用池既有约束），内部无需原子。
+    class pg_stmt_meta_cache
+    {
+      public:
+        explicit pg_stmt_meta_cache(size_t cap) : cap_(cap) {}
+
+        // 命中即刷新 lru_seq；hits_/misses_ 仅用于调试验证，非线程安全
+        const pg_stmt_meta_t *find(const std::string &sql);
+
+        // upsert: 新 SQL 插入（evicted_out 带出被淘汰条目用于 Close），已存在刷新 lru_seq
+        pg_stmt_meta_t &upsert(const std::string &sql, pg_stmt_meta_t *evicted_out = nullptr);
+
+        // erase: 移除条目（removed_out 带出条目用于 Close）
+        void erase(const std::string &sql, pg_stmt_meta_t *removed_out = nullptr);
+
+        // 标记需要重 Parse（ALTER/DROP 后 Execute 报 SQLSTATE 时调用）
+        void mark_needs_reparse(const std::string &sql);
+
+        // DDL 经文本路径执行成功后，粗暴标记全部 entry 需重 Parse（保守全失效，只影响性能不影响正确性）
+        void mark_all_needs_reparse();
+
+        // 生成唯一 stmt_name（"pg_1", "pg_2", ...）
+        std::string next_stmt_name();
+
+        // close_all: hard_close 前调用，批量发 Close('S', name)+Sync 让服务器释放所有命名语句
+        // closer 参数签名: void(const std::string &stmt_name)
+        template <typename Closer>
+        void close_all(Closer &&closer)
+        {
+            for (auto &kv : map_)
+            {
+                if (!kv.second.stmt_name.empty())
+                    closer(kv.second.stmt_name);
+            }
+        }
+
+        // 纯清空 map（hard_close 收尾时用）
+        void clear()
+        {
+            map_.clear();
+            seq_          = 0;
+            name_counter_ = 0;
+            hits_         = 0;
+            misses_       = 0;
+        }
+        size_t size() const { return map_.size(); }
+        uint64_t hits() const { return hits_; }
+        uint64_t misses() const { return misses_; }
+        double hit_rate() const
+        {
+            uint64_t tot = hits_ + misses_;
+            return tot ? double(hits_) / double(tot) : 0.0;
+        }
+        void reset_stats()
+        {
+            hits_   = 0;
+            misses_ = 0;
+        }
+        // 彻底清空 map（用于测试隔离；生产靠 hard_close 自然清理）
+        void clear_cache()
+        {
+            map_.clear();
+            seq_          = 0;
+            name_counter_ = 0;
+            hits_         = 0;
+            misses_       = 0;
+        }
+
+      private:
+        size_t cap_;
+        uint64_t seq_          = 0;
+        uint64_t name_counter_ = 0;
+        uint64_t hits_         = 0;
+        uint64_t misses_       = 0;
+        std::unordered_map<std::string, pg_stmt_meta_t> map_;
+    };
+    // 128条缓存不知有没有性能问题，不过符合大多数项目了
+    pg_stmt_meta_cache prepared_meta_{128};
+
+    // async_drain_until_ready 的同步孪生：同样先消费调用方累积缓冲里的残帧再按批读，
+    // 否则主循环已读进缓冲、尚未处理的部分会被裸读越过，导致协议乱序
+    void drain_until_ready_sync(std::vector<uint8_t> &accum_buf, unsigned int &consumed);
+
+    // 读掉 Extended Query 收尾 Close+Sync 的响应直到 ReadyForQuery,复用调用方已有的累积缓冲
+    asio::awaitable<void> async_drain_until_ready(std::vector<uint8_t> &accum_buf, unsigned int &consumed);
 
     // E/N 消息载荷解析：提取 'M' 字段写入 error_msg 并置 error_code
     void parse_error_from_payload(const unsigned char *data, unsigned int len);
@@ -294,38 +480,64 @@ inline unsigned int pg_conn_base::exec_dml(const std::string &sql)
 template <typename RowHandler>
 inline unsigned int pg_conn_base::fetch_directly(const std::string &sql, RowHandler handler)
 {
-    unsigned int retry = 0;
-RETRY_LABEL:
-    unsigned int rows = this->fetch_directly_impl(sql, std::function<bool(int, char **, std::function<std::tuple<unsigned char *, size_t>(int)>)>(handler));
-
-    if (rows == 0 &&
-        is_last_error_reconnectable() &&
-        retry < kMaxReconnect &&
-        try_reconnect())
-    {
-        retry++;
-        goto RETRY_LABEL;
-    }
-    return rows;
+    return this->fetch_directly_impl(sql,
+                                     std::function<bool(int, char **, std::function<std::tuple<unsigned char *, size_t>(int)>)>(handler));
 }
 
 template <typename RowHandler>
 inline asio::awaitable<unsigned int> pg_conn_base::async_fetch_directly(const std::string &sql, RowHandler handler)
 {
-    auto func          = std::function<bool(int, char **, std::function<std::tuple<unsigned char *, size_t>(int)>)>(handler);
-    unsigned int retry = 0;
-RETRY_LABEL:
-    unsigned int rows = co_await this->async_fetch_directly_impl(sql, func);
+    auto func = std::function<bool(int, char **, std::function<std::tuple<unsigned char *, size_t>(int)>)>(handler);
+    co_return co_await this->async_fetch_directly_impl(sql, func);
+}
 
-    if (rows == 0 &&
-        is_last_error_reconnectable() &&
-        retry < kMaxReconnect &&
-        co_await async_try_reconnect())
-    {
-        retry++;
-        goto RETRY_LABEL;
-    }
-    co_return rows;
+// ---- 预编译语句内联实现 ----
+template <typename RowHandler>
+inline unsigned int pg_conn_base::fetch_prepared(const std::string &sql,
+                                                 const std::vector<http::obj_val> &params,
+                                                 RowHandler handler)
+{
+    auto func = std::function<bool(int, char **, std::function<std::tuple<unsigned char *, size_t>(int)>)>(handler);
+    return this->fetch_prepared_impl(sql, params, func);
+}
+
+inline unsigned int pg_conn_base::exec_dml_prepared(const std::string &sql,
+                                                    const std::vector<http::obj_val> &params)
+{
+    return this->exec_dml_prepared_impl(sql, params);
+}
+
+template <typename RowHandler>
+inline asio::awaitable<unsigned int> pg_conn_base::async_fetch_prepared(
+    const std::string &sql, const std::vector<http::obj_val> &params, RowHandler handler)
+{
+    auto func = std::function<bool(int, char **, std::function<std::tuple<unsigned char *, size_t>(int)>)>(handler);
+    co_return co_await this->async_fetch_prepared_impl(sql, params, func);
+}
+
+inline asio::awaitable<unsigned int> pg_conn_base::async_exec_dml_prepared(
+    const std::string &sql, const std::vector<http::obj_val> &params)
+{
+    co_return co_await this->async_exec_dml_prepared_impl(sql, params);
+}
+
+// ===== PostgreSQL prepared binary (inline wrappers) =====
+template <typename H>
+    requires orm::BinaryRowHandler<H>
+inline unsigned int pg_conn_base::fetch_prepared_binary(
+    const std::string &sql, const std::vector<http::obj_val> &params, H handler)
+{
+    auto func = std::function<bool(int, char **, std::function<orm::col_value_variant(int)>)>(handler);
+    return this->fetch_prepared_impl_binary(sql, params, func);
+}
+
+template <typename H>
+    requires orm::BinaryRowHandler<H>
+inline asio::awaitable<unsigned int> pg_conn_base::async_fetch_prepared_binary(
+    const std::string &sql, const std::vector<http::obj_val> &params, H handler)
+{
+    auto func = std::function<bool(int, char **, std::function<orm::col_value_variant(int)>)>(handler);
+    co_return co_await this->async_fetch_prepared_impl_binary(sql, params, func);
 }
 
 }// namespace orm

@@ -154,6 +154,8 @@ target("paozhu_cli")
     add_files("vendor/httpserver/src/clientdatacache.cpp")
     add_files("vendor/httpserver/src/sqlite_conn.cpp")
     add_files("vendor/httpserver/src/sqlite_conn_stub.cpp")
+    add_files("vendor/httpserver/src/parse_ini.cpp")
+    add_files("vendor/httpserver/src/request.cpp")
 
     on_load(function (target)
         if is_plat("windows") then
