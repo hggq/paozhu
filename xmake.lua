@@ -98,6 +98,7 @@ target("paozhu")
     add_packages("sqlite3")
     add_defines("ENABLE_SQLITE")
     add_files("models/**.cpp")
+    add_files("orm/**.cpp")
     add_files("vendor/httpserver/**.cpp")
 -- 可以打开支持扩展模块
 -- You can open the support extension module    
