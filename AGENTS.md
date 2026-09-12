@@ -1401,14 +1401,4 @@ Set `debug_enable = 1` in `server.conf`; ORM will log the generated SQL statemen
 
 ---
 
-*Last updated: 2026-09-12*  
-*ORM sections were written against the current `vendor/httpserver/include/*orm.hpp`
-templates, not a snapshot: every documented method name is grep-checked, the call chains in
-§5.4–§5.10 are the ones exercised by `controller/src/test_ormprepared.cpp` and
-`controller/src/test_ormfk.cpp` (both compile clean), and all three dialect templates are
-compile-probed with these examples by `build/ormprobe/gen.py`, which since 2026-09-12 also
-runs a negative probe: the single-argument raw-SQL `where()`/`whereOr()` overloads were
-deleted from all three templates, and `build/ormprobe/neg_control.py` shows that probe keys
-on the deletion (re-adding the overloads makes it compile clean again). String literals in
-the docs are placeholders and may differ from the sample files. None of it changes runtime
-behaviour until `paozhu_cli orm` regenerates the existing `_opsql.h` copies (§5.1).*
+*Last updated: 2026-09-12*

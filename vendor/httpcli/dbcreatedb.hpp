@@ -23,10 +23,19 @@
 #include <queue>
 #include <sstream>
 #include <string>
+#ifndef _WIN32
 #include <termios.h>
+#endif
 #include <unordered_map>
 #include <unordered_set>
+#ifndef _WIN32
 #include <unistd.h>
+#else
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#endif
 #include <vector>
 
 namespace fs = std::filesystem;
@@ -58,25 +67,44 @@ inline std::string getpass(const char *prompt)
     std::cout << prompt;
     std::cout.flush();
 
+    bool have_tty = false;
+#ifdef _WIN32
+    HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+    DWORD old_mode = 0;
+    if (hStdin != INVALID_HANDLE_VALUE && GetConsoleMode(hStdin, &old_mode))
+    {
+        have_tty = true;
+        SetConsoleMode(hStdin, old_mode & ~ENABLE_ECHO_INPUT);
+    }
+#else
     // stdin 非 TTY（重定向/管道）时 tcgetattr 会失败，此时不做回显屏蔽，
     // 避免使用未初始化 termios 结构
     struct termios old{};
-    bool have_tty = (tcgetattr(STDIN_FILENO, &old) == 0);
+    have_tty = (tcgetattr(STDIN_FILENO, &old) == 0);
     if (have_tty)
     {
         struct termios nw = old;
         nw.c_lflag &= ~ECHO;
         tcsetattr(STDIN_FILENO, TCSANOW, &nw);
     }
+#endif
 
     std::string pw;
     std::getline(std::cin, pw);
 
+#ifdef _WIN32
+    if (have_tty)
+    {
+        SetConsoleMode(hStdin, old_mode);
+        std::cout << std::endl;
+    }
+#else
     if (have_tty)
     {
         tcsetattr(STDIN_FILENO, TCSANOW, &old);
         std::cout << std::endl;
     }
+#endif
     return pw;
 }
 

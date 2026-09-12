@@ -1373,12 +1373,4 @@ make -j$(nproc)
 
 ---
 
-*最近更新: 2026-09-12*  
-*ORM 章节依据当前 `vendor/httpserver/include/*orm.hpp` 模板撰写，而非旧快照：文中每个方法
-名都经过 grep 核对；§5.4–§5.10 的调用链正是 `controller/src/test_ormprepared.cpp` 与
-`controller/src/test_ormfk.cpp` 所调用的（两者编译通过）；三种方言模板也由
-`build/ormprobe/gen.py` 用这些示例做了实例化编译探测；自 2026-09-12 起它还跑一个预期失败的
-负向用例：三个模板已删除单参数的裸 SQL `where()`/`whereOr()` 重载，
-`build/ormprobe/neg_control.py` 用来证明该负向用例确实对这次删除敏感（把重载插回去就会重新
-编译干净）。文档中的字符串字面量是占位写法，可与样例文件不同。在运行 `paozhu_cli orm`
-重新生成已有的 `_opsql.h` 副本之前，以上改动不会改变运行时行为（§5.1）。*
+*最近更新: 2026-09-12*
