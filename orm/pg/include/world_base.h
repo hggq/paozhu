@@ -2,16 +2,16 @@
 #define ORM_PG_WORLDBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 12 Sep 2026 07:38:51 GMT
+*本文件为自动生成 Sat, 12 Sep 2026 08:07:13 GMT
 ***/
 #include <iostream>
 #include <charconv>
 #include <cstdio>
 #include <sstream>
 #include <array>
-#include <map> 
-#include <string_view> 
-#include <string> 
+#include <map>
+#include <string_view>
+#include <string>
 #include <cstring>
 #include <vector>
 #include <set>
@@ -21,6 +21,7 @@
 #include <utility>
 #include <bit>
 #include <algorithm>
+#include <bitset>
 #include "unicode.h"
 
 namespace orm { 

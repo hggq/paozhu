@@ -2864,9 +2864,9 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
 #include <cstdio>
 #include <sstream>
 #include <array>
-#include <map> 
-#include <string_view> 
-#include <string> 
+#include <map>
+#include <string_view>
+#include <string>
 #include <cstring>
 #include <vector>
 #include <set>
@@ -2876,6 +2876,7 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
 #include <utility>
 #include <bit>
 #include <algorithm>
+#include <bitset>
 #include "unicode.h"
 
 namespace orm { 
