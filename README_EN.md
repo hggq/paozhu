@@ -207,7 +207,7 @@ Use h2load and ab testing, you must enable the cmake compilation option `-DENABL
 
 ###  8.1 Sample Hello world
 
-In the `controller/src` directory of the project `testhello.cpp` file, It is recommended to place all business code entries in `controller/src`, as annotations will be automatically extracted for URL mapping.
+In the `controller/src` directory of the project `testhello.cpp` file, It is recommended to place all business code entries in `controller/src`, as annotations will be automatically extracted for URL mapping, ORM automatically generates C++ entity code from the database, with no manual coding required.
 
 ```c++
 #include "orm.h"
@@ -227,13 +227,13 @@ std::string testhello(std::shared_ptr<httppeer> peer)
     users.where("name","admin").fetch_one();
     if (users.getUserid() > 0)
     {
-      client<<"<p>found:"<<users.data.name<<"</p>";
+      // users.getName() or users.data.name
+      client << "<p>found:" << users.data.name << "</p>";
     }
   }
   catch (std::exception &e)
   {
     client << "<p>" << e.what() << "</p>";
-    return "";
   }
   return "";
 }

@@ -213,7 +213,7 @@ sudo ./bin/paozhu
 
 ###  8.1代码例子 Hello world
 
-在项目 `controller/src` 目录里面 `testhello.cpp` 文件，建议所有业务代码入口放在 `controller/src`,因为自动提取注解到URL映射。
+在项目 `controller/src` 目录里面 `testhello.cpp` 文件，建议所有业务代码入口放在 `controller/src`,因为自动提取注解到URL映射，ORM自动从数据库生成实体C++代码，无需手动编写。
 
 ```c++
 #include "orm.h"
