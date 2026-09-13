@@ -234,7 +234,6 @@ std::string testhello(std::shared_ptr<httppeer> peer)
     if (users.getUserid() > 0)
     {
       client<<"<p>found:"<<users.data.name<<"</p>";
-      return "";
     }
   }
   catch (std::exception &e)
@@ -284,7 +283,8 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
         obj_val temp;
 
         std::map<unsigned int, std::string> topickv;
-        std::vector<unsigned int> topic_id_array;//articles under this topic and sub topics
+        //articles under this topic and sub topics
+        std::vector<unsigned int> topic_id_array;
 
         if (topicid > 0)
         {
@@ -297,7 +297,8 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
             temp["parentid"] = topicm.record[i].parentid;
             temp["value"]    = topicm.record[i].title;
             client.val["list"].push(temp);
-
+			
+            // save topic name to topickv 
             topickv[topicm.record[i].topicid] = topicm.record[i].title;
             if (topicid > 0)
             {
@@ -316,6 +317,7 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
         artmodel.where("userid", client.session["userid"].to_int());
         if (topicid > 0)
         {
+            // sql: and topicid in(xxx,xxx,xxx)
             std::string topicid_sql_str = array_to_sql(topic_id_array);
             if (topicid_sql_str.size() > 0)
             {
@@ -324,6 +326,7 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
         }
         if (searchword.size() > 0)
         {
+            // sql: and (title like '%searchword%' or content like '%searchword%')
             artmodel.andsub().whereLike("title", str_addslash(searchword));
             artmodel.whereOrLike("content", str_addslash(searchword)).endsub();
             client.val["searchword"] = searchword;
@@ -359,13 +362,14 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
     {
         client.val["code"] = 1;
     }
+    // client.val render to html
     peer->view("admin/listarticle");
     return "";
 }
 
 ```
 
-ORM 支持协程方式，目前仅支持MySQL，整个URL请求都走协程，注意注册函数也是协程函数  
+ORM 支持协程方式，整个URL请求都走协程，注意注册函数也是协程函数  
 来源框架自带演示文件 controller/src/techempower.cpp
 
 
@@ -392,6 +396,7 @@ asio::awaitable<std::string> techempowerupdates(std::shared_ptr<httppeer> peer)
     {
         myworld.wheresql.clear();
         myworld.where("id", rand_range(1, 10000));
+		// 附加数据，正常使用 co_await myworld.async_fetch() 不会附加数据
         co_await myworld.async_fetch_append();
         if (myworld.effect() > 0)
         {
