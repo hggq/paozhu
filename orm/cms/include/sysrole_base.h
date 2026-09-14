@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSROLEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 12 Sep 2026 16:10:46 GMT
+*本文件为自动生成 Mon, 14 Sep 2026 13:39:42 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -625,7 +625,7 @@ namespace sysrole_info
                 return oss.str(); }\
        }
         
-    static constexpr std::array<std::string_view,7> col_names={"roleid","userid","name","status","rolecode","sortid","rolevalue"};
+    inline constexpr std::array<std::string_view,7> col_names={"roleid","userid","name","status","rolecode","sortid","rolevalue"};
 	static constexpr std::array<unsigned char,7> col_types={3,3,253,1,8,3,3};
 	static constexpr std::array<unsigned short,7> col_length={0,0,60,0,0,0,0};
 	static constexpr std::array<unsigned char,7> col_decimals={0,0,0,0,0,0,0};

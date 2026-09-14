@@ -18,7 +18,6 @@
 #include "orm_common.h"
 #include "unicode.h"
 
-
 namespace orm
 {
 
@@ -419,6 +418,7 @@ class mysql_conn_base
         std::vector<uint8_t> param_unsigned;
         std::vector<uint8_t> col_types;
         std::vector<uint8_t> col_unsigned;
+        std::vector<uint8_t> col_decimals;// 分数秒位数(DATE/TIME 族打印用), 与 col_types 等长
         std::vector<std::string> col_names;
         std::vector<std::string> col_org_names;
         uint64_t lru_seq = 0;
@@ -438,6 +438,7 @@ class mysql_conn_base
         bool update_meta(const std::string &sql,
                          std::vector<uint8_t> types,
                          std::vector<uint8_t> uns,
+                         std::vector<uint8_t> decimals,
                          std::vector<std::string> names,
                          std::vector<std::string> orgs);
         // 清理时对每个 entry 调 closer(stmt_id) 让 server 端同步释放
@@ -505,6 +506,7 @@ class mysql_conn_base
     std::vector<uint8_t> stmt_param_unsigned_;
     std::vector<uint8_t> stmt_col_types_;
     std::vector<uint8_t> stmt_col_unsigned_;
+    std::vector<uint8_t> stmt_col_decimals_;
     // COM_STMT_PREPARE 响应 Column Definition 段一次性提取的列名（冷路径写 cache entry 用）
     std::vector<std::string> stmt_col_names_;    // 显示名（含别名）
     std::vector<std::string> stmt_col_org_names_;// 物理名（底层字段名）

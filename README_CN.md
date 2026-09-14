@@ -233,13 +233,13 @@ std::string testhello(std::shared_ptr<httppeer> peer)
     users.where("name","admin").fetch_one();
     if (users.getUserid() > 0)
     {
-      client<<"<p>found:"<<users.data.name<<"</p>";
+      // users.getName() or users.data.name
+      client << "<p>found:" << users.data.name << "</p>";
     }
   }
   catch (std::exception &e)
   {
     client << "<p>" << e.what() << "</p>";
-    return "";
   }
   return "";
 }

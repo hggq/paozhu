@@ -1,7 +1,7 @@
 /*
-* 流程结构来自 mysql_conn
-* The process structure comes from mysql_conn
-*/
+ * 流程结构来自 mysql_conn
+ * The process structure comes from mysql_conn
+ */
 #include <cstddef>
 #include <cstdio>
 #include <cstring>

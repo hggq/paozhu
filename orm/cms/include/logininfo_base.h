@@ -2,7 +2,7 @@
 #define ORM_CMS_LOGININFOBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 12 Sep 2026 16:10:46 GMT
+*本文件为自动生成 Mon, 14 Sep 2026 13:39:42 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -646,7 +646,7 @@ namespace logininfo_info
                 return oss.str(); }\
        }
         
-    static constexpr std::array<std::string_view,10> col_names={"lgid","userid","logtype","username","addtime","addip","addregion","loginstate","agent","urlpath"};
+    inline constexpr std::array<std::string_view,10> col_names={"lgid","userid","logtype","username","addtime","addip","addregion","loginstate","agent","urlpath"};
 	static constexpr std::array<unsigned char,10> col_types={3,3,1,253,253,253,253,253,253,253};
 	static constexpr std::array<unsigned short,10> col_length={0,0,0,40,20,70,70,20,120,120};
 	static constexpr std::array<unsigned char,10> col_decimals={0,0,0,0,0,0,0,0,0,0};

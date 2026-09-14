@@ -2,7 +2,7 @@
 #define ORM_CMS_TOPICBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 12 Sep 2026 16:10:46 GMT
+*本文件为自动生成 Mon, 14 Sep 2026 13:39:42 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -702,7 +702,7 @@ namespace topic_info
                 return oss.str(); }\
        }
         
-    static constexpr std::array<std::string_view,18> col_names={"topicid","userid","parentid","cateid","sorttype","languagetype","isview","isside","sortid","title","twotitle","memo","templatename","url","urlpath","imgurl","topimg","accesscode"};
+    inline constexpr std::array<std::string_view,18> col_names={"topicid","userid","parentid","cateid","sorttype","languagetype","isview","isside","sortid","title","twotitle","memo","templatename","url","urlpath","imgurl","topimg","accesscode"};
 	static constexpr std::array<unsigned char,18> col_types={3,3,3,3,1,3,1,1,3,253,253,253,253,253,253,253,252,3};
 	static constexpr std::array<unsigned short,18> col_length={0,0,0,0,0,0,0,0,0,120,120,254,254,255,60,254,0,0};
 	static constexpr std::array<unsigned char,18> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};

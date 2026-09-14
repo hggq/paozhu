@@ -245,7 +245,7 @@ Open the browser and enter `http://localhost/hello`
 `//@urlpath(null,hello)` is an annotation function, and the `testhello.h` file will be automatically generated, so there is no need to create it yourself  
 
 
-###  8.2 Sample Article list,search,pagebar
+###  8.2 Sample Article list, search, pagebar
 
 From admin demo file controller/src/admin/articles.cpp
 

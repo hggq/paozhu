@@ -530,7 +530,7 @@ std::string admin_edittopicside(std::shared_ptr<httppeer> peer)
     try
     {
         auto topicsetm = orm::cms::Topicset();
-        topicsetm.where("userid", client.session["userid"].to_int()).whereAnd("topicid", topicid).order("sort").fetch();
+        topicsetm.where("userid", client.session["userid"].to_int()).whereAnd("topicid", topicid).order("sort","asc").fetch();
 
         obj_val temp;
         for (unsigned int i = 0; i < topicsetm.record.size(); i++)

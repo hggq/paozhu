@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sat, 12 Sep 2026 16:10:46 GMT
+ *  Creation time Mon, 14 Sep 2026 13:39:42 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -3272,9 +3272,9 @@ M_MODEL& ornotnullBasesitepath()
             return *mod;
         }
 
-        // string_view 版        // 2 参数兼容: where(str, val) = where(str, orm::wq::eq, val)
+        // 列名编译期校验版(orm::table_col) // 2 参数兼容: where(str, val) = where(str, orm::wq::eq, val)
         template <typename T>
-        M_MODEL &where(std::string_view wq, T &&val)
+        M_MODEL &where(orm::table_col<B_BASE, &superadmin_info::col_names> wq, T &&val)
         {
             return where(wq, orm::wq::eq, std::forward<T>(val));
         }
@@ -3300,7 +3300,7 @@ M_MODEL& ornotnullBasesitepath()
             return *mod;
         }// 2 参数兼容: whereOr(str, val) = whereOr(str, orm::wq::eq, val)
         template <typename T>
-        M_MODEL &whereOr(std::string_view wq, T &&val)
+        M_MODEL &whereOr(orm::table_col<B_BASE, &superadmin_info::col_names> wq, T &&val)
         {
             return whereOr(wq, orm::wq::eq, std::forward<T>(val));
         }
@@ -3435,12 +3435,12 @@ M_MODEL& ornotnullBasesitepath()
             return whereOrIn(field, orm::wq::notin, a);
         }
 
-        M_MODEL &whereIn(std::string_view wq, const std::vector<std::string> &a)
+        M_MODEL &whereIn(orm::table_col<B_BASE, &superadmin_info::col_names> wq, const std::vector<std::string> &a)
         {
             return whereIn(wq, orm::wq::in, a);
         }
         // 2 参数旧版兼容: whereIn("id", "1,2,3") = whereIn("id", split_csv("1,2,3"))
-        M_MODEL &whereIn(std::string_view wq, std::string_view csv_val)
+        M_MODEL &whereIn(orm::table_col<B_BASE, &superadmin_info::col_names> wq, std::string_view csv_val)
         {
             std::vector<std::string> vec;
             std::string cur;
@@ -3465,7 +3465,7 @@ M_MODEL& ornotnullBasesitepath()
 
         // 2 参数模板版: whereIn("id", vector<T>) — 把任意 T 转成 string 再转发
         template <typename T>
-        M_MODEL &whereIn(std::string_view wq, const std::vector<T> &a)
+        M_MODEL &whereIn(orm::table_col<B_BASE, &superadmin_info::col_names> wq, const std::vector<T> &a)
         {
             std::vector<std::string> str_vec;
             str_vec.reserve(a.size());
@@ -3478,17 +3478,17 @@ M_MODEL& ornotnullBasesitepath()
             return whereIn(wq, str_vec);
         }
 
-        M_MODEL &whereNotIn(std::string_view wq, const std::vector<std::string> &a)
+        M_MODEL &whereNotIn(orm::table_col<B_BASE, &superadmin_info::col_names> wq, const std::vector<std::string> &a)
         {
             return whereIn(wq, orm::wq::notin, a);
         }
 
-        M_MODEL &whereOrIn(std::string_view wq, const std::vector<std::string> &a)
+        M_MODEL &whereOrIn(orm::table_col<B_BASE, &superadmin_info::col_names> wq, const std::vector<std::string> &a)
         {
             return whereOrIn(wq, orm::wq::in, a);
         }
 
-        M_MODEL &whereOrNotIn(std::string_view wq, const std::vector<std::string> &a)
+        M_MODEL &whereOrNotIn(orm::table_col<B_BASE, &superadmin_info::col_names> wq, const std::vector<std::string> &a)
         {
             return whereOrIn(wq, orm::wq::notin, a);
         }
@@ -3510,7 +3510,7 @@ M_MODEL& ornotnullBasesitepath()
             return *mod;
         }
 
-        M_MODEL &whereNull(std::string_view wq)
+        M_MODEL &whereNull(orm::table_col<B_BASE, &superadmin_info::col_names> wq)
         {
             orm_where_sql_t item;
             item.pre_op  = wheresql.empty() ? 0 : 1;
@@ -3541,7 +3541,7 @@ M_MODEL& ornotnullBasesitepath()
             return *mod;
         }
 
-        M_MODEL &whereOrNull(std::string_view wq)
+        M_MODEL &whereOrNull(orm::table_col<B_BASE, &superadmin_info::col_names> wq)
         {
             orm_where_sql_t item;
             item.pre_op  = wheresql.empty() ? 0 : 2;
@@ -3574,7 +3574,7 @@ M_MODEL& ornotnullBasesitepath()
             return *mod;
         }
 
-        M_MODEL &whereNotNull(std::string_view wq)
+        M_MODEL &whereNotNull(orm::table_col<B_BASE, &superadmin_info::col_names> wq)
         {
             orm_where_sql_t item;
             item.pre_op  = wheresql.empty() ? 0 : 1;
@@ -3605,7 +3605,7 @@ M_MODEL& ornotnullBasesitepath()
             return *mod;
         }
 
-        M_MODEL &whereOrNotNull(std::string_view wq)
+        M_MODEL &whereOrNotNull(orm::table_col<B_BASE, &superadmin_info::col_names> wq)
         {
             orm_where_sql_t item;
             item.pre_op  = wheresql.empty() ? 0 : 2;
@@ -3630,13 +3630,13 @@ M_MODEL& ornotnullBasesitepath()
             return where(field, orm::wq::eq, std::forward<T2>(value));
         }
 
-        M_MODEL &whereEQ(std::string_view wq, std::string_view val)
+        M_MODEL &whereEQ(orm::table_col<B_BASE, &superadmin_info::col_names> wq, std::string_view val)
         {
             return where(wq, orm::wq::eq, val);
         }
 
         template <typename _SQL_Value>
-        M_MODEL &whereEQ(std::string_view wq, _SQL_Value val)
+        M_MODEL &whereEQ(orm::table_col<B_BASE, &superadmin_info::col_names> wq, _SQL_Value val)
         {
             return where(wq, orm::wq::eq, val);
         }
@@ -3647,13 +3647,13 @@ M_MODEL& ornotnullBasesitepath()
             return where(field, orm::wq::eq, std::forward<T2>(value));
         }
 
-        M_MODEL &whereAnd(std::string_view wq, std::string_view val)
+        M_MODEL &whereAnd(orm::table_col<B_BASE, &superadmin_info::col_names> wq, std::string_view val)
         {
             return where(wq, orm::wq::eq, val);
         }
 
         template <typename _SQL_Value>
-        M_MODEL &whereAnd(std::string_view wq, _SQL_Value val)
+        M_MODEL &whereAnd(orm::table_col<B_BASE, &superadmin_info::col_names> wq, _SQL_Value val)
         {
             return where(wq, orm::wq::eq, val);
         }
@@ -3664,13 +3664,13 @@ M_MODEL& ornotnullBasesitepath()
             return where(field, orm::wq::bt, std::forward<T2>(value));
         }
 
-        M_MODEL &whereBT(std::string_view wq, std::string_view val)
+        M_MODEL &whereBT(orm::table_col<B_BASE, &superadmin_info::col_names> wq, std::string_view val)
         {
             return where(wq, orm::wq::bt, val);
         }
 
         template <typename _SQL_Value>
-        M_MODEL &whereBT(std::string_view wq, _SQL_Value val)
+        M_MODEL &whereBT(orm::table_col<B_BASE, &superadmin_info::col_names> wq, _SQL_Value val)
         {
             return where(wq, orm::wq::bt, val);
         }
@@ -3681,13 +3681,13 @@ M_MODEL& ornotnullBasesitepath()
             return where(field, orm::wq::bt, std::forward<T2>(value));
         }
 
-        M_MODEL &whereGT(std::string_view wq, std::string_view val)
+        M_MODEL &whereGT(orm::table_col<B_BASE, &superadmin_info::col_names> wq, std::string_view val)
         {
             return where(wq, orm::wq::bt, val);
         }
 
         template <typename _SQL_Value>
-        M_MODEL &whereGT(std::string_view wq, _SQL_Value val)
+        M_MODEL &whereGT(orm::table_col<B_BASE, &superadmin_info::col_names> wq, _SQL_Value val)
         {
             return where(wq, orm::wq::bt, val);
         }
@@ -3698,13 +3698,13 @@ M_MODEL& ornotnullBasesitepath()
             return where(field, orm::wq::be, std::forward<T2>(value));
         }
 
-        M_MODEL &whereBE(std::string_view wq, std::string_view val)
+        M_MODEL &whereBE(orm::table_col<B_BASE, &superadmin_info::col_names> wq, std::string_view val)
         {
             return where(wq, orm::wq::be, val);
         }
 
         template <typename _SQL_Value>
-        M_MODEL &whereBE(std::string_view wq, _SQL_Value val)
+        M_MODEL &whereBE(orm::table_col<B_BASE, &superadmin_info::col_names> wq, _SQL_Value val)
         {
             return where(wq, orm::wq::be, val);
         }
@@ -3715,13 +3715,13 @@ M_MODEL& ornotnullBasesitepath()
             return where(field, orm::wq::be, std::forward<T2>(value));
         }
 
-        M_MODEL &whereGE(std::string_view wq, std::string_view val)
+        M_MODEL &whereGE(orm::table_col<B_BASE, &superadmin_info::col_names> wq, std::string_view val)
         {
             return where(wq, orm::wq::be, val);
         }
 
         template <typename _SQL_Value>
-        M_MODEL &whereGE(std::string_view wq, _SQL_Value val)
+        M_MODEL &whereGE(orm::table_col<B_BASE, &superadmin_info::col_names> wq, _SQL_Value val)
         {
             return where(wq, orm::wq::be, val);
         }
@@ -3732,13 +3732,13 @@ M_MODEL& ornotnullBasesitepath()
             return where(field, orm::wq::lt, std::forward<T2>(value));
         }
 
-        M_MODEL &whereLT(std::string_view wq, std::string_view val)
+        M_MODEL &whereLT(orm::table_col<B_BASE, &superadmin_info::col_names> wq, std::string_view val)
         {
             return where(wq, orm::wq::lt, val);
         }
 
         template <typename _SQL_Value>
-        M_MODEL &whereLT(std::string_view wq, _SQL_Value val)
+        M_MODEL &whereLT(orm::table_col<B_BASE, &superadmin_info::col_names> wq, _SQL_Value val)
         {
             return where(wq, orm::wq::lt, val);
         }
@@ -3749,13 +3749,13 @@ M_MODEL& ornotnullBasesitepath()
             return where(field, orm::wq::le, std::forward<T2>(value));
         }
 
-        M_MODEL &whereLE(std::string_view wq, std::string_view val)
+        M_MODEL &whereLE(orm::table_col<B_BASE, &superadmin_info::col_names> wq, std::string_view val)
         {
             return where(wq, orm::wq::le, val);
         }
 
         template <typename _SQL_Value>
-        M_MODEL &whereLE(std::string_view wq, _SQL_Value val)
+        M_MODEL &whereLE(orm::table_col<B_BASE, &superadmin_info::col_names> wq, _SQL_Value val)
         {
             return where(wq, orm::wq::le, val);
         }
@@ -3766,13 +3766,13 @@ M_MODEL& ornotnullBasesitepath()
             return where(field, orm::wq::nq, std::forward<T2>(value));
         }
 
-        M_MODEL &whereNQ(std::string_view wq, std::string_view val)
+        M_MODEL &whereNQ(orm::table_col<B_BASE, &superadmin_info::col_names> wq, std::string_view val)
         {
             return where(wq, orm::wq::nq, val);
         }
 
         template <typename _SQL_Value>
-        M_MODEL &whereNQ(std::string_view wq, _SQL_Value val)
+        M_MODEL &whereNQ(orm::table_col<B_BASE, &superadmin_info::col_names> wq, _SQL_Value val)
         {
             return where(wq, orm::wq::nq, val);
         }
@@ -3783,13 +3783,13 @@ M_MODEL& ornotnullBasesitepath()
             return where(field, orm::wq::nq, std::forward<T2>(value));
         }
 
-        M_MODEL &whereNE(std::string_view wq, std::string_view val)
+        M_MODEL &whereNE(orm::table_col<B_BASE, &superadmin_info::col_names> wq, std::string_view val)
         {
             return where(wq, orm::wq::nq, val);
         }
 
         template <typename _SQL_Value>
-        M_MODEL &whereNE(std::string_view wq, _SQL_Value val)
+        M_MODEL &whereNE(orm::table_col<B_BASE, &superadmin_info::col_names> wq, _SQL_Value val)
         {
             return where(wq, orm::wq::nq, val);
         }
@@ -3800,13 +3800,13 @@ M_MODEL& ornotnullBasesitepath()
             return where(field, orm::wq::like, std::forward<T2>(value));
         }
 
-        M_MODEL &whereLike(std::string_view wq, std::string_view val)
+        M_MODEL &whereLike(orm::table_col<B_BASE, &superadmin_info::col_names> wq, std::string_view val)
         {
             return where(wq, orm::wq::like, val);
         }
 
         template <typename _SQL_Value>
-        M_MODEL &whereLike(std::string_view wq, _SQL_Value val)
+        M_MODEL &whereLike(orm::table_col<B_BASE, &superadmin_info::col_names> wq, _SQL_Value val)
         {
             return where(wq, orm::wq::like, val);
         }
@@ -3817,13 +3817,13 @@ M_MODEL& ornotnullBasesitepath()
             return where(field, orm::wq::llike, std::forward<T2>(value));
         }
 
-        M_MODEL &whereLikeLeft(std::string_view wq, std::string_view val)
+        M_MODEL &whereLikeLeft(orm::table_col<B_BASE, &superadmin_info::col_names> wq, std::string_view val)
         {
             return where(wq, orm::wq::llike, val);
         }
 
         template <typename _SQL_Value>
-        M_MODEL &whereLikeLeft(std::string_view wq, _SQL_Value val)
+        M_MODEL &whereLikeLeft(orm::table_col<B_BASE, &superadmin_info::col_names> wq, _SQL_Value val)
         {
             return where(wq, orm::wq::llike, val);
         }
@@ -3834,13 +3834,13 @@ M_MODEL& ornotnullBasesitepath()
             return where(field, orm::wq::rlike, std::forward<T2>(value));
         }
 
-        M_MODEL &whereLikeRight(std::string_view wq, std::string_view val)
+        M_MODEL &whereLikeRight(orm::table_col<B_BASE, &superadmin_info::col_names> wq, std::string_view val)
         {
             return where(wq, orm::wq::rlike, val);
         }
 
         template <typename _SQL_Value>
-        M_MODEL &whereLikeRight(std::string_view wq, _SQL_Value val)
+        M_MODEL &whereLikeRight(orm::table_col<B_BASE, &superadmin_info::col_names> wq, _SQL_Value val)
         {
             return where(wq, orm::wq::rlike, val);
         }
@@ -3851,13 +3851,13 @@ M_MODEL& ornotnullBasesitepath()
             return where(field, orm::wq::nlike, std::forward<T2>(value));
         }
 
-        M_MODEL &whereNotLike(std::string_view wq, std::string_view val)
+        M_MODEL &whereNotLike(orm::table_col<B_BASE, &superadmin_info::col_names> wq, std::string_view val)
         {
             return where(wq, orm::wq::nlike, val);
         }
 
         template <typename _SQL_Value>
-        M_MODEL &whereNotLike(std::string_view wq, _SQL_Value val)
+        M_MODEL &whereNotLike(orm::table_col<B_BASE, &superadmin_info::col_names> wq, _SQL_Value val)
         {
             return where(wq, orm::wq::nlike, val);
         }
@@ -3868,13 +3868,13 @@ M_MODEL& ornotnullBasesitepath()
             return whereOr(field, orm::wq::bt, std::forward<T2>(value));
         }
 
-        M_MODEL &whereOrBT(std::string_view wq, std::string_view val)
+        M_MODEL &whereOrBT(orm::table_col<B_BASE, &superadmin_info::col_names> wq, std::string_view val)
         {
             return whereOr(wq, orm::wq::bt, val);
         }
 
         template <typename _SQL_Value>
-        M_MODEL &whereOrBT(std::string_view wq, _SQL_Value val)
+        M_MODEL &whereOrBT(orm::table_col<B_BASE, &superadmin_info::col_names> wq, _SQL_Value val)
         {
             return whereOr(wq, orm::wq::bt, val);
         }
@@ -3885,13 +3885,13 @@ M_MODEL& ornotnullBasesitepath()
             return whereOr(field, orm::wq::be, std::forward<T2>(value));
         }
 
-        M_MODEL &whereOrBE(std::string_view wq, std::string_view val)
+        M_MODEL &whereOrBE(orm::table_col<B_BASE, &superadmin_info::col_names> wq, std::string_view val)
         {
             return whereOr(wq, orm::wq::be, val);
         }
 
         template <typename _SQL_Value>
-        M_MODEL &whereOrBE(std::string_view wq, _SQL_Value val)
+        M_MODEL &whereOrBE(orm::table_col<B_BASE, &superadmin_info::col_names> wq, _SQL_Value val)
         {
             return whereOr(wq, orm::wq::be, val);
         }
@@ -3902,13 +3902,13 @@ M_MODEL& ornotnullBasesitepath()
             return whereOr(field, orm::wq::lt, std::forward<T2>(value));
         }
 
-        M_MODEL &whereOrLT(std::string_view wq, std::string_view val)
+        M_MODEL &whereOrLT(orm::table_col<B_BASE, &superadmin_info::col_names> wq, std::string_view val)
         {
             return whereOr(wq, orm::wq::lt, val);
         }
 
         template <typename _SQL_Value>
-        M_MODEL &whereOrLT(std::string_view wq, _SQL_Value val)
+        M_MODEL &whereOrLT(orm::table_col<B_BASE, &superadmin_info::col_names> wq, _SQL_Value val)
         {
             return whereOr(wq, orm::wq::lt, val);
         }
@@ -3919,13 +3919,13 @@ M_MODEL& ornotnullBasesitepath()
             return whereOr(field, orm::wq::le, std::forward<T2>(value));
         }
 
-        M_MODEL &whereOrLE(std::string_view wq, std::string_view val)
+        M_MODEL &whereOrLE(orm::table_col<B_BASE, &superadmin_info::col_names> wq, std::string_view val)
         {
             return whereOr(wq, orm::wq::le, val);
         }
 
         template <typename _SQL_Value>
-        M_MODEL &whereOrLE(std::string_view wq, _SQL_Value val)
+        M_MODEL &whereOrLE(orm::table_col<B_BASE, &superadmin_info::col_names> wq, _SQL_Value val)
         {
             return whereOr(wq, orm::wq::le, val);
         }
@@ -3936,13 +3936,13 @@ M_MODEL& ornotnullBasesitepath()
             return whereOr(field, orm::wq::nq, std::forward<T2>(value));
         }
 
-        M_MODEL &whereOrNQ(std::string_view wq, std::string_view val)
+        M_MODEL &whereOrNQ(orm::table_col<B_BASE, &superadmin_info::col_names> wq, std::string_view val)
         {
             return whereOr(wq, orm::wq::nq, val);
         }
 
         template <typename _SQL_Value>
-        M_MODEL &whereOrNQ(std::string_view wq, _SQL_Value val)
+        M_MODEL &whereOrNQ(orm::table_col<B_BASE, &superadmin_info::col_names> wq, _SQL_Value val)
         {
             return whereOr(wq, orm::wq::nq, val);
         }
@@ -3953,13 +3953,13 @@ M_MODEL& ornotnullBasesitepath()
             return whereOr(field, orm::wq::like, std::forward<T2>(value));
         }
 
-        M_MODEL &whereOrLike(std::string_view wq, std::string_view val)
+        M_MODEL &whereOrLike(orm::table_col<B_BASE, &superadmin_info::col_names> wq, std::string_view val)
         {
             return whereOr(wq, orm::wq::like, val);
         }
 
         template <typename _SQL_Value>
-        M_MODEL &whereOrLike(std::string_view wq, _SQL_Value val)
+        M_MODEL &whereOrLike(orm::table_col<B_BASE, &superadmin_info::col_names> wq, _SQL_Value val)
         {
             return whereOr(wq, orm::wq::like, val);
         }
@@ -3970,13 +3970,13 @@ M_MODEL& ornotnullBasesitepath()
             return whereOr(field, orm::wq::llike, std::forward<T2>(value));
         }
 
-        M_MODEL &whereOrLikeLeft(std::string_view wq, std::string_view val)
+        M_MODEL &whereOrLikeLeft(orm::table_col<B_BASE, &superadmin_info::col_names> wq, std::string_view val)
         {
             return whereOr(wq, orm::wq::llike, val);
         }
 
         template <typename _SQL_Value>
-        M_MODEL &whereOrLikeLeft(std::string_view wq, _SQL_Value val)
+        M_MODEL &whereOrLikeLeft(orm::table_col<B_BASE, &superadmin_info::col_names> wq, _SQL_Value val)
         {
             return whereOr(wq, orm::wq::llike, val);
         }
@@ -3987,13 +3987,13 @@ M_MODEL& ornotnullBasesitepath()
             return whereOr(field, orm::wq::rlike, std::forward<T2>(value));
         }
 
-        M_MODEL &whereOrLikeRight(std::string_view wq, std::string_view val)
+        M_MODEL &whereOrLikeRight(orm::table_col<B_BASE, &superadmin_info::col_names> wq, std::string_view val)
         {
             return whereOr(wq, orm::wq::rlike, val);
         }
 
         template <typename _SQL_Value>
-        M_MODEL &whereOrLikeRight(std::string_view wq, _SQL_Value val)
+        M_MODEL &whereOrLikeRight(orm::table_col<B_BASE, &superadmin_info::col_names> wq, _SQL_Value val)
         {
             return whereOr(wq, orm::wq::rlike, val);
         }
@@ -4004,13 +4004,13 @@ M_MODEL& ornotnullBasesitepath()
             return whereOr(field, orm::wq::nlike, std::forward<T2>(value));
         }
 
-        M_MODEL &whereOrNotLike(std::string_view wq, std::string_view val)
+        M_MODEL &whereOrNotLike(orm::table_col<B_BASE, &superadmin_info::col_names> wq, std::string_view val)
         {
             return whereOr(wq, orm::wq::nlike, val);
         }
 
         template <typename _SQL_Value>
-        M_MODEL &whereOrNotLike(std::string_view wq, _SQL_Value val)
+        M_MODEL &whereOrNotLike(orm::table_col<B_BASE, &superadmin_info::col_names> wq, _SQL_Value val)
         {
             return whereOr(wq, orm::wq::nlike, val);
         }
@@ -4372,13 +4372,15 @@ M_MODEL& ornotnullBasesitepath()
             return *mod;
         }
 
-        M_MODEL &order(std::string_view wq)
+        M_MODEL &order(orm::table_col<B_BASE, &superadmin_info::col_names> wq, const std::string &asc_or_desc)
         {
             ordersql.append(" ORDER BY ");
             ordersql.append(wq);
+            ordersql.append(" ");
+            ordersql.append(asc_or_desc);
             return *mod;
         }
-        M_MODEL &asc(std::string_view wq)
+        M_MODEL &asc(orm::table_col<B_BASE, &superadmin_info::col_names> wq)
         {
 
             ordersql.append(" ORDER BY ");
@@ -4387,7 +4389,7 @@ M_MODEL& ornotnullBasesitepath()
             return *mod;
         }
 
-        M_MODEL &desc(std::string_view wq)
+        M_MODEL &desc(orm::table_col<B_BASE, &superadmin_info::col_names> wq)
         {
 
             ordersql.append(" ORDER BY ");
@@ -4396,7 +4398,7 @@ M_MODEL& ornotnullBasesitepath()
             return *mod;
         }
 
-        M_MODEL &having(std::string_view wq)
+        M_MODEL &having(orm::table_col<B_BASE, &superadmin_info::col_names> wq)
         {
             groupsql.append(" HAVING ");
             groupsql.append(wq);
@@ -4512,7 +4514,7 @@ M_MODEL& ornotnullBasesitepath()
             }
             return *mod;
         }
-        M_MODEL &group(std::string_view wq)
+        M_MODEL &group(orm::table_col<B_BASE, &superadmin_info::col_names> wq)
         {
             groupsql.append(" GROUP BY ");
             groupsql.append(wq);
@@ -10983,27 +10985,69 @@ M_MODEL& ornotnullBasesitepath()
         // ===== 预编译语句（Prepared Statements）=====
         // --- AND / OR（string_view 版本，共享）---
         template <typename T>
-        M_MODEL &AND(std::string_view field, orm::wq opwq, T val)
+        M_MODEL &AND(orm::table_col<B_BASE, &superadmin_info::col_names> field, orm::wq opwq, T val)
         {
             orm_where_sql_t item;
             item.pre_op      = wheresql.empty() ? 0 : 1;
             item.op_type     = opwq;
-            item.col_idx     = 255;
+            item.col_idx     = B_BASE::findcolpos(field);
+            
+            if (item.col_idx == 255)
+            {
+                error_msg = "field is not table column";
+                iserror   = true;
+            }
+
             item.filed_name  = std::string(field);
-            item.filed_value = http::obj_val(val);
+            item.filed_value = item.filed_value = std::forward<T>(val);
             wheresql.push_back(std::move(item));
             return *mod;
         }
 
         template <typename T>
-        M_MODEL &OR(std::string_view field, orm::wq opwq, T val)
+        M_MODEL &OR(orm::table_col<B_BASE, &superadmin_info::col_names> field, orm::wq opwq, T val)
         {
             orm_where_sql_t item;
             item.pre_op      = wheresql.empty() ? 0 : 2;
             item.op_type     = opwq;
-            item.col_idx     = 255;
+            item.col_idx     = B_BASE::findcolpos(field);
+            
+            if (item.col_idx == 255)
+            {
+                error_msg = "field is not table column";
+                iserror   = true;
+            }
+
             item.filed_name  = std::string(field);
-            item.filed_value = http::obj_val(val);
+            item.filed_value = item.filed_value = std::forward<T>(val);
+            wheresql.push_back(std::move(item));
+            return *mod;
+        }
+
+        template <typename T>
+        M_MODEL &AND(B_BASE::cols field, orm::wq opwq, T val)
+        {
+            orm_where_sql_t item;
+            item.pre_op      = wheresql.empty() ? 0 : 1;
+            item.op_type     = opwq;
+            item.col_idx     = static_cast<unsigned char>(field);
+            item.need_quote  = B_BASE::col_need_quote[static_cast<unsigned char>(field)];
+            item.filed_name  = superadmin_info::col_names[item.col_idx];
+            item.filed_value = std::forward<T>(val);
+            wheresql.push_back(std::move(item));
+            return *mod;
+        }
+
+        template <typename T>
+        M_MODEL &OR(B_BASE::cols field, orm::wq opwq, T val)
+        {
+            orm_where_sql_t item;
+            item.pre_op      = wheresql.empty() ? 0 : 2;
+            item.op_type     = opwq;
+            item.col_idx     = static_cast<unsigned char>(field);
+            item.need_quote  = B_BASE::col_need_quote[static_cast<unsigned char>(field)];
+            item.filed_name  = superadmin_info::col_names[item.col_idx];
+            item.filed_value = std::forward<T>(val);
             wheresql.push_back(std::move(item));
             return *mod;
         }

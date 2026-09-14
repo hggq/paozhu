@@ -2,7 +2,7 @@
 #define ORM_PG_FK_PARENTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 12 Sep 2026 16:10:40 GMT
+*本文件为自动生成 Mon, 14 Sep 2026 13:39:54 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -590,7 +590,7 @@ namespace fk_parent_info
                 return oss.str(); }\
        }
         
-    static constexpr std::array<std::string_view,2> col_names={"id","name"};
+    inline constexpr std::array<std::string_view,2> col_names={"id","name"};
 	static constexpr std::array<unsigned char,2> col_types={3,252};
 	static constexpr std::array<unsigned short,2> col_length={4,0};
 	static constexpr std::array<unsigned char,2> col_decimals={0,0};

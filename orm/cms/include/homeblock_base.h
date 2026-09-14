@@ -2,7 +2,7 @@
 #define ORM_CMS_HOMEBLOCKBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 12 Sep 2026 16:10:46 GMT
+*本文件为自动生成 Mon, 14 Sep 2026 13:39:42 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -660,7 +660,7 @@ namespace homeblock_info
                 return oss.str(); }\
        }
         
-    static constexpr std::array<std::string_view,12> col_names={"hbid","userid","title","content","jsonconfig","viewtype","gettype","rownum","width","height","strlength","sortid"};
+    inline constexpr std::array<std::string_view,12> col_names={"hbid","userid","title","content","jsonconfig","viewtype","gettype","rownum","width","height","strlength","sortid"};
 	static constexpr std::array<unsigned char,12> col_types={3,3,253,252,252,1,1,3,3,3,3,3};
 	static constexpr std::array<unsigned short,12> col_length={0,0,120,0,0,0,0,0,0,0,0,0};
 	static constexpr std::array<unsigned char,12> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0};

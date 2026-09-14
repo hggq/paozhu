@@ -65,7 +65,7 @@ std::string testmysqlpagebar(std::shared_ptr<httppeer> peer)
         client << "<p>current_page:" << std::to_string(current_page) << "</p>";
         client << "<p>total_page:" << std::to_string(total_page) << "</p>";
 
-        articles.order("aid desc").fetch();
+        articles.order("aid", "desc").fetch();
 
         if (articles.size() > 0)
         {

@@ -3589,7 +3589,20 @@ std::string _fmt_double(T v)
     return tmp;
 }
 
-bool _decode_binary_value(const unsigned char *buf, int buf_len, int &off, uint8_t tc, bool uflag, std::string &out)
+// binary 载荷里那 4 字节分数秒实测恒为微秒（DATETIME(3) 的 .123 传 123000），
+// 而服务端文本按列的 decimals 打印，故须先缩放再按该宽度输出，否则位数对不上。
+void _append_frac_seconds(std::string &out, uint8_t decimals, uint32_t micro)
+{
+    unsigned int d = (decimals > 6) ? 6u : static_cast<unsigned int>(decimals);
+    if (d == 0)
+        return;
+    static const uint32_t divs[7] = {1000000u, 100000u, 10000u, 1000u, 100u, 10u, 1u};
+    char tmp[16];
+    std::snprintf(tmp, sizeof(tmp), ".%0*u", d, micro / divs[d]);
+    out += tmp;
+}
+
+bool _decode_binary_value(const unsigned char *buf, int buf_len, int &off, uint8_t tc, bool uflag, uint8_t decimals, std::string &out)
 {
     out.clear();
     char tmp[48];
@@ -3684,8 +3697,15 @@ bool _decode_binary_value(const unsigned char *buf, int buf_len, int &off, uint8
         if (tlen == 0)
         {
             off += 1;
-            return true;
-        }// 零日期/零时间 → 空串
+            if (tc == 0x0A)
+                out = "0000-00-00";
+            else
+            {
+                out = "0000-00-00 00:00:00";
+                _append_frac_seconds(out, decimals, 0);
+            }
+            return true;// 零日期/零时间: 服务端文本协议打印全零字面量
+        }
         if (tlen == 4)// 仅日期
         {
             // TIMESTAMP/DATETIME 时间部分为 00:00:00 时, MySQL 只发日期段(len=4),
@@ -3698,6 +3718,7 @@ bool _decode_binary_value(const unsigned char *buf, int buf_len, int &off, uint8
             else
                 std::snprintf(tmp, sizeof(tmp), "%04u-%02u-%02u", year, buf[off + 3], buf[off + 4]);
             out = tmp;
+            _append_frac_seconds(out, decimals, 0);
             off += 5;
             return true;
         }
@@ -3709,16 +3730,15 @@ bool _decode_binary_value(const unsigned char *buf, int buf_len, int &off, uint8
             std::snprintf(tmp, sizeof(tmp), "%04u-%02u-%02u %02u:%02u:%02u", year, buf[off + 3], buf[off + 4], buf[off + 5], buf[off + 6], buf[off + 7]);
             out = tmp;
             off += 8;
+            uint32_t micro = 0;
             if (tlen == 11)
             {
                 if (off + 4 > buf_len)
                     return false;
-                uint32_t micro = 0;
                 std::memcpy(&micro, buf + off, 4);
-                std::snprintf(tmp, sizeof(tmp), ".%06u", micro);
-                out += tmp;
                 off += 4;
             }
+            _append_frac_seconds(out, decimals, micro);
             return true;
         }
         return false;// 非法 length 前缀
@@ -3732,6 +3752,7 @@ bool _decode_binary_value(const unsigned char *buf, int buf_len, int &off, uint8
         {
             off += 1;
             out = "00:00:00";
+            _append_frac_seconds(out, decimals, 0);
             return true;
         }
         if (tlen == 8 || tlen == 12)
@@ -3745,16 +3766,15 @@ bool _decode_binary_value(const unsigned char *buf, int buf_len, int &off, uint8
             std::snprintf(tmp, sizeof(tmp), "%s%02u:%02u:%02u", neg ? "-" : "", hh, buf[off + 7], buf[off + 8]);
             out = tmp;
             off += 9;
+            uint32_t micro = 0;
             if (tlen == 12)
             {
                 if (off + 4 > buf_len)
                     return false;
-                uint32_t micro = 0;
                 std::memcpy(&micro, buf + off, 4);
-                std::snprintf(tmp, sizeof(tmp), ".%06u", micro);
-                out += tmp;
                 off += 4;
             }
+            _append_frac_seconds(out, decimals, micro);
             return true;
         }
         return false;
@@ -3860,7 +3880,7 @@ bool _parse_definition_names(const unsigned char *payload, unsigned int plen, st
 // 再按 _parse_definition_type 同样的偏移读 type(1B)+flags(2B, UNSIGNED_FLAG=0x20)。
 // 返回 false ⇒ 类型或列名已变：服务器 ALTER 后会自行 re-prepare(stmt_id 依旧有效,
 // Prepared_stmt_count 不涨)，缓存侧收不到任何失效信号，只能靠每轮比对发现。
-bool _definition_matches(const unsigned char *payload, unsigned int plen, const std::string &name, const std::string &org_name, uint8_t type, uint8_t uflag)
+bool _definition_matches(const unsigned char *payload, unsigned int plen, const std::string &name, const std::string &org_name, uint8_t type, uint8_t uflag, uint8_t decimals)
 {
     int off = 0;
     for (int i = 0; i < 6; ++i)
@@ -3884,12 +3904,14 @@ bool _definition_matches(const unsigned char *payload, unsigned int plen, const 
         off += static_cast<int>(slen);
     }
     off += 1 + 2 + 4;// next_length + charset(2) + column_length(4)
-    if (off + 3 > static_cast<int>(plen))
+    if (off + 4 > static_cast<int>(plen))
         return false;
     if (payload[off] != type)
         return false;
     unsigned int flags = (unsigned int)(payload[off + 1] | (payload[off + 2] << 8));
-    return ((flags & 0x20U) != 0) == (uflag != 0);
+    if (((flags & 0x20U) != 0) != (uflag != 0))
+        return false;
+    return payload[off + 3] == decimals;// 分数秒精度同样参与行解码
 }
 
 }// namespace
@@ -4902,6 +4924,7 @@ unsigned int mysql_conn_base::stmt_prepare_impl(const std::string &sql)
     stmt_param_unsigned_.clear();
     stmt_col_types_.clear();
     stmt_col_unsigned_.clear();
+    stmt_col_decimals_.clear();
     stmt_col_names_.clear();
     stmt_col_org_names_.clear();
 
@@ -4933,7 +4956,7 @@ unsigned int mysql_conn_base::stmt_prepare_impl(const std::string &sql)
     };
 
     // 消费 count 个 Column Definition 包, 提取 type / unsigned 标志。
-    auto read_def_block = [&](unsigned int count, std::vector<uint8_t> &types, std::vector<uint8_t> &unsigned_flags, unsigned int &pos, std::vector<std::string> *out_names = nullptr, std::vector<std::string> *out_org_names = nullptr) -> bool
+    auto read_def_block = [&](unsigned int count, std::vector<uint8_t> &types, std::vector<uint8_t> &unsigned_flags, unsigned int &pos, std::vector<std::string> *out_names = nullptr, std::vector<std::string> *out_org_names = nullptr, std::vector<uint8_t> *out_decimals = nullptr) -> bool
     {
         for (unsigned int i = 0; i < count; ++i)
         {
@@ -4963,6 +4986,8 @@ unsigned int mysql_conn_base::stmt_prepare_impl(const std::string &sql)
             }
             types.push_back(type_code);
             unsigned_flags.push_back(is_unsigned ? 1 : 0);
+            if (out_decimals)
+                out_decimals->push_back(decimals);
             // 可选：同时提取列名（只在 col block 时传 out_names/out_org_names）
             if (out_names || out_org_names)
             {
@@ -4990,7 +5015,7 @@ unsigned int mysql_conn_base::stmt_prepare_impl(const std::string &sql)
     }
     if (col_count > 0)
     {
-        if (!read_def_block(col_count, stmt_col_types_, stmt_col_unsigned_, pos, &stmt_col_names_, &stmt_col_org_names_))
+        if (!read_def_block(col_count, stmt_col_types_, stmt_col_unsigned_, pos, &stmt_col_names_, &stmt_col_org_names_, &stmt_col_decimals_))
             return 0;
     }
 
@@ -5090,6 +5115,7 @@ void mysql_conn_base::mysql_stmt_cache::erase(const std::string &sql, uint32_t *
 bool mysql_conn_base::mysql_stmt_cache::update_meta(const std::string &sql,
                                                     std::vector<uint8_t> types,
                                                     std::vector<uint8_t> uns,
+                                                    std::vector<uint8_t> decimals,
                                                     std::vector<std::string> names,
                                                     std::vector<std::string> orgs)
 {
@@ -5098,6 +5124,7 @@ bool mysql_conn_base::mysql_stmt_cache::update_meta(const std::string &sql,
         return false;
     it->second.col_types     = std::move(types);
     it->second.col_unsigned  = std::move(uns);
+    it->second.col_decimals  = std::move(decimals);
     it->second.col_names     = std::move(names);
     it->second.col_org_names = std::move(orgs);
     it->second.lru_seq       = ++seq_;
@@ -5565,6 +5592,7 @@ RETRY_EXEC_DML:
         e.param_unsigned = stmt_param_unsigned_;
         e.col_types      = stmt_col_types_;
         e.col_unsigned   = stmt_col_unsigned_;
+        e.col_decimals   = stmt_col_decimals_;
         e.col_names      = stmt_col_names_;
         e.col_org_names  = stmt_col_org_names_;
         entry            = &e;
@@ -5935,7 +5963,7 @@ static std::optional<orm::col_value_variant> _decode_binary_value_typed(
 // 返回 false = 解码失败，且**保证不推进 off**，由调用方决定是否中止整行解码。
 // 注意：out 必须是**行级**持久缓冲 —— col_value_variant 持有 string_view，
 // 若 out 是局部 std::string，本函数返回后视图立即悬垂（短日期走 SSO 落在栈上）。
-static bool _fmt_date(const unsigned char *buf, int len, int &off, uint8_t tc, std::string &out)
+static bool _fmt_date(const unsigned char *buf, int len, int &off, uint8_t tc, uint8_t decimals, std::string &out)
 {
     out.clear();
     if (off + 1 > len)
@@ -5948,6 +5976,7 @@ static bool _fmt_date(const unsigned char *buf, int len, int &off, uint8_t tc, s
         // 否则 binary 与 text 两条路径对同一行会给出不同结果。
         off += 1;
         out.assign((tc == 0x0A) ? "0000-00-00" : "0000-00-00 00:00:00");
+        _append_frac_seconds(out, decimals, 0);
         return true;
     }
     if (tlen != 4 && tlen != 7 && tlen != 11)
@@ -5959,6 +5988,7 @@ static bool _fmt_date(const unsigned char *buf, int len, int &off, uint8_t tc, s
         uint16_t year = (uint16_t)(buf[off + 1] | (uint16_t)(buf[off + 2] << 8));
         char tmp[64];
         int n;
+        uint32_t micro = 0;
         if (tlen == 4)
         {
             n = (tc == 0x0A) ? std::snprintf(tmp, sizeof(tmp), "%04u-%02u-%02u", year, buf[off + 3], buf[off + 4]) : std::snprintf(tmp, sizeof(tmp), "%04u-%02u-%02u 00:00:00", year, buf[off + 3], buf[off + 4]);
@@ -5968,23 +5998,22 @@ static bool _fmt_date(const unsigned char *buf, int len, int &off, uint8_t tc, s
         {
             n = std::snprintf(tmp, sizeof(tmp), "%04u-%02u-%02u %02u:%02u:%02u", year, buf[off + 3], buf[off + 4], buf[off + 5], buf[off + 6], buf[off + 7]);
             off += 8;
-            if (tlen == 11 && off + 4 <= len)
+            if (tlen == 11)
             {
-                uint32_t m = 0;
-                std::memcpy(&m, buf + off, 4);
-                int n2 = std::snprintf(tmp + n, sizeof(tmp) - n, ".%06u", m);
-                if (n2 > 0)
-                    n += n2;
+                if (off + 4 > len)
+                    return false;
+                std::memcpy(&micro, buf + off, 4);
                 off += 4;
             }
         }
         if (n > 0)
             out.assign(tmp, static_cast<size_t>(n));
+        _append_frac_seconds(out, decimals, micro);
         return true;
     }
 }
 
-static bool _fmt_time(const unsigned char *buf, int len, int &off, std::string &out)
+static bool _fmt_time(const unsigned char *buf, int len, int &off, uint8_t decimals, std::string &out)
 {
     out.clear();
     if (off + 1 > len)
@@ -5997,6 +6026,7 @@ static bool _fmt_time(const unsigned char *buf, int len, int &off, std::string &
         int n = std::snprintf(tmp, sizeof(tmp), "00:00:00");
         if (n > 0)
             out.assign(tmp, static_cast<size_t>(n));
+        _append_frac_seconds(out, decimals, 0);
         return true;
     }
     if (tlen != 8 && tlen != 12)
@@ -6010,23 +6040,23 @@ static bool _fmt_time(const unsigned char *buf, int len, int &off, std::string &
         uint32_t hh = days * 24 + buf[off + 6];
         int n       = std::snprintf(tmp, sizeof(tmp), "%s%02u:%02u:%02u", neg ? "-" : "", hh, buf[off + 7], buf[off + 8]);
         off += 9;
-        if (tlen == 12 && off + 4 <= len)
+        uint32_t micro = 0;
+        if (tlen == 12)
         {
-            uint32_t m = 0;
-            std::memcpy(&m, buf + off, 4);
-            int n2 = std::snprintf(tmp + n, sizeof(tmp) - n, ".%06u", m);
-            if (n2 > 0)
-                n += n2;
+            if (off + 4 > len)
+                return false;
+            std::memcpy(&micro, buf + off, 4);
             off += 4;
         }
         if (n > 0)
             out.assign(tmp, static_cast<size_t>(n));
+        _append_frac_seconds(out, decimals, micro);
         return true;
     }
 }
 
 static bool _decode_to_variant(
-    const unsigned char *buf, int buf_len, int &off, uint8_t tc, bool uflag, orm::col_value_variant &out, std::string *date_str)
+    const unsigned char *buf, int buf_len, int &off, uint8_t tc, bool uflag, uint8_t decimals, orm::col_value_variant &out, std::string *date_str)
 {
     auto v = _decode_binary_value_typed(buf, buf_len, off, tc, uflag);
     if (v)
@@ -6042,7 +6072,7 @@ static bool _decode_to_variant(
     {
         if (!date_str)
             return false;// 没有行级缓冲就无法安全交出 string_view
-        if (!_fmt_date(buf, buf_len, off, tc, *date_str))
+        if (!_fmt_date(buf, buf_len, off, tc, decimals, *date_str))
             return false;
         out = orm::col_value_variant{std::string_view{date_str->data(), date_str->size()}};
         return true;
@@ -6051,7 +6081,7 @@ static bool _decode_to_variant(
     {
         if (!date_str)
             return false;
-        if (!_fmt_time(buf, buf_len, off, *date_str))
+        if (!_fmt_time(buf, buf_len, off, decimals, *date_str))
             return false;
         out = orm::col_value_variant{std::string_view{date_str->data(), date_str->size()}};
         return true;
@@ -6109,6 +6139,7 @@ RETRY_FETCH:
         e.param_unsigned = stmt_param_unsigned_;
         e.col_types      = stmt_col_types_;
         e.col_unsigned   = stmt_col_unsigned_;
+        e.col_decimals   = stmt_col_decimals_;
         e.col_names      = stmt_col_names_;
         e.col_org_names  = stmt_col_org_names_;
         entry            = &e;
@@ -6170,8 +6201,9 @@ RETRY_FETCH:
 
         std::vector<std::string> col_names;
         std::vector<char *> name_ptrs_cache;
-        std::vector<unsigned char> col_types; // MYSQL_TYPE per column
-        std::vector<unsigned char> col_uflags;// per column UNSIGNED_FLAG, 与 col_types 对齐
+        std::vector<unsigned char> col_types;   // MYSQL_TYPE per column
+        std::vector<unsigned char> col_uflags;  // per column UNSIGNED_FLAG, 与 col_types 对齐
+        std::vector<unsigned char> col_decimals;// per column decimals, 与 col_types 对齐
         unsigned int expected_cols = 0;
         col_org_names_.clear();// 只描述本次结果集, 不留下一次可读到的旧列名
         enum class phase
@@ -6275,12 +6307,14 @@ RETRY_FETCH:
                 expected_cols                = static_cast<unsigned int>(col_cnt);
                 col_names.reserve(expected_cols);
                 col_types.reserve(expected_cols);
+                col_decimals.reserve(expected_cols);
                 consumed += 4 + col_cnt_size;
 
                 if (warm && entry->col_names.size() == expected_cols &&
                     entry->col_org_names.size() == expected_cols &&
                     entry->col_types.size() == expected_cols &&
-                    entry->col_unsigned.size() == expected_cols)
+                    entry->col_unsigned.size() == expected_cols &&
+                    entry->col_decimals.size() == expected_cols)
                 {
                     // ★ 热路径: N 个 Column Definition 包仍要按长度消费(否则流错位), 但逐包只做
                     // "列名逐字节比对 + type/unsigned 定长读", 不构造 std::string。
@@ -6311,7 +6345,7 @@ RETRY_FETCH:
                             meta_same = false;
                             break;
                         }
-                        if (!_definition_matches(&accum_buf[probe + 4], pl, entry->col_names[i], entry->col_org_names[i], entry->col_types[i], entry->col_unsigned[i]))
+                        if (!_definition_matches(&accum_buf[probe + 4], pl, entry->col_names[i], entry->col_org_names[i], entry->col_types[i], entry->col_unsigned[i], entry->col_decimals[i]))
                         {
                             meta_same = false;
                             break;
@@ -6329,6 +6363,7 @@ RETRY_FETCH:
                     col_org_names_ = entry->col_org_names;
                     col_types      = entry->col_types;
                     col_uflags     = entry->col_unsigned;
+                    col_decimals   = entry->col_decimals;
                     current_phase  = phase::ROWS;
                 }
                 else if (expected_cols == 0)
@@ -6377,10 +6412,12 @@ RETRY_FETCH:
                     // 的类型，ALTER 之后或换一条 SQL 都会让解码错位且不产生任何错误码(D-1/D-2)。
                     uint8_t t_code  = 0xFE;// 解析不出类型时按 STRING，与行解码越界默认一致
                     bool t_unsigned = false;
-                    if (!_parse_definition_type(body, static_cast<unsigned int>(total_pkt_len - 4), t_code, t_unsigned))
+                    uint8_t t_dec   = 0;// 解析不出精度时按 0 位小数(不打印分数部分)
+                    if (!_parse_definition_type(body, static_cast<unsigned int>(total_pkt_len - 4), t_code, t_unsigned, &t_dec))
                         t_code = 0xFE;
                     col_types.push_back(t_code);
                     col_uflags.push_back(t_unsigned ? 1 : 0);
+                    col_decimals.push_back(t_dec);
                     col_org_names_.push_back(std::move(org_name));
                     col_names.push_back(std::move(col_name));
                 }
@@ -6390,7 +6427,7 @@ RETRY_FETCH:
                 {
                     // 本轮列元数据回写缓存：键已存在 ⇒ update_meta 不插入、不淘汰，
                     // 因此同轮内持有的 entry 指针不会失效。类型漂移后下一轮重新变热。
-                    stmt_cache_.update_meta(sql, col_types, col_uflags, col_names, col_org_names_);
+                    stmt_cache_.update_meta(sql, col_types, col_uflags, col_decimals, col_names, col_org_names_);
                     current_phase = phase::ROWS;
                 }
                 break;
@@ -6529,10 +6566,11 @@ RETRY_FETCH:
                         break;
 
                     // MySQL COM_STMT_EXECUTE binary RowData 按真实列类型解码 (共享解码器)
-                    uint8_t tc = (ci < col_types.size()) ? col_types[ci] : 0xFE;
-                    bool uflag = (ci < col_uflags.size()) && col_uflags[ci] != 0;
+                    uint8_t tc  = (ci < col_types.size()) ? col_types[ci] : 0xFE;
+                    bool uflag  = (ci < col_uflags.size()) && col_uflags[ci] != 0;
+                    uint8_t dec = (ci < col_decimals.size()) ? col_decimals[ci] : 0;
                     std::string val_str;
-                    if (!_decode_binary_value(row_body, row_body_len, val_off, tc, uflag, val_str))
+                    if (!_decode_binary_value(row_body, row_body_len, val_off, tc, uflag, dec, val_str))
                         break;// 数据不足/无法解码 → 终止本行解析
                     row_values.push_back(std::move(val_str));
                 }
@@ -6632,6 +6670,7 @@ RETRY_FETCH_BIN:
         e.param_unsigned = stmt_param_unsigned_;
         e.col_types      = stmt_col_types_;
         e.col_unsigned   = stmt_col_unsigned_;
+        e.col_decimals   = stmt_col_decimals_;
         e.col_names      = stmt_col_names_;
         e.col_org_names  = stmt_col_org_names_;
         entry            = &e;
@@ -6691,8 +6730,9 @@ RETRY_FETCH_BIN:
 
         std::vector<std::string> col_names;
         std::vector<char *> name_ptrs_cache;
-        std::vector<unsigned char> col_types; // MYSQL_TYPE per column
-        std::vector<unsigned char> col_uflags;// per column UNSIGNED_FLAG, 与 col_types 对齐
+        std::vector<unsigned char> col_types;   // MYSQL_TYPE per column
+        std::vector<unsigned char> col_uflags;  // per column UNSIGNED_FLAG, 与 col_types 对齐
+        std::vector<unsigned char> col_decimals;// per column decimals, 与 col_types 对齐
         unsigned int expected_cols = 0;
         col_org_names_.clear();// 只描述本次结果集, 不留下一次可读到的旧列名
         enum class phase
@@ -6796,12 +6836,14 @@ RETRY_FETCH_BIN:
                 expected_cols                = static_cast<unsigned int>(col_cnt);
                 col_names.reserve(expected_cols);
                 col_types.reserve(expected_cols);
+                col_decimals.reserve(expected_cols);
                 consumed += 4 + col_cnt_size;
 
                 if (warm && entry->col_names.size() == expected_cols &&
                     entry->col_org_names.size() == expected_cols &&
                     entry->col_types.size() == expected_cols &&
-                    entry->col_unsigned.size() == expected_cols)
+                    entry->col_unsigned.size() == expected_cols &&
+                    entry->col_decimals.size() == expected_cols)
                 {
                     // ★ 热路径: N 个 Column Definition 包仍要按长度消费(否则流错位), 但逐包只做
                     // "列名逐字节比对 + type/unsigned 定长读", 不构造 std::string。
@@ -6832,7 +6874,7 @@ RETRY_FETCH_BIN:
                             meta_same = false;
                             break;
                         }
-                        if (!_definition_matches(&accum_buf[probe + 4], pl, entry->col_names[i], entry->col_org_names[i], entry->col_types[i], entry->col_unsigned[i]))
+                        if (!_definition_matches(&accum_buf[probe + 4], pl, entry->col_names[i], entry->col_org_names[i], entry->col_types[i], entry->col_unsigned[i], entry->col_decimals[i]))
                         {
                             meta_same = false;
                             break;
@@ -6850,6 +6892,7 @@ RETRY_FETCH_BIN:
                     col_org_names_ = entry->col_org_names;
                     col_types      = entry->col_types;
                     col_uflags     = entry->col_unsigned;
+                    col_decimals   = entry->col_decimals;
                     current_phase  = phase::ROWS;
                 }
                 else if (expected_cols == 0)
@@ -6898,10 +6941,12 @@ RETRY_FETCH_BIN:
                     // 的类型，ALTER 之后或换一条 SQL 都会让解码错位且不产生任何错误码(D-1/D-2)。
                     uint8_t t_code  = 0xFE;// 解析不出类型时按 STRING，与行解码越界默认一致
                     bool t_unsigned = false;
-                    if (!_parse_definition_type(body, static_cast<unsigned int>(total_pkt_len - 4), t_code, t_unsigned))
+                    uint8_t t_dec   = 0;// 解析不出精度时按 0 位小数(不打印分数部分)
+                    if (!_parse_definition_type(body, static_cast<unsigned int>(total_pkt_len - 4), t_code, t_unsigned, &t_dec))
                         t_code = 0xFE;
                     col_types.push_back(t_code);
                     col_uflags.push_back(t_unsigned ? 1 : 0);
+                    col_decimals.push_back(t_dec);
                     col_org_names_.push_back(std::move(org_name));
                     col_names.push_back(std::move(col_name));
                 }
@@ -6911,7 +6956,7 @@ RETRY_FETCH_BIN:
                 {
                     // 本轮列元数据回写缓存：键已存在 ⇒ update_meta 不插入、不淘汰，
                     // 因此同轮内持有的 entry 指针不会失效。类型漂移后下一轮重新变热。
-                    stmt_cache_.update_meta(sql, col_types, col_uflags, col_names, col_org_names_);
+                    stmt_cache_.update_meta(sql, col_types, col_uflags, col_decimals, col_names, col_org_names_);
                     current_phase = phase::ROWS;
                 }
                 break;
@@ -7048,13 +7093,14 @@ RETRY_FETCH_BIN:
                         break;
 
                     // MySQL COM_STMT_EXECUTE binary RowData 按真实列类型解码 (共享解码器)
-                    uint8_t tc = (ci < col_types.size()) ? col_types[ci] : 0xFE;
-                    bool uflag = (ci < col_uflags.size()) && col_uflags[ci] != 0;
+                    uint8_t tc  = (ci < col_types.size()) ? col_types[ci] : 0xFE;
+                    bool uflag  = (ci < col_uflags.size()) && col_uflags[ci] != 0;
+                    uint8_t dec = (ci < col_decimals.size()) ? col_decimals[ci] : 0;
                     orm::col_value_variant col_v;
                     std::string *ds = nullptr;
                     if (tc == 0x07 || tc == 0x0A || tc == 0x0B || tc == 0x0C)
                         ds = &row_date_backing[ci];
-                    if (!_decode_to_variant(row_body, row_body_len, val_off, tc, uflag, col_v, ds))
+                    if (!_decode_to_variant(row_body, row_body_len, val_off, tc, uflag, dec, col_v, ds))
                         break;
                     row_variants.push_back(std::move(col_v));
                 }
@@ -7188,6 +7234,7 @@ asio::awaitable<unsigned int> mysql_conn_base::async_stmt_prepare(const std::str
     stmt_param_unsigned_.clear();
     stmt_col_types_.clear();
     stmt_col_unsigned_.clear();
+    stmt_col_decimals_.clear();
     stmt_col_names_.clear();
     stmt_col_org_names_.clear();
 
@@ -7224,7 +7271,7 @@ asio::awaitable<unsigned int> mysql_conn_base::async_stmt_prepare(const std::str
     };
 
     // 消费 count 个 Column Definition 包, 提取 type / unsigned 标志
-    auto read_def_block = [&](unsigned int count, std::vector<uint8_t> &types, std::vector<uint8_t> &unsigned_flags, unsigned int &pos, std::vector<std::string> *out_names = nullptr, std::vector<std::string> *out_org_names = nullptr) -> asio::awaitable<bool>
+    auto read_def_block = [&](unsigned int count, std::vector<uint8_t> &types, std::vector<uint8_t> &unsigned_flags, unsigned int &pos, std::vector<std::string> *out_names = nullptr, std::vector<std::string> *out_org_names = nullptr, std::vector<uint8_t> *out_decimals = nullptr) -> asio::awaitable<bool>
     {
         for (unsigned int i = 0; i < count; ++i)
         {
@@ -7254,6 +7301,8 @@ asio::awaitable<unsigned int> mysql_conn_base::async_stmt_prepare(const std::str
             }
             types.push_back(type_code);
             unsigned_flags.push_back(is_unsigned ? 1 : 0);
+            if (out_decimals)
+                out_decimals->push_back(decimals);
             if (out_names || out_org_names)
             {
                 std::string name, org_name;
@@ -7280,7 +7329,7 @@ asio::awaitable<unsigned int> mysql_conn_base::async_stmt_prepare(const std::str
     }
     if (col_count > 0)
     {
-        if (!co_await read_def_block(col_count, stmt_col_types_, stmt_col_unsigned_, pos, &stmt_col_names_, &stmt_col_org_names_))
+        if (!co_await read_def_block(col_count, stmt_col_types_, stmt_col_unsigned_, pos, &stmt_col_names_, &stmt_col_org_names_, &stmt_col_decimals_))
             co_return 0;
     }
 
@@ -7364,6 +7413,7 @@ RETRY_ASYNC_DML:
         e.param_unsigned = stmt_param_unsigned_;
         e.col_types      = stmt_col_types_;
         e.col_unsigned   = stmt_col_unsigned_;
+        e.col_decimals   = stmt_col_decimals_;
         e.col_names      = stmt_col_names_;
         e.col_org_names  = stmt_col_org_names_;
         entry            = &e;
@@ -7649,6 +7699,7 @@ RETRY_ASYNC_FETCH:
         e.param_unsigned = stmt_param_unsigned_;
         e.col_types      = stmt_col_types_;
         e.col_unsigned   = stmt_col_unsigned_;
+        e.col_decimals   = stmt_col_decimals_;
         e.col_names      = stmt_col_names_;
         e.col_org_names  = stmt_col_org_names_;
         entry            = &e;
@@ -7717,7 +7768,8 @@ RETRY_ASYNC_FETCH:
         std::vector<std::string> col_names;
         std::vector<char *> name_ptrs_cache;
         std::vector<unsigned char> col_types;
-        std::vector<unsigned char> col_uflags;// per column UNSIGNED_FLAG, 与 col_types 对齐
+        std::vector<unsigned char> col_uflags;  // per column UNSIGNED_FLAG, 与 col_types 对齐
+        std::vector<unsigned char> col_decimals;// per column decimals, 与 col_types 对齐
         unsigned int expected_cols = 0;
         col_org_names_.clear();// 只描述本次结果集, 不留下一次可读到的旧列名
         enum class phase
@@ -7814,12 +7866,14 @@ RETRY_ASYNC_FETCH:
                 expected_cols                = static_cast<unsigned int>(col_cnt);
                 col_names.reserve(expected_cols);
                 col_types.reserve(expected_cols);
+                col_decimals.reserve(expected_cols);
                 consumed += 4 + col_cnt_size;
 
                 if (warm && entry->col_names.size() == expected_cols &&
                     entry->col_org_names.size() == expected_cols &&
                     entry->col_types.size() == expected_cols &&
-                    entry->col_unsigned.size() == expected_cols)
+                    entry->col_unsigned.size() == expected_cols &&
+                    entry->col_decimals.size() == expected_cols)
                 {
                     // ★ 热路径: 同同步版, 逐包校验本轮元数据, 全部匹配才推进 consumed。
                     // 每次 co_await async_read_loop() 读到的字节必须 insert 进 accum_buf —
@@ -7855,7 +7909,7 @@ RETRY_ASYNC_FETCH:
                             meta_same = false;
                             break;
                         }
-                        if (!_definition_matches(&accum_buf[probe + 4], pl, entry->col_names[i], entry->col_org_names[i], entry->col_types[i], entry->col_unsigned[i]))
+                        if (!_definition_matches(&accum_buf[probe + 4], pl, entry->col_names[i], entry->col_org_names[i], entry->col_types[i], entry->col_unsigned[i], entry->col_decimals[i]))
                         {
                             meta_same = false;
                             break;
@@ -7873,6 +7927,7 @@ RETRY_ASYNC_FETCH:
                     col_org_names_ = entry->col_org_names;
                     col_types      = entry->col_types;
                     col_uflags     = entry->col_unsigned;
+                    col_decimals   = entry->col_decimals;
                     current_phase  = phase::ROWS;
                 }
                 else if (expected_cols == 0)
@@ -7919,10 +7974,12 @@ RETRY_ASYNC_FETCH:
                     // 的类型，ALTER 之后或换一条 SQL 都会让解码错位且不产生任何错误码(D-1/D-2)。
                     uint8_t t_code  = 0xFE;// 解析不出类型时按 STRING，与行解码越界默认一致
                     bool t_unsigned = false;
-                    if (!_parse_definition_type(body, static_cast<unsigned int>(total_pkt_len - 4), t_code, t_unsigned))
+                    uint8_t t_dec   = 0;// 解析不出精度时按 0 位小数(不打印分数部分)
+                    if (!_parse_definition_type(body, static_cast<unsigned int>(total_pkt_len - 4), t_code, t_unsigned, &t_dec))
                         t_code = 0xFE;
                     col_types.push_back(t_code);
                     col_uflags.push_back(t_unsigned ? 1 : 0);
+                    col_decimals.push_back(t_dec);
                     col_org_names_.push_back(std::move(org_name));
                     col_names.push_back(std::move(col_name));
                 }
@@ -7931,7 +7988,7 @@ RETRY_ASYNC_FETCH:
                 {
                     // 本轮列元数据回写缓存：键已存在 ⇒ update_meta 不插入、不淘汰，
                     // 因此同轮内持有的 entry 指针不会失效。类型漂移后下一轮重新变热。
-                    stmt_cache_.update_meta(sql, col_types, col_uflags, col_names, col_org_names_);
+                    stmt_cache_.update_meta(sql, col_types, col_uflags, col_decimals, col_names, col_org_names_);
                     current_phase = phase::ROWS;
                 }
                 break;
@@ -8061,10 +8118,11 @@ RETRY_ASYNC_FETCH:
                         break;
 
                     // 与 sync 版一致: 按真实列类型解码 (共享解码器)
-                    uint8_t tc = (ci < col_types.size()) ? col_types[ci] : 0xFE;
-                    bool uflag = (ci < col_uflags.size()) && col_uflags[ci] != 0;
+                    uint8_t tc  = (ci < col_types.size()) ? col_types[ci] : 0xFE;
+                    bool uflag  = (ci < col_uflags.size()) && col_uflags[ci] != 0;
+                    uint8_t dec = (ci < col_decimals.size()) ? col_decimals[ci] : 0;
                     std::string val_str;
-                    if (!_decode_binary_value(row_body, row_body_len, val_off, tc, uflag, val_str))
+                    if (!_decode_binary_value(row_body, row_body_len, val_off, tc, uflag, dec, val_str))
                         break;// 数据不足/无法解码 → 终止本行解析
                     row_values.push_back(std::move(val_str));
                 }
@@ -8201,6 +8259,7 @@ RETRY_ASYNC_FETCH_BIN:
         e.param_unsigned = stmt_param_unsigned_;
         e.col_types      = stmt_col_types_;
         e.col_unsigned   = stmt_col_unsigned_;
+        e.col_decimals   = stmt_col_decimals_;
         e.col_names      = stmt_col_names_;
         e.col_org_names  = stmt_col_org_names_;
         entry            = &e;
@@ -8269,7 +8328,8 @@ RETRY_ASYNC_FETCH_BIN:
         std::vector<std::string> col_names;
         std::vector<char *> name_ptrs_cache;
         std::vector<unsigned char> col_types;
-        std::vector<unsigned char> col_uflags;// per column UNSIGNED_FLAG, 与 col_types 对齐
+        std::vector<unsigned char> col_uflags;  // per column UNSIGNED_FLAG, 与 col_types 对齐
+        std::vector<unsigned char> col_decimals;// per column decimals, 与 col_types 对齐
         unsigned int expected_cols = 0;
         col_org_names_.clear();// 只描述本次结果集, 不留下一次可读到的旧列名
         enum class phase
@@ -8366,12 +8426,14 @@ RETRY_ASYNC_FETCH_BIN:
                 expected_cols                = static_cast<unsigned int>(col_cnt);
                 col_names.reserve(expected_cols);
                 col_types.reserve(expected_cols);
+                col_decimals.reserve(expected_cols);
                 consumed += 4 + col_cnt_size;
 
                 if (warm && entry->col_names.size() == expected_cols &&
                     entry->col_org_names.size() == expected_cols &&
                     entry->col_types.size() == expected_cols &&
-                    entry->col_unsigned.size() == expected_cols)
+                    entry->col_unsigned.size() == expected_cols &&
+                    entry->col_decimals.size() == expected_cols)
                 {
                     // ★ 热路径: 同同步版, 逐包校验本轮元数据, 全部匹配才推进 consumed。
                     // 每次 co_await async_read_loop() 读到的字节必须 insert 进 accum_buf —
@@ -8407,7 +8469,7 @@ RETRY_ASYNC_FETCH_BIN:
                             meta_same = false;
                             break;
                         }
-                        if (!_definition_matches(&accum_buf[probe + 4], pl, entry->col_names[i], entry->col_org_names[i], entry->col_types[i], entry->col_unsigned[i]))
+                        if (!_definition_matches(&accum_buf[probe + 4], pl, entry->col_names[i], entry->col_org_names[i], entry->col_types[i], entry->col_unsigned[i], entry->col_decimals[i]))
                         {
                             meta_same = false;
                             break;
@@ -8425,6 +8487,7 @@ RETRY_ASYNC_FETCH_BIN:
                     col_org_names_ = entry->col_org_names;
                     col_types      = entry->col_types;
                     col_uflags     = entry->col_unsigned;
+                    col_decimals   = entry->col_decimals;
                     current_phase  = phase::ROWS;
                 }
                 else if (expected_cols == 0)
@@ -8471,10 +8534,12 @@ RETRY_ASYNC_FETCH_BIN:
                     // 的类型，ALTER 之后或换一条 SQL 都会让解码错位且不产生任何错误码(D-1/D-2)。
                     uint8_t t_code  = 0xFE;// 解析不出类型时按 STRING，与行解码越界默认一致
                     bool t_unsigned = false;
-                    if (!_parse_definition_type(body, static_cast<unsigned int>(total_pkt_len - 4), t_code, t_unsigned))
+                    uint8_t t_dec   = 0;// 解析不出精度时按 0 位小数(不打印分数部分)
+                    if (!_parse_definition_type(body, static_cast<unsigned int>(total_pkt_len - 4), t_code, t_unsigned, &t_dec))
                         t_code = 0xFE;
                     col_types.push_back(t_code);
                     col_uflags.push_back(t_unsigned ? 1 : 0);
+                    col_decimals.push_back(t_dec);
                     col_org_names_.push_back(std::move(org_name));
                     col_names.push_back(std::move(col_name));
                 }
@@ -8483,7 +8548,7 @@ RETRY_ASYNC_FETCH_BIN:
                 {
                     // 本轮列元数据回写缓存：键已存在 ⇒ update_meta 不插入、不淘汰，
                     // 因此同轮内持有的 entry 指针不会失效。类型漂移后下一轮重新变热。
-                    stmt_cache_.update_meta(sql, col_types, col_uflags, col_names, col_org_names_);
+                    stmt_cache_.update_meta(sql, col_types, col_uflags, col_decimals, col_names, col_org_names_);
                     current_phase = phase::ROWS;
                 }
                 break;
@@ -8611,13 +8676,14 @@ RETRY_ASYNC_FETCH_BIN:
                         break;
 
                     // 与 sync 版一致: 按真实列类型解码 (共享解码器)
-                    uint8_t tc = (ci < col_types.size()) ? col_types[ci] : 0xFE;
-                    bool uflag = (ci < col_uflags.size()) && col_uflags[ci] != 0;
+                    uint8_t tc  = (ci < col_types.size()) ? col_types[ci] : 0xFE;
+                    bool uflag  = (ci < col_uflags.size()) && col_uflags[ci] != 0;
+                    uint8_t dec = (ci < col_decimals.size()) ? col_decimals[ci] : 0;
                     orm::col_value_variant col_v;
                     std::string *ds = nullptr;
                     if (tc == 0x07 || tc == 0x0A || tc == 0x0B || tc == 0x0C)
                         ds = &row_date_backing[ci];
-                    if (!_decode_to_variant(row_body, row_body_len, val_off, tc, uflag, col_v, ds))
+                    if (!_decode_to_variant(row_body, row_body_len, val_off, tc, uflag, dec, col_v, ds))
                         break;
                     row_variants.push_back(std::move(col_v));
                 }

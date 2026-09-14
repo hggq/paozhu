@@ -4579,8 +4579,10 @@ namespace )";
     headtxt.clear();
 
     filemodelstrem.str("");
-    // may be used to optimize the const static std::array<std::string,N> col_names={"xxx"};
-    filemodelstrem << "static constexpr std::array<std::string_view," << std::to_string(table_column_info_lists.size()) << "> col_names={";
+    // 用 inline(constexpr) 而非 static constexpr: col_names 的地址会作为 NTTP 实参
+    // (orm::table_col<B_BASE, &xxx_info::col_names>), static 是内部链接、每个 TU 一份副本,
+    // 会让该特化在不同 TU 指向不同对象(严格来说是 IFNDR)。inline 保证全程序唯一实体。
+    filemodelstrem << "inline constexpr std::array<std::string_view," << std::to_string(table_column_info_lists.size()) << "> col_names={";
 
     for (unsigned int j = 0; j < table_column_info_lists.size(); j++)
     {

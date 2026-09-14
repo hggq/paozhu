@@ -126,7 +126,7 @@ std::string pxapidepartmentslist(std::shared_ptr<httppeer> peer)
     try
     {
         auto deps = orm::cms::Department();
-        deps.where("userid", 0).order("parentid asc").fetch();
+        deps.where("userid", 0).order("parentid", "asc").fetch();
 
         psy::department_outjson_t deps_json_one;
         std::vector<psy::department_outjson_t> depsjsonlist;
@@ -206,7 +206,7 @@ std::string pxapipagesdepartlist(std::shared_ptr<httppeer> peer)
         }
 
         deps.clear(true);
-        deps.where("userid", 0).order("parentid asc").fetch();
+        deps.where("userid", 0).order("parentid", "asc").fetch();
 
         psy::department_outjson_t deps_json_one;
         std::vector<psy::department_outjson_t> depsjsonlist;

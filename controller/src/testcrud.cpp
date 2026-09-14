@@ -36,10 +36,10 @@ std::string articleislogin(std::shared_ptr<httppeer> peer)
 std::string articleloginpost(std::shared_ptr<httppeer> peer)
 {
     // step2
-    httppeer &client     = peer->get_peer();
+    httppeer &client = peer->get_peer();
     //注意必须处理用户输入的字符串，预防攻击
     //Be sure to handle user-input strings to prevent attacks
-    std::string username = client.post["username"].to_escape(); 
+    std::string username = client.post["username"].to_escape();
     std::string password = client.post["password"].to_string();
 
     auto users = orm::cms::Sysuser();
@@ -82,14 +82,14 @@ std::string articlelist(std::shared_ptr<httppeer> peer)
     try
     {
         httppeer &client = peer->get_peer();
-        auto articles = orm::cms::Article();
-        int page      = client.get["page"].to_int();
+        auto articles    = orm::cms::Article();
+        int page         = client.get["page"].to_int();
         if (page < 0)
         {
             page = 0;
         }
 
-        articles.where("isopen",1);
+        articles.where("isopen", 1);
         auto [bar_min, bar_max, current_page, total_page] = articles.page(page, 10, 5);
 
         client.val["pageinfo"].set_object();
@@ -99,7 +99,7 @@ std::string articlelist(std::shared_ptr<httppeer> peer)
         client.val["pageinfo"]["total"]   = total_page;
 
         //自动分页 automatic pagination
-        articles.order(" aid desc ").fetch();
+        articles.order("aid", "desc").fetch();
 
         if (articles.error_msg.size() > 0)
         {
@@ -135,7 +135,7 @@ std::string articleshow(std::shared_ptr<httppeer> peer)
     auto articles    = orm::cms::Article();
     int aid          = client.get["id"].to_int();
 
-    articles.where("isopen",1).where(" aid", aid).fetch_one();
+    articles.where("isopen", 1).where("aid", aid).fetch_one();
 
     client.val["title"]   = articles.getTitle();
     client.val["content"] = articles.getContent();
@@ -151,7 +151,7 @@ std::string articleedit(std::shared_ptr<httppeer> peer)
     auto articles    = orm::cms::Article();
     int aid          = client.get["id"].to_int();
 
-    articles.where("isopen",1).where("aid", aid).fetch_one();
+    articles.where("isopen", 1).where("aid", aid).fetch_one();
 
     client.val["title"]   = articles.getTitle();
     client.val["content"] = html_encode(articles.getRefContent());
@@ -237,8 +237,8 @@ std::string articleaddpost(std::shared_ptr<httppeer> peer)
 
     try
     {
-        auto[effectnum,last_id] = articles.save();
-        aid       = articles.getAid();
+        auto [effectnum, last_id] = articles.save();
+        aid                       = articles.getAid();
         client << "<p>新(new)id " << aid << " 或 新(new)id " << effectnum << "</p>";
         if (effectnum > 0)
         {

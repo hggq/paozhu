@@ -51,6 +51,7 @@ void db_conn::select_db(std::string_view tag)
 
 bool db_conn::begin_commit()
 {
+    error_msg.clear();
     if (iscommit)
     {
         error_msg = "already begin_commit";
@@ -130,6 +131,7 @@ bool db_conn::pg_begin_commit_impl()
 bool db_conn::commit()
 {
     effect_num = 0;
+    error_msg.clear();
     if (!iscommit)
     {
         error_msg = "not commit";
@@ -269,6 +271,7 @@ void db_conn::pg_rollback_impl()
 
 asio::awaitable<bool> db_conn::async_begin_commit()
 {
+    error_msg.clear();
     if (iscommit)
     {
         error_msg = "already begin_commit";
@@ -349,6 +352,7 @@ asio::awaitable<bool> db_conn::pg_async_begin_commit_impl()
 asio::awaitable<bool> db_conn::async_commit()
 {
     effect_num = 0;
+    error_msg.clear();
     if (!iscommit)
     {
         error_msg = "not commit";
@@ -649,6 +653,7 @@ unsigned int db_conn::mysql_edit_query_impl(const std::string &rawsql)
     {
         return 0;
     }
+    error_msg.clear();
 
     try
     {
@@ -713,6 +718,7 @@ unsigned int db_conn::pg_edit_query_impl(const std::string &rawsql)
     {
         return 0;
     }
+    error_msg.clear();
 
     try
     {
@@ -777,6 +783,7 @@ unsigned int db_conn::sqlite_edit_query_impl(const std::string &rawsql)
     {
         return 0;
     }
+    error_msg.clear();
 
     try
     {
@@ -854,6 +861,7 @@ asio::awaitable<unsigned int> db_conn::mysql_async_edit_query_impl(const std::st
     {
         co_return 0;
     }
+    error_msg.clear();
 
     try
     {
@@ -918,6 +926,7 @@ asio::awaitable<unsigned int> db_conn::pg_async_edit_query_impl(const std::strin
     {
         co_return 0;
     }
+    error_msg.clear();
 
     try
     {
@@ -982,6 +991,7 @@ asio::awaitable<unsigned int> db_conn::sqlite_async_edit_query_impl(const std::s
     {
         co_return 0;
     }
+    error_msg.clear();
 
     try
     {
@@ -1037,6 +1047,459 @@ asio::awaitable<unsigned int> db_conn::sqlite_async_edit_query_impl(const std::s
     }
 
     co_return 0;
+}
+
+//5555 exec prepared DML-only 预编译 + 参数绑定，只拿影响行数
+
+unsigned int db_conn::mysql_exec_edit_query_impl(const std::string &rawsql, const std::vector<http::obj_val> &params)
+{
+    effect_num = 0;
+    if (iserror)
+    {
+        return 0;
+    }
+    error_msg.clear();
+
+    try
+    {
+        if (!exec_bind_guard(count_qmark(rawsql), params, error_msg))
+        {
+            return 0;
+        }
+
+        if (conn_obj == nullptr)
+        {
+            error_msg = "Please select_db() tag";
+            return 0;
+        }
+
+        if (islock_conn)
+        {
+            if (!mysql_edit_conn)
+            {
+                mysql_edit_conn = conn_obj->get_mysql_edit_conn();
+            }
+        }
+        else
+        {
+            mysql_edit_conn = conn_obj->get_mysql_edit_conn();
+        }
+
+        if (mysql_edit_conn->isdebug)
+        {
+            mysql_edit_conn->begin_time();
+        }
+
+        unsigned int affected = mysql_edit_conn->exec_dml_prepared(rawsql, params);
+        if (affected == static_cast<unsigned int>(-1))
+        {
+            error_msg = mysql_edit_conn->error_msg;
+            mysql_edit_conn.reset();
+            return 0;
+        }
+        effect_num = affected;
+
+        if (mysql_edit_conn->isdebug)
+        {
+            mysql_edit_conn->finish_time();
+            auto &conn_mar    = get_orm_connect_mar();
+            long long du_time = mysql_edit_conn->count_time();
+            conn_mar.push_log(rawsql, std::to_string(du_time));
+        }
+        if (!islock_conn)
+        {
+            conn_obj->back_mysql_edit_conn(std::move(mysql_edit_conn));
+        }
+        return effect_num;
+    }
+    catch (const std::exception &e)
+    {
+        error_msg = std::string(e.what());
+        return 0;
+    }
+
+    return 0;
+}
+
+unsigned int db_conn::pg_exec_edit_query_impl(const std::string &rawsql, const std::vector<http::obj_val> &params)
+{
+    effect_num = 0;
+    if (iserror)
+    {
+        return 0;
+    }
+    error_msg.clear();
+
+    try
+    {
+        unsigned int ph_count = 0;
+        const std::string sql = pg_qmark_to_dollar(rawsql, ph_count);
+        if (!exec_bind_guard(ph_count, params, error_msg))
+        {
+            return 0;
+        }
+
+        if (conn_obj == nullptr)
+        {
+            error_msg = "Please select_db() tag";
+            return 0;
+        }
+
+        if (islock_conn)
+        {
+            if (!pg_edit_conn)
+            {
+                pg_edit_conn = conn_obj->get_pg_edit_conn();
+            }
+        }
+        else
+        {
+            pg_edit_conn = conn_obj->get_pg_edit_conn();
+        }
+
+        if (pg_edit_conn->isdebug)
+        {
+            pg_edit_conn->begin_time();
+        }
+
+        unsigned int affected = pg_edit_conn->exec_dml_prepared(sql, params);
+        if (affected == static_cast<unsigned int>(-1))
+        {
+            error_msg = pg_edit_conn->error_msg;
+            pg_edit_conn.reset();
+            return 0;
+        }
+        effect_num = affected;
+
+        if (pg_edit_conn->isdebug)
+        {
+            pg_edit_conn->finish_time();
+            auto &conn_mar    = get_orm_connect_mar();
+            long long du_time = pg_edit_conn->count_time();
+            conn_mar.push_log(rawsql, std::to_string(du_time));
+        }
+        if (!islock_conn)
+        {
+            conn_obj->back_pg_edit_conn(std::move(pg_edit_conn));
+        }
+        return effect_num;
+    }
+    catch (const std::exception &e)
+    {
+        error_msg = std::string(e.what());
+        return 0;
+    }
+
+    return 0;
+}
+
+unsigned int db_conn::sqlite_exec_edit_query_impl(const std::string &rawsql, const std::vector<http::obj_val> &params)
+{
+    effect_num = 0;
+    if (iserror)
+    {
+        return 0;
+    }
+    error_msg.clear();
+
+    try
+    {
+        if (!exec_bind_guard(count_qmark(rawsql), params, error_msg))
+        {
+            return 0;
+        }
+
+        if (conn_obj == nullptr)
+        {
+            error_msg = "Please select_db() tag";
+            return 0;
+        }
+
+        if (islock_conn)
+        {
+            if (!sqlite_edit_conn)
+            {
+                sqlite_edit_conn = conn_obj->get_sqlite_edit_conn();
+            }
+        }
+        else
+        {
+            sqlite_edit_conn = conn_obj->get_sqlite_edit_conn();
+        }
+
+        if (sqlite_edit_conn->isdebug)
+        {
+            sqlite_edit_conn->begin_time();
+        }
+
+        unsigned int affected = sqlite_edit_conn->exec_dml_prepared(rawsql, params);
+        if (affected == static_cast<unsigned int>(-1))
+        {
+            error_msg = sqlite_edit_conn->error_msg;
+            sqlite_edit_conn.reset();
+            return 0;
+        }
+        effect_num = affected;
+
+        if (sqlite_edit_conn->isdebug)
+        {
+            sqlite_edit_conn->finish_time();
+            auto &conn_mar    = get_orm_connect_mar();
+            long long du_time = sqlite_edit_conn->count_time();
+            conn_mar.push_log(rawsql, std::to_string(du_time));
+        }
+        if (!islock_conn)
+        {
+            conn_obj->back_sqlite_edit_conn(std::move(sqlite_edit_conn));
+        }
+        return effect_num;
+    }
+    catch (const std::exception &e)
+    {
+        error_msg = std::string(e.what());
+        return 0;
+    }
+
+    return 0;
+}
+
+unsigned int db_conn::exec_edit_query(const std::string &rawsql, const std::vector<http::obj_val> &params)
+{
+    if (db_type == DB_TYPE::MYSQL)
+    {
+        return mysql_exec_edit_query_impl(rawsql, params);
+    }
+    else if (db_type == DB_TYPE::SQLITE)
+    {
+        return sqlite_exec_edit_query_impl(rawsql, params);
+    }
+    return pg_exec_edit_query_impl(rawsql, params);
+}
+
+asio::awaitable<unsigned int> db_conn::mysql_async_exec_edit_query_impl(const std::string &rawsql, const std::vector<http::obj_val> &params)
+{
+    effect_num = 0;
+    if (iserror)
+    {
+        co_return 0;
+    }
+    error_msg.clear();
+
+    try
+    {
+        if (!exec_bind_guard(count_qmark(rawsql), params, error_msg))
+        {
+            co_return 0;
+        }
+
+        if (conn_obj == nullptr)
+        {
+            error_msg = "Please select_db() tag";
+            co_return 0;
+        }
+
+        if (islock_conn)
+        {
+            if (!mysql_edit_conn)
+            {
+                mysql_edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
+            }
+        }
+        else
+        {
+            mysql_edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
+        }
+
+        if (mysql_edit_conn->isdebug)
+        {
+            mysql_edit_conn->begin_time();
+        }
+
+        unsigned int affected = co_await mysql_edit_conn->async_exec_dml_prepared(rawsql, params);
+        if (affected == static_cast<unsigned int>(-1))
+        {
+            error_msg = mysql_edit_conn->error_msg;
+            mysql_edit_conn.reset();
+            co_return 0;
+        }
+        effect_num = affected;
+
+        if (mysql_edit_conn->isdebug)
+        {
+            mysql_edit_conn->finish_time();
+            auto &conn_mar    = get_orm_connect_mar();
+            long long du_time = mysql_edit_conn->count_time();
+            conn_mar.push_log(rawsql, std::to_string(du_time));
+        }
+        if (!islock_conn)
+        {
+            conn_obj->back_mysql_edit_conn(std::move(mysql_edit_conn));
+        }
+        co_return effect_num;
+    }
+    catch (const std::exception &e)
+    {
+        error_msg = std::string(e.what());
+        co_return 0;
+    }
+
+    co_return 0;
+}
+
+asio::awaitable<unsigned int> db_conn::pg_async_exec_edit_query_impl(const std::string &rawsql, const std::vector<http::obj_val> &params)
+{
+    effect_num = 0;
+    if (iserror)
+    {
+        co_return 0;
+    }
+    error_msg.clear();
+
+    try
+    {
+        unsigned int ph_count = 0;
+        const std::string sql = pg_qmark_to_dollar(rawsql, ph_count);
+        if (!exec_bind_guard(ph_count, params, error_msg))
+        {
+            co_return 0;
+        }
+
+        if (conn_obj == nullptr)
+        {
+            error_msg = "Please select_db() tag";
+            co_return 0;
+        }
+
+        if (islock_conn)
+        {
+            if (!pg_edit_conn)
+            {
+                pg_edit_conn = co_await conn_obj->async_get_pg_edit_conn();
+            }
+        }
+        else
+        {
+            pg_edit_conn = co_await conn_obj->async_get_pg_edit_conn();
+        }
+
+        if (pg_edit_conn->isdebug)
+        {
+            pg_edit_conn->begin_time();
+        }
+
+        unsigned int affected = co_await pg_edit_conn->async_exec_dml_prepared(sql, params);
+        if (affected == static_cast<unsigned int>(-1))
+        {
+            error_msg = pg_edit_conn->error_msg;
+            pg_edit_conn.reset();
+            co_return 0;
+        }
+        effect_num = affected;
+
+        if (pg_edit_conn->isdebug)
+        {
+            pg_edit_conn->finish_time();
+            auto &conn_mar    = get_orm_connect_mar();
+            long long du_time = pg_edit_conn->count_time();
+            conn_mar.push_log(rawsql, std::to_string(du_time));
+        }
+        if (!islock_conn)
+        {
+            conn_obj->back_pg_edit_conn(std::move(pg_edit_conn));
+        }
+        co_return effect_num;
+    }
+    catch (const std::exception &e)
+    {
+        error_msg = std::string(e.what());
+        co_return 0;
+    }
+
+    co_return 0;
+}
+
+asio::awaitable<unsigned int> db_conn::sqlite_async_exec_edit_query_impl(const std::string &rawsql, const std::vector<http::obj_val> &params)
+{
+    effect_num = 0;
+    if (iserror)
+    {
+        co_return 0;
+    }
+    error_msg.clear();
+
+    try
+    {
+        if (!exec_bind_guard(count_qmark(rawsql), params, error_msg))
+        {
+            co_return 0;
+        }
+
+        if (conn_obj == nullptr)
+        {
+            error_msg = "Please select_db() tag";
+            co_return 0;
+        }
+
+        if (islock_conn)
+        {
+            if (!sqlite_edit_conn)
+            {
+                sqlite_edit_conn = co_await conn_obj->async_get_sqlite_edit_conn();
+            }
+        }
+        else
+        {
+            sqlite_edit_conn = co_await conn_obj->async_get_sqlite_edit_conn();
+        }
+
+        if (sqlite_edit_conn->isdebug)
+        {
+            sqlite_edit_conn->begin_time();
+        }
+
+        unsigned int affected = co_await sqlite_edit_conn->async_exec_dml_prepared(rawsql, params);
+        if (affected == static_cast<unsigned int>(-1))
+        {
+            error_msg = sqlite_edit_conn->error_msg;
+            sqlite_edit_conn.reset();
+            co_return 0;
+        }
+        effect_num = affected;
+
+        if (sqlite_edit_conn->isdebug)
+        {
+            sqlite_edit_conn->finish_time();
+            auto &conn_mar    = get_orm_connect_mar();
+            long long du_time = sqlite_edit_conn->count_time();
+            conn_mar.push_log(rawsql, std::to_string(du_time));
+        }
+        if (!islock_conn)
+        {
+            conn_obj->back_sqlite_edit_conn(std::move(sqlite_edit_conn));
+        }
+        co_return effect_num;
+    }
+    catch (const std::exception &e)
+    {
+        error_msg = std::string(e.what());
+        co_return 0;
+    }
+
+    co_return 0;
+}
+
+asio::awaitable<unsigned int> db_conn::async_exec_edit_query(const std::string &rawsql,
+                                                             const std::vector<http::obj_val> &params)
+{
+    if (db_type == DB_TYPE::MYSQL)
+    {
+        co_return co_await mysql_async_exec_edit_query_impl(rawsql, params);
+    }
+    else if (db_type == DB_TYPE::SQLITE)
+    {
+        co_return co_await sqlite_async_exec_edit_query_impl(rawsql, params);
+    }
+    co_return co_await pg_async_exec_edit_query_impl(rawsql, params);
 }
 
 }// namespace orm

@@ -371,10 +371,11 @@ class pg_conn_base
         void clear()
         {
             map_.clear();
-            seq_          = 0;
-            name_counter_ = 0;
-            hits_         = 0;
-            misses_       = 0;
+            seq_ = 0;
+            // 注意：name_counter_ 故意不重置，保持单调递增。
+            // 否则复用连接时生成的新语句名（pg_N）会与服务器上仍残留的旧同名语句撞名（42P07 already exists）。
+            hits_   = 0;
+            misses_ = 0;
         }
         size_t size() const { return map_.size(); }
         uint64_t hits() const { return hits_; }
@@ -393,10 +394,10 @@ class pg_conn_base
         void clear_cache()
         {
             map_.clear();
-            seq_          = 0;
-            name_counter_ = 0;
-            hits_         = 0;
-            misses_       = 0;
+            seq_ = 0;
+            // name_counter_ 故意不重置（同 clear()），保持单调递增以免复用连接撞名。
+            hits_   = 0;
+            misses_ = 0;
         }
 
       private:

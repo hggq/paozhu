@@ -2,7 +2,7 @@
 #define ORM_CMS_CATALOGUEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 12 Sep 2026 16:10:46 GMT
+*本文件为自动生成 Mon, 14 Sep 2026 13:39:42 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -632,7 +632,7 @@ namespace catalogue_info
                 return oss.str(); }\
        }
         
-    static constexpr std::array<std::string_view,8> col_names={"cid","userid","level","parentid","name","isview","sortid","imgurl"};
+    inline constexpr std::array<std::string_view,8> col_names={"cid","userid","level","parentid","name","isview","sortid","imgurl"};
 	static constexpr std::array<unsigned char,8> col_types={3,3,3,3,253,1,3,253};
 	static constexpr std::array<unsigned short,8> col_length={0,0,0,0,64,0,0,254};
 	static constexpr std::array<unsigned char,8> col_decimals={0,0,0,0,0,0,0,0};

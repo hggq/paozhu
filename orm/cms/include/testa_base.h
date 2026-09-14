@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTABASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 12 Sep 2026 16:10:46 GMT
+*本文件为自动生成 Mon, 14 Sep 2026 13:39:42 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -618,7 +618,7 @@ namespace testa_info
                 return oss.str(); }\
        }
         
-    static constexpr std::array<std::string_view,6> col_names={"id","parentid","value_id","content","deleted","deletetime"};
+    inline constexpr std::array<std::string_view,6> col_names={"id","parentid","value_id","content","deleted","deletetime"};
 	static constexpr std::array<unsigned char,6> col_types={3,3,1,253,1,3};
 	static constexpr std::array<unsigned short,6> col_length={0,0,0,200,0,0};
 	static constexpr std::array<unsigned char,6> col_decimals={0,0,0,0,0,0};

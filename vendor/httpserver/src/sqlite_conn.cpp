@@ -15,12 +15,13 @@
 
 #ifdef ENABLE_SQLITE
 
-// ======================== ENABLE_SQLITE=ON: 完整实现 ========================
+// ENABLE_SQLITE=ON: man content
 
 namespace orm
 {
 
 // 每个数据库文件一条常驻线程: 串行执行该库所有连接的任务。
+// One persistent thread per database file: serially execute tasks from all connections to that database.
 class sqlite_worker_t
 {
   public:
@@ -249,8 +250,6 @@ bool probe_db_liveness(sqlite3 *db, std::string &out_err)
     return false;
 }
 
-// ======================== 构造 / 析构 ========================
-
 sqlite_conn_base::sqlite_conn_base()
 {
 }
@@ -267,8 +266,6 @@ sqlite_conn_base::~sqlite_conn_base()
     stmt_cache_.clear();
     close_db_handle(db_);
 }
-
-// ======================== 错误处理 ========================
 
 void sqlite_conn_base::set_error(const std::string &msg)
 {
@@ -352,8 +349,6 @@ bool sql_has_no_statement(const std::string &sql)
 // ---- 参数绑定工具：前向声明（定义见本文件后部，供 exec_bound_impl 提前调用） ----
 static int _bind_params(sqlite3_stmt *stmt, const std::vector<sqlite_bind_param> &params);
 static std::string _bind_error_msg(int rc, size_t given_count, size_t placeholder_count);
-
-// ======================== 内部实现 ========================
 
 bool sqlite_conn_base::connect_impl(const orm_conn_t &conn_config)
 {
@@ -649,15 +644,23 @@ bool sqlite_conn_base::query_fetch_impl(const std::string &sql, sqlite_query_res
             return false;
         }
 
-        int col_count = sqlite3_column_count(stmt);
-
-        result.column_names.clear();
-        result.column_names.reserve(col_count);
-        for (int i = 0; i < col_count; i++)
+        // 列数/列名必须等第一次 sqlite3_step() 之后再取：本连接解析过表 T、另一连接
+        // DROP/CREATE 过 T 之后，首次 step 会内部 re-prepare，step 前拿到的列数与列名
+        // 都还是旧 schema 的 —— 新表列多变会静默截断首行，列少变会按旧列数越界读、
+        // 给首行补出一个假的 NULL 列
+        int col_count           = 0;
+        const auto capture_cols = [stmt, &result]
         {
-            const char *name = sqlite3_column_name(stmt, i);
-            result.column_names.push_back(name ? name : "");
-        }
+            const int n = sqlite3_column_count(stmt);
+            result.column_names.clear();
+            result.column_names.reserve(static_cast<size_t>(n));
+            for (int i = 0; i < n; i++)
+            {
+                const char *name = sqlite3_column_name(stmt, i);
+                result.column_names.push_back(name ? name : "");
+            }
+            return n;
+        };
 
         result.rows.clear();
         result.is_null.clear();
@@ -667,6 +670,9 @@ bool sqlite_conn_base::query_fetch_impl(const std::string &sql, sqlite_query_res
         step_rc = SQLITE_OK;
         while ((step_rc = sqlite3_step(stmt)) == SQLITE_ROW)
         {
+            if (result.rows.empty())
+                col_count = capture_cols();
+
             std::vector<std::string> row(col_count);
             std::vector<bool> nulls(col_count, false);
             for (int i = 0; i < col_count; i++)
@@ -713,6 +719,12 @@ bool sqlite_conn_base::query_fetch_impl(const std::string &sql, sqlite_query_res
             result.rows.push_back(std::move(row));
             result.is_null.push_back(std::move(nulls));
         }
+
+        // 0 行结果集没进过循环 ⇒ 补抓一次列名。SQLITE_DONE 之后列数/列名仍完整
+        // 但必须在下面的 reset 之前做；PRAGMA/表结构反射的
+        // 调用点按名字取列，不能让"零行"把列名一起清掉
+        if (step_rc == SQLITE_DONE && result.column_names.empty())
+            capture_cols();
 
         // 必须 reset：未 reset 的缓存语句会保持 WAL 读事务/快照，
         // 钉住常驻连接后续查询；缓存只在同 SQL 再次命中时才 reset，不够
@@ -1342,21 +1354,15 @@ unsigned int sqlite_conn_base::fetch_directly_impl(
         return 0;
     }
 
-    int col_count = sqlite3_column_count(stmt);
+    // 列数/列名必须等第一次 sqlite3_step() 之后再取：sqlite3_column_name() 的指针在语句被
+    // 内部 re-prepare（本连接解析过该表、其它连接 DROP/CREATE 过）时当场失效，step 前抓就会
+    // 让首行的列名落在已释放内存上（值仍正确）。栈/数组声明留在循环外，指针要跨行存活。
+    int col_count = 0;
 
     // 列名数组优先用栈上小数组，超限时回退堆分配，避免每次查询 new/delete
     char *col_names_stack[64];
     std::vector<char *> col_names_heap;
     char **col_names = col_names_stack;
-    if (col_count > static_cast<int>(sizeof(col_names_stack) / sizeof(col_names_stack[0])))
-    {
-        col_names_heap.resize(static_cast<size_t>(col_count));
-        col_names = col_names_heap.data();
-    }
-    for (int i = 0; i < col_count; i++)
-    {
-        col_names[i] = const_cast<char *>(sqlite3_column_name(stmt, i));
-    }
 
     // get_data 捕获 stmt + this（REAL 列精度还原走成员 float_buf_）
     auto get_data = [stmt, this](int col_idx) -> std::tuple<unsigned char *, size_t>
@@ -1403,6 +1409,19 @@ unsigned int sqlite_conn_base::fetch_directly_impl(
     // 且本连接语句只在单 worker 上串行 step，不存在跨线程复用残留快照的场景。
     while ((rc = sqlite3_step(stmt)) == SQLITE_ROW)
     {
+        if (row_num == 0)
+        {
+            col_count = sqlite3_column_count(stmt);
+            if (col_count > static_cast<int>(sizeof(col_names_stack) / sizeof(col_names_stack[0])))
+            {
+                col_names_heap.resize(static_cast<size_t>(col_count));
+                col_names = col_names_heap.data();
+            }
+            for (int i = 0; i < col_count; i++)
+            {
+                col_names[i] = const_cast<char *>(sqlite3_column_name(stmt, i));
+            }
+        }
         bool should_continue = handler(col_count, col_names, get_data);
         row_num++;
 
@@ -2016,18 +2035,12 @@ unsigned int sqlite_conn_base::fetch_prepared_impl(
             return 0;
         }
 
-        int col_count = sqlite3_column_count(stmt);
+        // 列数/列名留到首行 step 之后再抓，理由同 fetch_directly_impl
+        int col_count = 0;
 
         char *col_names_stack[64];
         std::vector<char *> col_names_heap;
         char **col_names = col_names_stack;
-        if (col_count > static_cast<int>(sizeof(col_names_stack) / sizeof(col_names_stack[0])))
-        {
-            col_names_heap.resize(static_cast<size_t>(col_count));
-            col_names = col_names_heap.data();
-        }
-        for (int i = 0; i < col_count; i++)
-            col_names[i] = const_cast<char *>(sqlite3_column_name(stmt, i));
 
         // get_data 捕获 stmt + this（REAL 列精度还原走成员 float_buf_）
         auto get_data = [stmt, this](int col_idx) -> std::tuple<unsigned char *, size_t>
@@ -2064,6 +2077,17 @@ unsigned int sqlite_conn_base::fetch_prepared_impl(
 
         while ((rc = sqlite3_step(stmt)) == SQLITE_ROW)
         {
+            if (row_num == 0)
+            {
+                col_count = sqlite3_column_count(stmt);
+                if (col_count > static_cast<int>(sizeof(col_names_stack) / sizeof(col_names_stack[0])))
+                {
+                    col_names_heap.resize(static_cast<size_t>(col_count));
+                    col_names = col_names_heap.data();
+                }
+                for (int i = 0; i < col_count; i++)
+                    col_names[i] = const_cast<char *>(sqlite3_column_name(stmt, i));
+            }
             row_num++;
             if (!handler(col_count, col_names, get_data))
             {
@@ -2134,18 +2158,12 @@ unsigned int sqlite_conn_base::fetch_prepared_impl_binary(
             return 0;
         }
 
-        int col_count = sqlite3_column_count(stmt);
+        // 列数/列名留到首行 step 之后再抓，理由同 fetch_directly_impl
+        int col_count = 0;
 
         char *col_names_stack[64];
         std::vector<char *> col_names_heap;
         char **col_names = col_names_stack;
-        if (col_count > static_cast<int>(sizeof(col_names_stack) / sizeof(col_names_stack[0])))
-        {
-            col_names_heap.resize(static_cast<size_t>(col_count));
-            col_names = col_names_heap.data();
-        }
-        for (int i = 0; i < col_count; i++)
-            col_names[i] = const_cast<char *>(sqlite3_column_name(stmt, i));
 
         // ===== 核心差别：get_data 返回 col_value_variant =====
         // INTEGER → int64_t, FLOAT → double, TEXT/BLOB → string_view, NULL → monostate
@@ -2183,6 +2201,17 @@ unsigned int sqlite_conn_base::fetch_prepared_impl_binary(
 
         while ((rc = sqlite3_step(stmt)) == SQLITE_ROW)
         {
+            if (row_num == 0)
+            {
+                col_count = sqlite3_column_count(stmt);
+                if (col_count > static_cast<int>(sizeof(col_names_stack) / sizeof(col_names_stack[0])))
+                {
+                    col_names_heap.resize(static_cast<size_t>(col_count));
+                    col_names = col_names_heap.data();
+                }
+                for (int i = 0; i < col_count; i++)
+                    col_names[i] = const_cast<char *>(sqlite3_column_name(stmt, i));
+            }
             row_num++;
             if (!handler(col_count, col_names, get_data))
             {

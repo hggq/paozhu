@@ -18,7 +18,7 @@ std::string to_escape(std::string_view val, bool no_backslash_escapes)
         switch (c)
         {
         case '\'':
-            // NO_BACKSLASH_ESCAPES 模式下用 '' 转义；否则用 \'
+            // In NO_BACKSLASH_ESCAPES mode, use '' for escaping; otherwise, use \'
             temp += no_backslash_escapes ? "''" : "\\'";
             break;
         case '"': temp += no_backslash_escapes ? "\"\"" : "\\\""; break;

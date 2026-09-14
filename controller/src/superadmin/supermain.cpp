@@ -750,7 +750,7 @@ std::string superadmin_userinfo(std::shared_ptr<httppeer> peer)
 
         auto loginfo = orm::cms::Logininfo();
 
-        loginfo.where("logtype", 1).where("adminid", stuser.getAdminid()).desc("lgid").limit(10).fetch();
+        loginfo.where("logtype", 1).where("userid", stuser.getAdminid()).desc("lgid").limit(10).fetch();
 
         client.val["loginlist"].set_array();
         obj_val temp;
