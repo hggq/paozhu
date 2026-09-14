@@ -16,4 +16,6 @@ namespace http
 	std::string articleadd(std::shared_ptr<httppeer> peer);
 	std::string articleaddpost(std::shared_ptr<httppeer> peer);
 	std::string articledelete(std::shared_ptr<httppeer> peer);
+	std::string articleprepost(std::shared_ptr<httppeer> peer);
+	std::string articlepreselect(std::shared_ptr<httppeer> peer);
 }

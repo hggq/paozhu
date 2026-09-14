@@ -6,6 +6,19 @@
 #include "httppeer.h"
 #include "request.h"
 #include "testcrud.h"
+#include "orm_query.h"
+
+namespace orm::cust
+{
+struct ArticleRow : orm::Base<ArticleRow>
+{
+    unsigned int aid = 0;
+    std::string title;
+    std::string content;
+    ORM_NAMES(aid, title, content);
+};
+}// namespace orm::cust
+
 namespace http
 {
 
@@ -297,4 +310,103 @@ std::string articledelete(std::shared_ptr<httppeer> peer)
 
     return "";
 }
+
+//@urlpath(articleislogin,cms/prepost)
+std::string articleprepost(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client    = peer->get_peer();
+    std::string title   = client.post["title"].to_string();
+    std::string content = client.post["content"].to_string();
+
+    // 27 列对应 27 个值；其中 7 个 ? 占位符由 params 绑定
+    std::string sql = "INSERT INTO `article` "
+                      "(`aid`,`topicid`,`classtype`,`userid`,`sortid`,`topicname`,`title`,`keywords`,"
+                      "`fromsource`,`author`,`addip`,`createtime`,`addtime`,`readnum`,`review`,`icoimg`,"
+                      "`content`,`mdcontent`,`isopen`,`ishome`,`iscomment`,`showtype`,`fromlocal`,"
+                      "`texturl`,`summary`,`editauthor`,`relatecontent`) "
+                      "VALUES (NULL,0,0,?,0,NULL,?,?,'','',?,?,?,0,0,'',?,?,0,0,0,0,0,'','','','')";
+
+    orm::cms::Article articles;
+    orm::db_conn db(articles.dbtag);
+    if (db.iserror)
+    {
+        client.val["code"] = 0;
+        client.val["msg"]  = db.error_msg;
+        client.out_json();
+        return "";
+    }
+    unsigned int userid               = client.session["userid"].to_int();
+    std::vector<http::obj_val> params = {
+        http::obj_val(userid),
+        http::obj_val(title),                                   // 1. title
+        http::obj_val(std::string("")),                         // 2. keywords
+        http::obj_val(client.client_ip),                        // 3. addip
+        http::obj_val(get_date("%Y-%m-%d %X")),                 // 4. createtime
+        http::obj_val(static_cast<long long>(timeid())),        // 5. addtime
+        http::obj_val(content),                                 // 6. content
+        http::obj_val(std::string("paozhu prepared statement")),// 7. mdcontent
+    };
+
+    unsigned int effect = db.exec_edit_query(sql, params);
+
+    client.val["code"]   = db.iserror ? 0 : 1;
+    client.val["effect"] = effect;
+    client.val["sql"]    = sql;
+    if (db.iserror)
+        client.val["msg"] = db.error_msg;
+    else
+        client.val["msg"] = "prepared insert ok";
+    client.out_json();
+    return "";
+}
+
+//@urlpath(articleislogin,cms/preselect)
+std::string articlepreselect(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+    int aid          = client.get["id"].to_int();
+    int userid       = client.session["userid"].to_int();
+    if (userid == 0)
+        userid = 1;
+
+    orm::cms::Article articles;
+    orm::db_conn db(articles.dbtag);
+    if (db.iserror)
+    {
+        client.val["code"] = 0;
+        client.val["msg"]  = db.error_msg;
+        client.out_json();
+        return "";
+    }
+
+    std::string sql = "select aid,title,content from `article` where userid = ? and aid = ? limit 1";
+
+    std::vector<http::obj_val> params = {
+        http::obj_val(static_cast<long long>(userid)),
+        http::obj_val(static_cast<long long>(aid)),
+    };
+
+    // 结果结构体：需实现 set_val(name, buf, len, field_type) 满足 ResultHasSetVal
+
+    orm::cust::ArticleRow row;
+    unsigned int count = db.exec_query(sql, params, row);
+
+    client.val["code"]  = db.iserror ? 0 : 1;
+    client.val["count"] = count;
+    client.val["sql"]   = sql;
+    if (db.iserror)
+    {
+        client.val["msg"] = db.error_msg;
+    }
+    else
+    {
+        client.val["msg"]     = "prepared select ok";
+        client.val["aid"]     = row.aid;
+        client.val["title"]   = row.title;
+        client.val["content"] = row.content;
+    }
+    client.out_json();
+    return "";
+}
+
 }//namespace http

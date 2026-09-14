@@ -764,6 +764,12 @@ namespace http
 		temp.pre = articleislogin;
 		temp.regfun = articledelete;
 		methodcallback.emplace("cms/delete",temp);
+		temp.pre = articleislogin;
+		temp.regfun = articleprepost;
+		methodcallback.emplace("cms/prepost",temp);
+		temp.pre = articleislogin;
+		temp.regfun = articlepreselect;
+		methodcallback.emplace("cms/preselect",temp);
 		temp.pre = nullptr;
 		temp.regfun = testjsonreflect;
 		methodcallback.emplace("testjsonreflect",temp);
