@@ -2821,8 +2821,8 @@ inline bool sqlite_get_table_schema(std::shared_ptr<orm::sqlite_conn_base> sqlit
     {
         db_field_info field;
         field.field_name = c["name"];
-        std::transform(field.field_name.begin(), field.field_name.end(), field.field_name.begin(), [](unsigned char c) -> char
-                       { return std::tolower(c); });
+        std::transform(field.field_name.begin(), field.field_name.end(), field.field_name.begin(), [](unsigned char ch) -> char
+                       { return std::tolower(ch); });
 
         // 保留完整声明 (如 VARCHAR(255)), 同时解析长度/精度供 DDL 与反向转换使用
         std::string decl = trim(c["type"]);

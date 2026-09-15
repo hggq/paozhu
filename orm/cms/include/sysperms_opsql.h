@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Mon, 14 Sep 2026 13:39:42 GMT
+ *  Creation time Tue, 15 Sep 2026 12:41:27 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -132,7 +132,7 @@ namespace cms
 
         M_MODEL &resetDB()
         {
-            dbtag = B_BASE::_rmstag;
+            dbtag                                                                = B_BASE::_rmstag;
             std::map<std::string, std::shared_ptr<orm_conn_pool>> &conn_pool_obj = get_orm_conn_pool_obj();
             auto iter                                                            = conn_pool_obj.find(dbtag);
             if (iter != conn_pool_obj.end())
@@ -4530,6 +4530,115 @@ M_MODEL& ornotnullUpdatedUser()
             ordersql.append(" ASC ");
             return *mod;
         }
+        M_MODEL &asc(orm::table_col<B_BASE, &sysperms_info::col_names> field1, orm::table_col<B_BASE, &sysperms_info::col_names> field2)
+        {
+
+            ordersql.append(" ORDER BY ");
+            ordersql.append(field1);
+            ordersql.append(",");
+            ordersql.append(field2);
+            ordersql.append(" ASC ");
+            return *mod;
+        }
+        M_MODEL &asc(sysperms_info::cols field, sysperms_info::cols field2)
+        {
+            ordersql.append(" ORDER BY ");
+            switch (field)
+            {
+            
+			case sysperms_info::cols::permsid:
+				ordersql.append("permsid");
+				break;
+			case sysperms_info::cols::parentid:
+				ordersql.append("parentid");
+				break;
+			case sysperms_info::cols::userid:
+				ordersql.append("userid");
+				break;
+			case sysperms_info::cols::urlpath:
+				ordersql.append("urlpath");
+				break;
+			case sysperms_info::cols::urlname:
+				ordersql.append("urlname");
+				break;
+			case sysperms_info::cols::name:
+				ordersql.append("name");
+				break;
+			case sysperms_info::cols::status:
+				ordersql.append("status");
+				break;
+			case sysperms_info::cols::permscode:
+				ordersql.append("permscode");
+				break;
+			case sysperms_info::cols::readonly:
+				ordersql.append("readonly");
+				break;
+			case sysperms_info::cols::created_time:
+				ordersql.append("created_time");
+				break;
+			case sysperms_info::cols::updated_time:
+				ordersql.append("updated_time");
+				break;
+			case sysperms_info::cols::created_user:
+				ordersql.append("created_user");
+				break;
+			case sysperms_info::cols::updated_user:
+				ordersql.append("updated_user");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(",");
+            switch (field2)
+            {
+            
+			case sysperms_info::cols::permsid:
+				ordersql.append("permsid");
+				break;
+			case sysperms_info::cols::parentid:
+				ordersql.append("parentid");
+				break;
+			case sysperms_info::cols::userid:
+				ordersql.append("userid");
+				break;
+			case sysperms_info::cols::urlpath:
+				ordersql.append("urlpath");
+				break;
+			case sysperms_info::cols::urlname:
+				ordersql.append("urlname");
+				break;
+			case sysperms_info::cols::name:
+				ordersql.append("name");
+				break;
+			case sysperms_info::cols::status:
+				ordersql.append("status");
+				break;
+			case sysperms_info::cols::permscode:
+				ordersql.append("permscode");
+				break;
+			case sysperms_info::cols::readonly:
+				ordersql.append("readonly");
+				break;
+			case sysperms_info::cols::created_time:
+				ordersql.append("created_time");
+				break;
+			case sysperms_info::cols::updated_time:
+				ordersql.append("updated_time");
+				break;
+			case sysperms_info::cols::created_user:
+				ordersql.append("created_user");
+				break;
+			case sysperms_info::cols::updated_user:
+				ordersql.append("updated_user");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(" ASC ");
+            return *mod;
+        }
 
         M_MODEL &asc()
         {
@@ -4597,7 +4706,116 @@ M_MODEL& ornotnullUpdatedUser()
             ordersql.append(" DESC ");
             return *mod;
         }
+        M_MODEL &desc(sysperms_info::cols field, sysperms_info::cols field2)
+        {
 
+            ordersql.append(" ORDER BY ");
+            switch (field)
+            {
+            
+			case sysperms_info::cols::permsid:
+				ordersql.append("permsid");
+				break;
+			case sysperms_info::cols::parentid:
+				ordersql.append("parentid");
+				break;
+			case sysperms_info::cols::userid:
+				ordersql.append("userid");
+				break;
+			case sysperms_info::cols::urlpath:
+				ordersql.append("urlpath");
+				break;
+			case sysperms_info::cols::urlname:
+				ordersql.append("urlname");
+				break;
+			case sysperms_info::cols::name:
+				ordersql.append("name");
+				break;
+			case sysperms_info::cols::status:
+				ordersql.append("status");
+				break;
+			case sysperms_info::cols::permscode:
+				ordersql.append("permscode");
+				break;
+			case sysperms_info::cols::readonly:
+				ordersql.append("readonly");
+				break;
+			case sysperms_info::cols::created_time:
+				ordersql.append("created_time");
+				break;
+			case sysperms_info::cols::updated_time:
+				ordersql.append("updated_time");
+				break;
+			case sysperms_info::cols::created_user:
+				ordersql.append("created_user");
+				break;
+			case sysperms_info::cols::updated_user:
+				ordersql.append("updated_user");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(",");
+            switch (field2)
+            {
+            
+			case sysperms_info::cols::permsid:
+				ordersql.append("permsid");
+				break;
+			case sysperms_info::cols::parentid:
+				ordersql.append("parentid");
+				break;
+			case sysperms_info::cols::userid:
+				ordersql.append("userid");
+				break;
+			case sysperms_info::cols::urlpath:
+				ordersql.append("urlpath");
+				break;
+			case sysperms_info::cols::urlname:
+				ordersql.append("urlname");
+				break;
+			case sysperms_info::cols::name:
+				ordersql.append("name");
+				break;
+			case sysperms_info::cols::status:
+				ordersql.append("status");
+				break;
+			case sysperms_info::cols::permscode:
+				ordersql.append("permscode");
+				break;
+			case sysperms_info::cols::readonly:
+				ordersql.append("readonly");
+				break;
+			case sysperms_info::cols::created_time:
+				ordersql.append("created_time");
+				break;
+			case sysperms_info::cols::updated_time:
+				ordersql.append("updated_time");
+				break;
+			case sysperms_info::cols::created_user:
+				ordersql.append("created_user");
+				break;
+			case sysperms_info::cols::updated_user:
+				ordersql.append("updated_user");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(" DESC ");
+            return *mod;
+        }
+        M_MODEL &desc(orm::table_col<B_BASE, &sysperms_info::col_names> field1, orm::table_col<B_BASE, &sysperms_info::col_names> field2)
+        {
+
+            ordersql.append(" ORDER BY ");
+            ordersql.append(field1);
+            ordersql.append(",");
+            ordersql.append(field2);
+            ordersql.append(" DESC ");
+            return *mod;
+        }        
         M_MODEL &order(orm::table_col<B_BASE, &sysperms_info::col_names> wq, const std::string &asc_or_desc)
         {
             ordersql.append(" ORDER BY ");
@@ -4937,7 +5155,7 @@ M_MODEL& ornotnullUpdatedUser()
                 bool iscache_hit = false;
                 try
                 {
-                    std::vector<std::vector<std::string>> cache_rows  = temp_cache.get(sqlhashid);
+                    std::vector<std::vector<std::string>> cache_rows   = temp_cache.get(sqlhashid);
                     std::vector<std::string> cache_fieldname           = table_cache.get(sqlhashid);
                     std::map<std::string, unsigned int> cache_fieldmap = tablemap_cache.get(sqlhashid);
 
@@ -7005,7 +7223,7 @@ M_MODEL& ornotnullUpdatedUser()
             std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
 
             model_meta_cache<sysperms_info::meta> &data_cache = model_meta_cache<sysperms_info::meta>::getinstance();
-            bool state = data_cache.remove(sqlhashid);
+            bool state                                          = data_cache.remove(sqlhashid);
 
             model_meta_cache<std::vector<sysperms_info::meta>> &record_cache = model_meta_cache<std::vector<sysperms_info::meta>>::getinstance();
             return record_cache.remove(sqlhashid) || state;
@@ -7013,7 +7231,7 @@ M_MODEL& ornotnullUpdatedUser()
         bool remove_cache(std::size_t cache_key_name)
         {
             model_meta_cache<sysperms_info::meta> &data_cache = model_meta_cache<sysperms_info::meta>::getinstance();
-            bool state = data_cache.remove(cache_key_name);
+            bool state                                          = data_cache.remove(cache_key_name);
 
             model_meta_cache<std::vector<sysperms_info::meta>> &record_cache = model_meta_cache<std::vector<sysperms_info::meta>>::getinstance();
             return record_cache.remove(cache_key_name) || state;
@@ -11208,10 +11426,10 @@ M_MODEL& ornotnullUpdatedUser()
         M_MODEL &AND(orm::table_col<B_BASE, &sysperms_info::col_names> field, orm::wq opwq, T val)
         {
             orm_where_sql_t item;
-            item.pre_op      = wheresql.empty() ? 0 : 1;
-            item.op_type     = opwq;
-            item.col_idx     = B_BASE::findcolpos(field);
-            
+            item.pre_op  = wheresql.empty() ? 0 : 1;
+            item.op_type = opwq;
+            item.col_idx = B_BASE::findcolpos(field);
+
             if (item.col_idx == 255)
             {
                 error_msg = "field is not table column";
@@ -11228,10 +11446,10 @@ M_MODEL& ornotnullUpdatedUser()
         M_MODEL &OR(orm::table_col<B_BASE, &sysperms_info::col_names> field, orm::wq opwq, T val)
         {
             orm_where_sql_t item;
-            item.pre_op      = wheresql.empty() ? 0 : 2;
-            item.op_type     = opwq;
-            item.col_idx     = B_BASE::findcolpos(field);
-            
+            item.pre_op  = wheresql.empty() ? 0 : 2;
+            item.op_type = opwq;
+            item.col_idx = B_BASE::findcolpos(field);
+
             if (item.col_idx == 255)
             {
                 error_msg = "field is not table column";

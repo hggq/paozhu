@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Mon, 14 Sep 2026 13:39:42 GMT
+ *  Creation time Tue, 15 Sep 2026 12:41:27 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -132,7 +132,7 @@ namespace cms
 
         M_MODEL &resetDB()
         {
-            dbtag = B_BASE::_rmstag;
+            dbtag                                                                = B_BASE::_rmstag;
             std::map<std::string, std::shared_ptr<orm_conn_pool>> &conn_pool_obj = get_orm_conn_pool_obj();
             auto iter                                                            = conn_pool_obj.find(dbtag);
             if (iter != conn_pool_obj.end())
@@ -4301,6 +4301,121 @@ M_MODEL& ornotnullBasesitepath()
             ordersql.append(" ASC ");
             return *mod;
         }
+        M_MODEL &asc(orm::table_col<B_BASE, &superadmin_info::col_names> field1, orm::table_col<B_BASE, &superadmin_info::col_names> field2)
+        {
+
+            ordersql.append(" ORDER BY ");
+            ordersql.append(field1);
+            ordersql.append(",");
+            ordersql.append(field2);
+            ordersql.append(" ASC ");
+            return *mod;
+        }
+        M_MODEL &asc(superadmin_info::cols field, superadmin_info::cols field2)
+        {
+            ordersql.append(" ORDER BY ");
+            switch (field)
+            {
+            
+			case superadmin_info::cols::adminid:
+				ordersql.append("adminid");
+				break;
+			case superadmin_info::cols::name:
+				ordersql.append("name");
+				break;
+			case superadmin_info::cols::password:
+				ordersql.append("password");
+				break;
+			case superadmin_info::cols::nickname:
+				ordersql.append("nickname");
+				break;
+			case superadmin_info::cols::isopen:
+				ordersql.append("isopen");
+				break;
+			case superadmin_info::cols::begindate:
+				ordersql.append("begindate");
+				break;
+			case superadmin_info::cols::enddate:
+				ordersql.append("enddate");
+				break;
+			case superadmin_info::cols::regdate:
+				ordersql.append("regdate");
+				break;
+			case superadmin_info::cols::mobile:
+				ordersql.append("mobile");
+				break;
+			case superadmin_info::cols::email:
+				ordersql.append("email");
+				break;
+			case superadmin_info::cols::loginnum:
+				ordersql.append("loginnum");
+				break;
+			case superadmin_info::cols::qrtemp:
+				ordersql.append("qrtemp");
+				break;
+			case superadmin_info::cols::wxuuid:
+				ordersql.append("wxuuid");
+				break;
+			case superadmin_info::cols::basesitepath:
+				ordersql.append("basesitepath");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(",");
+            switch (field2)
+            {
+            
+			case superadmin_info::cols::adminid:
+				ordersql.append("adminid");
+				break;
+			case superadmin_info::cols::name:
+				ordersql.append("name");
+				break;
+			case superadmin_info::cols::password:
+				ordersql.append("password");
+				break;
+			case superadmin_info::cols::nickname:
+				ordersql.append("nickname");
+				break;
+			case superadmin_info::cols::isopen:
+				ordersql.append("isopen");
+				break;
+			case superadmin_info::cols::begindate:
+				ordersql.append("begindate");
+				break;
+			case superadmin_info::cols::enddate:
+				ordersql.append("enddate");
+				break;
+			case superadmin_info::cols::regdate:
+				ordersql.append("regdate");
+				break;
+			case superadmin_info::cols::mobile:
+				ordersql.append("mobile");
+				break;
+			case superadmin_info::cols::email:
+				ordersql.append("email");
+				break;
+			case superadmin_info::cols::loginnum:
+				ordersql.append("loginnum");
+				break;
+			case superadmin_info::cols::qrtemp:
+				ordersql.append("qrtemp");
+				break;
+			case superadmin_info::cols::wxuuid:
+				ordersql.append("wxuuid");
+				break;
+			case superadmin_info::cols::basesitepath:
+				ordersql.append("basesitepath");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(" ASC ");
+            return *mod;
+        }
 
         M_MODEL &asc()
         {
@@ -4371,7 +4486,122 @@ M_MODEL& ornotnullBasesitepath()
             ordersql.append(" DESC ");
             return *mod;
         }
+        M_MODEL &desc(superadmin_info::cols field, superadmin_info::cols field2)
+        {
 
+            ordersql.append(" ORDER BY ");
+            switch (field)
+            {
+            
+			case superadmin_info::cols::adminid:
+				ordersql.append("adminid");
+				break;
+			case superadmin_info::cols::name:
+				ordersql.append("name");
+				break;
+			case superadmin_info::cols::password:
+				ordersql.append("password");
+				break;
+			case superadmin_info::cols::nickname:
+				ordersql.append("nickname");
+				break;
+			case superadmin_info::cols::isopen:
+				ordersql.append("isopen");
+				break;
+			case superadmin_info::cols::begindate:
+				ordersql.append("begindate");
+				break;
+			case superadmin_info::cols::enddate:
+				ordersql.append("enddate");
+				break;
+			case superadmin_info::cols::regdate:
+				ordersql.append("regdate");
+				break;
+			case superadmin_info::cols::mobile:
+				ordersql.append("mobile");
+				break;
+			case superadmin_info::cols::email:
+				ordersql.append("email");
+				break;
+			case superadmin_info::cols::loginnum:
+				ordersql.append("loginnum");
+				break;
+			case superadmin_info::cols::qrtemp:
+				ordersql.append("qrtemp");
+				break;
+			case superadmin_info::cols::wxuuid:
+				ordersql.append("wxuuid");
+				break;
+			case superadmin_info::cols::basesitepath:
+				ordersql.append("basesitepath");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(",");
+            switch (field2)
+            {
+            
+			case superadmin_info::cols::adminid:
+				ordersql.append("adminid");
+				break;
+			case superadmin_info::cols::name:
+				ordersql.append("name");
+				break;
+			case superadmin_info::cols::password:
+				ordersql.append("password");
+				break;
+			case superadmin_info::cols::nickname:
+				ordersql.append("nickname");
+				break;
+			case superadmin_info::cols::isopen:
+				ordersql.append("isopen");
+				break;
+			case superadmin_info::cols::begindate:
+				ordersql.append("begindate");
+				break;
+			case superadmin_info::cols::enddate:
+				ordersql.append("enddate");
+				break;
+			case superadmin_info::cols::regdate:
+				ordersql.append("regdate");
+				break;
+			case superadmin_info::cols::mobile:
+				ordersql.append("mobile");
+				break;
+			case superadmin_info::cols::email:
+				ordersql.append("email");
+				break;
+			case superadmin_info::cols::loginnum:
+				ordersql.append("loginnum");
+				break;
+			case superadmin_info::cols::qrtemp:
+				ordersql.append("qrtemp");
+				break;
+			case superadmin_info::cols::wxuuid:
+				ordersql.append("wxuuid");
+				break;
+			case superadmin_info::cols::basesitepath:
+				ordersql.append("basesitepath");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(" DESC ");
+            return *mod;
+        }
+        M_MODEL &desc(orm::table_col<B_BASE, &superadmin_info::col_names> field1, orm::table_col<B_BASE, &superadmin_info::col_names> field2)
+        {
+
+            ordersql.append(" ORDER BY ");
+            ordersql.append(field1);
+            ordersql.append(",");
+            ordersql.append(field2);
+            ordersql.append(" DESC ");
+            return *mod;
+        }        
         M_MODEL &order(orm::table_col<B_BASE, &superadmin_info::col_names> wq, const std::string &asc_or_desc)
         {
             ordersql.append(" ORDER BY ");
@@ -4717,7 +4947,7 @@ M_MODEL& ornotnullBasesitepath()
                 bool iscache_hit = false;
                 try
                 {
-                    std::vector<std::vector<std::string>> cache_rows  = temp_cache.get(sqlhashid);
+                    std::vector<std::vector<std::string>> cache_rows   = temp_cache.get(sqlhashid);
                     std::vector<std::string> cache_fieldname           = table_cache.get(sqlhashid);
                     std::map<std::string, unsigned int> cache_fieldmap = tablemap_cache.get(sqlhashid);
 
@@ -6785,7 +7015,7 @@ M_MODEL& ornotnullBasesitepath()
             std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
 
             model_meta_cache<superadmin_info::meta> &data_cache = model_meta_cache<superadmin_info::meta>::getinstance();
-            bool state = data_cache.remove(sqlhashid);
+            bool state                                          = data_cache.remove(sqlhashid);
 
             model_meta_cache<std::vector<superadmin_info::meta>> &record_cache = model_meta_cache<std::vector<superadmin_info::meta>>::getinstance();
             return record_cache.remove(sqlhashid) || state;
@@ -6793,7 +7023,7 @@ M_MODEL& ornotnullBasesitepath()
         bool remove_cache(std::size_t cache_key_name)
         {
             model_meta_cache<superadmin_info::meta> &data_cache = model_meta_cache<superadmin_info::meta>::getinstance();
-            bool state = data_cache.remove(cache_key_name);
+            bool state                                          = data_cache.remove(cache_key_name);
 
             model_meta_cache<std::vector<superadmin_info::meta>> &record_cache = model_meta_cache<std::vector<superadmin_info::meta>>::getinstance();
             return record_cache.remove(cache_key_name) || state;
@@ -10988,10 +11218,10 @@ M_MODEL& ornotnullBasesitepath()
         M_MODEL &AND(orm::table_col<B_BASE, &superadmin_info::col_names> field, orm::wq opwq, T val)
         {
             orm_where_sql_t item;
-            item.pre_op      = wheresql.empty() ? 0 : 1;
-            item.op_type     = opwq;
-            item.col_idx     = B_BASE::findcolpos(field);
-            
+            item.pre_op  = wheresql.empty() ? 0 : 1;
+            item.op_type = opwq;
+            item.col_idx = B_BASE::findcolpos(field);
+
             if (item.col_idx == 255)
             {
                 error_msg = "field is not table column";
@@ -11008,10 +11238,10 @@ M_MODEL& ornotnullBasesitepath()
         M_MODEL &OR(orm::table_col<B_BASE, &superadmin_info::col_names> field, orm::wq opwq, T val)
         {
             orm_where_sql_t item;
-            item.pre_op      = wheresql.empty() ? 0 : 2;
-            item.op_type     = opwq;
-            item.col_idx     = B_BASE::findcolpos(field);
-            
+            item.pre_op  = wheresql.empty() ? 0 : 2;
+            item.op_type = opwq;
+            item.col_idx = B_BASE::findcolpos(field);
+
             if (item.col_idx == 255)
             {
                 error_msg = "field is not table column";

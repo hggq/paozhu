@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Mon, 14 Sep 2026 13:39:42 GMT
+ *  Creation time Tue, 15 Sep 2026 12:41:27 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -132,7 +132,7 @@ namespace cms
 
         M_MODEL &resetDB()
         {
-            dbtag = B_BASE::_rmstag;
+            dbtag                                                                = B_BASE::_rmstag;
             std::map<std::string, std::shared_ptr<orm_conn_pool>> &conn_pool_obj = get_orm_conn_pool_obj();
             auto iter                                                            = conn_pool_obj.find(dbtag);
             if (iter != conn_pool_obj.end())
@@ -7148,6 +7148,217 @@ M_MODEL& ornotnullItemnote()
             ordersql.append(" ASC ");
             return *mod;
         }
+        M_MODEL &asc(orm::table_col<B_BASE, &xtask_info::col_names> field1, orm::table_col<B_BASE, &xtask_info::col_names> field2)
+        {
+
+            ordersql.append(" ORDER BY ");
+            ordersql.append(field1);
+            ordersql.append(",");
+            ordersql.append(field2);
+            ordersql.append(" ASC ");
+            return *mod;
+        }
+        M_MODEL &asc(xtask_info::cols field, xtask_info::cols field2)
+        {
+            ordersql.append(" ORDER BY ");
+            switch (field)
+            {
+            
+			case xtask_info::cols::xtaskid:
+				ordersql.append("xtaskid");
+				break;
+			case xtask_info::cols::userid:
+				ordersql.append("userid");
+				break;
+			case xtask_info::cols::xpjid:
+				ordersql.append("xpjid");
+				break;
+			case xtask_info::cols::adminid:
+				ordersql.append("adminid");
+				break;
+			case xtask_info::cols::parentid:
+				ordersql.append("parentid");
+				break;
+			case xtask_info::cols::begindate:
+				ordersql.append("begindate");
+				break;
+			case xtask_info::cols::enddate:
+				ordersql.append("enddate");
+				break;
+			case xtask_info::cols::expectbegindate:
+				ordersql.append("expectbegindate");
+				break;
+			case xtask_info::cols::expectenddate:
+				ordersql.append("expectenddate");
+				break;
+			case xtask_info::cols::milestone:
+				ordersql.append("milestone");
+				break;
+			case xtask_info::cols::subxpjid:
+				ordersql.append("subxpjid");
+				break;
+			case xtask_info::cols::depxtaskid:
+				ordersql.append("depxtaskid");
+				break;
+			case xtask_info::cols::referdocid:
+				ordersql.append("referdocid");
+				break;
+			case xtask_info::cols::isfinish:
+				ordersql.append("isfinish");
+				break;
+			case xtask_info::cols::updatedate:
+				ordersql.append("updatedate");
+				break;
+			case xtask_info::cols::finishdate:
+				ordersql.append("finishdate");
+				break;
+			case xtask_info::cols::iscore:
+				ordersql.append("iscore");
+				break;
+			case xtask_info::cols::xvalue:
+				ordersql.append("xvalue");
+				break;
+			case xtask_info::cols::expectday:
+				ordersql.append("expectday");
+				break;
+			case xtask_info::cols::realday:
+				ordersql.append("realday");
+				break;
+			case xtask_info::cols::pricevalue:
+				ordersql.append("pricevalue");
+				break;
+			case xtask_info::cols::title:
+				ordersql.append("title");
+				break;
+			case xtask_info::cols::introduce:
+				ordersql.append("introduce");
+				break;
+			case xtask_info::cols::xlogo:
+				ordersql.append("xlogo");
+				break;
+			case xtask_info::cols::xcolor:
+				ordersql.append("xcolor");
+				break;
+			case xtask_info::cols::pullurl:
+				ordersql.append("pullurl");
+				break;
+			case xtask_info::cols::pulltitle:
+				ordersql.append("pulltitle");
+				break;
+			case xtask_info::cols::pullauthor:
+				ordersql.append("pullauthor");
+				break;
+			case xtask_info::cols::note:
+				ordersql.append("note");
+				break;
+			case xtask_info::cols::itemnote:
+				ordersql.append("itemnote");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(",");
+            switch (field2)
+            {
+            
+			case xtask_info::cols::xtaskid:
+				ordersql.append("xtaskid");
+				break;
+			case xtask_info::cols::userid:
+				ordersql.append("userid");
+				break;
+			case xtask_info::cols::xpjid:
+				ordersql.append("xpjid");
+				break;
+			case xtask_info::cols::adminid:
+				ordersql.append("adminid");
+				break;
+			case xtask_info::cols::parentid:
+				ordersql.append("parentid");
+				break;
+			case xtask_info::cols::begindate:
+				ordersql.append("begindate");
+				break;
+			case xtask_info::cols::enddate:
+				ordersql.append("enddate");
+				break;
+			case xtask_info::cols::expectbegindate:
+				ordersql.append("expectbegindate");
+				break;
+			case xtask_info::cols::expectenddate:
+				ordersql.append("expectenddate");
+				break;
+			case xtask_info::cols::milestone:
+				ordersql.append("milestone");
+				break;
+			case xtask_info::cols::subxpjid:
+				ordersql.append("subxpjid");
+				break;
+			case xtask_info::cols::depxtaskid:
+				ordersql.append("depxtaskid");
+				break;
+			case xtask_info::cols::referdocid:
+				ordersql.append("referdocid");
+				break;
+			case xtask_info::cols::isfinish:
+				ordersql.append("isfinish");
+				break;
+			case xtask_info::cols::updatedate:
+				ordersql.append("updatedate");
+				break;
+			case xtask_info::cols::finishdate:
+				ordersql.append("finishdate");
+				break;
+			case xtask_info::cols::iscore:
+				ordersql.append("iscore");
+				break;
+			case xtask_info::cols::xvalue:
+				ordersql.append("xvalue");
+				break;
+			case xtask_info::cols::expectday:
+				ordersql.append("expectday");
+				break;
+			case xtask_info::cols::realday:
+				ordersql.append("realday");
+				break;
+			case xtask_info::cols::pricevalue:
+				ordersql.append("pricevalue");
+				break;
+			case xtask_info::cols::title:
+				ordersql.append("title");
+				break;
+			case xtask_info::cols::introduce:
+				ordersql.append("introduce");
+				break;
+			case xtask_info::cols::xlogo:
+				ordersql.append("xlogo");
+				break;
+			case xtask_info::cols::xcolor:
+				ordersql.append("xcolor");
+				break;
+			case xtask_info::cols::pullurl:
+				ordersql.append("pullurl");
+				break;
+			case xtask_info::cols::pulltitle:
+				ordersql.append("pulltitle");
+				break;
+			case xtask_info::cols::pullauthor:
+				ordersql.append("pullauthor");
+				break;
+			case xtask_info::cols::note:
+				ordersql.append("note");
+				break;
+			case xtask_info::cols::itemnote:
+				ordersql.append("itemnote");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(" ASC ");
+            return *mod;
+        }
 
         M_MODEL &asc()
         {
@@ -7266,7 +7477,218 @@ M_MODEL& ornotnullItemnote()
             ordersql.append(" DESC ");
             return *mod;
         }
+        M_MODEL &desc(xtask_info::cols field, xtask_info::cols field2)
+        {
 
+            ordersql.append(" ORDER BY ");
+            switch (field)
+            {
+            
+			case xtask_info::cols::xtaskid:
+				ordersql.append("xtaskid");
+				break;
+			case xtask_info::cols::userid:
+				ordersql.append("userid");
+				break;
+			case xtask_info::cols::xpjid:
+				ordersql.append("xpjid");
+				break;
+			case xtask_info::cols::adminid:
+				ordersql.append("adminid");
+				break;
+			case xtask_info::cols::parentid:
+				ordersql.append("parentid");
+				break;
+			case xtask_info::cols::begindate:
+				ordersql.append("begindate");
+				break;
+			case xtask_info::cols::enddate:
+				ordersql.append("enddate");
+				break;
+			case xtask_info::cols::expectbegindate:
+				ordersql.append("expectbegindate");
+				break;
+			case xtask_info::cols::expectenddate:
+				ordersql.append("expectenddate");
+				break;
+			case xtask_info::cols::milestone:
+				ordersql.append("milestone");
+				break;
+			case xtask_info::cols::subxpjid:
+				ordersql.append("subxpjid");
+				break;
+			case xtask_info::cols::depxtaskid:
+				ordersql.append("depxtaskid");
+				break;
+			case xtask_info::cols::referdocid:
+				ordersql.append("referdocid");
+				break;
+			case xtask_info::cols::isfinish:
+				ordersql.append("isfinish");
+				break;
+			case xtask_info::cols::updatedate:
+				ordersql.append("updatedate");
+				break;
+			case xtask_info::cols::finishdate:
+				ordersql.append("finishdate");
+				break;
+			case xtask_info::cols::iscore:
+				ordersql.append("iscore");
+				break;
+			case xtask_info::cols::xvalue:
+				ordersql.append("xvalue");
+				break;
+			case xtask_info::cols::expectday:
+				ordersql.append("expectday");
+				break;
+			case xtask_info::cols::realday:
+				ordersql.append("realday");
+				break;
+			case xtask_info::cols::pricevalue:
+				ordersql.append("pricevalue");
+				break;
+			case xtask_info::cols::title:
+				ordersql.append("title");
+				break;
+			case xtask_info::cols::introduce:
+				ordersql.append("introduce");
+				break;
+			case xtask_info::cols::xlogo:
+				ordersql.append("xlogo");
+				break;
+			case xtask_info::cols::xcolor:
+				ordersql.append("xcolor");
+				break;
+			case xtask_info::cols::pullurl:
+				ordersql.append("pullurl");
+				break;
+			case xtask_info::cols::pulltitle:
+				ordersql.append("pulltitle");
+				break;
+			case xtask_info::cols::pullauthor:
+				ordersql.append("pullauthor");
+				break;
+			case xtask_info::cols::note:
+				ordersql.append("note");
+				break;
+			case xtask_info::cols::itemnote:
+				ordersql.append("itemnote");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(",");
+            switch (field2)
+            {
+            
+			case xtask_info::cols::xtaskid:
+				ordersql.append("xtaskid");
+				break;
+			case xtask_info::cols::userid:
+				ordersql.append("userid");
+				break;
+			case xtask_info::cols::xpjid:
+				ordersql.append("xpjid");
+				break;
+			case xtask_info::cols::adminid:
+				ordersql.append("adminid");
+				break;
+			case xtask_info::cols::parentid:
+				ordersql.append("parentid");
+				break;
+			case xtask_info::cols::begindate:
+				ordersql.append("begindate");
+				break;
+			case xtask_info::cols::enddate:
+				ordersql.append("enddate");
+				break;
+			case xtask_info::cols::expectbegindate:
+				ordersql.append("expectbegindate");
+				break;
+			case xtask_info::cols::expectenddate:
+				ordersql.append("expectenddate");
+				break;
+			case xtask_info::cols::milestone:
+				ordersql.append("milestone");
+				break;
+			case xtask_info::cols::subxpjid:
+				ordersql.append("subxpjid");
+				break;
+			case xtask_info::cols::depxtaskid:
+				ordersql.append("depxtaskid");
+				break;
+			case xtask_info::cols::referdocid:
+				ordersql.append("referdocid");
+				break;
+			case xtask_info::cols::isfinish:
+				ordersql.append("isfinish");
+				break;
+			case xtask_info::cols::updatedate:
+				ordersql.append("updatedate");
+				break;
+			case xtask_info::cols::finishdate:
+				ordersql.append("finishdate");
+				break;
+			case xtask_info::cols::iscore:
+				ordersql.append("iscore");
+				break;
+			case xtask_info::cols::xvalue:
+				ordersql.append("xvalue");
+				break;
+			case xtask_info::cols::expectday:
+				ordersql.append("expectday");
+				break;
+			case xtask_info::cols::realday:
+				ordersql.append("realday");
+				break;
+			case xtask_info::cols::pricevalue:
+				ordersql.append("pricevalue");
+				break;
+			case xtask_info::cols::title:
+				ordersql.append("title");
+				break;
+			case xtask_info::cols::introduce:
+				ordersql.append("introduce");
+				break;
+			case xtask_info::cols::xlogo:
+				ordersql.append("xlogo");
+				break;
+			case xtask_info::cols::xcolor:
+				ordersql.append("xcolor");
+				break;
+			case xtask_info::cols::pullurl:
+				ordersql.append("pullurl");
+				break;
+			case xtask_info::cols::pulltitle:
+				ordersql.append("pulltitle");
+				break;
+			case xtask_info::cols::pullauthor:
+				ordersql.append("pullauthor");
+				break;
+			case xtask_info::cols::note:
+				ordersql.append("note");
+				break;
+			case xtask_info::cols::itemnote:
+				ordersql.append("itemnote");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(" DESC ");
+            return *mod;
+        }
+        M_MODEL &desc(orm::table_col<B_BASE, &xtask_info::col_names> field1, orm::table_col<B_BASE, &xtask_info::col_names> field2)
+        {
+
+            ordersql.append(" ORDER BY ");
+            ordersql.append(field1);
+            ordersql.append(",");
+            ordersql.append(field2);
+            ordersql.append(" DESC ");
+            return *mod;
+        }        
         M_MODEL &order(orm::table_col<B_BASE, &xtask_info::col_names> wq, const std::string &asc_or_desc)
         {
             ordersql.append(" ORDER BY ");
@@ -7708,7 +8130,7 @@ M_MODEL& ornotnullItemnote()
                 bool iscache_hit = false;
                 try
                 {
-                    std::vector<std::vector<std::string>> cache_rows  = temp_cache.get(sqlhashid);
+                    std::vector<std::vector<std::string>> cache_rows   = temp_cache.get(sqlhashid);
                     std::vector<std::string> cache_fieldname           = table_cache.get(sqlhashid);
                     std::map<std::string, unsigned int> cache_fieldmap = tablemap_cache.get(sqlhashid);
 
@@ -9776,7 +10198,7 @@ M_MODEL& ornotnullItemnote()
             std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
 
             model_meta_cache<xtask_info::meta> &data_cache = model_meta_cache<xtask_info::meta>::getinstance();
-            bool state = data_cache.remove(sqlhashid);
+            bool state                                          = data_cache.remove(sqlhashid);
 
             model_meta_cache<std::vector<xtask_info::meta>> &record_cache = model_meta_cache<std::vector<xtask_info::meta>>::getinstance();
             return record_cache.remove(sqlhashid) || state;
@@ -9784,7 +10206,7 @@ M_MODEL& ornotnullItemnote()
         bool remove_cache(std::size_t cache_key_name)
         {
             model_meta_cache<xtask_info::meta> &data_cache = model_meta_cache<xtask_info::meta>::getinstance();
-            bool state = data_cache.remove(cache_key_name);
+            bool state                                          = data_cache.remove(cache_key_name);
 
             model_meta_cache<std::vector<xtask_info::meta>> &record_cache = model_meta_cache<std::vector<xtask_info::meta>>::getinstance();
             return record_cache.remove(cache_key_name) || state;
@@ -13979,10 +14401,10 @@ M_MODEL& ornotnullItemnote()
         M_MODEL &AND(orm::table_col<B_BASE, &xtask_info::col_names> field, orm::wq opwq, T val)
         {
             orm_where_sql_t item;
-            item.pre_op      = wheresql.empty() ? 0 : 1;
-            item.op_type     = opwq;
-            item.col_idx     = B_BASE::findcolpos(field);
-            
+            item.pre_op  = wheresql.empty() ? 0 : 1;
+            item.op_type = opwq;
+            item.col_idx = B_BASE::findcolpos(field);
+
             if (item.col_idx == 255)
             {
                 error_msg = "field is not table column";
@@ -13999,10 +14421,10 @@ M_MODEL& ornotnullItemnote()
         M_MODEL &OR(orm::table_col<B_BASE, &xtask_info::col_names> field, orm::wq opwq, T val)
         {
             orm_where_sql_t item;
-            item.pre_op      = wheresql.empty() ? 0 : 2;
-            item.op_type     = opwq;
-            item.col_idx     = B_BASE::findcolpos(field);
-            
+            item.pre_op  = wheresql.empty() ? 0 : 2;
+            item.op_type = opwq;
+            item.col_idx = B_BASE::findcolpos(field);
+
             if (item.col_idx == 255)
             {
                 error_msg = "field is not table column";

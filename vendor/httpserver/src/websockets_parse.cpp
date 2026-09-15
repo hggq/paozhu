@@ -313,7 +313,7 @@ std::string websocketparse::makePing()
 {
     std::string reping;
     reping.resize(6);
-    reping[0] = 0x89;
+    reping[0] = (char)0x89;
     reping[1] = 0x04;
     reping[2] = 'p';
     reping[3] = 'i';
@@ -363,22 +363,22 @@ int websocketparse::makeWSHeader(int len, std::string &header, unsigned char t)
     switch (t)
     {
     case 0x01:
-        header.push_back(0x81);
+        header.push_back((char)0x81);
         break;
     case 0x02:
-        header.push_back(0x82);
+        header.push_back((char)0x82);
         break;
     case 0x0A:
-        header.push_back(0x8A);
-        break;        
+        header.push_back((char)0x8A);
+        break;
     case 0x80:
-        header.push_back(0x80);
+        header.push_back((char)0x80);
         break;
     case 0x81:
-        header.push_back(0x81);
+        header.push_back((char)0x81);
         break;
     case 0x82:
-        header.push_back(0x82);
+        header.push_back((char)0x82);
         break;
     default:
         header.push_back(t);

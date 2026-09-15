@@ -1178,8 +1178,8 @@ std::string websocket_client::make_pong()
     std::string reping;
     make_mark();
     reping.resize(10);
-    reping[0] = 0x8A;
-    reping[1] = 0x84;
+    reping[0] = (char)0x8A;
+    reping[1] = (char)0x84;
     reping[2] = mask_key[0];
     reping[3] = mask_key[1];
     reping[4] = mask_key[2];
@@ -1196,8 +1196,8 @@ std::string websocket_client::make_ping()
     std::string reping;
     make_mark();
     reping.resize(10);
-    reping[0] = 0x89;
-    reping[1] = 0x84;
+    reping[0] = (char)0x89;
+    reping[1] = (char)0x84;
     reping[2] = mask_key[0];
     reping[3] = mask_key[1];
     reping[4] = mask_key[2];

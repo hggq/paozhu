@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Mon, 14 Sep 2026 13:39:42 GMT
+ *  Creation time Tue, 15 Sep 2026 12:41:27 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -132,7 +132,7 @@ namespace cms
 
         M_MODEL &resetDB()
         {
-            dbtag = B_BASE::_rmstag;
+            dbtag                                                                = B_BASE::_rmstag;
             std::map<std::string, std::shared_ptr<orm_conn_pool>> &conn_pool_obj = get_orm_conn_pool_obj();
             auto iter                                                            = conn_pool_obj.find(dbtag);
             if (iter != conn_pool_obj.end())
@@ -6321,6 +6321,187 @@ M_MODEL& ornotnullRealday()
             ordersql.append(" ASC ");
             return *mod;
         }
+        M_MODEL &asc(orm::table_col<B_BASE, &xproject_info::col_names> field1, orm::table_col<B_BASE, &xproject_info::col_names> field2)
+        {
+
+            ordersql.append(" ORDER BY ");
+            ordersql.append(field1);
+            ordersql.append(",");
+            ordersql.append(field2);
+            ordersql.append(" ASC ");
+            return *mod;
+        }
+        M_MODEL &asc(xproject_info::cols field, xproject_info::cols field2)
+        {
+            ordersql.append(" ORDER BY ");
+            switch (field)
+            {
+            
+			case xproject_info::cols::xpjid:
+				ordersql.append("xpjid");
+				break;
+			case xproject_info::cols::userid:
+				ordersql.append("userid");
+				break;
+			case xproject_info::cols::prexpjid:
+				ordersql.append("prexpjid");
+				break;
+			case xproject_info::cols::dpid:
+				ordersql.append("dpid");
+				break;
+			case xproject_info::cols::grouptype:
+				ordersql.append("grouptype");
+				break;
+			case xproject_info::cols::title:
+				ordersql.append("title");
+				break;
+			case xproject_info::cols::adminuserid:
+				ordersql.append("adminuserid");
+				break;
+			case xproject_info::cols::regdate:
+				ordersql.append("regdate");
+				break;
+			case xproject_info::cols::begindate:
+				ordersql.append("begindate");
+				break;
+			case xproject_info::cols::expiredate:
+				ordersql.append("expiredate");
+				break;
+			case xproject_info::cols::isopen:
+				ordersql.append("isopen");
+				break;
+			case xproject_info::cols::clientid:
+				ordersql.append("clientid");
+				break;
+			case xproject_info::cols::totalnum:
+				ordersql.append("totalnum");
+				break;
+			case xproject_info::cols::referdocverion:
+				ordersql.append("referdocverion");
+				break;
+			case xproject_info::cols::xtheme:
+				ordersql.append("xtheme");
+				break;
+			case xproject_info::cols::xlogo:
+				ordersql.append("xlogo");
+				break;
+			case xproject_info::cols::introduce:
+				ordersql.append("introduce");
+				break;
+			case xproject_info::cols::giturl:
+				ordersql.append("giturl");
+				break;
+			case xproject_info::cols::gitname:
+				ordersql.append("gitname");
+				break;
+			case xproject_info::cols::gitpwd:
+				ordersql.append("gitpwd");
+				break;
+			case xproject_info::cols::xcolor:
+				ordersql.append("xcolor");
+				break;
+			case xproject_info::cols::fupan:
+				ordersql.append("fupan");
+				break;
+			case xproject_info::cols::totalvalue:
+				ordersql.append("totalvalue");
+				break;
+			case xproject_info::cols::expectday:
+				ordersql.append("expectday");
+				break;
+			case xproject_info::cols::realday:
+				ordersql.append("realday");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(",");
+            switch (field2)
+            {
+            
+			case xproject_info::cols::xpjid:
+				ordersql.append("xpjid");
+				break;
+			case xproject_info::cols::userid:
+				ordersql.append("userid");
+				break;
+			case xproject_info::cols::prexpjid:
+				ordersql.append("prexpjid");
+				break;
+			case xproject_info::cols::dpid:
+				ordersql.append("dpid");
+				break;
+			case xproject_info::cols::grouptype:
+				ordersql.append("grouptype");
+				break;
+			case xproject_info::cols::title:
+				ordersql.append("title");
+				break;
+			case xproject_info::cols::adminuserid:
+				ordersql.append("adminuserid");
+				break;
+			case xproject_info::cols::regdate:
+				ordersql.append("regdate");
+				break;
+			case xproject_info::cols::begindate:
+				ordersql.append("begindate");
+				break;
+			case xproject_info::cols::expiredate:
+				ordersql.append("expiredate");
+				break;
+			case xproject_info::cols::isopen:
+				ordersql.append("isopen");
+				break;
+			case xproject_info::cols::clientid:
+				ordersql.append("clientid");
+				break;
+			case xproject_info::cols::totalnum:
+				ordersql.append("totalnum");
+				break;
+			case xproject_info::cols::referdocverion:
+				ordersql.append("referdocverion");
+				break;
+			case xproject_info::cols::xtheme:
+				ordersql.append("xtheme");
+				break;
+			case xproject_info::cols::xlogo:
+				ordersql.append("xlogo");
+				break;
+			case xproject_info::cols::introduce:
+				ordersql.append("introduce");
+				break;
+			case xproject_info::cols::giturl:
+				ordersql.append("giturl");
+				break;
+			case xproject_info::cols::gitname:
+				ordersql.append("gitname");
+				break;
+			case xproject_info::cols::gitpwd:
+				ordersql.append("gitpwd");
+				break;
+			case xproject_info::cols::xcolor:
+				ordersql.append("xcolor");
+				break;
+			case xproject_info::cols::fupan:
+				ordersql.append("fupan");
+				break;
+			case xproject_info::cols::totalvalue:
+				ordersql.append("totalvalue");
+				break;
+			case xproject_info::cols::expectday:
+				ordersql.append("expectday");
+				break;
+			case xproject_info::cols::realday:
+				ordersql.append("realday");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(" ASC ");
+            return *mod;
+        }
 
         M_MODEL &asc()
         {
@@ -6424,7 +6605,188 @@ M_MODEL& ornotnullRealday()
             ordersql.append(" DESC ");
             return *mod;
         }
+        M_MODEL &desc(xproject_info::cols field, xproject_info::cols field2)
+        {
 
+            ordersql.append(" ORDER BY ");
+            switch (field)
+            {
+            
+			case xproject_info::cols::xpjid:
+				ordersql.append("xpjid");
+				break;
+			case xproject_info::cols::userid:
+				ordersql.append("userid");
+				break;
+			case xproject_info::cols::prexpjid:
+				ordersql.append("prexpjid");
+				break;
+			case xproject_info::cols::dpid:
+				ordersql.append("dpid");
+				break;
+			case xproject_info::cols::grouptype:
+				ordersql.append("grouptype");
+				break;
+			case xproject_info::cols::title:
+				ordersql.append("title");
+				break;
+			case xproject_info::cols::adminuserid:
+				ordersql.append("adminuserid");
+				break;
+			case xproject_info::cols::regdate:
+				ordersql.append("regdate");
+				break;
+			case xproject_info::cols::begindate:
+				ordersql.append("begindate");
+				break;
+			case xproject_info::cols::expiredate:
+				ordersql.append("expiredate");
+				break;
+			case xproject_info::cols::isopen:
+				ordersql.append("isopen");
+				break;
+			case xproject_info::cols::clientid:
+				ordersql.append("clientid");
+				break;
+			case xproject_info::cols::totalnum:
+				ordersql.append("totalnum");
+				break;
+			case xproject_info::cols::referdocverion:
+				ordersql.append("referdocverion");
+				break;
+			case xproject_info::cols::xtheme:
+				ordersql.append("xtheme");
+				break;
+			case xproject_info::cols::xlogo:
+				ordersql.append("xlogo");
+				break;
+			case xproject_info::cols::introduce:
+				ordersql.append("introduce");
+				break;
+			case xproject_info::cols::giturl:
+				ordersql.append("giturl");
+				break;
+			case xproject_info::cols::gitname:
+				ordersql.append("gitname");
+				break;
+			case xproject_info::cols::gitpwd:
+				ordersql.append("gitpwd");
+				break;
+			case xproject_info::cols::xcolor:
+				ordersql.append("xcolor");
+				break;
+			case xproject_info::cols::fupan:
+				ordersql.append("fupan");
+				break;
+			case xproject_info::cols::totalvalue:
+				ordersql.append("totalvalue");
+				break;
+			case xproject_info::cols::expectday:
+				ordersql.append("expectday");
+				break;
+			case xproject_info::cols::realday:
+				ordersql.append("realday");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(",");
+            switch (field2)
+            {
+            
+			case xproject_info::cols::xpjid:
+				ordersql.append("xpjid");
+				break;
+			case xproject_info::cols::userid:
+				ordersql.append("userid");
+				break;
+			case xproject_info::cols::prexpjid:
+				ordersql.append("prexpjid");
+				break;
+			case xproject_info::cols::dpid:
+				ordersql.append("dpid");
+				break;
+			case xproject_info::cols::grouptype:
+				ordersql.append("grouptype");
+				break;
+			case xproject_info::cols::title:
+				ordersql.append("title");
+				break;
+			case xproject_info::cols::adminuserid:
+				ordersql.append("adminuserid");
+				break;
+			case xproject_info::cols::regdate:
+				ordersql.append("regdate");
+				break;
+			case xproject_info::cols::begindate:
+				ordersql.append("begindate");
+				break;
+			case xproject_info::cols::expiredate:
+				ordersql.append("expiredate");
+				break;
+			case xproject_info::cols::isopen:
+				ordersql.append("isopen");
+				break;
+			case xproject_info::cols::clientid:
+				ordersql.append("clientid");
+				break;
+			case xproject_info::cols::totalnum:
+				ordersql.append("totalnum");
+				break;
+			case xproject_info::cols::referdocverion:
+				ordersql.append("referdocverion");
+				break;
+			case xproject_info::cols::xtheme:
+				ordersql.append("xtheme");
+				break;
+			case xproject_info::cols::xlogo:
+				ordersql.append("xlogo");
+				break;
+			case xproject_info::cols::introduce:
+				ordersql.append("introduce");
+				break;
+			case xproject_info::cols::giturl:
+				ordersql.append("giturl");
+				break;
+			case xproject_info::cols::gitname:
+				ordersql.append("gitname");
+				break;
+			case xproject_info::cols::gitpwd:
+				ordersql.append("gitpwd");
+				break;
+			case xproject_info::cols::xcolor:
+				ordersql.append("xcolor");
+				break;
+			case xproject_info::cols::fupan:
+				ordersql.append("fupan");
+				break;
+			case xproject_info::cols::totalvalue:
+				ordersql.append("totalvalue");
+				break;
+			case xproject_info::cols::expectday:
+				ordersql.append("expectday");
+				break;
+			case xproject_info::cols::realday:
+				ordersql.append("realday");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(" DESC ");
+            return *mod;
+        }
+        M_MODEL &desc(orm::table_col<B_BASE, &xproject_info::col_names> field1, orm::table_col<B_BASE, &xproject_info::col_names> field2)
+        {
+
+            ordersql.append(" ORDER BY ");
+            ordersql.append(field1);
+            ordersql.append(",");
+            ordersql.append(field2);
+            ordersql.append(" DESC ");
+            return *mod;
+        }        
         M_MODEL &order(orm::table_col<B_BASE, &xproject_info::col_names> wq, const std::string &asc_or_desc)
         {
             ordersql.append(" ORDER BY ");
@@ -6836,7 +7198,7 @@ M_MODEL& ornotnullRealday()
                 bool iscache_hit = false;
                 try
                 {
-                    std::vector<std::vector<std::string>> cache_rows  = temp_cache.get(sqlhashid);
+                    std::vector<std::vector<std::string>> cache_rows   = temp_cache.get(sqlhashid);
                     std::vector<std::string> cache_fieldname           = table_cache.get(sqlhashid);
                     std::map<std::string, unsigned int> cache_fieldmap = tablemap_cache.get(sqlhashid);
 
@@ -8904,7 +9266,7 @@ M_MODEL& ornotnullRealday()
             std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
 
             model_meta_cache<xproject_info::meta> &data_cache = model_meta_cache<xproject_info::meta>::getinstance();
-            bool state = data_cache.remove(sqlhashid);
+            bool state                                          = data_cache.remove(sqlhashid);
 
             model_meta_cache<std::vector<xproject_info::meta>> &record_cache = model_meta_cache<std::vector<xproject_info::meta>>::getinstance();
             return record_cache.remove(sqlhashid) || state;
@@ -8912,7 +9274,7 @@ M_MODEL& ornotnullRealday()
         bool remove_cache(std::size_t cache_key_name)
         {
             model_meta_cache<xproject_info::meta> &data_cache = model_meta_cache<xproject_info::meta>::getinstance();
-            bool state = data_cache.remove(cache_key_name);
+            bool state                                          = data_cache.remove(cache_key_name);
 
             model_meta_cache<std::vector<xproject_info::meta>> &record_cache = model_meta_cache<std::vector<xproject_info::meta>>::getinstance();
             return record_cache.remove(cache_key_name) || state;
@@ -13107,10 +13469,10 @@ M_MODEL& ornotnullRealday()
         M_MODEL &AND(orm::table_col<B_BASE, &xproject_info::col_names> field, orm::wq opwq, T val)
         {
             orm_where_sql_t item;
-            item.pre_op      = wheresql.empty() ? 0 : 1;
-            item.op_type     = opwq;
-            item.col_idx     = B_BASE::findcolpos(field);
-            
+            item.pre_op  = wheresql.empty() ? 0 : 1;
+            item.op_type = opwq;
+            item.col_idx = B_BASE::findcolpos(field);
+
             if (item.col_idx == 255)
             {
                 error_msg = "field is not table column";
@@ -13127,10 +13489,10 @@ M_MODEL& ornotnullRealday()
         M_MODEL &OR(orm::table_col<B_BASE, &xproject_info::col_names> field, orm::wq opwq, T val)
         {
             orm_where_sql_t item;
-            item.pre_op      = wheresql.empty() ? 0 : 2;
-            item.op_type     = opwq;
-            item.col_idx     = B_BASE::findcolpos(field);
-            
+            item.pre_op  = wheresql.empty() ? 0 : 2;
+            item.op_type = opwq;
+            item.col_idx = B_BASE::findcolpos(field);
+
             if (item.col_idx == 255)
             {
                 error_msg = "field is not table column";

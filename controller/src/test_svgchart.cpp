@@ -30,7 +30,7 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
     // 1. Basic Line Chart
     // ============================================================
     {
-        SvgLineChart chart(800, 500);
+        pz::SvgLineChart chart(800, 500);
         chart.setTitle("Basic Line Chart");
         chart.setXLabels({"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"});
         chart.addSeries({820, 932, 901, 934, 1290, 1330, 1320}, "Sales");
@@ -43,11 +43,11 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
     // 2. Basic Smooth Line Chart
     // ============================================================
     {
-        SvgSmoothLineChart chart(800, 500);
+        pz::SvgSmoothLineChart chart(800, 500);
         chart.setTitle("Basic Smooth Line Chart");
         chart.setXLabels({"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"});
-        chart.addSeries({820, 932, 901, 934, 1290, 1330, 1320}, "Sales", SvgColor(), 0.5);
-        chart.addSeries({620, 732, 701, 634, 890, 930, 920}, "Orders", SvgColor(), 0.5);
+        chart.addSeries({820, 932, 901, 934, 1290, 1330, 1320}, "Sales", pz::SvgColor(), 0.5);
+        chart.addSeries({620, 732, 701, 634, 890, 930, 920}, "Orders", pz::SvgColor(), 0.5);
         //saveSvg("smooth_line_chart.svg", chart.render());
         client << chart.render();
     }
@@ -57,7 +57,7 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
     // 3. Basic Bar Chart
     // ============================================================
     {
-        SvgBarChart chart(800, 500);
+        pz::SvgBarChart chart(800, 500);
         chart.setTitle("Basic Bar Chart");
         chart.setXLabels({"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"});
         chart.addSeries({120, 200, 150, 80, 70, 110, 130}, "Sales");
@@ -71,17 +71,17 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
     // 3b. Bar Chart - Custom Bar Colors
     // ============================================================
     {
-        SvgBarChart chart(800, 500);
+        pz::SvgBarChart chart(800, 500);
         chart.setTitle("Bar Chart - Custom Bar Colors");
         chart.setXLabels({"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"});
         chart.addSeries({120, 200, 150, 80, 70, 110, 130}, {
-                                                               SvgColor(238, 102, 102),// Red
-                                                               SvgColor(250, 200, 88), // Yellow
-                                                               SvgColor(103, 224, 127),// Green
-                                                               SvgColor(55, 162, 218), // Blue
-                                                               SvgColor(154, 96, 180), // Purple
-                                                               SvgColor(252, 132, 82), // Orange
-                                                               SvgColor(115, 192, 222),// Cyan
+                                                               pz::SvgColor(238, 102, 102),// Red
+                                                               pz::SvgColor(250, 200, 88), // Yellow
+                                                               pz::SvgColor(103, 224, 127),// Green
+                                                               pz::SvgColor(55, 162, 218), // Blue
+                                                               pz::SvgColor(154, 96, 180), // Purple
+                                                               pz::SvgColor(252, 132, 82), // Orange
+                                                               pz::SvgColor(115, 192, 222),// Cyan
                                                            },
                         "Sales");
         //saveSvg("bar_colors.svg", chart.render());
@@ -93,7 +93,7 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
     // 3c. Horizontal Bar Chart (World Population)
     // ============================================================
     {
-        SvgHorizontalBarChart chart(800, 500);
+        pz::SvgHorizontalBarChart chart(800, 500);
         chart.setTitle("World Population - Horizontal Bar");
         chart.setYLabels({"China", "India", "USA", "Indonesia", "Brazil", "Pakistan", "Nigeria", "Bangladesh"});
         chart.addSeries({141178, 138000, 33100, 27352, 21256, 22089, 20613, 16468}, "Population(10k)");
@@ -106,10 +106,10 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
     // 4. Basic Scatter Chart
     // ============================================================
     {
-        SvgScatterChart chart(800, 500);
+        pz::SvgScatterChart chart(800, 500);
         chart.setTitle("Basic Scatter Chart");
-        chart.addSeries({{10.0, 8.04}, {8.0, 6.95}, {13.0, 7.58}, {9.0, 8.81}, {11.0, 8.33}, {14.0, 9.96}, {6.0, 7.24}, {4.0, 4.26}, {12.0, 10.84}, {7.0, 4.82}, {5.0, 5.68}}, "Dataset A", SvgColor(), 7);
-        chart.addSeries({{8.0, 6.5}, {10.0, 8.0}, {12.0, 9.5}, {6.0, 5.5}, {14.0, 11.0}, {4.0, 3.5}, {9.0, 7.0}, {11.0, 8.5}}, "Dataset B", SvgColor(), 7);
+        chart.addSeries({{10.0, 8.04}, {8.0, 6.95}, {13.0, 7.58}, {9.0, 8.81}, {11.0, 8.33}, {14.0, 9.96}, {6.0, 7.24}, {4.0, 4.26}, {12.0, 10.84}, {7.0, 4.82}, {5.0, 5.68}}, "Dataset A", pz::SvgColor(), 7);
+        chart.addSeries({{8.0, 6.5}, {10.0, 8.0}, {12.0, 9.5}, {6.0, 5.5}, {14.0, 11.0}, {4.0, 3.5}, {9.0, 7.0}, {11.0, 8.5}}, "Dataset B", pz::SvgColor(), 7);
         //saveSvg("scatter_chart.svg", chart.render());
         client << chart.render();
     }
@@ -119,7 +119,7 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
     // 5. Donut Chart
     // ============================================================
     {
-        SvgPieChart chart(800, 500);
+        pz::SvgPieChart chart(800, 500);
         chart.setTitle("Donut Chart");
         chart.setDonut(true);
         chart.addData("Search Engine", 1048);
@@ -136,7 +136,7 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
     // 6. Pie Chart
     // ============================================================
     {
-        SvgPieChart chart(800, 500);
+        pz::SvgPieChart chart(800, 500);
         chart.setTitle("Pie Chart");
         chart.setDonut(false);
         chart.addData("Search Engine", 1048);
@@ -153,7 +153,7 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
     // 7. Basic Radar Chart
     // ============================================================
     {
-        SvgRadarChart chart(800, 500);
+        pz::SvgRadarChart chart(800, 500);
         chart.setTitle("Basic Radar Chart");
         chart.setIndicators({"Sales", "Admin", "Tech", "Support", "R&D", "Marketing"});
         chart.addSeries({80, 90, 70, 85, 95, 75}, "Budget");
@@ -165,13 +165,13 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
     client << "<p>" << "Radar Chart - Border Only (No Fill)" << "</p>";
     // Radar Chart - Border Only (No Fill)
     {
-        SvgRadarChart chart(800, 500);
+        pz::SvgRadarChart chart(800, 500);
         chart.setTitle("Radar Chart - Border Only");
         chart.setIndicators({"Sales", "Admin", "Tech", "Support", "R&D", "Marketing"});
         chart.setFillOpacity(0);  // no fill
         chart.setBorderWidth(2.5);// thicker border
-        chart.addSeries({80, 90, 70, 85, 95, 75}, "Budget", SvgColor(84, 112, 198));
-        chart.addSeries({60, 75, 80, 70, 85, 65}, "Actual", SvgColor(238, 102, 102));
+        chart.addSeries({80, 90, 70, 85, 95, 75}, "Budget", pz::SvgColor(84, 112, 198));
+        chart.addSeries({60, 75, 80, 70, 85, 65}, "Actual", pz::SvgColor(238, 102, 102));
         //saveSvg("radar_border.svg", chart.render());
         client << chart.render();
     }
@@ -181,9 +181,9 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
     // 8. Basic Gauge Chart
     // ============================================================
     {
-        SvgGaugeChart chart(600, 400);
+        pz::SvgGaugeChart chart(600, 400);
         chart.setTitle("Basic Gauge");
-        chart.setGaugeType(SvgGaugeChart::TYPE_BASIC);
+        chart.setGaugeType(pz::SvgGaugeChart::TYPE_BASIC);
         chart.setGaugeTitle("CPU Usage");
         chart.setValue(72.5);
         chart.setMinMax(0, 100);
@@ -196,15 +196,15 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
     // 9. Progress Gauge Chart
     // ============================================================
     {
-        SvgGaugeChart chart(600, 400);
+        pz::SvgGaugeChart chart(600, 400);
         chart.setTitle("Progress Gauge");
-        chart.setGaugeType(SvgGaugeChart::TYPE_PROGRESS);
+        chart.setGaugeType(pz::SvgGaugeChart::TYPE_PROGRESS);
         chart.setGaugeTitle("Progress");
         chart.setValue(68);
         chart.setMinMax(0, 100);
-        chart.setColorStops({{0.33, SvgColor(103, 224, 227)},
-                             {0.66, SvgColor(55, 162, 218)},
-                             {1.0, SvgColor(250, 200, 88)}});
+        chart.setColorStops({{0.33, pz::SvgColor(103, 224, 227)},
+                             {0.66, pz::SvgColor(55, 162, 218)},
+                             {1.0, pz::SvgColor(250, 200, 88)}});
         //saveSvg("gauge_progress.svg", chart.render());
         client << chart.render();
     }
@@ -214,19 +214,19 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
     // 10. Stage Speed Gauge Chart
     // ============================================================
     {
-        SvgGaugeChart chart(600, 400);
+        pz::SvgGaugeChart chart(600, 400);
         chart.setTitle("Stage Speed Gauge");
-        chart.setGaugeType(SvgGaugeChart::TYPE_STAGE_SPEED);
+        chart.setGaugeType(pz::SvgGaugeChart::TYPE_STAGE_SPEED);
         chart.setGaugeTitle("Speed (Mbps)");
         chart.setValue(85);
         chart.setMinMax(0, 200);
         chart.setSplitNumber(10);
         // Green-Yellow-Red speed stages
         chart.setColorStops({
-            {0.25, SvgColor(103, 224, 127)},// Low - Green
-            {0.5, SvgColor(250, 200, 88)},  // Medium - Yellow
-            {0.75, SvgColor(252, 132, 82)}, // High - Orange
-            {1.0, SvgColor(238, 102, 102)}  // Extreme - Red
+            {0.25, pz::SvgColor(103, 224, 127)},// Low - Green
+            {0.5, pz::SvgColor(250, 200, 88)},  // Medium - Yellow
+            {0.75, pz::SvgColor(252, 132, 82)}, // High - Orange
+            {1.0, pz::SvgColor(238, 102, 102)}  // Extreme - Red
         });
         //saveSvg("gauge_stage_speed.svg", chart.render());
         client << chart.render();
@@ -240,9 +240,9 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
     //               tangential rotation, inherited tick colors
     // ============================================================
     {
-        SvgGaugeChart chart(600, 400);
+        pz::SvgGaugeChart chart(600, 400);
         chart.setTitle("Grade Gauge");
-        chart.setGaugeType(SvgGaugeChart::TYPE_LEVEL);
+        chart.setGaugeType(pz::SvgGaugeChart::TYPE_LEVEL);
         chart.setGaugeTitle("Score");
         chart.setValue(75);
         chart.setMinMax(0, 100);
@@ -250,10 +250,10 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
         chart.setAngleRange(180, 0);
         // Four grades: Poor / Fair / Good / Excellent
         chart.setColorStops({
-            {0.25, SvgColor(255, 110, 118)},// Poor - Red #FF6E76
-            {0.5, SvgColor(253, 221, 96)},  // Fair - Yellow #FDDD60
-            {0.75, SvgColor(88, 217, 249)}, // Good - Blue #58D9F9
-            {1.0, SvgColor(124, 255, 178)}  // Excellent - Green #7CFFB2
+            {0.25, pz::SvgColor(255, 110, 118)},// Poor - Red #FF6E76
+            {0.5, pz::SvgColor(253, 221, 96)},  // Fair - Yellow #FDDD60
+            {0.75, pz::SvgColor(88, 217, 249)}, // Good - Blue #58D9F9
+            {1.0, pz::SvgColor(124, 255, 178)}  // Excellent - Green #7CFFB2
         });
         chart.setSplitNumber(8);
         // Labels inside arc (negative distance), tangential rotation
@@ -288,7 +288,7 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
     // 12. Funnel Chart
     // ============================================================
     {
-        SvgFunnelChart chart(800, 500);
+        pz::SvgFunnelChart chart(800, 500);
         chart.setTitle("Funnel Chart");
         chart.setSort("descending");
         chart.setFunnelAlign("center");
@@ -308,7 +308,7 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
     //     Algorithms from ECharts candlestickLayout.ts / CandlestickView.ts
     // ============================================================
     {
-        SvgCandlestickChart chart(900, 500);
+        pz::SvgCandlestickChart chart(900, 500);
         chart.setTitle("Basic Candlestick Chart");
         chart.setXLabels({"07/14", "07/15", "07/16", "07/17", "07/18", "07/21", "07/22", "07/23", "07/24", "07/25", "07/28", "07/29", "07/30", "07/31", "08/01", "08/04", "08/05", "08/06", "08/07", "08/08"});
         chart.addData({
@@ -343,7 +343,7 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
     //     Using SvgBarChart with positive/negative values, zero line at center
     // ============================================================
     {
-        SvgBarChart chart(800, 500);
+        pz::SvgBarChart chart(800, 500);
         chart.setTitle("Bar Chart with Negative Value");
         chart.setXLabels({"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"});
         chart.addSeries({120, -50, 150, -80, 70, -110, 130}, "Income/Expense");
@@ -358,7 +358,7 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
     //     Features: horizontal bars, X-axis on top, dashed dividers, alternating labels
     // ============================================================
     {
-        SvgNegativeBarChart chart(600, 450);
+        pz::SvgNegativeBarChart chart(600, 450);
         chart.setTitle("Alternating Labels");
         chart.addData(-0.07, "ten");
         chart.addData(-0.09, "nine");
@@ -381,7 +381,7 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
     //     Group B: 60 items, symmetric, slightly left-skewed
     // ============================================================
     {
-        SvgDensityChart chart(800, 500);
+        pz::SvgDensityChart chart(800, 500);
         chart.setTitle("Kernel Density Estimation - Two Group Comparison");
 
         // Group A: Right-skewed (income-like distribution, ~50 data points)
@@ -500,8 +500,8 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
             78,
             82};
 
-        chart.addSeries(groupA, "Group A (n=50)", SvgColor(84, 112, 198));
-        chart.addSeries(groupB, "Group B (n=60)", SvgColor(238, 102, 102));
+        chart.addSeries(groupA, "Group A (n=50)", pz::SvgColor(84, 112, 198));
+        chart.addSeries(groupB, "Group B (n=60)", pz::SvgColor(238, 102, 102));
         chart.setShowRug(false);
         //saveSvg("density_chart.svg", chart.render());
         client << chart.render();
@@ -513,19 +513,19 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
     //     每个格子自定义颜色和文字，双轴标签
     // ============================================================
     {
-        SvgGridChart chart(800, 600);
+        pz::SvgGridChart chart(800, 600);
         chart.setTitle("3x3 Grid Chart - Custom Colors and Text");
 
         // 设置格子内容（行、列、文字、背景色、文字颜色、字体大小）
-        chart.setCell(0, 0, "Item A1", SvgColor(255, 230, 230), SvgColor(180, 30, 30), 14);
-        chart.setCell(0, 1, "Item A2", SvgColor(230, 255, 230), SvgColor(30, 130, 30), 14);
-        chart.setCell(0, 2, "Item A3", SvgColor(230, 230, 255), SvgColor(30, 30, 180), 14);
-        chart.setCell(1, 0, "Item B1", SvgColor(255, 255, 220), SvgColor(150, 120, 20), 14);
-        chart.setCell(1, 1, "Item B2", SvgColor(240, 220, 255), SvgColor(130, 30, 180), 14);
-        chart.setCell(1, 2, "Item B3", SvgColor(220, 255, 255), SvgColor(20, 130, 130), 14);
-        chart.setCell(2, 0, "Item C1", SvgColor(255, 220, 240), SvgColor(180, 30, 120), 14);
-        chart.setCell(2, 1, "Item C2", SvgColor(240, 240, 220), SvgColor(100, 100, 30), 14);
-        chart.setCell(2, 2, "Item C3", SvgColor(230, 240, 255), SvgColor(50, 80, 150), 14);
+        chart.setCell(0, 0, "Item A1", pz::SvgColor(255, 230, 230), pz::SvgColor(180, 30, 30), 14);
+        chart.setCell(0, 1, "Item A2", pz::SvgColor(230, 255, 230), pz::SvgColor(30, 130, 30), 14);
+        chart.setCell(0, 2, "Item A3", pz::SvgColor(230, 230, 255), pz::SvgColor(30, 30, 180), 14);
+        chart.setCell(1, 0, "Item B1", pz::SvgColor(255, 255, 220), pz::SvgColor(150, 120, 20), 14);
+        chart.setCell(1, 1, "Item B2", pz::SvgColor(240, 220, 255), pz::SvgColor(130, 30, 180), 14);
+        chart.setCell(1, 2, "Item B3", pz::SvgColor(220, 255, 255), pz::SvgColor(20, 130, 130), 14);
+        chart.setCell(2, 0, "Item C1", pz::SvgColor(255, 220, 240), pz::SvgColor(180, 30, 120), 14);
+        chart.setCell(2, 1, "Item C2", pz::SvgColor(240, 240, 220), pz::SvgColor(100, 100, 30), 14);
+        chart.setCell(2, 2, "Item C3", pz::SvgColor(230, 240, 255), pz::SvgColor(50, 80, 150), 14);
 
         // X 轴底部标签（3 个）
         chart.setXLabels("Column 1", "Column 2", "Column 3");
@@ -545,19 +545,19 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
     // 18. 九宫格图 - 单轴标签模式
     // ============================================================
     {
-        SvgGridChart chart(800, 600);
+        pz::SvgGridChart chart(800, 600);
         chart.setTitle("3x3 Grid Chart - Single Axis Labels");
 
         // 类似 BCG 矩阵风格
-        chart.setCell(0, 0, "Star", SvgColor(100, 200, 100), SvgColor(255, 255, 255), 16);
-        chart.setCell(0, 1, "Star", SvgColor(120, 210, 120), SvgColor(255, 255, 255), 16);
-        chart.setCell(0, 2, "Question\nMark", SvgColor(255, 200, 100), SvgColor(255, 255, 255), 16);
-        chart.setCell(1, 0, "Star", SvgColor(130, 220, 130), SvgColor(255, 255, 255), 16);
-        chart.setCell(1, 1, "Question\nMark", SvgColor(255, 210, 110), SvgColor(255, 255, 255), 16);
-        chart.setCell(1, 2, "Dog", SvgColor(255, 150, 150), SvgColor(255, 255, 255), 16);
-        chart.setCell(2, 0, "Cash Cow", SvgColor(100, 180, 220), SvgColor(255, 255, 255), 16);
-        chart.setCell(2, 1, "Dog", SvgColor(255, 160, 160), SvgColor(255, 255, 255), 16);
-        chart.setCell(2, 2, "Dog", SvgColor(255, 170, 170), SvgColor(255, 255, 255), 16);
+        chart.setCell(0, 0, "Star", pz::SvgColor(100, 200, 100), pz::SvgColor(255, 255, 255), 16);
+        chart.setCell(0, 1, "Star", pz::SvgColor(120, 210, 120), pz::SvgColor(255, 255, 255), 16);
+        chart.setCell(0, 2, "Question\nMark", pz::SvgColor(255, 200, 100), pz::SvgColor(255, 255, 255), 16);
+        chart.setCell(1, 0, "Star", pz::SvgColor(130, 220, 130), pz::SvgColor(255, 255, 255), 16);
+        chart.setCell(1, 1, "Question\nMark", pz::SvgColor(255, 210, 110), pz::SvgColor(255, 255, 255), 16);
+        chart.setCell(1, 2, "Dog", pz::SvgColor(255, 150, 150), pz::SvgColor(255, 255, 255), 16);
+        chart.setCell(2, 0, "Cash Cow", pz::SvgColor(100, 180, 220), pz::SvgColor(255, 255, 255), 16);
+        chart.setCell(2, 1, "Dog", pz::SvgColor(255, 160, 160), pz::SvgColor(255, 255, 255), 16);
+        chart.setCell(2, 2, "Dog", pz::SvgColor(255, 170, 170), pz::SvgColor(255, 255, 255), 16);
 
         // X 轴底部标签（1 个居中）
         chart.setXLabel("Market Growth Rate");
@@ -575,21 +575,21 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
     // 19. 九宫格图 - 标题+内容模式（顶对齐）
     // ============================================================
     {
-        SvgGridChart chart(800, 600);
+        pz::SvgGridChart chart(800, 600);
         chart.setTitle("3x3 Grid Chart - Title + Content");
 
         // 使用 setCell 的 title+content 重载，标题顶对齐
-        chart.setCell(0, 0, "Revenue", "12.5M\n+8.3% YoY", SvgColor(230, 245, 240), SvgColor(30, 80, 50), SvgColor(60, 140, 80), 14, 11);
-        chart.setCell(0, 1, "Cost", "8.2M\n-2.1% YoY", SvgColor(245, 235, 230), SvgColor(140, 60, 30), SvgColor(180, 80, 40), 14, 11);
-        chart.setCell(0, 2, "Profit", "4.3M\n+15.6% YoY", SvgColor(230, 240, 255), SvgColor(30, 50, 140), SvgColor(50, 100, 200), 14, 11);
+        chart.setCell(0, 0, "Revenue", "12.5M\n+8.3% YoY", pz::SvgColor(230, 245, 240), pz::SvgColor(30, 80, 50), pz::SvgColor(60, 140, 80), 14, 11);
+        chart.setCell(0, 1, "Cost", "8.2M\n-2.1% YoY", pz::SvgColor(245, 235, 230), pz::SvgColor(140, 60, 30), pz::SvgColor(180, 80, 40), 14, 11);
+        chart.setCell(0, 2, "Profit", "4.3M\n+15.6% YoY", pz::SvgColor(230, 240, 255), pz::SvgColor(30, 50, 140), pz::SvgColor(50, 100, 200), 14, 11);
 
-        chart.setCell(1, 0, "Users", "48.2K\n+12.0%", SvgColor(240, 245, 230), SvgColor(80, 100, 30), SvgColor(120, 150, 40), 14, 11);
-        chart.setCell(1, 1, "DAU", "12.8K\n+5.3%", SvgColor(240, 230, 245), SvgColor(100, 30, 120), SvgColor(150, 50, 180), 14, 11);
-        chart.setCell(1, 2, "Retention", "72.5%\n+1.2%", SvgColor(235, 245, 245), SvgColor(20, 100, 100), SvgColor(30, 140, 140), 14, 11);
+        chart.setCell(1, 0, "Users", "48.2K\n+12.0%", pz::SvgColor(240, 245, 230), pz::SvgColor(80, 100, 30), pz::SvgColor(120, 150, 40), 14, 11);
+        chart.setCell(1, 1, "DAU", "12.8K\n+5.3%", pz::SvgColor(240, 230, 245), pz::SvgColor(100, 30, 120), pz::SvgColor(150, 50, 180), 14, 11);
+        chart.setCell(1, 2, "Retention", "72.5%\n+1.2%", pz::SvgColor(235, 245, 245), pz::SvgColor(20, 100, 100), pz::SvgColor(30, 140, 140), 14, 11);
 
-        chart.setCell(2, 0, "NPS", "68\n+3 pts", SvgColor(245, 240, 230), SvgColor(120, 90, 20), SvgColor(180, 130, 30), 14, 11);
-        chart.setCell(2, 1, "CSAT", "4.8/5.0\n+0.2", SvgColor(255, 235, 240), SvgColor(150, 30, 50), SvgColor(200, 40, 70), 14, 11);
-        chart.setCell(2, 2, "Churn", "3.2%\n-0.5%", SvgColor(245, 245, 240), SvgColor(100, 60, 10), SvgColor(150, 90, 20), 14, 11);
+        chart.setCell(2, 0, "NPS", "68\n+3 pts", pz::SvgColor(245, 240, 230), pz::SvgColor(120, 90, 20), pz::SvgColor(180, 130, 30), 14, 11);
+        chart.setCell(2, 1, "CSAT", "4.8/5.0\n+0.2", pz::SvgColor(255, 235, 240), pz::SvgColor(150, 30, 50), pz::SvgColor(200, 40, 70), 14, 11);
+        chart.setCell(2, 2, "Churn", "3.2%\n-0.5%", pz::SvgColor(245, 245, 240), pz::SvgColor(100, 60, 10), pz::SvgColor(150, 90, 20), 14, 11);
 
         chart.setXLabels("Q1", "Q2", "Q3");
         chart.setYLabels("Finance", "Growth", "Satisfaction");
@@ -604,23 +604,23 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
     // 20. 九宫格图 - 标题居中 + 内容偏移 + Y轴不旋转
     // ============================================================
     {
-        SvgGridChart chart(800, 600);
+        pz::SvgGridChart chart(800, 600);
         chart.setTitle("3x3 Grid - Centered Title + Content Offset + No Rotation");
 
         // Y 轴标签不旋转
         chart.setYLabelRotate(false);
 
-        chart.setCell(0, 0, "Revenue", "12.5M\n+8.3% YoY", SvgColor(230, 245, 240), SvgColor(30, 80, 50), SvgColor(60, 140, 80), 14, 11);
-        chart.setCell(0, 1, "Cost", "8.2M\n-2.1% YoY", SvgColor(245, 235, 230), SvgColor(140, 60, 30), SvgColor(180, 80, 40), 14, 11);
-        chart.setCell(0, 2, "Profit", "4.3M\n+15.6% YoY", SvgColor(230, 240, 255), SvgColor(30, 50, 140), SvgColor(50, 100, 200), 14, 11);
+        chart.setCell(0, 0, "Revenue", "12.5M\n+8.3% YoY", pz::SvgColor(230, 245, 240), pz::SvgColor(30, 80, 50), pz::SvgColor(60, 140, 80), 14, 11);
+        chart.setCell(0, 1, "Cost", "8.2M\n-2.1% YoY", pz::SvgColor(245, 235, 230), pz::SvgColor(140, 60, 30), pz::SvgColor(180, 80, 40), 14, 11);
+        chart.setCell(0, 2, "Profit", "4.3M\n+15.6% YoY", pz::SvgColor(230, 240, 255), pz::SvgColor(30, 50, 140), pz::SvgColor(50, 100, 200), 14, 11);
 
-        chart.setCell(1, 0, "Users", "48.2K\n+12.0%", SvgColor(240, 245, 230), SvgColor(80, 100, 30), SvgColor(120, 150, 40), 14, 11);
-        chart.setCell(1, 1, "DAU", "12.8K\n+5.3%", SvgColor(240, 230, 245), SvgColor(100, 30, 120), SvgColor(150, 50, 180), 14, 11);
-        chart.setCell(1, 2, "Retention", "72.5%\n+1.2%", SvgColor(235, 245, 245), SvgColor(20, 100, 100), SvgColor(30, 140, 140), 14, 11);
+        chart.setCell(1, 0, "Users", "48.2K\n+12.0%", pz::SvgColor(240, 245, 230), pz::SvgColor(80, 100, 30), pz::SvgColor(120, 150, 40), 14, 11);
+        chart.setCell(1, 1, "DAU", "12.8K\n+5.3%", pz::SvgColor(240, 230, 245), pz::SvgColor(100, 30, 120), pz::SvgColor(150, 50, 180), 14, 11);
+        chart.setCell(1, 2, "Retention", "72.5%\n+1.2%", pz::SvgColor(235, 245, 245), pz::SvgColor(20, 100, 100), pz::SvgColor(30, 140, 140), 14, 11);
 
-        chart.setCell(2, 0, "NPS", "68\n+3 pts", SvgColor(245, 240, 230), SvgColor(120, 90, 20), SvgColor(180, 130, 30), 14, 11);
-        chart.setCell(2, 1, "CSAT", "4.8/5.0\n+0.2", SvgColor(255, 235, 240), SvgColor(150, 30, 50), SvgColor(200, 40, 70), 14, 11);
-        chart.setCell(2, 2, "Churn", "3.2%\n-0.5%", SvgColor(245, 245, 240), SvgColor(100, 60, 10), SvgColor(150, 90, 20), 14, 11);
+        chart.setCell(2, 0, "NPS", "68\n+3 pts", pz::SvgColor(245, 240, 230), pz::SvgColor(120, 90, 20), pz::SvgColor(180, 130, 30), 14, 11);
+        chart.setCell(2, 1, "CSAT", "4.8/5.0\n+0.2", pz::SvgColor(255, 235, 240), pz::SvgColor(150, 30, 50), pz::SvgColor(200, 40, 70), 14, 11);
+        chart.setCell(2, 2, "Churn", "3.2%\n-0.5%", pz::SvgColor(245, 245, 240), pz::SvgColor(100, 60, 10), pz::SvgColor(150, 90, 20), 14, 11);
 
         // 设置所有格子标题居中
         for (int r = 0; r < 3; ++r)
@@ -655,7 +655,7 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
     //     算法来自 ECharts HeatmapView.ts / HeatmapSeries.ts
     // ============================================================
     {
-        SvgHeatmapChart chart(900, 500);
+        pz::SvgHeatmapChart chart(900, 500);
         chart.setTitle("Heatmap - Punch Card");
 
         std::vector<std::string> hours = {
@@ -696,7 +696,7 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
         chart.setYLabels(days);
 
         // Data from ECharts heatmap test data
-        std::vector<HeatmapDataItem> data = {
+        std::vector<pz::HeatmapDataItem> data = {
             {0, 0, 5},
             {0, 1, 1},
             {0, 2, 0},
@@ -876,7 +876,7 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
     // 29. 热力图 - 自定义颜色渐变（绿-黄-红）
     // ============================================================
     {
-        SvgHeatmapChart chart(900, 500);
+        pz::SvgHeatmapChart chart(900, 500);
         chart.setTitle("Heatmap - Custom Gradient (Green-Yellow-Red)");
 
         std::vector<std::string> hours = {
@@ -915,7 +915,7 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
         chart.setXLabels(hours);
         chart.setYLabels(days);
 
-        std::vector<HeatmapDataItem> data = {
+        std::vector<pz::HeatmapDataItem> data = {
             {0, 0, 5},
             {1, 0, 7},
             {2, 0, 1},
@@ -1088,9 +1088,9 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
         chart.setValueRange(0, 14);
         // Green-Yellow-Red gradient
         chart.setColorGradient({
-            SvgColor(103, 224, 127),// green
-            SvgColor(250, 200, 88), // yellow
-            SvgColor(238, 102, 102) // red
+            pz::SvgColor(103, 224, 127),// green
+            pz::SvgColor(250, 200, 88), // yellow
+            pz::SvgColor(238, 102, 102) // red
         });
         chart.setCellGap(1);
         chart.setBorderRadius(2);
@@ -1102,46 +1102,46 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
     // 30. 乔哈里视窗 (Johari Window) - 2x2 象限图
     // ============================================================
     {
-        SvgJohariWindowChart chart(800, 600);
+        pz::SvgJohariWindowChart chart(800, 600);
         chart.setTitle("Johari Window");
 
         // 公开区 (Open): 自己知道、别人也知道
-        chart.setQuadrant(SvgJohariWindowChart::OPEN,
+        chart.setQuadrant(pz::SvgJohariWindowChart::OPEN,
                           "Open Area",
                           "Name, skills, experience\nBehaviors, attitudes\nPublic information",
-                          SvgColor(200, 230, 255),// 浅蓝
-                          SvgColor(30, 60, 140),  // 深蓝标题
-                          SvgColor(60, 100, 180), // 蓝色内容
+                          pz::SvgColor(200, 230, 255),// 浅蓝
+                          pz::SvgColor(30, 60, 140),  // 深蓝标题
+                          pz::SvgColor(60, 100, 180), // 蓝色内容
                           15,
                           12);
 
         // 盲区 (Blind): 自己不知道、别人知道
-        chart.setQuadrant(SvgJohariWindowChart::BLIND,
+        chart.setQuadrant(pz::SvgJohariWindowChart::BLIND,
                           "Blind Spot",
                           "Habits you don't notice\nCommunication style\nImpact on others",
-                          SvgColor(255, 220, 200),// 浅橙
-                          SvgColor(160, 60, 20),  // 深橙标题
-                          SvgColor(200, 90, 40),  // 橙色内容
+                          pz::SvgColor(255, 220, 200),// 浅橙
+                          pz::SvgColor(160, 60, 20),  // 深橙标题
+                          pz::SvgColor(200, 90, 40),  // 橙色内容
                           15,
                           12);
 
         // 隐藏区 (Hidden): 自己知道、别人不知道
-        chart.setQuadrant(SvgJohariWindowChart::HIDDEN,
+        chart.setQuadrant(pz::SvgJohariWindowChart::HIDDEN,
                           "Hidden Area",
                           "Private thoughts\nPersonal history\nUnshared feelings",
-                          SvgColor(200, 255, 220),// 浅绿
-                          SvgColor(20, 120, 50),  // 深绿标题
-                          SvgColor(40, 160, 80),  // 绿色内容
+                          pz::SvgColor(200, 255, 220),// 浅绿
+                          pz::SvgColor(20, 120, 50),  // 深绿标题
+                          pz::SvgColor(40, 160, 80),  // 绿色内容
                           15,
                           12);
 
         // 未知区 (Unknown): 自己不知道、别人也不知道
-        chart.setQuadrant(SvgJohariWindowChart::UNKNOWN,
+        chart.setQuadrant(pz::SvgJohariWindowChart::UNKNOWN,
                           "Unknown Area",
                           "Untapped potential\nSubconscious motives\nFuture possibilities",
-                          SvgColor(240, 230, 255),// 浅紫
-                          SvgColor(100, 30, 140), // 深紫标题
-                          SvgColor(140, 60, 190), // 紫色内容
+                          pz::SvgColor(240, 230, 255),// 浅紫
+                          pz::SvgColor(100, 30, 140), // 深紫标题
+                          pz::SvgColor(140, 60, 190), // 紫色内容
                           15,
                           12);
 
@@ -1156,42 +1156,42 @@ std::string test_svgchart(std::shared_ptr<httppeer> peer)
     // 31. 乔哈里视窗 - 无背景色 + 标题居中
     // ============================================================
     {
-        SvgJohariWindowChart chart(800, 600);
+        pz::SvgJohariWindowChart chart(800, 600);
         chart.setTitle("Johari Window - No Background, Centered Title");
 
-        chart.setQuadrant(SvgJohariWindowChart::OPEN,
+        chart.setQuadrant(pz::SvgJohariWindowChart::OPEN,
                           "Open Area",
                           "Known to self and others\nShared knowledge\nPublic identity",
-                          SvgColor(),
-                          SvgColor(30, 60, 140),
-                          SvgColor(100, 140, 200),
+                          pz::SvgColor(),
+                          pz::SvgColor(30, 60, 140),
+                          pz::SvgColor(100, 140, 200),
                           15,
                           12);
 
-        chart.setQuadrant(SvgJohariWindowChart::BLIND,
+        chart.setQuadrant(pz::SvgJohariWindowChart::BLIND,
                           "Blind Spot",
                           "Unknown to self, known to others\nFeedback reveals these\nGrowth opportunities",
-                          SvgColor(),
-                          SvgColor(180, 80, 30),
-                          SvgColor(210, 120, 60),
+                          pz::SvgColor(),
+                          pz::SvgColor(180, 80, 30),
+                          pz::SvgColor(210, 120, 60),
                           15,
                           12);
 
-        chart.setQuadrant(SvgJohariWindowChart::HIDDEN,
+        chart.setQuadrant(pz::SvgJohariWindowChart::HIDDEN,
                           "Hidden Area",
                           "Known to self, unknown to others\nPrivate self\nSelective disclosure",
-                          SvgColor(),
-                          SvgColor(20, 120, 50),
-                          SvgColor(60, 160, 90),
+                          pz::SvgColor(),
+                          pz::SvgColor(20, 120, 50),
+                          pz::SvgColor(60, 160, 90),
                           15,
                           12);
 
-        chart.setQuadrant(SvgJohariWindowChart::UNKNOWN,
+        chart.setQuadrant(pz::SvgJohariWindowChart::UNKNOWN,
                           "Unknown Area",
                           "Unknown to both\nUntapped potential\nDiscovery through experience",
-                          SvgColor(),
-                          SvgColor(100, 30, 140),
-                          SvgColor(150, 70, 200),
+                          pz::SvgColor(),
+                          pz::SvgColor(100, 30, 140),
+                          pz::SvgColor(150, 70, 200),
                           15,
                           12);
 
@@ -1235,7 +1235,7 @@ std::string test_svgstats(std::shared_ptr<httppeer> peer)
             {90, 270},
             {110, 330},
             {130, 390}};
-        auto result = LinearRegression::linear(data);
+        auto result = pz::LinearRegression::linear(data);
         oss << "<b>【线性回归】房价 = a * 面积 + b</b><br>";
         oss << "  公式:    " << result.expression << "<br>";
         oss << "  斜率 a:  " << result.parameters.gradient << "<br>";
@@ -1272,7 +1272,7 @@ std::string test_svgstats(std::shared_ptr<httppeer> peer)
             {16, 67884},
             {17, 74462},
             {18, 79395}};
-        auto result = LinearRegression::exponential(data);
+        auto result = pz::LinearRegression::exponential(data);
         oss << "<b>【指数回归】GDP = a * e^(b*年份)</b><br>";
         oss << "  公式:    " << result.expression << "<br>";
         oss << "  系数 a:  " << result.parameters.intercept << "<br>";
@@ -1296,7 +1296,7 @@ std::string test_svgstats(std::shared_ptr<httppeer> peer)
             {10, 29},
             {20, 35},
             {50, 42}};
-        auto result = LinearRegression::logarithmic(data);
+        auto result = pz::LinearRegression::logarithmic(data);
         oss << "<b>【对数回归】收益 = a + b*ln(投入)</b><br>";
         oss << "  公式:    " << result.expression << "<br>";
         oss << "  截距 a:  " << result.parameters.intercept << "<br>";
@@ -1319,7 +1319,7 @@ std::string test_svgstats(std::shared_ptr<httppeer> peer)
             {3, 8.9},
             {4, 16.1},
             {5, 25.0}};
-        auto result = LinearRegression::polynomial(data, 2);
+        auto result = pz::LinearRegression::polynomial(data, 2);
         oss << "<b>【多项式回归 (order=2)】抛物线拟合</b><br>";
         oss << "  公式:    " << result.expression << "<br>";
         oss << "  系数:    ";
@@ -1341,9 +1341,9 @@ std::string test_svgstats(std::shared_ptr<httppeer> peer)
             {3, 9.2},
             {4, 11.8},
             {5, 15.2}};
-        LinearRegression::Config config;
-        config.method = LinearRegression::LINEAR_THROUGH_ORIGIN;
-        auto result   = LinearRegression::run(data, config);
+        pz::LinearRegression::Config config;
+        config.method = pz::LinearRegression::LINEAR_THROUGH_ORIGIN;
+        auto result   = pz::LinearRegression::run(data, config);
         oss << "<b>【过原点线性回归】距离 = a * 时间</b><br>";
         oss << "  公式:    " << result.expression << "<br>";
         oss << "  速度 a:  " << result.parameters.gradient << " m/s<br><br>";
@@ -1360,10 +1360,10 @@ std::string test_svgstats(std::shared_ptr<httppeer> peer)
             {3, 0, 7},
             {4, 0, 9},
             {5, 0, 11}};
-        LinearRegression::Config config;
-        config.method     = LinearRegression::LINEAR;
+        pz::LinearRegression::Config config;
+        config.method     = pz::LinearRegression::LINEAR;
         config.dimensions = {0, 2};// x=第0列, y=第2列
-        auto result       = LinearRegression::run(data, config);
+        auto result       = pz::LinearRegression::run(data, config);
         oss << "<b>【指定维度】x=col0, y=col2</b><br>";
         oss << "  公式:    " << result.expression << "<br>";
         oss << "  预测点:  ";
@@ -1395,7 +1395,7 @@ std::string test_svgstats(std::shared_ptr<httppeer> peer)
             {55, 30},
             {48, 28}// 高价值客户
         };
-        auto result = ClusteringProcess::simpleKMeans(data, 3);
+        auto result = pz::ClusteringProcess::simpleKMeans(data, 3);
         oss << "<b>【客户分群】k=3</b><br>";
         oss << "  原始数据: {消费额(千元), 月访问次数}<br>";
         for (size_t i = 0; i < data.size(); ++i)
@@ -1429,7 +1429,7 @@ std::string test_svgstats(std::shared_ptr<httppeer> peer)
             {10.1, 10.0},
             {10.0, 10.2},
             {9.7, 10.1}};
-        auto result = ClusteringProcess::simpleKMeans(data, 2);
+        auto result = pz::ClusteringProcess::simpleKMeans(data, 2);
         oss << "<b>【二维散点聚类】k=2，10 个点</b><br>";
         oss << "  各点分配: ";
         for (size_t i = 0; i < result.clusterAssigned.size(); ++i)
@@ -1451,10 +1451,10 @@ std::string test_svgstats(std::shared_ptr<httppeer> peer)
             {1.1, 2.1, 101},
             {10.0, 20.0, 200},
             {10.1, 20.1, 201}};
-        ClusteringProcess::Config config;
+        pz::ClusteringProcess::Config config;
         config.clusterCount = 2;
         config.dimensions   = {0, 1};// 只用第 0 和第 1 列做聚类
-        auto result         = ClusteringProcess::run(data, config);
+        auto result         = pz::ClusteringProcess::run(data, config);
         oss << "<b>【多维聚类】3D 数据，用前 2 维聚类</b><br>";
         oss << "  群 0 中心: (" << result.centroids[0][0] << ", " << result.centroids[0][1] << ")<br>";
         oss << "  群 1 中心: (" << result.centroids[1][0] << ", " << result.centroids[1][1] << ")<br>";
@@ -1474,7 +1474,7 @@ std::string test_svgstats(std::shared_ptr<httppeer> peer)
             {9.8, 9.9},
             {9.9, 9.8},
             {10.0, 10.0}};
-        auto result = ClusteringProcess::simpleKMeans(data, 2);
+        auto result = pz::ClusteringProcess::simpleKMeans(data, 2);
         oss << "<b>【距离信息】每个点到其所在群中心的距离</b><br>";
         for (size_t i = 0; i < result.clusterAssigned.size(); ++i)
         {
@@ -1494,7 +1494,7 @@ std::string test_svgstats(std::shared_ptr<httppeer> peer)
         std::ostringstream oss;
         oss << std::fixed << std::setprecision(4);
         std::vector<double> data = {1.0, 2.0, 2.5, 3.0, 3.5, 4.0, 5.0};
-        KernelDensity kde(data, 0);
+        pz::KernelDensity kde(data, 0);
         oss << "  原始数据: ";
         for (size_t i = 0; i < data.size(); ++i)
         {
@@ -1526,7 +1526,7 @@ std::string test_svgstats(std::shared_ptr<httppeer> peer)
                 {3, 7},
                 {4, 9},
                 {5, 11}};
-            auto result = LinearRegression::linear(data);
+            auto result = pz::LinearRegression::linear(data);
             bool pass   = std::abs(result.parameters.gradient - 2.0) < 0.01 && std::abs(result.parameters.intercept - 1.0) < 0.01;
             oss << "  " << (pass ? "PASS" : "FAIL") << ": linear y = 2x + 1, "
                 << "a=" << result.parameters.gradient << " b=" << result.parameters.intercept << "<br>";
@@ -1540,9 +1540,9 @@ std::string test_svgstats(std::shared_ptr<httppeer> peer)
                 {3, 9},
                 {4, 12},
                 {5, 15}};
-            LinearRegression::Config config;
-            config.method = LinearRegression::LINEAR_THROUGH_ORIGIN;
-            auto result   = LinearRegression::run(data, config);
+            pz::LinearRegression::Config config;
+            config.method = pz::LinearRegression::LINEAR_THROUGH_ORIGIN;
+            auto result   = pz::LinearRegression::run(data, config);
             bool pass     = std::abs(result.parameters.gradient - 3.0) < 0.01;
             oss << "  " << (pass ? "PASS" : "FAIL") << ": linear through origin y = 3x, "
                 << "a=" << result.parameters.gradient << "<br>";
@@ -1555,7 +1555,7 @@ std::string test_svgstats(std::shared_ptr<httppeer> peer)
             {
                 data.push_back({static_cast<double>(i), 2.0 * std::exp(0.5 * i)});
             }
-            auto result = LinearRegression::exponential(data);
+            auto result = pz::LinearRegression::exponential(data);
             bool pass   = std::abs(result.parameters.gradient - 0.5) < 0.05 && std::abs(result.parameters.intercept - 2.0) < 0.5;
             oss << "  " << (pass ? "PASS" : "FAIL") << ": exponential y = 2e^(0.5x), "
                 << "a=" << result.parameters.intercept << " b=" << result.parameters.gradient << "<br>";
@@ -1568,7 +1568,7 @@ std::string test_svgstats(std::shared_ptr<httppeer> peer)
             {
                 data.push_back({static_cast<double>(i), 1.0 + 2.0 * std::log(i)});
             }
-            auto result = LinearRegression::logarithmic(data);
+            auto result = pz::LinearRegression::logarithmic(data);
             bool pass   = std::abs(result.parameters.intercept - 1.0) < 0.01 && std::abs(result.parameters.gradient - 2.0) < 0.01;
             oss << "  " << (pass ? "PASS" : "FAIL") << ": logarithmic y = 1 + 2ln(x), "
                 << "a=" << result.parameters.intercept << " b=" << result.parameters.gradient << "<br>";
@@ -1581,7 +1581,7 @@ std::string test_svgstats(std::shared_ptr<httppeer> peer)
             {
                 data.push_back({static_cast<double>(i), static_cast<double>(i * i)});
             }
-            auto result = LinearRegression::polynomial(data, 2);
+            auto result = pz::LinearRegression::polynomial(data, 2);
             bool pass   = result.parameters.coefficients.size() == 3 && std::abs(result.parameters.coefficients[2] - 1.0) < 0.01;
             oss << "  " << (pass ? "PASS" : "FAIL") << ": polynomial y = x^2, "
                 << "a2=" << result.parameters.coefficients[2] << "<br>";
@@ -1608,7 +1608,7 @@ std::string test_svgstats(std::shared_ptr<httppeer> peer)
                 {16, 67884.6},
                 {17, 74462.6},
                 {18, 79395.7}};
-            auto result = LinearRegression::exponential(data);
+            auto result = pz::LinearRegression::exponential(data);
             bool pass   = result.points.size() == 18;
             oss << "  " << (pass ? "PASS" : "FAIL") << ": real-world exponential (18 points), "
                 << "expression=" << result.expression << "<br>";
@@ -1638,7 +1638,7 @@ std::string test_svgstats(std::shared_ptr<httppeer> peer)
                 {10.1, 10.0},
                 {10.0, 10.2},
                 {9.7, 10.1}};
-            auto result = ClusteringProcess::simpleKMeans(data, 2);
+            auto result = pz::ClusteringProcess::simpleKMeans(data, 2);
             int c0      = result.clusterAssigned[0].clusterIndex;
             int c1      = result.clusterAssigned[5].clusterIndex;
             bool pass   = result.centroids.size() == 2 && c0 != c1;
@@ -1657,7 +1657,7 @@ std::string test_svgstats(std::shared_ptr<httppeer> peer)
                 {9.8, 9.9},
                 {9.9, 9.7},
                 {10.0, 10.1}};
-            auto result      = ClusteringProcess::simpleKMeans(data, 3);
+            auto result      = pz::ClusteringProcess::simpleKMeans(data, 3);
             bool allNonEmpty = true;
             for (size_t c = 0; c < result.pointsInCluster.size(); ++c)
             {
@@ -1675,7 +1675,7 @@ std::string test_svgstats(std::shared_ptr<httppeer> peer)
                 {1.1, 2.1, 3.1},
                 {10.0, 20.0, 30.0},
                 {10.1, 20.1, 30.1}};
-            auto result = ClusteringProcess::simpleKMeans(data, 2);
+            auto result = pz::ClusteringProcess::simpleKMeans(data, 2);
             bool pass   = result.centroids.size() == 2 && result.clusterAssigned[0].clusterIndex != result.clusterAssigned[2].clusterIndex;
             oss << "  " << (pass ? "PASS" : "FAIL") << ": 3D clustering<br>";
         }
@@ -1686,7 +1686,7 @@ std::string test_svgstats(std::shared_ptr<httppeer> peer)
                 {1.0, 2.0},
                 {1.1, 2.1},
                 {0.9, 1.9}};
-            auto result = ClusteringProcess::simpleKMeans(data, 2);
+            auto result = pz::ClusteringProcess::simpleKMeans(data, 2);
             bool pass   = result.centroids.size() >= 1;
             oss << "  " << (pass ? "PASS" : "FAIL") << ": tight data edge case<br>";
         }
@@ -1701,52 +1701,52 @@ std::string test_svgstats(std::shared_ptr<httppeer> peer)
 
     client << "<p>21. 线性回归图 - 房价预测</p>";
     {
-        SvgRegressionChart chart(800, 500);
+        pz::SvgRegressionChart chart(800, 500);
         chart.setTitle("Linear Regression - House Price Prediction");
         chart.setData({{50, 150}, {60, 175}, {70, 210}, {80, 240}, {90, 270}, {100, 300}, {110, 330}, {120, 360}, {130, 390}, {140, 420}});
-        chart.setMethod(LinearRegression::LINEAR);
-        chart.setPointColor(SvgColor(84, 112, 198));
-        chart.setLineColor(SvgColor(238, 102, 102));
+        chart.setMethod(pz::LinearRegression::LINEAR);
+        chart.setPointColor(pz::SvgColor(84, 112, 198));
+        chart.setLineColor(pz::SvgColor(238, 102, 102));
         client << chart.render();
     }
 
     client << "<p>22. 指数回归图 - GDP 增长</p>";
     {
-        SvgRegressionChart chart(800, 500);
+        pz::SvgRegressionChart chart(800, 500);
         chart.setTitle("Exponential Regression - GDP Growth");
         chart.setData({{1, 2.1}, {2, 2.5}, {3, 3.1}, {4, 4.0}, {5, 5.2}, {6, 6.8}, {7, 8.9}, {8, 11.5}, {9, 14.8}, {10, 19.0}});
-        chart.setMethod(LinearRegression::EXPONENTIAL);
-        chart.setPointColor(SvgColor(60, 162, 131));
-        chart.setLineColor(SvgColor(238, 102, 102));
+        chart.setMethod(pz::LinearRegression::EXPONENTIAL);
+        chart.setPointColor(pz::SvgColor(60, 162, 131));
+        chart.setLineColor(pz::SvgColor(238, 102, 102));
         client << chart.render();
     }
 
     client << "<p>23. 对数回归图 - 学习曲线</p>";
     {
-        SvgRegressionChart chart(800, 500);
+        pz::SvgRegressionChart chart(800, 500);
         chart.setTitle("Logarithmic Regression - Learning Curve");
         chart.setData({{1, 20}, {2, 35}, {3, 45}, {4, 52}, {5, 57}, {6, 61}, {8, 67}, {10, 71}, {15, 78}, {20, 83}});
-        chart.setMethod(LinearRegression::LOGARITHMIC);
-        chart.setPointColor(SvgColor(250, 200, 88));
-        chart.setLineColor(SvgColor(238, 102, 102));
+        chart.setMethod(pz::LinearRegression::LOGARITHMIC);
+        chart.setPointColor(pz::SvgColor(250, 200, 88));
+        chart.setLineColor(pz::SvgColor(238, 102, 102));
         client << chart.render();
     }
 
     client << "<p>24. 多项式回归图 - 二次曲线</p>";
     {
-        SvgRegressionChart chart(800, 500);
+        pz::SvgRegressionChart chart(800, 500);
         chart.setTitle("Polynomial Regression - Quadratic");
         chart.setData({{0, 2.1}, {1, 7.7}, {2, 13.6}, {3, 27.2}, {4, 40.9}, {5, 61.1}, {6, 82.3}, {7, 108.5}, {8, 138.2}, {9, 170.0}});
-        chart.setMethod(LinearRegression::POLYNOMIAL);
+        chart.setMethod(pz::LinearRegression::POLYNOMIAL);
         chart.setPolynomialOrder(2);
-        chart.setPointColor(SvgColor(154, 96, 180));
-        chart.setLineColor(SvgColor(238, 102, 102));
+        chart.setPointColor(pz::SvgColor(154, 96, 180));
+        chart.setLineColor(pz::SvgColor(238, 102, 102));
         client << chart.render();
     }
 
     client << "<p>25. 聚类散点图 - 客户分群 (3 类)</p>";
     {
-        SvgClusteringChart chart(800, 500);
+        pz::SvgClusteringChart chart(800, 500);
         chart.setTitle("K-Means Clustering - Customer Segmentation");
         chart.setData({{2, 1}, {3, 2}, {2.5, 1.5}, {4, 3}, {3.5, 2.5}, {1.5, 1}, {2, 2.5}, {3, 1.5}, {12, 8}, {15, 10}, {14, 7}, {13, 9}, {16, 11}, {11, 8}, {15, 8.5}, {14, 10}, {45, 25}, {50, 30}, {48, 28}, {52, 32}, {55, 30}, {47, 26}, {50, 27}, {53, 31}});
         chart.setClusterCount(3);
@@ -1757,7 +1757,7 @@ std::string test_svgstats(std::shared_ptr<httppeer> peer)
 
     client << "<p>26. 聚类散点图 - 4 类</p>";
     {
-        SvgClusteringChart chart(800, 500);
+        pz::SvgClusteringChart chart(800, 500);
         chart.setTitle("K-Means Clustering - 4 Clusters");
         chart.setData({{5, 5}, {6, 4}, {4, 6}, {5, 7}, {6, 5}, {7, 4}, {4, 5}, {5, 25}, {6, 26}, {4, 24}, {5, 27}, {7, 25}, {6, 24}, {4, 26}, {25, 5}, {26, 4}, {24, 6}, {25, 7}, {27, 5}, {26, 6}, {24, 5}, {25, 25}, {26, 26}, {24, 24}, {25, 27}, {27, 25}, {26, 24}, {24, 26}});
         chart.setClusterCount(4);
@@ -1768,7 +1768,7 @@ std::string test_svgstats(std::shared_ptr<httppeer> peer)
 
     client << "<p>27. 多元线性回归 - 房价预测（面积+卧室数+房龄）</p>";
     {
-        SvgRegressionChart chart(800, 500);
+        pz::SvgRegressionChart chart(800, 500);
         chart.setTitle("Multivariate Linear Regression - House Price");
         chart.setData({{60, 2, 20, 180},
                        {80, 2, 15, 230},
@@ -1790,9 +1790,9 @@ std::string test_svgstats(std::shared_ptr<httppeer> peer)
                        {125, 3, 7, 380},
                        {145, 4, 10, 410},
                        {165, 4, 8, 470}});
-        chart.setMethod(LinearRegression::MULTIVARIATE_LINEAR);
-        chart.setPointColor(SvgColor(84, 112, 198));
-        chart.setLineColor(SvgColor(238, 102, 102));
+        chart.setMethod(pz::LinearRegression::MULTIVARIATE_LINEAR);
+        chart.setPointColor(pz::SvgColor(84, 112, 198));
+        chart.setLineColor(pz::SvgColor(238, 102, 102));
         chart.setPointSize(6);
         client << chart.render();
     }

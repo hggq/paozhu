@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Mon, 14 Sep 2026 13:39:42 GMT
+ *  Creation time Tue, 15 Sep 2026 12:41:27 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -132,7 +132,7 @@ namespace cms
 
         M_MODEL &resetDB()
         {
-            dbtag = B_BASE::_rmstag;
+            dbtag                                                                = B_BASE::_rmstag;
             std::map<std::string, std::shared_ptr<orm_conn_pool>> &conn_pool_obj = get_orm_conn_pool_obj();
             auto iter                                                            = conn_pool_obj.find(dbtag);
             if (iter != conn_pool_obj.end())
@@ -6022,6 +6022,199 @@ M_MODEL& ornotnullRelatecontent()
             ordersql.append(" ASC ");
             return *mod;
         }
+        M_MODEL &asc(orm::table_col<B_BASE, &article_info::col_names> field1, orm::table_col<B_BASE, &article_info::col_names> field2)
+        {
+
+            ordersql.append(" ORDER BY ");
+            ordersql.append(field1);
+            ordersql.append(",");
+            ordersql.append(field2);
+            ordersql.append(" ASC ");
+            return *mod;
+        }
+        M_MODEL &asc(article_info::cols field, article_info::cols field2)
+        {
+            ordersql.append(" ORDER BY ");
+            switch (field)
+            {
+            
+			case article_info::cols::aid:
+				ordersql.append("aid");
+				break;
+			case article_info::cols::topicid:
+				ordersql.append("topicid");
+				break;
+			case article_info::cols::classtype:
+				ordersql.append("classtype");
+				break;
+			case article_info::cols::userid:
+				ordersql.append("userid");
+				break;
+			case article_info::cols::sortid:
+				ordersql.append("sortid");
+				break;
+			case article_info::cols::topicname:
+				ordersql.append("topicname");
+				break;
+			case article_info::cols::title:
+				ordersql.append("title");
+				break;
+			case article_info::cols::keywords:
+				ordersql.append("keywords");
+				break;
+			case article_info::cols::fromsource:
+				ordersql.append("fromsource");
+				break;
+			case article_info::cols::author:
+				ordersql.append("author");
+				break;
+			case article_info::cols::addip:
+				ordersql.append("addip");
+				break;
+			case article_info::cols::createtime:
+				ordersql.append("createtime");
+				break;
+			case article_info::cols::addtime:
+				ordersql.append("addtime");
+				break;
+			case article_info::cols::readnum:
+				ordersql.append("readnum");
+				break;
+			case article_info::cols::review:
+				ordersql.append("review");
+				break;
+			case article_info::cols::icoimg:
+				ordersql.append("icoimg");
+				break;
+			case article_info::cols::content:
+				ordersql.append("content");
+				break;
+			case article_info::cols::mdcontent:
+				ordersql.append("mdcontent");
+				break;
+			case article_info::cols::isopen:
+				ordersql.append("isopen");
+				break;
+			case article_info::cols::ishome:
+				ordersql.append("ishome");
+				break;
+			case article_info::cols::iscomment:
+				ordersql.append("iscomment");
+				break;
+			case article_info::cols::showtype:
+				ordersql.append("showtype");
+				break;
+			case article_info::cols::fromlocal:
+				ordersql.append("fromlocal");
+				break;
+			case article_info::cols::texturl:
+				ordersql.append("texturl");
+				break;
+			case article_info::cols::summary:
+				ordersql.append("summary");
+				break;
+			case article_info::cols::editauthor:
+				ordersql.append("editauthor");
+				break;
+			case article_info::cols::relatecontent:
+				ordersql.append("relatecontent");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(",");
+            switch (field2)
+            {
+            
+			case article_info::cols::aid:
+				ordersql.append("aid");
+				break;
+			case article_info::cols::topicid:
+				ordersql.append("topicid");
+				break;
+			case article_info::cols::classtype:
+				ordersql.append("classtype");
+				break;
+			case article_info::cols::userid:
+				ordersql.append("userid");
+				break;
+			case article_info::cols::sortid:
+				ordersql.append("sortid");
+				break;
+			case article_info::cols::topicname:
+				ordersql.append("topicname");
+				break;
+			case article_info::cols::title:
+				ordersql.append("title");
+				break;
+			case article_info::cols::keywords:
+				ordersql.append("keywords");
+				break;
+			case article_info::cols::fromsource:
+				ordersql.append("fromsource");
+				break;
+			case article_info::cols::author:
+				ordersql.append("author");
+				break;
+			case article_info::cols::addip:
+				ordersql.append("addip");
+				break;
+			case article_info::cols::createtime:
+				ordersql.append("createtime");
+				break;
+			case article_info::cols::addtime:
+				ordersql.append("addtime");
+				break;
+			case article_info::cols::readnum:
+				ordersql.append("readnum");
+				break;
+			case article_info::cols::review:
+				ordersql.append("review");
+				break;
+			case article_info::cols::icoimg:
+				ordersql.append("icoimg");
+				break;
+			case article_info::cols::content:
+				ordersql.append("content");
+				break;
+			case article_info::cols::mdcontent:
+				ordersql.append("mdcontent");
+				break;
+			case article_info::cols::isopen:
+				ordersql.append("isopen");
+				break;
+			case article_info::cols::ishome:
+				ordersql.append("ishome");
+				break;
+			case article_info::cols::iscomment:
+				ordersql.append("iscomment");
+				break;
+			case article_info::cols::showtype:
+				ordersql.append("showtype");
+				break;
+			case article_info::cols::fromlocal:
+				ordersql.append("fromlocal");
+				break;
+			case article_info::cols::texturl:
+				ordersql.append("texturl");
+				break;
+			case article_info::cols::summary:
+				ordersql.append("summary");
+				break;
+			case article_info::cols::editauthor:
+				ordersql.append("editauthor");
+				break;
+			case article_info::cols::relatecontent:
+				ordersql.append("relatecontent");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(" ASC ");
+            return *mod;
+        }
 
         M_MODEL &asc()
         {
@@ -6131,7 +6324,200 @@ M_MODEL& ornotnullRelatecontent()
             ordersql.append(" DESC ");
             return *mod;
         }
+        M_MODEL &desc(article_info::cols field, article_info::cols field2)
+        {
 
+            ordersql.append(" ORDER BY ");
+            switch (field)
+            {
+            
+			case article_info::cols::aid:
+				ordersql.append("aid");
+				break;
+			case article_info::cols::topicid:
+				ordersql.append("topicid");
+				break;
+			case article_info::cols::classtype:
+				ordersql.append("classtype");
+				break;
+			case article_info::cols::userid:
+				ordersql.append("userid");
+				break;
+			case article_info::cols::sortid:
+				ordersql.append("sortid");
+				break;
+			case article_info::cols::topicname:
+				ordersql.append("topicname");
+				break;
+			case article_info::cols::title:
+				ordersql.append("title");
+				break;
+			case article_info::cols::keywords:
+				ordersql.append("keywords");
+				break;
+			case article_info::cols::fromsource:
+				ordersql.append("fromsource");
+				break;
+			case article_info::cols::author:
+				ordersql.append("author");
+				break;
+			case article_info::cols::addip:
+				ordersql.append("addip");
+				break;
+			case article_info::cols::createtime:
+				ordersql.append("createtime");
+				break;
+			case article_info::cols::addtime:
+				ordersql.append("addtime");
+				break;
+			case article_info::cols::readnum:
+				ordersql.append("readnum");
+				break;
+			case article_info::cols::review:
+				ordersql.append("review");
+				break;
+			case article_info::cols::icoimg:
+				ordersql.append("icoimg");
+				break;
+			case article_info::cols::content:
+				ordersql.append("content");
+				break;
+			case article_info::cols::mdcontent:
+				ordersql.append("mdcontent");
+				break;
+			case article_info::cols::isopen:
+				ordersql.append("isopen");
+				break;
+			case article_info::cols::ishome:
+				ordersql.append("ishome");
+				break;
+			case article_info::cols::iscomment:
+				ordersql.append("iscomment");
+				break;
+			case article_info::cols::showtype:
+				ordersql.append("showtype");
+				break;
+			case article_info::cols::fromlocal:
+				ordersql.append("fromlocal");
+				break;
+			case article_info::cols::texturl:
+				ordersql.append("texturl");
+				break;
+			case article_info::cols::summary:
+				ordersql.append("summary");
+				break;
+			case article_info::cols::editauthor:
+				ordersql.append("editauthor");
+				break;
+			case article_info::cols::relatecontent:
+				ordersql.append("relatecontent");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(",");
+            switch (field2)
+            {
+            
+			case article_info::cols::aid:
+				ordersql.append("aid");
+				break;
+			case article_info::cols::topicid:
+				ordersql.append("topicid");
+				break;
+			case article_info::cols::classtype:
+				ordersql.append("classtype");
+				break;
+			case article_info::cols::userid:
+				ordersql.append("userid");
+				break;
+			case article_info::cols::sortid:
+				ordersql.append("sortid");
+				break;
+			case article_info::cols::topicname:
+				ordersql.append("topicname");
+				break;
+			case article_info::cols::title:
+				ordersql.append("title");
+				break;
+			case article_info::cols::keywords:
+				ordersql.append("keywords");
+				break;
+			case article_info::cols::fromsource:
+				ordersql.append("fromsource");
+				break;
+			case article_info::cols::author:
+				ordersql.append("author");
+				break;
+			case article_info::cols::addip:
+				ordersql.append("addip");
+				break;
+			case article_info::cols::createtime:
+				ordersql.append("createtime");
+				break;
+			case article_info::cols::addtime:
+				ordersql.append("addtime");
+				break;
+			case article_info::cols::readnum:
+				ordersql.append("readnum");
+				break;
+			case article_info::cols::review:
+				ordersql.append("review");
+				break;
+			case article_info::cols::icoimg:
+				ordersql.append("icoimg");
+				break;
+			case article_info::cols::content:
+				ordersql.append("content");
+				break;
+			case article_info::cols::mdcontent:
+				ordersql.append("mdcontent");
+				break;
+			case article_info::cols::isopen:
+				ordersql.append("isopen");
+				break;
+			case article_info::cols::ishome:
+				ordersql.append("ishome");
+				break;
+			case article_info::cols::iscomment:
+				ordersql.append("iscomment");
+				break;
+			case article_info::cols::showtype:
+				ordersql.append("showtype");
+				break;
+			case article_info::cols::fromlocal:
+				ordersql.append("fromlocal");
+				break;
+			case article_info::cols::texturl:
+				ordersql.append("texturl");
+				break;
+			case article_info::cols::summary:
+				ordersql.append("summary");
+				break;
+			case article_info::cols::editauthor:
+				ordersql.append("editauthor");
+				break;
+			case article_info::cols::relatecontent:
+				ordersql.append("relatecontent");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(" DESC ");
+            return *mod;
+        }
+        M_MODEL &desc(orm::table_col<B_BASE, &article_info::col_names> field1, orm::table_col<B_BASE, &article_info::col_names> field2)
+        {
+
+            ordersql.append(" ORDER BY ");
+            ordersql.append(field1);
+            ordersql.append(",");
+            ordersql.append(field2);
+            ordersql.append(" DESC ");
+            return *mod;
+        }        
         M_MODEL &order(orm::table_col<B_BASE, &article_info::col_names> wq, const std::string &asc_or_desc)
         {
             ordersql.append(" ORDER BY ");
@@ -6555,7 +6941,7 @@ M_MODEL& ornotnullRelatecontent()
                 bool iscache_hit = false;
                 try
                 {
-                    std::vector<std::vector<std::string>> cache_rows  = temp_cache.get(sqlhashid);
+                    std::vector<std::vector<std::string>> cache_rows   = temp_cache.get(sqlhashid);
                     std::vector<std::string> cache_fieldname           = table_cache.get(sqlhashid);
                     std::map<std::string, unsigned int> cache_fieldmap = tablemap_cache.get(sqlhashid);
 
@@ -8623,7 +9009,7 @@ M_MODEL& ornotnullRelatecontent()
             std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
 
             model_meta_cache<article_info::meta> &data_cache = model_meta_cache<article_info::meta>::getinstance();
-            bool state = data_cache.remove(sqlhashid);
+            bool state                                          = data_cache.remove(sqlhashid);
 
             model_meta_cache<std::vector<article_info::meta>> &record_cache = model_meta_cache<std::vector<article_info::meta>>::getinstance();
             return record_cache.remove(sqlhashid) || state;
@@ -8631,7 +9017,7 @@ M_MODEL& ornotnullRelatecontent()
         bool remove_cache(std::size_t cache_key_name)
         {
             model_meta_cache<article_info::meta> &data_cache = model_meta_cache<article_info::meta>::getinstance();
-            bool state = data_cache.remove(cache_key_name);
+            bool state                                          = data_cache.remove(cache_key_name);
 
             model_meta_cache<std::vector<article_info::meta>> &record_cache = model_meta_cache<std::vector<article_info::meta>>::getinstance();
             return record_cache.remove(cache_key_name) || state;
@@ -12826,10 +13212,10 @@ M_MODEL& ornotnullRelatecontent()
         M_MODEL &AND(orm::table_col<B_BASE, &article_info::col_names> field, orm::wq opwq, T val)
         {
             orm_where_sql_t item;
-            item.pre_op      = wheresql.empty() ? 0 : 1;
-            item.op_type     = opwq;
-            item.col_idx     = B_BASE::findcolpos(field);
-            
+            item.pre_op  = wheresql.empty() ? 0 : 1;
+            item.op_type = opwq;
+            item.col_idx = B_BASE::findcolpos(field);
+
             if (item.col_idx == 255)
             {
                 error_msg = "field is not table column";
@@ -12846,10 +13232,10 @@ M_MODEL& ornotnullRelatecontent()
         M_MODEL &OR(orm::table_col<B_BASE, &article_info::col_names> field, orm::wq opwq, T val)
         {
             orm_where_sql_t item;
-            item.pre_op      = wheresql.empty() ? 0 : 2;
-            item.op_type     = opwq;
-            item.col_idx     = B_BASE::findcolpos(field);
-            
+            item.pre_op  = wheresql.empty() ? 0 : 2;
+            item.op_type = opwq;
+            item.col_idx = B_BASE::findcolpos(field);
+
             if (item.col_idx == 255)
             {
                 error_msg = "field is not table column";

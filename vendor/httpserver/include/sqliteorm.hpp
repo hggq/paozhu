@@ -2416,6 +2416,38 @@ namespace orm
                 }
             }
         }
+        M_MODEL &desc(typename B_BASE::cols field, typename B_BASE::cols field2)
+        {
+
+            ordersql.append(" ORDER BY ");
+            switch (field)
+            {
+            /*ordersql_name_where*/
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(",");
+            switch (field2)
+            {
+            /*ordersql_name_where*/
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(" DESC ");
+            return *mod;
+        }
+        M_MODEL &desc(orm::table_col<B_BASE, &B_BASE::col_names> field1, orm::table_col<B_BASE, &B_BASE::col_names> field2)
+        {
+
+            ordersql.append(" ORDER BY ");
+            ordersql.append(field1);
+            ordersql.append(",");
+            ordersql.append(field2);
+            ordersql.append(" DESC ");
+            return *mod;
+        }
 
         M_MODEL &order(typename B_BASE::cols field, const std::string &asc_or_desc)
         {
@@ -2431,7 +2463,38 @@ namespace orm
             ordersql.append(asc_or_desc);
             return *mod;
         }
+        M_MODEL &asc(typename B_BASE::cols field, typename B_BASE::cols field2)
+        {
+            ordersql.append(" ORDER BY ");
+            switch (field)
+            {
+            /*ordersql_name_where*/
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(",");
+            switch (field2)
+            {
+            /*ordersql_name_where*/
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(" ASC ");
+            return *mod;
+        }
 
+        M_MODEL &asc(orm::table_col<B_BASE, &B_BASE::col_names> field1, orm::table_col<B_BASE, &B_BASE::col_names> field2)
+        {
+
+            ordersql.append(" ORDER BY ");
+            ordersql.append(field1);
+            ordersql.append(",");
+            ordersql.append(field2);
+            ordersql.append(" ASC ");
+            return *mod;
+        }
         M_MODEL &asc(typename B_BASE::cols field)
         {
             ordersql.append(" ORDER BY ");

@@ -2,7 +2,7 @@
 #define ORM_LITE_FORTUNEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Mon, 14 Sep 2026 13:39:46 GMT
+*本文件为自动生成 Tue, 15 Sep 2026 12:41:39 GMT
 ***/
 #include <iostream>
 #include <charconv>

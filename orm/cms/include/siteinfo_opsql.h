@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Mon, 14 Sep 2026 13:39:42 GMT
+ *  Creation time Tue, 15 Sep 2026 12:41:27 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -132,7 +132,7 @@ namespace cms
 
         M_MODEL &resetDB()
         {
-            dbtag = B_BASE::_rmstag;
+            dbtag                                                                = B_BASE::_rmstag;
             std::map<std::string, std::shared_ptr<orm_conn_pool>> &conn_pool_obj = get_orm_conn_pool_obj();
             auto iter                                                            = conn_pool_obj.find(dbtag);
             if (iter != conn_pool_obj.end())
@@ -6187,6 +6187,235 @@ M_MODEL& ornotnullEnddate()
             ordersql.append(" ASC ");
             return *mod;
         }
+        M_MODEL &asc(orm::table_col<B_BASE, &siteinfo_info::col_names> field1, orm::table_col<B_BASE, &siteinfo_info::col_names> field2)
+        {
+
+            ordersql.append(" ORDER BY ");
+            ordersql.append(field1);
+            ordersql.append(",");
+            ordersql.append(field2);
+            ordersql.append(" ASC ");
+            return *mod;
+        }
+        M_MODEL &asc(siteinfo_info::cols field, siteinfo_info::cols field2)
+        {
+            ordersql.append(" ORDER BY ");
+            switch (field)
+            {
+            
+			case siteinfo_info::cols::sid:
+				ordersql.append("sid");
+				break;
+			case siteinfo_info::cols::userid:
+				ordersql.append("userid");
+				break;
+			case siteinfo_info::cols::agentid:
+				ordersql.append("agentid");
+				break;
+			case siteinfo_info::cols::languagetype:
+				ordersql.append("languagetype");
+				break;
+			case siteinfo_info::cols::sitename:
+				ordersql.append("sitename");
+				break;
+			case siteinfo_info::cols::sitedomain:
+				ordersql.append("sitedomain");
+				break;
+			case siteinfo_info::cols::metakeys:
+				ordersql.append("metakeys");
+				break;
+			case siteinfo_info::cols::metadesc:
+				ordersql.append("metadesc");
+				break;
+			case siteinfo_info::cols::copyright:
+				ordersql.append("copyright");
+				break;
+			case siteinfo_info::cols::beiansn:
+				ordersql.append("beiansn");
+				break;
+			case siteinfo_info::cols::footscript:
+				ordersql.append("footscript");
+				break;
+			case siteinfo_info::cols::headscript:
+				ordersql.append("headscript");
+				break;
+			case siteinfo_info::cols::introduce:
+				ordersql.append("introduce");
+				break;
+			case siteinfo_info::cols::sitelogo:
+				ordersql.append("sitelogo");
+				break;
+			case siteinfo_info::cols::sitebanner:
+				ordersql.append("sitebanner");
+				break;
+			case siteinfo_info::cols::contactman:
+				ordersql.append("contactman");
+				break;
+			case siteinfo_info::cols::phone:
+				ordersql.append("phone");
+				break;
+			case siteinfo_info::cols::mobile:
+				ordersql.append("mobile");
+				break;
+			case siteinfo_info::cols::email:
+				ordersql.append("email");
+				break;
+			case siteinfo_info::cols::bankname:
+				ordersql.append("bankname");
+				break;
+			case siteinfo_info::cols::banksn:
+				ordersql.append("banksn");
+				break;
+			case siteinfo_info::cols::address:
+				ordersql.append("address");
+				break;
+			case siteinfo_info::cols::zipnum:
+				ordersql.append("zipnum");
+				break;
+			case siteinfo_info::cols::taxsn:
+				ordersql.append("taxsn");
+				break;
+			case siteinfo_info::cols::companyname:
+				ordersql.append("companyname");
+				break;
+			case siteinfo_info::cols::linkname:
+				ordersql.append("linkname");
+				break;
+			case siteinfo_info::cols::linkmobile:
+				ordersql.append("linkmobile");
+				break;
+			case siteinfo_info::cols::linkaddress:
+				ordersql.append("linkaddress");
+				break;
+			case siteinfo_info::cols::theme:
+				ordersql.append("theme");
+				break;
+			case siteinfo_info::cols::sitepath:
+				ordersql.append("sitepath");
+				break;
+			case siteinfo_info::cols::isopen:
+				ordersql.append("isopen");
+				break;
+			case siteinfo_info::cols::created_at:
+				ordersql.append("created_at");
+				break;
+			case siteinfo_info::cols::enddate:
+				ordersql.append("enddate");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(",");
+            switch (field2)
+            {
+            
+			case siteinfo_info::cols::sid:
+				ordersql.append("sid");
+				break;
+			case siteinfo_info::cols::userid:
+				ordersql.append("userid");
+				break;
+			case siteinfo_info::cols::agentid:
+				ordersql.append("agentid");
+				break;
+			case siteinfo_info::cols::languagetype:
+				ordersql.append("languagetype");
+				break;
+			case siteinfo_info::cols::sitename:
+				ordersql.append("sitename");
+				break;
+			case siteinfo_info::cols::sitedomain:
+				ordersql.append("sitedomain");
+				break;
+			case siteinfo_info::cols::metakeys:
+				ordersql.append("metakeys");
+				break;
+			case siteinfo_info::cols::metadesc:
+				ordersql.append("metadesc");
+				break;
+			case siteinfo_info::cols::copyright:
+				ordersql.append("copyright");
+				break;
+			case siteinfo_info::cols::beiansn:
+				ordersql.append("beiansn");
+				break;
+			case siteinfo_info::cols::footscript:
+				ordersql.append("footscript");
+				break;
+			case siteinfo_info::cols::headscript:
+				ordersql.append("headscript");
+				break;
+			case siteinfo_info::cols::introduce:
+				ordersql.append("introduce");
+				break;
+			case siteinfo_info::cols::sitelogo:
+				ordersql.append("sitelogo");
+				break;
+			case siteinfo_info::cols::sitebanner:
+				ordersql.append("sitebanner");
+				break;
+			case siteinfo_info::cols::contactman:
+				ordersql.append("contactman");
+				break;
+			case siteinfo_info::cols::phone:
+				ordersql.append("phone");
+				break;
+			case siteinfo_info::cols::mobile:
+				ordersql.append("mobile");
+				break;
+			case siteinfo_info::cols::email:
+				ordersql.append("email");
+				break;
+			case siteinfo_info::cols::bankname:
+				ordersql.append("bankname");
+				break;
+			case siteinfo_info::cols::banksn:
+				ordersql.append("banksn");
+				break;
+			case siteinfo_info::cols::address:
+				ordersql.append("address");
+				break;
+			case siteinfo_info::cols::zipnum:
+				ordersql.append("zipnum");
+				break;
+			case siteinfo_info::cols::taxsn:
+				ordersql.append("taxsn");
+				break;
+			case siteinfo_info::cols::companyname:
+				ordersql.append("companyname");
+				break;
+			case siteinfo_info::cols::linkname:
+				ordersql.append("linkname");
+				break;
+			case siteinfo_info::cols::linkmobile:
+				ordersql.append("linkmobile");
+				break;
+			case siteinfo_info::cols::linkaddress:
+				ordersql.append("linkaddress");
+				break;
+			case siteinfo_info::cols::theme:
+				ordersql.append("theme");
+				break;
+			case siteinfo_info::cols::sitepath:
+				ordersql.append("sitepath");
+				break;
+			case siteinfo_info::cols::isopen:
+				ordersql.append("isopen");
+				break;
+			case siteinfo_info::cols::created_at:
+				ordersql.append("created_at");
+				break;
+			case siteinfo_info::cols::enddate:
+				ordersql.append("enddate");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(" ASC ");
+            return *mod;
+        }
 
         M_MODEL &asc()
         {
@@ -6314,7 +6543,236 @@ M_MODEL& ornotnullEnddate()
             ordersql.append(" DESC ");
             return *mod;
         }
+        M_MODEL &desc(siteinfo_info::cols field, siteinfo_info::cols field2)
+        {
 
+            ordersql.append(" ORDER BY ");
+            switch (field)
+            {
+            
+			case siteinfo_info::cols::sid:
+				ordersql.append("sid");
+				break;
+			case siteinfo_info::cols::userid:
+				ordersql.append("userid");
+				break;
+			case siteinfo_info::cols::agentid:
+				ordersql.append("agentid");
+				break;
+			case siteinfo_info::cols::languagetype:
+				ordersql.append("languagetype");
+				break;
+			case siteinfo_info::cols::sitename:
+				ordersql.append("sitename");
+				break;
+			case siteinfo_info::cols::sitedomain:
+				ordersql.append("sitedomain");
+				break;
+			case siteinfo_info::cols::metakeys:
+				ordersql.append("metakeys");
+				break;
+			case siteinfo_info::cols::metadesc:
+				ordersql.append("metadesc");
+				break;
+			case siteinfo_info::cols::copyright:
+				ordersql.append("copyright");
+				break;
+			case siteinfo_info::cols::beiansn:
+				ordersql.append("beiansn");
+				break;
+			case siteinfo_info::cols::footscript:
+				ordersql.append("footscript");
+				break;
+			case siteinfo_info::cols::headscript:
+				ordersql.append("headscript");
+				break;
+			case siteinfo_info::cols::introduce:
+				ordersql.append("introduce");
+				break;
+			case siteinfo_info::cols::sitelogo:
+				ordersql.append("sitelogo");
+				break;
+			case siteinfo_info::cols::sitebanner:
+				ordersql.append("sitebanner");
+				break;
+			case siteinfo_info::cols::contactman:
+				ordersql.append("contactman");
+				break;
+			case siteinfo_info::cols::phone:
+				ordersql.append("phone");
+				break;
+			case siteinfo_info::cols::mobile:
+				ordersql.append("mobile");
+				break;
+			case siteinfo_info::cols::email:
+				ordersql.append("email");
+				break;
+			case siteinfo_info::cols::bankname:
+				ordersql.append("bankname");
+				break;
+			case siteinfo_info::cols::banksn:
+				ordersql.append("banksn");
+				break;
+			case siteinfo_info::cols::address:
+				ordersql.append("address");
+				break;
+			case siteinfo_info::cols::zipnum:
+				ordersql.append("zipnum");
+				break;
+			case siteinfo_info::cols::taxsn:
+				ordersql.append("taxsn");
+				break;
+			case siteinfo_info::cols::companyname:
+				ordersql.append("companyname");
+				break;
+			case siteinfo_info::cols::linkname:
+				ordersql.append("linkname");
+				break;
+			case siteinfo_info::cols::linkmobile:
+				ordersql.append("linkmobile");
+				break;
+			case siteinfo_info::cols::linkaddress:
+				ordersql.append("linkaddress");
+				break;
+			case siteinfo_info::cols::theme:
+				ordersql.append("theme");
+				break;
+			case siteinfo_info::cols::sitepath:
+				ordersql.append("sitepath");
+				break;
+			case siteinfo_info::cols::isopen:
+				ordersql.append("isopen");
+				break;
+			case siteinfo_info::cols::created_at:
+				ordersql.append("created_at");
+				break;
+			case siteinfo_info::cols::enddate:
+				ordersql.append("enddate");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(",");
+            switch (field2)
+            {
+            
+			case siteinfo_info::cols::sid:
+				ordersql.append("sid");
+				break;
+			case siteinfo_info::cols::userid:
+				ordersql.append("userid");
+				break;
+			case siteinfo_info::cols::agentid:
+				ordersql.append("agentid");
+				break;
+			case siteinfo_info::cols::languagetype:
+				ordersql.append("languagetype");
+				break;
+			case siteinfo_info::cols::sitename:
+				ordersql.append("sitename");
+				break;
+			case siteinfo_info::cols::sitedomain:
+				ordersql.append("sitedomain");
+				break;
+			case siteinfo_info::cols::metakeys:
+				ordersql.append("metakeys");
+				break;
+			case siteinfo_info::cols::metadesc:
+				ordersql.append("metadesc");
+				break;
+			case siteinfo_info::cols::copyright:
+				ordersql.append("copyright");
+				break;
+			case siteinfo_info::cols::beiansn:
+				ordersql.append("beiansn");
+				break;
+			case siteinfo_info::cols::footscript:
+				ordersql.append("footscript");
+				break;
+			case siteinfo_info::cols::headscript:
+				ordersql.append("headscript");
+				break;
+			case siteinfo_info::cols::introduce:
+				ordersql.append("introduce");
+				break;
+			case siteinfo_info::cols::sitelogo:
+				ordersql.append("sitelogo");
+				break;
+			case siteinfo_info::cols::sitebanner:
+				ordersql.append("sitebanner");
+				break;
+			case siteinfo_info::cols::contactman:
+				ordersql.append("contactman");
+				break;
+			case siteinfo_info::cols::phone:
+				ordersql.append("phone");
+				break;
+			case siteinfo_info::cols::mobile:
+				ordersql.append("mobile");
+				break;
+			case siteinfo_info::cols::email:
+				ordersql.append("email");
+				break;
+			case siteinfo_info::cols::bankname:
+				ordersql.append("bankname");
+				break;
+			case siteinfo_info::cols::banksn:
+				ordersql.append("banksn");
+				break;
+			case siteinfo_info::cols::address:
+				ordersql.append("address");
+				break;
+			case siteinfo_info::cols::zipnum:
+				ordersql.append("zipnum");
+				break;
+			case siteinfo_info::cols::taxsn:
+				ordersql.append("taxsn");
+				break;
+			case siteinfo_info::cols::companyname:
+				ordersql.append("companyname");
+				break;
+			case siteinfo_info::cols::linkname:
+				ordersql.append("linkname");
+				break;
+			case siteinfo_info::cols::linkmobile:
+				ordersql.append("linkmobile");
+				break;
+			case siteinfo_info::cols::linkaddress:
+				ordersql.append("linkaddress");
+				break;
+			case siteinfo_info::cols::theme:
+				ordersql.append("theme");
+				break;
+			case siteinfo_info::cols::sitepath:
+				ordersql.append("sitepath");
+				break;
+			case siteinfo_info::cols::isopen:
+				ordersql.append("isopen");
+				break;
+			case siteinfo_info::cols::created_at:
+				ordersql.append("created_at");
+				break;
+			case siteinfo_info::cols::enddate:
+				ordersql.append("enddate");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(" DESC ");
+            return *mod;
+        }
+        M_MODEL &desc(orm::table_col<B_BASE, &siteinfo_info::col_names> field1, orm::table_col<B_BASE, &siteinfo_info::col_names> field2)
+        {
+
+            ordersql.append(" ORDER BY ");
+            ordersql.append(field1);
+            ordersql.append(",");
+            ordersql.append(field2);
+            ordersql.append(" DESC ");
+            return *mod;
+        }        
         M_MODEL &order(orm::table_col<B_BASE, &siteinfo_info::col_names> wq, const std::string &asc_or_desc)
         {
             ordersql.append(" ORDER BY ");
@@ -6774,7 +7232,7 @@ M_MODEL& ornotnullEnddate()
                 bool iscache_hit = false;
                 try
                 {
-                    std::vector<std::vector<std::string>> cache_rows  = temp_cache.get(sqlhashid);
+                    std::vector<std::vector<std::string>> cache_rows   = temp_cache.get(sqlhashid);
                     std::vector<std::string> cache_fieldname           = table_cache.get(sqlhashid);
                     std::map<std::string, unsigned int> cache_fieldmap = tablemap_cache.get(sqlhashid);
 
@@ -8842,7 +9300,7 @@ M_MODEL& ornotnullEnddate()
             std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
 
             model_meta_cache<siteinfo_info::meta> &data_cache = model_meta_cache<siteinfo_info::meta>::getinstance();
-            bool state = data_cache.remove(sqlhashid);
+            bool state                                          = data_cache.remove(sqlhashid);
 
             model_meta_cache<std::vector<siteinfo_info::meta>> &record_cache = model_meta_cache<std::vector<siteinfo_info::meta>>::getinstance();
             return record_cache.remove(sqlhashid) || state;
@@ -8850,7 +9308,7 @@ M_MODEL& ornotnullEnddate()
         bool remove_cache(std::size_t cache_key_name)
         {
             model_meta_cache<siteinfo_info::meta> &data_cache = model_meta_cache<siteinfo_info::meta>::getinstance();
-            bool state = data_cache.remove(cache_key_name);
+            bool state                                          = data_cache.remove(cache_key_name);
 
             model_meta_cache<std::vector<siteinfo_info::meta>> &record_cache = model_meta_cache<std::vector<siteinfo_info::meta>>::getinstance();
             return record_cache.remove(cache_key_name) || state;
@@ -13045,10 +13503,10 @@ M_MODEL& ornotnullEnddate()
         M_MODEL &AND(orm::table_col<B_BASE, &siteinfo_info::col_names> field, orm::wq opwq, T val)
         {
             orm_where_sql_t item;
-            item.pre_op      = wheresql.empty() ? 0 : 1;
-            item.op_type     = opwq;
-            item.col_idx     = B_BASE::findcolpos(field);
-            
+            item.pre_op  = wheresql.empty() ? 0 : 1;
+            item.op_type = opwq;
+            item.col_idx = B_BASE::findcolpos(field);
+
             if (item.col_idx == 255)
             {
                 error_msg = "field is not table column";
@@ -13065,10 +13523,10 @@ M_MODEL& ornotnullEnddate()
         M_MODEL &OR(orm::table_col<B_BASE, &siteinfo_info::col_names> field, orm::wq opwq, T val)
         {
             orm_where_sql_t item;
-            item.pre_op      = wheresql.empty() ? 0 : 2;
-            item.op_type     = opwq;
-            item.col_idx     = B_BASE::findcolpos(field);
-            
+            item.pre_op  = wheresql.empty() ? 0 : 2;
+            item.op_type = opwq;
+            item.col_idx = B_BASE::findcolpos(field);
+
             if (item.col_idx == 255)
             {
                 error_msg = "field is not table column";

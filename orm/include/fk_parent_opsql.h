@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Mon, 14 Sep 2026 13:39:51 GMT
+ *  Creation time Tue, 15 Sep 2026 12:41:30 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -134,7 +134,7 @@ namespace orm
 
         M_MODEL &resetDB()
         {
-            dbtag = B_BASE::_rmstag;
+            dbtag                                                                = B_BASE::_rmstag;
             std::map<std::string, std::shared_ptr<orm_conn_pool>> &conn_pool_obj = get_orm_conn_pool_obj();
             auto iter                                                            = conn_pool_obj.find(dbtag);
             if (iter != conn_pool_obj.end())
@@ -2758,6 +2758,49 @@ M_MODEL& ornotnullName()
             ordersql.append(" ASC ");
             return *mod;
         }
+        M_MODEL &asc(orm::table_col<B_BASE, &fk_parent_info::col_names> field1, orm::table_col<B_BASE, &fk_parent_info::col_names> field2)
+        {
+
+            ordersql.append(" ORDER BY ");
+            ordersql.append(field1);
+            ordersql.append(",");
+            ordersql.append(field2);
+            ordersql.append(" ASC ");
+            return *mod;
+        }
+        M_MODEL &asc(fk_parent_info::cols field, fk_parent_info::cols field2)
+        {
+            ordersql.append(" ORDER BY ");
+            switch (field)
+            {
+            
+			case fk_parent_info::cols::id:
+				ordersql.append("id");
+				break;
+			case fk_parent_info::cols::name:
+				ordersql.append("name");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(",");
+            switch (field2)
+            {
+            
+			case fk_parent_info::cols::id:
+				ordersql.append("id");
+				break;
+			case fk_parent_info::cols::name:
+				ordersql.append("name");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(" ASC ");
+            return *mod;
+        }
 
         M_MODEL &asc()
         {
@@ -2792,7 +2835,50 @@ M_MODEL& ornotnullName()
             ordersql.append(" DESC ");
             return *mod;
         }
+        M_MODEL &desc(fk_parent_info::cols field, fk_parent_info::cols field2)
+        {
 
+            ordersql.append(" ORDER BY ");
+            switch (field)
+            {
+            
+			case fk_parent_info::cols::id:
+				ordersql.append("id");
+				break;
+			case fk_parent_info::cols::name:
+				ordersql.append("name");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(",");
+            switch (field2)
+            {
+            
+			case fk_parent_info::cols::id:
+				ordersql.append("id");
+				break;
+			case fk_parent_info::cols::name:
+				ordersql.append("name");
+				break;
+            default:
+                return *mod;
+                break;
+            }
+            ordersql.append(" DESC ");
+            return *mod;
+        }
+        M_MODEL &desc(orm::table_col<B_BASE, &fk_parent_info::col_names> field1, orm::table_col<B_BASE, &fk_parent_info::col_names> field2)
+        {
+
+            ordersql.append(" ORDER BY ");
+            ordersql.append(field1);
+            ordersql.append(",");
+            ordersql.append(field2);
+            ordersql.append(" DESC ");
+            return *mod;
+        }        
         M_MODEL &order(orm::table_col<B_BASE, &fk_parent_info::col_names> wq, const std::string &asc_or_desc)
         {
             ordersql.append(" ORDER BY ");
@@ -3066,7 +3152,7 @@ M_MODEL& ornotnullName()
                 bool iscache_hit = false;
                 try
                 {
-                    std::vector<std::vector<std::string>> cache_rows  = temp_cache.get(sqlhashid);
+                    std::vector<std::vector<std::string>> cache_rows   = temp_cache.get(sqlhashid);
                     std::vector<std::string> cache_fieldname           = table_cache.get(sqlhashid);
                     std::map<std::string, unsigned int> cache_fieldmap = tablemap_cache.get(sqlhashid);
 
@@ -5134,7 +5220,7 @@ M_MODEL& ornotnullName()
             std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
 
             model_meta_cache<fk_parent_info::meta> &data_cache = model_meta_cache<fk_parent_info::meta>::getinstance();
-            bool state = data_cache.remove(sqlhashid);
+            bool state                                          = data_cache.remove(sqlhashid);
 
             model_meta_cache<std::vector<fk_parent_info::meta>> &record_cache = model_meta_cache<std::vector<fk_parent_info::meta>>::getinstance();
             return record_cache.remove(sqlhashid) || state;
@@ -5142,7 +5228,7 @@ M_MODEL& ornotnullName()
         bool remove_cache(std::size_t cache_key_name)
         {
             model_meta_cache<fk_parent_info::meta> &data_cache = model_meta_cache<fk_parent_info::meta>::getinstance();
-            bool state = data_cache.remove(cache_key_name);
+            bool state                                          = data_cache.remove(cache_key_name);
 
             model_meta_cache<std::vector<fk_parent_info::meta>> &record_cache = model_meta_cache<std::vector<fk_parent_info::meta>>::getinstance();
             return record_cache.remove(cache_key_name) || state;
@@ -9337,10 +9423,10 @@ M_MODEL& ornotnullName()
         M_MODEL &AND(orm::table_col<B_BASE, &fk_parent_info::col_names> field, orm::wq opwq, T val)
         {
             orm_where_sql_t item;
-            item.pre_op      = wheresql.empty() ? 0 : 1;
-            item.op_type     = opwq;
-            item.col_idx     = B_BASE::findcolpos(field);
-            
+            item.pre_op  = wheresql.empty() ? 0 : 1;
+            item.op_type = opwq;
+            item.col_idx = B_BASE::findcolpos(field);
+
             if (item.col_idx == 255)
             {
                 error_msg = "field is not table column";
@@ -9357,10 +9443,10 @@ M_MODEL& ornotnullName()
         M_MODEL &OR(orm::table_col<B_BASE, &fk_parent_info::col_names> field, orm::wq opwq, T val)
         {
             orm_where_sql_t item;
-            item.pre_op      = wheresql.empty() ? 0 : 2;
-            item.op_type     = opwq;
-            item.col_idx     = B_BASE::findcolpos(field);
-            
+            item.pre_op  = wheresql.empty() ? 0 : 2;
+            item.op_type = opwq;
+            item.col_idx = B_BASE::findcolpos(field);
+
             if (item.col_idx == 255)
             {
                 error_msg = "field is not table column";

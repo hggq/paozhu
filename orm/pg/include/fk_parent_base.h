@@ -2,7 +2,7 @@
 #define ORM_PG_FK_PARENTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Mon, 14 Sep 2026 13:39:54 GMT
+*本文件为自动生成 Tue, 15 Sep 2026 12:41:34 GMT
 ***/
 #include <iostream>
 #include <charconv>
