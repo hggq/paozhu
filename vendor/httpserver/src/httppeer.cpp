@@ -337,12 +337,16 @@ void httppeer::save_session()
         unsigned int j = 0;
         for (unsigned int i = 0; i < sessionfile.size(); i++)
         {
-            if (sessionfile[i] == '.' || sessionfile[i] == '/')
+            // Safe filtering allowed: A-Z a-z 0-9 _-
+            unsigned char c = sessionfile[i];
+            if ((c >= 'A' && c <= 'Z') ||
+                (c >= 'a' && c <= 'z') ||
+                (c >= '0' && c <= '9') ||
+                c == '_' || c == '-')
             {
-                continue;
+                sessionfile[j] = sessionfile[i];
+                j++;
             }
-            sessionfile[j] = sessionfile[i];
-            j++;
         }
 
         if (j > 0)
@@ -456,6 +460,33 @@ void httppeer::clear_session()
         root_path                 = localvar.temp_path;
 
         std::string sessionfile = cookie.get(COOKIE_SESSION_NAME);
+        if (sessionfile.size() > 0)
+        {
+            unsigned int j = 0;
+            for (unsigned int i = 0; i < sessionfile.size(); i++)
+            {
+                // Safe filtering allowed: A-Z a-z 0-9 _-
+                unsigned char c = sessionfile[i];
+                if ((c >= 'A' && c <= 'Z') ||
+                    (c >= 'a' && c <= 'z') ||
+                    (c >= '0' && c <= '9') ||
+                    c == '_' || c == '-')
+                {
+                    sessionfile[j] = sessionfile[i];
+                    j++;
+                }
+            }
+
+            if (j > 0)
+            {
+                sessionfile.resize(j);
+            }
+            else
+            {
+                sessionfile.clear();
+            }
+        }
+
         if (sessionfile.empty())
         {
             return;

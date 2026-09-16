@@ -1562,6 +1562,20 @@ void httpparse::getcookie(std::string_view header_value)
         if (header_value[i] == 0x3D)
         {
             buffer_key = http::url_decode(buffer_value.data(), buffer_value.length());
+            // Safe filtering allowed: A-Z a-z 0-9 _-
+            std::string safe_key;
+            safe_key.reserve(buffer_key.size());
+            for (unsigned char c : buffer_key)
+            {
+                if ((c >= 'A' && c <= 'Z') ||
+                    (c >= 'a' && c <= 'z') ||
+                    (c >= '0' && c <= '9') ||
+                    c == '_' || c == '-')
+                {
+                    safe_key.push_back(static_cast<char>(c));
+                }
+            }
+            buffer_key.swap(safe_key);
             buffer_value.clear();
             continue;
         }
@@ -1570,6 +1584,11 @@ void httpparse::getcookie(std::string_view header_value)
             buffer_value = http::url_decode(buffer_value.data(), buffer_value.length());
             // cookie[buffer_key] = buffer_value;
             if (buffer_key.size() > 72)
+            {
+                error = 40073;
+                return;
+            }
+            if (buffer_key.empty())
             {
                 error = 40073;
                 return;
@@ -1590,6 +1609,11 @@ void httpparse::getcookie(std::string_view header_value)
         buffer_value = http::url_decode(buffer_value.data(), buffer_value.length());
         // cookie[buffer_key] = buffer_value;
         if (buffer_key.size() > 72)
+        {
+            error = 40074;
+            return;
+        }
+        if (buffer_key.empty())
         {
             error = 40074;
             return;

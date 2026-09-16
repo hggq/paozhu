@@ -252,6 +252,20 @@ void http2parse::cookie_process([[maybe_unused]] const std::string &header_name,
         if (header_value[i] == 0x3D)
         {
             buffer_key = http::url_decode(buffer_value.data(), buffer_value.length());
+            // Safe filtering allowed: A-Z a-z 0-9 _-
+            std::string safe_key;
+            safe_key.reserve(buffer_key.size());
+            for (unsigned char c : buffer_key)
+            {
+                if ((c >= 'A' && c <= 'Z') ||
+                    (c >= 'a' && c <= 'z') ||
+                    (c >= '0' && c <= '9') ||
+                    c == '_' || c == '-')
+                {
+                    safe_key.push_back(static_cast<char>(c));
+                }
+            }
+            buffer_key.swap(safe_key);
             buffer_value.clear();
             continue;
         }
@@ -263,7 +277,11 @@ void http2parse::cookie_process([[maybe_unused]] const std::string &header_name,
                 error = 40157;
                 return;
             }
-
+            if (buffer_key.empty())
+            {
+                error = 40157;
+                return;
+            }
             steam_httppeer->cookie[buffer_key] = buffer_value;
             buffer_key.clear();
             buffer_value.clear();
@@ -280,6 +298,11 @@ void http2parse::cookie_process([[maybe_unused]] const std::string &header_name,
         buffer_value = http::url_decode(buffer_value.data(),
                                         buffer_value.length());
         if (buffer_key.size() > 48)
+        {
+            error = 40158;
+            return;
+        }
+        if (buffer_key.empty())
         {
             error = 40158;
             return;
