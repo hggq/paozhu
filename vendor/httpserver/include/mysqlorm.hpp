@@ -2543,7 +2543,7 @@ namespace orm
             ordersql.append(field2);
             ordersql.append(" DESC ");
             return *mod;
-        }        
+        }
         M_MODEL &order(orm::table_col<B_BASE, &B_BASE::col_names> wq, const std::string &asc_or_desc)
         {
             ordersql.append(" ORDER BY ");
@@ -8810,6 +8810,46 @@ namespace orm
             return *mod;
         }
 
+        std::string commit_fetch()
+        {
+            std::string where_clause;
+            build_text_where(where_clause);
+            if (selectsql.empty())
+            {
+                sqlstring = "SELECT *  FROM ";
+            }
+            else
+            {
+                sqlstring = "SELECT ";
+                sqlstring.append(selectsql);
+                sqlstring.append(" FROM ");
+            }
+
+            sqlstring.append(B_BASE::tablename);
+            sqlstring.append(" WHERE ");
+
+            if (where_clause.empty())
+            {
+                sqlstring.append(" 1 ");
+            }
+            else
+            {
+                sqlstring.append(where_clause);
+            }
+            if (!groupsql.empty())
+            {
+                sqlstring.append(groupsql);
+            }
+            if (!ordersql.empty())
+            {
+                sqlstring.append(ordersql);
+            }
+            if (!limitsql.empty())
+            {
+                sqlstring.append(limitsql);
+            }
+            return sqlstring;
+        }
         std::string commit_insert(typename B_BASE::meta &insert_data)
         {
             return B_BASE::make_data_insert_sql(insert_data);
@@ -8866,7 +8906,60 @@ namespace orm
             }
             return sqlstring;
         }
+        std::string commit_update_dirty()
+        {
+            std::string where_clause;
+            build_text_where(where_clause);
 
+            // 1. 生成 dirty SQL（空则短路，避免全字段误更新）
+            sqlstring = B_BASE::make_update_dirty_sql();
+            if (sqlstring.empty())
+            {
+                return "";
+            }
+
+            // 2. WHERE 处理（同 update()：where_clause 空则自动用 PK）
+            if (where_clause.empty())
+            {
+                if (B_BASE::getPK() > 0)
+                {
+                    std::ostringstream tempsql;
+                    tempsql << " ";
+                    tempsql << B_BASE::getPKname();
+                    tempsql << " = '";
+                    tempsql << B_BASE::getPK();
+                    tempsql << "' ";
+                    where_clause = tempsql.str();
+                }
+                else
+                {
+                    return "";
+                }
+            }
+
+            sqlstring.append(" where ");
+            if (where_clause.empty())
+            {
+                return "";
+            }
+            else
+            {
+                sqlstring.append(where_clause);
+            }
+            if (!groupsql.empty())
+            {
+                sqlstring.append(groupsql);
+            }
+            if (!ordersql.empty())
+            {
+                sqlstring.append(ordersql);
+            }
+            if (!limitsql.empty())
+            {
+                sqlstring.append(limitsql);
+            }
+            return sqlstring;
+        }
         std::string commit_remove()
         {
             std::string where_clause;

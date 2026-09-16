@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_ORM_PROBEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 15 Sep 2026 12:41:30 GMT
+*本文件为自动生成 Wed, 16 Sep 2026 03:30:54 GMT
 ***/
 #include <iostream>
 #include <charconv>
