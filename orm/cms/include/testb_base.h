@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTBBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Wed, 16 Sep 2026 03:30:57 GMT
+*本文件为自动生成 Thu, 17 Sep 2026 23:22:07 GMT
 ***/
 #include <iostream>
 #include <charconv>

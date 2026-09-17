@@ -31,7 +31,7 @@ paozhu/
 │   └── ...                        # 其他配置和 SQL 文件
 │
 ├── controller/                    # 控制器层
-│   ├── include/                   # 控制器头文件
+│   ├── include/                   # 控制器头文件（自动生成，编译时从 controller/src 抽取，无需手动修改）
 │   │   ├── admin/                 # 后台管理控制器
 │   │   └── test*.h               # 功能测试控制器
 │   └── src/                       # 控制器实现
@@ -91,6 +91,7 @@ paozhu/
 ├── common/                        # 公共定义
 │   ├── autorestfulpaths.hpp       # RESTful 路径注册
 │   ├── reghttpmethod.hpp          # HTTP 方法注册
+│   ├── autocontrolmethod.hpp      # 控制器方法注册（自动生成，编译时从 controller/src 抽取，无需手动修改）
 │   └── ...
 │
 ├── sockets/                       # Socket 扩展
@@ -105,6 +106,11 @@ paozhu/
 ├── CMakeLists.txt                 # CMake 构建配置
 └── AGENTS.md                      # 本文档
 ```
+
+> **自动生成文件说明（请勿手动修改）**：
+> - `models/` 与 `orm/` 目录下的模型代码均由 `bin/paozhu_cli orm <dbtag>` 从数据库自动生成，最好不要手动修改；如需改动共享行为请修改 `vendor/httpserver/include/` 下的模板并重新生成（见 §5.1）。
+> - `common/autocontrolmethod.hpp` 由构建系统在编译项目时，从 `controller/src/` 抽取控制器函数自动生成，无需手动修改；改动控制器后重新编译即可刷新。
+> - `controller/include/` 目录同样由构建系统自动生成（为每个缺少头文件的 `controller/src/*.cpp` 补一个空头文件），无需手动修改。
 
 ---
 
@@ -1686,4 +1692,4 @@ make -j$(nproc)
 
 ---
 
-*最近更新: 2026-09-12*
+*最近更新: 2026-09-17*

@@ -993,7 +993,7 @@ bool http2parse::header_host_process(const std::string &header_value, std::share
     return true;
 }
 
-void http2parse::header_process(const std::string &header_name, const std::string &header_value, int table_num, std::shared_ptr<httppeer> steam_httppeer)
+void http2parse::header_process(std::string header_name, std::string header_value, int table_num, std::shared_ptr<httppeer> steam_httppeer)
 {
     DEBUG_LOG("header:%s:%s|%d", header_name.c_str(), header_value.c_str(), table_num);
     if (table_num > 0)
@@ -1010,7 +1010,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             if (header_host_process(header_value, steam_httppeer))
             {
                 steam_httppeer->header["host"]       = header_value;
-                steam_httppeer->header[":authority"] = header_value;
+                steam_httppeer->header[":authority"] = std::move(header_value);
                 steam_httppeer->find_host_index();
             }
             else
@@ -1051,7 +1051,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             {
                 steam_httppeer->method = 4;
             }
-            steam_httppeer->header["method"] = header_value;
+            steam_httppeer->header["method"] = std::move(header_value);
             break;
         case 3:
             if (str_casecmp(header_value, "OPTIONS"))
@@ -1082,7 +1082,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             {
                 steam_httppeer->method = 4;
             }
-            steam_httppeer->header["method"] = header_value;
+            steam_httppeer->header["method"] = std::move(header_value);
             break;
         case 4:
         case 5:
@@ -1098,10 +1098,10 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             getaccept(header_name, header_value, steam_httppeer);
             break;
         case 20:
-            steam_httppeer->header["Access-Control-Allow-Origin"] = header_value;
+            steam_httppeer->header["access-control-allow-origin"] = std::move(header_value);
             break;
         case 23:
-            steam_httppeer->header["Authorization"] = header_value;
+            steam_httppeer->header["authorization"] = std::move(header_value);
             break;
         case 28:
         {
@@ -1114,7 +1114,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             {
                 steam_httppeer->content_length = static_cast<unsigned long long>(temp_cl);
             }
-            steam_httppeer->header["Content-Length"] = header_value;
+            steam_httppeer->header["content-length"] = std::move(header_value);
             break;
         }
         case 31:
@@ -1126,7 +1126,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
         case 38:
             if (header_host_process(header_value, steam_httppeer))
             {
-                steam_httppeer->header["Host"] = header_value;
+                steam_httppeer->header["host"] = std::move(header_value);
                 steam_httppeer->find_host_index();
             }
             else
@@ -1141,22 +1141,22 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             getifnonematch(header_name, header_value, steam_httppeer);
             break;
         case 48:
-            steam_httppeer->header["Proxy-Authenticate"] = header_value;
+            steam_httppeer->header["proxy-authenticate"] = std::move(header_value);
             break;
         case 49:
-            steam_httppeer->header["Proxy-Authorization"] = header_value;
+            steam_httppeer->header["proxy-authorization"] = std::move(header_value);
             break;
         case 50:
             range_process(header_name, header_value, steam_httppeer);
             break;
         case 51:
-            steam_httppeer->header["Referer"] = header_value;
+            steam_httppeer->header["referer"] = std::move(header_value);
             break;
         case 58:
-            steam_httppeer->header["User-Agent"] = header_value;
+            steam_httppeer->header["user-agent"] = std::move(header_value);
             break;
         case 61:
-            steam_httppeer->header["WWW-Authenticate"] = header_value;
+            steam_httppeer->header["www-authenticate"] = std::move(header_value);
             break;
         }
     }
@@ -1167,6 +1167,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             error = 40164;
             return;
         }
+        std::string lower_name = str_tolower(header_name);
         switch (header_name.size())
         {
         case 5:
@@ -1178,7 +1179,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             {
                 range_process(header_name, header_value, steam_httppeer);
             }
-            steam_httppeer->header[header_name] = header_value;
+            steam_httppeer->header[lower_name] = std::move(header_value);
             break;
         case 6:
 
@@ -1192,7 +1193,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
                 }
                 else
                 {
-                    steam_httppeer->header[header_name] = header_value;
+                    steam_httppeer->header[lower_name] = std::move(header_value);
                 }
                 break;
             case 'a':
@@ -1205,14 +1206,14 @@ void http2parse::header_process(const std::string &header_name, const std::strin
                 {
                     if (header_name[0] != ':')
                     {
-                        steam_httppeer->header[header_name] = header_value;
+                        steam_httppeer->header[lower_name] = std::move(header_value);
                     }
                 }
                 break;
             default:
                 if (header_name[0] != ':')
                 {
-                    steam_httppeer->header[header_name] = header_value;
+                    steam_httppeer->header[lower_name] = std::move(header_value);
                 }
             }
 
@@ -1249,11 +1250,11 @@ void http2parse::header_process(const std::string &header_name, const std::strin
                     steam_httppeer->method = 4;
                 }
                 steam_httppeer->header["method"]  = header_value;
-                steam_httppeer->header[":method"] = header_value;
+                steam_httppeer->header[":method"] = std::move(header_value);
             }
             else
             {
-                steam_httppeer->header[header_name] = header_value;
+                steam_httppeer->header[lower_name] = std::move(header_value);
             }
             break;
         case 10:
@@ -1267,8 +1268,8 @@ void http2parse::header_process(const std::string &header_name, const std::strin
 
                 if (header_host_process(header_value, steam_httppeer))
                 {
-                    steam_httppeer->header["Host"]       = header_value;
-                    steam_httppeer->header[":authority"] = header_value;
+                    steam_httppeer->header["host"]       = header_value;
+                    steam_httppeer->header[":authority"] = std::move(header_value);
                     steam_httppeer->find_host_index();
                 }
                 else
@@ -1281,11 +1282,11 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             }
             else if (str_casecmp(header_name, "User-Agent"))
             {
-                steam_httppeer->header["User-Agent"] = header_value;
+                steam_httppeer->header["user-agent"] = std::move(header_value);
             }
             else
             {
-                steam_httppeer->header[header_name] = header_value;
+                steam_httppeer->header[lower_name] = std::move(header_value);
             }
             break;
         case 12:
@@ -1295,7 +1296,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             }
             else
             {
-                steam_httppeer->header[header_name] = header_value;
+                steam_httppeer->header[lower_name] = std::move(header_value);
             }
             break;
         case 13:
@@ -1305,7 +1306,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
             }
             else
             {
-                steam_httppeer->header[header_name] = header_value;
+                steam_httppeer->header[lower_name] = std::move(header_value);
             }
             break;
 
@@ -1321,11 +1322,11 @@ void http2parse::header_process(const std::string &header_name, const std::strin
                 {
                     steam_httppeer->content_length = static_cast<unsigned long long>(temp_cl);
                 }
-                steam_httppeer->header["Content-Length"] = header_value;
+                steam_httppeer->header["content-length"] = std::move(header_value);
             }
             else
             {
-                steam_httppeer->header[header_name] = header_value;
+                steam_httppeer->header[lower_name] = std::move(header_value);
             }
             break;
         case 15:
@@ -1338,7 +1339,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
                 }
                 else
                 {
-                    steam_httppeer->header[header_name] = header_value;
+                    steam_httppeer->header[lower_name] = std::move(header_value);
                 }
             }
             else if (header_name[7] == 'L' || header_name[7] == 'l')
@@ -1350,12 +1351,12 @@ void http2parse::header_process(const std::string &header_name, const std::strin
                 }
                 else
                 {
-                    steam_httppeer->header[header_name] = header_value;
+                    steam_httppeer->header[lower_name] = std::move(header_value);
                 }
             }
             else
             {
-                steam_httppeer->header[header_name] = header_value;
+                steam_httppeer->header[lower_name] = std::move(header_value);
             }
 
             if (str_casecmp(header_name, "Accept-Encoding"))
@@ -1369,11 +1370,7 @@ void http2parse::header_process(const std::string &header_name, const std::strin
 
             break;
         default:
-            std::string key;
-            key.resize(header_name.size());
-            std::transform(header_name.begin(), header_name.end(), key.begin(), [](unsigned char c)
-                           { return std::tolower(c); });
-            steam_httppeer->header[key] = header_value;
+            steam_httppeer->header[lower_name] = std::move(header_value);
         }
     }
 }

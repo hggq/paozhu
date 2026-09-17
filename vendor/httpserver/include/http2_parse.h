@@ -22,6 +22,7 @@
 
 #include <vector>
 #include <cmath>
+#include <cctype>
 #include <thread>
 #include <chrono>
 #include <cstring>
@@ -226,6 +227,15 @@ class http2parse
     ~http2parse()
     {
     }
+    static std::string str_tolower(std::string_view str)
+    {
+        std::string result;
+        result.resize(str.size());
+        std::transform(str.begin(), str.end(), result.begin(), [](unsigned char c) {
+            return static_cast<char>(std::tolower(c));
+        });
+        return result;
+    }
     void setsession(std::shared_ptr<client_session>);
     void readheaders(const HTTP2_PACK_DATA_T &temp_pack_data);
     // void setstaticheader(const unsigned char, unsigned int, unsigned int);
@@ -257,7 +267,7 @@ class http2parse
     void data_process();
     bool header_host_process(const std::string &header_value, std::shared_ptr<httppeer>);
     void getacceptencoding(const std::string &, const std::string &, std::shared_ptr<httppeer>);
-    void header_process(const std::string &, const std::string &, int, std::shared_ptr<httppeer>);
+    void header_process(std::string header_name, std::string header_value, int, std::shared_ptr<httppeer>);
     void cookie_process(const std::string &, const std::string &, std::shared_ptr<httppeer>);
     void getacceptlanguage(const std::string &, const std::string &, std::shared_ptr<httppeer>);
     void range_process(const std::string &, const std::string &, std::shared_ptr<httppeer>);

@@ -220,7 +220,7 @@ asio::awaitable<void> fastcgi::async_send()
     {
         params.push_back({"REQUEST_METHOD", "POST"});
         params.push_back({"CONTENT_LENGTH", std::to_string(peer->output.size())});
-        params.push_back({"CONTENT_TYPE", peer->header["Content-Type"]});
+        params.push_back({"CONTENT_TYPE", peer->get_header("Content-Type")});
         //DEBUG_LOG("POST size: %zu", peer->output.size());
     }
     else if (peer->method == 3)

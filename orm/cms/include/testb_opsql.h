@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Wed, 16 Sep 2026 03:30:57 GMT
+ *  Creation time Thu, 17 Sep 2026 23:22:07 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -11283,6 +11283,136 @@ M_MODEL& ornotnullSubprice()
             co_return co_await async_exec_fetch_append();
         }
         asio::awaitable<unsigned int> async_exec_fetch_to() { co_return co_await async_exec_fetch(); }
+
+
+        // --- exec_fetch_one：预编译 SELECT limit 1 同步版（填充 data）---
+        unsigned int exec_fetch_one()
+        {
+            std::vector<http::obj_val> params;
+            std::string sql = build_prepared_select(params, true);
+            sqlstring       = sql;
+
+            B_BASE::data_reset();
+            effect_num = 0;
+            if (iserror)
+            {
+                return 0;
+            }
+            if (conn_empty())
+            {
+                return 0;
+            }
+
+            auto conn = _get_prepared_select_conn();
+            if (conn->isdebug)
+                conn->begin_time();
+
+            auto col_pos_map  = std::vector<unsigned char>();
+            bool first_row    = true;
+            unsigned int rows = conn->fetch_prepared(sql, params, [this, conn, &col_pos_map, &first_row](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                     {
+                                                         if (first_row)
+                                                         {
+                                                             col_pos_map.assign(col_count, 255);
+                                                             const auto &org_names = conn->prepared_col_org_names();
+                                                             for (int ii = 0; ii < col_count; ii++)
+                                                             {
+                                                                 if (col_names[ii] && col_names[ii][0] != 0x00)
+                                                                     col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
+                                                                 if (col_pos_map[ii] == 255 && ii < static_cast<int>(org_names.size()))
+                                                                     col_pos_map[ii] = B_BASE::findcolpos(org_names[ii]);
+                                                             }
+                                                             first_row = false;
+                                                         }
+                                                         for (int ij = 0; ij < col_count; ij++)
+                                                         {
+                                                             auto [ptr, len] = get_data(ij);
+                                                             if (ptr == nullptr)
+                                                             {
+                                                                 static const unsigned char null_value = 0;
+                                                                 assign_field_value(col_pos_map[ij], (unsigned char *)&null_value, 0, B_BASE::data);
+                                                                 continue;
+                                                             }
+                                                             assign_field_value(col_pos_map[ij], ptr, len, B_BASE::data);
+                                                         }
+                                                         effect_num = 1;
+                                                         return false; // 只取一行
+                                                     });
+
+            if (conn->isdebug)
+                conn->finish_time();
+            if (rows == 0 && !conn->error_msg.empty())
+            {
+                iserror   = true;
+                error_msg = conn->error_msg;
+            }
+            if (!islock_conn)
+                conn_obj->back_mysql_select_conn(std::move(conn));
+            return effect_num;
+        }
+
+        // --- async_exec_fetch_one：预编译 SELECT limit 1 异步版（填充 data）---
+        asio::awaitable<unsigned int> async_exec_fetch_one()
+        {
+            std::vector<http::obj_val> params;
+            std::string sql = build_prepared_select(params, true);
+            sqlstring       = sql;
+
+            B_BASE::data_reset();
+            effect_num = 0;
+            if (iserror)
+            {
+                co_return 0;
+            }
+            if (conn_empty())
+            {
+                co_return 0;
+            }
+
+            if (islock_conn)
+            {
+                if (!select_conn || select_conn->isclose)
+                    select_conn = co_await conn_obj->async_get_mysql_select_conn();
+            }
+            else
+            {
+                select_conn = co_await conn_obj->async_get_mysql_select_conn();
+            }
+            auto conn = select_conn;
+            if (conn->isdebug)
+                conn->begin_time();
+
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, conn](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                    {
+                                                                        for (int ij = 0; ij < col_count; ij++)
+                                                                        {
+                                                                            if (col_names[ij] == nullptr || col_names[ij][0] == '\0')
+                                                                                continue;
+                                                                            auto [ptr, len] = get_data(ij);
+                                                                            unsigned char pos = B_BASE::findcolpos(col_names[ij]);
+                                                                            if (ptr == nullptr)
+                                                                            {
+                                                                                static const unsigned char null_value = 0;
+                                                                                assign_field_value(pos, (unsigned char *)&null_value, 0, B_BASE::data);
+                                                                                continue;
+                                                                            }
+                                                                            assign_field_value(pos, ptr, len, B_BASE::data);
+                                                                        }
+                                                                        effect_num = 1;
+                                                                        return false; // 只取一行
+                                                                    });
+
+            if (conn->isdebug)
+                conn->finish_time();
+            if (rows == 0 && !conn->error_msg.empty())
+            {
+                iserror   = true;
+                error_msg = conn->error_msg;
+            }
+            if (!islock_conn)
+                conn_obj->back_mysql_select_conn(std::move(select_conn));
+            co_return effect_num;
+        }
 
         // ===== SELECT 异步模板版 =====
 

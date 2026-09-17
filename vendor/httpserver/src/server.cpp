@@ -3791,6 +3791,16 @@ void httpserver::listeners()
         exit(1);
     }
 
+    acceptor.non_blocking(true, ec_error);
+    if (ec_error)
+    {
+        std::unique_lock<std::mutex> lock(log_mutex);
+        error_loglist.emplace_back(" acceptor non_blocking https error ");
+        lock.unlock();
+        DEBUG_LOG("Acceptor non_blocking https error ");
+        exit(1);
+    }
+
     asio::ssl::context context_(asio::ssl::context::sslv23);
     context_.set_options(asio::ssl::context::default_workarounds | asio::ssl::context::no_sslv2 |
                          asio::ssl::context::single_dh_use);
@@ -3862,19 +3872,23 @@ void httpserver::listeners()
     {
         try
         {
+            // Drain the backlog: keep accepting until the non-blocking acceptor says "no more"
             for (;;)
             {
-                std::shared_ptr<client_session> peer_session = std::make_shared<client_session>(this->io_context);
-                asio::ip::tcp::socket socket(peer_session->strand_);
-                peer_session->sslsocket = std::make_unique<asio::ssl::stream<asio::ip::tcp::socket>>(std::move(socket), context_);
-                peer_session->isssl     = true;
-                peer_session->time_limit.store(16);
+                asio::ip::tcp::socket socket(acceptor.get_executor());
+                asio::error_code ec_accept;
 
-                acceptor.accept(peer_session->sslsocket->lowest_layer(), ec_error);
-                if (ec_error)
+                acceptor.accept(socket, ec_accept);
+
+                if (ec_accept == asio::error::would_block || ec_accept == asio::error::try_again)
+                {
+                    break;
+                }
+
+                if (ec_accept)
                 {
                     logtemp = "https accept ec_error ";
-                    logtemp.append(ec_error.message());
+                    logtemp.append(ec_accept.message());
                     logtemp.append(" ");
                     logtemp.append(std::to_string(error_count));
                     logtemp.append("\n");
@@ -3886,15 +3900,14 @@ void httpserver::listeners()
                     {
                         hard_kill_old_link = true;
                     }
-                    std::this_thread::sleep_for(std::chrono::seconds(2));
+                    std::this_thread::sleep_for(std::chrono::seconds(1));
 
                     error_count++;
                     if (error_count > 128)
                     {
                         isstop = true;
+                        break;
                     }
-
-                    peer_session->stop();
 
                     if ((clear_error_count_time + CONST_ERROR_COUNT_TIME) < timeid())
                     {
@@ -3903,6 +3916,13 @@ void httpserver::listeners()
                     }
                     continue;
                 }
+
+                std::shared_ptr<client_session> peer_session = std::make_shared<client_session>(this->io_context);
+                peer_session->sslsocket = std::make_unique<asio::ssl::stream<asio::ip::tcp::socket>>(std::move(socket), context_);
+                peer_session->sslsocket->lowest_layer().set_option(asio::ip::tcp::no_delay(true));
+                peer_session->isssl     = true;
+                peer_session->time_limit.store(16);
+
                 //The IP should be available now
                 peer_session->getremoteip();
                 if (peer_session->isclose)
@@ -4030,6 +4050,11 @@ void httpserver::listeners()
                     break;
                 }
             }
+
+            {
+                asio::error_code ec_wait;
+                acceptor.wait(asio::socket_base::wait_read, ec_wait);
+            }
         }
         catch (const std::exception &e)
         {
@@ -4093,6 +4118,17 @@ void httpserver::listener()
         DEBUG_LOG("Acceptor listen http error ");
         exit(1);
     }
+
+    acceptor.non_blocking(true, ec_error);
+    if (ec_error)
+    {
+        std::unique_lock<std::mutex> lock(log_mutex);
+        error_loglist.emplace_back("  acceptor non_blocking http error  ");
+        lock.unlock();
+        DEBUG_LOG("Acceptor non_blocking http error ");
+        exit(1);
+    }
+
     DEBUG_LOG("http accept");
     unsigned int error_count            = 0;
     unsigned int clear_error_count_time = 0;
@@ -4111,18 +4147,23 @@ void httpserver::listener()
     {
         try
         {
+            // Drain the backlog: keep accepting until the non-blocking acceptor says "no more"
             for (;;)
             {
-                std::shared_ptr<client_session> peer_session = std::make_shared<client_session>(this->io_context);
-                peer_session->socket                         = std::make_unique<asio::ip::tcp::socket>(peer_session->strand_);
-                peer_session->isssl                          = false;
-                peer_session->time_limit.store(16);
+                asio::ip::tcp::socket socket(acceptor.get_executor());
+                asio::error_code ec_accept;
 
-                acceptor.accept(*peer_session->socket, ec_error);
-                if (ec_error)
+                acceptor.accept(socket, ec_accept);
+
+                if (ec_accept == asio::error::would_block || ec_accept == asio::error::try_again)
+                {
+                    break;
+                }
+
+                if (ec_accept)
                 {
                     logtemp = "http accept ec_error ";
-                    logtemp.append(ec_error.message());
+                    logtemp.append(ec_accept.message());
                     logtemp.append(" ");
                     logtemp.append(std::to_string(error_count));
                     logtemp.append("\n");
@@ -4134,15 +4175,14 @@ void httpserver::listener()
                     {
                         hard_kill_old_link = true;
                     }
-                    std::this_thread::sleep_for(std::chrono::seconds(2));
+                    std::this_thread::sleep_for(std::chrono::seconds(1));
 
                     error_count++;
                     if (error_count > 128)
                     {
                         isstop = true;
+                        break;
                     }
-
-                    peer_session->stop();
 
                     if ((clear_error_count_time + CONST_ERROR_COUNT_TIME) < timeid())
                     {
@@ -4151,6 +4191,12 @@ void httpserver::listener()
                     }
                     continue;
                 }
+
+                auto peer_session      = std::make_shared<client_session>(this->io_context);
+                peer_session->socket   = std::make_unique<asio::ip::tcp::socket>(std::move(socket));
+                peer_session->socket->set_option(asio::ip::tcp::no_delay(true));
+                peer_session->isssl    = false;
+                peer_session->time_limit.store(16);
 
                 //The IP should be available now
                 peer_session->getremoteip();
@@ -4279,6 +4325,11 @@ void httpserver::listener()
                 {
                     break;
                 }
+            }
+
+            {
+                asio::error_code ec_wait;
+                acceptor.wait(asio::socket_base::wait_read, ec_wait);
             }
         }
         catch (const std::exception &e)

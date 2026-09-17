@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_ORM_PROBEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Wed, 16 Sep 2026 03:30:54 GMT
+*本文件为自动生成 Thu, 17 Sep 2026 23:22:03 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -45,20 +45,20 @@ namespace orm_probe_info
     struct meta
     {
 		 int  id = 0; ///**/
-		 std::string  v = ""; ///**/
-		 std::string  dec_col = ""; ///**/
-		 std::string  t_col = ""; ///**/
-		 std::string  dt_col = ""; ///**/
+		 std::string  v = "NULL"; ///**/
+		 std::string  dec_col = "NULL"; ///**/
+		 std::string  t_col = "NULL"; ///**/
+		 std::string  dt_col = "NULL"; ///**/
 		 std::string  big = ""; ///**/
 	};
   
     struct meta_tree
     {
 		 int  id = 0; ///**/
-		 std::string  v = ""; ///**/
-		 std::string  dec_col = ""; ///**/
-		 std::string  t_col = ""; ///**/
-		 std::string  dt_col = ""; ///**/
+		 std::string  v = "NULL"; ///**/
+		 std::string  dec_col = "NULL"; ///**/
+		 std::string  t_col = "NULL"; ///**/
+		 std::string  dt_col = "NULL"; ///**/
 		 std::string  big = ""; ///**/
 
 	 std::vector<meta_tree> children;
@@ -67,10 +67,10 @@ namespace orm_probe_info
     struct meta_tree_ptr
     {
 		 int  id = 0; ///**/
-		 std::string  v = ""; ///**/
-		 std::string  dec_col = ""; ///**/
-		 std::string  t_col = ""; ///**/
-		 std::string  dt_col = ""; ///**/
+		 std::string  v = "NULL"; ///**/
+		 std::string  dec_col = "NULL"; ///**/
+		 std::string  t_col = "NULL"; ///**/
+		 std::string  dt_col = "NULL"; ///**/
 		 std::string  big = ""; ///**/
 
 	 std::vector<std::unique_ptr<meta_tree>> children;

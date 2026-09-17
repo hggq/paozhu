@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
     std::string current_run_path    = "";
     std::string current_method_file = "";
     fs::path current_path;
-    if (argc > 0)
+    if (argc > 1)
     {
         current_run_path.append(argv[1]);
     }

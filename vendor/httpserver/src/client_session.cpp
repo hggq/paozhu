@@ -84,7 +84,6 @@ client_session::~client_session()
 asio::awaitable<bool> client_session::read_some(unsigned int &readnum, std::string &log_item)
 {
     auto self = shared_from_this(); 
-    memset(_cache_data, 0x00, 4096);
     try
     {
         if(isclose || iserror)
@@ -157,7 +156,6 @@ asio::awaitable<bool> client_session::read_some(unsigned int &readnum, std::stri
 asio::awaitable<bool> client_session::read_first(unsigned int &readnum)
 {
     auto self = shared_from_this(); 
-    memset(_cache_data, 0x00, 4096);
     try
     {
         if(isclose || iserror)
