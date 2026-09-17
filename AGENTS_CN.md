@@ -1692,4 +1692,70 @@ make -j$(nproc)
 
 ---
 
-*最近更新: 2026-09-17*
+## 十三、项目干净初始化
+
+从 GitHub clone 回 Paozhu 框架后，通常需要清理示例业务代码，保留框架核心和 hello 注解作为脚手架起点。以下是四步清理流程。
+
+### 第一步：清空 common/ 注册文件
+
+以下 6 个文件需要清理 —— 保留 `#include "httppeer.h"`，删除其他所有 `#include`，清空 `_initauto_control_httpmethodregto()` 等注册函数的函数体（只保留空函数签名）：
+
+| 文件 | 作用 |
+|------|------|
+| `common/autocontrolmethod.hpp` | 控制器方法注册（由构建系统从 controller/src 抽取） |
+| `common/autorestfulpaths.hpp` | RESTful 路径注册 |
+| `common/reghttpmethod.hpp` | HTTP 方法注册 |
+| `common/reghttpmethod_pre.hpp` | HTTP 前置方法注册 |
+| `common/sockets_method_reg.hpp` | Socket 方法注册 |
+| `common/websockets_method_reg.hpp` | WebSocket 方法注册 |
+
+清理后每个文件形如：
+
+```cpp
+#include "httppeer.h"
+
+void _initauto_control_httpmethodregto(std::map<std::string, regmethold_t> &methodcallback)
+{
+    // 空实现
+}
+// 其他注册函数同样清空
+```
+
+### 第二步：删除 ORM 层
+
+```bash
+rm -rf models/* schema/* orm/*
+```
+
+这三个目录存放数据库模型和 ORM 生成代码，从模板项目不需要。将来启用数据库时用 `bin/paozhu_cli orm <tag>` 重新生成（见 §5.1）。
+
+### 第三步：删除视图文件
+
+```bash
+rm -rf view/* viewsrc/*
+```
+
+`view/` 是 HTML 模板，`viewsrc/` 是模板编译产物（C++ 源码）。两者都是示例代码，可安全清空。
+
+### 第四步：删除控制器（保留 testhello）
+
+```bash
+rm -rf controller/include/*
+find controller/src -type f ! -name 'testhello.cpp' -delete
+```
+
+保留的 `controller/src/testhello.cpp` 包含 `//@urlpath(null,hello)` 注解，是 hello world 路由的唯一入口。编译后即可通过 `http://127.0.0.1/hello` 访问。
+
+### 清理完成
+
+以上四步完成后，重新编译项目即可得到一个干净的脚手架：
+
+```bash
+cd build && cmake .. && make -j$(sysctl -n hw.ncpu)
+```
+
+运行 `./bin/paozhu` 后访问 `http://127.0.0.1/hello`，应返回示例中的 "Hello world! 🧨 Paozhu c++ web framework"，说明框架核心正常。
+
+---
+
+*最近更新: 2026-09-18*

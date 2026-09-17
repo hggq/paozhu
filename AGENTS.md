@@ -1751,8 +1751,70 @@ Set `debug_enable = 1` in `server.conf`; ORM will log the generated SQL statemen
 
 ---
 
-*Last updated: 2026-09-17*
+## XIII. Clean Project Initialization
+
+After cloning the Paozhu framework from GitHub, you usually want to strip out the example business code and start with a clean scaffold that keeps the framework core plus the hello annotation. Follow this four‑step cleanup flow.
+
+### Step 1 — Clean up common/ registration files
+
+Six files need to be trimmed: keep `#include "httppeer.h"`, remove every other `#include`, and empty the bodies of registration functions such as `_initauto_control_httpmethodregto()` (keep the signatures):
+
+| File | Purpose |
+|------|---------|
+| `common/autocontrolmethod.hpp` | Controller method registration (auto-extracted by the build system from `controller/src`) |
+| `common/autorestfulpaths.hpp` | RESTful path registration |
+| `common/reghttpmethod.hpp` | HTTP method registration |
+| `common/reghttpmethod_pre.hpp` | HTTP pre-filter registration |
+| `common/sockets_method_reg.hpp` | Socket method registration |
+| `common/websockets_method_reg.hpp` | WebSocket method registration |
+
+Each file should end up looking like:
+
+```cpp
+#include "httppeer.h"
+
+void _initauto_control_httpmethodregto(std::map<std::string, regmethold_t> &methodcallback)
+{
+    // empty implementation
+}
+// other registration functions similarly cleared
+```
+
+### Step 2 — Remove the ORM layer
+
+```bash
+rm -rf models/* schema/* orm/*
+```
+
+These three directories hold database models and generated ORM code — they are not needed for a clean scaffold. Regenerate later with `bin/paozhu_cli orm <tag>` (see §5.1) when you enable a database.
+
+### Step 3 — Remove the view files
+
+```bash
+rm -rf view/* viewsrc/*
+```
+
+`view/` contains HTML templates; `viewsrc/` holds their compiled C++ artifacts. Both are example code and are safe to wipe.
+
+### Step 4 — Remove controllers (keep testhello)
+
+```bash
+rm -rf controller/include/*
+find controller/src -type f ! -name 'testhello.cpp' -delete
+```
+
+The remaining `controller/src/testhello.cpp` carries the `//@urlpath(null,hello)` annotation and is the single entry point of the hello world route. Once you rebuild, `http://127.0.0.1/hello` is live again.
+
+### Done
+
+Rebuild the project after the four steps to get a clean scaffold:
+
+```bash
+cd build && cmake .. && make -j$(sysctl -n hw.ncpu)
+```
+
+Run `./bin/paozhu` and open `http://127.0.0.1/hello` — you should see "Hello world! 🧨 Paozhu c++ web framework", which confirms the framework core is intact.
 
 ---
 
-*Last updated: 2026-09-12*
+*Last updated: 2026-09-18*
