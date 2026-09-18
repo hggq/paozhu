@@ -1729,13 +1729,51 @@ rm -rf models/* schema/* orm/*
 
 这三个目录存放数据库模型和 ORM 生成代码，从模板项目不需要。将来启用数据库时用 `bin/paozhu_cli orm <tag>` 重新生成（见 §5.1）。
 
-### 第三步：删除视图文件
+### 第三步：清理视图文件（保留注册骨架）
+
+这一步不能直接 `rm -rf` 整个目录，因为 `viewsrc/include/` 下的注册头文件需要保留骨架。分三小步进行。
+
+#### 3.1 删除视图源码和模板目录
 
 ```bash
-rm -rf view/* viewsrc/*
+rm -rf viewsrc/view/ view/
 ```
 
-`view/` 是 HTML 模板，`viewsrc/` 是模板编译产物（C++ 源码）。两者都是示例代码，可安全清空。
+`viewsrc/view/` 是视图的 C++ 实现源码，`view/` 是 HTML 模板。两者都是示例代码，直接删除。
+
+#### 3.2 清空 viewsrc/include/viewsrc.h 中的 namespace view 内容
+
+打开 `viewsrc/include/viewsrc.h`，删除 `namespace http { namespace view { ... } }` 内部所有子命名空间（admin、cms、home、login、superadmin、techempower）及其函数声明，**保留外层命名空间结构和头文件 include**。清理后的骨架：
+
+```cpp
+#ifndef __HTTP_VIEWSRC_ALL_METHOD_H
+#define __HTTP_VIEWSRC_ALL_METHOD_H
+// ... include 保持不变 ...
+
+namespace http { 
+namespace view { 
+
+}
+
+}
+#endif
+```
+
+#### 3.3 清空 viewsrc/include/regviewmethod.hpp 的函数体
+
+打开 `viewsrc/include/regviewmethod.hpp`，删除 `_initview_method_regto` 函数体内所有 `emplace` 调用，**保留函数签名、命名空间和头文件 include**。清理后的骨架：
+
+```cpp
+namespace http
+{
+  void _initview_method_regto(VIEW_REG  &_viewmetholdreg)
+  {
+    // empty body
+  } 
+}
+```
+
+这样既移除了全部示例业务代码，又保留了视图注册机制的完整骨架。后续添加新视图时，只需在 `namespace view` 里声明函数、在 `regviewmethod.hpp` 里注册即可。
 
 ### 第四步：删除控制器（保留 testhello）
 

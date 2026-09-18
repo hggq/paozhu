@@ -1788,13 +1788,51 @@ rm -rf models/* schema/* orm/*
 
 These three directories hold database models and generated ORM code — they are not needed for a clean scaffold. Regenerate later with `bin/paozhu_cli orm <tag>` (see §5.1) when you enable a database.
 
-### Step 3 — Remove the view files
+### Step 3 — Clean up view files (keep the registration skeleton)
+
+Do **not** `rm -rf` the whole `viewsrc/` directory — the registration headers under `viewsrc/include/` must be kept as skeletons. Three sub-steps.
+
+#### 3.1 Remove the view source and template directories
 
 ```bash
-rm -rf view/* viewsrc/*
+rm -rf viewsrc/view/ view/
 ```
 
-`view/` contains HTML templates; `viewsrc/` holds their compiled C++ artifacts. Both are example code and are safe to wipe.
+`viewsrc/view/` holds the C++ implementations; `view/` holds the HTML templates. Both are example code and can be deleted directly.
+
+#### 3.2 Empty the `namespace view` block in `viewsrc/include/viewsrc.h`
+
+Open `viewsrc/include/viewsrc.h`, delete every inner namespace (admin, cms, home, login, superadmin, techempower) and their function declarations inside `namespace http { namespace view { ... } }`. **Keep the outer namespace wrappers and all `#include` lines.** The file should end up like:
+
+```cpp
+#ifndef __HTTP_VIEWSRC_ALL_METHOD_H
+#define __HTTP_VIEWSRC_ALL_METHOD_H
+// ... includes unchanged ...
+
+namespace http { 
+namespace view { 
+
+}
+
+}
+#endif
+```
+
+#### 3.3 Empty the function body in `viewsrc/include/regviewmethod.hpp`
+
+Open `viewsrc/include/regviewmethod.hpp`, delete every `_viewmetholdreg.emplace(...)` line inside `_initview_method_regto`. **Keep the function signature, namespace, and all `#include` lines.** The file should end up like:
+
+```cpp
+namespace http
+{
+  void _initview_method_regto(VIEW_REG  &_viewmetholdreg)
+  {
+    // empty body
+  } 
+}
+```
+
+This removes all example business code while preserving the full view-registration skeleton. When you add new views later, just declare functions inside `namespace view` and register them in `regviewmethod.hpp`.
 
 ### Step 4 — Remove controllers (keep testhello)
 
