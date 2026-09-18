@@ -1794,6 +1794,13 @@ cd build && cmake .. && make -j$(sysctl -n hw.ncpu)
 
 运行 `./bin/paozhu` 后访问 `http://127.0.0.1/hello`，应返回示例中的 "Hello world! 🧨 Paozhu c++ web framework"，说明框架核心正常。
 
+### 压力测试
+
+需要 `ENABLE_BENCHMARK` 打开，因为项目默认了流量限制
+
+```bash
+cd build && cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_BENCHMARK=ON && make -j$(sysctl -n hw.ncpu)
+```
 ---
 
 *最近更新: 2026-09-18*

@@ -112,6 +112,19 @@ static void request_once(const std::string &ip_port, const std::string &hostname
         if (bio) BIO_free(bio);
         return;
     }
+
+    // connect 成功后立刻设 SO_LINGER(0): BIO_free 时发 RST 跳过 TIME_WAIT,
+    // 避免压测端短连接把 16K 临时端口耗尽 (macOS 默认 49152-65535)
+    {
+        int fd = -1;
+        BIO_get_fd(bio, &fd);
+        if (fd >= 0)
+        {
+            struct linger lg = {1, 0};
+            setsockopt(fd, SOL_SOCKET, SO_LINGER, &lg, sizeof(lg));
+        }
+    }
+
     double t_connected = now_ms();
     lat.connect_ms.push_back(t_connected - t_start);
 
@@ -173,7 +186,7 @@ static void request_once(const std::string &ip_port, const std::string &hostname
     }
 
     // ---- 发送 HTTP 请求 ----
-    std::string req = "GET / HTTP/1.1\r\nHost: " + hostname +
+    std::string req = "GET /hello HTTP/1.1\r\nHost: " + hostname +
                       "\r\nUser-Agent: tls13-stress-test/1.0\r\n"
                       "Connection: close\r\nAccept: */*\r\n\r\n";
 

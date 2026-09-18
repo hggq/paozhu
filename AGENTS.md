@@ -1851,8 +1851,16 @@ Rebuild the project after the four steps to get a clean scaffold:
 cd build && cmake .. && make -j$(sysctl -n hw.ncpu)
 ```
 
-Run `./bin/paozhu` and open `http://127.0.0.1/hello` — you should see "Hello world! 🧨 Paozhu c++ web framework", which confirms the framework core is intact.
+Run `./bin/paozhu` and open `http://127.0.0.1/hello` — you should see "Hello world! 🧨 Paozhu c++ web framework", which confirms the framework core is intact.  
 
+
+### Stress test 
+
+`ENABLE_BENCHMARK` needs to be turned on, as the project has a default traffic limit.  
+
+```bash
+cd build && cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_BENCHMARK=ON && make -j$(sysctl -n hw.ncpu)
+```
 ---
 
 *Last updated: 2026-09-18*

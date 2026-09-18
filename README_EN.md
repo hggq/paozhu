@@ -3,211 +3,211 @@ English | [简体中文](README_CN.md)
 <img src="https://hggq.github.io/paozhu/images/logo.svg">
 </div>
 
-Paozhu(炮竹🧨) is a full-stack, rapid development framework for the Web, Our slogan is "Born for rapid development of C++ Web", This framework integrates C++ ORM. The development speed is as fast as script languages. The framework integrates a webserver, which can natively parse HTTP/1.1 HTTP/2 JSON WebSocket protocols and GET and POST requests. The framework also distinguishes between different methods of POST requests. The framework comes with a built-in OBJ micro-object that can store data such as char, int, string, float, etc. The framework automatically parses URL and POST parameters into the micro-object, and uses URL path mapping to function mounting points. It also uses coroutines, thread pools, and database connection pools.
+**Paozhu** (炮竹 🧨) is a full-stack rapid development framework for the Web. Our slogan is _"Born for rapid C++ web development."_ The framework integrates a C++ ORM, delivering development speed comparable to scripting languages. It ships with a built-in web server that natively parses HTTP/1.1, HTTP/2, JSON, WebSocket protocols, and handles both GET and POST requests — with distinct handling for different POST content types. A lightweight built-in `obj_val` micro-object can store data of type `char`, `int`, `string`, `float`, and more. URL and POST parameters are automatically parsed into this micro-object, and URL path mapping is used to mount handler functions. Coroutines, thread pools, and database connection pools are all built in.
 
-QQ GROUP 668296235
- 
-Discussing the joy of C++ web development with community developers.
+**QQ Group:** 668296235
 
-### 1.Features🔥🔥🔥🔥🔥
+Join community developers to discuss the joy of C++ web development.
 
-✅ 1. Supports json decode encode, not use thirdparty, support json standard  
-✅ 2. Supports multiple domain name websites, support SAAS tenants and themes  
-✅ 3. Supports multiple domain name ssl server  
-✅ 4. Supports http/1.1 and http/2 protocols  
-✅ 5. Supports WebSocket server and client, with duplex sending and receiving  
-✅ 6. The framework comes with WebSocket push, which supports regular push to WebSocket client  
-✅ 7. Supports httpclient GET and POST requests, in both synchronous and asynchronous modes  
-✅ 8. Built in ORM, supports MySQL PostgreSQL SQLite MariaDB supports both coroutine and synchronous modes  
-✅ 9. Framework has two thread pool,framework thread pool,user program runing thread pool  
-✅10. The framework uses asio Coroutines  
-✅11. The framework features that I/O uses the coroutine pool to run and thread pool to run  
-✅12. The framework supports compress gzip br out files  
-✅13. URL POST Upload Files. use client.get[] client.post[] client.files[] get    
-✅14. Integrated the SendMail library, supporting both synchronous and asynchronous modes  
-✅15. Supports generating QR codes, verification codes, and charts (in svg format)  
-✅16. Plugin module,Hot Module Replacement  
-✅17. The framework supports cache Module，ORM supports Result save to cache  
-✅18. The controller directory cpp files annotation auto pick to url mapping  
-✅19. Struct or class annotation to JSON Object, json_encode json_decode function  
-✅20. Support full demo admin backend, visit url /admin/main  
-✅21. Support PHP-FPM fastcgi running, which can replace Apache, allowing PHP programmers to smoothly transition to C++development mode  
-✅22. Built-in WeChat Mini Program payment function  
-✅23. Supports Socket server and client, supports SSL connection for Socket, facilitating IoT development  
-✅24. Supports both RPC server and client, using HTTP annotation URL functions  
-✅25. Traffic limiting, with a two-stage limit based on a 60-second moving average of traffic  
-✅26. Integrate ACME protocol to automatically renew SSL certificates and server-side OCSP stapling  
-✅27. Integrate zip file packaging and decompression  
-✅28. Simple Excel (xlsx) read-write support, simple conversion between Word (docx) and HTML  
-✅29. Built-in image generation and processing, supporting both JPG and PNG formats  
-✅30. Built-in HTML to PDF module webpdf  
+### 1. Features 🔥🔥🔥🔥🔥
+
+✅ 1. JSON encoding/decoding with zero third-party dependencies, fully compliant with JSON standards  
+✅ 2. Multi-domain website support, with SaaS tenancy and theme customization  
+✅ 3. Multi-domain SSL server  
+✅ 4. HTTP/1.1 and HTTP/2 protocol support  
+✅ 5. WebSocket server and client with full-duplex communication  
+✅ 6. Built-in WebSocket push, supporting periodic pushes to connected clients  
+✅ 7. HTTP client GET/POST requests in both synchronous and asynchronous modes  
+✅ 8. Built-in ORM supporting MySQL, PostgreSQL, SQLite, and MariaDB, with coroutine and synchronous modes  
+✅ 9. Two separate thread pools: a framework pool and a user-program pool  
+✅ 10. Built on Asio coroutines  
+✅ 11. I/O operations run across both coroutine pools and thread pools  
+✅ 12. Gzip and Brotli compression for output files  
+✅ 13. URL-based POST file uploads, accessed via `client.get[]`, `client.post[]`, and `client.files[]`  
+✅ 14. Integrated SendMail library with synchronous and asynchronous modes  
+✅ 15. QR code, CAPTCHA, and SVG chart generation  
+✅ 16. Plugin module with Hot Module Replacement (HMR)  
+✅ 17. Cache module support; ORM query results can be stored in cache  
+✅ 18. Annotations in controller `.cpp` files are automatically extracted for URL mapping  
+✅ 19. Struct/class annotation for JSON serialization via `json_encode` / `json_decode`  
+✅ 20. Complete admin backend demo available at `/admin/main`  
+✅ 21. PHP-FPM FastCGI support, replacing Apache to help PHP developers transition to C++  
+✅ 22. Built-in WeChat Mini Program payment  
+✅ 23. Socket server and client with SSL support — ideal for IoT development  
+✅ 24. RPC server and client using HTTP-annotated URL functions  
+✅ 25. Two-stage rate limiting based on a 60-second moving average  
+✅ 26. ACME protocol integration for automatic SSL certificate renewal and OCSP stapling  
+✅ 27. Integrated ZIP archive packaging and extraction  
+✅ 28. Excel (`.xlsx`) read/write, and Word (`.docx`) ↔ HTML conversion  
+✅ 29. Built-in image generation and processing (JPG, PNG)  
+✅ 30. Built-in HTML-to-PDF module (`webpdf`)
 
 
-### 2.Runtime environment
+### 2. Runtime environment
 
-C++ standard request c++20   
-asio openssl zlib brotli
+- **C++ standard:** C++20
+- **Dependencies:** Asio, OpenSSL, Zlib, Brotli
+- **Supported platforms:** Linux, macOS, Windows
 
-Supports Linux MacOS Windows
 
-### 3.Environment configuration
+### 3. Environment setup
 
-#### 3.1 MacOS
+#### 3.1 macOS
 
-- system requirements
+- **System requirements:** Sequoia or later
 
-```
->= Sequoia
-```
-- Install necessary dependencies
+- Install dependencies:
 ```bash
 brew install asio
 brew install cmake
 brew install openssl
 brew install zlib
 brew install brotli
-
 ```
 
-#### 3.2 Ubuntu && Fedora
+#### 3.2 Ubuntu & Fedora
 
-- system requirements
+- **System requirements:** Ubuntu ≥ 22.04; tested on Fedora 38 (install ASAN via `sudo yum install libasan`)
 
-```
-Ubuntu>= 22.04 , test on Fedora38, need install asan（sudo yum install libasan）
-```
-
-```
+```bash
 sudo apt-get install cmake
-sudo apt-get install -y brotli  libbrotli-dev zlib1g-dev
+sudo apt-get install -y brotli libbrotli-dev zlib1g-dev
 sudo apt-get install openssl libssl-dev
 sudo apt-get install mysql-server
- 
 ```
 
-- Environment configuration  
- [MacOS environment configuration](https://hggq.github.io/paozhudocs/macos_en.html)  
- [Ubuntu environment configuration](https://hggq.github.io/paozhudocs/ubuntu_en.html)  
- [RockyLinux AlmaLinux environment configuration](https://hggq.github.io/paozhudocs/linux_en.html)  
+- Full environment guides:
+  - [macOS environment setup](https://hggq.github.io/paozhudocs/macos_en.html)
+  - [Ubuntu environment setup](https://hggq.github.io/paozhudocs/ubuntu_en.html)
+  - [RockyLinux / AlmaLinux environment setup](https://hggq.github.io/paozhudocs/linux_en.html)
 
 #### 3.3 Windows
 
-Supports install methods vcpkg and xmake
+Supports installation via **vcpkg** or **xmake**.
 
-- xmake install
-Execute at the root directory of the project  
-Config `conf/server.conf` replace /Users/hzq/paozhu path to your project path  
-```
+- **xmake installation —** run from the project root:
+  1. Edit `conf/server.conf` and replace `/Users/hzq/paozhu` with your project path
+  2. Build:
+
+```bat
 paozhu-main> xmake
 paozhu-main> .\build\windows\x64\release\paozhu.exe
 ```
 
-- vcpkg install
+- **vcpkg installation:**
 
-```
+```powershell
 Invoke-WebRequest -OutFile vcpkg2023.zip https://github.com/microsoft/vcpkg/archive/refs/tags/2023.12.12.zip
-            unzip vcpkg2023.zip
-            cd vcpkg-2023.12.12
-            bootstrap-vcpkg.bat
-            vcpkg integrate install
-            vcpkg integrate project
-            vcpkg install
+unzip vcpkg2023.zip
+cd vcpkg-2023.12.12
+bootstrap-vcpkg.bat
+vcpkg integrate install
+vcpkg integrate project
+vcpkg install
 ```
 
-Install ninja https://github.com/ninja-build/ninja/releases
+Install Ninja from https://github.com/ninja-build/ninja/releases, then build: set `CMAKE_TOOLCHAIN_FILE` to your vcpkg installation path.
 
-Compile project  `CMAKE_TOOLCHAIN_FILE` is vcpkg install localtion path
-
-```
+```bat
 unzip asio.zip
-cmake . -B ${{github.workspace}} -DENABLE_WIN_VCPKG=ON -DENABLE_VCPKG=ON -DCMAKE_TOOLCHAIN_FILE=vcpkg-2023.12.12/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE=Debug -G Ninja
+cmake . -B ${{github.workspace}} -DENABLE_WIN_VCPKG=ON -DENABLE_VCPKG=ON ^
+    -DCMAKE_TOOLCHAIN_FILE=vcpkg-2023.12.12/scripts/buildsystems/vcpkg.cmake ^
+    -DVCPKG_TARGET_TRIPLET=x64-windows -DCMAKE_BUILD_TYPE=Debug -G Ninja
 cmake --build . --config Debug
 ```
 
 
+### 4. Installation
 
-### 4.Install
+Unzip `asio.zip` into the project root, or download the latest Asio release and place it there. Your directory should look like:
 
-Project root `unzip asio.zip` or Download asio new version to project root part 
-```shell
+```
 |-vendor
 |-CMakeLists.txt
 |-asio
   |-asio
   |-asio.hpp
-````
-Directory like this
+```
 
+Then build:
 
-```shell
+```bash
 mkdir build
 cd build
 cmake ..
 make
 ```
 
-Use in production environment,Compile as daemon 
-```shell
+For production, build as a daemon (Release mode):
+
+```bash
 cmake .. -DCMAKE_BUILD_TYPE=Release
 make -j8
 ```
 
 
-### 5.hosts configuration
+### 5. Hosts configuration
 
-- view`conf/server.conf`file and get`mainhost`value
-- replace /Users/hzq/paozhu path to your project path
-- open host file
+1. Open `conf/server.conf` and note the `mainhost` value
+2. Replace any hardcoded `/Users/hzq/paozhu` paths with your own project path
+3. Edit your hosts file:
 
-```shell
+```bash
 sudo vim /etc/hosts
 ```
 
-Add to the last line of the hosts file (if it is www.youdomain.com)
+Append the following line (using your actual domain, e.g., `www.yourdomain.com`):
 
 ```text
-127.0.0.1 www.youdomain.com
+127.0.0.1 www.yourdomain.com
 ```
 
-### 6.https test
 
-run
+### 6. HTTPS test
 
-```shell
-sudo ./bin/paozhu 
+Run:
+
+```bash
+sudo ./bin/paozhu
 ```
 
-open the browser and enter `http://localhost` or `http://www.youdomain.com` in the address bar
+Open a browser and navigate to `http://localhost` or `http://www.yourdomain.com`.
 
 
 <div align="center">
 <img src="https://hggq.github.io/paozhu/images/xmake_demo.jpg">
 </div>
 
- 
+
+For more examples, see the source code in the `controller` directory, which includes full CRUD operations.
 
 
-for more details, please see the source code under the `controller` directory, which includes `CRUD` examples.
+### 7. Stress testing
 
-###  7.Stress testing
+When using `h2load` or `ab`, enable `-DENABLE_BENCHMARK=ON` during CMake configuration:
 
-Use h2load and ab testing, you must enable the cmake compilation option `-DENABLE_BENCHMARK=ON`, `cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_BENCHMARK=ON`, Because the framework has enabled traffic limiting measures by default.  
-
-```shell
- ab -n 120000 -c 20 http://www.xxx.com  
+```bash
+cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_BENCHMARK=ON
 ```
 
-```shell
- h2load -n 12000 -c 100 -m 10 https://www.xxx.com  
+The framework has rate limiting enabled by default, which must be disabled for accurate benchmarking.
+
+```bash
+ab -n 120000 -c 20 http://www.xxx.com
 ```
 
-```shell
- ./webbench -c 300 -t 59 http://www.xxx.com/cms/list  
+```bash
+h2load -n 12000 -c 100 -m 10 https://www.xxx.com
 ```
 
-###  8.1 Sample Hello world
+```bash
+./webbench -c 300 -t 59 http://www.xxx.com/cms/list
+```
 
-In the `controller/src` directory of the project `testhello.cpp` file, It is recommended to place all business code entries in `controller/src`, as annotations will be automatically extracted for URL mapping, ORM automatically generates C++ entity code from the database, with no manual coding required.
+
+### 8.1 Hello World example
+
+Example file: `controller/src/testhello.cpp`. Place all business logic entries under `controller/src` — annotations are auto-extracted for URL mapping, and the ORM auto-generates C++ entity code from the database, so no manual coding is needed for model definitions.
 
 ```c++
 #include "orm.h"
@@ -219,8 +219,8 @@ namespace http
 std::string testhello(std::shared_ptr<httppeer> peer)
 {
   httppeer &client = peer->get_peer();
-  client << " Hello world! 🧨 Paozhu c++ web framework ";
-	
+  client << " Hello world! 🧨 Paozhu C++ web framework ";
+
   auto users = orm::cms::User();
   try
   {
@@ -240,14 +240,15 @@ std::string testhello(std::shared_ptr<httppeer> peer)
 
 }// namespace http
 ```
-Open the browser and enter `http://localhost/hello`  
 
-`//@urlpath(null,hello)` is an annotation function, and the `testhello.h` file will be automatically generated, so there is no need to create it yourself  
+Open a browser and navigate to `http://localhost/hello`.
+
+`//@urlpath(null,hello)` is an annotation directive — `testhello.h` is auto-generated, so you don't need to create it manually.
 
 
-###  8.2 Sample Article list, search, pagebar
+### 8.2 Article list, search, and pagination example
 
-From admin demo file controller/src/admin/articles.cpp
+From the admin demo: `controller/src/admin/articles.cpp`
 
 ```c++
 #include "orm.h"
@@ -278,7 +279,7 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
         obj_val temp;
 
         std::map<unsigned int, std::string> topickv;
-        //articles under this topic and sub topics
+        // articles under this topic and its sub-topics
         std::vector<unsigned int> topic_id_array;
 
         if (topicid > 0)
@@ -292,8 +293,8 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
             temp["parentid"] = topicm.record[i].parentid;
             temp["value"]    = topicm.record[i].title;
             client.val["list"].push(temp);
-			
-            // save topic name to topickv
+
+            // save topic name to topickv map
             topickv[topicm.record[i].topicid] = topicm.record[i].title;
             if (topicid > 0)
             {
@@ -357,15 +358,13 @@ std::string admin_listarticle(std::shared_ptr<httppeer> peer)
     {
         client.val["code"] = 1;
     }
-    // client.val render to html
+    // client.val is rendered to HTML
     peer->view("admin/listarticle");
     return "";
 }
-
 ```
 
-C++ ORM Coroutines, URL request is completed throughout the entire coroutine function  
-From admin demo file controller/src/techempower.cpp
+**C++ ORM with coroutines** — the entire URL request is processed within a single coroutine function. From the admin demo: `controller/src/techempower.cpp`
 
 ```C++
 //@urlpath(null,updates)
@@ -390,7 +389,7 @@ asio::awaitable<std::string> techempowerupdates(std::shared_ptr<httppeer> peer)
     {
         myworld.wheresql.clear();
         myworld.where("id", rand_range(1, 10000));
-        // Additional data. Normally, using co_await myworld.async_fetch() will not append additional data
+        // Note: using co_await myworld.async_fetch() will NOT append additional data
         co_await myworld.async_fetch_append();
         if (myworld.effect() > 0)
         {
@@ -405,9 +404,9 @@ asio::awaitable<std::string> techempowerupdates(std::shared_ptr<httppeer> peer)
 }
 ```
 
-#### WebSocket Server and Client
+#### WebSocket server and client
 
-The example file is demonstrated on the server side in `websockets/loopwebsockets.hpp`  
+Server-side example: `websockets/loopwebsockets.hpp`
 
 ```C++
 #include <iostream>
@@ -537,7 +536,7 @@ class loopwebsockets : public websockets_api
 }// namespace http
 ```
 
-The example file is demonstrated in the client at `controller/src/test_websocket_handle.cpp`  
+Client-side example: `controller/src/test_websocket_handle.cpp`
 
 ```C++
 #include <chrono>
@@ -625,14 +624,13 @@ asio::awaitable<std::string> test_websocket_client(std::shared_ptr<httppeer> pee
     co_return "";
 }
 
- 
 
 }//namespace http
 ```  
 
-#### Socket Server and Client
+#### Socket server and client
 
-The instance file is demonstrated on the server side of the Socket in `controller/src/sockets/my_test_socket.hpp`  
+Server-side example: `controller/src/sockets/my_test_socket.hpp`
 
 ```C++
 #include <iostream>
@@ -688,7 +686,7 @@ class my_test_socket : public socket_api
 
 ```  
 
-The instance file is in the `controller/src/test_socket_handle.cpp` for the Socket client demonstration
+Client-side example: `controller/src/test_socket_handle.cpp`
 
 ```C++
 #include <chrono>
@@ -759,7 +757,6 @@ asio::awaitable<std::string> test_socket_client(std::shared_ptr<httppeer> peer)
     co_return "";
 }
 
- 
 
 }//namespace http
 
@@ -768,23 +765,23 @@ asio::awaitable<std::string> test_socket_client(std::shared_ptr<httppeer> peer)
 
 
 
-###  9.Related tutorial
+### 9. Documentation
 
-- [Paozhu docs](https://hggq.github.io/paozhudocs/)
-
-
-### 10.Roadmap
-
-* [ ] 1.Improved HTTP features  
-* [ ] 2.HttpClient Improved
-* [ ] 3.HTTP/2 client  
+- [Paozhu Documentation](https://hggq.github.io/paozhudocs/)
 
 
-### 11.Contribute👏👋
+### 10. Roadmap
 
-welcome to raise issues for mutual communication, and of course, we also welcome your active PR.
+* [ ] Improved HTTP features  
+* [ ] Enhanced HTTP client  
+* [ ] HTTP/2 client  
 
 
-### 12.LICENSE
+### 11. Contributing 👏👋
 
-Paozhu is provided under the [MIT License](LICENSE)
+Feel free to open issues for discussions, and pull requests are always welcome!
+
+
+### 12. License
+
+Paozhu is licensed under the [MIT License](LICENSE).
