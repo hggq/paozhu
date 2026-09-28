@@ -43,7 +43,7 @@ namespace http
         unsigned char getSecure(std::string key);
         unsigned char getHttponly(std::string key);
         std::string getSamesite(std::string key);
-
+        bool empty() const;
     public:
         std::map<std::string, std::string> _val;
         std::map<std::string, std::string> _domain;

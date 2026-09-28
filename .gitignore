@@ -1,11 +1,18 @@
+# macOS 元数据 / macOS metadata
 .DS_Store
+*/.DS_Store
+
+# 临时目录 / Temp dirs
 cache/*
 .cache/*
 module/*
 tmp/*
 upload/*
 log/*
-*/.DS_Store
+temp/*
+temp
+
+# 构建产物 / Build outputs
 a.out
 clihttp
 client
@@ -15,20 +22,43 @@ frontend
 frontend/*
 build
 build/*
-test
-test/*
+cmake-build-*
+build_release
+build_release/*
 bin
 bin/*
-log
-temp/*
-temp
-cmake-build-*
+test
+test/*
+
+# IDE / 编辑器 / Editors
 .idea
 .vscode
 .qoder
 .qoder/
+
+# 运行时生成 / Runtime-generated
 www/default/upload
 orm/_rawsqlfile
 conf/*.bak
 asio/*
 asio
+docx/*
+docx
+log
+
+# --- 支付网关凭据 / Payment gateway credentials ---
+# vendor/webpay 读 conf/webpay.conf 指向的这些文件 / Read by conf/webpay.conf
+# RSA 密钥工具导出的 txt / RSA2048 keypair text exports
+conf/*RSA2048*.txt
+conf/alipayPublicKey*.txt
+# PEM 形态及其归档 / Derived PEM blobs & archives
+conf/alipay*private*
+conf/alipay_public_key*
+# 微信支付材料 / WeChat Pay certs & private key
+conf/apiclient_*
+conf/wechatpay_*
+# 真配置本身不入库；测试结束后再定占位模板 / Real config (contains appid & payload key)
+# conf/webpay.conf
+
+# Benchmark 独立 repo / Benchmark overlay source (independent repo, used by mini_project.sh --benchmark)
+Benchmark/paozhu_benchmark/

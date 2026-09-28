@@ -2,12 +2,17 @@
 #include <map>
 #include <memory>
 #include <climits>
+#include <algorithm>
+#include <cctype>
 #include "serverconfig.h"
 #include "server_localvar.h"
 #include <cstring>
 #include "httppeer.h"
 #include "func.h"
 #include "terminal_color.h"
+#ifdef ENABLE_WEBPAY
+#include "webpay_config.h"
+#endif
 
 namespace http
 {
@@ -146,6 +151,148 @@ std::map<std::string, std::map<std::string, std::string>> loadserversconfig(std:
         sys_config[keyname] = itemconfig;
     }
     return sys_config;
+}
+
+namespace
+{
+// 解析 cors_domain 配置项，把配置串"消化"成请求期可直接哈希查表的白名单。
+// 语法（loadserversconfig 读取阶段已剥离空格/Tab/引号，故分隔符只能是逗号）：
+//   cors_domain 不写 / 写空 / 单个非 "*" 字符   未配置 → 默认拒绝：该站点不发任何 CORS 头
+//   cors_domain = *                            显式放开全部（回显 "*"）
+//   cors_domain = https://www.hggq.com         已写全 origin，原样入表（自定义端口请写全）
+//   cors_domain = www.hggq.com, www.hggq.net   只写域名，自动补 http:// 与 https:// 两种 scheme
+// 站点没写这一项时继承 [default] 解析好的白名单；站点写了就整表覆盖自己的，
+// 包括写成空串——那等于显式本站不放开任何跨域，是站点退出继承的口子。
+// 放开全部不再是缺省值：以前"什么都没配"就回 ACAO "*"，任何来源都能带凭证以外的跨域读响应；
+// 现在要多站点同时放开就得每处显式写 "*"，加载期对"没配"的站点逐个告警。
+// 每一项入表前统一归一：转小写、去尾斜杠、去掉与 scheme 匹配的默认端口（:80 / :443）；
+// 归一后仍带路径的属于写错（Origin 里没有路径这一段），加载期告警但仍然入表。
+void cors_domain_parse(const std::string &src, site_host_info_t &info)
+{
+    info.cors_domain_list.clear();
+    info.cors_origin_allowed.clear();
+    // is_cors 表示用户是否显式配置了 cors_domain（哪怕只写了一个 "*"）：
+    //   未配置（空串）      → false，默认拒绝，加载期告警提示这一站点
+    //   已配置（"*" 或域名） → true
+    info.is_cors = (src.size() > 0);
+    // 少于 2 个字符时唯一有意义的取值是单个 "*"：显式放开全部。
+    // 其余（含空串）一律按未配置处理 = 拒绝，不再像以前那样兜底成放开
+    if (src.size() < 2)
+    {
+        info.cors_allow_all = (src.size() == 1 && src[0] == '*');
+        return;
+    }
+    info.cors_allow_all = false;
+
+    std::size_t pos = 0;
+    while (pos < src.size())
+    {
+        std::size_t comma = src.find(',', pos);
+        if (comma == std::string::npos)
+        {
+            comma = src.size();
+        }
+        if (comma > pos)
+        {
+            std::string item = src.substr(pos, comma - pos);
+            // origin 的 scheme 与 host 比较是大小写不敏感的，统一转小写入表
+            std::transform(item.begin(), item.end(), item.begin(),
+                           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            // 浏览器送出的 Origin 恒为 scheme://host[:port]：不带尾斜杠，默认端口也不写出来
+            // （访问 http://host:80 时 Origin 是 http://host）。配置里多写了这些的归一到可比对的
+            // 形状，否则这一条永远匹配不上；空格与引号 ini 读取器已经剥掉，这里不用 trim。
+            while (!item.empty() && item.back() == '/')
+            {
+                item.pop_back();
+            }
+            if (std::string_view(item).starts_with("http://") && std::string_view(item).ends_with(":80"))
+            {
+                item.erase(item.size() - 3);
+            }
+            else if (std::string_view(item).starts_with("https://") && std::string_view(item).ends_with(":443"))
+            {
+                item.erase(item.size() - 4);
+            }
+            // 归一后仍带 '/' 的只可能是写了路径（scheme 分隔符除外），Origin 里没有路径这一段，
+            // 这一条谁都匹配不上，配置期就报出来，别留一个静默的白名单空洞
+            {
+                std::size_t body = item.find("://");
+                body             = (body == std::string::npos) ? 0 : body + 3;
+                if (item.find('/', body) != std::string::npos)
+                {
+                    fprintf(stderr, "[CORS-WARN] cors_domain item '%s' is not an origin, it can never match\n",
+                            item.c_str());
+                    fflush(stderr);
+                }
+            }
+            if (item == "*")
+            {
+                info.cors_allow_all = true;
+            }
+            else if (item.find("://") != std::string::npos)
+            {
+                info.cors_origin_allowed.insert(item);
+            }
+            else
+            {
+                info.cors_origin_allowed.insert("http://" + item);
+                info.cors_origin_allowed.insert("https://" + item);
+            }
+            info.cors_domain_list.emplace_back(std::move(item));
+        }
+        pos = comma + 1;
+    }
+}
+
+// 解析 cors_allow_methods：逗号分隔，逐条转大写（Allow-Methods 按方法的大写规范出，
+// 而校验 Access-Control-Request-Method 本身大小写不敏感），空 token 丢弃。
+// 空格不用管：ini 读取器已按行剥掉。站点写了就是整表覆盖，写空等于"本站点预检不放行任何方法"。
+void cors_methods_parse(const std::string &src, std::vector<std::string> &out)
+{
+    out.clear();
+    std::size_t pos = 0;
+    while (pos < src.size())
+    {
+        std::size_t comma = src.find(',', pos);
+        if (comma == std::string::npos)
+        {
+            comma = src.size();
+        }
+        if (comma > pos)
+        {
+            std::string item = src.substr(pos, comma - pos);
+            std::transform(item.begin(), item.end(), item.begin(),
+                           [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+            out.emplace_back(std::move(item));
+        }
+        pos = comma + 1;
+    }
+}
+}// namespace
+
+std::string site_host_info_t::cors_allow_origin(std::string_view request_origin) const
+{
+    // 只有显式写了 cors_domain = * 才会走到这一跳返回 "*"；未配置的站点 cors_allow_all 为 false，
+    // 落到下面的查表分支，而它的白名单是空集 ⇒ 任何 Origin 都不放行（默认拒绝）
+    if (cors_allow_all)
+    {
+        return "*";
+    }
+    if (request_origin.empty())
+    {
+        return "";
+    }
+    std::string origin;
+    origin.resize(request_origin.size());
+    std::transform(request_origin.begin(), request_origin.end(), origin.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    if (cors_origin_allowed.find(origin) == cors_origin_allowed.end())
+    {
+        return "";
+    }
+    // 命中：必须回显请求里的 Origin 原值——配置里往往只写了域名，
+    // 与浏览器发来的完整 origin 不逐字节相等，回填配置值浏览器会判为不匹配。
+    return std::string(request_origin);
 }
 
 std::tuple<unsigned int, std::string> serverconfig::gethost404(const std::string &host)
@@ -452,7 +599,29 @@ void serverconfig::init_path()
     server_loaclvar &static_server_var = get_server_global_var();
     static_server_var.config_path      = configpath;
     loadserverglobalconfig();
+#ifdef ENABLE_WEBPAY
+    // load acme.conf webpay.conf
+    load_webpay_file();
+#endif
+
 }
+#ifdef ENABLE_WEBPAY
+// conf/webpay.conf -> get_webpay_config()
+// 启动阶段单线程调用，重复调用只会重新解析，不会叠加重复段
+bool serverconfig::load_webpay_file(const std::string &filename)
+{
+    std::string webpayfile = filename;
+    if (webpayfile.empty())
+    {
+        if (configpath.empty())
+        {
+            return false;
+        }
+        webpayfile = configpath + "webpay.conf";
+    }
+    return get_webpay_config().load(webpayfile);
+}
+#endif // ENABLE_WEBPAY
 bool serverconfig::loadserverglobalconfig()
 {
     if (configfile.empty())
@@ -604,6 +773,26 @@ bool serverconfig::loadserverglobalconfig()
     {
         tempinfo_default.is_limit_upload = false;
         tempinfo_default.upload_max_size = 0;
+    }
+
+    //safe_domain(map_value["default"]["cors_domain"])
+    tempinfo_default.cors_domain = map_value["default"]["cors_domain"];
+    // 白名单在这里一次性解析完毕（未配置 → 默认拒绝，只有显式写 "*" 才放开全部），
+    // 请求期只调用 cors_allow_origin() 查表
+    cors_domain_parse(tempinfo_default.cors_domain, tempinfo_default);
+    // 跨域时允许页面 JS 读取的响应头；留空则不发 Access-Control-Expose-Headers
+    tempinfo_default.cors_expose_headers = map_value["default"]["cors_expose_headers"];
+    // 跨域是否允许携带凭证（cookie / HTTP 认证）：1、T、t 开头为开，其余含未配置都是关
+    {
+        std::string tempcreds = map_value["default"]["cors_credentials"];
+        tempinfo_default.cors_credentials
+            = (tempcreds.size() > 0 && (tempcreds[0] == '1' || tempcreds[0] == 'T' || tempcreds[0] == 't'));
+    }
+
+    // 预检允许的方法列表：不写就用 site_host_info_t 里的默认四项，写了整表覆盖（写空=一个方法都不放行）
+    if (map_value["default"]["cors_allow_methods"].size() > 0)
+    {
+        cors_methods_parse(map_value["default"]["cors_allow_methods"], tempinfo_default.cors_allow_methods);
     }
 
     if (map_value["default"]["http_header_max_size"].size() > 0)
@@ -1210,9 +1399,21 @@ bool serverconfig::loadserverglobalconfig()
                 tempinfo.certificate_file.clear();
                 tempinfo.privateKey_file.clear();
                 tempinfo.alias_domain.clear();
+                // CORS 白名单从 [default] 继承。上面把 tempinfo_default 移进了 sitehostinfos，
+                // 容器成员被搬空（bool 成员是复制，所以 allow_all / is_cors
+                // 反而带着默认站的值），因此这几项要显式从已入库的默认站点取回来。
+                // 站点自己写了 cors_domain 时，下面的循环整表重解析覆盖。
+                tempinfo.cors_domain         = sitehostinfos[0].cors_domain;
+                tempinfo.cors_allow_all      = sitehostinfos[0].cors_allow_all;
+                tempinfo.is_cors             = sitehostinfos[0].is_cors;
+                tempinfo.cors_origin_allowed = sitehostinfos[0].cors_origin_allowed;
+                tempinfo.cors_domain_list    = sitehostinfos[0].cors_domain_list;
+                tempinfo.cors_credentials    = sitehostinfos[0].cors_credentials;
+                tempinfo.cors_allow_methods  = sitehostinfos[0].cors_allow_methods;
                 tempinfo.themes.clear();
                 tempinfo.themes_url.clear();
                 tempinfo.http2_enable = isallnothttp2;
+                tempinfo.isuse_php = false;
 
                 for (auto [itemname, itemval] : second)
                 {
@@ -1704,6 +1905,29 @@ bool serverconfig::loadserverglobalconfig()
                             }
                         }
                     }
+                    else if (itemname == "cors_domain")
+                    {
+                        tempinfo.cors_domain = itemval;
+                        // 逗号切分/补 scheme/'*' 判定全部在此完成（未配置或写空即默认拒绝），
+                        // 请求期无需再碰配置串
+                        cors_domain_parse(tempinfo.cors_domain, tempinfo);
+                    }
+                    else if (itemname == "cors_expose_headers")
+                    {
+                        // 跨域允许 JS 读取的响应头；不配置就沿用 default 段的取值
+                        tempinfo.cors_expose_headers = itemval;
+                    }
+                    else if (itemname == "cors_credentials")
+                    {
+                        // 站点写了就以站点为准：0/空 是显式关闭，不继承 [default] 的开启
+                        tempinfo.cors_credentials
+                            = (itemval.size() > 0 && (itemval[0] == '1' || itemval[0] == 'T' || itemval[0] == 't'));
+                    }
+                    else if (itemname == "cors_allow_methods")
+                    {
+                        // 站点写了就整表覆盖 [default] 继承来的列表；写空=本站预检不放行任何方法
+                        cors_methods_parse(itemval, tempinfo.cors_allow_methods);
+                    }
                     else if (itemname == "themes")
                     {
                         tempinfo.themes.clear();
@@ -1798,6 +2022,20 @@ bool serverconfig::loadserverglobalconfig()
                     host_toint[first]      = tempindex;
                 }
             }
+        }
+    }
+
+    // 既没写自己白名单、[default] 也没有可继承的白名单 → 该站点按"默认拒绝"处理，
+    // 一个 CORS 头都不发。这里在加载完成后点名提示一次，别让运维以为是站点坏了：
+    // 需要放开的站点必须显式写 cors_domain（白名单或 "*"）。
+    // 告警留在加载期（原先在请求热路径上每次 fprintf+fflush，会刷 stderr）
+    for (auto &site_item : sitehostinfos)
+    {
+        if (!site_item.is_cors)
+        {
+            fprintf(stderr, "[CORS-WARN] site host=%s not configured cors_domain, default deny all origin\n",
+                    site_item.mainhost.empty() ? "default" : site_item.mainhost.c_str());
+            fflush(stderr);
         }
     }
 
@@ -2063,17 +2301,22 @@ int serverconfig::ocsp_stapling_cb(SSL *ssl, void *arg)
 
 void serverconfig::set_ocsp_staple(const std::string &domain, std::vector<uint8_t> ocsp_der)
 {
-    // Copy-on-write: 拷贝旧 map，修改，原子替换
-    auto old           = std::atomic_load(&ocsp_cache_);
+    // 整段"取旧快照 → 克隆 → 改 → 换"都在锁内：两个写线程各自 snapshot 同一份旧 map 时，
+    // 后一次 store 会吞掉前一次新增的域名（refresh_all_ocsp_staples 每轮 detach 一个新线程）
+    std::lock_guard<std::mutex> lock(ocsp_cache_mutex_);
+    auto old           = ocsp_cache_;
     auto new_map       = old ? std::make_shared<std::unordered_map<std::string, std::vector<uint8_t>>>(*old) : std::make_shared<std::unordered_map<std::string, std::vector<uint8_t>>>();
     (*new_map)[domain] = std::move(ocsp_der);
-    std::atomic_store(&ocsp_cache_, std::shared_ptr<const std::unordered_map<std::string, std::vector<uint8_t>>>(std::move(new_map)));
+    ocsp_cache_        = std::shared_ptr<const std::unordered_map<std::string, std::vector<uint8_t>>>(std::move(new_map));
 }
 
 std::vector<uint8_t> serverconfig::get_ocsp_staple(const std::string &domain)
 {
-    // 无锁读取：加载 shared_ptr 快照，直接读取
-    auto cache = std::atomic_load(&ocsp_cache_);
+    std::shared_ptr<const std::unordered_map<std::string, std::vector<uint8_t>>> cache;
+    {
+        std::lock_guard<std::mutex> lock(ocsp_cache_mutex_);
+        cache = ocsp_cache_;
+    }
     if (cache)
     {
         auto it = cache->find(domain);
@@ -2088,7 +2331,11 @@ void serverconfig::set_ocsp_staple_to_ssl(SSL *ssl, const std::string &domain)
     if (!ssl)
         return;
 
-    auto cache = std::atomic_load(&ocsp_cache_);
+    std::shared_ptr<const std::unordered_map<std::string, std::vector<uint8_t>>> cache;
+    {
+        std::lock_guard<std::mutex> lock(ocsp_cache_mutex_);
+        cache = ocsp_cache_;
+    }
     if (!cache)
         return;
 

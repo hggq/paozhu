@@ -106,7 +106,11 @@ unsigned int client_data_cache::size() { return 0; }
 
 client_data_cache &get_client_data_cache()
 {
-    static client_data_cache instance;
-    return instance;
+    // 故意泄漏：会话与数据库连接对象的析构会回桩到这里，而它们可能在 exit() 的静态析构期
+    // 才被间接销毁。本单例首次使用时（建第一个会话）晚于 get_server_app()，按 __cxa_atexit
+    // 逆序它就早于 httpserver 析构，届时 locklist 已是尸体，lock() 抛 system_error，
+    // destructor 隐式 noexcept 直接 std::terminate。代价只剩退出期不再 free 池化 buffer。
+    static client_data_cache *instance = new client_data_cache();
+    return *instance;
 }
 }// namespace http

@@ -38,6 +38,7 @@
 #include "cost_define.h"
 #include "request.h"
 #include "datetime.h"
+#include "session_id.h"
 #include "client_session.h"
 #include "viewso_param.h"
 #include "httppeer.h"
@@ -184,7 +185,7 @@ void httppeer::parse_session_file(const std::string &sessionfile)
         temp_session_file = cookie.get(COOKIE_SESSION_NAME);
         // cookie.set(COOKIE_SESSION_NAME, sessionfile, 7200, "/", host);
         // send_cookie.set(COOKIE_SESSION_NAME, sessionfile, 7200, "/", host);
-        set_cookie(COOKIE_SESSION_NAME, temp_session_file, 30000, host, "/");
+        set_cookie(COOKIE_SESSION_NAME, temp_session_file, 30000, host, "/", false, true, session_samesite());
     }
 
     if (tempsesstime > 0 && tempsesstime == sessionfile_time)
@@ -291,11 +292,15 @@ void httppeer::set_session_id(const std::string &a)
 {
     // cookie.set(COOKIE_SESSION_NAME, a, 7200, "/", host);
     // send_cookie.set(COOKIE_SESSION_NAME, a, timeid() + 7200 * 12, "/", host);
-    set_cookie(COOKIE_SESSION_NAME, a, (timeid() + 7200 * 12), host, "/");
+    set_cookie(COOKIE_SESSION_NAME, a, (timeid() + 7200 * 12), host, "/", false, true, session_samesite());
     parse_session();
 }
 void httppeer::parse_session()
 {
+    if (cookie.empty())
+    {
+        return;
+    }
     if (cookie.check(COOKIE_SESSION_NAME))
     {
         std::string sessionfile = cookie.get(COOKIE_SESSION_NAME);
@@ -361,12 +366,14 @@ void httppeer::save_session()
 
     if (sessionfile.empty())
     {
-        sessionfile =
-            client_ip + std::to_string(client_port) + std::to_string(timeid()) + std::to_string(rand_range(1000, 9999));
-        sessionfile = std::to_string(std::hash<std::string>{}(sessionfile));
+        // sessionfile =
+        //     client_ip + std::to_string(client_port) + std::to_string(rand_range(1000, 9999)) + std::to_string(timeid()) + std::to_string(rand_range(1000, 9999));
+        // sessionfile = std::to_string(std::hash<std::string>{}(sessionfile));
         // cookie.set(COOKIE_SESSION_NAME, sessionfile, 7200, "/", host);
         // send_cookie.set(COOKIE_SESSION_NAME, sessionfile, 7200, "/", host);
-        set_cookie(COOKIE_SESSION_NAME, sessionfile, 30000, host, "/");
+        sessionfile.append(std::to_string(client_port));
+        sessionfile.append(get_rand_session_id());
+        set_cookie(COOKIE_SESSION_NAME, sessionfile, 30000, host, "/", false, true, session_samesite());
     }
     if (localvar.session_type == 1)
     {
@@ -514,7 +521,7 @@ void httppeer::clear_session()
                 session.clear();
                 // cookie.set(COOKIE_SESSION_NAME, sessionfile, timeid() - 7200, "/", host);
                 // send_cookie.set(COOKIE_SESSION_NAME, sessionfile, timeid() - 7200, "/", host);
-                set_cookie(COOKIE_SESSION_NAME, sessionfile, timeid() - 7200, host, "/");
+                set_cookie(COOKIE_SESSION_NAME, sessionfile, timeid() - 7200, host, "/", false, true, session_samesite());
             }
         }
         else
@@ -653,21 +660,88 @@ unsigned int httppeer::check_upload_limit()
     }
     return 0;
 }
+void httppeer::cors_origin_process(std::string_view request_origin)
+{
+    // host 还没解析到时按协议分流：
+    //   h1：HTTP/1 不保证头顺序，Origin 早于 Host 是合法的，此刻 host_index 仍是回落值，
+    //        按它判定会拿错站点白名单，所以只挂标记，由 getheaderhost() 解出 Host 后补判。
+    //   h2：RFC 7540 要求伪头排在普通头之前，走到这里要么客户端违序、要么整单没带
+    //       :authority，两种情况路由都按回落的默认站点（index 0）走，CORS 跟着同一口径当场判定。
+    if (host.empty() && httpv != 2)
+    {
+        cors_origin_pending = true;
+        return;
+    }
+    cors_origin_allow(request_origin);
+}
+void httppeer::cors_origin_allow(std::string_view request_origin)
+{
+    serverconfig &sysconfigpath = getserversysconfig();
+    if (host_index >= sysconfigpath.sitehostinfos.size())
+    {
+        return;
+    }
+    auto &site_info = sysconfigpath.sitehostinfos[host_index];
+    std::string allow_origin = site_info.cors_allow_origin(request_origin);
+    if (allow_origin.empty())
+    {
+        return;
+    }
+    // 解析期就把响应头设好：请求期不再做任何 CORS 判断，也没有临时变量要传
+    set_header("Access-Control-Allow-Origin", allow_origin);
+    // Expose-Headers 是实际响应头，告诉浏览器哪些响应头可被 JS 读取，
+    // 只在普通跨域请求命中白名单时输出，预检响应里不带。
+    // 取值来自站点配置 cors_expose_headers，不再无条件 "*"：
+    // 通配会把服务端所有响应头（含内部用的）都暴露给页面 JS，未配置就不发这个头，
+    // 业务确实需要时再配置或自己 set_header()。
+    // 注：未配置 cors_domain 的站点是默认拒绝（allow_origin 为空，上面直接 return，一个 CORS 头都不发），
+    //     哪些站点没配已在 loadserversconfig() 末尾点名告警一次，
+    //     此处不再每请求 fprintf + fflush（那是同步写 stderr 的热路径）
+    if (site_info.cors_expose_headers.size() > 0)
+    {
+        set_header("Access-Control-Expose-Headers", site_info.cors_expose_headers);
+    }
+    // 白名单命中时取值来自请求 Origin，必须声明 Vary；
+    // '*' 是常量、不随请求变化，加了反而会让 CDN 把同一份缓存按 Origin 拆成多份
+    if (allow_origin != "*")
+    {
+        add_vary("Origin");
+        // 凭证与"回显具体 Origin"是绑定的：ACAO "*" 配 Allow-Credentials 会被浏览器硬拒，
+        // 所以只在命中白名单这一支发，站点开关是 cors_credentials（默认关）
+        if (site_info.cors_credentials)
+        {
+            set_header("Access-Control-Allow-Credentials", "true");
+        }
+    }
+}
+
 bool httppeer::find_host_index()
 {
     serverconfig &sysconfigpath = getserversysconfig();
     auto hiter                  = sysconfigpath.host_toint.find(host);
+    bool found                  = false;
     if (hiter != sysconfigpath.host_toint.end())
     {
         host_index = hiter->second;
         if (host_index >= sysconfigpath.sitehostinfos.size())
         {
             host_index = 0;
-            return false;
         }
-        return true;
+        else
+        {
+            found = true;
+        }
     }
-    return false;
+    else
+    {
+        // 未命中：回落到 index 0（default 站点），避免 keep-alive 复用时沿用
+        // 上一个请求的 host_index 导致站点配置（CORS 白名单、sitepath 等）串用
+        host_index = 0;
+    }
+    // 本函数只负责定位 host_index。Origin 早于 Host 到达时 cors_origin_process() 会挂起，
+    // 由 h1 的 getheaderhost() 在 host_index 确定后补判（h2 的 :authority 必在普通头之前，
+    // 挂起分支带 httpv 守卫，h2 走的是当场判定）。
+    return found;
 }
 //check filepath is a regular file
 static bool stat_is_regfile(const std::string &filepath)
@@ -935,6 +1009,13 @@ unsigned char httppeer::get_fileinfo()
     }
     for (unsigned int i = 0; i < pathinfos.size(); i++)
     {
+        // 第二层防线：归一化后的路径段不得再含分隔符或 NUL（%2f 绕过 "." 检查的兜底）
+        if (pathinfos[i].find('/') != std::string::npos || pathinfos[i].find('\\') != std::string::npos ||
+            pathinfos[i].find('\0') != std::string::npos)
+        {
+            sendfiletype = 0;
+            return sendfiletype;
+        }
         if (i > 0)
         {
             sendfilename.append("/");
@@ -1085,6 +1166,101 @@ void httppeer::set_header(const std::string &a, const std::string &v)
     }
 }
 
+// 追加式写 Vary：Vary 一行里是多个字段名，覆盖式 set_header 会让 CORS 声明的 Origin 与
+// 业务/压缩声明的字段互相吃掉。这里保留已有文本，只把缺的字段补到行尾；
+// 字段名按 RFC 9110 大小写不敏感，所以比对用小写，写出沿用传入的原样拼写
+void httppeer::add_vary(std::string_view values)
+{
+    // 读回响应里已有的 Vary：h2 命中 HPACK 静态表时它落在索引槽，不在 send_header
+    std::string merged;
+    if (httpv == 2)
+    {
+        auto slot = http2_send_header.find(HTTP2_CODE_vary);
+        if (slot != http2_send_header.end())
+        {
+            merged = slot->second;
+        }
+    }
+    else
+    {
+        auto iter = send_header.find("Vary");
+        if (iter != send_header.end())
+        {
+            merged = iter->second;
+        }
+    }
+
+    std::vector<std::string> have;
+    auto collect = [&have](std::string_view list)
+    {
+        std::size_t pos = 0;
+        while (pos < list.size())
+        {
+            std::size_t comma = list.find(',', pos);
+            if (comma == std::string_view::npos)
+            {
+                comma = list.size();
+            }
+            std::string_view item = list.substr(pos, comma - pos);
+            while (!item.empty() && (item.front() == ' ' || item.front() == '\t'))
+            {
+                item.remove_prefix(1);
+            }
+            while (!item.empty() && (item.back() == ' ' || item.back() == '\t'))
+            {
+                item.remove_suffix(1);
+            }
+            if (!item.empty())
+            {
+                std::string key(item);
+                std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+                have.emplace_back(std::move(key));
+            }
+            pos = comma + 1;
+        }
+    };
+    collect(merged);
+
+    std::size_t pos = 0;
+    while (pos < values.size())
+    {
+        std::size_t comma = values.find(',', pos);
+        if (comma == std::string_view::npos)
+        {
+            comma = values.size();
+        }
+        std::string_view item = values.substr(pos, comma - pos);
+        while (!item.empty() && (item.front() == ' ' || item.front() == '\t'))
+        {
+            item.remove_prefix(1);
+        }
+        while (!item.empty() && (item.back() == ' ' || item.back() == '\t'))
+        {
+            item.remove_suffix(1);
+        }
+        if (!item.empty())
+        {
+            std::string key(item);
+            std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+            if (std::find(have.begin(), have.end(), key) == have.end())
+            {
+                if (!merged.empty())
+                {
+                    merged.append(", ");
+                }
+                merged.append(item);
+                have.emplace_back(std::move(key));
+            }
+        }
+        pos = comma + 1;
+    }
+
+    if (!merged.empty())
+    {
+        set_header("Vary", merged);
+    }
+}
+
 std::string httppeer::get_header(std::string_view key_name)
 {
     std::string key;
@@ -1108,6 +1284,12 @@ void httppeer::set_cookie(std::string key,
                           bool httponly,
                           std::string issamesite)
 {
+    // SameSite=None 必须与 Secure 成对出现：只带 None 的 Set-Cookie 会被浏览器直接丢掉，
+    // 所以这里替调用方补上 Secure（属性表也存补过的值，别出现两处属性不一致）
+    if (!issamesite.empty() && (issamesite[0] == 'N' || issamesite[0] == 'n'))
+    {
+        secure = true;
+    }
     cookie.set(key, value, exptime, domain, path, secure, httponly, issamesite);
     //send_cookie.set(key, val, exptime, domain, path, secure, httponly, issamesite);
 
@@ -1156,10 +1338,30 @@ void httppeer::set_cookie(std::string key,
         case 'l': temph.append("; SameSite=Lax"); break;
         case 'S':
         case 's': temph.append("; SameSite=Strict"); break;
+        case 'N':
+        case 'n': temph.append("; SameSite=None"); break;
         }
     }
 
     send_cookie_lists.emplace_back(temph);
+}
+
+// 会话 cookie 的 SameSite 取值：站点开了 cors_credentials（准备接带凭证的跨域请求）就必须给 None，
+// 否则浏览器按缺省的 Lax 处理，跨站 XHR 压根不会带这个 cookie，ACAO 与 Allow-Credentials 说得再对也没用。
+// 只在这一支给 None，且要求当前是 HTTPS：明文收到的 Secure cookie 浏览器会直接丢弃，
+// 本地 http 开发环境的登录态会被这个改动弄坏。没开凭证的站点维持现状（不发 SameSite 属性）
+std::string httppeer::session_samesite()
+{
+    if (!is_ssl())
+    {
+        return "";
+    }
+    serverconfig &sysconfigpath = getserversysconfig();
+    if (host_index < sysconfigpath.sitehostinfos.size() && sysconfigpath.sitehostinfos[host_index].cors_credentials)
+    {
+        return "None";
+    }
+    return "";
 }
 
 std::list<std::string> httppeer::cookietoheader()
@@ -1256,14 +1458,36 @@ std::string httppeer::make_http1_header()
         http1header.append("Content-Encoding: ");
         http1header.append("gzip");
         http1header.append("\r\n");
-        http1header.append("Vary: Accept-Encoding\r\n");
+        // 合并 Vary：压缩固定声明 Accept-Encoding，若 send_header 里还有 Vary: Origin
+        // 则合并为一行，避免同一响应出现两个 Vary 头
+        std::string vary_val = "Accept-Encoding";
+        auto vary_iter       = send_header.find("Vary");
+        if (vary_iter != send_header.end())
+        {
+            vary_val.append(", ");
+            vary_val.append(vary_iter->second);
+            send_header.erase(vary_iter);
+        }
+        http1header.append("Vary: ");
+        http1header.append(vary_val);
+        http1header.append("\r\n");
     }
     else if (compress == 2)
     {
         http1header.append("Content-Encoding: ");
         http1header.append("br");
         http1header.append("\r\n");
-        http1header.append("Vary: Accept-Encoding\r\n");
+        std::string vary_val = "Accept-Encoding";
+        auto vary_iter       = send_header.find("Vary");
+        if (vary_iter != send_header.end())
+        {
+            vary_val.append(", ");
+            vary_val.append(vary_iter->second);
+            send_header.erase(vary_iter);
+        }
+        http1header.append("Vary: ");
+        http1header.append(vary_val);
+        http1header.append("\r\n");
     }
     if (content_type.size() > 0)
     {
@@ -1810,65 +2034,56 @@ void httppeer::out_json()
 void httppeer::json_type() { content_type = "application/json"; }
 void httppeer::cors_domain(const std::string &name, const std::string &header_v)
 {
-    if (httpv == 2)
-    {
-        if (http2_header_codes_table["access-control-allow-origin"] > 0)
-        {
-            http2_send_header[http2_header_codes_table["access-control-allow-origin"]] = name;
-        }
-        else
-        {
-            send_header["access-control-allow-origin"] = name;
-        }
-        if (header_v.size() > 0)
-        {
-            send_header["access-control-allow-headers"] = header_v;
-        }
-        else
-        {
-            send_header["access-control-allow-headers"] = "*";
-        }
-    }
-    else
-    {
-        send_header["Access-Control-Allow-Origin"] = name;
-        if (header_v.size() > 0)
-        {
-            send_header["Access-Control-Allow-Headers"] = header_v;
-        }
-        else
-        {
-            send_header["Access-Control-Allow-Headers"] = "*";
-        }
-    }
+    // 三个响应头统一交给 set_header() 写：h1 原样落 send_header；h2 命中 HPACK 静态表的
+    // （ACAO 落索引槽 20、Vary 落索引槽 59）写 http2_send_header，其余落 send_header。
+    // 原来 h2 分支自己拼容器名绕过这张表，写的是 send_header["vary"]，而解析期
+    // cors_origin_process() 用 set_header("Vary") 写的是索引槽 59 —— 响应里会出现两条 Vary。
+    set_header("Access-Control-Allow-Origin", name);
+    // header_v 为空按放行全部请求头处理，与原先 h1/h2 两个分支的默认值保持一致
+    set_header("Access-Control-Allow-Headers", header_v.size() > 0 ? header_v : "*");
+    // ACAO 取值依赖请求 Origin，必须声明 Vary，否则会被缓存/CDN 串用
+    add_vary("Origin");
 }
 void httppeer::cors_method(const std::string &header_v)
 {
-    if (httpv == 2)
+    // 预检响应头：Allow-Methods 按站点配置，Max-Age 缓存预检结果。
+    // Expose-Headers 属实际响应头，不在预检里输出，改由普通请求的 cors_origin_process() 设置。
+    // Allow-Methods 的值取自本站点的 cors_allow_methods，与 send_cors_domain() 校验
+    // Access-Control-Request-Method 用的是同一份列表，改配置两处一起变
+    std::string allow_methods;
+    serverconfig &sysconfigpath = getserversysconfig();
+    if (host_index < sysconfigpath.sitehostinfos.size())
     {
-        if (header_v.size() > 0)
+        for (auto &method_item : sysconfigpath.sitehostinfos[host_index].cors_allow_methods)
         {
-            send_header["access-control-expose-headers"] = header_v;
+            if (!allow_methods.empty())
+            {
+                allow_methods.append(", ");
+            }
+            allow_methods.append(method_item);
         }
-        else
-        {
-            send_header["access-control-expose-headers"] = "*";
-        }
-        send_header["access-control-max-age"]       = "86400";
-        send_header["access-control-allow-methods"] = "POST, GET, OPTIONS";
     }
-    else
+    // header_v 是业务要放行的请求头列表（apicrudtest 里写的是 "origin, x-requested-with"）：
+    // 预检响应必须回 Allow-Headers 浏览器才会放行，之前这个入参被实现丢在一边，
+    // 控制器里那几处 cors_method("origin, x-requested-with") 等于没生效
+    if (header_v.size() > 0)
     {
-        if (header_v.size() > 0)
+        set_header("Access-Control-Allow-Headers", header_v);
+    }
+    // 站点把列表配空＝一个方法都不放行，这时发一条空的 Allow-Methods 没有意义，
+    // 预检也会在 send_cors_domain() 用同一份名单校验时被判失败
+    if (!allow_methods.empty())
+    {
+        if (httpv == 2)
         {
-            send_header["Access-Control-Expose-Headers"] = header_v;
+            send_header["access-control-max-age"]       = "86400";
+            send_header["access-control-allow-methods"] = allow_methods;
         }
         else
         {
-            send_header["Access-Control-Expose-Headers"] = "*";
+            send_header["Access-Control-Max-Age"]       = "86400";
+            send_header["Access-Control-Allow-Methods"] = allow_methods;
         }
-        send_header["Access-Control-Max-Age"]       = "86400";
-        send_header["Access-Control-Allow-Methods"] = "POST, GET, OPTIONS";
     }
 }
 void httppeer::push_flow(const std::string &m_name)
@@ -1960,6 +2175,13 @@ void httppeer::clear()
     isclose      = false;
     keepalive    = true;
     isso         = false;
+    iscors       = false;
+    // 必须清：挂起标记只有 h1 的 getheaderhost() 会消费，头块中途报错弃单时走不到那里，
+    // 残留到下一个请求会把上一个 Origin 的白名单判定结果串到新请求上
+    cors_origin_pending = false;
+    // host_index 同步复位：未配置域名的请求 find_host_index() 会回落到 0，
+    // 这里再兜底一次，防止 keep-alive 复用上一请求的站点配置
+    host_index = 0;
 
     posttype = 0;
     compress = 0;
@@ -1984,6 +2206,8 @@ void httppeer::clear()
     state.websocket         = false;
     state.upgradeconnection = false;
     state.rangebytes        = false;
+    state.range_suffix      = false;
+    state.range_has_end     = false;
     state.language[0]       = {0};
     state.version           = 0;
     state.port              = 0;
@@ -2010,6 +2234,100 @@ void httppeer::clear()
 
     user_code_handler_call.clear();
     flow_method.reset();
+}
+
+range_parse_t parse_range_header(std::string_view header_value, headstate_t &state)
+{
+    // 按 RFC 7233 解析首个 range 体（多段 range 只取首段）。
+    // 语法不合法时清掉 rangebytes：h1 侧调用点会把它转成 400，h2 侧没有单条头
+    // 错误通道，只能按「忽略该头」处理，留着 rangebytes 会发出没有 Content-Range 的 206。
+    unsigned int j        = 0;
+    unsigned int linesize = header_value.size();
+    std::string buffer_value;
+    for (; j < linesize; j++)
+    {
+        if (header_value[j] == 0x20)
+        {
+            continue;
+        }
+        if (header_value[j] == 0x3D)
+        {
+            j++;
+            break;
+        }
+        buffer_value.push_back(header_value[j]);
+    }
+    if (!str_casecmp(buffer_value, "bytes"))
+    {
+        return range_parse_t::not_bytes;// 非 bytes 单位，忽略该头
+    }
+
+    unsigned int digits      = 0;
+    auto parse_number        = [&](unsigned long long &out) -> bool {
+        bool any = false;
+        for (; j < linesize; j++)
+        {
+            if (header_value[j] < 0x30 || header_value[j] > 0x39)
+            {
+                break;
+            }
+            if ((++digits) > 14)
+            {
+                return false;
+            }
+            out = out * 10 + static_cast<unsigned long long>(header_value[j] - 0x30);
+            any = true;
+        }
+        return any;
+    };
+
+    // 单元循环只吞掉了 '=' 之前的空白；'=' 之后与 '-' 两侧同样是 OWS，一并容忍，
+    // 否则 "bytes = 0-999" 会从「忽略该头」变成「语法不合法」，反而把 h1 打回 400。
+    auto skip_ows = [&]() {
+        while (j < linesize && header_value[j] == 0x20)
+        {
+            j++;
+        }
+    };
+
+    state.rangebytes = true;
+    skip_ows();
+    if (j < linesize && header_value[j] == 0x2D)
+    {
+        // "bytes=-N"：取末尾 N 字节，N 暂存 rangeend，由 server 侧换算成绝对范围
+        j++;
+        skip_ows();
+        if (!parse_number(state.rangeend))
+        {
+            state.rangebytes = false;
+            return range_parse_t::syntax_error;
+        }
+        state.range_suffix  = true;
+        state.range_has_end = true;
+        return range_parse_t::applied;
+    }
+
+    if (!parse_number(state.rangebegin))
+    {
+        state.rangebytes = false;
+        return range_parse_t::syntax_error;
+    }
+    skip_ows();
+    if (j < linesize && header_value[j] == 0x2D)
+    {
+        j++;
+        skip_ows();
+        if (j < linesize && header_value[j] >= 0x30 && header_value[j] <= 0x39)
+        {
+            if (!parse_number(state.rangeend))
+            {
+                state.rangebytes = false;
+                return range_parse_t::syntax_error;
+            }
+            state.range_has_end = true;
+        }
+    }
+    return range_parse_t::applied;
 }
 
 std::string httppeer::make_http2_data(unsigned int sid, std::string_view payload, bool is_end)

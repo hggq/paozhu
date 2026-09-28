@@ -99,6 +99,10 @@ class httpparse
   public:
     bool isfinish_header = false;
     bool isfinish_url    = false;
+    // H1 修复：是否已出现过 Content-Length（重复头是 CL.CL 走私的典型载体）
+    bool has_content_length = false;
+    // H3 补齐：命中有意不支持的方法（PUT/DELETE/TRACE/CONNECT），由 server 回 405 并关闭连接
+    bool method_not_allowed = false;
     HEAD_METHOD method;
     unsigned char posttype          = 0;
     unsigned char http_action_setup = 0;

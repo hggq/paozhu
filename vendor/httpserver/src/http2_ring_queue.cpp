@@ -84,16 +84,26 @@ void http2_send_queue_cache::reset()
 {
     head_ = 0;
     tail_ = 0;
+    bytes.store(0, std::memory_order_relaxed);
     for (auto &pd : data)
     {
         pd.clear();
+        // clear() 不释放 capacity；归还对象池前把巨槽（>128KB）交换释放，
+        // 避免一条大帧让槽永久带着巨容量在池里滞留。http2 帧 ≤16KB 不触阈值。
+        if (pd.capacity() > 131072)
+        {
+            std::string().swap(pd);
+        }
     }
 }
 
 http2_ring_queue_obj &get_http2_ring_queue_obj()
 {
-    static http2_ring_queue_obj instance;
-    return instance;
+    // 故意泄漏：~client_session() 在退出期回桩到这里要锁 lock_queue，
+    // 而本单例首次使用晚于 get_server_app()，按 __cxa_atexit 逆序它先被销毁，
+    // 那时锁已是尸体，lock() 抛 system_error 撞上 destructor 的隐式 noexcept ⇒ terminate。
+    static http2_ring_queue_obj *instance = new http2_ring_queue_obj();
+    return *instance;
 }
 http2_ring_queue_obj::~http2_ring_queue_obj()
 {

@@ -73,6 +73,7 @@
 #include "test_pzjpg.h"
 #include "testormclient.h"
 #include "testmarkdown.h"
+#include "test_wxpayv3.h"
 #include "testcommit.h"
 #include "apicrudtest.h"
 #include "test_cols.h"
@@ -80,6 +81,7 @@
 #include "testmoney_num.h"
 #include "test_sqlite_crud.h"
 #include "testipsearch.h"
+#include "test_mqtt_client.h"
 #include "test_ormfk.h"
 #include "testcowaitclient.h"
 #include "testcors.h"
@@ -156,14 +158,26 @@ namespace http
 		temp.regfun = test_wxpay_close;
 		methodcallback.emplace("testwxpayclose",temp);
 		temp.pre = nullptr;
+		temp.regfun = test_wxpay_download_cert;
+		methodcallback.emplace("wxpaydownloadcert",temp);
+		temp.pre = nullptr;
 		temp.regfun = test_wxpay_refund;
 		methodcallback.emplace("testwxpayrefund",temp);
 		temp.pre = nullptr;
-		temp.regfun = test_wxpay_notify;
-		methodcallback.emplace("wxpaynotify",temp);
+		temp.regfun = testwxpayv2_order_new;
+		methodcallback.emplace("testwxpayv2_order_new",temp);
 		temp.pre = nullptr;
-		temp.regfun = test_wxpay_download_cert;
-		methodcallback.emplace("wxpaydownloadcert",temp);
+		temp.regfun = testwxpayv2_order_list;
+		methodcallback.emplace("testwxpayv2_order_list",temp);
+		temp.pre = nullptr;
+		temp.regfun = testwxpayv2_order_detail;
+		methodcallback.emplace("testwxpayv2_order_detail",temp);
+		temp.pre = nullptr;
+		temp.regfun = testwxpayv2_refund;
+		methodcallback.emplace("testwxpayv2_refund",temp);
+		temp.pre = nullptr;
+		temp.regfun = testwxpayv2_refund_query;
+		methodcallback.emplace("testwxpayv2_refund_query",temp);
 		temp.pre = nullptr;
 		temp.regfun = test_pzzip;
 		methodcallback.emplace("test_pzzip",temp);
@@ -198,14 +212,11 @@ namespace http
 		temp.regfun = test_svgstats;
 		methodcallback.emplace("test_svgstats",temp);
 		temp.pre = nullptr;
-		temp.regfun = test_alipay_app;
-		methodcallback.emplace("testalipayapp",temp);
+		temp.regfun = test_alipay_diag;
+		methodcallback.emplace("testalipaydiag",temp);
 		temp.pre = nullptr;
 		temp.regfun = test_alipay_qrcode;
 		methodcallback.emplace("testalipayqrcode",temp);
-		temp.pre = nullptr;
-		temp.regfun = test_alipay_page;
-		methodcallback.emplace("testalipaypage",temp);
 		temp.pre = nullptr;
 		temp.regfun = test_alipay_query;
 		methodcallback.emplace("testalipayquery",temp);
@@ -215,12 +226,6 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = test_alipay_refund;
 		methodcallback.emplace("testalipayrefund",temp);
-		temp.pre = nullptr;
-		temp.regfun = test_alipay_notify;
-		methodcallback.emplace("alipaynotify",temp);
-		temp.pre = nullptr;
-		temp.regfun = test_alipay_return;
-		methodcallback.emplace("alipayreturn",temp);
 		temp.pre = nullptr;
 		temp.regfun = testrand;
 		methodcallback.emplace("testrand",temp);
@@ -678,11 +683,23 @@ namespace http
 		temp.regfun = test_weixin_native;
 		methodcallback.emplace("testweixinnative",temp);
 		temp.pre = nullptr;
-		temp.regfun = test_xcxnotify;
-		methodcallback.emplace("xcxnotify",temp);
-		temp.pre = nullptr;
 		temp.regfun = test_xcxgetphone;
 		methodcallback.emplace("xcxgetphone",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_weixin_order_new;
+		methodcallback.emplace("testweixin_order_new",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_weixin_order_list;
+		methodcallback.emplace("testweixin_order_list",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_weixin_order_detail;
+		methodcallback.emplace("testweixin_order_detail",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_weixin_refund;
+		methodcallback.emplace("testweixin_refund",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_weixin_refund_query;
+		methodcallback.emplace("testweixin_refund_query",temp);
 		temp.pre = nullptr;
 		temp.regfun = testqrcode;
 		methodcallback.emplace("testqrcode",temp);
@@ -798,6 +815,33 @@ namespace http
 		temp.regfun = testmarkdown2html;
 		methodcallback.emplace("testmarkdown2html",temp);
 		temp.pre = nullptr;
+		temp.regfun = testwxpaycert_islogin;
+		methodcallback.emplace("testwxpaycertislogin",temp);
+		temp.pre = nullptr;
+		temp.regfun = testwxpay;
+		methodcallback.emplace("testwxpay",temp);
+		temp.pre = nullptr;
+		temp.regfun = testwxpayv3jsapi;
+		methodcallback.emplace("testwxpayv3jsapi",temp);
+		temp.pre = testwxpaycert_islogin;
+		temp.regfun = testwxpaydownloadcert;
+		methodcallback.emplace("testwxpaydownloadcert",temp);
+		temp.pre = nullptr;
+		temp.regfun = testwxpayv3_order_new;
+		methodcallback.emplace("testwxpayv3_order_new",temp);
+		temp.pre = nullptr;
+		temp.regfun = testwxpayv3_order_list;
+		methodcallback.emplace("testwxpayv3_order_list",temp);
+		temp.pre = nullptr;
+		temp.regfun = testwxpayv3_order_detail;
+		methodcallback.emplace("testwxpayv3_order_detail",temp);
+		temp.pre = nullptr;
+		temp.regfun = testwxpayv3_refund;
+		methodcallback.emplace("testwxpayv3_refund",temp);
+		temp.pre = nullptr;
+		temp.regfun = testwxpayv3_refund_query;
+		methodcallback.emplace("testwxpayv3_refund_query",temp);
+		temp.pre = nullptr;
 		temp.regfun = testcommit;
 		methodcallback.emplace("testcommit",temp);
 		temp.pre = nullptr;
@@ -876,6 +920,9 @@ namespace http
 		temp.regfun = testcorssimple;
 		methodcallback.emplace("api/user/info",temp);
 		temp.pre = nullptr;
+		temp.regfun = testcorsvary;
+		methodcallback.emplace("api/user/vary",temp);
+		temp.pre = nullptr;
 		temp.regfun = testsqltuple;
 		methodcallback.emplace("mtuple",temp);
 		temp.pre = nullptr;
@@ -910,6 +957,12 @@ namespace http
 		temp.regfun = test_websocket_client;
 		methodcallback.emplace("test_websocket_client",temp);
 		temp.pre = nullptr;
+		temp.regfun = test_co_sql_commit;
+		methodcallback.emplace("co_sql_commit",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_co_sql_orm;
+		methodcallback.emplace("co_sql_orm",temp);
+		temp.pre = nullptr;
 		temp.regfun = techempowerplaintext;
 		methodcallback.emplace("plaintext",temp);
 		temp.pre = nullptr;
@@ -934,8 +987,47 @@ namespace http
 		temp.regfun = techempowercached_db;
 		methodcallback.emplace("cached-db",temp);
 		temp.pre = nullptr;
+		temp.regfun = test_wxpay_notify;
+		methodcallback.emplace("wxpaynotify",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_wxpay_native_co;
+		methodcallback.emplace("testwxpaynative_co",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_wxpay_jsapi_co;
+		methodcallback.emplace("testwxpayjsapi_co",temp);
+		temp.pre = nullptr;
+		temp.regfun = testwxpayv2_order_new_co;
+		methodcallback.emplace("testwxpayv2_order_new_co",temp);
+		temp.pre = nullptr;
+		temp.regfun = testwxpayv2_refund_co;
+		methodcallback.emplace("testwxpayv2_refund_co",temp);
+		temp.pre = nullptr;
+		temp.regfun = testwxpayv2_refund_query_co;
+		methodcallback.emplace("testwxpayv2_refund_query_co",temp);
+		temp.pre = nullptr;
 		temp.regfun = test_customstruct;
 		methodcallback.emplace("test_customstruct",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_alipay_app;
+		methodcallback.emplace("testalipayapp",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_alipay_page;
+		methodcallback.emplace("testalipaypage",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_alipay_front;
+		methodcallback.emplace("testalipayfront",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_alipay_orders;
+		methodcallback.emplace("testalipayorders",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_alipay_aquery;
+		methodcallback.emplace("testalipayaquery",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_alipay_notify;
+		methodcallback.emplace("alipaynotify",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_alipay_return;
+		methodcallback.emplace("alipayreturn",temp);
 		temp.pre = nullptr;
 		temp.regfun = test_co_handle;
 		methodcallback.emplace("testcohandle",temp);
@@ -958,17 +1050,65 @@ namespace http
 		temp.regfun = test_socket_client;
 		methodcallback.emplace("test_socket_client",temp);
 		temp.pre = nullptr;
+		temp.regfun = test_xcxnotify;
+		methodcallback.emplace("xcxnotify",temp);
+		temp.pre = nullptr;
 		temp.regfun = test_co_sqlquery;
 		methodcallback.emplace("co_sqlquery",temp);
 		temp.pre = nullptr;
 		temp.regfun = test_chunked_async;
 		methodcallback.emplace("test_chunked_async",temp);
 		temp.pre = nullptr;
+		temp.regfun = testwxpaycert_islogin_co;
+		methodcallback.emplace("testwxpaycertislogin_co",temp);
+		temp.pre = testwxpaycert_islogin_co;
+		temp.regfun = testwxpaydownloadcert_co;
+		methodcallback.emplace("testwxpaydownloadcert_co",temp);
+		temp.pre = nullptr;
+		temp.regfun = testwxpayv3native_co;
+		methodcallback.emplace("testwxpayv3native_co",temp);
+		temp.pre = nullptr;
+		temp.regfun = testwxpayv3jsapi_co;
+		methodcallback.emplace("testwxpayv3jsapi_co",temp);
+		temp.pre = nullptr;
+		temp.regfun = testwxpayv3_order_new_co;
+		methodcallback.emplace("testwxpayv3_order_new_co",temp);
+		temp.pre = nullptr;
+		temp.regfun = testwxpayv3_order_query_co;
+		methodcallback.emplace("testwxpayv3_order_query_co",temp);
+		temp.pre = nullptr;
+		temp.regfun = testwxpayv3_order_status;
+		methodcallback.emplace("testwxpayv3_order_status",temp);
+		temp.pre = nullptr;
+		temp.regfun = testwxpayv3_refund_co;
+		methodcallback.emplace("testwxpayv3_refund_co",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_wxpay_v3_notify;
+		methodcallback.emplace("ordernotify",temp);
+		temp.pre = nullptr;
 		temp.regfun = test_cols_co;
 		methodcallback.emplace("test_cols_co",temp);
 		temp.pre = nullptr;
 		temp.regfun = test_leftjoin;
 		methodcallback.emplace("test_leftjoin",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_mqtt_client;
+		methodcallback.emplace("test_mqtt_client",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_mqtt_tick_push;
+		methodcallback.emplace("test_mqtt_tick_push",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_mqtt_tick_push_co;
+		methodcallback.emplace("test_mqtt_tick_push_co",temp);
+		temp.pre = nullptr;
+		temp.regfun = start_mqtt_loop;
+		methodcallback.emplace("start_mqtt_loop",temp);
+		temp.pre = nullptr;
+		temp.regfun = stop_mqtt_loop;
+		methodcallback.emplace("stop_mqtt_loop",temp);
+		temp.pre = nullptr;
+		temp.regfun = list_mqtt_loop;
+		methodcallback.emplace("list_mqtt_loop",temp);
 		temp.pre = nullptr;
 		temp.regfun = test_ormfk_co;
 		methodcallback.emplace("test_ormfk_co",temp);
@@ -1002,6 +1142,12 @@ namespace http
 		temp.pre = nullptr;
 		temp.regfun = test_rpc_chunks;
 		methodcallback.emplace("test_rpc_chunks",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_rpc_binary;
+		methodcallback.emplace("test_rpc_binary",temp);
+		temp.pre = nullptr;
+		temp.regfun = test_rpc_binary_echo;
+		methodcallback.emplace("test_rpc_binary_echo",temp);
 
 
     }

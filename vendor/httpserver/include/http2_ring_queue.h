@@ -25,6 +25,9 @@ struct http2_send_queue_cache
     std::atomic<unsigned char> head_{0};
     std::atomic<unsigned char> tail_{0};
     std::mutex http2_queue_send_mutex;
+    // 积压字节数：只有 post_write（mqtt/websocket 入口）累加，消费者写完整帧后饱和减；
+    // http2 直 push 点不记账，恒为 0。
+    std::atomic<unsigned long long> bytes{0};
 
     bool push(const unsigned char *buffer, unsigned int buffersize);
     bool push(const std::string &item);

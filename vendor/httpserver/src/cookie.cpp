@@ -111,6 +111,7 @@ cookie *cookie::samesite(std::string p)
     _samesite[curkey] = p;
     return this;
 }
+bool cookie::empty() const { return _val.empty(); }
 std::string cookie::get(std::string key) { return _val[key]; }
 std::string &cookie::operator[](std::string key) { return _val[key]; }
 

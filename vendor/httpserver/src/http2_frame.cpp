@@ -184,6 +184,17 @@ bool make_http2_headers_static(std::string &hh_data, unsigned int hh_code)
         hh_data.push_back((char)0x8E);
         break;
     default:
+        // 未单列的状态码用 :status 的字面量形式（名字索引 8 + 3 位数字值）如实编码。
+        // 这里原先兜底 push 0x88（:status 200）并返回 false，而调用方 httppeer::make_http2_header()
+        // 忽略返回值，于是 h2 上凡是这张小表没列出的码（301/401/405/502/503…）都被说成 200。
+        if (hh_code >= 100 && hh_code <= 999)
+        {
+            std::string code_str = std::to_string(hh_code);
+            hh_data.push_back(0x48);
+            hh_data.push_back(static_cast<char>(code_str.size()));
+            hh_data.append(code_str);
+            return true;
+        }
         hh_data.push_back((char)0x88);
         return false;
     }

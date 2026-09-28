@@ -30,7 +30,7 @@ int compress(const char *in_str, size_t in_len, std::string &out_str, [[maybe_un
     if (ret != Z_OK)
         return ret;
 
-    std::shared_ptr<z_stream> sp_strm(&strm, [](z_stream *strm) { (void)deflateEnd(strm); });
+    std::shared_ptr<z_stream> sp_strm(&strm, [](z_stream *s) { (void)deflateEnd(s); });
     const char *end = in_str + in_len;
 
     size_t distance = 0;

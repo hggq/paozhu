@@ -17,6 +17,7 @@
 #include <filesystem>
 #include <functional>
 #include <string_view>
+#include <array>
 #include <type_traits>
 #include <concepts>
 #include <vector>
@@ -47,6 +48,9 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     std::string make_http1_header();
     void set_header(const std::string &, const std::string &);
     std::string get_header(std::string_view);
+    // 追加式写 Vary（逗号列表）：Vary 是"多值声明"，覆盖式 set_header 会把别处已经声明的
+    // 那几项冲掉（CORS 的 Origin 与业务的 Accept-Language 互相吃掉），合并时按 token 去重
+    void add_vary(std::string_view values);
     void get_cookie(const std::string &);
 
     void flush_out();
@@ -59,6 +63,8 @@ class httppeer : public std::enable_shared_from_this<httppeer>
                     bool secure            = false,
                     bool httponly          = true,
                     std::string issamesite = "");
+    // 会话 cookie 的 SameSite：站点配了 cors_credentials 且当前是 HTTPS 时给 "None"，其余情况空串（不发该属性）
+    std::string session_samesite();
     bool is_ssl();
     std::list<std::string> cookietoheader();
     std::string get_hosturl();
@@ -121,7 +127,17 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     void out_json();
     void json_type();
 
-    void cors_domain(const std::string &, const std::string &header_v = "");
+    // 业务手动指定跨域响应头（一般不用，自动判定见 cors_origin_process）：
+    //   name      写入 Access-Control-Allow-Origin
+    //   header_v  写入 Access-Control-Allow-Headers，留空按 "*" 放行全部请求头
+    // 三个头统一走 set_header()，h2 下会自动落到 HPACK 静态表的索引槽
+    void cors_domain(const std::string &name, const std::string &header_v = "");
+    // 手动回一份预检响应头（Allow-Methods / Max-Age，可选 Allow-Headers）：
+    // 自动预检走 httpserver::send_cors_domain()，业务一般无需自己调；
+    // header_v 非空时追加 Access-Control-Allow-Headers，即本接口要放行的请求头列表
+    // Allow-Methods 的内容不再由代码固定：取自本站点配置项 cors_allow_methods
+    //（缺省 POST, GET, OPTIONS, QUERY），与 send_cors_domain() 校验
+    // Access-Control-Request-Method 用的是同一份名单，加方法改配置即可
     void cors_method(const std::string &header_v = "");
     void push_flow(const std::string &);
     void push_front_flow(const std::string &);
@@ -133,6 +149,15 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     void clsoesend();
     void clear();
     bool find_host_index();
+    // 解析到 Origin 请求头时立即调用（http_parse / http2_parse 头名长度 6 的首字符分支）：
+    // 按本站点 cors_domain 白名单判断该 Origin 是否放行，命中就把 Access-Control-Allow-Origin
+    // 直接设进响应头，不落成员变量；没有 Origin 的请求完全不进 CORS 代码路径。
+    // 注：OPTIONS 预检的 Allow-Origin 不由本函数决定，而是 send_cors_domain() 重新按
+    //     cors_allow_origin() 输出（预检可能因 Request-Method 校验失败而不带 ACAO）。
+    void cors_origin_process(std::string_view request_origin);
+    // 判定本体：按 host_index 所指站点的白名单算出 ACAO 并写进响应头，不看 host 是否已解析。
+    // 只由 cors_origin_process() 和 h1 的挂起补判调用。
+    void cors_origin_allow(std::string_view request_origin);
     unsigned int check_upload_limit();
 
     // 常规发送（Content-Length）：先发 header，再发 body，最后 end 结束
@@ -194,6 +219,10 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     bool isssl        = false;
     bool keepalive    = true;
     bool isso         = false;
+    bool iscors       = false;
+    // 仅 HTTP/1 用：Origin 早于 Host 到达时挂起判定（值已在 header["origin"] 里），
+    // 等 getheaderhost() 解析出 Host、host_index 定下后补判，避免每请求都查一次 header
+    bool cors_origin_pending = false;
 
     unsigned char posttype     = 0;
     unsigned char compress     = 0;

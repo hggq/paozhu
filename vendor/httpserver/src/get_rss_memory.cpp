@@ -48,7 +48,7 @@ size_t get_rss_kb() {
     if (!f) return 0;
 
     long resident_pages = 0;
-    int ret = fscanf(f, "%*ld %ld", &resident_pages);
+    int ret = fscanf(f, "%*d %ld", &resident_pages);
     fclose(f);
 
     if (ret != 1 || resident_pages <= 0) return 0;

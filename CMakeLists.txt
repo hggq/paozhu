@@ -395,6 +395,7 @@ target_include_directories(paozhu PRIVATE
   "${CMAKE_CURRENT_SOURCE_DIR}/viewsrc"
   "${CMAKE_CURRENT_SOURCE_DIR}/websockets"
   "${CMAKE_CURRENT_SOURCE_DIR}/sockets"
+  "${CMAKE_CURRENT_SOURCE_DIR}/mqtt"
 )
 
 # Additional global includes from original script

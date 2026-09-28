@@ -123,6 +123,10 @@ class client : public std::enable_shared_from_this<client>
     void buildcontent();
     void timeout(unsigned int t) { exptime = t; };
     unsigned int timeout() { return exptime; };
+    // 双向证书(mTLS)：微信支付退款(secapi)等接口需要携带商户证书
+    void set_ssl_certificate_file(const std::string &f) { use_certificate_file = f; }
+    void set_ssl_private_key_file(const std::string &f) { use_private_key_file = f; }
+    void set_ssl_verify_file(const std::string &f) { load_verify_file = f; }
     void reset_timeout()
     {
         timeout_end.store(timeid() + exptime);

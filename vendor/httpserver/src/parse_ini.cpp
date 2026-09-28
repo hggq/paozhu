@@ -223,12 +223,54 @@ ini_item_t parse_ini::get_section(const std::string &section)
 }
 
 // ---------- 原子写入文件（临时文件 + rename，保留 .bak 备份） ----------
+// 权限口径（P1-10）：
+//   临时文件  先建空文件、立刻收到 0600，然后才写内容。设不上 0600 就直接失败返回，
+//             不能让明文密钥进到一个可能被组/其他用户读到的文件里。
+//   终态文件  沿用目标原有权限，但一律剥掉 group_write|others_write。这里服务的不只是
+//             webpay.conf，还有 server.conf / orm.conf（现网两份都是 0764，就是本函数原来
+//             那句 replace 留下的），一刀切 0600 会打断按其他用户读配置的部署。
+//   .bak      整份配置的副本，收紧到 0600；原来它是 rename 得来的，会继承旧权限（0764）。
+//   所有 permissions() 都用带 error_code 的重载：原来用抛异常的那版，文件系统不支持
+//             chmod 时（某些挂载卷 / Windows）整条写路径抛出去，调用方拿到 500。
 bool parse_ini::atomic_write_file(const std::string &filename, const std::vector<std::string> &lines)
 {
+    // 配置文件不该有执行位：perms::owner_all 是 0700（含 x），这里要的是 0600
+    constexpr std::filesystem::perms owner_only =
+        std::filesystem::perms::owner_read | std::filesystem::perms::owner_write;
+
     std::string tmp_file = filename + ".tmp";
     std::string bak_file = filename + ".bak";
 
-    // 1. 写入临时文件
+    std::error_code ec;
+    // 终态要落成的权限：目标已存在则沿用它的（再去掉 group/other 的写位），否则 0600
+    std::filesystem::perms target_perms = owner_only;
+    if (std::filesystem::exists(filename, ec))
+    {
+        target_perms = std::filesystem::status(filename, ec).permissions();
+        ec.clear();
+        target_perms &= ~(std::filesystem::perms::group_write | std::filesystem::perms::others_write);
+    }
+    else
+    {
+        ec.clear();
+    }
+
+    // 1. 建空临时文件并立刻收到 0600，之后才写内容
+    {
+        std::ofstream probe(tmp_file, std::ios::trunc);
+        if (!probe.is_open())
+            return false;
+    }
+    std::filesystem::permissions(tmp_file,
+                                 owner_only,
+                                 std::filesystem::perm_options::replace,
+                                 ec);
+    if (ec)
+    {
+        std::remove(tmp_file.c_str());
+        return false;
+    }
+
     std::ofstream outFile(tmp_file, std::ios::trunc);
     if (!outFile.is_open())
         return false;
@@ -244,21 +286,31 @@ bool parse_ini::atomic_write_file(const std::string &filename, const std::vector
     outFile.close();
 
     std::filesystem::permissions(tmp_file,
-                                 std::filesystem::perms::owner_all |
-                                     std::filesystem::perms::group_read | std::filesystem::perms::group_write |
-                                     std::filesystem::perms::others_read,
-                                 std::filesystem::perm_options::replace);
+                                 target_perms,
+                                 std::filesystem::perm_options::replace,
+                                 ec);
+    // 这一步失败只意味着终态还是 0600（比目标更严），不影响写入，故不回滚
 
-    // 2. 备份原文件（先删除旧备份，兼容 Windows rename 行为）
+    // 2. 备份原文件（先删除旧备份，兼容 Windows rename 行为），并把备份收到 0600
     std::remove(bak_file.c_str());
-    std::rename(filename.c_str(), bak_file.c_str());
+    if (std::rename(filename.c_str(), bak_file.c_str()) == 0)
+    {
+        std::filesystem::permissions(bak_file,
+                                     owner_only,
+                                     std::filesystem::perm_options::replace,
+                                     ec);
+    }
     // 原文件可能不存在，rename 失败可忽略
 
     // 3. 将临时文件重命名为目标文件
     if (std::rename(tmp_file.c_str(), filename.c_str()) != 0)
     {
-        // 写入失败，从备份恢复原文件
+        // 写入失败，从备份恢复原文件；恢复后把权限还原成改动前那一份
         std::rename(bak_file.c_str(), filename.c_str());
+        std::filesystem::permissions(filename,
+                                     target_perms,
+                                     std::filesystem::perm_options::replace,
+                                     ec);
         std::remove(tmp_file.c_str());
         return false;
     }

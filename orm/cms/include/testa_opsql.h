@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Thu, 17 Sep 2026 23:22:07 GMT
+ *  Creation time Wed, 23 Sep 2026 18:17:13 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -2371,15 +2371,7 @@ M_MODEL& ornotnullDeletetime()
 	{return whereOrNotNull(B_BASE::cols::deletetime);
 	}
 
-        M_MODEL &select(std::string_view fields)
-        {
-            if (selectsql.size() > 0)
-            {
-                selectsql.push_back(',');
-            }
-            selectsql.append(fields);
-            return *mod;
-        }
+        ORM_SELECT_FIELDS(M_MODEL, B_BASE, &testa_info::col_names)
 
         // === 兼容旧版 char/string 操作符 ===
         static orm::wq char_to_wq(char op)
@@ -3233,7 +3225,7 @@ M_MODEL& ornotnullDeletetime()
             size_t p      = 0;
             while ((p = s.find('\'', p)) != std::string::npos)
             {
-                s.insert(p, "\\'");
+                s.replace(p, 1, "\\'");
                 p += 2;
             }
             out.append("'");
@@ -3247,21 +3239,29 @@ M_MODEL& ornotnullDeletetime()
         static http::obj_val wrap_like_value(const http::obj_val &v, bool left, bool right)
         {
             std::string s = v.to_string();
+            // 先转义值内的 LIKE 通配符与转义符本身，避免用户输入的 % / _ / ! 被当成语义符
+            // 选用 ! 作 LIKE ESCAPE 字符，可规避各库对反斜杠在字符串字面量里的转义差异
+            std::string escaped;
+            escaped.reserve(s.size() + 4);
+            for (char c : s)
+            {
+                if (c == '!' || c == '%' || c == '_')
+                    escaped.push_back('!');
+                escaped.push_back(c);
+            }
             if (left)
-            {
-                s.insert(s.begin(), '%');
-            }
+                escaped.insert(escaped.begin(), '%');
             if (right)
-            {
-                s.push_back('%');
-            }
-            return http::obj_val(std::move(s));
+                escaped.push_back('%');
+            return http::obj_val(std::move(escaped));
         }
 
         void append_like_text(std::string &out, const http::obj_val &v, bool left, bool right)
         {
             // LIKE 模式恒为字符串字面量，不按列类型走 need_quote
             escape_text_value(out, wrap_like_value(v, left, right), true);
+            // 显式声明 ESCAPE '!'，与 wrap_like_value 的转义字符保持一致（覆盖文本与预编译两种路径）
+            out.append(" ESCAPE '!'");
         }
 
         static http::obj_val prepared_like_bind(const orm_where_sql_t &item)
@@ -10445,10 +10445,10 @@ M_MODEL& ornotnullDeletetime()
                 case orm::wq::lt: where_clause.append(" < ?"); break;
                 case orm::wq::le: where_clause.append(" <= ?"); break;
                 case orm::wq::nq: where_clause.append(" != ?"); break;
-                case orm::wq::like: where_clause.append(" LIKE ?"); break;
-                case orm::wq::llike: where_clause.append(" LIKE ?"); break;
-                case orm::wq::rlike: where_clause.append(" LIKE ?"); break;
-                case orm::wq::nlike: where_clause.append(" NOT LIKE ?"); break;
+                case orm::wq::like: where_clause.append(" LIKE ? ESCAPE '!'"); break;
+                case orm::wq::llike: where_clause.append(" LIKE ? ESCAPE '!'"); break;
+                case orm::wq::rlike: where_clause.append(" LIKE ? ESCAPE '!'"); break;
+                case orm::wq::nlike: where_clause.append(" NOT LIKE ? ESCAPE '!'"); break;
                 case orm::wq::in:
                 case orm::wq::notin:
                 {
@@ -10604,10 +10604,10 @@ M_MODEL& ornotnullDeletetime()
                                                              if (ptr == nullptr)
                                                              {
                                                                  static const unsigned char null_value = 0;
-                                                                 assign_field_value(col_pos_map[ij], (unsigned char *)&null_value, 0, B_BASE::data);
+                                                                 assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
                                                                  continue;
                                                              }
-                                                             assign_field_value(col_pos_map[ij], ptr, len, B_BASE::data);
+                                                             assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
                                                          }
                                                          return false;// LIMIT 1，一行后停止
                                                      });
@@ -10675,10 +10675,10 @@ M_MODEL& ornotnullDeletetime()
                         if (ptr == nullptr)
                         {
                             static const unsigned char null_value = 0;
-                            assign_field_value(col_pos_map[ij], (unsigned char *)&null_value, 0, data_temp);
+                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
                             continue;
                         }
-                        assign_field_value(col_pos_map[ij], ptr, len, data_temp);
+                        assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
                     }
                     B_BASE::record.emplace_back(std::move(data_temp));
                     return true; });
@@ -11206,10 +11206,10 @@ M_MODEL& ornotnullDeletetime()
                         if (ptr == nullptr)
                         {
                             static const unsigned char null_value = 0;
-                            assign_field_value(col_pos_map[ij], (unsigned char *)&null_value, 0, B_BASE::data);
+                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
                             continue;
                         }
-                        assign_field_value(col_pos_map[ij], ptr, len, B_BASE::data);
+                        assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
                     }
                     return false; });
 
@@ -11280,10 +11280,10 @@ M_MODEL& ornotnullDeletetime()
                         if (ptr == nullptr)
                         {
                             static const unsigned char null_value = 0;
-                            assign_field_value(col_pos_map[ij], (unsigned char *)&null_value, 0, data_temp);
+                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
                             continue;
                         }
-                        assign_field_value(col_pos_map[ij], ptr, len, data_temp);
+                        assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
                     }
                     B_BASE::record.emplace_back(std::move(data_temp));
                     return true; });
@@ -11355,10 +11355,10 @@ M_MODEL& ornotnullDeletetime()
                                                              if (ptr == nullptr)
                                                              {
                                                                  static const unsigned char null_value = 0;
-                                                                 assign_field_value(col_pos_map[ij], (unsigned char *)&null_value, 0, B_BASE::data);
+                                                                 assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
                                                                  continue;
                                                              }
-                                                             assign_field_value(col_pos_map[ij], ptr, len, B_BASE::data);
+                                                             assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
                                                          }
                                                          effect_num = 1;
                                                          return false; // 只取一行

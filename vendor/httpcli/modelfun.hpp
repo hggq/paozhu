@@ -8903,7 +8903,7 @@ static dbtag_foreign_map_t build_dbtag_foreign_map(
 }
 
 // ============================================================
-// foreign-one-many Phase 2: 生成 opsql.h / orm.hpp 里的声明串
+// foreign-one-many 生成 opsql.h / orm.hpp 里的声明串
 // 替换 /*foreign-one-many*/ 占位符
 // 输出:
 //   // outgoing → one + many
@@ -9750,15 +9750,20 @@ dbtype=mysql
 
                     if (action_setup == 0)
                     {
-                        // 支持1字节和2字节两种列数包格式
-                        // SHOW TABLES 使用1字节格式，其他查询可能使用2字节格式
-                        if ((temp_pack_data.length == 2 || temp_pack_data.length == 1) &&
-                            temp_pack_data.data.size() > 0 &&
-                            (unsigned char)temp_pack_data.data[0] < 251 &&
-                            (unsigned char)temp_pack_data.data[0] > 0)
+                        unsigned int _cn_off = 0;
+                        unsigned long long _cn = mysql_db_conn->pack_real_num(
+                            (unsigned char *)temp_pack_data.data.data(),
+                            temp_pack_data.data.size(), _cn_off);
+                        if (_cn > 0 && _cn <= 250)
                         {
                             action_setup = 1;
-                            column_num   = (unsigned char)temp_pack_data.data[0];
+                            column_num   = (unsigned int)_cn;
+                        }
+                        else if (_cn > 250)
+                        {
+                            std::cerr << "  [ERROR] MySQL result has " << _cn << " columns, framework limit is 250\n";
+                            is_sql_item = true;
+                            break;
                         }
                     }
                     else if (action_setup == 1)
@@ -10178,10 +10183,20 @@ dbtype=mysql
 
                         if (action_setup == 0)
                         {
-                            if ((temp_pack_data.length == 2 || temp_pack_data.length == 1) && (unsigned char)temp_pack_data.data[0] < 251 && (unsigned char)temp_pack_data.data[0] > 0)
+                            unsigned int _cn_off = 0;
+                            unsigned long long _cn = mysql_db_conn->pack_real_num(
+                                (unsigned char *)temp_pack_data.data.data(),
+                                temp_pack_data.data.size(), _cn_off);
+                            if (_cn > 0 && _cn <= 250)
                             {
                                 action_setup = 1;
-                                column_num   = (unsigned char)temp_pack_data.data[0];
+                                column_num   = (unsigned int)_cn;
+                            }
+                            else if (_cn > 250)
+                            {
+                                std::cerr << "  [ERROR] MySQL result has " << _cn << " columns, framework limit is 250\n";
+                                is_sql_item = true;
+                                break;
                             }
                         }
                         else if (action_setup == 1)
@@ -10351,10 +10366,20 @@ dbtype=mysql
 
                             if (action_setup == 0)
                             {
-                                if ((temp_pack_data.length == 2 || temp_pack_data.length == 1) && (unsigned char)temp_pack_data.data[0] < 251 && (unsigned char)temp_pack_data.data[0] > 0)
+                                unsigned int _cn_off = 0;
+                                unsigned long long _cn = mysql_db_conn->pack_real_num(
+                                    (unsigned char *)temp_pack_data.data.data(),
+                                    temp_pack_data.data.size(), _cn_off);
+                                if (_cn > 0 && _cn <= 250)
                                 {
                                     action_setup = 1;
-                                    column_num   = (unsigned char)temp_pack_data.data[0];
+                                    column_num   = (unsigned int)_cn;
+                                }
+                                else if (_cn > 250)
+                                {
+                                    std::cerr << "  [ERROR] MySQL result has " << _cn << " columns, framework limit is 250\n";
+                                    is_sql_item = true;
+                                    break;
                                 }
                             }
                             else if (action_setup == 1)
@@ -10482,10 +10507,20 @@ dbtype=mysql
 
                             if (action_setup == 0)
                             {
-                                if ((temp_pack_data.length == 2 || temp_pack_data.length == 1) && (unsigned char)temp_pack_data.data[0] < 251 && (unsigned char)temp_pack_data.data[0] > 0)
+                                unsigned int _cn_off = 0;
+                                unsigned long long _cn = mysql_db_conn->pack_real_num(
+                                    (unsigned char *)temp_pack_data.data.data(),
+                                    temp_pack_data.data.size(), _cn_off);
+                                if (_cn > 0 && _cn <= 250)
                                 {
                                     action_setup = 1;
-                                    column_num   = (unsigned char)temp_pack_data.data[0];
+                                    column_num   = (unsigned int)_cn;
+                                }
+                                else if (_cn > 250)
+                                {
+                                    std::cerr << "  [ERROR] MySQL result has " << _cn << " columns, framework limit is 250\n";
+                                    is_sql_item = true;
+                                    break;
                                 }
                             }
                             else if (action_setup == 1)

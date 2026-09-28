@@ -1,0 +1,14 @@
+# Paozhu Production Deployment
+# 用法: docker compose -f docker/prod/docker-compose.yml up -d
+services:
+  paozhu:
+    build:
+      context: ../..
+      dockerfile: docker/prod/Dockerfile
+    image: paozhu:prod
+    container_name: paozhu
+    ports:
+      - "8888:8888"
+    restart: unless-stopped
+    # 基准接口: /json /plaintext /db /queries /fortunes /updates
+    # 数据库 (tfb-database) 由外部提供, 不在此 compose 中

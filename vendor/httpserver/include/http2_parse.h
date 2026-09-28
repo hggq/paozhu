@@ -27,6 +27,7 @@
 #include <chrono>
 #include <cstring>
 
+#include "cost_define.h"
 #include "http2_frame.h"
 #include "client_session.h"
 #include "httppeer.h"
@@ -301,10 +302,41 @@ class http2parse
     // unsigned long long content_length;
     bool ispost                            = false;
     std::atomic_bool task_in               = false;
-    std::atomic_bool need_wakeup_send_data = false;
+    // 本连接的「发送侧可能需要重新评估」标记：由读协程在处理帧时置位，
+    // 在 http2 读循环末尾消费 —— 消费点会调 httpserver::requeue_parked 回灌挂起的
+    // 发送对象，再唤醒读协程自己。改名前的名字 need_wakeup_send_data 会让人以为
+    // 它直接唤醒发送线程，其实它只是同一连接上的一条位信号。
+    std::atomic_bool need_wakeup_send_threads = false;
     std::shared_ptr<client_session> peer_session;
-    // const char *hextostr = "0123456789ABCDEF";
-    std::atomic<unsigned int> window_update_recv_num;
+
+    // ---- 本端接收窗口记账（RFC 9113 §6.9）----
+    // 单靠一个全局计数器不行：HEADERS 时无条件重置、DATA 扣减不分流、补窗口
+    // 却整笔补给「恰好让全局计数越线的那一条流」。两个 POST 并发时，后到的 HEADERS
+    // 会把前一条流已消费的额度抹掉，导致前一条流再也不会被补窗口，对端发完自身
+    // 窗口后停发，服务端 http_post_data 永远等不到 last_pack（静默挂死）。
+    // 记账拆成「连接级 + 每流」两套独立：
+    //   conn_recv_window_num  连接级剩余额度，目标是 CONST_HTTP2_LOCAL_INITIAL_WINDOW
+    //   stream_recv_window    每流剩余额度，懒初始化为同一个目标水位
+    unsigned int conn_recv_window_num = CONST_HTTP2_LOCAL_INITIAL_WINDOW;
+    // 连接级窗口是否已从 RFC 初值 65535 抬到目标水位。连接级窗口只能用
+    // stream id = 0 的 WINDOW_UPDATE 抬升，且必须「只做一次」：每来一个请求就重发
+    // 会让对端连接窗口顶穿 2^31-1，对端必须按 FLOW_CONTROL_ERROR 断连。
+    bool conn_recv_window_raised = false;
+    std::map<unsigned int, unsigned int> stream_recv_window;
+
+    // 对端「累计授予」的连接级发送窗口额度，只在本连接收到首个 SETTINGS 时落一次
+    // RFC 初值。这个判断不能借「window_update_num 恰好等于 0」：该字段是累计值、构造即
+    // 65535 且只增不减，而 WebSocket 与原生 socket 路径还把这两个字段当 URL 数字
+    // 参数清零使用，两条不相干的路径共用同一格会把初值判断带偏。
+    bool conn_send_window_inited = false;
+
+    // 客户端已使用过的最大流 id。RFC 9113 §5.1.1 要求客户端新开的流 id 必须
+    // 严格递增（客户端只能使用奇数流 id），否则必须按协议错误处理。
+    unsigned int max_client_stream_id = 0;
+    // 落在「未知 / 已结束」流上的 WINDOW_UPDATE 被丢弃的次数。远程对端可以随意给
+    // 任意流 id 发 WINDOW_UPDATE，本端没有流状态机，只能拿「本连接见过的最大客户端
+    // 流 id + 该流是否还活着」近似判定；计数用来排查「窗口给了却不发」。
+    unsigned int winupdate_dropped = 0;
     std::map<unsigned int, std::shared_ptr<httppeer>> http_data;
     std::map<unsigned int, std::weak_ptr<httppeer>> http_data_weak;
     std::map<unsigned int, HTTP2_POST_DATA_T> http_post_data;

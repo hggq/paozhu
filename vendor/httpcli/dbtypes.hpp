@@ -2680,12 +2680,20 @@ inline bool mysql_get_table_schema(std::shared_ptr<orm::mysql_conn_base> mysql_c
 
                 if (action_setup == 0)
                 {
-                    if (temp_pack_data.length >= 1 && temp_pack_data.data.size() > 0 &&
-                        (unsigned char)temp_pack_data.data[0] < 251 &&
-                        (unsigned char)temp_pack_data.data[0] > 0)
+                    unsigned int _cn_off = 0;
+                    unsigned long long _cn = mysql_conn->pack_real_num(
+                        (unsigned char *)temp_pack_data.data.data(),
+                        temp_pack_data.data.size(), _cn_off);
+                    if (_cn > 0 && _cn <= 250)
                     {
                         action_setup = 1;
-                        column_num   = (unsigned char)temp_pack_data.data[0];
+                        column_num   = (unsigned int)_cn;
+                    }
+                    else if (_cn > 250)
+                    {
+                        std::cerr << "  [ERROR] MySQL result has " << _cn << " columns, framework limit is 250\n";
+                        is_done = true;
+                        break;
                     }
                 }
                 else if (action_setup == 1)
@@ -3004,12 +3012,20 @@ inline bool mysql_fetch_rows(std::shared_ptr<mysql_conn_base> mysql_conn,
 
                 if (action_setup == 0)
                 {
-                    if (temp_pack_data.length >= 1 && temp_pack_data.data.size() > 0 &&
-                        (unsigned char)temp_pack_data.data[0] < 251 &&
-                        (unsigned char)temp_pack_data.data[0] > 0)
+                    unsigned int _cn_off = 0;
+                    unsigned long long _cn = mysql_conn->pack_real_num(
+                        (unsigned char *)temp_pack_data.data.data(),
+                        temp_pack_data.data.size(), _cn_off);
+                    if (_cn > 0 && _cn <= 250)
                     {
                         action_setup = 1;
-                        column_num   = (unsigned char)temp_pack_data.data[0];
+                        column_num   = (unsigned int)_cn;
+                    }
+                    else if (_cn > 250)
+                    {
+                        std::cerr << "  [ERROR] MySQL result has " << _cn << " columns, framework limit is 250\n";
+                        is_done = true;
+                        break;
                     }
                 }
                 else if (action_setup == 1)

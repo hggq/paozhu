@@ -2,7 +2,7 @@
  *  @copyright copyright 2026, huang ziquan  All rights reserved.
  *  @author huang ziquan
  *  @author 黄自权
- *  @file rpc_server.cpp
+ *  @file rpc_parse.cpp
  *  @date 2026-05-06
  *
  *  http rpc parse file
@@ -10,17 +10,18 @@
  *
  */
 #include "server_localvar.h" 
-#include "http_rpcserver.h"
+#include "rpc_parse.h"
+#include "func.h"
 
 namespace http
 {
     
-rpc_server::rpc_server(): uprawfile(nullptr, std::fclose) { iserror = false; }
-void rpc_server::set_chunk(bool c)
+rpc_parse::rpc_parse(): uprawfile(nullptr, std::fclose) { iserror = false; }
+void rpc_parse::set_chunk(bool c)
 {
     ischunked = c;
 } 
-void rpc_server::reset()
+void rpc_parse::reset()
 {
     isfinish=false;
     isbegin =false;
@@ -38,8 +39,22 @@ void rpc_server::reset()
     send_content.shrink_to_fit();
     uprawfile=nullptr;
 }
-void rpc_server::process_headkv()
+void rpc_parse::process_headkv()
 {
+    // 除 size 外（其值是 body 长度的大端二进制），其余头的 value 必须是文本
+    if(!(read_key.size()==4 && read_key == "size"))
+    {
+        for(unsigned int i = 0; i < read_value.size(); i++)
+        {
+            unsigned char c = read_value[i];
+            if(c != 0x09 && (c < 0x20 || c > 0x7E))
+            {
+                iserror = true;
+                return;
+            }
+        }
+    }
+
     if(read_key.size()==4 && read_key == "HOST")
     {
         peer->host = read_value;
@@ -99,7 +114,7 @@ void rpc_server::process_headkv()
         peer->post[read_key] = read_value;
     }
 }
-void rpc_server::process_value(const unsigned char *buffer, unsigned int readnum)
+void rpc_parse::process_value(const unsigned char *buffer, unsigned int readnum)
 {
     for(; offsetnum < readnum; offsetnum++)
     {
@@ -114,7 +129,7 @@ void rpc_server::process_value(const unsigned char *buffer, unsigned int readnum
     }
 }   
 
-void rpc_server::process_parameter(const unsigned char *buffer, unsigned int readnum)
+void rpc_parse::process_parameter(const unsigned char *buffer, unsigned int readnum)
 {
     if(cur_process_type == 0)
     {
@@ -123,6 +138,12 @@ void rpc_server::process_parameter(const unsigned char *buffer, unsigned int rea
             if(buffer[offsetnum]==0x20)
             {
                 break;
+            }
+            // header key 必须是可打印 ASCII（不含空格与控制字符）
+            if(buffer[offsetnum] < 0x21 || buffer[offsetnum] > 0x7E)
+            {
+                iserror = true;
+                return;
             }
             read_key.push_back(buffer[offsetnum]);
             i++;
@@ -288,7 +309,7 @@ void rpc_server::process_parameter(const unsigned char *buffer, unsigned int rea
     process_parameter(buffer,readnum);
 
 }
-void rpc_server::process(const unsigned char *buffer, unsigned int readnum)
+void rpc_parse::process(const unsigned char *buffer, unsigned int readnum)
 {
     isbegin = true;
     offsetnum = 0;
@@ -330,6 +351,7 @@ void rpc_server::process(const unsigned char *buffer, unsigned int readnum)
                     peer->pathinfos.push_back(read_key);
                 }
                 read_key.clear();
+                offsetnum++; // 跳过 '?'，避免其进入第一个 key
                 for(; offsetnum < readnum; offsetnum++)
                 {
                     if(buffer[offsetnum]==0x0A)
@@ -339,6 +361,7 @@ void rpc_server::process(const unsigned char *buffer, unsigned int readnum)
                     if(buffer[offsetnum]=='=')
                     {
                         read_value.clear();
+                        offsetnum++; // 跳过 '='，避免其进入 value
                         for(; offsetnum < readnum; offsetnum++)
                         {
                             if(buffer[offsetnum]==0x0A)
@@ -443,7 +466,7 @@ void rpc_server::process(const unsigned char *buffer, unsigned int readnum)
     }
 }
 
-void rpc_server::process_append(const unsigned char *buffer, unsigned int readnum)
+void rpc_parse::process_append(const unsigned char *buffer, unsigned int readnum)
 {
     if(isfinish)
     {
@@ -454,6 +477,9 @@ void rpc_server::process_append(const unsigned char *buffer, unsigned int readnu
         return;
     }
 
+    // 每个新缓冲区从偏移 0 开始；解析状态由 cur_process_type / isbody 保存
+    offsetnum = 0;
+
     if(isbody)
     {
         process_body(buffer,readnum);   
@@ -461,10 +487,16 @@ void rpc_server::process_append(const unsigned char *buffer, unsigned int readnu
     else
     {
         process_parameter(buffer,readnum);
+        // 对齐 process()：若 process_parameter 读到了空行进入 body 阶段，
+        // 需要继续消费当前缓冲区中剩余的 body 字节。
+        if(!iserror && isbody)
+        {
+            process_body(buffer,readnum);
+        }
     }    
 }
 
-void rpc_server::process_body(const unsigned char *buffer, unsigned int readnum)
+void rpc_parse::process_body(const unsigned char *buffer, unsigned int readnum)
 {
     if(isfinish)
     {
@@ -488,8 +520,11 @@ void rpc_server::process_body(const unsigned char *buffer, unsigned int readnum)
             server_loaclvar &localvar = get_server_global_var();
             read_key = std::to_string(timeid()) + std::to_string(std::hash<std::string>{}(peer->url)) + std::to_string(rand_range(1000, 9999));
 
+            // 落盘名统一由 make_http_temp_raw_name() 生成：文件名带 pzraw_ 前缀，
+            // 该前缀是 httpwatch 周期清理时识别「框架自己的临时文件」的唯一依据，
+            // 不要在此自行拼接文件名，否则文件会长期留在 temp_path 里。
             read_value = localvar.temp_path;
-            read_value.append(std::to_string(std::hash<std::string>{}(read_key)));
+            read_value.append(make_http_temp_raw_name());
 
             // uprawfile = fopen(upfile.tempfile.c_str(), "wb");
             uprawfile.reset(fopen(read_value.c_str(), "wb"));
@@ -581,7 +616,7 @@ void rpc_server::process_body(const unsigned char *buffer, unsigned int readnum)
     }
 }
 
-void rpc_server::async_send_error()
+void rpc_parse::async_send_error()
 {
     send_content.clear();
     send_content.append("rpc");
@@ -603,7 +638,7 @@ void rpc_server::async_send_error()
     send_content.append("rpc server error!");
 }
 
-void rpc_server::build_header()
+void rpc_parse::build_header()
 {
     send_content.clear();
     send_content.append("rpc");
@@ -741,6 +776,7 @@ void rpc_server::build_header()
         unsigned char b = value_size >> 8;
         send_content.push_back(b);
         send_content.push_back(a);
+        send_content.append(peer->content_type);
     }
     send_content.push_back(0x0A);
 

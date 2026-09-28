@@ -378,11 +378,15 @@ asio::awaitable<bool> client::async_init_http_sock()
     constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
     auto endpoints                 = co_await resolver.async_resolve(host, port, asio::use_awaitable);
 
+    // 必须 ++iter 再试下一个地址：少了这一步同一个地址会被无限重试，
+    // 而且重试不经过任何超时检查点（iswait_exit 只在读写循环里查），timeout() 形同失效。
+    // 同步孪生走 asio::connect(endpoints, ec)，本来就是"逐个试到成功为止"，这里与它对齐。
     for (auto iter = endpoints.cbegin(); iter != endpoints.cend();)
     {
         std::tie(ec) = co_await sock->async_connect(*iter, tuple_awaitable);
         if (ec)
         {
+            ++iter;
             continue;
         }
         break;
@@ -417,15 +421,50 @@ asio::awaitable<bool> client::async_init_https_sock()
         std::tie(ec) = co_await sslsock->lowest_layer().async_connect(*iter, tuple_awaitable);
         if (ec)
         {
+            ++iter;
             continue;
         }
         break;
+    }
+
+    // 连接失败时 lowest_layer 已被 asio 关掉。下面 set_option 用的是会抛出的重载，
+    // 在关闭的 socket 上会抛 asio::system_error —— 那样"网关连不上"就从一次失败请求
+    // 变成协程线程上的未捕获异常。与 async_init_http_sock 的失败出口保持一致。
+    if (ec)
+    {
+        error_msg = host + " async_connect error! ";
+        DEBUG_LOG("%s", error_msg.c_str());
+        co_return false;
     }
 
     sslsock->lowest_layer().set_option(asio::ip::tcp::no_delay(true));
 
     ssl_context->set_verify_mode(asio::ssl::verify_peer);
     ssl_context->set_verify_callback(asio::ssl::host_name_verification(host));
+
+    // 双向证书(mTLS)：微信支付退款等接口需要携带商户证书
+    if (!use_certificate_file.empty())
+    {
+        asio::error_code cert_ec;
+        ssl_context->use_certificate_file(use_certificate_file, asio::ssl::context::pem, cert_ec);
+        if (cert_ec)
+        {
+            error_msg = use_certificate_file + " use_certificate_file error! ";
+            DEBUG_LOG("%s", error_msg.c_str());
+            co_return false;
+        }
+    }
+    if (!use_private_key_file.empty())
+    {
+        asio::error_code key_ec;
+        ssl_context->use_private_key_file(use_private_key_file, asio::ssl::context::pem, key_ec);
+        if (key_ec)
+        {
+            error_msg = use_private_key_file + " use_private_key_file error! ";
+            DEBUG_LOG("%s", error_msg.c_str());
+            co_return false;
+        }
+    }
 
     //sslsock->handshake(asio::ssl::stream_base::client, ec);
     std::tie(ec) = co_await sslsock->async_handshake(asio::ssl::stream_base::client, tuple_awaitable);
@@ -529,8 +568,7 @@ asio::awaitable<void> client::async_send_data()
             client_context &temp_io_context = get_client_context_obj();
             try
             {
-                temp_io_context.timeout_lists.push_back(shared_from_this());
-                temp_io_context.timeout_condition.notify_one();
+                temp_io_context.add_timeout_list(temp_io_context.timeout_lists, shared_from_this());
             }
             catch (const std::exception &e)
             {
@@ -829,8 +867,7 @@ client &client::send_data()
             client_context &temp_io_context = get_client_context_obj();
             try
             {
-                temp_io_context.timeout_lists.push_back(shared_from_this());
-                temp_io_context.timeout_condition.notify_one();
+                temp_io_context.add_timeout_list(temp_io_context.timeout_lists, shared_from_this());
             }
             catch (const std::exception &e)
             {
@@ -1065,6 +1102,30 @@ bool client::init_https_sock()
     ssl_context->set_verify_mode(asio::ssl::verify_peer);
     ssl_context->set_verify_callback(asio::ssl::host_name_verification(host));
 
+    // 双向证书(mTLS)：微信支付退款等接口需要携带商户证书
+    if (!use_certificate_file.empty())
+    {
+        asio::error_code cert_ec;
+        ssl_context->use_certificate_file(use_certificate_file, asio::ssl::context::pem, cert_ec);
+        if (cert_ec)
+        {
+            error_msg = use_certificate_file + " use_certificate_file error! ";
+            DEBUG_LOG("%s", error_msg.c_str());
+            return false;
+        }
+    }
+    if (!use_private_key_file.empty())
+    {
+        asio::error_code key_ec;
+        ssl_context->use_private_key_file(use_private_key_file, asio::ssl::context::pem, key_ec);
+        if (key_ec)
+        {
+            error_msg = use_private_key_file + " use_private_key_file error! ";
+            DEBUG_LOG("%s", error_msg.c_str());
+            return false;
+        }
+    }
+
     sslsock->handshake(asio::ssl::stream_base::client, ec);
 
     if (ec)
@@ -1116,6 +1177,30 @@ asio::awaitable<void> client::async_send_ssl_data()
             sslsock     = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(strand_, *ssl_context);
             ssl_context->set_default_verify_paths();
 
+            // 双向证书(mTLS)：微信支付 V2 退款 / V3 全部接口需要携带商户证书与私钥完成双向 TLS 握手
+            if (!use_certificate_file.empty())
+            {
+                asio::error_code cert_ec;
+                ssl_context->use_certificate_file(use_certificate_file, asio::ssl::context::pem, cert_ec);
+                if (cert_ec)
+                {
+                    error_msg = use_certificate_file + " use_certificate_file error! ";
+                    DEBUG_LOG("%s", error_msg.c_str());
+                    co_return;
+                }
+            }
+            if (!use_private_key_file.empty())
+            {
+                asio::error_code key_ec;
+                ssl_context->use_private_key_file(use_private_key_file, asio::ssl::context::pem, key_ec);
+                if (key_ec)
+                {
+                    error_msg = use_private_key_file + " use_private_key_file error! ";
+                    DEBUG_LOG("%s", error_msg.c_str());
+                    co_return;
+                }
+            }
+
             asio::ip::tcp::resolver resolver(strand_);
             // asio::ip::tcp::resolver::iterator iter = co_await resolver.async_resolve(host, port, asio::use_awaitable);
             // asio::ip::tcp::resolver::iterator end;
@@ -1130,6 +1215,7 @@ asio::awaitable<void> client::async_send_ssl_data()
                 std::tie(ec) = co_await sslsock->lowest_layer().async_connect(*iter, tuple_awaitable);
                 if (ec)
                 {
+                    ++iter;
                     continue;
                 }
                 break;
@@ -1176,8 +1262,7 @@ asio::awaitable<void> client::async_send_ssl_data()
             client_context &temp_io_context = get_client_context_obj();
             try
             {
-                temp_io_context.timeout_lists.push_back(shared_from_this());
-                temp_io_context.timeout_condition.notify_one();
+                temp_io_context.add_timeout_list(temp_io_context.timeout_lists, shared_from_this());
             }
             catch (const std::exception &e)
             {
@@ -1481,8 +1566,7 @@ client &client::send_ssl_data()
             client_context &temp_io_context = get_client_context_obj();
             try
             {
-                temp_io_context.timeout_lists.push_back(shared_from_this());
-                temp_io_context.timeout_condition.notify_one();
+                temp_io_context.add_timeout_list(temp_io_context.timeout_lists, shared_from_this());
             }
             catch (const std::exception &e)
             {
@@ -4413,8 +4497,7 @@ bool client::connect(std::string_view url, unsigned int time_out_num)
         client_context &temp_io_context = get_client_context_obj();
         try
         {
-            temp_io_context.timeout_lists.push_back(shared_from_this());
-            temp_io_context.timeout_condition.notify_one();
+            temp_io_context.add_timeout_list(temp_io_context.timeout_lists, shared_from_this());
         }
         catch (const std::exception &e)
         {
@@ -4458,8 +4541,7 @@ bool client::connect()
         client_context &temp_io_context = get_client_context_obj();
         try
         {
-            temp_io_context.timeout_lists.push_back(shared_from_this());
-            temp_io_context.timeout_condition.notify_one();
+            temp_io_context.add_timeout_list(temp_io_context.timeout_lists, shared_from_this());
         }
         catch (const std::exception &e)
         {
@@ -4506,8 +4588,7 @@ asio::awaitable<bool> client::async_connect(std::string_view url, unsigned int t
         client_context &temp_io_context = get_client_context_obj();
         try
         {
-            temp_io_context.timeout_lists.push_back(shared_from_this());
-            temp_io_context.timeout_condition.notify_one();
+            temp_io_context.add_timeout_list(temp_io_context.timeout_lists, shared_from_this());
         }
         catch (const std::exception &e)
         {
@@ -4550,8 +4631,7 @@ asio::awaitable<bool> client::async_connect()
         client_context &temp_io_context = get_client_context_obj();
         try
         {
-            temp_io_context.timeout_lists.push_back(shared_from_this());
-            temp_io_context.timeout_condition.notify_one();
+            temp_io_context.add_timeout_list(temp_io_context.timeout_lists, shared_from_this());
         }
         catch (const std::exception &e)
         {

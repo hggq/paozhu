@@ -148,7 +148,7 @@ std::string articleshow(std::shared_ptr<httppeer> peer)
     auto articles    = orm::cms::Article();
     int aid          = client.get["id"].to_int();
 
-    articles.where("isopen", 1).where("aid", aid).fetch_one();
+    articles.select("title","content").where("isopen", 1).where("aid", aid).fetch_one();
 
     client.val["title"]   = articles.getTitle();
     client.val["content"] = articles.getContent();

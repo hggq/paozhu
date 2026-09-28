@@ -1,13 +1,23 @@
 #include <string>
 #include <iostream>
-#include <thread>
-#include <chrono>
 #include <filesystem>
+#include <csignal>
 #include "server.h"
 
-static sigjmp_buf env_startacs;
-static void sig_child(int signo);
 namespace fs = std::filesystem;
+
+// Docker 模式: 直接前台运行, PID 1 = 服务进程
+// - 不 fork, 让 Docker 管理进程生命周期
+// - 捕获 SIGTERM/SIGINT 优雅关闭 (关闭 acceptor → listener 线程退出 → join 完成)
+// - 崩溃重启由 compose 的 restart: unless-stopped 负责
+
+static void signal_handler(int signo)
+{
+    // 收到停止信号时调用 server.stop(), 关闭 acceptor 唤醒阻塞的 accept()
+    http::httpserver &srv = http::get_server_app();
+    srv.stop();
+}
+
 int main(int argc, char *argv[])
 {
     std::string argv_str;
@@ -16,10 +26,7 @@ int main(int argc, char *argv[])
         // server.conf filepath or confpath
         argv_str.append(argv[1]);
         fs::path conf_path = argv_str;
-        if (fs::is_regular_file(conf_path))
-        {
-        }
-        else
+        if (!fs::is_regular_file(conf_path))
         {
             if (argv_str.back() == '/')
             {
@@ -30,10 +37,7 @@ int main(int argc, char *argv[])
                 argv_str = argv_str + "/server.conf";
             }
             conf_path = argv_str;
-            if (fs::is_regular_file(conf_path))
-            {
-            }
-            else
+            if (!fs::is_regular_file(conf_path))
             {
                 std::cout << "Not found server.conf file.";
                 return 0;
@@ -42,21 +46,14 @@ int main(int argc, char *argv[])
     }
     else
     {
-
         fs::path conf_path = fs::current_path();
         argv_str           = conf_path.string() + "/conf/server.conf";
         conf_path          = argv_str;
-        if (fs::is_regular_file(conf_path))
-        {
-        }
-        else
+        if (!fs::is_regular_file(conf_path))
         {
             argv_str  = "/usr/local/etc/paozhu/server.conf";
             conf_path = argv_str;
-            if (fs::is_regular_file(conf_path))
-            {
-            }
-            else
+            if (!fs::is_regular_file(conf_path))
             {
                 std::cout << "Not found server.conf file. Please copy conf Directory rename to /usr/local/etc/paozhu\n";
                 return 0;
@@ -64,63 +61,23 @@ int main(int argc, char *argv[])
         }
     }
 
-    pid_t pid;//, subpid = 0;
-    signal(SIGCHLD, sig_child);
-    if (sigsetjmp(env_startacs, 1) == 0)// 设置记号
-    {
-        printf("setjmp ok.....\n");
-    }
-    else
-    {
-        printf("longjmp ok.....\n");
-    }
+    // 注册信号: docker stop 发送 SIGTERM, Ctrl+C 发送 SIGINT
+    // Windows 无 SIGTERM, 仅注册 SIGINT
+#ifdef _WIN32
+    std::signal(SIGINT, signal_handler);
+#else
+    std::signal(SIGTERM, signal_handler);
+    std::signal(SIGINT, signal_handler);
+#endif
 
-    pid = fork();
-    printf("fork id %d \n", pid);
-    if (pid < 0)
+    try
     {
-        perror("fork error:");
-        exit(1);
+        http::httpserver &httpmy = http::get_server_app();
+        httpmy.run(argv_str);
     }
-    else if (pid == 0)
+    catch (std::exception &e)
     {
-
-        try
-        {
-            http::httpserver &httpmy = http::get_server_app();
-            httpmy.run(argv_str);
-        }
-        catch (std::exception &e)
-        {
-            std::printf("Exception: %s\n", e.what());
-        }
-        exit(0);
+        std::printf("Exception: %s\n", e.what());
     }
-    else
-    {
-
-        while (1)
-        {
-            std::this_thread::sleep_for(std::chrono::seconds(10));
-            //Future features are added here
-        }
-        return 0;
-    }
-}
-static void sig_child(int signo)
-{
-    /*pid_t */ int pid;
-    int stat;
-    // 处理僵尸进程
-
-    switch (signo)
-    {
-    case SIGCHLD:
-
-        pid = wait(&stat);
-        printf("SIGCHLD...farter id %d..%d\n", getpid(), pid);
-        siglongjmp(env_startacs, 1);// jump setjmp begin
-        break;
-    }
-    exit(0);
+    return 0;
 }

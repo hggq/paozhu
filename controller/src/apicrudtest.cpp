@@ -13,12 +13,7 @@ namespace http
 std::string pxapidepartmentsaddpost(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
-    client.cors_domain("*");
-    if (client.method == 3)
-    {
-        client.cors_method("origin, x-requested-with");
-        return "";
-    }
+    // CORS 由框架处理：Allow-Origin 在解析期按站点 cors_domain 白名单判定，OPTIONS 预检不进控制器
     try
     {
         auto deps = orm::cms::Department();
@@ -60,12 +55,7 @@ std::string pxapidepartmentsaddpost(std::shared_ptr<httppeer> peer)
 std::string pxapidepartmentseditpost(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
-    client.cors_domain("*");
-    if (client.method == 3)
-    {
-        client.cors_method("origin, x-requested-with");
-        return "";
-    }
+    // CORS 由框架处理：Allow-Origin 在解析期按站点 cors_domain 白名单判定，OPTIONS 预检不进控制器
     try
     {
         auto deps = orm::cms::Department();
@@ -117,12 +107,7 @@ std::string pxapidepartmentseditpost(std::shared_ptr<httppeer> peer)
 std::string pxapidepartmentslist(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
-    client.cors_domain("*");
-    if (client.method == 3)
-    {
-        client.cors_method("origin, x-requested-with");
-        return "";
-    }
+    // CORS 由框架处理：Allow-Origin 在解析期按站点 cors_domain 白名单判定，OPTIONS 预检不进控制器
     try
     {
         auto deps = orm::cms::Department();
@@ -165,12 +150,7 @@ std::string pxapidepartmentslist(std::shared_ptr<httppeer> peer)
 std::string pxapipagesdepartlist(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
-    client.cors_domain("*");
-    if (client.method == 3)
-    {
-        client.cors_method("origin, x-requested-with");
-        return "";
-    }
+    // CORS 由框架处理：Allow-Origin 在解析期按站点 cors_domain 白名单判定，OPTIONS 预检不进控制器
 
     try
     {

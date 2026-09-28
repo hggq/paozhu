@@ -168,16 +168,16 @@ std::string testhttpclient_cowait_urls(std::shared_ptr<httppeer> peer)
         {
             a->add_header("Connection", "keep-alive");
         }
-        a->onload = [](const std::string &respbody, std::shared_ptr<http::client> a) -> void
+        a->onload = [](const std::string &respbody, std::shared_ptr<http::client> cli) -> void
         {
-            if (a->host == "www.php.net" && a->path == "/docs.php")
+            if (cli->host == "www.php.net" && cli->path == "/docs.php")
             {
-                a->get("https://www.php.net/manual/zh/copyright.php");
+                cli->get("https://www.php.net/manual/zh/copyright.php");
                 http::client_context &client_context_in = get_client_context_obj();
-                a->add_header("Connection", "Close");
-                client_context_in.add_http_task(a);
+                cli->add_header("Connection", "Close");
+                client_context_in.add_http_task(cli);
             }
-            else if (a->host == "www.php.net" && a->path == "/manual/zh/copyright.php")
+            else if (cli->host == "www.php.net" && cli->path == "/manual/zh/copyright.php")
             {
                 std::cout << respbody << std::endl;
             }
@@ -199,16 +199,16 @@ std::string testhttpclient_cowait_spawn(std::shared_ptr<httppeer> peer)
     {
         std::shared_ptr<http::client> a = std::make_shared<http::client>();
         a->get(urls[i]);
-        a->onload = [](const std::string &respbody, std::shared_ptr<http::client> a) -> void
+        a->onload = [](const std::string &respbody, std::shared_ptr<http::client> cli) -> void
         {
             std::cout << respbody << "\n"
-                      << a->host << std::endl;
+                      << cli->host << std::endl;
         };
         co_spawn(
             client_context.get_ctx(),
-            [](std::shared_ptr<http::client> a) -> asio::awaitable<void>
+            [](std::shared_ptr<http::client> cli) -> asio::awaitable<void>
             {
-                co_await a->async_send();
+                co_await cli->async_send();
             }(a),
             asio::detached);
     }
@@ -241,9 +241,9 @@ std::string testhttpclient_get_range(std::shared_ptr<httppeer> peer)
         a->get(urls[i]);
         a->add_header("Range", "bytes=100-13919154");
         client << "<p>" << i << "</p>";
-        a->onload = [](const std::string &respbody, std::shared_ptr<http::client> a) -> void
+        a->onload = [](const std::string & /*respbody*/, std::shared_ptr<http::client> cli) -> void
         {
-            std::cout << a->host << std::endl;
+            std::cout << cli->host << std::endl;
         };
         // co_spawn(
         //     client_context.ioc,

@@ -13,6 +13,10 @@ void _inithttpsocketmethodregto(HTTP_SOCKET_REG &methodcallback)
     methodcallback.emplace("mytestsocket", [](unsigned int myid_,unsigned int groupid_, std::shared_ptr<client_session> s_sock) -> std::shared_ptr<socket_api>
                            { return std::make_shared<my_test_socket>(myid_, groupid_, s_sock); });
 
+    // tcp 协程版（isloopco=true）
+    methodcallback.emplace("mytestsocketco", [](unsigned int myid_,unsigned int groupid_, std::shared_ptr<client_session> s_sock) -> std::shared_ptr<socket_api>
+                           { return std::make_shared<my_test_socket>(myid_, groupid_, s_sock, false, true); });
+
 }
 
 }// namespace http

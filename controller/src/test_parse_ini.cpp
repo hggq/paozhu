@@ -51,22 +51,22 @@ std::string test_parse_ini(std::shared_ptr<httppeer> peer)
     out.close();
 
     // 辅助函数：打印文件内容到web
-    auto print_file = [](const std::string &filename, std::shared_ptr<httppeer> peer)
+    auto print_file = [](const std::string &filename, std::shared_ptr<httppeer> file_peer)
     {
-        httppeer &client = peer->get_peer();
+        httppeer &file_client = file_peer->get_peer();
         std::ifstream in(filename);
         if (!in.is_open())
         {
-            client << "Cannot open " << filename << "\n";
+            file_client << "Cannot open " << filename << "\n";
             return;
         }
         std::string line;
-        client << "<p>=== Content of " << filename << " ===</p>\n<pre>";
+        file_client << "<p>=== Content of " << filename << " ===</p>\n<pre>";
         while (std::getline(in, line))
         {
-            client << line << "\n";
+            file_client << line << "\n";
         }
-        client << "</pre><p>===================================</p>\n";
+        file_client << "</pre><p>===================================</p>\n";
         in.close();
     };
 
@@ -153,22 +153,22 @@ std::string test_parse_fix(std::shared_ptr<httppeer> peer)
     file_conf.append("test.conf");
 
     // 辅助函数：打印文件内容到web
-    auto print_file = [](const std::string &filename, std::shared_ptr<httppeer> peer)
+    auto print_file = [](const std::string &filename, std::shared_ptr<httppeer> file_peer)
     {
-        httppeer &client = peer->get_peer();
+        httppeer &file_client = file_peer->get_peer();
         std::ifstream in(filename);
         if (!in.is_open())
         {
-            client << "Cannot open " << filename << "\n";
+            file_client << "Cannot open " << filename << "\n";
             return;
         }
         std::string line;
-        client << "<p>=== Content of " << filename << " ===</p>\n";
+        file_client << "<p>=== Content of " << filename << " ===</p>\n";
         while (std::getline(in, line))
         {
-            client << "<p>" << line << "</p>\n";
+            file_client << "<p>" << line << "</p>\n";
         }
-        client << "<p>===================================</p>\n";
+        file_client << "<p>===================================</p>\n";
         in.close();
     };
 
@@ -209,22 +209,22 @@ std::string test_fix_server_conf(std::shared_ptr<httppeer> peer)
         return "";
     }
     // 辅助函数：打印文件内容到web
-    auto print_file = [](const std::string &filename, std::shared_ptr<httppeer> peer)
+    auto print_file = [](const std::string &filename, std::shared_ptr<httppeer> file_peer)
     {
-        httppeer &client = peer->get_peer();
+        httppeer &file_client = file_peer->get_peer();
         std::ifstream in(filename);
         if (!in.is_open())
         {
-            client << "Cannot open " << filename << "\n";
+            file_client << "Cannot open " << filename << "\n";
             return;
         }
         std::string line;
-        client << "<p>=== Content of " << filename << " ===</p>\n<pre>\n";
+        file_client << "<p>=== Content of " << filename << " ===</p>\n<pre>\n";
         while (std::getline(in, line))
         {
-            client << line << "\n";
+            file_client << line << "\n";
         }
-        client << "</pre>\n";
+        file_client << "</pre>\n";
         in.close();
     };
 

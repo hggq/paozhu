@@ -35,7 +35,7 @@ controller目录是实际使用例子，还在完善中，目前框架压力测�
 ✅20. 提供一个完整admin后台管理框架（见后面图片）, 访问URL为 /admin/main  
 ✅21. 支持PHP-FPM fastcgi运行模式，代替Apache做PHP前端，让PHP程序员平稳过渡到 C++ 开发模式  
 ✅22. 内置微信小程序支付功能  
-✅23. 支持Socket服务端和客户端，支持Socket ssl连接，方便物联网开发  
+✅23. 支持Socket, MQTT包含服务端和客户端，支持SSL连接，方便物联网开  
 ✅24. 支持RPC服务端和客户端，使用HTTP注解URL函数  
 ✅25. 框架支持流量限制，60秒内平滑移动平均线二段式流量限制，配置参数在server.conf  
 ✅26. 框架内置ACME协议，自动续订SSL证书，服务器端OCSP证书装订  
@@ -468,12 +468,8 @@ class loopwebsockets : public websockets_api
         if (session_sock)
         {
             std::cout << "timeloop:" << std::endl;
-            std::string aa = "test run_loop";
-            std::string outhello;
-            ws_parse->make_ws_text(aa, outhello);
-            session_sock->send_writer(outhello);
-
-            //   peer->send(aa);
+            // 出站帧统一走 send()，框架内部完成 WS 帧封装并入发送环
+            send("test run_loop");
             if (loop_num == 4)
             {
                 loop_num = 0;
@@ -493,11 +489,7 @@ class loopwebsockets : public websockets_api
         if (session_sock)
         {
             std::cout << "async async_run_loop" << std::endl;
-            std::string aa = "test async_run_loop";
-            std::string outhello;
-            ws_parse->make_ws_text(aa, outhello);
-            co_await session_sock->async_send_writer(outhello);
-            //   peer->send(aa);
+            send("test async_run_loop");
             if (loop_num == 4)
             {
                 loop_num = 0;
@@ -516,9 +508,7 @@ class loopwebsockets : public websockets_api
 
     asio::awaitable<void> async_onmessage(websockets_data_list_t &&msg) override 
     {
-        std::string outhello;
-        ws_parse->make_ws_text(msg.value, outhello);
-        co_await session_sock->async_send_writer(outhello);
+        send(msg.value);
         co_return;
     }
     void onmessage() override
@@ -532,9 +522,7 @@ class loopwebsockets : public websockets_api
         content_list.pop_front();
         lock.unlock();
         
-        std::string outhello;
-        ws_parse->make_ws_text(msg.value, outhello);
-        session_sock->send_writer(outhello);
+        send(msg.value);
         return;
     }
  

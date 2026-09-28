@@ -8,6 +8,8 @@
 #include <memory>
 #include <string>
 #include <map>
+#include <utility>
+#include <tuple>
 #include <asio.hpp>
 #include <asio/ssl.hpp>
 #include <asio/io_context.hpp>
@@ -37,7 +39,14 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
     ~db_conn()
     {
-        if (islock_conn)
+        // 事务未 commit/rollback 就析构：先回滚，否则会把"还开着事务"的连接
+        // 归还给连接池，下一个借用者继承这个事务（悬挂事务）
+        const bool was_locked = islock_conn;
+        if (iscommit && conn_obj)
+        {
+            rollback();
+        }
+        if (was_locked)
         {
             islock_conn = false;
             if (db_type == DB_TYPE::MYSQL)
@@ -75,6 +84,39 @@ class db_conn : std::enable_shared_from_this<db_conn>
             }
         }
     };
+    //// 语句级失败收尾：把底层连接的错误搬到 db_conn 上，并置 iserror
+    //// 调用方即可用 if (ulink->iserror) { ulink->rollback(); } 判定。
+    //// iserror 语义：最近一条语句失败且尚未处理；rollback() 成功或 clear() 后复位。
+    template <typename ConnPtr>
+    void mark_edit_failed(ConnPtr &conn)
+    {
+        if (conn && !conn->error_msg.empty())
+        {
+            error_msg = conn->error_msg;
+        }
+        iserror = true;
+        if (islock_conn)
+        {
+            // 事务中必须留着这条连接，交给上层 rollback()/commit() 收尾；
+            // 直接销毁会让后续 rollback 打在另一条新连接上，变成悬挂事务
+            return;
+        }
+        conn.reset();
+        return;
+    }
+
+    template <typename ConnPtr>
+    void mark_select_failed(ConnPtr &conn)
+    {
+        if (conn && !conn->error_msg.empty())
+        {
+            error_msg = conn->error_msg;
+        }
+        iserror = true;
+        conn.reset();
+        return;
+    }
+
     ////1111 not callback
     template <ResultHasSetVal T>
     unsigned int mysql_query_vec_impl(const std::string &rawsql, std::vector<T> &result_record)
@@ -143,8 +185,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !mysql_select_conn->error_msg.empty())
             {
-                error_msg = mysql_select_conn->error_msg;
-                mysql_select_conn.reset();
+                mark_select_failed(mysql_select_conn);
                 return 0;
             }
 
@@ -236,8 +277,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !pg_select_conn->error_msg.empty())
             {
-                error_msg = pg_select_conn->error_msg;
-                pg_select_conn.reset();
+                mark_select_failed(pg_select_conn);
                 return 0;
             }
 
@@ -329,8 +369,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !sqlite_select_conn->error_msg.empty())
             {
-                error_msg = sqlite_select_conn->error_msg;
-                sqlite_select_conn.reset();
+                mark_select_failed(sqlite_select_conn);
                 return 0;
             }
 
@@ -435,8 +474,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !mysql_select_conn->error_msg.empty())
             {
-                error_msg = mysql_select_conn->error_msg;
-                mysql_select_conn.reset();
+                mark_select_failed(mysql_select_conn);
                 co_return 0;
             }
 
@@ -528,8 +566,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !pg_select_conn->error_msg.empty())
             {
-                error_msg = pg_select_conn->error_msg;
-                pg_select_conn.reset();
+                mark_select_failed(pg_select_conn);
                 co_return 0;
             }
 
@@ -621,8 +658,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !sqlite_select_conn->error_msg.empty())
             {
-                error_msg = sqlite_select_conn->error_msg;
-                sqlite_select_conn.reset();
+                mark_select_failed(sqlite_select_conn);
                 co_return 0;
             }
 
@@ -726,8 +762,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !mysql_select_conn->error_msg.empty())
             {
-                error_msg = mysql_select_conn->error_msg;
-                mysql_select_conn.reset();
+                mark_select_failed(mysql_select_conn);
                 return 0;
             }
 
@@ -817,8 +852,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !pg_select_conn->error_msg.empty())
             {
-                error_msg = pg_select_conn->error_msg;
-                pg_select_conn.reset();
+                mark_select_failed(pg_select_conn);
                 return 0;
             }
 
@@ -908,8 +942,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !sqlite_select_conn->error_msg.empty())
             {
-                error_msg = sqlite_select_conn->error_msg;
-                sqlite_select_conn.reset();
+                mark_select_failed(sqlite_select_conn);
                 return 0;
             }
 
@@ -1012,8 +1045,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !mysql_select_conn->error_msg.empty())
             {
-                error_msg = mysql_select_conn->error_msg;
-                mysql_select_conn.reset();
+                mark_select_failed(mysql_select_conn);
                 co_return 0;
             }
 
@@ -1103,8 +1135,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !pg_select_conn->error_msg.empty())
             {
-                error_msg = pg_select_conn->error_msg;
-                pg_select_conn.reset();
+                mark_select_failed(pg_select_conn);
                 co_return 0;
             }
 
@@ -1194,8 +1225,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !sqlite_select_conn->error_msg.empty())
             {
-                error_msg = sqlite_select_conn->error_msg;
-                sqlite_select_conn.reset();
+                mark_select_failed(sqlite_select_conn);
                 co_return 0;
             }
 
@@ -1302,8 +1332,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !mysql_select_conn->error_msg.empty())
             {
-                error_msg = mysql_select_conn->error_msg;
-                mysql_select_conn.reset();
+                mark_select_failed(mysql_select_conn);
                 return 0;
             }
 
@@ -1395,8 +1424,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !pg_select_conn->error_msg.empty())
             {
-                error_msg = pg_select_conn->error_msg;
-                pg_select_conn.reset();
+                mark_select_failed(pg_select_conn);
                 return 0;
             }
 
@@ -1488,8 +1516,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !sqlite_select_conn->error_msg.empty())
             {
-                error_msg = sqlite_select_conn->error_msg;
-                sqlite_select_conn.reset();
+                mark_select_failed(sqlite_select_conn);
                 return 0;
             }
 
@@ -1594,8 +1621,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !mysql_select_conn->error_msg.empty())
             {
-                error_msg = mysql_select_conn->error_msg;
-                mysql_select_conn.reset();
+                mark_select_failed(mysql_select_conn);
                 co_return 0;
             }
 
@@ -1687,8 +1713,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !pg_select_conn->error_msg.empty())
             {
-                error_msg = pg_select_conn->error_msg;
-                pg_select_conn.reset();
+                mark_select_failed(pg_select_conn);
                 co_return 0;
             }
 
@@ -1780,8 +1805,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !sqlite_select_conn->error_msg.empty())
             {
-                error_msg = sqlite_select_conn->error_msg;
-                sqlite_select_conn.reset();
+                mark_select_failed(sqlite_select_conn);
                 co_return 0;
             }
 
@@ -1885,8 +1909,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !mysql_select_conn->error_msg.empty())
             {
-                error_msg = mysql_select_conn->error_msg;
-                mysql_select_conn.reset();
+                mark_select_failed(mysql_select_conn);
                 return 0;
             }
 
@@ -1976,8 +1999,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !pg_select_conn->error_msg.empty())
             {
-                error_msg = pg_select_conn->error_msg;
-                pg_select_conn.reset();
+                mark_select_failed(pg_select_conn);
                 return 0;
             }
 
@@ -2067,8 +2089,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !sqlite_select_conn->error_msg.empty())
             {
-                error_msg = sqlite_select_conn->error_msg;
-                sqlite_select_conn.reset();
+                mark_select_failed(sqlite_select_conn);
                 return 0;
             }
 
@@ -2171,8 +2192,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !mysql_select_conn->error_msg.empty())
             {
-                error_msg = mysql_select_conn->error_msg;
-                mysql_select_conn.reset();
+                mark_select_failed(mysql_select_conn);
                 co_return 0;
             }
 
@@ -2262,8 +2282,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !pg_select_conn->error_msg.empty())
             {
-                error_msg = pg_select_conn->error_msg;
-                pg_select_conn.reset();
+                mark_select_failed(pg_select_conn);
                 co_return 0;
             }
 
@@ -2353,8 +2372,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !sqlite_select_conn->error_msg.empty())
             {
-                error_msg = sqlite_select_conn->error_msg;
-                sqlite_select_conn.reset();
+                mark_select_failed(sqlite_select_conn);
                 co_return 0;
             }
 
@@ -2451,8 +2469,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!mysql_select_conn->error_msg.empty())
             {
-                error_msg = mysql_select_conn->error_msg;
-                mysql_select_conn.reset();
+                mark_select_failed(mysql_select_conn);
                 return 0;
             }
 
@@ -2532,8 +2549,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!pg_select_conn->error_msg.empty())
             {
-                error_msg = pg_select_conn->error_msg;
-                pg_select_conn.reset();
+                mark_select_failed(pg_select_conn);
                 return 0;
             }
 
@@ -2611,8 +2627,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!sqlite_select_conn->error_msg.empty())
             {
-                error_msg = sqlite_select_conn->error_msg;
-                sqlite_select_conn.reset();
+                mark_select_failed(sqlite_select_conn);
                 return 0;
             }
 
@@ -2711,8 +2726,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!mysql_select_conn->error_msg.empty())
             {
-                error_msg = mysql_select_conn->error_msg;
-                mysql_select_conn.reset();
+                mark_select_failed(mysql_select_conn);
                 co_return 0;
             }
 
@@ -2792,8 +2806,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!pg_select_conn->error_msg.empty())
             {
-                error_msg = pg_select_conn->error_msg;
-                pg_select_conn.reset();
+                mark_select_failed(pg_select_conn);
                 co_return 0;
             }
 
@@ -2871,8 +2884,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!sqlite_select_conn->error_msg.empty())
             {
-                error_msg = sqlite_select_conn->error_msg;
-                sqlite_select_conn.reset();
+                mark_select_failed(sqlite_select_conn);
                 co_return 0;
             }
 
@@ -2971,8 +2983,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!mysql_select_conn->error_msg.empty())
             {
-                error_msg = mysql_select_conn->error_msg;
-                mysql_select_conn.reset();
+                mark_select_failed(mysql_select_conn);
                 return 0;
             }
 
@@ -3052,8 +3063,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!pg_select_conn->error_msg.empty())
             {
-                error_msg = pg_select_conn->error_msg;
-                pg_select_conn.reset();
+                mark_select_failed(pg_select_conn);
                 return 0;
             }
 
@@ -3131,8 +3141,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!sqlite_select_conn->error_msg.empty())
             {
-                error_msg = sqlite_select_conn->error_msg;
-                sqlite_select_conn.reset();
+                mark_select_failed(sqlite_select_conn);
                 return 0;
             }
 
@@ -3231,8 +3240,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!mysql_select_conn->error_msg.empty())
             {
-                error_msg = mysql_select_conn->error_msg;
-                mysql_select_conn.reset();
+                mark_select_failed(mysql_select_conn);
                 co_return 0;
             }
 
@@ -3312,8 +3320,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!pg_select_conn->error_msg.empty())
             {
-                error_msg = pg_select_conn->error_msg;
-                pg_select_conn.reset();
+                mark_select_failed(pg_select_conn);
                 co_return 0;
             }
 
@@ -3391,8 +3398,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!sqlite_select_conn->error_msg.empty())
             {
-                error_msg = sqlite_select_conn->error_msg;
-                sqlite_select_conn.reset();
+                mark_select_failed(sqlite_select_conn);
                 co_return 0;
             }
 
@@ -3491,8 +3497,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!mysql_select_conn->error_msg.empty())
             {
-                error_msg = mysql_select_conn->error_msg;
-                mysql_select_conn.reset();
+                mark_select_failed(mysql_select_conn);
                 return 0;
             }
 
@@ -3572,8 +3577,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!pg_select_conn->error_msg.empty())
             {
-                error_msg = pg_select_conn->error_msg;
-                pg_select_conn.reset();
+                mark_select_failed(pg_select_conn);
                 return 0;
             }
 
@@ -3651,8 +3655,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!sqlite_select_conn->error_msg.empty())
             {
-                error_msg = sqlite_select_conn->error_msg;
-                sqlite_select_conn.reset();
+                mark_select_failed(sqlite_select_conn);
                 return 0;
             }
 
@@ -3751,8 +3754,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!mysql_select_conn->error_msg.empty())
             {
-                error_msg = mysql_select_conn->error_msg;
-                mysql_select_conn.reset();
+                mark_select_failed(mysql_select_conn);
                 co_return 0;
             }
 
@@ -3832,8 +3834,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!pg_select_conn->error_msg.empty())
             {
-                error_msg = pg_select_conn->error_msg;
-                pg_select_conn.reset();
+                mark_select_failed(pg_select_conn);
                 co_return 0;
             }
 
@@ -3911,8 +3912,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!sqlite_select_conn->error_msg.empty())
             {
-                error_msg = sqlite_select_conn->error_msg;
-                sqlite_select_conn.reset();
+                mark_select_failed(sqlite_select_conn);
                 co_return 0;
             }
 
@@ -4011,8 +4011,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!mysql_select_conn->error_msg.empty())
             {
-                error_msg = mysql_select_conn->error_msg;
-                mysql_select_conn.reset();
+                mark_select_failed(mysql_select_conn);
                 return 0;
             }
 
@@ -4092,8 +4091,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!pg_select_conn->error_msg.empty())
             {
-                error_msg = pg_select_conn->error_msg;
-                pg_select_conn.reset();
+                mark_select_failed(pg_select_conn);
                 return 0;
             }
 
@@ -4171,8 +4169,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!sqlite_select_conn->error_msg.empty())
             {
-                error_msg = sqlite_select_conn->error_msg;
-                sqlite_select_conn.reset();
+                mark_select_failed(sqlite_select_conn);
                 return 0;
             }
 
@@ -4271,8 +4268,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!mysql_select_conn->error_msg.empty())
             {
-                error_msg = mysql_select_conn->error_msg;
-                mysql_select_conn.reset();
+                mark_select_failed(mysql_select_conn);
                 co_return 0;
             }
 
@@ -4352,8 +4348,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!pg_select_conn->error_msg.empty())
             {
-                error_msg = pg_select_conn->error_msg;
-                pg_select_conn.reset();
+                mark_select_failed(pg_select_conn);
                 co_return 0;
             }
 
@@ -4431,8 +4426,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!sqlite_select_conn->error_msg.empty())
             {
-                error_msg = sqlite_select_conn->error_msg;
-                sqlite_select_conn.reset();
+                mark_select_failed(sqlite_select_conn);
                 co_return 0;
             }
 
@@ -4533,8 +4527,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!mysql_edit_conn->error_msg.empty())
             {
-                error_msg = mysql_edit_conn->error_msg;
-                mysql_edit_conn.reset();
+                mark_edit_failed(mysql_edit_conn);
                 return 0;
             }
 
@@ -4614,8 +4607,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!pg_edit_conn->error_msg.empty())
             {
-                error_msg = pg_edit_conn->error_msg;
-                pg_edit_conn.reset();
+                mark_edit_failed(pg_edit_conn);
                 return 0;
             }
 
@@ -4693,8 +4685,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!sqlite_edit_conn->error_msg.empty())
             {
-                error_msg = sqlite_edit_conn->error_msg;
-                sqlite_edit_conn.reset();
+                mark_edit_failed(sqlite_edit_conn);
                 return 0;
             }
 
@@ -4786,8 +4777,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!mysql_edit_conn->error_msg.empty())
             {
-                error_msg = mysql_edit_conn->error_msg;
-                mysql_edit_conn.reset();
+                mark_edit_failed(mysql_edit_conn);
                 co_return 0;
             }
 
@@ -4867,8 +4857,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!pg_edit_conn->error_msg.empty())
             {
-                error_msg = pg_edit_conn->error_msg;
-                pg_edit_conn.reset();
+                mark_edit_failed(pg_edit_conn);
                 co_return 0;
             }
 
@@ -4946,8 +4935,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!sqlite_edit_conn->error_msg.empty())
             {
-                error_msg = sqlite_edit_conn->error_msg;
-                sqlite_edit_conn.reset();
+                mark_edit_failed(sqlite_edit_conn);
                 co_return 0;
             }
 
@@ -5039,8 +5027,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!mysql_edit_conn->error_msg.empty())
             {
-                error_msg = mysql_edit_conn->error_msg;
-                mysql_edit_conn.reset();
+                mark_edit_failed(mysql_edit_conn);
                 return 0;
             }
 
@@ -5120,8 +5107,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!pg_edit_conn->error_msg.empty())
             {
-                error_msg = pg_edit_conn->error_msg;
-                pg_edit_conn.reset();
+                mark_edit_failed(pg_edit_conn);
                 return 0;
             }
 
@@ -5199,8 +5185,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!sqlite_edit_conn->error_msg.empty())
             {
-                error_msg = sqlite_edit_conn->error_msg;
-                sqlite_edit_conn.reset();
+                mark_edit_failed(sqlite_edit_conn);
                 return 0;
             }
 
@@ -5292,8 +5277,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!mysql_edit_conn->error_msg.empty())
             {
-                error_msg = mysql_edit_conn->error_msg;
-                mysql_edit_conn.reset();
+                mark_edit_failed(mysql_edit_conn);
                 co_return 0;
             }
 
@@ -5373,8 +5357,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!pg_edit_conn->error_msg.empty())
             {
-                error_msg = pg_edit_conn->error_msg;
-                pg_edit_conn.reset();
+                mark_edit_failed(pg_edit_conn);
                 co_return 0;
             }
 
@@ -5452,8 +5435,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (!sqlite_edit_conn->error_msg.empty())
             {
-                error_msg = sqlite_edit_conn->error_msg;
-                sqlite_edit_conn.reset();
+                mark_edit_failed(sqlite_edit_conn);
                 co_return 0;
             }
 
@@ -5561,8 +5543,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !mysql_edit_conn->error_msg.empty())
             {
-                error_msg = mysql_edit_conn->error_msg;
-                mysql_edit_conn.reset();
+                mark_edit_failed(mysql_edit_conn);
                 return 0;
             }
             if (mysql_edit_conn->isdebug)
@@ -5653,8 +5634,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !pg_edit_conn->error_msg.empty())
             {
-                error_msg = pg_edit_conn->error_msg;
-                pg_edit_conn.reset();
+                mark_edit_failed(pg_edit_conn);
                 return 0;
             }
 
@@ -5746,8 +5726,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !sqlite_edit_conn->error_msg.empty())
             {
-                error_msg = sqlite_edit_conn->error_msg;
-                sqlite_edit_conn.reset();
+                mark_edit_failed(sqlite_edit_conn);
                 return 0;
             }
 
@@ -5852,8 +5831,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !mysql_edit_conn->error_msg.empty())
             {
-                error_msg = mysql_edit_conn->error_msg;
-                mysql_edit_conn.reset();
+                mark_edit_failed(mysql_edit_conn);
                 co_return 0;
             }
             if (mysql_edit_conn->isdebug)
@@ -5944,8 +5922,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !pg_edit_conn->error_msg.empty())
             {
-                error_msg = pg_edit_conn->error_msg;
-                pg_edit_conn.reset();
+                mark_edit_failed(pg_edit_conn);
                 co_return 0;
             }
 
@@ -6037,8 +6014,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !sqlite_edit_conn->error_msg.empty())
             {
-                error_msg = sqlite_edit_conn->error_msg;
-                sqlite_edit_conn.reset();
+                mark_edit_failed(sqlite_edit_conn);
                 co_return 0;
             }
 
@@ -6142,8 +6118,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !mysql_edit_conn->error_msg.empty())
             {
-                error_msg = mysql_edit_conn->error_msg;
-                mysql_edit_conn.reset();
+                mark_edit_failed(mysql_edit_conn);
                 return 0;
             }
             if (mysql_edit_conn->isdebug)
@@ -6232,8 +6207,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !pg_edit_conn->error_msg.empty())
             {
-                error_msg = pg_edit_conn->error_msg;
-                pg_edit_conn.reset();
+                mark_edit_failed(pg_edit_conn);
                 return 0;
             }
 
@@ -6323,8 +6297,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !sqlite_edit_conn->error_msg.empty())
             {
-                error_msg = sqlite_edit_conn->error_msg;
-                sqlite_edit_conn.reset();
+                mark_edit_failed(sqlite_edit_conn);
                 return 0;
             }
 
@@ -6428,8 +6401,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !mysql_edit_conn->error_msg.empty())
             {
-                error_msg = mysql_edit_conn->error_msg;
-                mysql_edit_conn.reset();
+                mark_edit_failed(mysql_edit_conn);
                 co_return 0;
             }
             if (mysql_edit_conn->isdebug)
@@ -6518,8 +6490,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !pg_edit_conn->error_msg.empty())
             {
-                error_msg = pg_edit_conn->error_msg;
-                pg_edit_conn.reset();
+                mark_edit_failed(pg_edit_conn);
                 co_return 0;
             }
 
@@ -6609,8 +6580,7 @@ class db_conn : std::enable_shared_from_this<db_conn>
 
             if (fetch_count == 0 && !sqlite_edit_conn->error_msg.empty())
             {
-                error_msg = sqlite_edit_conn->error_msg;
-                sqlite_edit_conn.reset();
+                mark_edit_failed(sqlite_edit_conn);
                 co_return 0;
             }
 
@@ -6687,6 +6657,14 @@ class db_conn : std::enable_shared_from_this<db_conn>
     asio::awaitable<unsigned int> pg_async_edit_query_impl(const std::string &rawsql);
     asio::awaitable<unsigned int> sqlite_async_edit_query_impl(const std::string &rawsql);
 
+    //// insert + 返回 {影响行数, 自增主键} impl（移植自各 *orm.hpp 的 save() INSERT 分支）
+    std::tuple<unsigned int, unsigned long long> mysql_insert_query_impl(const std::string &rawsql);
+    std::tuple<unsigned int, unsigned long long> pg_insert_query_impl(const std::string &rawsql);
+    std::tuple<unsigned int, unsigned long long> sqlite_insert_query_impl(const std::string &rawsql);
+    asio::awaitable<std::tuple<unsigned int, unsigned long long>> mysql_async_insert_query_impl(const std::string &rawsql);
+    asio::awaitable<std::tuple<unsigned int, unsigned long long>> pg_async_insert_query_impl(const std::string &rawsql);
+    asio::awaitable<std::tuple<unsigned int, unsigned long long>> sqlite_async_insert_query_impl(const std::string &rawsql);
+
     //// exec prepared DML-only impl (mysql / pg / sqlite)
     unsigned int mysql_exec_edit_query_impl(const std::string &rawsql, const std::vector<http::obj_val> &params);
     unsigned int pg_exec_edit_query_impl(const std::string &rawsql, const std::vector<http::obj_val> &params);
@@ -6718,6 +6696,14 @@ class db_conn : std::enable_shared_from_this<db_conn>
     unsigned int edit_query(const std::string &);
     asio::awaitable<unsigned int> async_edit_query(const std::string &);
 
+    //// insert + 返回 {影响行数, 自增主键}，等价于各 *orm.hpp save() 的 INSERT 分支。
+    //// 只吃裸 SQL、不耦合 ORM 对象；lastid 由调用方手动回填（如 user_m.setPK(lastid)）。
+    //// - MySQL/SQLite：自增 id 来自连接隐式状态，rawsql 为普通 INSERT 即可。
+    //// - PostgreSQL：rawsql 需自带 "RETURNING <pk>"（可用 commit_insert_returning()），
+    ////               否则 lastid 返回 0，需调用方另行取回。
+    std::tuple<unsigned int, unsigned long long> insert_query(const std::string &rawsql);
+    asio::awaitable<std::tuple<unsigned int, unsigned long long>> async_insert_query(const std::string &rawsql);
+
   public:
     //// exec prepared DML-only（src/orm_query.cpp）
     unsigned int exec_edit_query(const std::string &rawsql, const std::vector<http::obj_val> &params);
@@ -6725,6 +6711,13 @@ class db_conn : std::enable_shared_from_this<db_conn>
                                                         const std::vector<http::obj_val> &params);
 
   public:
+    //// iserror：最近一条语句执行失败（query/edit_query/exec_*）或事务 API 误用。
+    //// 失败后本对象进入错误态，所有后续语句直接返回 0（不再发 SQL），
+    //// 必须先处理：事务场景 rollback()，非事务场景 clear()。
+    //// rollback() 执行成功后自动复位，典型写法：
+    ////   ulink->begin_commit();
+    ////   ulink->edit_query(sql);
+    ////   if (ulink->iserror) { ulink->rollback(); } else { ulink->commit(); }
     bool iserror            = false;
     bool iscommit           = false;
     bool islock_conn        = false;

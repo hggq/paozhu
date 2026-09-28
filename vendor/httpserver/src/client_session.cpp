@@ -11,6 +11,8 @@
 #include "http_header.h"
 #include "clientdatacache.h"
 #include "http2_ring_queue.h"
+#include "http2_send_queue.h"
+#include "debug_log.h"
 #include "base64.h"
 
 namespace http
@@ -45,7 +47,6 @@ client_session::client_session(asio::io_context &io_context):strand_(asio::make_
 {
     auto &cc    = get_client_data_cache();
     _cache_data = cc.get_data_ptr();
-    // cache_back_obj.setptr(_cache_data);
 }
 
 client_session::~client_session()
@@ -216,6 +217,87 @@ asio::awaitable<bool> client_session::read_first(unsigned int &readnum)
         co_return true;
     }
     co_return false;
+}
+
+asio::awaitable<bool> client_session::read_at_least(unsigned int need, unsigned int &readnum, unsigned int limit)
+{
+    auto self = shared_from_this();
+    try
+    {
+        if (limit > CACHE_DATA_LENGTH)
+        {
+            limit = CACHE_DATA_LENGTH;
+        }
+        if (need > limit)
+        {
+            need = limit;
+        }
+        if (readnum >= need)
+        {
+            co_return false;
+        }
+
+        // readnum 每轮至少推进 1 字节，最多迭代 CACHE_DATA_LENGTH 次，不会空转
+        while (readnum < need)
+        {
+            if (isclose || iserror)
+            {
+                co_return true;
+            }
+
+            std::size_t got = 0;
+            if (isssl)
+            {
+                if (sslsocket == nullptr || !sslsocket->lowest_layer().is_open())
+                {
+                    isclose = true;
+                    co_return true;
+                }
+                got = co_await sslsocket->async_read_some(asio::buffer(_cache_data + readnum, limit - readnum), asio::redirect_error(asio::use_awaitable, ec));
+            }
+            else
+            {
+                if (socket == nullptr || !socket->is_open())
+                {
+                    isclose = true;
+                    co_return true;
+                }
+                got = co_await socket->async_read_some(asio::buffer(_cache_data + readnum, limit - readnum), asio::redirect_error(asio::use_awaitable, ec));
+            }
+
+            if (ec)
+            {
+                DEBUG_LOG("read_at_least exception %s", ec.message().c_str());
+                isclose = true;
+                iserror = true;
+                co_return true;
+            }
+            if (got == 0)
+            {
+                // 无错误却读回 0 字节，只可能是对端已关闭
+                isclose = true;
+                iserror = true;
+                co_return true;
+            }
+            readnum += static_cast<unsigned int>(got);
+        }
+        co_return false;
+    }
+    catch (const std::exception &e)
+    {
+        DEBUG_LOG("read_at_least std::exception %s", e.what());
+        isclose = true;
+        iserror = true;
+        cancel();
+        co_return true;
+    }
+    catch (...)
+    {
+        isclose = true;
+        iserror = true;
+        cancel();
+        co_return true;
+    }
 }
 
 asio::awaitable<bool> client_session::read_socket(unsigned int &readnum, std::string &log_item)
@@ -500,7 +582,7 @@ asio::awaitable<void> client_session::co_send_setting()
     co_return;
 }
 
-void client_session::http2_send_enddata(unsigned int s_stream_id)
+bool client_session::http2_send_enddata(unsigned int s_stream_id)
 {
     unsigned char _recvack[] = {0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00};
     _recvack[8]              = s_stream_id & 0xFF;
@@ -511,7 +593,8 @@ void client_session::http2_send_enddata(unsigned int s_stream_id)
     s_stream_id              = s_stream_id >> 8;
     _recvack[5]              = s_stream_id & 0x7F;
 
-    http2_ring_queue->push(_recvack, 9);
+    // 返回值交给调用点：END_STREAM 丢了这条流永远不结束，调用方必须重投。
+    return http2_ring_queue->push(_recvack, 9);
 }
 
 void client_session::http2_send_rst_stream(unsigned int s_stream_id, unsigned int stream_error_code)
@@ -533,21 +616,13 @@ void client_session::http2_send_rst_stream(unsigned int s_stream_id, unsigned in
     stream_error_code = stream_error_code >> 8;
     _recvack[9]       = stream_error_code & 0xFF;
 
-    http2_ring_queue->push(_recvack, 13);
-}
-asio::awaitable<void> client_session::co_http2_send_enddata(unsigned int s_stream_id)
-{
-    unsigned char _recvack[] = {0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00};
-    _recvack[8]              = s_stream_id & 0xFF;
-    s_stream_id              = s_stream_id >> 8;
-    _recvack[7]              = s_stream_id & 0xFF;
-    s_stream_id              = s_stream_id >> 8;
-    _recvack[6]              = s_stream_id & 0xFF;
-    s_stream_id              = s_stream_id >> 8;
-    _recvack[5]              = s_stream_id & 0x7F;
-
-    http2_ring_queue->push(_recvack, 9);
-    co_return;
+    // 重投要把调用方变成阻塞/排队语义，而环满通常发生在连接正在收尾时；
+    // 这里只记账并留日志，不改变调用形状。
+    if (!http2_ring_queue->push(_recvack, 13))
+    {
+        http2_ring_queue_drop_count++;
+        LOG_ERROR << " http2 control frame dropped, ring full, type:rst" << LOG_END;
+    }
 }
 asio::awaitable<void> client_session::http2_send_ping()
 {
@@ -565,9 +640,12 @@ void client_session::send_ping()
     http2_ring_queue->push(_recvack, 17);
 }
 
-asio::awaitable<void> client_session::co_send_zero_data(unsigned int stream_id)
+bool client_session::send_zero_data(unsigned int stream_id)
 {
-    static std::string _recvack = {0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00};
+    // 必须是栈上缓冲。函数级 static 全进程只有一份，而发送线程有 2 个：
+    // 一个线程刚写完 stream_id，另一个线程就把它覆盖，
+    // 「空 DATA + END_STREAM」会被发到另一条流上（A 流永不结束、B 流被截断）。
+    unsigned char _recvack[] = {0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00};
 
     _recvack[8] = stream_id & 0xFF;
     stream_id   = stream_id >> 8;
@@ -577,30 +655,17 @@ asio::awaitable<void> client_session::co_send_zero_data(unsigned int stream_id)
     stream_id   = stream_id >> 8;
     _recvack[5] = stream_id & 0x7F;
 
-    http2_ring_queue->push(_recvack);
-
-    co_return;
-}
-
-void client_session::send_zero_data(unsigned int stream_id)
-{
-    static std::string _recvack = {0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00};
-
-    _recvack[8] = stream_id & 0xFF;
-    stream_id   = stream_id >> 8;
-    _recvack[7] = stream_id & 0xFF;
-    stream_id   = stream_id >> 8;
-    _recvack[6] = stream_id & 0xFF;
-    stream_id   = stream_id >> 8;
-    _recvack[5] = stream_id & 0x7F;
-
-    http2_ring_queue->push(_recvack);
+    return http2_ring_queue->push(_recvack, 9);
 }
 
 asio::awaitable<void> client_session::async_send_goway()
 {
     const static std::string _recvack = {0x00, 0x00, 0x08, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    http2_ring_queue->push(_recvack);
+    if (!http2_ring_queue->push(_recvack))
+    {
+        http2_ring_queue_drop_count++;
+        LOG_ERROR << " http2 control frame dropped, ring full, type:goway" << LOG_END;
+    }
 
     co_return;
 }
@@ -610,8 +675,12 @@ void client_session::send_recv_setting()
     unsigned char _recvack[] = {0x00, 0x00, 0x00, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00};
     http2_ring_queue->push(_recvack, 9);
 }
-void client_session::send_window_update(unsigned int up_num, unsigned int stmid)
+void client_session::send_window_update_conn(unsigned int up_num)
 {
+    // 单帧：stream id = 0（连接级）。RFC 9113 §6.9.2：连接级窗口初值恒为 65535，
+    // 且只能通过本帧改变，SETTINGS_INITIAL_WINDOW_SIZE 对它无效。
+    // 增量必须是「本端真实消费掉的字节数」——每次整笔重发整个窗口目标值的话，
+    // 对端连接窗口会线性增长并顶穿 2^31-1，对端只能按 FLOW_CONTROL_ERROR 断连。
     unsigned char _recvack[] = {0x00, 0x00, 0x04, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     _recvack[12]             = up_num & 0xFF;
     up_num                   = up_num >> 8;
@@ -621,30 +690,16 @@ void client_session::send_window_update(unsigned int up_num, unsigned int stmid)
     up_num                   = up_num >> 8;
     _recvack[9]              = up_num & 0xFF;
 
-    std::string msg;
-    msg.reserve(32);
-    msg.resize(13);
-    for (int i = 0; i < 13; i++)
+    // 丢了只是拖慢对端继续发 body（对端下次 DATA 前会等自己的窗口），不重试。
+    if (!http2_ring_queue->push(_recvack, 13))
     {
-        msg[i] = _recvack[i];
+        http2_ring_queue_drop_count++;
     }
-
-    _recvack[8] = stmid & 0xFF;
-    stmid       = stmid >> 8;
-    _recvack[7] = stmid & 0xFF;
-    stmid       = stmid >> 8;
-    _recvack[6] = stmid & 0xFF;
-    stmid       = stmid >> 8;
-    _recvack[5] = stmid & 0xFF;
-
-    for (int i = 0; i < 13; i++)
-    {
-        msg.push_back(_recvack[i]);
-    }
-    http2_ring_queue->push(msg);
 }
-void client_session::recv_window_update(unsigned int up_num, unsigned int stmid)
+
+void client_session::send_window_update_stream(unsigned int stmid, unsigned int up_num)
 {
+    // 单帧：stream id = stmid（流级）。只影响这一条流，不得顺带改动连接级窗口。
     unsigned char _recvack[] = {0x00, 0x00, 0x04, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     _recvack[12]             = up_num & 0xFF;
     up_num                   = up_num >> 8;
@@ -654,28 +709,19 @@ void client_session::recv_window_update(unsigned int up_num, unsigned int stmid)
     up_num                   = up_num >> 8;
     _recvack[9]              = up_num & 0xFF;
 
-    std::string msg;
-    msg.reserve(32);
-    msg.resize(13);
-    for (int i = 0; i < 13; i++)
-    {
-        msg[i] = _recvack[i];
-    }
-
     _recvack[8] = stmid & 0xFF;
     stmid       = stmid >> 8;
     _recvack[7] = stmid & 0xFF;
     stmid       = stmid >> 8;
     _recvack[6] = stmid & 0xFF;
     stmid       = stmid >> 8;
-    _recvack[5] = stmid & 0xFF;
+    // RFC 9113 §6.1：流标识符最高位是保留位，发送时必须为 0
+    _recvack[5] = stmid & 0x7F;
 
-    // msg.resize(13);
-    for (int i = 0; i < 13; i++)
+    if (!http2_ring_queue->push(_recvack, 13))
     {
-        msg.push_back(_recvack[i]);
+        http2_ring_queue_drop_count++;
     }
-    http2_ring_queue->push(msg);
 }
 
 unsigned int client_session::send_writer(const unsigned char *buffer, unsigned int buffersize)
@@ -721,19 +767,6 @@ unsigned int client_session::send_writer(const unsigned char *buffer, unsigned i
     }
 }
 
-// void client_session::append(const unsigned char *buffer, unsigned int buffersize)
-// {
-//     std::unique_lock lk(http2_loop_send_mutex);
-//     http2_ring_queue_temp.append(reinterpret_cast<const char *>(buffer), buffersize);
-//     lk.unlock();
-// }
-
-// void client_session::append(const std::string &item)
-// {
-//     std::unique_lock lk(http2_loop_send_mutex);
-//     http2_ring_queue_temp.append(item);
-//     lk.unlock();
-// }
 
 void client_session::waituphttp2()
 {
@@ -743,16 +776,13 @@ void client_session::waituphttp2()
         http2_need_wakeup = false;
         if (user_code_handler_call.size() > 0)
         {
-            //auto ex = asio::get_associated_executor(user_code_handler_call.front());
             auto handle = std::move(user_code_handler_call.front());
             user_code_handler_call.pop_front();
             lk.unlock();
             asio::dispatch(strand_,
                            [handler =std::move(handle) ]() mutable -> void
                            {
-                               /////////////
                                handler(1);
-                               //////////
                            });
             
             DEBUG_LOG("peer_session user_code_handler_call return");
@@ -767,6 +797,25 @@ void client_session::waituphttp2()
         DEBUG_LOG("peer_session user_code_handler_call error");
     }
 }
+
+void client_session::flush_parked_send()
+{
+    // 先立闸门再摘表：冲刷之后发送线程若还想挂起，会走「直接回池」分支，
+    // 不会再留下一张永远没人来收的表。
+    send_park_closed.store(true);
+
+    std::list<std::shared_ptr<http2_send_data_t>> drained;
+    auto &send_queue_obj = get_http2_send_queue();
+    if (!send_queue_obj.detach_parked(this, drained))
+    {
+        return;
+    }
+    for (auto &sp : drained)
+    {
+        send_queue_obj.back_cache_ptr(sp);
+    }
+}
+
 asio::awaitable<unsigned int> client_session::async_send_writer(const unsigned char *buffer, unsigned int buffersize)
 {
     auto self = shared_from_this();
@@ -910,6 +959,7 @@ asio::awaitable<unsigned int> client_session::async_send_writer(const std::strin
 
 void client_session::cancel()
 {
+    flush_parked_send();
     if (isssl)
     {
         sslsocket->lowest_layer().cancel(ec);
@@ -923,7 +973,7 @@ void client_session::cancel()
 
 void client_session::half_stop()
 {
-    //half_close = true;
+    flush_parked_send();
     if (iserror)
     {
         isclose = true;
@@ -934,6 +984,9 @@ asio::awaitable<std::string> client_session::async_stop()
     DEBUG_LOG("socket async_stop");
     std::string temp_msg;
     isclose = true;
+    flush_parked_send();
+    // 唤醒挂起中的发送消费者协程，让它看到 isclose 后退出
+    waituphttp2();
     try
     {
         asio::error_code ec_a;
@@ -965,7 +1018,6 @@ asio::awaitable<std::string> client_session::async_stop()
 
                 if (shutdown_ec)
                 {
-                    // 记录 shutdown 的错误，但不中断流程
                     temp_msg = temp_msg + " SSL_Shutdown_Error: " + shutdown_ec.message();
                 }
                 else
@@ -1012,7 +1064,6 @@ asio::awaitable<std::string> client_session::async_stop()
         temp_msg =temp_msg + " exception ";
         iserror = true;
     }
-    // timer_.cancel();
     temp_msg.append("\n");
     co_return temp_msg;
 }
@@ -1021,6 +1072,9 @@ void client_session::stop()
 {
     DEBUG_LOG("socket stop");
     isclose = true;
+    flush_parked_send();
+    // 唤醒挂起中的发送消费者协程，让它看到 isclose 后退出
+    waituphttp2();
     try
     {
         asio::error_code ec_b;
@@ -1064,7 +1118,6 @@ void client_session::stop()
         DEBUG_LOG("socket exp ");
         iserror = true;
     }
-    // timer_.cancel();
 }
 
 std::string client_session::getremoteip()
@@ -1080,17 +1133,14 @@ std::string client_session::getremoteip()
     asio::ip::tcp::endpoint ep;
     if (isssl)
     {
-        //client_ip = sslsocket->lowest_layer().remote_endpoint().address().to_string();
         ep = sslsocket->lowest_layer().remote_endpoint(ec);
     }
     else
     {
         ep = socket->remote_endpoint(ec);
-        //client_ip = socket->remote_endpoint().address().to_string();
     }
     if (ec)
     {
-        //已经断开不用关闭
         iserror = true;
         isclose = true;
         client_ip = ec.message();
@@ -1115,13 +1165,11 @@ std::string client_session::getremoteip()
         return "";
     }
     asio::ip::address addr = ep.address();
-    //client_ip = ep.address().to_string();
     if (addr.is_v6()) 
     {
         auto v6_addr = addr.to_v6();
         if (v6_addr.is_v4_mapped()) 
         {
-            // 使用官方推荐的 make_address_v4 函数进行转换
             client_ip = asio::ip::make_address_v4(asio::ip::v4_mapped, v6_addr).to_string();
         } else {
             client_ip = v6_addr.to_string();
@@ -1149,17 +1197,14 @@ unsigned int client_session::getremoteport()
     if (isssl)
     {
         ep = sslsocket->lowest_layer().remote_endpoint(ec);
-        //client_port = sslsocket->lowest_layer().remote_endpoint().port();
     }
     else
     {
         ep = socket->remote_endpoint(ec);
-       // client_port = socket->remote_endpoint().port();
     }
     
     if (ec)
     {
-        //已经断开不用关闭
         iserror = true;
         isclose = true;
         client_ip = ec.message();
@@ -1198,16 +1243,13 @@ std::string client_session::getlocalip()
     if (isssl)
     {
         ep = sslsocket->lowest_layer().local_endpoint(ec);
-        //server_ip = sslsocket->lowest_layer().local_endpoint().address().to_string();
     }
     else
     {
         ep = socket->local_endpoint(ec);
-        //server_ip = socket->local_endpoint().address().to_string();
     }
     if (ec)
     {
-        //已经断开不用关闭
         iserror = true;
         isclose = true;
 
@@ -1246,17 +1288,14 @@ unsigned int client_session::getlocalport()
     if (isssl)
     {
         ep = sslsocket->lowest_layer().local_endpoint(ec);
-        //server_port = sslsocket->lowest_layer().local_endpoint().port();
     }
     else
     {
         ep = socket->local_endpoint(ec);
-        //server_port = socket->local_endpoint().port();
     }
 
     if (ec)
     {
-        //已经断开不用关闭
         iserror = true;
         isclose = true;
 
@@ -1281,6 +1320,43 @@ unsigned int client_session::getlocalport()
     }
     server_port = ep.port();
     return server_port;
+}
+
+
+bool client_session::post_write(std::string_view msg)
+{
+    if (isclose || iserror || !http2_ring_queue)
+    {
+        return false;
+    }
+    // 条数闸：16 槽环最多积压 15 条；字节闸：累计积压过 LIMIT 才拒，环空时单帧放行
+    unsigned long long backlog = http2_ring_queue->bytes.load(std::memory_order_relaxed);
+    unsigned int backlog_cnt   = http2_ring_queue->has_size();
+    if (backlog_cnt + 1 >= http2_ring_queue->capacity_)
+    {
+        return false;
+    }
+    if (backlog > 0 && backlog + msg.size() > MQTT_SEND_RING_BYTE_LIMIT)
+    {
+        return false;
+    }
+    if (!http2_ring_queue->push(reinterpret_cast<const unsigned char *>(msg.data()),
+                                static_cast<unsigned int>(msg.size())))
+    {
+        return false;
+    }
+    http2_ring_queue->bytes.fetch_add(msg.size(), std::memory_order_relaxed);
+    if (http2_need_wakeup)
+    {
+        waituphttp2();
+    }
+    return true;
+}
+
+bool client_session::post_write(const unsigned char *buf, unsigned int len)
+{
+    if (isclose || iserror || !buf) return false;
+    return post_write(std::string_view(reinterpret_cast<const char *>(buf), len));
 }
 
 }// namespace http

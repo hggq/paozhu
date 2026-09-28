@@ -13,6 +13,7 @@
 #include <string>
 #include <stdexcept>
 #include <ctime>
+#include <optional>
 #include <chrono>
 #include <openssl/sha.h>
 #include <openssl/evp.h>
@@ -1454,12 +1455,7 @@ bool mysql_conn_base::server_public_key_encrypt(const std::string &password, uns
     }
     BIO_free(bio);
 
-    std::size_t server_public_key_len = 0;
-#if OPENSSL_VERSION_NUMBER >= 0x30000000L
-    server_public_key_len = EVP_PKEY_get_size(public_key);
-#else  /* OPENSSL_VERSION_NUMBER >= 0x30000000L */
-    server_public_key_len = EVP_PKEY_size(public_key);
-#endif /* OPENSSL_VERSION_NUMBER >= 0x30000000L */
+    std::size_t server_public_key_len = EVP_PKEY_get_size(public_key);
 
     if (256 < CACHE_DATA_LENGTH)
     {
@@ -1559,11 +1555,14 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
         asio::ip::tcp::resolver resolver(*conn_link->io_ctx);
         auto endpoints = co_await resolver.async_resolve(conn_config.host, conn_config.port, asio::use_awaitable);
 
+        // 必须 ++iter 再试下一个地址：少了这一步，同一个地址会被无限重试，
+        // 库不通时这条协程永不返回（实测约 1 万次 connect/秒）。与 pg_conn 的循环保持一致。
         for (auto iter = endpoints.cbegin(); iter != endpoints.cend();)
         {
             std::tie(conn_link->ec) = co_await conn_link->socket->async_connect(*iter, tuple_awaitable);
             if (conn_link->ec)
             {
+                ++iter;
                 continue;
             }
             break;

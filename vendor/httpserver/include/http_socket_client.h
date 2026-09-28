@@ -84,7 +84,7 @@ namespace http
         bool iswait_exit = false;
         bool isco = false;
         std::atomic_flag socket_read_lock = ATOMIC_FLAG_INIT;
-        unsigned char exptime = 0;
+        unsigned int exptime = 0;
         unsigned char cur_process_type = 0;
         
         unsigned int offsetnum = 0;

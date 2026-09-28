@@ -25,6 +25,7 @@
 #include "http_rpcclient.h"
 #include "http_socket_client.h"
 #include "http_websocket_client.h"
+#include "http_mqtt_client.h"
 
 namespace http
 {
@@ -32,7 +33,7 @@ namespace http
 class client_context
 {
   public:
-    client_context(asio::io_context *io_context): ioc(io_context) , time_out_loop_th(std::bind(&client_context::time_out_loop, this)) {}
+    client_context(asio::io_context *io_context) : ioc(io_context), time_out_loop_th(std::bind(&client_context::time_out_loop, this)) {}
     void run();
     void time_out_loop();
     void taskloop();
@@ -40,19 +41,31 @@ class client_context
     void http_client_task(std::shared_ptr<client>);
     void websocket_client_task(std::shared_ptr<websocket_client>);
     void socket_client_task(std::shared_ptr<socket_client>);
+    void mqtt_client_task(std::shared_ptr<mqtt_client>);
 
     void add_http_task(std::shared_ptr<client>);
     void add_fastcgi_task(std::shared_ptr<fastcgi>);
     void add_websocket_task(std::shared_ptr<websocket_client>);
     void add_socket_task(std::shared_ptr<socket_client>);
+    void add_mqtt_task(std::shared_ptr<mqtt_client>);
+
+    template <typename T>
+    void add_timeout_list(std::list<std::weak_ptr<T>> &timeout_list, const std::shared_ptr<T> &peer)
+    {
+        {
+            std::lock_guard<std::mutex> lk(timeout_mutex);
+            timeout_list.push_back(peer);
+        }
+        timeout_condition.notify_one();
+    }
     void stop();
-    asio::io_context& get_ctx();
+    asio::io_context &get_ctx();
     ~client_context();
 
   public:
     unsigned int thread_size      = 3;
     unsigned int thread_task_size = 1;
-    asio::io_context *ioc = nullptr;
+    asio::io_context *ioc         = nullptr;
 
     // std::unique_ptr<asio::io_context::work> worker;
     std::vector<std::thread> threads;
@@ -66,6 +79,7 @@ class client_context
     std::queue<std::shared_ptr<fastcgi>> cgitasks;
     std::queue<std::shared_ptr<socket_client>> socket_clienttasks;
     std::queue<std::shared_ptr<websocket_client>> websocket_clienttasks;
+    std::queue<std::shared_ptr<mqtt_client>> mqtt_clienttasks;
 
     std::mutex timeout_mutex;
     std::condition_variable timeout_condition;
@@ -73,9 +87,9 @@ class client_context
     std::list<std::weak_ptr<rpc_client>> rpc_timeout_lists;
     std::list<std::weak_ptr<socket_client>> socket_timeout_lists;
     std::list<std::weak_ptr<websocket_client>> websocket_timeout_lists;
-    
+    std::list<std::weak_ptr<mqtt_client>> mqtt_timeout_lists;
 };
-client_context &get_client_context_obj(asio::io_context *io_context=nullptr);
+client_context &get_client_context_obj(asio::io_context *io_context = nullptr);
 
 }// namespace http
 #endif

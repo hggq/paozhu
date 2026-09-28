@@ -13,20 +13,25 @@ class loopwebsockets : public websockets_api
 {
   public:
 
-    loopwebsockets(unsigned int m, unsigned int g) : websockets_api(8, m, g, 0) {}
+    // isco/isloopco 必须在构造时决定，server.cpp 构造后立即判断
+    loopwebsockets(unsigned int m, unsigned int g) : websockets_api(8, m, g, 0)
+    {
+        // 保持同步版（isco=false → onopen/onmessage 同步分支；isloopco=false → run_loop 被定时线程调用）
+        isco = false;
+        isloopco = false;
+    }
     ~loopwebsockets() { std::cout << "~loopwebsockets" << std::endl; }
 
   public:
     void onopen() override
     { 
-        isco=true;
+        // isco 已由构造函数决定，onopen 不再改
         loop_num = 8; 
         std::cout << "onopen" << std::endl; 
     }
 
     asio::awaitable<void> async_onopen() override
     { 
-        isco=true;
         loop_num = 8; 
         std::cout << "async_onopen" << std::endl; 
         co_return;
@@ -50,12 +55,9 @@ class loopwebsockets : public websockets_api
         if (session_sock)
         {
             std::cout << "timeloop:" << std::endl;
-            std::string aa = "test run_loop";
-            std::string outhello;
-            ws_parse->make_ws_text(aa, outhello);
-            session_sock->send_writer(outhello);
+            // 统一走 send() → 环，不再直接 post_write
+            send("test run_loop");
 
-            //   peer->send(aa);
             if (loop_num == 4)
             {
                 loop_num = 0;
@@ -75,11 +77,8 @@ class loopwebsockets : public websockets_api
         if (session_sock)
         {
             std::cout << "async async_run_loop" << std::endl;
-            std::string aa = "test async_run_loop";
-            std::string outhello;
-            ws_parse->make_ws_text(aa, outhello);
-            co_await session_sock->async_send_writer(outhello);
-            //   peer->send(aa);
+            // 统一走 send() → 环，不再直接 async_send_writer
+            send("test async_run_loop");
             if (loop_num == 4)
             {
                 loop_num = 0;
@@ -98,13 +97,14 @@ class loopwebsockets : public websockets_api
 
     asio::awaitable<void> async_onmessage(websockets_data_list_t &&msg) override 
     {
-        std::string outhello;
-        ws_parse->make_ws_text(msg.value, outhello);
-        co_await session_sock->async_send_writer(outhello);
+        auto self = shared_from_this();
+        // 统一走 send() → 环
+        self->send(msg.value);
         co_return;
     }
     void onmessage() override
     {
+        auto self = shared_from_this();
         std::unique_lock<std::mutex> lock(content_list_mutex);
         if(content_list.empty())
         {
@@ -114,9 +114,8 @@ class loopwebsockets : public websockets_api
         content_list.pop_front();
         lock.unlock();
         
-        std::string outhello;
-        ws_parse->make_ws_text(msg.value, outhello);
-        session_sock->send_writer(outhello);
+        // 统一走 send() → 环，不再直接 send_writer
+        self->send(msg.value);
         return;
     }
  

@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cstdio>
+#include <functional>
 #include <list>
 #include <map>
 #include <condition_variable>
@@ -1215,10 +1216,8 @@ std::string mb_substr(std::string_view str, int begin, int length)
 
 struct stat filestat(std::string &file_name)
 {
-    struct stat finfo;
-    if (stat(file_name.c_str(), &finfo) == 0)
-    {
-    }
+    struct stat finfo = {};
+    stat(file_name.c_str(), &finfo);
     return finfo;
 }
 std::map<std::string, std::string> filepath(std::string &str)
@@ -1640,7 +1639,7 @@ long long str2int(const char *source, unsigned int str_length)
             break;
         }
     }
-    if (source[qi] == '-')
+    if (qi < str_length && source[qi] == '-')
     {
         issub = true;
         qi++;
@@ -1761,6 +1760,33 @@ std::string hex2str(std::string_view source, unsigned char is_space)
     }
     return obj;
 }
+// 修复：长度类头部（Content-Length 等）严格解析。
+// 旧路径用 str2int：它会跳过所有非数字字符（"5, 5"→55、"1e3"→13）、接受负号、
+// 且调用方把超限值静默改成 0（声明了 body 却不消费 → 报文错位/走私）。
+// 本函数只接受纯数字，带位数上限与溢出判断，失败即拒绝。
+bool str2uint64_strict(std::string_view source, unsigned long long &out, unsigned int max_digits)
+{
+    out = 0;
+    if (source.size() == 0 || source.size() > max_digits)
+    {
+        return false;
+    }
+    for (unsigned int i = 0; i < source.size(); i++)
+    {
+        if (source[i] < 0x30 || source[i] > 0x39)
+        {
+            return false;
+        }
+        unsigned long long digit = static_cast<unsigned long long>(source[i] - 0x30);
+        if (out > (0xFFFFFFFFFFFFFFFFULL - digit) / 10)
+        {
+            return false;
+        }
+        out = out * 10 + digit;
+    }
+    return true;
+}
+
 std::string str2safepath(const char *source, unsigned int str_length)
 {
     std::string temp;
@@ -2214,9 +2240,14 @@ std::string strip_annot(std::string_view content)
             i += 2;
             for (; i < content.size(); i++)
             {
-                if (content[i] == 0x0A)
+                if (content[i] == 0x0A || content[i] == 0x0D)
                 {
-                    if (i < content.size() && content[i] == 0x0D)
+                    // 消费 CRLF 两个字符中的紧接者
+                    if (content[i] == 0x0A && (i + 1) < content.size() && content[i + 1] == 0x0D)
+                    {
+                        i++;
+                    }
+                    else if (content[i] == 0x0D && (i + 1) < content.size() && content[i + 1] == 0x0A)
                     {
                         i++;
                     }
@@ -2464,6 +2495,114 @@ long long num_get_money(long long a)
 long long num_put_money(long long a)
 {
     return a * CONST_MONEY_PART;
+}
+
+bool ip_is_local(const std::string &ip)
+{
+    if (ip.empty()) return false;
+    std::string v = ip;
+    if (v.rfind("::ffff:", 0) == 0) v.erase(0, 7); // IPv4 映射写法
+    if (v == "::1" || v == "localhost") return true;
+
+    if (v.find(':') != std::string::npos)
+    {
+        // 还剩冒号就是 IPv6：只认唯一本地地址 fc00::/7（v[0]=='f' && v[1]∈{'c','d'}），
+        // 链路本地 fe80::/10 与全局 2xxx/3xxx 不放行；带端口的 "1.2.3.4:80" 也落到这里 ⇒ 拒。
+        return v.size() > 1 && v[0] == 'f' && (v[1] == 'c' || v[1] == 'd');
+    }
+
+    // IPv4 点分四段严格解析：多一个字符（端口、空格、主机名）都不认。
+    unsigned int part[4] = {0, 0, 0, 0};
+    unsigned int idx     = 0;
+    unsigned int digits  = 0;
+    for (char ch : v)
+    {
+        if (ch >= '0' && ch <= '9')
+        {
+            if (digits >= 3) return false;
+            part[idx] = part[idx] * 10 + static_cast<unsigned int>(ch - '0');
+            digits++;
+        }
+        else if (ch == '.')
+        {
+            if (idx >= 3 || digits == 0) return false;
+            idx++;
+            digits = 0;
+        }
+        else
+        {
+            return false;
+        }
+    }
+    if (idx != 3 || digits == 0) return false;
+    for (unsigned int i = 0; i < 4; i++)
+        if (part[i] > 255) return false;
+
+    if (part[0] == 127 || part[0] == 10) return true;
+    if (part[0] == 192 && part[1] == 168) return true;
+    if (part[0] == 172 && part[1] >= 16 && part[1] <= 31) return true;
+    return false;
+}
+
+std::string make_http_temp_raw_name()
+{
+    // 原名是裸 hash(去重性靠 hash)，这里统一加上前缀，便于 httpwatch 精确识别
+    std::string seed = std::string(HTTP_TEMP_RAW_PREFIX) + std::to_string(timeid()) + rand_string(6, 0);
+    return std::string(HTTP_TEMP_RAW_PREFIX) + std::to_string(std::hash<std::string>{}(seed));
+}
+
+std::string make_http_temp_upload_name(unsigned long long content_length)
+{
+    return std::string(HTTP_TEMP_UPLOAD_PREFIX) + std::to_string(timeid()) + rand_string(6, 0) + "_" + std::to_string(content_length);
+}
+
+bool is_http_temp_filename(std::string_view name)
+{
+    if (name.size() <= HTTP_TEMP_RAW_PREFIX.size())
+    {
+        return false;
+    }
+    if (name.compare(0, HTTP_TEMP_RAW_PREFIX.size(), HTTP_TEMP_RAW_PREFIX) == 0)
+    {
+        std::string_view tail = name.substr(HTTP_TEMP_RAW_PREFIX.size());
+        for (char ch : tail)
+        {
+            if (ch < '0' || ch > '9')
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+    if (name.size() <= HTTP_TEMP_UPLOAD_PREFIX.size() ||
+        name.compare(0, HTTP_TEMP_UPLOAD_PREFIX.size(), HTTP_TEMP_UPLOAD_PREFIX) != 0)
+    {
+        return false;
+    }
+    {
+        std::string_view tail    = name.substr(HTTP_TEMP_UPLOAD_PREFIX.size());
+        std::size_t      sep_pos = tail.find('_');
+        if (sep_pos == std::string_view::npos || sep_pos == 0 || sep_pos + 1 >= tail.size())
+        {
+            return false;
+        }
+        for (std::size_t i = 0; i < sep_pos; i++)
+        {
+            unsigned char ch = static_cast<unsigned char>(tail[i]);
+            if (!std::isalnum(ch))
+            {
+                return false;
+            }
+        }
+        for (std::size_t i = sep_pos + 1; i < tail.size(); i++)
+        {
+            if (tail[i] < '0' || tail[i] > '9')
+            {
+                return false;
+            }
+        }
+        return true;
+    }
 }
 
 }// namespace http

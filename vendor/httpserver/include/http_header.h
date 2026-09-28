@@ -21,7 +21,12 @@
 
 #include "request.h"
 
-#define RECV_WINDOW_UPDATE_NUM 16711680
+// 旧实现这里定义 RECV_WINDOW_UPDATE_NUM = 16711680，而本端广告的
+// SETTINGS_INITIAL_WINDOW_SIZE 是 0xFFFFFF = 16777215，两者相差正好一个默认连接
+// 窗口（65535），补窗口基线系统性偏小。现已统一到 cost_define.h：
+//   CONST_HTTP2_LOCAL_INITIAL_WINDOW  每流窗口目标水位（= 广告值 0xFFFFFF）
+//   CONST_HTTP2_DEFAULT_WINDOW        连接级窗口初值（RFC 固定 65535）
+//   CONST_HTTP2_WINDOW_UPDATE_STEP    连接级窗口一次性抬升量（= 16711680）
 
 namespace http
 {
@@ -38,6 +43,10 @@ struct headstate_t
     bool websocket         = false;
     bool upgradeconnection = false;
     bool rangebytes        = false;
+    // M5 修复：后缀范围(bytes=-N) / 是否显式给出末端(bytes=N-M)。
+    // 旧实现没有这两个标志，只能靠 "rangeend > 0" 判断，故 bytes=0-0 与 bytes=-N 都解析错误。
+    bool range_suffix      = false;
+    bool range_has_end     = false;
     bool accept_json       = false;
     bool accept_xml        = false;
     bool accept_html       = false;
@@ -50,13 +59,25 @@ struct headstate_t
     unsigned long long rangebegin      = 0;
     unsigned long long rangeend        = 0;
 };
+
+// RFC 7233 首段 byte-range 解析；h1 与 h2 共用，两方言必须逐字节同行为。
+// 成功解析时置 rangebytes / rangebegin / rangeend / range_suffix / range_has_end。
+// 三种结果必须可区分：h1 语法不合法要回 400，而非 bytes 单位要当没有这个头；
+// h2 没有「单条头错误」通道，语法不合法只能按 RFC 9110 §14.2 忽略该头。
+enum class range_parse_t : unsigned char
+{
+    applied      = 0,
+    not_bytes    = 1,
+    syntax_error = 2
+};
+range_parse_t parse_range_header(std::string_view header_value, headstate_t &state);
+
 struct websocket_t
 {
     bool deflate           = false;
     bool permessagedeflate = false;
     bool perframedeflate   = false;
     bool deflateframe      = false;
-    bool isopen            = false;
     bool gzip              = false;
     bool zstd              = false;
     bool br                = false;

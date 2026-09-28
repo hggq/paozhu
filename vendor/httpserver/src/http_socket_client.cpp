@@ -1,6 +1,7 @@
 #include "http_socket_client.h"
 #include "client_context.h"
 #include "atomic_guard.h"
+#include <future>
 
 namespace http
 {
@@ -339,18 +340,13 @@ asio::awaitable<bool> socket_client::async_connect()
         co_return false;
     }
 
-    if (exptime > 30)
-    {
-        exptime = 30;
-    }
     if (exptime > 0)
     {
         set_timeout(exptime);
         client_context &temp_io_context = get_client_context_obj();
         try
         {
-            temp_io_context.socket_timeout_lists.push_back(shared_from_this());
-            temp_io_context.timeout_condition.notify_one();
+            temp_io_context.add_timeout_list(temp_io_context.socket_timeout_lists, shared_from_this());
         }
         catch (const std::exception &e)
         {
@@ -405,18 +401,13 @@ asio::awaitable<bool> socket_client::async_tcp_connect()
         co_return false;
     }
 
-    if (exptime > 30)
-    {
-        exptime = 30;
-    }
     if (exptime > 0)
     {
         set_timeout(exptime);
         client_context &temp_io_context = get_client_context_obj();
         try
         {
-            temp_io_context.socket_timeout_lists.push_back(shared_from_this());
-            temp_io_context.timeout_condition.notify_one();
+            temp_io_context.add_timeout_list(temp_io_context.socket_timeout_lists, shared_from_this());
         }
         catch (const std::exception &e)
         {
@@ -444,13 +435,18 @@ asio::awaitable<unsigned int> socket_client::async_read(unsigned char *buffer_da
 {
     if (socket_read_lock.test_and_set()) 
     {
+        // 锁占用是可重试的瞬时冲突，不锁死整条连接（不置 iserror）
         error_msg = "Other socket read is set";
-        iserror = true;
         co_return 0;
     }
     atomic_guard guard{socket_read_lock};
     if(iserror)
     {
+        co_return 0;
+    }
+    if (isssl ? (sslsock == nullptr) : (sock == nullptr))
+    {
+        error_msg = "socket not initialized";
         co_return 0;
     }
     if (exptime > 0)
@@ -481,10 +477,10 @@ asio::awaitable<unsigned int> socket_client::async_read(unsigned char *buffer_da
 
 asio::awaitable<unsigned int> socket_client::async_read(std::string &buffer_data)
 {
-    if (socket_read_lock.test_and_set()) 
+    if (socket_read_lock.test_and_set())
     {
+        // 同上：瞬时冲突不置 iserror
         error_msg = "Other socket read is set";
-        iserror = true;
         co_return 0;
     }
     atomic_guard guard{socket_read_lock};
@@ -492,6 +488,15 @@ asio::awaitable<unsigned int> socket_client::async_read(std::string &buffer_data
     if(iserror)
     {
         co_return 0;
+    }
+    if (isssl ? (sslsock == nullptr) : (sock == nullptr))
+    {
+        error_msg = "socket not initialized";
+        co_return 0;
+    }
+    if (buffer_data.size() == 0)
+    {
+        buffer_data.resize(1024);
     }
     if (exptime > 0)
     {
@@ -526,6 +531,11 @@ asio::awaitable<unsigned int> socket_client::async_write(unsigned char *data_out
     {
         co_return 0;
     }
+    if (isssl ? (sslsock == nullptr) : (sock == nullptr))
+    {
+        error_msg = "socket not initialized";
+        co_return 0;
+    }
     if (exptime > 0)
     {
         reset_timeout();
@@ -558,6 +568,11 @@ asio::awaitable<unsigned int> socket_client::async_write(std::string_view value)
 
     if(iserror)
     {
+        co_return 0;
+    }
+    if (isssl ? (sslsock == nullptr) : (sock == nullptr))
+    {
+        error_msg = "socket not initialized";
         co_return 0;
     }
     if (exptime > 0)
@@ -595,6 +610,11 @@ unsigned int socket_client::write(unsigned char *data_out, unsigned int buffersi
     {
         return 0;
     }
+    if (isssl ? (sslsock == nullptr) : (sock == nullptr))
+    {
+        error_msg = "socket not initialized";
+        return 0;
+    }
     if (exptime > 0)
     {
         reset_timeout();
@@ -626,6 +646,11 @@ unsigned int socket_client::write(std::string_view value)
 {
     if(iserror)
     {
+        return 0;
+    }
+    if (isssl ? (sslsock == nullptr) : (sock == nullptr))
+    {
+        error_msg = "socket not initialized";
         return 0;
     }
     if (exptime > 0)
@@ -817,9 +842,30 @@ void socket_client::run_loop()
             }
             else if(async_run_loop_fun != nullptr)
             {
-                asio::co_spawn(strand_, [self, n]() mutable
-                 { return self->async_run_loop_fun(self, n); },
+                // 消费者按签名读 self->data，而本线程下一轮 read_some 会在另一线程
+                // 覆写同一成员缓冲：拷贝本轮字节交给协程，并用 latch 串行化本拍，
+                // 确保协程读完上一轮之前本线程不再读下一轮（否则读到撕裂数据）
+                std::string pack(reinterpret_cast<const char *>(data), n);
+                auto latch = std::make_shared<std::promise<void>>();
+                auto done  = latch->get_future();
+                asio::co_spawn(strand_,
+                 [self, n, pack = std::move(pack), latch]() mutable -> asio::awaitable<void>
+                 {
+                     unsigned char *keep = self->data;
+                     self->data = reinterpret_cast<unsigned char *>(pack.data());
+                     try
+                     {
+                         co_await self->async_run_loop_fun(self, n);
+                     }
+                     catch (...)
+                     {
+                     }
+                     self->data = keep;
+                     latch->set_value();
+                     co_return;
+                 },
                  asio::detached);
+                done.wait();
             }
             else
             {

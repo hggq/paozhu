@@ -5,6 +5,9 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
+#include <cctype>
+#include <algorithm>
+#include <tuple>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -62,7 +65,12 @@ bool db_conn::begin_commit()
     iscommit    = true;
     if (conn_obj == nullptr)
     {
-        error_msg = "Please select_db() tag";
+        // 没有连接池就无法开启事务：必须把事务标志复位，否则留下假的 iscommit
+        // 会让后续 rollback()/commit() 以为事务还开着（悬挂事务）
+        error_msg   = "Please select_db() tag";
+        iscommit    = false;
+        islock_conn = false;
+        iserror     = true;
         return false;
     }
     if (db_type == DB_TYPE::MYSQL)
@@ -241,6 +249,12 @@ void db_conn::mysql_rollback_impl()
     if (affected == static_cast<unsigned int>(-1))
     {
         error_msg = mysql_edit_conn->error_msg;
+        iserror   = true;
+    }
+    else
+    {
+        // ROLLBACK 成功即语句级错误已处理，解除错误锁以便继续复用该 db_conn
+        iserror = false;
     }
     iscommit    = false;
     islock_conn = false;
@@ -259,14 +273,16 @@ void db_conn::pg_rollback_impl()
     if (affected == static_cast<unsigned int>(-1))
     {
         error_msg = pg_edit_conn->error_msg;
+        iserror   = true;
     }
     else
     {
         effect_num = affected;
+        iserror    = false;
     }
     iscommit    = false;
     islock_conn = false;
-    pg_edit_conn.reset();
+    conn_obj->back_pg_edit_conn(std::move(pg_edit_conn));
 }
 
 asio::awaitable<bool> db_conn::async_begin_commit()
@@ -282,8 +298,11 @@ asio::awaitable<bool> db_conn::async_begin_commit()
     iscommit    = true;
     if (conn_obj == nullptr)
     {
-        error_msg = "Please select_db() tag";
-        iserror   = true;
+        // 同上：复位事务标志，避免留下假的 iscommit 造成悬挂事务
+        error_msg   = "Please select_db() tag";
+        iscommit    = false;
+        islock_conn = false;
+        iserror     = true;
         co_return false;
     }
     if (db_type == DB_TYPE::MYSQL)
@@ -461,6 +480,11 @@ asio::awaitable<void> db_conn::mysql_async_rollback_impl()
     if (affected == static_cast<unsigned int>(-1))
     {
         error_msg = mysql_edit_conn->error_msg;
+        iserror   = true;
+    }
+    else
+    {
+        iserror = false;
     }
     iscommit    = false;
     islock_conn = false;
@@ -478,19 +502,18 @@ asio::awaitable<void> db_conn::pg_async_rollback_impl()
     unsigned int affected = co_await pg_edit_conn->async_exec_dml("ROLLBACK");
     if (affected == static_cast<unsigned int>(-1))
     {
-        error_msg   = pg_edit_conn->error_msg;
-        islock_conn = false;
-        iscommit    = false;
-        iserror     = true;
+        error_msg = pg_edit_conn->error_msg;
+        iserror   = true;
     }
     else
     {
         effect_num = affected;
+        iserror    = false;
     }
 
     iscommit    = false;
     islock_conn = false;
-    pg_edit_conn.reset();
+    conn_obj->back_pg_edit_conn(std::move(pg_edit_conn));
 }
 
 // ======================== SQLite transaction implementations ========================
@@ -560,6 +583,11 @@ void db_conn::sqlite_rollback_impl()
     if (!sqlite_edit_conn->rollback_transaction())
     {
         error_msg = sqlite_edit_conn->error_msg;
+        iserror   = true;
+    }
+    else
+    {
+        iserror = false;
     }
     iscommit    = false;
     islock_conn = false;
@@ -627,6 +655,11 @@ asio::awaitable<void> db_conn::sqlite_async_rollback_impl()
     if (!co_await sqlite_edit_conn->async_rollback_transaction())
     {
         error_msg = sqlite_edit_conn->error_msg;
+        iserror   = true;
+    }
+    else
+    {
+        iserror = false;
     }
     iscommit    = false;
     islock_conn = false;
@@ -683,8 +716,7 @@ unsigned int db_conn::mysql_edit_query_impl(const std::string &rawsql)
         unsigned int affected = mysql_edit_conn->exec_dml(rawsql);
         if (affected == static_cast<unsigned int>(-1))
         {
-            error_msg = mysql_edit_conn->error_msg;
-            mysql_edit_conn.reset();
+            mark_edit_failed(mysql_edit_conn);
             return 0;
         }
         effect_num = affected;
@@ -748,8 +780,7 @@ unsigned int db_conn::pg_edit_query_impl(const std::string &rawsql)
         unsigned int affected = pg_edit_conn->exec_dml(rawsql);
         if (affected == static_cast<unsigned int>(-1))
         {
-            error_msg = pg_edit_conn->error_msg;
-            pg_edit_conn.reset();
+            mark_edit_failed(pg_edit_conn);
             return 0;
         }
         effect_num = affected;
@@ -813,8 +844,7 @@ unsigned int db_conn::sqlite_edit_query_impl(const std::string &rawsql)
         unsigned int affected = sqlite_edit_conn->exec_dml(rawsql);
         if (affected == static_cast<unsigned int>(-1))
         {
-            error_msg = sqlite_edit_conn->error_msg;
-            sqlite_edit_conn.reset();
+            mark_edit_failed(sqlite_edit_conn);
             return 0;
         }
         effect_num = affected;
@@ -839,6 +869,525 @@ unsigned int db_conn::sqlite_edit_query_impl(const std::string &rawsql)
     }
 
     return 0;
+}
+
+//// ----------------------------------------------------------------------------
+//// insert_query：移植自各 *orm.hpp 的 save() INSERT 分支
+//// 返回 {影响行数, 自增主键}。失败走 mark_edit_failed（置 iserror、保留事务连接）。
+//// ----------------------------------------------------------------------------
+
+std::tuple<unsigned int, unsigned long long> db_conn::mysql_insert_query_impl(const std::string &rawsql)
+{
+    effect_num = 0;
+    if (iserror)
+    {
+        return {0, 0};
+    }
+    error_msg.clear();
+
+    try
+    {
+        if (conn_obj == nullptr)
+        {
+            error_msg = "Please select_db() tag";
+            return {0, 0};
+        }
+
+        if (islock_conn)
+        {
+            if (!mysql_edit_conn)
+            {
+                mysql_edit_conn = conn_obj->get_mysql_edit_conn();
+            }
+        }
+        else
+        {
+            mysql_edit_conn = conn_obj->get_mysql_edit_conn();
+        }
+
+        if (mysql_edit_conn->isdebug)
+        {
+            mysql_edit_conn->begin_time();
+        }
+
+        unsigned int affected = mysql_edit_conn->exec_dml(rawsql);
+        if (affected == static_cast<unsigned int>(-1))
+        {
+            mark_edit_failed(mysql_edit_conn);
+            return {0, 0};
+        }
+        effect_num                  = affected;
+        unsigned long long last_id  = mysql_edit_conn->last_insert_id();
+
+        if (mysql_edit_conn->isdebug)
+        {
+            mysql_edit_conn->finish_time();
+            auto &conn_mar    = get_orm_connect_mar();
+            long long du_time = mysql_edit_conn->count_time();
+            conn_mar.push_log(rawsql, std::to_string(du_time));
+        }
+        if (!islock_conn)
+        {
+            conn_obj->back_mysql_edit_conn(std::move(mysql_edit_conn));
+        }
+        return {effect_num, last_id};
+    }
+    catch (const std::exception &e)
+    {
+        error_msg = std::string(e.what());
+        return {0, 0};
+    }
+
+    return {0, 0};
+}
+
+std::tuple<unsigned int, unsigned long long> db_conn::sqlite_insert_query_impl(const std::string &rawsql)
+{
+    effect_num = 0;
+    if (iserror)
+    {
+        return {0, 0};
+    }
+    error_msg.clear();
+
+    try
+    {
+        if (conn_obj == nullptr)
+        {
+            error_msg = "Please select_db() tag";
+            return {0, 0};
+        }
+
+        if (islock_conn)
+        {
+            if (!sqlite_edit_conn)
+            {
+                sqlite_edit_conn = conn_obj->get_sqlite_edit_conn();
+            }
+        }
+        else
+        {
+            sqlite_edit_conn = conn_obj->get_sqlite_edit_conn();
+        }
+
+        if (sqlite_edit_conn->isdebug)
+        {
+            sqlite_edit_conn->begin_time();
+        }
+
+        unsigned int affected = sqlite_edit_conn->exec_dml(rawsql);
+        if (affected == static_cast<unsigned int>(-1))
+        {
+            mark_edit_failed(sqlite_edit_conn);
+            return {0, 0};
+        }
+        effect_num                 = affected;
+        unsigned long long last_id = sqlite_edit_conn->last_insert_rowid();
+
+        if (sqlite_edit_conn->isdebug)
+        {
+            sqlite_edit_conn->finish_time();
+            auto &conn_mar    = get_orm_connect_mar();
+            long long du_time = sqlite_edit_conn->count_time();
+            conn_mar.push_log(rawsql, std::to_string(du_time));
+        }
+        if (!islock_conn)
+        {
+            conn_obj->back_sqlite_edit_conn(std::move(sqlite_edit_conn));
+        }
+        return {effect_num, last_id};
+    }
+    catch (const std::exception &e)
+    {
+        error_msg = std::string(e.what());
+        return {0, 0};
+    }
+
+    return {0, 0};
+}
+
+std::tuple<unsigned int, unsigned long long> db_conn::pg_insert_query_impl(const std::string &rawsql)
+{
+    effect_num = 0;
+    if (iserror)
+    {
+        return {0, 0};
+    }
+    error_msg.clear();
+
+    try
+    {
+        if (conn_obj == nullptr)
+        {
+            error_msg = "Please select_db() tag";
+            return {0, 0};
+        }
+
+        if (islock_conn)
+        {
+            if (!pg_edit_conn)
+            {
+                pg_edit_conn = conn_obj->get_pg_edit_conn();
+            }
+        }
+        else
+        {
+            pg_edit_conn = conn_obj->get_pg_edit_conn();
+        }
+
+        if (pg_edit_conn->isdebug)
+        {
+            pg_edit_conn->begin_time();
+        }
+
+        // PG 无隐式 last_insert_id：若 rawsql 已自带 RETURNING（如 commit_insert_returning() 产物），
+        // 直接 fetch_directly 回读首行主键；否则仅执行，id 返回 0（调用方需另行取回）。
+        bool has_returning = false;
+        {
+            std::string tmp = rawsql;
+            std::transform(tmp.begin(), tmp.end(), tmp.begin(),
+                           [](unsigned char c) { return static_cast<unsigned char>(std::tolower(c)); });
+            has_returning = (tmp.find(" returning ") != std::string::npos);
+        }
+
+        if (has_returning)
+        {
+            long long last_id = 0;
+            unsigned int rows = pg_edit_conn->fetch_directly(
+                rawsql,
+                [&last_id](int /*col_count*/, char ** /*col_names*/, auto get_data) -> bool
+                {
+                    auto [ptr, len] = get_data(0);
+                    if (ptr != nullptr && len > 0)
+                    {
+                        long long v = 0;
+                        auto r      = std::from_chars(reinterpret_cast<const char *>(ptr),
+                                                  reinterpret_cast<const char *>(ptr) + len,
+                                                  v,
+                                                  10);
+                        if (r.ec == std::errc())
+                            last_id = v;
+                    }
+                    return true;  // 读完全部行，行数即插入行数
+                });
+            if (!pg_edit_conn->error_msg.empty())
+            {
+                mark_edit_failed(pg_edit_conn);
+                return {0, 0};
+            }
+            effect_num = rows;
+
+            if (pg_edit_conn->isdebug)
+            {
+                pg_edit_conn->finish_time();
+                auto &conn_mar    = get_orm_connect_mar();
+                long long du_time = pg_edit_conn->count_time();
+                conn_mar.push_log(rawsql, std::to_string(du_time));
+            }
+            if (!islock_conn)
+            {
+                conn_obj->back_pg_edit_conn(std::move(pg_edit_conn));
+            }
+            return {effect_num, static_cast<unsigned long long>(last_id)};
+        }
+
+        // 无 RETURNING：仅执行 DML，id 返回 0
+        unsigned int affected = pg_edit_conn->exec_dml(rawsql);
+        if (affected == static_cast<unsigned int>(-1))
+        {
+            mark_edit_failed(pg_edit_conn);
+            return {0, 0};
+        }
+        effect_num = affected;
+        if (pg_edit_conn->isdebug)
+        {
+            pg_edit_conn->finish_time();
+            auto &conn_mar    = get_orm_connect_mar();
+            long long du_time = pg_edit_conn->count_time();
+            conn_mar.push_log(rawsql, std::to_string(du_time));
+        }
+        if (!islock_conn)
+        {
+            conn_obj->back_pg_edit_conn(std::move(pg_edit_conn));
+        }
+        return {effect_num, 0};
+    }
+    catch (const std::exception &e)
+    {
+        error_msg = std::string(e.what());
+        return {0, 0};
+    }
+
+    return {0, 0};
+}
+
+asio::awaitable<std::tuple<unsigned int, unsigned long long>> db_conn::mysql_async_insert_query_impl(const std::string &rawsql)
+{
+    effect_num = 0;
+    if (iserror)
+    {
+        co_return std::make_tuple(0, 0);
+    }
+    error_msg.clear();
+
+    try
+    {
+        if (conn_obj == nullptr)
+        {
+            error_msg = "Please select_db() tag";
+            co_return std::make_tuple(0, 0);
+        }
+
+        if (islock_conn)
+        {
+            if (!mysql_edit_conn)
+            {
+                mysql_edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
+            }
+        }
+        else
+        {
+            mysql_edit_conn = co_await conn_obj->async_get_mysql_edit_conn();
+        }
+
+        if (mysql_edit_conn->isdebug)
+        {
+            mysql_edit_conn->begin_time();
+        }
+
+        unsigned int affected = co_await mysql_edit_conn->async_exec_dml(rawsql);
+        if (affected == static_cast<unsigned int>(-1))
+        {
+            mark_edit_failed(mysql_edit_conn);
+            co_return std::make_tuple(0, 0);
+        }
+        effect_num                 = affected;
+        unsigned long long last_id = mysql_edit_conn->last_insert_id();
+
+        if (mysql_edit_conn->isdebug)
+        {
+            mysql_edit_conn->finish_time();
+            auto &conn_mar    = get_orm_connect_mar();
+            long long du_time = mysql_edit_conn->count_time();
+            conn_mar.push_log(rawsql, std::to_string(du_time));
+        }
+        if (!islock_conn)
+        {
+            conn_obj->back_mysql_edit_conn(std::move(mysql_edit_conn));
+        }
+        co_return std::make_tuple(effect_num, last_id);
+    }
+    catch (const std::exception &e)
+    {
+        error_msg = std::string(e.what());
+        co_return std::make_tuple(0, 0);
+    }
+
+    co_return std::make_tuple(0, 0);
+}
+
+asio::awaitable<std::tuple<unsigned int, unsigned long long>> db_conn::sqlite_async_insert_query_impl(const std::string &rawsql)
+{
+    effect_num = 0;
+    if (iserror)
+    {
+        co_return std::make_tuple(0, 0);
+    }
+    error_msg.clear();
+
+    try
+    {
+        if (conn_obj == nullptr)
+        {
+            error_msg = "Please select_db() tag";
+            co_return std::make_tuple(0, 0);
+        }
+
+        if (islock_conn)
+        {
+            if (!sqlite_edit_conn)
+            {
+                sqlite_edit_conn = co_await conn_obj->async_get_sqlite_edit_conn();
+            }
+        }
+        else
+        {
+            sqlite_edit_conn = co_await conn_obj->async_get_sqlite_edit_conn();
+        }
+
+        if (sqlite_edit_conn->isdebug)
+        {
+            sqlite_edit_conn->begin_time();
+        }
+
+        unsigned int affected = co_await sqlite_edit_conn->async_exec_dml(rawsql);
+        if (affected == static_cast<unsigned int>(-1))
+        {
+            mark_edit_failed(sqlite_edit_conn);
+            co_return std::make_tuple(0, 0);
+        }
+        effect_num                 = affected;
+        unsigned long long last_id = sqlite_edit_conn->last_insert_rowid();
+
+        if (sqlite_edit_conn->isdebug)
+        {
+            sqlite_edit_conn->finish_time();
+            auto &conn_mar    = get_orm_connect_mar();
+            long long du_time = sqlite_edit_conn->count_time();
+            conn_mar.push_log(rawsql, std::to_string(du_time));
+        }
+        if (!islock_conn)
+        {
+            conn_obj->back_sqlite_edit_conn(std::move(sqlite_edit_conn));
+        }
+        co_return std::make_tuple(effect_num, last_id);
+    }
+    catch (const std::exception &e)
+    {
+        error_msg = std::string(e.what());
+        co_return std::make_tuple(0, 0);
+    }
+
+    co_return std::make_tuple(0, 0);
+}
+
+asio::awaitable<std::tuple<unsigned int, unsigned long long>> db_conn::pg_async_insert_query_impl(const std::string &rawsql)
+{
+    effect_num = 0;
+    if (iserror)
+    {
+        co_return std::make_tuple(0, 0);
+    }
+    error_msg.clear();
+
+    try
+    {
+        if (conn_obj == nullptr)
+        {
+            error_msg = "Please select_db() tag";
+            co_return std::make_tuple(0, 0);
+        }
+
+        if (islock_conn)
+        {
+            if (!pg_edit_conn)
+            {
+                pg_edit_conn = co_await conn_obj->async_get_pg_edit_conn();
+            }
+        }
+        else
+        {
+            pg_edit_conn = co_await conn_obj->async_get_pg_edit_conn();
+        }
+
+        if (pg_edit_conn->isdebug)
+        {
+            pg_edit_conn->begin_time();
+        }
+
+        // PG 无隐式 last_insert_id：rawsql 已自带 RETURNING 则回读，否则仅执行、id 返回 0
+        bool has_returning = false;
+        {
+            std::string tmp = rawsql;
+            std::transform(tmp.begin(), tmp.end(), tmp.begin(),
+                           [](unsigned char c) { return static_cast<unsigned char>(std::tolower(c)); });
+            has_returning = (tmp.find(" returning ") != std::string::npos);
+        }
+
+        if (has_returning)
+        {
+            long long last_id = 0;
+            unsigned int rows = co_await pg_edit_conn->async_fetch_directly(
+                rawsql,
+                [&last_id](int /*col_count*/, char ** /*col_names*/, auto get_data) -> bool
+                {
+                    auto [ptr, len] = get_data(0);
+                    if (ptr != nullptr && len > 0)
+                    {
+                        long long v = 0;
+                        auto r      = std::from_chars(reinterpret_cast<const char *>(ptr),
+                                                  reinterpret_cast<const char *>(ptr) + len,
+                                                  v,
+                                                  10);
+                        if (r.ec == std::errc())
+                            last_id = v;
+                    }
+                    return true;
+                });
+            if (!pg_edit_conn->error_msg.empty())
+            {
+                mark_edit_failed(pg_edit_conn);
+                co_return std::make_tuple(0, 0);
+            }
+            effect_num = rows;
+
+            if (pg_edit_conn->isdebug)
+            {
+                pg_edit_conn->finish_time();
+                auto &conn_mar    = get_orm_connect_mar();
+                long long du_time = pg_edit_conn->count_time();
+                conn_mar.push_log(rawsql, std::to_string(du_time));
+            }
+            if (!islock_conn)
+            {
+                conn_obj->back_pg_edit_conn(std::move(pg_edit_conn));
+            }
+            co_return std::make_tuple(effect_num, static_cast<unsigned long long>(last_id));
+        }
+
+        unsigned int affected = co_await pg_edit_conn->async_exec_dml(rawsql);
+        if (affected == static_cast<unsigned int>(-1))
+        {
+            mark_edit_failed(pg_edit_conn);
+            co_return std::make_tuple(0, 0);
+        }
+        effect_num = affected;
+        if (pg_edit_conn->isdebug)
+        {
+            pg_edit_conn->finish_time();
+            auto &conn_mar    = get_orm_connect_mar();
+            long long du_time = pg_edit_conn->count_time();
+            conn_mar.push_log(rawsql, std::to_string(du_time));
+        }
+        if (!islock_conn)
+        {
+            conn_obj->back_pg_edit_conn(std::move(pg_edit_conn));
+        }
+        co_return std::make_tuple(effect_num, 0);
+    }
+    catch (const std::exception &e)
+    {
+        error_msg = std::string(e.what());
+        co_return std::make_tuple(0, 0);
+    }
+
+    co_return std::make_tuple(0, 0);
+}
+
+std::tuple<unsigned int, unsigned long long> db_conn::insert_query(const std::string &rawsql)
+{
+    if (db_type == DB_TYPE::MYSQL)
+    {
+        return mysql_insert_query_impl(rawsql);
+    }
+    else if (db_type == DB_TYPE::SQLITE)
+    {
+        return sqlite_insert_query_impl(rawsql);
+    }
+    return pg_insert_query_impl(rawsql);
+}
+
+asio::awaitable<std::tuple<unsigned int, unsigned long long>> db_conn::async_insert_query(const std::string &rawsql)
+{
+    if (db_type == DB_TYPE::MYSQL)
+    {
+        co_return co_await mysql_async_insert_query_impl(rawsql);
+    }
+    else if (db_type == DB_TYPE::SQLITE)
+    {
+        co_return co_await sqlite_async_insert_query_impl(rawsql);
+    }
+    co_return co_await pg_async_insert_query_impl(rawsql);
 }
 
 asio::awaitable<unsigned int> db_conn::async_edit_query(const std::string &rawsql)
@@ -891,8 +1440,7 @@ asio::awaitable<unsigned int> db_conn::mysql_async_edit_query_impl(const std::st
         unsigned int affected = co_await mysql_edit_conn->async_exec_dml(rawsql);
         if (affected == static_cast<unsigned int>(-1))
         {
-            error_msg = mysql_edit_conn->error_msg;
-            mysql_edit_conn.reset();
+            mark_edit_failed(mysql_edit_conn);
             co_return 0;
         }
         effect_num = affected;
@@ -956,8 +1504,7 @@ asio::awaitable<unsigned int> db_conn::pg_async_edit_query_impl(const std::strin
         unsigned int affected = co_await pg_edit_conn->async_exec_dml(rawsql);
         if (affected == static_cast<unsigned int>(-1))
         {
-            error_msg = pg_edit_conn->error_msg;
-            pg_edit_conn.reset();
+            mark_edit_failed(pg_edit_conn);
             co_return 0;
         }
         effect_num = affected;
@@ -1021,8 +1568,7 @@ asio::awaitable<unsigned int> db_conn::sqlite_async_edit_query_impl(const std::s
         unsigned int affected = co_await sqlite_edit_conn->async_exec_dml(rawsql);
         if (affected == static_cast<unsigned int>(-1))
         {
-            error_msg = sqlite_edit_conn->error_msg;
-            sqlite_edit_conn.reset();
+            mark_edit_failed(sqlite_edit_conn);
             co_return 0;
         }
         effect_num = affected;
@@ -1093,8 +1639,7 @@ unsigned int db_conn::mysql_exec_edit_query_impl(const std::string &rawsql, cons
         unsigned int affected = mysql_edit_conn->exec_dml_prepared(rawsql, params);
         if (affected == static_cast<unsigned int>(-1))
         {
-            error_msg = mysql_edit_conn->error_msg;
-            mysql_edit_conn.reset();
+            mark_edit_failed(mysql_edit_conn);
             return 0;
         }
         effect_num = affected;
@@ -1165,8 +1710,7 @@ unsigned int db_conn::pg_exec_edit_query_impl(const std::string &rawsql, const s
         unsigned int affected = pg_edit_conn->exec_dml_prepared(sql, params);
         if (affected == static_cast<unsigned int>(-1))
         {
-            error_msg = pg_edit_conn->error_msg;
-            pg_edit_conn.reset();
+            mark_edit_failed(pg_edit_conn);
             return 0;
         }
         effect_num = affected;
@@ -1235,8 +1779,7 @@ unsigned int db_conn::sqlite_exec_edit_query_impl(const std::string &rawsql, con
         unsigned int affected = sqlite_edit_conn->exec_dml_prepared(rawsql, params);
         if (affected == static_cast<unsigned int>(-1))
         {
-            error_msg = sqlite_edit_conn->error_msg;
-            sqlite_edit_conn.reset();
+            mark_edit_failed(sqlite_edit_conn);
             return 0;
         }
         effect_num = affected;
@@ -1318,8 +1861,7 @@ asio::awaitable<unsigned int> db_conn::mysql_async_exec_edit_query_impl(const st
         unsigned int affected = co_await mysql_edit_conn->async_exec_dml_prepared(rawsql, params);
         if (affected == static_cast<unsigned int>(-1))
         {
-            error_msg = mysql_edit_conn->error_msg;
-            mysql_edit_conn.reset();
+            mark_edit_failed(mysql_edit_conn);
             co_return 0;
         }
         effect_num = affected;
@@ -1390,8 +1932,7 @@ asio::awaitable<unsigned int> db_conn::pg_async_exec_edit_query_impl(const std::
         unsigned int affected = co_await pg_edit_conn->async_exec_dml_prepared(sql, params);
         if (affected == static_cast<unsigned int>(-1))
         {
-            error_msg = pg_edit_conn->error_msg;
-            pg_edit_conn.reset();
+            mark_edit_failed(pg_edit_conn);
             co_return 0;
         }
         effect_num = affected;
@@ -1460,8 +2001,7 @@ asio::awaitable<unsigned int> db_conn::sqlite_async_exec_edit_query_impl(const s
         unsigned int affected = co_await sqlite_edit_conn->async_exec_dml_prepared(rawsql, params);
         if (affected == static_cast<unsigned int>(-1))
         {
-            error_msg = sqlite_edit_conn->error_msg;
-            sqlite_edit_conn.reset();
+            mark_edit_failed(sqlite_edit_conn);
             co_return 0;
         }
         effect_num = affected;

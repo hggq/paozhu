@@ -67,7 +67,7 @@ std::string article_sqlite_show(std::shared_ptr<httppeer> peer)
 #ifdef ENABLE_SQLITE
     auto articles = orm::lite::Fortune();
     int aid       = client.get["id"].to_int();
-
+    // std::string d_id = "id"; // Dynamic column name
     articles.where("id", aid).fetch_one();
 
     client.val["title"]   = std::to_string(aid);

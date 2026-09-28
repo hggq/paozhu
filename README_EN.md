@@ -33,7 +33,7 @@ Join community developers to discuss the joy of C++ web development.
 ✅ 20. Complete admin backend demo available at `/admin/main`  
 ✅ 21. PHP-FPM FastCGI support, replacing Apache to help PHP developers transition to C++  
 ✅ 22. Built-in WeChat Mini Program payment  
-✅ 23. Socket server and client with SSL support — ideal for IoT development  
+✅ 23. Supports Socket, MQTT includes both server and client, supports SSL connections, IoT development  
 ✅ 24. RPC server and client using HTTP-annotated URL functions  
 ✅ 25. Two-stage rate limiting based on a 60-second moving average  
 ✅ 26. ACME protocol integration for automatic SSL certificate renewal and OCSP stapling  
@@ -461,12 +461,8 @@ class loopwebsockets : public websockets_api
         if (session_sock)
         {
             std::cout << "timeloop:" << std::endl;
-            std::string aa = "test run_loop";
-            std::string outhello;
-            ws_parse->make_ws_text(aa, outhello);
-            session_sock->send_writer(outhello);
-
-            //   peer->send(aa);
+            // All outbound frames go through send(); the framework wraps the WS frame and enqueues it
+            send("test run_loop");
             if (loop_num == 4)
             {
                 loop_num = 0;
@@ -486,11 +482,7 @@ class loopwebsockets : public websockets_api
         if (session_sock)
         {
             std::cout << "async async_run_loop" << std::endl;
-            std::string aa = "test async_run_loop";
-            std::string outhello;
-            ws_parse->make_ws_text(aa, outhello);
-            co_await session_sock->async_send_writer(outhello);
-            //   peer->send(aa);
+            send("test async_run_loop");
             if (loop_num == 4)
             {
                 loop_num = 0;
@@ -509,9 +501,7 @@ class loopwebsockets : public websockets_api
 
     asio::awaitable<void> async_onmessage(websockets_data_list_t &&msg) override 
     {
-        std::string outhello;
-        ws_parse->make_ws_text(msg.value, outhello);
-        co_await session_sock->async_send_writer(outhello);
+        send(msg.value);
         co_return;
     }
     void onmessage() override
@@ -525,9 +515,7 @@ class loopwebsockets : public websockets_api
         content_list.pop_front();
         lock.unlock();
         
-        std::string outhello;
-        ws_parse->make_ws_text(msg.value, outhello);
-        session_sock->send_writer(outhello);
+        send(msg.value);
         return;
     }
  

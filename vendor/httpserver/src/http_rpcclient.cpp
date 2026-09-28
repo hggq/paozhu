@@ -14,6 +14,7 @@
 #include "server_localvar.h" 
 #include "http_rpcclient.h"
 #include "client_context.h"
+#include "func.h"
 
 namespace http
 {
@@ -535,8 +536,7 @@ asio::awaitable<void> rpc_client::async_ssl_send_data(std::string_view send_cont
                 client_context &temp_io_context = get_client_context_obj();
                 try
                 {
-                    temp_io_context.rpc_timeout_lists.push_back(shared_from_this());
-                    temp_io_context.timeout_condition.notify_one();
+                    temp_io_context.add_timeout_list(temp_io_context.rpc_timeout_lists, shared_from_this());
                 }
                 catch (const std::exception &e)
                 {
@@ -630,8 +630,7 @@ asio::awaitable<void> rpc_client::async_send_data(std::string_view send_content)
                 client_context &temp_io_context = get_client_context_obj();
                 try
                 {
-                    temp_io_context.rpc_timeout_lists.push_back(shared_from_this());
-                    temp_io_context.timeout_condition.notify_one();
+                    temp_io_context.add_timeout_list(temp_io_context.rpc_timeout_lists, shared_from_this());
                 }
                 catch (const std::exception &e)
                 {
@@ -1178,8 +1177,11 @@ void rpc_client::process_body(const unsigned char *buffer, unsigned int readnum)
             server_loaclvar &localvar = get_server_global_var();
             read_key = std::to_string(timeid()) + std::to_string(std::hash<std::string>{}(url)) + std::to_string(rand_range(1000, 9999));
 
+            // 落盘名统一由 make_http_temp_raw_name() 生成：文件名带 pzraw_ 前缀，
+            // 该前缀是 httpwatch 周期清理时识别「框架自己的临时文件」的唯一依据，
+            // 不要在此自行拼接文件名，否则文件会长期留在 temp_path 里。
             read_value = localvar.temp_path;
-            read_value.append(std::to_string(std::hash<std::string>{}(read_key)));
+            read_value.append(make_http_temp_raw_name());
 
             // uprawfile = fopen(upfile.tempfile.c_str(), "wb");
             uprawfile.reset(fopen(read_value.c_str(), "wb"));
@@ -1915,8 +1917,7 @@ bool rpc_client::connect(std::string_view rpcurl,unsigned int time_out_num)
         client_context &temp_io_context = get_client_context_obj();
         try
         {
-            temp_io_context.rpc_timeout_lists.push_back(shared_from_this());
-            temp_io_context.timeout_condition.notify_one();
+            temp_io_context.add_timeout_list(temp_io_context.rpc_timeout_lists, shared_from_this());
         }
         catch (const std::exception &e)
         {
@@ -2071,8 +2072,7 @@ bool rpc_client::connect()
         client_context &temp_io_context = get_client_context_obj();
         try
         {
-            temp_io_context.rpc_timeout_lists.push_back(shared_from_this());
-            temp_io_context.timeout_condition.notify_one();
+            temp_io_context.add_timeout_list(temp_io_context.rpc_timeout_lists, shared_from_this());
         }
         catch (const std::exception &e)
         {
@@ -2229,8 +2229,7 @@ asio::awaitable<bool> rpc_client::async_connect(std::string_view rpcurl,unsigned
         client_context &temp_io_context = get_client_context_obj();
         try
         {
-            temp_io_context.rpc_timeout_lists.push_back(shared_from_this());
-            temp_io_context.timeout_condition.notify_one();
+            temp_io_context.add_timeout_list(temp_io_context.rpc_timeout_lists, shared_from_this());
         }
         catch (const std::exception &e)
         {
@@ -2385,8 +2384,7 @@ asio::awaitable<bool> rpc_client::async_connect()
         client_context &temp_io_context = get_client_context_obj();
         try
         {
-            temp_io_context.rpc_timeout_lists.push_back(shared_from_this());
-            temp_io_context.timeout_condition.notify_one();
+            temp_io_context.add_timeout_list(temp_io_context.rpc_timeout_lists, shared_from_this());
         }
         catch (const std::exception &e)
         {
@@ -2487,8 +2485,7 @@ void rpc_client::send_data(std::string_view send_content)
                 client_context &temp_io_context = get_client_context_obj();
                 try
                 {
-                    temp_io_context.rpc_timeout_lists.push_back(shared_from_this());
-                    temp_io_context.timeout_condition.notify_one();
+                    temp_io_context.add_timeout_list(temp_io_context.rpc_timeout_lists, shared_from_this());
                 }
                 catch (const std::exception &e)
                 {
@@ -2583,8 +2580,7 @@ void rpc_client::ssl_send_data(std::string_view send_content)
                 client_context &temp_io_context = get_client_context_obj();
                 try
                 {
-                    temp_io_context.rpc_timeout_lists.push_back(shared_from_this());
-                    temp_io_context.timeout_condition.notify_one();
+                    temp_io_context.add_timeout_list(temp_io_context.rpc_timeout_lists, shared_from_this());
                 }
                 catch (const std::exception &e)
                 {

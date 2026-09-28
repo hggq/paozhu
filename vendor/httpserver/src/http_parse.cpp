@@ -330,6 +330,101 @@ void httpparse::procssparamter(std::string_view header_temp, std::string_view he
     }
 }
 
+// C2 修复：URL 段一律「先解码、再按 '/' 切分归一化」。
+// 旧实现先按 '/' 切分、再只对整段解码结果比较 ".."，而 %2f 解出的 '/' 不在切分点上，
+// 于是 "..%2f..%2fetc%2fpasswd" 会作为单个段进入 pathinfos，最终拼出 sitepath/../../etc/passwd。
+// 本函数把解码结果重新按 '/' 切分并逐段处理 '.'/'..'，同时拒绝内嵌 NUL（%00 截断绕过后缀白名单）。
+static bool url_segments_normalize(std::vector<std::string> &pathinfos, const std::string &raw)
+{
+    // M6：路径段解码只处理 %XX，不把 '+' 当空格（否则 /a+b 与 /a b 会指到同一个文件）。
+    auto hexval = [](char c) -> int {
+        if (c >= '0' && c <= '9')
+        {
+            return c - '0';
+        }
+        if (c >= 'a' && c <= 'f')
+        {
+            return c - 'a' + 10;
+        }
+        if (c >= 'A' && c <= 'F')
+        {
+            return c - 'A' + 10;
+        }
+        return -1;
+    };
+    std::string decoded;
+    decoded.reserve(raw.size());
+    for (unsigned int k = 0; k < raw.size(); k++)
+    {
+        if (raw[k] == '%' && (k + 2) < raw.size())
+        {
+            int hi = hexval(raw[k + 1]);
+            int lo = hexval(raw[k + 2]);
+            if (hi >= 0 && lo >= 0)
+            {
+                decoded.push_back(static_cast<char>((hi << 4) | lo));
+                k += 2;
+                continue;
+            }
+        }
+        decoded.push_back(raw[k]);
+    }
+    for (unsigned int k = 0; k < decoded.size(); k++)
+    {
+        if (decoded[k] == '\0')
+        {
+            return false;// %00 截断绕过
+        }
+    }
+    unsigned int seg_begin = 0;
+    for (unsigned int k = 0; k <= decoded.size(); k++)
+    {
+        if (k < decoded.size() && decoded[k] != '/')
+        {
+            continue;
+        }
+        unsigned int seg_len = k - seg_begin;
+        if (seg_len == 2 && decoded[seg_begin] == '.' && decoded[seg_begin + 1] == '.')
+        {
+            if (pathinfos.size() > 0)
+            {
+                pathinfos.pop_back();
+            }
+        }
+        else if (seg_len == 1 && decoded[seg_begin] == '.')
+        {
+            // "." 段忽略
+        }
+        else if (seg_len > 0)
+        {
+            if (seg_len > 255)
+            {
+                return false;
+            }
+            pathinfos.emplace_back(decoded.substr(seg_begin, seg_len));
+        }
+        seg_begin = k + 1;
+    }
+    return true;
+}
+
+// H5 修复：multipart boundary 长度上限（RFC 2046 规定 ≤70，取 72），顺带剥掉可选的引号。
+// 旧实现把 boundary 原样保存且无长度限制，逐位置前缀比较时开销随 boundary 线性增长。
+static bool boundary_normalize(std::string &out, const std::string &raw)
+{
+    std::string temp = raw;
+    if (temp.size() >= 2 && temp.front() == '"' && temp.back() == '"')
+    {
+        temp = temp.substr(1, temp.size() - 2);
+    }
+    if (temp.size() == 0 || temp.size() > 72)
+    {
+        return false;
+    }
+    out = temp;
+    return true;
+}
+
 void httpparse::methodprocess(std::string_view contentline)
 {
     unsigned char headerstep = 0;
@@ -370,6 +465,18 @@ void httpparse::methodprocess(std::string_view contentline)
         else
         {
             error = 40059;
+        }
+        break;
+    case 'd':
+    case 'D':
+        if (str_casecmp(header_key, "delete"))
+        {
+            method = HEAD_METHOD::DELETE;
+        }
+        else
+        {
+            // 与 default 分支同一口径：D 开头但不是 DELETE 就是无法识别的方法
+            error = 40066;
         }
         break;
     case 'h':
@@ -453,7 +560,29 @@ void httpparse::methodprocess(std::string_view contentline)
         return;
     }
     peer->method = static_cast<unsigned char>(method);
-    headerstep   = 1;
+    // 这里只落一个标记：请求方法是否为 OPTIONS，供 server 分派到 send_cors_domain()
+    // 处理预检（预检响应头由该函数按站点白名单输出，解析期不预置 ACAO）
+    peer->iscors = (method == HEAD_METHOD::OPTIONS);
+    // H4 修复：解析请求行版本。HTTP/1.1 默认 keep-alive，HTTP/1.0 默认 close；
+    // 解析结果写入 state.keepalive，响应头(peer->keepalive)与关闭判据(server 循环)从此取同一值。
+    {
+        size_t vpos = contentline.find("HTTP/1.");
+        if (vpos != std::string_view::npos && (vpos + 8) <= contentline.size())
+        {
+            if (contentline[vpos + 7] == '1')
+            {
+                peer->state.version   = 0x11;// 1.1
+                peer->state.keepalive = true;
+            }
+            else
+            {
+                peer->state.version   = 0x10;// 1.0
+                peer->state.keepalive = false;
+            }
+        }
+    }
+    peer->keepalive = peer->state.keepalive;
+    headerstep      = 1;
     for (; ioffset < linesize; ioffset++)
     {
         if (contentline[ioffset] == 0x20)
@@ -493,20 +622,10 @@ void httpparse::methodprocess(std::string_view contentline)
             }
             if (header_temp.size() > 0)
             {
-                std::string decoded = http::url_decode(header_temp.data(), header_temp.length());
-                if (decoded.size() == 2 && decoded[0] == '.' && decoded[1] == '.')
+                if (!url_segments_normalize(peer->pathinfos, header_temp))
                 {
-                    if (peer->pathinfos.size() > 0)
-                    {
-                        peer->pathinfos.pop_back();
-                    }
-                }
-                else if (decoded.size() == 1 && decoded[0] == '.')
-                {
-                }
-                else
-                {
-                    peer->pathinfos.emplace_back(decoded);
+                    error = 40095;
+                    return;
                 }
                 header_temp.clear();
             }
@@ -523,20 +642,10 @@ void httpparse::methodprocess(std::string_view contentline)
             error = 40090;
             return;
         }
-        std::string decoded = http::url_decode(header_temp.data(), header_temp.length());
-        if (decoded.size() == 2 && decoded[0] == '.' && decoded[1] == '.')
+        if (!url_segments_normalize(peer->pathinfos, header_temp))
         {
-            if (peer->pathinfos.size() > 0)
-            {
-                peer->pathinfos.pop_back();
-            }
-        }
-        else if (decoded.size() == 1 && decoded[0] == '.')
-        {
-        }
-        else
-        {
-            peer->pathinfos.emplace_back(decoded);
+            error = 40095;
+            return;
         }
     }
     unsigned int p_pos_offset = ioffset - p_begin;
@@ -613,17 +722,12 @@ void httpparse::methodprocess(std::string_view contentline)
         {
             if (header_key[j] == 0x3D)
             {
-                for (; j < qsize; j++)
+                if (partype == 1)
                 {
-                    if (header_key[j] == 0x3D)
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        j -= 1;
-                        break;
-                    }
+                    // M1 修复：已进入值模式，值内的 '=' 属于数据，不能再回退去覆盖参数名
+                    // （旧实现对 '=' 连续跳过并回退 j，导致 ?a=b=c → get["b"]="c"、token 丢失）
+                    header_value.push_back(header_key[j]);
+                    continue;
                 }
                 url_keyname = http::url_decode(header_value.data(), header_value.length());
                 header_value.clear();
@@ -809,8 +913,12 @@ void httpparse::getcontenttype(std::string_view header_value)
             }
             else if (statetemp == 2)
             {
-                temp_post_data->boundary = buffer_value;
-                statetemp                = 0;
+                if (!boundary_normalize(temp_post_data->boundary, buffer_value))
+                {
+                    error = 40099;
+                    return;
+                }
+                statetemp = 0;
             }
             /////////////////////
             buffer_value.clear();
@@ -845,7 +953,11 @@ void httpparse::getcontenttype(std::string_view header_value)
         }
         else if (statetemp == 2)
         {
-            temp_post_data->boundary = buffer_value;
+            if (!boundary_normalize(temp_post_data->boundary, buffer_value))
+            {
+                error = 40099;
+                return;
+            }
         }
         else
         {
@@ -856,75 +968,9 @@ void httpparse::getcontenttype(std::string_view header_value)
 
 void httpparse::getrange(std::string_view header_value)
 {
-    unsigned int j = 0, linesize;
-    linesize       = header_value.size();
-    std::string buffer_value;
-    for (; j < linesize; j++)
+    if (parse_range_header(header_value, peer->state) == range_parse_t::syntax_error)
     {
-        if (header_value[j] == 0x3D)
-        {
-            j++;
-            break;
-        }
-        buffer_value.push_back(header_value[j]);
-    }
-
-    if (str_casecmp(buffer_value, "bytes"))
-    {
-        // state.rangebytes = true;
-        peer->state.rangebytes = true;
-    }
-    buffer_value.clear();
-    bool ismuilt = false;
-    for (; j < linesize; j++)
-    {
-        if (header_value[j] == 0x2C)
-        {
-            j++;
-            ismuilt = true;
-            break;
-        }
-        if (header_value[j] == 0x2D)
-        {
-
-            long long tm = 0;
-            for (unsigned int qi = 0; qi < buffer_value.size(); qi++)
-            {
-                if (buffer_value[qi] < 0x3A && buffer_value[qi] > 0x2F)
-                {
-                    tm = tm * 10 + (buffer_value[qi] - 0x30);
-                }
-                if (qi >= 14)
-                {
-                    error = 40024;
-                    return;
-                }
-            }
-            // state.rangebegin = tm;
-            peer->state.rangebegin = tm;
-            buffer_value.clear();
-            continue;
-        }
-        buffer_value.push_back(header_value[j]);
-    }
-
-    if (j == header_value.length() || ismuilt)
-    {
-        long long tm = 0;
-        for (unsigned int qi = 0; qi < buffer_value.size(); qi++)
-        {
-            if (buffer_value[qi] < 0x3A && buffer_value[qi] > 0x2F)
-            {
-                tm = tm * 10 + (buffer_value[qi] - 0x30);
-            }
-            if (qi >= 14)
-            {
-                error = 40091;
-                return;
-            }
-        }
-        // state.rangeend = tm;
-        peer->state.rangeend = tm;
+        error = 40091;
     }
 }
 
@@ -1022,6 +1068,14 @@ void httpparse::process_header_line(std::string_view line_str)
                 getifmodifiedsince(header_value);
             }
             break;
+        case 't':
+        case 'T':
+            if (str_casecmp(header_key, "Transfer-Encoding"))
+            {
+                // H1 修复：不支持 chunked；且 CL + TE 并存是 CL.TE 走私的典型载体，直接拒绝。
+                error = 40098;
+            }
+            break;
         default:;
         }
         break;
@@ -1057,15 +1111,26 @@ void httpparse::process_header_line(std::string_view line_str)
     case 14:
         if (str_casecmp(header_key, "Content-Length"))
         {
-            long long temp_cl = str2int(&header_value[0], header_value.size());
-            if (temp_cl < 0 || temp_cl > CONST_HTTP_BODY_POST_SIZE)
+            // H1 修复：严格解析。旧实现 str2int 会跳过所有非数字字符（"5, 5"→55）、
+            // 接受负号、且把超限值静默改成 0（声明了 body 却不消费 → 报文错位）。
+            if (has_content_length)
             {
-                peer->content_length = 0;
+                error = 40096;// 重复 Content-Length：CL.CL 走私
+                return;
             }
-            else
+            has_content_length = true;
+            unsigned long long temp_cl = 0;
+            if (!str2uint64_strict(header_value, temp_cl))
             {
-                peer->content_length = static_cast<unsigned long long>(temp_cl);
+                error = 40096;
+                return;
             }
+            if (temp_cl > CONST_HTTP_BODY_POST_SIZE)
+            {
+                error = 40097;
+                return;
+            }
+            peer->content_length = temp_cl;
         }
         break;
     case 13:
@@ -1131,6 +1196,15 @@ void httpparse::process_header_line(std::string_view line_str)
             {
 
                 getaccept(header_value);
+            }
+            break;
+        case 'o':
+        case 'O':
+            if (str_casecmp(header_key, "origin"))
+            {
+                // 跨域请求才会走到这里，Origin 值就在手边：Host 已解析完（绝大多数情况）
+                // 就直接判定，请求期不再有任何 CORS 判断，也不用回 header 里查 origin
+                peer->cors_origin_process(header_value);
             }
             break;
         }
@@ -1411,24 +1485,31 @@ void httpparse::getwebsocketextensions(std::string_view header_value)
 
 void httpparse::getupgrade(std::string_view header_value)
 {
-
-    if (header_value.size() > 9)
+    // RFC 7230：Upgrade 是逗号分隔的 token 列表（"websocket"、"h2c" 可并存）。
+    // 旧实现整串比较 + 单字符尾空格裁剪，覆盖不了带 OWS 或列表的值。
+    size_t start = 0;
+    while (start <= header_value.size())
     {
-        if (header_value.back() == 0x20)
+        size_t comma = header_value.find(',', start);
+        std::string_view token = (comma == std::string_view::npos)
+                                     ? header_value.substr(start)
+                                     : header_value.substr(start, comma - start);
+        while (!token.empty() && (token.front() == ' ' || token.front() == '\t'))
+            token.remove_prefix(1);
+        while (!token.empty() && (token.back() == ' ' || token.back() == '\t'))
+            token.remove_suffix(1);
+
+        if (str_casecmp(token, "websocket"))
         {
-            header_value.remove_suffix(1);
+            peer->state.websocket = true;
         }
-    }
-
-    if (str_casecmp(header_value, "websocket"))
-    {
-        // state.websocket = true;
-        peer->state.websocket = true;
-    }
-    else if (str_casecmp(header_value, "h2c"))
-    {
-        // state.h2c = true;
-        peer->state.h2c = true;
+        else if (str_casecmp(token, "h2c"))
+        {
+            peer->state.h2c = true;
+        }
+        if (comma == std::string_view::npos)
+            break;
+        start = comma + 1;
     }
 }
 
@@ -1439,30 +1520,36 @@ void httpparse::getconnection(std::string_view header_value)
         error = 40072;
         return;
     }
-    if (header_value[0] == 'K' || header_value[0] == 'k')
+    // RFC 7230 6.1：Connection 是逗号分隔 token 列表——"keep-alive, Upgrade" 是
+    // 浏览器 WS 握手的标准写法，整串比较 + 前缀短路会丢掉 Upgrade token（B5 修复）。
+    size_t start = 0;
+    while (start <= header_value.size())
     {
-        if (header_value[1] == 'e' || header_value[1] == 'E')
+        size_t comma = header_value.find(',', start);
+        std::string_view token = (comma == std::string_view::npos)
+                                     ? header_value.substr(start)
+                                     : header_value.substr(start, comma - start);
+        while (!token.empty() && (token.front() == ' ' || token.front() == '\t'))
+            token.remove_prefix(1);
+        while (!token.empty() && (token.back() == ' ' || token.back() == '\t'))
+            token.remove_suffix(1);
+
+        if (str_casecmp(token, "keep-alive"))
         {
             peer->state.keepalive = true;
-            return;
         }
-    }
-    if (str_casecmp(header_value, "keep-alive"))
-    {
-        peer->state.keepalive = true;
-        return;
-    }
-    if (str_casecmp(header_value, "Upgrade"))
-    {
-        peer->state.upgradeconnection = true;
-        return;
-    }
-    if (header_value[0] == 'c' || header_value[0] == 'C')
-    {
-        if (header_value[1] == 'l' || header_value[1] == 'L')
+        else if (str_casecmp(token, "upgrade"))
+        {
+            peer->state.upgradeconnection = true;
+        }
+        else if (str_casecmp(token, "close"))
         {
             peer->state.keepalive = false;
         }
+        // 其余 token（TE 扩展名等）忽略
+        if (comma == std::string_view::npos)
+            break;
+        start = comma + 1;
     }
 }
 
@@ -1725,6 +1812,18 @@ void httpparse::getheaderhost(std::string_view header_value)
         return;
     }
     peer->find_host_index();
+    // Origin 早于 Host 到达时（HTTP/1 不保证头顺序），cors_origin_process() 因 host 未定
+    // 而挂起，这里在 host_index 确定后补判一次。OPTIONS 预检的 Allow-Origin 由
+    // send_cors_domain() 按站点白名单重新判定并覆盖，不受此处影响。
+    if (peer->cors_origin_pending)
+    {
+        peer->cors_origin_pending = false;
+        auto iter                 = peer->header.find("origin");
+        if (iter != peer->header.end())
+        {
+            peer->cors_origin_allow(iter->second);
+        }
+    }
     if (ishasport == 1)
     {
         for (; ioffset < linesize; ioffset++)
@@ -1755,6 +1854,8 @@ void httpparse::read_http_header_block(const unsigned char *buffer, unsigned int
         {
             pos_m++;
             readoffset = pos_m;
+            // M4 修复：补记上一包里残留的 "\r" 与本包的 "\n"，否则 16KB 头部上限口径偏移
+            http_content_length += 2;
             if (header_line.size() == 0)
             {
                 isfinish_header = true;
@@ -2160,11 +2261,12 @@ void httpparse::read_rawfile_formdata(std::string_view raw_http_post_data)
 {
     if (!uprawfile)
     {
-        server_loaclvar &localvar    = get_server_global_var();
-        std::string fieldheader_temp = "rawcontent" + std::to_string(http::timeid()) + rand_string(6, 0);
-
+        server_loaclvar &localvar = get_server_global_var();
+        // 落盘名统一由 make_http_temp_raw_name() 生成：文件名带 pzraw_ 前缀，
+        // 该前缀是 httpwatch 周期清理时识别「框架自己的临时文件」的唯一依据，
+        // 不要在此自行拼接文件名，否则文件会长期留在 temp_path 里。
         std::string temp_filename = localvar.temp_path;// + "temp/";
-        temp_filename.append(std::to_string(std::hash<std::string>{}(fieldheader_temp)));
+        temp_filename.append(http::make_http_temp_raw_name());
 
         std::unique_ptr<std::FILE, int (*)(FILE *)> fpa(std::fopen(temp_filename.c_str(), "wb"), std::fclose);
         if (fpa)
@@ -2812,7 +2914,7 @@ void httpparse::post_multipart_itemcontent(bool isfilefull)
             temp_post_data->temp_filename.push_back('/');
         }
 
-        temp_post_data->temp_filename = temp_post_data->temp_filename + std::to_string(http::timeid()) + rand_string(6, 0) + "_" + std::to_string(peer->content_length);
+        temp_post_data->temp_filename = temp_post_data->temp_filename + http::make_http_temp_upload_name(peer->content_length);
         std::unique_ptr<std::FILE, int (*)(FILE *)> fpa(std::fopen(temp_post_data->temp_filename.c_str(), "wb"), std::fclose);
         if (fpa)
         {
@@ -3178,6 +3280,30 @@ void httpparse::post_multipart_formdata()
 
 void httpparse::read_http_post_block(const unsigned char *buffer, unsigned int buffersize)
 {
+    // H2 修复：一律按 Content-Length 截断消费，声明之外的字节不再并入本次 body。
+    // 旧实现整块 append（buffersize - readoffset），同一读包内的多余字节会被解析成
+    // 声明外参数 → 参数走私 / WAF 绕过；也无法把余量留给后续解析。
+    unsigned int avail = (readoffset < buffersize) ? (buffersize - readoffset) : 0;
+    if (peer->content_length > 0)
+    {
+        unsigned long long already = (peer->compress == 10) ? peer->output.size() : http_content_length;
+        if (already >= peer->content_length)
+        {
+            avail = 0;
+        }
+        else if ((peer->content_length - already) < avail)
+        {
+            avail = static_cast<unsigned int>(peer->content_length - already);
+        }
+    }
+    if (peer->content_length == 0 || avail == 0)
+    {
+        // 没有声明 body（或已消费完）：不再消费字节，直接判定请求完成。
+        // 否则同一读包内的残留字节会被当成 body 判为未知类型而落盘，既丢数据又产生孤儿文件。
+        peer->isfinish = true;
+        return;
+    }
+
     if (peer->compress == 10)
     {
         if (peer->content_length > CONST_PHP_BODY_POST_SIZE)
@@ -3191,8 +3317,8 @@ void httpparse::read_http_post_block(const unsigned char *buffer, unsigned int b
             return;
         }
 
-        peer->output.append((char *)&buffer[readoffset], (buffersize - readoffset));
-        readoffset = buffersize;
+        peer->output.append((char *)&buffer[readoffset], avail);
+        readoffset += avail;
         if (peer->output.size() >= peer->content_length)
         {
             peer->isfinish = true;
@@ -3200,7 +3326,7 @@ void httpparse::read_http_post_block(const unsigned char *buffer, unsigned int b
     }
     else
     {
-        http_content_length += (buffersize - readoffset);
+        http_content_length += avail;
 
         if (posttype == 0)
         {
@@ -3231,8 +3357,8 @@ void httpparse::read_http_post_block(const unsigned char *buffer, unsigned int b
         {
         case 1:
             // x-www-form-urlencoded
-            peer->rawcontent.append((char *)&buffer[readoffset], (buffersize - readoffset));
-            readoffset = buffersize;
+            peer->rawcontent.append((char *)&buffer[readoffset], avail);
+            readoffset += avail;
             if (peer->rawcontent.size() >= peer->content_length)
             {
                 post_www_form_urlencoded(peer->rawcontent);
@@ -3251,8 +3377,8 @@ void httpparse::read_http_post_block(const unsigned char *buffer, unsigned int b
                 temp_post_data = std::make_unique<HTTP_POST_DATA_T>();
             }
 
-            temp_post_data->content      = std::string_view((const char *)&buffer[readoffset], buffersize - readoffset);
-            readoffset                   = buffersize;
+            temp_post_data->content      = std::string_view((const char *)&buffer[readoffset], avail);
+            readoffset += avail;
             temp_post_data->field_offset = 0;
             for (; temp_post_data->field_offset < temp_post_data->content.size();)
             {
@@ -3269,7 +3395,8 @@ void httpparse::read_http_post_block(const unsigned char *buffer, unsigned int b
             {
                 if (!temp_post_data->isfile)
                 {
-                    std::string_view check_filename = std::string_view(temp_post_data->field_item.data(), 80);
+                    std::string_view check_filename = std::string_view(temp_post_data->field_item.data(),
+                                                                       std::min<size_t>(temp_post_data->field_item.size(), 80));
                     size_t pos                      = check_filename.find("filename");
                     if (pos != std::string::npos)
                     {
@@ -3292,8 +3419,8 @@ void httpparse::read_http_post_block(const unsigned char *buffer, unsigned int b
             break;
         case 3:
             // json
-            peer->rawcontent.append((char *)&buffer[readoffset], (buffersize - readoffset));
-            readoffset = buffersize;
+            peer->rawcontent.append((char *)&buffer[readoffset], avail);
+            readoffset += avail;
             if (peer->rawcontent.size() >= peer->content_length)
             {
                 peer->json.from_json(peer->rawcontent);
@@ -3313,8 +3440,8 @@ void httpparse::read_http_post_block(const unsigned char *buffer, unsigned int b
             break;
         case 4:
             // xml
-            peer->rawcontent.append((char *)&buffer[readoffset], (buffersize - readoffset));
-            readoffset = buffersize;
+            peer->rawcontent.append((char *)&buffer[readoffset], avail);
+            readoffset += avail;
             if (error > 0)
             {
                 return;
@@ -3331,8 +3458,8 @@ void httpparse::read_http_post_block(const unsigned char *buffer, unsigned int b
             break;
         case 5:
             // octet-stream
-            read_rawfile_formdata(std::string_view((const char *)&buffer[readoffset], buffersize - readoffset));
-            readoffset = buffersize;
+            read_rawfile_formdata(std::string_view((const char *)&buffer[readoffset], avail));
+            readoffset += avail;
             if (http_content_length >= peer->content_length)
             {
                 peer->isfinish = true;
@@ -3355,7 +3482,14 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
     {
         if (isfinish_header)
         {
+            unsigned int before_offset = readoffset;
             read_http_post_block(buffer, buffersize);
+            if (peer->isfinish || error > 0 || readoffset == before_offset)
+            {
+                // H2：本次请求的 body 已消费完（或本包内已无可消费字节），
+                // 余下字节不再并入本次请求，也不再往下解析（残留字节一律丢弃）。
+                break;
+            }
         }
         else
         {
@@ -3368,13 +3502,41 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
             }
             if (isfinish_header)
             {
+                // CORS：OPTIONS 预检的 ACAO 由 send_cors_domain() 按白名单判定输出；
+                // 普通请求的 ACAO 在解析到 origin 头时就判定了（process_header_line 的头名长度 6 分支），
+                // Origin 早于 Host 时由 getheaderhost() 补判，这里不再需要任何 CORS 处理
+                // H4：响应头(peer->keepalive)与关闭判据(state.keepalive)统一，不再各取一半
+                peer->keepalive = peer->state.keepalive;
                 if (method == HEAD_METHOD::POST || method == HEAD_METHOD::QUERY)
                 {
                     error = peer->check_upload_limit();
+                    if (error > 0)
+                    {
+                        return;
+                    }
+                    if (peer->content_length == 0)
+                    {
+                        peer->isfinish = true;
+                    }
+                }
+                else if (method == HEAD_METHOD::PUT || method == HEAD_METHOD::DELETE ||
+                         method == HEAD_METHOD::TRACE || method == HEAD_METHOD::CONNECT)
+                {
+                    // 有意不支持的方法：明确回 405 并关闭连接，避免未消费的 body
+                    // 被当成下一个请求解析（H3 的实现层残留）
+                    method_not_allowed = true;
+                    return;
                 }
                 else
                 {
                     peer->isfinish = true;
+                    if (peer->content_length > 0)
+                    {
+                        // GET/HEAD/OPTIONS 等声明了 body：框架不消费它（与 H3 同源的问题）。
+                        // 关闭连接而不是复用，避免剩余字节在下一轮被当成新请求解析。
+                        peer->state.keepalive = false;
+                        peer->keepalive       = false;
+                    }
                 }
                 peer->isuse_fastcgi();
                 http_content_length = 0;
@@ -3398,6 +3560,9 @@ void httpparse::clear()
     isfinish_header = false;
     isfinish_url    = false;
 
+    has_content_length = false;
+    method_not_allowed = false;
+
     posttype          = 0;
     http_action_setup = 0;
     headerfinish      = 0;
@@ -3418,7 +3583,6 @@ void httpparse::clear()
         websocket->permessagedeflate = false;
         websocket->perframedeflate   = false;
         websocket->deflateframe      = false;
-        websocket->isopen            = false;
         websocket->version           = 0x00;
         websocket->key.clear();
         websocket->ext.clear();

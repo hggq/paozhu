@@ -51,6 +51,10 @@ unsigned long long str2uint(std::string_view);
 unsigned long long str2uint(const char *source, unsigned int str_length);
 long long str2int(std::string_view);
 long long str2int(const char *source, unsigned int str_length);
+// H1 修复：长度类头部（Content-Length 等）的严格解析。
+// 仅接受纯数字（不接受空格/逗号/负号/十六进制/科学计数），并做位数与溢出判断，
+// 避免 str2int 那种"跳过所有非数字后顺序累加"带来的走私面。
+bool str2uint64_strict(std::string_view source, unsigned long long &out, unsigned int max_digits = 20);
 std::string char2hex(const unsigned char *source, unsigned int str_length, unsigned char sp = 0);
 std::string str2hex(std::string_view source, bool is_space = false);
 std::string hex2str(std::string_view source, unsigned char sp = 0);
@@ -215,6 +219,24 @@ long long money_put_num(double a);
 
 long long num_put_money(long long a);
 long long num_get_money(long long a);
+
+// IP 是否为本机回环或内网单播（127/8、10/8、192.168/16、172.16-31/12、IPv6 fc00::/7 与 ::1）。
+// 用于证书下载页等敏感路由的来源 IP 闸门。严格解析，带端口/空格/主机名一律拒。
+bool ip_is_local(const std::string &ip);
+
+// ---- 请求落盘临时文件的生命周期 ----
+// 命名前缀由「写入方」和「清理方」共用，二者必须保持一致：
+//   写入方：http_parse.cpp / http2_parse.cpp（raw body 与 multipart 上传件）、rpc_parse.cpp（tempraw）
+//   清理方：httpserver::httpwatch_clear_temp_files()（按 mtime + 前缀白名单删文件）
+// 加前缀的目的是让清理只命中框架自己的临时文件，绝不误删 temp_path 下的业务文件。
+inline constexpr std::string_view HTTP_TEMP_RAW_PREFIX    = "pzraw_"; // 请求体整体落盘（rawcontent/tempraw）
+inline constexpr std::string_view HTTP_TEMP_UPLOAD_PREFIX = "pzup_";  // multipart 上传件落盘
+
+// 生成落盘临时文件名（仅文件名，不含目录）。二者均无扩展名。
+std::string make_http_temp_raw_name();
+std::string make_http_temp_upload_name(unsigned long long content_length);
+// 是否为框架生成的落盘临时文件名（严格匹配前缀 + 后续字符集）。
+bool is_http_temp_filename(std::string_view name);
 
 }// namespace http
 #endif

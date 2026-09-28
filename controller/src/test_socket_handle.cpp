@@ -51,8 +51,8 @@ asio::awaitable<std::string> test_socket_client(std::shared_ptr<httppeer> peer)
     a->durtime = 12;
     a->async_dur_time_loop_fun = [](std::shared_ptr<http::socket_client> b)-> asio::awaitable<void> 
                 {
-                        std::string send_content="time client loop mytestsocket";
-                        co_await b->async_write(send_content);
+                        std::string loop_content="time client loop mytestsocket";
+                        co_await b->async_write(loop_content);
                         std::cout<<"~~~~~~~~~~~~~~~~~~~"<<std::endl;
                         co_return;
                  };
