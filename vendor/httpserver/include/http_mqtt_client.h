@@ -16,6 +16,17 @@
 #include <memory>
 #include <mutex>
 #include <chrono>
+#include <atomic>
+#include <deque>
+#include <vector>
+#include <string>
+#include <string_view>
+#include <map>
+#include <unordered_map>
+#include <functional>
+#include <future>
+#include <utility>
+#include <cstddef>
 #include "mqtt_frame.h"
 #include "mqtt_framing.h"
 #include "datetime.h"
