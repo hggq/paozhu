@@ -15,7 +15,7 @@ namespace
 // 全项目唯一的一份「交给 clientrunpool 跑一步」实现：router 的 sync handler、mqtt 的同步钩子、
 // socket 的 on_open / on_close 都走这里，拒单就地完成也写在这里，调用方漏不掉。
 template <typename OUT, typename FN>
-asio::awaitable<OUT> run_one_step_on_pool(FN fn, asio::use_awaitable_t<> h)
+asio::awaitable<OUT, asio::any_io_executor> run_one_step_on_pool(FN fn, asio::use_awaitable_t<> h)
 {
     auto initiate = [fn = std::move(fn)](
                         asio::detail::awaitable_handler<asio::any_io_executor, OUT> &&handler) mutable
@@ -68,17 +68,17 @@ asio::awaitable<OUT> run_one_step_on_pool(FN fn, asio::use_awaitable_t<> h)
 
 }// namespace
 
-asio::awaitable<pool_text> co_pool_run_step(std::function<std::string()> fn, asio::use_awaitable_t<> h)
+asio::awaitable<pool_text, asio::any_io_executor> co_pool_run_step(std::function<std::string()> fn, asio::use_awaitable_t<> h)
 {
     return run_one_step_on_pool<pool_text>(std::move(fn), h);
 }
 
-asio::awaitable<pool_bool> co_pool_run_bool(std::function<bool()> fn, asio::use_awaitable_t<> h)
+asio::awaitable<pool_bool, asio::any_io_executor> co_pool_run_bool(std::function<bool()> fn, asio::use_awaitable_t<> h)
 {
     return run_one_step_on_pool<pool_bool>(std::move(fn), h);
 }
 
-asio::awaitable<pool_fail> co_pool_run_void(std::function<void()> fn, asio::use_awaitable_t<> h)
+asio::awaitable<pool_fail, asio::any_io_executor> co_pool_run_void(std::function<void()> fn, asio::use_awaitable_t<> h)
 {
     return run_one_step_on_pool<pool_fail>(std::move(fn), h);
 }

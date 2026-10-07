@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # mini_project.sh - Trim the full Paozhu project into a clean scaffold
-# Follows "Clean Project Initialization" four-step flow
+# Follows "Clean Project Initialization" five-step flow
 #
 # Usage:
 #   ./mini_project.sh              Trim to clean scaffold (framework core + testhello)
@@ -13,6 +13,12 @@ set -euo pipefail
 BENCHMARK_MODE=0
 if [ "${1:-}" = "--benchmark" ]; then
     BENCHMARK_MODE=1
+fi
+
+# Normal mode: 5 steps; benchmark mode appends the techempower overlay -> 6.
+TOTAL_STEPS=5
+if [ "$BENCHMARK_MODE" -eq 1 ]; then
+    TOTAL_STEPS=6
 fi
 
 # ---- Locate project root (script directory) ----
@@ -39,11 +45,12 @@ fi
 
 # ============================================================
 # Step 1 — Clean common/ registration files
-#   Keep #include "httppeer.h" and type-def required includes,
-#   empty out all registration function bodies (signatures kept)
+#   Keep the includes that define the registration table types and the
+#   type-def required includes, empty out all registration function bodies
+#   (signatures kept)
 # ============================================================
 echo ""
-echo "[Step 1/4] Cleaning common/ registration files..."
+echo "[Step 1/${TOTAL_STEPS}] Cleaning common/ registration files..."
 
 cat > common/autocontrolmethod.hpp << 'EOF'
 #ifndef __HTTP_AUTO_REG_CONTROL_HTTPMETHOD_HPP
@@ -178,15 +185,146 @@ void _initwebsocketmethodregto(WEBSOCKET_REG &methodcallback)
 }// namespace http
 EOF
 
-echo "  OK cleaned 6 registration files (autocontrolmethod / autorestfulpaths /"
-echo "    reghttpmethod / reghttpmethod_pre / sockets_method_reg / websockets_method_reg)"
+# mqtt_method_reg.hpp — inbound MQTT handlers. Included UNCONDITIONALLY by
+# vendor/httpserver/src/mqtt_reg.cpp and server.cpp, so the signature and the
+# table-type include must stay; only the body is emptied.
+cat > common/mqtt_method_reg.hpp << 'EOF'
+#pragma once
+#include "mqtt_reg.h"
+#include "mqtt_session.h"
+
+namespace http
+{
+// Business mqtt_api subclasses live in mqtt/ and are included + emplaced here
+// (reg_key is the Client ID prefix).
+inline void _initmqttmethodregto(MQTT_REG &reg)
+{
+}
+
+}// namespace http
+EOF
+
+# The four resident outbound-client registries below are each double-guarded:
+# server.cpp includes them inside #ifdef ENABLE_*_CLIENT, and the file body is
+# wrapped in the same #ifdef. Keep the guard + the table-type include so the
+# name stays available in both build tiers; only the emplace lines are removed.
+
+# redis_regmethod.hpp — keep redis_subpub_reg.h (defines REDIS_SUBPUB_REG)
+cat > common/redis_regmethod.hpp << 'EOF'
+#pragma once
+
+#ifdef ENABLE_REDIS_CLIENT
+// Business pz::redis::redis_subpub_client subclasses live in redis/ and are
+// included + emplaced here; server.cpp spawns one resident coroutine per entry.
+#include "redis_subpub_reg.h"
+
+namespace http
+{
+
+inline void _initredissubpubregto(pz::redis::REDIS_SUBPUB_REG &reg)
+{
+}
+
+} // namespace http
+
+#endif // ENABLE_REDIS_CLIENT
+EOF
+
+# ws_client_regmethod.hpp — keep ws_subpub_reg.h (defines WS_SUBPUB_REG)
+cat > common/ws_client_regmethod.hpp << 'EOF'
+#pragma once
+
+#ifdef ENABLE_WEBSOCKETS_CLIENT
+// Business http::ws_subpub_client subclasses live in websockets/ and are
+// included + emplaced here; server.cpp spawns one resident coroutine per entry.
+#include "ws_subpub_reg.h"
+
+namespace http
+{
+
+inline void _initwssubpubregto(http::WS_SUBPUB_REG &reg)
+{
+}
+
+} // namespace http
+
+#endif // ENABLE_WEBSOCKETS_CLIENT
+EOF
+
+# sock_client_regmethod.hpp — keep sock_subpub_reg.h (defines SOCK_SUBPUB_REG)
+cat > common/sock_client_regmethod.hpp << 'EOF'
+#pragma once
+
+#ifdef ENABLE_SOCKETS_CLIENT
+// Business http::sock_subpub_client subclasses live in sockets/ and are
+// included + emplaced here; server.cpp spawns one resident coroutine per entry.
+#include "sock_subpub_reg.h"
+
+namespace http
+{
+
+inline void _initsockssubpubregto(http::SOCK_SUBPUB_REG &reg)
+{
+}
+
+} // namespace http
+
+#endif // ENABLE_SOCKETS_CLIENT
+EOF
+
+# mqtt_client_regmethod.hpp — keep mqtt_subpub_reg.h (defines MQTT_SUBPUB_REG)
+cat > common/mqtt_client_regmethod.hpp << 'EOF'
+#pragma once
+
+#ifdef ENABLE_MQTT_CLIENT
+// Business http::mqtt_subpub_client subclasses live in mqtt/ and are included +
+// emplaced here; server.cpp spawns one resident coroutine per entry (outbound
+// to an external broker).
+#include "mqtt_subpub_reg.h"
+
+namespace http
+{
+
+inline void _initmqttsubpubregto(http::MQTT_SUBPUB_REG &reg)
+{
+}
+
+} // namespace http
+
+#endif // ENABLE_MQTT_CLIENT
+EOF
+
+echo "  OK cleaned 11 registration files:"
+echo "    http:    autocontrolmethod / autorestfulpaths / reghttpmethod /"
+echo "             reghttpmethod_pre"
+echo "    inbound: sockets_method_reg / websockets_method_reg / mqtt_method_reg"
+echo "    resident: redis_regmethod / ws_client_regmethod / sock_client_regmethod /"
+echo "              mqtt_client_regmethod"
 
 # ============================================================
-# Step 2 — Remove ORM layer
+# Step 2 — Remove resident-client demo code
+#   redis/  mqtt/  sockets/  websockets/  are header-only demo clients
+#   (echo_* / my_test_* / *_websockets.hpp). Their only consumers are the
+#   registration files emptied in Step 1, and CMake adds them as include
+#   directories only — nothing is compiled out of them — so the content goes
+#   and the directories stay for business clients.
+# ============================================================
+echo ""
+echo "[Step 2/${TOTAL_STEPS}] Removing resident-client demo code (redis/ mqtt/ sockets/ websockets/)..."
+
+for demo_dir in redis mqtt sockets websockets; do
+    rm -rf "$demo_dir"/* 2>/dev/null || true
+    mkdir -p "$demo_dir"
+done
+
+echo "  OK redis/ mqtt/ sockets/ websockets/ emptied (directories kept)"
+
+# ============================================================
+# Step 3 — Remove ORM layer
 #   models/*  schema/*  orm/*  (directories themselves kept)
 # ============================================================
 echo ""
-echo "[Step 2/4] Removing ORM layer (models/ schema/ orm/)..."
+echo "[Step 3/${TOTAL_STEPS}] Removing ORM layer (models/ schema/ orm/)..."
 
 rm -rf models/*
 rm -rf schema/*
@@ -195,19 +333,19 @@ rm -rf orm/*
 echo "  OK models/ schema/ orm/ emptied"
 
 # ============================================================
-# Step 3 — Clean view files (keep registration skeleton)
-#   3.1 Remove viewsrc/view/ and view/
-#   3.2 Empty the namespace view body inside viewsrc/include/viewsrc.h
-#   3.3 Empty function bodies in viewsrc/include/regviewmethod.hpp
+# Step 4 — Clean view files (keep registration skeleton)
+#   4.1 Remove viewsrc/view/ and view/
+#   4.2 Empty the namespace view body inside viewsrc/include/viewsrc.h
+#   4.3 Empty function bodies in viewsrc/include/regviewmethod.hpp
 # ============================================================
 echo ""
-echo "[Step 3/4] Cleaning view files..."
+echo "[Step 4/${TOTAL_STEPS}] Cleaning view files..."
 
-# 3.1 Remove view sources and templates
+# 4.1 Remove view sources and templates
 rm -rf viewsrc/view/
 rm -rf view/
 
-# 3.2 Empty the internal namespace in viewsrc.h
+# 4.2 Empty the internal namespace in viewsrc.h
 cat > viewsrc/include/viewsrc.h << 'EOF'
 #ifndef __HTTP_VIEWSRC_ALL_METHOD_H
 #define __HTTP_VIEWSRC_ALL_METHOD_H
@@ -231,7 +369,7 @@ namespace view {
 #endif
 EOF
 
-# 3.3 Empty the function body in regviewmethod.hpp
+# 4.3 Empty the function body in regviewmethod.hpp
 cat > viewsrc/include/regviewmethod.hpp << 'EOF'
 #ifndef __HTTP_REG_VIEW_METHOD_HPP
 #define __HTTP_REG_VIEW_METHOD_HPP
@@ -260,39 +398,45 @@ EOF
 echo "  OK viewsrc/view/ and view/ removed"
 echo "  OK viewsrc.h / regviewmethod.hpp registration content emptied"
 
-# 3.4 Clean www/default, keep only index.html (content: Hello World! Paozhu)
+# 4.4 Clean www/default, keep only index.html (content: Hello World! Paozhu)
 rm -rf www/default/*
 echo "Hello World! Paozhu" > www/default/index.html
 echo "  OK www/default cleaned, only index.html kept"
 
 # ============================================================
-# Step 4 — Clean controller
-#   Normal mode: keep only testhello.cpp
+# Step 5 — Clean controller
+#   Normal mode: keep testhello.cpp + serverwatch.cpp
 #   Benchmark mode: delete all (techempower overlaid next)
+#
+#   serverwatch.cpp is kept in normal mode because router looks up the handler
+#   frametasks_timeloop BY NAME (call_sync_regfun / find_sitecontent): without
+#   that file no interval task is ever registered and the only trace is a
+#   "frametasks_timeloop not registered" debug log. It also carries the
+#   /paozhu_status and /paozhu_routes self-check pages.
 # ============================================================
 echo ""
 if [ "$BENCHMARK_MODE" -eq 1 ]; then
-    echo "[Step 4/5] Cleaning controller (benchmark mode: delete all)..."
+    echo "[Step 5/${TOTAL_STEPS}] Cleaning controller (benchmark mode: delete all)..."
     rm -rf controller/include/*
     find controller/src -type f -delete
     find controller/src -mindepth 1 -type d -empty -delete 2>/dev/null || true
     echo "  OK controller emptied (techempower to be overlaid)"
 else
-    echo "[Step 4/4] Cleaning controller (keep testhello.cpp)..."
+    echo "[Step 5/${TOTAL_STEPS}] Cleaning controller (keep testhello.cpp + serverwatch.cpp)..."
     rm -rf controller/include/*
-    find controller/src -type f ! -name 'testhello.cpp' -delete
+    find controller/src -type f ! -name 'testhello.cpp' ! -name 'serverwatch.cpp' -delete
     find controller/src -mindepth 1 -type d -empty -delete 2>/dev/null || true
-    echo "  OK controller: only testhello.cpp kept"
+    echo "  OK controller: testhello.cpp + serverwatch.cpp kept"
 fi
 
 # ============================================================
-# Step 5 — Benchmark mode: overlay TechEmpower benchmark files
+# Step 6 — Benchmark mode: overlay TechEmpower benchmark files
 #   Copy business files from Benchmark/paozhu_benchmark/
 #   Do NOT overwrite framework files (CMakeLists.txt / vendor / startup / etc.)
 # ============================================================
 if [ "$BENCHMARK_MODE" -eq 1 ]; then
     echo ""
-    echo "[Step 5/5] Overlaying TechEmpower benchmark files..."
+    echo "[Step 6/${TOTAL_STEPS}] Overlaying TechEmpower benchmark files..."
 
     if [ ! -d "$BENCHMARK_SRC" ]; then
         echo "ERROR: Benchmark source dir not found: $BENCHMARK_SRC"
@@ -369,5 +513,12 @@ else
     echo "  cd build && cmake .. && make -j\$(sysctl -n hw.ncpu)"
     echo ""
     echo "Start and visit http://127.0.0.1/hello to verify"
+    echo ""
+    echo "Resident outbound clients: 0 registered."
+    echo "  The client classes themselves are framework code and still build —"
+    echo "  CMakeLists.txt defaults ENABLE_WEBSOCKETS/SOCKETS/MQTT_CLIENT to ON,"
+    echo "  so startup prints \"[ws_subpub] init: registered 0 clients\" and the like."
+    echo "  To add one: put the subclass in redis/ mqtt/ sockets/ websockets/ and"
+    echo "  emplace it in the matching common/*_regmethod.hpp skeleton."
 fi
 echo ""
