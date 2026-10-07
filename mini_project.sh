@@ -60,28 +60,19 @@ cat > common/autocontrolmethod.hpp << 'EOF'
 #pragma once
 #endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
 
-#include "httppeer.h" 
+#include "httppeer.h"
 
 namespace http
-{ 
-     
-    void _initauto_control_httpmethodregto(std::map<std::string, regmethold_t> &methodcallback)
+{
+    // The build regenerates this file from controller/src (the paozhu_codegen target
+    // runs paozhu_pre before compiling the server), so an empty body is enough to keep
+    // an unbuilt tree compiling: server.cpp calls _initauto_all_httputils() with no
+    // arguments. The old per-map _initauto_*_httpmethodregto() set is gone.
+    void _initauto_all_httputils()
     {
     }
-    
-    void _initauto_co_control_httpmethodregto(std::map<std::string, regmethold_co_t> &methodcallback)
-    {
-    }
-    
-    void _initauto_domain_httpmethodregto(std::map<std::string, std::map<std::string, regmethold_t>> &domain_methodcallback)
-    {
-    }
-    
-    void _initauto_co_domain_httpmethodregto(std::map<std::string, std::map<std::string, regmethold_co_t>> &domain_methodcallback)
-    {
-    }
-        
-}    
+
+}
 #endif
 EOF
 
@@ -126,7 +117,11 @@ cat > common/reghttpmethod.hpp << 'EOF'
 #include "httppeer.h"
 namespace http
 {
-void _inithttpmethodregto(std::map<std::string, regmethold_t> &methodcallback)
+// No-arg since the v6 router rewrite: registrations go through the reg_raw /
+// REG_SYNC_SYNC macros straight into the router, and server.cpp calls it with no
+// arguments. The old std::map<std::string, regmethold_t> & parameter is gone --
+// keeping that spelling here breaks the build with "too few arguments to function".
+inline void _inithttpmethodregto()
 {
 }
 
@@ -145,9 +140,10 @@ cat > common/reghttpmethod_pre.hpp << 'EOF'
 #include "httppeer.h"
 namespace http
 {
-  void _inithttpmethodregto_pre(std::map<std::string, regmethold_t> &methodcallback)
-  {
-  }
+// Same rewrite as reghttpmethod.hpp: server.cpp calls this with no arguments.
+inline void _inithttpmethodregto_pre()
+{
+}
 
 }
 #endif

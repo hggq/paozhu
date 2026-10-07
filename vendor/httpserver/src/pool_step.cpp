@@ -14,20 +14,25 @@ namespace
 
 // 全项目唯一的一份「交给 clientrunpool 跑一步」实现：router 的 sync handler、mqtt 的同步钩子、
 // socket 的 on_open / on_close 都走这里，拒单就地完成也写在这里，调用方漏不掉。
-template <typename OUT, typename FN>
-asio::awaitable<OUT> run_one_step_on_pool(FN fn, asio::use_awaitable_t<> h)
+//
+// 模板参数叫 Outcome 不叫 OUT：windows.h（经 server.h 的 OS 分支进来）把 OUT 定义成了空宏，
+// 于是 asio::awaitable<OUT> 变成 awaitable<>、is_same_v<OUT, pool_bool> 变成 <, pool_bool>，
+// MSVC 报的是 C2976 too few template arguments 加一串 'out': undeclared identifier。
+// 同一个宏还有 IN / OPTIONAL，别用它们当标识符。
+template <typename Outcome, typename FN>
+asio::awaitable<Outcome> run_one_step_on_pool(FN fn, asio::use_awaitable_t<> h)
 {
     auto initiate = [fn = std::move(fn)](
-                        asio::detail::awaitable_handler<asio::any_io_executor, OUT> &&handler) mutable
+                        asio::detail::awaitable_handler<asio::any_io_executor, Outcome> &&handler) mutable
     {
         auto handler_ptr = std::make_shared<
-            asio::detail::awaitable_handler<asio::any_io_executor, OUT>>(std::move(handler));
+            asio::detail::awaitable_handler<asio::any_io_executor, Outcome>>(std::move(handler));
 
         // awaitable_handler 在哪个线程被调用，协程就在哪个线程续跑；唤醒回到协程自己的执行域
         // （会话 strand），业务线程只跑 fn()。
         asio::any_io_executor wakeup_ex = handler_ptr->get_executor();
 
-        auto finish = [wakeup_ex, handler_ptr](OUT out) mutable
+        auto finish = [wakeup_ex, handler_ptr](Outcome out) mutable
         {
             asio::dispatch(wakeup_ex,
                            [handler_ptr, out = std::move(out)]() mutable
@@ -37,12 +42,12 @@ asio::awaitable<OUT> run_one_step_on_pool(FN fn, asio::use_awaitable_t<> h)
         bool accepted = get_server_app().clientrunpool.add_sync_task(
             [fn = std::move(fn), finish]() mutable
             {
-                OUT out;
+                Outcome out;
                 try
                 {
-                    if constexpr (std::is_same_v<OUT, pool_bool>)
+                    if constexpr (std::is_same_v<Outcome, pool_bool>)
                         out.value = fn();
-                    else if constexpr (std::is_same_v<OUT, pool_text>)
+                    else if constexpr (std::is_same_v<Outcome, pool_text>)
                         out.ret = fn();
                     else
                         fn();
@@ -58,12 +63,12 @@ asio::awaitable<OUT> run_one_step_on_pool(FN fn, asio::use_awaitable_t<> h)
         {
             // 池在停机或扩容中：就地完成 awaitable。静默丢任务等于让这条协程永久挂起，
             // peer 与 h2 stream 都不会回收。
-            OUT out;
+            Outcome out;
             out.rejected = true;
             finish(std::move(out));
         }
     };
-    return asio::async_initiate<asio::use_awaitable_t<>, void(OUT)>(initiate, h);
+    return asio::async_initiate<asio::use_awaitable_t<>, void(Outcome)>(initiate, h);
 }
 
 }// namespace
