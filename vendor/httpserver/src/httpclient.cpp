@@ -715,7 +715,7 @@ asio::awaitable<void> client::async_send_data()
 
         // unsigned long long totalsize;
         // rawfile = NULL;
-        
+
         while (true)
         {
             memset(read_data, 0x00, 2048);
@@ -1430,7 +1430,7 @@ asio::awaitable<void> client::async_send_ssl_data()
 
             if (async_on_sse_event != nullptr)
             {
-                
+
                 // 协程版 SSE 解析
                 readoffset = 0;
                 if (co_await async_process(read_data, n))
@@ -2523,7 +2523,7 @@ void client::respreadtocontent(const char *buffer, unsigned int buffersize)
                 return;
             }
         }
-        
+
         if (page.padd == 2)
         {
             // chunk size 后的 CRLF 跨包
@@ -2553,7 +2553,7 @@ void client::respreadtocontent(const char *buffer, unsigned int buffersize)
             }
             continue;
         }
-        
+
         if (page.padd == 1)
         {
             // chunk size 后的 CRLF 跨包：等待消费 \n
@@ -2574,13 +2574,13 @@ void client::respreadtocontent(const char *buffer, unsigned int buffersize)
             }
             continue;
         }
-        
+
         // padd==4 必须优先于 page.length==0 检查（因为 padd==4 时 page.length 存储的是部分解析值，可能为 0）
         if (page.padd == 4)
         {
             // size 行跨包续接：继续解析十六进制字符
             bool size_complete = false;
-            unsigned int n = (unsigned int)page.length;
+            unsigned int n     = (unsigned int)page.length;
             for (; i < buffersize; i++)
             {
                 if (buffer[i] == 0x0D || buffer[i] == 0x0A)
@@ -2663,7 +2663,7 @@ void client::respreadtocontent(const char *buffer, unsigned int buffersize)
         else if (page.length == 0)
         {
             //是尾部或一个块开始
-            unsigned int n = 0;
+            unsigned int n     = 0;
             bool size_complete = false;
             for (; i < buffersize; i++)
             {
@@ -2693,7 +2693,7 @@ void client::respreadtocontent(const char *buffer, unsigned int buffersize)
             if (!size_complete)
             {
                 // size 行跨包：未读到 CRLF
-                page.padd = 4;
+                page.padd  = 4;
                 readoffset = i;
                 return;
             }
@@ -2905,7 +2905,7 @@ void client::respread_sse(const char *buffer, unsigned int buffersize)
             if (page.length == 0 && page.padd != 4)
             {
                 // 解析 chunk 大小
-                unsigned int n = 0;
+                unsigned int n     = 0;
                 bool size_complete = false;
                 for (; i < buffersize; i++)
                 {
@@ -2925,7 +2925,7 @@ void client::respread_sse(const char *buffer, unsigned int buffersize)
 
                 if (!size_complete)
                 {
-                    page.padd = 4;
+                    page.padd  = 4;
                     readoffset = i;
                     return;
                 }
@@ -2975,7 +2975,7 @@ void client::respread_sse(const char *buffer, unsigned int buffersize)
             {
                 // size 行跨包续接
                 bool size_complete = false;
-                unsigned int n = (unsigned int)page.length;
+                unsigned int n     = (unsigned int)page.length;
                 for (; i < buffersize; i++)
                 {
                     if (buffer[i] == 0x0D || buffer[i] == 0x0A)
@@ -3187,7 +3187,7 @@ asio::awaitable<void> client::async_respread_sse(const char *buffer, unsigned in
             if (page.length == 0 && page.padd != 4)
             {
                 // 解析 chunk 大小
-                unsigned int n = 0;
+                unsigned int n     = 0;
                 bool size_complete = false;
                 for (; i < buffersize; i++)
                 {
@@ -3207,7 +3207,7 @@ asio::awaitable<void> client::async_respread_sse(const char *buffer, unsigned in
 
                 if (!size_complete)
                 {
-                    page.padd = 4;
+                    page.padd  = 4;
                     readoffset = i;
                     co_return;
                 }
@@ -3257,7 +3257,7 @@ asio::awaitable<void> client::async_respread_sse(const char *buffer, unsigned in
             {
                 // size 行跨包续接
                 bool size_complete = false;
-                unsigned int n = (unsigned int)page.length;
+                unsigned int n     = (unsigned int)page.length;
                 for (; i < buffersize; i++)
                 {
                     if (buffer[i] == 0x0D || buffer[i] == 0x0A)
@@ -3470,7 +3470,7 @@ asio::awaitable<void> client::async_parse_sse_event()
         }
         if (async_on_sse_event)
         {
-           co_await async_on_sse_event(data_str, shared_from_this());
+            co_await async_on_sse_event(data_str, shared_from_this());
         }
     }
     co_return;
@@ -3614,11 +3614,11 @@ asio::awaitable<bool> client::async_process(const char *buffer, unsigned int buf
         // type length chunked
         if (page.issse)
         {
-           co_await async_respread_sse(buffer, buffersize);
-           if(page.isend)
-           {
-               co_return true;
-           }
+            co_await async_respread_sse(buffer, buffersize);
+            if (page.isend)
+            {
+                co_return true;
+            }
         }
         else if (page.istxt)
         {

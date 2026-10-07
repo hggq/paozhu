@@ -499,7 +499,6 @@ class excel
     void process_styles(const std::string &filename, const std::string &file_content);
     bool str_casecmp_pre_safe(const std::string &content, size_t pos, std::string_view prefix) const;
     bool str_casecmp_pre(std::string_view str1, std::string_view str2, unsigned int length = 0);
-    bool str_casecmp_last(std::string_view str1, std::string_view str2, unsigned int length = 0);
     void process_worksheets_sheet(const std::string &filename, const std::string &file_content);
     void process_workbook_rels(const std::string &filename, const std::string &file_content);
     void process_workbook(const std::string &filename, const std::string &file_content);

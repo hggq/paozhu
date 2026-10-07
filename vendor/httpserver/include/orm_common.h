@@ -457,152 +457,254 @@ inline std::ostream &operator<<(std::ostream &os, const table_col<Base, Names> &
 // 多字段 select 宏：单参数 string_view + 2~13 个 table_col 参数（编译期 checked_col 校验）
 // 使用: ORM_SELECT_FIELDS(M_MODEL, B_BASE)
 // 展开位置需要能访问 selectsql 和 mod 成员
-#define ORM_SELECT_FIELDS(M_MODEL, B_BASE, COL_NAMES)                                              \
-    using _TC = orm::table_col<B_BASE, COL_NAMES>;                                                 \
-    M_MODEL &select(std::string_view fields)                                                      \
-    {                                                                                             \
-        if (selectsql.size() > 0)                                                                 \
-            selectsql.push_back(',');                                                             \
-        selectsql.append(fields);                                                                 \
-        return *mod;                                                                              \
-    }                                                                                             \
-    M_MODEL &select(_TC c1, _TC c2)                                                               \
-    {                                                                                             \
-        if (selectsql.size() > 0) selectsql.push_back(',');                                       \
-        selectsql.append(c1.sv); selectsql.push_back(','); selectsql.append(c2.sv);                \
-        return *mod;                                                                              \
-    }                                                                                             \
-    M_MODEL &select(_TC c1, _TC c2, _TC c3)                                                       \
-    {                                                                                             \
-        if (selectsql.size() > 0) selectsql.push_back(',');                                       \
-        selectsql.append(c1.sv); selectsql.push_back(','); selectsql.append(c2.sv);               \
-        selectsql.push_back(','); selectsql.append(c3.sv);                                        \
-        return *mod;                                                                              \
-    }                                                                                             \
-    M_MODEL &select(_TC c1, _TC c2, _TC c3, _TC c4)                                               \
-    {                                                                                             \
-        if (selectsql.size() > 0) selectsql.push_back(',');                                       \
-        selectsql.append(c1.sv); selectsql.push_back(','); selectsql.append(c2.sv);               \
-        selectsql.push_back(','); selectsql.append(c3.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c4.sv);                                        \
-        return *mod;                                                                              \
-    }                                                                                             \
-    M_MODEL &select(_TC c1, _TC c2, _TC c3, _TC c4, _TC c5)                                       \
-    {                                                                                             \
-        if (selectsql.size() > 0) selectsql.push_back(',');                                       \
-        selectsql.append(c1.sv); selectsql.push_back(','); selectsql.append(c2.sv);               \
-        selectsql.push_back(','); selectsql.append(c3.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c4.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c5.sv);                                        \
-        return *mod;                                                                              \
-    }                                                                                             \
-    M_MODEL &select(_TC c1, _TC c2, _TC c3, _TC c4, _TC c5, _TC c6)                               \
-    {                                                                                             \
-        if (selectsql.size() > 0) selectsql.push_back(',');                                       \
-        selectsql.append(c1.sv); selectsql.push_back(','); selectsql.append(c2.sv);               \
-        selectsql.push_back(','); selectsql.append(c3.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c4.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c5.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c6.sv);                                        \
-        return *mod;                                                                              \
-    }                                                                                             \
-    M_MODEL &select(_TC c1, _TC c2, _TC c3, _TC c4, _TC c5, _TC c6, _TC c7)                        \
-    {                                                                                             \
-        if (selectsql.size() > 0) selectsql.push_back(',');                                       \
-        selectsql.append(c1.sv); selectsql.push_back(','); selectsql.append(c2.sv);               \
-        selectsql.push_back(','); selectsql.append(c3.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c4.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c5.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c6.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c7.sv);                                        \
-        return *mod;                                                                              \
-    }                                                                                             \
-    M_MODEL &select(_TC c1, _TC c2, _TC c3, _TC c4, _TC c5, _TC c6, _TC c7, _TC c8)               \
-    {                                                                                             \
-        if (selectsql.size() > 0) selectsql.push_back(',');                                       \
-        selectsql.append(c1.sv); selectsql.push_back(','); selectsql.append(c2.sv);               \
-        selectsql.push_back(','); selectsql.append(c3.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c4.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c5.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c6.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c7.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c8.sv);                                        \
-        return *mod;                                                                              \
-    }                                                                                             \
-    M_MODEL &select(_TC c1, _TC c2, _TC c3, _TC c4, _TC c5, _TC c6, _TC c7, _TC c8, _TC c9)        \
-    {                                                                                             \
-        if (selectsql.size() > 0) selectsql.push_back(',');                                       \
-        selectsql.append(c1.sv); selectsql.push_back(','); selectsql.append(c2.sv);               \
-        selectsql.push_back(','); selectsql.append(c3.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c4.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c5.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c6.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c7.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c8.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c9.sv);                                        \
-        return *mod;                                                                              \
-    }                                                                                             \
-    M_MODEL &select(_TC c1, _TC c2, _TC c3, _TC c4, _TC c5, _TC c6, _TC c7, _TC c8, _TC c9, _TC c10)\
-    {                                                                                             \
-        if (selectsql.size() > 0) selectsql.push_back(',');                                       \
-        selectsql.append(c1.sv); selectsql.push_back(','); selectsql.append(c2.sv);               \
-        selectsql.push_back(','); selectsql.append(c3.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c4.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c5.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c6.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c7.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c8.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c9.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c10.sv);                                       \
-        return *mod;                                                                              \
-    }                                                                                             \
-    M_MODEL &select(_TC c1, _TC c2, _TC c3, _TC c4, _TC c5, _TC c6, _TC c7, _TC c8, _TC c9, _TC c10, _TC c11)\
-    {                                                                                             \
-        if (selectsql.size() > 0) selectsql.push_back(',');                                       \
-        selectsql.append(c1.sv); selectsql.push_back(','); selectsql.append(c2.sv);               \
-        selectsql.push_back(','); selectsql.append(c3.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c4.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c5.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c6.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c7.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c8.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c9.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c10.sv);                                       \
-        selectsql.push_back(','); selectsql.append(c11.sv);                                       \
-        return *mod;                                                                              \
-    }                                                                                             \
-    M_MODEL &select(_TC c1, _TC c2, _TC c3, _TC c4, _TC c5, _TC c6, _TC c7, _TC c8, _TC c9, _TC c10, _TC c11, _TC c12)\
-    {                                                                                             \
-        if (selectsql.size() > 0) selectsql.push_back(',');                                       \
-        selectsql.append(c1.sv); selectsql.push_back(','); selectsql.append(c2.sv);               \
-        selectsql.push_back(','); selectsql.append(c3.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c4.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c5.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c6.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c7.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c8.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c9.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c10.sv);                                       \
-        selectsql.push_back(','); selectsql.append(c11.sv);                                       \
-        selectsql.push_back(','); selectsql.append(c12.sv);                                       \
-        return *mod;                                                                              \
-    }                                                                                             \
-    M_MODEL &select(_TC c1, _TC c2, _TC c3, _TC c4, _TC c5, _TC c6, _TC c7, _TC c8, _TC c9, _TC c10, _TC c11, _TC c12, _TC c13)\
-    {                                                                                             \
-        if (selectsql.size() > 0) selectsql.push_back(',');                                       \
-        selectsql.append(c1.sv); selectsql.push_back(','); selectsql.append(c2.sv);               \
-        selectsql.push_back(','); selectsql.append(c3.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c4.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c5.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c6.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c7.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c8.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c9.sv);                                        \
-        selectsql.push_back(','); selectsql.append(c10.sv);                                       \
-        selectsql.push_back(','); selectsql.append(c11.sv);                                       \
-        selectsql.push_back(','); selectsql.append(c12.sv);                                       \
-        selectsql.push_back(','); selectsql.append(c13.sv);                                       \
-        return *mod;                                                                              \
+#define ORM_SELECT_FIELDS(M_MODEL, B_BASE, COL_NAMES)                                                                           \
+    using _TC = orm::table_col<B_BASE, COL_NAMES>;                                                                              \
+    M_MODEL &select(std::string_view fields)                                                                                    \
+    {                                                                                                                           \
+        if (selectsql.size() > 0)                                                                                               \
+            selectsql.push_back(',');                                                                                           \
+        selectsql.append(fields);                                                                                               \
+        return *mod;                                                                                                            \
+    }                                                                                                                           \
+    M_MODEL &select(_TC c1, _TC c2)                                                                                             \
+    {                                                                                                                           \
+        if (selectsql.size() > 0)                                                                                               \
+            selectsql.push_back(',');                                                                                           \
+        selectsql.append(c1.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c2.sv);                                                                                                \
+        return *mod;                                                                                                            \
+    }                                                                                                                           \
+    M_MODEL &select(_TC c1, _TC c2, _TC c3)                                                                                     \
+    {                                                                                                                           \
+        if (selectsql.size() > 0)                                                                                               \
+            selectsql.push_back(',');                                                                                           \
+        selectsql.append(c1.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c2.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c3.sv);                                                                                                \
+        return *mod;                                                                                                            \
+    }                                                                                                                           \
+    M_MODEL &select(_TC c1, _TC c2, _TC c3, _TC c4)                                                                             \
+    {                                                                                                                           \
+        if (selectsql.size() > 0)                                                                                               \
+            selectsql.push_back(',');                                                                                           \
+        selectsql.append(c1.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c2.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c3.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c4.sv);                                                                                                \
+        return *mod;                                                                                                            \
+    }                                                                                                                           \
+    M_MODEL &select(_TC c1, _TC c2, _TC c3, _TC c4, _TC c5)                                                                     \
+    {                                                                                                                           \
+        if (selectsql.size() > 0)                                                                                               \
+            selectsql.push_back(',');                                                                                           \
+        selectsql.append(c1.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c2.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c3.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c4.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c5.sv);                                                                                                \
+        return *mod;                                                                                                            \
+    }                                                                                                                           \
+    M_MODEL &select(_TC c1, _TC c2, _TC c3, _TC c4, _TC c5, _TC c6)                                                             \
+    {                                                                                                                           \
+        if (selectsql.size() > 0)                                                                                               \
+            selectsql.push_back(',');                                                                                           \
+        selectsql.append(c1.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c2.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c3.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c4.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c5.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c6.sv);                                                                                                \
+        return *mod;                                                                                                            \
+    }                                                                                                                           \
+    M_MODEL &select(_TC c1, _TC c2, _TC c3, _TC c4, _TC c5, _TC c6, _TC c7)                                                     \
+    {                                                                                                                           \
+        if (selectsql.size() > 0)                                                                                               \
+            selectsql.push_back(',');                                                                                           \
+        selectsql.append(c1.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c2.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c3.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c4.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c5.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c6.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c7.sv);                                                                                                \
+        return *mod;                                                                                                            \
+    }                                                                                                                           \
+    M_MODEL &select(_TC c1, _TC c2, _TC c3, _TC c4, _TC c5, _TC c6, _TC c7, _TC c8)                                             \
+    {                                                                                                                           \
+        if (selectsql.size() > 0)                                                                                               \
+            selectsql.push_back(',');                                                                                           \
+        selectsql.append(c1.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c2.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c3.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c4.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c5.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c6.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c7.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c8.sv);                                                                                                \
+        return *mod;                                                                                                            \
+    }                                                                                                                           \
+    M_MODEL &select(_TC c1, _TC c2, _TC c3, _TC c4, _TC c5, _TC c6, _TC c7, _TC c8, _TC c9)                                     \
+    {                                                                                                                           \
+        if (selectsql.size() > 0)                                                                                               \
+            selectsql.push_back(',');                                                                                           \
+        selectsql.append(c1.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c2.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c3.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c4.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c5.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c6.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c7.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c8.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c9.sv);                                                                                                \
+        return *mod;                                                                                                            \
+    }                                                                                                                           \
+    M_MODEL &select(_TC c1, _TC c2, _TC c3, _TC c4, _TC c5, _TC c6, _TC c7, _TC c8, _TC c9, _TC c10)                            \
+    {                                                                                                                           \
+        if (selectsql.size() > 0)                                                                                               \
+            selectsql.push_back(',');                                                                                           \
+        selectsql.append(c1.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c2.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c3.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c4.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c5.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c6.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c7.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c8.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c9.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c10.sv);                                                                                               \
+        return *mod;                                                                                                            \
+    }                                                                                                                           \
+    M_MODEL &select(_TC c1, _TC c2, _TC c3, _TC c4, _TC c5, _TC c6, _TC c7, _TC c8, _TC c9, _TC c10, _TC c11)                   \
+    {                                                                                                                           \
+        if (selectsql.size() > 0)                                                                                               \
+            selectsql.push_back(',');                                                                                           \
+        selectsql.append(c1.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c2.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c3.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c4.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c5.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c6.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c7.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c8.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c9.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c10.sv);                                                                                               \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c11.sv);                                                                                               \
+        return *mod;                                                                                                            \
+    }                                                                                                                           \
+    M_MODEL &select(_TC c1, _TC c2, _TC c3, _TC c4, _TC c5, _TC c6, _TC c7, _TC c8, _TC c9, _TC c10, _TC c11, _TC c12)          \
+    {                                                                                                                           \
+        if (selectsql.size() > 0)                                                                                               \
+            selectsql.push_back(',');                                                                                           \
+        selectsql.append(c1.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c2.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c3.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c4.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c5.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c6.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c7.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c8.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c9.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c10.sv);                                                                                               \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c11.sv);                                                                                               \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c12.sv);                                                                                               \
+        return *mod;                                                                                                            \
+    }                                                                                                                           \
+    M_MODEL &select(_TC c1, _TC c2, _TC c3, _TC c4, _TC c5, _TC c6, _TC c7, _TC c8, _TC c9, _TC c10, _TC c11, _TC c12, _TC c13) \
+    {                                                                                                                           \
+        if (selectsql.size() > 0)                                                                                               \
+            selectsql.push_back(',');                                                                                           \
+        selectsql.append(c1.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c2.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c3.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c4.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c5.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c6.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c7.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c8.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c9.sv);                                                                                                \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c10.sv);                                                                                               \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c11.sv);                                                                                               \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c12.sv);                                                                                               \
+        selectsql.push_back(',');                                                                                               \
+        selectsql.append(c13.sv);                                                                                               \
+        return *mod;                                                                                                            \
     }
 
 struct orm_conn_t
@@ -623,7 +725,7 @@ struct orm_conn_t
     bool sslverify =
         false;// verify the server cert chain (system CA or SSL_CERT_FILE)
     std::string
-        sslhost;                  // cert hostname/SNI (name check); empty => chain check only
+        sslhost;                  // SNI + hostname check name; empty => both fall back to host; hostname check only runs when sslverify=ON
     std::string server_public_key;// pinned server RSA key for MySQL non-SSL auth (PEM path or inline PEM); empty => no check
     bool issock               = false;
     bool isdebug              = false;

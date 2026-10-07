@@ -95,103 +95,101 @@ void client_context::add_mqtt_task(std::shared_ptr<mqtt_client> temp_task)
 }
 namespace
 {
-    enum class timeout_action
-    {
-        close_erase,
-        dur_tick_async,
-        dur_tick_sync,
-    };
+enum class timeout_action
+{
+    close_erase,
+    dur_tick_async,
+    dur_tick_sync,
+};
 
-    template <typename T>
-    struct timeout_action_item
-    {
-        std::shared_ptr<T> peer;
-        timeout_action action;
-    };
+template <typename T>
+struct timeout_action_item
+{
+    std::shared_ptr<T> peer;
+    timeout_action action;
+};
 
-    // 锁内摘快照（含擦除链表节点），锁外执行 close_connect/心跳回调；
-    // HasDur=false 的类别（mqtt）没有 dur 心跳分支；
-    // GuardZeroTimeout=true 的类别（websocket）timeout==0 表示常驻不过期
-    template <typename T, bool HasDur, bool GuardZeroTimeout>
-    void scan_timeout_list(std::list<std::weak_ptr<T>> &lst, std::mutex &mtx,
-                           unsigned int nowtimeid, unsigned int fps)
+// 锁内摘快照（含擦除链表节点），锁外执行 close_connect/心跳回调；
+// HasDur=false 的类别（mqtt）没有 dur 心跳分支；
+// GuardZeroTimeout=true 的类别（websocket）timeout==0 表示常驻不过期
+template <typename T, bool HasDur, bool GuardZeroTimeout>
+void scan_timeout_list(std::list<std::weak_ptr<T>> &lst, std::mutex &mtx, unsigned int nowtimeid, unsigned int fps)
+{
+    std::vector<timeout_action_item<T>> actions;
     {
-        std::vector<timeout_action_item<T>> actions;
+        std::lock_guard<std::mutex> lk(mtx);
+        for (auto iter = lst.begin(); iter != lst.end();)
+        {
+            std::shared_ptr<T> peer = iter->lock();
+            if (!peer)
+            {
+                lst.erase(iter++);
+                continue;
+            }
+            if (peer->iserror || peer->iswait_exit)
+            {
+                actions.push_back({peer, timeout_action::close_erase});
+                lst.erase(iter++);
+                continue;
+            }
+            if constexpr (HasDur)
+            {
+                if ((peer->dur_time_loop_fun != nullptr || peer->async_dur_time_loop_fun != nullptr) && peer->durtime > 0)
+                {
+                    // dur 托管的连接本拍跳过超时检查（与原实现一致），到拍才发心跳
+                    if ((fps % peer->durtime) == 0)
+                    {
+                        actions.push_back({peer, peer->async_dur_time_loop_fun != nullptr ? timeout_action::dur_tick_async : timeout_action::dur_tick_sync});
+                    }
+                    ++iter;
+                    continue;
+                }
+            }
+            unsigned int timeout_val = peer->get_timeout();
+            bool expired             = (timeout_val < nowtimeid) && (!GuardZeroTimeout || timeout_val > 0);
+            if (expired)
+            {
+                peer->iswait_exit = true;
+            }
+            ++iter;
+        }
+    }
+    for (auto &item : actions)
+    {
+        try
+        {
+            if (item.action == timeout_action::close_erase)
+            {
+                item.peer->close_connect();
+            }
+            else if constexpr (HasDur)
+            {
+                if (item.action == timeout_action::dur_tick_async)
+                {
+                    asio::co_spawn(item.peer->strand_, [p = item.peer]() mutable
+                                   { return p->async_dur_time_loop_fun(p->shared_from_this()); },
+                                   asio::detached);
+                }
+                else
+                {
+                    item.peer->dur_time_loop_fun(item.peer->shared_from_this());
+                }
+            }
+        }
+        catch (...)
         {
             std::lock_guard<std::mutex> lk(mtx);
             for (auto iter = lst.begin(); iter != lst.end();)
             {
-                std::shared_ptr<T> peer = iter->lock();
-                if (!peer)
-                {
+                auto p = iter->lock();
+                if (!p || p == item.peer)
                     lst.erase(iter++);
-                    continue;
-                }
-                if (peer->iserror || peer->iswait_exit)
-                {
-                    actions.push_back({peer, timeout_action::close_erase});
-                    lst.erase(iter++);
-                    continue;
-                }
-                if constexpr (HasDur)
-                {
-                    if ((peer->dur_time_loop_fun != nullptr || peer->async_dur_time_loop_fun != nullptr) && peer->durtime > 0)
-                    {
-                        // dur 托管的连接本拍跳过超时检查（与原实现一致），到拍才发心跳
-                        if ((fps % peer->durtime) == 0)
-                        {
-                            actions.push_back({peer, peer->async_dur_time_loop_fun != nullptr
-                                                      ? timeout_action::dur_tick_async
-                                                      : timeout_action::dur_tick_sync});
-                        }
-                        ++iter;
-                        continue;
-                    }
-                }
-                unsigned int timeout_val = peer->get_timeout();
-                bool expired = (timeout_val < nowtimeid) && (!GuardZeroTimeout || timeout_val > 0);
-                if (expired)
-                {
-                    peer->iswait_exit = true;
-                }
-                ++iter;
-            }
-        }
-        for (auto &item : actions)
-        {
-            try
-            {
-                if (item.action == timeout_action::close_erase)
-                {
-                    item.peer->close_connect();
-                }
-                else if constexpr (HasDur)
-                {
-                    if (item.action == timeout_action::dur_tick_async)
-                    {
-                        asio::co_spawn(item.peer->strand_, [p = item.peer]() mutable
-                                       { return p->async_dur_time_loop_fun(p->shared_from_this()); }, asio::detached);
-                    }
-                    else
-                    {
-                        item.peer->dur_time_loop_fun(item.peer->shared_from_this());
-                    }
-                }
-            }
-            catch (...)
-            {
-                std::lock_guard<std::mutex> lk(mtx);
-                for (auto iter = lst.begin(); iter != lst.end();)
-                {
-                    auto p = iter->lock();
-                    if (!p || p == item.peer)
-                        lst.erase(iter++);
-                    else
-                        ++iter;
-                }
+                else
+                    ++iter;
             }
         }
     }
+}
 }// namespace
 void client_context::time_out_loop()
 {
@@ -202,7 +200,7 @@ void client_context::time_out_loop()
     auto m_EndFrame           = m_BeginFrame + invFpsLimit;
     auto prev_time_in_seconds = time_point_cast<seconds>(m_BeginFrame);
     // unsigned frame_count_per_second = 0;
-    unsigned int fps=0;
+    unsigned int fps = 0;
     for (;;)
     {
         {
@@ -241,7 +239,6 @@ void client_context::time_out_loop()
             scan_timeout_list<websocket_client, true, true>(websocket_timeout_lists, timeout_mutex, nowtimeid, fps);
             //mqtt
             scan_timeout_list<mqtt_client, false, false>(mqtt_timeout_lists, timeout_mutex, nowtimeid, fps);
-
         }
 
         std::this_thread::sleep_until(m_EndFrame);
@@ -281,7 +278,7 @@ void client_context::taskloop()
             std::unique_lock<std::mutex> lock(this->queue_mutex);
             this->condition.wait(lock,
                                  [this]
-                                 { return this->isstop || !this->clienttasks.empty() || !this->cgitasks.empty()|| !this->websocket_clienttasks.empty()|| !this->socket_clienttasks.empty()|| !this->mqtt_clienttasks.empty(); });
+                                 { return this->isstop || !this->clienttasks.empty() || !this->cgitasks.empty() || !this->websocket_clienttasks.empty() || !this->socket_clienttasks.empty() || !this->mqtt_clienttasks.empty(); });
 
             if (this->clienttasks.size() > 0)
             {
@@ -310,14 +307,14 @@ void client_context::taskloop()
                 this->socket_clienttasks.pop();
                 lock.unlock();
                 socket_client_task(std::move(task));
-            }            
+            }
             else if (this->mqtt_clienttasks.size() > 0)
             {
                 auto task = std::move(this->mqtt_clienttasks.front());
                 this->mqtt_clienttasks.pop();
                 lock.unlock();
                 mqtt_client_task(std::move(task));
-            } 
+            }
             else
             {
                 lock.unlock();
@@ -358,7 +355,7 @@ void client_context::http_client_task(std::shared_ptr<client> clientpeer)
     std::string tempthread = oss.str();
     DEBUG_LOG("http_client_task:%s", tempthread.c_str());
 #endif
-    if (clientpeer->run_task_fun !=nullptr)
+    if (clientpeer->run_task_fun != nullptr)
     {
         clientpeer->run_task_fun(clientpeer->shared_from_this());
     }
@@ -373,7 +370,7 @@ void client_context::websocket_client_task(std::shared_ptr<websocket_client> wsp
     std::string tempthread = oss.str();
     DEBUG_LOG("websocket_client_task:%s", tempthread.c_str());
 #endif
-    if (wspeer->run_task_fun !=nullptr)
+    if (wspeer->run_task_fun != nullptr)
     {
         wspeer->run_task_fun(wspeer->shared_from_this());
     }
@@ -388,7 +385,7 @@ void client_context::socket_client_task(std::shared_ptr<socket_client> wspeer)
     std::string tempthread = oss.str();
     DEBUG_LOG("socket_client:%s", tempthread.c_str());
 #endif
-    if (wspeer->run_task_fun !=nullptr)
+    if (wspeer->run_task_fun != nullptr)
     {
         wspeer->run_task_fun(wspeer->shared_from_this());
     }
@@ -405,7 +402,9 @@ void client_context::mqtt_client_task(std::shared_ptr<mqtt_client> cli)
     if (cli->async_run_task_fun != nullptr)
     {
         auto self = cli;
-        co_spawn(*this->ioc, [self]{ return self->async_run_task_fun(self); }, asio::detached);
+        co_spawn(*this->ioc, [self]
+                 { return self->async_run_task_fun(self); },
+                 asio::detached);
     }
     else if (cli->run_task_fun != nullptr)
     {

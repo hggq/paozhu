@@ -21,9 +21,12 @@ namespace http
     public:
             void timeout(unsigned int t) { exptime = t; };
             unsigned int timeout() { return exptime; };
+            // timeout==0 视为"无限期但仍受看护"：写入大哨兵值，永不过期，
+            // 但连接仍留在超时链表里，由 dur 心跳（dur_time_loop_fun）每拍刷新，不会被 idle 误杀。
+            static constexpr unsigned int kInfiniteTimeoutSec = 0x3FFFFFFF; // ~34 年
             void reset_timeout()
             {
-                timeout_end.store(timeid() + exptime);
+                timeout_end.store(timeid() + (exptime == 0 ? kInfiniteTimeoutSec : exptime));
             };
             void reset_connect_timeout()
             {

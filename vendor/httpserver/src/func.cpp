@@ -17,7 +17,6 @@
 #include <sys/stat.h>
 #include <cctype>
 #include "datetime.h"
-#include "urlcode.h"
 
 #ifdef WIN32
 #define stat _stat
@@ -35,7 +34,7 @@ bool str_cmp(std::string_view str1, std::string_view str2)
     {
         return false;
     }
-    for (unsigned int i = 0; i < str1.size(); i++)
+    for (size_t i = 0; i < str1.size(); i++)
     {
         if (str1[i] != str2[i])
         {
@@ -50,7 +49,7 @@ bool str_casecmp(std::string_view str1, std::string_view str2)
     {
         return false;
     }
-    for (unsigned int i = 0; i < str1.size(); i++)
+    for (size_t i = 0; i < str1.size(); i++)
     {
         if (str1[i] != str2[i])
         {
@@ -83,7 +82,7 @@ bool str_cmp_pre(std::string_view str1, std::string_view str2, unsigned int leng
     {
         return false;
     }
-    for (unsigned int i = 0; i < length; i++)
+    for (size_t i = 0; i < length; i++)
     {
         if (i < str2.size())
         {
@@ -113,7 +112,7 @@ bool str_casecmp_pre(std::string_view str1, std::string_view str2, unsigned int 
     {
         return false;
     }
-    for (unsigned int i = 0; i < length; i++)
+    for (size_t i = 0; i < length; i++)
     {
         if (i < str2.size())
         {
@@ -167,13 +166,12 @@ bool str_cmp_last(std::string_view str1, std::string_view str2, unsigned int len
     {
         return false;
     }
-    a = a - 1;
-    b = b - 1;
-
-    for (unsigned int i = 0; i < length; i++)
+    // One step per round: this walks the last `length` bytes, so the tail offsets must be
+    // 0,1,2,3 - not the cumulative 0,1,3,6 that subtracting the round number gives.
+    for (size_t i = 0; i < length; i++)
     {
-        a -= i;
-        b -= i;
+        a -= 1;
+        b -= 1;
         if (b < 0)
         {
             return true;
@@ -282,7 +280,7 @@ std::string mb_reverse(std::string_view str)
                         }
                     }
                     //May be check colour of skin
-                    for (unsigned int k = i; k <= j; k++)
+                    for (size_t k = i; k <= j; k++)
                     {
                         temp.push_back(str[k]);
                     }
@@ -322,13 +320,12 @@ bool str_casecmp_last(std::string_view str1, std::string_view str2, unsigned int
     {
         return false;
     }
-    a = a - 1;
-    b = b - 1;
-
-    for (unsigned int i = 0; i < length; i++)
+    // One step per round: this walks the last `length` bytes, so the tail offsets must be
+    // 0,1,2,3 - not the cumulative 0,1,3,6 that subtracting the round number gives.
+    for (size_t i = 0; i < length; i++)
     {
-        a -= i;
-        b -= i;
+        a -= 1;
+        b -= 1;
         if (b < 0)
         {
             return true;
@@ -420,14 +417,14 @@ std::string get_filename(const std::string &filename)
 }
 std::string get_fileext(const std::string &filename)
 {
-    unsigned int filename_length = filename.size();
+    unsigned int filename_length = static_cast<unsigned int>(filename.size());
     std::string temp;
     if (filename_length == 0)
     {
         return temp;
     }
     unsigned int j = 0;
-    for (unsigned int i = filename_length - 1; i > 0; i--)
+    for (size_t i = filename_length - 1; i > 0; i--)
     {
         if (filename[i] == '.')
         {
@@ -444,7 +441,7 @@ std::string get_fileext(const std::string &filename)
     {
         return temp;
     }
-    for (unsigned int i = filename_length - j; i < filename_length; i++)
+    for (size_t i = filename_length - j; i < filename_length; i++)
     {
         temp.push_back(filename[i]);
     }
@@ -455,9 +452,9 @@ std::vector<std::string> mb_split(std::string_view pattern, std::string_view msg
     std::vector<std::string> temp;
     std::string mp;
     unsigned int j = 0;
-    unsigned int n = msg.size();
+    unsigned int n = static_cast<unsigned int>(msg.size());
 
-    for (unsigned int i = 0; i < n; i++)
+    for (size_t i = 0; i < n; i++)
     {
         for (j = 0; j < pattern.size(); j++)
         {
@@ -529,7 +526,7 @@ bool check_isodate(std::string_view filename)
     {
         return false;
     }
-    for (unsigned int i = 0; i < 4; ++i)
+    for (size_t i = 0; i < 4; ++i)
     {
         if (filename[i] > 0x2F && filename[i] < 0x3A)
         {
@@ -541,7 +538,7 @@ bool check_isodate(std::string_view filename)
     {
         return false;
     }
-    for (unsigned int i = 5; i < 7; ++i)
+    for (size_t i = 5; i < 7; ++i)
     {
         if (filename[i] > 0x2F && filename[i] < 0x3A)
         {
@@ -553,7 +550,7 @@ bool check_isodate(std::string_view filename)
     {
         return false;
     }
-    for (unsigned int i = 8; i < 10; ++i)
+    for (size_t i = 8; i < 10; ++i)
     {
         if (filename[i] > 0x2F && filename[i] < 0x3A)
         {
@@ -570,7 +567,7 @@ bool check_isodate(std::string_view filename)
 std::string strip_domainname(std::string_view domainname)
 {
     std::string temp;
-    for (unsigned int i = 0; i < domainname.size(); ++i)
+    for (size_t i = 0; i < domainname.size(); ++i)
     {
         if (domainname[i] > 0x2F && domainname[i] < 0x3A)
         {
@@ -617,7 +614,7 @@ std::string strip_domainname(std::string_view domainname)
 }
 bool tidy_domainname(std::string &domainname)
 {
-    for (unsigned int i = 0; i < domainname.size(); ++i)
+    for (size_t i = 0; i < domainname.size(); ++i)
     {
         if (domainname[i] > 0x2F && domainname[i] < 0x3A)
         {
@@ -657,7 +654,7 @@ bool is_domainname(std::string_view domainname)
         return false;
     }
 
-    for (unsigned int i = 0; i < domainname.size(); ++i)
+    for (size_t i = 0; i < domainname.size(); ++i)
     {
         if (domainname[i] > 0x2F && domainname[i] < 0x3A)
         {
@@ -715,7 +712,7 @@ std::string mb_substr(std::string_view str, int begin, int length)
             }
 
             int offsetnum = 0;
-            for (unsigned int pos = 0; pos < str.size(); pos++)
+            for (size_t pos = 0; pos < str.size(); pos++)
             {
                 c = (unsigned char)str[pos];
                 if (c < 0x80)
@@ -806,7 +803,7 @@ std::string mb_substr(std::string_view str, int begin, int length)
                 return temp;
             }
             int offsetnum = 0;
-            for (unsigned int pos = 0; pos < str.size(); pos++)
+            for (size_t pos = 0; pos < str.size(); pos++)
             {
                 c = (unsigned char)str[pos];
                 if (c < 0x80)
@@ -902,7 +899,7 @@ std::string mb_substr(std::string_view str, int begin, int length)
             }
 
             int offsetnum = 0;
-            for (unsigned int pos = 0; pos < str.size(); pos++)
+            for (size_t pos = 0; pos < str.size(); pos++)
             {
                 c = (unsigned char)str[pos];
                 if (c < 0x80)
@@ -978,7 +975,7 @@ std::string mb_substr(std::string_view str, int begin, int length)
 
             int offsetnum = 0;
             int n         = begin;
-            for (unsigned int pos = 0; pos < str.size(); pos++)
+            for (size_t pos = 0; pos < str.size(); pos++)
             {
                 c = (unsigned char)str[pos];
                 if (c < 0x80)
@@ -1059,7 +1056,7 @@ std::string mb_substr(std::string_view str, int begin, int length)
             j     = begin;
 
             int offsetnum = 0;
-            for (unsigned int pos = 0; pos < str.size(); pos++)
+            for (size_t pos = 0; pos < str.size(); pos++)
             {
                 c = (unsigned char)str[pos];
                 if (c < 0x80)
@@ -1142,7 +1139,7 @@ std::string mb_substr(std::string_view str, int begin, int length)
             }
             int n         = begin;
             int offsetnum = 0;
-            for (unsigned int pos = 0; pos < str.size(); pos++)
+            for (size_t pos = 0; pos < str.size(); pos++)
             {
                 c = (unsigned char)str[pos];
                 if (c < 0x80)
@@ -1361,7 +1358,7 @@ std::map<std::string, std::string> filepath(std::string &str)
             }
             if (str[i] == '?')
             {
-                for (unsigned int j = i + 1; j < str.size(); j++)
+                for (size_t j = i + 1; j < str.size(); j++)
                 {
                     if (str[j] == '#')
                     {
@@ -1423,7 +1420,7 @@ std::map<std::string, std::string> filepath(std::string &str)
     }
     if (vpath.size() > 0)
     {
-        for (unsigned int j = 0; j < vpath.size(); j++)
+        for (size_t j = 0; j < vpath.size(); j++)
         {
             if (j > 0)
             {
@@ -1437,7 +1434,7 @@ std::map<std::string, std::string> filepath(std::string &str)
 std::string str_trim(std::string_view str)
 {
     std::string temp;
-    unsigned int tlen = str.size();
+    unsigned int tlen = static_cast<unsigned int>(str.size());
     for (; tlen > 0; tlen--)
     {
         unsigned int j = tlen - 1;
@@ -1483,7 +1480,7 @@ std::string str_nl2br(std::string_view str)
 
 std::string_view str_trim_view(std::string_view str)
 {
-    unsigned int tlen = str.size();
+    unsigned int tlen = static_cast<unsigned int>(str.size());
     for (; tlen > 0; tlen--)
     {
         unsigned int j = tlen - 1;
@@ -1509,7 +1506,7 @@ std::string_view str_trim_view(std::string_view str)
 std::string html_encode(std::string_view str)
 {
     std::string temp;
-    for (unsigned int i = 0; i < str.size(); i++)
+    for (size_t i = 0; i < str.size(); i++)
     {
         if (str[i] == '&')
         {
@@ -1551,7 +1548,7 @@ unsigned long long str2uint(std::string_view source)
 {
     unsigned long long temp = 0;
     unsigned int qi         = 0;
-    unsigned int length     = source.size();
+    unsigned int length     = static_cast<unsigned int>(source.size());
     for (; qi < length; qi++)
     {
         if (source[qi] != 0x20)
@@ -1596,7 +1593,7 @@ long long str2int(std::string_view source)
 {
     long long temp      = 0;
     unsigned int qi     = 0;
-    unsigned int length = source.size();
+    unsigned int length = static_cast<unsigned int>(source.size());
     bool issub          = false;
     for (; qi < length; qi++)
     {
@@ -1616,7 +1613,7 @@ long long str2int(std::string_view source)
         {
             temp = temp * 10 + (source[qi] - 0x30);
         }
-        else if(source[qi] == '.')
+        else if (source[qi] == '.')
         {
             break;
         }
@@ -1771,7 +1768,7 @@ bool str2uint64_strict(std::string_view source, unsigned long long &out, unsigne
     {
         return false;
     }
-    for (unsigned int i = 0; i < source.size(); i++)
+    for (size_t i = 0; i < source.size(); i++)
     {
         if (source[i] < 0x30 || source[i] > 0x39)
         {
@@ -1790,7 +1787,7 @@ bool str2uint64_strict(std::string_view source, unsigned long long &out, unsigne
 std::string str2safepath(const char *source, unsigned int str_length)
 {
     std::string temp;
-    for (unsigned int i = 0; i < str_length; i++)
+    for (size_t i = 0; i < str_length; i++)
     {
 
         if ((source[i] > 0x2F && source[i] < 0x3A) || source[i] == '(' || source[i] == ')' || source[i] == '~' ||
@@ -1805,7 +1802,7 @@ std::string str2safepath(const char *source, unsigned int str_length)
 std::string str2safefile(const char *source, unsigned int str_length)
 {
     std::string temp;
-    for (unsigned int i = 0; i < str_length; i++)
+    for (size_t i = 0; i < str_length; i++)
     {
 
         if ((source[i] > 0x2F && source[i] < 0x3A) || source[i] == '.' || source[i] == '[' || source[i] == ']' ||
@@ -1820,7 +1817,7 @@ std::string str2safefile(const char *source, unsigned int str_length)
 std::string str2safemethold(const char *source, unsigned int str_length)
 {
     std::string temp;
-    for (unsigned int i = 0; i < str_length; i++)
+    for (size_t i = 0; i < str_length; i++)
     {
 
         if ((source[i] > 0x2F && source[i] < 0x3A) || source[i] == '_' || (source[i] > 0x40 && source[i] < 0x5B) ||
@@ -1834,7 +1831,7 @@ std::string str2safemethold(const char *source, unsigned int str_length)
 std::string array_to_sql(const std::vector<std::string> a, char b, bool isquote)
 {
     std::string temp;
-    for (unsigned int j = 0; j < a.size(); j++)
+    for (size_t j = 0; j < a.size(); j++)
     {
         if (j > 0)
         {
@@ -1856,7 +1853,7 @@ std::string array_to_sql(const std::vector<std::string> a, char b, bool isquote)
 std::string str_addslash(const std::string &content)
 {
     std::string temp;
-    for (unsigned int i = 0; i < content.size(); i++)
+    for (size_t i = 0; i < content.size(); i++)
     {
         if (content[i] == '\'')
         {
@@ -1880,7 +1877,7 @@ std::string str_addslash(const std::string &content)
 std::string json_addslash(const std::string &content)
 {
     std::string temp;
-    for (unsigned int i = 0; i < content.size(); i++)
+    for (size_t i = 0; i < content.size(); i++)
     {
         if (content[i] == '"')
         {
@@ -1901,7 +1898,7 @@ std::string json_escape(const std::string &content)
 {
     std::string temp;
     temp.reserve(content.size());
-    for (unsigned int i = 0; i < content.size(); i++)
+    for (size_t i = 0; i < content.size(); i++)
     {
         unsigned char c = (unsigned char)content[i];
         switch (c)
@@ -1949,7 +1946,7 @@ std::string strip_html(std::string_view content)
     std::string tempstr;
     unsigned int tag_count = 0;
 
-    for (unsigned int i = 0; i < content.size(); i++)
+    for (size_t i = 0; i < content.size(); i++)
     {
         if (content[i] == '<')
         {
@@ -2232,7 +2229,7 @@ std::string strip_html(std::string_view content)
 std::string strip_annot(std::string_view content)
 {
     std::string temp;
-    for (unsigned int i = 0; i < content.size(); i++)
+    for (size_t i = 0; i < content.size(); i++)
     {
         if (content[i] == '/' && ((i + 1) < content.size()) && content[i + 1] == '/')
         {
@@ -2363,7 +2360,7 @@ void get_directory_all_file(std::map<unsigned long long, std::string> &listobj,
 std::string get_safepath(std::string_view source)
 {
     std::string temp;
-    for (unsigned int i = 0; i < source.size(); i++)
+    for (size_t i = 0; i < source.size(); i++)
     {
         char temc = source[i];
         if (temc >= 'A' && temc <= 'Z')
@@ -2399,7 +2396,7 @@ std::string numstr_to_sql(const char *source, unsigned int str_length, char b)
     std::string tempt;
     std::string tempstr;
 
-    for (unsigned int i = 0; i < str_length; i++)
+    for (size_t i = 0; i < str_length; i++)
     {
         if (source[i] == '-' || (source[i] > 0x2F && source[i] < 0x3A))
         {
@@ -2429,11 +2426,12 @@ std::string numstr_to_sql(const char *source, unsigned int str_length, char b)
     return tempt;
 }
 
-std::string dir_name(std::string_view name) 
+std::string dir_name(std::string_view name)
 {
     using namespace std::filesystem;
 
-    if (name.empty()) return ".";
+    if (name.empty())
+        return ".";
 
     std::string path_str(name);
 
@@ -2443,13 +2441,16 @@ std::string dir_name(std::string_view name)
 #else
     const std::string separators = "/";
 #endif
-    while (!path_str.empty() && separators.find(path_str.back()) != std::string::npos) {
+    while (!path_str.empty() && separators.find(path_str.back()) != std::string::npos)
+    {
         path_str.pop_back();
     }
 
-    if (path_str.empty()) {
+    if (path_str.empty())
+    {
         // 根目录情况
-        if (name.size() >= 2 && std::isalpha(name[0]) && name[1] == ':') {
+        if (name.size() >= 2 && std::isalpha(name[0]) && name[1] == ':')
+        {
             return std::string(name.substr(0, 2)) + "\\";
         }
         return "/";
@@ -2462,7 +2463,8 @@ std::string dir_name(std::string_view name)
     path p(path_str);
     bool is_absolute = p.is_absolute();
 #ifndef _WIN32
-    if (!is_absolute && path_str.size() >= 2 && std::isalpha(path_str[0]) && path_str[1] == ':') {
+    if (!is_absolute && path_str.size() >= 2 && std::isalpha(path_str[0]) && path_str[1] == ':')
+    {
         is_absolute = true;
     }
 #endif
@@ -2499,10 +2501,13 @@ long long num_put_money(long long a)
 
 bool ip_is_local(const std::string &ip)
 {
-    if (ip.empty()) return false;
+    if (ip.empty())
+        return false;
     std::string v = ip;
-    if (v.rfind("::ffff:", 0) == 0) v.erase(0, 7); // IPv4 映射写法
-    if (v == "::1" || v == "localhost") return true;
+    if (v.rfind("::ffff:", 0) == 0)
+        v.erase(0, 7);// IPv4 映射写法
+    if (v == "::1" || v == "localhost")
+        return true;
 
     if (v.find(':') != std::string::npos)
     {
@@ -2519,13 +2524,15 @@ bool ip_is_local(const std::string &ip)
     {
         if (ch >= '0' && ch <= '9')
         {
-            if (digits >= 3) return false;
+            if (digits >= 3)
+                return false;
             part[idx] = part[idx] * 10 + static_cast<unsigned int>(ch - '0');
             digits++;
         }
         else if (ch == '.')
         {
-            if (idx >= 3 || digits == 0) return false;
+            if (idx >= 3 || digits == 0)
+                return false;
             idx++;
             digits = 0;
         }
@@ -2534,13 +2541,18 @@ bool ip_is_local(const std::string &ip)
             return false;
         }
     }
-    if (idx != 3 || digits == 0) return false;
-    for (unsigned int i = 0; i < 4; i++)
-        if (part[i] > 255) return false;
+    if (idx != 3 || digits == 0)
+        return false;
+    for (size_t i = 0; i < 4; i++)
+        if (part[i] > 255)
+            return false;
 
-    if (part[0] == 127 || part[0] == 10) return true;
-    if (part[0] == 192 && part[1] == 168) return true;
-    if (part[0] == 172 && part[1] >= 16 && part[1] <= 31) return true;
+    if (part[0] == 127 || part[0] == 10)
+        return true;
+    if (part[0] == 192 && part[1] == 168)
+        return true;
+    if (part[0] == 172 && part[1] >= 16 && part[1] <= 31)
+        return true;
     return false;
 }
 
@@ -2580,8 +2592,8 @@ bool is_http_temp_filename(std::string_view name)
         return false;
     }
     {
-        std::string_view tail    = name.substr(HTTP_TEMP_UPLOAD_PREFIX.size());
-        std::size_t      sep_pos = tail.find('_');
+        std::string_view tail = name.substr(HTTP_TEMP_UPLOAD_PREFIX.size());
+        std::size_t sep_pos   = tail.find('_');
         if (sep_pos == std::string_view::npos || sep_pos == 0 || sep_pos + 1 >= tail.size())
         {
             return false;
@@ -2605,4 +2617,101 @@ bool is_http_temp_filename(std::string_view name)
     }
 }
 
+// —— 路径段专用解码（内部实现，不把 + 转空格）——
+// 和 url_decode() 同逻辑，唯一区别：保留 "+" 字面量
+// 因为只有 query string (a+b=1) 里 + 才表空格，路径里 + 就是 +
+static std::string url_decode_path_impl(const char *str, int len)
+{
+    std::string url;
+    if (len > 0)
+        url.reserve(len);
+    auto ishex = [](char c)
+    {
+        return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+    };
+    for (int i = 0; i < len; i++)
+    {
+        if (str[i] == '%' && (i + 2) < len && str[i + 1] != '%')
+        {
+            char h1 = str[i + 1], h2 = str[i + 2];
+            if (ishex(h1) && ishex(h2))
+            {
+                // 合法 %XX → 解码
+                auto hexval = [](char c) -> unsigned char
+                {
+                    if (c >= '0' && c <= '9')
+                        return c - '0';
+                    if (c >= 'a' && c <= 'f')
+                        return c - 'a' + 10;
+                    if (c >= 'A' && c <= 'F')
+                        return c - 'A' + 10;
+                    return 0;
+                };
+                url.push_back(static_cast<char>(hexval(h1) * 16 + hexval(h2)));
+                i += 2;
+            }
+            else
+            {
+                // 非法 hex 序列 → 保留原样（不解码，不跳过 % 后面的字符）
+                // RFC 3986：非法 percent-encoding 应保留原样
+                url.push_back(str[i]);
+            }
+        }
+        else
+        {
+            url.push_back(str[i]);
+        }
+    }
+    return url;
+}
+
+bool url_segments_normalize(std::vector<std::string> &pathinfos, const std::string &raw)
+{
+    // URL path segment normalization (HTTP/1.x & HTTP/2 shared)
+    // Caller splits on original "/" first; each segment:
+    //   1. %XX decode via url_decode_path_impl() (does NOT turn "+" into space)
+    //   2. After decode, segment must not contain NUL, "/" or "\" — blocks %00/%2f/%5c bypass
+    //   3. "." skipped, ".." pops previous segment
+    //   4. Segment length <= 255 bytes
+    // Returns false = invalid segment; caller should return 400.
+    unsigned int seg_begin = 0;
+    for (unsigned int k = 0; k <= raw.size(); k++)
+    {
+        if (k < raw.size() && raw[k] != '/')
+            continue;
+        unsigned int seg_len = k - seg_begin;
+        std::string raw_seg  = raw.substr(seg_begin, seg_len);
+        seg_begin            = k + 1;
+        if (raw_seg.empty())
+            continue;
+
+        // %XX decode (reuses url_decode_path_impl, path keeps "+" literal)
+        std::string decoded = url_decode_path_impl(raw_seg.c_str(), (int)raw_seg.size());
+
+        // Security check: no NUL, no slash, no backslash in decoded segment
+        for (char c : decoded)
+        {
+            if (c == '\x00' || c == '/' || c == '\\')
+                return false;
+        }
+
+        // "." / ".."
+        if (decoded.size() == 2 && decoded[0] == '.' && decoded[1] == '.')
+        {
+            if (pathinfos.size() > 0)
+                pathinfos.pop_back();
+        }
+        else if (decoded.size() == 1 && decoded[0] == '.')
+        {
+            // "." skip
+        }
+        else if (!decoded.empty())
+        {
+            if (decoded.size() > 255)
+                return false;
+            pathinfos.emplace_back(std::move(decoded));
+        }
+    }
+    return true;
+}
 }// namespace http

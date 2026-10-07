@@ -41,7 +41,7 @@ struct site_host_info_t
     // cors_domain：配置里的原始串（逗号分隔），仅保留用于日志/兼容查看
     std::string cors_domain;
     // cors_expose_headers：跨域响应里允许页面 JS 读取的响应头（Access-Control-Expose-Headers）。
-    // 未配置就不发这个头——以前是无条件 "*"，等于把服务端所有响应头都开放给页面脚本
+    // 未配置就不发这个头：发 "*" 等于把服务端所有响应头都开放给页面脚本
     std::string cors_expose_headers;
     // cors_credentials：跨域响应是否带 Access-Control-Allow-Credentials（默认 false，不发该头）。
     // 只在命中白名单、ACAO 回显具体 Origin 时才发：ACAO "*" 与 credentials 按规范互斥，
@@ -53,10 +53,10 @@ struct site_host_info_t
     // HEAD_METHOD::QUERY 与 GET/POST 并列解析，所以名单里必须有它。配置写了就整表覆盖。
     std::vector<std::string> cors_allow_methods{"POST", "GET", "OPTIONS", "QUERY"};
     // 以下三项由加载期解析 cors_domain 得到，请求期只做 O(1) 查表，见 cors_allow_origin()
-    std::vector<std::string> cors_domain_list;             // 切分后的配置条目
-    std::unordered_set<std::string> cors_origin_allowed;   // 归一化（全小写）后可直接比较的 origin
-    bool cors_allow_all = false;                           // 放开全部：只有 cors_domain 显式写了 "*" 才置真
-    bool is_cors       = false;                            // 用户是否显式配置了 cors_domain（含 "*"）；false=默认拒绝，加载期告警
+    std::vector<std::string> cors_domain_list;          // 切分后的配置条目
+    std::unordered_set<std::string> cors_origin_allowed;// 归一化（全小写）后可直接比较的 origin
+    bool cors_allow_all = false;                        // 放开全部：只有 cors_domain 显式写了 "*" 才置真
+    bool is_cors        = false;                        // 用户是否显式配置了 cors_domain（含 "*"）；false=默认拒绝，加载期告警
     std::string themes;
     std::string themes_url;
     std::vector<std::string> action_404_lists;
@@ -64,10 +64,12 @@ struct site_host_info_t
     std::vector<std::string> action_after_lists;
     std::vector<std::string> static_pre_lists;
     std::vector<std::pair<std::string, std::string>> rewrite_php_lists;
-    unsigned long long siteid    = 0;
-    unsigned long long groupid   = 0;
-    unsigned int rewrite404      = 0;
-    unsigned int upload_max_size = 0;
+    unsigned long long siteid     = 0;
+    unsigned long long groupid    = 0;
+    unsigned int rewrite404       = 0;
+    unsigned int upload_max_size  = 0;
+    unsigned int slot_id          = 0;// 反向保存 注册函数槽位
+    unsigned int usehtmlcachetime = 0;
     //unsigned int http_header_max_size = 0;
     bool isuse_php         = false;
     bool isrewrite         = false;
@@ -80,6 +82,7 @@ struct site_host_info_t
     bool is_close          = false;
     bool is_proxy          = false;
     bool is_acme           = false;
+    bool is_usehtmlcache   = false;
 
     /// @brief 依据本站点 CORS 配置，算出应写入 Access-Control-Allow-Origin 的值。
     /// @param request_origin 请求头 Origin 的原值，无该头时传空串
@@ -155,10 +158,10 @@ class serverconfig
     unsigned int rate_limit_accept_wait_num = 600;
     unsigned int rate_limit_accept_time     = 500;
 
-    unsigned int acme_every_day_time  = 7;
-    unsigned int acme_every_num   = 5;
+    unsigned int acme_every_day_time = 7;
+    unsigned int acme_every_num      = 5;
 
-    unsigned int ocsp_interval_time  = 14400;
+    unsigned int ocsp_interval_time = 14400;
 
     std::map<std::string, SSL_CTX *> g_ctxMap;
     std::map<unsigned long long, bool> domain_http2;

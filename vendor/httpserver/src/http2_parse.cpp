@@ -53,7 +53,6 @@ void http2parse::setsession(std::shared_ptr<client_session> peer_sock) { peer_se
 
 // multipart 的 boundary 归一化：去引号、限长。
 // 与 HTTP/1 (http_parse.cpp 的 boundary_normalize) 保持完全一致的口径。
-// HTTP/1 审计时已在这里加固（boundary 不限长会让 multipart 扫描退化成 O(n*m) 的 CPU DoS），
 // 但 HTTP/2 的 getcontenttype 当时漏了，这里补上，避免两边再次分叉。
 // 放在匿名 namespace 里，既不影响其他翻译单元，也能在 unity 构建下与 HTTP/1 的同名函数共存。
 namespace
@@ -239,13 +238,13 @@ void http2parse::readheaders(const HTTP2_PACK_DATA_T &temp_pack_data)
     {
         error = steam_httppeer->check_upload_limit();
     }
-    steam_httppeer->isuse_fastcgi();
+    // isuse_fastcgi() 已删除：路由预查挪到 loop 里，php 处理挪到 server 新方法
     http2_header_recvs.erase(iter);
 }
 void http2parse::headers_parse(const HTTP2_HEADER_FRAME_T &header_block_obj, std::shared_ptr<httppeer> steam_httppeer)
 {
     unsigned int header_stream_id = steam_httppeer->stream_id;
-    for (unsigned int h_begin = 0; h_begin < header_block_obj.content.size(); h_begin++)
+    for (unsigned int h_begin = 0; h_begin < (unsigned int)header_block_obj.content.size(); h_begin++)
     {
         unsigned char c = header_block_obj.content[h_begin];
 
@@ -312,7 +311,7 @@ void http2parse::headers_parse(const HTTP2_HEADER_FRAME_T &header_block_obj, std
 void http2parse::cookie_process([[maybe_unused]] const std::string &header_name, const std::string &header_value, std::shared_ptr<httppeer> steam_httppeer)
 {
     DEBUG_LOG("cookie_process:%s:%s", header_name.c_str(), header_value.c_str());
-    unsigned int i = 0, linesize = header_value.size();
+    unsigned int i = 0, linesize = static_cast<unsigned int>(header_value.size());
     std::string buffer_key;
     std::string buffer_value;
 
@@ -408,41 +407,31 @@ void http2parse::path_process([[maybe_unused]] const std::string &header_name, c
     std::string buffer_value;
     unsigned char headerstep = 0;
     steam_httppeer->pathinfos.clear();
-    unsigned int ioffset = 0, linesize = header_value.size();
     steam_httppeer->url.clear();
-    unsigned int p_begin = ioffset;
+    unsigned int linesize = static_cast<unsigned int>(header_value.size());
+    unsigned int ioffset  = 0;
+
+    // 按原始 '/' 逐段切分，每段交给 http::url_segments_normalize()（func.cpp 统一实现）
     for (; ioffset < linesize; ioffset++)
     {
-        if (header_value[ioffset] == 0x3F)
+        if (header_value[ioffset] == 0x3F)// '?'
         {
             headerstep = 6;
             break;
         }
-        if (header_value[ioffset] == 0x2F)
+        if (header_value[ioffset] == 0x2F)// '/'
         {
             if (buffer_key.size() > 255)
             {
                 error = 40007;
                 return;
             }
-
             if (buffer_key.size() > 0)
             {
-                std::string decoded = http::url_decode(buffer_key.data(), buffer_key.length());
-                if (decoded.size() == 2 && decoded[0] == '.' &&
-                    decoded[1] == '.')
+                if (!http::url_segments_normalize(steam_httppeer->pathinfos, buffer_key))
                 {
-                    if (steam_httppeer->pathinfos.size() > 0)
-                    {
-                        steam_httppeer->pathinfos.pop_back();
-                    }
-                }
-                else if (decoded.size() == 1 && decoded[0] == '.')
-                {
-                }
-                else
-                {
-                    steam_httppeer->pathinfos.emplace_back(decoded);
+                    error = 40095;
+                    return;
                 }
                 buffer_key.clear();
             }
@@ -452,43 +441,28 @@ void http2parse::path_process([[maybe_unused]] const std::string &header_name, c
             buffer_key.push_back(header_value[ioffset]);
         }
     }
-
     if (buffer_key.size() > 0)
     {
         if (buffer_key.size() > 255)
         {
-            error = 40201;
+            error = 40090;
             return;
         }
-        std::string decoded = http::url_decode(buffer_key.data(), buffer_key.length());
-        if (decoded.size() == 2 && decoded[0] == '.' &&
-            decoded[1] == '.')
+        if (!http::url_segments_normalize(steam_httppeer->pathinfos, buffer_key))
         {
-            if (steam_httppeer->pathinfos.size() > 0)
-            {
-                steam_httppeer->pathinfos.pop_back();
-            }
-        }
-        else if (decoded.size() == 1 && decoded[0] == '.')
-        {
-        }
-        else
-        {
-            steam_httppeer->pathinfos.emplace_back(decoded);
+            error = 40095;
+            return;
         }
     }
 
-    unsigned int p_pos_offset         = ioffset - p_begin;
-    steam_httppeer->header["urlpath"] = header_value.substr(p_begin, p_pos_offset);
+    steam_httppeer->header["urlpath"] = header_value.substr(0, ioffset);
+
     if (steam_httppeer->pathinfos.size() > 0)
     {
         steam_httppeer->urlpath.clear();
-        if (p_pos_offset > 64 && p_pos_offset < 10000)
-        {
-            steam_httppeer->urlpath.reserve(p_pos_offset);
-        }
+        steam_httppeer->urlpath.reserve(header_value.size() > 64 && header_value.size() < 10000 ? header_value.size() : 0);
 
-        for (unsigned int nn = 0; nn < steam_httppeer->pathinfos.size(); nn++)
+        for (size_t nn = 0; nn < steam_httppeer->pathinfos.size(); nn++)
         {
             steam_httppeer->urlpath.push_back('/');
             steam_httppeer->urlpath.append(steam_httppeer->pathinfos[nn]);
@@ -502,6 +476,25 @@ void http2parse::path_process([[maybe_unused]] const std::string &header_name, c
     {
         steam_httppeer->urlpath.clear();
         steam_httppeer->urlpath = "/";
+    }
+
+    // 最后一段含 '.' 标记为文件请求；.php 结尾标 compress=10 交给 loop 处理 —
+    // last segment has '.' means file-like URL; .php suffix marks fastcgi candidate
+    if (!steam_httppeer->pathinfos.empty())
+    {
+        auto const &last       = steam_httppeer->pathinfos.back();
+        steam_httppeer->isfile = (last.find('.') != std::string::npos);
+#ifdef ENABLE_FASTCGI
+        // 超轻量：只比后缀 4 字符，不查路由表不查磁盘 —
+        // ultra-light: only check suffix, no route lookup no disk stat
+
+        if (last.size() > 4 && last[last.size() - 1] == 'p' && last[last.size() - 2] == 'h' &&
+            last[last.size() - 3] == 'p' && last[last.size() - 4] == '.')
+        {
+            steam_httppeer->compress = 10;
+        }
+#endif
+
     }
 
     steam_httppeer->url = steam_httppeer->urlpath;
@@ -643,7 +636,7 @@ void http2parse::procssparamter(std::string_view buffer_key, std::string_view bu
         return;
     }
 
-    for (unsigned int j = 0; j < buffer_key.length(); j++)
+    for (size_t j = 0; j < buffer_key.length(); j++)
     {
         if (buffer_key[j] == '[')
         {
@@ -659,7 +652,7 @@ void http2parse::procssparamter(std::string_view buffer_key, std::string_view bu
 
     isgroup = true;
     std::string objname;
-    for (unsigned int j = 0; j < buffer_key.length(); j++)
+    for (size_t j = 0; j < buffer_key.length(); j++)
     {
         if (buffer_key[j] == '[')
         {
@@ -740,7 +733,7 @@ void http2parse::procssparamter(std::string_view buffer_key, std::string_view bu
                             }
 
                             steam_httppeer->get[objname].set_object();
-                            unsigned int iii = steam_httppeer->get[objname].size();
+                            unsigned int iii = static_cast<unsigned int>(steam_httppeer->get[objname].size());
                             key1name         = std::to_string(iii);
                             steam_httppeer->get[objname][key1name].set_object();
 
@@ -766,7 +759,7 @@ void http2parse::procssparamter(std::string_view buffer_key, std::string_view bu
                             }
 
                             steam_httppeer->get[objname].set_object();
-                            unsigned int iii = steam_httppeer->get[objname].size();
+                            unsigned int iii = static_cast<unsigned int>(steam_httppeer->get[objname].size());
                             key1name         = std::to_string(iii);
                             steam_httppeer->get[objname][key1name].set_object();
 
@@ -793,7 +786,7 @@ void http2parse::procssparamter(std::string_view buffer_key, std::string_view bu
 
                             steam_httppeer->get[objname].set_object();
                             steam_httppeer->get[objname][key1name].set_object();
-                            unsigned int iii = steam_httppeer->get[objname][key1name].size();
+                            unsigned int iii = static_cast<unsigned int>(steam_httppeer->get[objname][key1name].size());
                             key2name         = std::to_string(iii);
 
                             http::obj_val objtemp;
@@ -842,7 +835,7 @@ void http2parse::procssparamter(std::string_view buffer_key, std::string_view bu
                         }
 
                         steam_httppeer->get[objname].set_object();
-                        unsigned int iii = steam_httppeer->get[objname].size();
+                        unsigned int iii = static_cast<unsigned int>(steam_httppeer->get[objname].size());
                         key1name         = std::to_string(iii);
 
                         http::obj_val objtemp;
@@ -897,7 +890,7 @@ void http2parse::range_process([[maybe_unused]] const std::string &header_name, 
 {
     DEBUG_LOG("range_process:%s:%s", header_name.c_str(), header_value.c_str());
     // 语法不合法时按 RFC 9110 §14.2 忽略该头：本端没有「单条请求头错误」通道，
-    // 走 error 会把整条连接判死（403 + GOAWAY），比忽略严重得多。
+    // 走 error 会把整条连接按协议错误断开（403 + GOAWAY），比忽略严重得多。
     parse_range_header(header_value, steam_httppeer->state);
 }
 
@@ -1070,7 +1063,7 @@ void http2parse::header_process(std::string header_name, std::string header_valu
             {
                 steam_httppeer->method = 9;
             }
-            steam_httppeer->iscors = (steam_httppeer->method == 3);
+            steam_httppeer->iscors           = (steam_httppeer->method == 3);
             steam_httppeer->header["method"] = std::move(header_value);
             break;
         case 3:
@@ -1110,7 +1103,7 @@ void http2parse::header_process(std::string header_name, std::string header_valu
             {
                 steam_httppeer->method = 9;
             }
-            steam_httppeer->iscors = (steam_httppeer->method == 3);
+            steam_httppeer->iscors           = (steam_httppeer->method == 3);
             steam_httppeer->header["method"] = std::move(header_value);
             break;
         case 4:
@@ -1134,14 +1127,13 @@ void http2parse::header_process(std::string header_name, std::string header_valu
             break;
         case 28:
         {
-            // H1 修复：与 HTTP/1 路径一致，Content-Length 只接受纯数字并做溢出/上限判断
             unsigned long long temp_cl = 0;
             if (!str2uint64_strict(header_value, temp_cl) || temp_cl > CONST_HTTP_BODY_POST_SIZE)
             {
                 error = 40187;
                 return;
             }
-            steam_httppeer->content_length = temp_cl;
+            steam_httppeer->content_length           = temp_cl;
             steam_httppeer->header["content-length"] = std::move(header_value);
             break;
         }
@@ -1152,8 +1144,8 @@ void http2parse::header_process(std::string header_name, std::string header_valu
             cookie_process(header_name, header_value, steam_httppeer);
             break;
         case 38:
-            // 静态表 38 = "host"。:authority 有 72 字节上限，这里原来没有：
-            // 超长 host 值会进入 header_host_process（见该函数的死循环注释）。
+            // 静态表 38 = "host"。host 值和 :authority 一样限 72 字节：
+            // 超长值会进入 header_host_process（见该函数的死循环注释）。
             if (header_value.size() > CONST_HTTP2_HOST_MAX_SIZE)
             {
                 error = 40163;
@@ -1303,7 +1295,7 @@ void http2parse::header_process(std::string header_name, std::string header_valu
                 {
                     steam_httppeer->method = 9;
                 }
-                steam_httppeer->iscors = (steam_httppeer->method == 3);
+                steam_httppeer->iscors            = (steam_httppeer->method == 3);
                 steam_httppeer->header["method"]  = header_value;
                 steam_httppeer->header[":method"] = std::move(header_value);
             }
@@ -1368,14 +1360,13 @@ void http2parse::header_process(std::string header_name, std::string header_valu
         case 14:
             if (str_casecmp(header_name, "Content-Length"))
             {
-                // H1 修复：严格解析（纯数字 + 溢出/上限判断），失败即拒绝该流
                 unsigned long long temp_cl = 0;
                 if (!str2uint64_strict(header_value, temp_cl) || temp_cl > CONST_HTTP_BODY_POST_SIZE)
                 {
                     error = 40187;
                     return;
                 }
-                steam_httppeer->content_length = temp_cl;
+                steam_httppeer->content_length           = temp_cl;
                 steam_httppeer->header["content-length"] = std::move(header_value);
             }
             else
@@ -1452,7 +1443,7 @@ void http2parse::getacceptlanguage([[maybe_unused]] const std::string &header_na
 }
 void http2parse::getacceptencoding([[maybe_unused]] const std::string &header_name, const std::string &header_value, std::shared_ptr<httppeer> steam_httppeer)
 {
-    unsigned int i = 0, linesize = header_value.size();
+    unsigned int i = 0, linesize = static_cast<unsigned int>(header_value.size());
     steam_httppeer->header["accept-encoding"] = header_value;
     std::string buffer_value;
     for (; i < linesize; i++)
@@ -1632,7 +1623,7 @@ void http2parse::callposttype(const std::string &buffer_value, std::shared_ptr<h
 
 void http2parse::getcontenttype([[maybe_unused]] const std::string &header_name, const std::string &header_value, std::shared_ptr<httppeer> steam_httppeer)
 {
-    unsigned int i = 0, linesize = header_value.size();
+    unsigned int i = 0, linesize = static_cast<unsigned int>(header_value.size());
     steam_httppeer->header["content-type"] = header_value;
     std::string buffer_value;
     unsigned char statetemp = 0;
@@ -1720,7 +1711,7 @@ void http2parse::getcontenttype([[maybe_unused]] const std::string &header_name,
 }
 void http2parse::getaccept([[maybe_unused]] const std::string &header_name, const std::string &header_value, std::shared_ptr<httppeer> steam_httppeer)
 {
-    unsigned int i = 0, linesize = header_value.size();
+    unsigned int i = 0, linesize = static_cast<unsigned int>(header_value.size());
     steam_httppeer->header["accept"] = header_value;
     std::string buffer_value;
 
@@ -2663,11 +2654,11 @@ void http2parse::readsetting(const HTTP2_PACK_DATA_T &temp_pack_data)
     // 正在发送的响应会莫名其妙卡住。
     if (!conn_send_window_inited)
     {
-        conn_send_window_inited  = true;
+        conn_send_window_inited         = true;
         peer_session->window_update_num = CONST_HTTP2_DEFAULT_WINDOW;
     }
 
-    for (unsigned int n = 0; n < temp_pack_data.payload.size(); n += 6)
+    for (size_t n = 0; n < temp_pack_data.payload.size(); n += 6)
     {
         if ((n + 5) >= temp_pack_data.payload.size())
         {
@@ -2726,6 +2717,20 @@ void http2parse::readsetting(const HTTP2_PACK_DATA_T &temp_pack_data)
                     if (cur < 0)
                     {
                         cur = 0;
+                    }
+                    // 只归零不封顶会留下 > 2^31-1 的窗口：delta 最大 ~2GB，一条本来就有
+                    // ~2GB 额度的流相加能到 4.29e9，而本端没广告 §6.9.2 扩展流控。更要紧的是
+                    // readwindowupdate 那道 "cur > MAX - inc" 在这种值上恒真，此后这条流收到
+                    // 的每一个合法 WINDOW_UPDATE 都会被本端 RST 掉。与退还处同法封顶。
+                    // Flooring at 0 without capping the top leaves windows above 2^31-1: delta can be
+                    // ~2GB, so a stream already holding ~2GB sums to ~4.29e9 — still fits a u32, so it
+                    // doesn't crash, but this end never advertised the extended flow control of §6.9.2.
+                    // Worse, readwindowupdate's "cur > MAX - inc" gate is then always true, and every
+                    // legitimate WINDOW_UPDATE on this stream gets RST by us. Cap it the same way the
+                    // refund path does.
+                    if (cur > static_cast<long long>(CONST_HTTP2_MAX_WINDOW))
+                    {
+                        cur = CONST_HTTP2_MAX_WINDOW;
                     }
                     kv.second = static_cast<unsigned int>(cur);
                 }
@@ -2870,14 +2875,14 @@ void http2parse::readwinupdate(const HTTP2_PACK_DATA_T &temp_pack_data)
         //  ③ 本端根本没见过这条流，或它已经结束/被撤销。
         // 只丢弃、不报错，也**绝不 emplace**：emplace 会把一个陌生流 id 写进
         // stream_send_window，而该表只按 RST 和流结束清理，等于给远程对端留了一个
-        // 无界增长的入口。判活必须走本端真正认下的流：
+        // 无界增长的入口。检查流是否存活，只看本端真正认下的流：
         // http_data（readheaders 收 HEADERS 时 emplace，分发时 extract 走）与
         // http_data_weak（分发末尾登记，响应结束后随 shared_ptr 释放而失效）并集，
         // 恰好覆盖「HEADERS 已收下」到「响应发完」整段。单用后者会在
         // 「同一批字节里 HEADERS 之后紧跟 WINDOW_UPDATE」处漏掉——那时 weak 还没写。
         // 也不能只靠 ②：对端发一个 HEADERS 把 max_client_stream_id 抬到 99 万，
         // 就能凭 ② 放行 50 万个陌生流 id。
-        // 也不能对判失败的流回 RST_STREAM：本端没有流状态机，分不清 idle 与 closed，
+        // 也不能对上面没通过检查、被丢弃的流回 RST_STREAM：本端没有流状态机，分不清 idle 与 closed，
         // 对 closed 流发 RST 是我们自己新造出来的协议违规（RFC 9113 §5.1 只允许
         // 对 half-closed 之外的流发 RST，且对 closed 流的一切帧都该忽略）。
         if (!http2_wu_stream_id_ok(wu_sid, max_client_stream_id))
@@ -2954,7 +2959,6 @@ void http2parse::readping(const HTTP2_PACK_DATA_T &temp_pack_data)
 void http2parse::readrst_stream(const HTTP2_PACK_DATA_T &temp_pack_data)
 {
     DEBUG_LOG("readrst_stream %u ", temp_pack_data.stream_id);
-    // Rapid Reset(CVE-2023-44487) protection: too many RST_STREAM on one
     // connection means the peer is opening then immediately cancelling streams
     // to exhaust CPU. Once the count exceeds 250, flag an error so the caller
     // sends GOAWAY and closes the connection.
@@ -2978,7 +2982,7 @@ void http2parse::readrst_stream(const HTTP2_PACK_DATA_T &temp_pack_data)
     }
     // 流已被对端撤销，不再需要为它记账
     stream_recv_window.erase(temp_pack_data.stream_id);
-    // F-7：同步清理发送侧该流的窗口记账，避免 map 随被撤销的流累积
+    // 同步清理发送侧该流的窗口记账，避免 map 随被撤销的流累积
     {
         std::lock_guard<std::mutex> lk(peer_session->stream_send_window_mutex);
         peer_session->stream_send_window.erase(temp_pack_data.stream_id);
@@ -3050,7 +3054,7 @@ void http2parse::post_form_to_postfield(std::string_view form_post_name, std::st
         return;
     }
 
-    for (unsigned int j = 0; j < form_post_name.length(); j++)
+    for (size_t j = 0; j < form_post_name.length(); j++)
     {
         if (form_post_name[j] == '[')
         {
@@ -3066,7 +3070,7 @@ void http2parse::post_form_to_postfield(std::string_view form_post_name, std::st
 
     isgroup = true;
     std::string objname;
-    for (unsigned int j = 0; j < form_post_name.length(); j++)
+    for (size_t j = 0; j < form_post_name.length(); j++)
     {
         if (form_post_name[j] == '[')
         {
@@ -3147,7 +3151,7 @@ void http2parse::post_form_to_postfield(std::string_view form_post_name, std::st
                             }
 
                             steam_httppeer->post[objname].set_object();
-                            unsigned int iii = steam_httppeer->post[objname].size();
+                            unsigned int iii = static_cast<unsigned int>(steam_httppeer->post[objname].size());
                             key1name         = std::to_string(iii);
                             steam_httppeer->post[objname][key1name].set_object();
 
@@ -3173,7 +3177,7 @@ void http2parse::post_form_to_postfield(std::string_view form_post_name, std::st
                             }
 
                             steam_httppeer->post[objname].set_object();
-                            unsigned int iii = steam_httppeer->post[objname].size();
+                            unsigned int iii = static_cast<unsigned int>(steam_httppeer->post[objname].size());
                             key1name         = std::to_string(iii);
                             steam_httppeer->post[objname][key1name].set_object();
 
@@ -3201,7 +3205,7 @@ void http2parse::post_form_to_postfield(std::string_view form_post_name, std::st
                             steam_httppeer->post[objname].set_object();
                             steam_httppeer->post[objname][key1name].set_object();
 
-                            unsigned int iii = steam_httppeer->post[objname][key1name].size();
+                            unsigned int iii = static_cast<unsigned int>(steam_httppeer->post[objname][key1name].size());
                             key2name         = std::to_string(iii);
 
                             http::obj_val objtemp;
@@ -3252,7 +3256,7 @@ void http2parse::post_form_to_postfield(std::string_view form_post_name, std::st
                         }
 
                         steam_httppeer->post[objname].set_object();
-                        unsigned int iii = steam_httppeer->post[objname].size();
+                        unsigned int iii = static_cast<unsigned int>(steam_httppeer->post[objname].size());
                         key1name         = std::to_string(iii);
 
                         http::obj_val objtemp;
@@ -3309,7 +3313,7 @@ void http2parse::multipart_post_file_field(HTTP2_POST_DATA_T &temp_post_data)
     std::string objname;
     bool isgroup = true;
 
-    for (unsigned int j = 0; j < temp_post_data.field_name.length(); j++)
+    for (size_t j = 0; j < temp_post_data.field_name.length(); j++)
     {
         if (temp_post_data.field_name[j] == '[')
         {
@@ -3390,7 +3394,7 @@ void http2parse::multipart_post_file_field(HTTP2_POST_DATA_T &temp_post_data)
                             }
 
                             temp_post_data.peer->files[objname].set_object();
-                            unsigned int iii = temp_post_data.peer->files[objname].size();
+                            unsigned int iii = static_cast<unsigned int>(temp_post_data.peer->files[objname].size());
                             key1name         = std::to_string(iii);
                             temp_post_data.peer->files[objname][key1name].set_object();
 
@@ -3422,7 +3426,7 @@ void http2parse::multipart_post_file_field(HTTP2_POST_DATA_T &temp_post_data)
                             }
 
                             temp_post_data.peer->files[objname].set_object();
-                            unsigned int iii = temp_post_data.peer->files[objname].size();
+                            unsigned int iii = static_cast<unsigned int>(temp_post_data.peer->files[objname].size());
                             key1name         = std::to_string(iii);
                             temp_post_data.peer->files[objname][key1name].set_object();
 
@@ -3594,7 +3598,7 @@ void http2parse::post_www_form_urlencoded(HTTP2_POST_DATA_T &temp_post_data)
     std::string temp_value;
     std::string buffer_key;
     std::string field_value;
-    unsigned int qsize    = temp_post_data.peer->rawcontent.size();
+    unsigned int qsize    = static_cast<unsigned int>(temp_post_data.peer->rawcontent.size());
     unsigned char partype = 0;
     unsigned int j        = 0;
     unsigned int jj       = 0;
@@ -4196,7 +4200,7 @@ void http2parse::post_multipart_formdata(HTTP2_POST_DATA_T &temp_post_data, [[ma
                 temp_post_data.field_offset = temp_post_data.content.size();
                 return;
             }
-            unsigned int i = temp_post_data.pre_content.size() - 2;
+            unsigned int i = static_cast<unsigned int>(temp_post_data.pre_content.size() - 2);
             for (; i < temp_post_data.boundary.size(); i++)
             {
                 if (temp_post_data.content[pos_m] != temp_post_data.boundary[i])
@@ -4352,6 +4356,7 @@ void http2parse::post_multipart_formdata(HTTP2_POST_DATA_T &temp_post_data, [[ma
 
 void http2parse::post_data_process(HTTP2_POST_DATA_T &temp_post_data, unsigned char islast_pack)
 {
+#ifdef ENABLE_FASTCGI
     if (temp_post_data.peer->compress == 10)
     {
         //ready output to php
@@ -4369,10 +4374,10 @@ void http2parse::post_data_process(HTTP2_POST_DATA_T &temp_post_data, unsigned c
         }
     }
     else
+#endif
     {
         if (temp_post_data.posttype == 0)
         {
-            //fix weixin browser
             if (temp_post_data.content.size() > 0)
             {
                 char first = temp_post_data.content[0];
@@ -4535,7 +4540,7 @@ void http2parse::readpostdata(const HTTP2_PACK_DATA_T &temp_pack_data)
     // DATA 帧的 padding（1 字节 pad length + N 字节填充）要占 flow-control 额度，
     // 但不属于正文。若用整个 payload.size() 累加 exp_length，
     // 客户端一旦使用 PADDED，exp_length 必然大于 content-length，收尾时误报 40202。
-    unsigned int content_bytes = temp_pack_data.payload.size();
+    unsigned int content_bytes = static_cast<unsigned int>(temp_pack_data.payload.size());
     if (new_size_num > 0)
     {
         if (new_size_num >= temp_pack_data.payload.size())
@@ -4597,7 +4602,7 @@ void http2parse::readpostdata(const HTTP2_PACK_DATA_T &temp_pack_data)
         // 只补连接级：增量正好等于本端已消费掉的量
         peer_session->send_window_update_conn(CONST_HTTP2_LOCAL_INITIAL_WINDOW - conn_recv_window_num);
         need_wakeup_send_threads = true;
-        conn_recv_window_num  = CONST_HTTP2_LOCAL_INITIAL_WINDOW;
+        conn_recv_window_num     = CONST_HTTP2_LOCAL_INITIAL_WINDOW;
     }
 
     if (s_win_iter->second < CONST_HTTP2_WINDOW_UPDATE_THRESHOLD)
@@ -4606,7 +4611,7 @@ void http2parse::readpostdata(const HTTP2_PACK_DATA_T &temp_pack_data)
         peer_session->send_window_update_stream(temp_pack_data.stream_id,
                                                 CONST_HTTP2_LOCAL_INITIAL_WINDOW - s_win_iter->second);
         need_wakeup_send_threads = true;
-        s_win_iter->second    = CONST_HTTP2_LOCAL_INITIAL_WINDOW;
+        s_win_iter->second       = CONST_HTTP2_LOCAL_INITIAL_WINDOW;
     }
 
     bool is_last_pack = last_pack;
@@ -4689,7 +4694,7 @@ void http2parse::read_pack_data(const unsigned char *buffer, unsigned int buffer
         // 下面只解析前 9 字节、多出来的字节被静默丢弃，后续帧头/载荷整体错位。
         if ((readoffset + 9) > buffersize && pack_data.subpad.size() < 9)
         {
-            unsigned int need = 9 - pack_data.subpad.size();
+            unsigned int need = static_cast<unsigned int>(9 - pack_data.subpad.size());
             for (; readoffset < buffersize && need > 0; readoffset++, need--)
             {
                 pack_data.subpad.push_back(buffer[readoffset]);
@@ -4773,7 +4778,6 @@ void http2parse::read_pack_data(const unsigned char *buffer, unsigned int buffer
         }
 
         // 非 DATA 帧按帧头声明的 length 提前拒绝：本函数末尾那个 16K 检查是在
-        // 「整帧收完」之后才跑，攻击者可以先塞一个 16MB 的 HEADERS 帧把内存占满再被拒。
         // DATA 帧不在这里卡（它由 CONST_HTTP_BODY_POST_SIZE 与 flow-control 窗口限制）。
         if (pack_data.frame_type != 0x00 && pack_data.length > CONST_HTTP_HEADER_BODY_SIZE)
         {

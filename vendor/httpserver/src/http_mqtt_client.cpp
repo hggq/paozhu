@@ -11,6 +11,7 @@
 #include "http_mqtt_client.h"
 #include "client_context.h"
 #include "atomic_guard.h"
+#include "server.h"
 
 #include <future>
 #include <thread>
@@ -35,17 +36,21 @@ std::vector<uint8_t> mqtt_client::make_client_connect_(const mqtt_client_config_
 {
     std::vector<uint8_t> body;
     put_utf8_string(body, "MQTT");
-    body.push_back(5);   // level
+    body.push_back(5);// level
 
     uint8_t flags = 0;
-    if (cfg.clean_start)          flags |= 0x02;
-    if (!cfg.username.empty())    flags |= 0x80;
-    if (!cfg.password.empty())    flags |= 0x40;
+    if (cfg.clean_start)
+        flags |= 0x02;
+    if (!cfg.username.empty())
+        flags |= 0x80;
+    if (!cfg.password.empty())
+        flags |= 0x40;
     if (cfg.has_will)
     {
         flags |= 0x04;
         flags |= (cfg.will_qos & 0x03) << 3;
-        if (cfg.will_retain)      flags |= 0x20;
+        if (cfg.will_retain)
+            flags |= 0x20;
     }
     body.push_back(flags);
 
@@ -78,8 +83,10 @@ std::vector<uint8_t> mqtt_client::make_client_connect_(const mqtt_client_config_
         put_binary(body, cfg.will_payload);
     }
 
-    if (!cfg.username.empty()) put_utf8_string(body, cfg.username);
-    if (!cfg.password.empty()) put_utf8_string(body, cfg.password);
+    if (!cfg.username.empty())
+        put_utf8_string(body, cfg.username);
+    if (!cfg.password.empty())
+        put_utf8_string(body, cfg.password);
 
     std::vector<uint8_t> pkt;
     pkt.push_back(0x10);
@@ -89,13 +96,12 @@ std::vector<uint8_t> mqtt_client::make_client_connect_(const mqtt_client_config_
 }
 
 std::vector<uint8_t> mqtt_client::make_client_subscribe_(
-    uint16_t pid, std::string_view filter, uint8_t qos,
-    bool no_local, bool retain_as_published, uint8_t retain_handling)
+    uint16_t pid, std::string_view filter, uint8_t qos, bool no_local, bool retain_as_published, uint8_t retain_handling)
 {
     std::vector<uint8_t> body;
     body.push_back(static_cast<uint8_t>((pid >> 8) & 0xFF));
     body.push_back(static_cast<uint8_t>(pid & 0xFF));
-    body.push_back(0);   // Property Length = 0
+    body.push_back(0);// Property Length = 0
     put_utf8_string(body, filter);
     uint8_t opt = static_cast<uint8_t>(retain_handling << 4) |
                   static_cast<uint8_t>(retain_as_published ? 0x08 : 0x00) |
@@ -135,14 +141,12 @@ std::vector<uint8_t> mqtt_client::make_client_pingreq_()
 // =====================================================================
 
 mqtt_client::mqtt_client()
-    : strand_(asio::make_strand(*(get_client_context_obj().ioc)))
-    , server_ioc_(nullptr)
+    : strand_(asio::make_strand(*(get_client_context_obj().ioc))), server_ioc_(nullptr)
 {
 }
 
 mqtt_client::mqtt_client(asio::io_context &strand_ioc, asio::io_context &server_ioc)
-    : strand_(asio::make_strand(strand_ioc))
-    , server_ioc_(&server_ioc)
+    : strand_(asio::make_strand(strand_ioc)), server_ioc_(&server_ioc)
 {
 }
 
@@ -153,10 +157,10 @@ mqtt_client::~mqtt_client()
 
 void mqtt_client::reset()
 {
-    iserror = false;
-    isco = false;
+    iserror     = false;
+    isco        = false;
     iswait_exit = false;
-    exptime = 0;
+    exptime     = 0;
     timeout_end = 0;
 
     url.clear();
@@ -165,10 +169,10 @@ void mqtt_client::reset()
     error_msg.clear();
     ec.clear();
 
-    config = mqtt_client_config_t{};
-    connack_rc = mqtt_reason::success;
+    config          = mqtt_client_config_t{};
+    connack_rc      = mqtt_reason::success;
     session_present = false;
-    connected_ = false;
+    connected_      = false;
 
     next_packet_id_ = 0;
 
@@ -184,14 +188,14 @@ void mqtt_client::reset()
     received_bytes_  = 0;
     received_dropped = 0;
 
-    run_loop_fun = nullptr;
+    run_loop_fun       = nullptr;
     async_run_loop_fun = nullptr;
-    on_connect_fun = nullptr;
-    on_disconnect_fun = nullptr;
-    on_puback_fun = nullptr;
-    on_suback_fun = nullptr;
-    on_unsuback_fun = nullptr;
-    run_task_fun = nullptr;
+    on_connect_fun     = nullptr;
+    on_disconnect_fun  = nullptr;
+    on_puback_fun      = nullptr;
+    on_suback_fun      = nullptr;
+    on_unsuback_fun    = nullptr;
+    run_task_fun       = nullptr;
     async_run_task_fun = nullptr;
 
     close_connect();
@@ -200,8 +204,8 @@ void mqtt_client::reset()
     ssl_context.reset();
 }
 
-void mqtt_client::set_host(std::string_view name)  { host = name; }
-void mqtt_client::set_port(unsigned int n)         { port = n; }
+void mqtt_client::set_host(std::string_view name) { host = name; }
+void mqtt_client::set_port(unsigned int n) { port = n; }
 
 void mqtt_client::set_url(std::string_view name)
 {
@@ -210,21 +214,30 @@ void mqtt_client::set_url(std::string_view name)
     {
         // 跳过 "mqtt://" 或 "tcp://" 前缀
         std::string_view prefix = name.substr(0, 7);
-        size_t skip = 0;
-        if (prefix == "mqtt://" || prefix == "tcp://") skip = 7;
-        else if (name.substr(0, 8) == "mqtts://") skip = 8;
+        size_t skip             = 0;
+        if (prefix == "mqtt://" || prefix == "tcp://")
+            skip = 7;
+        else if (name.substr(0, 8) == "mqtts://")
+            skip = 8;
 
         std::string_view rest = name.substr(skip);
-        auto colon = rest.find(':');
-        auto slash = rest.find('/');
-        size_t end = (colon != std::string_view::npos && (slash == std::string_view::npos || colon < slash))
-                     ? colon : slash;
-        if (end == std::string_view::npos) end = rest.size();
+        auto colon            = rest.find(':');
+        auto slash            = rest.find('/');
+        size_t end            = (colon != std::string_view::npos && (slash == std::string_view::npos || colon < slash)) ? colon : slash;
+        if (end == std::string_view::npos)
+            end = rest.size();
         host = std::string(rest.substr(0, end));
         if (colon != std::string_view::npos)
         {
             std::string port_str(rest.substr(colon + 1, (slash != std::string_view::npos ? slash - colon - 1 : std::string_view::npos)));
-            try { port = static_cast<unsigned int>(std::stoul(port_str)); } catch (...) { port = 0; }
+            try
+            {
+                port = static_cast<unsigned int>(std::stoul(port_str));
+            }
+            catch (...)
+            {
+                port = 0;
+            }
         }
     }
     url = std::string(name);
@@ -238,7 +251,8 @@ void mqtt_client::set_config(const mqtt_client_config_t &cfg)
 uint16_t mqtt_client::gen_packet_id_()
 {
     auto v = ++next_packet_id_;
-    if (v == 0) v = ++next_packet_id_;
+    if (v == 0)
+        v = ++next_packet_id_;
     return v;
 }
 
@@ -257,13 +271,13 @@ asio::awaitable<bool> mqtt_client::async_tcp_connect()
 {
     if (host.empty())
     {
-        iserror = true;
+        iserror   = true;
         error_msg = "host empty";
         co_return false;
     }
     if (port == 0)
     {
-        iserror = true;
+        iserror   = true;
         error_msg = "port empty";
         co_return false;
     }
@@ -272,28 +286,30 @@ asio::awaitable<bool> mqtt_client::async_tcp_connect()
     {
         asio::ip::tcp::resolver resolver(strand_);
         auto endpoints = co_await resolver.async_resolve(host, std::to_string(port), asio::use_awaitable);
-        sock = std::make_shared<asio::ip::tcp::socket>(strand_);
+        sock           = std::make_shared<asio::ip::tcp::socket>(strand_);
         for (auto &ep : endpoints)
         {
             ec.clear();
             co_await sock->async_connect(ep, asio::use_awaitable);
-            if (!ec) break;
+            if (!ec)
+                break;
         }
         if (ec)
         {
-            iserror = true;
+            iserror   = true;
             error_msg = ec.message();
             co_return false;
         }
     }
     catch (const std::exception &e)
     {
-        iserror = true;
+        iserror   = true;
         error_msg = e.what();
         co_return false;
     }
 
-    if (exptime > 0) reset_timeout();
+    if (exptime > 0)
+        reset_timeout();
 
     co_return true;
 }
@@ -306,7 +322,8 @@ asio::awaitable<bool> mqtt_client::async_mqtt_connect(unsigned int time_out_num)
 {
     if (!sock)
     {
-        if (!co_await async_tcp_connect()) co_return false;
+        if (!co_await async_tcp_connect())
+            co_return false;
     }
 
     auto self = shared_from_this();
@@ -320,7 +337,7 @@ asio::awaitable<bool> mqtt_client::async_mqtt_connect(unsigned int time_out_num)
     }
     if (wec)
     {
-        iserror = true;
+        iserror   = true;
         error_msg = wec.message();
         co_return false;
     }
@@ -330,13 +347,13 @@ asio::awaitable<bool> mqtt_client::async_mqtt_connect(unsigned int time_out_num)
     self->run_loop();
 
     // 等 CONNACK
-    auto start = std::chrono::steady_clock::now();
+    auto start              = std::chrono::steady_clock::now();
     unsigned int timeout_ms = (time_out_num > 0) ? time_out_num : 5000;
     while (!connected_ && !iserror)
     {
         if (std::chrono::steady_clock::now() - start > std::chrono::milliseconds(timeout_ms))
         {
-            iserror = true;
+            iserror   = true;
             error_msg = "CONNACK timeout";
             co_return false;
         }
@@ -349,15 +366,19 @@ asio::awaitable<bool> mqtt_client::async_mqtt_connect(unsigned int time_out_num)
         }
         co_await asio::steady_timer(strand_, std::chrono::milliseconds(10)).async_wait(asio::use_awaitable);
     }
-    if (!connected_) co_return false;
+    if (!connected_)
+        co_return false;
 
     // keepalive：CONNECT 成功后起定时协程，每 keepalive 秒发一条 PINGREQ
     if (config.keepalive > 0)
     {
-        co_spawn(strand_, [self] { return self->async_keepalive_loop(); }, asio::detached);
+        co_spawn(strand_, [self]
+                 { return self->async_keepalive_loop(); },
+                 asio::detached);
     }
 
-    if (on_connect_fun) on_connect_fun(self, connack_rc);
+    if (on_connect_fun)
+        on_connect_fun(self, connack_rc);
     co_return true;
 }
 
@@ -365,23 +386,55 @@ asio::awaitable<bool> mqtt_client::async_mqtt_connect(unsigned int time_out_num)
 // async_publish / async_subscribe / async_unsubscribe / async_pingreq / async_disconnect
 // =====================================================================
 
-asio::awaitable<bool> mqtt_client::async_publish(std::string_view topic, std::string_view payload,
-                                                   uint8_t qos, bool retain)
+namespace
+{
+// 发送类失败的唯一上报口：一条进 Debug 档 stdout，一条进 error.log（由 httpwatch 的
+// httpwatch_flush_error_log 落盘，Release 档同样看得见）。
+// 只报不改：iserror / error_msg 仍由各调用点自己写，重连策略一个字没动。
+void mqtt_send_fail_log(std::string_view op, std::string_view target, const std::string &reason)
+{
+    std::string line = std::string("[MQTT CLIENT] ") + std::string(op) +
+                       " failed target=" + std::string(target) + " reason=" + reason + "\n";
+    DEBUG_LOG("%s", line.c_str());
+    get_server_app().add_error_lists(line);
+}
+}// namespace
+
+asio::awaitable<bool> mqtt_client::async_publish(std::string_view topic, std::string_view payload, uint8_t qos, bool retain)
 {
     // 不支持 QoS2 且刻意不做：全仓调用点 qos 只用 0/1，没有需求方；做全协议要补 PUBREL 超时
     // 重发、inflight 上限、DUP 去重、会话级持久化四件配套，给死路径背这套债不值。显式拒
     // 比"发出去必谎报超时"诚实——出站 qos>1 拒绝且不写 socket，免得半途状态不一致
-    if (qos > 1) { iserror = true; error_msg = "qos 2 not supported"; co_return false; }
-    if (!sock) { iserror = true; error_msg = "not connected"; co_return false; }
+    if (qos > 1)
+    {
+        iserror   = true;
+        error_msg = "qos 2 not supported";
+        mqtt_send_fail_log("publish", topic, error_msg);
+        co_return false;
+    }
+    if (!sock)
+    {
+        iserror   = true;
+        error_msg = "not connected";
+        mqtt_send_fail_log("publish", topic, error_msg);
+        co_return false;
+    }
     uint16_t pid = (qos == 0) ? 0 : gen_packet_id_();
-    auto pkt = make_publish(topic, payload, qos, pid, retain, nullptr);
+    auto pkt     = make_publish(topic, payload, qos, pid, retain, nullptr);
     asio::error_code wec;
     {
         std::lock_guard<std::mutex> lk(write_mu_);
         asio::write(*sock, asio::buffer(pkt), wec);
     }
-    if (wec) { iserror = true; error_msg = wec.message(); co_return false; }
-    if (qos == 0) co_return true;
+    if (wec)
+    {
+        iserror   = true;
+        error_msg = wec.message();
+        mqtt_send_fail_log("publish", topic, error_msg);
+        co_return false;
+    }
+    if (qos == 0)
+        co_return true;
 
     // 等 PUBACK（qos 已限定 ≤1）
     std::promise<mqtt_reason> p;
@@ -397,32 +450,50 @@ asio::awaitable<bool> mqtt_client::async_publish(std::string_view topic, std::st
         {
             std::lock_guard<std::mutex> lk(reply_mu_);
             pending_pubacks_.erase(pid);
-            iserror = true; error_msg = "PUBACK timeout";
+            iserror   = true;
+            error_msg = "PUBACK timeout";
+            mqtt_send_fail_log("publish", topic, error_msg);
             co_return false;
         }
         if (!run_loop_alive_)// 对端断链即刻终结等待，不空等满 5s
         {
             std::lock_guard<std::mutex> lk(reply_mu_);
             pending_pubacks_.erase(pid);
-            iserror = true; error_msg = "connection closed before publish ack";
+            iserror   = true;
+            error_msg = "connection closed before publish ack";
+            mqtt_send_fail_log("publish", topic, error_msg);
             co_return false;
         }
         co_await asio::steady_timer(strand_, std::chrono::milliseconds(10)).async_wait(asio::use_awaitable);
     }
-    auto rc = fut.get();
+    auto rc   = fut.get();
     auto self = shared_from_this();
-    if (on_puback_fun) on_puback_fun(self, pid, rc);
+    if (on_puback_fun)
+        on_puback_fun(self, pid, rc);
+    // broker 否掉这条 PUBACK 时改前只回 false、不写任何状态，这里也只补上报、不写 iserror
+    if (rc != mqtt_reason::success)
+        mqtt_send_fail_log("publish", topic, "puback rc=" + std::to_string(static_cast<int>(rc)));
     co_return rc == mqtt_reason::success;
 }
 
-asio::awaitable<bool> mqtt_client::async_subscribe(std::string_view filter, uint8_t qos,
-                                                     bool no_local, bool retain_as_published,
-                                                     uint8_t retain_handling)
+asio::awaitable<bool> mqtt_client::async_subscribe(std::string_view filter, uint8_t qos, bool no_local, bool retain_as_published, uint8_t retain_handling)
 {
     // 订阅请求侧同样封顶 QoS1：订到 QoS2 等于请 broker 用 QoS2 下发，而本客户端对入站
     // QoS2 PUBLISH 是断链拒收，不封顶就会让会话中途被自己订的主题踢下线
-    if (qos > 1) { iserror = true; error_msg = "qos 2 not supported"; co_return false; }
-    if (!sock) { iserror = true; error_msg = "not connected"; co_return false; }
+    if (qos > 1)
+    {
+        iserror   = true;
+        error_msg = "qos 2 not supported";
+        mqtt_send_fail_log("subscribe", filter, error_msg);
+        co_return false;
+    }
+    if (!sock)
+    {
+        iserror   = true;
+        error_msg = "not connected";
+        mqtt_send_fail_log("subscribe", filter, error_msg);
+        co_return false;
+    }
     auto pid = gen_packet_id_();
     auto pkt = make_client_subscribe_(pid, filter, qos, no_local, retain_as_published, retain_handling);
     asio::error_code wec;
@@ -430,7 +501,13 @@ asio::awaitable<bool> mqtt_client::async_subscribe(std::string_view filter, uint
         std::lock_guard<std::mutex> lk(write_mu_);
         asio::write(*sock, asio::buffer(pkt), wec);
     }
-    if (wec) { iserror = true; error_msg = wec.message(); co_return false; }
+    if (wec)
+    {
+        iserror   = true;
+        error_msg = wec.message();
+        mqtt_send_fail_log("subscribe", filter, error_msg);
+        co_return false;
+    }
 
     std::promise<std::vector<mqtt_reason>> p;
     auto fut = p.get_future();
@@ -445,27 +522,43 @@ asio::awaitable<bool> mqtt_client::async_subscribe(std::string_view filter, uint
         {
             std::lock_guard<std::mutex> lk(reply_mu_);
             pending_subacks_.erase(pid);
-            iserror = true; error_msg = "SUBACK timeout";
+            iserror   = true;
+            error_msg = "SUBACK timeout";
+            mqtt_send_fail_log("subscribe", filter, error_msg);
             co_return false;
         }
         if (!run_loop_alive_)// 对端断链即刻终结等待，不空等满 5s
         {
             std::lock_guard<std::mutex> lk(reply_mu_);
             pending_subacks_.erase(pid);
-            iserror = true; error_msg = "connection closed before SUBACK";
+            iserror   = true;
+            error_msg = "connection closed before SUBACK";
+            mqtt_send_fail_log("subscribe", filter, error_msg);
             co_return false;
         }
         co_await asio::steady_timer(strand_, std::chrono::milliseconds(10)).async_wait(asio::use_awaitable);
     }
     auto codes = fut.get();
-    auto self = shared_from_this();
-    if (on_suback_fun) on_suback_fun(self, pid, codes);
+    auto self  = shared_from_this();
+    if (on_suback_fun)
+        on_suback_fun(self, pid, codes);
+    // 改前这两支只回 false、不写状态，所以这里也只补上报，不写 iserror / error_msg
+    if (codes.empty())
+        mqtt_send_fail_log("subscribe", filter, "empty SUBACK");
+    else if (codes.front() == mqtt_reason::topic_filter_invalid)
+        mqtt_send_fail_log("subscribe", filter, "suback rc=" + std::to_string(static_cast<int>(codes.front())));
     co_return !codes.empty() && codes.front() != mqtt_reason::topic_filter_invalid;
 }
 
 asio::awaitable<bool> mqtt_client::async_unsubscribe(std::string_view filter)
 {
-    if (!sock) { iserror = true; error_msg = "not connected"; co_return false; }
+    if (!sock)
+    {
+        iserror   = true;
+        error_msg = "not connected";
+        mqtt_send_fail_log("unsubscribe", filter, error_msg);
+        co_return false;
+    }
     auto pid = gen_packet_id_();
     auto pkt = make_client_unsubscribe_(pid, filter);
     asio::error_code wec;
@@ -473,7 +566,13 @@ asio::awaitable<bool> mqtt_client::async_unsubscribe(std::string_view filter)
         std::lock_guard<std::mutex> lk(write_mu_);
         asio::write(*sock, asio::buffer(pkt), wec);
     }
-    if (wec) { iserror = true; error_msg = wec.message(); co_return false; }
+    if (wec)
+    {
+        iserror   = true;
+        error_msg = wec.message();
+        mqtt_send_fail_log("unsubscribe", filter, error_msg);
+        co_return false;
+    }
 
     std::promise<std::vector<mqtt_reason>> p;
     auto fut = p.get_future();
@@ -488,27 +587,48 @@ asio::awaitable<bool> mqtt_client::async_unsubscribe(std::string_view filter)
         {
             std::lock_guard<std::mutex> lk(reply_mu_);
             pending_unsubacks_.erase(pid);
-            iserror = true; error_msg = "UNSUBACK timeout";
+            iserror   = true;
+            error_msg = "UNSUBACK timeout";
+            mqtt_send_fail_log("unsubscribe", filter, error_msg);
             co_return false;
         }
         if (!run_loop_alive_)// 对端断链即刻终结等待，不空等满 5s
         {
             std::lock_guard<std::mutex> lk(reply_mu_);
             pending_unsubacks_.erase(pid);
-            iserror = true; error_msg = "connection closed before UNSUBACK";
+            iserror   = true;
+            error_msg = "connection closed before UNSUBACK";
+            mqtt_send_fail_log("unsubscribe", filter, error_msg);
             co_return false;
         }
         co_await asio::steady_timer(strand_, std::chrono::milliseconds(10)).async_wait(asio::use_awaitable);
     }
     auto codes = fut.get();
-    auto self = shared_from_this();
-    if (on_unsuback_fun) on_unsuback_fun(self, pid, codes);
+    auto self  = shared_from_this();
+    if (on_unsuback_fun)
+        on_unsuback_fun(self, pid, codes);
+    // 与 async_subscribe 同形：空 reason 列表和非成功码各报一行并返回 false。
+    // 0x00 与 0x11 都算成功——0x11「没有这层订阅」是 broker 已接受这次退订的空结果，
+    // 把它当失败会让「退订一个没订过的主题」在调用侧变成错误。
+    // 依旧只报不改状态：不写 iserror / error_msg。
+    if (codes.empty())
+    {
+        mqtt_send_fail_log("unsubscribe", filter, "empty UNSUBACK");
+        co_return false;
+    }
+    const auto first = codes.front();
+    if (first != mqtt_reason::success && first != mqtt_reason::no_subscription_existed)
+    {
+        mqtt_send_fail_log("unsubscribe", filter, "unsuback rc=" + std::to_string(static_cast<int>(first)));
+        co_return false;
+    }
     co_return true;
 }
 
 asio::awaitable<void> mqtt_client::async_pingreq()
 {
-    if (!sock) co_return;
+    if (!sock)
+        co_return;
     auto pkt = make_client_pingreq_();
     {
         std::lock_guard<std::mutex> lk(write_mu_);
@@ -520,7 +640,7 @@ asio::awaitable<void> mqtt_client::async_pingreq()
 asio::awaitable<void> mqtt_client::async_disconnect(mqtt_reason rc)
 {
     run_loop_alive_ = false;
-    connected_ = false;
+    connected_      = false;
     if (sock)
     {
         auto pkt = make_disconnect(rc);
@@ -532,7 +652,8 @@ asio::awaitable<void> mqtt_client::async_disconnect(mqtt_reason rc)
         close_connect();
     }
     auto self = shared_from_this();
-    if (on_disconnect_fun) on_disconnect_fun(self, rc);
+    if (on_disconnect_fun)
+        on_disconnect_fun(self, rc);
     co_return;// 全同步写后函数体里没有 co_await，不写这句就不是协程而是 UB 落空返回
 }
 
@@ -543,15 +664,36 @@ asio::awaitable<void> mqtt_client::async_disconnect(mqtt_reason rc)
 void mqtt_client::close_connect()
 {
     run_loop_alive_ = false;
+    // sock / sslsock 这两个槽，pump 协程每一轮都要解引用一次，而 pump 只在 strand_ 上跑。
+    // 从别的线程 reset() 就等于在另一条线程上析构它正在读的流对象，所以非 strand 线程只置旗，
+    // 把真正的关闭排到 strand_ 上执行（先 cancel 已经能保证 parked 的读被唤醒，不会悬挂）。
+    // weak_from_this 的兜底是给析构留的：那时已经没有共享所有权能续命，而 pump 帧自己持着
+    // 这份 shared_ptr，能走到析构就说明 pump 不在了，就地收才是安全的。
+    if (!strand_.running_in_this_thread())
+    {
+        auto self = weak_from_this().lock();
+        if (self)
+        {
+            asio::post(strand_, [self]
+                       { self->close_connect(); });
+            return;
+        }
+    }
     if (sock)
     {
         std::error_code e;
+        // 先 cancel 再 close：close 一个还有在途异步操作的 socket 是 UB，
+        // parked 在读上的 run_loop 协程会悬挂（对齐 socket_client::close_connect）。
+        if (sock->is_open())
+            sock->cancel(e);
         sock->close(e);
         sock.reset();
     }
     if (sslsock)
     {
         std::error_code e;
+        if (sslsock->lowest_layer().is_open())
+            sslsock->lowest_layer().cancel(e);
         sslsock->lowest_layer().close(e);
         sslsock.reset();
     }
@@ -561,7 +703,9 @@ void mqtt_client::close_connect()
 void mqtt_client::run_loop()
 {
     auto self = shared_from_this();
-    co_spawn(strand_, [self]{ return self->async_run_loop(); }, asio::detached);
+    co_spawn(strand_, [self]
+             { return self->async_run_loop(); },
+             asio::detached);
 }
 
 asio::awaitable<void> mqtt_client::async_run_loop()
@@ -587,29 +731,26 @@ asio::awaitable<void> mqtt_client::async_run_loop()
 
         // 拆帧（与服务端共用 mqtt_framing；三态终局：畸形/超限回 DISCONNECT 后断链）
         const size_t max_in = (config.maximum_packet_size > 0 &&
-                               config.maximum_packet_size < static_cast<uint32_t>(MQTT_MAX_PACKET_SIZE))
-                                  ? static_cast<size_t>(config.maximum_packet_size)
-                                  : static_cast<size_t>(MQTT_MAX_PACKET_SIZE);
+                               config.maximum_packet_size < static_cast<uint32_t>(MQTT_MAX_PACKET_SIZE)) ?
+                                  static_cast<size_t>(config.maximum_packet_size) :
+                                  static_cast<size_t>(MQTT_MAX_PACKET_SIZE);
         while (!rdBuf_.empty())
         {
             mqtt_frame_view fv;
             const auto st = mqtt_frame_parse(rdBuf_.data(), rdBuf_.size(), max_in, fv);
-            if (st == mqtt_frame_state::need_more) break;
+            if (st == mqtt_frame_state::need_more)
+                break;
             if (st == mqtt_frame_state::malformed || st == mqtt_frame_state::too_large)
             {
-                const mqtt_reason rc = (st == mqtt_frame_state::malformed)
-                                           ? mqtt_reason::malformed_packet
-                                           : mqtt_reason::packet_too_large;
-                auto dp = make_disconnect(rc);
+                const mqtt_reason rc = (st == mqtt_frame_state::malformed) ? mqtt_reason::malformed_packet : mqtt_reason::packet_too_large;
+                auto dp              = make_disconnect(rc);
                 asio::error_code ignore;
                 {
                     std::lock_guard<std::mutex> lk(write_mu_);
                     asio::write(*sock, asio::buffer(dp), ignore);// 尽力发出再断
                 }
                 iserror   = true;
-                error_msg = (st == mqtt_frame_state::malformed)
-                                ? "broker sent malformed frame"
-                                : "broker frame exceeds maximum_packet_size";
+                error_msg = (st == mqtt_frame_state::malformed) ? "broker sent malformed frame" : "broker frame exceeds maximum_packet_size";
                 close_connect();
                 co_return;
             }
@@ -639,22 +780,28 @@ void mqtt_client::dispatch_(uint8_t fixed, const uint8_t *body, size_t len)
     {
     case mqtt_packet_type::CONNACK:
     {
-        if (len < 2) { iserror = true; error_msg = "CONNACK too short"; break; }
+        if (len < 2)
+        {
+            iserror   = true;
+            error_msg = "CONNACK too short";
+            break;
+        }
         // DEBUG: 打印前 16 字节 raw
         std::string hex;
         for (size_t i = 0; i < len && i < 16; ++i)
         {
-            char buf[4]; snprintf(buf, sizeof(buf), "%02x ", body[i]);
+            char buf[4];
+            snprintf(buf, sizeof(buf), "%02x ", body[i]);
             hex += buf;
         }
         DEBUG_LOG("[MQTT CLIENT] CONNACK len=%zu hex=%s", len, hex.c_str());
 
         session_present = (body[0] & 0x01) != 0;
-        connack_rc = static_cast<mqtt_reason>(body[1]);
-        connected_ = (connack_rc == mqtt_reason::success);
+        connack_rc      = static_cast<mqtt_reason>(body[1]);
+        connected_      = (connack_rc == mqtt_reason::success);
 
         // Property Length + Property block（MQTT 5 强制存在，至少是 varint 0）
-        size_t prop_off = 2;
+        size_t prop_off   = 2;
         uint32_t prop_len = 0;
         if (prop_off < len && read_varint(body, len, prop_off, prop_len))
         {
@@ -662,11 +809,13 @@ void mqtt_client::dispatch_(uint8_t fixed, const uint8_t *body, size_t len)
             while (cur.valid())
             {
                 mqtt_prop id;
-                if (!cur.next(id)) break;
+                if (!cur.next(id))
+                    break;
                 switch (id)
                 {
                 case mqtt_prop::receive_maximum:
-                    if (!cur.read_u16(server_props.receive_maximum)) return;
+                    if (!cur.read_u16(server_props.receive_maximum))
+                        return;
                     if (server_props.receive_maximum == 0)
                         server_props.receive_maximum = MQTT_DEFAULT_RECEIVE_MAXIMUM;
                     break;
@@ -679,7 +828,7 @@ void mqtt_client::dispatch_(uint8_t fixed, const uint8_t *body, size_t len)
 
         if (!connected_)
         {
-            iserror = true;
+            iserror   = true;
             error_msg = "CONNACK rc=" + std::to_string(static_cast<int>(connack_rc));
         }
         break;
@@ -687,17 +836,18 @@ void mqtt_client::dispatch_(uint8_t fixed, const uint8_t *body, size_t len)
     case mqtt_packet_type::PUBLISH:
     {
         mqtt_publish_info info;
-        if (!parse_publish(fixed, body, len, info)) break;
+        if (!parse_publish(fixed, body, len, info))
+            break;
 
         // 本客户端刻意不支持 QoS2（理由见 async_publish 入口的注释）：入站 QoS2 PUBLISH
         // 回 DISCONNECT qos_not_supported 断链——收下不回 ACK 会让 broker inflight 悬挂、
         // DUP 重发刷同一条消息，静默坏掉不如摊在明面上。
         if (info.qos == 2)
         {
-            iserror   = true;
-            error_msg = "qos 2 not supported";
+            iserror         = true;
+            error_msg       = "qos 2 not supported";
             run_loop_alive_ = false;
-            auto dp = make_disconnect(mqtt_reason::qos_not_supported);
+            auto dp         = make_disconnect(mqtt_reason::qos_not_supported);
             {
                 std::lock_guard<std::mutex> lk(write_mu_);
                 if (sock)
@@ -727,12 +877,18 @@ void mqtt_client::dispatch_(uint8_t fixed, const uint8_t *body, size_t len)
     }
     case mqtt_packet_type::PUBACK:
     {
-        uint16_t pid = 0; mqtt_reason rc = mqtt_reason::success; bool has = false;
+        uint16_t pid   = 0;
+        mqtt_reason rc = mqtt_reason::success;
+        bool has       = false;
         if (parse_ack(type, body, len, pid, rc, has) && has)
         {
             std::lock_guard<std::mutex> lk(reply_mu_);
             auto it = pending_pubacks_.find(pid);
-            if (it != pending_pubacks_.end()) { it->second.set_value(rc); pending_pubacks_.erase(it); }
+            if (it != pending_pubacks_.end())
+            {
+                it->second.set_value(rc);
+                pending_pubacks_.erase(it);
+            }
         }
         break;
     }
@@ -740,32 +896,44 @@ void mqtt_client::dispatch_(uint8_t fixed, const uint8_t *body, size_t len)
     // 没有对应在手状态，来了也只会是协议外杂包——落 default 静默忽略，不留半截状态机。
     case mqtt_packet_type::SUBACK:
     {
-        if (len < 2) break;
-        uint16_t pid = (body[0] << 8) | body[1];
-        size_t off = 2;
+        if (len < 2)
+            break;
+        uint16_t pid  = (body[0] << 8) | body[1];
+        size_t off    = 2;
         uint32_t plen = 0;
         read_varint(body, len, off, plen);
         off += plen;
         std::vector<mqtt_reason> codes;
-        while (off < len) codes.push_back(static_cast<mqtt_reason>(body[off++]));
+        while (off < len)
+            codes.push_back(static_cast<mqtt_reason>(body[off++]));
         std::lock_guard<std::mutex> lk(reply_mu_);
         auto it = pending_subacks_.find(pid);
-        if (it != pending_subacks_.end()) { it->second.set_value(codes); pending_subacks_.erase(it); }
+        if (it != pending_subacks_.end())
+        {
+            it->second.set_value(codes);
+            pending_subacks_.erase(it);
+        }
         break;
     }
     case mqtt_packet_type::UNSUBACK:
     {
-        if (len < 2) break;
-        uint16_t pid = (body[0] << 8) | body[1];
-        size_t off = 2;
+        if (len < 2)
+            break;
+        uint16_t pid  = (body[0] << 8) | body[1];
+        size_t off    = 2;
         uint32_t plen = 0;
         read_varint(body, len, off, plen);
         off += plen;
         std::vector<mqtt_reason> codes;
-        while (off < len) codes.push_back(static_cast<mqtt_reason>(body[off++]));
+        while (off < len)
+            codes.push_back(static_cast<mqtt_reason>(body[off++]));
         std::lock_guard<std::mutex> lk(reply_mu_);
         auto it = pending_unsubacks_.find(pid);
-        if (it != pending_unsubacks_.end()) { it->second.set_value(codes); pending_unsubacks_.erase(it); }
+        if (it != pending_unsubacks_.end())
+        {
+            it->second.set_value(codes);
+            pending_unsubacks_.erase(it);
+        }
         break;
     }
     case mqtt_packet_type::PINGRESP:
@@ -773,10 +941,11 @@ void mqtt_client::dispatch_(uint8_t fixed, const uint8_t *body, size_t len)
     case mqtt_packet_type::DISCONNECT:
     {
         mqtt_reason rc = mqtt_reason::success;
-        if (len >= 1) rc = static_cast<mqtt_reason>(body[0]);
+        if (len >= 1)
+            rc = static_cast<mqtt_reason>(body[0]);
         const bool before_connack = !connected_;
-        connected_ = false;
-        run_loop_alive_ = false;
+        connected_                = false;
+        run_loop_alive_           = false;
         close_connect();
         if (before_connack && !iserror)
         {
@@ -784,7 +953,8 @@ void mqtt_client::dispatch_(uint8_t fixed, const uint8_t *body, size_t len)
             iserror   = true;
             error_msg = "broker disconnected before CONNACK: rc=" + std::to_string(static_cast<int>(rc));
         }
-        if (on_disconnect_fun) on_disconnect_fun(self, rc);
+        if (on_disconnect_fun)
+            on_disconnect_fun(self, rc);
         break;
     }
     case mqtt_packet_type::AUTH:
@@ -798,22 +968,30 @@ void mqtt_client::dispatch_(uint8_t fixed, const uint8_t *body, size_t len)
 void mqtt_client::deliver_publish_(mqtt_publish_info &info)
 {
     auto self = shared_from_this();
-    mqtt_recv_packet_t pkt{info.topic, *info.payload, info.qos, info.packet_id,
-                           info.retain, info.dup, info.props};
+    mqtt_recv_packet_t pkt{info.topic, *info.payload, info.qos, info.packet_id, info.retain, info.dup, info.props};
 
     if (async_run_loop_fun)
     {
-        co_spawn(strand_, [self, pkt]{ return self->async_run_loop_fun(self, pkt); }, asio::detached);
+        co_spawn(strand_, [self, pkt]
+                 { return self->async_run_loop_fun(self, pkt); },
+                 asio::detached);
     }
     else if (run_loop_fun)
     {
-        try { run_loop_fun(self, pkt); }
-        catch (const std::exception &e) { DEBUG_LOG("%s", e.what()); }
+        try
+        {
+            run_loop_fun(self, pkt);
+        }
+        catch (const std::exception &e)
+        {
+            DEBUG_LOG("%s", e.what());
+        }
     }
     else
     {
         // 没挂回调 = 极简用法，才往 received 攒；挂回调的会话不留第二份拷贝
-        if (received.empty()) received_bytes_ = 0;// 外部自行 clear() 过，记账跟着归零
+        if (received.empty())
+            received_bytes_ = 0;// 外部自行 clear() 过，记账跟着归零
         received_bytes_ += info.topic.size() + info.payload->size();
         received.push_back(std::move(info));
         // 双界挤旧：条数或字节任一超界就丢最旧；size()>1 的尾巴保证
@@ -839,13 +1017,16 @@ asio::awaitable<void> mqtt_client::async_keepalive_loop()
         asio::steady_timer timer(strand_);
         timer.expires_after(std::chrono::seconds(ka));
         co_await timer.async_wait(asio::use_awaitable);
-        if (!run_loop_alive_ || !connected_) co_return;
+        if (!run_loop_alive_ || !connected_)
+            co_return;
         auto pkt = make_client_pingreq_();
         std::lock_guard<std::mutex> lk(write_mu_);
-        if (!sock) co_return;
+        if (!sock)
+            co_return;
         asio::error_code wec;
         asio::write(*sock, asio::buffer(pkt), wec);
-        if (wec) co_return;// 写失败由 run_loop 的读错误路径统一收尾
+        if (wec)
+            co_return;// 写失败由 run_loop 的读错误路径统一收尾
     }
 }
 
@@ -853,7 +1034,8 @@ asio::awaitable<void> mqtt_client::async_keepalive_loop()
 void mqtt_client::notify_on_done_()
 {
     std::unique_lock<std::mutex> lock(handler_mu_);
-    if (handler_queue_.empty()) return;
+    if (handler_queue_.empty())
+        return;
     auto handle = std::move(handler_queue_.front());
     handler_queue_.pop_front();
     lock.unlock();
@@ -868,7 +1050,7 @@ void mqtt_client::notify_on_done_()
 
 asio::awaitable<size_t> mqtt_client::co_user_task(asio::use_awaitable_t<> h)
 {
-    auto self = shared_from_this();
+    auto self     = shared_from_this();
     auto initiate = [self](asio::detail::awaitable_handler<asio::any_io_executor, size_t> &&handler) mutable
     {
         std::lock_guard<std::mutex> lk(self->handler_mu_);

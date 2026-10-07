@@ -36,6 +36,15 @@ option(ENABLE_WEBPAY "Enable webpay support (alipay/wxpay)" OFF)
 option(ENABLE_CHART "Enable chart support" OFF)
 option(ENABLE_ZIP "Enable pzzip support" OFF)
 option(ENABLE_SQLITE "Enable SQLite database support" OFF)
+option(ENABLE_FASTCGI "Enable FastCGI (PHP) support" OFF)
+option(ENABLE_REDIS "Enable pzredis (Redis client) support" OFF)
+option(ENABLE_REDIS_CLIENT "Enable framework Redis pub/sub long-connect client support" OFF)
+if(ENABLE_REDIS_CLIENT AND NOT ENABLE_REDIS)
+  message(FATAL_ERROR "ENABLE_REDIS_CLIENT=ON requires ENABLE_REDIS=ON")
+endif()
+option(ENABLE_WEBSOCKETS_CLIENT "Enable framework WebSocket long-connect client support" ON)
+option(ENABLE_SOCKETS_CLIENT "Enable framework bare TCP Socket long-connect client support" ON)
+option(ENABLE_MQTT_CLIENT "Enable framework MQTT broker long-connect client support" ON)
 
 if(ENABLE_SQLITE)
   message(STATUS "ENABLE_SQLITE = ${ENABLE_SQLITE}")
@@ -179,6 +188,10 @@ if(ENABLE_ZIP)
   file(GLOB_RECURSE pzzip_list CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/vendor/pzzip/src/*.cpp")
 endif()
 
+if(ENABLE_REDIS)
+  file(GLOB_RECURSE pzredis_list CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/vendor/pzredis/src/*.cpp")
+endif()
+
 # Auto-generate missing header stubs for controllers
 foreach(cppfile IN LISTS controller_list)
   string(REGEX REPLACE "${CMAKE_CURRENT_SOURCE_DIR}/controller/src/" "" rel_path "${cppfile}")
@@ -281,6 +294,10 @@ if(ENABLE_ZIP)
   list(APPEND paozhu_srcs ${pzzip_list})
 endif()
 
+if(ENABLE_REDIS)
+  list(APPEND paozhu_srcs ${pzredis_list})
+endif()
+
 add_executable(paozhu
   $<IF:$<CONFIG:Release>,
     ${CMAKE_CURRENT_SOURCE_DIR}/startup/main_daemon.cpp,
@@ -319,6 +336,30 @@ endif()
 
 if(ENABLE_ZIP)
   target_compile_definitions(paozhu PRIVATE ENABLE_ZIP)
+endif()
+
+if(ENABLE_FASTCGI)
+  target_compile_definitions(paozhu PRIVATE ENABLE_FASTCGI)
+endif()
+
+if(ENABLE_REDIS)
+  target_compile_definitions(paozhu PRIVATE ENABLE_REDIS)
+endif()
+
+if(ENABLE_REDIS_CLIENT)
+  target_compile_definitions(paozhu PRIVATE ENABLE_REDIS_CLIENT)
+endif()
+
+if(ENABLE_WEBSOCKETS_CLIENT)
+  target_compile_definitions(paozhu PRIVATE ENABLE_WEBSOCKETS_CLIENT)
+endif()
+
+if(ENABLE_SOCKETS_CLIENT)
+  target_compile_definitions(paozhu PRIVATE ENABLE_SOCKETS_CLIENT)
+endif()
+
+if(ENABLE_MQTT_CLIENT)
+  target_compile_definitions(paozhu PRIVATE ENABLE_MQTT_CLIENT)
 endif()
 
 if(ENABLE_SQLITE)
@@ -379,6 +420,10 @@ endif()
 
 if(ENABLE_ZIP)
   include_system_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/vendor/pzzip/include")
+endif()
+
+if(ENABLE_REDIS)
+  include_system_dirs_recursively("${CMAKE_CURRENT_SOURCE_DIR}/vendor/pzredis/include")
 endif()
 
 if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/bin/paozhu_pre)
@@ -676,9 +721,20 @@ if(UNIX)
   target_link_libraries(paozhu_cli PRIVATE Threads::Threads)
 endif()
 
-# ---- Copy config files (Unix only) ----
-if(CMAKE_BUILD_TYPE STREQUAL "Release" AND UNIX)
-  file(MAKE_DIRECTORY /usr/local/etc/paozhu)
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/conf/" DESTINATION /usr/local/etc/paozhu/)
-  message(STATUS "Configuration files copied to /usr/local/etc/paozhu")
+# ---- Install config files (Unix only, opt-in) ----
+# Only executed during make install, not during configure: otherwise, anyone running cmake once will
+# replace the content currently being read by the deployed instance at /usr/local/etc/paozhu
+# (the second fallback candidate for serverconfig::init_path) with the repository content.
+# Measured with cmake 4.2: file(COPY) will overwrite the target file when the content differs,
+# regardless of timestamps — this is an explicitly noted behavior, with no protection added.
+option(ENABLE_CONF_INSTALL "Copy the whole conf/ dir to PAOZHU_CONF_DIR during 'make install'" OFF)
+set(PAOZHU_CONF_DIR "/usr/local/etc/paozhu" CACHE PATH "Target dir for conf during 'make install'")
+
+if(ENABLE_CONF_INSTALL AND UNIX)
+  install(CODE "
+    file(MAKE_DIRECTORY [=[${PAOZHU_CONF_DIR}]=])
+    file(COPY [=[${CMAKE_CURRENT_SOURCE_DIR}/conf/]=] DESTINATION [=[${PAOZHU_CONF_DIR}]=])
+    message(STATUS [=[paozhu: conf/ copied to ${PAOZHU_CONF_DIR}]=])
+  ")
+  message(STATUS "paozhu: 'make install' will copy conf/ to ${PAOZHU_CONF_DIR}")
 endif()

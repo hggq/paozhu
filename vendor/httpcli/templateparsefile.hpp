@@ -33,6 +33,42 @@ class viewtemplatefile
   public:
     viewtemplatefile(std::string filename_) : filename(std::move(filename_)) {}
     viewtemplatefile() {}
+    // make 只看 mtime：无条件重写会把依赖这个头的所有编译单元一起拖脏，所以内容没变就不落盘。
+    // 不剥旧时间戳注释再比 —— 改动后第一次运行必然重写一次，把存量的戳行清掉，之后才稳定。
+    static bool write_file_if_changed(const std::string &path, const std::string &content)
+    {
+        std::string oldcontent;
+        FILE *rf = fopen(path.c_str(), "rb");
+        if (rf)
+        {
+            fseek(rf, 0, SEEK_END);
+            long n = ftell(rf);
+            fseek(rf, 0, SEEK_SET);
+            if (n > 0)
+            {
+                oldcontent.resize(n);
+                auto nread = fread(&oldcontent[0], 1, n, rf);
+                oldcontent.resize(nread);
+            }
+            fclose(rf);
+            if (oldcontent == content)
+            {
+                return false;
+            }
+        }
+        FILE *wf = fopen(path.c_str(), "wb");
+        if (wf == nullptr)
+        {
+            std::cout << " [!] cannot write file: " << path << std::endl;
+            return false;
+        }
+        if (!content.empty())
+        {
+            fwrite(&content[0], 1, content.size(), wf);
+        }
+        fclose(wf);
+        return true;
+    }
     std::map<std::string, time_t> contrasttime(std::string tagetpath)
     {
         std::map<std::string, time_t> temp;
@@ -182,7 +218,6 @@ class viewtemplatefile
         std::string includefilename = sofilename + "viewsrc.h";
         std::string regfilefilename = sofilename + "regviewmethod.hpp";
 
-        FILE *f = fopen(regfilefilename.c_str(), "wb");
         std::string content;
 
         content = R"(#ifndef __HTTP_REG_VIEW_METHOD_HPP
@@ -205,17 +240,12 @@ namespace http
   void _initview_method_regto(VIEW_REG  &_viewmetholdreg)
   {
             )";
-        content.append("\t //create time: ");
-        content.append(viewgetgmtdatetime(0));
-        content.append("\n");
         content.append(regitem);
         content.append("\n");
         content.append("\n\t} \n}\n#endif");
 
-        fwrite(&content[0], 1, content.size(), f);
-        fclose(f);
+        write_file_if_changed(regfilefilename, content);
 
-        f = fopen(includefilename.c_str(), "wb");
         content.clear();
         content =
             "#pragma "
@@ -257,8 +287,7 @@ namespace http
 
         content.append("\n}\n#endif");
 
-        fwrite(&content[0], 1, content.size(), f);
-        fclose(f);
+        write_file_if_changed(includefilename, content);
     }
     std::string viewgetgmtdatetime(time_t inputtime = 0)
     {
@@ -768,7 +797,7 @@ namespace http
                             fs::perms::others_read,
                         fs::perm_options::add);
 
-        FILE *f = fopen(savefilename.c_str(), "wb");
+        std::string filecontent;
 
         std::string headtxt = R"(#include<iostream>
 #include <cstdio>
@@ -789,15 +818,14 @@ namespace http
 #include "http_so_common_api.h"
 #include "viewsrc.h"
 )";
-        fwrite(&headtxt[0], 1, headtxt.size(), f);
+        filecontent.append(headtxt);
 
         if (custrominclude.size() > 0)
         {
-            fwrite(&custrominclude[0], 1, custrominclude.size(), f);
+            filecontent.append(custrominclude);
         }
 
-        headtxt = "//This file create by paozhu ";
-        headtxt.append(viewgetgmtdatetime(0));
+        headtxt = "//This file create by paozhu";
 
         headtxt.append("\nnamespace http {\n");
         headtxt.append("\nnamespace view {\n");
@@ -808,7 +836,7 @@ namespace http
         headtxt.append("([[maybe_unused]] const struct view_param "
                        "&vinfo,[[maybe_unused]] http::obj_val &obj)\n\t\t\t{\n ");
 
-        fwrite(&headtxt[0], 1, headtxt.size(), f);
+        filecontent.append(headtxt);
 
         headtxt            = R"(
                      std::ostringstream echo;
@@ -830,15 +858,17 @@ namespace http
         }
        }
     )";
-        fwrite(&headtxt[0], 1, headtxt.size(), f);
-        fwrite(&parsefile[0], 1, parsefile.size(), f);
-        fwrite(&endtxt[0], 1, endtxt.size(), f);
-        fclose(f);
+        filecontent.append(headtxt);
+        filecontent.append(parsefile);
+        filecontent.append(endtxt);
 
-        fs::permissions(savefilename,
-                        fs::perms::owner_all | fs::perms::group_all |
-                            fs::perms::others_read | fs::perms::others_write,
-                        fs::perm_options::add);
+        if (write_file_if_changed(savefilename, filecontent))
+        {
+            fs::permissions(savefilename,
+                            fs::perms::owner_all | fs::perms::group_all |
+                                fs::perms::others_read | fs::perms::others_write,
+                            fs::perm_options::add);
+        }
     }
 
   public:

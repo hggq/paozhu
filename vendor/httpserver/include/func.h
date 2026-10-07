@@ -12,6 +12,7 @@
 #include <memory>
 #include <sstream>
 #include <string_view>
+#include <vector>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -51,7 +52,7 @@ unsigned long long str2uint(std::string_view);
 unsigned long long str2uint(const char *source, unsigned int str_length);
 long long str2int(std::string_view);
 long long str2int(const char *source, unsigned int str_length);
-// H1 修复：长度类头部（Content-Length 等）的严格解析。
+// 长度类头部（Content-Length 等）的严格解析。
 // 仅接受纯数字（不接受空格/逗号/负号/十六进制/科学计数），并做位数与溢出判断，
 // 避免 str2int 那种"跳过所有非数字后顺序累加"带来的走私面。
 bool str2uint64_strict(std::string_view source, unsigned long long &out, unsigned int max_digits = 20);
@@ -229,14 +230,20 @@ bool ip_is_local(const std::string &ip);
 //   写入方：http_parse.cpp / http2_parse.cpp（raw body 与 multipart 上传件）、rpc_parse.cpp（tempraw）
 //   清理方：httpserver::httpwatch_clear_temp_files()（按 mtime + 前缀白名单删文件）
 // 加前缀的目的是让清理只命中框架自己的临时文件，绝不误删 temp_path 下的业务文件。
-inline constexpr std::string_view HTTP_TEMP_RAW_PREFIX    = "pzraw_"; // 请求体整体落盘（rawcontent/tempraw）
-inline constexpr std::string_view HTTP_TEMP_UPLOAD_PREFIX = "pzup_";  // multipart 上传件落盘
+inline constexpr std::string_view HTTP_TEMP_RAW_PREFIX    = "pzraw_";// 请求体整体落盘（rawcontent/tempraw）
+inline constexpr std::string_view HTTP_TEMP_UPLOAD_PREFIX = "pzup_"; // multipart 上传件落盘
 
 // 生成落盘临时文件名（仅文件名，不含目录）。二者均无扩展名。
 std::string make_http_temp_raw_name();
 std::string make_http_temp_upload_name(unsigned long long content_length);
 // 是否为框架生成的落盘临时文件名（严格匹配前缀 + 后续字符集）。
 bool is_http_temp_filename(std::string_view name);
+
+// — 统一 URL 路径段归一化 —
+// HTTP/1.x 和 HTTP/2 共用：解码 %XX、按 '/' 切分、处理 '.'/'..'、
+// 拦截 \0 / / / \\ 安全风险、限每段 ≤255 字节。
+// 返回 false 表示路径非法（调用方应返回 400 或丢弃）。
+bool url_segments_normalize(std::vector<std::string> &pathinfos, const std::string &raw);
 
 }// namespace http
 #endif

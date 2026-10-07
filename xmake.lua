@@ -11,6 +11,8 @@ if is_plat("windows") then
     add_defines("WIN32")
     add_defines("_WIN32_WINDOWS")
     add_defines("WIN32_LEAN_AND_MEAN")
+    -- 与 CMakeLists.txt 的 WIN32 分支同一口径：pzredis 同步路径用的 WSAPoll 要 Vista 以上的门限
+    add_defines("_WIN32_WINNT=0x0601")
     add_syslinks("advapi32")
     set_runtimes("MD")
     if is_mode("debug") then
@@ -38,6 +40,7 @@ add_includedirs("websockets")
 add_includedirs("mqtt")
 add_includedirs("vendor/httpserver/include")
 add_includedirs("vendor/httpserver/include/utility")
+add_includedirs("vendor/pzredis/include")
 add_includedirs("orm")
 add_includedirs("orm/include")
 add_includedirs("orm/cms/include")
@@ -98,9 +101,14 @@ target("paozhu")
     add_packages("brotli")
     add_packages("sqlite3")
     add_defines("ENABLE_SQLITE")
+    add_defines("ENABLE_REDIS")
+    -- 打开下面一行才启用 FastCGI/PHP 支持（对应 CMake 的 -DENABLE_FASTCGI=ON），默认关
+    -- Enable FastCGI/PHP support by uncommenting (matches CMake -DENABLE_FASTCGI=ON), off by default
+    -- add_defines("ENABLE_FASTCGI")
     add_files("models/**.cpp")
     add_files("orm/**.cpp")
     add_files("vendor/httpserver/**.cpp")
+    add_files("vendor/pzredis/src/**.cpp")
 -- 可以打开支持扩展模块
 -- You can open the support extension module    
 -- add_files("vendor/pzimage/src/**.cpp")

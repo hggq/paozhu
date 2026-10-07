@@ -214,7 +214,7 @@ void mysql_conn_base::read_server_hello(unsigned int offset, unsigned int length
         isclose    = true;
         return;
     }
-    for (unsigned int i = 0; i < 8; i++)
+    for (size_t i = 0; i < 8; i++)
     {
         server_hello.auth_plugin_salt_data.push_back(_cache_data[offset]);
         offset++;
@@ -294,7 +294,7 @@ void mysql_conn_base::read_server_hello(unsigned int offset, unsigned int length
         server_hello.auth_plugin_salt_data.push_back(_cache_data[offset]);
     }
 
-    for (unsigned int i = 0; i < server_hello.auth_plugin_data_len; i++)
+    for (size_t i = 0; i < server_hello.auth_plugin_data_len; i++)
     {
         if (offset >= length)
         {
@@ -1089,7 +1089,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
 
             if ((unsigned char)_cache_data[4] == 0xFF)
             {
-                for (unsigned int i = 5; i < n; i++)
+                for (size_t i = 5; i < n; i++)
                 {
                     error_msg.push_back(_cache_data[i]);
                 }
@@ -1169,7 +1169,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
         }
         else if ((unsigned char)_cache_data[4] == 0xFF)
         {
-            for (unsigned int i = 5; i < n; i++)
+            for (size_t i = 5; i < n; i++)
             {
                 error_msg.push_back(_cache_data[i]);
             }
@@ -1344,7 +1344,7 @@ std::string pubkey_fingerprint_hex(EVP_PKEY *key)
     static const char hex_table[] = "0123456789abcdef";
     std::string out;
     out.reserve(SHA256_DIGEST_LENGTH * 2);
-    for (unsigned int i = 0; i < SHA256_DIGEST_LENGTH; i++)
+    for (size_t i = 0; i < SHA256_DIGEST_LENGTH; i++)
     {
         out.push_back(hex_table[md[i] >> 4]);
         out.push_back(hex_table[md[i] & 0x0F]);
@@ -2192,7 +2192,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
 
             if ((unsigned char)_cache_data[4] == 0xFF)
             {
-                for (unsigned int i = 5; i < n; i++)
+                for (size_t i = 5; i < n; i++)
                 {
                     error_msg.push_back(_cache_data[i]);
                 }
@@ -2271,7 +2271,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
         }
         else if ((unsigned char)_cache_data[4] == 0xFF)
         {
-            for (unsigned int i = 5; i < n; i++)
+            for (size_t i = 5; i < n; i++)
             {
                 error_msg.push_back(_cache_data[i]);
             }
@@ -3182,7 +3182,7 @@ void mysql_conn_base::read_col_info(const std::string &pack_info, field_info_t &
             truncated();
             return;
         }
-        for (unsigned int iin = 0; iin < name_length; iin++)
+        for (size_t iin = 0; iin < name_length; iin++)
         {
             tempnum++;
             temp_field_data.dbname.push_back(pack_info[tempnum]);
@@ -3202,7 +3202,7 @@ void mysql_conn_base::read_col_info(const std::string &pack_info, field_info_t &
             truncated();
             return;
         }
-        for (unsigned int iin = 0; iin < name_length; iin++)
+        for (size_t iin = 0; iin < name_length; iin++)
         {
             tempnum++;
             temp_field_data.table.push_back(pack_info[tempnum]);
@@ -3222,7 +3222,7 @@ void mysql_conn_base::read_col_info(const std::string &pack_info, field_info_t &
             truncated();
             return;
         }
-        for (unsigned int iin = 0; iin < name_length; iin++)
+        for (size_t iin = 0; iin < name_length; iin++)
         {
             tempnum++;
             temp_field_data.org_table.push_back(pack_info[tempnum]);
@@ -3242,7 +3242,7 @@ void mysql_conn_base::read_col_info(const std::string &pack_info, field_info_t &
             truncated();
             return;
         }
-        for (unsigned int iin = 0; iin < name_length; iin++)
+        for (size_t iin = 0; iin < name_length; iin++)
         {
             tempnum++;
             temp_field_data.name.push_back(pack_info[tempnum]);
@@ -3262,7 +3262,7 @@ void mysql_conn_base::read_col_info(const std::string &pack_info, field_info_t &
             truncated();
             return;
         }
-        for (unsigned int iin = 0; iin < name_length; iin++)
+        for (size_t iin = 0; iin < name_length; iin++)
         {
             tempnum++;
             temp_field_data.org_name.push_back(pack_info[tempnum]);
@@ -4832,7 +4832,7 @@ unsigned int mysql_conn_base::stmt_prepare_impl(const std::string &sql)
     unsigned int n = 0;
 
     // 构建 COM_STMT_PREPARE packet: 3B length + 1B seq + 0x16 + sql
-    unsigned int payload_len = 1 + sql.size();
+    unsigned int payload_len = static_cast<unsigned int>(1 + sql.size());
     if (payload_len >= 0xFFFFFF)
     {
         error_msg  = "COM_STMT_PREPARE: SQL too large";
@@ -4957,7 +4957,7 @@ unsigned int mysql_conn_base::stmt_prepare_impl(const std::string &sql)
     // 消费 count 个 Column Definition 包, 提取 type / unsigned 标志。
     auto read_def_block = [&](unsigned int count, std::vector<uint8_t> &types, std::vector<uint8_t> &unsigned_flags, unsigned int &pos, std::vector<std::string> *out_names = nullptr, std::vector<std::string> *out_org_names = nullptr, std::vector<uint8_t> *out_decimals = nullptr) -> bool
     {
-        for (unsigned int i = 0; i < count; ++i)
+        for (size_t i = 0; i < count; ++i)
         {
             if (!next_packet(pos))
                 return false;
@@ -5195,8 +5195,8 @@ bool stmt_param_binary_decl_matches(uint8_t declared, stmt_param_kind kind)
 }// namespace
 
 // ===== write_stmt_execute_params =====
-// MY-6 已知边界（仅文档化，不修）：参数类型基于 COM_STMT_PREPARE 时快照（param_types_src）。
-// D-1 失效只刷新结果列（col_*），不刷新参数类型；若 prepare 后 ALTER 改了列类型，param_types_src
+// 已知边界（仅文档化，不修）：参数类型基于 COM_STMT_PREPARE 时快照（param_types_src）。
+// 失效只刷新结果列（col_*），不刷新参数类型；若 prepare 后 ALTER 改了列类型，param_types_src
 // 是旧快照。当前 MySQL 对参数类型除 YEAR(0x0D)/BIT(0x10) 外不严格（隐式转换），且下方类型段循环
 // 已对 YEAR/BIT 做 VAR_STRING 特例，真正越界概率极低、不影响功能。若需绝对正确：prepare 后 ALTER
 // 列类型时重新 prepare 或换用不同 SQL 文本。
@@ -5240,7 +5240,7 @@ void mysql_conn_base::write_stmt_execute_params(
     std::vector<uint16_t> param_types(param_count, 0);
     for (size_t i = 0; i < param_count; ++i)
     {
-        // MY-7 修复：NULL 参数也按真实列类型声明类型段。服务端按 null_bitmap 跳过取值并忽略
+        // 修复：NULL 参数也按真实列类型声明类型段。服务端按 null_bitmap 跳过取值并忽略
         // 类型字节，故类型声明值不影响功能；保留真实列类型与 libmysql "bind INT 运行时 NULL
         // → 发 INT" 的语义一致（回退 0xFE），比原 0x00(DECIMAL) 更准确。
         uint8_t base_type = (i < param_types_src.size()) ? param_types_src[i] : 0xFE;
@@ -5255,7 +5255,7 @@ void mysql_conn_base::write_stmt_execute_params(
         const auto &v     = params[i];
         bool val_unsigned = (v.get_type() == http::obj_type::UINT || v.get_type() == http::obj_type::ULONG);
 
-        // MY-8 参数类型兜底（支持基线 MySQL 8 / MariaDB 12.1+，两个平台通用）：
+        // 参数类型兜底（支持基线 MySQL 8 / MariaDB 12.1+，两个平台通用）：
         // COM_STMT_PREPARE 参数定义段返回 MYSQL_TYPE_NULL(0x06) 表示"该参数无类型上下文"。
         //   · MariaDB：对所有参数一律返回 0x06（不推断类型）；
         //   · MySQL 8：对无法推断类型的参数同样返回 0x06（如 `SELECT ?`、`SELECT ? + 1`），
@@ -5279,7 +5279,7 @@ void mysql_conn_base::write_stmt_execute_params(
             }
         }
 
-        // MY-13 类型一致性守卫：base_type 来自 COM_STMT_PREPARE 的列类型快照，值段却按它选编码
+        // 类型一致性守卫：base_type 来自 COM_STMT_PREPARE 的列类型快照，值段却按它选编码
         // 分支并直接读 obj_val 的 union 成员。声明与运行时值不同族时（数值列传 "77"，或 DOUBLE
         // 传 obj_val(int)），读到的是从未被这个 obj_val 写过的成员：UPDATE affected=0 静默 0 行，
         // INSERT affected=1 但落库 0，或把 IEEE 位模式当整数发。
@@ -5521,7 +5521,7 @@ void mysql_conn_base::write_stmt_execute_params(
         case 0xFE:// STRING (CHAR)
         case 0xFF:// GEOMETRY
         default:
-            // MY-13 反向不匹配：列是文本类型而参数是运行时数值（如 obj_val(int) 绑 VARCHAR 列）。
+            // 反向不匹配：列是文本类型而参数是运行时数值（如 obj_val(int) 绑 VARCHAR 列）。
             // 数值构造只写 union、不写 str_，此处若照发 str_ 就把列静默写成空值。
             // BOOL 也与文本协议保持一致写 0/1（MySQL 无 bool 字面量，to_string 的 "true" 不可用）。
             {
@@ -5610,7 +5610,7 @@ RETRY_EXEC_DML:
         pkt_body.push_back(0x00); // flags = CURSOR_TYPE_NO_CURSOR
         _le_write(pkt_body, 1, 4);// iteration_count = 1
 
-        // N-9: 发送前本地强校验参数个数 == 占位符数。参数不足旧行为等服务器
+        // 发送前本地强校验参数个数 == 占位符数。参数不足旧行为等服务器
         // 返回 1835; 参数过多会留下未消费字节导致流错位/静默 0 行 —— 统一本地拒绝。
         if (params.size() != param_types->size())
         {
@@ -5623,7 +5623,7 @@ RETRY_EXEC_DML:
         write_stmt_execute_params(params, *param_types, *param_unsigned, pkt_body);
 
         // 构建完整 MySQL packet; 单物理包上限 0xFFFFFF, 超过直接拒绝(不拆包)
-        unsigned int payload_len = pkt_body.size();
+        unsigned int payload_len = static_cast<unsigned int>(pkt_body.size());
         if (payload_len >= 0xFFFFFF)
         {
             error_msg = "COM_STMT_EXECUTE: payload too large";
@@ -6156,7 +6156,7 @@ RETRY_FETCH:
         pkt_body.push_back(0x00);
         _le_write(pkt_body, 1, 4);
 
-        // N-9: 参数个数与占位符数强校验。参数不足/过多都本地拒绝,
+        // 参数个数与占位符数强校验。参数不足/过多都本地拒绝,
         // 避免服务器侧"参数过多静默 0 行"或残留未消费字节造成流错位。
         if (params.size() != param_types->size())
         {
@@ -6167,7 +6167,7 @@ RETRY_FETCH:
 
         write_stmt_execute_params(params, *param_types, *param_unsigned, pkt_body);
 
-        unsigned int payload_len = pkt_body.size();
+        unsigned int payload_len = static_cast<unsigned int>(pkt_body.size());
 
         send_data.clear();
         send_data.push_back((payload_len & 0xFF));
@@ -6324,7 +6324,7 @@ RETRY_FETCH:
                     // 第一个列定义包走冷路径重解析(名字+类型), 并用本轮结果刷新 entry。
                     bool meta_same     = true;
                     unsigned int probe = consumed;
-                    for (unsigned int i = 0; i < expected_cols; ++i)
+                    for (size_t i = 0; i < expected_cols; ++i)
                     {
                         while (accum_buf.size() - probe < 4)
                             if (!read_more())
@@ -6546,7 +6546,7 @@ RETRY_FETCH:
                 row_nulls.reserve(expected_cols);
 
                 int val_off = 1 + static_cast<int>(nb_bytes);
-                for (unsigned int ci = 0; ci < expected_cols; ++ci)
+                for (size_t ci = 0; ci < expected_cols; ++ci)
                 {
                     // 检查 null
                     size_t bit_pos  = ci + 2;// +1 header byte + 位偏移
@@ -6696,7 +6696,7 @@ RETRY_FETCH_BIN:
 
         write_stmt_execute_params(params, *param_types, *param_unsigned, pkt_body);
 
-        unsigned int payload_len = pkt_body.size();
+        unsigned int payload_len = static_cast<unsigned int>(pkt_body.size());
 
         send_data.clear();
         send_data.push_back((payload_len & 0xFF));
@@ -6853,7 +6853,7 @@ RETRY_FETCH_BIN:
                     // 第一个列定义包走冷路径重解析(名字+类型), 并用本轮结果刷新 entry。
                     bool meta_same     = true;
                     unsigned int probe = consumed;
-                    for (unsigned int i = 0; i < expected_cols; ++i)
+                    for (size_t i = 0; i < expected_cols; ++i)
                     {
                         while (accum_buf.size() - probe < 4)
                             if (!read_more())
@@ -7074,7 +7074,7 @@ RETRY_FETCH_BIN:
                 std::vector<std::string> row_date_backing(expected_cols);
 
                 int val_off = 1 + static_cast<int>(nb_bytes);
-                for (unsigned int ci = 0; ci < expected_cols; ++ci)
+                for (size_t ci = 0; ci < expected_cols; ++ci)
                 {
                     // 检查 null
                     size_t bit_pos  = ci + 2;// +1 header byte + 位偏移
@@ -7150,7 +7150,7 @@ RETRY_FETCH_BIN:
 // ===== async_stmt_prepare / async_stmt_close（真正的 async I/O）=====
 asio::awaitable<unsigned int> mysql_conn_base::async_stmt_prepare(const std::string &sql)
 {
-    unsigned int payload_len = 1 + sql.size();
+    unsigned int payload_len = static_cast<unsigned int>(1 + sql.size());
     if (payload_len >= 0xFFFFFF)
     {
         error_msg  = "COM_STMT_PREPARE: SQL too large";
@@ -7272,7 +7272,7 @@ asio::awaitable<unsigned int> mysql_conn_base::async_stmt_prepare(const std::str
     // 消费 count 个 Column Definition 包, 提取 type / unsigned 标志
     auto read_def_block = [&](unsigned int count, std::vector<uint8_t> &types, std::vector<uint8_t> &unsigned_flags, unsigned int &pos, std::vector<std::string> *out_names = nullptr, std::vector<std::string> *out_org_names = nullptr, std::vector<uint8_t> *out_decimals = nullptr) -> asio::awaitable<bool>
     {
-        for (unsigned int i = 0; i < count; ++i)
+        for (size_t i = 0; i < count; ++i)
         {
             if (!co_await next_packet(pos))
                 co_return false;
@@ -7439,7 +7439,7 @@ RETRY_ASYNC_DML:
 
         write_stmt_execute_params(params, *param_types, *param_unsigned, pkt_body);
 
-        unsigned int payload_len = pkt_body.size();
+        unsigned int payload_len = static_cast<unsigned int>(pkt_body.size());
         if (payload_len >= 0xFFFFFF)
         {
             error_msg = "COM_STMT_EXECUTE: payload too large";
@@ -7629,7 +7629,7 @@ RETRY_ASYNC_DML:
             }
         }
 
-        // 只有服务端明确拒绝了这个 stmt_id 才重跑一次（与 sync 版同判据）：
+        // 只有服务端明确拒绝了这个 stmt_id 才重跑一次（与 sync 版判断一致）：
         // 1243/1615 说明语句根本没执行, 丢缓存 + 冷路径重新 prepare 是幂等安全的;
         // 能收到 ERR 包说明连接是活的, 所以这里只 re-prepare, 不重连。
         // 连接断不在此列：execute 包已经写出去了, 重发可能把 DML 落库两遍。
@@ -7722,7 +7722,7 @@ RETRY_ASYNC_FETCH:
         pkt_body.push_back(0x00);
         _le_write(pkt_body, 1, 4);
 
-        // N-9: 参数个数与占位符数强校验(同 sync fetch_prepared_impl)
+        // 参数个数与占位符数强校验(同 sync fetch_prepared_impl)
         if (params.size() != param_types->size())
         {
             error_msg  = "COM_STMT_EXECUTE: prepared statement has " + std::to_string(param_types->size()) + " placeholder(s) but got " + std::to_string(params.size()) + " parameter value(s)";
@@ -7733,7 +7733,7 @@ RETRY_ASYNC_FETCH:
 
         write_stmt_execute_params(params, *param_types, *param_unsigned, pkt_body);
 
-        unsigned int payload_len = pkt_body.size();
+        unsigned int payload_len = static_cast<unsigned int>(pkt_body.size());
 
         send_data.clear();
         send_data.push_back((payload_len & 0xFF));
@@ -7880,7 +7880,7 @@ RETRY_ASYNC_FETCH:
                     // 列定义段跨 4096B 读块时 consumed 会越过缓冲区末尾(size_t 下溢)→ 挂死。
                     bool meta_same     = true;
                     unsigned int probe = consumed;
-                    for (unsigned int i = 0; i < expected_cols; ++i)
+                    for (size_t i = 0; i < expected_cols; ++i)
                     {
                         while (accum_buf.size() - probe < 4)
                         {
@@ -7947,7 +7947,7 @@ RETRY_ASYNC_FETCH:
                     // 硬基线（连接期门禁已要求服务器 advertise CLIENT_DEPRECATE_EOF）之下，列定义段
                     // 中途不会再有任何 0xFE 包：分隔包不存在，终结包只在全列收齐之后才发。走到这里
                     // 的前提只有"本轮列数与实际列定义包数不符 = 协议失步"，转 ROWS 会去等一个永不再来
-                    // 的行包(D-10 形状)；按终结包消费并收束结果集才能保住流对齐。
+                    // 的行包；按终结包消费并收束结果集才能保住流对齐。
                     consumed += total_pkt_len;
                     current_phase = phase::DONE;
                     stop          = true;
@@ -8093,14 +8093,14 @@ RETRY_ASYNC_FETCH:
                 }
                 const unsigned char *nb_start = row_body + 1;
 
-                // 收集每列的值 + 逐列 NULL 标志(N-8: 空串必须与 NULL 区分, 同 sync 版)
+                // 收集每列的值 + 逐列 NULL 标志(空串必须与 NULL 区分, 同 sync 版)
                 std::vector<std::string> row_values;
                 row_values.reserve(expected_cols);
                 std::vector<unsigned char> row_nulls;// 与 row_values 对齐: 1=SQL NULL
                 row_nulls.reserve(expected_cols);
 
                 int val_off = 1 + static_cast<int>(nb_bytes);
-                for (unsigned int ci = 0; ci < expected_cols; ++ci)
+                for (size_t ci = 0; ci < expected_cols; ++ci)
                 {
                     size_t bit_pos  = ci + 2;
                     size_t byte_idx = bit_pos / 8;
@@ -8282,7 +8282,7 @@ RETRY_ASYNC_FETCH_BIN:
         pkt_body.push_back(0x00);
         _le_write(pkt_body, 1, 4);
 
-        // N-9: 参数个数与占位符数强校验(同 sync fetch_prepared_impl)
+        // 参数个数与占位符数强校验(同 sync fetch_prepared_impl)
         if (params.size() != param_types->size())
         {
             error_msg  = "COM_STMT_EXECUTE: prepared statement has " + std::to_string(param_types->size()) + " placeholder(s) but got " + std::to_string(params.size()) + " parameter value(s)";
@@ -8293,7 +8293,7 @@ RETRY_ASYNC_FETCH_BIN:
 
         write_stmt_execute_params(params, *param_types, *param_unsigned, pkt_body);
 
-        unsigned int payload_len = pkt_body.size();
+        unsigned int payload_len = static_cast<unsigned int>(pkt_body.size());
 
         send_data.clear();
         send_data.push_back((payload_len & 0xFF));
@@ -8440,7 +8440,7 @@ RETRY_ASYNC_FETCH_BIN:
                     // 列定义段跨 4096B 读块时 consumed 会越过缓冲区末尾(size_t 下溢)→ 挂死。
                     bool meta_same     = true;
                     unsigned int probe = consumed;
-                    for (unsigned int i = 0; i < expected_cols; ++i)
+                    for (size_t i = 0; i < expected_cols; ++i)
                     {
                         while (accum_buf.size() - probe < 4)
                         {
@@ -8507,7 +8507,7 @@ RETRY_ASYNC_FETCH_BIN:
                     // 硬基线（连接期门禁已要求服务器 advertise CLIENT_DEPRECATE_EOF）之下，列定义段
                     // 中途不会再有任何 0xFE 包：分隔包不存在，终结包只在全列收齐之后才发。走到这里
                     // 的前提只有"本轮列数与实际列定义包数不符 = 协议失步"，转 ROWS 会去等一个永不再来
-                    // 的行包(D-10 形状)；按终结包消费并收束结果集才能保住流对齐。
+                    // 的行包；按终结包消费并收束结果集才能保住流对齐。
                     consumed += total_pkt_len;
                     current_phase = phase::DONE;
                     stop          = true;
@@ -8653,13 +8653,13 @@ RETRY_ASYNC_FETCH_BIN:
                 }
                 const unsigned char *nb_start = row_body + 1;
 
-                // 收集每列的值 + 逐列 NULL 标志(N-8: 空串必须与 NULL 区分, 同 sync 版)
+                // 收集每列的值 + 逐列 NULL 标志(空串必须与 NULL 区分, 同 sync 版)
                 std::vector<orm::col_value_variant> row_variants;
                 row_variants.reserve(expected_cols);
                 std::vector<std::string> row_date_backing(expected_cols);
 
                 int val_off = 1 + static_cast<int>(nb_bytes);
-                for (unsigned int ci = 0; ci < expected_cols; ++ci)
+                for (size_t ci = 0; ci < expected_cols; ++ci)
                 {
                     size_t bit_pos  = ci + 2;
                     size_t byte_idx = bit_pos / 8;

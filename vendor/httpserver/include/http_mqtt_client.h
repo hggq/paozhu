@@ -18,7 +18,6 @@
 #include <chrono>
 #include "mqtt_frame.h"
 #include "mqtt_framing.h"
-#include "server.h"
 #include "datetime.h"
 
 namespace http
@@ -209,10 +208,10 @@ class mqtt_client : public std::enable_shared_from_this<mqtt_client>
     // 这里是滑动窗口：攒到 received_max 条或 received_bytes_max 字节后丢最旧（新条总要收），
     // 被挤掉的条数计入 received_dropped。读完请自行 clear()（同时把 received_bytes_ 归零）。
     std::vector<mqtt_publish_info> received;
-    std::size_t received_max       = 1024;// 条数界
+    std::size_t received_max       = 1024;                           // 条数界
     std::size_t received_bytes_max = MQTT_CLIENT_RECEIVED_BYTE_LIMIT;// 字节界（topic + payload 长度和）
-    std::size_t received_bytes_    = 0;// received 现有条目的 topic + payload 累计
-    std::size_t received_dropped   = 0;// 被挤旧的条数
+    std::size_t received_bytes_    = 0;                              // received 现有条目的 topic + payload 累计
+    std::size_t received_dropped   = 0;                              // 被挤旧的条数
 
   private:
     uint16_t gen_packet_id_();

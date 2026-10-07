@@ -10,10 +10,10 @@
 
 namespace http
 {
- websocket_client::websocket_client():strand_(asio::make_strand(*(get_client_context_obj().ioc))){};
- websocket_client::~websocket_client()
+websocket_client::websocket_client() : strand_(asio::make_strand(*(get_client_context_obj().ioc))) {};
+websocket_client::~websocket_client()
 {
-    if(data != nullptr)
+    if (data != nullptr)
     {
         std::free(data);
         data = nullptr;
@@ -21,23 +21,23 @@ namespace http
 }
 void websocket_client::reset()
 {
-    iserror = false;
-    isssl = false;
-    isbody =false;
-    isfinish = false;
-    iswait_exit = false;
-    exptime = 0;
+    iserror          = false;
+    isssl            = false;
+    isbody           = false;
+    isfinish         = false;
+    iswait_exit      = false;
+    exptime          = 0;
     cur_process_type = 0;
-    offsetnum = 0;
-    port=0;
-    val_size = 0;
-    timeout_end = 0;
-    ready_state = 0;
+    offsetnum        = 0;
+    port             = 0;
+    val_size         = 0;
+    timeout_end      = 0;
+    ready_state      = 0;
 
     url.clear();
     host.clear();
     error_msg.clear();
- 
+
     parameter.clear();
     in_payload_phase_ = false;
     in_hdr_have_      = 0;
@@ -59,12 +59,36 @@ void websocket_client::set_deflate(bool isstatus)
 {
     open_deflate = isstatus;
 }
-void websocket_client::set_header(std::string_view name,std::string_view value)
+void websocket_client::set_header(std::string_view name, std::string_view value)
 {
     websocket_parameter_t a;
-    a.name = name;
+    a.name  = name;
     a.value = value;
     parameter.emplace_back(a);
+}
+void websocket_client::add_headers(std::string_view raw)
+{
+    // 统一分隔符: \r\n → \n, 分号 → \n (INI 里写 \r\n 要转义, 分号更方便)
+    std::string s(raw);
+    for (auto &c : s)
+        if (c == '\r' || c == ';')
+            c = '\n';
+    std::size_t start = 0;
+    while (start <= s.size())
+    {
+        auto pos         = s.find('\n', start);
+        std::string line = (pos == std::string::npos) ? s.substr(start) : s.substr(start, pos - start);
+        // trim trailing \0 or whitespace
+        while (!line.empty() && (line.back() == '\0' || line.back() == ' ' || line.back() == '\t'))
+            line.pop_back();
+        auto colon = line.find(':');
+        if (colon != std::string::npos && colon > 0)
+            set_header(std::string_view(line).substr(0, colon),
+                       std::string_view(line).substr(colon + 1));
+        if (pos == std::string::npos)
+            break;
+        start = pos + 1;
+    }
 }
 void websocket_client::set_port(unsigned int n)
 {
@@ -77,146 +101,154 @@ void websocket_client::set_host(std::string_view name)
 
 void websocket_client::set_url(std::string_view name)
 {
-    if(name.size() > 7)
+    // 纯路径（conf/websockets.conf 的 url 就是这个形状，host/port 由调用方分开给）：
+    // 直接收下。少了这一步，"/wstest" 会掉进下面 scheme 解析的 else 分支被判成格式错，
+    // 常驻客户端的 url 留空，async_connect 第一句就返回 false —— 这条连接永远建不起来。
+    if (!name.empty() && name[0] == '/')
     {
-        if(name[0]=='w' && name[1]=='s' && name[2]==':' && name[3]=='/'  && name[4]=='/')
+        url = name;
+        return;
+    }
+    if (name.size() > 7)
+    {
+        if (name[0] == 'w' && name[1] == 's' && name[2] == ':' && name[3] == '/' && name[4] == '/')
         {
             std::string temp_str;
-            unsigned int i=5;
-            for(; i < name.size(); i++)
+            unsigned int i = 5;
+            for (; i < name.size(); i++)
             {
-                if(name[i] == '/')
+                if (name[i] == '/')
                 {
-                    if(temp_str.size() > 0)
+                    if (temp_str.size() > 0)
                     {
                         host = temp_str;
                     }
                     temp_str.clear();
                     break;
                 }
-                else if(name[i] == ':')
+                else if (name[i] == ':')
                 {
-                    if(temp_str.size() > 0)
+                    if (temp_str.size() > 0)
                     {
                         host = temp_str;
                     }
                     temp_str.clear();
                     port = 0;
-                    for(; i < name.size(); i++)
+                    for (; i < name.size(); i++)
                     {
-                        if(name[i] == '/')
+                        if (name[i] == '/')
                         {
                             break;
                         }
-                        if(name[i] >= '0' && name[i] <= '9')
+                        if (name[i] >= '0' && name[i] <= '9')
                         {
-                            port = port * 10 + (name[i]- '0');
+                            port = port * 10 + (name[i] - '0');
                         }
-                    }    
+                    }
                     break;
                 }
                 temp_str.push_back(name[i]);
             }
-            for(; i < name.size(); i++)
+            for (; i < name.size(); i++)
             {
                 url.push_back(name[i]);
             }
-            if(port == 0)
+            if (port == 0)
             {
                 port = 80;
             }
         }
-        else if(name[0]=='w' && name[1]=='s' && name[2]=='s' && name[3]==':' && name[4]=='/'  && name[5]=='/')
+        else if (name[0] == 'w' && name[1] == 's' && name[2] == 's' && name[3] == ':' && name[4] == '/' && name[5] == '/')
         {
             std::string temp_str;
-            unsigned int i=6;
-            isssl = true;
-            for(; i < name.size(); i++)
+            unsigned int i = 6;
+            isssl          = true;
+            for (; i < name.size(); i++)
             {
-                if(name[i] == '/')
+                if (name[i] == '/')
                 {
-                    if(temp_str.size() > 0)
+                    if (temp_str.size() > 0)
                     {
                         host = temp_str;
                     }
-                    
+
                     break;
                 }
-                else if(name[i] == ':')
+                else if (name[i] == ':')
                 {
-                    if(temp_str.size() > 0)
+                    if (temp_str.size() > 0)
                     {
                         host = temp_str;
                     }
-                    
+
                     port = 0;
-                    for(; i < name.size(); i++)
+                    for (; i < name.size(); i++)
                     {
-                        if(name[i] == '/')
+                        if (name[i] == '/')
                         {
                             break;
                         }
-                        if(name[i] >= '0' && name[i] <= '9')
+                        if (name[i] >= '0' && name[i] <= '9')
                         {
-                            port = port * 10 + (name[i]- '0');
+                            port = port * 10 + (name[i] - '0');
                         }
-                    }    
+                    }
                     break;
                 }
                 temp_str.push_back(name[i]);
             }
-            for(; i < name.size(); i++)
+            for (; i < name.size(); i++)
             {
                 url.push_back(name[i]);
             }
-            if(port == 0)
+            if (port == 0)
             {
                 port = 443;
-            } 
+            }
         }
-        else if(name[0]>='0' && name[0] <= '9')
+        else if (name[0] >= '0' && name[0] <= '9')
         {
             std::string temp_str;
-            unsigned int i=0;
-            for(; i < name.size(); i++)
+            unsigned int i = 0;
+            for (; i < name.size(); i++)
             {
-                if(name[i] == '/')
+                if (name[i] == '/')
                 {
-                    if(temp_str.size() > 0)
+                    if (temp_str.size() > 0)
                     {
                         host = temp_str;
                     }
                     temp_str.clear();
                     break;
                 }
-                else if(name[i] == ':')
+                else if (name[i] == ':')
                 {
-                    if(temp_str.size() > 0)
+                    if (temp_str.size() > 0)
                     {
                         host = temp_str;
                     }
                     temp_str.clear();
                     port = 0;
-                    for(; i < name.size(); i++)
+                    for (; i < name.size(); i++)
                     {
-                        if(name[i] == '/')
+                        if (name[i] == '/')
                         {
                             break;
                         }
-                        if(name[i] >= '0' && name[i] <= '9')
+                        if (name[i] >= '0' && name[i] <= '9')
                         {
-                            port = port * 10 + (name[i]- '0');
+                            port = port * 10 + (name[i] - '0');
                         }
-                    }    
+                    }
                     break;
                 }
                 temp_str.push_back(name[i]);
             }
-            for(; i < name.size(); i++)
+            for (; i < name.size(); i++)
             {
                 url.push_back(name[i]);
             }
-            if(port == 0)
+            if (port == 0)
             {
                 port = 80;
             }
@@ -224,21 +256,21 @@ void websocket_client::set_url(std::string_view name)
         else
         {
             error_msg = "url formatting error";
-            iserror = true;
+            iserror   = true;
         }
     }
     else
     {
         error_msg = "url too short";
-        iserror = true;
+        iserror   = true;
     }
 }
 
 asio::awaitable<bool> websocket_client::async_init_https_sock()
 {
     //auto executor = co_await asio::this_coro::executor;
-    ssl_context   = std::make_shared<asio::ssl::context>(asio::ssl::context::sslv23);
-    sslsock       = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(strand_, *ssl_context);
+    ssl_context = std::make_shared<asio::ssl::context>(asio::ssl::context::sslv23);
+    sslsock     = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(strand_, *ssl_context);
     ssl_context->set_default_verify_paths();
 
     asio::ip::tcp::resolver resolver(strand_);
@@ -261,7 +293,6 @@ asio::awaitable<bool> websocket_client::async_init_https_sock()
         DEBUG_LOG("%s", error_msg.c_str());
         co_return false;
     }
-
 
     sslsock->lowest_layer().set_option(asio::ip::tcp::no_delay(true));
     ssl_context->set_verify_mode(asio::ssl::verify_peer);
@@ -299,7 +330,6 @@ asio::awaitable<bool> websocket_client::async_init_http_sock()
         }
         break;
     }
- 
 
     if (ec)
     {
@@ -309,7 +339,7 @@ asio::awaitable<bool> websocket_client::async_init_http_sock()
     }
     co_return true;
 }
-asio::awaitable<bool> websocket_client::async_connect(std::string_view url_,unsigned int time_out_num)
+asio::awaitable<bool> websocket_client::async_connect(std::string_view url_, unsigned int time_out_num)
 {
     set_url(url_);
     exptime = time_out_num;
@@ -320,9 +350,9 @@ asio::awaitable<bool> websocket_client::async_connect()
 {
     bool isinit = false;
 
-    if(url.size()< 5)
+    if (url.size() < 5)
     {
-        iserror = true;
+        iserror   = true;
         error_msg = "url empty";
         co_return false;
     }
@@ -336,16 +366,16 @@ asio::awaitable<bool> websocket_client::async_connect()
         isinit = co_await async_init_http_sock();
     }
 
-    if(!isinit)
+    if (!isinit)
     {
-        iserror = true;
+        iserror   = true;
         error_msg = "async init socket error";
         co_return false;
     }
 
-    if (exptime > 0)
+    // timeout==0 不再豁免：始终进入超时链表，由 dur 心跳托管（reset_timeout 对 0 写哨兵大值）
+    reset_timeout();
     {
-        set_timeout(exptime);
         client_context &temp_io_context = get_client_context_obj();
         try
         {
@@ -355,10 +385,10 @@ asio::awaitable<bool> websocket_client::async_connect()
         {
             DEBUG_LOG("Exception: %s", e.what());
             error_msg = e.what();
-            iserror = true;
+            iserror   = true;
             co_return false;
         }
-    } 
+    }
     isinit = co_await websocket_handshake();
     co_return isinit;
 }
@@ -383,14 +413,14 @@ bool websocket_client::add_client_task_loop()
     {
         DEBUG_LOG("Exception: %s", e.what());
         error_msg = e.what();
-        iserror = true;
+        iserror   = true;
         return false;
     }
 }
 
 asio::awaitable<unsigned int> websocket_client::async_read(unsigned char *read_data, unsigned int buffersize)
 {
-    if (socket_read_lock.test_and_set()) 
+    if (socket_read_lock.test_and_set())
     {
         // 读锁占用是可重试的瞬时冲突，不锁死整条连接
         error_msg = "Other socket read is set";
@@ -398,7 +428,7 @@ asio::awaitable<unsigned int> websocket_client::async_read(unsigned char *read_d
     }
     atomic_guard guard{socket_read_lock};
 
-    if(iserror)
+    if (iserror)
     {
         co_return 0;
     }
@@ -422,21 +452,21 @@ asio::awaitable<unsigned int> websocket_client::async_read(unsigned char *read_d
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
     co_return 0;
 }
 
 asio::awaitable<unsigned int> websocket_client::async_read(std::string &read_data)
 {
-    if (socket_read_lock.test_and_set()) 
+    if (socket_read_lock.test_and_set())
     {
         error_msg = "Other socket read is set";
         co_return 0;
     }
     atomic_guard guard{socket_read_lock};
-    if(iserror)
+    if (iserror)
     {
         co_return 0;
     }
@@ -447,7 +477,7 @@ asio::awaitable<unsigned int> websocket_client::async_read(std::string &read_dat
     unsigned int n = 0;
     try
     {
-        if(read_data.size()==0)
+        if (read_data.size() == 0)
         {
             read_data.resize(1024);
         }
@@ -465,15 +495,15 @@ asio::awaitable<unsigned int> websocket_client::async_read(std::string &read_dat
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
     co_return 0;
 }
 
 asio::awaitable<unsigned int> websocket_client::async_write(unsigned char *data_out, unsigned int buffersize)
 {
-    if(iserror || (isssl ? (sslsock == nullptr) : (sock == nullptr)))
+    if (iserror || (isssl ? (sslsock == nullptr) : (sock == nullptr)))
     {
         co_return 0;
     }
@@ -497,8 +527,8 @@ asio::awaitable<unsigned int> websocket_client::async_write(unsigned char *data_
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
 
     co_return 0;
@@ -506,7 +536,7 @@ asio::awaitable<unsigned int> websocket_client::async_write(unsigned char *data_
 
 asio::awaitable<unsigned int> websocket_client::async_write(std::string_view value)
 {
-    if(iserror || (isssl ? (sslsock == nullptr) : (sock == nullptr)))
+    if (iserror || (isssl ? (sslsock == nullptr) : (sock == nullptr)))
     {
         co_return 0;
     }
@@ -531,15 +561,15 @@ asio::awaitable<unsigned int> websocket_client::async_write(std::string_view val
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
 
     co_return 0;
 }
 
 // ---------------------------------------------------------------------------
-// 出站写队列（E4）
+// 出站写队列
 //   读侧已有 socket_read_lock 串行化；写侧此前无任何保护，导致自动 pong
 //   （经 co_spawn 触发）与业务 async_text_write 可并发写同一 stream，
 //   帧字节交错后对端流同步丢失。所有 WebSocket 帧出站必须经 async_send_frame()。
@@ -564,7 +594,7 @@ bool websocket_client::enqueue_frame(std::string frame)
     send_queue_.push_back(std::move(frame));
     if (sending_)
     {
-        return false; // 已有 pump 协程在消费，它会带走本次追加的帧
+        return false;// 已有 pump 协程在消费，它会带走本次追加的帧
     }
     sending_ = true;
     return true;
@@ -580,7 +610,7 @@ asio::awaitable<void> websocket_client::pump_send_queue()
         ~sending_guard()
         {
             std::lock_guard<std::mutex> lock(self->send_queue_mutex_);
-            self->send_queue_.clear(); // 本 pump 收尾（含被取消），剩余帧作废
+            self->send_queue_.clear();// 本 pump 收尾（含被取消），剩余帧作废
             self->sending_ = false;
         }
     } guard{this};
@@ -592,7 +622,7 @@ asio::awaitable<void> websocket_client::pump_send_queue()
             std::lock_guard<std::mutex> lock(send_queue_mutex_);
             if (send_queue_.empty() || iserror)
             {
-                co_return; // 收尾与作废由 guard 统一执行
+                co_return;// 收尾与作废由 guard 统一执行
             }
             frame = std::move(send_queue_.front());
             send_queue_.pop_front();
@@ -618,7 +648,7 @@ asio::awaitable<unsigned int> websocket_client::async_send_frame(std::string fra
 //synchronous
 unsigned int websocket_client::write(unsigned char *data_out, unsigned int buffersize)
 {
-    if(iserror || (isssl ? (sslsock == nullptr) : (sock == nullptr)))
+    if (iserror || (isssl ? (sslsock == nullptr) : (sock == nullptr)))
     {
         return 0;
     }
@@ -642,8 +672,8 @@ unsigned int websocket_client::write(unsigned char *data_out, unsigned int buffe
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
 
     return 0;
@@ -651,7 +681,7 @@ unsigned int websocket_client::write(unsigned char *data_out, unsigned int buffe
 
 unsigned int websocket_client::write(std::string_view value)
 {
-    if(iserror || (isssl ? (sslsock == nullptr) : (sock == nullptr)))
+    if (iserror || (isssl ? (sslsock == nullptr) : (sock == nullptr)))
     {
         return 0;
     }
@@ -676,8 +706,8 @@ unsigned int websocket_client::write(std::string_view value)
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
 
     return 0;
@@ -685,13 +715,13 @@ unsigned int websocket_client::write(std::string_view value)
 
 unsigned int websocket_client::read(unsigned char *buffer_data, unsigned int buffersize)
 {
-    if (socket_read_lock.test_and_set()) 
+    if (socket_read_lock.test_and_set())
     {
         error_msg = "Other socket read is set";
         return 0;
     }
     atomic_guard guard{socket_read_lock};
-    if(iserror)
+    if (iserror)
     {
         return 0;
     }
@@ -715,21 +745,21 @@ unsigned int websocket_client::read(unsigned char *buffer_data, unsigned int buf
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
     return 0;
 }
 
 unsigned int websocket_client::read(std::string &buffer_data)
 {
-    if (socket_read_lock.test_and_set()) 
+    if (socket_read_lock.test_and_set())
     {
         error_msg = "Other socket read is set";
         return 0;
     }
     atomic_guard guard{socket_read_lock};
-    if(iserror)
+    if (iserror)
     {
         return 0;
     }
@@ -753,8 +783,8 @@ unsigned int websocket_client::read(std::string &buffer_data)
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
     return 0;
 }
@@ -776,6 +806,9 @@ void websocket_client::close_connect()
     {
         if (sock && sock->is_open())
         {
+            // 同 socket_client::close_connect()：先 cancel 再 close，
+            // 否则 parked 在 async_read 上的常驻协程可能永远等不到 handler。
+            sock->cancel(ec);
             sock->close(ec);
         }
     }
@@ -784,10 +817,10 @@ void websocket_client::close_connect()
 void websocket_client::run_loop()
 {
     auto self = shared_from_this();
-    if (socket_read_lock.test_and_set()) 
+    if (socket_read_lock.test_and_set())
     {
         error_msg = "Other socket read is set";
-        iserror = true;
+        iserror   = true;
         return;
     }
     atomic_guard guard{socket_read_lock};
@@ -798,13 +831,13 @@ void websocket_client::run_loop()
         iserror   = true;
         return;
     }
-    if(data == nullptr)
+    if (data == nullptr)
     {
-        data = static_cast<unsigned char*>(std::malloc(512 * sizeof(unsigned char)));
+        data = static_cast<unsigned char *>(std::malloc(512 * sizeof(unsigned char)));
     }
-    for(;;)
+    for (;;)
     {
-        if(iserror)
+        if (iserror)
         {
             return;
         }
@@ -820,7 +853,7 @@ void websocket_client::run_loop()
             {
                 if (sslsock->lowest_layer().is_open())
                 {
-                    n = sslsock->read_some(asio::buffer(data,512));
+                    n = sslsock->read_some(asio::buffer(data, 512));
                 }
                 else
                 {
@@ -831,7 +864,7 @@ void websocket_client::run_loop()
             {
                 if (sock->is_open())
                 {
-                   n = sock->read_some(asio::buffer(data,512));
+                    n = sock->read_some(asio::buffer(data, 512));
                 }
                 else
                 {
@@ -841,27 +874,26 @@ void websocket_client::run_loop()
 
             process_data(data, n);
 
-            if(recv_data.isfinish)
+            if (recv_data.isfinish)
             {
-                if(run_loop_fun != nullptr)
+                if (run_loop_fun != nullptr)
                 {
                     run_loop_fun(self);
                 }
-                else if(async_run_loop_fun != nullptr)
+                else if (async_run_loop_fun != nullptr)
                 {
-                    asio::co_spawn(strand_, [self, pack_data =recv_data]() mutable
-                    { return self->async_run_loop_fun(self, pack_data); },
-                    asio::detached);
-                    
+                    asio::co_spawn(strand_, [self, pack_data = recv_data]() mutable
+                                   { return self->async_run_loop_fun(self, pack_data); },
+                                   asio::detached);
                 }
                 reset_recv_status();
-            } 
+            }
         }
         catch (std::exception &e)
         {
             DEBUG_LOG("Exception: %s", e.what());
-            error_msg  = e.what();
-            iserror = true;
+            error_msg = e.what();
+            iserror   = true;
             return;
         }
     }
@@ -871,10 +903,10 @@ void websocket_client::run_loop()
 asio::awaitable<void> websocket_client::async_run_loop()
 {
     auto self = shared_from_this();
-    if (socket_read_lock.test_and_set()) 
+    if (socket_read_lock.test_and_set())
     {
         error_msg = "Other socket read is set";
-        iserror = true;
+        iserror   = true;
         co_return;
     }
     atomic_guard guard{socket_read_lock};
@@ -885,13 +917,13 @@ asio::awaitable<void> websocket_client::async_run_loop()
         iserror   = true;
         co_return;
     }
-    if(data == nullptr)
+    if (data == nullptr)
     {
-        data = static_cast<unsigned char*>(std::malloc(512 * sizeof(unsigned char)));
+        data = static_cast<unsigned char *>(std::malloc(512 * sizeof(unsigned char)));
     }
-    for(;;)
+    for (;;)
     {
-        if(iserror)
+        if (iserror)
         {
             co_return;
         }
@@ -904,27 +936,26 @@ asio::awaitable<void> websocket_client::async_run_loop()
         {
             if (isssl)
             {
-                n = co_await sslsock->async_read_some(asio::buffer(data,512), asio::use_awaitable);
+                n = co_await sslsock->async_read_some(asio::buffer(data, 512), asio::use_awaitable);
             }
             else
             {
-                n = co_await sock->async_read_some(asio::buffer(data,512), asio::use_awaitable);
+                n = co_await sock->async_read_some(asio::buffer(data, 512), asio::use_awaitable);
             }
 
             process_data(data, n);
 
-            if(recv_data.isfinish)
+            if (recv_data.isfinish)
             {
-                if(run_loop_fun != nullptr)
+                if (run_loop_fun != nullptr)
                 {
                     run_loop_fun(self);
                 }
-                else if(async_run_loop_fun != nullptr)
+                else if (async_run_loop_fun != nullptr)
                 {
-                    asio::co_spawn(strand_, [self, pack_data =recv_data]() mutable
-                    { return self->async_run_loop_fun(self, pack_data); },
-                    asio::detached);
-                    
+                    asio::co_spawn(strand_, [self, pack_data = recv_data]() mutable
+                                   { return self->async_run_loop_fun(self, pack_data); },
+                                   asio::detached);
                 }
                 reset_recv_status();
             }
@@ -932,41 +963,40 @@ asio::awaitable<void> websocket_client::async_run_loop()
         catch (std::exception &e)
         {
             DEBUG_LOG("Exception: %s", e.what());
-            error_msg  = e.what();
-            iserror = true;
+            error_msg = e.what();
+            iserror   = true;
             co_return;
         }
     }
     co_return;
 }
 
- 
 std::string websocket_client::make_http_header()
 {
-    if(url.size() < 1 )
+    if (url.size() < 1)
     {
         error_msg = "url to short";
-        iserror = true;
+        iserror   = true;
         return "";
     }
-    if(host.size() < 1 )
+    if (host.size() < 1)
     {
         error_msg = "connect host to short";
-        iserror = true;
+        iserror   = true;
         return "";
     }
 
     std::string send_header_content;
 
-    send_header_content="GET ";
+    send_header_content = "GET ";
     send_header_content.append(url);
     send_header_content.append(" HTTP/1.1\r\nHost: ");
     send_header_content.append(host);
     send_header_content.append("\r\n");
 
-    if(parameter.size()>0)
+    if (parameter.size() > 0)
     {
-        for(unsigned int i=0;i < parameter.size(); i++)
+        for (unsigned int i = 0; i < parameter.size(); i++)
         {
             send_header_content.append(parameter[i].name);
             send_header_content.append(": ");
@@ -980,7 +1010,7 @@ std::string websocket_client::make_http_header()
     }
 
     send_header_content.append("Sec-WebSocket-Version: 13\r\n");
-    if(open_deflate)
+    if (open_deflate)
     {
         // 与服务端对称：强制双向 no-context，每条消息独立 deflate 流；
         // 回包若缺任一参数按协商失败处理（process_handshake 严格校验）
@@ -991,18 +1021,17 @@ std::string websocket_client::make_http_header()
 
     send_header_content.append("Sec-WebSocket-Key: ");
 
-
     std::random_device rd;
     std::mt19937 gen(rd());
     //定义均匀整数分布，范围是 [0, 255]（闭区间，包含两端）
     std::uniform_int_distribution<int> dis(0, 255);
 
-    for(unsigned int i=0; i<16; i++)
+    for (unsigned int i = 0; i < 16; i++)
     {
         key_str[i] = dis(gen);
     }
     //base64
-    send_header_content.append(base64_encode((const char *)key_str,16,false));
+    send_header_content.append(base64_encode((const char *)key_str, 16, false));
     send_header_content.append("\r\n");
 
     send_header_content.append("Connection: Upgrade\r\n");
@@ -1016,14 +1045,14 @@ std::string websocket_client::make_http_header()
 bool websocket_client::process_handshake(unsigned char *read_data, unsigned int readnum)
 {
     offsetnum = 0;
-    if(offsetnum >= readnum)
+    if (offsetnum >= readnum)
     {
         iserror = true;
         return false;
     }
-    for(;offsetnum < readnum; offsetnum++)
+    for (; offsetnum < readnum; offsetnum++)
     {
-        if(read_data[offsetnum] == 0x20)
+        if (read_data[offsetnum] == 0x20)
         {
             break;
         }
@@ -1034,30 +1063,30 @@ bool websocket_client::process_handshake(unsigned char *read_data, unsigned int 
         iserror = true;
         return false;
     }
-    if(read_data[offsetnum] == 0x20)
+    if (read_data[offsetnum] == 0x20)
     {
         offsetnum++;
-    } 
-    else 
+    }
+    else
     {
         iserror = true;
         return false;
     }
- 
+
     if (offsetnum + 3 > readnum)
     {
         iserror = true;
         return false;
     }
-    if(read_data[offsetnum] =='1' && read_data[offsetnum+1] =='0' && read_data[offsetnum+2] =='1')
+    if (read_data[offsetnum] == '1' && read_data[offsetnum + 1] == '0' && read_data[offsetnum + 2] == '1')
     {
         offsetnum = offsetnum + 3;
-        for(;offsetnum < readnum; offsetnum++)
+        for (; offsetnum < readnum; offsetnum++)
         {
-            if(read_data[offsetnum] == '\r')
+            if (read_data[offsetnum] == '\r')
             {
                 offsetnum++;
-                if(offsetnum < readnum && read_data[offsetnum] == '\n')
+                if (offsetnum < readnum && read_data[offsetnum] == '\n')
                 {
                     break;
                 }
@@ -1066,29 +1095,29 @@ bool websocket_client::process_handshake(unsigned char *read_data, unsigned int 
         if (offsetnum < readnum && read_data[offsetnum] == '\n')
         {
             offsetnum++;
-        } 
-        else 
+        }
+        else
         {
             iserror = true;
             return false;
         }
 
         unsigned int begin_data_pos = offsetnum;
-        for(;offsetnum < readnum; offsetnum++)
+        for (; offsetnum < readnum; offsetnum++)
         {
-            if(read_data[offsetnum] == '\r')
+            if (read_data[offsetnum] == '\r')
             {
                 offsetnum++;
-                if(offsetnum < readnum && read_data[offsetnum] == '\n')
+                if (offsetnum < readnum && read_data[offsetnum] == '\n')
                 {
-                    process_header(read_data,begin_data_pos,offsetnum);
+                    process_header(read_data, begin_data_pos, offsetnum);
                     begin_data_pos = offsetnum + 1;
                     continue;
                 }
             }
         }
     }
-    else 
+    else
     {
         iserror = true;
         return false;
@@ -1096,14 +1125,14 @@ bool websocket_client::process_handshake(unsigned char *read_data, unsigned int 
 
     //handshake
     bool isok = false;
-    if(parameter.size() > 0)
+    if (parameter.size() > 0)
     {
-        for(unsigned int i=0; i < parameter.size(); i++)
+        for (unsigned int i = 0; i < parameter.size(); i++)
         {
-            if(str_casecmp(parameter[i].name,"Sec-WebSocket-Accept"))
+            if (str_casecmp(parameter[i].name, "Sec-WebSocket-Accept"))
             {
                 // 使用请求传过来的KEY+协议字符串，先用SHA1加密然后使用base64编码算出一个应答的KEY
-                std::string magicKey = base64_encode((const char *)key_str,16,false);
+                std::string magicKey = base64_encode((const char *)key_str, 16, false);
                 magicKey.append("258EAFA5-E914-47DA-95CA-C5AB0DC85B11");
 
                 unsigned char digest[SHA_DIGEST_LENGTH];
@@ -1112,7 +1141,7 @@ bool websocket_client::process_handshake(unsigned char *read_data, unsigned int 
                 magicKey.clear();
                 magicKey = base64_encode((char *)digest, SHA_DIGEST_LENGTH, false);
 
-                if(str_casecmp(parameter[i].value, magicKey))
+                if (str_casecmp(parameter[i].value, magicKey))
                 {
                     isok = true;
                 }
@@ -1121,7 +1150,7 @@ bool websocket_client::process_handshake(unsigned char *read_data, unsigned int 
                     error_msg = "response Handshake error";
                 }
             }
-            else if(str_casecmp(parameter[i].name,"Sec-WebSocket-Extensions"))
+            else if (str_casecmp(parameter[i].name, "Sec-WebSocket-Extensions"))
             {
                 const std::string &ext = parameter[i].value;
                 bool offers_deflate    = ext.find("permessage-deflate") != std::string::npos;
@@ -1161,13 +1190,13 @@ bool websocket_client::process_handshake(unsigned char *read_data, unsigned int 
 void websocket_client::process_header(unsigned char *read_data, unsigned int data_bein, unsigned int data_end)
 {
     struct websocket_parameter_t temp_kv;
-    for(;data_bein < data_end; data_bein++)
+    for (; data_bein < data_end; data_bein++)
     {
-        if(read_data[data_bein] == ':')
+        if (read_data[data_bein] == ':')
         {
             break;
         }
-        else if(read_data[data_bein] == '\r')
+        else if (read_data[data_bein] == '\r')
         {
             break;
         }
@@ -1176,21 +1205,21 @@ void websocket_client::process_header(unsigned char *read_data, unsigned int dat
 
     if (data_bein >= data_end)
     {
-        return; // 空行（无 ':' 也无 '\r'），如头部终止符前的残段
+        return;// 空行（无 ':' 也无 '\r'），如头部终止符前的残段
     }
-    if(read_data[data_bein] == ':')
+    if (read_data[data_bein] == ':')
     {
         data_bein++;
-        for(;data_bein < data_end; data_bein++)
+        for (; data_bein < data_end; data_bein++)
         {
-            if(read_data[data_bein] != 0x20)
+            if (read_data[data_bein] != 0x20)
             {
                 break;
             }
         }
-        for(;data_bein < data_end; data_bein++)
+        for (; data_bein < data_end; data_bein++)
         {
-            if(read_data[data_bein] == '\r')
+            if (read_data[data_bein] == '\r')
             {
                 break;
             }
@@ -1205,16 +1234,15 @@ void websocket_client::process_header(unsigned char *read_data, unsigned int dat
     }
 }
 
- 
 asio::awaitable<bool> websocket_client::websocket_handshake()
 {
     auto self = shared_from_this();
-    if(data == nullptr)
+    if (data == nullptr)
     {
-        data = static_cast<unsigned char*>(std::malloc(512 * sizeof(unsigned char)));
+        data = static_cast<unsigned char *>(std::malloc(512 * sizeof(unsigned char)));
     }
-  
-    if(iserror)
+
+    if (iserror)
     {
         error_msg = " is has error";
         co_return false;
@@ -1227,7 +1255,7 @@ asio::awaitable<bool> websocket_client::websocket_handshake()
     try
     {
         std::string send_hand_header = make_http_header();
-        if(iserror)
+        if (iserror)
         {
             error_msg = " make_http_header error";
             co_return false;
@@ -1259,9 +1287,9 @@ asio::awaitable<bool> websocket_client::websocket_handshake()
         }
 
         // 响应头可能拆包到达：累积读直到出现 \r\n\r\n（总上限 512 字节）
-        unsigned int total       = 0;
-        unsigned int header_end  = 0;
-        bool         header_done = false;
+        unsigned int total      = 0;
+        unsigned int header_end = 0;
+        bool header_done        = false;
         while (!header_done)
         {
             if (total >= 512)
@@ -1313,7 +1341,7 @@ asio::awaitable<bool> websocket_client::websocket_handshake()
             }
         }
 
-        if(process_handshake(data, total))
+        if (process_handshake(data, total))
         {
             // 101 应答与首帧同包到达时，\r\n\r\n 之后的残包字节喂入帧解析器，
             // 否则这段帧数据被握手路径静默丢弃（残帧不完整时由 process_data 暂存）
@@ -1329,8 +1357,8 @@ asio::awaitable<bool> websocket_client::websocket_handshake()
                     else if (async_run_loop_fun != nullptr)
                     {
                         asio::co_spawn(strand_, [self, pack_data = recv_data]() mutable
-                        { return self->async_run_loop_fun(self, pack_data); },
-                        asio::detached);
+                                       { return self->async_run_loop_fun(self, pack_data); },
+                                       asio::detached);
                     }
                     reset_recv_status();
                 }
@@ -1342,16 +1370,15 @@ asio::awaitable<bool> websocket_client::websocket_handshake()
             error_msg.append(" process_handshake error");
             co_return false;
         }
-
     }
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
         co_return false;
     }
- 
+
     co_return false;
 }
 
@@ -1369,7 +1396,7 @@ void websocket_client::make_mask_key()
 {
     if (mask_key_fixed)
     {
-        return; // 测试模式：沿用外部填入的 mask_key，便于与固定向量对拍
+        return;// 测试模式：沿用外部填入的 mask_key，便于用固定向量核对掩码结果
     }
     std::random_device rd;
     for (auto &b : mask_key)
@@ -1382,7 +1409,7 @@ std::string websocket_client::serialize_frame(ws_opcode op, std::string_view pay
 {
     // RFC 6455 §5.5：控制帧载荷不得超过 125 字节。
     // 必须截断载荷本身 —— 否则帧头声明的长度小于实际写入字节数，对端读完声明长度后
-    // 会把多余字节当成下一帧的帧头，造成流同步丢失（旧 make_pong 缺陷 E3）。
+    // 会把多余字节当成下一帧的帧头，造成流同步丢失（旧 make_pong 就有这个问题）。
     if (is_control_frame(op) && payload.size() > 125)
     {
         payload = payload.substr(0, 125);
@@ -1396,7 +1423,7 @@ std::string websocket_client::serialize_frame(ws_opcode op, std::string_view pay
     const std::uint64_t len = static_cast<std::uint64_t>(payload.size());
     if (len <= 125)
     {
-        out.push_back(static_cast<char>(0x80 | static_cast<unsigned char>(len))); // MASK=1
+        out.push_back(static_cast<char>(0x80 | static_cast<unsigned char>(len)));// MASK=1
     }
     else if (len <= 65535)
     {
@@ -1413,14 +1440,32 @@ std::string websocket_client::serialize_frame(ws_opcode op, std::string_view pay
         }
     }
 
-    make_mask_key();
-    out.append(reinterpret_cast<const char *>(mask_key), 4);
+    // 密钥用局部缓冲：成员 mask_key 会被业务线程与 strand 上的自动 PONG 同时写入，
+    // 一旦两次 serialize_frame 交错，帧头里那 4 字节和载荷的 XOR 密钥就可能不是同一份，
+    // 对端解出来是乱码。测试模式（mask_key_fixed）仍从成员取值，用固定向量核对掩码结果的通路不变。
+    unsigned char key[4];
+    if (mask_key_fixed)
+    {
+        for (int i = 0; i < 4; ++i)
+        {
+            key[i] = mask_key[i];
+        }
+    }
+    else
+    {
+        std::random_device rd;
+        for (auto &b : key)
+        {
+            b = static_cast<unsigned char>(rd());
+        }
+    }
+    out.append(reinterpret_cast<const char *>(key), 4);
 
     // 滚动索引 &3 代替逐字节 %4（与服务端解掩码同型优化）
     unsigned int k = 0;
     for (std::size_t i = 0; i < payload.size(); i++)
     {
-        out.push_back(static_cast<char>(static_cast<unsigned char>(payload[i]) ^ mask_key[k]));
+        out.push_back(static_cast<char>(static_cast<unsigned char>(payload[i]) ^ key[k]));
         k = (k + 1) & 3;
     }
     return out;
@@ -1488,13 +1533,13 @@ bool websocket_client::on_inflated_bytes(const unsigned char *out, std::size_t n
 {
     if (recv_data.content.size() + n > CONST_WEBSOCKET_MAX_MESSAGE_SIZE)
     {
-        in_msg_too_big_ = true; // 解压后超限（解压炸弹防护），归因为消息过长
+        in_msg_too_big_ = true;// 解压后超限（解压炸弹防护），归因为消息过长
         return false;
     }
     recv_data.content.append(reinterpret_cast<const char *>(out), n);
     if (recv_data.opcode == 0x01 && !in_utf8_.feed(out, n))
     {
-        in_inflate_utf8_bad_ = true; // 解压后的 text 字节非法 UTF-8
+        in_inflate_utf8_bad_ = true;// 解压后的 text 字节非法 UTF-8
         return false;
     }
     return true;
@@ -1510,8 +1555,8 @@ unsigned int websocket_client::process_data(unsigned char *inputdata, unsigned i
     };
 
     const unsigned char *p = inputdata;
-    unsigned int           n = buffersize;
-    std::string            joined;
+    unsigned int n         = buffersize;
+    std::string joined;
     if (!stream_pending_.empty())
     {
         joined = std::move(stream_pending_);
@@ -1536,13 +1581,13 @@ unsigned int websocket_client::process_data(unsigned char *inputdata, unsigned i
             }
             if (in_hdr_have_ < in_hdr_need_)
             {
-                return static_cast<unsigned int>(recv_data.read_length); // 半截帧头，等下次读
+                return static_cast<unsigned int>(recv_data.read_length);// 半截帧头，等下次读
             }
-            const unsigned char *h  = in_hdr_;
-            unsigned char        b0 = h[0];
-            unsigned char        b1 = h[1];
-            in_fin_           = (b0 & 0x80) != 0;
-            unsigned char op  = static_cast<unsigned char>(b0 & 0x0F);
+            const unsigned char *h = in_hdr_;
+            unsigned char b0       = h[0];
+            unsigned char b1       = h[1];
+            in_fin_                = (b0 & 0x80) != 0;
+            unsigned char op       = static_cast<unsigned char>(b0 & 0x0F);
             if ((b1 & 0x80) != 0)
             {
                 return fail("Masked frame from server");
@@ -1567,7 +1612,7 @@ unsigned int websocket_client::process_data(unsigned char *inputdata, unsigned i
                 in_hdr_need_ = 4;
                 if (in_hdr_have_ < 4)
                 {
-                    continue; // 继续收扩展长度字节
+                    continue;// 继续收扩展长度字节
                 }
                 len = (static_cast<unsigned long long>(h[2]) << 8) | h[3];
             }
@@ -1632,14 +1677,14 @@ unsigned int websocket_client::process_data(unsigned char *inputdata, unsigned i
                     {
                         return fail("RSV1 set but permessage-deflate not negotiated");
                     }
-                    recv_data.opcode    = op;
-                    recv_data.isdeflate = in_frame_rsv1_;
-                    in_msg_deflated_    = in_frame_rsv1_;
-                    in_msg_too_big_     = false;
+                    recv_data.opcode     = op;
+                    recv_data.isdeflate  = in_frame_rsv1_;
+                    in_msg_deflated_     = in_frame_rsv1_;
+                    in_msg_too_big_      = false;
                     in_inflate_utf8_bad_ = false;
                     if (op == 0x01)
                     {
-                        in_utf8_.reset(); // 新 text 消息，校验器从头开始
+                        in_utf8_.reset();// 新 text 消息，校验器从头开始
                     }
                 }
                 // 压缩消息的声明长度是压缩后字节数，与解压后上限不同量纲；
@@ -1652,7 +1697,7 @@ unsigned int websocket_client::process_data(unsigned char *inputdata, unsigned i
                 in_msg_open_ = true;
             }
             in_payload_left_  = len;
-            recv_data.length  = len; // 当前帧声明长度，交付时改写为消息总长
+            recv_data.length  = len;// 当前帧声明长度，交付时改写为消息总长
             in_payload_phase_ = true;
             continue;
         }
@@ -1708,7 +1753,7 @@ unsigned int websocket_client::process_data(unsigned char *inputdata, unsigned i
         }
         if (in_payload_left_ > 0)
         {
-            return static_cast<unsigned int>(recv_data.read_length); // 输入耗尽，帧未完
+            return static_cast<unsigned int>(recv_data.read_length);// 输入耗尽，帧未完
         }
         in_payload_phase_ = false;
 
@@ -1716,22 +1761,20 @@ unsigned int websocket_client::process_data(unsigned char *inputdata, unsigned i
         {
             if (in_op_ == ws_opcode::ping)
             {
-                auto        self = shared_from_this();
+                auto self        = shared_from_this();
                 std::string pong = make_pong(in_ctl_buf_);
-                asio::co_spawn(strand_,
-                    [self, pong = std::move(pong)]() mutable -> asio::awaitable<void>
-                    {
-                        // 经出站写队列串行化，避免与业务写并发交错（E4）
+                asio::co_spawn(strand_, [self, pong = std::move(pong)]() mutable -> asio::awaitable<void>
+                               {
+                        // 经出站写队列串行化，避免与业务写并发交错
                         co_await self->async_send_frame(std::move(pong));
-                        co_return;
-                    },
-                    asio::detached);
+                        co_return; },
+                               asio::detached);
             }
             else if (in_op_ == ws_opcode::close)
             {
                 // 回声 close（携带对端状态码）；iserror 由消费协程在发出后置位，
                 // 避免置位过早导致回声帧被 pump 的作废分支丢弃
-                auto        self = shared_from_this();
+                auto self = shared_from_this();
                 std::string code;
                 if (in_ctl_buf_.size() >= 2)
                 {
@@ -1746,18 +1789,16 @@ unsigned int websocket_client::process_data(unsigned char *inputdata, unsigned i
                     }
                 }
                 std::string echo = serialize_frame(ws_opcode::close, code);
-                bool        mine = enqueue_frame(std::move(echo));
-                asio::co_spawn(strand_,
-                    [self, mine]() mutable -> asio::awaitable<void>
-                    {
+                bool mine        = enqueue_frame(std::move(echo));
+                asio::co_spawn(strand_, [self, mine]() mutable -> asio::awaitable<void>
+                               {
                         if (mine)
                         {
                             co_await self->pump_send_queue();
                         }
                         self->iserror = true;
-                        co_return;
-                    },
-                    asio::detached);
+                        co_return; },
+                               asio::detached);
             }
             // pong：当前无 keepalive 记账需求，忽略
             in_ctl_buf_.clear();
@@ -1772,13 +1813,13 @@ unsigned int websocket_client::process_data(unsigned char *inputdata, unsigned i
                 return fail("Invalid UTF-8 in text message");
             }
             // 消息完整，交付（业务判 recv_data.isfinish）
-            in_msg_open_           = false;
-            recv_data.fin          = 1;
-            recv_data.length       = recv_data.content.size();
-            recv_data.read_length  = recv_data.content.size();
-            recv_data.total_length = recv_data.content.size();
+            in_msg_open_             = false;
+            recv_data.fin            = 1;
+            recv_data.length         = recv_data.content.size();
+            recv_data.read_length    = recv_data.content.size();
+            recv_data.total_length   = recv_data.content.size();
             recv_data.isclose_stream = true;
-            recv_data.isfinish     = true;
+            recv_data.isfinish       = true;
             if (pos < n)
             {
                 stream_pending_.assign(reinterpret_cast<const char *>(p + pos), n - pos);
@@ -1792,9 +1833,9 @@ unsigned int websocket_client::process_data(unsigned char *inputdata, unsigned i
 
 asio::awaitable<void> websocket_client::async_recv_finish()
 {
-    if(async_recv_finish_fun != nullptr)
+    if (async_recv_finish_fun != nullptr)
     {
-       co_await async_recv_finish_fun(shared_from_this());
+        co_await async_recv_finish_fun(shared_from_this());
     }
     co_return;
 }
@@ -1802,15 +1843,15 @@ asio::awaitable<void> websocket_client::async_recv_finish()
 void websocket_client::reset_recv_status()
 {
     // 仅供消费方在 isfinish 交付后调用；帧流中间状态（in_hdr_/stream_pending_ 等）不属于这里
-    recv_data.isfile = false;
-    recv_data.isfinish = false;
-    recv_data.isdeflate = false;
+    recv_data.isfile         = false;
+    recv_data.isfinish       = false;
+    recv_data.isdeflate      = false;
     recv_data.isclose_stream = false;
-    recv_data.fin = 0;
-    recv_data.opcode = 0;      
-    recv_data.length = 0;
-    recv_data.read_length = 0;
-    recv_data.total_length = 0;
+    recv_data.fin            = 0;
+    recv_data.opcode         = 0;
+    recv_data.length         = 0;
+    recv_data.read_length    = 0;
+    recv_data.total_length   = 0;
     recv_data.content.clear();
 }
 // 出站压缩（permessage-deflate 已协商时）：仅 text 开启（裁定），binary 不压缩；
@@ -1839,7 +1880,7 @@ asio::awaitable<unsigned int> websocket_client::async_data_write(std::string_vie
 
 asio::awaitable<unsigned int> websocket_client::async_text_read()
 {
-    if (socket_read_lock.test_and_set()) 
+    if (socket_read_lock.test_and_set())
     {
         error_msg = "Other socket read is set";
         co_return 0;
@@ -1853,13 +1894,13 @@ asio::awaitable<unsigned int> websocket_client::async_text_read()
         co_return 0;
     }
     auto self = shared_from_this();
-    if(data == nullptr)
+    if (data == nullptr)
     {
-        data = static_cast<unsigned char*>(std::malloc(512 * sizeof(unsigned char)));
+        data = static_cast<unsigned char *>(std::malloc(512 * sizeof(unsigned char)));
     }
-    for(;;)
+    for (;;)
     {
-        if(iserror)
+        if (iserror)
         {
             co_return 0;
         }
@@ -1872,24 +1913,24 @@ asio::awaitable<unsigned int> websocket_client::async_text_read()
         {
             if (isssl)
             {
-                n = co_await sslsock->async_read_some(asio::buffer(data,512), asio::use_awaitable);
+                n = co_await sslsock->async_read_some(asio::buffer(data, 512), asio::use_awaitable);
             }
             else
             {
-                n = co_await sock->async_read_some(asio::buffer(data,512), asio::use_awaitable);
+                n = co_await sock->async_read_some(asio::buffer(data, 512), asio::use_awaitable);
             }
             process_data(data, n);
 
-            if(recv_data.isfinish)
+            if (recv_data.isfinish)
             {
                 co_return recv_data.opcode;
-            } 
+            }
         }
         catch (std::exception &e)
         {
             DEBUG_LOG("Exception: %s", e.what());
-            error_msg  = e.what();
-            iserror = true;
+            error_msg = e.what();
+            iserror   = true;
             co_return 0;
         }
     }
@@ -1898,17 +1939,17 @@ asio::awaitable<unsigned int> websocket_client::async_text_read()
 
 bool websocket_client::un_pack(const std::string &content, std::string &outBuf)
 {
-    return http::uncompress(content,outBuf);
+    return http::uncompress(content, outBuf);
 }
 
 bool websocket_client::un_pack(std::string &outBuf)
 {
-    return http::uncompress(recv_data.content,outBuf);
+    return http::uncompress(recv_data.content, outBuf);
 }
-int websocket_client::compress(const std::string &pack_data,std::string &outBuf)
+int websocket_client::compress(const std::string &pack_data, std::string &outBuf)
 {
     if (http::compress(pack_data.data(), pack_data.size(), outBuf, Z_DEFAULT_COMPRESSION) ==
-                Z_OK)
+        Z_OK)
     {
         return 0;
     }

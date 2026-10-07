@@ -100,8 +100,26 @@ void http2_send_queue::park(std::shared_ptr<http2_send_data_t> sp, unsigned char
     sp->block_reason = reason;
     sp->own_state    = 3;
     parked_list.emplace_back(sp);
+    auto here = std::prev(parked_list.end());
     parked.fetch_add(1);
     park_total.fetch_add(1, std::memory_order_relaxed);
+
+    // 复查闸门和入表必须在同一把锁里：flush_parked_send 可能在调用方读 send_park_closed
+    // 之后、我们入锁之前就已经 store(true)+detach，这条挂进来就没人再摘，
+    // 要等 CONST_HTTP2_BELT_SWEEP_SECONDS(6s) 的兜底扫描。
+    // Re-check under the same lock: flush_parked_send may have stored(true) + detached
+    // between the caller's load and our lock, orphaning this entry until the belt sweep.
+    // 解锁之后本函数不再碰表，因此两种次序都只有一个执行者：它先拿锁 ⇒ 它的 store 对我们
+    // 入锁后的 load 可见，这条由自己摘掉；它等我们解锁 ⇒ 它必然在表里看到这条，由它摘走回池。
+    if (sp->peer && sp->peer->socket_session &&
+        sp->peer->socket_session->send_park_closed.load())
+    {
+        parked_list.erase(here);
+        parked.fetch_sub(1);
+        lock.unlock();
+        back_cache_ptr(sp);
+        return;
+    }
     lock.unlock();
 }
 

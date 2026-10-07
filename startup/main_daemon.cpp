@@ -38,8 +38,11 @@ int main(int argc, char *argv[])
        }
        else
        {
-          std::cout<<"Not found server.conf file.";
-          return 0;
+          // 启动期找不到配置是一件必须让人看见的事：以前走 std::cout + return 0，
+          // 前台看着像"正常退出"，守护进程则连父进程都留不下来，只有日志里没有一行。
+          std::cerr << "paozhu: server.conf not found, tried: " << argv[1] << " and "
+                    << argv_str << "\n";
+          return 1;
        }
 
     }
@@ -64,8 +67,11 @@ int main(int argc, char *argv[])
       }
       else
       {
-        std::cout<<"Not found server.conf file. Please copy conf Directory rename to /usr/local/etc/paozhu\n";
-        return 0;
+        // 这里的候选只有两条，比配置加载器（serverconfig::init_path）少一条
+        // /etc/paozhu/conf/server.conf：装在那儿的部署在守护模式下走不到加载器就先退出了。
+        std::cerr << "paozhu: server.conf not found, tried: " << argv_str
+                  << " and /usr/local/etc/paozhu/server.conf; pass the server.conf path as argv[1]\n";
+        return 1;
       }
       
     }

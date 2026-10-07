@@ -5,32 +5,32 @@
 
 namespace http
 {
- socket_client::socket_client():strand_(asio::make_strand(*(get_client_context_obj().ioc))){};
- socket_client::~socket_client()
+socket_client::socket_client() : strand_(asio::make_strand(*(get_client_context_obj().ioc))) {};
+socket_client::~socket_client()
 {
-    if(data != nullptr)
+    if (data != nullptr)
     {
         std::free(data);
     }
 }
 void socket_client::reset()
 {
-    iserror = false;
-    isssl = false;
-    isbody =false;
-    isfinish = false;
-    iswait_exit = false;
-    exptime = 0;
+    iserror          = false;
+    isssl            = false;
+    isbody           = false;
+    isfinish         = false;
+    iswait_exit      = false;
+    exptime          = 0;
     cur_process_type = 0;
-    offsetnum = 0;
-    port=0;
-    val_size = 0;
-    timeout_end = 0;
+    offsetnum        = 0;
+    port             = 0;
+    val_size         = 0;
+    timeout_end      = 0;
 
     url.clear();
     host.clear();
     error_msg.clear();
- 
+
     parameter.clear();
     close_connect();
     sock.reset();
@@ -38,10 +38,10 @@ void socket_client::reset()
     ssl_context.reset();
 }
 
- void socket_client::set_header(std::string_view name,std::string_view value)
+void socket_client::set_header(std::string_view name, std::string_view value)
 {
     socket_parameter_t a;
-    a.name = name;
+    a.name  = name;
     a.value = value;
     parameter.emplace_back(a);
 }
@@ -56,158 +56,158 @@ void socket_client::set_host(std::string_view name)
 
 void socket_client::set_url(std::string_view name)
 {
-    if(name.size() > 7)
+    if (name.size() > 7)
     {
-        if(name[0]=='h' && name[1]=='t' && name[2]=='t' && name[3]=='p' && name[4]==':' && name[5]=='/'  && name[6]=='/'  )
+        if (name[0] == 'h' && name[1] == 't' && name[2] == 't' && name[3] == 'p' && name[4] == ':' && name[5] == '/' && name[6] == '/')
         {
             std::string temp_str;
-            unsigned int i=7;
-            for(; i < name.size(); i++)
+            unsigned int i = 7;
+            for (; i < name.size(); i++)
             {
-                if(name[i] == '/')
+                if (name[i] == '/')
                 {
-                    if(temp_str.size() > 0)
+                    if (temp_str.size() > 0)
                     {
                         host = temp_str;
                     }
                     temp_str.clear();
                     break;
                 }
-                else if(name[i] == ':')
+                else if (name[i] == ':')
                 {
-                    if(temp_str.size() > 0)
+                    if (temp_str.size() > 0)
                     {
                         host = temp_str;
                     }
                     temp_str.clear();
                     port = 0;
-                    for(; i < name.size(); i++)
+                    for (; i < name.size(); i++)
                     {
-                        if(name[i] == '/')
+                        if (name[i] == '/')
                         {
                             break;
                         }
-                        if(name[i] >= '0' && name[i] <= '9')
+                        if (name[i] >= '0' && name[i] <= '9')
                         {
-                            port = port * 10 + (name[i]- '0');
+                            port = port * 10 + (name[i] - '0');
                         }
-                    }    
+                    }
                     break;
                 }
                 temp_str.push_back(name[i]);
             }
-            for(; i < name.size(); i++)
+            for (; i < name.size(); i++)
             {
-                if(url.size() == 0 && name[i] == '/')
+                if (url.size() == 0 && name[i] == '/')
                 {
                     continue;
                 }
                 url.push_back(name[i]);
             }
-            if(port == 0)
+            if (port == 0)
             {
                 port = 80;
             }
         }
-        else if(name[0]=='h' && name[1]=='t' && name[2]=='t' && name[3]=='p'  && name[4]=='s' && name[5]==':' && name[6]=='/'  && name[7]=='/'  )
+        else if (name[0] == 'h' && name[1] == 't' && name[2] == 't' && name[3] == 'p' && name[4] == 's' && name[5] == ':' && name[6] == '/' && name[7] == '/')
         {
             std::string temp_str;
-            unsigned int i=8;
-            isssl = true;
-            for(; i < name.size(); i++)
+            unsigned int i = 8;
+            isssl          = true;
+            for (; i < name.size(); i++)
             {
-                if(name[i] == '/')
+                if (name[i] == '/')
                 {
-                    if(temp_str.size() > 0)
+                    if (temp_str.size() > 0)
                     {
                         host = temp_str;
                     }
-                    
+
                     break;
                 }
-                else if(name[i] == ':')
+                else if (name[i] == ':')
                 {
-                    if(temp_str.size() > 0)
+                    if (temp_str.size() > 0)
                     {
                         host = temp_str;
                     }
-                    
+
                     port = 0;
-                    for(; i < name.size(); i++)
+                    for (; i < name.size(); i++)
                     {
-                        if(name[i] == '/')
+                        if (name[i] == '/')
                         {
                             break;
                         }
-                        if(name[i] >= '0' && name[i] <= '9')
+                        if (name[i] >= '0' && name[i] <= '9')
                         {
-                            port = port * 10 + (name[i]- '0');
+                            port = port * 10 + (name[i] - '0');
                         }
-                    }    
+                    }
                     break;
                 }
                 temp_str.push_back(name[i]);
             }
-            for(; i < name.size(); i++)
+            for (; i < name.size(); i++)
             {
-                if(url.size() == 0 && name[i] == '/')
+                if (url.size() == 0 && name[i] == '/')
                 {
                     continue;
                 }
                 url.push_back(name[i]);
             }
-            if(port == 0)
+            if (port == 0)
             {
                 port = 443;
-            } 
+            }
         }
-        else if(name[0]>='0' && name[0] <= '9')
+        else if (name[0] >= '0' && name[0] <= '9')
         {
             std::string temp_str;
-            unsigned int i=0;
-            for(; i < name.size(); i++)
+            unsigned int i = 0;
+            for (; i < name.size(); i++)
             {
-                if(name[i] == '/')
+                if (name[i] == '/')
                 {
-                    if(temp_str.size() > 0)
+                    if (temp_str.size() > 0)
                     {
                         host = temp_str;
                     }
                     temp_str.clear();
                     break;
                 }
-                else if(name[i] == ':')
+                else if (name[i] == ':')
                 {
-                    if(temp_str.size() > 0)
+                    if (temp_str.size() > 0)
                     {
                         host = temp_str;
                     }
                     temp_str.clear();
                     port = 0;
-                    for(; i < name.size(); i++)
+                    for (; i < name.size(); i++)
                     {
-                        if(name[i] == '/')
+                        if (name[i] == '/')
                         {
                             break;
                         }
-                        if(name[i] >= '0' && name[i] <= '9')
+                        if (name[i] >= '0' && name[i] <= '9')
                         {
-                            port = port * 10 + (name[i]- '0');
+                            port = port * 10 + (name[i] - '0');
                         }
-                    }    
+                    }
                     break;
                 }
                 temp_str.push_back(name[i]);
             }
-            for(; i < name.size(); i++)
+            for (; i < name.size(); i++)
             {
-                if(url.size() == 0 && name[i] == '/')
+                if (url.size() == 0 && name[i] == '/')
                 {
                     continue;
                 }
                 url.push_back(name[i]);
             }
-            if(port == 0)
+            if (port == 0)
             {
                 port = 80;
             }
@@ -226,8 +226,8 @@ void socket_client::set_url(std::string_view name)
 asio::awaitable<bool> socket_client::async_init_https_sock()
 {
     //auto executor = co_await asio::this_coro::executor;
-    ssl_context   = std::make_shared<asio::ssl::context>(asio::ssl::context::sslv23);
-    sslsock       = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(strand_, *ssl_context);
+    ssl_context = std::make_shared<asio::ssl::context>(asio::ssl::context::sslv23);
+    sslsock     = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(strand_, *ssl_context);
     ssl_context->set_default_verify_paths();
 
     asio::ip::tcp::resolver resolver(strand_);
@@ -250,7 +250,6 @@ asio::awaitable<bool> socket_client::async_init_https_sock()
         DEBUG_LOG("%s", error_msg.c_str());
         co_return false;
     }
-
 
     sslsock->lowest_layer().set_option(asio::ip::tcp::no_delay(true));
     ssl_context->set_verify_mode(asio::ssl::verify_peer);
@@ -288,7 +287,6 @@ asio::awaitable<bool> socket_client::async_init_http_sock()
         }
         break;
     }
- 
 
     if (ec)
     {
@@ -299,7 +297,7 @@ asio::awaitable<bool> socket_client::async_init_http_sock()
     co_return true;
 }
 
-asio::awaitable<bool> socket_client::async_connect(std::string_view name,unsigned int time_out_num)
+asio::awaitable<bool> socket_client::async_connect(std::string_view name, unsigned int time_out_num)
 {
     set_url(name);
     exptime = time_out_num;
@@ -310,16 +308,16 @@ asio::awaitable<bool> socket_client::async_connect()
 {
     bool isinit = false;
 
-    if(url.size()< 5)
+    if (url.size() < 5)
     {
-        iserror = true;
+        iserror   = true;
         error_msg = "url empty";
         co_return false;
     }
 
-    if(port == 0)
+    if (port == 0)
     {
-        iserror = true;
+        iserror   = true;
         error_msg = "port empty";
         co_return false;
     }
@@ -333,16 +331,16 @@ asio::awaitable<bool> socket_client::async_connect()
         isinit = co_await async_init_http_sock();
     }
 
-    if(!isinit)
+    if (!isinit)
     {
-        iserror = true;
+        iserror   = true;
         error_msg = "async init socket error";
         co_return false;
     }
 
-    if (exptime > 0)
+    // timeout==0 不再豁免：始终进入超时链表，由 dur 心跳托管（reset_timeout 对 0 写哨兵大值）
+    reset_timeout();
     {
-        set_timeout(exptime);
         client_context &temp_io_context = get_client_context_obj();
         try
         {
@@ -352,15 +350,15 @@ asio::awaitable<bool> socket_client::async_connect()
         {
             DEBUG_LOG("Exception: %s", e.what());
             error_msg = e.what();
-            iserror = true;
+            iserror   = true;
             co_return false;
         }
     }
- 
-    co_return true;
-} 
 
-asio::awaitable<bool> socket_client::async_tcp_connect(std::string_view name,unsigned int time_out_num)
+    co_return true;
+}
+
+asio::awaitable<bool> socket_client::async_tcp_connect(std::string_view name, unsigned int time_out_num)
 {
     set_url(name);
     exptime = time_out_num;
@@ -371,16 +369,16 @@ asio::awaitable<bool> socket_client::async_tcp_connect()
 {
     bool isinit = false;
 
-    if(url.size()< 5)
+    if (url.size() < 5)
     {
-        iserror = true;
+        iserror   = true;
         error_msg = "url empty";
         co_return false;
     }
 
-    if(port == 0)
+    if (port == 0)
     {
-        iserror = true;
+        iserror   = true;
         error_msg = "port empty";
         co_return false;
     }
@@ -394,16 +392,16 @@ asio::awaitable<bool> socket_client::async_tcp_connect()
         isinit = co_await async_init_http_sock();
     }
 
-    if(!isinit)
+    if (!isinit)
     {
-        iserror = true;
+        iserror   = true;
         error_msg = "async init socket error";
         co_return false;
     }
 
-    if (exptime > 0)
+    // timeout==0 不再豁免：始终进入超时链表，由 dur 心跳托管（reset_timeout 对 0 写哨兵大值）
+    reset_timeout();
     {
-        set_timeout(exptime);
         client_context &temp_io_context = get_client_context_obj();
         try
         {
@@ -413,15 +411,23 @@ asio::awaitable<bool> socket_client::async_tcp_connect()
         {
             DEBUG_LOG("Exception: %s", e.what());
             error_msg = e.what();
-            iserror = true;
+            iserror   = true;
             co_return false;
         }
     }
-    std::string _send_content="tcp "+url;
+    // 握手第一个字段是 server 端注册的 handler 名，统一补上前导 '/' 再发：
+    // conf 的 url 字段在 websocket 那边就是路径，写到这儿带不带斜杠都是同一种写法习惯，
+    // server 侧的注册表和查找键也都统一成带 '/' 的形状，两边各补一次就不用猜对方怎么拼。
+    std::string _send_content = "tcp ";
+    if (url.front() != '/')
+    {
+        _send_content.push_back('/');
+    }
+    _send_content += url;
     _send_content.push_back(0x0A);
     _send_content.push_back(0x0A);
     unsigned int n = co_await async_write(_send_content);
-    if(n > 0)
+    if (n > 0)
     {
         co_return true;
     }
@@ -433,14 +439,14 @@ asio::awaitable<bool> socket_client::async_tcp_connect()
 
 asio::awaitable<unsigned int> socket_client::async_read(unsigned char *buffer_data, unsigned int buffersize)
 {
-    if (socket_read_lock.test_and_set()) 
+    if (socket_read_lock.test_and_set())
     {
         // 锁占用是可重试的瞬时冲突，不锁死整条连接（不置 iserror）
         error_msg = "Other socket read is set";
         co_return 0;
     }
     atomic_guard guard{socket_read_lock};
-    if(iserror)
+    if (iserror)
     {
         co_return 0;
     }
@@ -469,8 +475,8 @@ asio::awaitable<unsigned int> socket_client::async_read(unsigned char *buffer_da
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
     co_return 0;
 }
@@ -485,7 +491,7 @@ asio::awaitable<unsigned int> socket_client::async_read(std::string &buffer_data
     }
     atomic_guard guard{socket_read_lock};
 
-    if(iserror)
+    if (iserror)
     {
         co_return 0;
     }
@@ -518,8 +524,8 @@ asio::awaitable<unsigned int> socket_client::async_read(std::string &buffer_data
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
     co_return 0;
 }
@@ -527,7 +533,7 @@ asio::awaitable<unsigned int> socket_client::async_read(std::string &buffer_data
 asio::awaitable<unsigned int> socket_client::async_write(unsigned char *data_out, unsigned int buffersize)
 {
 
-    if(iserror)
+    if (iserror)
     {
         co_return 0;
     }
@@ -556,8 +562,8 @@ asio::awaitable<unsigned int> socket_client::async_write(unsigned char *data_out
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
 
     co_return 0;
@@ -566,7 +572,7 @@ asio::awaitable<unsigned int> socket_client::async_write(unsigned char *data_out
 asio::awaitable<unsigned int> socket_client::async_write(std::string_view value)
 {
 
-    if(iserror)
+    if (iserror)
     {
         co_return 0;
     }
@@ -596,8 +602,8 @@ asio::awaitable<unsigned int> socket_client::async_write(std::string_view value)
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
 
     co_return 0;
@@ -606,7 +612,7 @@ asio::awaitable<unsigned int> socket_client::async_write(std::string_view value)
 //synchronous
 unsigned int socket_client::write(unsigned char *data_out, unsigned int buffersize)
 {
-    if(iserror)
+    if (iserror)
     {
         return 0;
     }
@@ -635,8 +641,8 @@ unsigned int socket_client::write(unsigned char *data_out, unsigned int buffersi
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
 
     return 0;
@@ -644,7 +650,7 @@ unsigned int socket_client::write(unsigned char *data_out, unsigned int buffersi
 
 unsigned int socket_client::write(std::string_view value)
 {
-    if(iserror)
+    if (iserror)
     {
         return 0;
     }
@@ -674,8 +680,8 @@ unsigned int socket_client::write(std::string_view value)
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
 
     return 0;
@@ -683,15 +689,15 @@ unsigned int socket_client::write(std::string_view value)
 
 unsigned int socket_client::read(unsigned char *buffer_data, unsigned int buffersize)
 {
-    if (socket_read_lock.test_and_set()) 
+    if (socket_read_lock.test_and_set())
     {
         error_msg = "Other socket read is set";
-        iserror = true;
+        iserror   = true;
         return 0;
     }
     atomic_guard guard{socket_read_lock};
 
-    if(iserror)
+    if (iserror)
     {
         return 0;
     }
@@ -715,23 +721,23 @@ unsigned int socket_client::read(unsigned char *buffer_data, unsigned int buffer
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
     return 0;
 }
 
 unsigned int socket_client::read(std::string &buffer_data)
 {
-    if (socket_read_lock.test_and_set()) 
+    if (socket_read_lock.test_and_set())
     {
         error_msg = "Other socket read is set";
-        iserror = true;
+        iserror   = true;
         return 0;
     }
     atomic_guard guard{socket_read_lock};
 
-    if(iserror)
+    if (iserror)
     {
         return 0;
     }
@@ -755,8 +761,8 @@ unsigned int socket_client::read(std::string &buffer_data)
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
     return 0;
 }
@@ -778,6 +784,9 @@ void socket_client::close_connect()
     {
         if (sock && sock->is_open())
         {
+            // 先 cancel 再 close：close 一个还有在途异步操作的 socket 是 UB，
+            // handler 可能永不触发，parked 在读上的常驻协程就悬挂了（SSL 分支已经是这个写法）。
+            sock->cancel(ec);
             sock->close(ec);
         }
     }
@@ -785,23 +794,23 @@ void socket_client::close_connect()
 
 void socket_client::run_loop()
 {
-    if (socket_read_lock.test_and_set()) 
+    if (socket_read_lock.test_and_set())
     {
         error_msg = "Other socket read is set";
-        iserror = true;
+        iserror   = true;
         return;
     }
 
     atomic_guard guard{socket_read_lock};
 
     auto self = shared_from_this();
-    if(data == nullptr)
+    if (data == nullptr)
     {
-        data = static_cast<unsigned char*>(std::malloc(512 * sizeof(unsigned char)));
+        data = static_cast<unsigned char *>(std::malloc(512 * sizeof(unsigned char)));
     }
-    for(;;)
+    for (;;)
     {
-        if(iserror)
+        if (iserror)
         {
             return;
         }
@@ -817,7 +826,7 @@ void socket_client::run_loop()
             {
                 if (sslsock->lowest_layer().is_open())
                 {
-                    n = sslsock->read_some(asio::buffer(data,512));
+                    n = sslsock->read_some(asio::buffer(data, 512));
                 }
                 else
                 {
@@ -828,7 +837,7 @@ void socket_client::run_loop()
             {
                 if (sock->is_open())
                 {
-                   n = sock->read_some(asio::buffer(data,512));
+                    n = sock->read_some(asio::buffer(data, 512));
                 }
                 else
                 {
@@ -836,11 +845,11 @@ void socket_client::run_loop()
                 }
             }
 
-            if(run_loop_fun != nullptr)
+            if (run_loop_fun != nullptr)
             {
-                run_loop_fun(self,n);
+                run_loop_fun(self, n);
             }
-            else if(async_run_loop_fun != nullptr)
+            else if (async_run_loop_fun != nullptr)
             {
                 // 消费者按签名读 self->data，而本线程下一轮 read_some 会在另一线程
                 // 覆写同一成员缓冲：拷贝本轮字节交给协程，并用 latch 串行化本拍，
@@ -848,9 +857,8 @@ void socket_client::run_loop()
                 std::string pack(reinterpret_cast<const char *>(data), n);
                 auto latch = std::make_shared<std::promise<void>>();
                 auto done  = latch->get_future();
-                asio::co_spawn(strand_,
-                 [self, n, pack = std::move(pack), latch]() mutable -> asio::awaitable<void>
-                 {
+                asio::co_spawn(strand_, [self, n, pack = std::move(pack), latch]() mutable -> asio::awaitable<void>
+                               {
                      unsigned char *keep = self->data;
                      self->data = reinterpret_cast<unsigned char *>(pack.data());
                      try
@@ -862,9 +870,8 @@ void socket_client::run_loop()
                      }
                      self->data = keep;
                      latch->set_value();
-                     co_return;
-                 },
-                 asio::detached);
+                     co_return; },
+                               asio::detached);
                 done.wait();
             }
             else
@@ -875,8 +882,8 @@ void socket_client::run_loop()
         catch (std::exception &e)
         {
             DEBUG_LOG("Exception: %s", e.what());
-            error_msg  = e.what();
-            iserror = true;
+            error_msg = e.what();
+            iserror   = true;
             return;
         }
     }
@@ -885,23 +892,23 @@ void socket_client::run_loop()
 
 asio::awaitable<void> socket_client::async_run_loop()
 {
-    if (socket_read_lock.test_and_set()) 
+    if (socket_read_lock.test_and_set())
     {
         error_msg = "Other socket read is set";
-        iserror = true;
+        iserror   = true;
         co_return;
     }
 
     atomic_guard guard{socket_read_lock};
 
     auto self = shared_from_this();
-    if(data == nullptr)
+    if (data == nullptr)
     {
-        data = static_cast<unsigned char*>(std::malloc(512 * sizeof(unsigned char)));
+        data = static_cast<unsigned char *>(std::malloc(512 * sizeof(unsigned char)));
     }
-    for(;;)
+    for (;;)
     {
-        if(iserror)
+        if (iserror)
         {
             co_return;
         }
@@ -914,20 +921,20 @@ asio::awaitable<void> socket_client::async_run_loop()
         {
             if (isssl)
             {
-                n = co_await sslsock->async_read_some(asio::buffer(data,512), asio::use_awaitable);
+                n = co_await sslsock->async_read_some(asio::buffer(data, 512), asio::use_awaitable);
             }
             else
             {
-                n = co_await sock->async_read_some(asio::buffer(data,512), asio::use_awaitable);
+                n = co_await sock->async_read_some(asio::buffer(data, 512), asio::use_awaitable);
             }
-            
-            if(run_loop_fun != nullptr)
+
+            if (run_loop_fun != nullptr)
             {
-                run_loop_fun(self,n);
+                run_loop_fun(self, n);
             }
-            else if(async_run_loop_fun != nullptr)
+            else if (async_run_loop_fun != nullptr)
             {
-                co_await async_run_loop_fun(self,n);
+                co_await async_run_loop_fun(self, n);
             }
             else
             {
@@ -937,8 +944,8 @@ asio::awaitable<void> socket_client::async_run_loop()
         catch (std::exception &e)
         {
             DEBUG_LOG("Exception: %s", e.what());
-            error_msg  = e.what();
-            iserror = true;
+            error_msg = e.what();
+            iserror   = true;
             co_return;
         }
     }

@@ -3,7 +3,7 @@
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 #pragma once
-#endif// defined(_MSC_VER) && (_MSC_VER >= 1200)
+#endif
 
 #include "httppeer.h"
 #include "testlogin.h"
@@ -15,41 +15,22 @@
 #include "testmodel.h"
 namespace http
 {
-void _inithttpmethodregto(std::map<std::string, regmethold_t> &methodcallback)
+inline void _inithttpmethodregto()
 {
-    struct regmethold_t temp;
-    temp.pre = nullptr;
-
-    temp.regfun = testjson;
-    methodcallback.emplace("testjson", temp);
-
-    temp.regfun = testmodel;
-    methodcallback.emplace("testmodel", temp);
-
-    temp.regfun = testmodelsmartptr;
-    methodcallback.emplace("testmodelsmartptr", temp);
-
-    temp.regfun = testlogin;
-    methodcallback.emplace("testlogin", temp);
-    temp.regfun = testshowlogin;
-    methodcallback.emplace("showlogin", temp);
-    temp.regfun = testloginpost;
-    methodcallback.emplace("loginpost", temp);
-
-    temp.regfun = testloginview;
-    methodcallback.emplace("testview", temp);
-
-    // testmysqlconnect
-    temp.regfun = testmysqlconnect;
-    methodcallback.emplace("testmysql", temp);
-
-    temp.regfun = [](std::shared_ptr<httppeer> peer) -> std::string
-    {
-        peer->output = "Hello, World!";
-        return "";
-    };
-    methodcallback.emplace("helloworld", temp);
+    REG_SYNC_SYNC("", "/testjson",    nullptr, testjson);
+    REG_SYNC_SYNC("", "/testmodel",   nullptr, testmodel);
+    REG_SYNC_SYNC("", "/testmodelsmartptr", nullptr, testmodelsmartptr);
+    REG_SYNC_SYNC("", "/testlogin",   nullptr, testlogin);
+    REG_SYNC_SYNC("", "/showlogin",   nullptr, testshowlogin);
+    REG_SYNC_SYNC("", "/loginpost",   nullptr, testloginpost);
+    REG_SYNC_SYNC("", "/testview",    nullptr, testloginview);
+    REG_SYNC_SYNC("", "/testmysql",   nullptr, testmysqlconnect);
+    REG_SYNC_SYNC("", "/helloworld",  nullptr,
+        [](std::shared_ptr<httppeer> peer) -> std::string {
+            peer->output = "Hello, World!";
+            return "";
+        });
 }
 
-}// namespace http
+}
 #endif

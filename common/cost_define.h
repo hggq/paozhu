@@ -10,6 +10,18 @@
 #define CONST_HTTP_JSON_POST_SIZE 2097152
 #define CONST_MQTT_SESSION_BODY_SIZE 2097152
 
+// MQTT 5 Will 延迟发布（will_delay_interval，MQTT 5 §3.2.2.26.3）的两道界。
+// 上限：客户端声明的秒数是 uint32，最大约 136 年，不钳的话一条遗嘱能把一个定时器
+// 挂到进程结束；钳到 1 小时，超出的按 1 小时发布（不丢弃、不改语义，只把等待封顶）。
+// 在途条数：反复掉线的客户端每次断开都会挂一个活定时器，不计数就是无界堆积；
+// 越界丢最新一条并计数（与 WebSocket 入站水位同一口径：可丢的最新单元 + 计数，不断连）。
+// MQTT 5 Will delayed-publish caps. will_delay_interval is a client-supplied uint32
+// (~136 years) so the wait is clamped to one hour; the pending count is bounded because a
+// flapping client otherwise leaves one live timer per disconnect. Over the cap the newest
+// Will is dropped and counted (same policy as the WebSocket ingress watermark).
+#define CONST_MQTT_WILL_DELAY_MAX_SEC 3600
+#define CONST_MQTT_WILL_DELAY_MAX_PENDING 1024
+
 // socket rpc 握手（请求行 + query）累积上限（字节）：超限直接断连，防对端慢速灌包耗尽内存
 // Socket RPC handshake (request line + query) cumulative cap (bytes); disconnect on hit to block slow-lorris memory exhaustion
 #define CONST_TCP_HANDSHAKE_MAX 4096
@@ -46,6 +58,23 @@
 #define CONST_WEBSOCKET_QUEUE_HIGH_BYTES 8388608
 #define CONST_WEBSOCKET_QUEUE_LOW_BYTES 2097152
 #define CONST_WEBSOCKET_QUEUE_STALL_MAX_MS 2000
+
+// socket 入站接收队列水位（每连接）。这里的单位是"一次 read 拿到的字节切片"，不是"一条消息"：
+// read_socket 是 async_read_some 进 4096 字节缓冲（与 ws/h1 的 _cache_data 对齐），切片没有帧边界，
+// 丢一片就等于把这条流咬掉一口。
+// 所以这条路不丢数据：队列满（push 在 size >= HIGH_ITEMS 或字节数 > HIGH_BYTES 时拒收）就暂停读取，
+// 把压力退回对端的 TCP 窗口，停读间隔从 200ms 起每轮翻倍，200/400/800/1000 各一轮，之后固定 2s 轮询队列；
+// 累计停读满 5 分钟仍然进不了队，就关闭这条连接退出。
+// 双闸：HIGH_ITEMS 防海量极小包把 list 节点数打爆（保留 512 条数上限）；HIGH_BYTES 锁单连接入站内存上界。
+// 读窗口提到 4096 后，若不锁字节闸，512 片就会变成 2MB/连接——所以这里把上界显式钉成 512KB，与改窗口前一致。
+#define CONST_SOCKET_QUEUE_HIGH_ITEMS 512
+#define CONST_SOCKET_QUEUE_HIGH_BYTES (512 * 1024)
+
+#define CONST_SOCKET_MAX_CONN_PER_IP 10000
+#define CONST_SOCKET_QUEUE_STALL_MS 200
+#define CONST_SOCKET_QUEUE_STALL_TOP_MS 1000
+#define CONST_SOCKET_QUEUE_STALL_LOOP_MS 2000
+#define CONST_SOCKET_QUEUE_STALL_GIVEUP_MS 300000
 
 // 发送线程每轮的空转兜底（纳秒）。它同时是单流吞吐的上界之一：发送序列一次调用只出一个
 // 帧、线程循环一轮至多喂两帧，所以一条还在推进的流每轮都在几微秒内干完活，这根 tick 每轮

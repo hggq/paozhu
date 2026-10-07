@@ -48,9 +48,17 @@ unsigned char http2_send_queue_cache::has_size()
     unsigned char tail      = tail_.load(std::memory_order_relaxed);
     unsigned char next_tail = (tail + 1) & (capacity_ - 1);
     unsigned char head_num  = head_.load(std::memory_order_acquire);
+    // 满环判据是 next_tail == head，而 push 用的正是 next_tail != head ⇒ 16 槽实际只放得下 15 帧，
+    // 这个读数就必须等于真实帧数（和下面通式对满环算出来的 15 也一致：h=0 时 tail-head=15，
+    // h>0 时 tail<h，(capacity_-1 - h) + tail + 1 同样得 15）。
+    // 改前这里回 capacity_（16）多报 1。当下的六个调用点（> CONST_HTTP2_RING_BACKPRESSURE_SLOTS、
+    // > 0、backlog_cnt + 1 >= capacity_）对 15 和 16 判得一模一样，所以它是"阈值一旦挪到
+    // 15 附近就误判"的潜在读数偏差，不是已经存在的错误 —— 没有哪一帧因为改前那个 16 被拒掉。
+    // Full ring: push gates on next_tail != head, so capacity_ slots hold capacity_-1 frames and
+    // this reading must be the real count. Today's callers judge 15 and 16 identically.
     if (next_tail == head_num)
     {
-        return capacity_;
+        return capacity_ - 1;
     }
 
     unsigned char send_queue_size = 0;

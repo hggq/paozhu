@@ -263,13 +263,13 @@ std::string testhttpclient_downfilelist(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
     client << "<html><head>";
-    std::vector<std::string> urls = {"https://www.xxx.com/api/articleall?page=","&limit=10&order=time&category=0"};
+    std::vector<std::string> urls = {"https://www.xxx.com/api/articleall?page=", "&limit=10&order=time&category=0"};
 
     std::shared_ptr<http::client> a = std::make_shared<http::client>();
     std::string tempurl;
     unsigned int i = 1;
- 
-    for ( ; i < 2; i++)
+
+    for (; i < 2; i++)
     {
         std::this_thread::sleep_for(std::chrono::seconds(1));
         tempurl.clear();
@@ -278,57 +278,58 @@ std::string testhttpclient_downfilelist(std::shared_ptr<httppeer> peer)
         tempurl.append(urls[1]);
         a->requst_clear();
         a->page.json.clear();
-        std::cout<<tempurl<<std::endl;
+        std::cout << tempurl << std::endl;
         a->get_json(tempurl);
         a->add_header("Connection", "keep-alive");
         a->send();
-        std::cout<<"----begin header----\n"<<std::endl;
-        std::cout<<a->get_header();
-        std::cout<<"----end header----\n"<<std::endl;
+        std::cout << "----begin header----\n"
+                  << std::endl;
+        std::cout << a->get_header();
+        std::cout << "----end header----\n"
+                  << std::endl;
 
         if (a->get_status() == 200)
         {
-            std::cout<<"resp ok"<<std::endl;
-            if(a->page.isjson ==1)
+            std::cout << "resp ok" << std::endl;
+            if (a->page.isjson == 1)
             {
-                std::cout<<"begin json"<<std::endl;
-                if(a->page.json["code"].to_int()==0)
+                std::cout << "begin json" << std::endl;
+                if (a->page.json["code"].to_int() == 0)
                 {
-                    if(a->page.json["data"].is_array())
+                    if (a->page.json["data"].is_array())
                     {
-                        std::cout<<"is_array"<<std::endl;
-                        unsigned int j=0;
-                        for(;j<a->page.json["data"].size();j++)
+                        std::cout << "is_array" << std::endl;
+                        unsigned int j = 0;
+                        for (; j < a->page.json["data"].size(); j++)
                         {
-                           std::cout<<"fid:" <<a->page.json["data"][j]["aritcleid"].to_string()<<std::endl;
+                            std::cout << "fid:" << a->page.json["data"][j]["aritcleid"].to_string() << std::endl;
                         }
 
-                        if(j>0)
+                        if (j > 0)
                         {
-                            client <<"<meta http-equiv=\"refresh\" content=\"1;url=/downfilelist\">";
+                            client << "<meta http-equiv=\"refresh\" content=\"1;url=/downfilelist\">";
                             client << "</head></html>";
                         }
-
                     }
-                    else if(a->page.json["data"].is_obj())
+                    else if (a->page.json["data"].is_obj())
                     {
-                    
-                        std::cout<<"is_obj"<<std::endl;
+
+                        std::cout << "is_obj" << std::endl;
                     }
                     std::cout << a->page.content << std::endl;
                     continue;
                 }
-                std::cout<<"json error!"<<std::endl;
+                std::cout << "json error!" << std::endl;
                 break;
             }
-            else 
+            else
             {
-                std::cout<<"not json"<<std::endl;
-                 
+                std::cout << "not json" << std::endl;
+
                 break;
             }
         }
-        std::cout<<"get_status!"<<a->get_status()<<std::endl;
+        std::cout << "get_status!" << a->get_status() << std::endl;
         break;
     }
     return "";
@@ -347,32 +348,33 @@ std::string testhttpclient_getdownfile(std::shared_ptr<httppeer> peer)
     std::string tempurl;
     unsigned int fid = 1;
 
-    if(fid == 0)
+    if (fid == 0)
     {
         return "";
     }
 
-    std::string fileurl=urls[0];
+    std::string fileurl = urls[0];
     fileurl.append(std::to_string(fid));
-    std::cout<<"----begin----\n"<<fileurl<<std::endl;
+    std::cout << "----begin----\n"
+              << fileurl << std::endl;
     a->get(fileurl);
-    a->add_header("User-Agent","Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/57.0.2987.132 MQQBrowser/6.2 TBS/043807 Mobile Safari/537.36 MicroMessenger/6.6.1.1220(0x26060135) miniProgram");
-    
-    a->onheader= [](const char *buffer, unsigned int buffersize, unsigned int code) -> bool
+    a->add_header("User-Agent", "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/57.0.2987.132 MQQBrowser/6.2 TBS/043807 Mobile Safari/537.36 MicroMessenger/6.6.1.1220(0x26060135) miniProgram");
+
+    a->onheader = [](const char *buffer, unsigned int buffersize, unsigned int code) -> bool
     {
-        std::cout<<"----begin header--"<<std::to_string(code)<<"--"<<std::endl;
-        for(unsigned int i=0;i<buffersize;i++)
+        std::cout << "----begin header--" << std::to_string(code) << "--" << std::endl;
+        for (unsigned int i = 0; i < buffersize; i++)
         {
-            std::cout<<buffer[i];
+            std::cout << buffer[i];
         }
-        std::cout<<"\n----end header----"<<std::endl;
+        std::cout << "\n----end header----" << std::endl;
         return false;
     };
-    a->onrequest=[](std::string &str) -> void
+    a->onrequest = [](std::string &str) -> void
     {
-        std::cout<<"----begin request--"<<std::endl;
-        std::cout<<str;
-        std::cout<<"\n----end request----"<<std::endl;
+        std::cout << "----begin request--" << std::endl;
+        std::cout << str;
+        std::cout << "\n----end request----" << std::endl;
     };
     //a->timeout(10);
     //a->set_limit_time(800);
@@ -380,16 +382,17 @@ std::string testhttpclient_getdownfile(std::shared_ptr<httppeer> peer)
 
     if (a->get_status() == 200)
     {
-        std::cout<<"----get ok----\n"<<std::endl;
-        if(a->page.istxt==false)
+        std::cout << "----get ok----\n"
+                  << std::endl;
+        if (a->page.istxt == false)
         {
-            if(a->page.file.tempfile.size()>0)
+            if (a->page.file.tempfile.size() > 0)
             {
-                std::cout<<"filename:"<<a->page.file.filename<<std::endl;
+                std::cout << "filename:" << a->page.file.filename << std::endl;
                 fileurl = a->page.file.filename;
- 
+
                 client << "<html><head>";
-                client <<"<meta http-equiv=\"refresh\" content=\"1;url=/downfilecontent\">";
+                client << "<meta http-equiv=\"refresh\" content=\"1;url=/downfilecontent\">";
                 client << "</head>";
                 client << "<body>";
                 client << fileurl;
@@ -400,7 +403,7 @@ std::string testhttpclient_getdownfile(std::shared_ptr<httppeer> peer)
         }
     }
     client << "<html><body>";
-    client <<" error! ";
+    client << " error! ";
     client << "</body></html>";
     return "";
 }

@@ -19,7 +19,7 @@ namespace http
 
 /**
  * @brief 添加邮件附件
- * 
+ *
  * 检查附件文件是否存在，存在则添加到附件列表中
  * @param file_name 附件文件路径
  * @return true表示添加成功，false表示文件不存在
@@ -38,7 +38,7 @@ bool send_email::addattachments(std::string file_name)
 
 /**
  * @brief 邮件发送入口函数（同步）
- * 
+ *
  * 根据isssl标志选择SSL加密连接或明文TCP连接发送邮件。
  * 该方法为同步（阻塞）方式，调用后会阻塞当前线程直到整个 SMTP 会话结束，
  * 适用于对耗时不敏感、并发量较低的场景。
@@ -75,7 +75,7 @@ bool send_email::send()
 
 /**
  * @brief 建立SSL加密连接发送邮件
- * 
+ *
  * 使用OpenSSL和ASIO建立SSL/TLS连接，通过状态机模式执行SMTP协议流程：
  * 连接 -> 握手 -> EHLO -> AUTH LOGIN -> 发送用户名/密码 -> MAIL FROM -> RCPT TO -> DATA -> 发送邮件内容 -> QUIT
  * @return true表示发送成功，false表示失败
@@ -159,11 +159,11 @@ bool send_email::sendssldata()
                         {
                             asio::write(socket, asio::buffer(sendcommand));
                             unsigned int sendsize = 0;
-                            data[2048] = 0;
+                            data[2048]            = 0;
                             std::string filecontent;
                             std::string sendcontent;
 
-                            for (unsigned int j = 0; j < sendfiles.size(); j++)
+                            for (size_t j = 0; j < sendfiles.size(); j++)
                             {
                                 if (sendfiles[j].predata.empty())
                                 {
@@ -220,7 +220,7 @@ bool send_email::sendssldata()
                     unsigned int temprenum = 0;
                     if (n > 2)
                     {
-                        for (unsigned int i = 0; i < 3; i++)
+                        for (size_t i = 0; i < 3; i++)
                         {
                             if (data[i] <= '9' && data[i] >= '0')
                             {
@@ -241,7 +241,7 @@ bool send_email::sendssldata()
                         }
                         else
                         {
-                            for (unsigned int i = 0; i < n; i++)
+                            for (size_t i = 0; i < n; i++)
                             {
                                 errormsg.push_back(data[n]);
                             }
@@ -255,7 +255,7 @@ bool send_email::sendssldata()
                         }
                         else
                         {
-                            for (unsigned int i = 0; i < n; i++)
+                            for (size_t i = 0; i < n; i++)
                             {
                                 errormsg.push_back(data[n]);
                             }
@@ -269,7 +269,7 @@ bool send_email::sendssldata()
                         }
                         else
                         {
-                            for (unsigned int i = 0; i < n; i++)
+                            for (size_t i = 0; i < n; i++)
                             {
                                 errormsg.push_back(data[n]);
                             }
@@ -283,7 +283,7 @@ bool send_email::sendssldata()
                         }
                         else
                         {
-                            for (unsigned int i = 0; i < n; i++)
+                            for (size_t i = 0; i < n; i++)
                             {
                                 errormsg.push_back(data[n]);
                             }
@@ -297,7 +297,7 @@ bool send_email::sendssldata()
                         }
                         else
                         {
-                            for (unsigned int i = 0; i < n; i++)
+                            for (size_t i = 0; i < n; i++)
                             {
                                 errormsg.push_back(data[n]);
                             }
@@ -311,7 +311,7 @@ bool send_email::sendssldata()
                         }
                         else
                         {
-                            for (unsigned int i = 0; i < n; i++)
+                            for (size_t i = 0; i < n; i++)
                             {
                                 errormsg.push_back(data[n]);
                             }
@@ -325,7 +325,7 @@ bool send_email::sendssldata()
                         }
                         else
                         {
-                            for (unsigned int i = 0; i < n; i++)
+                            for (size_t i = 0; i < n; i++)
                             {
                                 errormsg.push_back(data[n]);
                             }
@@ -340,7 +340,7 @@ bool send_email::sendssldata()
                 {
                     state = SEND_ERROR;
                     errormsg.clear();
-                    for (unsigned int j = 0; j < 100; j++)
+                    for (size_t j = 0; j < 100; j++)
                     {
                         if (data[j] != 0x00)
                         {
@@ -386,7 +386,7 @@ bool send_email::sendssldata()
 
 /**
  * @brief 建立明文TCP连接发送邮件
- * 
+ *
  * 使用ASIO建立明文TCP连接，通过状态机模式执行SMTP协议流程：
  * 连接 -> EHLO -> AUTH LOGIN -> 发送用户名/密码 -> MAIL FROM -> RCPT TO -> DATA -> 发送邮件内容 -> QUIT
  * @return true表示发送成功，false表示失败
@@ -446,11 +446,11 @@ bool send_email::senddata()
                         {
                             asio::write(socket, asio::buffer(sendcommand));
                             unsigned int sendsize = 0;
-                            data[2048] = 0;
+                            data[2048]            = 0;
                             std::string filecontent;
                             std::string sendcontent;
 
-                            for (unsigned int j = 0; j < sendfiles.size(); j++)
+                            for (size_t j = 0; j < sendfiles.size(); j++)
                             {
                                 if (sendfiles[j].predata.empty())
                                 {
@@ -507,7 +507,7 @@ bool send_email::senddata()
                     unsigned int temprenum = 0;
                     if (n > 2)
                     {
-                        for (unsigned int i = 0; i < 3; i++)
+                        for (size_t i = 0; i < 3; i++)
                         {
                             if (data[i] <= '9' && data[i] >= '0')
                             {
@@ -528,7 +528,7 @@ bool send_email::senddata()
                         }
                         else
                         {
-                            for (unsigned int i = 0; i < n; i++)
+                            for (size_t i = 0; i < n; i++)
                             {
                                 errormsg.push_back(data[n]);
                             }
@@ -542,7 +542,7 @@ bool send_email::senddata()
                         }
                         else
                         {
-                            for (unsigned int i = 0; i < n; i++)
+                            for (size_t i = 0; i < n; i++)
                             {
                                 errormsg.push_back(data[n]);
                             }
@@ -556,7 +556,7 @@ bool send_email::senddata()
                         }
                         else
                         {
-                            for (unsigned int i = 0; i < n; i++)
+                            for (size_t i = 0; i < n; i++)
                             {
                                 errormsg.push_back(data[n]);
                             }
@@ -570,7 +570,7 @@ bool send_email::senddata()
                         }
                         else
                         {
-                            for (unsigned int i = 0; i < n; i++)
+                            for (size_t i = 0; i < n; i++)
                             {
                                 errormsg.push_back(data[n]);
                             }
@@ -584,7 +584,7 @@ bool send_email::senddata()
                         }
                         else
                         {
-                            for (unsigned int i = 0; i < n; i++)
+                            for (size_t i = 0; i < n; i++)
                             {
                                 errormsg.push_back(data[n]);
                             }
@@ -598,7 +598,7 @@ bool send_email::senddata()
                         }
                         else
                         {
-                            for (unsigned int i = 0; i < n; i++)
+                            for (size_t i = 0; i < n; i++)
                             {
                                 errormsg.push_back(data[n]);
                             }
@@ -612,7 +612,7 @@ bool send_email::senddata()
                         }
                         else
                         {
-                            for (unsigned int i = 0; i < n; i++)
+                            for (size_t i = 0; i < n; i++)
                             {
                                 errormsg.push_back(data[n]);
                             }
@@ -627,7 +627,7 @@ bool send_email::senddata()
                 {
                     state = SEND_ERROR;
                     errormsg.clear();
-                    for (unsigned int j = 0; j < 100; j++)
+                    for (size_t j = 0; j < 100; j++)
                     {
                         if (data[j] != 0x00)
                         {
@@ -673,7 +673,7 @@ bool send_email::senddata()
 
 /**
  * @brief 获取当前GMT时间字符串
- * 
+ *
  * 生成符合RFC 2822标准的日期格式，用于邮件的Date头部字段
  * @return GMT时间字符串，格式如 "Thu, 01 Jan 1970 00:00:00 GMT"
  */
@@ -683,7 +683,7 @@ std::string send_email::getgmttime()
     curr_time = time((time_t *)NULL);
     tm *timeInfo;
     char timestr[30] = {'\0'};
-    timeInfo = gmtime(&curr_time);
+    timeInfo         = gmtime(&curr_time);
     strftime(timestr, sizeof(timestr), "%a, %d %b %Y %H:%M:%S GMT", timeInfo);
     std::string temp(timestr);
     return temp;
@@ -691,7 +691,7 @@ std::string send_email::getgmttime()
 
 /**
  * @brief SMTP状态机命令生成函数
- * 
+ *
  * 根据当前会话状态生成对应的SMTP协议命令，包括：
  * - SEND_EHLO: 发送HELO命令
  * - SEND_AUTH_LOGIN: 发送AUTH LOGIN命令
@@ -888,4 +888,4 @@ bool send_email::sendloop()
     return true;
 }
 
-} // namespace http
+}// namespace http

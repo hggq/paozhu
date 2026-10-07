@@ -13,11 +13,10 @@ namespace http
 class loopwebsockets_co : public websockets_api
 {
   public:
-
     loopwebsockets_co(unsigned int m, unsigned int g) : websockets_api(8, m, g, 0)
     {
-        isco = true;       // 消息回调走协程（async_onopen/async_onmessage/async_onclose）
-        isloopco = true;   // 周期回调走协程（async_run_loop）
+        isco     = true;// 消息回调走协程（async_onopen/async_onmessage/async_onclose）
+        isloopco = true;// 周期回调走协程（async_run_loop）
     }
     ~loopwebsockets_co() { std::cout << "~loopwebsockets_co" << std::endl; }
 
@@ -71,7 +70,7 @@ class loopwebsockets_co : public websockets_api
         }
         else
         {
-            self->isclose = true;
+            self->isclose  = true;
             self->loop_num = 0;
         }
         co_return;

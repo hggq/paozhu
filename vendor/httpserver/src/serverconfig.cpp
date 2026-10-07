@@ -17,6 +17,37 @@
 namespace http
 {
 namespace fs = std::filesystem;
+
+// usehtmlcache 的开关读法：空或 0 打头算关，其余非空值算开（写 "0" 想表达"关"才判得出关）
+static bool htmlcache_switch_on(const std::string &val)
+{
+    return !val.empty() && val[0] != '0';
+}
+// usehtmlcachetime 的取值读法：跳过非数字，和 upload_max_size / siteid 那几处的数字扫描同形
+static unsigned int htmlcache_seconds(const std::string &val)
+{
+    unsigned int temp = 0;
+    for (size_t i = 0; i < val.size(); i++)
+    {
+        if (val[i] > 0x2F && val[i] < 0x3A)
+        {
+            temp = temp * 10 + (val[i] - '0');
+        }
+    }
+    return temp;
+}
+
+// conf 里的钩子名（static_pre 的名字那一段、method_pre / method_after 名单）不规定写法，
+// 带不带开头的 '/' 都行；注册表的键一律带 '/'，解析期补齐，让日志和 is_static_pre 认规范名。
+// 只能用在注册名上：static_pre_lists 是 URL 前缀、rewrite_404_action / action_404_lists 是
+// 拼进文件路径的片段，那些走这里会把功能改坏
+static std::string conf_hook_name(const std::string &name)
+{
+    if (name.empty() || name[0] == '/')
+        return name;
+    return "/" + name;
+}
+
 serverconfig &getserversysconfig()
 {
     static serverconfig instance;
@@ -53,7 +84,7 @@ std::map<std::string, std::map<std::string, std::string>> loadserversconfig(std:
     bool isvalue = false;
     keyname      = "";
 
-    for (unsigned int i = 0; i < s.size(); i++)
+    for (size_t i = 0; i < s.size(); i++)
     {
         if (s[i] == ';')
         {
@@ -163,8 +194,8 @@ namespace
 //   cors_domain = www.hggq.com, www.hggq.net   只写域名，自动补 http:// 与 https:// 两种 scheme
 // 站点没写这一项时继承 [default] 解析好的白名单；站点写了就整表覆盖自己的，
 // 包括写成空串——那等于显式本站不放开任何跨域，是站点退出继承的口子。
-// 放开全部不再是缺省值：以前"什么都没配"就回 ACAO "*"，任何来源都能带凭证以外的跨域读响应；
-// 现在要多站点同时放开就得每处显式写 "*"，加载期对"没配"的站点逐个告警。
+// 放开全部不是缺省值："什么都没配"时不发 ACAO，只有显式写 "*" 才放开全部来源；
+// 要多站点同时放开就得每处显式写 "*"，加载期对"没配"的站点逐个告警。
 // 每一项入表前统一归一：转小写、去尾斜杠、去掉与 scheme 匹配的默认端口（:80 / :443）；
 // 归一后仍带路径的属于写错（Origin 里没有路径这一段），加载期告警但仍然入表。
 void cors_domain_parse(const std::string &src, site_host_info_t &info)
@@ -176,7 +207,7 @@ void cors_domain_parse(const std::string &src, site_host_info_t &info)
     //   已配置（"*" 或域名） → true
     info.is_cors = (src.size() > 0);
     // 少于 2 个字符时唯一有意义的取值是单个 "*"：显式放开全部。
-    // 其余（含空串）一律按未配置处理 = 拒绝，不再像以前那样兜底成放开
+    // 其余（含空串）一律按未配置处理 = 拒绝，不兜底成放开
     if (src.size() < 2)
     {
         info.cors_allow_all = (src.size() == 1 && src[0] == '*');
@@ -196,8 +227,8 @@ void cors_domain_parse(const std::string &src, site_host_info_t &info)
         {
             std::string item = src.substr(pos, comma - pos);
             // origin 的 scheme 与 host 比较是大小写不敏感的，统一转小写入表
-            std::transform(item.begin(), item.end(), item.begin(),
-                           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+            std::transform(item.begin(), item.end(), item.begin(), [](unsigned char c)
+                           { return static_cast<char>(std::tolower(c)); });
             // 浏览器送出的 Origin 恒为 scheme://host[:port]：不带尾斜杠，默认端口也不写出来
             // （访问 http://host:80 时 Origin 是 http://host）。配置里多写了这些的归一到可比对的
             // 形状，否则这一条永远匹配不上；空格与引号 ini 读取器已经剥掉，这里不用 trim。
@@ -220,8 +251,7 @@ void cors_domain_parse(const std::string &src, site_host_info_t &info)
                 body             = (body == std::string::npos) ? 0 : body + 3;
                 if (item.find('/', body) != std::string::npos)
                 {
-                    fprintf(stderr, "[CORS-WARN] cors_domain item '%s' is not an origin, it can never match\n",
-                            item.c_str());
+                    fprintf(stderr, "[CORS-WARN] cors_domain item '%s' is not an origin, it can never match\n", item.c_str());
                     fflush(stderr);
                 }
             }
@@ -261,8 +291,8 @@ void cors_methods_parse(const std::string &src, std::vector<std::string> &out)
         if (comma > pos)
         {
             std::string item = src.substr(pos, comma - pos);
-            std::transform(item.begin(), item.end(), item.begin(),
-                           [](unsigned char c) { return static_cast<char>(std::toupper(c)); });
+            std::transform(item.begin(), item.end(), item.begin(), [](unsigned char c)
+                           { return static_cast<char>(std::toupper(c)); });
             out.emplace_back(std::move(item));
         }
         pos = comma + 1;
@@ -284,8 +314,8 @@ std::string site_host_info_t::cors_allow_origin(std::string_view request_origin)
     }
     std::string origin;
     origin.resize(request_origin.size());
-    std::transform(request_origin.begin(), request_origin.end(), origin.begin(),
-                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    std::transform(request_origin.begin(), request_origin.end(), origin.begin(), [](unsigned char c)
+                   { return static_cast<char>(std::tolower(c)); });
     if (cors_origin_allowed.find(origin) == cors_origin_allowed.end())
     {
         return "";
@@ -450,7 +480,7 @@ std::string serverconfig::getsitepath(const std::string &host)
             std::string dddmod = "*.";
             bool isplithost    = true;
             std::string splithostpre;
-            for (unsigned int i = 0; i < host.size(); i++)
+            for (size_t i = 0; i < host.size(); i++)
             {
                 if (isplithost && host[i] == '.')
                 {
@@ -603,7 +633,6 @@ void serverconfig::init_path()
     // load acme.conf webpay.conf
     load_webpay_file();
 #endif
-
 }
 #ifdef ENABLE_WEBPAY
 // conf/webpay.conf -> get_webpay_config()
@@ -621,7 +650,7 @@ bool serverconfig::load_webpay_file(const std::string &filename)
     }
     return get_webpay_config().load(webpayfile);
 }
-#endif // ENABLE_WEBPAY
+#endif// ENABLE_WEBPAY
 bool serverconfig::loadserverglobalconfig()
 {
     if (configfile.empty())
@@ -674,29 +703,8 @@ bool serverconfig::loadserverglobalconfig()
     {
         map_value["default"]["index"] = "index.html";
     }
-    if (map_value["default"]["usehtmlcache"].empty())
-    {
-        siteusehtmlchache = false;
-    }
-    else
-    {
-        siteusehtmlchache = true;
-    }
-    if (map_value["default"]["usehtmlcachetime"].empty())
-    {
-        siteusehtmlchachetime = 0;
-    }
-    else
-    {
-        siteusehtmlchachetime = 0;
-        for (unsigned int i = 0; i < map_value["default"]["usehtmlcachetime"].size(); i++)
-        {
-            if (map_value["default"]["usehtmlcachetime"][i] > 0x2F && map_value["default"]["usehtmlcachetime"][i] < 0x3A)
-            {
-                siteusehtmlchachetime = siteusehtmlchachetime * 10 + (map_value["default"]["usehtmlcachetime"][i] - '0');
-            }
-        }
-    }
+    siteusehtmlchache     = htmlcache_switch_on(map_value["default"]["usehtmlcache"]);
+    siteusehtmlchachetime = htmlcache_seconds(map_value["default"]["usehtmlcachetime"]);
     if (map_value["default"]["http2_enable"].size() > 0 && map_value["default"]["http2_enable"][0] == '1')
     {
         isallnothttp2 = true;
@@ -708,6 +716,10 @@ bool serverconfig::loadserverglobalconfig()
     server_loaclvar &static_server_var = get_server_global_var();
     static_server_var.http2_enable     = isallnothttp2;
     struct site_host_info_t tempinfo_default;
+    // html 缓存的开关和间隔落进站点表：site 0 直接用，其余站下面 tempinfo = tempinfo_default 时继承，
+    // 自己段里写了 usehtmlcache / usehtmlcachetime 再覆盖。请求期只读站点这两项（httppeer.cpp 的 html_cache_expired）。
+    tempinfo_default.is_usehtmlcache  = siteusehtmlchache;
+    tempinfo_default.usehtmlcachetime = siteusehtmlchachetime;
 
     if (map_value["default"]["global_http2_enable"].size() > 0 && map_value["default"]["global_http2_enable"][0] == '1')
     {
@@ -755,7 +767,7 @@ bool serverconfig::loadserverglobalconfig()
     if (map_value["default"]["upload_max_size"].size() > 0)
     {
         unsigned int tempupmax = 0;
-        for (unsigned int i = 0; i < map_value["default"]["upload_max_size"].size(); i++)
+        for (size_t i = 0; i < map_value["default"]["upload_max_size"].size(); i++)
         {
             if (map_value["default"]["upload_max_size"][i] > 0x2F && map_value["default"]["upload_max_size"][i] < 0x3A)
             {
@@ -784,9 +796,8 @@ bool serverconfig::loadserverglobalconfig()
     tempinfo_default.cors_expose_headers = map_value["default"]["cors_expose_headers"];
     // 跨域是否允许携带凭证（cookie / HTTP 认证）：1、T、t 开头为开，其余含未配置都是关
     {
-        std::string tempcreds = map_value["default"]["cors_credentials"];
-        tempinfo_default.cors_credentials
-            = (tempcreds.size() > 0 && (tempcreds[0] == '1' || tempcreds[0] == 'T' || tempcreds[0] == 't'));
+        std::string tempcreds             = map_value["default"]["cors_credentials"];
+        tempinfo_default.cors_credentials = (tempcreds.size() > 0 && (tempcreds[0] == '1' || tempcreds[0] == 'T' || tempcreds[0] == 't'));
     }
 
     // 预检允许的方法列表：不写就用 site_host_info_t 里的默认四项，写了整表覆盖（写空=一个方法都不放行）
@@ -798,7 +809,7 @@ bool serverconfig::loadserverglobalconfig()
     if (map_value["default"]["http_header_max_size"].size() > 0)
     {
         //     unsigned int tempupmax = 0;
-        //     for (unsigned int i = 0; i < map_value["default"]["http_header_max_size"].size(); i++)
+        //     for (size_t i = 0; i < map_value["default"]["http_header_max_size"].size(); i++)
         //     {
         //         if (map_value["default"]["http_header_max_size"][i] > 0x2F && map_value["default"]["http_header_max_size"][i] < 0x3A)
         //         {
@@ -903,7 +914,7 @@ bool serverconfig::loadserverglobalconfig()
     if (map_value["default"]["siteid"].size() > 0)
     {
         tempinfo_default.siteid = 0;
-        for (unsigned int i = 0; i < map_value["default"]["siteid"].size(); i++)
+        for (size_t i = 0; i < map_value["default"]["siteid"].size(); i++)
         {
             if (map_value["default"]["siteid"][i] >= '0' && map_value["default"]["siteid"][i] <= '9')
             {
@@ -925,7 +936,7 @@ bool serverconfig::loadserverglobalconfig()
     if (map_value["default"]["groupid"].size() > 0)
     {
         tempinfo_default.groupid = 0;
-        for (unsigned int i = 0; i < map_value["default"]["groupid"].size(); i++)
+        for (size_t i = 0; i < map_value["default"]["groupid"].size(); i++)
         {
             if (map_value["default"]["groupid"][i] >= '0' && map_value["default"]["groupid"][i] <= '9')
             {
@@ -947,7 +958,7 @@ bool serverconfig::loadserverglobalconfig()
     if (map_value["default"]["alias_domain"].size() > 2)
     {
         tempinfo_default.alias_domain.clear();
-        for (unsigned int i = 0; i < map_value["default"]["alias_domain"].size(); i++)
+        for (size_t i = 0; i < map_value["default"]["alias_domain"].size(); i++)
         {
             if (map_value["default"]["alias_domain"][i] >= '0' && map_value["default"]["alias_domain"][i] <= '9')
             {
@@ -1080,7 +1091,7 @@ bool serverconfig::loadserverglobalconfig()
             {
                 if (tempac.size() > 0)
                 {
-                    tempinfo_default.action_pre_lists.push_back(tempac);
+                    tempinfo_default.action_pre_lists.push_back(conf_hook_name(tempac));
                 }
                 tempac.clear();
                 continue;
@@ -1089,7 +1100,7 @@ bool serverconfig::loadserverglobalconfig()
         }
         if (tempac.size() > 0)
         {
-            tempinfo_default.action_pre_lists.push_back(tempac);
+            tempinfo_default.action_pre_lists.push_back(conf_hook_name(tempac));
         }
         if (tempinfo_default.action_pre_lists.size() > 0)
         {
@@ -1113,7 +1124,7 @@ bool serverconfig::loadserverglobalconfig()
             {
                 if (tempac.size() > 0)
                 {
-                    tempinfo_default.action_after_lists.push_back(tempac);
+                    tempinfo_default.action_after_lists.push_back(conf_hook_name(tempac));
                 }
                 tempac.clear();
                 continue;
@@ -1122,7 +1133,7 @@ bool serverconfig::loadserverglobalconfig()
         }
         if (tempac.size() > 0)
         {
-            tempinfo_default.action_after_lists.push_back(tempac);
+            tempinfo_default.action_after_lists.push_back(conf_hook_name(tempac));
         }
         if (tempinfo_default.action_after_lists.size() > 0)
         {
@@ -1163,7 +1174,7 @@ bool serverconfig::loadserverglobalconfig()
     if (map_value["default"]["rate_limit_new_wait_num"].size() > 0)
     {
         rate_limit_new_wait_num = 0;
-        for (unsigned int i = 0; i < map_value["default"]["rate_limit_new_wait_num"].size(); i++)
+        for (size_t i = 0; i < map_value["default"]["rate_limit_new_wait_num"].size(); i++)
         {
             if (map_value["default"]["rate_limit_new_wait_num"][i] >= '0' && map_value["default"]["rate_limit_new_wait_num"][i] <= '9')
             {
@@ -1190,7 +1201,7 @@ bool serverconfig::loadserverglobalconfig()
     if (map_value["default"]["rate_limit_accept_wait_num"].size() > 0)
     {
         rate_limit_accept_wait_num = 0;
-        for (unsigned int i = 0; i < map_value["default"]["rate_limit_accept_wait_num"].size(); i++)
+        for (size_t i = 0; i < map_value["default"]["rate_limit_accept_wait_num"].size(); i++)
         {
             if (map_value["default"]["rate_limit_accept_wait_num"][i] >= '0' && map_value["default"]["rate_limit_accept_wait_num"][i] <= '9')
             {
@@ -1222,7 +1233,7 @@ bool serverconfig::loadserverglobalconfig()
     if (map_value["default"]["rate_limit_accept_time"].size() > 0)
     {
         rate_limit_accept_time = 0;
-        for (unsigned int i = 0; i < map_value["default"]["rate_limit_accept_time"].size(); i++)
+        for (size_t i = 0; i < map_value["default"]["rate_limit_accept_time"].size(); i++)
         {
             if (map_value["default"]["rate_limit_accept_time"][i] >= '0' && map_value["default"]["rate_limit_accept_time"][i] <= '9')
             {
@@ -1254,7 +1265,7 @@ bool serverconfig::loadserverglobalconfig()
     if (map_value["default"]["acme_every_day"].size() > 0)
     {
         acme_every_day_time = 0;
-        for (unsigned int i = 0; i < map_value["default"]["acme_every_day"].size(); i++)
+        for (size_t i = 0; i < map_value["default"]["acme_every_day"].size(); i++)
         {
             if (map_value["default"]["acme_every_day"][i] >= '0' && map_value["default"]["acme_every_day"][i] <= '9')
             {
@@ -1282,7 +1293,7 @@ bool serverconfig::loadserverglobalconfig()
     if (map_value["default"]["acme_every_num"].size() > 0)
     {
         acme_every_num = 0;
-        for (unsigned int i = 0; i < map_value["default"]["acme_every_num"].size(); i++)
+        for (size_t i = 0; i < map_value["default"]["acme_every_num"].size(); i++)
         {
             if (map_value["default"]["acme_every_num"][i] >= '0' && map_value["default"]["acme_every_num"][i] <= '9')
             {
@@ -1310,7 +1321,7 @@ bool serverconfig::loadserverglobalconfig()
     if (map_value["default"]["ocsp_intv_time"].size() > 0)
     {
         ocsp_interval_time = 0;
-        for (unsigned int i = 0; i < map_value["default"]["ocsp_intv_time"].size(); i++)
+        for (size_t i = 0; i < map_value["default"]["ocsp_intv_time"].size(); i++)
         {
             if (map_value["default"]["ocsp_intv_time"][i] >= '0' && map_value["default"]["ocsp_intv_time"][i] <= '9')
             {
@@ -1337,7 +1348,7 @@ bool serverconfig::loadserverglobalconfig()
 
     if (map_value["default"]["ip6_listen_enable"].size() > 0)
     {
-        for (unsigned int j = 0; j < map_value["default"]["ip6_listen_enable"].size(); j++)
+        for (size_t j = 0; j < map_value["default"]["ip6_listen_enable"].size(); j++)
         {
             if (map_value["default"]["ip6_listen_enable"][j] == ' ')
             {
@@ -1413,7 +1424,7 @@ bool serverconfig::loadserverglobalconfig()
                 tempinfo.themes.clear();
                 tempinfo.themes_url.clear();
                 tempinfo.http2_enable = isallnothttp2;
-                tempinfo.isuse_php = false;
+                tempinfo.isuse_php    = false;
 
                 for (auto [itemname, itemval] : second)
                 {
@@ -1446,6 +1457,16 @@ bool serverconfig::loadserverglobalconfig()
                     else if (itemname == "index")
                     {
                         tempinfo.document_index = itemval;
+                    }
+                    else if (itemname == "usehtmlcache")
+                    {
+                        // 没写这一行才跟着 [default]（上面 tempinfo = tempinfo_default 继承来的值），
+                        // 写了就以此为准，所以本站可以写 usehtmlcache=0 单独关掉
+                        tempinfo.is_usehtmlcache = htmlcache_switch_on(itemval);
+                    }
+                    else if (itemname == "usehtmlcachetime")
+                    {
+                        tempinfo.usehtmlcachetime = htmlcache_seconds(itemval);
                     }
                     else if (itemname == "fastcgi_port")
                     {
@@ -1652,7 +1673,7 @@ bool serverconfig::loadserverglobalconfig()
                         {
                             if (itemval[m] == '|')
                             {
-                                tempinfo.static_pre_method = tempac;
+                                tempinfo.static_pre_method = conf_hook_name(tempac);
                                 m++;
                                 break;
                             }
@@ -1670,19 +1691,12 @@ bool serverconfig::loadserverglobalconfig()
                         {
                             if (tempac.size() > 0)
                             {
-                                tempinfo.static_pre_method = tempac;
+                                tempinfo.static_pre_method = conf_hook_name(tempac);
                                 tempinfo.is_static_pre     = true;
                             }
                         }
-                        // pre check regfun
-                        if (tempinfo.is_static_pre && _http_regmethod_table.contains(tempinfo.static_pre_method))
-                        {
-                            tempinfo.is_static_pre = true;
-                        }
-                        else
-                        {
-                            tempinfo.is_static_pre = false;
-                        }
+                        // 钩子名的存在性由 router::validate_site_hooks() 在注册完成后校验：
+                        // 这里注册表还是空的，解析期判断只会得到「全部不存在」
 
                         tempac.clear();
                         for (; m < itemval.size(); m++)
@@ -1718,10 +1732,7 @@ bool serverconfig::loadserverglobalconfig()
                             {
                                 if (tempac.size() > 0)
                                 {
-                                    if (_http_regmethod_table.contains(tempac))
-                                    {
-                                        tempinfo.action_pre_lists.push_back(tempac);
-                                    }
+                                    tempinfo.action_pre_lists.push_back(conf_hook_name(tempac));
                                 }
                                 tempac.clear();
                                 continue;
@@ -1730,10 +1741,7 @@ bool serverconfig::loadserverglobalconfig()
                         }
                         if (tempac.size() > 0)
                         {
-                            if (_http_regmethod_table.contains(tempac))
-                            {
-                                tempinfo.action_pre_lists.push_back(tempac);
-                            }
+                            tempinfo.action_pre_lists.push_back(conf_hook_name(tempac));
                         }
 
                         if (tempinfo.action_pre_lists.size() > 0)
@@ -1752,11 +1760,7 @@ bool serverconfig::loadserverglobalconfig()
                             {
                                 if (tempac.size() > 0)
                                 {
-                                    tempinfo.action_after_lists.push_back(tempac);
-                                    if (_http_regmethod_table.contains(tempac))
-                                    {
-                                        tempinfo.action_after_lists.push_back(tempac);
-                                    }
+                                    tempinfo.action_after_lists.push_back(conf_hook_name(tempac));
                                 }
                                 tempac.clear();
                                 continue;
@@ -1765,10 +1769,7 @@ bool serverconfig::loadserverglobalconfig()
                         }
                         if (tempac.size() > 0)
                         {
-                            if (_http_regmethod_table.contains(tempac))
-                            {
-                                tempinfo.action_after_lists.push_back(tempac);
-                            }
+                            tempinfo.action_after_lists.push_back(conf_hook_name(tempac));
                         }
                         if (tempinfo.action_after_lists.size() > 0)
                         {
@@ -1792,7 +1793,7 @@ bool serverconfig::loadserverglobalconfig()
                         if (itemval.size() > 0)
                         {
                             unsigned int tempupmax = 0;
-                            for (unsigned int i = 0; i < itemval.size(); i++)
+                            for (size_t i = 0; i < itemval.size(); i++)
                             {
                                 if (itemval[i] > 0x2F && itemval[i] < 0x3A)
                                 {
@@ -1816,7 +1817,7 @@ bool serverconfig::loadserverglobalconfig()
                         // if (itemval.size() > 0)
                         // {
                         //     unsigned int tempupmax = 0;
-                        //     for (unsigned int i = 0; i < itemval.size(); i++)
+                        //     for (size_t i = 0; i < itemval.size(); i++)
                         //     {
                         //         if (itemval[i] > 0x2F && itemval[i] < 0x3A)
                         //         {
@@ -1832,7 +1833,7 @@ bool serverconfig::loadserverglobalconfig()
                     else if (itemname == "siteid")
                     {
                         tempinfo.siteid = 0;
-                        for (unsigned int i = 0; i < itemval.size(); i++)
+                        for (size_t i = 0; i < itemval.size(); i++)
                         {
                             if (itemval[i] >= '0' && itemval[i] <= '9')
                             {
@@ -1849,7 +1850,7 @@ bool serverconfig::loadserverglobalconfig()
                     else if (itemname == "groupid")
                     {
                         tempinfo.groupid = 0;
-                        for (unsigned int i = 0; i < itemval.size(); i++)
+                        for (size_t i = 0; i < itemval.size(); i++)
                         {
                             if (itemval[i] >= '0' && itemval[i] <= '9')
                             {
@@ -1877,7 +1878,7 @@ bool serverconfig::loadserverglobalconfig()
                     else if (itemname == "alias_domain")
                     {
                         tempinfo.alias_domain.clear();
-                        for (unsigned int i = 0; i < itemval.size(); i++)
+                        for (size_t i = 0; i < itemval.size(); i++)
                         {
                             if (itemval[i] >= '0' && itemval[i] <= '9')
                             {
@@ -1920,8 +1921,7 @@ bool serverconfig::loadserverglobalconfig()
                     else if (itemname == "cors_credentials")
                     {
                         // 站点写了就以站点为准：0/空 是显式关闭，不继承 [default] 的开启
-                        tempinfo.cors_credentials
-                            = (itemval.size() > 0 && (itemval[0] == '1' || itemval[0] == 'T' || itemval[0] == 't'));
+                        tempinfo.cors_credentials = (itemval.size() > 0 && (itemval[0] == '1' || itemval[0] == 'T' || itemval[0] == 't'));
                     }
                     else if (itemname == "cors_allow_methods")
                     {
@@ -1931,7 +1931,7 @@ bool serverconfig::loadserverglobalconfig()
                     else if (itemname == "themes")
                     {
                         tempinfo.themes.clear();
-                        for (unsigned int i = 0; i < itemval.size(); i++)
+                        for (size_t i = 0; i < itemval.size(); i++)
                         {
                             if (itemval[i] >= '0' && itemval[i] <= '9')
                             {
@@ -1962,7 +1962,7 @@ bool serverconfig::loadserverglobalconfig()
                     else if (itemname == "themes_url")
                     {
                         tempinfo.themes_url.clear();
-                        for (unsigned int i = 0; i < itemval.size(); i++)
+                        for (size_t i = 0; i < itemval.size(); i++)
                         {
                             if (itemval[i] >= '0' && itemval[i] <= '9')
                             {
@@ -2018,8 +2018,11 @@ bool serverconfig::loadserverglobalconfig()
                 sitehostinfos.push_back(std::move(tempinfo));
                 if (sitehostinfos.size() > 0)
                 {
-                    unsigned int tempindex = sitehostinfos.size() - 1;
+                    unsigned int tempindex = static_cast<unsigned int>(sitehostinfos.size() - 1);
                     host_toint[first]      = tempindex;
+                    // alias_domain 是注册函数的归属标识（不受真实域名影响），
+                    // 不进 host_toint — 真实请求域名查 host_toint，注册 site 查 site_to_slot
+                    // slot_id 由 router_init_sites() 统一分配，serverconfig 不管 slot
                 }
             }
         }
@@ -2028,13 +2031,12 @@ bool serverconfig::loadserverglobalconfig()
     // 既没写自己白名单、[default] 也没有可继承的白名单 → 该站点按"默认拒绝"处理，
     // 一个 CORS 头都不发。这里在加载完成后点名提示一次，别让运维以为是站点坏了：
     // 需要放开的站点必须显式写 cors_domain（白名单或 "*"）。
-    // 告警留在加载期（原先在请求热路径上每次 fprintf+fflush，会刷 stderr）
+    // 告警留在加载期：请求热路径上逐次 fprintf+fflush 会刷满 stderr
     for (auto &site_item : sitehostinfos)
     {
         if (!site_item.is_cors)
         {
-            fprintf(stderr, "[CORS-WARN] site host=%s not configured cors_domain, default deny all origin\n",
-                    site_item.mainhost.empty() ? "default" : site_item.mainhost.c_str());
+            fprintf(stderr, "[CORS-WARN] site host=%s not configured cors_domain, default deny all origin\n", site_item.mainhost.empty() ? "default" : site_item.mainhost.c_str());
             fflush(stderr);
         }
     }
@@ -2078,7 +2080,7 @@ unsigned char serverconfig::get_co_thread_num()
 {
     unsigned char tempnum = 0;
 
-    for (unsigned int i = 0; i < map_value["default"]["cothreadnum"].size(); i++)
+    for (size_t i = 0; i < map_value["default"]["cothreadnum"].size(); i++)
     {
         if (map_value["default"]["cothreadnum"][i] > 0x2F && map_value["default"]["cothreadnum"][i] < 0x3A)
         {
@@ -2099,7 +2101,7 @@ unsigned int serverconfig::get_ssl_port()
 {
     unsigned int tempnum = 0;
 
-    for (unsigned int i = 0; i < map_value["default"]["httpsport"].size(); i++)
+    for (size_t i = 0; i < map_value["default"]["httpsport"].size(); i++)
     {
         if (map_value["default"]["httpsport"][i] > 0x2F && map_value["default"]["httpsport"][i] < 0x3A)
         {

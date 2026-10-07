@@ -59,6 +59,19 @@
 #include "mqtt_frame.h"
 #include "mqtt_session.h"
 #include "mqtt_api.h"
+#ifdef ENABLE_REDIS_CLIENT
+#include "redis_subpub.h"
+#endif
+#ifdef ENABLE_WEBSOCKETS_CLIENT
+#include "ws_subpub_reg.h"
+#endif
+#ifdef ENABLE_SOCKETS_CLIENT
+#include "http_socket_client.h"
+#include "sock_subpub_reg.h"
+#endif
+#ifdef ENABLE_MQTT_CLIENT
+#include "mqtt_subpub_reg.h"
+#endif
 #include "http2_parse.h"
 #include "threadpool.h"
 #include "httppeer.h"
@@ -102,9 +115,31 @@ class httpserver
                                               std::shared_ptr<http::mqtt_api>,
                                               const http::mqtt_session::packet &,
                                               std::function<void(http::mqtt_reason)>);
+
+    // 同步业务钩子交给业务线程池（clientrunpool）跑的收口：钩子在池线程执行，续体回到本连接的协程，
+    // 所以协议报文的先后次序照旧。抛出与"池没接单"都算业务没给出结论——bool 钩子按否决处理
+    // （fail-closed），void 钩子只记日志，两种都不踢连接。
+    asio::awaitable<bool> co_sync_hook_bool(const char *, std::function<bool()>, const std::shared_ptr<client_session> &);
+    asio::awaitable<void> co_sync_hook_void(const char *, std::function<void()>, const std::shared_ptr<client_session> &);
+    // socket 的 on_close 三条出口收敛成的唯一提交点；协程版业务直接走 async_on_close。
+    asio::awaitable<void> co_socket_on_close(const std::shared_ptr<socket_api> &,
+                                             const std::shared_ptr<client_session> &);
+    // socket 入站（同步钩子那一档）唯一的投递点：片进这条连接自己的接收队列，队列满就停读歇拍
+    // 等它退下去（一片不丢），然后投一条任务给业务线程池、立刻返回。
+    // 返回 false 表示这条连接不能再收了：歇满上限（已置 isclose 并写过日志）或会话已读错，
+    // 调用方直接走关闭路径。
+    asio::awaitable<bool> co_socket_inbound_push(const std::shared_ptr<socket_api> &,
+                                                 const std::shared_ptr<client_session> &,
+                                                 socket_data_list_t &&);
+
     unsigned int make_h2c_header(std::shared_ptr<httppeer> peer, std::shared_ptr<client_session>, std::string &log_item);
     asio::awaitable<void>
         sslhandshake(std::shared_ptr<client_session>);
+
+    // PHP 处理：找 php_root_document 里的 .php 文件 / 重写规则。
+    // 返回 true → 已设 compress=10/linktype，调用方走 fastcgi；
+    // 返回 false → 没找到，调用方发 404。不查路由表、不碰磁盘静态文件判断。
+    bool check_php_dispatch(std::shared_ptr<httppeer>);
 
     // void http2pool(int threadid);
     asio::awaitable<void> http2_fastcgi(std::shared_ptr<httppeer>);
@@ -136,7 +171,7 @@ class httpserver
     void http2_send_queue_loop(unsigned char index_id);
 
     // RFC 9113 §6.9 发送侧「查余额 + 扣减」原子预留：必须在 fread / push 之前调用。
-    // 返回实际到手额度（0 = 本轮无额度，调用方让路，不得推进任何进度）。
+    // 返回实际到手额度（0 = 本次调用无额度，调用方让路，不得推进任何进度）。
     // want 超过余额时按余额缩帧；连接级扣了、流级不够时把差额退还连接级。
     //
     // Atomic send-side 'check balance + deduct' reservation per RFC 9113 §6.9.
@@ -185,6 +220,22 @@ class httpserver
     // send ring of every session that has pending frames. Exits when everything is drained,
     // sets mqtt_sender_need_spawn, and gets respawned every second by websocket_loop.
     asio::awaitable<void> mqtt_send_loop();
+#ifdef ENABLE_REDIS_CLIENT
+    asio::awaitable<void> async_redis_subpub_loop(
+        std::shared_ptr<pz::redis::redis_subpub_client> client);
+#endif
+#ifdef ENABLE_WEBSOCKETS_CLIENT
+    asio::awaitable<void> async_ws_subpub_loop(
+        std::shared_ptr<http::ws_subpub_client> client);
+#endif
+#ifdef ENABLE_SOCKETS_CLIENT
+    asio::awaitable<void> async_sock_subpub_loop(
+        std::shared_ptr<http::sock_subpub_client> client);
+#endif
+#ifdef ENABLE_MQTT_CLIENT
+    asio::awaitable<void> async_mqtt_subpub_loop(
+        std::shared_ptr<http::mqtt_subpub_client> client);
+#endif
 
     void websocket_loop(int myid);
     asio::awaitable<void> clientpeerstop(std::shared_ptr<client_session> peer_session);
@@ -207,7 +258,8 @@ class httpserver
     // Note: ACAO/Vary set during parsing by cors_origin_process() are cleared first and then re-set.
     asio::awaitable<void> send_cors_domain(std::shared_ptr<httppeer> peer);
 
-    asio::awaitable<size_t> co_user_task(std::shared_ptr<httppeer> peer, asio::use_awaitable_t<> h = {});
+    // 旧同步派单通路，无调用点（流程说明见 server.cpp 同位置注释）；活的通路是下一行 fastcgi。
+    // asio::awaitable<size_t> co_user_task(std::shared_ptr<httppeer> peer, asio::use_awaitable_t<> h = {});
     asio::awaitable<size_t> co_user_fastcgi_task(std::shared_ptr<httppeer> peer, asio::use_awaitable_t<> h = {});
     asio::awaitable<size_t> co_client_session_task(std::shared_ptr<client_session> peer, asio::use_awaitable_t<> h = {});
 
@@ -237,34 +289,31 @@ class httpserver
     void httpwatch();
 
     // httpwatch sub-methods
-    void httpwatch_register_builtin_routes();
-    void httpwatch_init_paths(std::string &currentpath, std::string &error_path,
-                              std::string &traffic_switch_file, std::string &restart_file,
-                              std::string &restart_ssl_file, std::string &orm_log_file);
-    void httpwatch_parse_reboot_cron(unsigned char &cron_type, unsigned char &cron_day,
-                                     unsigned char &cron_hour);
+    void httpwatch_init_paths(std::string &currentpath, std::string &error_path, std::string &traffic_switch_file, std::string &restart_file, std::string &restart_ssl_file, std::string &orm_log_file);
+    void httpwatch_parse_reboot_cron(unsigned char &cron_type, unsigned char &cron_day, unsigned char &cron_hour);
     void httpwatch_parse_clean_cron(unsigned int &clean_cron_min, unsigned int &clean_cron_time_ago);
     // 解析 [default] temp_clean_time（temp_path 临时文件存活秒数）。
     // Parse [default] temp_clean_time — TTL in seconds for temp files under temp_path.
     void httpwatch_parse_temp_clean(unsigned int &temp_live_time);
     void httpwatch_parse_links_restart(unsigned int &restart_process_num,
-                                       int &restart_process_time_start, int &restart_process_time_end);
+                                       int &restart_process_time_start,
+                                       int &restart_process_time_end);
     void httpwatch_adjust_thread_pool(unsigned int &updatetimetemp);
     void httpwatch_memory_monitor(unsigned int mysqlpool_time);
     void httpwatch_flush_access_log(const std::string &access_path);
     void httpwatch_flush_error_log(const std::string &error_path);
     void httpwatch_mysql_pool_maintenance(unsigned int &mysqlpool_time, const std::tm *now, unsigned int old_total_count);
-    void httpwatch_check_cron_reboot(unsigned char cron_type, unsigned char cron_day,
-                                     unsigned char cron_hour, const std::tm *now);
+    void httpwatch_check_cron_reboot(unsigned char cron_type, unsigned char cron_day, unsigned char cron_hour, const std::tm *now);
     void httpwatch_clear_timeout_sessions(unsigned int clean_cron_min, unsigned int clean_cron_time_ago);
     // 回收 temp_path 下框架自己的请求落盘临时文件（pzraw_/pzup_）与遗留孤儿文件。
     // Reap framework-owned temp files under temp_path (pzraw_/pzup_) and lingering orphan files.
     void httpwatch_clear_temp_files(unsigned int temp_live_time);
-    void httpwatch_check_deadlock(unsigned char &plan_http1_exit, unsigned char &plan_http2_exit,
-                                  unsigned int &old_ten_total_count, unsigned int old_total_count);
+    void httpwatch_check_deadlock(unsigned char &plan_http1_exit, unsigned char &plan_http2_exit, unsigned int &old_ten_total_count, unsigned int old_total_count);
     void httpwatch_check_restart_threshold(unsigned int restart_process_num,
-                                           int restart_process_time_start, int restart_process_time_end,
-                                           const std::tm *now, unsigned int old_total_count);
+                                           int restart_process_time_start,
+                                           int restart_process_time_end,
+                                           const std::tm *now,
+                                           unsigned int old_total_count);
 
     void acme_task();
     void acme_update();
@@ -312,9 +361,22 @@ class httpserver
     std::vector<std::thread> http2_send_data_threads;
     std::list<std::weak_ptr<websockets_api>> websockettasks;
     std::list<std::weak_ptr<socket_api>> sockettasks;
+    unsigned int socket_broadcast(unsigned int groupid, std::string_view payload);
     std::list<std::weak_ptr<mqtt_api>> mqtttasks;
+#ifdef ENABLE_REDIS_CLIENT
+    std::list<std::weak_ptr<pz::redis::redis_subpub_client>> redis_subpub_tasks;
+#endif
+#ifdef ENABLE_WEBSOCKETS_CLIENT
+    std::list<std::weak_ptr<http::ws_subpub_client>> ws_subpub_tasks;
+#endif
+#ifdef ENABLE_SOCKETS_CLIENT
+    std::list<std::weak_ptr<http::sock_subpub_client>> sockets_clients;
+#endif
+#ifdef ENABLE_MQTT_CLIENT
+    std::list<std::weak_ptr<http::mqtt_subpub_client>> mqtt_clients;
+#endif
     // MQTT 会话注册清单（client_mqtt_loop 建会话后登记，expired 由分发协程剪除）；
-    // size() 兼作在线 MQTT 连接数诊断读数。
+    // size() 兼作在线 MQTT 连接数的诊断计数。
     //
     // MQTT session registry (client_mqtt_loop registers on session creation; the dispatch
     // coroutine prunes expired ones). size() doubles as a diagnostic read of online MQTT connections.
@@ -325,6 +387,16 @@ class httpserver
     // every second to claim and respawn it.
     std::atomic_bool mqtt_sender_need_spawn = true;
     std::list<std::pair<std::size_t, std::shared_ptr<httppeer>>> clientlooptasks;
+    // 保护 clientlooptasks：tick 线程（websocket_loop）遍历/erase 与业务线程
+    // （controller/src/serverwatch.cpp 的 frametasks_timeloop 经路由登记）push_back 并发访问，
+    // 无锁会令 std::list 迭代器失效（UB，可崩）。与 mqtt_sessions_mutex 同理。
+    std::mutex clientlooptasks_mutex;
+    // 间隔任务被跳过的拍数（同一条 peer 还在跑，这一拍不重复投）。跳拍是有意的，
+    // 但它对业务不可见，没计数的话就只剩"某条任务好像慢了几拍"这一种说法。
+    std::atomic_uint clientloop_skipped{0};
+    // 每秒拍扫过间隔任务表多少次。跳拍计数只在"抢旗失败"那一支涨，扫不到表它就是 0，
+    // 于是"表里没有任务"和"这一拍根本没走到这儿"两种情况从这两个计数上看长得一样。
+    std::atomic_uint clientloop_ticks{0};
 
     std::string traffic_arrays;
 
@@ -342,7 +414,7 @@ class httpserver
     std::atomic_bool istraffic          = false;
     std::atomic_bool hard_kill_old_link = false;
     std::atomic_bool rate_limit_status  = false;
-    bool server_ip6_listen  = false;
+    bool server_ip6_listen              = false;
 
     // 各 listener 线程的 acceptor，建好监听后登记，stop() 负责唤醒挂起的 accept() 并关掉它。
     // 存 shared_ptr 而不是裸 fd：fd 号在 ::close 之后会被别的线程立刻复用，
@@ -388,11 +460,26 @@ class httpserver
     std::mutex websocket_task_mutex;
     std::mutex socket_task_mutex;
     std::mutex mqtt_task_mutex;
+#ifdef ENABLE_REDIS_CLIENT
+    std::mutex redis_subpub_task_mutex;
+#endif
+#ifdef ENABLE_WEBSOCKETS_CLIENT
+    std::mutex ws_subpub_task_mutex;
+#endif
+#ifdef ENABLE_SOCKETS_CLIENT
+    std::mutex sockets_clients_mutex;
+#endif
+#ifdef ENABLE_MQTT_CLIENT
+    std::mutex mqtt_clients_mutex;
+#endif
     std::condition_variable websocketcondition;
 
     const unsigned char magicstr[24] = {0x50, 0x52, 0x49, 0x20, 0x2A, 0x20, 0x48, 0x54, 0x54, 0x50, 0x2F, 0x32, 0x2E, 0x30, 0x0D, 0x0A, 0x0D, 0x0A, 0x53, 0x4D, 0x0D, 0x0A, 0x0D, 0x0A};
 };
 httpserver &get_server_app();
-void add_server_timetask(std::shared_ptr<httppeer>);
+// 这个声明一直没有对应定义（定义在 server.cpp 里是 (keyname, peer) 两参数的，已随旧登记口注释掉），
+// 也无人调用；间隔任务的实际登记口是路由 frametasks_timeloop（注册点在 controller/src/serverwatch.cpp）。
+// 留在这儿只会引人误用。
+// void add_server_timetask(std::shared_ptr<httppeer>);
 }// namespace http
 #endif

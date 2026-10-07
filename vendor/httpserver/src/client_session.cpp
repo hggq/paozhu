@@ -26,8 +26,18 @@ static std::string make_h2c_switch101_response()
     // SETTINGS_MAX_CONCURRENT_STREAMS = 100
     // SETTINGS_INITIAL_WINDOW_SIZE    = 16777215
     const unsigned char settings_payload[] = {
-        0x00, 0x03, 0x00, 0x00, 0x00, 0x64,
-        0x00, 0x04, 0x00, 0xFF, 0xFF, 0xFF};
+        0x00,
+        0x03,
+        0x00,
+        0x00,
+        0x00,
+        0x64,
+        0x00,
+        0x04,
+        0x00,
+        0xFF,
+        0xFF,
+        0xFF};
 
     std::string settings_value = http::base64_encode(
         reinterpret_cast<const char *>(settings_payload),
@@ -43,7 +53,7 @@ static std::string make_h2c_switch101_response()
     return response;
 }
 
-client_session::client_session(asio::io_context &io_context):strand_(asio::make_strand(io_context))
+client_session::client_session(asio::io_context &io_context) : strand_(asio::make_strand(io_context))
 {
     auto &cc    = get_client_data_cache();
     _cache_data = cc.get_data_ptr();
@@ -62,7 +72,7 @@ client_session::~client_session()
     }
     else
     {
-        if(socket && socket->is_open())
+        if (socket && socket->is_open())
         {
             socket->cancel(ec);
             socket->close(ec);
@@ -84,12 +94,12 @@ client_session::~client_session()
 }
 asio::awaitable<bool> client_session::read_some(unsigned int &readnum, std::string &log_item)
 {
-    auto self = shared_from_this(); 
+    auto self = shared_from_this();
     try
     {
-        if(isclose || iserror)
+        if (isclose || iserror)
         {
-            co_return true; 
+            co_return true;
         }
         if (isssl)
         {
@@ -122,22 +132,22 @@ asio::awaitable<bool> client_session::read_some(unsigned int &readnum, std::stri
             iserror = true;
             co_return true;
         }
-        if(isclose || iserror)
+        if (isclose || iserror)
         {
-            co_return true; 
+            co_return true;
         }
         co_return false;
     }
     catch (const std::exception &e)
     {
-        
-        for(readnum=0; readnum<128; readnum++)
+
+        for (readnum = 0; readnum < 128; readnum++)
         {
-            if(e.what()[readnum]==0x00)
+            if (e.what()[readnum] == 0x00)
             {
                 break;
             }
-            _cache_data[readnum]=e.what()[readnum];
+            _cache_data[readnum] = e.what()[readnum];
         }
         isclose = true;
         iserror = true;
@@ -156,12 +166,12 @@ asio::awaitable<bool> client_session::read_some(unsigned int &readnum, std::stri
 
 asio::awaitable<bool> client_session::read_first(unsigned int &readnum)
 {
-    auto self = shared_from_this(); 
+    auto self = shared_from_this();
     try
     {
-        if(isclose || iserror)
+        if (isclose || iserror)
         {
-            co_return true; 
+            co_return true;
         }
         if (isssl)
         {
@@ -175,34 +185,34 @@ asio::awaitable<bool> client_session::read_first(unsigned int &readnum)
         if (ec)
         {
             DEBUG_LOG("read_some exception %s", ec.message().c_str());
-            for(readnum=0; readnum<128; readnum++)
+            for (readnum = 0; readnum < 128; readnum++)
             {
-                if(ec.message()[readnum]==0x00)
+                if (ec.message()[readnum] == 0x00)
                 {
                     break;
                 }
-                _cache_data[readnum]=ec.message()[readnum];
+                _cache_data[readnum] = ec.message()[readnum];
             }
             isclose = true;
             iserror = true;
             co_return true;
         }
-        if(isclose || iserror)
+        if (isclose || iserror)
         {
-            co_return true; 
+            co_return true;
         }
         co_return false;
     }
     catch (const std::exception &e)
     {
-        
-        for(readnum=0; readnum<128; readnum++)
+
+        for (readnum = 0; readnum < 128; readnum++)
         {
-            if(e.what()[readnum]==0x00)
+            if (e.what()[readnum] == 0x00)
             {
                 break;
             }
-            _cache_data[readnum]=e.what()[readnum];
+            _cache_data[readnum] = e.what()[readnum];
         }
         isclose = true;
         iserror = true;
@@ -302,14 +312,14 @@ asio::awaitable<bool> client_session::read_at_least(unsigned int need, unsigned 
 
 asio::awaitable<bool> client_session::read_socket(unsigned int &readnum, std::string &log_item)
 {
-    auto self = shared_from_this(); 
+    auto self = shared_from_this();
     try
     {
-        if(isclose || iserror)
+        if (isclose || iserror)
         {
-            co_return true; 
+            co_return true;
         }
-        log_item.resize(1024);
+        log_item.resize(4096);
         if (isssl)
         {
             if (sslsocket->lowest_layer().is_open())
@@ -341,9 +351,9 @@ asio::awaitable<bool> client_session::read_socket(unsigned int &readnum, std::st
             iserror = true;
             co_return true;
         }
-        if(isclose || iserror)
+        if (isclose || iserror)
         {
-            co_return true; 
+            co_return true;
         }
         log_item.resize(readnum);
         co_return false;
@@ -381,7 +391,7 @@ unsigned int client_session::send_writer(const std::string &msg)
         {
             if (sslsocket->lowest_layer().is_open())
             {
-               n = asio::write(*sslsocket, asio::buffer(msg));
+                n = asio::write(*sslsocket, asio::buffer(msg));
             }
             else
             {
@@ -393,7 +403,7 @@ unsigned int client_session::send_writer(const std::string &msg)
         {
             if (socket->is_open())
             {
-               n = asio::write(*socket, asio::buffer(msg));
+                n = asio::write(*socket, asio::buffer(msg));
             }
             else
             {
@@ -425,7 +435,7 @@ unsigned int client_session::send_writer(std::string_view msg)
         {
             if (sslsocket->lowest_layer().is_open())
             {
-               n = asio::write(*sslsocket, asio::buffer(msg));
+                n = asio::write(*sslsocket, asio::buffer(msg));
             }
             else
             {
@@ -437,7 +447,7 @@ unsigned int client_session::send_writer(std::string_view msg)
         {
             if (socket->is_open())
             {
-               n = asio::write(*socket, asio::buffer(msg));
+                n = asio::write(*socket, asio::buffer(msg));
             }
             else
             {
@@ -738,7 +748,7 @@ unsigned int client_session::send_writer(const unsigned char *buffer, unsigned i
         {
             if (sslsocket->lowest_layer().is_open())
             {
-               n = asio::write(*sslsocket, asio::buffer(buffer, buffersize));
+                n = asio::write(*sslsocket, asio::buffer(buffer, buffersize));
             }
             else
             {
@@ -749,7 +759,7 @@ unsigned int client_session::send_writer(const unsigned char *buffer, unsigned i
         {
             if (socket->is_open())
             {
-               n =  asio::write(*socket, asio::buffer(buffer, buffersize));
+                n = asio::write(*socket, asio::buffer(buffer, buffersize));
             }
             else
             {
@@ -767,7 +777,6 @@ unsigned int client_session::send_writer(const unsigned char *buffer, unsigned i
     }
 }
 
-
 void client_session::waituphttp2()
 {
     try
@@ -780,11 +789,11 @@ void client_session::waituphttp2()
             user_code_handler_call.pop_front();
             lk.unlock();
             asio::dispatch(strand_,
-                           [handler =std::move(handle) ]() mutable -> void
+                           [handler = std::move(handle)]() mutable -> void
                            {
                                handler(1);
                            });
-            
+
             DEBUG_LOG("peer_session user_code_handler_call return");
         }
         else
@@ -834,7 +843,7 @@ asio::awaitable<unsigned int> client_session::async_send_writer(const unsigned c
         {
             if (sslsocket->lowest_layer().is_open())
             {
-               n =  co_await asio::async_write(*sslsocket, asio::buffer(buffer, buffersize), asio::use_awaitable);
+                n = co_await asio::async_write(*sslsocket, asio::buffer(buffer, buffersize), asio::use_awaitable);
             }
             else
             {
@@ -843,15 +852,14 @@ asio::awaitable<unsigned int> client_session::async_send_writer(const unsigned c
         }
         else
         {
-            if(socket->is_open())
+            if (socket->is_open())
             {
-               n =  co_await asio::async_write(*socket, asio::buffer(buffer, buffersize), asio::use_awaitable);
+                n = co_await asio::async_write(*socket, asio::buffer(buffer, buffersize), asio::use_awaitable);
             }
             else
             {
                 isclose = true;
             }
-            
         }
         co_return n;
     }
@@ -865,7 +873,7 @@ asio::awaitable<unsigned int> client_session::async_send_writer(const unsigned c
 
 asio::awaitable<unsigned int> client_session::async_send_writer(std::string_view msg)
 {
-    auto self = shared_from_this(); 
+    auto self = shared_from_this();
     if (isclose)
     {
         co_return 0;
@@ -881,7 +889,7 @@ asio::awaitable<unsigned int> client_session::async_send_writer(std::string_view
         {
             if (sslsocket->lowest_layer().is_open())
             {
-               n = co_await asio::async_write(*sslsocket, asio::buffer(msg), asio::use_awaitable);
+                n = co_await asio::async_write(*sslsocket, asio::buffer(msg), asio::use_awaitable);
             }
             else
             {
@@ -890,9 +898,9 @@ asio::awaitable<unsigned int> client_session::async_send_writer(std::string_view
         }
         else
         {
-            if(socket->is_open())
+            if (socket->is_open())
             {
-               n = co_await asio::async_write(*socket, asio::buffer(msg), asio::use_awaitable);
+                n = co_await asio::async_write(*socket, asio::buffer(msg), asio::use_awaitable);
             }
             else
             {
@@ -912,7 +920,7 @@ asio::awaitable<unsigned int> client_session::async_send_writer(std::string_view
 
 asio::awaitable<unsigned int> client_session::async_send_writer(const std::string &msg)
 {
-    auto self = shared_from_this(); 
+    auto self = shared_from_this();
     if (isclose)
     {
         co_return 0;
@@ -928,7 +936,7 @@ asio::awaitable<unsigned int> client_session::async_send_writer(const std::strin
         {
             if (sslsocket->lowest_layer().is_open())
             {
-               n = co_await asio::async_write(*sslsocket, asio::buffer(msg), asio::use_awaitable);
+                n = co_await asio::async_write(*sslsocket, asio::buffer(msg), asio::use_awaitable);
             }
             else
             {
@@ -937,9 +945,9 @@ asio::awaitable<unsigned int> client_session::async_send_writer(const std::strin
         }
         else
         {
-            if(socket->is_open())
+            if (socket->is_open())
             {
-               n = co_await asio::async_write(*socket, asio::buffer(msg), asio::use_awaitable);
+                n = co_await asio::async_write(*socket, asio::buffer(msg), asio::use_awaitable);
             }
             else
             {
@@ -995,25 +1003,26 @@ asio::awaitable<std::string> client_session::async_stop()
             if (sslsocket->lowest_layer().is_open())
             {
                 sslsocket->lowest_layer().cancel(ec_a);
-                if(ec_a)
+                if (ec_a)
                 {
-                    temp_msg =temp_msg + ec_a.message();
+                    temp_msg = temp_msg + ec_a.message();
                 }
-                
-                if(!half_close)
+
+                if (!half_close)
                 {
                     half_close = true;
-                    temp_msg = temp_msg + " SSL_Shutdown next time";
+                    temp_msg   = temp_msg + " SSL_Shutdown next time";
                     temp_msg.append("\n");
                     co_return temp_msg;
                 }
-                
 
                 asio::error_code shutdown_ec;
-                try {
+                try
+                {
                     co_await sslsocket->async_shutdown(asio::redirect_error(asio::use_awaitable, shutdown_ec));
-                } catch (...) {
-
+                }
+                catch (...)
+                {
                 }
 
                 if (shutdown_ec)
@@ -1025,44 +1034,44 @@ asio::awaitable<std::string> client_session::async_stop()
                     temp_msg = temp_msg + " SSL_Shutdown end time";
                 }
                 sslsocket->lowest_layer().close(ec_a);
-                if(ec_a)
+                if (ec_a)
                 {
-                    temp_msg =temp_msg + ec_a.message();
+                    temp_msg = temp_msg + ec_a.message();
                 }
             }
         }
         else
         {
-            if(socket->is_open())
+            if (socket->is_open())
             {
                 socket->cancel(ec_a);
-                if(ec_a)
+                if (ec_a)
                 {
-                    temp_msg =temp_msg + ec_a.message();
+                    temp_msg = temp_msg + ec_a.message();
                 }
                 socket->close(ec_a);
-                if(ec_a)
+                if (ec_a)
                 {
-                    temp_msg =temp_msg + ec_a.message();
+                    temp_msg = temp_msg + ec_a.message();
                 }
             }
         }
     }
-    catch (const std::system_error& e) 
+    catch (const std::system_error &e)
     {
-        iserror = true;
-        temp_msg =temp_msg + e.what();
+        iserror  = true;
+        temp_msg = temp_msg + e.what();
     }
     catch (std::exception &e)
     {
-        temp_msg =temp_msg + e.what();
-        iserror = true;
+        temp_msg = temp_msg + e.what();
+        iserror  = true;
     }
     catch (...)
     {
         DEBUG_LOG("socket exp ");
-        temp_msg =temp_msg + " exception ";
-        iserror = true;
+        temp_msg = temp_msg + " exception ";
+        iserror  = true;
     }
     temp_msg.append("\n");
     co_return temp_msg;
@@ -1085,7 +1094,7 @@ void client_session::stop()
                 sslsocket->lowest_layer().cancel(ec_b);
                 sslsocket->lowest_layer().close(ec_b);
             }
-            if(ec_b)
+            if (ec_b)
             {
                 iserror = true;
                 return;
@@ -1093,19 +1102,19 @@ void client_session::stop()
         }
         else
         {
-            if(socket->is_open())
+            if (socket->is_open())
             {
                 socket->cancel(ec_b);
                 socket->close(ec_b);
             }
-            if(ec_b)
+            if (ec_b)
             {
                 iserror = true;
                 return;
             }
         }
     }
-    catch (const std::system_error& e) 
+    catch (const std::system_error &e)
     {
         iserror = true;
     }
@@ -1122,7 +1131,7 @@ void client_session::stop()
 
 std::string client_session::getremoteip()
 {
-    if(client_ip.size() > 2)
+    if (client_ip.size() > 2)
     {
         return client_ip;
     }
@@ -1141,8 +1150,8 @@ std::string client_session::getremoteip()
     }
     if (ec)
     {
-        iserror = true;
-        isclose = true;
+        iserror   = true;
+        isclose   = true;
         client_ip = ec.message();
 
         if (isssl)
@@ -1155,7 +1164,7 @@ std::string client_session::getremoteip()
         }
         else
         {
-            if(socket->is_open())
+            if (socket->is_open())
             {
                 socket->cancel(ec);
                 socket->close(ec);
@@ -1165,27 +1174,29 @@ std::string client_session::getremoteip()
         return "";
     }
     asio::ip::address addr = ep.address();
-    if (addr.is_v6()) 
+    if (addr.is_v6())
     {
         auto v6_addr = addr.to_v6();
-        if (v6_addr.is_v4_mapped()) 
+        if (v6_addr.is_v4_mapped())
         {
             client_ip = asio::ip::make_address_v4(asio::ip::v4_mapped, v6_addr).to_string();
-        } else {
+        }
+        else
+        {
             client_ip = v6_addr.to_string();
         }
-    } 
-    else if (addr.is_v4()) 
+    }
+    else if (addr.is_v4())
     {
         client_ip = addr.to_v4().to_string();
-    }          
-    
+    }
+
     return client_ip;
 }
 
 unsigned int client_session::getremoteport()
 {
-    if(client_port > 1)
+    if (client_port > 1)
     {
         return client_port;
     }
@@ -1202,11 +1213,11 @@ unsigned int client_session::getremoteport()
     {
         ep = socket->remote_endpoint(ec);
     }
-    
+
     if (ec)
     {
-        iserror = true;
-        isclose = true;
+        iserror   = true;
+        isclose   = true;
         client_ip = ec.message();
 
         if (isssl)
@@ -1219,7 +1230,7 @@ unsigned int client_session::getremoteport()
         }
         else
         {
-            if(socket->is_open())
+            if (socket->is_open())
             {
                 socket->cancel(ec);
                 socket->close(ec);
@@ -1263,7 +1274,7 @@ std::string client_session::getlocalip()
         }
         else
         {
-            if(socket->is_open())
+            if (socket->is_open())
             {
                 socket->cancel(ec);
                 socket->close(ec);
@@ -1309,7 +1320,7 @@ unsigned int client_session::getlocalport()
         }
         else
         {
-            if(socket->is_open())
+            if (socket->is_open())
             {
                 socket->cancel(ec);
                 socket->close(ec);
@@ -1322,7 +1333,6 @@ unsigned int client_session::getlocalport()
     return server_port;
 }
 
-
 bool client_session::post_write(std::string_view msg)
 {
     if (isclose || iserror || !http2_ring_queue)
@@ -1334,15 +1344,18 @@ bool client_session::post_write(std::string_view msg)
     unsigned int backlog_cnt   = http2_ring_queue->has_size();
     if (backlog_cnt + 1 >= http2_ring_queue->capacity_)
     {
+        http2_ring_overflow_count.fetch_add(1, std::memory_order_relaxed);
         return false;
     }
     if (backlog > 0 && backlog + msg.size() > MQTT_SEND_RING_BYTE_LIMIT)
     {
+        http2_ring_overflow_count.fetch_add(1, std::memory_order_relaxed);
         return false;
     }
     if (!http2_ring_queue->push(reinterpret_cast<const unsigned char *>(msg.data()),
                                 static_cast<unsigned int>(msg.size())))
     {
+        http2_ring_overflow_count.fetch_add(1, std::memory_order_relaxed);
         return false;
     }
     http2_ring_queue->bytes.fetch_add(msg.size(), std::memory_order_relaxed);
@@ -1355,7 +1368,8 @@ bool client_session::post_write(std::string_view msg)
 
 bool client_session::post_write(const unsigned char *buf, unsigned int len)
 {
-    if (isclose || iserror || !buf) return false;
+    if (isclose || iserror || !buf)
+        return false;
     return post_write(std::string_view(reinterpret_cast<const char *>(buf), len));
 }
 

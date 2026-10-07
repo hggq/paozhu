@@ -7,8 +7,7 @@ namespace http
 namespace ws
 {
 
-bool post_send_frame(client_session &session, opcode op, std::string_view payload, bool fin,
-                     unsigned char rsv)
+bool post_send_frame(client_session &session, opcode op, std::string_view payload, bool fin, unsigned char rsv)
 {
     if (session.isclose || session.iserror)
         return false;

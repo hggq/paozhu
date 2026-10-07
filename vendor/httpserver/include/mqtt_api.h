@@ -64,6 +64,12 @@ class mqtt_api : public std::enable_shared_from_this<mqtt_api>
     // 设备身份不用参数传：实现方读自己的 client_info_（client_id/reg_key/group/device）。
     // 返回 false → 该 filter 的 SUBACK 回 not_authorized(0x87)，不写入 broker 订阅表，
     //              也不给它投 retained
+    // 抛出与 return false 同果：框架按"业务没给出结论"处理，照样回 0x87、照样不投递，
+    // 连接照常留着，只在错误日志里记一行归因。同步版由业务线程池那层捕获，
+    // 协程版在本连接的协程里捕获——异常都不会掀掉整条连接。
+    // 同步版还多一种"钩子根本没跑"：线程池不接单（关池窗口或测试钩子）同样落成 false、
+    // 同样回 0x87，所以报文上分不清"业务回绝"和"池没接单"。那一种要看 /fx/lane/read
+    // 的 sync_dropped 增量；它的后果是这条报文终态丢掉——0x87 客户端不会重发。
     virtual bool on_can_subscribe(std::string_view topic_filter, uint8_t qos)
     {
         (void)topic_filter;
@@ -138,8 +144,8 @@ class mqtt_api : public std::enable_shared_from_this<mqtt_api>
     //          须在 on_connect（首次 tick 扫描之前）置数，否则会以 0 被摘除。
     // 同步版 run_loop() 跑在 tick 线程：只许调用 broker_publish / broker_subscribe /
     // close 这类线程安全出口（最终走带锁发送环），不得触碰会话读缓冲与协议状态。
-    bool isloopco = false;
-    unsigned int durtime = 8;
+    bool isloopco         = false;
+    unsigned int durtime  = 8;
     unsigned int loop_num = 0;
     virtual void run_loop() {}
     virtual asio::awaitable<void> async_run_loop() { co_return; }
@@ -182,7 +188,7 @@ class mqtt_api : public std::enable_shared_from_this<mqtt_api>
     {
         mqtt_publish_info pub;
         pub.topic.assign(topic);
-        pub.payload = std::make_shared<std::string>(payload);
+        pub.payload     = std::make_shared<std::string>(payload);
         pub.qos         = qos;
         pub.retain      = retain;
         pub.received_at = mqtt_detail::now_monotonic_sec();
@@ -206,7 +212,7 @@ class mqtt_api : public std::enable_shared_from_this<mqtt_api>
         }
     }
 
-    // 底层传输连接（tick 侧取 strand / 判活用；未建会话时为空）
+    // 底层传输连接（tick 侧取 strand / 存活检查用；未建会话时为空）
     std::shared_ptr<client_session> transport() const
     {
         return session_ ? session_->transport() : nullptr;
@@ -263,7 +269,7 @@ inline bool mqtt_api::publish_impl(const mqtt_publish_info &pub,
     {
         // payload 为空表示清除该 topic 的 retained 消息。
         // 返回 false = retained 库配额已满而拒绝落库 → 调用方用 0x97 回 PUBACK/PUBCOMP，
-        // 不再像以前那样静默丢弃却回 success。
+        // 不会静默丢弃却回 success。
         return mqtt_broker::instance().retain(pub, now_sec);
     }
     return true;

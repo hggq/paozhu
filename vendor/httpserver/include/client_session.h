@@ -85,9 +85,10 @@ class client_session : public std::enable_shared_from_this<client_session>
     // 数据进本连接发送环，由 ring_client_server 消费者协程串行写出。
     // 返回 false = 数据被丢弃：连接已关闭 / 未分配发送环 / 环满（16 槽）/
     // 积压字节过 MQTT_SEND_RING_BYTE_LIMIT（环空时单帧不受闸）。调用方必须检查。
+    // 其中"环满 / 积压过闸"那几次会累加进 http2_ring_overflow_count；
+    // 连接已关或未分配环那一类不算背压，不计数。
     bool post_write(std::string_view msg);
     bool post_write(const unsigned char *, unsigned int);
-
 
     bool isopensocket();
     std::shared_ptr<client_session> get_ptr();
@@ -166,7 +167,7 @@ class client_session : public std::enable_shared_from_this<client_session>
     std::unique_ptr<asio::ssl::stream<asio::ip::tcp::socket>> sslsocket = nullptr;
     asio::strand<asio::io_context::executor_type> strand_;
 
-    std::atomic<unsigned int> last_time_interval          = 0;
+    std::atomic<unsigned int> last_time_interval = 0;
     // 发送侧流控窗口：拆成「连接级 + 每流」两套记账，与接收侧
     // conn_recv_window_num / stream_recv_window 对称。两套的口径**不同**，别混用：
     //   window_update_num      连接级「累计授予额」，初值 RFC 9113 默认 65535，
@@ -177,32 +178,43 @@ class client_session : public std::enable_shared_from_this<client_session>
     //                          初值取对端 SETTINGS_INITIAL_WINDOW_SIZE。
     //   remote_initial_window_size  对端 SETTINGS_INITIAL_WINDOW_SIZE，新流首次
     //                          发送/首次收到该流 WINDOW_UPDATE 时据此懒初始化。
-    std::atomic<unsigned long long> window_update_num     = 65535;
-    std::atomic<unsigned long long> has_send_update_num   = 0;
-    std::atomic<unsigned int> remote_initial_window_size  = 65535;
+    // 头两个还借给 websocket 用一次：client_websocket_loop 从 URL 里取出两个数字段，
+    // 先各自清零、逐位拼好，交给注册工厂当 (myid, groupid)，交完再清一次。
+    // 借得干净的前提是两条路不重叠——websocket 只从 HTTP/1.1 升级进来，同一条连接不会
+    // 既走 http2 流控又走这段解析，所以谁也不会读到对方留下的数；反过来说，
+    // websocket 连接上这两个数不是窗口额度，是 URL 参数（收尾时被清回 0）。
+    std::atomic<unsigned long long> window_update_num    = 65535;
+    std::atomic<unsigned long long> has_send_update_num  = 0;
+    std::atomic<unsigned int> remote_initial_window_size = 65535;
     // 对端 SETTINGS_MAX_FRAME_SIZE（RFC 9113 §6.5.2，合法区间 [16384, 16777215]，
     // 默认 16384）。发送侧拿它给单帧载荷封顶，超过就是对端必须拒绝的帧。
-    std::atomic<unsigned int> remote_max_frame_size       = 16384;
+    std::atomic<unsigned int> remote_max_frame_size = 16384;
     std::map<unsigned int, unsigned int> stream_send_window;
     std::mutex stream_send_window_mutex;
 
-    // 发送环满（push 返回 false）导致帧未能入队的次数。非零即说明发送侧出现过背压
-    // 并把帧留到下一轮重发，是排查「响应缺洞 / 客户端挂死」的第一手线索。
+    // 发送环满（push 返回 false）导致帧没能入队的次数。非零即说明发送侧出现过背压，
+    // 这一片留在调用方手里等下一轮，是排查「响应缺洞 / 客户端挂死」的第一手线索。
+    // 现在往这一个数里记的有三处，字段名的 http2 是历史遗留，语义已经是
+    // "本连接的发送环拒过多少片"：
+    //   - http2_send_queue_loop 里两处 http2 帧直接 push 被拒；
+    //   - post_write 的三道闸（16 槽满 / 积压过 MQTT_SEND_RING_BYTE_LIMIT / push 失败），
+    //     也就是 websocket_api::send()、mqtt 的出站、socket_api::send() 三条路共用这一个数。
+    //     post_write 最前面那条"连接已关或没环"不算背压，不进这个数。
+    // 这个数目前在哪里打印：http2 连接收尾时的 "http2 ring stats overflow"；原生 socket 收尾时的
+    // "tcp ring close ... refuse="。websocket / mqtt 的连接目前没有落这一行的地方。
     std::atomic<unsigned long long> http2_ring_overflow_count = 0;
-    // 无法重投的控制帧（RST / GOAWAY / WINDOW_UPDATE）被环满丢掉的次数。
+    // 无法重投的控制帧（RST / GOAWAY / WINDOW_UPDATE）被环满丢掉的次数：
+    // http2_send_rst_stream / async_send_goway / send_window_update_conn /
+    // send_window_update_stream 里 push 被拒各加一次。
     // DATA 与收尾帧走重投，不计在这里；两者分开才看得出「背压」与「真丢帧」的差别。
+    // 只有 http2 会话会走到那几个函数，websocket / mqtt / 原生 socket 上它恒为 0。
     std::atomic<unsigned long long> http2_ring_queue_drop_count = 0;
-    // 发送侧看到环里积压超过阈值（16 槽里的 10 槽）而主动让过这一轮的次数。
+    // 发送侧看到环里积压超过阈值（16 槽里的 10 槽）而主动让过这一轮的次数：
+    // http2_send_gate_open 判闸时加一次，http2_send_queue_loop 里让路时再加。
     // 这一支在 push() 之前就 return，所以它不体现在 overflow 里；不单独记的话
     // "环从没满过" 和 "环满了但每次都提前让路" 两种情况读起来一模一样。
+    // 同样是 http2 专用，websocket / mqtt / 原生 socket 上恒为 0。
     std::atomic<unsigned long long> http2_ring_backpressure_count = 0;
-
-    // WebSocket 与原生 socket 从 URL 里取出的两个数字参数，交给各自的注册工厂
-    // （wsreg.find(...)->second(a, b)）。这两格与上面的流控字段毫无关系：
-    // 不能借用连接级发送窗口的两个累计量承载——字段名与语义不符，
-    // 且借用处会把它清零，让「本连接的发送额度」看起来像「还没初始化」。
-    std::atomic<unsigned long long> url_param_a = 0;
-    std::atomic<unsigned long long> url_param_b = 0;
 
     std::mutex http2_loop_send_mutex;
     std::atomic_bool http2_need_wakeup = false;

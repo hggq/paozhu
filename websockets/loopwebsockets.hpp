@@ -12,40 +12,39 @@ namespace http
 class loopwebsockets : public websockets_api
 {
   public:
-
     // isco/isloopco 必须在构造时决定，server.cpp 构造后立即判断
     loopwebsockets(unsigned int m, unsigned int g) : websockets_api(8, m, g, 0)
     {
         // 保持同步版（isco=false → onopen/onmessage 同步分支；isloopco=false → run_loop 被定时线程调用）
-        isco = false;
+        isco     = false;
         isloopco = false;
     }
     ~loopwebsockets() { std::cout << "~loopwebsockets" << std::endl; }
 
   public:
     void onopen() override
-    { 
+    {
         // isco 已由构造函数决定，onopen 不再改
-        loop_num = 8; 
-        std::cout << "onopen" << std::endl; 
+        loop_num = 8;
+        std::cout << "onopen" << std::endl;
     }
 
     asio::awaitable<void> async_onopen() override
-    { 
-        loop_num = 8; 
-        std::cout << "async_onopen" << std::endl; 
+    {
+        loop_num = 8;
+        std::cout << "async_onopen" << std::endl;
         co_return;
     }
 
     void onclose() override
     {
         isclose = true;
-        std::cout << "onclose" << std::endl; 
+        std::cout << "onclose" << std::endl;
     }
 
     asio::awaitable<void> async_onclose() override
-    { 
-        std::cout << "async_onclose" << std::endl; 
+    {
+        std::cout << "async_onclose" << std::endl;
         co_return;
     }
 
@@ -67,7 +66,7 @@ class loopwebsockets : public websockets_api
         }
         else
         {
-            isclose = true;
+            isclose  = true;
             loop_num = 0;
             std::cout << "session_sock is die!" << std::endl;
         }
@@ -88,14 +87,14 @@ class loopwebsockets : public websockets_api
         }
         else
         {
-            isclose = true;
+            isclose  = true;
             loop_num = 0;
             std::cout << "session_sock is die!" << std::endl;
         }
         co_return;
     }
 
-    asio::awaitable<void> async_onmessage(websockets_data_list_t &&msg) override 
+    asio::awaitable<void> async_onmessage(websockets_data_list_t &&msg) override
     {
         auto self = shared_from_this();
         // 统一走 send() → 环
@@ -105,20 +104,23 @@ class loopwebsockets : public websockets_api
     void onmessage() override
     {
         auto self = shared_from_this();
+        // 这里为同步函数，可以循环清空 content_list, 因为是双工收发，注意锁
+        // This is a synchronous function, so content_list can be consumed in a loop.
+        // Since it involves full-duplex transmission and reception, pay attention to locking.
+
         std::unique_lock<std::mutex> lock(content_list_mutex);
-        if(content_list.empty())
+        if (content_list.empty())
         {
             return;
         }
         auto msg = std::move(content_list.front());
         content_list.pop_front();
         lock.unlock();
-        
+
         // 统一走 send() → 环，不再直接 send_writer
         self->send(msg.value);
         return;
     }
- 
 };
 
 }// namespace http

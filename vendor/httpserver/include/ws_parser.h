@@ -25,7 +25,7 @@ namespace ws
 // 控制帧事件（close/ping/pong）
 struct control_event
 {
-    opcode      op;
+    opcode op;
     std::string payload;
 };
 
@@ -33,7 +33,7 @@ struct control_event
 class ws_parser
 {
   public:
-    ws_parser()  = default;
+    ws_parser() = default;
     ~ws_parser();
 
     // 设置限额（取自 common/cost_define.h 编译期常量，调用一次）
@@ -67,28 +67,28 @@ class ws_parser
     // inflate 输出直灌聚合器（解压后字节参与聚合/限额/UTF-8 口径）
     static bool assembler_sink(const unsigned char *out, size_t n, void *ud);
 
-    input_buffer      input_;
-    header_parser     header_parser_;
+    input_buffer input_;
+    header_parser header_parser_;
     message_assembler assembler_;
     permessage_inflate inflator_;
 
     std::vector<websockets_data_list_t> message_queue_;
-    std::vector<control_event>          control_queue_;
+    std::vector<control_event> control_queue_;
 
-    uint64_t        max_frame_payload_ = kDefaultMaxFramePayload;
-    bool            deflate_ext_       = false; // permessage-deflate 已协商
-    bool            msg_deflated_      = false; // 当前消息处于压缩流中
-    bool            error_             = false;
-    unsigned short  error_code_        = 1002;
-    bool            header_complete_   = false;
-    uint64_t        frame_payload_left_ = 0;
-    bool            frame_is_control_  = false;
-    std::string     ctl_payload_;
-    unsigned char   frame_mask_key_[4] = {0, 0, 0, 0};
-    unsigned int    frame_mask_offset_ = 0;
-    size_t          frame_fed_         = 0; // 本帧已喂给聚合/解压的载荷字节（0 字节末分片补冲净用）
-    bool            frame_fin_         = false; // 当前帧 FIN 位（载荷消费段引用）
-    unsigned int    next_seq_id_       = 0;
+    uint64_t max_frame_payload_  = kDefaultMaxFramePayload;
+    bool deflate_ext_            = false;// permessage-deflate 已协商
+    bool msg_deflated_           = false;// 当前消息处于压缩流中
+    bool error_                  = false;
+    unsigned short error_code_   = 1002;
+    bool header_complete_        = false;
+    uint64_t frame_payload_left_ = 0;
+    bool frame_is_control_       = false;
+    std::string ctl_payload_;
+    unsigned char frame_mask_key_[4] = {0, 0, 0, 0};
+    unsigned int frame_mask_offset_  = 0;
+    size_t frame_fed_                = 0;    // 本帧已喂给聚合/解压的载荷字节（0 字节末分片补冲净用）
+    bool frame_fin_                  = false;// 当前帧 FIN 位（载荷消费段引用）
+    unsigned int next_seq_id_        = 0;
 };
 
 }// namespace ws

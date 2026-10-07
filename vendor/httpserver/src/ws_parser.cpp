@@ -37,7 +37,7 @@ bool ws_parser::feed(const unsigned char *data, size_t len)
             if (header_parser_.error())
                 return fail(1002);
             if (!header_parser_.complete())
-                break; // 帧头不完整，等更多数据
+                break;// 帧头不完整，等更多数据
 
             const frame_header &h = header_parser_.header();
 
@@ -74,10 +74,10 @@ bool ws_parser::feed(const unsigned char *data, size_t len)
 
             frame_payload_left_ = h.payload_len;
             std::memcpy(frame_mask_key_, h.mask_key, 4);
-            frame_mask_offset_  = 0;
-            frame_fed_          = 0;
-            frame_fin_          = h.fin;
-            header_complete_    = true;
+            frame_mask_offset_ = 0;
+            frame_fed_         = 0;
+            frame_fin_         = h.fin;
+            header_complete_   = true;
         }
 
         // 消费帧载荷
@@ -90,7 +90,7 @@ bool ws_parser::feed(const unsigned char *data, size_t len)
             size_t take = std::min<uint64_t>(avail, frame_payload_left_);
             // 就地解掩码，滚动索引避免逐字节取模
             unsigned char *p = input_.writable_data();
-            unsigned int   k = frame_mask_offset_ & 3;
+            unsigned int k   = frame_mask_offset_ & 3;
             for (size_t i = 0; i < take; ++i)
             {
                 p[i] = static_cast<unsigned char>(p[i] ^ frame_mask_key_[k]);
@@ -129,7 +129,7 @@ bool ws_parser::feed(const unsigned char *data, size_t len)
                 }
             }
             frame_payload_left_ -= take;
-            frame_fed_          += take;
+            frame_fed_ += take;
             input_.consume(take);
         }
 
@@ -185,13 +185,13 @@ bool ws_parser::feed(const unsigned char *data, size_t len)
                     }
                     message_queue_.push_back(std::move(msg));
                     assembler_.consume_message();
-                    msg_deflated_ = false; // 解压流已在末帧冲净并重置（no-context）
+                    msg_deflated_ = false;// 解压流已在末帧冲净并重置（no-context）
                 }
             }
 
             // 重置帧状态，准备下一帧
             header_parser_.reset();
-            header_complete_ = false;
+            header_complete_    = false;
             frame_payload_left_ = 0;
             frame_is_control_   = false;
         }
@@ -238,13 +238,13 @@ void ws_parser::reset()
     discard_queued_files();
     message_queue_.clear();
     control_queue_.clear();
-    error_             = false;
-    error_code_        = 1002;
-    header_complete_   = false;
+    error_              = false;
+    error_code_         = 1002;
+    header_complete_    = false;
     frame_payload_left_ = 0;
-    frame_is_control_  = false;
-    msg_deflated_      = false;
-    frame_fed_         = 0;
+    frame_is_control_   = false;
+    msg_deflated_       = false;
+    frame_fed_          = 0;
     ctl_payload_.clear();
     frame_mask_offset_ = 0;
     next_seq_id_       = 0;

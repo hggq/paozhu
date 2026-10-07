@@ -7,8 +7,7 @@ namespace http
 namespace ws
 {
 
-bool validate(const websocket_t &ws, bool has_upgrade, bool has_connection_upgrade,
-              unsigned char method)
+bool validate(const websocket_t &ws, bool has_upgrade, bool has_connection_upgrade, unsigned char method)
 {
     // 必须是 GET 请求
     if (method != static_cast<unsigned char>(HEAD_METHOD::GET))
@@ -35,7 +34,8 @@ std::string compute_accept_key(std::string_view client_key)
 
     unsigned char digest[SHA_DIGEST_LENGTH];
     SHA1(reinterpret_cast<const unsigned char *>(server_key.c_str()),
-         server_key.length(), digest);
+         server_key.length(),
+         digest);
 
     return base64_encode(reinterpret_cast<char *>(digest), SHA_DIGEST_LENGTH, false);
 }

@@ -39,7 +39,9 @@ struct http2_send_data_t
     // 回灌前必须先把对象从线程链表摘除：同一条流被两个线程各发一轮 = 比超发更糟的错误。
     std::atomic<unsigned char> own_state = 0;
     // 最近一轮被闸门挡住的原因：0 未被挡 / 1 发送窗口见底 / 2 发送环腾不出槽位。
-    // 发送线程据此决定「挂起等事件」还是「下一轮再来」，两者都不会丢内容。
+    // 挡住时一律 park 进 parked_list 等事件边回灌，没有「留在链表里逐轮复查」的路径。
+    // Why it's here: every gate path writes a reason code so parked-table sweeps know which
+    // 闸门挡住的，方便排查；not a switch-case for different retry strategies — those don't exist.
     std::atomic<unsigned char> block_reason = 0;
 
     // 本轮最后一次真正推进偏移的时刻。分片节奏由发送额度决定，这里只留一个用途：

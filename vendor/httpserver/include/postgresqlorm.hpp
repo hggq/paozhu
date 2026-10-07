@@ -8888,7 +8888,7 @@ namespace orm
             }
             return sqlstring;
         }
-        
+
         // PG 专用：在 INSERT 后追加 RETURNING <pk>，供 db_conn::insert_query() 回读自增主键。
         // MySQL/SQLite 不支持 RETURNING，对应方言请直接用 commit_insert()（自增 id 来自连接隐式状态）。
         std::string commit_insert(typename B_BASE::meta &insert_data)
@@ -9319,7 +9319,7 @@ namespace orm
             out.append(std::to_string(++n));
         }
 
-        // --- 自增主键列本轮是否发 DEFAULT ---
+        // --- 自增主键列插入时是否发 DEFAULT ---
         // SERIAL/BIGSERIAL 只是带 nextval 默认值的整数列，显式绑定 0 会把 0 当成给定主键写入
         // （第二次插入即主键冲突），因此值为 0 时交给序列取值。
         // 与文本路径 make_data_insert_sql 的 `if(data.xx==0) ... DEFAULT` 分支同构。
@@ -10355,7 +10355,7 @@ namespace orm
                                                              assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
                                                          }
                                                          effect_num = 1;
-                                                         return false; // 只取一行
+                                                         return false;// 只取一行
                                                      });
 
             if (conn->isdebug)
@@ -10407,7 +10407,7 @@ namespace orm
                                                                         {
                                                                             if (col_names[ij] == nullptr || col_names[ij][0] == '\0')
                                                                                 continue;
-                                                                            auto [ptr, len] = get_data(ij);
+                                                                            auto [ptr, len]   = get_data(ij);
                                                                             unsigned char pos = B_BASE::findcolpos(col_names[ij]);
                                                                             if (ptr == nullptr)
                                                                             {
@@ -10418,7 +10418,7 @@ namespace orm
                                                                             assign_field_value(pos, ptr, len, B_BASE::data);
                                                                         }
                                                                         effect_num = 1;
-                                                                        return false; // 只取一行
+                                                                        return false;// 只取一行
                                                                     });
 
             if (conn->isdebug)
@@ -10985,7 +10985,7 @@ namespace orm
             // 两者皆无时拒绝发出语句（与 exec_remove 的守卫同构）。
             if (where_clause.empty())
             {
-                sqlstring = "exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                sqlstring = "exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition, refusing to execute";
                 error_msg = sqlstring;
                 iserror   = true;
                 return (unsigned int)-1;
@@ -11057,7 +11057,7 @@ namespace orm
             // 两者皆无时拒绝发出语句（与 async_exec_remove 的守卫同构）。
             if (where_clause.empty())
             {
-                sqlstring = "async_exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                sqlstring = "async_exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition, refusing to execute";
                 error_msg = sqlstring;
                 iserror   = true;
                 co_return (unsigned int) - 1;
@@ -11165,7 +11165,7 @@ namespace orm
             // 两者皆无时拒绝发出语句（与 exec_remove 的守卫同构）。
             if (where_clause.empty())
             {
-                sqlstring = "exec_update_dirty: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                sqlstring = "exec_update_dirty: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition, refusing to execute";
                 error_msg = sqlstring;
                 iserror   = true;
                 return (unsigned int)-1;
@@ -11240,7 +11240,7 @@ namespace orm
             // 两者皆无时拒绝发出语句（与 exec_remove 的守卫同构）。
             if (where_clause.empty())
             {
-                sqlstring = "async_exec_update_dirty: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                sqlstring = "async_exec_update_dirty: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition, refusing to execute";
                 error_msg = sqlstring;
                 iserror   = true;
                 co_return (unsigned int) - 1;
@@ -11326,7 +11326,7 @@ namespace orm
             // 两者皆无时拒绝发出语句（与 exec_remove 的守卫同构）。
             if (where_clause.empty())
             {
-                sqlstring = "exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                sqlstring = "exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition, refusing to execute";
                 error_msg = sqlstring;
                 iserror   = true;
                 return (unsigned int)-1;
@@ -11404,7 +11404,7 @@ namespace orm
             // 两者皆无时拒绝发出语句（与 async_exec_remove 的守卫同构）。
             if (where_clause.empty())
             {
-                sqlstring = "async_exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                sqlstring = "async_exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition, refusing to execute";
                 error_msg = sqlstring;
                 iserror   = true;
                 co_return (unsigned int) - 1;
@@ -11503,7 +11503,7 @@ namespace orm
             // 两者皆无时拒绝发出语句（与 exec_remove 的守卫同构）。
             if (where_clause.empty())
             {
-                sqlstring = "exec_update_fields: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                sqlstring = "exec_update_fields: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition, refusing to execute";
                 error_msg = sqlstring;
                 iserror   = true;
                 return (unsigned int)-1;
@@ -11549,7 +11549,7 @@ namespace orm
             // 拒绝发出语句（与文本路径 build_remove_sql 的"返回空串"约定同构）。
             if (where_clause.empty())
             {
-                sqlstring = "exec_remove: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                sqlstring = "exec_remove: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition, refusing to execute";
                 error_msg = sqlstring;
                 iserror   = true;
                 return (unsigned int)-1;
@@ -11598,7 +11598,7 @@ namespace orm
             // 拒绝发出语句（与同步 exec_remove 的守卫同构）。
             if (where_clause.empty())
             {
-                sqlstring = "async_exec_remove: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                sqlstring = "async_exec_remove: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition, refusing to execute";
                 error_msg = sqlstring;
                 iserror   = true;
                 co_return (unsigned int) - 1;

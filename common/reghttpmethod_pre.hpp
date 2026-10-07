@@ -3,28 +3,18 @@
 
 #if defined(_MSC_VER) && (_MSC_VER >= 1200)
 #pragma once
-#endif // defined(_MSC_VER) && (_MSC_VER >= 1200)
+#endif
 
 #include "httppeer.h"
 #include "testcookie.h"
 #include "testlogin.h"
 namespace http
 {
-  void _inithttpmethodregto_pre(std::map<std::string, regmethold_t> &methodcallback)
-  {
-    struct regmethold_t temp;
-    temp.pre = testlogin;
-
-    temp.regfun = testaddcookie;
-    methodcallback.emplace("addcookie", temp);
-
-    temp.regfun = testshowcookie;
-    methodcallback.emplace("showcookie", temp);
-
-    //temp.pre = adminlogin;
-    //temp.regfun = adminmar;
-    //methodcallback.emplace("adminmar", temp);
-  }
+inline void _inithttpmethodregto_pre()
+{
+    REG_SYNC_SYNC("", "addcookie",  testlogin, testaddcookie);
+    REG_SYNC_SYNC("", "showcookie", testlogin, testshowcookie);
+}
 
 }
 #endif

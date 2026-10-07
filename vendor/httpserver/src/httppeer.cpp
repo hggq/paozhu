@@ -42,6 +42,7 @@
 #include "client_session.h"
 #include "viewso_param.h"
 #include "httppeer.h"
+#include "router.h"
 #include "serverconfig.h"
 #include "http2_frame.h"
 #include "http2_huffman.h"
@@ -61,12 +62,150 @@
 namespace http
 {
 
-std::map<std::string, regmethold_t> _http_regmethod_table;
-std::map<std::string, regmethold_co_t> _co_http_regmethod_table;
-std::map<std::string, std::vector<std::string>> _http_regurlpath_table;
-std::map<std::string, std::map<std::string, regmethold_t>> _domain_regmethod_table;
-std::map<std::string, std::map<std::string, regmethold_co_t>> _co_domain_regmethod_table;
-std::map<std::string, std::map<std::string, std::vector<std::string>>> _domain_regurlpath_table;
+// — v6 router —
+std::vector<reg_methold_mid_t> _handlers;
+std::vector<SiteSlot> _slots;
+std::map<unsigned int, std::vector<std::string>> _urlpath_map;
+std::map<std::string, unsigned int> _site_to_slot;
+unsigned int _route_reg_dropped = 0;
+unsigned int _route_reg_dup     = 0;
+
+// — v6 helper —
+// router 自己分配 slot_id，serverconfig 只管 host_toint（真实请求域名 → host_index）
+// 初始化顺序：init_path() 先读 conf → router_init_sites() 再分配 slot
+// alias_domain 语义：多个真实域名（mainhost）统一归属到一个注册标识，不受域名影响
+// 因此 slot_id 按 alias_domain（有就用 alias_domain，没就用 mainhost）做唯一分组分配
+void router_init_sites()
+{
+    auto &cfg = getserversysconfig();
+
+    // 0 号 slot 固定是全局兜底
+    _site_to_slot.clear();
+    _site_to_slot[""]  = 0;
+    _site_to_slot["*"] = 0;
+
+    // 先收集所有 "site key"（alias_domain 优先，没有用 mainhost）
+    // 按出现顺序去重，第一个 key 固定 slot 1
+    std::vector<std::string> unique_keys;
+    unique_keys.reserve(cfg.sitehostinfos.size());
+    for (auto const &info : cfg.sitehostinfos)
+    {
+        std::string key = info.alias_domain.empty() ? info.mainhost : info.alias_domain;
+        if (key.empty())
+            continue;
+        if (_site_to_slot.find(key) == _site_to_slot.end())
+        {
+            unsigned int slot  = unique_keys.size() + 1;// 从 1 开始，0 留给全局
+            _site_to_slot[key] = slot;
+            unique_keys.push_back(key);
+        }
+    }
+
+    _slots.resize(unique_keys.size() + 1);// slot 0 (global) + unique_keys
+
+    // 把 slot_id 写回每个 host_index 对应的 sitehostinfo
+    for (unsigned int i = 0; i < cfg.sitehostinfos.size(); ++i)
+    {
+        auto const &info             = cfg.sitehostinfos[i];
+        std::string key              = info.alias_domain.empty() ? info.mainhost : info.alias_domain;
+        auto it                      = _site_to_slot.find(key);
+        cfg.sitehostinfos[i].slot_id = (it != _site_to_slot.end()) ? it->second : 0;
+    }
+}
+
+// 未知 site 返回 -1，由 reg_add 决定丢弃：静默落进 slot 0 会把只有某个站点配的
+// 路由暴露给所有 vhost，还会顶掉同名全局路由
+int site_to_slot(const std::string &site)
+{
+    if (site.empty())
+        return 0;
+    auto it = _site_to_slot.find(site);
+    if (it != _site_to_slot.end())
+        return static_cast<int>(it->second);
+    return -1;
+}
+
+// 注册表的键一律以 '/' 开头。@urlpath 生成口已经强制前置（autopickmethod.cpp 的二次规范化），
+// 手写 REG_* 口没有；而 URL 面查表按原样匹配、不给请求路径补斜杠（见 router::lookup_exact 的注释），
+// 所以漏一个斜杠的那条注册打不到，只会静默 404。两个入口（reg_add 写表、reg_urlpath 按键回查）
+// 必须走同一个规范化，否则混着写的时候参数名表会挂不上。
+// 空串原样留着：请求 "/" 组装出的 urlpath 就是空串，注册 "" 是给站点根用的。
+static std::string norm_route_key(const std::string &path)
+{
+    if (path.empty() || path[0] == '/')
+        return path;
+    return "/" + path;
+}
+
+unsigned int reg_add(const std::string &site, const std::string &path, reg_methold_mid_t &&entry)
+{
+    std::string key = norm_route_key(path);
+    int slot        = site_to_slot(site);
+    if (slot < 0 || static_cast<size_t>(slot) >= _slots.size())
+    {
+        ++_route_reg_dropped;
+        // stderr 而不是 DEBUG_LOG：这条是「你 conf 里没有这个站点段」的部署诊断，
+        // Release 也要看得见，且 stdout 重定向到文件时是块缓冲，启动期这几行会压在缓冲区里
+        fprintf(stderr, "[ROUTE-WARN] reg site not in conf, route dropped:site=%s path=%s reg@%s:%u\n", site.c_str(), key.c_str(), entry.reg_file, entry.reg_line);
+        return (unsigned int)-1;
+    }
+    unsigned int idx = (unsigned int)_handlers.size();
+    auto &tbl        = _slots[static_cast<size_t>(slot)].path_map;
+    auto ins         = tbl.emplace(key, idx);
+    if (!ins.second)
+    {
+        // 重名：先 emplace 探测、失败就不 push —— 这样不会产生「挂在 _handlers 里却没任何
+        // path_map 指向」的孤儿 entry（那种 entry 会让 routes_text() 末尾的 handlers N 大于真实
+        // 路由数 total，排查时误读为「有路由没挂上」）。
+        auto const &kept = _handlers[ins.first->second];
+        ++_route_reg_dup;
+        fprintf(stderr, "[ROUTE-WARN] duplicate route name kept first:slot=%d path=%s keep reg@%s:%u drop reg@%s:%u\n", slot, key.c_str(), kept.reg_file, kept.reg_line, entry.reg_file, entry.reg_line);
+        return ins.first->second;
+    }
+    _handlers.push_back(std::move(entry));
+    return idx;
+}
+
+// 同名路径的重复注册只留下第一条 handler（见 reg_add），但两条注解的参数名表都会走到这里：
+// 后一份属于被丢弃的那条注解，覆盖进去就让存活的 handler 按错名字填参，所以只认第一次
+static void set_urlpath_once(unsigned int idx, std::vector<std::string> &&names, const std::string &site, const std::string &path)
+{
+    auto ins = _urlpath_map.emplace(idx, std::move(names));
+    if (!ins.second)
+    {
+        fprintf(stderr, "[ROUTE-WARN] duplicate urlpath name table kept first:idx=%u site=%s path=%s\n", idx, site.c_str(), path.c_str());
+    }
+}
+
+void reg_urlpath(unsigned int idx, std::vector<std::string> names)
+{
+    if (names.empty())
+        return;
+    set_urlpath_once(idx, std::move(names), "", "");
+}
+void reg_urlpath(const std::string &site, const std::string &path, std::vector<std::string> names)
+{
+    if (names.empty())
+        return;
+    // 与 reg_add 同一个规范化：这里按 path 文本回查刚写进去的键，两边拼写不一致就静默挂不上参数名表
+    std::string key = norm_route_key(path);
+    int slot        = site_to_slot(site);
+    if (slot < 0 || static_cast<size_t>(slot) >= _slots.size())
+        return;// reg_add 已为这条报过警
+
+    auto &tbl = _slots[static_cast<size_t>(slot)].path_map;
+    auto it   = tbl.find(key);
+    if (it == tbl.end() && slot != 0)
+    {
+        auto &global = _slots[0].path_map;
+        auto git     = global.find(key);
+        if (git != global.end())
+            set_urlpath_once(git->second, std::move(names), site, key);
+        return;
+    }
+    if (it != tbl.end())
+        set_urlpath_once(it->second, std::move(names), site, key);
+}
 void make_404_content(std::shared_ptr<httppeer> peer)
 {
     peer->output = "<h3>404 Not Found</h3>";
@@ -92,14 +231,8 @@ unsigned char httppeer::add_timeloop_task(const std::string &path_method, unsign
     linktype      = 7;
     timeloop_num  = count_id;
     timecount_num = 1;
-    if (pathinfos.size() == 0)
-    {
-        pathinfos.push_back(path_method);
-    }
-    else
-    {
-        pathinfos[0] = path_method;
-    }
+    // 任务名不再写进 pathinfos：那是解析器每个请求重填的路由段表（见头文件里的说明）
+    timeloop_taskname        = path_method;
     std::string temptaskhash = path_method;
     temptaskhash.append(url);
     std::size_t temp_name_id = std::hash<std::string>{}(temptaskhash);
@@ -138,6 +271,10 @@ void httppeer::parse_session_file(const std::string &sessionfile)
     std::string root_path, temp_session_file;
     server_loaclvar &localvar = get_server_global_var();
     root_path                 = localvar.temp_path;
+    if (root_path.size() > 0 && root_path.back() != '/')
+    {
+        root_path.push_back('/');
+    }
     //sessionfile.append("_sess");
     for (unsigned int i = 0; i < sessionfile.size(); i++)
     {
@@ -681,7 +818,7 @@ void httppeer::cors_origin_allow(std::string_view request_origin)
     {
         return;
     }
-    auto &site_info = sysconfigpath.sitehostinfos[host_index];
+    auto &site_info          = sysconfigpath.sitehostinfos[host_index];
     std::string allow_origin = site_info.cors_allow_origin(request_origin);
     if (allow_origin.empty())
     {
@@ -743,263 +880,131 @@ bool httppeer::find_host_index()
     // 挂起分支带 httpv 守卫，h2 走的是当场判定）。
     return found;
 }
-//check filepath is a regular file
-static bool stat_is_regfile(const std::string &filepath)
+// stat_is_regfile 已移到 httppeer.h inline 公共函数 — moved to httppeer.h
+
+// html 缓存过期判定，界值只写这一份（prefetch_routing 的落盘检查和 get_fileinfo 共用）：
+// 开关 usehtmlcache + TTL 下限 10 秒（防 0/1 秒把每个请求都打回动态链）。
+// 两个值按站读：站点段没写就继承 [default]（serverconfig.cpp 的 tempinfo_default）。
+static bool html_cache_expired(const struct stat &st, const site_host_info_t &site)
 {
-    struct stat tempfileinfo;
-    memset(&tempfileinfo, 0, sizeof(tempfileinfo));
-    if (stat(filepath.c_str(), &tempfileinfo) == 0)
-    {
-        return (tempfileinfo.st_mode & S_IFREG) != 0;
-    }
-    return false;
+    return site.is_usehtmlcache && site.usehtmlcachetime > 10 &&
+           site.usehtmlcachetime < (timeid() - (unsigned long)st.st_mtime);
 }
-bool httppeer::isuse_fastcgi()
+
+// 路由预查：带点的 URL 先落盘查一次，再两段查表（原样名 → 去掉扩展名的同名）。
+// 命中返回 handler 下标（>=0），loop 带着它直接进动态链，不必再把同一个 key 查第二遍；
+// 未命中、或盘上那个文件还在有效期内（让位静态文件）都返回 -1。
+// 命中时 pathinfos/urlpath 原地改成注册名，所以返回的下标和 peer->urlpath 始终对得上同一条注册。
+int httppeer::prefetch_routing()
 {
+    // 每一次预查都先清掉上一请求留下的那份 stat（keep-alive 复用同一个 peer）
+    prefetch_statfile.clear();
+    // 与 prefetch_statfile 同节奏复位：route_exact_checked 只在下面「确实查过原样精确表并确认未命中」
+    // 的分支才置 true；空 pathinfos / 先落盘命中 这两个提前返回的出口都保持 false，
+    // 让 resolve_idx 仍走完整查找（那两条出口本来就没做过表查找）。
+    route_exact_checked = false;
+    // 空 pathinfos（urlpath 就是 "/"）让位磁盘：wwwpath 下有没有 index.html 由 get_fileinfo() 判，
+    // 磁盘没有才由动态链尾巴按注册名 "home" 命中；这里提前命中等于把站点首页换成路由
+    if (pathinfos.empty())
+    {
+        return -1;
+    }
+
+    // 第一道：带点的 URL 先看盘。文件还在有效期内就一次表都不查，直接让位 get_fileinfo() 发文件；
+    // 已过期或盘上没有（含目录）才继续查表，命中的注册名走动态链重生成。
+    // sitepath 为空（连 [default] 都没写静态根）时无盘可查；跑分构建（-DENABLE_BENCHMARK=ON）整段不进，
+    // 不背这次 stat：注册路由直接赢。
+#ifndef BENCHMARK
     serverconfig &sysconfigpath = getserversysconfig();
-    auto &hostinfo              = sysconfigpath.sitehostinfos[host_index];
-    compress                    = 0;
-    linktype                    = 0;
-    output.clear();
-    sendfilename.clear();
-    if (hostinfo.isuse_php != 1)
+    site_host_info_t *siteinfo =
+        host_index < sysconfigpath.sitehostinfos.size() ? &sysconfigpath.sitehostinfos[host_index] : nullptr;
+    if (isfile && siteinfo != nullptr && siteinfo->is_usehtmlcache && !sitepath.empty())
     {
-        return false;
+        std::string diskfile = sitepath;
+        if (diskfile.back() != '/')
+        {
+            diskfile.push_back('/');
+        }
+        // urlpath 就是 '/' + join(pathinfos,"/")，所以去头斜杠接在 sitepath 后面 == sendfilename
+        diskfile.append(urlpath, 1, std::string::npos);
+
+        memset(&fileinfo, 0, sizeof(fileinfo));
+        if (stat(diskfile.c_str(), &fileinfo) == 0 && (fileinfo.st_mode & S_IFREG) &&
+            !html_cache_expired(fileinfo, *siteinfo))
+        {
+            prefetch_statfile = diskfile;
+            return -1;
+        }
     }
-    DEBUG_LOG("check php file");
-    if (pathinfos.size() == 0)
+#endif
+
+    int idx = get_router().lookup_key_in_slots(urlpath, host_index);
+    // 置位前已经做过「原样精确」查表：lookup_key_in_slots 内部就是 本域名 slot → 全局 slot 0 的两级回落
+    // （与 resolve_idx 里被跳过的 lookup_exact 完全等价），返回 -1 即"两级都没命中"这一条布尔事实，
+    // 不需要区分落在哪一级——resolve_idx 据此跳过一次重复的两级精确查即可；命中（idx>=0）由 known_idx
+    // 早退接管，不会走到跳过分支。正确性依赖两者始终等价，若要给 lookup_exact 加第三级 slot 需同步处理。
+    route_exact_checked = true;
+    if (idx >= 0)
     {
-        //no url path, if default index not exist try index.php in php root document
-        if (stat_is_regfile(hostinfo.wwwpath + hostinfo.document_index))
-        {
-            return false;
-        }
-        if (hostinfo.php_root_document.size() > 0 && stat_is_regfile(hostinfo.php_root_document + "index.php"))
-        {
-            compress = 10;
-            linktype = 12;
-        }
-        return false;
+        return idx;
     }
-    for (unsigned int i = 0; i < pathinfos.size(); i++)
+    if (!isfile)
     {
-        if (sendfilename.size() > 0)
-        {
-            sendfilename.append("/");
-        }
-        sendfilename.append(pathinfos[i]);
-        unsigned int extfilesize = pathinfos[i].size();
-        if (extfilesize > 4 && pathinfos[i][extfilesize - 1] == 'p' && pathinfos[i][extfilesize - 2] == 'h' &&
-            pathinfos[i][extfilesize - 3] == 'p' && pathinfos[i][extfilesize - 4] == '.')
-        {
-            //xxx.php exist in php root document
-            if (stat_is_regfile(hostinfo.php_root_document + sendfilename))
-            {
-                compress = 10;
-                linktype = (i == 0) ? 10 : (50 + i);
-                DEBUG_LOG("is php file %s", sendfilename.c_str());
-                return true;
-            }
-        }
-        else if (_http_regmethod_table.contains(sendfilename))
-        {
-            //check url path reg points
-            return false;
-        }
+        return -1;
     }
 
-    DEBUG_LOG("check urlpath reg %s", sendfilename.c_str());
-    //whole url path exist in wwwpath: static file or directory
-    struct stat sessfileinfo;
-    std::string tempac = hostinfo.wwwpath + sendfilename;
-    memset(&sessfileinfo, 0, sizeof(sessfileinfo));
-    if (stat(tempac.c_str(), &sessfileinfo) == 0)
+    // 第二道：把最后一段的扩展名去掉再查一次（/about.html ↔ 注册名 /about）
+    auto &last_seg = pathinfos.back();
+    auto dot       = last_seg.find('.');
+    if (dot == std::string::npos || dot == 0)
     {
-        if (sessfileinfo.st_mode & S_IFREG)
-        {
-            return false;
-        }
-        else if (sessfileinfo.st_mode & S_IFDIR)
-        {
-            //directory, try index.php in php root document
-            if (stat_is_regfile(hostinfo.php_root_document + sendfilename + "/index.php"))
-            {
-                compress = 10;
-                linktype = 15;
-                sendfilename.append("/index.php");
-                return true;
-            }
-            return false;
-        }
+        return -1;
     }
-
-    DEBUG_LOG("rewrite_php_lists: %zu", hostinfo.rewrite_php_lists.size());
-    //url path not exist, check php rewrite rules
-    if (hostinfo.rewrite_php_lists.size() > 0)
+    std::string stripped = last_seg.substr(0, dot);
+    std::string orig     = last_seg;
+    auto apply_name      = [&last_seg, this](const std::string &name)
     {
-        unsigned int i = 0;
-        if (hostinfo.rewrite_php_lists[0].first.size() == 0)
+        last_seg   = name;
+        auto slash = urlpath.rfind('/');
+        if (slash != std::string::npos)
         {
-            //empty prefix, default rewrite entry
-            if (stat_is_regfile(hostinfo.php_root_document + hostinfo.rewrite_php_lists[0].second))
-            {
-                compress = 10;
-                linktype = 19;
-                return true;
-            }
-            i = 1;
+            urlpath.resize(slash + 1);
+            urlpath.append(name);
         }
-        for (; i < hostinfo.rewrite_php_lists.size(); i++)
-        {
-            const std::string &rewrite_pre = hostinfo.rewrite_php_lists[i].first;
-            if (rewrite_pre.size() <= sendfilename.size() && sendfilename.compare(0, rewrite_pre.size(), rewrite_pre) == 0)
-            {
-                compress = 10;
-                linktype = 20 + i;
-                return true;
-            }
-        }
+    };
+    apply_name(stripped);
+    idx = get_router().lookup_key_in_slots(urlpath, host_index);
+    if (idx < 0)
+    {
+        // 没命中，恢复带点的原名，磁盘那条路照旧
+        apply_name(orig);
     }
-    return false;
+    return idx;
 }
-unsigned char httppeer::has_urlfileext()
-{
-    if (pathinfos.size() == 0)
-    {
-        sendfilename.clear();
-        return 0;
-    }
-    //last url path has '.' , treat as static file url
-    if (pathinfos.back().find('.') != std::string::npos)
-    {
-        return 1;
-    }
-    //join url paths, check reg points of every parent path
-    sendfilename.clear();
-    serverconfig &sysconfigpath = getserversysconfig();
 
-    for (unsigned int i = 0; i < pathinfos.size(); i++)
-    {
-        if (i > 0)
-        {
-            sendfilename.append("/");
-        }
-        sendfilename.append(pathinfos[i]);
-
-        if (sysconfigpath.sitehostinfos[host_index].alias_domain.size() > 0)
-        {
-            auto iter1 = _domain_regmethod_table.find(sysconfigpath.sitehostinfos[host_index].alias_domain);
-            if (iter1 != _domain_regmethod_table.end())
-            {
-                if (iter1->second.contains(sendfilename))
-                {
-                    return 4;
-                }
-            }
-        }
-        else
-        {
-            auto iter1 = _domain_regmethod_table.find(sysconfigpath.sitehostinfos[host_index].mainhost);
-            if (iter1 != _domain_regmethod_table.end())
-            {
-                if (iter1->second.contains(sendfilename))
-                {
-                    return 4;
-                }
-            }
-        }
-
-        if (sysconfigpath.sitehostinfos[host_index].alias_domain.size() > 0)
-        {
-            auto iter1 = _co_domain_regmethod_table.find(sysconfigpath.sitehostinfos[host_index].alias_domain);
-            if (iter1 != _co_domain_regmethod_table.end())
-            {
-                if (iter1->second.contains(sendfilename))
-                {
-                    return 40;
-                }
-            }
-        }
-        else
-        {
-            auto iter1 = _co_domain_regmethod_table.find(sysconfigpath.sitehostinfos[host_index].mainhost);
-            if (iter1 != _co_domain_regmethod_table.end())
-            {
-                if (iter1->second.contains(sendfilename))
-                {
-                    return 40;
-                }
-            }
-        }
-
-        if (_http_regmethod_table.contains(sendfilename))
-        {
-            return 4;
-        }
-        else if (_co_http_regmethod_table.contains(sendfilename))
-        {
-            return 40;
-        }
-    }
-    if (sendfilename.size() == 0)
-    {
-        return 0;
-    }
-    unsigned char temp = 0;
-    if (_http_regmethod_table.contains(sendfilename) || _co_http_regmethod_table.contains(sendfilename))
-    {
-        temp = 4;
-        //maybe let urlpath functions read index.html filetime
-        if (pathinfos.size() == 5)
-        {
-            if (sysconfigpath.siteusehtmlchache)
-            {
-                memset(&fileinfo, 0, sizeof(fileinfo));
-                std::string tempfilecheck;
-                if (sitepath.size() > 0 && sitepath.back() == '/')
-                {
-                    tempfilecheck = sitepath + "/" + sendfilename;
-                }
-                else
-                {
-                    if (sysconfigpath.wwwpath.size() > 0 && sitepath.size() > 0 && sitepath.back() == '/')
-                    {
-                        tempfilecheck = sysconfigpath.wwwpath + sendfilename;
-                    }
-                    else
-                    {
-                        tempfilecheck = sysconfigpath.wwwpath + "/" + sendfilename;
-                    }
-                }
-
-                if (tempfilecheck.size() > 0 && tempfilecheck.back() != '/')
-                {
-                    tempfilecheck.push_back('/');
-                }
-                tempfilecheck.append(sysconfigpath.map_value["default"]["index"]);
-
-                if (stat(tempfilecheck.c_str(), &fileinfo) == 0)
-                {
-                    if (fileinfo.st_mode & S_IFREG)
-                    {
-                        if (sysconfigpath.siteusehtmlchachetime > 10 &&
-                            sysconfigpath.siteusehtmlchachetime > (timeid() - (unsigned long)fileinfo.st_mtime))
-                        {
-                            temp         = 5;
-                            sendfilename = tempfilecheck;
-                        }
-                    }
-                }
-            }
-        }
-        //end file
-    }
-    return temp;
-}
 unsigned char httppeer::get_fileinfo()
 {
     serverconfig &sysconfigpath = getserversysconfig();
-    auto &hostinfo              = sysconfigpath.sitehostinfos[host_index];
+    // 越界守卫：host_index 来自 find_host_index()，正常永远 < size；但 conf 一个站点段都没有
+    // （sitehostinfos 为空）时它回落的 0 也是越界。先判一下，越界直接报"非文件"，让请求走
+    // 动态链 / 404，而不是解引用一个不存在的 vector 元素（下面的 977 行对 sitehostinfos[0]
+    // 的访问另有 !empty() 守卫，这里不重复）。
+    if (host_index >= sysconfigpath.sitehostinfos.size())
+        return 0;
+    auto &hostinfo = sysconfigpath.sitehostinfos[host_index];
+
+    //host 段没写 wwwpath 时 sitepath 是空的，跟着 default 站走；
+    //留空会拼出 "/xxx" 这种绝对路径，直接 stat 到文件系统根上
+    if (sitepath.empty() && !sysconfigpath.sitehostinfos.empty())
+    {
+        sitepath = sysconfigpath.sitehostinfos[0].wwwpath;
+    }
+    //default 段也没有静态根：这条 URL 不在磁盘上判，交回动态链（home → 404 → 框架 404）
+    if (sitepath.empty())
+    {
+        sendfiletype = 0;
+        return sendfiletype;
+    }
 
     //full static file path: sitepath + url paths
     sendfilename = sitepath;
@@ -1007,25 +1012,26 @@ unsigned char httppeer::get_fileinfo()
     {
         sendfilename.push_back('/');
     }
-    for (unsigned int i = 0; i < pathinfos.size(); i++)
+    // urlpath 本身就是两个 parser 用 '/' + join(pathinfos, "/") 拼出来的那一条
+    // （http_parse.cpp:585-589、http2_parse.cpp:465-469），逐段再拼一遍是同一件事做第二遍；
+    // prefetch 落盘那次也是这么接的，两处路径都由同一个来源拼出来，不会各拼各的
+    // pathinfos 为空时不接：HPACK 静态表 index 4/5 那条捷径（http2_parse.cpp:1850-1856）只给
+    // urlpath 赋值、不跑 path_process，此时 urlpath 可以是 "/index.html" 而段表是空的，
+    // 接上去就绕过了"目录 + document_index"那个分支 —— 保持与逐段循环相同的边界
+    if (!pathinfos.empty() && urlpath.size() > 1)
     {
-        // 第二层防线：归一化后的路径段不得再含分隔符或 NUL（%2f 绕过 "." 检查的兜底）
-        if (pathinfos[i].find('/') != std::string::npos || pathinfos[i].find('\\') != std::string::npos ||
-            pathinfos[i].find('\0') != std::string::npos)
-        {
-            sendfiletype = 0;
-            return sendfiletype;
-        }
-        if (i > 0)
-        {
-            sendfilename.append("/");
-        }
-        sendfilename.append(pathinfos[i]);
+        sendfilename.append(urlpath, 1, std::string::npos);
     }
 
-    memset(&fileinfo, 0, sizeof(fileinfo));
-    sendfiletype = 0;
-    if (stat(sendfilename.c_str(), &fileinfo) == 0)
+    // 预查「先落盘」那次已经 stat 过同一个文件，fileinfo 就是它的结果；那次已经用同一个
+    // html_cache_expired 判过没过期，所以这里直接当普通文件成立，不必 stat 也不必重判第二遍
+    bool already_stat = !prefetch_statfile.empty() && prefetch_statfile == sendfilename;
+    if (!already_stat)
+    {
+        memset(&fileinfo, 0, sizeof(fileinfo));
+    }
+    sendfiletype = already_stat ? 1 : 0;
+    if (!already_stat && stat(sendfilename.c_str(), &fileinfo) == 0)
     {
         if (fileinfo.st_mode & S_IFDIR)
         {
@@ -1036,7 +1042,7 @@ unsigned char httppeer::get_fileinfo()
             {
                 sendfilename.push_back('/');
             }
-            sendfilename.append(sysconfigpath.map_value["default"]["index"]);
+            sendfilename.append(hostinfo.document_index.empty() ? "index.html" : hostinfo.document_index);
             memset(&fileinfo, 0, sizeof(fileinfo));
             if (stat(sendfilename.c_str(), &fileinfo) == 0)
             {
@@ -1055,8 +1061,15 @@ unsigned char httppeer::get_fileinfo()
             sendfiletype = 1;
             // use cahce html ,modulepath same urlpath
             // sample: /module/method/202204/22333.html
-            if (sysconfigpath.siteusehtmlchache && pathinfos.size() > 3 && sysconfigpath.siteusehtmlchachetime > 10 &&
-                sysconfigpath.siteusehtmlchachetime < (timeid() - (unsigned long)fileinfo.st_mtime))
+            // 段数门槛 >3 是这条「路由注册在父路径、生成文件在深路径」形状的专属门禁（剥名那组
+            // 同名对已由 prefetch_routing 的同一份过期判定处理）；界值见 html_cache_expired。
+            // 扩展名只认小写 ".html"：这条机制管的就是生成的 html 缓存页，深路径放的其他文件
+            // （jpg/css/js/字体…）没有注册名能接，判过期等于把盘上有、动态没人接的文件打成 404。
+            // 大小写不同（.HTML）算没命中，往"发文件"那侧回落，方向是安全的。
+            // pathinfos.size() > 3 必须先判：段表为空时 back() 是越界读，size 判断要放在最前
+            if (pathinfos.size() > 3 && pathinfos.back().size() > 5 &&
+                pathinfos.back().compare(pathinfos.back().size() - 5, 5, ".html") == 0 &&
+                html_cache_expired(fileinfo, hostinfo))
             {
                 //cache html expired, use urlpath function
                 sendfiletype = 3;
@@ -2036,10 +2049,10 @@ void httppeer::cors_domain(const std::string &name, const std::string &header_v)
 {
     // 三个响应头统一交给 set_header() 写：h1 原样落 send_header；h2 命中 HPACK 静态表的
     // （ACAO 落索引槽 20、Vary 落索引槽 59）写 http2_send_header，其余落 send_header。
-    // 原来 h2 分支自己拼容器名绕过这张表，写的是 send_header["vary"]，而解析期
-    // cors_origin_process() 用 set_header("Vary") 写的是索引槽 59 —— 响应里会出现两条 Vary。
+    // 自己拼容器名就会绕过这张表：send_header["vary"] 与解析期 cors_origin_process()
+    // 经 set_header("Vary") 写的索引槽 59 各算一处 —— 响应里会出现两条 Vary。
     set_header("Access-Control-Allow-Origin", name);
-    // header_v 为空按放行全部请求头处理，与原先 h1/h2 两个分支的默认值保持一致
+    // header_v 为空按放行全部请求头处理，默认发 "*"
     set_header("Access-Control-Allow-Headers", header_v.size() > 0 ? header_v : "*");
     // ACAO 取值依赖请求 Origin，必须声明 Vary，否则会被缓存/CDN 串用
     add_vary("Origin");
@@ -2186,11 +2199,17 @@ void httppeer::clear()
     posttype = 0;
     compress = 0;
 
-    stream_id     = 0;
-    status_code   = 0;
-    timeloop_num  = 0;
-    timecount_num = 0;
-    request_time  = 0;
+    stream_id   = 0;
+    status_code = 0;
+    // 挂着间隔任务（timeloop_num>0）的 peer，这三个调度字段不属于"本次请求的状态"：
+    // keep-alive 的每一次请求结束都会调这里，无条件清零等于把业务刚登记的间隔任务抹掉，
+    // 下一秒的 tick 就把这条任务从 clientlooptasks 里 erase——登记和执行两头都还在，任务本身留不下来。
+    // 摘掉任务由业务自己调 clear_timeloop_task()（或跑够拍数后 timecount_num 归 0）来做。
+    if (timeloop_num == 0)
+    {
+        timecount_num = 0;
+    }
+    request_time = 0;
     //unsigned int time_limit             = 0;
     content_length   = 0;
     sessionfile_time = 0;
@@ -2228,9 +2247,24 @@ void httppeer::clear()
     sendfilename.clear();
 
     sendfiletype = 0;
-    linktype     = 0;
-    method       = 0;
-    httpv        = 0;
+    if (timeloop_num == 0)
+    {
+        // 投递侧按 linktype==7 认领这条任务，清了它就变成"表里有任务、池里没人跑"。
+        linktype = 0;
+    }
+    method = 0;
+    httpv  = 0;
+    // 两个 parser 都只在「段表非空」时给 isfile 赋值（http_parse.cpp:603、http2_parse.cpp:486），
+    // 所以空段表请求（"/"）会沿用上一请求的取值。keep-alive 复用同一个 peer 时，
+    // 这条链是 "/" → prefetch_routing 在 pathinfos.empty() 处提前 return，恰好读不到它才没出事。
+    // 在这里复位，把「靠调用顺序才正确」换成「字段本身可信」：段表为空就是没有末段，
+    // 也就不是文件型 URL，false 是它该有的值。
+    isfile = false;
+
+    // 路由预查留下的两份请求态跟着复位。prefetch_routing 入口也清一次，这里是第二道：
+    // 一个「不进预查也能被读到」的字段，可信度不该建立在调用顺序上（同上面 isfile 那条理由）。
+    prefetch_statfile.clear();
+    route_exact_checked = false;
 
     user_code_handler_call.clear();
     flow_method.reset();
@@ -2262,8 +2296,9 @@ range_parse_t parse_range_header(std::string_view header_value, headstate_t &sta
         return range_parse_t::not_bytes;// 非 bytes 单位，忽略该头
     }
 
-    unsigned int digits      = 0;
-    auto parse_number        = [&](unsigned long long &out) -> bool {
+    unsigned int digits = 0;
+    auto parse_number   = [&](unsigned long long &out) -> bool
+    {
         bool any = false;
         for (; j < linesize; j++)
         {
@@ -2283,7 +2318,8 @@ range_parse_t parse_range_header(std::string_view header_value, headstate_t &sta
 
     // 单元循环只吞掉了 '=' 之前的空白；'=' 之后与 '-' 两侧同样是 OWS，一并容忍，
     // 否则 "bytes = 0-999" 会从「忽略该头」变成「语法不合法」，反而把 h1 打回 400。
-    auto skip_ows = [&]() {
+    auto skip_ows = [&]()
+    {
         while (j < linesize && header_value[j] == 0x20)
         {
             j++;

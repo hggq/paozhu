@@ -17,8 +17,7 @@ namespace ws
 {
 
 // 校验握手请求，通过返回 true，否则返回 false（调用方应返回 400）。
-bool validate(const websocket_t &ws, bool has_upgrade, bool has_connection_upgrade,
-              unsigned char method);
+bool validate(const websocket_t &ws, bool has_upgrade, bool has_connection_upgrade, unsigned char method);
 
 // 计算 Sec-WebSocket-Accept 的值
 std::string compute_accept_key(std::string_view client_key);

@@ -9,27 +9,27 @@
  *
  *
  */
-#include <memory> 
+#include <memory>
 #include <string>
-#include "server_localvar.h" 
+#include "server_localvar.h"
 #include "http_rpcclient.h"
 #include "client_context.h"
 #include "func.h"
 
 namespace http
 {
-rpc_client::rpc_client(): uprawfile(nullptr, std::fclose), strand_(asio::make_strand(*(get_client_context_obj().ioc))) { iserror = false; }
+rpc_client::rpc_client() : uprawfile(nullptr, std::fclose), strand_(asio::make_strand(*(get_client_context_obj().ioc))) { iserror = false; }
 rpc_client::~rpc_client()
 {
-    if(data != nullptr)
+    if (data != nullptr)
     {
         std::free(data);
     }
 }
-void rpc_client::set_header(std::string_view name,std::string_view value)
+void rpc_client::set_header(std::string_view name, std::string_view value)
 {
     rpc_parameter_t a;
-    a.name = name;
+    a.name  = name;
     a.value = value;
     parameter.emplace_back(a);
 }
@@ -63,94 +63,94 @@ void rpc_client::close_connect()
 
 void rpc_client::set_url(std::string_view name)
 {
-    if(name.size() > 7)
+    if (name.size() > 7)
     {
-        if(name[0]=='h' && name[1]=='t' && name[2]=='t' && name[3]=='p' && name[4]==':' && name[5]=='/'  && name[6]=='/'  )
+        if (name[0] == 'h' && name[1] == 't' && name[2] == 't' && name[3] == 'p' && name[4] == ':' && name[5] == '/' && name[6] == '/')
         {
             std::string temp_str;
-            unsigned int i=7;
-            for(; i < name.size(); i++)
+            unsigned int i = 7;
+            for (; i < name.size(); i++)
             {
-                if(name[i] == '/')
+                if (name[i] == '/')
                 {
-                    if(temp_str.size() > 0)
+                    if (temp_str.size() > 0)
                     {
                         host = temp_str;
                     }
                     temp_str.clear();
                     break;
                 }
-                else if(name[i] == ':')
+                else if (name[i] == ':')
                 {
-                    if(temp_str.size() > 0)
+                    if (temp_str.size() > 0)
                     {
                         host = temp_str;
                     }
                     temp_str.clear();
                     port = 0;
-                    for(; i < name.size(); i++)
+                    for (; i < name.size(); i++)
                     {
-                        if(name[i] == '/')
+                        if (name[i] == '/')
                         {
                             break;
                         }
-                        if(name[i] >= '0' && name[i] <= '9')
+                        if (name[i] >= '0' && name[i] <= '9')
                         {
-                            port = port * 10 + (name[i]- '0');
+                            port = port * 10 + (name[i] - '0');
                         }
-                    }    
+                    }
                     break;
                 }
                 temp_str.push_back(name[i]);
             }
-            for(; i < name.size(); i++)
+            for (; i < name.size(); i++)
             {
                 url.push_back(name[i]);
-            } 
+            }
         }
-        else if(name[0]=='h' && name[1]=='t' && name[2]=='t' && name[3]=='p'  && name[4]=='s' && name[5]==':' && name[6]=='/'  && name[7]=='/'  )
+        else if (name[0] == 'h' && name[1] == 't' && name[2] == 't' && name[3] == 'p' && name[4] == 's' && name[5] == ':' && name[6] == '/' && name[7] == '/')
         {
             std::string temp_str;
-            unsigned int i=8;
-            isssl = true;
-            for(; i < name.size(); i++)
+            unsigned int i = 8;
+            isssl          = true;
+            for (; i < name.size(); i++)
             {
-                if(name[i] == '/')
+                if (name[i] == '/')
                 {
-                    if(temp_str.size() > 0)
+                    if (temp_str.size() > 0)
                     {
                         host = temp_str;
                     }
-                    
+
                     break;
                 }
-                else if(name[i] == ':')
+                else if (name[i] == ':')
                 {
-                    if(temp_str.size() > 0)
+                    if (temp_str.size() > 0)
                     {
                         host = temp_str;
                     }
-                    
+
                     port = 0;
-                    for(; i < name.size(); i++)
+                    for (; i < name.size(); i++)
                     {
-                        if(name[i] == '/')
+                        if (name[i] == '/')
                         {
                             break;
                         }
-                        if(name[i] >= '0' && name[i] <= '9')
+                        if (name[i] >= '0' && name[i] <= '9')
                         {
-                            port = port * 10 + (name[i]- '0');
+                            port = port * 10 + (name[i] - '0');
                         }
-                    }    
+                    }
                     break;
                 }
                 temp_str.push_back(name[i]);
             }
-            for(; i < name.size(); i++)
+            for (; i < name.size(); i++)
             {
                 url.push_back(name[i]);
-            } 
+            }
         }
         else
         {
@@ -161,7 +161,6 @@ void rpc_client::set_url(std::string_view name)
     {
         url = name;
     }
-    
 }
 asio::awaitable<void> rpc_client::async_send()
 {
@@ -171,11 +170,11 @@ asio::awaitable<void> rpc_client::async_send()
     send_content.append(url);
     send_content.push_back(0x0A);
     send_content.append("HOST ");
-    
+
     unsigned short value_size_h = host.size();
-    unsigned char aa = value_size_h & 0xFF;
-    
-    value_size_h = value_size_h & 0xFF00;
+    unsigned char aa            = value_size_h & 0xFF;
+
+    value_size_h     = value_size_h & 0xFF00;
     unsigned char bb = value_size_h >> 8;
     send_content.push_back(bb);
     send_content.push_back(aa);
@@ -185,18 +184,18 @@ asio::awaitable<void> rpc_client::async_send()
 
     send_content.append("size ");
 
-    if(content.size() <=  0xFFFF)
+    if (content.size() <= 0xFFFF)
     {
         send_content.push_back(0x00);
         send_content.push_back(0x02);
         unsigned short value_size = content.size();
-        unsigned char a = value_size & 0xFF;
-        value_size = value_size & 0xFF00;
-        unsigned char b = value_size >> 8;
+        unsigned char a           = value_size & 0xFF;
+        value_size                = value_size & 0xFF00;
+        unsigned char b           = value_size >> 8;
         send_content.push_back(b);
         send_content.push_back(a);
     }
-    else if(content.size() <=  0xFFFFFFFF)
+    else if (content.size() <= 0xFFFFFFFF)
     {
         send_content.push_back(0x00);
         send_content.push_back(0x04);
@@ -212,7 +211,7 @@ asio::awaitable<void> rpc_client::async_send()
         a = value_size & 0xFF;
         send_content.push_back(a);
     }
-    else if(content.size() <=  0xFFFFFFFFFF)
+    else if (content.size() <= 0xFFFFFFFFFF)
     {
         send_content.push_back(0x00);
         send_content.push_back(0x05);
@@ -239,7 +238,7 @@ asio::awaitable<void> rpc_client::async_send()
 
     send_content.append("type ");
 
-    if(content_type.size() ==0 )
+    if (content_type.size() == 0)
     {
         send_content.push_back(0x00);
         send_content.push_back(0x09);
@@ -247,11 +246,11 @@ asio::awaitable<void> rpc_client::async_send()
     }
     else
     {
-        if(content_type.size() > 0xFFFF)
+        if (content_type.size() > 0xFFFF)
         {
             send_content.push_back(0x00);
             send_content.push_back(0x09);
-            send_content.append("text/html");               
+            send_content.append("text/html");
             iserror = true;
             co_return;
         }
@@ -259,22 +258,22 @@ asio::awaitable<void> rpc_client::async_send()
         send_content.push_back(0x00);
         send_content.push_back(0x02);
         unsigned short value_size = content_type.size();
-        unsigned char a = value_size & 0xFF;
-        value_size = value_size & 0xFF00;
-        unsigned char b = value_size >> 8;
+        unsigned char a           = value_size & 0xFF;
+        value_size                = value_size & 0xFF00;
+        unsigned char b           = value_size >> 8;
         send_content.push_back(b);
         send_content.push_back(a);
     }
     send_content.push_back(0x0A);
 
-    for(unsigned int i=0; i < parameter.size(); i++)
+    for (unsigned int i = 0; i < parameter.size(); i++)
     {
         send_content.append(parameter[i].name);
         send_content.push_back(0x20);
         unsigned short value_size = parameter[i].value.size();
-        unsigned char a = value_size & 0xFF;
-        value_size = value_size & 0xFF00;
-        unsigned char b = value_size >> 8;
+        unsigned char a           = value_size & 0xFF;
+        value_size                = value_size & 0xFF00;
+        unsigned char b           = value_size >> 8;
         send_content.push_back(b);
         send_content.push_back(a);
         send_content.append(parameter[i].value);
@@ -283,9 +282,9 @@ asio::awaitable<void> rpc_client::async_send()
     send_content.push_back(0x0A);
     send_content.append(content);
 
-    if(isssl)
+    if (isssl)
     {
-        if(port == 0)
+        if (port == 0)
         {
             port = 443;
         }
@@ -293,7 +292,7 @@ asio::awaitable<void> rpc_client::async_send()
     }
     else
     {
-        if(port == 0)
+        if (port == 0)
         {
             port = 80;
         }
@@ -310,11 +309,11 @@ void rpc_client::send()
     send_content.append(url);
     send_content.push_back(0x0A);
     send_content.append("HOST ");
-    
+
     unsigned short value_size_h = host.size();
-    unsigned char aa = value_size_h & 0xFF;
-    
-    value_size_h = value_size_h & 0xFF00;
+    unsigned char aa            = value_size_h & 0xFF;
+
+    value_size_h     = value_size_h & 0xFF00;
     unsigned char bb = value_size_h >> 8;
     send_content.push_back(bb);
     send_content.push_back(aa);
@@ -324,18 +323,18 @@ void rpc_client::send()
 
     send_content.append("size ");
 
-    if(content.size() <=  0xFFFF)
+    if (content.size() <= 0xFFFF)
     {
         send_content.push_back(0x00);
         send_content.push_back(0x02);
         unsigned short value_size = content.size();
-        unsigned char a = value_size & 0xFF;
-        value_size = value_size & 0xFF00;
-        unsigned char b = value_size >> 8;
+        unsigned char a           = value_size & 0xFF;
+        value_size                = value_size & 0xFF00;
+        unsigned char b           = value_size >> 8;
         send_content.push_back(b);
         send_content.push_back(a);
     }
-    else if(content.size() <=  0xFFFFFFFF)
+    else if (content.size() <= 0xFFFFFFFF)
     {
         send_content.push_back(0x00);
         send_content.push_back(0x04);
@@ -351,7 +350,7 @@ void rpc_client::send()
         a = value_size & 0xFF;
         send_content.push_back(a);
     }
-    else if(content.size() <=  0xFFFFFFFFFF)
+    else if (content.size() <= 0xFFFFFFFFFF)
     {
         send_content.push_back(0x00);
         send_content.push_back(0x05);
@@ -378,7 +377,7 @@ void rpc_client::send()
 
     send_content.append("type ");
 
-    if(content_type.size() ==0 )
+    if (content_type.size() == 0)
     {
         send_content.push_back(0x00);
         send_content.push_back(0x09);
@@ -386,11 +385,11 @@ void rpc_client::send()
     }
     else
     {
-        if(content_type.size() > 0xFFFF)
+        if (content_type.size() > 0xFFFF)
         {
             send_content.push_back(0x00);
             send_content.push_back(0x09);
-            send_content.append("text/html");               
+            send_content.append("text/html");
             iserror = true;
             return;
         }
@@ -398,22 +397,22 @@ void rpc_client::send()
         send_content.push_back(0x00);
         send_content.push_back(0x02);
         unsigned short value_size = content_type.size();
-        unsigned char a = value_size & 0xFF;
-        value_size = value_size & 0xFF00;
-        unsigned char b = value_size >> 8;
+        unsigned char a           = value_size & 0xFF;
+        value_size                = value_size & 0xFF00;
+        unsigned char b           = value_size >> 8;
         send_content.push_back(b);
         send_content.push_back(a);
     }
     send_content.push_back(0x0A);
 
-    for(unsigned int i=0; i < parameter.size(); i++)
+    for (unsigned int i = 0; i < parameter.size(); i++)
     {
         send_content.append(parameter[i].name);
         send_content.push_back(0x20);
         unsigned short value_size = parameter[i].value.size();
-        unsigned char a = value_size & 0xFF;
-        value_size = value_size & 0xFF00;
-        unsigned char b = value_size >> 8;
+        unsigned char a           = value_size & 0xFF;
+        value_size                = value_size & 0xFF00;
+        unsigned char b           = value_size >> 8;
         send_content.push_back(b);
         send_content.push_back(a);
         send_content.append(parameter[i].value);
@@ -422,9 +421,9 @@ void rpc_client::send()
     send_content.push_back(0x0A);
     send_content.append(content);
 
-    if(isssl)
+    if (isssl)
     {
-        if(port == 0)
+        if (port == 0)
         {
             port = 443;
         }
@@ -432,19 +431,19 @@ void rpc_client::send()
     }
     else
     {
-        if(port == 0)
+        if (port == 0)
         {
             port = 80;
         }
         send_data(send_content);
     }
     return;
-} 
+}
 
 asio::awaitable<bool> rpc_client::async_init_https_sock()
 {
-    ssl_context   = std::make_shared<asio::ssl::context>(asio::ssl::context::sslv23);
-    sslsock       = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(strand_, *ssl_context);
+    ssl_context = std::make_shared<asio::ssl::context>(asio::ssl::context::sslv23);
+    sslsock     = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(strand_, *ssl_context);
     ssl_context->set_default_verify_paths();
 
     asio::ip::tcp::resolver resolver(strand_);
@@ -467,7 +466,6 @@ asio::awaitable<bool> rpc_client::async_init_https_sock()
         DEBUG_LOG("%s", error_msg.c_str());
         co_return false;
     }
-
 
     sslsock->lowest_layer().set_option(asio::ip::tcp::no_delay(true));
     ssl_context->set_verify_mode(asio::ssl::verify_peer);
@@ -503,7 +501,6 @@ asio::awaitable<bool> rpc_client::async_init_http_sock()
         }
         break;
     }
- 
 
     if (ec)
     {
@@ -542,20 +539,20 @@ asio::awaitable<void> rpc_client::async_ssl_send_data(std::string_view send_cont
                 {
                     DEBUG_LOG("Exception: %s", e.what());
                     error_msg = e.what();
-                    iserror = true;
+                    iserror   = true;
                 }
             }
-            if(iserror)
+            if (iserror)
             {
                 co_return;
             }
 
-            unsigned int n=0;
-            n = co_await asio::async_write(*sslsock, asio::buffer(send_content), asio::use_awaitable);
+            unsigned int n = 0;
+            n              = co_await asio::async_write(*sslsock, asio::buffer(send_content), asio::use_awaitable);
             unsigned char read_data[2052];
-            
-            bool begin_data=true;
-            isbody = false;
+
+            bool begin_data = true;
+            isbody          = false;
             while (true)
             {
                 memset(data, 0x00, 2048);
@@ -576,21 +573,21 @@ asio::awaitable<void> rpc_client::async_ssl_send_data(std::string_view send_cont
                 {
                     break;
                 }
-                if(begin_data)
+                if (begin_data)
                 {
                     begin_data = false;
-                    process(read_data,n);
+                    process(read_data, n);
                 }
                 else
                 {
-                    process_append(read_data,n);
+                    process_append(read_data, n);
                 }
 
                 if (isfinish)
                 {
                     break;
                 }
-                if(iserror)
+                if (iserror)
                 {
                     break;
                 }
@@ -600,13 +597,12 @@ asio::awaitable<void> rpc_client::async_ssl_send_data(std::string_view send_cont
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
 
     co_return;
 }
-
 
 asio::awaitable<void> rpc_client::async_send_data(std::string_view send_content)
 {
@@ -636,19 +632,19 @@ asio::awaitable<void> rpc_client::async_send_data(std::string_view send_content)
                 {
                     DEBUG_LOG("Exception: %s", e.what());
                     error_msg = e.what();
-                    iserror = true;
+                    iserror   = true;
                 }
             }
-            if(iserror)
+            if (iserror)
             {
                 co_return;
             }
 
             co_await asio::async_write(*sock, asio::buffer(send_content), asio::use_awaitable);
             unsigned char read_data[2052];
-            unsigned int n=0;
-            bool begin_data=true;
-            isbody = false;
+            unsigned int n  = 0;
+            bool begin_data = true;
+            isbody          = false;
             while (true)
             {
                 memset(read_data, 0x00, 2048);
@@ -669,21 +665,21 @@ asio::awaitable<void> rpc_client::async_send_data(std::string_view send_content)
                 {
                     break;
                 }
-                if(begin_data)
+                if (begin_data)
                 {
                     begin_data = false;
-                    process(read_data,n);
+                    process(read_data, n);
                 }
                 else
                 {
-                    process_append(read_data,n);
+                    process_append(read_data, n);
                 }
 
                 if (isfinish)
                 {
                     break;
                 }
-                if(iserror)
+                if (iserror)
                 {
                     break;
                 }
@@ -693,66 +689,65 @@ asio::awaitable<void> rpc_client::async_send_data(std::string_view send_content)
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
 
     co_return;
 }
 
-
 void rpc_client::process_headkv()
 {
-    if(read_key.size()==6 && read_key == "cookie")
+    if (read_key.size() == 6 && read_key == "cookie")
     {
         read_key.clear();
         unsigned int i = 0;
-        for(; i < read_value.size(); i++)
+        for (; i < read_value.size(); i++)
         {
-            if(read_value[i]=='=')
+            if (read_value[i] == '=')
             {
                 break;
             }
-            read_key.push_back(read_value[i]);  
+            read_key.push_back(read_value[i]);
         }
 
-        if(read_key.empty())
+        if (read_key.empty())
         {
             //ignore
             return;
         }
 
-        if(read_value[i]=='=')
+        if (read_value[i] == '=')
         {
             i++;
             rpc_parameter_t a;
-            if(i < read_value.size())
+            if (i < read_value.size())
             {
-                a.name = read_key;
+                a.name  = read_key;
                 a.value = read_value.substr(i);
             }
             else
             {
                 //empty
-                a.name = read_key;
+                a.name  = read_key;
                 a.value = "";
             }
             page.cookie.emplace_back(a);
         }
     }
-    else if(read_key.size()==4 && read_key == "type")
+    else if (read_key.size() == 4 && read_key == "type")
     {
         page.content_type = read_value;
     }
-    else if(read_key.size()==5 && read_key == "chunk")
+    else if (read_key.size() == 5 && read_key == "chunk")
     {
-        if(read_value =="none")
+        if (read_value == "none")
         {
             page.ischunked = false;
         }
         else
         {
-            if(read_value.size()>0)
+            if (read_value.size() > 0)
             {
                 page.ischunked = true;
             }
@@ -762,21 +757,21 @@ void rpc_client::process_headkv()
             }
         }
     }
-    else if(read_key.size()==6 && read_key == "encode")
+    else if (read_key.size() == 6 && read_key == "encode")
     {
         page.encode_type = read_value;
     }
-    else if(read_key.size()==4 && read_key == "size")
+    else if (read_key.size() == 4 && read_key == "size")
     {
         unsigned int i = 0;
         page.page_size = 0;
-        for(; i < read_value.size(); i++)
+        for (; i < read_value.size(); i++)
         {
-            page.page_size = (page.page_size <<8) + read_value[i];
+            page.page_size = (page.page_size << 8) + read_value[i];
         }
-        content_size = page.page_size;
+        content_size   = page.page_size;
         page.read_size = page.page_size;
-        if(content_size > 68719476735)
+        if (content_size > 68719476735)
         {
             //to long long(>15G)
             iserror = true;
@@ -786,152 +781,152 @@ void rpc_client::process_headkv()
     else
     {
         rpc_parameter_t a;
-        a.name = read_key;
+        a.name  = read_key;
         a.value = read_value;
         page.header.emplace_back(a);
     }
 }
 void rpc_client::process_value(const unsigned char *buffer, unsigned int readnum)
 {
-    for(; offsetnum < readnum; offsetnum++)
+    for (; offsetnum < readnum; offsetnum++)
     {
         read_value.push_back(buffer[offsetnum]);
-        val_size--; 
-        if(val_size == 0)
+        val_size--;
+        if (val_size == 0)
         {
             cur_process_type = 11;
             offsetnum++;
             return;
         }
     }
-}   
+}
 
 void rpc_client::process_append(const unsigned char *buffer, unsigned int readnum)
 {
-    if(iserror)
+    if (iserror)
     {
         return;
     }
 
-    if(isbody)
+    if (isbody)
     {
-        if(page.ischunked)
+        if (page.ischunked)
         {
-            process_body_chunk(buffer,readnum); 
+            process_body_chunk(buffer, readnum);
         }
         else
         {
-            process_body(buffer,readnum);  
+            process_body(buffer, readnum);
         }
     }
     else
     {
-        process_parameter(buffer,readnum);
-    }    
+        process_parameter(buffer, readnum);
+    }
 }
 
 void rpc_client::process(const unsigned char *buffer, unsigned int readnum)
 {
     offsetnum = 0;
-    if(readnum < 6)
+    if (readnum < 6)
     {
         error_msg = "too short response";
-        iserror = true;
+        iserror   = true;
         return;
     }
 
-    if(buffer[0] == 'r' && buffer[1] == 'p' && buffer[2] == 'c'  && buffer[3] == 0x20 )
+    if (buffer[0] == 'r' && buffer[1] == 'p' && buffer[2] == 'c' && buffer[3] == 0x20)
     {
-         if( buffer[4] >='0' &&  buffer[4] <='9' && buffer[5] >='0' &&  buffer[5] <='9' && buffer[6] >='0' &&  buffer[6] <='9') 
-         {
+        if (buffer[4] >= '0' && buffer[4] <= '9' && buffer[5] >= '0' && buffer[5] <= '9' && buffer[6] >= '0' && buffer[6] <= '9')
+        {
             page.status_code = buffer[4] - '0';
             page.status_code = page.status_code * 10;
             page.status_code = page.status_code + (buffer[5] - '0');
             page.status_code = page.status_code * 10;
             page.status_code = page.status_code + (buffer[6] - '0');
-         }
-         else
-         {
+        }
+        else
+        {
             error_msg = "header info error";
-            iserror = true;
+            iserror   = true;
             return;
-         }  
-         offsetnum = 7;
-         if(offsetnum < readnum && buffer[offsetnum] == 0x20 )
-         {
-            for(; offsetnum < readnum; offsetnum++)
+        }
+        offsetnum = 7;
+        if (offsetnum < readnum && buffer[offsetnum] == 0x20)
+        {
+            for (; offsetnum < readnum; offsetnum++)
             {
-                if(buffer[offsetnum] == 0x0A)
+                if (buffer[offsetnum] == 0x0A)
                 {
                     break;
                 }
-                page.status_msg.push_back(buffer[offsetnum]); 
-            }    
+                page.status_msg.push_back(buffer[offsetnum]);
+            }
 
-            if(buffer[offsetnum] != 0x0A)
+            if (buffer[offsetnum] != 0x0A)
             {
                 error_msg = "header info error";
-                iserror = true;
+                iserror   = true;
                 return;
             }
             offsetnum++;
             //process parameter
-            process_parameter(buffer,readnum);
-            if(isbody)
+            process_parameter(buffer, readnum);
+            if (isbody)
             {
-                if(page.ischunked)
+                if (page.ischunked)
                 {
-                    process_body_chunk(buffer,readnum); 
+                    process_body_chunk(buffer, readnum);
                 }
                 else
                 {
-                    process_body(buffer,readnum);  
+                    process_body(buffer, readnum);
                 }
             }
-         } 
-         else
-         {
+        }
+        else
+        {
             error_msg = "header info error";
-            iserror = true;
+            iserror   = true;
             return;
-         }  
+        }
     }
     else
     {
         error_msg = "header info error";
-        iserror = true;
+        iserror   = true;
         return;
-    }    
+    }
 }
 
 void rpc_client::process_parameter(const unsigned char *buffer, unsigned int readnum)
 {
-    if(cur_process_type == 0)
+    if (cur_process_type == 0)
     {
-        for(unsigned int i = 0; offsetnum < readnum; offsetnum++)
+        for (unsigned int i = 0; offsetnum < readnum; offsetnum++)
         {
-            if(buffer[offsetnum]==0x20)
+            if (buffer[offsetnum] == 0x20)
             {
                 break;
             }
             read_key.push_back(buffer[offsetnum]);
             i++;
-            if(i > 128)
+            if (i > 128)
             {
                 iserror = true;
                 return;
             }
         }
-        
-        if(read_key.size() > 128)
+
+        if (read_key.size() > 128)
         {
             iserror = true;
             return;
         }
 
-        if(buffer[offsetnum]==0x20)
+        if (buffer[offsetnum] == 0x20)
         {
-           offsetnum++;  
+            offsetnum++;
         }
         else
         {
@@ -940,17 +935,16 @@ void rpc_client::process_parameter(const unsigned char *buffer, unsigned int rea
             return;
         }
 
-        
-        if(offsetnum < readnum)
+        if (offsetnum < readnum)
         {
             val_size = buffer[offsetnum];
             offsetnum++;
-            if(offsetnum < readnum)
+            if (offsetnum < readnum)
             {
-                val_size =(val_size << 8) + buffer[offsetnum];
+                val_size         = (val_size << 8) + buffer[offsetnum];
                 cur_process_type = 10;
                 offsetnum++;
-                process_value(buffer,readnum);
+                process_value(buffer, readnum);
             }
             else
             {
@@ -965,16 +959,15 @@ void rpc_client::process_parameter(const unsigned char *buffer, unsigned int rea
             cur_process_type = 2;
             return;
         }
-        
     }
-    else if(cur_process_type == 1)
+    else if (cur_process_type == 1)
     {
-        if(offsetnum < readnum)
+        if (offsetnum < readnum)
         {
-            val_size = (val_size << 8) + buffer[offsetnum];
+            val_size         = (val_size << 8) + buffer[offsetnum];
             cur_process_type = 10;
             offsetnum++;
-            process_value(buffer,readnum);
+            process_value(buffer, readnum);
         }
         else
         {
@@ -983,18 +976,18 @@ void rpc_client::process_parameter(const unsigned char *buffer, unsigned int rea
             return;
         }
     }
-    else if(cur_process_type == 2)
+    else if (cur_process_type == 2)
     {
-        if(offsetnum < readnum)
+        if (offsetnum < readnum)
         {
             val_size = buffer[offsetnum];
             offsetnum++;
-            if(offsetnum < readnum)
+            if (offsetnum < readnum)
             {
-                val_size = (val_size << 8) + buffer[offsetnum];
+                val_size         = (val_size << 8) + buffer[offsetnum];
                 cur_process_type = 10;
                 offsetnum++;
-                process_value(buffer,readnum);
+                process_value(buffer, readnum);
             }
             else
             {
@@ -1010,17 +1003,17 @@ void rpc_client::process_parameter(const unsigned char *buffer, unsigned int rea
             return;
         }
     }
-    else if(cur_process_type == 10)
+    else if (cur_process_type == 10)
     {
         cur_process_type = 10;
-        process_value(buffer,readnum);
+        process_value(buffer, readnum);
     }
-    else if(cur_process_type == 12)
+    else if (cur_process_type == 12)
     {
         //值还没有读到空格 The value has not yet reached the space
-        if(buffer[offsetnum]==0x0A)
+        if (buffer[offsetnum] == 0x0A)
         {
-            offsetnum++;  
+            offsetnum++;
         }
         else
         {
@@ -1028,23 +1021,23 @@ void rpc_client::process_parameter(const unsigned char *buffer, unsigned int rea
             return;
         }
         cur_process_type = 0;
-        //重新开始kv read kv 
+        //重新开始kv read kv
     }
-   
-    if(cur_process_type == 11)
+
+    if (cur_process_type == 11)
     {
-        if(offsetnum < readnum)
+        if (offsetnum < readnum)
         {
-            if(buffer[offsetnum]==0x0A)
+            if (buffer[offsetnum] == 0x0A)
             {
-                offsetnum++;  
+                offsetnum++;
             }
             process_headkv();
             cur_process_type = 0;
             read_key.clear();
             read_value.clear();
         }
-        else if(offsetnum == readnum)
+        else if (offsetnum == readnum)
         {
             process_headkv();
             cur_process_type = 12;
@@ -1059,90 +1052,89 @@ void rpc_client::process_parameter(const unsigned char *buffer, unsigned int rea
         }
     }
 
-    if(offsetnum < readnum)
+    if (offsetnum < readnum)
     {
         //test the end
-        if(buffer[offsetnum]==0x0A)
+        if (buffer[offsetnum] == 0x0A)
         {
             offsetnum++;
             isbody = true;
-            return; 
+            return;
         }
     }
     else
     {
         //the end
-        return; 
+        return;
     }
 
     // next
-    process_parameter(buffer,readnum);
-
+    process_parameter(buffer, readnum);
 }
 void rpc_client::process_body_chunk(const unsigned char *buffer, unsigned int readnum)
 {
-    if(isfinish)
+    if (isfinish)
     {
         return;
     }
-    if(iserror)
+    if (iserror)
     {
         return;
     }
-    if(offsetnum < readnum)
+    if (offsetnum < readnum)
     {
-        if(page.read_size == 0)
+        if (page.read_size == 0)
         {
-            page.read_size =  buffer[offsetnum];
+            page.read_size = buffer[offsetnum];
             page.read_size = page.read_size << 8;
             offsetnum++;
-            if(offsetnum < readnum)
+            if (offsetnum < readnum)
             {
-                page.read_size =page.read_size  |  buffer[offsetnum];
+                page.read_size = page.read_size | buffer[offsetnum];
                 offsetnum++;
             }
-            if(page.read_size == 0)
+            if (page.read_size == 0)
             {
-                isfinish = true;
+                isfinish            = true;
                 page.content_length = page.content.size();
                 return;
             }
         }
 
-        if(offsetnum < readnum)
+        if (offsetnum < readnum)
         {
             unsigned int temp_size = readnum - offsetnum;
-            if(temp_size > page.read_size)
+            if (temp_size > page.read_size)
             {
                 page.content.append((char *)&buffer[offsetnum], page.read_size);
                 page.read_size = 0;
-                offsetnum = offsetnum + page.read_size;
-                if(chunk_process  != nullptr)
+                offsetnum      = offsetnum + page.read_size;
+                if (chunk_process != nullptr)
                 {
                     chunk_process(shared_from_this());
                 }
-                process_body_chunk(buffer,readnum);
+                process_body_chunk(buffer, readnum);
                 return;
             }
             else
             {
                 page.content.append((char *)&buffer[offsetnum], temp_size);
-                if(chunk_process  != nullptr)
+                if (chunk_process != nullptr)
                 {
                     chunk_process(shared_from_this());
                 }
             }
         }
-        
+
         page.read_size = page.read_size - (readnum - offsetnum);
-        if(page.read_size > 68719476735)
+        if (page.read_size > 68719476735)
         {
             // too conent
             iserror = true;
             return;
         }
     }
-    else if(offsetnum == readnum)
+    else if (offsetnum == readnum)
     {
         return;
     }
@@ -1155,27 +1147,26 @@ void rpc_client::process_body_chunk(const unsigned char *buffer, unsigned int re
 }
 void rpc_client::process_body(const unsigned char *buffer, unsigned int readnum)
 {
-    if(isfinish)
+    if (isfinish)
     {
         return;
     }
-    if(iserror)
+    if (iserror)
     {
         return;
     }
 
-
-    if(page.page_size == 0)
+    if (page.page_size == 0)
     {
         isfinish = true;
         return;
-    } 
-    if(page.page_size > 65536)
+    }
+    if (page.page_size > 65536)
     {
-        if(uprawfile == nullptr)
+        if (uprawfile == nullptr)
         {
             server_loaclvar &localvar = get_server_global_var();
-            read_key = std::to_string(timeid()) + std::to_string(std::hash<std::string>{}(url)) + std::to_string(rand_range(1000, 9999));
+            read_key                  = std::to_string(timeid()) + std::to_string(std::hash<std::string>{}(url)) + std::to_string(rand_range(1000, 9999));
 
             // 落盘名统一由 make_http_temp_raw_name() 生成：文件名带 pzraw_ 前缀，
             // 该前缀是 httpwatch 周期清理时识别「框架自己的临时文件」的唯一依据，
@@ -1185,23 +1176,23 @@ void rpc_client::process_body(const unsigned char *buffer, unsigned int readnum)
 
             // uprawfile = fopen(upfile.tempfile.c_str(), "wb");
             uprawfile.reset(fopen(read_value.c_str(), "wb"));
- 
+
             page.tempfile = read_value;
- 
+
             page.isfile = true;
         }
 
-        if(uprawfile == nullptr)
+        if (uprawfile == nullptr)
         {
             //
             iserror = true;
             return;
         }
-        if(offsetnum < readnum)
+        if (offsetnum < readnum)
         {
             fwrite(&buffer[offsetnum], (readnum - offsetnum), 1, uprawfile.get());
         }
-        else if(offsetnum == readnum)
+        else if (offsetnum == readnum)
         {
             return;
         }
@@ -1211,15 +1202,15 @@ void rpc_client::process_body(const unsigned char *buffer, unsigned int readnum)
             iserror = true;
             return;
         }
-        page.read_size =  page.read_size - (readnum - offsetnum);
-        if( page.read_size > 68719476735)
+        page.read_size = page.read_size - (readnum - offsetnum);
+        if (page.read_size > 68719476735)
         {
             // too conent
             iserror = true;
             uprawfile.reset(nullptr);
             return;
         }
-        if( page.read_size == 0)
+        if (page.read_size == 0)
         {
             uprawfile.reset(nullptr);
             isfinish = true;
@@ -1228,17 +1219,17 @@ void rpc_client::process_body(const unsigned char *buffer, unsigned int readnum)
     }
     else
     {
-        if(offsetnum < readnum)
+        if (offsetnum < readnum)
         {
             page.content.append((char *)&buffer[offsetnum], (readnum - offsetnum));
-            if(content_size >= 0 && page.content.size() == static_cast<size_t>(content_size))
+            if (content_size >= 0 && page.content.size() == static_cast<size_t>(content_size))
             {
-                isfinish = true;
+                isfinish            = true;
                 page.content_length = content_size;
                 return;
             }
         }
-        else if(offsetnum == readnum)
+        else if (offsetnum == readnum)
         {
             return;
         }
@@ -1250,16 +1241,16 @@ void rpc_client::process_body(const unsigned char *buffer, unsigned int readnum)
         }
 
         page.read_size = page.read_size - (readnum - offsetnum);
-        if(page.read_size > 68719476735)
+        if (page.read_size > 68719476735)
         {
             // too conent
             iserror = true;
             return;
         }
-        
-        if(page.read_size == 0)
+
+        if (page.read_size == 0)
         {
-            isfinish = true;
+            isfinish            = true;
             page.content_length = content_size;
             return;
         }
@@ -1268,28 +1259,28 @@ void rpc_client::process_body(const unsigned char *buffer, unsigned int readnum)
 
 void rpc_client::run_loop()
 {
-    if (socket_read_lock.test_and_set()) 
+    if (socket_read_lock.test_and_set())
     {
         error_msg = "Other socket read is set";
-        iserror = true;
+        iserror   = true;
         return;
     }
 
     auto self = shared_from_this();
-    if(data == nullptr)
+    if (data == nullptr)
     {
-        data = static_cast<unsigned char*>(std::malloc(512 * sizeof(unsigned char)));
+        data = static_cast<unsigned char *>(std::malloc(512 * sizeof(unsigned char)));
     }
 
-    for(;;)
+    for (;;)
     {
-        if(iserror)
+        if (iserror)
         {
             socket_read_lock.clear();
             return;
         }
 
-        if(isclose)
+        if (isclose)
         {
             socket_read_lock.clear();
             return;
@@ -1307,7 +1298,7 @@ void rpc_client::run_loop()
             {
                 if (sslsock->lowest_layer().is_open())
                 {
-                    n = sslsock->read_some(asio::buffer(data,512));
+                    n = sslsock->read_some(asio::buffer(data, 512));
                 }
                 else
                 {
@@ -1319,7 +1310,7 @@ void rpc_client::run_loop()
             {
                 if (sock->is_open())
                 {
-                   n = sock->read_some(asio::buffer(data,512));
+                    n = sock->read_some(asio::buffer(data, 512));
                 }
                 else
                 {
@@ -1328,15 +1319,15 @@ void rpc_client::run_loop()
                 }
             }
 
-            if(run_loop_fun != nullptr)
+            if (run_loop_fun != nullptr)
             {
-                run_loop_fun(self,n);
+                run_loop_fun(self, n);
             }
-            else if(async_run_loop_fun != nullptr)
+            else if (async_run_loop_fun != nullptr)
             {
                 asio::co_spawn(strand_, [self, n]() mutable
-                 { return self->async_run_loop_fun(self, n); },
-                 asio::detached);
+                               { return self->async_run_loop_fun(self, n); },
+                               asio::detached);
             }
             else
             {
@@ -1347,8 +1338,8 @@ void rpc_client::run_loop()
         catch (std::exception &e)
         {
             DEBUG_LOG("Exception: %s", e.what());
-            error_msg  = e.what();
-            iserror = true;
+            error_msg = e.what();
+            iserror   = true;
             socket_read_lock.clear();
             return;
         }
@@ -1359,27 +1350,27 @@ void rpc_client::run_loop()
 
 asio::awaitable<void> rpc_client::async_run_loop()
 {
-    if (socket_read_lock.test_and_set()) 
+    if (socket_read_lock.test_and_set())
     {
         error_msg = "Other socket read is set";
-        iserror = true;
+        iserror   = true;
         co_return;
     }
     auto self = shared_from_this();
-    if(data == nullptr)
+    if (data == nullptr)
     {
-        data = static_cast<unsigned char*>(std::malloc(512 * sizeof(unsigned char)));
+        data = static_cast<unsigned char *>(std::malloc(512 * sizeof(unsigned char)));
     }
 
-    for(;;)
+    for (;;)
     {
-        if(iserror)
+        if (iserror)
         {
             socket_read_lock.clear();
             co_return;
         }
 
-        if(isclose)
+        if (isclose)
         {
             socket_read_lock.clear();
             co_return;
@@ -1394,20 +1385,20 @@ asio::awaitable<void> rpc_client::async_run_loop()
         {
             if (isssl)
             {
-                n = co_await sslsock->async_read_some(asio::buffer(data,512), asio::use_awaitable);
+                n = co_await sslsock->async_read_some(asio::buffer(data, 512), asio::use_awaitable);
             }
             else
             {
-                n = co_await sock->async_read_some(asio::buffer(data,512), asio::use_awaitable);
+                n = co_await sock->async_read_some(asio::buffer(data, 512), asio::use_awaitable);
             }
- 
-            if(run_loop_fun != nullptr)
+
+            if (run_loop_fun != nullptr)
             {
-                run_loop_fun(self,n);
+                run_loop_fun(self, n);
             }
-            else if(async_run_loop_fun != nullptr)
+            else if (async_run_loop_fun != nullptr)
             {
-                co_await async_run_loop_fun(self,n);
+                co_await async_run_loop_fun(self, n);
             }
             else
             {
@@ -1418,8 +1409,8 @@ asio::awaitable<void> rpc_client::async_run_loop()
         catch (std::exception &e)
         {
             DEBUG_LOG("Exception: %s", e.what());
-            error_msg  = e.what();
-            iserror = true;
+            error_msg = e.what();
+            iserror   = true;
             socket_read_lock.clear();
             co_return;
         }
@@ -1430,20 +1421,20 @@ asio::awaitable<void> rpc_client::async_run_loop()
 
 asio::awaitable<unsigned int> rpc_client::async_read(unsigned char *buffer_data, unsigned int buffersize)
 {
-    if (socket_read_lock.test_and_set()) 
+    if (socket_read_lock.test_and_set())
     {
         error_msg = "Other socket read is set";
-        iserror = true;
+        iserror   = true;
         co_return 0;
     }
 
-    if(iserror)
+    if (iserror)
     {
         socket_read_lock.clear();
         co_return 0;
     }
 
-    if(isclose)
+    if (isclose)
     {
         socket_read_lock.clear();
         co_return 0;
@@ -1470,8 +1461,8 @@ asio::awaitable<unsigned int> rpc_client::async_read(unsigned char *buffer_data,
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
     socket_read_lock.clear();
     co_return 0;
@@ -1479,20 +1470,20 @@ asio::awaitable<unsigned int> rpc_client::async_read(unsigned char *buffer_data,
 
 asio::awaitable<unsigned int> rpc_client::async_read(std::string &buffer_data)
 {
-    if (socket_read_lock.test_and_set()) 
+    if (socket_read_lock.test_and_set())
     {
         error_msg = "Other socket read is set";
-        iserror = true;
+        iserror   = true;
         co_return 0;
     }
 
-    if(iserror)
+    if (iserror)
     {
         socket_read_lock.clear();
         co_return 0;
     }
 
-    if(isclose)
+    if (isclose)
     {
         socket_read_lock.clear();
         co_return 0;
@@ -1519,8 +1510,8 @@ asio::awaitable<unsigned int> rpc_client::async_read(std::string &buffer_data)
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
     socket_read_lock.clear();
     co_return 0;
@@ -1528,12 +1519,12 @@ asio::awaitable<unsigned int> rpc_client::async_read(std::string &buffer_data)
 
 asio::awaitable<unsigned int> rpc_client::async_write(unsigned char *data_out, unsigned int buffersize)
 {
-    if(iserror)
+    if (iserror)
     {
         co_return 0;
     }
 
-    if(isclose)
+    if (isclose)
     {
         co_return 0;
     }
@@ -1558,8 +1549,8 @@ asio::awaitable<unsigned int> rpc_client::async_write(unsigned char *data_out, u
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
 
     co_return 0;
@@ -1567,12 +1558,12 @@ asio::awaitable<unsigned int> rpc_client::async_write(unsigned char *data_out, u
 
 asio::awaitable<unsigned int> rpc_client::async_write(std::string_view value)
 {
-    if(iserror)
+    if (iserror)
     {
         co_return 0;
     }
 
-    if(isclose)
+    if (isclose)
     {
         co_return 0;
     }
@@ -1598,8 +1589,8 @@ asio::awaitable<unsigned int> rpc_client::async_write(std::string_view value)
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
 
     co_return 0;
@@ -1608,12 +1599,12 @@ asio::awaitable<unsigned int> rpc_client::async_write(std::string_view value)
 //synchronous
 unsigned int rpc_client::write(unsigned char *data_out, unsigned int buffersize)
 {
-    if(iserror)
+    if (iserror)
     {
         return 0;
     }
 
-    if(isclose)
+    if (isclose)
     {
         return 0;
     }
@@ -1638,8 +1629,8 @@ unsigned int rpc_client::write(unsigned char *data_out, unsigned int buffersize)
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
 
     return 0;
@@ -1647,12 +1638,12 @@ unsigned int rpc_client::write(unsigned char *data_out, unsigned int buffersize)
 
 unsigned int rpc_client::write(std::string_view value)
 {
-    if(iserror)
+    if (iserror)
     {
         return 0;
     }
 
-    if(isclose)
+    if (isclose)
     {
         return 0;
     }
@@ -1678,8 +1669,8 @@ unsigned int rpc_client::write(std::string_view value)
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
 
     return 0;
@@ -1687,20 +1678,20 @@ unsigned int rpc_client::write(std::string_view value)
 
 unsigned int rpc_client::read(unsigned char *buffer_data, unsigned int buffersize)
 {
-    if (socket_read_lock.test_and_set()) 
+    if (socket_read_lock.test_and_set())
     {
         error_msg = "Other socket read is set";
-        iserror = true;
+        iserror   = true;
         return 0;
     }
 
-    if(iserror)
+    if (iserror)
     {
         socket_read_lock.clear();
         return 0;
     }
 
-    if(isclose)
+    if (isclose)
     {
         socket_read_lock.clear();
         return 0;
@@ -1727,8 +1718,8 @@ unsigned int rpc_client::read(unsigned char *buffer_data, unsigned int buffersiz
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
     socket_read_lock.clear();
     return 0;
@@ -1736,20 +1727,20 @@ unsigned int rpc_client::read(unsigned char *buffer_data, unsigned int buffersiz
 
 unsigned int rpc_client::read(std::string &buffer_data)
 {
-    if (socket_read_lock.test_and_set()) 
+    if (socket_read_lock.test_and_set())
     {
         error_msg = "Other socket read is set";
-        iserror = true;
+        iserror   = true;
         return 0;
     }
 
-    if(iserror)
+    if (iserror)
     {
         socket_read_lock.clear();
         return 0;
     }
 
-    if(isclose)
+    if (isclose)
     {
         socket_read_lock.clear();
         return 0;
@@ -1776,15 +1767,14 @@ unsigned int rpc_client::read(std::string &buffer_data)
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
     socket_read_lock.clear();
     return 0;
 }
 
-
-bool rpc_client::connect(std::string_view rpcurl,unsigned int time_out_num)
+bool rpc_client::connect(std::string_view rpcurl, unsigned int time_out_num)
 {
     set_url(rpcurl);
     std::string send_content;
@@ -1793,11 +1783,11 @@ bool rpc_client::connect(std::string_view rpcurl,unsigned int time_out_num)
     send_content.append(url);
     send_content.push_back(0x0A);
     send_content.append("HOST ");
-    
+
     unsigned short value_size_h = host.size();
-    unsigned char aa = value_size_h & 0xFF;
-    
-    value_size_h = value_size_h & 0xFF00;
+    unsigned char aa            = value_size_h & 0xFF;
+
+    value_size_h     = value_size_h & 0xFF00;
     unsigned char bb = value_size_h >> 8;
     send_content.push_back(bb);
     send_content.push_back(aa);
@@ -1807,18 +1797,18 @@ bool rpc_client::connect(std::string_view rpcurl,unsigned int time_out_num)
 
     send_content.append("size ");
 
-    if(content.size() <=  0xFFFF)
+    if (content.size() <= 0xFFFF)
     {
         send_content.push_back(0x00);
         send_content.push_back(0x02);
         unsigned short value_size = content.size();
-        unsigned char a = value_size & 0xFF;
-        value_size = value_size & 0xFF00;
-        unsigned char b = value_size >> 8;
+        unsigned char a           = value_size & 0xFF;
+        value_size                = value_size & 0xFF00;
+        unsigned char b           = value_size >> 8;
         send_content.push_back(b);
         send_content.push_back(a);
     }
-    else if(content.size() <=  0xFFFFFFFF)
+    else if (content.size() <= 0xFFFFFFFF)
     {
         send_content.push_back(0x00);
         send_content.push_back(0x04);
@@ -1834,7 +1824,7 @@ bool rpc_client::connect(std::string_view rpcurl,unsigned int time_out_num)
         a = value_size & 0xFF;
         send_content.push_back(a);
     }
-    else if(content.size() <=  0xFFFFFFFFFF)
+    else if (content.size() <= 0xFFFFFFFFFF)
     {
         send_content.push_back(0x00);
         send_content.push_back(0x05);
@@ -1861,7 +1851,7 @@ bool rpc_client::connect(std::string_view rpcurl,unsigned int time_out_num)
 
     send_content.append("type ");
 
-    if(content_type.size() ==0 )
+    if (content_type.size() == 0)
     {
         send_content.push_back(0x00);
         send_content.push_back(0x09);
@@ -1869,11 +1859,11 @@ bool rpc_client::connect(std::string_view rpcurl,unsigned int time_out_num)
     }
     else
     {
-        if(content_type.size() > 0xFFFF)
+        if (content_type.size() > 0xFFFF)
         {
             send_content.push_back(0x00);
             send_content.push_back(0x09);
-            send_content.append("text/html");               
+            send_content.append("text/html");
             iserror = true;
             return false;
         }
@@ -1881,22 +1871,22 @@ bool rpc_client::connect(std::string_view rpcurl,unsigned int time_out_num)
         send_content.push_back(0x00);
         send_content.push_back(0x02);
         unsigned short value_size = content_type.size();
-        unsigned char a = value_size & 0xFF;
-        value_size = value_size & 0xFF00;
-        unsigned char b = value_size >> 8;
+        unsigned char a           = value_size & 0xFF;
+        value_size                = value_size & 0xFF00;
+        unsigned char b           = value_size >> 8;
         send_content.push_back(b);
         send_content.push_back(a);
     }
     send_content.push_back(0x0A);
 
-    for(unsigned int i=0; i < parameter.size(); i++)
+    for (unsigned int i = 0; i < parameter.size(); i++)
     {
         send_content.append(parameter[i].name);
         send_content.push_back(0x20);
         unsigned short value_size = parameter[i].value.size();
-        unsigned char a = value_size & 0xFF;
-        value_size = value_size & 0xFF00;
-        unsigned char b = value_size >> 8;
+        unsigned char a           = value_size & 0xFF;
+        value_size                = value_size & 0xFF00;
+        unsigned char b           = value_size >> 8;
         send_content.push_back(b);
         send_content.push_back(a);
         send_content.append(parameter[i].value);
@@ -1910,7 +1900,7 @@ bool rpc_client::connect(std::string_view rpcurl,unsigned int time_out_num)
     {
         exptime = 30;
     }
-    
+
     if (exptime > 0)
     {
         set_timeout(exptime);
@@ -1923,22 +1913,22 @@ bool rpc_client::connect(std::string_view rpcurl,unsigned int time_out_num)
         {
             DEBUG_LOG("Exception: %s", e.what());
             error_msg = e.what();
-            iserror = true;
+            iserror   = true;
         }
     }
-    if(iserror)
+    if (iserror)
     {
         return false;
     }
 
     if (isssl)
     {
-       return init_https_sock();
+        return init_https_sock();
     }
     else
     {
-       return init_http_sock();
-    }    
+        return init_http_sock();
+    }
     return false;
 }
 bool rpc_client::connect()
@@ -1951,9 +1941,9 @@ bool rpc_client::connect()
     send_content.append("HOST ");
 
     unsigned short value_size_h = host.size();
-    unsigned char aa = value_size_h & 0xFF;
+    unsigned char aa            = value_size_h & 0xFF;
 
-    value_size_h = value_size_h & 0xFF00;
+    value_size_h     = value_size_h & 0xFF00;
     unsigned char bb = value_size_h >> 8;
     send_content.push_back(bb);
     send_content.push_back(aa);
@@ -1963,18 +1953,18 @@ bool rpc_client::connect()
 
     send_content.append("size ");
 
-    if(content.size() <=  0xFFFF)
+    if (content.size() <= 0xFFFF)
     {
         send_content.push_back(0x00);
         send_content.push_back(0x02);
         unsigned short value_size = content.size();
-        unsigned char a = value_size & 0xFF;
-        value_size = value_size & 0xFF00;
-        unsigned char b = value_size >> 8;
+        unsigned char a           = value_size & 0xFF;
+        value_size                = value_size & 0xFF00;
+        unsigned char b           = value_size >> 8;
         send_content.push_back(b);
         send_content.push_back(a);
     }
-    else if(content.size() <=  0xFFFFFFFF)
+    else if (content.size() <= 0xFFFFFFFF)
     {
         send_content.push_back(0x00);
         send_content.push_back(0x04);
@@ -1990,7 +1980,7 @@ bool rpc_client::connect()
         a = value_size & 0xFF;
         send_content.push_back(a);
     }
-    else if(content.size() <=  0xFFFFFFFFFF)
+    else if (content.size() <= 0xFFFFFFFFFF)
     {
         send_content.push_back(0x00);
         send_content.push_back(0x05);
@@ -2017,7 +2007,7 @@ bool rpc_client::connect()
 
     send_content.append("type ");
 
-    if(content_type.size() ==0 )
+    if (content_type.size() == 0)
     {
         send_content.push_back(0x00);
         send_content.push_back(0x09);
@@ -2025,11 +2015,11 @@ bool rpc_client::connect()
     }
     else
     {
-        if(content_type.size() > 0xFFFF)
+        if (content_type.size() > 0xFFFF)
         {
             send_content.push_back(0x00);
             send_content.push_back(0x09);
-            send_content.append("text/html");               
+            send_content.append("text/html");
             iserror = true;
             return false;
         }
@@ -2037,22 +2027,22 @@ bool rpc_client::connect()
         send_content.push_back(0x00);
         send_content.push_back(0x02);
         unsigned short value_size = content_type.size();
-        unsigned char a = value_size & 0xFF;
-        value_size = value_size & 0xFF00;
-        unsigned char b = value_size >> 8;
+        unsigned char a           = value_size & 0xFF;
+        value_size                = value_size & 0xFF00;
+        unsigned char b           = value_size >> 8;
         send_content.push_back(b);
         send_content.push_back(a);
     }
     send_content.push_back(0x0A);
 
-    for(unsigned int i=0; i < parameter.size(); i++)
+    for (unsigned int i = 0; i < parameter.size(); i++)
     {
         send_content.append(parameter[i].name);
         send_content.push_back(0x20);
         unsigned short value_size = parameter[i].value.size();
-        unsigned char a = value_size & 0xFF;
-        value_size = value_size & 0xFF00;
-        unsigned char b = value_size >> 8;
+        unsigned char a           = value_size & 0xFF;
+        value_size                = value_size & 0xFF00;
+        unsigned char b           = value_size >> 8;
         send_content.push_back(b);
         send_content.push_back(a);
         send_content.append(parameter[i].value);
@@ -2078,10 +2068,10 @@ bool rpc_client::connect()
         {
             DEBUG_LOG("Exception: %s", e.what());
             error_msg = e.what();
-            iserror = true;
+            iserror   = true;
         }
     }
-    if(iserror)
+    if (iserror)
     {
         return false;
     }
@@ -2093,10 +2083,10 @@ bool rpc_client::connect()
     else
     {
         return init_http_sock();
-    }    
+    }
     return false;
 }
-asio::awaitable<bool> rpc_client::async_connect(std::string_view rpcurl,unsigned int time_out_num)
+asio::awaitable<bool> rpc_client::async_connect(std::string_view rpcurl, unsigned int time_out_num)
 {
     set_url(rpcurl);
     std::string send_content;
@@ -2105,11 +2095,11 @@ asio::awaitable<bool> rpc_client::async_connect(std::string_view rpcurl,unsigned
     send_content.append(url);
     send_content.push_back(0x0A);
     send_content.append("HOST ");
-    
+
     unsigned short value_size_h = host.size();
-    unsigned char aa = value_size_h & 0xFF;
-    
-    value_size_h = value_size_h & 0xFF00;
+    unsigned char aa            = value_size_h & 0xFF;
+
+    value_size_h     = value_size_h & 0xFF00;
     unsigned char bb = value_size_h >> 8;
     send_content.push_back(bb);
     send_content.push_back(aa);
@@ -2119,18 +2109,18 @@ asio::awaitable<bool> rpc_client::async_connect(std::string_view rpcurl,unsigned
 
     send_content.append("size ");
 
-    if(content.size() <=  0xFFFF)
+    if (content.size() <= 0xFFFF)
     {
         send_content.push_back(0x00);
         send_content.push_back(0x02);
         unsigned short value_size = content.size();
-        unsigned char a = value_size & 0xFF;
-        value_size = value_size & 0xFF00;
-        unsigned char b = value_size >> 8;
+        unsigned char a           = value_size & 0xFF;
+        value_size                = value_size & 0xFF00;
+        unsigned char b           = value_size >> 8;
         send_content.push_back(b);
         send_content.push_back(a);
     }
-    else if(content.size() <=  0xFFFFFFFF)
+    else if (content.size() <= 0xFFFFFFFF)
     {
         send_content.push_back(0x00);
         send_content.push_back(0x04);
@@ -2146,7 +2136,7 @@ asio::awaitable<bool> rpc_client::async_connect(std::string_view rpcurl,unsigned
         a = value_size & 0xFF;
         send_content.push_back(a);
     }
-    else if(content.size() <=  0xFFFFFFFFFF)
+    else if (content.size() <= 0xFFFFFFFFFF)
     {
         send_content.push_back(0x00);
         send_content.push_back(0x05);
@@ -2173,7 +2163,7 @@ asio::awaitable<bool> rpc_client::async_connect(std::string_view rpcurl,unsigned
 
     send_content.append("type ");
 
-    if(content_type.size() ==0 )
+    if (content_type.size() == 0)
     {
         send_content.push_back(0x00);
         send_content.push_back(0x09);
@@ -2181,11 +2171,11 @@ asio::awaitable<bool> rpc_client::async_connect(std::string_view rpcurl,unsigned
     }
     else
     {
-        if(content_type.size() > 0xFFFF)
+        if (content_type.size() > 0xFFFF)
         {
             send_content.push_back(0x00);
             send_content.push_back(0x09);
-            send_content.append("text/html");               
+            send_content.append("text/html");
             iserror = true;
             co_return false;
         }
@@ -2193,22 +2183,22 @@ asio::awaitable<bool> rpc_client::async_connect(std::string_view rpcurl,unsigned
         send_content.push_back(0x00);
         send_content.push_back(0x02);
         unsigned short value_size = content_type.size();
-        unsigned char a = value_size & 0xFF;
-        value_size = value_size & 0xFF00;
-        unsigned char b = value_size >> 8;
+        unsigned char a           = value_size & 0xFF;
+        value_size                = value_size & 0xFF00;
+        unsigned char b           = value_size >> 8;
         send_content.push_back(b);
         send_content.push_back(a);
     }
     send_content.push_back(0x0A);
 
-    for(unsigned int i=0; i < parameter.size(); i++)
+    for (unsigned int i = 0; i < parameter.size(); i++)
     {
         send_content.append(parameter[i].name);
         send_content.push_back(0x20);
         unsigned short value_size = parameter[i].value.size();
-        unsigned char a = value_size & 0xFF;
-        value_size = value_size & 0xFF00;
-        unsigned char b = value_size >> 8;
+        unsigned char a           = value_size & 0xFF;
+        value_size                = value_size & 0xFF00;
+        unsigned char b           = value_size >> 8;
         send_content.push_back(b);
         send_content.push_back(a);
         send_content.append(parameter[i].value);
@@ -2222,7 +2212,7 @@ asio::awaitable<bool> rpc_client::async_connect(std::string_view rpcurl,unsigned
     {
         exptime = 30;
     }
-    
+
     if (exptime > 0)
     {
         set_timeout(exptime);
@@ -2235,22 +2225,22 @@ asio::awaitable<bool> rpc_client::async_connect(std::string_view rpcurl,unsigned
         {
             DEBUG_LOG("Exception: %s", e.what());
             error_msg = e.what();
-            iserror = true;
+            iserror   = true;
         }
     }
-    if(iserror)
+    if (iserror)
     {
         co_return false;
     }
 
-    if (isssl )
+    if (isssl)
     {
-       co_return co_await async_init_https_sock();
+        co_return co_await async_init_https_sock();
     }
     else
     {
-       co_return co_await async_init_http_sock();
-    }    
+        co_return co_await async_init_http_sock();
+    }
     co_return false;
 }
 asio::awaitable<bool> rpc_client::async_connect()
@@ -2261,11 +2251,11 @@ asio::awaitable<bool> rpc_client::async_connect()
     send_content.append(url);
     send_content.push_back(0x0A);
     send_content.append("HOST ");
-    
+
     unsigned short value_size_h = host.size();
-    unsigned char aa = value_size_h & 0xFF;
-    
-    value_size_h = value_size_h & 0xFF00;
+    unsigned char aa            = value_size_h & 0xFF;
+
+    value_size_h     = value_size_h & 0xFF00;
     unsigned char bb = value_size_h >> 8;
     send_content.push_back(bb);
     send_content.push_back(aa);
@@ -2275,18 +2265,18 @@ asio::awaitable<bool> rpc_client::async_connect()
 
     send_content.append("size ");
 
-    if(content.size() <=  0xFFFF)
+    if (content.size() <= 0xFFFF)
     {
         send_content.push_back(0x00);
         send_content.push_back(0x02);
         unsigned short value_size = content.size();
-        unsigned char a = value_size & 0xFF;
-        value_size = value_size & 0xFF00;
-        unsigned char b = value_size >> 8;
+        unsigned char a           = value_size & 0xFF;
+        value_size                = value_size & 0xFF00;
+        unsigned char b           = value_size >> 8;
         send_content.push_back(b);
         send_content.push_back(a);
     }
-    else if(content.size() <=  0xFFFFFFFF)
+    else if (content.size() <= 0xFFFFFFFF)
     {
         send_content.push_back(0x00);
         send_content.push_back(0x04);
@@ -2302,7 +2292,7 @@ asio::awaitable<bool> rpc_client::async_connect()
         a = value_size & 0xFF;
         send_content.push_back(a);
     }
-    else if(content.size() <=  0xFFFFFFFFFF)
+    else if (content.size() <= 0xFFFFFFFFFF)
     {
         send_content.push_back(0x00);
         send_content.push_back(0x05);
@@ -2329,7 +2319,7 @@ asio::awaitable<bool> rpc_client::async_connect()
 
     send_content.append("type ");
 
-    if(content_type.size() ==0 )
+    if (content_type.size() == 0)
     {
         send_content.push_back(0x00);
         send_content.push_back(0x09);
@@ -2337,11 +2327,11 @@ asio::awaitable<bool> rpc_client::async_connect()
     }
     else
     {
-        if(content_type.size() > 0xFFFF)
+        if (content_type.size() > 0xFFFF)
         {
             send_content.push_back(0x00);
             send_content.push_back(0x09);
-            send_content.append("text/html");               
+            send_content.append("text/html");
             iserror = true;
             co_return false;
         }
@@ -2349,22 +2339,22 @@ asio::awaitable<bool> rpc_client::async_connect()
         send_content.push_back(0x00);
         send_content.push_back(0x02);
         unsigned short value_size = content_type.size();
-        unsigned char a = value_size & 0xFF;
-        value_size = value_size & 0xFF00;
-        unsigned char b = value_size >> 8;
+        unsigned char a           = value_size & 0xFF;
+        value_size                = value_size & 0xFF00;
+        unsigned char b           = value_size >> 8;
         send_content.push_back(b);
         send_content.push_back(a);
     }
     send_content.push_back(0x0A);
 
-    for(unsigned int i=0; i < parameter.size(); i++)
+    for (unsigned int i = 0; i < parameter.size(); i++)
     {
         send_content.append(parameter[i].name);
         send_content.push_back(0x20);
         unsigned short value_size = parameter[i].value.size();
-        unsigned char a = value_size & 0xFF;
-        value_size = value_size & 0xFF00;
-        unsigned char b = value_size >> 8;
+        unsigned char a           = value_size & 0xFF;
+        value_size                = value_size & 0xFF00;
+        unsigned char b           = value_size >> 8;
         send_content.push_back(b);
         send_content.push_back(a);
         send_content.append(parameter[i].value);
@@ -2377,7 +2367,7 @@ asio::awaitable<bool> rpc_client::async_connect()
     {
         exptime = 30;
     }
-    
+
     if (exptime > 0)
     {
         set_timeout(exptime);
@@ -2390,22 +2380,22 @@ asio::awaitable<bool> rpc_client::async_connect()
         {
             DEBUG_LOG("Exception: %s", e.what());
             error_msg = e.what();
-            iserror = true;
+            iserror   = true;
         }
     }
-    if(iserror)
+    if (iserror)
     {
         co_return false;
     }
 
-    if (isssl )
+    if (isssl)
     {
-       co_return co_await async_init_https_sock();
+        co_return co_await async_init_https_sock();
     }
     else
     {
-       co_return co_await async_init_http_sock();
-    }    
+        co_return co_await async_init_http_sock();
+    }
     co_return false;
 }
 
@@ -2414,7 +2404,7 @@ bool rpc_client::init_https_sock()
     error_msg.clear();
 
     ssl_context = std::make_shared<asio::ssl::context>(asio::ssl::context::sslv23);
-    sslsock = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(strand_, *ssl_context);
+    sslsock     = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(strand_, *ssl_context);
 
     ssl_context->set_default_verify_paths();
     asio::ip::tcp::resolver resolver(strand_);
@@ -2449,11 +2439,11 @@ bool rpc_client::init_https_sock()
 bool rpc_client::init_http_sock()
 {
     error_msg.clear();
-    sock                            = std::make_shared<asio::ip::tcp::socket>(strand_);
+    sock = std::make_shared<asio::ip::tcp::socket>(strand_);
     asio::ip::tcp::resolver resolver(strand_);
     auto endpoints = resolver.resolve(host, std::to_string(port));
     asio::connect(*sock, endpoints, ec);
- 
+
     if (ec)
     {
         error_msg = ec.message();
@@ -2491,24 +2481,24 @@ void rpc_client::send_data(std::string_view send_content)
                 {
                     DEBUG_LOG("Exception: %s", e.what());
                     error_msg = e.what();
-                    iserror = true;
+                    iserror   = true;
                 }
             }
-            if(iserror)
+            if (iserror)
             {
                 return;
             }
 
-            unsigned int n=0;
-            n = asio::write(*sock, asio::buffer(send_content));
+            unsigned int n = 0;
+            n              = asio::write(*sock, asio::buffer(send_content));
             unsigned char read_data[2052];
-            if(n == 0)
+            if (n == 0)
             {
                 return;
             }
-            n=0;
-            bool begin_data=true;
-            isbody = false;
+            n               = 0;
+            bool begin_data = true;
+            isbody          = false;
             while (true)
             {
                 memset(read_data, 0x00, 2048);
@@ -2518,7 +2508,7 @@ void rpc_client::send_data(std::string_view send_content)
                 }
                 if (isbody && page.read_size < 2048)
                 {
-                    n =  sock->read_some(asio::buffer(read_data, page.read_size));
+                    n = sock->read_some(asio::buffer(read_data, page.read_size));
                 }
                 else
                 {
@@ -2529,21 +2519,21 @@ void rpc_client::send_data(std::string_view send_content)
                 {
                     break;
                 }
-                if(begin_data)
+                if (begin_data)
                 {
                     begin_data = false;
-                    process(read_data,n);
+                    process(read_data, n);
                 }
                 else
                 {
-                    process_append(read_data,n);
+                    process_append(read_data, n);
                 }
 
                 if (isfinish)
                 {
                     break;
                 }
-                if(iserror)
+                if (iserror)
                 {
                     break;
                 }
@@ -2553,10 +2543,9 @@ void rpc_client::send_data(std::string_view send_content)
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
-
 }
 void rpc_client::ssl_send_data(std::string_view send_content)
 {
@@ -2586,20 +2575,20 @@ void rpc_client::ssl_send_data(std::string_view send_content)
                 {
                     DEBUG_LOG("Exception: %s", e.what());
                     error_msg = e.what();
-                    iserror = true;
+                    iserror   = true;
                 }
             }
-            if(iserror)
+            if (iserror)
             {
                 return;
             }
 
-            unsigned int n=0;
-            n = asio::write(*sslsock, asio::buffer(send_content));
+            unsigned int n = 0;
+            n              = asio::write(*sslsock, asio::buffer(send_content));
             unsigned char read_data[2052];
-            
-            bool begin_data=true;
-            isbody = false;
+
+            bool begin_data = true;
+            isbody          = false;
             while (true)
             {
                 memset(read_data, 0x00, 2048);
@@ -2620,21 +2609,21 @@ void rpc_client::ssl_send_data(std::string_view send_content)
                 {
                     break;
                 }
-                if(begin_data)
+                if (begin_data)
                 {
                     begin_data = false;
-                    process(read_data,n);
+                    process(read_data, n);
                 }
                 else
                 {
-                    process_append(read_data,n);
+                    process_append(read_data, n);
                 }
 
                 if (isfinish)
                 {
                     break;
                 }
-                if(iserror)
+                if (iserror)
                 {
                     break;
                 }
@@ -2644,9 +2633,9 @@ void rpc_client::ssl_send_data(std::string_view send_content)
     catch (std::exception &e)
     {
         DEBUG_LOG("Exception: %s", e.what());
-        error_msg  = e.what();
-        iserror = true;
+        error_msg = e.what();
+        iserror   = true;
     }
 }
 
-} //end http
+}// namespace http

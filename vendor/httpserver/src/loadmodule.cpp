@@ -146,7 +146,7 @@ www_method_call controlmodulecreate(std::string module, std::string name, size_t
     bool hasmethod                           = true;
     if (iter != sharedmethodchache.end())
     {
-        for (unsigned int i = 0; i < iter->second.size(); i++)
+        for (size_t i = 0; i < iter->second.size(); i++)
         {
             if (iter->second[i] == name)
             {
@@ -281,7 +281,7 @@ void controlmoduleclear(std::string module, std::string method)
         {
             // 清除所有方法
             std::string hash;
-            for (unsigned int i = 0; i < iter->second.size(); i++)
+            for (size_t i = 0; i < iter->second.size(); i++)
             {
                 hash.clear();
                 hash.append(module);

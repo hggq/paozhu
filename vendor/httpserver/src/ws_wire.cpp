@@ -10,24 +10,24 @@
 #ifdef _MSC_VER
 #include <fcntl.h>
 #include <io.h>
-#define WS_OPEN   ::_open
-#define WS_CLOSE  ::_close
+#define WS_OPEN ::_open
+#define WS_CLOSE ::_close
 #define WS_UNLINK ::_unlink
 #define WS_FDOPEN ::_fdopen
-#define WS_O_CREAT  _O_CREAT
-#define WS_O_EXCL   _O_EXCL
-#define WS_O_RDWR   _O_RDWR
+#define WS_O_CREAT _O_CREAT
+#define WS_O_EXCL _O_EXCL
+#define WS_O_RDWR _O_RDWR
 #define WS_O_BINARY _O_BINARY
 #else
 #include <fcntl.h>
 #include <unistd.h>
-#define WS_OPEN   ::open
-#define WS_CLOSE  ::close
+#define WS_OPEN ::open
+#define WS_CLOSE ::close
 #define WS_UNLINK ::unlink
 #define WS_FDOPEN ::fdopen
-#define WS_O_CREAT  O_CREAT
-#define WS_O_EXCL   O_EXCL
-#define WS_O_RDWR   O_RDWR
+#define WS_O_CREAT O_CREAT
+#define WS_O_EXCL O_EXCL
+#define WS_O_RDWR O_RDWR
 #define WS_O_BINARY 0
 #endif
 
@@ -38,10 +38,10 @@ namespace ws
 
 // temp_file_handle
 
-temp_file_handle::temp_file_handle() : fp_(nullptr, [](std::FILE *f) {
+temp_file_handle::temp_file_handle() : fp_(nullptr, [](std::FILE *f)
+                                           {
     if (f)
-        std::fclose(f);
-})
+        std::fclose(f); })
 {
 }
 
@@ -54,8 +54,7 @@ bool temp_file_handle::open(const std::string &dir, bool unlink_after_create)
     std::uniform_int_distribution<uint64_t> dis;
 
     char tmpl[256];
-    std::snprintf(tmpl, sizeof(tmpl), "%s/ws_%llx_%llx", dir.c_str(),
-                  (unsigned long long)time(nullptr), (unsigned long long)dis(rng));
+    std::snprintf(tmpl, sizeof(tmpl), "%s/ws_%llx_%llx", dir.c_str(), (unsigned long long)time(nullptr), (unsigned long long)dis(rng));
 
     int fd = WS_OPEN(tmpl, WS_O_CREAT | WS_O_EXCL | WS_O_RDWR | WS_O_BINARY, 0600);
     if (fd < 0)
@@ -128,14 +127,14 @@ size_t header_parser::feed(const unsigned char *data, size_t len)
         {
             unsigned char b0 = static_cast<unsigned char>(buf_[0]);
             unsigned char b1 = static_cast<unsigned char>(buf_[1]);
-            hdr_.fin    = (b0 >> 7) & 1;
-            hdr_.rsv    = (b0 >> 4) & 0x07;
-            hdr_.op     = static_cast<opcode>(b0 & 0x0F);
-            hdr_.masked = (b1 >> 7) & 1;
+            hdr_.fin         = (b0 >> 7) & 1;
+            hdr_.rsv         = (b0 >> 4) & 0x07;
+            hdr_.op          = static_cast<opcode>(b0 & 0x0F);
+            hdr_.masked      = (b1 >> 7) & 1;
 
             // 校验操作码合法性
             unsigned char opv = b0 & 0x0F;
-            bool valid = (opv <= 0x02) || (opv >= 0x08 && opv <= 0x0A);
+            bool valid        = (opv <= 0x02) || (opv >= 0x08 && opv <= 0x0A);
             if (!valid)
             {
                 error_ = true;
@@ -144,9 +143,9 @@ size_t header_parser::feed(const unsigned char *data, size_t len)
 
             // 计算扩展长度和掩码长度
             unsigned char plen = b1 & 0x7F;
-            size_t ext = (plen < 126) ? 0 : (plen == 126 ? 2 : 8);
-            size_t mask_len = hdr_.masked ? 4 : 0;
-            size_t full = 2 + ext + mask_len;
+            size_t ext         = (plen < 126) ? 0 : (plen == 126 ? 2 : 8);
+            size_t mask_len    = hdr_.masked ? 4 : 0;
+            size_t full        = 2 + ext + mask_len;
 
             if (buf_.size() >= full)
             {
@@ -187,7 +186,7 @@ size_t header_parser::feed(const unsigned char *data, size_t len)
 
                 if (hdr_.masked)
                 {
-                    size_t mk = 2 + ext;
+                    size_t mk        = 2 + ext;
                     hdr_.mask_key[0] = static_cast<unsigned char>(buf_[mk]);
                     hdr_.mask_key[1] = static_cast<unsigned char>(buf_[mk + 1]);
                     hdr_.mask_key[2] = static_cast<unsigned char>(buf_[mk + 2]);
@@ -206,11 +205,11 @@ size_t header_parser::needed() const
     size_t n = buf_.size();
     if (n < 2)
         return 2 - n;
-    unsigned char b1 = static_cast<unsigned char>(buf_[1]);
+    unsigned char b1   = static_cast<unsigned char>(buf_[1]);
     unsigned char plen = b1 & 0x7F;
-    size_t ext = (plen < 126) ? 0 : (plen == 126 ? 2 : 8);
-    size_t mask_len = ((b1 >> 7) & 1) ? 4 : 0;
-    size_t full = 2 + ext + mask_len;
+    size_t ext         = (plen < 126) ? 0 : (plen == 126 ? 2 : 8);
+    size_t mask_len    = ((b1 >> 7) & 1) ? 4 : 0;
+    size_t full        = 2 + ext + mask_len;
     return (n >= full) ? 0 : (full - n);
 }
 
@@ -281,7 +280,7 @@ bool utf8_stream_checker::feed(const unsigned char *data, size_t len)
             }
             else
             {
-                return false; // 后续字节作前导、0xC0/0xC1 恒过长、0xF5-0xFF 超范围
+                return false;// 后续字节作前导、0xC0/0xC1 恒过长、0xF5-0xFF 超范围
             }
             total_ = static_cast<unsigned char>(pending_ + 1);
             ++i;
@@ -289,15 +288,15 @@ bool utf8_stream_checker::feed(const unsigned char *data, size_t len)
         }
         unsigned char b = data[i++];
         if ((b & 0xC0) != 0x80)
-            return false; // 后续字节缺失，序列在上一个字节就断了
+            return false;// 后续字节缺失，序列在上一个字节就断了
         cp_ = (cp_ << 6) | (b & 0x3F);
         if (--pending_ == 0)
         {
             unsigned int minv = (total_ == 2) ? 0x80u : (total_ == 3 ? 0x800u : 0x10000u);
             if (cp_ < minv)
-                return false; // 过长编码
+                return false;// 过长编码
             if (cp_ >= 0xD800u && cp_ <= 0xDFFFu)
-                return false; // UTF-8 禁止代理对
+                return false;// UTF-8 禁止代理对
             if (cp_ > 0x10FFFFu)
                 return false;
         }
@@ -330,11 +329,11 @@ message_assembler::~message_assembler()
 
 void message_assembler::reset()
 {
-    in_message_  = false;
-    total_size_  = 0;
-    spilled_     = false;
-    opcode_      = opcode::continuation;
-    rsv_         = 0;
+    in_message_ = false;
+    total_size_ = 0;
+    spilled_    = false;
+    opcode_     = opcode::continuation;
+    rsv_        = 0;
     mem_payload_.clear();
     if (file_.is_open())
     {
@@ -343,12 +342,12 @@ void message_assembler::reset()
         if (!name.empty())
             std::remove(name.c_str());
     }
-    error_       = false;
-    too_big_     = false;
-    internal_    = false;
+    error_        = false;
+    too_big_      = false;
+    internal_     = false;
     invalid_utf8_ = false;
     utf8_.reset();
-    finished_    = false;
+    finished_ = false;
 }
 
 bool message_assembler::begin_frame(bool fin, opcode op, unsigned char rsv)
@@ -371,8 +370,8 @@ bool message_assembler::begin_frame(bool fin, opcode op, unsigned char rsv)
             error_ = true;
             return false;
         }
-        opcode_ = op;
-        rsv_    = rsv;
+        opcode_     = op;
+        rsv_        = rsv;
         in_message_ = true;
         if (op == opcode::text)
         {
@@ -417,7 +416,7 @@ bool message_assembler::push_payload(const unsigned char *data, size_t len)
     if (!spilled_ && total_size_ > spill_threshold_)
     {
         // 落点回退链：temp_path → ./temp → "."
-        bool opened = false;
+        bool opened              = false;
         const std::string &gpath = get_server_global_var().temp_path;
         if (!gpath.empty())
             opened = file_.open(gpath, /*unlink_after_create=*/false);
@@ -436,7 +435,7 @@ bool message_assembler::push_payload(const unsigned char *data, size_t len)
             if (!file_.write(mem_payload_.data(), mem_payload_.size()))
             {
                 error_    = true;
-                internal_ = true; // 落盘写失败是本地内部过错 → Close 1011，不是协议错误 1002
+                internal_ = true;// 落盘写失败是本地内部过错 → Close 1011，不是协议错误 1002
                 return false;
             }
             mem_payload_.clear();
@@ -494,8 +493,8 @@ void message_assembler::consume_message()
     rsv_        = 0;
     mem_payload_.clear();
     file_.close();
-    finished_   = false;
-    too_big_    = false;
+    finished_ = false;
+    too_big_  = false;
     utf8_.reset();
     invalid_utf8_ = false;
 }
@@ -505,7 +504,7 @@ void message_assembler::consume_message()
 struct permessage_inflate::inflate_state_t
 {
     z_stream zs;
-    bool     inited = false;
+    bool inited = false;
 };
 
 permessage_inflate::permessage_inflate() : st_(new inflate_state_t())
@@ -525,9 +524,10 @@ permessage_inflate::~permessage_inflate()
 
 // 泵干当前可解输出；sink 返回 false 时透传失败（不置 failed_，由调用方查聚合器）
 bool permessage_inflate::pump(bool (*sink)(const unsigned char *out, size_t n, void *ud),
-                              void *ud, int flush)
+                              void *ud,
+                              int flush)
 {
-    z_stream     &zs = st_->zs;
+    z_stream &zs = st_->zs;
     unsigned char ob[16384];
     while (true)
     {
@@ -564,9 +564,7 @@ bool permessage_inflate::pump(bool (*sink)(const unsigned char *out, size_t n, v
     return true;
 }
 
-bool permessage_inflate::feed(const unsigned char *data, size_t len, bool msg_fin,
-                              bool (*sink)(const unsigned char *out, size_t n, void *ud),
-                              void *ud)
+bool permessage_inflate::feed(const unsigned char *data, size_t len, bool msg_fin, bool (*sink)(const unsigned char *out, size_t n, void *ud), void *ud)
 {
     if (failed_)
         return false;

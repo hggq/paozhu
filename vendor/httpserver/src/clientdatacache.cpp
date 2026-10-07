@@ -28,7 +28,7 @@ client_data_cache::~client_data_cache()
 bool client_data_cache::fix_lists()
 {
     std::unique_lock<std::mutex> lock(locklist);
-    unsigned int list_size = data_list.size();
+    unsigned int list_size = static_cast<unsigned int>(data_list.size());
     if (list_size < 1025)
     {
         return false;
@@ -51,7 +51,8 @@ void client_data_cache::inti_sendqueue(unsigned int a)
     for (unsigned int i = 0; i < a; i++)
     {
         unsigned char *ptr = reinterpret_cast<unsigned char *>(std::malloc(4096));
-        if (ptr != nullptr) data_list.emplace(ptr);
+        if (ptr != nullptr)
+            data_list.emplace(ptr);
     }
 }
 unsigned char *client_data_cache::get_data_ptr()
@@ -89,7 +90,8 @@ unsigned char *client_data_cache::get_data_ptr()
 }
 bool client_data_cache::back_data_ptr(unsigned char *a)
 {
-    if (a == nullptr) return false;
+    if (a == nullptr)
+        return false;
     std::unique_lock<std::mutex> lock(locklist);
     if (isclose)
     {

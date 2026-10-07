@@ -39,8 +39,11 @@ int main(int argc, char *argv[])
             conf_path = argv_str;
             if (!fs::is_regular_file(conf_path))
             {
-                std::cout << "Not found server.conf file.";
-                return 0;
+                // 容器里这条路径尤其要响：静默 return 0 会被 docker 当成"正常跑完"，
+                // restart 策略再把同一个失败重复一遍，日志里一行线索都没有。
+                std::cerr << "paozhu: server.conf not found, tried: " << argv[1] << " and "
+                          << argv_str << "\n";
+                return 1;
             }
         }
     }
@@ -55,8 +58,11 @@ int main(int argc, char *argv[])
             conf_path = argv_str;
             if (!fs::is_regular_file(conf_path))
             {
-                std::cout << "Not found server.conf file. Please copy conf Directory rename to /usr/local/etc/paozhu\n";
-                return 0;
+                // 这里的候选只有两条，比配置加载器（serverconfig::init_path）少一条
+                // /etc/paozhu/conf/server.conf：装在那儿的部署走不到加载器就先退出了。
+                std::cerr << "paozhu: server.conf not found, tried: " << argv_str
+                          << " and /usr/local/etc/paozhu/server.conf; mount the conf dir or pass the path\n";
+                return 1;
             }
         }
     }

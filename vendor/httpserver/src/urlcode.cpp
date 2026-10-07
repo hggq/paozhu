@@ -13,152 +13,197 @@
 namespace http
 {
 
-    std::string url_decode(const char *str, int len)
+std::string url_decode(const char *str, int len)
+{
+    std::string url;
+    const char *p = str;
+    unsigned char word[2];
+    char zifu;
+    if (len > 0)
+        url.reserve(len);
+    for (int i = 0; i < len; i++)
     {
-        std::string url;
-        const char *p = str;
-        unsigned char word[2];
-        char zifu;
-        if (len > 0)
-            url.reserve(len);
-        for (int i = 0; i < len; i++)
+        if (p[i] == '%' && (i + 2) < len && p[i + 1] != '%')
         {
-            if (p[i] == '%' && (i + 2) < len && p[i + 1] != '%')
+            word[0] = p[i + 1];
+            word[1] = p[i + 2];
+            if (word[0] >= 'A' && word[0] <= 'Z')
             {
-                word[0] = p[i + 1];
-                word[1] = p[i + 2];
-                if (word[0] >= 'A' && word[0] <= 'Z')
-                {
-                    word[0] = word[0] - 'A' + 10;
-                }
-                else if (word[0] >= 'a' && word[0] <= 'z')
-                {
-                    word[0] = word[0] - 'a' + 10;
-                }
-                else if (word[0] >= '0' && word[0] <= '9')
-                {
-                    word[0] = word[0] - '0';
-                }
-                else
-                {
-                    word[0] = 0x00;
-                }
-
-                if (word[1] >= 'A' && word[1] <= 'Z')
-                {
-                    word[1] = word[1] - 'A' + 10;
-                }
-                else if (word[1] >= 'a' && word[1] <= 'z')
-                {
-                    word[1] = word[1] - 'a' + 10;
-                }
-                else if (word[1] >= '0' && word[1] <= '9')
-                {
-                    word[1] = word[1] - '0';
-                }
-                else
-                {
-                    word[1] = 0x20;
-                }
-                zifu = word[0] * 16 + word[1];
-
-                url.push_back(zifu);
-                i += 2;
+                word[0] = word[0] - 'A' + 10;
             }
-            else if (p[i] == '+')
+            else if (word[0] >= 'a' && word[0] <= 'z')
             {
-                url.push_back(0x20);
+                word[0] = word[0] - 'a' + 10;
+            }
+            else if (word[0] >= '0' && word[0] <= '9')
+            {
+                word[0] = word[0] - '0';
             }
             else
             {
-                url.push_back(p[i]);
+                word[0] = 0x00;
             }
-        }
 
-        return url;
-    }
-
-    std::string url_encode(const char *str, int len)
-    {
-        std::string url;
-        const char *p = str;
-        unsigned char word;
-        if (len > 0)
-            url.reserve(len);
-        for (int i = 0; i < len; i++)
-        {
-            if ((p[i] >= 'A' && p[i] <= 'Z') || (p[i] >= 'a' && p[i] <= 'z') || (p[i] >= '0' && p[i] <= '9') ||
-                (p[i] == '-') ||
-                (p[i] == '_') ||
-                (p[i] == '.') ||
-                (p[i] == '%') ||
-                (p[i] == '~'))
+            if (word[1] >= 'A' && word[1] <= 'Z')
             {
-                url.push_back(p[i]);
+                word[1] = word[1] - 'A' + 10;
             }
-            else if (p[i] == ' ')
+            else if (word[1] >= 'a' && word[1] <= 'z')
             {
-                url.push_back('+');
+                word[1] = word[1] - 'a' + 10;
+            }
+            else if (word[1] >= '0' && word[1] <= '9')
+            {
+                word[1] = word[1] - '0';
             }
             else
             {
-
-                url.push_back('%');
-
-                word = (unsigned char)p[i] >> 4;
-                word = word > 9 ? word + 55 : word + 48;
-                url.push_back(word);
-
-                word = (unsigned char)p[i] % 16;
-                word = word > 9 ? word + 55 : word + 48;
-                url.push_back(word);
+                word[1] = 0x20;
             }
+            zifu = word[0] * 16 + word[1];
+
+            url.push_back(zifu);
+            i += 2;
         }
-
-        return url;
-    }
-
-    std::string url_rawencode(const char *str, int len)
-    {
-        std::string url;
-        const char *p = str;
-        unsigned char word;
-        if (len > 0)
-            url.reserve(len);
-        for (int i = 0; i < len; i++)
+        else if (p[i] == '+')
         {
-            if ((p[i] >= 'A' && p[i] <= 'Z') || (p[i] >= 'a' && p[i] <= 'z') || (p[i] >= '0' && p[i] <= '9') ||
-                (p[i] == '-') ||
-                (p[i] == '_') ||
-                (p[i] == '/') ||
-                (p[i] == '&') ||
-                (p[i] == '=') ||
-                (p[i] == '?') ||
-                (p[i] == '#') ||
-                (p[i] == '.') ||
-                (p[i] == '~'))
-            {
-                url.push_back(p[i]);
-            }
-            else if (p[i] == ' ')
-            {
-                url.push_back('+');
-            }
-            else
-            {
-
-                url.push_back('%');
-
-                word = (unsigned char)p[i] >> 4;
-                word = word > 9 ? word + 55 : word + 48;
-                url.push_back(word);
-
-                word = (unsigned char)p[i] % 16;
-                word = word > 9 ? word + 55 : word + 48;
-                url.push_back(word);
-            }
+            url.push_back(0x20);
         }
-
-        return url;
+        else
+        {
+            url.push_back(p[i]);
+        }
     }
+
+    return url;
 }
+
+// 路径段专用解码：和 url_decode 唯一区别是 + 保留字面量（不转空格）
+// 因为只有 query string (a+b=1) 里 + 才表空格，路径 /file+name 里 + 就是 +
+std::string url_decode_path(const char *str, int len)
+{
+    std::string url;
+    const char *p = str;
+    unsigned char word[2];
+    if (len > 0)
+        url.reserve(len);
+    for (int i = 0; i < len; i++)
+    {
+        if (p[i] == '%' && (i + 2) < len && p[i + 1] != '%')
+        {
+            word[0] = p[i + 1];
+            word[1] = p[i + 2];
+            if (word[0] >= 'A' && word[0] <= 'Z')
+                word[0] = word[0] - 'A' + 10;
+            else if (word[0] >= 'a' && word[0] <= 'z')
+                word[0] = word[0] - 'a' + 10;
+            else if (word[0] >= '0' && word[0] <= '9')
+                word[0] = word[0] - '0';
+            else
+                word[0] = 0x00;
+
+            if (word[1] >= 'A' && word[1] <= 'Z')
+                word[1] = word[1] - 'A' + 10;
+            else if (word[1] >= 'a' && word[1] <= 'z')
+                word[1] = word[1] - 'a' + 10;
+            else if (word[1] >= '0' && word[1] <= '9')
+                word[1] = word[1] - '0';
+            else
+                word[1] = 0x20;
+
+            url.push_back(static_cast<char>(word[0] * 16 + word[1]));
+            i += 2;
+        }
+        // 注意：没有 else if (p[i] == '+') → 路径里 + 就是字面量
+        else
+        {
+            url.push_back(p[i]);
+        }
+    }
+    return url;
+}
+
+std::string url_encode(const char *str, int len)
+{
+    std::string url;
+    const char *p = str;
+    unsigned char word;
+    if (len > 0)
+        url.reserve(len);
+    for (int i = 0; i < len; i++)
+    {
+        if ((p[i] >= 'A' && p[i] <= 'Z') || (p[i] >= 'a' && p[i] <= 'z') || (p[i] >= '0' && p[i] <= '9') ||
+            (p[i] == '-') ||
+            (p[i] == '_') ||
+            (p[i] == '.') ||
+            (p[i] == '%') ||
+            (p[i] == '~'))
+        {
+            url.push_back(p[i]);
+        }
+        else if (p[i] == ' ')
+        {
+            url.push_back('+');
+        }
+        else
+        {
+
+            url.push_back('%');
+
+            word = (unsigned char)p[i] >> 4;
+            word = word > 9 ? word + 55 : word + 48;
+            url.push_back(word);
+
+            word = (unsigned char)p[i] % 16;
+            word = word > 9 ? word + 55 : word + 48;
+            url.push_back(word);
+        }
+    }
+
+    return url;
+}
+
+std::string url_rawencode(const char *str, int len)
+{
+    std::string url;
+    const char *p = str;
+    unsigned char word;
+    if (len > 0)
+        url.reserve(len);
+    for (int i = 0; i < len; i++)
+    {
+        if ((p[i] >= 'A' && p[i] <= 'Z') || (p[i] >= 'a' && p[i] <= 'z') || (p[i] >= '0' && p[i] <= '9') ||
+            (p[i] == '-') ||
+            (p[i] == '_') ||
+            (p[i] == '/') ||
+            (p[i] == '&') ||
+            (p[i] == '=') ||
+            (p[i] == '?') ||
+            (p[i] == '#') ||
+            (p[i] == '.') ||
+            (p[i] == '~'))
+        {
+            url.push_back(p[i]);
+        }
+        else if (p[i] == ' ')
+        {
+            url.push_back('+');
+        }
+        else
+        {
+
+            url.push_back('%');
+
+            word = (unsigned char)p[i] >> 4;
+            word = word > 9 ? word + 55 : word + 48;
+            url.push_back(word);
+
+            word = (unsigned char)p[i] % 16;
+            word = word > 9 ? word + 55 : word + 48;
+            url.push_back(word);
+        }
+    }
+
+    return url;
+}
+}// namespace http

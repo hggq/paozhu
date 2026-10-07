@@ -20,6 +20,7 @@
 #include "http2_define.h"
 #include "http_domain.h"
 #include "server.h"
+#include "pool_step.h"
 #include "http2_huffman.h"
 #include "http_parse.h"
 #include "serverconfig.h"
@@ -42,6 +43,29 @@
 #include "regviewmethod.hpp"
 #include "autorestfulpaths.hpp"
 #include "client_context.h"
+#ifdef ENABLE_REDIS
+#include "pzredis_config.h"
+#include "redis_pool.h"
+#endif
+#ifdef ENABLE_REDIS_CLIENT
+#include "redis_subpub_reg.h"
+#include "redis_regmethod.hpp"
+#endif
+#ifdef ENABLE_WEBSOCKETS_CLIENT
+#include "websockets_config.h"
+#include "ws_subpub_reg.h"
+#include "ws_client_regmethod.hpp"
+#endif
+#ifdef ENABLE_SOCKETS_CLIENT
+#include "sockets_config.h"
+#include "sock_subpub_reg.h"
+#include "sock_client_regmethod.hpp"
+#endif
+#ifdef ENABLE_MQTT_CLIENT
+#include "mqtt_config.h"
+#include "mqtt_subpub_reg.h"
+#include "mqtt_client_regmethod.hpp"
+#endif
 #include "fastcgi.h"
 
 #ifdef _WIN32
@@ -81,16 +105,21 @@ namespace fs = std::filesystem;
 
 namespace http
 {
+
 httpserver &get_server_app()
 {
     static httpserver instance;
     return instance;
 }
 
-void add_server_timetask(std::size_t keyname, std::shared_ptr<httppeer> peer)
-{
-    get_server_app().clientlooptasks.push_back({keyname, peer});
-}
+// 间隔任务的实际登记口是路由 frametasks_timeloop（注册点在 controller/src/serverwatch.cpp，
+// router 按名字找它）：它自己往 clientlooptasks 里 push，
+// 帧循环按 timeloop_num 拍数把它转交 clientrunpool.addclient()（linktype==7 → timetasks_run）。
+// 这个自由函数没有调用点，注释掉以免被当成入口误用。
+// void add_server_timetask(std::size_t keyname, std::shared_ptr<httppeer> peer)
+// {
+//     get_server_app().clientlooptasks.push_back({keyname, peer});
+// }
 
 asio::awaitable<void> httpserver::http2_send_file_range(std::shared_ptr<httppeer> peer)
 {
@@ -572,7 +601,7 @@ asio::awaitable<void>
 httpserver::http2_send_content_append(unsigned int stream_id, std::string &_send_data, const unsigned char *buffer, unsigned int begin_end, bool is_end)
 {
     unsigned int data_send_id = stream_id;
-    unsigned int new_offset   = _send_data.size();
+    unsigned int new_offset   = static_cast<unsigned int>(_send_data.size());
 
     _send_data.resize(new_offset + 9);
     _send_data[new_offset + 3] = 0x00;
@@ -614,7 +643,7 @@ asio::awaitable<void>
 httpserver::http2_send_content_append(unsigned int stream_id, std::string &_send_data, const std::string &_source_data, bool is_end)
 {
     unsigned int data_send_id = stream_id;
-    unsigned int new_offset   = _send_data.size();
+    unsigned int new_offset   = static_cast<unsigned int>(_send_data.size());
 
     _send_data.resize(new_offset + 9);
     _send_data[new_offset + 3] = 0x00;
@@ -674,7 +703,7 @@ asio::awaitable<void> httpserver::http2_send_status_content(std::shared_ptr<http
     send_file_obj->content_length = bodycontent.size();
     // type must not be 1 (that's the file branch, which calls fread); use 11 to stay
     // consistent with http2loop's in-memory body branch.
-    send_file_obj->type          = 11;
+    send_file_obj->type = 11;
 
     send_file_obj->peer          = peer;
     send_file_obj->is_sendheader = false;
@@ -713,7 +742,7 @@ asio::awaitable<void> httpserver::send_cors_domain(std::shared_ptr<httppeer> pee
     // 这个头名不在 HPACK 静态表里，h2 走 send_header 的字面量分支，不用按槽号擦
     peer->send_header.erase("Access-Control-Allow-Credentials");
     peer->send_header.erase("access-control-allow-credentials");
-    peer->http2_send_header.erase(HTTP2_CODE_access_control_allow_origin); // 20
+    peer->http2_send_header.erase(HTTP2_CODE_access_control_allow_origin);// 20
     peer->http2_send_header.erase(HTTP2_CODE_vary);                       // 59
 
     // Allow-Origin — same policy as regular requests, via cors_allow_origin():
@@ -722,7 +751,7 @@ asio::awaitable<void> httpserver::send_cors_domain(std::shared_ptr<httppeer> pee
     //   no match / site has no whitelist → omit ACAO (preflight fails; default deny).
     std::string req_origin = peer->get_header("origin");
     std::string allow_origin;
-    bool site_credentials  = false;
+    bool site_credentials = false;
     // Method list and credentials flag both come from this site's config; hold the
     // pointer so we don't re-lookup below.
     const site_host_info_t *site_cors = nullptr;
@@ -817,12 +846,12 @@ asio::awaitable<void> httpserver::send_cors_domain(std::shared_ptr<httppeer> pee
         send_file_obj->cache_data.resize(15360);
         send_file_obj->content.clear();
 
-        peer->compress            = 0;
-        send_file_obj->header     = peer->make_http2_header(0);
+        peer->compress                = 0;
+        send_file_obj->header         = peer->make_http2_header(0);
         send_file_obj->content_length = 0;
-        send_file_obj->type       = 11;
-        send_file_obj->peer       = peer;
-        send_file_obj->is_sendheader = false;
+        send_file_obj->type           = 11;
+        send_file_obj->peer           = peer;
+        send_file_obj->is_sendheader  = false;
 
         std::unique_lock<std::mutex> lock(send_data_mutex);
         sent_data_list.emplace_back(send_file_obj);
@@ -896,13 +925,13 @@ void httpserver::clear_peer_data(std::shared_ptr<httppeer> &peer)
 asio::awaitable<bool> httpserver::http2_static_file_authority(std::shared_ptr<httppeer> peer)
 {
     serverconfig &sysconfigpath = getserversysconfig();
-    unsigned int p_s            = sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists.size();
+    unsigned int p_s            = static_cast<unsigned int>(sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists.size());
     std::string htmlcontent;
     DEBUG_LOG("static_pre_lists:%zu", sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists.size());
     // all static files
     if (p_s == 0)
     {
-        htmlcontent = _http_regmethod_table[sysconfigpath.sitehostinfos[peer->host_index].static_pre_method].regfun(peer);
+        htmlcontent = co_await get_router().co_call_regfun(peer, sysconfigpath.sitehostinfos[peer->host_index].static_pre_method);
         if (htmlcontent.size() == 0)
         {
             co_return true;
@@ -940,11 +969,11 @@ asio::awaitable<bool> httpserver::http2_static_file_authority(std::shared_ptr<ht
             co_return false;
         }
     }
-    unsigned int j = peer->urlpath.size();
+    unsigned int j = static_cast<unsigned int>(peer->urlpath.size());
     DEBUG_LOG("sendfilename:%s", peer->urlpath.c_str());
-    for (unsigned int i = 0; i < p_s; i++)
+    for (size_t i = 0; i < p_s; i++)
     {
-        unsigned int k = sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists[i].size();
+        unsigned int k = static_cast<unsigned int>(sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists[i].size());
         if (k > j)
         {
             co_return true;
@@ -962,9 +991,9 @@ asio::awaitable<bool> httpserver::http2_static_file_authority(std::shared_ptr<ht
             DEBUG_LOG("check list %u %u", n, k);
             if (n == k)
             {
-                DEBUG_LOG("static_pre_lists: %u %s", i, sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists[i].c_str());
+                DEBUG_LOG("static_pre_lists: %zu %s", i, sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists[i].c_str());
                 // match pre urlpath
-                htmlcontent = _http_regmethod_table[sysconfigpath.sitehostinfos[peer->host_index].static_pre_method].regfun(peer);
+                htmlcontent = co_await get_router().co_call_regfun(peer, sysconfigpath.sitehostinfos[peer->host_index].static_pre_method);
                 if (htmlcontent.size() == 0)
                 {
                     co_return true;
@@ -1006,6 +1035,119 @@ asio::awaitable<bool> httpserver::http2_static_file_authority(std::shared_ptr<ht
     }
     DEBUG_LOG("not authority");
     co_return true;
+}
+
+// — PHP 文件查找：从原 isuse_fastcgi 里拆出来，只做 php_root_document + rewrite_php_lists 检查，
+//    不查路由表（路由预查已在 loop 里完成）、不碰 wwwpath 静态文件判断（wwwpath 里有文件/目录直接走磁盘）。
+//    返回 true → 已设 compress=10/linktype，调用方走 fastcgi；false → 没找到，发 404 —
+bool httpserver::check_php_dispatch(std::shared_ptr<httppeer> peer)
+{
+    serverconfig &sysconfigpath = getserversysconfig();
+    auto &hostinfo              = sysconfigpath.sitehostinfos[peer->host_index];
+
+    peer->compress = 0;
+    peer->linktype = 0;
+    peer->output.clear();
+    peer->sendfilename.clear();
+
+    if (hostinfo.isuse_php != 1)
+    {
+        return false;
+    }
+
+    DEBUG_LOG("check php file");
+    if (peer->pathinfos.empty())
+    {
+        // no url path: if default index not exist try index.php in php root document
+        if (stat_is_regfile(hostinfo.wwwpath + hostinfo.document_index))
+        {
+            return false;
+        }
+        if (!hostinfo.php_root_document.empty() &&
+            stat_is_regfile(hostinfo.php_root_document + "index.php"))
+        {
+            peer->compress = 10;
+            peer->linktype = 12;
+        }
+        return false;
+    }
+
+    for (unsigned int i = 0; i < peer->pathinfos.size(); i++)
+    {
+        if (!peer->sendfilename.empty())
+        {
+            peer->sendfilename.append("/");
+        }
+        peer->sendfilename.append(peer->pathinfos[i]);
+        auto const &seg = peer->pathinfos[i];
+        if (seg.size() > 4 && seg[seg.size() - 1] == 'p' && seg[seg.size() - 2] == 'h' &&
+            seg[seg.size() - 3] == 'p' && seg[seg.size() - 4] == '.')
+        {
+            // xxx.php exist in php root document
+            if (stat_is_regfile(hostinfo.php_root_document + peer->sendfilename))
+            {
+                peer->compress = 10;
+                peer->linktype = (i == 0) ? 10 : (50 + i);
+                DEBUG_LOG("is php file %s", peer->sendfilename.c_str());
+                return true;
+            }
+        }
+    }
+
+    DEBUG_LOG("check urlpath reg %s", peer->sendfilename.c_str());
+    // whole url path exist in wwwpath: static file or directory → 不走 php
+    struct stat sessfileinfo;
+    std::string tempac = hostinfo.wwwpath + peer->sendfilename;
+    memset(&sessfileinfo, 0, sizeof(sessfileinfo));
+    if (stat(tempac.c_str(), &sessfileinfo) == 0)
+    {
+        if (sessfileinfo.st_mode & S_IFREG)
+        {
+            return false;// wwwpath 里有同名静态文件
+        }
+        else if (sessfileinfo.st_mode & S_IFDIR)
+        {
+            // directory, try index.php in php root document
+            if (stat_is_regfile(hostinfo.php_root_document + peer->sendfilename + "/index.php"))
+            {
+                peer->compress = 10;
+                peer->linktype = 15;
+                peer->sendfilename.append("/index.php");
+                return true;
+            }
+            return false;
+        }
+    }
+
+    DEBUG_LOG("rewrite_php_lists: %zu", hostinfo.rewrite_php_lists.size());
+    // url path not exist in wwwpath, check php rewrite rules
+    if (!hostinfo.rewrite_php_lists.empty())
+    {
+        unsigned int i = 0;
+        if (hostinfo.rewrite_php_lists[0].first.empty())
+        {
+            // empty prefix, default rewrite entry
+            if (stat_is_regfile(hostinfo.php_root_document + hostinfo.rewrite_php_lists[0].second))
+            {
+                peer->compress = 10;
+                peer->linktype = 19;
+                return true;
+            }
+            i = 1;
+        }
+        for (; i < hostinfo.rewrite_php_lists.size(); i++)
+        {
+            auto const &rewrite_pre = hostinfo.rewrite_php_lists[i].first;
+            if (rewrite_pre.size() <= peer->sendfilename.size() &&
+                peer->sendfilename.compare(0, rewrite_pre.size(), rewrite_pre) == 0)
+            {
+                peer->compress = 10;
+                peer->linktype = 20 + i;
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 asio::awaitable<void> httpserver::http2_fastcgi(std::shared_ptr<httppeer> peer)
@@ -1061,29 +1203,51 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
     try
     {
         serverconfig &sysconfigpath = getserversysconfig();
-        if (peer->compress == 10)
-        {
-            co_await http2_fastcgi(peer);
-            co_return;
-        }
-        DEBUG_LOG("http2 host_index");
 
-        peer->sitepath         = sysconfigpath.getsitewwwpath(peer->host_index);
+        // sitepath 必须在预查之前定好：带点 URL 的「先落盘」要用它拼出盘上那个文件
+        peer->sitepath = sysconfigpath.getsitewwwpath(peer->host_index);
+
+        // 路由预查：带点 URL 先落盘，然后两段查表；>=0 是命中的 handler 下标
+        int routeidx = peer->prefetch_routing();
+
+        // compress==10 是解析阶段的轻量 php 后缀标记；真正要不要走 fastcgi：
+        // 先排除注解路由已命中（routeidx>=0 优先），再查 hostinfo.isuse_php 和 php_root_document
+#ifdef ENABLE_FASTCGI
+        if (peer->compress == 10 && routeidx < 0)
+        {
+            if (peer->host_index < sysconfigpath.sitehostinfos.size() && sysconfigpath.sitehostinfos[peer->host_index].isuse_php != 1)
+            {
+                // 本站没开 php 支持，请求 .php → 直接 404，不走动态链
+                peer->compress = 0;
+            }
+            else if (!check_php_dispatch(peer))
+            {
+                // 开了 php 但找不到对应 .php 文件 → 清零 compress，走正常磁盘/动态链流程
+                peer->compress = 0;
+            }
+            else
+            {
+                // check_php_dispatch 已设好 compress/linktype/sendfilename，直接走 fastcgi
+                co_await http2_fastcgi(peer);
+                co_return;
+            }
+        }
+#endif
+        // 注解路由命中 → 直接进动态链
         unsigned char sendtype = 0;
-        sendtype               = peer->has_urlfileext();
-        if (sendtype < 4)
+        if (routeidx >= 0)
+        {
+            // 跳过 get_fileinfo，直接进 router 动态链
+        }
+        else if (!peer->sitepath.empty())
         {
             sendtype = peer->get_fileinfo();
         }
-        else if (sendtype == 5)
-        {
-            sendtype = 1;
-        }
-        DEBUG_LOG("http2loop:%s %d", peer->sendfilename.c_str(), sendtype);
+        DEBUG_LOG("http2loop:%s regfun:%d sendtype:%d", peer->sendfilename.c_str(), routeidx, sendtype);
         if (sendtype == 1)
         {
             DEBUG_LOG("is_static_pre:%d", sysconfigpath.sitehostinfos[peer->host_index].is_static_pre);
-            if (sysconfigpath.sitehostinfos[peer->host_index].is_static_pre)
+            if (peer->host_index < sysconfigpath.sitehostinfos.size() && sysconfigpath.sitehostinfos[peer->host_index].is_static_pre)
             {
                 if ((co_await http2_static_file_authority(peer)))
                 {
@@ -1106,7 +1270,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
                 co_return;
             }
         }
-        else if (sendtype == 2 && sysconfigpath.sitehostinfos[peer->host_index].is_show_directory)
+        else if (sendtype == 2 && peer->host_index < sysconfigpath.sitehostinfos.size() && sysconfigpath.sitehostinfos[peer->host_index].is_show_directory)
         {
             peer->output = displaydirectory(peer->sendfilename,
                                             peer->urlpath,
@@ -1162,30 +1326,16 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             send_file_obj->cache_data.resize(15360);
             send_file_obj->content.clear();
             send_file_obj->header.clear();
-            bool not_co_handle = true;
 
             DEBUG_LOG("---  htttp2 co handle --------");
-            co_route_result co_ret = co_await get_router().co_dispatch(peer);
-            not_co_handle          = co_ret.need_sync;
 
-            if (co_ret.matched && peer->ischunked)
+            co_await get_router().co_resolve(peer, routeidx);
+
+            if (peer->ischunked)
             {
                 co_return;
             }
-
             send_file_obj->header.clear();
-            if (not_co_handle)
-            {
-                DEBUG_LOG("---  htttp2 pool pre --------");
-                sendtype = co_await co_user_task(peer);
-                DEBUG_LOG("htttp2 pool out [%d]", sendtype);
-                if (sendtype == 0)
-                {
-                    // Same as above: not enqueued, return to object pool.
-                    send_queue_obj.back_cache_ptr(send_file_obj);
-                    co_return;
-                }
-            }
 
             http2_compress_output(peer, send_file_obj);
 
@@ -1649,13 +1799,13 @@ asio::awaitable<void> httpserver::http1_send_status_content(std::shared_ptr<http
 asio::awaitable<bool> httpserver::http1_static_file_authority(std::shared_ptr<httppeer> peer)
 {
     serverconfig &sysconfigpath = getserversysconfig();
-    unsigned int p_s            = sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists.size();
+    unsigned int p_s            = static_cast<unsigned int>(sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists.size());
     std::string htmlcontent;
     DEBUG_LOG("static_pre_lists:%zu", sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists.size());
     // all static files
     if (p_s == 0)
     {
-        htmlcontent = _http_regmethod_table[sysconfigpath.sitehostinfos[peer->host_index].static_pre_method].regfun(peer);
+        htmlcontent = co_await get_router().co_call_regfun(peer, sysconfigpath.sitehostinfos[peer->host_index].static_pre_method);
         if (htmlcontent.size() == 0)
         {
             co_return true;
@@ -1667,11 +1817,11 @@ asio::awaitable<bool> httpserver::http1_static_file_authority(std::shared_ptr<ht
             co_return false;
         }
     }
-    unsigned int j = peer->urlpath.size();
+    unsigned int j = static_cast<unsigned int>(peer->urlpath.size());
     DEBUG_LOG("sendfilename:%s", peer->urlpath.c_str());
-    for (unsigned int i = 0; i < p_s; i++)
+    for (size_t i = 0; i < p_s; i++)
     {
-        unsigned int k = sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists[i].size();
+        unsigned int k = static_cast<unsigned int>(sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists[i].size());
         if (k > j)
         {
             co_return true;
@@ -1689,9 +1839,9 @@ asio::awaitable<bool> httpserver::http1_static_file_authority(std::shared_ptr<ht
             DEBUG_LOG("check list %u %u", n, k);
             if (n == k)
             {
-                DEBUG_LOG("static_pre_lists: %u %s", i, sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists[i].c_str());
+                DEBUG_LOG("static_pre_lists: %zu %s", i, sysconfigpath.sitehostinfos[peer->host_index].static_pre_lists[i].c_str());
                 // match pre urlpath
-                htmlcontent = _http_regmethod_table[sysconfigpath.sitehostinfos[peer->host_index].static_pre_method].regfun(peer);
+                htmlcontent = co_await get_router().co_call_regfun(peer, sysconfigpath.sitehostinfos[peer->host_index].static_pre_method);
                 if (htmlcontent.size() == 0)
                 {
                     co_return true;
@@ -1715,16 +1865,26 @@ void httpserver::add_error_lists(const std::string &log_item)
     error_loglist.emplace_back(log_item);
     lock.unlock();
 }
-asio::awaitable<size_t> httpserver::co_user_task(std::shared_ptr<httppeer> peer, asio::use_awaitable_t<> h)
-{
-    auto initiate = [self = this](asio::detail::awaitable_handler<asio::any_io_executor, size_t> &&handler,
-                                  std::shared_ptr<httppeer> in_peer) mutable
-    {
-        in_peer->user_code_handler_call.push_back(std::move(handler));
-        self->clientrunpool.addclient(in_peer);
-    };
-    return asio::async_initiate<asio::use_awaitable_t<>, void(size_t)>(initiate, h, peer);
-}
+// 旧的同步业务派单通路（无调用点，整块保留备查）：
+//   协程里 co_await co_user_task(peer) → 把 awaitable 的 handler 存进 peer->user_code_handler_call，
+//   再把整个 peer 投进 clientrunpool 的 clienttasks；协程就地挂起（帧在堆上，不占 io 线程），
+//   业务线程 pop 到它以后用 router::resolve 把整条链同步跑完，跑完取 handler 用
+//   asio::dispatch(*io_context, handler(1)) 唤醒。
+// 两个洞：池 isclose_add/isstop 时 addclient 不入队也不调 handler，协程永久挂起（peer 与 h2 stream
+// 不回收）；一整条链只占一格任务，步与步之间回不到 io 池。现在由 router::co_resolve 逐步派单
+// （协程线程池唤醒），业务线程跑完那一步就回队列取下一格。
+// 注意：co_user_fastcgi_task 仍然活着（http1_fastcgi / http2_fastcgi 用它挂 handler 到
+// user_code_handler_call，由 fastcgi::send_exit 唤醒），别一起当死码处理。
+// asio::awaitable<size_t> httpserver::co_user_task(std::shared_ptr<httppeer> peer, asio::use_awaitable_t<> h)
+// {
+//     auto initiate = [self = this](asio::detail::awaitable_handler<asio::any_io_executor, size_t> &&handler,
+//                                   std::shared_ptr<httppeer> in_peer) mutable
+//     {
+//         in_peer->user_code_handler_call.push_back(std::move(handler));
+//         self->clientrunpool.addclient(in_peer);
+//     };
+//     return asio::async_initiate<asio::use_awaitable_t<>, void(size_t)>(initiate, h, peer);
+// }
 asio::awaitable<size_t> httpserver::co_client_session_task(std::shared_ptr<client_session> peer_session, asio::use_awaitable_t<> h)
 {
     auto initiate = [](asio::detail::awaitable_handler<asio::any_io_executor, size_t> &&handler,
@@ -1833,26 +1993,53 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
         peer->socket_session = peer_session->get_ptr();
     }
 
-    if (peer->compress == 10)
-    {
-        co_await http1_fastcgi(peer);
-        co_return;
-    }
     serverconfig &sysconfigpath = getserversysconfig();
-    peer->sitepath              = sysconfigpath.getsitewwwpath(peer->host_index);
-    unsigned char sendtype      = 0;
-    // has_urlfileext() 只返回 {0,1,4,40}，get_fileinfo() 只返回 {0,1,2,3}，
-    // 旧代码里的 else if (sendtype == 5) 属不可达分支，已删除。
-    sendtype                    = peer->has_urlfileext();
-    if (sendtype < 4)
+
+    // sitepath 必须在预查之前定好：带点 URL 的「先落盘」要用它拼出盘上那个文件
+    peer->sitepath = sysconfigpath.getsitewwwpath(peer->host_index);
+
+    // 路由预查：带点 URL 先落盘，然后两段查表；>=0 是命中的 handler 下标
+    int routeidx = peer->prefetch_routing();
+
+    // compress==10 是解析阶段的轻量 php 后缀标记；真正要不要走 fastcgi：
+    // 先排除注解路由已命中（routeidx>=0 优先），再查 hostinfo.isuse_php 和 php_root_document
+#ifdef ENABLE_FASTCGI
+    if (peer->compress == 10 && routeidx < 0)
+    {
+        if (peer->host_index < sysconfigpath.sitehostinfos.size() && sysconfigpath.sitehostinfos[peer->host_index].isuse_php != 1)
+        {
+            // 本站没开 php 支持，请求 .php → 直接 404
+            peer->compress = 0;
+        }
+        else if (!check_php_dispatch(peer))
+        {
+            // 开了 php 但找不到对应 .php 文件 → 清零 compress，走正常磁盘/动态链流程
+            peer->compress = 0;
+        }
+        else
+        {
+            // check_php_dispatch 已设好 compress/linktype/sendfilename，直接走 fastcgi
+            co_await http1_fastcgi(peer);
+            co_return;
+        }
+    }
+#endif
+
+    // 注解路由命中 → 直接进动态链
+    unsigned char sendtype = 0;
+    if (routeidx >= 0)
+    {
+        // 跳过 get_fileinfo，直接进 router 动态链
+    }
+    else if (!peer->sitepath.empty())
     {
         sendtype = peer->get_fileinfo();
     }
 
-    DEBUG_LOG("http1loop:%s %d", peer->sendfilename.c_str(), sendtype);
+    DEBUG_LOG("http1loop:%s regfun:%d sendtype:%d", peer->sendfilename.c_str(), routeidx, sendtype);
     if (sendtype == 1)
     {
-        if (sysconfigpath.sitehostinfos[peer->host_index].is_static_pre)
+        if (peer->host_index < sysconfigpath.sitehostinfos.size() && sysconfigpath.sitehostinfos[peer->host_index].is_static_pre)
         {
             if ((co_await http1_static_file_authority(peer)))
             {
@@ -1874,7 +2061,7 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
         }
         co_return;
     }
-    else if (sendtype == 2 && sysconfigpath.sitehostinfos[peer->host_index].is_show_directory)
+    else if (sendtype == 2 && peer->host_index < sysconfigpath.sitehostinfos.size() && sysconfigpath.sitehostinfos[peer->host_index].is_show_directory)
     {
         peer->output = displaydirectory(peer->sendfilename,
                                         peer->urlpath,
@@ -1943,28 +2130,22 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
         peer->output.clear();
 
         DEBUG_LOG("---  http1 co handle %s--------", peer->sendfilename.c_str());
-        co_route_result co_ret = co_await get_router().co_dispatch(peer);
-        bool not_co_handle     = co_ret.need_sync;
-        if (co_ret.matched && peer->ischunked)
+
+        // — v6: 链的执行统一在 router::co_resolve —
+        // sync pre/regfun → ThreadPool，coro → 就地 co_await
+        co_await get_router().co_resolve(peer, routeidx);
+
+        if (peer->ischunked)
         {
             co_return;
-        }
-
-        if (not_co_handle)
-        {
-            DEBUG_LOG("---  http1 pool pre --------");
-            sendtype = co_await co_user_task(peer);
-            DEBUG_LOG("---  http1 pool post re_num [%d]--------", sendtype);
-            if (sendtype == 0)
-            {
-                co_return;
-            }
         }
 
         if (peer->get_status() < 100)
         {
             peer->status(200);
         }
+        // 默认 Content-Type 在链跑完之后、由 isset_type() 把关补：co_resolve 期间 content_type
+        // 保持"未设置"，业务 handler 内部可用 isset_type() 判断自己有没有设过类型；没设才落到 text/html。
         if (!peer->isset_type())
         {
             peer->type("text/html; charset=utf-8");
@@ -2288,7 +2469,7 @@ asio::awaitable<unsigned int> httpserver::client_http1_loop(bool isssl, unsigned
         // 提前绑定 socket_session：CORS 预检分支（send_cors_domain）在 http1loop 之前
         // 就会用 peer->socket_session 写回响应，而该成员原先只在 http1loop 内部赋值，
         // 连接上第一条请求就是 OPTIONS 时会空指针解引用崩溃。
-        // http1loop 内的判据是「== nullptr 才赋值」，提前绑定不会被覆盖；
+        // http1loop 内的赋值条件是「== nullptr 才赋值」，提前绑定不会被覆盖；
         // httppeer::clear() 也不重置该成员，所以绑定一次即可。
         peer->socket_session                = peer_session->get_ptr();
         peer->client_ip                     = peer_session->getremoteip();
@@ -2390,8 +2571,7 @@ asio::awaitable<unsigned int> httpserver::client_http1_loop(bool isssl, unsigned
                     // 握手校验：state.websocket 由 Upgrade: websocket 置位，
                     // websocket 对象在 Sec-WebSocket-Key/Version 头解析时创建。
                     if (http1pre->websocket == nullptr ||
-                        !ws::validate(*http1pre->websocket, peer->state.websocket,
-                                      peer->state.upgradeconnection, peer->method))
+                        !ws::validate(*http1pre->websocket, peer->state.websocket, peer->state.upgradeconnection, peer->method))
                     {
                         log_item = ws::make_error(400);
                         co_await peer_session->async_send_writer(log_item);
@@ -2489,7 +2669,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
 
         unsigned int error_state       = 0;
         unsigned int single_link_count = 0;
-        // 本轮连接已上报过的「丢弃 WINDOW_UPDATE」计数，用于只在数字变化时写日志行。
+        // 本条连接上已上报过的「丢弃 WINDOW_UPDATE」计数，用于只在数字变化时写日志行。
         unsigned int logged_winupdate_dropped = 0;
         std::string log_item;
         for (;;)
@@ -2673,7 +2853,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
         }
         // 发送环三个计数在本连接内收尾时报一次：overflow 是"环满、这一帧留到下一轮重发"
         // （push 直接被拒），backpressure 是"环积压到阈值、本轮主动让路"（还没 push 就退），
-        // dropped 是"这一帧真的没了"。三者都不报出来，"零丢弃"就只是一个读不到的断言。
+        // dropped 是"这一帧真的没了"。三者都不报出来，"零丢弃"就只是一句无法核实的说法。
         if (peer_session->http2_ring_overflow_count.load() > 0 ||
             peer_session->http2_ring_queue_drop_count.load() > 0 ||
             peer_session->http2_ring_backpressure_count.load() > 0)
@@ -2686,7 +2866,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
             log_item.append(" backpressure ");
             log_item.append(std::to_string(peer_session->http2_ring_backpressure_count.load()));
             // 全局挂起表与在途对象数：连接收尾时这两个都该归零，不归零就是有对象
-            // 停在 parked_list 里拽着 peer 和文件句柄（泄漏），这条是唯一的运行期读数。
+            // 停在 parked_list 里拽着 peer 和文件句柄（泄漏），这条是运行期唯一的观测手段。
             log_item.append(" parked ");
             log_item.append(std::to_string(get_http2_send_queue().parked.load()));
             log_item.append(" outstanding ");
@@ -2729,7 +2909,7 @@ void httpserver::log_client_first_error(std::shared_ptr<client_session> peer_ses
 
     if (readnum < 128)
     {
-        for (unsigned int i = 0; i < readnum; i++)
+        for (size_t i = 0; i < readnum; i++)
         {
             log_item.push_back(peer_session->_cache_data[i]);
         }
@@ -2775,7 +2955,7 @@ asio::awaitable<unsigned int> httpserver::client_h2_enter(std::shared_ptr<client
         co_return 3;
     }
 
-    for (unsigned int i = 0; i < 24; i++)
+    for (size_t i = 0; i < 24; i++)
     {
         if (peer_session->_cache_data[i] != magicstr[i])
         {
@@ -2814,9 +2994,8 @@ static asio::awaitable<void> ws_drain_ring_then_stop(std::shared_ptr<client_sess
 {
     if (peer_session->http2_ring_queue)
     {
-        auto execut = co_await asio::this_coro::executor;
-        asio::steady_timer timer(execut);
-        for (unsigned int i = 0; i < 100 && !peer_session->iserror; ++i)
+        asio::steady_timer timer(peer_session->strand_);
+        for (size_t i = 0; i < 100 && !peer_session->iserror; ++i)
         {
             if (peer_session->http2_ring_queue->head_.load(std::memory_order_acquire) ==
                 peer_session->http2_ring_queue->tail_.load(std::memory_order_acquire))
@@ -2859,11 +3038,10 @@ static void ws_cleanup_spilled_files(const std::shared_ptr<websockets_api> &webs
 // 读协程同一条循环，等待期间一并延迟，上界就是那个 2 秒，远小于既有 8s 心跳周期。
 // 出错或业务置 isclose 立刻放弃等待。
 static asio::awaitable<bool> ws_wait_ingress_low_water(const std::shared_ptr<websockets_api> &websockets,
-                                                      const std::shared_ptr<client_session> &peer_session,
-                                                      bool is_coroutine_mode)
+                                                       const std::shared_ptr<client_session> &peer_session,
+                                                       bool is_coroutine_mode)
 {
-    auto execut = co_await asio::this_coro::executor;
-    asio::steady_timer timer(execut);
+    asio::steady_timer timer(peer_session->strand_);
     unsigned long long waited_ms = 0;
     while (waited_ms < CONST_WEBSOCKET_QUEUE_STALL_MAX_MS &&
            !peer_session->iserror && !websockets->isclose)
@@ -2906,21 +3084,30 @@ struct ws_inflight_release
     }
 };
 
+// 条数是主尺子，判定和占位必须在同一次 CAS 里完成：先 load 再 fetch_add 是 check-then-act，
+// 两个占位者可以各自看着界内、然后一起加上去。字节尺子仍然只能"看一眼再加"——两个原子量没法
+// 比在同一次 CAS 里，残差上界就是一条在途消息（落盘消息的 value 是临时文件路径，量的是路径长度）。
 static bool ws_inflight_reserve(websockets_api &websockets, unsigned long long bytes)
 {
-    if (websockets.inflight_dispatch.load(std::memory_order_acquire) >=
-            CONST_WEBSOCKET_QUEUE_HIGH_ITEMS ||
-        websockets.inflight_bytes.load(std::memory_order_acquire) >= CONST_WEBSOCKET_QUEUE_HIGH_BYTES)
+    unsigned long long items = websockets.inflight_dispatch.load(std::memory_order_acquire);
+    for (;;)
     {
-        return false;
+        if (items >= CONST_WEBSOCKET_QUEUE_HIGH_ITEMS ||
+            websockets.inflight_bytes.load(std::memory_order_acquire) >= CONST_WEBSOCKET_QUEUE_HIGH_BYTES)
+        {
+            return false;
+        }
+        if (websockets.inflight_dispatch.compare_exchange_weak(items, items + 1, std::memory_order_acq_rel, std::memory_order_acquire))
+        {
+            break;
+        }
     }
-    websockets.inflight_dispatch.fetch_add(1, std::memory_order_acq_rel);
     websockets.inflight_bytes.fetch_add(bytes, std::memory_order_acq_rel);
     return true;
 }
 
 static asio::awaitable<void> ws_dispatch_onmessage_co(std::shared_ptr<websockets_api> websockets,
-                                                     websockets_data_list_t msg)
+                                                      websockets_data_list_t msg)
 {
     // bytes 必须在 msg 被 move 进业务之前取（落盘消息的 value 是临时文件路径，这里量的是路径长度，
     // 与 queue_bytes() 同口径——大消息的体量由条数尺子兜住）
@@ -2937,18 +3124,21 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
         std::string log_item;
         WEBSOCKET_REG &wsreg = get_websocket_reg();
 
-        peer_session->url_param_a = 0;
-        peer_session->url_param_b = 0;
+        // 下面两格借的是 http2 的连接级发送窗口累计量：websocket 是从 HTTP/1.1 升级进来的
+        // 一条独立通路，这条连接上不会有 http2 的窗口记账在跑，所以借得干净。
+        // 交进工厂之后（再往下几十行）会清回 0，别在中间拿它们当窗口的实时值。
+        peer_session->window_update_num   = 0;
+        peer_session->has_send_update_num = 0;
 
         if (peer->pathinfos.size() > 1)
         {
-            for (unsigned int i = 0; i < peer->pathinfos[1].size(); i++)
+            for (size_t i = 0; i < peer->pathinfos[1].size(); i++)
             {
                 if (peer->pathinfos[1][i] >= '0' && peer->pathinfos[1][i] <= '9')
                 {
-                    peer_session->url_param_a = peer_session->url_param_a * 10 + (peer->pathinfos[1][i] - '0');
+                    peer_session->window_update_num = peer_session->window_update_num * 10 + (peer->pathinfos[1][i] - '0');
                 }
-                if (peer_session->url_param_a.load() > 0xFFFFFFFE)
+                if (peer_session->window_update_num.load() > 0xFFFFFFFE)
                 {
                     peer_session->stop();
                     co_return 0;
@@ -2957,13 +3147,13 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
         }
         if (peer->pathinfos.size() > 2)
         {
-            for (unsigned int i = 0; i < peer->pathinfos[2].size(); i++)
+            for (size_t i = 0; i < peer->pathinfos[2].size(); i++)
             {
                 if (peer->pathinfos[2][i] >= '0' && peer->pathinfos[2][i] <= '9')
                 {
-                    peer_session->url_param_b = peer_session->url_param_b * 10 + (peer->pathinfos[2][i] - '0');
+                    peer_session->has_send_update_num = peer_session->has_send_update_num * 10 + (peer->pathinfos[2][i] - '0');
                 }
-                if (peer_session->url_param_b.load() > 0xFFFFFFFE)
+                if (peer_session->has_send_update_num.load() > 0xFFFFFFFE)
                 {
                     peer_session->stop();
                     co_return 0;
@@ -2987,9 +3177,9 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
             co_return 0;
         }
 
-        websockets                = wsiter->second(peer_session->url_param_a, peer_session->url_param_b);
-        websockets->session_sock    = peer_session;
-        websockets->url             = peer->url;
+        websockets               = wsiter->second(peer_session->window_update_num, peer_session->has_send_update_num);
+        websockets->session_sock = peer_session;
+        websockets->url          = peer->url;
 
         // 分配发送环，ring_client_server 作为唯一写者，避免并发写同一 socket。
         bool need_start_ring = false;
@@ -3004,7 +3194,7 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
         // 对端 offer 含 permessage-deflate 时协商（双 no-context，每消息独立流）；
         // 未协商时 RSV≠0 的帧仍由 ws_parser 按 1002 拒绝。
         bool ws_deflate_ext = ws->permessagedeflate && !ws->perframedeflate && !ws->deflateframe;
-        log_item = ws::make_101(ws->key, ws_deflate_ext);
+        log_item            = ws::make_101(ws->key, ws_deflate_ext);
         if (!peer_session->post_write(log_item))
         {
             // 环满或连接已关闭，101 发不出去，放弃握手
@@ -3036,9 +3226,10 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
             websockets->onopen();
         }
 
-        peer_session->url_param_a = 0;
-        peer_session->url_param_b = 0;
-        websockets->host                    = peer->host;
+        // URL 参数已经交进工厂，借来的两格清回去（借用说明见本函数开头）。
+        peer_session->window_update_num   = 0;
+        peer_session->has_send_update_num = 0;
+        websockets->host                  = peer->host;
         if (peer->get.is_object())
         {
             for (auto &[key, value] : peer->get.as_object())
@@ -3063,14 +3254,14 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
         unsigned long long total_recv_data = 0;
         // 越水位且有界等待后仍不退的丢弃数（本连接累计，收尾时一行日志）
         unsigned long long ws_ingress_dropped = 0;
-        ws::ws_parser     ws_in_parser;
+        ws::ws_parser ws_in_parser;
         // 入站限额来自编译期常量（common/cost_define.h）
         static_assert(CONST_WEBSOCKET_SPILL_THRESHOLD < CONST_WEBSOCKET_MAX_FRAME_SIZE &&
-                      CONST_WEBSOCKET_MAX_FRAME_SIZE <= CONST_WEBSOCKET_MAX_MESSAGE_SIZE,
+                          CONST_WEBSOCKET_MAX_FRAME_SIZE <= CONST_WEBSOCKET_MAX_MESSAGE_SIZE,
                       "ws limits invariant: spill < max_frame <= max_message");
         static_assert(ws::kDefaultMaxFramePayload == CONST_WEBSOCKET_MAX_FRAME_SIZE &&
-                      ws::kDefaultMaxMessagePayload == CONST_WEBSOCKET_MAX_MESSAGE_SIZE &&
-                      ws::kDefaultSpillThreshold == CONST_WEBSOCKET_SPILL_THRESHOLD,
+                          ws::kDefaultMaxMessagePayload == CONST_WEBSOCKET_MAX_MESSAGE_SIZE &&
+                          ws::kDefaultSpillThreshold == CONST_WEBSOCKET_SPILL_THRESHOLD,
                       "cost_define.h and ws_wire.h default limits drifted");
         ws_in_parser.set_limits(CONST_WEBSOCKET_MAX_FRAME_SIZE,
                                 CONST_WEBSOCKET_MAX_MESSAGE_SIZE,
@@ -3191,7 +3382,7 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
                         }
                     }
                     ws::post_send_close(*peer_session, echo_code);
-                    websockets->isclose  = true;
+                    websockets->isclose = true;
                     if (websockets->is_coroutine())
                     {
                         co_await websockets->async_onclose();
@@ -3216,9 +3407,9 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
             while (ws_in_parser.has_message())
             {
                 websockets_data_list_t ws_temp_data = ws_in_parser.pop_message();
-                ws_temp_data.seqid = seq_id++;
-                bool is_co_mode = websockets->is_coroutine();
-                bool delivered  = false;
+                ws_temp_data.seqid                  = seq_id++;
+                bool is_co_mode                     = websockets->is_coroutine();
+                bool delivered                      = false;
 
                 if (is_co_mode)
                 {
@@ -3232,12 +3423,17 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
 
                 if (!delivered)
                 {
-                    // 越水位：暂停 async_read 做背压，等它退到 LOW 水位再重试一次
+                    // 越水位：暂停 async_read 做背压，等它退到 LOW 水位再重试
                     if (co_await ws_wait_ingress_low_water(websockets, peer_session, is_co_mode))
                     {
-                        delivered = is_co_mode
-                            ? ws_inflight_reserve(*websockets, ws_temp_data.value.size())
-                            : websockets->push(std::move(ws_temp_data));
+                        delivered = is_co_mode ? ws_inflight_reserve(*websockets, ws_temp_data.value.size()) : websockets->push(std::move(ws_temp_data));
+                    }
+                    // 单次等待超时也补一枪：wait 的 LOW 闸门和 reserve 的 HIGH 闸门之间
+                    // 有一段灰区，wait 超时那一刻 inflight 可能刚巧从 HIGH 退到中间，
+                    // 不重试直接丢会不必要地多出一条 dropped 计数。
+                    if (!delivered)
+                    {
+                        delivered = is_co_mode ? ws_inflight_reserve(*websockets, ws_temp_data.value.size()) : websockets->push(std::move(ws_temp_data));
                     }
                 }
 
@@ -3252,7 +3448,11 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
                     }
                     else
                     {
-                        clientrunpool.addwsclient(websockets);
+                        // 双工：投完立刻回去继续收帧，不等业务钩子（seqid 已经带在消息里，
+                        // 要排序是业务的事）。钩子抛异常由 run_conn_task 收口并记日志。
+                        // 池没接单时这条任务被丢弃并计数（getconndropped），读循环不断、连接不关。
+                        post_conn_step("ws.onmessage", [ws = websockets]()
+                                       { ws->onmessage(); });
                     }
                 }
                 else
@@ -3326,8 +3526,8 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
 
 asio::awaitable<unsigned int> httpserver::client_rpc_loop(unsigned int readnum, std::shared_ptr<client_session> peer_session)
 {
-    std::shared_ptr<httppeer> peer  = std::make_shared<httppeer>();
-    std::shared_ptr<rpc_parse> rpc  = std::make_shared<rpc_parse>();
+    std::shared_ptr<httppeer> peer = std::make_shared<httppeer>();
+    std::shared_ptr<rpc_parse> rpc = std::make_shared<rpc_parse>();
 
     peer->socket_session = peer_session->shared_from_this();
     rpc->peer            = peer;
@@ -3385,12 +3585,8 @@ asio::awaitable<unsigned int> httpserver::client_rpc_loop(unsigned int readnum, 
                 peer->etag.clear();
                 peer->output.clear();
 
-                co_route_result co_ret = co_await get_router().co_dispatch(peer);
-                if (co_ret.need_sync)
-                {
-                    // 无协程处理器，走业务线程池
-                    co_await co_user_task(peer);
-                }
+                // — v6: 链的执行统一在 router::co_resolve —
+                co_await get_router().co_resolve(peer);
 
                 if (!rpc->is_send)
                 {
@@ -3440,9 +3636,262 @@ asio::awaitable<unsigned int> httpserver::client_rpc_loop(unsigned int readnum, 
     co_return 0;
 }
 
+// 同步钩子没给出结论（抛出 / 池没接单）时的日志形状：本文件里几条投池通路共用。
+static std::string hook_fail_log(const char *what, const std::exception_ptr &eptr, bool rejected, const std::shared_ptr<client_session> &peer_session)
+{
+    std::string log_item(what);
+    log_item.push_back(0x20);
+    log_item += eptr ? exception_text(eptr) : (rejected ? "thread pool rejected" : "no result");
+    if (peer_session)
+    {
+        log_item.push_back(0x20);
+        log_item.append(peer_session->client_ip);
+        log_item.push_back(0x20);
+        log_item.append(std::to_string(peer_session->client_port));
+    }
+    log_item.push_back('\n');
+    return log_item;
+}
+
+// 三套常驻出站客户端（redis_subpub / ws_subpub / sock_subpub）钩子失败的日志说明：这些连接
+// 没有 client_session，只有投递用的 tag。抛出与"池没接单"都必须留一条生产可见的日志，
+// 否则消息在无声中消失，线上没有任何线索可查。
+static void resident_hook_failed(const char *what, const std::exception_ptr &eptr, bool rejected)
+{
+    get_server_app().add_error_lists(hook_fail_log(what, eptr, rejected, nullptr));
+}
+
+// 协程钩子的收口，和 co_sync_hook_void 对称：抛出留在协程里接住并记录失败原因。
+// 放出去会一路撞到 co_spawn(..., asio::detached) 的默认 handler —— 那是在 io_context
+// 线程上重抛，整个进程跟着没；而这三条循环是常驻的，一次业务抛出不能带走服务。
+[[maybe_unused]] static asio::awaitable<void>
+co_resident_hook_void(const char *what, asio::awaitable<void> hook)
+{
+    try
+    {
+        co_await std::move(hook);
+    }
+    catch (...)
+    {
+        resident_hook_failed(what, std::current_exception(), false);
+    }
+    co_return;
+}
+
+// 同步业务钩子交给业务线程池（clientrunpool）跑的两种收口：钩子在池线程执行，续体回到本连接
+// 的协程，所以协议报文的先后次序照旧；抛出与"池没接单"都算业务没给出结论——bool 钩子按否决
+// 处理（fail-closed），void 钩子只记日志，两种都不踢连接：钩子异常不该比业务返回 false
+// 造成更大的破坏。
+asio::awaitable<bool> httpserver::co_sync_hook_bool(const char *what, std::function<bool()> fn, const std::shared_ptr<client_session> &peer_session)
+{
+    auto out = co_await co_pool_run_bool(std::move(fn), asio::use_awaitable);
+    if (!out.eptr && !out.rejected)
+        co_return out.value;
+
+    add_error_lists(hook_fail_log(what, out.eptr, out.rejected, peer_session));
+    co_return false;
+}
+
+// 协程版 bool 钩子的同款收口：抛出照样按否决处理，和上面那句对称。
+// 不接住的话异常会一路撞到本连接的会话协程（client_mqtt_loop 外层的 catch），整条连接被拆掉
+// —— 比业务老实回 false 的破坏大得多，而同步版走的是线程池收口，两支本来该同果。
+[[maybe_unused]] static asio::awaitable<bool>
+co_async_hook_bool(const char *what, asio::awaitable<bool> hook, const std::shared_ptr<client_session> &peer_session)
+{
+    bool value = false;
+    try
+    {
+        value = co_await std::move(hook);
+    }
+    catch (...)
+    {
+        get_server_app().add_error_lists(hook_fail_log(what, std::current_exception(), false, peer_session));
+        value = false;
+    }
+    co_return value;
+}
+
+asio::awaitable<void> httpserver::co_sync_hook_void(const char *what, std::function<void()> fn, const std::shared_ptr<client_session> &peer_session)
+{
+    auto out = co_await co_pool_run_void(std::move(fn), asio::use_awaitable);
+    if (!out.eptr && !out.rejected)
+        co_return;
+
+    add_error_lists(hook_fail_log(what, out.eptr, out.rejected, peer_session));
+}
+
+// socket 的 on_close 有三条出口（握手后业务立刻置 isclose、读错、报文循环里看到 isclose），
+// 收敛成这一个提交点。await 到钩子跑完才返回：投完就走的写法要让任务捕
+// shared_ptr<socket_api>，而它持有 session_sock，会话对象会被任务续命到协程退出之后。
+asio::awaitable<void> httpserver::co_socket_on_close(const std::shared_ptr<socket_api> &sock_temp,
+                                                     const std::shared_ptr<client_session> &peer_session)
+{
+    if (sock_temp->isco)
+    {
+        co_await sock_temp->async_on_close();
+        co_return;
+    }
+    co_await co_sync_hook_void("socket on_close",
+                               std::function<void()>([h = sock_temp]
+                                                     { h->on_close(); }),
+                               peer_session);
+}
+
+static void socket_pump_inbound(const std::shared_ptr<socket_api> &sock_temp);
+
+// 业务线程池上的一次派发出站：取队头一片，交给同步钩子，然后把单飞门开回来。
+// 开门之后如果队列还有存货，就自己再投一条接着跑 —— 这样一次投递能把积压一路排干，
+// 不必等读环下一次进队才想起来唤人。
+static void socket_run_inbound_one(const std::shared_ptr<socket_api> &sock_temp)
+{
+    socket_data_list_t msg;
+    if (!sock_temp->isclose && sock_temp->pop_front(msg) && !sock_temp->isclose)
+    {
+        // 这一片已经从队头取走了，钩子抛异常就把它吞在手里：接住它、记一条日志，
+        // 让下面那把单飞门照常开回来。不接的话异常由池在外面 catch，门永远不开，
+        // 这条连接的入站从此不再派发（读环还会照常攒到水位，最后歇满阈值关连接）。
+        try
+        {
+            sock_temp->on_message(std::move(msg));
+        }
+        catch (...)
+        {
+            get_server_app().add_error_lists(
+                hook_fail_log("socket on_message", std::current_exception(), false, sock_temp->session_sock));
+        }
+    }
+    sock_temp->inbound_running.clear(std::memory_order_release);
+    if (!sock_temp->isclose && sock_temp->queue_items() > 0)
+    {
+        socket_pump_inbound(sock_temp);
+    }
+}
+
+// 队列里有一片、并且这条连接当前没有任务在跑，就投一条；否则直接返回（已经有人在跑了）。
+// 那把门是"每连接单飞"：一次 read 拿到的是字节流的一片，没有帧边界，
+// 两片同时落在业务手里就会把这条流咬乱，所以同一时刻只允许一个任务处理这一连接的入站。
+static void socket_pump_inbound(const std::shared_ptr<socket_api> &sock_temp)
+{
+    if (sock_temp->isclose)
+    {
+        return;
+    }
+    if (sock_temp->inbound_running.test_and_set(std::memory_order_acq_rel))
+    {
+        return;
+    }
+    if (!post_conn_step("socket.onmessage", [sock = sock_temp]
+                        { socket_run_inbound_one(sock); }))
+    {
+        // 池没接单，这条任务不会被执行，也不会有人去开门；门不开回来，这条连接的入站从此不再派发。
+        sock_temp->inbound_running.clear(std::memory_order_release);
+    }
+}
+
+// 读环侧唯一的入站投递：入队 → 满了就停读歇拍等队列退下去 → 抢到门就投一条任务 → 立刻返回。
+// 返回 false 表示这条连接不能再收了：要么歇满 CONST_SOCKET_QUEUE_STALL_GIVEUP_MS 还是进不了队
+// （一片没丢，改成关这条连接退出，已经写过一条日志），要么会话读错 / 业务已经置 isclose。
+asio::awaitable<bool> httpserver::co_socket_inbound_push(const std::shared_ptr<socket_api> &sock_temp,
+                                                         const std::shared_ptr<client_session> &peer_session,
+                                                         socket_data_list_t &&item)
+{
+    // 到达时刻就在入队这一刻：钩子在业务线程池上可能排在后面很久才跑，
+    // 业务拿这个时间值能算出自己这一片等了多久。
+    item.arrived_ms = static_cast<unsigned long long>(
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now().time_since_epoch())
+            .count());
+
+    // 直接绑到这条连接的 strand，不依赖协程当前 executor——
+    // 如果以后有人换个 executor 调进来，timer 也不会跑错线程。
+    asio::steady_timer timer(peer_session->strand_);
+    std::string log_item;
+
+    unsigned int tick_ms = CONST_SOCKET_QUEUE_STALL_MS;
+    // 停多久拿时钟量，不按拍累加：每拍只是"最多睡这么久"的上界，真睡了多久还含调度开销，
+    // 而且决策点那一拍根本还没睡——按累加算，日志里的时长会比实际多报一整拍。
+    const auto stall_begin = std::chrono::steady_clock::now();
+
+    // push 在水位上返回 false 时不移动 item，所以每一轮重试拿的都是同一片，一片不丢。
+    while (!sock_temp->push(std::move(item)))
+    {
+        unsigned long long stalled = static_cast<unsigned long long>(
+            std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - stall_begin)
+                .count());
+        if (stalled >= CONST_SOCKET_QUEUE_STALL_GIVEUP_MS ||
+            peer_session->iserror || sock_temp->isclose)
+        {
+            if (stalled >= CONST_SOCKET_QUEUE_STALL_GIVEUP_MS && !sock_temp->isclose)
+            {
+                sock_temp->isclose    = true;
+                peer_session->isclose = true;
+
+                log_item.clear();
+                log_item.append(peer_session->client_ip);
+                log_item.push_back(0x20);
+                log_item.append(std::to_string(peer_session->client_port));
+                log_item.append(" socket inbound queue still full after stalling ");
+                log_item.append(std::to_string(stalled));
+                log_item.append(" ms, closing this connection");
+                log_item.push_back('\n');
+                add_error_lists(log_item);
+            }
+            co_return false;
+        }
+
+        timer.expires_after(std::chrono::milliseconds(tick_ms));
+        co_await timer.async_wait(asio::use_awaitable);
+
+        // 下一拍的间隔：200/400/800/1000 各一轮，之后固定 2 秒循环检查队列有没有退下去。
+        if (tick_ms < CONST_SOCKET_QUEUE_STALL_TOP_MS)
+        {
+            tick_ms *= 2;
+            if (tick_ms > CONST_SOCKET_QUEUE_STALL_TOP_MS)
+            {
+                tick_ms = CONST_SOCKET_QUEUE_STALL_TOP_MS;
+            }
+        }
+        else if (tick_ms == CONST_SOCKET_QUEUE_STALL_TOP_MS)
+        {
+            tick_ms = CONST_SOCKET_QUEUE_STALL_LOOP_MS;
+        }
+    }
+
+    socket_pump_inbound(sock_temp);
+    co_return true;
+}
+
+// 原生 socket 发送环的启动次数（全局累计）。一条连接只在还没有环时启动一次消费者协程，
+// 所以它应当和"tcp ring close"的行数一致：多出来就是同一条连接上有了两个写者。
+static std::atomic<unsigned long long> tcp_ring_spawn_num = 0;
+
+// 连接关闭时把这条连接的出站账落一行：refuse= 发送环拒过的片数（就是
+// http2_ring_overflow_count，环满和积压过闸都算它，原生 socket 这条支路唯一会动的一个），
+// spawn= 此刻的全局启动累计。没建过环的连接（握手之前就错掉的）不落这一行。
+static void tcp_ring_close_log(const std::shared_ptr<client_session> &peer_session)
+{
+    if (!peer_session->http2_ring_queue)
+    {
+        return;
+    }
+    std::string ring_log;
+    ring_log.append("tcp ring close ");
+    ring_log.append(peer_session->client_ip);
+    ring_log.push_back(0x20);
+    ring_log.append(std::to_string(peer_session->client_port));
+    ring_log.append(" refuse=");
+    ring_log.append(std::to_string(peer_session->http2_ring_overflow_count.load(std::memory_order_relaxed)));
+    ring_log.append(" spawn=");
+    ring_log.append(std::to_string(tcp_ring_spawn_num.load(std::memory_order_relaxed)));
+    ring_log.push_back('\n');
+    get_server_app().add_error_lists(ring_log);
+}
+
 asio::awaitable<unsigned int> httpserver::client_tcp_loop(unsigned int readnum, std::shared_ptr<client_session> peer_session)
 {
     std::string log_item;
+    unsigned long long socket_seq_id = 0;
 
     if (readnum < 4)
     {
@@ -3483,8 +3932,8 @@ asio::awaitable<unsigned int> httpserver::client_tcp_loop(unsigned int readnum, 
         }
         if (path_end == std::string::npos)
         {
-            unsigned int rn   = 0;
-            std::string  more;
+            unsigned int rn = 0;
+            std::string more;
             peer_session->time_limit.store(timeid());
             bool is_error = co_await peer_session->read_socket(rn, more);
             if (is_error)
@@ -3505,13 +3954,19 @@ asio::awaitable<unsigned int> httpserver::client_tcp_loop(unsigned int readnum, 
     std::string name;
     unsigned int myid = 0, groupid = 0;
     {
-        unsigned char seg    = 0; // 0=name, 1=myid, 2=groupid
-        std::string   seg_buf;
+        unsigned char seg = 0;// 0=name, 1=myid, 2=groupid
+        std::string seg_buf;
         for (std::size_t i = 4; i < path_end; i++)
         {
             char c = req_buf[i];
             if (c == '/')
             {
+                // 名字本身可以写成 "/name"（和 HTTP 路径同一个习惯）：段首的空名字不算
+                // 分隔符，不然 "/name" 会被切成"空名字 + myid=name"，谁都对不上。
+                if (seg == 0 && seg_buf.empty())
+                {
+                    continue;
+                }
                 if (seg == 0)
                 {
                     name = seg_buf;
@@ -3520,7 +3975,8 @@ asio::awaitable<unsigned int> httpserver::client_tcp_loop(unsigned int readnum, 
                 {
                     myid = 0;
                     for (char d : seg_buf)
-                        if (d >= '0' && d <= '9') myid = myid * 10 + (d - '0');
+                        if (d >= '0' && d <= '9')
+                            myid = myid * 10 + (d - '0');
                 }
                 seg_buf.clear();
                 seg++;
@@ -3534,13 +3990,15 @@ asio::awaitable<unsigned int> httpserver::client_tcp_loop(unsigned int readnum, 
         {
             myid = 0;
             for (char d : seg_buf)
-                if (d >= '0' && d <= '9') myid = myid * 10 + (d - '0');
+                if (d >= '0' && d <= '9')
+                    myid = myid * 10 + (d - '0');
         }
         else if (seg == 2)
         {
             groupid = 0;
             for (char d : seg_buf)
-                if (d >= '0' && d <= '9') groupid = groupid * 10 + (d - '0');
+                if (d >= '0' && d <= '9')
+                    groupid = groupid * 10 + (d - '0');
         }
     }
 
@@ -3550,10 +4008,27 @@ asio::awaitable<unsigned int> httpserver::client_tcp_loop(unsigned int readnum, 
         co_return 0;
     }
 
-    auto iter_s = hsock.find(name);
+    // 注册表里的键在启动时统一补过前导 '/'（见 _inithttpsocketmethodregto 之后那段），
+    // 握手侧不管写成 name 还是 /name，切出来的都是裸名字，这里补上 '/' 就是唯一的查找键。
+    std::string sock_name;
+    sock_name.push_back('/');
+    sock_name += name;
+
+    auto iter_s = hsock.find(sock_name);
     if (iter_s != hsock.end())
     {
-        peer_session->httpv                   = 8;
+        peer_session->httpv = 8;
+
+        // 发送环 + 唯一写者协程：从这一刻起这条连接的出站数据都从环里串行出去。
+        // 已经有环就不重复启动 —— 同一条连接上派两个写者，两帧的字节会交错。
+        if (!peer_session->http2_ring_queue)
+        {
+            auto &ring_pool                = get_http2_ring_queue_obj();
+            peer_session->http2_ring_queue = ring_pool.get_cache_ptr();
+            tcp_ring_spawn_num.fetch_add(1, std::memory_order_relaxed);
+            asio::co_spawn(peer_session->strand_, ring_client_server(peer_session), asio::detached);
+        }
+
         std::shared_ptr<socket_api> sock_temp = iter_s->second(myid, groupid, peer_session);
 
         sock_temp->url = name;
@@ -3568,13 +4043,18 @@ asio::awaitable<unsigned int> httpserver::client_tcp_loop(unsigned int readnum, 
         }
         else
         {
-            sock_temp->on_open();
+            // 同步 on_open 下业务线程池。await 到跑完：业务在这一步置 isclose 来否决本连接，
+            // 而循环要到握手之后才读它，投完就走等于把"可否决"变成竞态。
+            co_await co_sync_hook_void("socket on_open",
+                                       std::function<void()>([h = sock_temp]
+                                                             { h->on_open(); }),
+                                       peer_session);
         }
 
         // 阶段二：握手 [?query]\n\n 或空格分隔，剩余是 body
         // 从 path_end 继续，req_buf 可能已含部分 body
-        bool        handshake_done = false;
-        std::size_t body_offset    = 0;
+        bool handshake_done     = false;
+        std::size_t body_offset = 0;
         while (!handshake_done)
         {
             if (path_end < req_buf.size())
@@ -3588,7 +4068,7 @@ asio::awaitable<unsigned int> httpserver::client_tcp_loop(unsigned int readnum, 
                     {
                         // 解析 query 字符串（? 之后、\n 之前）
                         std::string key, val;
-                        bool        in_val = false;
+                        bool in_val = false;
                         for (std::size_t i = path_end + 1; i < nl; i++)
                         {
                             char c = req_buf[i];
@@ -3645,27 +4125,34 @@ asio::awaitable<unsigned int> httpserver::client_tcp_loop(unsigned int readnum, 
                 }
                 else
                 {
-                    // 非法握手
+                    // 非法握手：on_open 可能已经投过东西，但握手没成，不必等环排空，
+                    // stop() 会把挂在环上的消费者唤醒让它退出。
                     peer_session->isclose = true;
+                    tcp_ring_close_log(peer_session);
+                    peer_session->stop();
                     co_return 0;
                 }
             }
 
             if (!handshake_done)
             {
-                unsigned int rn   = 0;
-                std::string  more;
+                unsigned int rn = 0;
+                std::string more;
                 peer_session->time_limit.store(timeid());
                 bool is_error = co_await peer_session->read_socket(rn, more);
                 if (is_error)
                 {
                     peer_session->isclose = true;
+                    tcp_ring_close_log(peer_session);
+                    peer_session->stop();
                     co_return 0;
                 }
                 req_buf.append(more);
                 if (req_buf.size() > CONST_TCP_HANDSHAKE_MAX)
                 {
                     peer_session->isclose = true;
+                    tcp_ring_close_log(peer_session);
+                    peer_session->stop();
                     co_return 0;
                 }
             }
@@ -3674,91 +4161,189 @@ asio::awaitable<unsigned int> httpserver::client_tcp_loop(unsigned int readnum, 
         // 握手完成，把剩余 body 直接交给业务
         if (body_offset < req_buf.size())
         {
-            co_await sock_temp->async_on_message(req_buf.substr(body_offset));
+            if (sock_temp->issyncmsg)
+            {
+                socket_data_list_t rest;
+                rest.seqid = socket_seq_id++;
+                rest.value = req_buf.substr(body_offset);
+                if (!co_await co_socket_inbound_push(sock_temp, peer_session, std::move(rest)))
+                {
+                    peer_session->isclose = true;
+                    co_await co_socket_on_close(sock_temp, peer_session);
+                    tcp_ring_close_log(peer_session);
+                    co_await ws_drain_ring_then_stop(peer_session);
+                    co_return 0;
+                }
+            }
+            else
+            {
+                co_await sock_temp->async_on_message(req_buf.substr(body_offset));
+            }
         }
 
-            if (sock_temp->isclose)
-            {
-                peer_session->isclose = true;
-
-                if (sock_temp->isco)
-                {
-                    co_await sock_temp->async_on_close();
-                }
-                else
-                {
-                    sock_temp->on_close();
-                }
-                co_return 0;
-            }
-
-            for (;;)
-            {
-                peer_session->time_limit.store(timeid());
-                log_item      = {};
-                unsigned int rn = 0;
-                bool is_error = co_await peer_session->read_socket(rn, log_item);
-
-                if (is_error)
-                {
-                    log_item.push_back(0x20);
-                    log_item.append(peer_session->client_ip);
-                    log_item.push_back(0x20);
-                    log_item.append(std::to_string(peer_session->client_port));
-
-                    log_item.push_back('\n');
-                    std::unique_lock<std::mutex> lock(log_mutex);
-                    error_loglist.emplace_back(log_item);
-                    lock.unlock();
-
-                    sock_temp->isclose = true;
-                    if (sock_temp->isco)
-                    {
-                        co_await sock_temp->async_on_close();
-                    }
-                    else
-                    {
-                        sock_temp->on_close();
-                    }
-
-                    peer_session->stop();
-                    co_return 3;
-                }
-                //Error handling here
-                if (sock_temp->isclose)
-                {
-                    if (sock_temp->isco)
-                    {
-                        co_await sock_temp->async_on_close();
-                    }
-                    else
-                    {
-                        sock_temp->on_close();
-                    }
-                    break;
-                }
-
-                co_await sock_temp->async_on_message(log_item);
-            }
-
-            peer_session->isclose = true;
-        }
-        else
+        if (sock_temp->isclose)
         {
             peer_session->isclose = true;
+            co_await co_socket_on_close(sock_temp, peer_session);
+            tcp_ring_close_log(peer_session);
+            co_await ws_drain_ring_then_stop(peer_session);
             co_return 0;
         }
+
+        for (;;)
+        {
+            peer_session->time_limit.store(timeid());
+            log_item        = {};
+            unsigned int rn = 0;
+            bool is_error   = co_await peer_session->read_socket(rn, log_item);
+
+            if (is_error)
+            {
+                log_item.push_back(0x20);
+                log_item.append(peer_session->client_ip);
+                log_item.push_back(0x20);
+                log_item.append(std::to_string(peer_session->client_port));
+
+                log_item.push_back('\n');
+                std::unique_lock<std::mutex> lock(log_mutex);
+                error_loglist.emplace_back(log_item);
+                lock.unlock();
+
+                sock_temp->isclose = true;
+                co_await co_socket_on_close(sock_temp, peer_session);
+
+                tcp_ring_close_log(peer_session);
+                co_await ws_drain_ring_then_stop(peer_session);
+                co_return 3;
+            }
+            //Error handling here
+            if (sock_temp->isclose)
+            {
+                co_await co_socket_on_close(sock_temp, peer_session);
+                break;
+            }
+
+            if (sock_temp->issyncmsg)
+            {
+                // 投完就走：这一片进接收队列后读环立刻回去收下一片，钩子在业务线程池上跑。
+                // 返回 false 意味着队列歇满 5 分钟还满（或会话已读错），这一片没丢，
+                // 改走关闭路径 —— 循环里下一个 isclose 检查在"再读一片"之后，等不到。
+                socket_data_list_t piece;
+                piece.seqid = socket_seq_id++;
+                piece.value = std::move(log_item);
+                if (!co_await co_socket_inbound_push(sock_temp, peer_session, std::move(piece)))
+                {
+                    peer_session->isclose = true;
+                    co_await co_socket_on_close(sock_temp, peer_session);
+                    break;
+                }
+            }
+            else
+            {
+                co_await sock_temp->async_on_message(log_item);
+            }
+        }
+
+        // 两条 break 都落到这里：业务置了 isclose，或者入站歇满阈值不再收。
+        // 先关掉入环（isclose 之后 post_write 一律拒），再等环排空、最后 stop()，
+        // 否则在途数据会跟着 socket 一起被丢掉，消费者协程也醒不过来。
+        peer_session->isclose = true;
+        tcp_ring_close_log(peer_session);
+        co_await ws_drain_ring_then_stop(peer_session);
+    }
+    else
+    {
+        peer_session->isclose = true;
+        co_return 0;
+    }
 
     co_return 0;
 }
 
+// ====== MQTT 5 Will 延迟发布（will_delay_interval，§3.2.2.26.3 / §4.3.3）======
+// 客户端在 CONNECT 属性里声明的延迟秒数此前只是存进结构体（mqtt_frame.cpp:565），
+// 服务端收到断连就立刻发遗嘱。下面这两个计数是这条支路的在途量与丢弃量。
+static std::atomic<unsigned long long> mqtt_will_delay_pending = 0;
+static std::atomic<unsigned long long> mqtt_will_delay_dropped = 0;
+
+// 认领一个在途名额：判定和占位必须在同一次 CAS 里完成，先 load 再 fetch_add 是
+// check-then-act，两个同时断开的连接可以各自看着界内、然后一起加上去。
+// 返回 false = 名额已满，调用方丢弃这条遗嘱并计数（丢最新 + 计数，不断连，与 ws 入站水位同口径）。
+static bool mqtt_will_delay_acquire()
+{
+    unsigned long long cur = mqtt_will_delay_pending.load(std::memory_order_acquire);
+    for (;;)
+    {
+        if (cur >= CONST_MQTT_WILL_DELAY_MAX_PENDING)
+        {
+            return false;
+        }
+        if (mqtt_will_delay_pending.compare_exchange_weak(cur, cur + 1, std::memory_order_acq_rel, std::memory_order_acquire))
+        {
+            return true;
+        }
+    }
+}
+
+// 等满 delay_sec 再发这条遗嘱。它只带 client_id 和遗嘱的副本，不带会话：
+// 挂 shared_ptr 等于把整条会话（读缓冲 + inflight 表）按住最长一小时，那正是这里要封顶的东西。
+static asio::awaitable<void> mqtt_publish_delayed_will(std::string client_id,
+                                                       mqtt_will_message will,
+                                                       unsigned long long delay_sec)
+{
+    // 三条退出路径（定时器出错、被接管跳过、正常发布）都要还名额，所以用析构守卫
+    struct slot_guard
+    {
+        ~slot_guard()
+        {
+            mqtt_will_delay_pending.fetch_sub(1, std::memory_order_acq_rel);
+        }
+    } slot;
+
+    asio::steady_timer timer(co_await asio::this_coro::executor);
+    timer.expires_after(std::chrono::seconds(delay_sec));
+    try
+    {
+        co_await timer.async_wait();
+    }
+    catch (...)
+    {
+        // co_spawn(..., asio::detached) 的默认 handler 会把异常抛回 io_context 所在线程，
+        // 那等于把整个服务打停，所以这里必须接住
+        co_return;
+    }
+
+    // 取消判据：到期时这个 client_id 已被别的会话占着 ⇒ 客户端在延迟窗口内重连过，遗嘱作废
+    // （MQTT 5 §4.3.3）。调度之后本会话就 cleanup() 把自己从索引摘掉了，所以"没被接管"的正常
+    // 到期在这里读到的是空指针 —— 不能反过来写成"find_client 等于本会话才发"，那样每条都发不出去。
+    // 已知边界：窗口内"重连、又断开"会把索引腾空，于是这条旧遗嘱仍会发出去。要修它得给
+    // client_id 加一个"已被接管过"的世代号，本框架没有可恢复会话状态，先如实记下。
+    if (mqtt_broker::instance().find_client(client_id))
+    {
+        co_return;
+    }
+
+    mqtt_publish_info pub;
+    pub.topic.assign(will.topic);
+    pub.payload = std::make_shared<std::string>(will.payload);
+    pub.qos     = will.qos;
+    pub.retain  = will.retain;
+    // received_at 取"真正发出去的那一刻"：沿用断开时的读数会把整段延迟算进消息在服务端的停留时间，
+    // 转发时 Message Expiry 的剩余寿命就被多扣了一截（§3.3.2.3.3）
+    pub.received_at = mqtt_detail::now_monotonic_sec();
+    // exclude = nullptr：这条连接早没了，不需要"不回投给自己"的过滤
+    mqtt_api::publish_to_broker(pub, nullptr);
+    co_return;
+}
 
 asio::awaitable<unsigned int> httpserver::client_mqtt_loop(unsigned int readnum, std::shared_ptr<client_session> peer_session)
 {
     peer_session->httpv = 9;
 
     std::shared_ptr<http::mqtt_session> sess;
-    std::shared_ptr<http::mqtt_api>     handler;
+    std::shared_ptr<http::mqtt_api> handler;
+    bool clean_disconnect = false;// 收到 Clean DISCONNECT 帧 → 不发布 Will
+    bool established      = false;// CONNECT 握手成功并建立会话后才允许发布 Will
 
     // 内层协程 + 外层 try/catch：所有退出路径统一 cleanup + on_disconnect
     auto session_body = [&]() -> asio::awaitable<void>
@@ -3807,7 +4392,7 @@ asio::awaitable<unsigned int> httpserver::client_mqtt_loop(unsigned int readnum,
         }
 
         mqtt_client_info info;
-        mqtt_reason      reject = mqtt_reason::success;
+        mqtt_reason reject = mqtt_reason::success;
         if (!parse_connect(first->body_data(), first->body_size(), info, reject))
         {
             mqtt_connack_props props;
@@ -3827,7 +4412,7 @@ asio::awaitable<unsigned int> httpserver::client_mqtt_loop(unsigned int readnum,
         }
 
         MQTT_REG &mqtt_reg = get_mqtt_reg();
-        auto       iter    = mqtt_reg.find(info.reg_key);
+        auto iter          = mqtt_reg.find(info.reg_key);
         if (iter == mqtt_reg.end())
         {
             mqtt_connack_props props;
@@ -3846,10 +4431,10 @@ asio::awaitable<unsigned int> httpserver::client_mqtt_loop(unsigned int readnum,
             co_return;
         }
 
-        // 业务认证：协程版走 async_on_auth，可以在里面 co_await 查库而不占协程线程
-        bool authed = new_handler->is_coroutine()
-                        ? co_await new_handler->async_on_auth()
-                        : new_handler->on_auth();
+        // 业务认证：协程版走 async_on_auth，同步版交给业务线程池，两条都不占协程线程
+        bool authed = new_handler->is_coroutine() ? co_await new_handler->async_on_auth() : co_await co_sync_hook_bool("mqtt on_auth", std::function<bool()>([h = new_handler]
+                                                                                                                                                             { return h->on_auth(); }),
+                                                                                                                       peer_session);
         if (!authed)
         {
             mqtt_connack_props props;
@@ -3863,6 +4448,10 @@ asio::awaitable<unsigned int> httpserver::client_mqtt_loop(unsigned int readnum,
         auto old_session = mqtt_broker::instance().register_client(info.client_id, sess);
         if (old_session && old_session != sess)
         {
+            // 先标记再关：旧 loop 的统一清理段据此跳过 Will 发布。客户端本人还活着（只是换了条
+            // TCP），发旧遗嘱会向订阅者谎报掉线；写在 DISCONNECT 之前，让"标记没赶上"的窗口
+            // 只剩旧 loop 已经进到 Will 那一行的极端情况。
+            old_session->mark_taken_over();
             old_session->write(make_disconnect(mqtt_reason::session_taken_over));
             old_session->cleanup();
             old_session->transport()->isclose = true;
@@ -3877,23 +4466,30 @@ asio::awaitable<unsigned int> httpserver::client_mqtt_loop(unsigned int readnum,
         //   topic_alias_maximum  = 服务端接受的入站别名上限
         // （客户端宣告值只用于约束服务端出站方向，见 mqtt_session::deliver）
         mqtt_connack_props cprops;
-        cprops.receive_maximum      = MQTT_DEFAULT_RECEIVE_MAXIMUM;
-        cprops.maximum_qos          = MQTT_DEFAULT_MAXIMUM_QOS;
-        cprops.maximum_packet_size  = static_cast<uint32_t>(MQTT_MAX_PACKET_SIZE);
-        cprops.topic_alias_maximum  = MQTT_DEFAULT_TOPIC_ALIAS_MAX;
+        cprops.receive_maximum     = MQTT_DEFAULT_RECEIVE_MAXIMUM;
+        cprops.maximum_qos         = MQTT_DEFAULT_MAXIMUM_QOS;
+        cprops.maximum_packet_size = static_cast<uint32_t>(MQTT_MAX_PACKET_SIZE);
+        cprops.topic_alias_maximum = MQTT_DEFAULT_TOPIC_ALIAS_MAX;
         // 入站拆帧上限 = 服务端策略，不再跟随客户端宣告值
         sess->set_max_inbound_packet(MQTT_MAX_PACKET_SIZE);
         sess->set_server_topic_alias_max(MQTT_DEFAULT_TOPIC_ALIAS_MAX);
         sess->write(make_connack(false, mqtt_reason::success, cprops, true));
 
         handler = new_handler;
+        // CONNACK 已经发出，会话算建立：从这一刻起非正常断连才发布 Will，
+        // 建会话之前失败（工厂、auth、踢旧）那条路径上对端还没登记过遗嘱，不该发。
+        established = true;
         if (handler->is_coroutine())
         {
             co_await handler->async_on_connect();
         }
         else
         {
-            handler->on_connect();
+            co_await co_sync_hook_void(
+                "mqtt on_connect",
+                std::function<void()>([h = handler]
+                                      { h->on_connect(); }),
+                peer_session);
         }
         // 定时 tick 登记（websocket_loop 的 mqtttasks 段扫描）；
         // 须在 on_connect 之后：业务在 on_connect 里置 loop_num，先登记会以 0 被摘除
@@ -3916,7 +4512,7 @@ asio::awaitable<unsigned int> httpserver::client_mqtt_loop(unsigned int readnum,
                 // 读异常
                 co_return;
             }
-            sess->touch_activity();   // 刷新活跃时间
+            sess->touch_activity();// 刷新活跃时间
 
             switch (pkt->type)
             {
@@ -3925,6 +4521,7 @@ asio::awaitable<unsigned int> httpserver::client_mqtt_loop(unsigned int readnum,
                 break;
 
             case mqtt_packet_type::DISCONNECT:
+                clean_disconnect = true;// 干净断连：按 MQTT5 §3.1.2.5 不发布 Will
                 co_return;
 
             case mqtt_packet_type::SUBSCRIBE:
@@ -3932,36 +4529,40 @@ asio::awaitable<unsigned int> httpserver::client_mqtt_loop(unsigned int readnum,
                 break;
 
             case mqtt_packet_type::UNSUBSCRIBE:
+            {
+                uint16_t packet_id = 0;
+                std::vector<mqtt_unsubscribe_entry> entries;
+                if (!parse_unsubscribe(pkt->body_data(), pkt->body_size(), packet_id, entries))
                 {
-                    uint16_t packet_id = 0;
-                    std::vector<mqtt_unsubscribe_entry> entries;
-                    if (!parse_unsubscribe(pkt->body_data(), pkt->body_size(), packet_id, entries))
-                    {
-                        drop_with_reason(mqtt_reason::malformed_packet);
-                        co_return;
-                    }
-                    std::vector<mqtt_reason> codes;
-                    codes.reserve(entries.size());
-                    for (auto &e : entries)
-                    {
-                        // 语义非法的 filter（空串 / 通配符位置错误 / $share 形态错）：
-                        // 逐条回 0x8F，不落库、也不触发业务退订回调（MQTT 5 §3.11.3）
-                        if (!e.valid)
-                        {
-                            codes.push_back(mqtt_reason::topic_filter_invalid);
-                            continue;
-                        }
-                        mqtt_broker::instance().unsubscribe(e.topic, sess);
-                        // 退订通知：协程版业务走 async_on_unsubscribe，可以在里面 co_await 落库
-                        if (handler->is_coroutine())
-                            co_await handler->async_on_unsubscribe(e.topic);
-                        else
-                            handler->on_unsubscribe(e.topic);
-                        codes.push_back(mqtt_reason::success);
-                    }
-                    sess->write(make_unsuback(packet_id, codes));
+                    drop_with_reason(mqtt_reason::malformed_packet);
+                    co_return;
                 }
-                break;
+                std::vector<mqtt_reason> codes;
+                codes.reserve(entries.size());
+                for (auto &e : entries)
+                {
+                    // 语义非法的 filter（空串 / 通配符位置错误 / $share 形态错）：
+                    // 逐条回 0x8F，不落库、也不触发业务退订回调（MQTT 5 §3.11.3）
+                    if (!e.valid)
+                    {
+                        codes.push_back(mqtt_reason::topic_filter_invalid);
+                        continue;
+                    }
+                    mqtt_broker::instance().unsubscribe(e.topic, sess);
+                    // 退订通知：协程版业务走 async_on_unsubscribe，同步版交给业务线程池
+                    if (handler->is_coroutine())
+                        co_await handler->async_on_unsubscribe(e.topic);
+                    else
+                        co_await co_sync_hook_void(
+                            "mqtt on_unsubscribe",
+                            std::function<void()>([h = handler, t = e.topic]
+                                                  { h->on_unsubscribe(t); }),
+                            peer_session);
+                    codes.push_back(mqtt_reason::success);
+                }
+                sess->write(make_unsuback(packet_id, codes));
+            }
+            break;
 
             case mqtt_packet_type::PUBLISH:
                 co_await handle_mqtt_publish(sess, handler, *pkt, drop_with_reason);
@@ -3970,43 +4571,43 @@ asio::awaitable<unsigned int> httpserver::client_mqtt_loop(unsigned int readnum,
             case mqtt_packet_type::PUBACK:
             case mqtt_packet_type::PUBREC:
             case mqtt_packet_type::PUBCOMP:
+            {
+                uint16_t pid   = 0;
+                mqtt_reason rc = mqtt_reason::success;
+                bool has_pid   = false;
+                if (parse_ack(pkt->type, pkt->body_data(), pkt->body_size(), pid, rc, has_pid) && has_pid)
                 {
-                    uint16_t pid = 0;
-                    mqtt_reason rc = mqtt_reason::success;
-                    bool has_pid = false;
-                    if (parse_ack(pkt->type, pkt->body_data(), pkt->body_size(), pid, rc, has_pid) && has_pid)
-                    {
-                        sess->ack_outgoing(pkt->type, pid, rc);
-                    }
-                    else
-                    {
-                        drop_with_reason(mqtt_reason::malformed_packet);
-                        co_return;
-                    }
+                    sess->ack_outgoing(pkt->type, pid, rc);
                 }
-                break;
+                else
+                {
+                    drop_with_reason(mqtt_reason::malformed_packet);
+                    co_return;
+                }
+            }
+            break;
 
             case mqtt_packet_type::PUBREL:
+            {
+                uint16_t pid   = 0;
+                mqtt_reason rc = mqtt_reason::success;
+                bool has_pid   = false;
+                if (!parse_ack(pkt->type, pkt->body_data(), pkt->body_size(), pid, rc, has_pid) || !has_pid)
                 {
-                    uint16_t pid = 0;
-                    mqtt_reason rc = mqtt_reason::success;
-                    bool has_pid = false;
-                    if (!parse_ack(pkt->type, pkt->body_data(), pkt->body_size(), pid, rc, has_pid) || !has_pid)
-                    {
-                        drop_with_reason(mqtt_reason::malformed_packet);
-                        co_return;
-                    }
-                    auto pending = sess->take_inbound_qos2(pid);
-                    bool applied = true;
-                    if (pending)
-                    {
-                        // QoS 2 最终投递 + retained 落库（返回 false = 落库被配额拒绝）
-                        applied = mqtt_api::publish_to_broker(*pending, sess);
-                    }
-                    // PUBCOMP 放在投递之后：retained 落库被配额拒绝时回 0x97
-                    sess->write(make_pubcomp(pid, applied ? mqtt_reason::success : mqtt_reason::quota_exceeded));
+                    drop_with_reason(mqtt_reason::malformed_packet);
+                    co_return;
                 }
-                break;
+                auto pending = sess->take_inbound_qos2(pid);
+                bool applied = true;
+                if (pending)
+                {
+                    // QoS 2 最终投递 + retained 落库（返回 false = 落库被配额拒绝）
+                    applied = mqtt_api::publish_to_broker(*pending, sess);
+                }
+                // PUBCOMP 放在投递之后：retained 落库被配额拒绝时回 0x97
+                sess->write(make_pubcomp(pid, applied ? mqtt_reason::success : mqtt_reason::quota_exceeded));
+            }
+            break;
 
             case mqtt_packet_type::AUTH:
                 // 跳过增强认证
@@ -4045,17 +4646,74 @@ asio::awaitable<unsigned int> httpserver::client_mqtt_loop(unsigned int readnum,
     // --- 统一清理 ---
     if (sess)
     {
+        // 异常/网络断连（非 Clean DISCONNECT、且会话已建立）时发布 Will（MQTT 5 §3.1.2.5）。
+        // 被同 ClientID 的新 CONNECT 接管（is_taken_over）也跳过：客户端还活着，只是换了条 TCP。
+        const auto &wi = sess->client_info().will;
+        if (wi.has && !clean_disconnect && established && !sess->is_taken_over())
+        {
+            // will_delay_interval>0 就把发布推迟到客户端声明的秒数（超上限按上限，不丢弃），
+            // 窗口内该 client_id 被新会话占着则取消；0 走原来的立即发布，行为与改造前一致。
+            unsigned long long delay = wi.will_delay_interval;
+            if (delay > CONST_MQTT_WILL_DELAY_MAX_SEC)
+            {
+                delay = CONST_MQTT_WILL_DELAY_MAX_SEC;
+            }
+            if (delay == 0)
+            {
+                mqtt_publish_info pub;
+                pub.topic.assign(wi.topic);
+                pub.payload     = std::make_shared<std::string>(wi.payload);
+                pub.qos         = wi.qos;
+                pub.retain      = wi.retain;
+                pub.received_at = mqtt_detail::now_monotonic_sec();
+                mqtt_api::publish_to_broker(pub, sess);
+            }
+            else if (mqtt_will_delay_acquire())
+            {
+                // 不挂在这条连接的 strand 上：peer_session 的会话协程已经要退出了，
+                // 定时器只需要 io_context 活着，遗嘱是全局广播，与这条 TCP 无关。
+                asio::co_spawn(this->io_context,
+                               mqtt_publish_delayed_will(sess->client_id(), wi, delay),
+                               asio::detached);
+            }
+            else
+            {
+                // 在途定时器已满：丢这一条遗嘱并计数，不断连（与 ws 入站水位同口径）
+                unsigned long long dropped =
+                    mqtt_will_delay_dropped.fetch_add(1, std::memory_order_acq_rel) + 1;
+                if (dropped == 1 || dropped % 256 == 0)
+                {
+#ifndef BENCHMARK
+                    std::string log_item;
+                    log_item.append(peer_session->client_ip);
+                    log_item.push_back(0x20);
+                    log_item.append(std::to_string(peer_session->client_port));
+                    log_item.append(" mqtt will delay queue full, dropped ");
+                    log_item.append(std::to_string(dropped));
+                    log_item.append(" wills");
+                    log_item.push_back('\n');
+                    std::unique_lock<std::mutex> lock(log_mutex);
+                    error_loglist.emplace_back(log_item);
+                    lock.unlock();
+#endif
+                }
+            }
+        }
         sess->cleanup();
     }
     if (handler)
     {
         try
         {
-            // 断开回调必达：协程版业务走 async_on_disconnect，收尾里可以 co_await 落库
+            // 断开回调必达：协程版业务走 async_on_disconnect，同步版交给业务线程池
             if (handler->is_coroutine())
                 co_await handler->async_on_disconnect();
             else
-                handler->on_disconnect();
+                co_await co_sync_hook_void(
+                    "mqtt on_disconnect",
+                    std::function<void()>([h = handler]
+                                          { h->on_disconnect(); }),
+                    peer_session);
         }
         catch (...)
         {
@@ -4090,7 +4748,8 @@ asio::awaitable<void> httpserver::mqtt_send_loop()
         {
             std::lock_guard<std::mutex> list_lk(mqtt_sessions_mutex);
             std::erase_if(mqtt_sessions,
-                          [](const std::weak_ptr<http::mqtt_session> &w) { return w.expired(); });
+                          [](const std::weak_ptr<http::mqtt_session> &w)
+                          { return w.expired(); });
             snapshot = mqtt_sessions;
         }
         bool any_pending = false;
@@ -4098,7 +4757,8 @@ asio::awaitable<void> httpserver::mqtt_send_loop()
         for (auto &w : snapshot)
         {
             auto sess = w.lock();
-            if (!sess || !sess->has_pending()) continue;
+            if (!sess || !sess->has_pending())
+                continue;
             any_pending = true;
             moved += sess->flush_pending();
         }
@@ -4114,14 +4774,20 @@ asio::awaitable<void> httpserver::mqtt_send_loop()
             for (auto &w : recheck)
             {
                 auto sess = w.lock();
-                if (sess && sess->has_pending()) { still_empty = false; break; }
+                if (sess && sess->has_pending())
+                {
+                    still_empty = false;
+                    break;
+                }
             }
-            if (still_empty) co_return;
+            if (still_empty)
+                co_return;
             // 复查期间又有货：收回标志续跑。用 CAS 而非裸 store——若 ① 置 true 后
             // websocket_loop 那拍已经 exchange 走并 spawn 了新协程，这里 CAS 失败，
             // 本协程直接退出，避免两个 mqtt_send_loop 同时跑
             bool expect = true;
-            if (!mqtt_sender_need_spawn.compare_exchange_strong(expect, false)) co_return;
+            if (!mqtt_sender_need_spawn.compare_exchange_strong(expect, false))
+                co_return;
             continue;
         }
         if (moved == 0)
@@ -4170,9 +4836,9 @@ asio::awaitable<void> httpserver::handle_mqtt_subscribe(std::shared_ptr<http::mq
 
         uint8_t granted_qos = std::min<uint8_t>(e.options.qos, MQTT_DEFAULT_MAXIMUM_QOS);
 
-        bool allowed = handler->is_coroutine()
-                         ? co_await handler->async_on_can_subscribe(e.topic, granted_qos)
-                         : handler->on_can_subscribe(e.topic, granted_qos);
+        bool allowed = handler->is_coroutine() ? co_await co_async_hook_bool("mqtt async_on_can_subscribe", handler->async_on_can_subscribe(e.topic, granted_qos), sess->transport()) : co_await co_sync_hook_bool("mqtt on_can_subscribe", std::function<bool()>([h = handler, t = e.topic, q = granted_qos]
+                                                                                                                                                                                                                                                                  { return h->on_can_subscribe(t, q); }),
+                                                                                                                                                                                                                   sess->transport());
         if (!allowed)
         {
             codes.push_back(mqtt_reason::not_authorized);
@@ -4180,8 +4846,15 @@ asio::awaitable<void> httpserver::handle_mqtt_subscribe(std::shared_ptr<http::mq
         }
 
         auto sub_ret = mqtt_broker::instance().subscribe(
-            info.reg_key, info.group, info.device, e.topic, granted_qos,
-            e.options.no_local, e.options.retain_as_published, e.options.retain_handling, sess);
+            info.reg_key,
+            info.group,
+            info.device,
+            e.topic,
+            granted_qos,
+            e.options.no_local,
+            e.options.retain_as_published,
+            e.options.retain_handling,
+            sess);
 
         if (sub_ret == mqtt_subscribe_result::rejected_filter)
         {
@@ -4201,7 +4874,11 @@ asio::awaitable<void> httpserver::handle_mqtt_subscribe(std::shared_ptr<http::mq
         }
         else
         {
-            handler->on_subscribe(e.topic, granted_qos);
+            co_await co_sync_hook_void(
+                "mqtt on_subscribe",
+                std::function<void()>([h = handler, t = e.topic, q = granted_qos]
+                                      { h->on_subscribe(t, q); }),
+                sess->transport());
         }
 
         switch (granted_qos)
@@ -4227,9 +4904,9 @@ asio::awaitable<void> httpserver::handle_mqtt_subscribe(std::shared_ptr<http::mq
                 //（to_publish_props 此前一直是死代码，见 P1-4）。
                 // 返回 false = 该条滞留期间已过 Message Expiry → 不再投递。
                 mqtt_publish_props rprops;
-                if (!rm.to_publish_props(rprops, now_sec)) continue;
-                sess->deliver(rm.topic, rm.payload,
-                              std::min<uint8_t>(rm.qos, granted_qos), true, rprops);
+                if (!rm.to_publish_props(rprops, now_sec))
+                    continue;
+                sess->deliver(rm.topic, rm.payload, std::min<uint8_t>(rm.qos, granted_qos), true, rprops);
             }
         }
     }
@@ -4265,9 +4942,9 @@ asio::awaitable<void> httpserver::handle_mqtt_publish(std::shared_ptr<http::mqtt
         co_return;
     }
 
-    bool allowed = handler->is_coroutine()
-                     ? co_await handler->async_on_can_publish(pub.topic, *pub.payload, pub.qos)
-                     : handler->on_can_publish(pub.topic, *pub.payload, pub.qos);
+    bool allowed = handler->is_coroutine() ? co_await co_async_hook_bool("mqtt async_on_can_publish", handler->async_on_can_publish(pub.topic, *pub.payload, pub.qos), sess->transport()) : co_await co_sync_hook_bool("mqtt on_can_publish", std::function<bool()>([h = handler, t = pub.topic, p = std::string(*pub.payload), q = pub.qos]
+                                                                                                                                                                                                                                                                    { return h->on_can_publish(t, p, q); }),
+                                                                                                                                                                                                                       sess->transport());
     if (!allowed)
     {
         // QoS 握手照常回完，只是不转发也不写 retained：不回 ACK 只会让客户端一直重发
@@ -4284,7 +4961,15 @@ asio::awaitable<void> httpserver::handle_mqtt_publish(std::shared_ptr<http::mqtt
     }
     else
     {
-        handler->on_message(pub.topic, *pub.payload, pub.qos);
+        // await：转发与 ACK 排在这一步之后，投完就走会让 echo 落后于原消息
+        co_await co_sync_hook_void(
+            "mqtt on_message",
+            std::function<void()>([h = handler,
+                                   t = pub.topic,
+                                   p = std::string(*pub.payload),
+                                   q = pub.qos]
+                                  { h->on_message(t, p, q); }),
+            sess->transport());
     }
 
     if (pub.qos == 0)
@@ -4298,7 +4983,7 @@ asio::awaitable<void> httpserver::handle_mqtt_publish(std::shared_ptr<http::mqtt
         bool applied = mqtt_api::publish_to_broker(pub, sess);
         sess->write(make_puback(pub.packet_id, applied ? mqtt_reason::success : mqtt_reason::quota_exceeded));
     }
-    else // QoS 2 等 PUBREL 后转发（含 retained 落库）
+    else// QoS 2 等 PUBREL 后转发（含 retained 落库）
     {
         if (!sess->store_inbound_qos2(pub.packet_id, pub))
         {
@@ -4312,7 +4997,6 @@ asio::awaitable<void> httpserver::handle_mqtt_publish(std::shared_ptr<http::mqtt
     // 就提前落库 + 双重写入」。
     co_return;
 }
-
 
 asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> peer_session, bool isssl)
 {
@@ -4363,7 +5047,7 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                     std::string request_content;
                     request_content.resize(client_type_num);
 
-                    for (unsigned int i = 0; i < client_type_num; i++)
+                    for (size_t i = 0; i < client_type_num; i++)
                     {
                         request_content[i] = peer_session->_cache_data[i];
                     }
@@ -4380,7 +5064,7 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
             else if (client_type_num == 2)
             {
                 // 明文 H2C 直连（PRI * HTTP/2.0 前言）或 TLS ALPN 协商出的 h2。
-    // H2C cleartext (PRI * HTTP/2.0 preface) or h2 via TLS ALPN.
+                // H2C cleartext (PRI * HTTP/2.0 preface) or h2 via TLS ALPN.
                 // 与 h2c 共用同一入口，前言校验与补读都在里面完成
                 DEBUG_LOG("peer_session co_send_setting");
                 co_await client_h2_enter(peer_session, readnum, std::string_view{});
@@ -4475,7 +5159,7 @@ unsigned long long httpserver::http2_reserve_send_window(client_session *session
         }
         // 失败可能是另一线程发走了额度，或退还了额度；granted 也可能刚被
         // Failure: other thread consumed or returned quota; granted may also just have been
-        // WINDOW_UPDATE 抬升。两个读数都要重取。
+        // WINDOW_UPDATE 抬升。两个值都要重取。
         // raised by WINDOW_UPDATE. Re-read both values.
         granted = session_obj->window_update_num.load();
     }
@@ -4509,7 +5193,7 @@ unsigned long long httpserver::http2_reserve_send_window(client_session *session
         // 流级见底：连接级那笔（整笔或差额）必须退回，否则窗口单向流失。
         // Stream-level depleted: must return the connection-level chunk (full or partial),
         // otherwise window drains one-way.
-        session_obj->has_send_update_num -= (conn_take - got);
+        session_obj->has_send_update_num.fetch_sub(conn_take - got, std::memory_order_acq_rel);
     }
     return got;
 }
@@ -4520,7 +5204,7 @@ void httpserver::http2_refund_send_window(client_session *session_obj, unsigned 
     {
         return;
     }
-    session_obj->has_send_update_num -= back;
+    session_obj->has_send_update_num.fetch_sub(back, std::memory_order_acq_rel);
 
     {
         std::lock_guard<std::mutex> lk(session_obj->stream_send_window_mutex);
@@ -4589,7 +5273,7 @@ static bool http2_send_gate_open(const std::shared_ptr<http2_send_data_t> &sp, u
     {
         return true;
     }
-    httppeer *peer = sp->peer.get();
+    httppeer *peer              = sp->peer.get();
     client_session *session_obj = peer->socket_session.get();
     if (peer->isclose || peer->issend || session_obj->isclose)
     {
@@ -4599,7 +5283,8 @@ static bool http2_send_gate_open(const std::shared_ptr<http2_send_data_t> &sp, u
     }
     if (session_obj->window_update_num.load() <= session_obj->has_send_update_num.load())
     {
-        if (why) *why = 1;
+        if (why)
+            *why = 1;
         return false;
     }
     {
@@ -4613,13 +5298,15 @@ static bool http2_send_gate_open(const std::shared_ptr<http2_send_data_t> &sp, u
             // SETTINGS_INITIAL_WINDOW_SIZE. Read-only here; unknown streams must not be inserted by belt.
             if (session_obj->remote_initial_window_size.load() == 0)
             {
-                if (why) *why = 1;
+                if (why)
+                    *why = 1;
                 return false;
             }
         }
         else if (it->second == 0)
         {
-            if (why) *why = 1;
+            if (why)
+                *why = 1;
             return false;
         }
     }
@@ -4633,7 +5320,8 @@ static bool http2_send_gate_open(const std::shared_ptr<http2_send_data_t> &sp, u
         // 只在序列里计数的话，环积压记不到，看起来像从没让过路。
         // Counting only in sequence misses ring backlog entirely — runtime looks like it never yields.
         session_obj->http2_ring_backpressure_count++;
-        if (why) *why = 2;
+        if (why)
+            *why = 2;
         return false;
     }
     return true;
@@ -4714,7 +5402,7 @@ unsigned int httpserver::dispatch_parked(std::list<std::shared_ptr<http2_send_da
     {
         return 0;
     }
-    unsigned int requeued = (unsigned int)ready.size();
+    unsigned int requeued = static_cast<unsigned int>(ready.size());
     {
         std::unique_lock<std::mutex> lock(send_data_mutex);
         for (auto &sp : ready)
@@ -4723,7 +5411,13 @@ unsigned int httpserver::dispatch_parked(std::list<std::shared_ptr<http2_send_da
         }
         sent_data_list.splice(sent_data_list.end(), ready);
     }
-    send_data_condition.notify_one();
+    // 唤醒全部：requeue_parked / requeue_stuck_parked 可能一次回灌数十条 ready 对象，
+    // 若两条发送线程此刻都在 wait_for 里（全部 parked 时常见），notify_one 只醒 1 条，
+    // 另一条要等 CONST_HTTP2_BELT_SWEEP_SECONDS(6s) 超时自然醒，形成毛刺。
+    // Wake all: requeue_parked / requeue_stuck_parked may inject tens of ready objects at once;
+    // if both send threads are in wait_for (common when everything is parked), notify_one wakes only
+    // one — the other waits up to CONST_HTTP2_BELT_SWEEP_SECONDS(6s) timeout, a visible stall.
+    send_data_condition.notify_all();
     return requeued;
 }
 
@@ -4762,16 +5456,14 @@ void httpserver::requeue_stuck_parked()
     // 这条 CAS 管"谁代表这一拍"，下面那把忙标志管"上一拍结束了没有"。
     // This CAS picks "who represents this beat"; the busy flag below tracks "previous beat finished".
     const unsigned long long this_second = (unsigned long long)timeid();
-    unsigned long long        prev_second = send_queue_obj.belt_sweep_second.load(std::memory_order_acquire);
+    unsigned long long prev_second       = send_queue_obj.belt_sweep_second.load(std::memory_order_acquire);
     do
     {
         if (this_second < prev_second + CONST_HTTP2_BELT_SWEEP_SECONDS)
         {
             return;
         }
-    } while (!send_queue_obj.belt_sweep_second.compare_exchange_weak(prev_second, this_second,
-                                                                     std::memory_order_acq_rel,
-                                                                     std::memory_order_acquire));
+    } while (!send_queue_obj.belt_sweep_second.compare_exchange_weak(prev_second, this_second, std::memory_order_acq_rel, std::memory_order_acquire));
     // 拍与拍之间还要一把"只试不等"的互斥：上一拍还在跑（摘全表 + 逐条重算闸门，表长
     // Try-lock mutex between beats: previous beat still running (full-table drain + per-entry
     // gate recompute — table long or ASan-slowed can stretch past one beat),
@@ -4780,9 +5472,7 @@ void httpserver::requeue_stuck_parked()
     // 兜底本来就允许某一拍被漏掉——事件边才是正常路径。
     // belt sweep is allowed to miss beats; event edges are the normal path.
     unsigned char expect_idle = 0;
-    if (!send_queue_obj.belt_sweep_busy.compare_exchange_strong(expect_idle, 1,
-                                                                std::memory_order_acq_rel,
-                                                                std::memory_order_acquire))
+    if (!send_queue_obj.belt_sweep_busy.compare_exchange_strong(expect_idle, 1, std::memory_order_acq_rel, std::memory_order_acquire))
     {
         return;
     }
@@ -4796,7 +5486,7 @@ void httpserver::requeue_stuck_parked()
     // 排查泄漏只能读这一行——两头都为 0 时本函数本来什么都不写，沉默不能被读成排干。
     // Leak diagnosis reads this line only — when both are 0 we'd write nothing anyway;
     // silence must not be mistaken for "drained".
-    static unsigned int last_parked     = 0;
+    static unsigned int last_parked      = 0;
     static unsigned int last_outstanding = 0;
     static unsigned int stuck_sweeps     = 0;
     if ((last_parked + last_outstanding > 0) && (now_parked + now_outstanding == 0))
@@ -4816,7 +5506,7 @@ void httpserver::requeue_stuck_parked()
         error_loglist.emplace_back(log_item);
         lock.unlock();
     }
-    last_parked     = now_parked;
+    last_parked      = now_parked;
     last_outstanding = now_outstanding;
 
     if (now_parked == 0)
@@ -5230,7 +5920,7 @@ bool httpserver::http2_loop_send_sequence(std::shared_ptr<http2_send_data_t> sq_
     // Yield/rollback paths don't refresh it — slow client keeps receiving = keeps refreshing,
     // no false RST.
     sq_obj->last_progress_time = std::chrono::steady_clock::now();
-    sq_obj->standby_next = true;
+    sq_obj->standby_next       = true;
     return true;
 }
 
@@ -5262,9 +5952,9 @@ void httpserver::http2_send_queue_loop([[maybe_unused]] unsigned char index_id)
             // 恰恰只有这一趟扫描会去做。
             // and no-progress RST for parked objects.
             bool have_work = send_data_condition.wait_for(lk,
-                                                         std::chrono::seconds(CONST_HTTP2_BELT_SWEEP_SECONDS),
-                                                         [this]
-                                                         { return this->isstop || this->sent_data_list.size() > 0; });
+                                                          std::chrono::seconds(CONST_HTTP2_BELT_SWEEP_SECONDS),
+                                                          [this]
+                                                          { return this->isstop || this->sent_data_list.size() > 0; });
             if (isstop)
             {
                 break;
@@ -5284,7 +5974,7 @@ void httpserver::http2_send_queue_loop([[maybe_unused]] unsigned char index_id)
             lk.lock();
             // have_work 到这里已不可信：解锁去跑兜底那段里，另一发送线程可能把活摘走，
             // have_work is stale by now: while unlocked running belt, the other send thread may have
-            // 兜底自己也可能刚回灌出新活儿 ⇒ 必须重判，不能照着超时前的读数取 front()。
+            // 兜底自己也可能刚回灌出新活儿 ⇒ 必须重判，不能照着超时前看到的值取 front()。
             // drained work, or belt may have just refilled some — re-check, don't trust pre-timeout value.
             if (sent_data_list.size() == 0)
             {
@@ -5325,7 +6015,7 @@ void httpserver::http2_send_queue_loop([[maybe_unused]] unsigned char index_id)
                 // 也递一次到（未到期的开销仍然只有一次原子读 + 一次失败的 CAS）。此刻
                 // send_data_mutex 是空的：上面那次 %4 摘活的锁已经出了作用域。
                 requeue_stuck_parked();
-                int loop_per_num = thread_sent_data_list.size();
+                int loop_per_num                                                  = thread_sent_data_list.size();
                 const std::chrono::time_point<std::chrono::steady_clock> sq_start = std::chrono::steady_clock::now();
 
                 for (auto iter = thread_sent_data_list.begin(); iter != thread_sent_data_list.end();)
@@ -5357,18 +6047,23 @@ void httpserver::http2_send_queue_loop([[maybe_unused]] unsigned char index_id)
 
                     if (sp->peer->isclose || sp->peer->issend || sp->peer->socket_session->isclose)
                     {
-                        DEBUG_LOG("-- get_http2_send_queue -- %d", sp->peer->socket_session->http2_ring_queue
-                                                                         ? (int)sp->peer->socket_session->http2_ring_queue->has_size()
-                                                                         : -1);
-                        if (sp->peer->socket_session->http2_ring_queue->has_size() > 0)
-                        {
-                            if (!sp->peer->socket_session->isclose)
-                            {
-                                sp->peer->socket_session->waituphttp2();
-                                iter++;
-                                continue;
-                            }
-                        }
+                        DEBUG_LOG("-- get_http2_send_queue -- %d", sp->peer->socket_session->http2_ring_queue ? (int)sp->peer->socket_session->http2_ring_queue->has_size() : -1);
+
+                        // 这里不等「整条连接的发送环排空」就把对象回池，靠三条不变量：
+                        // 1. issend=true 只在最后一帧成功 push 进环之后才置位，push 失败的分支一律让路下一轮。
+                        // 2. 环里存的是帧的字节拷贝，ring_client_server 独立消费它们，跟对象在不在链表上无关。
+                        // 3. 要防的是「END_STREAM 没入环就回池」，第 1 条已经管住；换成等全连接 has_size()
+                        //    反而误事：别的流持续喂环时它永远大于 0，已发完的对象一直挂着，
+                        //    fp 要等到连接被 httpwatch 杀掉才关。
+                        // We recycle the object here without waiting for the whole connection ring to drain,
+                        // on three invariants: 1. issend=true is set only after the last frame pushed into the
+                        // ring successfully — every push-failure branch yields to the next round. 2. The ring
+                        // holds byte copies of the frames, consumed by ring_client_server regardless of whether
+                        // this object is still on a list. 3. What must be prevented is "END_STREAM recycled
+                        // before it entered the ring", which 1 already covers; waiting on the connection's
+                        // has_size() instead backfires — other streams keep it above 0, finished objects
+                        // linger, and fp only closes once httpwatch kills the connection.
+
                         // 流响应已发完（issend）或连接/流已关闭，释放该流的
                         // stream response fully sent (issend) or connection/stream closed — free this stream's
                         // 发送窗口记账，避免 map 随请求数无限增长。
@@ -5409,7 +6104,7 @@ void httpserver::http2_send_queue_loop([[maybe_unused]] unsigned char index_id)
 
                     if (sp->standby_next)
                     {
-                        bool         seq_keep  = true;
+                        bool seq_keep           = true;
                         unsigned char seq_block = 0;
                         // 首帧之外，本轮还允许再喂 CONST_HTTP2_SEND_FEED_MAX 帧。每次补喂之前
                         // 重取发送环积压，到 CONST_HTTP2_RING_FEED_SLOTS 就停：环「喂得动」就继续，
@@ -5420,7 +6115,7 @@ void httpserver::http2_send_queue_loop([[maybe_unused]] unsigned char index_id)
                             if (feed_once != 0)
                             {
                                 get_http2_send_queue().extra_feed_total.fetch_add(1,
-                                                                                   std::memory_order_relaxed);
+                                                                                  std::memory_order_relaxed);
                             }
                             sp->standby_next = false;
                             sp->block_reason = 0;
@@ -5438,9 +6133,7 @@ void httpserver::http2_send_queue_loop([[maybe_unused]] unsigned char index_id)
                                 break;
                             }
                             const unsigned char ring_backlog =
-                                sp->peer->socket_session->http2_ring_queue
-                                    ? sp->peer->socket_session->http2_ring_queue->has_size()
-                                    : 0;
+                                sp->peer->socket_session->http2_ring_queue ? sp->peer->socket_session->http2_ring_queue->has_size() : 0;
                             if (ring_backlog >= CONST_HTTP2_RING_FEED_SLOTS)
                             {
                                 break;
@@ -5610,9 +6303,9 @@ void httpserver::websocket_loop(int fps)
             // 业务回调可能重入 mqtt_task_mutex 自死锁（与 websockettasks 同款处理）。
             struct mqtt_tick_item
             {
-                std::shared_ptr<mqtt_api>       peer;
+                std::shared_ptr<mqtt_api> peer;
                 std::shared_ptr<client_session> trans;
-                bool                            need_tick = false;
+                bool need_tick = false;
             };
             std::vector<mqtt_tick_item> mqtt_ticks;
             {
@@ -5631,7 +6324,7 @@ void httpserver::websocket_loop(int fps)
                         iter = mqtttasks.erase(iter);
                         continue;
                     }
-                    // loop_num==0：本轮做最后一次兜底唤醒后剔除（原语义：waitup 先于 erase）
+                    // loop_num==0：本轮做最后一次兜底唤醒后剔除（沿用原实现的顺序：waitup 先于 erase）
                     bool dying     = (peer->loop_num == 0);
                     bool need_tick = (!dying) && (peer->durtime > 0) && (fps % peer->durtime == 0);
                     mqtt_ticks.push_back(mqtt_tick_item{peer, trans, need_tick});
@@ -5673,30 +6366,385 @@ void httpserver::websocket_loop(int fps)
                 }
             }
 
-            if (!this->clientlooptasks.empty())
+#ifdef ENABLE_REDIS_CLIENT
+
+            // ===== Redis pubsub tick 扫描 =====
+            struct redis_tick_item
             {
+                std::shared_ptr<pz::redis::redis_subpub_client> peer;
+                bool need_tick = false;
+            };
+            std::vector<redis_tick_item> redis_ticks;
+            std::vector<std::shared_ptr<pz::redis::redis_subpub_client>> redis_retire;
+            {
+                std::lock_guard<std::mutex> lk(redis_subpub_task_mutex);
+                for (auto iter = redis_subpub_tasks.begin(); iter != redis_subpub_tasks.end();)
+                {
+                    auto peer = iter->lock();
+                    if (!peer || peer->isclose || peer->loop_num == 0)
+                    {
+                        // 业务可以直接写 isclose（那面旗就是这么设计的），写了就得收摊：
+                        // 只摘登记条目的话 pump 继续读、继续给一个已宣告收摊的客户端派消息。
+                        // loop_num==0 是 tick 预算用完，订阅按语义留着，那一支不收摊。
+                        if (peer && peer->isclose)
+                            redis_retire.push_back(peer);
+                        iter = redis_subpub_tasks.erase(iter);
+                        continue;
+                    }
+                    bool need_tick = (peer->durtime > 0) && (fps % peer->durtime == 0);
+                    redis_ticks.push_back(redis_tick_item{peer, need_tick});
+                    ++iter;
+                }
+            }
+            // 锁外收摊：stop() 要拿订阅句柄的锁并投递停止动作，别握着登记表的锁跑别人的代码
+            for (auto &peer : redis_retire)
+            {
+                peer->stop();
+            }
+            for (auto &item : redis_ticks)
+            {
+                if (!item.need_tick)
+                {
+                    continue;
+                }
+                auto peer = item.peer;
+                try
+                {
+                    // redis 这一路只有 is_coroutine_ 一个旗。
+                    if (peer->is_coroutine_)
+                    {
+                        asio::co_spawn(this->io_context, [peer]() -> asio::awaitable<void>
+                                       {
+                                try
+                                {
+                                    co_await peer->async_run_loop();
+                                }
+                                catch (...)
+                                {
+                                    resident_hook_failed("redis_subpub.async_run_loop",
+                                                         std::current_exception(), false);
+                                }
+                                co_return; },
+                                       asio::detached);
+                    }
+                    else if (!post_conn_step("redis_subpub.run_loop", [peer]
+                                             {
+                                 try
+                                 {
+                                     peer->run_loop();
+                                 }
+                                 catch (...)
+                                 {
+                                     resident_hook_failed("redis_subpub.run_loop",
+                                                          std::current_exception(), false);
+                                 } }))
+                    {
+                        // 池没接单：这一拍的心跳整条丢掉，丢弃已经在计数里记了，这里只补一条日志说明原因
+                        resident_hook_failed("redis_subpub.run_loop", nullptr, true);
+                    }
+                }
+                catch (...)
+                {
+                    resident_hook_failed("redis_subpub.run_loop spawn", std::current_exception(), false);
+                }
+            }
+#endif
+
+#ifdef ENABLE_WEBSOCKETS_CLIENT
+            // ===== WebSocket 长连接 tick 扫描（完全镜像 Redis pubsub 段）=====
+            struct ws_tick_item
+            {
+                std::shared_ptr<http::ws_subpub_client> peer;
+                bool need_tick = false;
+            };
+            std::vector<ws_tick_item> ws_ticks;
+            std::vector<std::shared_ptr<http::ws_subpub_client>> ws_retire;
+            {
+                std::lock_guard<std::mutex> lk(ws_subpub_task_mutex);
+                for (auto iter = ws_subpub_tasks.begin(); iter != ws_subpub_tasks.end();)
+                {
+                    auto peer = iter->lock();
+                    if (!peer || peer->isclose || peer->loop_num == 0)
+                    {
+                        // 业务置了 isclose 就得真的收摊：只把条目从登记表摘掉，常驻 pump 还
+                        // parked 在途读上，fd 和协程帧一起留下。loop_num==0 只是这一路 tick
+                        // 的预算用完，连接按语义还要留着，所以那一支不收摊。
+                        if (peer && peer->isclose)
+                            ws_retire.push_back(peer);
+                        iter = ws_subpub_tasks.erase(iter);
+                        continue;
+                    }
+                    bool need_tick = (peer->durtime > 0) && (fps % peer->durtime == 0);
+                    ws_ticks.push_back(ws_tick_item{peer, need_tick});
+                    ++iter;
+                }
+            }
+            // 锁外收摊：stop() 要拿连接自己的锁并动这条 socket，别握着登记表的锁跑别人的代码
+            for (auto &peer : ws_retire)
+            {
+                peer->stop();
+            }
+            for (auto &item : ws_ticks)
+            {
+                if (!item.need_tick)
+                {
+                    continue;
+                }
+                auto peer = item.peer;
+                try
+                {
+                    if (peer->is_loop_co_)
+                    {
+                        asio::co_spawn(this->io_context, [peer]() -> asio::awaitable<void>
+                                       {
+                                try
+                                {
+                                    co_await peer->async_run_loop();
+                                }
+                                catch (...)
+                                {
+                                    resident_hook_failed("ws_subpub.async_run_loop",
+                                                         std::current_exception(), false);
+                                }
+                                co_return; },
+                                       asio::detached);
+                    }
+                    else if (!post_conn_step("ws_subpub.run_loop", [peer]
+                                             {
+                                 try
+                                 {
+                                     peer->run_loop();
+                                 }
+                                 catch (...)
+                                 {
+                                     resident_hook_failed("ws_subpub.run_loop",
+                                                          std::current_exception(), false);
+                                 } }))
+                    {
+                        resident_hook_failed("ws_subpub.run_loop", nullptr, true);
+                    }
+                }
+                catch (...)
+                {
+                    resident_hook_failed("ws_subpub.run_loop spawn", std::current_exception(), false);
+                }
+            }
+#endif
+
+#ifdef ENABLE_SOCKETS_CLIENT
+            // ===== Socket 长连接 tick 扫描 =====
+            struct sock_tick_item
+            {
+                std::shared_ptr<http::sock_subpub_client> peer;
+                bool need_tick = false;
+            };
+            std::vector<sock_tick_item> sock_ticks;
+            std::vector<std::shared_ptr<http::sock_subpub_client>> sock_retire;
+            {
+                std::lock_guard<std::mutex> lk(this->sockets_clients_mutex);
+                for (auto iter = this->sockets_clients.begin(); iter != this->sockets_clients.end();)
+                {
+                    auto peer = iter->lock();
+                    if (!peer || peer->isclose || peer->loop_num == 0)
+                    {
+                        // 同 ws 侧：isclose 只摘登记条目收不了摊，pump 还 parked 在途读上；
+                        // loop_num==0 只是 tick 预算用完，连接按语义留着，那一支不收摊。
+                        if (peer && peer->isclose)
+                            sock_retire.push_back(peer);
+                        iter = this->sockets_clients.erase(iter);
+                        continue;
+                    }
+                    bool need_tick = (peer->durtime > 0) && (fps % peer->durtime == 0);
+                    sock_ticks.push_back(sock_tick_item{peer, need_tick});
+                    ++iter;
+                }
+            }
+            // 锁外收摊：stop() 要拿连接自己的锁并动这条 socket，别握着登记表的锁跑别人的代码
+            for (auto &peer : sock_retire)
+            {
+                peer->stop();
+            }
+            for (auto &item : sock_ticks)
+            {
+                if (!item.need_tick)
+                {
+                    continue;
+                }
+                auto peer = item.peer;
+                try
+                {
+                    if (peer->is_loop_co_)
+                    {
+                        asio::co_spawn(this->io_context, [peer]() -> asio::awaitable<void>
+                                       {
+                                try
+                                {
+                                    co_await peer->async_run_loop();
+                                }
+                                catch (...)
+                                {
+                                    resident_hook_failed("sock_subpub.async_run_loop",
+                                                         std::current_exception(), false);
+                                }
+                                co_return; },
+                                       asio::detached);
+                    }
+                    else if (!post_conn_step("sock_subpub.run_loop", [peer]
+                                             {
+                                 try
+                                 {
+                                     peer->run_loop();
+                                 }
+                                 catch (...)
+                                 {
+                                     resident_hook_failed("sock_subpub.run_loop",
+                                                          std::current_exception(), false);
+                                 } }))
+                    {
+                        resident_hook_failed("sock_subpub.run_loop", nullptr, true);
+                    }
+                }
+                catch (...)
+                {
+                    resident_hook_failed("sock_subpub.run_loop spawn", std::current_exception(), false);
+                }
+            }
+#endif
+
+#ifdef ENABLE_MQTT_CLIENT
+            // ===== MQTT 长连接 tick 扫描（出站 broker 客户端） =====
+            struct mqtt_client_tick_item
+            {
+                std::shared_ptr<http::mqtt_subpub_client> peer;
+                bool need_tick = false;
+            };
+            std::vector<mqtt_client_tick_item> mqtt_client_ticks;
+            std::vector<std::shared_ptr<http::mqtt_subpub_client>> mqtt_client_retire;
+            {
+                std::lock_guard<std::mutex> lk(this->mqtt_clients_mutex);
+                for (auto iter = this->mqtt_clients.begin(); iter != this->mqtt_clients.end();)
+                {
+                    auto peer = iter->lock();
+                    if (!peer || peer->isclose || peer->loop_num == 0)
+                    {
+                        // 同 ws/sock：isclose 只摘登记条目收不了摊；loop_num==0 是 tick 预算
+                        // 用完，连接按语义留着，那一支不收摊。
+                        if (peer && peer->isclose)
+                            mqtt_client_retire.push_back(peer);
+                        iter = this->mqtt_clients.erase(iter);
+                        continue;
+                    }
+                    bool need_tick = (peer->durtime > 0) && (fps % peer->durtime == 0);
+                    mqtt_client_ticks.push_back(mqtt_client_tick_item{peer, need_tick});
+                    ++iter;
+                }
+            }
+            // 锁外收摊：stop() 要拿连接自己的锁，别握着登记表的锁跑别人的代码
+            for (auto &peer : mqtt_client_retire)
+            {
+                peer->stop();
+            }
+            for (auto &item : mqtt_client_ticks)
+            {
+                if (!item.need_tick)
+                {
+                    continue;
+                }
+                auto peer = item.peer;
+                try
+                {
+                    if (peer->is_loop_co_)
+                    {
+                        asio::co_spawn(this->io_context, [peer]() -> asio::awaitable<void>
+                                       {
+                                try
+                                {
+                                    co_await peer->async_run_loop();
+                                }
+                                catch (...)
+                                {
+                                    resident_hook_failed("mqtt_subpub.async_run_loop",
+                                                         std::current_exception(), false);
+                                }
+                                co_return; },
+                                       asio::detached);
+                    }
+                    else if (!post_conn_step("mqtt_subpub.run_loop", [peer]
+                                             {
+                                 try
+                                 {
+                                     peer->run_loop();
+                                 }
+                                 catch (...)
+                                 {
+                                     resident_hook_failed("mqtt_subpub.run_loop",
+                                                          std::current_exception(), false);
+                                 } }))
+                    {
+                        resident_hook_failed("mqtt_subpub.run_loop", nullptr, true);
+                    }
+                }
+                catch (...)
+                {
+                    resident_hook_failed("mqtt_subpub.run_loop spawn", std::current_exception(), false);
+                }
+            }
+#endif
+
+            // 锁内摘快照（连同该擦除的节点一起擦掉），锁外再投递给业务线程池。
+            // addclient() 自己握着 clientrunpool 的 queue_mutex，攥着 clientlooptasks_mutex
+            // 去拿它，等于给这两把锁定了先后顺序；而 frametasks_timeloop 那条登记口拿的是
+            // 后一把，哪天有路径反过来先拿 queue_mutex，就是互相等死。
+            // 和 sockettasks / websockettasks 同一把锁同一形状：锁里只碰表，不跑别人的代码。
+            std::vector<std::shared_ptr<httppeer>> clientloop_drops;
+            {
+                std::lock_guard<std::mutex> clientlooptasks_lk(this->clientlooptasks_mutex);
+                this->clientloop_ticks += 1;
                 for (auto iter = clientlooptasks.begin(); iter != clientlooptasks.end();)
                 {
-                    try
+                    auto &task = iter->second;
+                    if (task->timeloop_num > 0 && (fps % task->timeloop_num) == 0)
                     {
-                        if (iter->second->timeloop_num > 0 && (fps % iter->second->timeloop_num) == 0)
+                        // 单飞门：这条 peer 的上一拍还在池线程里跑就不投了，本次整条跳过（不积压），
+                        // 下一拍再抢。比自己的间隔还慢的间隔任务因此始终只有一个执行者。
+                        bool not_running = false;
+                        if (task->timeloop_inflight.compare_exchange_strong(not_running, true))
                         {
-                            clientrunpool.addclient(iter->second);
-                        }
-
-                        if (iter->second->timecount_num == 0 || iter->second->timeloop_num == 0)
-                        {
-                            clientlooptasks.erase(iter++);
+                            clientloop_drops.push_back(task);
                         }
                         else
                         {
-                            ++iter;
+                            this->clientloop_skipped += 1;
                         }
                     }
-                    catch (...)
+
+                    if (task->timecount_num == 0 || task->timeloop_num == 0)
                     {
-                        clientlooptasks.clear();
+                        iter = clientlooptasks.erase(iter);
                     }
+                    else
+                    {
+                        ++iter;
+                    }
+                }
+            }
+            for (auto &task : clientloop_drops)
+            {
+                try
+                {
+                    // 旗是这里抢的；池线程只要把这一条任务从 clienttasks 里弹出来就会放它
+                    // （threadpool.cpp 取货循环的 flag_guard），没进队列就没人弹，所以入队失败要就地收回这一条。
+                    if (!clientrunpool.addclient(task))
+                    {
+                        task->timeloop_inflight.store(false);
+                        resident_hook_failed("clientlooptasks.addclient", nullptr, true);
+                    }
+                }
+                catch (...)
+                {
+                    // 一条投递失败不影响同拍的其他间隔任务；这一拍这一条整条丢掉，必须留下日志
+                    task->timeloop_inflight.store(false);
+                    resident_hook_failed("clientlooptasks.addclient", std::current_exception(), false);
                 }
             }
 
@@ -5704,9 +6752,9 @@ void httpserver::websocket_loop(int fps)
             // sockettasks，持锁调用会重入 socket_task_mutex 自死锁（同 websockettasks）。
             struct socket_tick_item
             {
-                std::shared_ptr<socket_api>       peer;
-                std::shared_ptr<client_session>   sess;
-                bool                              need_tick = false;
+                std::shared_ptr<socket_api> peer;
+                std::shared_ptr<client_session> sess;
+                bool need_tick = false;
             };
             std::vector<socket_tick_item> socket_ticks;
             {
@@ -5765,7 +6813,7 @@ void httpserver::websocket_loop(int fps)
             //         error_loglist.emplace_back(log_item);
             //         lock.unlock();
 
-            //         for (unsigned int i = 0; i < 100; i++)
+            //         for (size_t i = 0; i < 100; i++)
             //         {
             //             std::unique_lock lk(wait_clear_mutex);
             //             if (socket_session_wait_clear.size() > 0)
@@ -5902,6 +6950,676 @@ httpserver::sslhandshake(std::shared_ptr<client_session> peer_session)
     }
     co_return;
 }
+
+#ifdef ENABLE_REDIS_CLIENT
+asio::awaitable<void> httpserver::async_redis_subpub_loop(
+    std::shared_ptr<pz::redis::redis_subpub_client> client)
+{
+    auto &io_ctx = this->io_context;
+    // 指数退避重连：3s → 6s → 9s → 12s（封顶），连接成功后重置 3s
+    int retry_sec = 3;
+    auto backoff  = [&retry_sec]() -> std::chrono::seconds
+    {
+        auto v = std::chrono::seconds(retry_sec);
+        if (retry_sec < 12)
+            retry_sec += 3;// 下次 +3s，封顶 12s
+        return v;
+    };
+    while (!client->isclose)
+    {
+        auto sub = std::make_shared<pz::redis::redis_subscriber>(io_ctx);
+        client->set_active_sub(sub);
+        client->sub_state_.store(pz::redis::subscriber_state::connecting);
+
+        auto sec = pz::redis::get_redis_pool().section(client->section_name());
+        if (!sec)
+        {
+            auto wait = backoff();
+            fprintf(stderr, "[redis_subpub] %s: no section → wait %lld\n", client->section_name().c_str(), (long long)wait.count());
+            asio::steady_timer t(io_ctx, wait);
+            co_await t.async_wait(asio::use_awaitable);
+            continue;
+        }
+        auto cfg       = sec->take_config();
+        client->io_ctx = &io_ctx;// 让业务回调里能 co_spawn
+        if (!co_await sub->async_start(cfg))
+        {
+            // 断连回调丢业务池（同步版），异步版在本协程 co_await
+            if (client->is_coroutine_)
+                co_await co_resident_hook_void("redis_subpub.async_on_disconnect", client->async_on_disconnect());
+            else
+                co_await co_sync_hook_void("redis_subpub.on_disconnect(start fail)", [client]
+                                           { client->on_disconnect(); },
+                                           nullptr);
+            auto wait = backoff();
+            fprintf(stderr, "[redis_subpub] %s: async_start fail → wait %lld\n", client->section_name().c_str(), (long long)wait.count());
+            asio::steady_timer t(io_ctx, wait);
+            co_await t.async_wait(asio::use_awaitable);
+            continue;
+        }
+
+        // pump 消息回调：pump 在 io_context worker 上触发
+        //   同步版 → post_conn_step 丢业务线程池（投了就走）
+        //   异步版 → co_spawn 到 io_context，业务协程里 co_await async_on_message
+        // subscribe/psubscribe 在 sub 的 strand 上执行。
+        for (auto &ch : client->channels())
+        {
+            if (client->isclose)
+                break;
+            co_await asio::co_spawn(sub->strand(), [&]() -> asio::awaitable<bool>
+                                    { co_return co_await sub->async_subscribe(
+                                          {ch},
+                                          [client, &io_ctx](const std::string &c, const std::string &p)
+                                          {
+                                              // 收摊后 pump 可能还在读这一轮：宣告收摊就不该再叫业务钩子
+                                              if (client->isclose)
+                                                  return;
+                                              if (client->is_coroutine_)
+                                              {
+                                                  asio::co_spawn(io_ctx, [client, c, p]() -> asio::awaitable<void>
+                                                                 {
+                                                                        try
+                                                                        {
+                                                                            co_await client->async_on_message(c, p);
+                                                                        }
+                                                                        catch (...)
+                                                                        {
+                                                                            resident_hook_failed("redis_subpub.async_on_message",
+                                                                                                    std::current_exception(), false);
+                                                                        }
+                                                                        co_return; },
+                                                                 asio::detached);
+                                              }
+                                              else if (!post_conn_step("redis_pubsub.on_message",
+                                                                       [client, c, p]
+                                                                       {
+                                                                           try
+                                                                           {
+                                                                               client->on_message(c, p);
+                                                                           }
+                                                                           catch (...)
+                                                                           {
+                                                                               resident_hook_failed("redis_pubsub.on_message",
+                                                                                                    std::current_exception(),
+                                                                                                    false);
+                                                                           }
+                                                                       }))
+                                              {
+                                                  resident_hook_failed("redis_pubsub.on_message", nullptr, true);
+                                              }
+                                          }); },
+                                    asio::use_awaitable);
+        }
+        for (auto &pat : client->patterns())
+        {
+            if (client->isclose)
+                break;
+            co_await asio::co_spawn(sub->strand(), [&]() -> asio::awaitable<bool>
+                                    { co_return co_await sub->async_psubscribe(
+                                          pat,
+                                          [client, &io_ctx](const std::string &pt,
+                                                            const std::string &c,
+                                                            const std::string &p)
+                                          {
+                                              // 同 channel 回调：收摊后 pump 可能还在读这一轮
+                                              if (client->isclose)
+                                                  return;
+                                              if (client->is_coroutine_)
+                                              {
+                                                  asio::co_spawn(
+                                                      io_ctx,
+                                                      [client, pt, c, p]() -> asio::awaitable<void>
+                                                      {
+                                        try
+                                        {
+                                            co_await client->async_on_pmessage(pt, c, p);
+                                        }
+                                        catch (...)
+                                        {
+                                            resident_hook_failed("redis_subpub.async_on_pmessage",
+                                                                 std::current_exception(), false);
+                                        }
+                                        co_return; },
+                                                      asio::detached);
+                                              }
+                                              else if (!post_conn_step(
+                                                           "redis_pubsub.on_pmessage",
+                                                           [client, pt, c, p]
+                                                           {
+                                                               try
+                                                               {
+                                                                   client->on_pmessage(pt, c, p);
+                                                               }
+                                                               catch (...)
+                                                               {
+                                                                   resident_hook_failed("redis_pubsub.on_pmessage",
+                                                                                        std::current_exception(),
+                                                                                        false);
+                                                               }
+                                                           }))
+                                              {
+                                                  resident_hook_failed("redis_pubsub.on_pmessage", nullptr, true);
+                                              }
+                                          }); },
+                                    asio::use_awaitable);
+        }
+
+        if (client->isclose)
+        {
+            // 收摊也要把订阅句柄停掉并交回：只 break 的话 pump 还在读，
+            // 一个已宣告收摊的客户端会继续被派发消息，订阅对象和 fd 都不释放。
+            sub->stop();
+            client->set_active_sub(nullptr);
+            break;
+        }
+        client->sub_state_.store(pz::redis::subscriber_state::subscribed);
+        retry_sec = 3;// ✅ 连上了 → 重置退避
+        fprintf(stderr, "[redis_subpub] %s: subscribed OK, retry reset to 3s\n", client->section_name().c_str());
+        if (client->is_coroutine_)
+            co_await co_resident_hook_void("redis_subpub.async_on_subscribe_ok", client->async_on_subscribe_ok());
+        else
+            co_await co_sync_hook_void("redis_subpub.on_subscribe_ok", [client]
+                                       { client->on_subscribe_ok(); },
+                                       nullptr);
+
+        // 等 pump 退出（200ms 轮询 state 或业务置 isclose）
+        while (sub->state() != pz::redis::subscriber_state::stopped && !client->isclose)
+        {
+            asio::steady_timer t(io_ctx, std::chrono::milliseconds(200));
+            co_await t.async_wait(asio::use_awaitable);
+        }
+        client->sub_state_.store(pz::redis::subscriber_state::stopped);
+        if (!client->isclose)
+        {
+            if (client->is_coroutine_)
+                co_await co_resident_hook_void("redis_subpub.async_on_disconnect", client->async_on_disconnect());
+            else
+                co_await co_sync_hook_void("redis_subpub.on_disconnect", [client]
+                                           { client->on_disconnect(); },
+                                           nullptr);
+        }
+        // 钩子跑完再交回订阅句柄：断连回调里业务还能读这一轮的订阅者
+        sub->stop();
+        client->set_active_sub(nullptr);
+        if (client->isclose)
+            break;
+        auto wait = backoff();
+        fprintf(stderr, "[redis_subpub] %s: pump exit → wait %lld\n", client->section_name().c_str(), (long long)wait.count());
+        asio::steady_timer t(io_ctx, wait);
+        co_await t.async_wait(asio::use_awaitable);
+    }
+    client->sub_state_.store(pz::redis::subscriber_state::stopped);
+    co_return;
+}
+#endif
+
+#ifdef ENABLE_WEBSOCKETS_CLIENT
+asio::awaitable<void> httpserver::async_ws_subpub_loop(
+    std::shared_ptr<http::ws_subpub_client> client)
+{
+    auto &io_ctx  = this->io_context;
+    int retry_sec = 3;
+    auto backoff  = [&retry_sec]() -> std::chrono::seconds
+    {
+        auto v = std::chrono::seconds(retry_sec);
+        if (retry_sec < 12)
+            retry_sec += 3;
+        return v;
+    };
+
+    while (!client->isclose)
+    {
+        // 1. 取配置
+        auto sec = http::get_websockets_config().get(client->section_name());
+        if (!sec)
+        {
+            auto wait = backoff();
+            fprintf(stderr, "[ws_subpub] %s: no section → wait %lld\n", client->section_name().c_str(), (long long)wait.count());
+            asio::steady_timer t(io_ctx, wait);
+            co_await t.async_wait(asio::use_awaitable);
+            continue;
+        }
+        auto &cfg = *sec;
+
+        // 2. 创建 websocket_client
+        auto ws = std::make_shared<http::websocket_client>();
+        ws->set_host(cfg.host);
+        ws->set_port(cfg.port);
+        ws->set_url(cfg.url);
+        ws->strand_ = asio::make_strand(io_ctx);
+        ws->timeout(cfg.timeout_sec);
+        // 常驻连接交给看护线程的 dur 托管分支：dur_time_loop_fun 非空且 durtime > 0 时，
+        // 看护线程那一拍只发心跳、不做超时检查（client_context.cpp:136-149）。
+        // 不这么写的话，pump 正 parked 在读上、链路空闲到期限就被在看护线程上 close_connect()。
+        // 注：看护线程 1 拍 = 250ms，这里的 durtime 是它的拍数；业务侧 durtime 是 1s 一拍，两者不同单位。
+        ws->durtime           = client->durtime > 0 ? client->durtime : 8;
+        ws->dur_time_loop_fun = [](std::shared_ptr<http::websocket_client> s)
+        { s->reset_timeout(); };
+        // 自定义 header（格式: "Key1: Val1\r\nKey2: Val2" 或 "Key1: Val1;Key2: Val2"）
+        // 配置层 header
+        if (!cfg.header.empty())
+            ws->add_headers(cfg.header);
+        // 业务侧 virtual add_headers() 返回的字符串
+        auto biz_hdrs = client->add_headers();
+        if (!biz_hdrs.empty())
+            ws->add_headers(biz_hdrs);
+        // 业务侧构造时 add_header()/add_headers() 灌的 vector（最高优先级）
+        for (auto &[n, v] : client->user_headers_)
+            ws->set_header(n, v);
+        client->io_ctx = &io_ctx;
+
+        // 3. async_connect + handshake
+        if (!co_await ws->async_connect())
+        {
+            auto wait = backoff();
+            fprintf(stderr, "[ws_subpub] %s: async_connect fail err='%s' → wait %lld\n", client->section_name().c_str(), ws->error_msg.c_str(), (long long)wait.count());
+            if (client->is_coroutine_)
+                co_await co_resident_hook_void("ws_subpub.async_on_close", client->async_on_close());
+            else
+                co_await co_sync_hook_void("ws_subpub.on_close(connect fail)", [client]
+                                           { client->on_close(); },
+                                           nullptr);
+            asio::steady_timer t(io_ctx, wait);
+            co_await t.async_wait(asio::use_awaitable);
+            continue;
+        }
+
+        // 连上了才把连接交给业务：async_connect 里还在 reset()/重建 sock，
+        // 提前赋值等于让业务线程和这条协程同时读写同一个 shared_ptr 和半个连接对象。
+        client->set_conn(ws);
+
+        retry_sec = 3;
+        fprintf(stderr, "[ws_subpub] %s: connected %s:%u%s\n", client->section_name().c_str(), cfg.host.c_str(), cfg.port, cfg.url.c_str());
+
+        // 4. on_open
+        if (client->is_coroutine_)
+            co_await co_resident_hook_void("ws_subpub.async_on_open", client->async_on_open());
+        else
+            co_await co_sync_hook_void("ws_subpub.on_open", [client]
+                                       { client->on_open(); },
+                                       nullptr);
+
+        // 5. pump async_text_read / async_data_read 循环
+        //    async_text_read() 完成时返回消息首帧 opcode，错误/EOF 返回 0；
+        //    存活判定看 iserror（ready_state 是历史字段，全树没有人写过非 0）
+        while (!client->isclose && !ws->iserror)
+        {
+            std::string buf;
+            auto n = co_await ws->async_text_read();
+            if (n == 0)
+                break;// 对端关了
+
+            bool is_binary = (ws->recv_data.opcode == 0x02);// RFC 6455 opcode 2 = binary
+            auto payload   = std::move(ws->recv_data.content);
+
+            if (client->is_coroutine_)
+            {
+                asio::co_spawn(io_ctx, [client, payload = std::move(payload), is_binary]() -> asio::awaitable<void>
+                               {
+                        try
+                        {
+                            co_await client->async_on_message(payload, is_binary);
+                        }
+                        catch (...)
+                        {
+                            resident_hook_failed("ws_subpub.async_on_message",
+                                                 std::current_exception(), false);
+                        }
+                        co_return; },
+                               asio::detached);
+            }
+            else if (!post_conn_step("ws_subpub.on_message",
+                                     [client, payload = std::move(payload), is_binary]
+                                     {
+                                         try
+                                         {
+                                             client->on_message(payload, is_binary);
+                                         }
+                                         catch (...)
+                                         {
+                                             resident_hook_failed("ws_subpub.on_message",
+                                                                  std::current_exception(),
+                                                                  false);
+                                         }
+                                     }))
+            {
+                // 池没接单：这一帧整条丢掉（threadpool 里已经计数），业务侧完全看不出少了一条
+                resident_hook_failed("ws_subpub.on_message", nullptr, true);
+            }
+        }
+
+        // 6. 断连 → 钩子（还能读这一轮连接）→ 清 → backoff → 重连
+        if (!client->isclose)
+        {
+            if (client->is_coroutine_)
+                co_await co_resident_hook_void("ws_subpub.async_on_close", client->async_on_close());
+            else
+                co_await co_sync_hook_void("ws_subpub.on_close", [client]
+                                           { client->on_close(); },
+                                           nullptr);
+        }
+        // 先关连接再交回句柄，对齐 sock / mqtt 侧的收摊顺序：只清槽位的话这一轮的
+        // websocket_client 要等出了循环、析构函数里才关，中间还隔着一轮退避。
+        ws->close_connect();
+        client->set_conn(nullptr);
+        if (client->isclose)
+            break;
+        auto wait = backoff();
+        fprintf(stderr, "[ws_subpub] %s: pump exit → wait %lld\n", client->section_name().c_str(), (long long)wait.count());
+        asio::steady_timer t(io_ctx, wait);
+        co_await t.async_wait(asio::use_awaitable);
+    }
+    co_return;
+}
+#endif
+
+#ifdef ENABLE_SOCKETS_CLIENT
+asio::awaitable<void> httpserver::async_sock_subpub_loop(
+    std::shared_ptr<http::sock_subpub_client> client)
+{
+    auto &io_ctx  = this->io_context;
+    int retry_sec = 3;
+    auto backoff  = [&retry_sec]() -> std::chrono::seconds
+    {
+        auto v = std::chrono::seconds(retry_sec);
+        if (retry_sec < 12)
+            retry_sec += 3;
+        return v;
+    };
+
+    while (!client->isclose)
+    {
+        // 1. 取配置
+        auto sec = http::get_sockets_config().get(client->section_name());
+        if (!sec)
+        {
+            auto wait = backoff();
+            fprintf(stderr, "[sock_subpub] %s: no section → wait %lld\n", client->section_name().c_str(), (long long)wait.count());
+            asio::steady_timer t(io_ctx, wait);
+            co_await t.async_wait(asio::use_awaitable);
+            continue;
+        }
+        auto &cfg = *sec;
+
+        // 2. 创建 socket_client（裸 TCP）
+        auto sock = std::make_shared<http::socket_client>();
+        sock->set_host(cfg.host);
+        sock->set_port(cfg.port);
+        sock->set_url(cfg.url);
+        sock->timeout(cfg.timeout_sec);
+        // 同 ws 侧：看护线程 1 拍 = 250ms，业务侧 durtime 是 1s 一拍，单位不同但都只做"拍频分频"。
+        // 裸 TCP 的 socket 列表没有 timeout==0 豁免，不托管心跳就一定被 idle-kill。
+        sock->durtime           = client->durtime > 0 ? client->durtime : 8;
+        sock->dur_time_loop_fun = [](std::shared_ptr<http::socket_client> s)
+        { s->reset_timeout(); };
+        client->io_ctx = &io_ctx;
+
+        // 3. async_tcp_connect（裸 TCP，发 "tcp url\n\n"，不走 HTTP header）
+        //    注: socket_client::set_header() 仅在 async_connect()（HTTP 模式）里用
+        //        async_tcp_connect() 是纯 TCP，不发 HTTP header，所以跳过 header 注入
+        if (!co_await sock->async_tcp_connect())
+        {
+            auto wait = backoff();
+            fprintf(stderr, "[sock_subpub] %s: async_tcp_connect fail err='%s' → wait %lld\n", client->section_name().c_str(), sock->error_msg.c_str(), (long long)wait.count());
+            if (client->is_coroutine_)
+                co_await co_resident_hook_void("sock_subpub.async_on_close", client->async_on_close());
+            else
+                co_await co_sync_hook_void("sock_subpub.on_close(connect fail)", [client]
+                                           { client->on_close(); },
+                                           nullptr);
+            sock->close_connect();
+            asio::steady_timer t(io_ctx, wait);
+            co_await t.async_wait(asio::use_awaitable);
+            continue;
+        }
+
+        // 连上了才交给业务，理由同 ws 侧（async_tcp_connect 还在动 sock 成员）
+        client->set_conn(sock);
+
+        retry_sec = 3;
+        fprintf(stderr, "[sock_subpub] %s: connected %s:%u%s (bare TCP)\n", client->section_name().c_str(), cfg.host.c_str(), cfg.port, cfg.url.c_str());
+
+        // 4. on_open
+        if (client->is_coroutine_)
+            co_await co_resident_hook_void("sock_subpub.async_on_open", client->async_on_open());
+        else
+            co_await co_sync_hook_void("sock_subpub.on_open", [client]
+                                       { client->on_open(); },
+                                       nullptr);
+
+        // 5. pump async_read 循环（裸 TCP 原始字节，无 frame）
+        std::string read_buf(4096, '\0');
+        while (!client->isclose && !sock->iserror)
+        {
+            auto n = co_await sock->async_read(read_buf);
+            if (n == 0)
+                break;// 对端关了
+            auto payload = std::string_view(read_buf.data(), n);
+
+            if (client->is_coroutine_)
+            {
+                asio::co_spawn(io_ctx, [client, payload = std::string(payload)]() -> asio::awaitable<void>
+                               {
+                        try
+                        {
+                            co_await client->async_on_message(payload);
+                        }
+                        catch (...)
+                        {
+                            resident_hook_failed("sock_subpub.async_on_message",
+                                                 std::current_exception(), false);
+                        }
+                        co_return; },
+                               asio::detached);
+            }
+            else if (!post_conn_step("sock_subpub.on_message",
+                                     [client, payload = std::string(payload)]
+                                     {
+                                         try
+                                         {
+                                             client->on_message(payload);
+                                         }
+                                         catch (...)
+                                         {
+                                             resident_hook_failed("sock_subpub.on_message",
+                                                                  std::current_exception(),
+                                                                  false);
+                                         }
+                                     }))
+            {
+                resident_hook_failed("sock_subpub.on_message", nullptr, true);
+            }
+        }
+
+        // 6. 断连 → 钩子（还能读这一轮连接）→ 关 → 清 → backoff → 重连
+        if (!client->isclose)
+        {
+            if (client->is_coroutine_)
+                co_await co_resident_hook_void("sock_subpub.async_on_close", client->async_on_close());
+            else
+                co_await co_sync_hook_void("sock_subpub.on_close", [client]
+                                           { client->on_close(); },
+                                           nullptr);
+        }
+        sock->close_connect();
+        client->set_conn(nullptr);
+        if (client->isclose)
+            break;
+        auto wait = backoff();
+        fprintf(stderr, "[sock_subpub] %s: pump exit → wait %lld\n", client->section_name().c_str(), (long long)wait.count());
+        asio::steady_timer t(io_ctx, wait);
+        co_await t.async_wait(asio::use_awaitable);
+    }
+    co_return;
+}
+#endif
+
+#ifdef ENABLE_MQTT_CLIENT
+asio::awaitable<void> httpserver::async_mqtt_subpub_loop(
+    std::shared_ptr<http::mqtt_subpub_client> client)
+{
+    auto &io_ctx  = this->io_context;
+    int retry_sec = 3;
+    auto backoff  = [&retry_sec]() -> std::chrono::seconds
+    {
+        auto v = std::chrono::seconds(retry_sec);
+        if (retry_sec < 12)
+            retry_sec += 3;
+        return v;
+    };
+
+    while (!client->isclose)
+    {
+        // 1. 取配置
+        auto sec = http::get_mqtt_config().get(client->section_name());
+        if (!sec)
+        {
+            auto wait = backoff();
+            fprintf(stderr, "[mqtt_subpub] %s: no section → wait %lld\n", client->section_name().c_str(), (long long)wait.count());
+            asio::steady_timer t(io_ctx, wait);
+            co_await t.async_wait(asio::use_awaitable);
+            continue;
+        }
+        auto &cfg = *sec;
+
+        // 2. 创建 mqtt_client（出站 broker 连接）
+        auto mqc         = std::make_shared<http::mqtt_client>(io_ctx, io_ctx);
+        mqc->server_ioc_ = &io_ctx;
+        mqc->timeout(cfg.timeout_sec);
+        mqc->set_host(cfg.host);
+        mqc->set_port(cfg.port);
+
+        // 构造 CONNECT 参数
+        http::mqtt_client_config_t mqtt_cfg;
+        mqtt_cfg.client_id = cfg.clientid.empty() ? "mqtt_subpub_client" : cfg.clientid;
+        mqtt_cfg.username  = cfg.username;
+        mqtt_cfg.password  = cfg.password;
+        mqtt_cfg.keepalive = cfg.keepalive;
+        mqc->set_config(mqtt_cfg);
+
+        client->io_ctx = &io_ctx;
+
+        // 3. 注册回调：mqtt_client 收 PUBLISH 时派发业务钩子
+        auto self               = client;
+        mqc->async_run_loop_fun = [self, &io_ctx](std::shared_ptr<http::mqtt_client> mqc,
+                                                  const http::mqtt_recv_packet_t &pkt)
+            -> asio::awaitable<void>
+        {
+            if (self->isclose)
+                co_return;
+            if (self->is_coroutine_)
+            {
+                asio::co_spawn(io_ctx, [self, topic = pkt.topic, payload = pkt.payload, qos = pkt.qos]() -> asio::awaitable<void>
+                               {
+                        try
+                        {
+                            co_await self->async_on_message(topic, payload, qos);
+                        }
+                        catch (...)
+                        {
+                            resident_hook_failed("mqtt_subpub.async_on_message",
+                                                 std::current_exception(), false);
+                        }
+                        co_return; },
+                               asio::detached);
+            }
+            else if (!post_conn_step("mqtt_subpub.on_message",
+                                     [self, topic = pkt.topic, payload = pkt.payload, qos = pkt.qos]
+                                     {
+                                         try
+                                         {
+                                             self->on_message(topic, payload, qos);
+                                         }
+                                         catch (...)
+                                         {
+                                             resident_hook_failed("mqtt_subpub.on_message",
+                                                                  std::current_exception(),
+                                                                  false);
+                                         }
+                                     }))
+            {
+                resident_hook_failed("mqtt_subpub.on_message", nullptr, true);
+            }
+            co_return;
+        };
+
+        // 4. async_tcp_connect + async_mqtt_connect（发 CONNECT → 等 CONNACK → 启 run_loop）
+        if (!co_await mqc->async_tcp_connect())
+        {
+            auto wait = backoff();
+            fprintf(stderr, "[mqtt_subpub] %s: async_tcp_connect fail err='%s' → wait %lld\n", client->section_name().c_str(), mqc->error_msg.c_str(), (long long)wait.count());
+            if (client->is_coroutine_)
+                co_await co_resident_hook_void("mqtt_subpub.async_on_close", client->async_on_close());
+            else
+                co_await co_sync_hook_void("mqtt_subpub.on_close(connect fail)", [client]
+                                           { client->on_close(); },
+                                           nullptr);
+            asio::steady_timer t(io_ctx, wait);
+            co_await t.async_wait(asio::use_awaitable);
+            continue;
+        }
+        if (!co_await mqc->async_mqtt_connect())
+        {
+            auto wait = backoff();
+            fprintf(stderr, "[mqtt_subpub] %s: async_mqtt_connect fail err='%s' → wait %lld\n", client->section_name().c_str(), mqc->error_msg.c_str(), (long long)wait.count());
+            if (client->is_coroutine_)
+                co_await co_resident_hook_void("mqtt_subpub.async_on_close", client->async_on_close());
+            else
+                co_await co_sync_hook_void("mqtt_subpub.on_close(connect fail)", [client]
+                                           { client->on_close(); },
+                                           nullptr);
+            mqc->close_connect();
+            asio::steady_timer t(io_ctx, wait);
+            co_await t.async_wait(asio::use_awaitable);
+            continue;
+        }
+
+        // 连上了才交给业务，理由同 ws/sock 侧
+        client->set_conn(mqc);
+
+        retry_sec = 3;
+        fprintf(stderr, "[mqtt_subpub] %s: connected %s:%u (clientid=%s)\n", client->section_name().c_str(), cfg.host.c_str(), cfg.port, mqtt_cfg.client_id.c_str());
+
+        // 5. on_open（业务可在此 subscribe）
+        if (client->is_coroutine_)
+            co_await co_resident_hook_void("mqtt_subpub.async_on_open", client->async_on_open());
+        else
+            co_await co_sync_hook_void("mqtt_subpub.on_open", [client]
+                                       { client->on_open(); },
+                                       nullptr);
+
+        // 6. 等待连接断开：mqtt_client 的 run_loop 在 strand_ 上持续读包，
+        //    我们在这里只需要周期性检查 iserror / connected_。
+        //    run_loop_alive_ 是 atomic，断链时会置 false。
+        while (!client->isclose && !mqc->iserror && mqc->run_loop_alive_)
+        {
+            asio::steady_timer t(io_ctx, std::chrono::milliseconds(500));
+            co_await t.async_wait(asio::use_awaitable);
+        }
+
+        // 7. 断连 → 钩子 → 关 → 清 → backoff → 重连
+        if (!client->isclose)
+        {
+            if (client->is_coroutine_)
+                co_await co_resident_hook_void("mqtt_subpub.async_on_close", client->async_on_close());
+            else
+                co_await co_sync_hook_void("mqtt_subpub.on_close", [client]
+                                           { client->on_close(); },
+                                           nullptr);
+        }
+        mqc->close_connect();
+        client->set_conn(nullptr);
+        if (client->isclose)
+            break;
+        auto wait = backoff();
+        fprintf(stderr, "[mqtt_subpub] %s: disconnected → wait %lld\n", client->section_name().c_str(), (long long)wait.count());
+        asio::steady_timer t(io_ctx, wait);
+        co_await t.async_wait(asio::use_awaitable);
+    }
+    co_return;
+}
+#endif
+
 void httpserver::listeners()
 {
 #ifdef __APPLE__
@@ -5915,8 +7633,8 @@ void httpserver::listeners()
     // 只缓存 fd 不行——close 之后那个号会被别的线程立刻复用，二次 close 打到新 socket；
     // 而 Windows 下 closesocket 也唤醒不了挂在 accept() 上的线程（asio 的 close 就是 closesocket）。
     // 本函数内仍按普通对象用。
-    auto acceptor_ptr                        = std::make_shared<asio::ip::tcp::acceptor>(this->io_context);
-    asio::ip::tcp::acceptor &acceptor        = *acceptor_ptr;
+    auto acceptor_ptr                 = std::make_shared<asio::ip::tcp::acceptor>(this->io_context);
+    asio::ip::tcp::acceptor &acceptor = *acceptor_ptr;
     asio::ip::tcp::endpoint endpoint;
     if (server_ip6_listen)
     {
@@ -6500,96 +8218,7 @@ void httpserver::add_runsocketthread()
 
 // ==================== httpwatch sub-methods ====================
 
-void httpserver::httpwatch_register_builtin_routes()
-{
-    struct regmethold_t temp;
-    temp.pre    = nullptr;
-    temp.regfun = [self = this](std::shared_ptr<httppeer> peer) -> std::string
-    {
-        httppeer &client = peer->get_peer();
-        client << "<h3 align=\"center\">";
-        client << "<span style=\"font-size:2em\">🧨 Paozhu</h3> <p align=\"center\">Version ";
-        client << (PAOZHU_VERSION / 100000);
-        client << ".";
-        client << (PAOZHU_VERSION / 100 % 1000);
-        client << ".";
-        client << (PAOZHU_VERSION % 100);
-        client << "</p>";
-
-        int isshow = -1;
-        if (client.get.isset("show_visitinfo"))
-        {
-            isshow                             = client.get["show_visitinfo"].to_int();
-            server_loaclvar &static_server_var = get_server_global_var();
-            if (isshow == 1 && static_server_var.debug_enable)
-            {
-                static_server_var.show_visitinfo = true;
-                client << "<p>";
-                client << "online:" << self->total_count.load();
-                client << " ";
-                try
-                {
-                    isshow = 0;
-                    client << "]</p>";
-                    client << self->clientrunpool.printthreads(true);
-                }
-                catch (...)
-                {
-                    client << "<p>exception</p>";
-                }
-            }
-            else
-            {
-                static_server_var.show_visitinfo = false;
-            }
-        }
-
-        return "";
-    };
-    _http_regmethod_table.emplace("paozhu_status", std::move(temp));
-    temp.pre    = nullptr;
-    temp.regfun = [self = this](std::shared_ptr<httppeer> peer) -> std::string
-    {
-        if (peer->linktype != 7)
-        {
-            return "";
-        }
-        if (peer->pathinfos.size() > 0 && peer->etag.size() > 0)
-        {
-            std::string temptaskhash = peer->pathinfos[0];
-            temptaskhash.append(peer->url);
-            std::size_t temp_name_id = std::hash<std::string>{}(temptaskhash);
-            std::ostringstream oss;
-            oss << temp_name_id;
-            temptaskhash = oss.str();
-
-            if (temptaskhash == peer->etag)
-            {
-                bool isintask = true;
-                for (auto iter = self->clientlooptasks.begin(); iter != self->clientlooptasks.end();)
-                {
-                    if (iter->first == temp_name_id)
-                    {
-                        isintask = false;
-                        break;
-                    }
-                    ++iter;
-                }
-                if (isintask)
-                {
-                    self->clientlooptasks.push_back({temp_name_id, peer});
-                    self->websocketcondition.notify_one();
-                }
-            }
-        }
-        return "";
-    };
-    _http_regmethod_table.emplace("frametasks_timeloop", std::move(temp));
-}
-
-void httpserver::httpwatch_init_paths(std::string &currentpath, std::string &error_path,
-                                      std::string &traffic_switch_file, std::string &restart_file,
-                                      std::string &restart_ssl_file, std::string &orm_log_file)
+void httpserver::httpwatch_init_paths(std::string &currentpath, std::string &error_path, std::string &traffic_switch_file, std::string &restart_file, std::string &restart_ssl_file, std::string &orm_log_file)
 {
     serverconfig &sysconfigpath = getserversysconfig();
 
@@ -6633,13 +8262,12 @@ void httpserver::httpwatch_init_paths(std::string &currentpath, std::string &err
     restart_ssl_file.append("restart_ssl_config");
     orm_log_file.append("orm_debug.log");
 
-    rate_limit_new_wait_num = sysconfigpath.rate_limit_new_wait_num;
+    rate_limit_new_wait_num    = sysconfigpath.rate_limit_new_wait_num;
     rate_limit_accept_wait_num = sysconfigpath.rate_limit_accept_wait_num;
     rate_limit_accept_time     = sysconfigpath.rate_limit_accept_time;
 }
 
-void httpserver::httpwatch_parse_reboot_cron(unsigned char &cron_type, unsigned char &cron_day,
-                                             unsigned char &cron_hour)
+void httpserver::httpwatch_parse_reboot_cron(unsigned char &cron_type, unsigned char &cron_day, unsigned char &cron_hour)
 {
     serverconfig &sysconfigpath = getserversysconfig();
     if (sysconfigpath.map_value["default"]["reboot_cron"].size() > 1)
@@ -6662,7 +8290,7 @@ void httpserver::httpwatch_parse_reboot_cron(unsigned char &cron_type, unsigned 
         }
         if (cron_type != 0x00)
         {
-            for (unsigned int i = 1; i < sysconfigpath.map_value["default"]["reboot_cron"].size(); ++i)
+            for (size_t i = 1; i < sysconfigpath.map_value["default"]["reboot_cron"].size(); ++i)
             {
                 if (sysconfigpath.map_value["default"]["reboot_cron"][i] >= '0' && sysconfigpath.map_value["default"]["reboot_cron"][i] <= '9')
                 {
@@ -6672,7 +8300,7 @@ void httpserver::httpwatch_parse_reboot_cron(unsigned char &cron_type, unsigned 
                 {
                     if (sysconfigpath.map_value["default"]["reboot_cron"][i] == 'H' || sysconfigpath.map_value["default"]["reboot_cron"][i] == 'h')
                     {
-                        for (unsigned int j = i + 1; j < sysconfigpath.map_value["default"]["reboot_cron"].size(); ++j)
+                        for (size_t j = i + 1; j < sysconfigpath.map_value["default"]["reboot_cron"].size(); ++j)
                         {
                             if (sysconfigpath.map_value["default"]["reboot_cron"][j] >= '0' && sysconfigpath.map_value["default"]["reboot_cron"][j] <= '9')
                             {
@@ -6716,7 +8344,7 @@ void httpserver::httpwatch_parse_clean_cron(unsigned int &clean_cron_min, unsign
         clean_cron_min = 0;
         if (sysconfigpath.map_value["default"]["clean_cron"][0] == 'M' || sysconfigpath.map_value["default"]["clean_cron"][0] == 'm')
         {
-            for (unsigned int i = 1; i < sysconfigpath.map_value["default"]["clean_cron"].size(); ++i)
+            for (size_t i = 1; i < sysconfigpath.map_value["default"]["clean_cron"].size(); ++i)
             {
                 if (sysconfigpath.map_value["default"]["clean_cron"][i] >= '0' && sysconfigpath.map_value["default"]["clean_cron"][i] <= '9')
                 {
@@ -6726,7 +8354,7 @@ void httpserver::httpwatch_parse_clean_cron(unsigned int &clean_cron_min, unsign
                 {
                     if (sysconfigpath.map_value["default"]["clean_cron"][i] == 'T' || sysconfigpath.map_value["default"]["clean_cron"][i] == 't')
                     {
-                        for (unsigned int j = i + 1; j < sysconfigpath.map_value["default"]["clean_cron"].size(); ++j)
+                        for (size_t j = i + 1; j < sysconfigpath.map_value["default"]["clean_cron"].size(); ++j)
                         {
                             if (sysconfigpath.map_value["default"]["clean_cron"][j] >= '0' && sysconfigpath.map_value["default"]["clean_cron"][j] <= '9')
                             {
@@ -6783,14 +8411,15 @@ void httpserver::httpwatch_parse_temp_clean(unsigned int &temp_live_time)
 }
 
 void httpserver::httpwatch_parse_links_restart(unsigned int &restart_process_num,
-                                               int &restart_process_time_start, int &restart_process_time_end)
+                                               int &restart_process_time_start,
+                                               int &restart_process_time_end)
 {
     serverconfig &sysconfigpath = getserversysconfig();
     if (sysconfigpath.map_value["default"]["links_restart_process"].size() > 3)
     {
         if (sysconfigpath.map_value["default"]["links_restart_process"][0] == 'N' || sysconfigpath.map_value["default"]["links_restart_process"][0] == 'n')
         {
-            for (unsigned int i = 1; i < sysconfigpath.map_value["default"]["links_restart_process"].size(); ++i)
+            for (size_t i = 1; i < sysconfigpath.map_value["default"]["links_restart_process"].size(); ++i)
             {
                 if (sysconfigpath.map_value["default"]["links_restart_process"][i] >= '0' && sysconfigpath.map_value["default"]["links_restart_process"][i] <= '9')
                 {
@@ -6965,7 +8594,7 @@ void httpserver::httpwatch_flush_access_log(const std::string &access_path)
         lockstr.l_whence = SEEK_END;
         lockstr.l_start  = 0;
         lockstr.l_len    = 0;
-        lockstr.l_pid = 0;
+        lockstr.l_pid    = 0;
 
         if (fcntl(fd, F_SETLK, &lockstr) == -1)
         {
@@ -7033,7 +8662,7 @@ void httpserver::httpwatch_flush_error_log(const std::string &error_path)
         lockstr.l_whence = SEEK_END;
         lockstr.l_start  = 0;
         lockstr.l_len    = 0;
-        lockstr.l_pid = 0;
+        lockstr.l_pid    = 0;
 
         if (fcntl(fd, F_SETLK, &lockstr) == -1)
         {
@@ -7107,8 +8736,7 @@ void httpserver::httpwatch_mysql_pool_maintenance(unsigned int &mysqlpool_time, 
     }
 }
 
-void httpserver::httpwatch_check_cron_reboot(unsigned char cron_type, unsigned char cron_day,
-                                            unsigned char cron_hour, const std::tm *now)
+void httpserver::httpwatch_check_cron_reboot(unsigned char cron_type, unsigned char cron_day, unsigned char cron_hour, const std::tm *now)
 {
     if (cron_type > 0 && cron_day > 0 && cron_hour > 0 && now->tm_min < 3)
     {
@@ -7179,7 +8807,7 @@ void httpserver::httpwatch_check_cron_reboot(unsigned char cron_type, unsigned c
             logstr.append(" ---\n");
             DEBUG_LOG("exit now:%s", logstr.c_str());
             std::unique_lock<std::mutex> logvlock(log_mutex);
-            for (unsigned int i = 0; i < 10; i++)
+            for (size_t i = 0; i < 10; i++)
             {
                 error_loglist.push_back(logstr);
             }
@@ -7388,7 +9016,7 @@ void httpserver::httpwatch_clear_timeout_sessions(unsigned int clean_cron_min, u
 // Temp files (rawcontent/tempraw and multipart uploads) used to be cleaned up by business code;
 // 未被消费的文件（未知 Content-Type、进程异常退出、业务漏删）会永久留在 temp_path。
 // unconsumed ones (unknown Content-Type, crash, business forgot to delete) linger forever in temp_path.
-// 这里由 httpwatch 统一回收，判据 = 命名命中框架前缀白名单(见 http::is_http_temp_filename) 且 mtime 超存活期。
+// 这里由 httpwatch 统一回收，回收条件 = 命名命中框架前缀白名单(见 http::is_http_temp_filename) 且 mtime 超存活期。
 // httpwatch now handles it universally: framework-prefix whitelist (http::is_http_temp_filename) + mtime past TTL.
 // 只删普通文件、非递归，statichtml 等子目录（压缩缓存）与业务文件不会被误伤。
 // Only regular files, non-recursive — statichtml (compression cache) and business files are safe.
@@ -7481,8 +9109,7 @@ void httpserver::httpwatch_clear_temp_files(unsigned int temp_live_time)
     }
 }
 
-void httpserver::httpwatch_check_deadlock(unsigned char &plan_http1_exit, unsigned char &plan_http2_exit,
-                                          unsigned int &old_ten_total_count, unsigned int old_total_count)
+void httpserver::httpwatch_check_deadlock(unsigned char &plan_http1_exit, unsigned char &plan_http2_exit, unsigned int &old_ten_total_count, unsigned int old_total_count)
 {
     std::string error_msg_loop;
     // HTTP/2 deadlock detection
@@ -7574,8 +9201,10 @@ void httpserver::httpwatch_check_deadlock(unsigned char &plan_http1_exit, unsign
 }
 
 void httpserver::httpwatch_check_restart_threshold(unsigned int restart_process_num,
-                                                   int restart_process_time_start, int restart_process_time_end,
-                                                   const std::tm *now, unsigned int old_total_count)
+                                                   int restart_process_time_start,
+                                                   int restart_process_time_end,
+                                                   const std::tm *now,
+                                                   unsigned int old_total_count)
 {
     // Check every 5 seconds for over threshold
     if (now->tm_hour < restart_process_time_end && now->tm_hour > restart_process_time_start)
@@ -7607,16 +9236,12 @@ void httpserver::httpwatch()
         error_loglist.push_back(get_date("%Y-%m-%d %X\n"));
     }
 
-    // 2. Register builtin routes
-    httpwatch_register_builtin_routes();
-
-    // 3. Initialize paths and configuration
+    // 2. Initialize paths and configuration
     std::string currentpath, error_path, traffic_switch_file;
     std::string restart_file, restart_ssl_file, orm_log_file;
-    httpwatch_init_paths(currentpath, error_path, traffic_switch_file,
-                         restart_file, restart_ssl_file, orm_log_file);
+    httpwatch_init_paths(currentpath, error_path, traffic_switch_file, restart_file, restart_ssl_file, orm_log_file);
 
-    // 4. Parse cron configurations
+    // 3. Parse cron configurations
     unsigned char cron_type = 0, cron_day = 0, cron_hour = 0;
     unsigned int clean_cron_min = 60, clean_cron_time_ago = 0;
     unsigned int restart_process_num = 0;
@@ -7627,22 +9252,23 @@ void httpserver::httpwatch()
     httpwatch_parse_clean_cron(clean_cron_min, clean_cron_time_ago);
     httpwatch_parse_temp_clean(temp_live_time);
     httpwatch_parse_links_restart(restart_process_num,
-                                  restart_process_time_start, restart_process_time_end);
+                                  restart_process_time_start,
+                                  restart_process_time_end);
 
-    // 5. Main loop variables
-    unsigned int updatetimetemp = 0;
-    unsigned int mysqlpool_time = 1;
-    unsigned int old_total_count = 0;
+    // 4. Main loop variables
+    unsigned int updatetimetemp      = 0;
+    unsigned int mysqlpool_time      = 1;
+    unsigned int old_total_count     = 0;
     unsigned int old_ten_total_count = 0;
-    unsigned char plan_http1_exit = 0x00;
-    unsigned char plan_http2_exit = 0x00;
-    bool is_clear_sock = false;
-    bool is_run_acme = false;
+    unsigned char plan_http1_exit    = 0x00;
+    unsigned char plan_http2_exit    = 0x00;
+    bool is_clear_sock               = false;
+    bool is_run_acme                 = false;
     // 下次清扫 temp_path 落盘临时文件的时刻（秒）。按墙钟计，不受主循环 5 秒/拍漂移影响。
     unsigned int temp_clean_next_time = timeid() + temp_live_time;
-    int acme_every_day_time = sysconfigpath.acme_every_day_time;
-    int acme_every_day_time_reset = 1;
-    int ocsp_interval_time = sysconfigpath.ocsp_interval_time;
+    int acme_every_day_time           = sysconfigpath.acme_every_day_time;
+    int acme_every_day_time_reset     = 1;
+    int ocsp_interval_time            = sysconfigpath.ocsp_interval_time;
 
     if (ocsp_interval_time < 3600)
     {
@@ -7659,21 +9285,21 @@ void httpserver::httpwatch()
     acme_every_day_time_reset = acme_every_day_time - 1;
 
     DEBUG_LOG("httpwatch run");
-    
+
     // 跑分模式 benchmark mode
 #ifdef BENCHMARK
     for (;;)
     {
-        td::this_thread::sleep_for(std::chrono::seconds(5));
+        std::this_thread::sleep_for(std::chrono::seconds(5));
         if (isstop)
         {
-            break;
+            return;
         }
         DEBUG_LOG("httpwatch run");
     }
 #endif
 
-    // 6. Main event loop
+    // 5. Main event loop
     for (;;)
     {
         try
@@ -7839,13 +9465,14 @@ void httpserver::httpwatch()
             }
 
             // Deadlock detection
-            httpwatch_check_deadlock(plan_http1_exit, plan_http2_exit,
-                                     old_ten_total_count, old_total_count);
+            httpwatch_check_deadlock(plan_http1_exit, plan_http2_exit, old_ten_total_count, old_total_count);
 
             // Restart threshold check
             httpwatch_check_restart_threshold(restart_process_num,
                                               restart_process_time_start,
-                                              restart_process_time_end, now, old_total_count);
+                                              restart_process_time_end,
+                                              now,
+                                              old_total_count);
 
             old_total_count = total_count.load();
         }
@@ -7870,7 +9497,7 @@ void httpserver::httpwatch()
 void httpserver::acme_task()
 {
     serverconfig &sysconfigpath        = getserversysconfig();
-    unsigned int site_num              = sysconfigpath.sitehostinfos.size();
+    unsigned int site_num              = static_cast<unsigned int>(sysconfigpath.sitehostinfos.size());
     server_loaclvar &static_server_var = get_server_global_var();
     std::this_thread::sleep_for(std::chrono::seconds(12));
     //--begin save acme log --
@@ -7912,7 +9539,7 @@ void httpserver::acme_task()
         site_num = 30;
     }
 
-    for (unsigned int i = 0; i < site_num; i++)
+    for (size_t i = 0; i < site_num; i++)
     {
         acme_update();
         std::this_thread::sleep_for(std::chrono::seconds(10));
@@ -8062,7 +9689,7 @@ void httpserver::acme_update()
             return;
         }
 
-        for (unsigned int domain_num = 0; domain_num < sysconfigpath.sitehostinfos.size(); domain_num++)
+        for (size_t domain_num = 0; domain_num < sysconfigpath.sitehostinfos.size(); domain_num++)
         {
             if (!sysconfigpath.sitehostinfos[domain_num].is_acme)
             {
@@ -8086,7 +9713,7 @@ void httpserver::acme_update()
                 unsigned int dou_count = 0;
 
                 //测试有几个点
-                for (unsigned int k = 0; k < domain.size(); k++)
+                for (size_t k = 0; k < domain.size(); k++)
                 {
                     if (domain[k] == '.')
                     {
@@ -8106,7 +9733,7 @@ void httpserver::acme_update()
                     //查看倒数第二个是不是　com net org gov edu
                     std::string subdomain;
                     pos_n = domain.size() - 1;
-                    for (unsigned int k = pos_n; k > 0; k--)
+                    for (size_t k = pos_n; k > 0; k--)
                     {
                         if (domain[k] == '.')
                         {
@@ -8181,7 +9808,7 @@ void httpserver::acme_update()
                                 fs::perms::owner_all | fs::perms::group_all | fs::perms::others_all,
                                 fs::perm_options::replace);
             }
-            
+
             acme.set_webroot(webroot);
             acme.domains = domains;
 
@@ -8527,21 +10154,24 @@ void httpserver::set_thread_priority(std::thread &thread, int priority)
 #endif
 }
 
+// 常驻出站客户端的按段软开关：conf 里该段 enable = 0 ⇒ 进程起来时不 spawn 这条重连循环。
+// 键缺失或值为空都算 1——现有 conf 全都没写过它，默认必须维持今天"每条都启动"的行为。
+// 真值拼写与各模块配置层里的 parse_bool 一致（1/true/True/TRUE/On/ON），其余写法按 0 处理，
+// 所以跳过那行日志把原文一起打出来：写成 enable = yes 时能一眼看出是被这个开关关掉的。
+[[maybe_unused]] static bool resident_client_enabled(const char *log_tag, const std::string &reg_name, const std::string &section, const std::string &enable_raw)
+{
+    if (enable_raw.empty() || enable_raw == "1" || enable_raw == "true" || enable_raw == "True" ||
+        enable_raw == "TRUE" || enable_raw == "On" || enable_raw == "ON")
+        return true;
+    fprintf(stderr, "[%s] skip '%s' sec=%s enable=%s\n", log_tag, reg_name.c_str(), section.c_str(), enable_raw.c_str());
+    return false;
+}
+
 void httpserver::run(const std::string &sysconfpath)
 {
     try
     {
         isstop = false;
-        _initauto_control_httpmethodregto(_http_regmethod_table);
-        _inithttpmethodregto(_http_regmethod_table);
-        _inithttpmethodregto_pre(_http_regmethod_table);
-        _initauto_control_httprestful_paths(_http_regurlpath_table);
-
-        _initauto_domain_httpmethodregto(_domain_regmethod_table);
-        _initauto_domain_httprestful_paths(_domain_regurlpath_table);
-
-        _initauto_co_control_httpmethodregto(_co_http_regmethod_table);
-        _initauto_co_domain_httpmethodregto(_co_domain_regmethod_table);
 
         serverconfig &sysconfigpath = getserversysconfig();
         sysconfigpath.init_path();
@@ -8558,6 +10188,37 @@ void httpserver::run(const std::string &sysconfpath)
             std::this_thread::sleep_for(std::chrono::seconds(3));
             return;
         }
+
+        // — v6 router 初始化 —
+        router_init_sites();
+        _initauto_all_httputils();
+        _inithttpmethodregto();
+        _inithttpmethodregto_pre();
+        // conf 解析期注册表还是空的，钩子名的存在性只能在这里补验
+        get_router().validate_site_hooks();
+
+#ifdef ENABLE_REDIS
+        // 用当前 server.conf 全路径推导同目录下的 redis.conf。
+        // 这里必须传自己的 io_context，不能顺手 get_client_context_obj()：那个单例由"第一个
+        // 调用的人"定型（参数默认 nullptr），在下面 9024 行带着真 ioc 构造之前先调一次，
+        // 就等于把 ioc 永久钉成 nullptr——之后 http::client 的构造（make_strand(*ioc)）就是空指针。
+        if (!pz::redis::load_redis_config(io_context, sysconfigpath.configfile))
+        {
+            std::cerr << "[redis] redis.conf load failed or missing, redis disabled" << std::endl;
+        }
+#endif
+
+#ifdef ENABLE_WEBSOCKETS_CLIENT
+        http::load_websockets_config(sysconfigpath.configfile);
+#endif
+
+#ifdef ENABLE_SOCKETS_CLIENT
+        http::load_sockets_config(sysconfigpath.configfile);
+#endif
+
+#ifdef ENABLE_MQTT_CLIENT
+        http::load_mqtt_config(sysconfigpath.configfile);
+#endif
 
         server_ip6_listen                  = sysconfigpath.ip6_enable;
         server_loaclvar &static_server_var = get_server_global_var();
@@ -8585,6 +10246,26 @@ void httpserver::run(const std::string &sysconfpath)
         HTTP_SOCKET_REG &hsock = get_http_socket_reg();
 
         _inithttpsocketmethodregto(hsock);
+
+        // 注册键统一成带前导 '/' 的形状（和 HTTP 路径、握手串一个习惯）：
+        // sockets_method_reg.hpp 里写 "mytestsocket" 还是 "/mytestsocket" 都一样，
+        // 裸 TCP 握手侧只需要拼一次 '/' 就能查到（client_tcp_loop）。
+        for (auto hsock_iter = hsock.begin(); hsock_iter != hsock.end();)
+        {
+            if (!hsock_iter->first.empty() && hsock_iter->first.front() == '/')
+            {
+                ++hsock_iter;
+                continue;
+            }
+            std::string slashed_key = "/" + hsock_iter->first;
+            if (hsock.count(slashed_key) > 0)
+            {
+                ++hsock_iter;
+                continue;
+            }
+            hsock.emplace(slashed_key, std::move(hsock_iter->second));
+            hsock_iter = hsock.erase(hsock_iter);
+        }
 
         total_count = sysconfigpath.get_co_thread_num();
         if (total_count < std::thread::hardware_concurrency())
@@ -8622,9 +10303,13 @@ void httpserver::run(const std::string &sysconfpath)
                     } while (!isstop);
                 });
         }
+#ifdef ENABLE_REDIS
+        // 这批线程就是 redis 协程路跑在上面的人手，池的线程数统计照它来（跑在线程上，不由池自己管）。
+        pz::redis::get_redis_pool().set_worker_count(static_cast<unsigned int>(runthreads.size()));
+#endif
         total_count              = 0;
         clientrunpool.io_context = &io_context;
-        std::thread httpwatch(std::bind(&httpserver::httpwatch, this));    
+        std::thread httpwatch(std::bind(&httpserver::httpwatch, this));
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         std::thread https(std::bind(&httpserver::listeners, this));
         std::thread http(std::bind(&httpserver::listener, this));
@@ -8669,7 +10354,85 @@ void httpserver::run(const std::string &sysconfpath)
         {
             websocketthreads.emplace_back(std::bind(&httpserver::websocket_loop, this, i));
         }
+#ifdef ENABLE_REDIS_CLIENT
+        http::_initredissubpubregto(pz::redis::get_redis_subpub_reg());
+        fprintf(stderr, "[redis_subpub] init: registered %zu clients\n", pz::redis::get_redis_subpub_reg().size());
+        for (auto &[_name, factory] : pz::redis::get_redis_subpub_reg())
+        {
+            auto client = factory();
+            if (!client)
+                continue;
+            if (!resident_client_enabled("redis_subpub", _name, client->section_name(), pz::redis::get_redis_config().raw_field(client->section_name(), "enable")))
+                continue;
+            asio::co_spawn(this->io_context,
+                           this->async_redis_subpub_loop(client),
+                           asio::detached);
 
+            {
+                std::lock_guard<std::mutex> lk(this->redis_subpub_task_mutex);
+                this->redis_subpub_tasks.push_back(client);
+            }
+        }
+#endif
+#ifdef ENABLE_WEBSOCKETS_CLIENT
+        http::_initwssubpubregto(http::get_ws_subpub_reg());
+        fprintf(stderr, "[ws_subpub] init: registered %zu clients\n", http::get_ws_subpub_reg().size());
+        for (auto &[_name, factory] : http::get_ws_subpub_reg())
+        {
+            auto client = factory();
+            if (!client)
+                continue;
+            if (!resident_client_enabled("ws_subpub", _name, client->section_name(), http::get_websockets_config().raw_field(client->section_name(), "enable")))
+                continue;
+            asio::co_spawn(this->io_context,
+                           this->async_ws_subpub_loop(client),
+                           asio::detached);
+            {
+                std::lock_guard<std::mutex> lk(this->ws_subpub_task_mutex);
+                this->ws_subpub_tasks.push_back(client);
+            }
+        }
+#endif
+#ifdef ENABLE_SOCKETS_CLIENT
+        http::_initsockssubpubregto(http::get_sock_subpub_reg());
+        fprintf(stderr, "[sock_subpub] init: registered %zu clients\n", http::get_sock_subpub_reg().size());
+        for (auto &[_name, factory] : http::get_sock_subpub_reg())
+        {
+            auto client = factory();
+            if (!client)
+                continue;
+            if (!resident_client_enabled("sock_subpub", _name, client->section_name(), http::get_sockets_config().raw_field(client->section_name(), "enable")))
+                continue;
+            fprintf(stderr, "[sock_subpub] spawning loop for '%s' sec=%s\n", _name.c_str(), client->section_name().c_str());
+            asio::co_spawn(this->io_context,
+                           this->async_sock_subpub_loop(client),
+                           asio::detached);
+            {
+                std::lock_guard<std::mutex> lk(this->sockets_clients_mutex);
+                this->sockets_clients.push_back(client);
+            }
+        }
+#endif
+#ifdef ENABLE_MQTT_CLIENT
+        http::_initmqttsubpubregto(http::get_mqtt_subpub_reg());
+        fprintf(stderr, "[mqtt_subpub] init: registered %zu clients\n", http::get_mqtt_subpub_reg().size());
+        for (auto &[_name, factory] : http::get_mqtt_subpub_reg())
+        {
+            auto client = factory();
+            if (!client)
+                continue;
+            if (!resident_client_enabled("mqtt_subpub", _name, client->section_name(), http::get_mqtt_config().raw_field(client->section_name(), "enable")))
+                continue;
+            fprintf(stderr, "[mqtt_subpub] spawning loop for '%s' sec=%s\n", _name.c_str(), client->section_name().c_str());
+            asio::co_spawn(this->io_context,
+                           this->async_mqtt_subpub_loop(client),
+                           asio::detached);
+            {
+                std::lock_guard<std::mutex> lk(this->mqtt_clients_mutex);
+                this->mqtt_clients.push_back(client);
+            }
+        }
+#endif
         if (https.joinable())
         {
             https.join();
@@ -8710,7 +10473,7 @@ void httpserver::run(const std::string &sysconfpath)
         {
             httpwatch.join();
         }
-        for (unsigned int i = 0; i < runthreads.size(); ++i)
+        for (size_t i = 0; i < runthreads.size(); ++i)
         {
             if (runthreads[i].joinable())
             {
@@ -8763,7 +10526,39 @@ void httpserver::stop()
     websocketcondition.notify_all();
     send_data_condition.notify_all();
     clientrunpool.stop();
+#ifdef ENABLE_REDIS
+    // 现在共用框架 io_context，进程退出时 io_context.stop() 自然收掉所有协程，无需单独 stop redis pool
+#endif
     io_context.stop();
     DEBUG_LOG("httpserver stop!");
+}
+
+unsigned int http::httpserver::socket_broadcast(unsigned int groupid, std::string_view payload)
+{
+    // 把同组 peer 先摘到本地 vector，锁里只做 shared_ptr 搬运，不调 send()
+    std::vector<std::shared_ptr<socket_api>> targets;
+    {
+        std::lock_guard<std::mutex> lk(socket_task_mutex);
+        for (auto &w : sockettasks)
+        {
+            auto p = w.lock();
+            if (p && !p->isclose && p->session_sock && !p->session_sock->isclose &&
+                p->groupid == groupid)
+            {
+                targets.push_back(p);
+            }
+        }
+    }
+    // 在锁外调 send()（send 会 post_write，而 socket_task_mutex 不允许重入）。
+    // 返回成功 send 的 peer 数。
+    unsigned int sent = 0;
+    for (auto &p : targets)
+    {
+        if (p->send(payload))
+        {
+            ++sent;
+        }
+    }
+    return sent;
 }
 }// namespace http

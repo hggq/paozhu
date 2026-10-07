@@ -10210,7 +10210,7 @@ namespace orm
                                                              assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
                                                          }
                                                          effect_num = 1;
-                                                         return false; // 只取一行
+                                                         return false;// 只取一行
                                                      });
 
             if (conn->isdebug)
@@ -10262,7 +10262,7 @@ namespace orm
                                                                         {
                                                                             if (col_names[ij] == nullptr || col_names[ij][0] == '\0')
                                                                                 continue;
-                                                                            auto [ptr, len] = get_data(ij);
+                                                                            auto [ptr, len]   = get_data(ij);
                                                                             unsigned char pos = B_BASE::findcolpos(col_names[ij]);
                                                                             if (ptr == nullptr)
                                                                             {
@@ -10273,7 +10273,7 @@ namespace orm
                                                                             assign_field_value(pos, ptr, len, B_BASE::data);
                                                                         }
                                                                         effect_num = 1;
-                                                                        return false; // 只取一行
+                                                                        return false;// 只取一行
                                                                     });
 
             if (conn->isdebug)
@@ -10837,7 +10837,7 @@ namespace orm
             // 两者皆无时拒绝发出语句（与 exec_remove 的守卫同构）。
             if (where_clause.empty())
             {
-                sqlstring = "exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                sqlstring = "exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition, refusing to execute";
                 error_msg = sqlstring;
                 iserror   = true;
                 return (unsigned int)-1;
@@ -10907,7 +10907,7 @@ namespace orm
             // 两者皆无时拒绝发出语句（与 async_exec_remove 的守卫同构）。
             if (where_clause.empty())
             {
-                sqlstring = "async_exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                sqlstring = "async_exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition, refusing to execute";
                 error_msg = sqlstring;
                 iserror   = true;
                 co_return (unsigned int) - 1;
@@ -11013,7 +11013,7 @@ namespace orm
             // 两者皆无时拒绝发出语句（与 exec_remove 的守卫同构）。
             if (where_clause.empty())
             {
-                sqlstring = "exec_update_dirty: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                sqlstring = "exec_update_dirty: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition, refusing to execute";
                 error_msg = sqlstring;
                 iserror   = true;
                 return (unsigned int)-1;
@@ -11086,7 +11086,7 @@ namespace orm
             // 两者皆无时拒绝发出语句（与 exec_remove 的守卫同构）。
             if (where_clause.empty())
             {
-                sqlstring = "async_exec_update_dirty: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                sqlstring = "async_exec_update_dirty: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition, refusing to execute";
                 error_msg = sqlstring;
                 iserror   = true;
                 co_return (unsigned int) - 1;
@@ -11170,7 +11170,7 @@ namespace orm
             // 两者皆无时拒绝发出语句（与 exec_remove 的守卫同构）。
             if (where_clause.empty())
             {
-                sqlstring = "exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                sqlstring = "exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition, refusing to execute";
                 error_msg = sqlstring;
                 iserror   = true;
                 return (unsigned int)-1;
@@ -11246,7 +11246,7 @@ namespace orm
             // 两者皆无时拒绝发出语句（与 async_exec_remove 的守卫同构）。
             if (where_clause.empty())
             {
-                sqlstring = "async_exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                sqlstring = "async_exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition, refusing to execute";
                 error_msg = sqlstring;
                 iserror   = true;
                 co_return (unsigned int) - 1;
@@ -11343,7 +11343,7 @@ namespace orm
             // 两者皆无时拒绝发出语句（与 exec_remove 的守卫同构）。
             if (where_clause.empty())
             {
-                sqlstring = "exec_update_fields: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                sqlstring = "exec_update_fields: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition, refusing to execute";
                 error_msg = sqlstring;
                 iserror   = true;
                 return (unsigned int)-1;
@@ -11389,7 +11389,7 @@ namespace orm
             // 拒绝发出语句（与文本路径 build_remove_sql 的"返回空串"约定同构）。
             if (where_clause.empty())
             {
-                sqlstring = "exec_remove: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                sqlstring = "exec_remove: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition, refusing to execute";
                 error_msg = sqlstring;
                 iserror   = true;
                 return (unsigned int)-1;
@@ -11438,7 +11438,7 @@ namespace orm
             // 拒绝发出语句（与同步 exec_remove 的守卫同构）。
             if (where_clause.empty())
             {
-                sqlstring = "async_exec_remove: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                sqlstring = "async_exec_remove: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition, refusing to execute";
                 error_msg = sqlstring;
                 iserror   = true;
                 co_return (unsigned int) - 1;

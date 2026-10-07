@@ -98,6 +98,13 @@ class mqtt_session : public std::enable_shared_from_this<mqtt_session>
 
     bool is_closed() const;
 
+    // 被同 ClientID 的新 CONNECT 接管时置位（新连接那条 strand 上写，旧连接的清理段读）。
+    // 之所以要单独一个标记而不是复用 isclose/cleaned_：踢旧时旧连接确实是被服务端关的，
+    // 但客户端本人还活着（它只是换了条 TCP），此时发布旧遗嘱等于向订阅者谎报"这台设备掉线了"。
+    // 用 atomic 是因为这两个 loop 跑在各自的 strand 上，跨线程读写，不是本类惯常的"同 strand"字段。
+    void mark_taken_over() { taken_over_.store(true, std::memory_order_release); }
+    bool is_taken_over() const { return taken_over_.load(std::memory_order_acquire); }
+
     // ============ QoS 状态 ============
 
     // 入站 QoS2：收到 PUBLISH 暂存，收到 PUBREL 取出
@@ -193,6 +200,8 @@ class mqtt_session : public std::enable_shared_from_this<mqtt_session>
     size_t   max_in_packet_ = MQTT_MAX_PACKET_SIZE;// 入站单帧上限，默认协议值
     uint16_t server_topic_alias_max_ = MQTT_DEFAULT_TOPIC_ALIAS_MAX;// CONNACK 实际宣告值
     bool cleaned_                        = false;
+    // 跨 strand 读写（新连接的踢旧分支写、旧连接的清理段读），故不同于 cleaned_ 的普通 bool
+    std::atomic<bool> taken_over_{false};
 
     uint64_t dropped_writes_ = 0;// 入环被拒 / 挂起队列挤旧的丢弃计数（N19）
 };

@@ -330,86 +330,8 @@ void httpparse::procssparamter(std::string_view header_temp, std::string_view he
     }
 }
 
-// C2 修复：URL 段一律「先解码、再按 '/' 切分归一化」。
-// 旧实现先按 '/' 切分、再只对整段解码结果比较 ".."，而 %2f 解出的 '/' 不在切分点上，
-// 于是 "..%2f..%2fetc%2fpasswd" 会作为单个段进入 pathinfos，最终拼出 sitepath/../../etc/passwd。
-// 本函数把解码结果重新按 '/' 切分并逐段处理 '.'/'..'，同时拒绝内嵌 NUL（%00 截断绕过后缀白名单）。
-static bool url_segments_normalize(std::vector<std::string> &pathinfos, const std::string &raw)
-{
-    // M6：路径段解码只处理 %XX，不把 '+' 当空格（否则 /a+b 与 /a b 会指到同一个文件）。
-    auto hexval = [](char c) -> int {
-        if (c >= '0' && c <= '9')
-        {
-            return c - '0';
-        }
-        if (c >= 'a' && c <= 'f')
-        {
-            return c - 'a' + 10;
-        }
-        if (c >= 'A' && c <= 'F')
-        {
-            return c - 'A' + 10;
-        }
-        return -1;
-    };
-    std::string decoded;
-    decoded.reserve(raw.size());
-    for (unsigned int k = 0; k < raw.size(); k++)
-    {
-        if (raw[k] == '%' && (k + 2) < raw.size())
-        {
-            int hi = hexval(raw[k + 1]);
-            int lo = hexval(raw[k + 2]);
-            if (hi >= 0 && lo >= 0)
-            {
-                decoded.push_back(static_cast<char>((hi << 4) | lo));
-                k += 2;
-                continue;
-            }
-        }
-        decoded.push_back(raw[k]);
-    }
-    for (unsigned int k = 0; k < decoded.size(); k++)
-    {
-        if (decoded[k] == '\0')
-        {
-            return false;// %00 截断绕过
-        }
-    }
-    unsigned int seg_begin = 0;
-    for (unsigned int k = 0; k <= decoded.size(); k++)
-    {
-        if (k < decoded.size() && decoded[k] != '/')
-        {
-            continue;
-        }
-        unsigned int seg_len = k - seg_begin;
-        if (seg_len == 2 && decoded[seg_begin] == '.' && decoded[seg_begin + 1] == '.')
-        {
-            if (pathinfos.size() > 0)
-            {
-                pathinfos.pop_back();
-            }
-        }
-        else if (seg_len == 1 && decoded[seg_begin] == '.')
-        {
-            // "." 段忽略
-        }
-        else if (seg_len > 0)
-        {
-            if (seg_len > 255)
-            {
-                return false;
-            }
-            pathinfos.emplace_back(decoded.substr(seg_begin, seg_len));
-        }
-        seg_begin = k + 1;
-    }
-    return true;
-}
-
-// H5 修复：multipart boundary 长度上限（RFC 2046 规定 ≤70，取 72），顺带剥掉可选的引号。
-// 旧实现把 boundary 原样保存且无长度限制，逐位置前缀比较时开销随 boundary 线性增长。
+// multipart boundary 长度上限（RFC 2046 规定 ≤70，取 72），顺带剥掉可选的引号。
+// 终止符要逐位置做前缀比较，开销随 boundary 长度线性增长，所以必须限长、不能原样收下。
 static bool boundary_normalize(std::string &out, const std::string &raw)
 {
     std::string temp = raw;
@@ -563,8 +485,7 @@ void httpparse::methodprocess(std::string_view contentline)
     // 这里只落一个标记：请求方法是否为 OPTIONS，供 server 分派到 send_cors_domain()
     // 处理预检（预检响应头由该函数按站点白名单输出，解析期不预置 ACAO）
     peer->iscors = (method == HEAD_METHOD::OPTIONS);
-    // H4 修复：解析请求行版本。HTTP/1.1 默认 keep-alive，HTTP/1.0 默认 close；
-    // 解析结果写入 state.keepalive，响应头(peer->keepalive)与关闭判据(server 循环)从此取同一值。
+    // 解析结果写入 state.keepalive，响应头(peer->keepalive)与 server 循环里"是否关闭连接"的依据从此取同一值。
     {
         size_t vpos = contentline.find("HTTP/1.");
         if (vpos != std::string_view::npos && (vpos + 8) <= contentline.size())
@@ -597,6 +518,8 @@ void httpparse::methodprocess(std::string_view contentline)
     // pathinfo.clear();
     //  url.clear();
     peer->pathinfos.clear();
+
+    // 按原始 / 逐段切分，每段交给 http::url_segments_normalize()（func.cpp 统一实现）
     unsigned int p_begin = ioffset;
     for (; ioffset < linesize; ioffset++)
     {
@@ -674,6 +597,25 @@ void httpparse::methodprocess(std::string_view contentline)
         peer->urlpath = "/";
     }
 
+    // 最后一段含 '.' 标记为文件请求；.php 结尾标 compress=10 交给 loop 处理 —
+    // last segment has '.' means file-like URL; .php suffix marks fastcgi candidate
+    if (!peer->pathinfos.empty())
+    {
+        auto const &last = peer->pathinfos.back();
+        peer->isfile     = (last.find('.') != std::string::npos);
+#ifdef ENABLE_FASTCGI
+        // 超轻量：只比后缀 4 字符，不查路由表不查磁盘 —
+        // ultra-light: only check suffix, no route lookup no disk stat
+
+        if (last.size() > 4 && last[last.size() - 1] == 'p' && last[last.size() - 2] == 'h' &&
+            last[last.size() - 3] == 'p' && last[last.size() - 4] == '.')
+        {
+            peer->compress = 10;
+        }
+#endif
+
+    }
+
     header_key.clear();
     if (headerstep == 6)
     {
@@ -724,8 +666,7 @@ void httpparse::methodprocess(std::string_view contentline)
             {
                 if (partype == 1)
                 {
-                    // M1 修复：已进入值模式，值内的 '=' 属于数据，不能再回退去覆盖参数名
-                    // （旧实现对 '=' 连续跳过并回退 j，导致 ?a=b=c → get["b"]="c"、token 丢失）
+                    // 值里的 '=' 按普通字符保留：跳过它会让 ?a=b=c 切成 get["b"]="c"、丢掉后半截 token
                     header_value.push_back(header_key[j]);
                     continue;
                 }
@@ -1072,7 +1013,6 @@ void httpparse::process_header_line(std::string_view line_str)
         case 'T':
             if (str_casecmp(header_key, "Transfer-Encoding"))
             {
-                // H1 修复：不支持 chunked；且 CL + TE 并存是 CL.TE 走私的典型载体，直接拒绝。
                 error = 40098;
             }
             break;
@@ -1111,14 +1051,14 @@ void httpparse::process_header_line(std::string_view line_str)
     case 14:
         if (str_casecmp(header_key, "Content-Length"))
         {
-            // H1 修复：严格解析。旧实现 str2int 会跳过所有非数字字符（"5, 5"→55）、
-            // 接受负号、且把超限值静默改成 0（声明了 body 却不消费 → 报文错位）。
+            // 严格解析：跳过非数字字符（"5, 5"→55）、接受负号、把超限值静默改成 0，
+            // 都会让声明的 body 长度和实际消费的字节对不上 → 报文错位。
             if (has_content_length)
             {
-                error = 40096;// 重复 Content-Length：CL.CL 走私
+                error = 40096;
                 return;
             }
-            has_content_length = true;
+            has_content_length         = true;
             unsigned long long temp_cl = 0;
             if (!str2uint64_strict(header_value, temp_cl))
             {
@@ -1486,14 +1426,12 @@ void httpparse::getwebsocketextensions(std::string_view header_value)
 void httpparse::getupgrade(std::string_view header_value)
 {
     // RFC 7230：Upgrade 是逗号分隔的 token 列表（"websocket"、"h2c" 可并存）。
-    // 旧实现整串比较 + 单字符尾空格裁剪，覆盖不了带 OWS 或列表的值。
+    // 按逗号逐个 token 比较：整串比较只认得单一值，覆盖不了带 OWS 或列表的值。
     size_t start = 0;
     while (start <= header_value.size())
     {
-        size_t comma = header_value.find(',', start);
-        std::string_view token = (comma == std::string_view::npos)
-                                     ? header_value.substr(start)
-                                     : header_value.substr(start, comma - start);
+        size_t comma           = header_value.find(',', start);
+        std::string_view token = (comma == std::string_view::npos) ? header_value.substr(start) : header_value.substr(start, comma - start);
         while (!token.empty() && (token.front() == ' ' || token.front() == '\t'))
             token.remove_prefix(1);
         while (!token.empty() && (token.back() == ' ' || token.back() == '\t'))
@@ -1521,14 +1459,12 @@ void httpparse::getconnection(std::string_view header_value)
         return;
     }
     // RFC 7230 6.1：Connection 是逗号分隔 token 列表——"keep-alive, Upgrade" 是
-    // 浏览器 WS 握手的标准写法，整串比较 + 前缀短路会丢掉 Upgrade token（B5 修复）。
+    // 浏览器 WS 握手的标准写法，整串比较 + 前缀短路会丢掉 Upgrade token。
     size_t start = 0;
     while (start <= header_value.size())
     {
-        size_t comma = header_value.find(',', start);
-        std::string_view token = (comma == std::string_view::npos)
-                                     ? header_value.substr(start)
-                                     : header_value.substr(start, comma - start);
+        size_t comma           = header_value.find(',', start);
+        std::string_view token = (comma == std::string_view::npos) ? header_value.substr(start) : header_value.substr(start, comma - start);
         while (!token.empty() && (token.front() == ' ' || token.front() == '\t'))
             token.remove_prefix(1);
         while (!token.empty() && (token.back() == ' ' || token.back() == '\t'))
@@ -1854,7 +1790,7 @@ void httpparse::read_http_header_block(const unsigned char *buffer, unsigned int
         {
             pos_m++;
             readoffset = pos_m;
-            // M4 修复：补记上一包里残留的 "\r" 与本包的 "\n"，否则 16KB 头部上限口径偏移
+            // 补记上一包里残留的 "\r" 与本包的 "\n"，否则 16KB 头部上限口径偏移
             http_content_length += 2;
             if (header_line.size() == 0)
             {
@@ -3280,13 +3216,15 @@ void httpparse::post_multipart_formdata()
 
 void httpparse::read_http_post_block(const unsigned char *buffer, unsigned int buffersize)
 {
-    // H2 修复：一律按 Content-Length 截断消费，声明之外的字节不再并入本次 body。
-    // 旧实现整块 append（buffersize - readoffset），同一读包内的多余字节会被解析成
-    // 声明外参数 → 参数走私 / WAF 绕过；也无法把余量留给后续解析。
+    // 只取 body 还缺的字节，不把读包剩余部分整块 append 进 body。
     unsigned int avail = (readoffset < buffersize) ? (buffersize - readoffset) : 0;
     if (peer->content_length > 0)
     {
+#ifdef ENABLE_FASTCGI
         unsigned long long already = (peer->compress == 10) ? peer->output.size() : http_content_length;
+#else
+        unsigned long long already = http_content_length;
+#endif
         if (already >= peer->content_length)
         {
             avail = 0;
@@ -3304,6 +3242,7 @@ void httpparse::read_http_post_block(const unsigned char *buffer, unsigned int b
         return;
     }
 
+#ifdef ENABLE_FASTCGI
     if (peer->compress == 10)
     {
         if (peer->content_length > CONST_PHP_BODY_POST_SIZE)
@@ -3325,12 +3264,12 @@ void httpparse::read_http_post_block(const unsigned char *buffer, unsigned int b
         }
     }
     else
+#endif
     {
         http_content_length += avail;
 
         if (posttype == 0)
         {
-            //fix weixin browser
             if (readoffset < buffersize)
             {
                 char first = buffer[readoffset];
@@ -3377,7 +3316,7 @@ void httpparse::read_http_post_block(const unsigned char *buffer, unsigned int b
                 temp_post_data = std::make_unique<HTTP_POST_DATA_T>();
             }
 
-            temp_post_data->content      = std::string_view((const char *)&buffer[readoffset], avail);
+            temp_post_data->content = std::string_view((const char *)&buffer[readoffset], avail);
             readoffset += avail;
             temp_post_data->field_offset = 0;
             for (; temp_post_data->field_offset < temp_post_data->content.size();)
@@ -3486,7 +3425,7 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
             read_http_post_block(buffer, buffersize);
             if (peer->isfinish || error > 0 || readoffset == before_offset)
             {
-                // H2：本次请求的 body 已消费完（或本包内已无可消费字节），
+                // 本次请求的 body 已消费完（或本包内已无可消费字节），
                 // 余下字节不再并入本次请求，也不再往下解析（残留字节一律丢弃）。
                 break;
             }
@@ -3505,7 +3444,7 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
                 // CORS：OPTIONS 预检的 ACAO 由 send_cors_domain() 按白名单判定输出；
                 // 普通请求的 ACAO 在解析到 origin 头时就判定了（process_header_line 的头名长度 6 分支），
                 // Origin 早于 Host 时由 getheaderhost() 补判，这里不再需要任何 CORS 处理
-                // H4：响应头(peer->keepalive)与关闭判据(state.keepalive)统一，不再各取一半
+                // 响应头用的 peer->keepalive 取自 state.keepalive，两处关闭判断用同一个值，不各看一半
                 peer->keepalive = peer->state.keepalive;
                 if (method == HEAD_METHOD::POST || method == HEAD_METHOD::QUERY)
                 {
@@ -3523,7 +3462,7 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
                          method == HEAD_METHOD::TRACE || method == HEAD_METHOD::CONNECT)
                 {
                     // 有意不支持的方法：明确回 405 并关闭连接，避免未消费的 body
-                    // 被当成下一个请求解析（H3 的实现层残留）
+                    // 被当成下一个请求解析（实现层残留）
                     method_not_allowed = true;
                     return;
                 }
@@ -3532,13 +3471,13 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
                     peer->isfinish = true;
                     if (peer->content_length > 0)
                     {
-                        // GET/HEAD/OPTIONS 等声明了 body：框架不消费它（与 H3 同源的问题）。
+                        // GET/HEAD/OPTIONS 等声明了 body：框架不消费它。
                         // 关闭连接而不是复用，避免剩余字节在下一轮被当成新请求解析。
                         peer->state.keepalive = false;
                         peer->keepalive       = false;
                     }
                 }
-                peer->isuse_fastcgi();
+                // isuse_fastcgi() 已删除：路由预查挪到 loop 里，php 处理挪到 server 新方法
                 http_content_length = 0;
             }
         }

@@ -8,16 +8,16 @@
 
 namespace orm::cust
 {
-    struct LocalusersqlStruct : orm::Base<LocalusersqlStruct> 
-    {
-        unsigned int adminid;
-        std::string name;
-        std::string nickname;
-        unsigned int postid;
-        ORM_NAMES(adminid, name, nickname, postid);
-    };
+struct LocalusersqlStruct : orm::Base<LocalusersqlStruct>
+{
+    unsigned int adminid;
+    std::string name;
+    std::string nickname;
+    unsigned int postid;
+    ORM_NAMES(adminid, name, nickname, postid);
+};
 
-}
+}// namespace orm::cust
 
 namespace http
 {
@@ -32,7 +32,7 @@ std::string test_sql_commit(std::shared_ptr<httppeer> peer)
         // Result struct — use LocalusersqlStruct directly when only one row expected.
         orm::cust::LocalusersqlStruct loaduser;
         // Use db_conn directly (tag "cms" defined in orm.conf).
-        auto ulink = std::make_unique<orm::db_conn>("cms"); 
+        auto ulink = std::make_unique<orm::db_conn>("cms");
         // SELECT fields must match the result struct fields.
         std::string sqlstring = "SELECT adminid,name,nickname,postid FROM ";
         sqlstring.append("sysuser");
@@ -40,139 +40,138 @@ std::string test_sql_commit(std::shared_ptr<httppeer> peer)
 
         // Synchronous mode.
         ulink->query(sqlstring, loaduser);
- 
+
         client << "sql:" << sqlstring << "<hr>";
         if (loaduser.adminid != 0)
         {
             client << "adminid:";
-            client << loaduser.adminid ;
+            client << loaduser.adminid;
             client << ", name:";
-            client << loaduser.name ;
+            client << loaduser.name;
             client << ", nickname:";
-            client << loaduser.nickname ;
+            client << loaduser.nickname;
             client << ", postid:";
-            client << loaduser.postid ;
+            client << loaduser.postid;
             client << "<br />";
         }
 
-       bool is_begin = ulink->begin_commit();
-       orm::cust::LocalusersqlStruct commit_data; 
-       if (is_begin)
-       {
-          client << "begin_commit:OK<hr>";  
-          try
-          {
-            sqlstring = "update sysuser set nickname = 'nicename_a', postid = postid + 1 where adminid = 10000 ";
-            ulink->edit_query(sqlstring);
-            if(ulink->iserror)
-            {
-                ulink->rollback();
-            }
-            else
-            {
-                sqlstring = "INSERT INTO `sysuser` (`adminid`, `name`, `password`, `textword`, `isopen`, `level`, `companyid`, `dpid`, `jobid`, `roleid`, `postid`, `created_at`, `enddate`, `qrtemp`, `gender`, `nickname`, `realname`, `avatar`, `mobile`, `email`, `wxuuid`) VALUES (NULL, 'userroot', 'e10adc3949ba59abbe56e057f20f883e', '123456', '1', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', 'goodname', 'displayname', '', '', '', '');";
-                ulink->edit_query(sqlstring);
-                if(ulink->iserror)
-                {
-                    ulink->rollback();
-                }
-                else
-                {
-                    // SELECT over the same edit connection.
-                    sqlstring = "SELECT adminid,name,nickname,postid FROM sysuser where adminid = 10000 limit 1 ";
-                    ulink->edit_query(sqlstring, commit_data);
-                    if(ulink->iserror)
-                    {
-                        ulink->rollback();
-                    }
-                    else
-                    {
-                        ulink->commit();
-                    }
-                }
-            }
-            
-          }
-          catch(const std::exception& e)
-          {
-            ulink->rollback();
-            std::cerr << e.what() << '\n';
-          }
-       } 
-
-       client << "commit:" << ulink->error_msg << "<br />";
-        if (commit_data.adminid != 0)
+        bool is_begin = ulink->begin_commit();
+        orm::cust::LocalusersqlStruct commit_data;
+        if (is_begin)
         {
-            client << "adminid:";
-            client << commit_data.adminid ;
-            client << ", name:";
-            client << commit_data.name ;
-            client << ", nickname:";
-            client << commit_data.nickname ;
-            client << ", postid:";
-            client << commit_data.postid ;
-            client << "<br />";
-        }
-
-        is_begin = ulink->begin_commit();
-
-        if(is_begin)
-       {
-          client << "begin_commit:OK<hr>";  
-          try
-          {
-            sqlstring = "update sysuser set nickname = 'nicename_b', postid = postid + 1 where adminid = 10000 ";
-            ulink->edit_query(sqlstring);
-            if(ulink->iserror)
+            client << "begin_commit:OK<hr>";
+            try
             {
-                ulink->rollback();
-            }
-            else
-            {
-                // INSERT with existing PK 10003 — must fail (triggers rollback path).
-                sqlstring = "INSERT INTO `sysuser` (`adminid`, `name`, `password`, `textword`, `isopen`, `level`, `companyid`, `dpid`, `jobid`, `roleid`, `postid`, `created_at`, `enddate`, `qrtemp`, `gender`, `nickname`, `realname`, `avatar`, `mobile`, `email`, `wxuuid`) VALUES (10003, 'userroot', 'e10adc3949ba59abbe56e057f20f883e', '123456', '1', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', 'goodname', 'displayname', '', '', '', '');";
+                sqlstring = "update sysuser set nickname = 'nicename_a', postid = postid + 1 where adminid = 10000 ";
                 ulink->edit_query(sqlstring);
-                if(ulink->iserror)
+                if (ulink->iserror)
                 {
                     ulink->rollback();
                 }
                 else
                 {
-                    // SELECT over the same edit connection.
-                    sqlstring = "SELECT adminid,name,nickname,postid FROM sysuser where adminid = 10000 limit 1 ";
-                    ulink->edit_query(sqlstring, commit_data);
-                    if(ulink->iserror)
+                    sqlstring = "INSERT INTO `sysuser` (`adminid`, `name`, `password`, `textword`, `isopen`, `level`, `companyid`, `dpid`, `jobid`, `roleid`, `postid`, `created_at`, `enddate`, `qrtemp`, `gender`, `nickname`, `realname`, `avatar`, `mobile`, `email`, `wxuuid`) VALUES (NULL, 'userroot', 'e10adc3949ba59abbe56e057f20f883e', '123456', '1', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', 'goodname', 'displayname', '', '', '', '');";
+                    ulink->edit_query(sqlstring);
+                    if (ulink->iserror)
                     {
                         ulink->rollback();
                     }
                     else
                     {
-                        ulink->commit();
+                        // SELECT over the same edit connection.
+                        sqlstring = "SELECT adminid,name,nickname,postid FROM sysuser where adminid = 10000 limit 1 ";
+                        ulink->edit_query(sqlstring, commit_data);
+                        if (ulink->iserror)
+                        {
+                            ulink->rollback();
+                        }
+                        else
+                        {
+                            ulink->commit();
+                        }
                     }
                 }
             }
-          }
-          catch(const std::exception& e)
-          {
-            ulink->rollback();
-            std::cerr << e.what() << '\n';
-          }
-       } 
+            catch (const std::exception &e)
+            {
+                ulink->rollback();
+                std::cerr << e.what() << '\n';
+            }
+        }
 
         client << "commit:" << ulink->error_msg << "<br />";
         if (commit_data.adminid != 0)
         {
             client << "adminid:";
-            client << commit_data.adminid ;
+            client << commit_data.adminid;
             client << ", name:";
-            client << commit_data.name ;
+            client << commit_data.name;
             client << ", nickname:";
-            client << commit_data.nickname ;
+            client << commit_data.nickname;
             client << ", postid:";
-            client << commit_data.postid ;
+            client << commit_data.postid;
             client << "<br />";
         }
- 
+
+        is_begin = ulink->begin_commit();
+
+        if (is_begin)
+        {
+            client << "begin_commit:OK<hr>";
+            try
+            {
+                sqlstring = "update sysuser set nickname = 'nicename_b', postid = postid + 1 where adminid = 10000 ";
+                ulink->edit_query(sqlstring);
+                if (ulink->iserror)
+                {
+                    ulink->rollback();
+                }
+                else
+                {
+                    // INSERT with existing PK 10003 — must fail (triggers rollback path).
+                    sqlstring = "INSERT INTO `sysuser` (`adminid`, `name`, `password`, `textword`, `isopen`, `level`, `companyid`, `dpid`, `jobid`, `roleid`, `postid`, `created_at`, `enddate`, `qrtemp`, `gender`, `nickname`, `realname`, `avatar`, `mobile`, `email`, `wxuuid`) VALUES (10003, 'userroot', 'e10adc3949ba59abbe56e057f20f883e', '123456', '1', '0', '1', '0', '0', '0', '0', '0', '0', '0', '0', 'goodname', 'displayname', '', '', '', '');";
+                    ulink->edit_query(sqlstring);
+                    if (ulink->iserror)
+                    {
+                        ulink->rollback();
+                    }
+                    else
+                    {
+                        // SELECT over the same edit connection.
+                        sqlstring = "SELECT adminid,name,nickname,postid FROM sysuser where adminid = 10000 limit 1 ";
+                        ulink->edit_query(sqlstring, commit_data);
+                        if (ulink->iserror)
+                        {
+                            ulink->rollback();
+                        }
+                        else
+                        {
+                            ulink->commit();
+                        }
+                    }
+                }
+            }
+            catch (const std::exception &e)
+            {
+                ulink->rollback();
+                std::cerr << e.what() << '\n';
+            }
+        }
+
+        client << "commit:" << ulink->error_msg << "<br />";
+        if (commit_data.adminid != 0)
+        {
+            client << "adminid:";
+            client << commit_data.adminid;
+            client << ", name:";
+            client << commit_data.name;
+            client << ", nickname:";
+            client << commit_data.nickname;
+            client << ", postid:";
+            client << commit_data.postid;
+            client << "<br />";
+        }
+
         /*
             // Preferred approach: build SQL via ORM objects, then commit the transaction.
 
@@ -184,7 +183,6 @@ std::string test_sql_commit(std::shared_ptr<httppeer> peer)
             newsqlstring = user_m.commit_remove();             // get DELETE SQL
 
         */
-
     }
     catch (std::exception &e)
     {
@@ -194,7 +192,6 @@ std::string test_sql_commit(std::shared_ptr<httppeer> peer)
     return "";
 }
 
- 
 //@urlpath(null,co_sql_commit)
 asio::awaitable<std::string> test_co_sql_commit(std::shared_ptr<httppeer> peer)
 {
@@ -347,7 +344,7 @@ asio::awaitable<std::string> test_co_sql_orm(std::shared_ptr<httppeer> peer)
 
         // Build SQL via ORM object (no hand-written SQL). Don't set adminid (=0) —
         // make_data_insert_sql will emit NULL so the database auto-assigns it.
-        auto user_m = orm::cms::Sysuser();
+        auto user_m            = orm::cms::Sysuser();
         user_m.data.name       = "userroot";
         user_m.data.password   = "e10adc3949ba59abbe56e057f20f883e";
         user_m.data.textword   = "123456";

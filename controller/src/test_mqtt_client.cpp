@@ -15,14 +15,49 @@
 #include <vector>
 
 #include <asio.hpp>
+#include <atomic>
+#include <cstdio>
 #include "httppeer.h"
 #include "http_mqtt_client.h"
+#include "mqtt_config.h"
 #include "mqtt_method_reg.hpp"
 #include "client_context.h"
 #include "server.h"
 
 namespace http
 {
+
+// ==================== 演示页的 broker 地址 ====================
+// 这几条演示路由连的就是本进程自己在 httpport 上认出的 MQTT，地址以前写死成 127.0.0.1:80，
+// 换端口/换机器的部署里它们只会连一个不存在的地址然后按退避一直重连。
+// 现在和常驻的 [echo_sync]/[echo_co] 一个口径：地址读 conf/mqtt.conf 的 [demo] 段。
+struct demo_broker_t
+{
+    std::string host;
+    unsigned short port = 80;
+};
+
+static demo_broker_t demo_broker()
+{
+    demo_broker_t out;
+    // mqtt_config.h 整个头在 ENABLE_MQTT_CLIENT 关闭时是空的，所以读段的那一步要收在函数体里
+#ifdef ENABLE_MQTT_CLIENT
+    auto cfg = mqtt_conf("demo");
+    if (cfg && !cfg->host.empty() && cfg->port > 0)
+    {
+        out.host = cfg->host;
+        out.port = cfg->port;
+        return out;
+    }
+#endif
+    // 段不存在（旧 conf、隔离实例自己的 conf 副本）就退回写死的 127.0.0.1:80，等同于地址一直写死在代码里，只是第一次回落时往 stderr 打一行说明
+    out.host = "127.0.0.1";
+    out.port = 80;
+    static std::atomic<bool> logged{false};
+    if (!logged.exchange(true))
+        std::fprintf(stderr, "[mqtt_demo] no usable [demo] section in mqtt.conf, use %s:%u\n", out.host.c_str(), (unsigned)out.port);
+    return out;
+}
 
 // ==================== Long-lived MQTT loops ====================
 // client_id → weak_ptr<mqtt_client> + shared_ptr<atomic<bool>> stop flag
@@ -52,9 +87,10 @@ static mqtt_loop_registry_t &get_mqtt_loop_registry()
 // Three field groups: connection params / loop params / business hook
 struct mqtt_loop_config_t
 {
-    // Connection params
-    std::string host = "127.0.0.1";
-    uint16_t port    = 80;
+    // Connection params；host/port 留空 = 跟 conf/mqtt.conf 的 [demo] 段（见 demo_broker()），
+    // 业务侧要连别的 broker 才在这里显式写死。
+    std::string host;
+    uint16_t port = 0;
     std::string client_id;
     bool clean_start         = true;
     int keepalive            = 30;
@@ -66,9 +102,9 @@ struct mqtt_loop_config_t
     // Subscribe/publish (empty topic = skip)
     std::string subscribe_topic;
     std::string publish_topic;
-    std::string publish_payload;                 // may contain %round% placeholder
-    uint8_t publish_qos     = 0;
-    bool    publish_retain = false;
+    std::string publish_payload;// may contain %round% placeholder
+    uint8_t publish_qos = 0;
+    bool publish_retain = false;
 
     // Business hook: called on inbound PUBLISH (optional)
     std::function<void(std::shared_ptr<mqtt_client>, const mqtt_recv_packet_t &)> on_publish;
@@ -152,10 +188,11 @@ struct case_result
 auto run_one_case = [](std::string_view name, mqtt_client_config_t cfg) -> asio::awaitable<case_result>
 {
     case_result r;
-    r.name   = std::string(name);
-    auto cli = std::make_shared<mqtt_client>();
-    cli->set_host("127.0.0.1");
-    cli->set_port(80);
+    r.name    = std::string(name);
+    auto cli  = std::make_shared<mqtt_client>();
+    auto demo = demo_broker();
+    cli->set_host(demo.host);
+    cli->set_port(demo.port);
     cli->set_config(cfg);
 
     std::vector<mqtt_recv_packet_t> recv_packets;
@@ -247,12 +284,12 @@ asio::awaitable<std::string> test_mqtt_client(std::shared_ptr<httppeer> peer)
     auto r1 = co_await run_one_case("Case1_B4_no_local", cfg1);
 
     mqtt_client_config_t cfg2 = cfg1;
-    cfg2.client_id            = "mydevice@@@";       // reg_key=mydevice group=empty device=empty
+    cfg2.client_id            = "mydevice@@@";// reg_key=mydevice group=empty device=empty
     auto r2                   = co_await run_one_case("Case2_parse_client_id_reg_only", cfg2);
 
     mqtt_client_config_t cfg3 = cfg1;
     cfg3.client_id            = "mydevice@@@rm-client";
-    cfg3.receive_maximum      = 8;                  // less than server policy 16 → server still advertises its own policy 16 (no longer min with client value)
+    cfg3.receive_maximum      = 8;// less than server policy 16 → server still advertises its own policy 16 (no longer min with client value)
     auto r3                   = co_await run_one_case("Case3_S1_rm8", cfg3);
 
     auto dump = [](const case_result &r) -> std::string
@@ -267,7 +304,8 @@ asio::awaitable<std::string> test_mqtt_client(std::shared_ptr<httppeer> peer)
         s += "  server_receive_maximum=" + std::to_string(r.server_receive_maximum);
         s += "\n  run_loop_fun=" + std::to_string(r.recv.size());
         if (!r.recv.empty())
-            for (auto &p : r.recv) s += " [" + p.topic + "]";
+            for (auto &p : r.recv)
+                s += " [" + p.topic + "]";
         s += "\n  received_window_empty=" + std::to_string((int)r.received_window_empty) +
              " (hook installed, should be 1)";
         s += "\n";
@@ -305,8 +343,8 @@ namespace tick_push_detail
 // fps only increments across whole seconds, so tick cadence is in whole seconds:
 // durtime=5 ⇒ one push ~every 5 seconds, and tick_seq is a session member —
 // reconnect restarts the rotation (colors start over from red).
-constexpr std::size_t kWant = 5;// exit once kWant messages received
-constexpr int kMaxRounds    = 2;// max reconnect rounds
+constexpr std::size_t kWant = 5;  // exit once kWant messages received
+constexpr int kMaxRounds    = 2;  // max reconnect rounds
 constexpr int kRoundPolls   = 108;// per-round window: 108 × 250ms ≈ 27s, enough for one full 5-message cycle
 }// namespace tick_push_detail
 
@@ -329,9 +367,10 @@ asio::awaitable<std::string> test_mqtt_tick_push(std::shared_ptr<httppeer> peer)
 
     auto ctx = std::make_shared<tick_push_ctx_t>();
 
-    auto cli = std::make_shared<mqtt_client>();
-    cli->set_host("127.0.0.1");
-    cli->set_port(80);
+    auto cli  = std::make_shared<mqtt_client>();
+    auto demo = demo_broker();
+    cli->set_host(demo.host);
+    cli->set_port(demo.port);
     mqtt_client_config_t cfg;
     cfg.client_id   = "mydevice@@@tick-watch-1";
     cfg.clean_start = true;
@@ -346,7 +385,8 @@ asio::awaitable<std::string> test_mqtt_tick_push(std::shared_ptr<httppeer> peer)
             std::lock_guard<std::mutex> lk(ctx->mu);
             ctx->recv_window_empty = false;
         }
-        if (pkt.topic != "/led/set") return;
+        if (pkt.topic != "/led/set")
+            return;
         std::lock_guard<std::mutex> lk(ctx->mu);
         ctx->msgs.push_back(pkt);
     };
@@ -358,9 +398,11 @@ asio::awaitable<std::string> test_mqtt_tick_push(std::shared_ptr<httppeer> peer)
         {
             {
                 std::lock_guard<std::mutex> lk(ctx->mu);
-                if (ctx->msgs.size() >= tick_push_detail::kWant) break;
+                if (ctx->msgs.size() >= tick_push_detail::kWant)
+                    break;
             }
-            if (!co_await self->async_mqtt_connect(/*ms=*/5000)) break;
+            if (!co_await self->async_mqtt_connect(/*ms=*/5000))
+                break;
             self->iserror = false;
             self->error_msg.clear();
 
@@ -375,7 +417,8 @@ asio::awaitable<std::string> test_mqtt_tick_push(std::shared_ptr<httppeer> peer)
                     std::lock_guard<std::mutex> lk(ctx->mu);
                     n = ctx->msgs.size();
                 }
-                if (n >= tick_push_detail::kWant) break;
+                if (n >= tick_push_detail::kWant)
+                    break;
                 co_await asio::steady_timer(self->strand_, std::chrono::milliseconds(250))
                     .async_wait(asio::use_awaitable);
             }
@@ -412,8 +455,7 @@ asio::awaitable<std::string> test_mqtt_tick_push(std::shared_ptr<httppeer> peer)
         summary += "\nserver tick push (sync run_loop): " +
                    std::string(ctx->msgs.size() >= tick_push_detail::kWant ? "PASS" : "FAIL") + "\n";
         summary += "hook installed, no window writes: " +
-                   std::string(ctx->msgs.empty() ? "— (none received, reading is meaningless)"
-                             : (ctx->recv_window_empty ? "PASS" : "FAIL (received was populated)")) + "\n";
+                   std::string(ctx->msgs.empty() ? "— (none received, reading is meaningless)" : (ctx->recv_window_empty ? "PASS" : "FAIL (received was populated)")) + "\n";
     }
     cp.output = make_html("MQTT Server Tick Push (Sync) — Collect 5 Messages", summary);
     co_return "";
@@ -446,9 +488,10 @@ asio::awaitable<std::string> test_mqtt_tick_push_co(std::shared_ptr<httppeer> pe
 
     unsigned int baseline = static_cast<unsigned int>(get_server_app().mqtttasks.size());
 
-    auto cli = std::make_shared<mqtt_client>();
-    cli->set_host("127.0.0.1");
-    cli->set_port(80);
+    auto cli  = std::make_shared<mqtt_client>();
+    auto demo = demo_broker();
+    cli->set_host(demo.host);
+    cli->set_port(demo.port);
     mqtt_client_config_t cfg;
     cfg.client_id   = "mydeviceco@@@tick-watch-co";
     cfg.clean_start = true;
@@ -457,10 +500,12 @@ asio::awaitable<std::string> test_mqtt_tick_push_co(std::shared_ptr<httppeer> pe
 
     cli->run_loop_fun = [ctx](std::shared_ptr<mqtt_client>, const mqtt_recv_packet_t &pkt)
     {
-        if (pkt.topic != "demo/async_tick") return;
+        if (pkt.topic != "demo/async_tick")
+            return;
         std::lock_guard<std::mutex> lk(ctx->mu);
         ctx->msgs.push_back(pkt);
-        if (ctx->msgs.size() >= kCoWant) ctx->got_want = true;
+        if (ctx->msgs.size() >= kCoWant)
+            ctx->got_want = true;
     };
 
     cli->async_run_task_fun =
@@ -478,7 +523,8 @@ asio::awaitable<std::string> test_mqtt_tick_push_co(std::shared_ptr<httppeer> pe
             {
                 {
                     std::lock_guard<std::mutex> lk(ctx->mu);
-                    if (ctx->got_want) break;
+                    if (ctx->got_want)
+                        break;
                 }
                 co_await asio::steady_timer(self->strand_, std::chrono::milliseconds(250))
                     .async_wait(asio::use_awaitable);
@@ -500,10 +546,11 @@ asio::awaitable<std::string> test_mqtt_tick_push_co(std::shared_ptr<httppeer> pe
     //           ~1.5s after filled (zero-drop happens, connection still alive),
     //           ~1.5s after disconnect.
     unsigned int peak = baseline;
-    auto snap = [](unsigned int &out_peak)
+    auto snap         = [](unsigned int &out_peak)
     {
         unsigned int n = static_cast<unsigned int>(get_server_app().mqtttasks.size());
-        if (n > out_peak) out_peak = n;
+        if (n > out_peak)
+            out_peak = n;
         return n;
     };
 
@@ -564,18 +611,20 @@ asio::awaitable<std::string> test_mqtt_tick_push_co(std::shared_ptr<httppeer> pe
 //@urlpath(null, start_mqtt_loop)
 asio::awaitable<std::string> start_mqtt_loop(std::shared_ptr<httppeer> peer)
 {
-    httppeer &cp = peer->get_peer();
+    httppeer &cp        = peer->get_peer();
     std::string cfg_key = cp.get["cfg"].to_string();
-    if (cfg_key.empty()) cfg_key = "loop-worker";
+    if (cfg_key.empty())
+        cfg_key = "loop-worker";
 
     auto &cfg_reg = get_mqtt_loop_cfg();
-    auto it = cfg_reg.find(cfg_key);
+    auto it       = cfg_reg.find(cfg_key);
     if (it == cfg_reg.end())
     {
         std::string available;
-        for (auto &kv : cfg_reg) available += kv.first + " ";
+        for (auto &kv : cfg_reg)
+            available += kv.first + " ";
         co_return make_html("start_mqtt_loop",
-            "unknown cfg: " + cfg_key + "\navailable: " + available + "\n");
+                            "unknown cfg: " + cfg_key + "\navailable: " + available + "\n");
     }
     auto &cfg = it->second;
     // ?hold=N: after subscribe, stay connected for N seconds before disconnecting,
@@ -591,13 +640,15 @@ asio::awaitable<std::string> start_mqtt_loop(std::shared_ptr<httppeer> peer)
         if (e != reg.items.end() && e->second.first.lock())
         {
             co_return make_html("start_mqtt_loop",
-                "already running: " + cfg.client_id + "\n");
+                                "already running: " + cfg.client_id + "\n");
         }
     }
 
     auto cli = std::make_shared<mqtt_client>();
-    cli->set_host(cfg.host);
-    cli->set_port(cfg.port);
+    // 本条 loop 没显式写地址就取 conf 的 [demo] 段，写了就用它自己的
+    demo_broker_t broker = demo_broker();
+    cli->set_host(cfg.host.empty() ? broker.host : cfg.host);
+    cli->set_port(cfg.port > 0 ? cfg.port : broker.port);
     mqtt_client_config_t mc;
     mc.client_id       = cfg.client_id;
     mc.clean_start     = cfg.clean_start;
@@ -605,7 +656,8 @@ asio::awaitable<std::string> start_mqtt_loop(std::shared_ptr<httppeer> peer)
     mc.receive_maximum = cfg.receive_maximum;
     cli->set_config(mc);
 
-    if (cfg.on_publish) cli->run_loop_fun = cfg.on_publish;
+    if (cfg.on_publish)
+        cli->run_loop_fun = cfg.on_publish;
 
     auto stop_flag = std::make_shared<std::atomic<bool>>(false);
 
@@ -622,10 +674,14 @@ asio::awaitable<std::string> start_mqtt_loop(std::shared_ptr<httppeer> peer)
             if (!ok)
             {
                 DEBUG_LOG("[mqtt_loop:%s] round %d connect failed: %s",
-                          cfg.client_id.c_str(), round, self->error_msg.c_str());
-                if (stop_flag->load()) break;
+                          cfg.client_id.c_str(),
+                          round,
+                          self->error_msg.c_str());
+                if (stop_flag->load())
+                    break;
                 co_await asio::steady_timer(self->strand_,
-                    std::chrono::seconds(cfg.interval_sec)).async_wait(asio::use_awaitable);
+                                            std::chrono::seconds(cfg.interval_sec))
+                    .async_wait(asio::use_awaitable);
                 continue;
             }
 
@@ -635,11 +691,10 @@ asio::awaitable<std::string> start_mqtt_loop(std::shared_ptr<httppeer> peer)
             if (!cfg.publish_topic.empty())
             {
                 std::string payload = cfg.publish_payload;
-                auto pos = payload.find("%round%");
+                auto pos            = payload.find("%round%");
                 if (pos != std::string::npos)
                     payload.replace(pos, 7, std::to_string(round));
-                co_await self->async_publish(cfg.publish_topic, payload,
-                                             cfg.publish_qos, cfg.publish_retain);
+                co_await self->async_publish(cfg.publish_topic, payload, cfg.publish_qos, cfg.publish_retain);
             }
 
             // Sleep in chunks: must also honour stop during hold, otherwise the old client
@@ -647,14 +702,17 @@ asio::awaitable<std::string> start_mqtt_loop(std::shared_ptr<httppeer> peer)
             // would then be rejected with CONNACK rc=135 until the old one drops.
             for (int t = 0; t < hold_sec * 2 && !stop_flag->load(); ++t)
                 co_await asio::steady_timer(self->strand_,
-                    std::chrono::milliseconds(500)).async_wait(asio::use_awaitable);
+                                            std::chrono::milliseconds(500))
+                    .async_wait(asio::use_awaitable);
 
             DEBUG_LOG("[mqtt_loop:%s] round %d done", cfg.client_id.c_str(), round);
             co_await self->async_disconnect();
 
-            if (stop_flag->load()) break;
+            if (stop_flag->load())
+                break;
             co_await asio::steady_timer(self->strand_,
-                std::chrono::seconds(cfg.interval_sec)).async_wait(asio::use_awaitable);
+                                        std::chrono::seconds(cfg.interval_sec))
+                .async_wait(asio::use_awaitable);
         }
         DEBUG_LOG("[mqtt_loop:%s] stopped after %d rounds", cfg.client_id.c_str(), round);
         co_return;
@@ -668,9 +726,9 @@ asio::awaitable<std::string> start_mqtt_loop(std::shared_ptr<httppeer> peer)
     http::get_client_context_obj().add_mqtt_task(cli);
 
     cp.output = make_html("start_mqtt_loop",
-        "started cfg=" + cfg_key + " client_id=" + cfg.client_id +
-        " interval=" + std::to_string(cfg.interval_sec) + "s" +
-        " hold=" + std::to_string(hold_sec) + "s\n");
+                          "started cfg=" + cfg_key + " client_id=" + cfg.client_id +
+                              " interval=" + std::to_string(cfg.interval_sec) + "s" +
+                              " hold=" + std::to_string(hold_sec) + "s\n");
     co_return "";
 }
 
@@ -679,15 +737,18 @@ asio::awaitable<std::string> start_mqtt_loop(std::shared_ptr<httppeer> peer)
 //@urlpath(null, stop_mqtt_loop)
 asio::awaitable<std::string> stop_mqtt_loop(std::shared_ptr<httppeer> peer)
 {
-    httppeer &cp = peer->get_peer();
+    httppeer &cp        = peer->get_peer();
     std::string cfg_key = cp.get["cfg"].to_string();
-    if (cfg_key.empty()) cfg_key = "loop-worker";
+    if (cfg_key.empty())
+        cfg_key = "loop-worker";
 
     std::string client_id;
     auto &cfg_reg = get_mqtt_loop_cfg();
-    auto it = cfg_reg.find(cfg_key);
-    if (it != cfg_reg.end()) client_id = it->second.client_id;
-    else client_id = cfg_key;
+    auto it       = cfg_reg.find(cfg_key);
+    if (it != cfg_reg.end())
+        client_id = it->second.client_id;
+    else
+        client_id = cfg_key;
 
     auto &reg = get_mqtt_loop_registry();
     std::shared_ptr<std::atomic<bool>> stop;
@@ -697,7 +758,7 @@ asio::awaitable<std::string> stop_mqtt_loop(std::shared_ptr<httppeer> peer)
         if (e == reg.items.end())
         {
             co_return make_html("stop_mqtt_loop",
-                "not found: " + client_id + "\n");
+                                "not found: " + client_id + "\n");
         }
         stop = e->second.second;
         reg.items.erase(e);
@@ -705,7 +766,7 @@ asio::awaitable<std::string> stop_mqtt_loop(std::shared_ptr<httppeer> peer)
     stop->store(true);
 
     cp.output = make_html("stop_mqtt_loop",
-        "stop signal sent to " + client_id + "\n");
+                          "stop signal sent to " + client_id + "\n");
     co_return "";
 }
 
@@ -713,9 +774,9 @@ asio::awaitable<std::string> stop_mqtt_loop(std::shared_ptr<httppeer> peer)
 //@urlpath(null, list_mqtt_loop)
 asio::awaitable<std::string> list_mqtt_loop(std::shared_ptr<httppeer> peer)
 {
-    httppeer &cp = peer->get_peer();
+    httppeer &cp    = peer->get_peer();
     std::string out = "=== running ===\n";
-    auto &reg = get_mqtt_loop_registry();
+    auto &reg       = get_mqtt_loop_registry();
     std::lock_guard<std::mutex> lk(reg.mu);
     for (auto &kv : reg.items)
     {
@@ -739,8 +800,15 @@ asio::awaitable<std::string> list_mqtt_loop(std::shared_ptr<httppeer> peer)
     out += "\n=== registered cfg ===\n";
     auto &cfg_reg = get_mqtt_loop_cfg();
     for (auto &kv : cfg_reg)
+    {
+        // 把这一条 loop 真会去连的地址一起打出来：cfg 里 host/port 留空就是跟 conf 的 [demo] 段，
+        // 光看 client_id 读不出它连的是哪个端口
+        demo_broker_t b = demo_broker();
         out += "  " + kv.first + " → client_id=" + kv.second.client_id +
-               " interval=" + std::to_string(kv.second.interval_sec) + "s\n";
+               " interval=" + std::to_string(kv.second.interval_sec) + "s" +
+               " broker=" + (kv.second.host.empty() ? b.host : kv.second.host) + ":" +
+               std::to_string(kv.second.port > 0 ? kv.second.port : b.port) + "\n";
+    }
     cp.output = make_html("list_mqtt_loop", out);
     co_return "";
 }
