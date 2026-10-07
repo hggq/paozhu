@@ -6,6 +6,7 @@
 #include <string>
 
 #include <asio.hpp>
+#include <asio/io_context.hpp>
 
 namespace http
 {
@@ -29,11 +30,11 @@ struct pool_text : pool_fail
 // 三个入口只在协程里 co_await：fn() 跑在业务池线程，续体回到本协程的执行域。
 // 默认参数用 {} 而非 asio::use_awaitable：两者等价，调用点少写一个实参。
 // 池没接单时不会把协程挂住——以 rejected=true 就地完成，调用方必须读这个标志。
-asio::awaitable<pool_text, asio::any_io_executor> co_pool_run_step(std::function<std::string()> fn,
+asio::awaitable<pool_text> co_pool_run_step(std::function<std::string()> fn,
                                             asio::use_awaitable_t<> h = {});
-asio::awaitable<pool_bool, asio::any_io_executor> co_pool_run_bool(std::function<bool()> fn,
+asio::awaitable<pool_bool> co_pool_run_bool(std::function<bool()> fn,
                                             asio::use_awaitable_t<> h = {});
-asio::awaitable<pool_fail, asio::any_io_executor> co_pool_run_void(std::function<void()> fn,
+asio::awaitable<pool_fail> co_pool_run_void(std::function<void()> fn,
                                             asio::use_awaitable_t<> h = {});
 
 // eptr 的文本形态；空指针返回空串
