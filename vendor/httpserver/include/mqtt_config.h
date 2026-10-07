@@ -10,6 +10,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <cstdint>
 
 #include "parse_ini.h"
 
