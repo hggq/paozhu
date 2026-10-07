@@ -40,7 +40,10 @@ std::string testexecuteclienttask(std::shared_ptr<httppeer> peer)
 
     try
     {
-        users.where("name", "admin").limit(1).fetch();
+        // fetch_one() 把这一行填进 data，fetch() 只往 record 追加；getAdminid() 这一族
+        // 生成的 getter 读的是 data.<列>，所以用 fetch() 时这个分支恒假、下面那次 UPDATE
+        // 一次都没发出去过。limit(1) 也不用写，fetch_one() 自己带 limit 1。
+        users.where("name", "admin").fetch_one();
         if (users.getAdminid() > 0)
         {
             // not output

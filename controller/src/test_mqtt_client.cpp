@@ -1,12 +1,13 @@
 // test_mqtt_client.cpp — controller business handlers (minimal pattern)
 // 1. Construct mqtt_client, set all callbacks
 // 2. http::get_client_context_obj().add_mqtt_task(cli) — drop directly into queue
-// 3. async_run_task_fun completion → cv.notify_one() — wake handler
-// 4. handler waits on condition_variable, then writes HTML response
+// 3. async_run_task_fun completion → set a done flag living on the heap (shared_ptr),
+//    so the waiting side can still be destroyed on timeout without pulling the task's
+//    state down with it
+// 4. handler polls server_ioc every 50ms for that flag, then writes HTML response
 
 #include <atomic>
 #include <chrono>
-#include <condition_variable>
 #include <functional>
 #include <mutex>
 #include <string>
@@ -187,25 +188,34 @@ struct case_result
 // Two io_contexts: handler polls server_ioc every 50ms; the MQTT task runs inside client_context.ioc.
 auto run_one_case = [](std::string_view name, mqtt_client_config_t cfg) -> asio::awaitable<case_result>
 {
-    case_result r;
-    r.name    = std::string(name);
+    // 状态全放堆上，轮询这一侧和 client_context 上那条 task 各持一份 shared_ptr。
+    // 早先 task 的 lambda 用 [&] 直接吃这一帧的局部（r / recv_packets / done / name），
+    // 而下面的轮询到 5 秒就放弃、co_return 把这一帧销毁 —— task 还在往 r.* 写，
+    // 那是 use-after-free，而且 broker 连不上（正是最需要出结果的时候）必然走这条路。
+    // done 原来是加锁写、无锁轮询读，本身也是 data race，一并换成原子量。
+    struct case_state
+    {
+        std::string name;
+        case_result r;
+        std::vector<mqtt_recv_packet_t> recv;
+        std::atomic<bool> done{false};
+    };
+    auto st   = std::make_shared<case_state>();
+    st->name  = std::string(name);
+    st->r.name = st->name;
+
     auto cli  = std::make_shared<mqtt_client>();
     auto demo = demo_broker();
     cli->set_host(demo.host);
     cli->set_port(demo.port);
     cli->set_config(cfg);
 
-    std::vector<mqtt_recv_packet_t> recv_packets;
-    cli->run_loop_fun = [&](std::shared_ptr<mqtt_client>, const mqtt_recv_packet_t &pkt)
+    cli->run_loop_fun = [st](std::shared_ptr<mqtt_client>, const mqtt_recv_packet_t &pkt)
     {
-        recv_packets.push_back(pkt);
+        st->recv.push_back(pkt);
     };
 
-    std::mutex mu;
-    std::condition_variable cv;
-    bool done = false;
-
-    cli->async_run_task_fun = [&](std::shared_ptr<mqtt_client> c) -> asio::awaitable<void>
+    cli->async_run_task_fun = [st](std::shared_ptr<mqtt_client> c) -> asio::awaitable<void>
     {
         auto self = c;
         bool ok   = co_await self->async_mqtt_connect(/*ms=*/5000);
@@ -227,43 +237,50 @@ auto run_one_case = [](std::string_view name, mqtt_client_config_t cfg) -> asio:
             co_await asio::steady_timer(self->strand_, std::chrono::milliseconds(50))
                 .async_wait(asio::use_awaitable);
 
-            co_await self->async_publish("chat/hi", "ping-" + std::string(name), /*qos=*/0, /*retain=*/false);
+            co_await self->async_publish("chat/hi", "ping-" + st->name, /*qos=*/0, /*retain=*/false);
             co_await asio::steady_timer(self->strand_, std::chrono::milliseconds(150))
                 .async_wait(asio::use_awaitable);
 
-            r.connected_             = self->connected_;
-            r.connack_rc             = self->connack_rc;
-            r.session_present        = self->session_present;
-            r.iserror                = self->iserror;
-            r.error_msg              = self->error_msg;
-            r.server_receive_maximum = self->server_props.receive_maximum;
-            r.recv                   = recv_packets;
-            r.received_window_empty  = self->received.empty();
+            st->r.connected_             = self->connected_;
+            st->r.connack_rc             = self->connack_rc;
+            st->r.session_present        = self->session_present;
+            st->r.iserror                = self->iserror;
+            st->r.error_msg              = self->error_msg;
+            st->r.server_receive_maximum = self->server_props.receive_maximum;
+            st->r.recv                   = st->recv;
+            st->r.received_window_empty  = self->received.empty();
 
             co_await self->async_disconnect();
         }
         else
         {
-            r.iserror   = self->iserror;
-            r.error_msg = self->error_msg;
+            st->r.iserror   = self->iserror;
+            st->r.error_msg = self->error_msg;
         }
-        {
-            std::lock_guard<std::mutex> lk(mu);
-            done = true;
-        }
-        cv.notify_one();
+        // 置位之后这条协程不再碰 st，轮询侧读到 true 才去读上面那一堆读数。
+        st->done.store(true);
         co_return;
     };
 
     http::get_client_context_obj().add_mqtt_task(cli);
 
     // Handler polls on server_ioc, waits for client_context.ioc to finish.
-    for (int i = 0; i < 100 && !done; ++i)
+    for (int i = 0; i < 100 && !st->done.load(); ++i)
     {
         co_await asio::steady_timer(get_server_app().get_ctx(), std::chrono::milliseconds(50))
             .async_wait(asio::use_awaitable);
     }
-    co_return r;
+    if (!st->done.load())
+    {
+        // 超时：task 还活着、还会往 st->r 写，所以这边一个读数都不碰，只把名字带回去。
+        // st 由 task 那份 shared_ptr 继续撑着，销毁的是这一帧，不是它引用的内存。
+        case_result timeout{};
+        timeout.name      = st->name;
+        timeout.iserror   = true;
+        timeout.error_msg = "task did not finish within 5s (broker unreachable?)";
+        co_return timeout;
+    }
+    co_return st->r;
 };
 
 // test_mqtt_client — main handler that chains 3 cases and assembles HTML

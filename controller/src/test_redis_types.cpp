@@ -1589,6 +1589,25 @@ asio::awaitable<std::string> test_redis_types(std::shared_ptr<httppeer> peer)
         co_return "";
     }
 
+    // 组名打错时六个 do_* 全是 false：期望条数只剩页面级那几条，断言一条类型命令都没发，
+    // 页面照样能打出一屏绿并回显 group=<错名>。这里先明确拒掉，让"grp 拼错了"和
+    // "这一组全过了"是两种读数；mode 字段就是这条支路的触发计数。
+    if (!grp.empty() && grp != "all" && grp != "check" && grp != "string" && grp != "hash" &&
+        grp != "list" && grp != "stream" && grp != "set" && grp != "key")
+    {
+        client.val["mode"]           = std::string("unknown-group");
+        client.val["grp"]            = grp;
+        client.val["total"]          = 0LL;
+        client.val["pass"]           = 0LL;
+        client.val["fail"]           = 0LL;
+        client.val["expected_total"] = 0LL;
+        client.val["all_pass"]       = 0;
+        client.val["error"] = std::string("unknown grp; valid: (empty) all check string hash list stream set key, "
+                                          "plus one-shot groups cleanup leave skiparm pfxctor");
+        client.out_json();
+        co_return "";
+    }
+
     const bool do_string = (grp.empty() || grp == "all" || grp == "check" || grp == "string");
     const bool do_hash   = (grp.empty() || grp == "all" || grp == "check" || grp == "hash");
     const bool do_list   = (grp.empty() || grp == "all" || grp == "check" || grp == "list");

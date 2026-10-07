@@ -43,19 +43,23 @@ namespace http
 struct bench_stats
 {
     std::vector<double> latencies_us;// per-op latency in microseconds
+    bool sorted_ = false;            // 排过序没有，必须跟着实例走
 
     void add(double us)
     {
         latencies_us.push_back(us);
+        sorted_ = false;
     }
 
+    // sorted_ 早先是函数里的 static thread_local：那是「每线程一枚、所有 bench_stats 实例
+    // 共享且永不复位」，同一根线程第二次跑这个页起，任何实例都不再排序，分位数读的是未排序
+    // 向量。标记搬成成员，add() 一写就作废。
     void sort_if_needed()
     {
-        static thread_local bool sorted = false;
-        if (!sorted)
+        if (!sorted_)
         {
             std::sort(latencies_us.begin(), latencies_us.end());
-            sorted = true;
+            sorted_ = true;
         }
     }
 
@@ -95,6 +99,8 @@ struct bench_stats
     {
         if (latencies_us.empty())
             return 0;
+        // 排完再取末尾：back() 在未排序向量上是「最后一条样本」，不是最大值。
+        sort_if_needed();
         return latencies_us.back();
     }
 
@@ -108,7 +114,7 @@ struct bench_stats
             r["count"] = 0LL;
             return r;
         }
-        std::sort(latencies_us.begin(), latencies_us.end());
+        sort_if_needed();
         auto count = latencies_us.size();
         double sum = 0;
         for (auto v : latencies_us)
@@ -323,6 +329,11 @@ asio::awaitable<std::string> test_redis_bench_async_concurrent(std::shared_ptr<h
     struct SharedState
     {
         std::atomic<int> next_idx{0};
+        // 每个 worker 独占一格，只有那条线程读写自己那一格，全部结束后由主协程合并。
+        // 早先所有 worker 往同一个 bench_stats 追加：vector 的 push_back 会扩容搬走整块内存，
+        // 并发扩容就是 data race（最多 256 条线程同时写同一个 vector）。
+        std::vector<bench_stats> per_worker_set;
+        std::vector<bench_stats> per_worker_get;
         bench_stats set_stats;
         bench_stats get_stats;
         std::atomic<int> finished{0};
@@ -330,6 +341,9 @@ asio::awaitable<std::string> test_redis_bench_async_concurrent(std::shared_ptr<h
     };
     auto state           = std::make_shared<SharedState>();
     state->total_workers = params.concurrency;
+    // 必须在 post 出第一条 worker 之前把格子摆好：worker 只按下标读写，不再改容器长度。
+    state->per_worker_set.resize(params.concurrency);
+    state->per_worker_get.resize(params.concurrency);
 
     auto *ioc = pz::redis::get_redis_pool().get_io_context();
     if (!ioc)
@@ -346,7 +360,7 @@ asio::awaitable<std::string> test_redis_bench_async_concurrent(std::shared_ptr<h
         // 阻塞 ioc 的某个 worker 线程，真正并行，不会卡 HTTP strand
         asio::post(
             *ioc,
-            [state, params]()
+            [state, params, w]()
             {
                 try
                 {
@@ -362,7 +376,7 @@ asio::awaitable<std::string> test_redis_bench_async_concurrent(std::shared_ptr<h
                             rc.str_set(params.key + "_" + std::to_string(idx), params.val);
                             auto en = std::chrono::steady_clock::now();
                             auto us = std::chrono::duration<double, std::micro>(en - st).count();
-                            state->set_stats.add(us);
+                            state->per_worker_set[w].add(us);
                         }
                         if (params.do_get)
                         {
@@ -370,7 +384,7 @@ asio::awaitable<std::string> test_redis_bench_async_concurrent(std::shared_ptr<h
                             rc.str_get(params.key + "_" + std::to_string(idx));
                             auto en = std::chrono::steady_clock::now();
                             auto us = std::chrono::duration<double, std::micro>(en - st).count();
-                            state->get_stats.add(us);
+                            state->per_worker_get[w].add(us);
                         }
                     }
                 }
@@ -397,6 +411,19 @@ asio::awaitable<std::string> test_redis_bench_async_concurrent(std::shared_ptr<h
             }
         },
         asio::use_awaitable);
+
+    // 全部 worker 收尾之后才合并（worker 的 finished 计数是原子自增，主协程原子读，
+    // 读到的那一格之后不再被任何线程写）。放在等待之前合并会读到半成品向量。
+    for (auto &s : state->per_worker_set)
+    {
+        for (auto us : s.latencies_us)
+            state->set_stats.add(us);
+    }
+    for (auto &s : state->per_worker_get)
+    {
+        for (auto us : s.latencies_us)
+            state->get_stats.add(us);
+    }
 
     auto t1            = std::chrono::steady_clock::now();
     long long total_ms = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
@@ -597,6 +624,16 @@ asio::awaitable<std::string> test_async_profile(std::shared_ptr<httppeer> peer)
     auto params = bench_params::parse(client);
     int n       = params.n;
     auto sec    = pz::redis::get_redis_pool().section("default");
+    // section() 段没加载时回 nullptr（redis_pool::section 找不到就 return nullptr）。
+    // 下面 warmup、取连接、back_conn 一共六处 sec-> 裸解引用，缺这一段就是 conf 里少一个
+    // [default] 时一个 GET 把业务线程 SIGSEGV。早退形状照本文件 ioc 判空那一段。
+    if (!sec)
+    {
+        client.val.set_object();
+        client.val["error"] = "redis section [default] not loaded";
+        client.out_json();
+        co_return "";
+    }
 
     // warmup
     for (int i = 0; i < 5; ++i)

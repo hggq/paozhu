@@ -1,4 +1,5 @@
 #include <chrono>
+#include <cstdio>
 #include <functional>
 #include <memory>
 #include <string>
@@ -76,9 +77,16 @@ class wssleepwebsockets : public websockets_api
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(3000));
         }
-        self->send(msg.value + " tid=" + ws_probe_detail::tid_text() +
-                   " seq=" + std::to_string(msg.seqid) +
-                   " q=" + std::to_string(self->queue_items()));
+        // send() 的返回值必须检查：发送环满（或连接已关）时这一片没进去，回显不会出现在客户端。
+        // 演示不做重投，但要留下一行说明 —— 否则客户端"没收到回显"会被读成上面那句
+        // "入站没有被串行"的反例，而实际是出站丢了一片。
+        std::string seq = std::to_string(msg.seqid);
+        if (!self->send(msg.value + " tid=" + ws_probe_detail::tid_text() +
+                        " seq=" + seq +
+                        " q=" + std::to_string(self->queue_items())))
+        {
+            std::fprintf(stderr, "[wssleep] send refused (sync hook, seq=%s)\n", seq.c_str());
+        }
     }
 
     // 协程版钩子（注册名 /wssleepco 走这里）：消息由框架直接递进来，不用自己去队列里取，
@@ -87,7 +95,11 @@ class wssleepwebsockets : public websockets_api
     asio::awaitable<void> async_onmessage(websockets_data_list_t &&msg) override
     {
         auto self = shared_from_this();
-        self->send(msg.value + " tid=" + ws_probe_detail::tid_text());
+        // 同上：这一路是协程线程指纹的对照样本，回显丢了那条样本就少一个，留一行说明。
+        if (!self->send(msg.value + " tid=" + ws_probe_detail::tid_text()))
+        {
+            std::fprintf(stderr, "[wssleepco] send refused (coroutine hook)\n");
+        }
         co_return;
     }
 

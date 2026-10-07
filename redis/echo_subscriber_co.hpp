@@ -5,11 +5,12 @@
  *   pump 回调  → co_spawn(io_ctx, async_on_message) → io_context 新协程
  *   钩子      → co_await async_on_subscribe_ok / async_on_message（本协程里）
  *
- * 自验证流程：on_subscribe_ok 时 test_and_set 抢本实例旗 → 跑 self_test PUBLISH 10 轮 → clear 放旗。
- * 重连/重订阅后可以重新抢旗再跑一轮。
+ * 自验证流程：on_subscribe_ok 时 test_and_set 抢本实例旗 → 跑 self_test PUBLISH 10 轮 →
+ * 这条自验证协程结束时（含异常退出）放旗。重连/重订阅后可以重新抢旗再跑一轮。
  *
  * test_publisher_ 是**本 client 实例**成员旗：保护 active_sub_ 对应的 subscriber socket
  * 不被 self_test 的 async_publish 和将来业务在 pump 回调里的 publish 竞争。
+ * 断连**不**放旗：持旗的自验证协程还在跑，此时放旗等于允许第二次订阅并发进同一条 socket 的写路径。
  */
 #pragma once
 
@@ -22,7 +23,7 @@
 namespace redis_framework_test
 {
 
-// 全局共享旗：防止多个订阅类实例同时去写 socket（async_publish）
+// 本实例的写路径保护旗：同一份订阅对象上只允许一条自验证协程进 async_publish
 class echo_subscriber_co : public pz::redis::redis_subpub_client
 {
   public:
@@ -53,9 +54,19 @@ class echo_subscriber_co : public pz::redis::redis_subpub_client
             {
                 asio::co_spawn(*io_ctx, [self]() -> asio::awaitable<void>
                                {
-                        co_await self->run_self_test();
-                        self->test_publisher_.clear();  // 发完放旗（用 self capture）
-                        co_return; },
+                                    // 放旗只在这一处、且不管自验证是正常跑完还是抛出来：
+                                    // 抢旗的是这条协程，只有它知道自己什么时候不再写 socket。
+                                    // timer 被取消（停服/strand 撤销）会从 co_await 抛出，
+                                    // 那种时候漏放就会把旗永久卡住。
+                                    try
+                                    {
+                                        co_await self->run_self_test();
+                                    }
+                                    catch (...)
+                                    {
+                                    }
+                                    self->test_publisher_.clear();
+                                    co_return; },
                                asio::detached);
             }
         }
@@ -65,8 +76,9 @@ class echo_subscriber_co : public pz::redis::redis_subpub_client
     asio::awaitable<void> async_on_disconnect() override
     {
         fprintf(stderr, "[echo_co_sub] DISCONNECT, reconnecting in 3s\n");
-        // 断连也放旗，重连后能再抢
-        test_publisher_.clear();
+        // 这里不放旗。持旗的自验证协程可能还在跑（run_self_test 看到 isclose 会自己收手，
+        // 收手时由它放），此处再 clear 一次等于把别人正持着的旗交出去 —— 下一次订阅就能
+        // 并发进同一条 subscriber socket 的写路径。
         co_return;
     }
 
