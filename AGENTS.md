@@ -1753,11 +1753,11 @@ Set `debug_enable = 1` in `server.conf`; ORM will log the generated SQL statemen
 
 ## XIII. Clean Project Initialization
 
-After cloning the Paozhu framework from GitHub, you usually want to strip out the example business code and start with a clean scaffold that keeps the framework core plus the hello annotation. Follow this four‑step cleanup flow.
+After cloning the Paozhu framework from GitHub, you usually want to strip out the example business code and start with a clean scaffold that keeps the framework core plus the hello annotation. `./mini_project.sh` automates this six‑step flow (`./mini_project.sh --benchmark` appends the TechEmpower overlay); the steps below are what the script does, so the two stay checkable against each other.
 
 ### Step 1 — Clean up common/ registration files
 
-Six files need to be trimmed: keep `#include "httppeer.h"`, remove every other `#include`, and empty the bodies of registration functions such as `_initauto_control_httpmethodregto()` (keep the signatures):
+Eleven files need to be trimmed: keep the includes that define the registration table types, remove every other `#include`, and empty the bodies of the registration functions (keep the signatures):
 
 | File | Purpose |
 |------|---------|
@@ -1765,34 +1765,70 @@ Six files need to be trimmed: keep `#include "httppeer.h"`, remove every other `
 | `common/autorestfulpaths.hpp` | RESTful path registration |
 | `common/reghttpmethod.hpp` | HTTP method registration |
 | `common/reghttpmethod_pre.hpp` | HTTP pre-filter registration |
-| `common/sockets_method_reg.hpp` | Socket method registration |
-| `common/websockets_method_reg.hpp` | WebSocket method registration |
+| `common/sockets_method_reg.hpp` | Socket method registration (keep `#include "http_socket.h"`, it defines `HTTP_SOCKET_REG`) |
+| `common/websockets_method_reg.hpp` | WebSocket method registration (keep `#include "websockets_callback.h"`, it defines `WEBSOCKET_REG`) |
+| `common/mqtt_method_reg.hpp` | Inbound MQTT handlers — included **unconditionally** by `vendor/httpserver/src/mqtt_reg.cpp` and `server.cpp`, so the signature and the table-type include must stay |
+| `common/redis_regmethod.hpp` | Redis outbound sub/pub registry (`#ifdef ENABLE_REDIS_CLIENT` on both the file body and the `server.cpp` include) |
+| `common/ws_client_regmethod.hpp` | WebSocket client outbound registry (`ENABLE_WEBSOCKETS_CLIENT`) |
+| `common/sock_client_regmethod.hpp` | Raw socket client outbound registry (`ENABLE_SOCKETS_CLIENT`) |
+| `common/mqtt_client_regmethod.hpp` | MQTT client outbound registry (`ENABLE_MQTT_CLIENT`) |
 
-Each file should end up looking like:
+The signatures are the part that breaks builds when they go stale. Since the v6 router rewrite the two HTTP registries take **no arguments** (`server.cpp` calls `_inithttpmethodregto()` / `_inithttpmethodregto_pre()`), and the controller registrations are a single `_initauto_all_httputils()` rather than the old per-map `_initauto_*_httpmethodregto()` set. Writing the old `std::map<std::string, regmethold_t> &` spelling into these skeletons compiles the header but breaks the caller with `too few arguments to function`. The current shapes:
 
 ```cpp
-#include "httppeer.h"
-
-void _initauto_control_httpmethodregto(std::map<std::string, regmethold_t> &methodcallback)
+// common/autocontrolmethod.hpp — regenerated from controller/src by the
+// paozhu_codegen target, so an empty body keeps an unbuilt tree compiling.
+namespace http
 {
-    // empty implementation
+    void _initauto_all_httputils()
+    {
+    }
 }
-// other registration functions similarly cleared
+
+// common/reghttpmethod.hpp (and _inithttpmethodregto_pre() in reghttpmethod_pre.hpp)
+namespace http
+{
+    inline void _inithttpmethodregto()
+    {
+    }
+}
 ```
 
-### Step 2 — Remove the ORM layer
+`common/autorestfulpaths.hpp` keeps its two map-taking functions (`_initauto_control_httprestful_paths` / `_initauto_domain_httprestful_paths`) — those really do take the registration maps.
+
+### Step 2 — Remove the resident-client and payment demo directories
+
+```bash
+rm -rf redis/* mqtt/* sockets/* websockets/*      # directories stay
+rm -rf libs/webpay/*                              # the directory stays
+```
+
+`redis/ mqtt/ sockets/ websockets/` are header-only demo clients (`echo_*`, `my_test_*`, `*_websockets.hpp`); their only consumers are the registration files emptied in Step 1, and CMake adds them as include directories only, so nothing is compiled out of them.
+
+`libs/webpay/` is the order and pay-channel layer written against the `[cms]` tables — it is the only directory under `libs/` that uses `orm::`, and both build systems collect `libs/**.cpp` unconditionally (`CMakeLists.txt` `file(GLOB_RECURSE reflect_list ... libs/*.cpp)`, `xmake.lua` `add_files("libs/**.cpp")`). Left in a tree with no generated ORM, its `#include "orm.h"` fails before anything else is compiled. The other `libs/` directories (`img` `markdown` `pinyin` `ipdata` `types` `department`) are framework utilities with no ORM dependency and are kept.
+
+### Step 3 — Remove the ORM layer, keep an empty `orm/orm.h`
 
 ```bash
 rm -rf models/* schema/* orm/*
+mkdir -p orm
+
+cat > orm/orm.h << 'EOF'
+// ORM unified entry — placeholder kept by mini_project.sh.
+// Run ./bin/paozhu_cli orm <tag> to generate the models, this file is then
+// rewritten with one #include per generated model of every tag.
+EOF
 ```
 
-These three directories hold database models and generated ORM code — they are not needed for a clean scaffold. Regenerate later with `bin/paozhu_cli orm <tag>` (see §5.1) when you enable a database.
+These three directories hold database models and generated ORM code — they are not needed for a clean scaffold. **But `orm/orm.h` has to stay** — as a placeholder with no `#include` in it, just the comment saying how to refill it. It is the ORM unified entry that business code writes `#include "orm.h"` against, and `orm/` is on the include path only because it exists, so deleting the file breaks every current and future consumer with `orm.h: 没有那个文件或目录` rather than failing where a model is actually used. Write it *after* the `rm -rf orm/*`, or that `rm` deletes it again.
 
-### Step 3 — Clean up view files (keep the registration skeleton)
+Regenerate later with `bin/paozhu_cli orm <tag>` (see §5.1) when you enable a database; that command rewrites `orm/orm.h` with one `#include` per generated model of every tag.
 
-Do **not** `rm -rf` the whole `viewsrc/` directory — the registration headers under `viewsrc/include/` must be kept as skeletons. Three sub-steps.
+### Step 4 — Clean up view files (keep the registration skeleton)
 
-#### 3.1 Remove the view source and template directories
+Do **not** `rm -rf` the whole `viewsrc/` directory — the registration headers under `viewsrc/include/` must be kept as skeletons. Four sub-steps.
+
+#### 4.1 Remove the view source and template directories
 
 ```bash
 rm -rf viewsrc/view/ view/
@@ -1800,7 +1836,7 @@ rm -rf viewsrc/view/ view/
 
 `viewsrc/view/` holds the C++ implementations; `view/` holds the HTML templates. Both are example code and can be deleted directly.
 
-#### 3.2 Empty the `namespace view` block in `viewsrc/include/viewsrc.h`
+#### 4.2 Empty the `namespace view` block in `viewsrc/include/viewsrc.h`
 
 Open `viewsrc/include/viewsrc.h`, delete every inner namespace (admin, cms, home, login, superadmin, techempower) and their function declarations inside `namespace http { namespace view { ... } }`. **Keep the outer namespace wrappers and all `#include` lines.** The file should end up like:
 
@@ -1818,7 +1854,7 @@ namespace view {
 #endif
 ```
 
-#### 3.3 Empty the function body in `viewsrc/include/regviewmethod.hpp`
+#### 4.3 Empty the function body in `viewsrc/include/regviewmethod.hpp`
 
 Open `viewsrc/include/regviewmethod.hpp`, delete every `_viewmetholdreg.emplace(...)` line inside `_initview_method_regto`. **Keep the function signature, namespace, and all `#include` lines.** The file should end up like:
 
@@ -1834,18 +1870,31 @@ namespace http
 
 This removes all example business code while preserving the full view-registration skeleton. When you add new views later, just declare functions inside `namespace view` and register them in `regviewmethod.hpp`.
 
-### Step 4 — Remove controllers (keep testhello)
+#### 4.4 Clean `www/default`, keep one index page
+
+```bash
+rm -rf www/default/*
+echo "Hello World! Paozhu" > www/default/index.html
+```
+
+### Step 5 — Remove controllers (keep testhello and serverwatch)
 
 ```bash
 rm -rf controller/include/*
-find controller/src -type f ! -name 'testhello.cpp' -delete
+find controller/src -type f ! -name 'testhello.cpp' ! -name 'serverwatch.cpp' -delete
 ```
 
 The remaining `controller/src/testhello.cpp` carries the `//@urlpath(null,hello)` annotation and is the single entry point of the hello world route. Once you rebuild, `http://127.0.0.1/hello` is live again.
 
+`controller/src/serverwatch.cpp` is kept because the router looks the handler `frametasks_timeloop` up **by name** (`call_sync_regfun` / `find_sitecontent`): without that file no interval task is ever registered, and the only trace is a `frametasks_timeloop not registered` debug log. It also carries the `/paozhu_status` and `/paozhu_routes` self-check pages.
+
+### Step 6 — Benchmark mode only: overlay the TechEmpower files
+
+`./mini_project.sh --benchmark` copies the business files out of `Benchmark/paozhu_benchmark/` (techempower controller, `World`/`Fortune` models and ORM, `libs/types` json reflect, `view`/`viewsrc`, the two `conf` files) without touching the framework files (`CMakeLists.txt` `vendor/` `startup/`). It replaces `orm/orm.h` from Step 3 with the generated one, so nothing in this overlay needs the placeholder.
+
 ### Done
 
-Rebuild the project after the four steps to get a clean scaffold:
+Rebuild the project after these steps to get a clean scaffold:
 
 ```bash
 cd build && cmake .. && make -j$(sysctl -n hw.ncpu)
@@ -1863,4 +1912,4 @@ cd build && cmake .. -DCMAKE_BUILD_TYPE=Release -DENABLE_BENCHMARK=ON && make -j
 ```
 ---
 
-*Last updated: 2026-09-18*
+*Last updated: 2026-10-07*

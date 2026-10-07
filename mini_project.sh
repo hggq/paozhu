@@ -298,26 +298,44 @@ echo "    resident: redis_regmethod / ws_client_regmethod / sock_client_regmetho
 echo "              mqtt_client_regmethod"
 
 # ============================================================
-# Step 2 — Remove resident-client demo code
+# Step 2 — Remove resident-client and business demo code
 #   redis/  mqtt/  sockets/  websockets/  are header-only demo clients
 #   (echo_* / my_test_* / *_websockets.hpp). Their only consumers are the
 #   registration files emptied in Step 1, and CMake adds them as include
 #   directories only — nothing is compiled out of them — so the content goes
 #   and the directories stay for business clients.
+#
+#   libs/webpay/ is the order/pay-channel layer bound to the [cms] tables; it
+#   is globbed into the build by file(GLOB_RECURSE reflect_list ... libs/*.cpp)
+#   (CMake) and add_files("libs/**.cpp") (xmake), so leaving it in a scaffold
+#   that has no generated ORM makes the build fail on the first business model.
+#   The other libs/ directories (img / markdown / pinyin / ipdata / types /
+#   department) are framework utilities with no ORM dependency and are kept.
 # ============================================================
 echo ""
-echo "[Step 2/${TOTAL_STEPS}] Removing resident-client demo code (redis/ mqtt/ sockets/ websockets/)..."
+echo "[Step 2/${TOTAL_STEPS}] Removing demo code (redis/ mqtt/ sockets/ websockets/ libs/webpay/)..."
 
 for demo_dir in redis mqtt sockets websockets; do
     rm -rf "$demo_dir"/* 2>/dev/null || true
     mkdir -p "$demo_dir"
 done
 
-echo "  OK redis/ mqtt/ sockets/ websockets/ emptied (directories kept)"
+rm -rf libs/webpay/* 2>/dev/null || true
+mkdir -p libs/webpay
+
+echo "  OK redis/ mqtt/ sockets/ websockets/ libs/webpay/ emptied (directories kept)"
 
 # ============================================================
 # Step 3 — Remove ORM layer
 #   models/*  schema/*  orm/*  (directories themselves kept)
+#
+#   One file is kept: an empty orm/orm.h. Business code does
+#   #include "orm.h"  (the ORM unified entry) and CMake only puts orm/ on the
+#   include path because it exists, so deleting it too makes every remaining
+#   consumer — including code the scaffold author writes later — fail with
+#   "orm.h: 没有那个文件或目录" instead of compiling until a model is actually
+#   used. `paozhu_cli orm <tag>` overwrites this placeholder with the generated
+#   per-tag model includes.
 # ============================================================
 echo ""
 echo "[Step 3/${TOTAL_STEPS}] Removing ORM layer (models/ schema/ orm/)..."
@@ -325,8 +343,15 @@ echo "[Step 3/${TOTAL_STEPS}] Removing ORM layer (models/ schema/ orm/)..."
 rm -rf models/*
 rm -rf schema/*
 rm -rf orm/*
+mkdir -p orm
 
-echo "  OK models/ schema/ orm/ emptied"
+cat > orm/orm.h << 'EOF'
+// ORM unified entry — placeholder kept by mini_project.sh.
+// Run ./bin/paozhu_cli orm <tag> to generate the models, this file is then
+// rewritten with one #include per generated model of every tag.
+EOF
+
+echo "  OK models/ schema/ orm/ emptied (empty orm/orm.h kept)"
 
 # ============================================================
 # Step 4 — Clean view files (keep registration skeleton)

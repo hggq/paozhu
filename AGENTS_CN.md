@@ -1694,11 +1694,11 @@ make -j$(nproc)
 
 ## 十三、项目干净初始化
 
-从 GitHub clone 回 Paozhu 框架后，通常需要清理示例业务代码，保留框架核心和 hello 注解作为脚手架起点。以下是四步清理流程。
+从 GitHub clone 回 Paozhu 框架后，通常需要清理示例业务代码，保留框架核心和 hello 注解作为脚手架起点。`./mini_project.sh` 已经把下面六步自动化了（`./mini_project.sh --benchmark` 再追加 TechEmpower 覆盖），这里逐步写明脚本做了什么，便于对照检查。
 
 ### 第一步：清空 common/ 注册文件
 
-以下 6 个文件需要清理 —— 保留 `#include "httppeer.h"`，删除其他所有 `#include`，清空 `_initauto_control_httpmethodregto()` 等注册函数的函数体（只保留空函数签名）：
+以下 11 个文件需要清理 —— 保留定义注册表类型的 `#include`，删除其他 `#include`，清空注册函数的函数体（只保留空函数签名）：
 
 | 文件 | 作用 |
 |------|------|
@@ -1706,34 +1706,70 @@ make -j$(nproc)
 | `common/autorestfulpaths.hpp` | RESTful 路径注册 |
 | `common/reghttpmethod.hpp` | HTTP 方法注册 |
 | `common/reghttpmethod_pre.hpp` | HTTP 前置方法注册 |
-| `common/sockets_method_reg.hpp` | Socket 方法注册 |
-| `common/websockets_method_reg.hpp` | WebSocket 方法注册 |
+| `common/sockets_method_reg.hpp` | Socket 方法注册（保留 `#include "http_socket.h"`，它定义 `HTTP_SOCKET_REG`） |
+| `common/websockets_method_reg.hpp` | WebSocket 方法注册（保留 `#include "websockets_callback.h"`，它定义 `WEBSOCKET_REG`） |
+| `common/mqtt_method_reg.hpp` | 入站 MQTT 处理注册 —— 被 `vendor/httpserver/src/mqtt_reg.cpp` 和 `server.cpp` **无条件** include，所以签名和注册表类型的 include 都必须留着 |
+| `common/redis_regmethod.hpp` | Redis 出站订阅注册表（文件体和 `server.cpp` 的 include 各有一层 `#ifdef ENABLE_REDIS_CLIENT`） |
+| `common/ws_client_regmethod.hpp` | WebSocket 客户端出站注册表（`ENABLE_WEBSOCKETS_CLIENT`） |
+| `common/sock_client_regmethod.hpp` | 原生 socket 客户端出站注册表（`ENABLE_SOCKETS_CLIENT`） |
+| `common/mqtt_client_regmethod.hpp` | MQTT 客户端出站注册表（`ENABLE_MQTT_CLIENT`） |
 
-清理后每个文件形如：
+签名是最容易把构建拖垮的部分。v6 router 重构之后两个 HTTP 注册函数**不再带参数**（`server.cpp` 调 `_inithttpmethodregto()` / `_inithttpmethodregto_pre()`），控制器注册也合并成了一个无参的 `_initauto_all_httputils()`，旧的 `_initauto_*_httpmethodregto()` 一族已经不存在。如果骨架仍按旧写法带 `std::map<std::string, regmethold_t> &`，头文件本身能编过，调用点会报 `too few arguments to function`。当前形状：
 
 ```cpp
-#include "httppeer.h"
-
-void _initauto_control_httpmethodregto(std::map<std::string, regmethold_t> &methodcallback)
+// common/autocontrolmethod.hpp —— 由 paozhu_codegen 目标从 controller/src 重新生成，
+// 所以骨架留空体就能让尚未生成的树编译通过。
+namespace http
 {
-    // 空实现
+    void _initauto_all_httputils()
+    {
+    }
 }
-// 其他注册函数同样清空
+
+// common/reghttpmethod.hpp（reghttpmethod_pre.hpp 里是同形状的 _inithttpmethodregto_pre()）
+namespace http
+{
+    inline void _inithttpmethodregto()
+    {
+    }
+}
 ```
 
-### 第二步：删除 ORM 层
+`common/autorestfulpaths.hpp` 的两个函数仍然带注册表参数（`_initauto_control_httprestful_paths` / `_initauto_domain_httprestful_paths`），它们确实要收那个 map。
+
+### 第二步：删除常驻客户端与支付示例目录
+
+```bash
+rm -rf redis/* mqtt/* sockets/* websockets/*   # 目录保留
+rm -rf libs/webpay/*                           # 目录保留
+```
+
+`redis/ mqtt/ sockets/ websockets/` 是只有头文件的示例客户端（`echo_*`、`my_test_*`、`*_websockets.hpp`），唯一的消费者是第一步清空的注册文件，CMake 只把它们当 include 目录，不产出目标文件，所以内容清掉、目录留着给业务客户端。
+
+`libs/webpay/` 是订单与支付渠道层，按 `[cms]` 表写死——它是 `libs/` 下唯一用到 `orm::` 的目录，而两套构建都会无条件收 `libs/**.cpp`（CMake 的 `file(GLOB_RECURSE reflect_list ... libs/*.cpp)`、xmake 的 `add_files("libs/**.cpp")`）。在没有 ORM 生成代码的脚手架里留着它，第一句 `#include "orm.h"` 就会中断编译。`libs/` 其他目录（`img` `markdown` `pinyin` `ipdata` `types` `department`）不依赖 ORM，保留。
+
+### 第三步：删除 ORM 层，但保留一个空的 `orm/orm.h`
 
 ```bash
 rm -rf models/* schema/* orm/*
+mkdir -p orm
+
+cat > orm/orm.h << 'EOF'
+// ORM unified entry — placeholder kept by mini_project.sh.
+// Run ./bin/paozhu_cli orm <tag> to generate the models, this file is then
+// rewritten with one #include per generated model of every tag.
+EOF
 ```
 
-这三个目录存放数据库模型和 ORM 生成代码，从模板项目不需要。将来启用数据库时用 `bin/paozhu_cli orm <tag>` 重新生成（见 §5.1）。
+这三个目录存放数据库模型和 ORM 生成代码，从模板项目不需要。**但 `orm/orm.h` 必须留下**——里面不要有任何 `#include`，只留那三行说明怎么重新生成的注释：它是业务代码写的 `#include "orm.h"`（ORM 统一入口），而 `orm/` 在搜索路径里只因为它存在，删掉这个文件会让所有现在和将来引用它的代码报 `orm.h: 没有那个文件或目录`，而不是等到真正用到某个模型才失败。注意写入要排在 `rm -rf orm/*` **之后**，否则又被那条 rm 删掉。
 
-### 第三步：清理视图文件（保留注册骨架）
+将来启用数据库时用 `bin/paozhu_cli orm <tag>` 重新生成（见 §5.1），该命令会把 `orm/orm.h` 重写成每个 tag 每个模型一条 `#include`。
 
-这一步不能直接 `rm -rf` 整个目录，因为 `viewsrc/include/` 下的注册头文件需要保留骨架。分三小步进行。
+### 第四步：清理视图文件（保留注册骨架）
 
-#### 3.1 删除视图源码和模板目录
+这一步不能直接 `rm -rf` 整个目录，因为 `viewsrc/include/` 下的注册头文件需要保留骨架。分四小步进行。
+
+#### 4.1 删除视图源码和模板目录
 
 ```bash
 rm -rf viewsrc/view/ view/
@@ -1741,7 +1777,7 @@ rm -rf viewsrc/view/ view/
 
 `viewsrc/view/` 是视图的 C++ 实现源码，`view/` 是 HTML 模板。两者都是示例代码，直接删除。
 
-#### 3.2 清空 viewsrc/include/viewsrc.h 中的 namespace view 内容
+#### 4.2 清空 viewsrc/include/viewsrc.h 中的 namespace view 内容
 
 打开 `viewsrc/include/viewsrc.h`，删除 `namespace http { namespace view { ... } }` 内部所有子命名空间（admin、cms、home、login、superadmin、techempower）及其函数声明，**保留外层命名空间结构和头文件 include**。清理后的骨架：
 
@@ -1759,7 +1795,7 @@ namespace view {
 #endif
 ```
 
-#### 3.3 清空 viewsrc/include/regviewmethod.hpp 的函数体
+#### 4.3 清空 viewsrc/include/regviewmethod.hpp 的函数体
 
 打开 `viewsrc/include/regviewmethod.hpp`，删除 `_initview_method_regto` 函数体内所有 `emplace` 调用，**保留函数签名、命名空间和头文件 include**。清理后的骨架：
 
@@ -1775,18 +1811,31 @@ namespace http
 
 这样既移除了全部示例业务代码，又保留了视图注册机制的完整骨架。后续添加新视图时，只需在 `namespace view` 里声明函数、在 `regviewmethod.hpp` 里注册即可。
 
-### 第四步：删除控制器（保留 testhello）
+#### 4.4 清空 www/default，只留一个首页
+
+```bash
+rm -rf www/default/*
+echo "Hello World! Paozhu" > www/default/index.html
+```
+
+### 第五步：删除控制器（保留 testhello 和 serverwatch）
 
 ```bash
 rm -rf controller/include/*
-find controller/src -type f ! -name 'testhello.cpp' -delete
+find controller/src -type f ! -name 'testhello.cpp' ! -name 'serverwatch.cpp' -delete
 ```
 
 保留的 `controller/src/testhello.cpp` 包含 `//@urlpath(null,hello)` 注解，是 hello world 路由的唯一入口。编译后即可通过 `http://127.0.0.1/hello` 访问。
 
+`controller/src/serverwatch.cpp` 也要保留：router 是**按名字**查找 `frametasks_timeloop` 这个处理函数的（`call_sync_regfun` / `find_sitecontent`），删掉这个文件就不会登记任何间隔任务，而唯一的痕迹是一条 `frametasks_timeloop not registered` 调试日志。它还带着 `/paozhu_status` 和 `/paozhu_routes` 两个自检页。
+
+### 第六步：仅压测模式 —— 覆盖 TechEmpower 文件
+
+`./mini_project.sh --benchmark` 会从 `Benchmark/paozhu_benchmark/` 拷入业务文件（techempower 控制器、`World`/`Fortune` 的模型与 ORM、`libs/types` 的 json 反射、`view`/`viewsrc`、两个 `conf` 文件），不动框架文件（`CMakeLists.txt` `vendor/` `startup/`）。这一步会用生成好的 `orm.h` 覆盖第三步留的占位文件，所以与那份骨架不冲突。
+
 ### 清理完成
 
-以上四步完成后，重新编译项目即可得到一个干净的脚手架：
+以上步骤完成后，重新编译项目即可得到一个干净的脚手架：
 
 ```bash
 cd build && cmake .. && make -j$(sysctl -n hw.ncpu)

@@ -15,10 +15,11 @@ namespace
 // 全项目唯一的一份「交给 clientrunpool 跑一步」实现：router 的 sync handler、mqtt 的同步钩子、
 // socket 的 on_open / on_close 都走这里，拒单就地完成也写在这里，调用方漏不掉。
 //
-// 模板参数叫 Outcome 不叫 OUT：windows.h（经 server.h 的 OS 分支进来）把 OUT 定义成了空宏，
-// 于是 asio::awaitable<OUT> 变成 awaitable<>、is_same_v<OUT, pool_bool> 变成 <, pool_bool>，
+// 模板参数叫 Outcome 不叫 OUT：在 Windows 上 <asio.hpp> 会经 asio/detail/socket_types.hpp
+// 把 windows.h 拉进这个 TU，而 windows.h 把 OUT 定义成了空宏，于是 asio::awaitable<OUT>
+// 变成 awaitable<>、is_same_v<OUT, pool_bool> 变成 <, pool_bool>，
 // MSVC 报的是 C2976 too few template arguments 加一串 'out': undeclared identifier。
-// 同一个宏还有 IN / OPTIONAL，别用它们当标识符。
+// 同一个宏簇还有 IN / OPTIONAL，别用它们当标识符。
 template <typename Outcome, typename FN>
 asio::awaitable<Outcome> run_one_step_on_pool(FN fn, asio::use_awaitable_t<> h)
 {

@@ -24,10 +24,10 @@
 #define BOLDCYAN "\033[1m\033[36m"    /* Bold Cyan */
 #define BOLDWHITE "\033[1m\033[37m"   /* Bold White */
 
-#undef ERROR
-
+// 这套日志宏不叫 ERROR：wingdi.h 里有同名的 ERROR 宏，先定义了再被 windows.h 覆盖就会出
+// C4005 macro redefinition。名字照 OUT_LOG / DEBUG_LOG 的写法走 ERROR_LOG。
 #ifdef DEBUG
-#define ERROR(...)                                                                                                            \
+#define ERROR_LOG(...)                                                                                                        \
     do                                                                                                                        \
     {                                                                                                                         \
         const char *error_str     = __FILE__;                                                                                 \
@@ -105,7 +105,7 @@
 #define DEBUG_LOG(...)
 #define INFO(...)
 #define WARNING(...)
-#define ERROR(...)
+#define ERROR_LOG(...)
 #endif
 
 #endif

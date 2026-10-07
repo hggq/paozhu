@@ -57,7 +57,6 @@ add_includedirs("libs/types")
 add_includedirs("libs/ipdata")
 add_includedirs("libs/markdown")
 add_includedirs("libs/pinyin")
-add_includedirs("libs/weixin/include")
 add_includedirs("asio")
 
 for _, dir in ipairs(os.dirs("$(buildir)/libs/**")) do
