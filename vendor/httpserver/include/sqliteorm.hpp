@@ -5545,9 +5545,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -5664,9 +5664,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -5774,9 +5774,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -5883,9 +5883,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -5991,9 +5991,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -6110,9 +6110,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -6297,9 +6297,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -6407,9 +6407,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -6663,9 +6663,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -6776,9 +6776,9 @@ namespace orm
                     effect_num = 1;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -7329,9 +7329,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 sqlstring = B_BASE::make_update_sql("");
@@ -7476,9 +7476,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 sqlstring = B_BASE::make_update_sql("");
@@ -8873,9 +8873,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -8893,18 +8893,6 @@ namespace orm
             {
                 sqlstring.append(where_clause);
             }
-            if (!groupsql.empty())
-            {
-                sqlstring.append(groupsql);
-            }
-            if (!ordersql.empty())
-            {
-                sqlstring.append(ordersql);
-            }
-            if (!limitsql.empty())
-            {
-                sqlstring.append(limitsql);
-            }
             return sqlstring;
         }
         std::string commit_update(const std::string &fieldname)
@@ -8918,9 +8906,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -8940,18 +8928,6 @@ namespace orm
             {
                 sqlstring.append(where_clause);
             }
-            if (!groupsql.empty())
-            {
-                sqlstring.append(groupsql);
-            }
-            if (!ordersql.empty())
-            {
-                sqlstring.append(ordersql);
-            }
-            if (!limitsql.empty())
-            {
-                sqlstring.append(limitsql);
-            }
             return sqlstring;
         }
 
@@ -8966,9 +8942,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -8988,18 +8964,6 @@ namespace orm
             else
             {
                 sqlstring.append(where_clause);
-            }
-            if (!groupsql.empty())
-            {
-                sqlstring.append(groupsql);
-            }
-            if (!ordersql.empty())
-            {
-                sqlstring.append(ordersql);
-            }
-            if (!limitsql.empty())
-            {
-                sqlstring.append(limitsql);
             }
             return sqlstring;
         }

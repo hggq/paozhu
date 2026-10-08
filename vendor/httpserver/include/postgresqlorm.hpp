@@ -5473,9 +5473,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -5592,9 +5592,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -5702,9 +5702,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -5811,9 +5811,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -5919,9 +5919,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -6038,9 +6038,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -6225,9 +6225,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -6335,9 +6335,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -6591,9 +6591,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -6704,9 +6704,9 @@ namespace orm
                     effect_num = 1;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -6851,7 +6851,7 @@ namespace orm
                 insertsql.append(B_BASE::getPKname());
                 long long insert_last_id = 0;
                 unsigned int fetch_count = edit_conn->fetch_directly(insertsql,
-                                                                     [&insert_last_id](int col_count, char **col_names, auto get_data) -> bool
+                                                                     [&insert_last_id, this](int col_count, char **col_names, auto get_data) -> bool
                                                                      {
                                                                          (void)col_count;
                                                                          (void)col_names;
@@ -6862,6 +6862,11 @@ namespace orm
                                                                              auto r      = std::from_chars(reinterpret_cast<const char *>(ptr), reinterpret_cast<const char *>(ptr) + len, v, 10);
                                                                              if (r.ec == std::errc())
                                                                                  insert_last_id = v;
+                                                                             else
+                                                                             {
+                                                                                 error_msg = "failed to parse returning pk";
+                                                                                 iserror   = true;
+                                                                             }
                                                                          }
                                                                          return true;
                                                                      });
@@ -6937,7 +6942,7 @@ namespace orm
                 insertsql.append(B_BASE::getPKname());
                 long long insert_last_id = 0;
                 unsigned int fetch_count = co_await edit_conn->async_fetch_directly(insertsql,
-                                                                                    [&insert_last_id](int col_count, char **col_names, auto get_data) -> bool
+                                                                                    [&insert_last_id, this](int col_count, char **col_names, auto get_data) -> bool
                                                                                     {
                                                                                         (void)col_count;
                                                                                         (void)col_names;
@@ -6948,6 +6953,11 @@ namespace orm
                                                                                             auto r      = std::from_chars(reinterpret_cast<const char *>(ptr), reinterpret_cast<const char *>(ptr) + len, v, 10);
                                                                                             if (r.ec == std::errc())
                                                                                                 insert_last_id = v;
+                                                                                            else
+                                                                                            {
+                                                                                                error_msg = "failed to parse returning pk";
+                                                                                                iserror   = true;
+                                                                                            }
                                                                                         }
                                                                                         return true;
                                                                                     });
@@ -7023,7 +7033,7 @@ namespace orm
                 insertsql.append(B_BASE::getPKname());
                 long long insert_last_id = 0;
                 unsigned int fetch_count = edit_conn->fetch_directly(insertsql,
-                                                                     [&insert_last_id](int col_count, char **col_names, auto get_data) -> bool
+                                                                     [&insert_last_id, this](int col_count, char **col_names, auto get_data) -> bool
                                                                      {
                                                                          (void)col_count;
                                                                          (void)col_names;
@@ -7034,6 +7044,11 @@ namespace orm
                                                                              auto r      = std::from_chars(reinterpret_cast<const char *>(ptr), reinterpret_cast<const char *>(ptr) + len, v, 10);
                                                                              if (r.ec == std::errc())
                                                                                  insert_last_id = v;
+                                                                             else
+                                                                             {
+                                                                                 error_msg = "failed to parse returning pk";
+                                                                                 iserror   = true;
+                                                                             }
                                                                          }
                                                                          return true;
                                                                      });
@@ -7109,7 +7124,7 @@ namespace orm
                 insertsql.append(B_BASE::getPKname());
                 long long insert_last_id = 0;
                 unsigned int fetch_count = co_await edit_conn->async_fetch_directly(insertsql,
-                                                                                    [&insert_last_id](int col_count, char **col_names, auto get_data) -> bool
+                                                                                    [&insert_last_id, this](int col_count, char **col_names, auto get_data) -> bool
                                                                                     {
                                                                                         (void)col_count;
                                                                                         (void)col_names;
@@ -7120,6 +7135,11 @@ namespace orm
                                                                                             auto r      = std::from_chars(reinterpret_cast<const char *>(ptr), reinterpret_cast<const char *>(ptr) + len, v, 10);
                                                                                             if (r.ec == std::errc())
                                                                                                 insert_last_id = v;
+                                                                                            else
+                                                                                            {
+                                                                                                error_msg = "failed to parse returning pk";
+                                                                                                iserror   = true;
+                                                                                            }
                                                                                         }
                                                                                         return true;
                                                                                     });
@@ -7195,7 +7215,7 @@ namespace orm
                 insertsql.append(B_BASE::getPKname());
                 long long insert_last_id = 0;
                 unsigned int fetch_count = edit_conn->fetch_directly(insertsql,
-                                                                     [&insert_last_id](int col_count, char **col_names, auto get_data) -> bool
+                                                                     [&insert_last_id, this](int col_count, char **col_names, auto get_data) -> bool
                                                                      {
                                                                          (void)col_count;
                                                                          (void)col_names;
@@ -7206,6 +7226,11 @@ namespace orm
                                                                              auto r      = std::from_chars(reinterpret_cast<const char *>(ptr), reinterpret_cast<const char *>(ptr) + len, v, 10);
                                                                              if (r.ec == std::errc())
                                                                                  insert_last_id = v;
+                                                                             else
+                                                                             {
+                                                                                 error_msg = "failed to parse returning pk";
+                                                                                 iserror   = true;
+                                                                             }
                                                                          }
                                                                          return true;
                                                                      });
@@ -7281,7 +7306,7 @@ namespace orm
                 insertsql.append(B_BASE::getPKname());
                 long long insert_last_id = 0;
                 unsigned int fetch_count = co_await edit_conn->async_fetch_directly(insertsql,
-                                                                                    [&insert_last_id](int col_count, char **col_names, auto get_data) -> bool
+                                                                                    [&insert_last_id, this](int col_count, char **col_names, auto get_data) -> bool
                                                                                     {
                                                                                         (void)col_count;
                                                                                         (void)col_names;
@@ -7292,6 +7317,11 @@ namespace orm
                                                                                             auto r      = std::from_chars(reinterpret_cast<const char *>(ptr), reinterpret_cast<const char *>(ptr) + len, v, 10);
                                                                                             if (r.ec == std::errc())
                                                                                                 insert_last_id = v;
+                                                                                            else
+                                                                                            {
+                                                                                                error_msg = "failed to parse returning pk";
+                                                                                                iserror   = true;
+                                                                                            }
                                                                                         }
                                                                                         return true;
                                                                                     });
@@ -7341,9 +7371,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 sqlstring = B_BASE::make_update_sql("");
@@ -7448,7 +7478,7 @@ namespace orm
                 insertsql.append(B_BASE::getPKname());
                 long long insert_last_id = 0;
                 unsigned int fetch_count = edit_conn->fetch_directly(insertsql,
-                                                                     [&insert_last_id](int col_count, char **col_names, auto get_data) -> bool
+                                                                     [&insert_last_id, this](int col_count, char **col_names, auto get_data) -> bool
                                                                      {
                                                                          (void)col_count;
                                                                          (void)col_names;
@@ -7459,6 +7489,11 @@ namespace orm
                                                                              auto r      = std::from_chars(reinterpret_cast<const char *>(ptr), reinterpret_cast<const char *>(ptr) + len, v, 10);
                                                                              if (r.ec == std::errc())
                                                                                  insert_last_id = v;
+                                                                             else
+                                                                             {
+                                                                                 error_msg = "failed to parse returning pk";
+                                                                                 iserror   = true;
+                                                                             }
                                                                          }
                                                                          return true;
                                                                      });
@@ -7502,9 +7537,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 sqlstring = B_BASE::make_update_sql("");
@@ -7622,7 +7657,7 @@ namespace orm
                     insertsql.append(B_BASE::getPKname());
                     long long insert_last_id = 0;
                     unsigned int fetch_count = co_await edit_conn->async_fetch_directly(insertsql,
-                                                                                        [&insert_last_id](int col_count, char **col_names, auto get_data) -> bool
+                                                                                        [&insert_last_id, this](int col_count, char **col_names, auto get_data) -> bool
                                                                                         {
                                                                                             (void)col_count;
                                                                                             (void)col_names;
@@ -7633,6 +7668,11 @@ namespace orm
                                                                                                 auto r      = std::from_chars(reinterpret_cast<const char *>(ptr), reinterpret_cast<const char *>(ptr) + len, v, 10);
                                                                                                 if (r.ec == std::errc())
                                                                                                     insert_last_id = v;
+                                                                                                else
+                                                                                                {
+                                                                                                    error_msg = "failed to parse returning pk";
+                                                                                                    iserror   = true;
+                                                                                                }
                                                                                             }
                                                                                             return true;
                                                                                         });
@@ -8917,9 +8957,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -8938,18 +8978,6 @@ namespace orm
             else
             {
                 sqlstring.append(where_clause);
-            }
-            if (!groupsql.empty())
-            {
-                sqlstring.append(groupsql);
-            }
-            if (!ordersql.empty())
-            {
-                sqlstring.append(ordersql);
-            }
-            if (!limitsql.empty())
-            {
-                sqlstring.append(limitsql);
             }
             return sqlstring;
         }
@@ -8973,9 +9001,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -8993,18 +9021,6 @@ namespace orm
             {
                 sqlstring.append(where_clause);
             }
-            if (!groupsql.empty())
-            {
-                sqlstring.append(groupsql);
-            }
-            if (!ordersql.empty())
-            {
-                sqlstring.append(ordersql);
-            }
-            if (!limitsql.empty())
-            {
-                sqlstring.append(limitsql);
-            }
             return sqlstring;
         }
 
@@ -9019,9 +9035,9 @@ namespace orm
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -9041,18 +9057,6 @@ namespace orm
             else
             {
                 sqlstring.append(where_clause);
-            }
-            if (!groupsql.empty())
-            {
-                sqlstring.append(groupsql);
-            }
-            if (!ordersql.empty())
-            {
-                sqlstring.append(ordersql);
-            }
-            if (!limitsql.empty())
-            {
-                sqlstring.append(limitsql);
             }
             return sqlstring;
         }
@@ -9344,7 +9348,7 @@ namespace orm
             returnsql.append(B_BASE::getPKname());
 
             bool got_first = false;
-            return conn->fetch_prepared(returnsql, params, [&first_id, &got_first](int col_count, char **col_names, auto get_data) -> bool
+            return conn->fetch_prepared(returnsql, params, [&first_id, &got_first, this](int col_count, char **col_names, auto get_data) -> bool
                                         {
                                             (void)col_count;
                                             (void)col_names;
@@ -9361,6 +9365,11 @@ namespace orm
                                                                              10);
                                                     if (r.ec == std::errc())
                                                         first_id = v;
+                                                    else
+                                                    {
+                                                        error_msg = "failed to parse returning pk";
+                                                        iserror   = true;
+                                                    }
                                                 }
                                             }
                                             return true;// 继续读完结果集：总行数即插入行数
@@ -11800,7 +11809,7 @@ namespace orm
                     edit_conn->begin_time();
                 }
                 long long last_id = 0;
-                unsigned int rows = co_await edit_conn->async_fetch_prepared(sql, params, [&last_id](int col_count, char **col_names, auto get_data) mutable -> bool
+                unsigned int rows = co_await edit_conn->async_fetch_prepared(sql, params, [&last_id, this](int col_count, char **col_names, auto get_data) mutable -> bool
                                                                              {
                         (void)col_count;
                         (void)col_names;
@@ -11812,6 +11821,11 @@ namespace orm
                                                     reinterpret_cast<const char *>(ptr) + len, v, 10);
                             if (r.ec == std::errc())
                                 last_id = v;
+                            else
+                            {
+                                error_msg = "failed to parse returning pk";
+                                iserror   = true;
+                            }
                         }
                         return true; });
                 if (edit_conn->isdebug)
@@ -12026,7 +12040,7 @@ namespace orm
                     edit_conn->begin_time();
                 }
                 long long first_id = 0;
-                unsigned int rows  = co_await edit_conn->async_fetch_prepared(sql, params, [&first_id](int col_count, char **col_names, auto get_data) mutable -> bool
+                unsigned int rows  = co_await edit_conn->async_fetch_prepared(sql, params, [&first_id, this](int col_count, char **col_names, auto get_data) mutable -> bool
                                                                              {
                         (void)col_count;
                         (void)col_names;
@@ -12038,6 +12052,11 @@ namespace orm
                                                     reinterpret_cast<const char *>(ptr) + len, v, 10);
                             if (r.ec == std::errc())
                                 first_id = v;
+                            else
+                            {
+                                error_msg = "failed to parse returning pk";
+                                iserror   = true;
+                            }
                         }
                         return true; });
                 if (edit_conn->isdebug)

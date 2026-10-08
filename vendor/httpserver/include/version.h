@@ -8,6 +8,6 @@
 namespace http
 {
 // main[x] | second[xxx] | bugfix[xx] 1,010,00 = 1.10.0
-#define PAOZHU_VERSION 101000
+#define PAOZHU_VERSION 101800
 }// namespace http
 #endif
