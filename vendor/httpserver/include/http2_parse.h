@@ -261,10 +261,29 @@ class http2parse
     void headertype2(unsigned char c, std::string_view buffer, unsigned int &begin, std::shared_ptr<httppeer>);
     void headertype3(unsigned char c, std::string_view buffer, unsigned int &begin, std::shared_ptr<httppeer>);
     void headertype4(unsigned char c, std::string_view buffer, unsigned int &begin, std::shared_ptr<httppeer>);
+    void dynamic_table_size_update(unsigned char c, std::string_view buffer, unsigned int &begin, std::shared_ptr<httppeer>);
 
   public:
     void headers_parse(const HTTP2_HEADER_FRAME_T &, std::shared_ptr<httppeer>);
-    void process(const unsigned char *buffer, unsigned int buffersize);
+    // 返回本次真正消费掉的字节数（出错时停在坏帧末尾），调用方据此保留未解析的尾部
+    unsigned int process(const unsigned char *buffer, unsigned int buffersize);
+    // 置连接级错误（默认走 GOAWAY 断连）
+    void set_conn_error(unsigned int code, unsigned int h2 = 0x1);
+    // 置流级错误（随 RST_STREAM 重置该流，保留连接）；sid 为出错流 id
+    void set_stream_error(unsigned int code, unsigned int sid, unsigned int h2 = 0x1);
+    // HPACK（RFC 7541）解码层失败：内部编码坏了、索引越界、整数/字符串长度解不出来，
+    // 错误码必须是 COMPRESSION_ERROR(0x9)；头字段本身的违例（§8.1.2）不走这里，仍是 PROTOCOL_ERROR。
+    void hpack_fail(unsigned int code)
+    {
+        error         = code;
+        h2_error_code = 0x9;
+    }
+    // RST_STREAM 后回收该流的全部状态，避免 http_data/http_post_data/窗口记账随请求数无限增长，
+    // 也防止流还在 stream_list 队列时被 spawn 成孤儿。
+    void cleanup_stream(unsigned int sid);
+    // 复位错误状态到默认值（error=0、连接级、无流、PROTOCOL_ERROR）。
+    // 流级错误处理完一轮后调用，便于主循环继续复用本解析器处理后续帧。
+    void clear_error();
     void data_process();
     bool header_host_process(const std::string &header_value, std::shared_ptr<httppeer>);
     void getacceptencoding(const std::string &, const std::string &, std::shared_ptr<httppeer>);
@@ -285,7 +304,20 @@ class http2parse
 
   public:
     unsigned int error      = 0;
+    // 连接级错误对应的 HTTP/2 错误码，随 GOAWAY 带出；默认 PROTOCOL_ERROR(0x1)。
+    // 各类校验在置 error 时同时设置它（如 FRAME_SIZE_ERROR=0x6），否则 GOAWAY 会发成 NO_ERROR(0)。
+    unsigned int h2_error_code = 0x1;
+    // 流级错误归属：出错流 id（连接级为 0）+ 是否连接级。
+    // 默认 error_is_conn=true，即所有未显式改用 set_stream_error() 的 error 站点仍走 GOAWAY 断连，
+    // 保证「没改到的站点」行为不变，只有逐站改写的请求级校验才会降级为 RST_STREAM。
+    unsigned int error_stream_id = 0;
+    bool        error_is_conn    = true;
     unsigned int readoffset = 0;
+
+    // // 头部块是否进行中：某流 HEADERS/CONTINUATION 尚未 END_HEADERS 时为真。
+    // // 用于 RFC 9113 §6.10：进行中收到非 CONTINUATION 帧即连接级 PROTOCOL_ERROR。
+    // // 用单标志替代每帧遍历 http2_header_recvs，避免占用正常分发路径。
+    // bool header_block_pending = false;
 
     unsigned int steam_count = 0;
     unsigned int isfinsish   = 0;
@@ -298,9 +330,9 @@ class http2parse
 
     //std::vector<std::pair<std::string, std::string>> header_lists;
     std::list<std::pair<std::string, std::string>> dynamic_lists;
+    unsigned int dynamic_table_max_size = 4096;
     // struct http2_goaway_t goaway_data;
     // unsigned long long content_length;
-    bool ispost                            = false;
     std::atomic_bool task_in               = false;
     // 本连接的「发送侧可能需要重新评估」标记：由读协程在处理帧时置位，
     // 在 http2 读循环末尾消费 —— 消费点会调 httpserver::requeue_parked 回灌挂起的

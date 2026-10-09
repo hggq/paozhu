@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Wed, 23 Sep 2026 18:17:13 GMT
+ *  Creation time Thu, 08 Oct 2026 06:25:06 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -28,6 +28,7 @@
 #include <tuple>
 #include <typeinfo>
 #include <memory>
+#include <optional>
 #include <list>
 #include <queue>
 #include <cmath>
@@ -852,6 +853,7 @@ namespace cms
             }
             if (!islock_conn)
                 conn_obj->back_mysql_edit_conn(std::move(conn));
+
             return affected;
         }
 
@@ -1042,6 +1044,7 @@ namespace cms
             }
             if (!islock_conn)
                 conn_obj->back_mysql_edit_conn(std::move(edit_conn_l));
+
             co_return affected;
         }
 
@@ -1214,6 +1217,7 @@ namespace cms
             }
             if (!islock_conn)
                 conn_obj->back_mysql_edit_conn(std::move(conn));
+
             return affected;
         }
 
@@ -1396,6 +1400,7 @@ namespace cms
             }
             if (!islock_conn)
                 conn_obj->back_mysql_edit_conn(std::move(edit_conn_l));
+
             co_return affected;
         }
 
@@ -3484,7 +3489,7 @@ M_MODEL& ornotnullImgurl()
             size_t p      = 0;
             while ((p = s.find('\'', p)) != std::string::npos)
             {
-                s.replace(p, 1, "\\'");
+                s.replace(p, 1, "''");
                 p += 2;
             }
             out.append("'");
@@ -4351,26 +4356,23 @@ M_MODEL& ornotnullImgurl()
 
                 if (iscache)
                 {
-                    if (exptime > 0)
+                    if (temprecord.size() > 0)
                     {
-                        if (temprecord.size() > 0)
-                        {
-                            std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
+                        std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
 
-                            model_meta_cache<std::vector<std::vector<std::string>>> &temp_cache =
-                                model_meta_cache<std::vector<std::vector<std::string>>>::getinstance();
-                            temp_cache.save(sqlhashid, temprecord, exptime);
+                        model_meta_cache<std::vector<std::vector<std::string>>> &temp_cache =
+                            model_meta_cache<std::vector<std::vector<std::string>>>::getinstance();
+                        temp_cache.save(sqlhashid, temprecord, exptime);
 
-                            exptime += 1;
-                            model_meta_cache<std::vector<std::string>> &table_cache = model_meta_cache<std::vector<std::string>>::getinstance();
-                            table_cache.save(sqlhashid, table_fieldname, exptime);
+                        exptime += 1;
+                        model_meta_cache<std::vector<std::string>> &table_cache = model_meta_cache<std::vector<std::string>>::getinstance();
+                        table_cache.save(sqlhashid, table_fieldname, exptime);
 
-                            model_meta_cache<std::map<std::string, unsigned int>> &tablemap_cache =
-                                model_meta_cache<std::map<std::string, unsigned int>>::getinstance();
-                            tablemap_cache.save(sqlhashid, table_fieldmap, exptime);
-                            exptime = 0;
-                            iscache = false;
-                        }
+                        model_meta_cache<std::map<std::string, unsigned int>> &tablemap_cache =
+                            model_meta_cache<std::map<std::string, unsigned int>>::getinstance();
+                        tablemap_cache.save(sqlhashid, table_fieldmap, exptime);
+                        exptime = 0;
+                        iscache = false;
                     }
                 }
 
@@ -4915,7 +4917,8 @@ M_MODEL& ornotnullImgurl()
                 if (get_record_cache(sqlhashid))
                 {
                     iscache = false;
-                    return 0;
+                    is_hit_cache = true;
+                    return static_cast<unsigned int>(B_BASE::record.size());
                 }
             }
 
@@ -5001,12 +5004,9 @@ M_MODEL& ornotnullImgurl()
 
                 if (iscache)
                 {
-                    if (exptime > 0)
-                    {
-                        save_cache(exptime);
-                        exptime = 0;
-                        iscache = false;
-                    }
+                    save_cache(exptime);
+                    exptime = 0;
+                    iscache = false;
                 }
                 return effect_num;
             }
@@ -5066,7 +5066,8 @@ M_MODEL& ornotnullImgurl()
                 if (get_record_cache(sqlhashid))
                 {
                     iscache = false;
-                    co_return 0;
+                    is_hit_cache = true;
+                    co_return static_cast<unsigned int>(B_BASE::record.size());
                 }
             }
 
@@ -5150,12 +5151,9 @@ M_MODEL& ornotnullImgurl()
                 }
                 if (iscache)
                 {
-                    if (exptime > 0)
-                    {
-                        save_cache(exptime);
-                        exptime = 0;
-                        iscache = false;
-                    }
+                    save_cache(exptime);
+                    exptime = 0;
+                    iscache = false;
                 }
                 co_return effect_num;
             }
@@ -5214,6 +5212,7 @@ M_MODEL& ornotnullImgurl()
                 if (get_record_cache(sqlhashid))
                 {
                     iscache = false;
+                    is_hit_cache = true;
                     return *mod;
                 }
             }
@@ -5300,12 +5299,9 @@ M_MODEL& ornotnullImgurl()
 
                 if (iscache)
                 {
-                    if (exptime > 0)
-                    {
-                        save_cache(exptime);
-                        exptime = 0;
-                        iscache = false;
-                    }
+                    save_cache(exptime);
+                    exptime = 0;
+                    iscache = false;
                 }
                 return *mod;
             }
@@ -5365,6 +5361,7 @@ M_MODEL& ornotnullImgurl()
                 if (get_record_cache(sqlhashid))
                 {
                     iscache = false;
+                    is_hit_cache = true;
                     co_return 1;
                 }
             }
@@ -5450,12 +5447,9 @@ M_MODEL& ornotnullImgurl()
                 }
                 if (iscache)
                 {
-                    if (exptime > 0)
-                    {
-                        save_cache(exptime);
-                        exptime = 0;
-                        iscache = false;
-                    }
+                    save_cache(exptime);
+                    exptime = 0;
+                    iscache = false;
                 }
                 co_return effect_num;
             }
@@ -5991,7 +5985,8 @@ M_MODEL& ornotnullImgurl()
                 if (get_data_cache(sqlhashid))
                 {
                     iscache = false;
-                    return 0;
+                    is_hit_cache = true;
+                    return 1u;
                 }
             }
 
@@ -6097,12 +6092,9 @@ M_MODEL& ornotnullImgurl()
 
                 if (iscache)
                 {
-                    if (exptime > 0)
-                    {
-                        save_data_cache(exptime);
-                        exptime = 0;
-                        iscache = false;
-                    }
+                    save_data_cache(exptime);
+                    exptime = 0;
+                    iscache = false;
                 }
                 return effect_num;
             }
@@ -6160,7 +6152,8 @@ M_MODEL& ornotnullImgurl()
                 if (get_data_cache(sqlhashid))
                 {
                     iscache = false;
-                    co_return 0;
+                    is_hit_cache = true;
+                    co_return 1u;
                 }
             }
 
@@ -6264,12 +6257,9 @@ M_MODEL& ornotnullImgurl()
                 }
                 if (iscache)
                 {
-                    if (exptime > 0)
-                    {
-                        save_data_cache(exptime);
-                        exptime = 0;
-                        iscache = false;
-                    }
+                    save_data_cache(exptime);
+                    exptime = 0;
+                    iscache = false;
                 }
                 co_return effect_num;
             }
@@ -6286,6 +6276,7 @@ M_MODEL& ornotnullImgurl()
         M_MODEL &use_cache(int cache_time = 0)
         {
             iscache = true;
+            is_hit_cache = false;
             exptime = cache_time;
             return *mod;
         }
@@ -6348,8 +6339,7 @@ M_MODEL& ornotnullImgurl()
             }
             catch (const std::exception &e)
             {
-                error_msg = std::string(e.what());
-                unlock_conn();
+                
             }
 
             B_BASE::data_reset();
@@ -6417,38 +6407,45 @@ M_MODEL& ornotnullImgurl()
             temp_cache.save(sqlhashid, cache_data, exp_time);
             return true;
         }
+        // 旧接口：保留 throw 语义（缓存 miss → throw）；catch 块不碰 ORM 状态
+        // Deprecated → 新代码用 try_get_cache()
         const catalogue_info::meta get_cache(const std::string &cache_key_name)
         {
-            try
+            model_meta_cache<catalogue_info::meta> &temp_cache = model_meta_cache<catalogue_info::meta>::getinstance();
+            std::size_t sqlhashid                               = std::hash<std::string>{}(cache_key_name);
+            auto hit                                            = temp_cache.try_get(sqlhashid);
+            if (!hit)
             {
-                model_meta_cache<catalogue_info::meta> &temp_cache = model_meta_cache<catalogue_info::meta>::getinstance();
-                std::size_t sqlhashid                               = std::hash<std::string>{}(cache_key_name);
-                return temp_cache.get(sqlhashid);
+                throw std::runtime_error("Not in cache");
             }
-            catch (const std::exception &e)
-            {
-                error_msg = std::string(e.what());
-                unlock_conn();
-            }
-
-            throw std::runtime_error("Not in cache");
+            return *hit;
         }
 
         const std::vector<catalogue_info::meta> get_vector_cache(const std::string &cache_key_name)
         {
-            try
+            model_meta_cache<std::vector<catalogue_info::meta>> &temp_cache = model_meta_cache<std::vector<catalogue_info::meta>>::getinstance();
+            std::size_t sqlhashid                                            = std::hash<std::string>{}(cache_key_name);
+            auto hit                                                         = temp_cache.try_get(sqlhashid);
+            if (!hit)
             {
-                model_meta_cache<std::vector<catalogue_info::meta>> &temp_cache = model_meta_cache<std::vector<catalogue_info::meta>>::getinstance();
-                std::size_t sqlhashid                                            = std::hash<std::string>{}(cache_key_name);
-                return temp_cache.get(sqlhashid);
+                throw std::runtime_error("Not in cache");
             }
-            catch (const std::exception &e)
-            {
-                error_msg = std::string(e.what());
-                unlock_conn();
-            }
+            return *hit;
+        }
 
-            throw std::runtime_error("Not in cache");
+        // 新接口：不 throw，miss/过期返回 std::nullopt
+        std::optional<catalogue_info::meta> try_get_cache(const std::string &cache_key_name)
+        {
+            model_meta_cache<catalogue_info::meta> &temp_cache = model_meta_cache<catalogue_info::meta>::getinstance();
+            std::size_t sqlhashid                               = std::hash<std::string>{}(cache_key_name);
+            return temp_cache.try_get(sqlhashid);
+        }
+
+        std::optional<std::vector<catalogue_info::meta>> try_get_vector_cache(const std::string &cache_key_name)
+        {
+            model_meta_cache<std::vector<catalogue_info::meta>> &temp_cache = model_meta_cache<std::vector<catalogue_info::meta>>::getinstance();
+            std::size_t sqlhashid                                            = std::hash<std::string>{}(cache_key_name);
+            return temp_cache.try_get(sqlhashid);
         }
 
         bool get_record_cache(std::size_t cache_key_name)
@@ -6461,8 +6458,7 @@ M_MODEL& ornotnullImgurl()
             }
             catch (const std::exception &e)
             {
-                error_msg = std::string(e.what());
-                unlock_conn();
+                
             }
 
             B_BASE::record.clear();
@@ -6740,7 +6736,8 @@ M_MODEL& ornotnullImgurl()
                 if (get_data_cache(sqlhashid))
                 {
                     iscache = false;
-                    return 0;
+                    is_hit_cache = true;
+                    return 1u;
                 }
             }
 
@@ -6825,12 +6822,9 @@ M_MODEL& ornotnullImgurl()
                 }
                 if (iscache)
                 {
-                    if (exptime > 0)
-                    {
-                        save_data_cache(exptime);
-                        exptime = 0;
-                        iscache = false;
-                    }
+                    save_data_cache(exptime);
+                    exptime = 0;
+                    iscache = false;
                 }
                 return effect_num;
             }
@@ -6871,7 +6865,8 @@ M_MODEL& ornotnullImgurl()
                 if (get_data_cache(sqlhashid))
                 {
                     iscache = false;
-                    co_return 0;
+                    is_hit_cache = true;
+                    co_return 1u;
                 }
             }
 
@@ -6955,12 +6950,9 @@ M_MODEL& ornotnullImgurl()
                 }
                 if (iscache)
                 {
-                    if (exptime > 0)
-                    {
-                        save_data_cache(exptime);
-                        exptime = 0;
-                        iscache = false;
-                    }
+                    save_data_cache(exptime);
+                    exptime = 0;
+                    iscache = false;
                 }
                 co_return effect_num;
             }
@@ -6986,9 +6978,9 @@ M_MODEL& ornotnullImgurl()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -7108,9 +7100,9 @@ M_MODEL& ornotnullImgurl()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -7218,9 +7210,9 @@ M_MODEL& ornotnullImgurl()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -7330,9 +7322,9 @@ M_MODEL& ornotnullImgurl()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -7440,9 +7432,9 @@ M_MODEL& ornotnullImgurl()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -7561,9 +7553,9 @@ M_MODEL& ornotnullImgurl()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -7751,9 +7743,9 @@ M_MODEL& ornotnullImgurl()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -7864,9 +7856,9 @@ M_MODEL& ornotnullImgurl()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -8127,9 +8119,9 @@ M_MODEL& ornotnullImgurl()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -8243,9 +8235,9 @@ M_MODEL& ornotnullImgurl()
                     effect_num = 1;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -8793,9 +8785,9 @@ M_MODEL& ornotnullImgurl()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 sqlstring = B_BASE::make_update_sql("");
@@ -8940,9 +8932,9 @@ M_MODEL& ornotnullImgurl()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 sqlstring = B_BASE::make_update_sql("");
@@ -10316,9 +10308,9 @@ M_MODEL& ornotnullImgurl()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -10337,18 +10329,6 @@ M_MODEL& ornotnullImgurl()
             else
             {
                 sqlstring.append(where_clause);
-            }
-            if (!groupsql.empty())
-            {
-                sqlstring.append(groupsql);
-            }
-            if (!ordersql.empty())
-            {
-                sqlstring.append(ordersql);
-            }
-            if (!limitsql.empty())
-            {
-                sqlstring.append(limitsql);
             }
             return sqlstring;
         }
@@ -10372,9 +10352,9 @@ M_MODEL& ornotnullImgurl()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -10392,18 +10372,6 @@ M_MODEL& ornotnullImgurl()
             {
                 sqlstring.append(where_clause);
             }
-            if (!groupsql.empty())
-            {
-                sqlstring.append(groupsql);
-            }
-            if (!ordersql.empty())
-            {
-                sqlstring.append(ordersql);
-            }
-            if (!limitsql.empty())
-            {
-                sqlstring.append(limitsql);
-            }
             return sqlstring;
         }
         std::string commit_remove()
@@ -10417,9 +10385,9 @@ M_MODEL& ornotnullImgurl()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -10439,18 +10407,6 @@ M_MODEL& ornotnullImgurl()
             else
             {
                 sqlstring.append(where_clause);
-            }
-            if (!groupsql.empty())
-            {
-                sqlstring.append(groupsql);
-            }
-            if (!ordersql.empty())
-            {
-                sqlstring.append(ordersql);
-            }
-            if (!limitsql.empty())
-            {
-                sqlstring.append(limitsql);
             }
             return sqlstring;
         }
@@ -12264,6 +12220,7 @@ M_MODEL& ornotnullImgurl()
                 last.remove_suffix(1);
             if (!last.empty())
                 fields.push_back(last);
+
             return fields;
         }
 
@@ -12332,6 +12289,7 @@ M_MODEL& ornotnullImgurl()
             {
                 conn_obj->back_mysql_edit_conn(std::move(conn));
             }
+
             return affected;
         }
 
@@ -12437,6 +12395,7 @@ M_MODEL& ornotnullImgurl()
                 error_msg = std::string(e.what());
                 unlock_conn();
             }
+
             co_return (unsigned int) - 1;
         }
 
@@ -12510,6 +12469,7 @@ M_MODEL& ornotnullImgurl()
             {
                 conn_obj->back_mysql_edit_conn(std::move(conn));
             }
+
             return affected;
         }
 
@@ -12591,6 +12551,7 @@ M_MODEL& ornotnullImgurl()
             }
             if (affected != static_cast<unsigned int>(-1))
                 B_BASE::clear_dirty();
+
             co_return affected;
         }
 
@@ -12665,6 +12626,7 @@ M_MODEL& ornotnullImgurl()
             {
                 conn_obj->back_mysql_edit_conn(std::move(conn));
             }
+
             return affected;
         }
 
@@ -12776,6 +12738,7 @@ M_MODEL& ornotnullImgurl()
                 error_msg = std::string(e.what());
                 unlock_conn();
             }
+
             co_return (unsigned int) - 1;
         }
 
@@ -12838,6 +12801,7 @@ M_MODEL& ornotnullImgurl()
             {
                 conn_obj->back_mysql_edit_conn(std::move(conn));
             }
+
             return affected;
         }
 
@@ -12884,6 +12848,7 @@ M_MODEL& ornotnullImgurl()
             {
                 conn_obj->back_mysql_edit_conn(std::move(conn));
             }
+
             return affected;
         }
 
@@ -12968,6 +12933,7 @@ M_MODEL& ornotnullImgurl()
                 error_msg = std::string(e.what());
                 unlock_conn();
             }
+
             co_return (unsigned int) - 1;
         }
 
@@ -13032,6 +12998,7 @@ M_MODEL& ornotnullImgurl()
             {
                 conn_obj->back_mysql_edit_conn(std::move(conn));
             }
+
             return std::make_tuple(effect_num, static_cast<unsigned long long>(last_id));
         }
 
@@ -13119,6 +13086,7 @@ M_MODEL& ornotnullImgurl()
                 error_msg = std::string(e.what());
                 unlock_conn();
             }
+
             co_return std::make_tuple(0, 0ULL);
         }
 
@@ -13204,6 +13172,7 @@ M_MODEL& ornotnullImgurl()
             {
                 conn_obj->back_mysql_edit_conn(std::move(conn));
             }
+
             return std::make_tuple(effect_num, static_cast<unsigned long long>(first_id));
         }
 
@@ -13312,6 +13281,7 @@ M_MODEL& ornotnullImgurl()
                 error_msg = std::string(e.what());
                 unlock_conn();
             }
+
             co_return std::make_tuple(0, 0ULL);
         }
 
@@ -13329,6 +13299,7 @@ M_MODEL& ornotnullImgurl()
 
         // std::list<std::string> commit_sqllist;
         bool iscache            = false;
+        bool is_hit_cache      = false;
         bool iserror            = false;
         bool islock_conn        = false;
         int exptime             = 0;

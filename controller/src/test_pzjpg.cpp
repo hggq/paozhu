@@ -120,17 +120,36 @@ std::string test_showjpg(std::shared_ptr<httppeer> peer)
     {
         file_conf.push_back('/');
     }
-    file_conf.append("docs/images/2388_445.jpg");
-
+    client << "<p>config_path:"<< static_server_var.config_path <<" </p>";
+    client << "<p>file_conf:"<< file_conf <<" </p>";
+    
+    std::string srcfile = file_conf + "docs/images/2388_445.jpg";
+    std::string newfile = file_conf + "docs/images/2388_445_new.jpg";
+    
+    client << "<p>srcfile:"<< srcfile <<" </p>";
+    client << "<p>newfile:"<< newfile <<" </p>";
+    
     image::jpg img;
-    bool isok = img.read(file_conf);
-    if (isok)
+    bool isok = img.read(srcfile);
+    if(isok)
     {
-        client.type("image/jpg");
-        auto vec      = img.imshow();
-        client.output = std::string(reinterpret_cast<const char *>(vec.data()), vec.size());
+        client << "<p>read file OK</p>";
+        client << "<p>size:"<< img.width <<"x"<< img.height <<" </p>";
+        client << "<p>pixels:"<< img.pixels.size() <<" </p>";
+        bool saveok = img.save(newfile);
+        if(saveok)
+        {
+            client << "<p>save new file OK:"<< newfile <<" </p>";
+        }
+        else
+        {
+            client << "<p>save new file FAIL:"<< newfile <<" </p>";
+        }
     }
-    client << "<p>read file error:" << file_conf << " </p>";
+    else
+    {
+        client << "<p>read file error:"<< srcfile <<" </p>";
+    }
 
 #else
     client << "<p>Please: cmake .. -DENABLE_IMAGE=ON </p>";

@@ -1522,6 +1522,8 @@ bool jpg::read(const std::string& filename) {
 
     // 验证 SOI
     if (readU8() != 0xFF || readU8() != 0xD8) return false;
+    
+    bool parse_ok = true;
 
     uint8_t quant_tables[4][64];
     memset(quant_tables, 0, sizeof(quant_tables));
@@ -1542,7 +1544,7 @@ bool jpg::read(const std::string& filename) {
         
         pos += 2;
 
-        if (marker == 0xD9) break; // EOI
+        if (marker == 0xD9) { printf("Found EOI\n"); break; } // EOI
         if (marker == 0xDA) { // SOS
             ScanInfo si;
             memset(&si, 0, sizeof(si));
@@ -1711,6 +1713,8 @@ bool jpg::read(const std::string& filename) {
         pos = seg_end;
     }
 
+    printf("After parsing: scans=%zu, img_w=%d, img_h=%d, num_comp=%d\n", 
+           scans.size(), img_w, img_h, num_comp);
     if (scans.empty() || img_w <= 0 || img_h <= 0 || num_comp < 1) return false;
 
     int h_max = 1, v_max = 1;

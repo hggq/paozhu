@@ -408,6 +408,12 @@ namespace http
         reg_raw("", "/testormcache", nullptr, nullptr, testormcache, nullptr);
         reg_raw("", "/testormcacheb", nullptr, nullptr, testormcacheb, nullptr);
         reg_raw("", "/testormcachec", nullptr, nullptr, testormcachec, nullptr);
+        reg_raw("", "/testormcache_d", nullptr, nullptr, testormcache_d, nullptr);
+        reg_urlpath("", "/testormcache_d", {"", "aid"});
+        reg_raw("", "/testormcache_d_invalidate", nullptr, nullptr, testormcache_d_invalidate, nullptr);
+        reg_urlpath("", "/testormcache_d_invalidate", {"", "aid"});
+        reg_raw("", "/testormcache_e", nullptr, nullptr, testormcache_e, nullptr);
+        reg_urlpath("", "/testormcache_e", {"", "aid"});
         reg_raw("", "/testormclient", nullptr, nullptr, testormclient, nullptr);
         reg_raw("", "/testpinyin", nullptr, nullptr, testpinyin, nullptr);
         reg_raw("", "/testpinyin_loaded", nullptr, nullptr, testpinyin_loaded, nullptr);

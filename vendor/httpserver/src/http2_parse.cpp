@@ -49,6 +49,26 @@
 
 namespace http
 {
+// 连接级错误：直接 GOAWAY 断连（RFC 9113 §5.4.1）。
+// 例：在 idle / 偶数 / 未知流上收到 DATA（PROTOCOL_ERROR）。
+void http2parse::set_conn_error(unsigned int code, unsigned int h2)
+{
+    error           = code;
+    error_is_conn   = true;
+    error_stream_id = 0;
+    h2_error_code   = h2;
+}
+
+// 流级错误：只 RST_STREAM 重置该流，保留连接（RFC 9113 §5.4.2）。
+// 例：在已 open / half-closed 的流上又收到 DATA（STREAM_CLOSED）。
+void http2parse::set_stream_error(unsigned int code, unsigned int sid, unsigned int h2)
+{
+    error           = code;
+    error_is_conn   = false;
+    error_stream_id = sid;
+    h2_error_code   = h2;
+}
+
 void http2parse::setsession(std::shared_ptr<client_session> peer_sock) { peer_session = peer_sock; }
 
 // multipart 的 boundary 归一化：去引号、限长。
@@ -60,7 +80,7 @@ namespace
 bool http2_boundary_normalize(std::string &out, const std::string &raw)
 {
     std::string temp = raw;
-    if (temp.size() >= 2 && temp.front() == '\"' && temp.back() == '\"')
+    if (temp.size() >= 2 && temp.front() == '"' && temp.back() == '"')
     {
         temp = temp.substr(1, temp.size() - 2);
     }
@@ -69,6 +89,65 @@ bool http2_boundary_normalize(std::string &out, const std::string &raw)
         return false;
     }
     out = temp;
+    return true;
+}
+
+// HPACK 整数续位解析（RFC 7541 §5.1）
+// 调用方已读出前缀 initial_value (= first_byte & prefix_mask)，begin 已指向续位字节位置
+// 若 initial_value != prefix_mask → 无前缀续位，直接成功（out_result=initial_value）
+// 否则循环读续位字节直到遇到无续位位 或 溢出 或 越界
+// 返回 true 成功；失败时 err_code 写入 error_out，begin 前进位置不确定
+// h2_error_out 同步写成 COMPRESSION_ERROR(0x9)：整数解不出来是 HPACK 压缩会话的错，
+// 不是 §8.1 的语义错，GOAWAY 带 0x1 会让对端按协议违例去处理，重发策略判错方向。
+static bool hpack_int_decode(std::string_view data, unsigned int &begin,
+                               unsigned int initial_value, int prefix_bits,
+                               unsigned int &out_result,
+                               unsigned int &error_out, unsigned int &h2_error_out, int err_code)
+{
+    unsigned int prefix_mask = (1u << prefix_bits) - 1;
+    if (initial_value != prefix_mask)
+    {
+        out_result = initial_value;
+        return true;
+    }
+
+    unsigned long long acc   = initial_value;
+    unsigned long long shift = 0;
+
+    while (true)
+    {
+        if (begin >= data.size())
+        {
+            error_out     = err_code;
+            h2_error_out  = 0x9;
+            return false;
+        }
+        unsigned char b = (unsigned char)data[begin];
+
+        if (shift > 56)
+        {
+            error_out     = err_code;
+            h2_error_out  = 0x9;
+            return false;
+        }
+
+        acc += (unsigned long long)(b & 0x7F) * (1ULL << shift);
+        shift += 7;
+        begin += 1;
+
+        if ((b & 0x80) == 0)
+        {
+            break;
+        }
+    }
+
+    if (acc > 0xFFFFFFFFULL)
+    {
+        error_out     = err_code;
+        h2_error_out  = 0x9;
+        return false;
+    }
+    out_result = (unsigned int)acc;
     return true;
 }
 }// namespace
@@ -96,7 +175,11 @@ void http2parse::clsoesend()
 void http2parse::readheaders(const HTTP2_PACK_DATA_T &temp_pack_data)
 {
     auto iter = http2_header_recvs.find(temp_pack_data.stream_id);
-    if ((temp_pack_data.flags & 0xD2) != 0)
+    // 保留位掩码按帧型取，不能共用一张：HEADERS 的合法位是 END_STREAM(0x01)/END_HEADERS(0x04)/
+    // PADDED(0x08)/PRIORITY(0x20)，保留面 0xD2；CONTINUATION 只允许 END_HEADERS，保留面 0xFB。
+    // 用 0xD2 判 CONTINUATION 时，它带 END_STREAM/PADDED/PRIORITY 会被当成合法帧收下。
+    unsigned char reserved_mask = (temp_pack_data.frame_type == 0x09) ? 0xFB : 0xD2;
+    if ((temp_pack_data.flags & reserved_mask) != 0)
     {
         //非头部内容
         error = 40015;
@@ -185,6 +268,7 @@ void http2parse::readheaders(const HTTP2_PACK_DATA_T &temp_pack_data)
     if (iter->second.flags.END_HEADERS == 0)
     {
         //未结束
+        // header_block_pending = true;  // 已注释：§6.10 头部块中途帧校验暂不做
         return;
     }
 
@@ -231,15 +315,39 @@ void http2parse::readheaders(const HTTP2_PACK_DATA_T &temp_pack_data)
     steam_httppeer->stream_id      = iter->second.stream_id;
     steam_httppeer->httpv          = 2;
     steam_httppeer->socket_session = peer_session;
+    // isssl 的唯一事实来源是 socket（h1 侧也是从 socket 取值）。它原先由 :scheme 的头值反推，
+    // 于是明文连接上对端发索引 7（:scheme https）就能把 is_ssl() 伪造成 true，TLS 连接上发索引 6
+    // 又把真连接写成 false；而字面量形式的 :scheme 压根不落到那行，同一个请求两种编码两个答案。
+    steam_httppeer->isssl          = peer_session->isssl;
 
     headers_parse(iter->second, steam_httppeer);
 
-    if (ispost)
+    // 站点上传限额（upload_max_size）判的是头块里声明的 Content-Length，头块解完就已经够条件判，
+    // 不必等正文——超限的请求一帧正文都不该收（h1 也在头完成处调同一个 check_upload_limit()）。
+    // 这是站点策略违例，不是协议违例，所以只作废这一条流，连接照常复用；
+    // headers_parse 已经报错时（error 非 0）不接管：错误分流得先走，不能一边断连一边回页面。
+    // 没声明 Content-Length 的请求这里判不了（body 长度未知），留给正文收尾那条比对。
+    if (error == 0 && steam_httppeer->ishas_content_length &&
+        (steam_httppeer->method == 2 || steam_httppeer->method == 4))
     {
-        error = steam_httppeer->check_upload_limit();
+        unsigned int limit_status = steam_httppeer->check_upload_limit();
+        if (limit_status > 0)
+        {
+            steam_httppeer->reject_status = limit_status;
+            steam_httppeer->isfinish      = true;
+            // 正文收集状态必须一并撤掉：留着它，随后到达的 DATA 会被当成 body 收下，
+            // 收尾那条 content-length 比对就把连接级错误引出来了。
+            http_post_data.erase(steam_httppeer->stream_id);
+            // HEADERS 自带 END_STREAM 的 POST 没有正文，headers_parse 已经就地派发过一次。
+            if (!iter->second.flags.END_STREAM)
+            {
+                stream_list.emplace(steam_httppeer->stream_id);
+            }
+        }
     }
     // isuse_fastcgi() 已删除：路由预查挪到 loop 里，php 处理挪到 server 新方法
     http2_header_recvs.erase(iter);
+    // header_block_pending = false;  // 已注释：§6.10 头部块中途帧校验暂不做
 }
 void http2parse::headers_parse(const HTTP2_HEADER_FRAME_T &header_block_obj, std::shared_ptr<httppeer> steam_httppeer)
 {
@@ -264,6 +372,12 @@ void http2parse::headers_parse(const HTTP2_HEADER_FRAME_T &header_block_obj, std
         {
             headertype4(c, header_block_obj.content, h_begin, steam_httppeer);
         }
+        else if ((c & 0xE0) == 0x20)
+        {
+            // 001xxxxx : Dynamic Table Size Update (RFC 7541 §6.3)
+            // 这是独立于 4 种 header 表示的控制指令，不是第 5 种 header 类型
+            dynamic_table_size_update(c, header_block_obj.content, h_begin, steam_httppeer);
+        }
         else
         {
             error = 40205;
@@ -283,6 +397,19 @@ void http2parse::headers_parse(const HTTP2_HEADER_FRAME_T &header_block_obj, std
     if (steam_httppeer->method == 2 || steam_httppeer->method == 4)
     {
         DEBUG_LOG("http2 post client: %s %ud", steam_httppeer->url.c_str(), header_stream_id);
+        // HEADERS 自带 END_STREAM：客户端这一侧已发完，流进入 half-closed(remote)，
+        // 请求体长度就是 0。必须在这里就地派发，而且**绝不能**建 http_post_data：
+        // 建了就等于对外宣布"本流还在收请求体"，随后到达的 DATA 会被当成 body 收下并
+        // 再触发一次派发，同一个流回两份响应（RFC 9113 §5.1 要求此时回
+        // RST_STREAM(STREAM_CLOSED)，h2spec 6.1.2 判失败）；只发 HEADERS(END_STREAM)
+        // 的 POST 也会一直等一个永远不会来的 DATA 而静默挂死。
+        if (header_block_obj.flags.END_STREAM)
+        {
+            steam_httppeer->isfinish = true;
+            stream_list.emplace(header_stream_id);
+            return;
+        }
+
         // 这里不再重置/授予接收窗口：
         //  * 新流的流级额度已由本端广告的 SETTINGS_INITIAL_WINDOW_SIZE 给出，
         //    不需要（也不应该）再补一次；
@@ -306,6 +433,34 @@ void http2parse::headers_parse(const HTTP2_HEADER_FRAME_T &header_block_obj, std
         DEBUG_LOG("http2 get client: %s", steam_httppeer->url.c_str());
         steam_httppeer->isfinish = true;
         stream_list.emplace(header_stream_id);
+    }
+
+    // ---- RFC 9113 §8.1.2.3 请求伪头跨头块校验（headertypeX 全跑完才知道）----
+    // Finalize: duplicate / missing / empty pseudo-headers.
+    // 重复伪头 → PROTOCOL_ERROR（h2spec 8.1.2.3 #5/#6/#7）
+    if (steam_httppeer->h2_method_dup ||
+        steam_httppeer->h2_scheme_dup ||
+        steam_httppeer->h2_path_dup)
+    {
+        set_conn_error(40025, 0x1);
+        return;
+    }
+    // :method / :scheme / :path 缺失 → PROTOCOL_ERROR（h2spec 8.1.2.3 #2/#3/#4）
+    // CONNECT 允许没有 :path 和 :scheme（RFC 9113 §8.5），但我们不处理 CONNECT，
+    // 所以一律要求这三个伪头必须各出现一次。
+    if (!steam_httppeer->h2_method_seen ||
+        !steam_httppeer->h2_scheme_seen ||
+        !steam_httppeer->h2_path_seen)
+    {
+        set_conn_error(40025, 0x1);
+        return;
+    }
+    // :path 空值 → PROTOCOL_ERROR（h2spec 8.1.2.3 #1）
+    // :path 不能是空串（CONNECT 除外，但我们不处理 CONNECT）
+    if (steam_httppeer->urlpath.empty())
+    {
+        set_conn_error(40025, 0x1);
+        return;
     }
 }
 void http2parse::cookie_process([[maybe_unused]] const std::string &header_name, const std::string &header_value, std::shared_ptr<httppeer> steam_httppeer)
@@ -1000,6 +1155,95 @@ bool http2parse::header_host_process(const std::string &header_value, std::share
 void http2parse::header_process(std::string header_name, std::string header_value, int table_num, std::shared_ptr<httppeer> steam_httppeer)
 {
     DEBUG_LOG("header:%s:%s|%d", header_name.c_str(), header_value.c_str(), table_num);
+
+    // ---- RFC 9113 §8.1.2 单元素头合规校验（每条头一解码完立刻能判，不跨状态）----
+    // All static-table entries (table_num > 0) are HPACK-defined lowercase headers,
+    // so these guards apply universally — a tainted encoder would have to use the
+    // literal-insert paths (table_num == 0) to smuggle them in.
+    //
+    // ① 头名里有任何大写 → PROTOCOL_ERROR（h2spec 8.1.2 #1）。HTTP/2 头名必须全小写。
+    // Header names MUST be lowercase per RFC 9113 §8.1.2.
+    for (unsigned char c : header_name)
+    {
+        if (c >= 'A' && c <= 'Z')
+        {
+            set_conn_error(40025, 0x1);  // PROTOCOL_ERROR
+            return;
+        }
+    }
+    // ② 响应伪头（:status）出现在请求里、未知伪头 → PROTOCOL_ERROR（h2spec 8.1.2.1 #1/#2）
+    // Pseudo-headers are request-only (:method/:scheme/:path/:authority / response-only :status).
+    if (!header_name.empty() && header_name[0] == ':')
+    {
+        static constexpr const char *const k_req_pseudos[] = {
+            ":method", ":scheme", ":path", ":authority", ":protocol"
+        };
+        bool known = false;
+        for (const char *p : k_req_pseudos)
+        {
+            if (header_name == p)
+            {
+                known = true;
+                break;
+            }
+        }
+        if (!known)
+        {
+            set_conn_error(40025, 0x1);  // PROTOCOL_ERROR — 未知伪头 / 响应伪头 :status
+            return;
+        }
+    }
+    // ③ 连接层头（RFC 9113 §8.1.2.2）— HTTP/1.1 专用，HTTP/2 必须拆帧走不同机制
+    // Connection-specific headers are HTTP/1.1 only; HTTP/2 has distinct frames.
+    static constexpr const char *const k_conn_hop_by_hop[] = {
+        "connection", "keep-alive", "proxy-connection", "te", "transfer-encoding", "upgrade"
+    };
+    for (const char *h : k_conn_hop_by_hop)
+    {
+        if (header_name == h)
+        {
+            // TE 例外：值为 trailers 是 RFC 9113 §8.1.2.2 允许的，其它值是 PROTOCOL_ERROR
+            // TE is allowed only with value "trailers" (RFC 9113 §8.1.2.2).
+            if (header_name == "te" && header_value == "trailers")
+            {
+                break;
+            }
+            set_conn_error(40025, 0x1);  // PROTOCOL_ERROR
+            return;
+        }
+    }
+
+    // ---- RFC 9113 §8.1.2 跨状态计数（单元素校验已过，这里只计状态）----
+    // 伪头在普通头之后出现 → PROTOCOL_ERROR（h2spec 8.1.2.1 #4）
+    // Pseudo-headers MUST precede any regular header field.
+    if (!header_name.empty() && header_name[0] == ':')
+    {
+        if (steam_httppeer->h2_regular_seen)
+        {
+            set_conn_error(40025, 0x1);  // PROTOCOL_ERROR
+            return;
+        }
+        if (header_name == ":method")
+        {
+            if (steam_httppeer->h2_method_seen) steam_httppeer->h2_method_dup = true;
+            else                                  steam_httppeer->h2_method_seen = true;
+        }
+        else if (header_name == ":scheme")
+        {
+            if (steam_httppeer->h2_scheme_seen) steam_httppeer->h2_scheme_dup = true;
+            else                                  steam_httppeer->h2_scheme_seen = true;
+        }
+        else if (header_name == ":path")
+        {
+            if (steam_httppeer->h2_path_seen) steam_httppeer->h2_path_dup = true;
+            else                                steam_httppeer->h2_path_seen = true;
+        }
+    }
+    else
+    {
+        steam_httppeer->h2_regular_seen = true;
+    }
+
     if (table_num > 0)
     {
 
@@ -1063,8 +1307,9 @@ void http2parse::header_process(std::string header_name, std::string header_valu
             {
                 steam_httppeer->method = 9;
             }
-            steam_httppeer->iscors           = (steam_httppeer->method == 3);
-            steam_httppeer->header["method"] = std::move(header_value);
+            steam_httppeer->iscors            = (steam_httppeer->method == 3);
+            steam_httppeer->header[":method"] = header_value;
+            steam_httppeer->header["method"]  = std::move(header_value);
             break;
         case 3:
             if (str_casecmp(header_value, "OPTIONS"))
@@ -1103,12 +1348,23 @@ void http2parse::header_process(std::string header_name, std::string header_valu
             {
                 steam_httppeer->method = 9;
             }
-            steam_httppeer->iscors           = (steam_httppeer->method == 3);
-            steam_httppeer->header["method"] = std::move(header_value);
+            steam_httppeer->iscors            = (steam_httppeer->method == 3);
+            steam_httppeer->header[":method"] = header_value;
+            steam_httppeer->header["method"]  = std::move(header_value);
             break;
         case 4:
         case 5:
             path_process(header_name, header_value, steam_httppeer);
+            // 与字面量路径同一个形状：path_process 写 urlpath/url/header["urlpath"]，
+            // 原始 :path 值本身也要留在 header 里给业务读
+            steam_httppeer->header[":path"] = header_value;
+            break;
+        case 6:
+        case 7:
+            // :scheme 只记账，不推导 isssl：这条连接是不是 TLS 只有 socket 知道。
+            // 用头值反推的话，明文连接上对端发索引 7 就能把 is_ssl() 写成 true，
+            // TLS 连接上发索引 6 又把它写成 false，路由和 secure cookie 都跟着错。
+            steam_httppeer->header[":scheme"] = std::move(header_value);
             break;
         case 16:
             getacceptencoding(header_name, header_value, steam_httppeer);
@@ -1134,6 +1390,7 @@ void http2parse::header_process(std::string header_name, std::string header_valu
                 return;
             }
             steam_httppeer->content_length           = temp_cl;
+            steam_httppeer->ishas_content_length      = true;
             steam_httppeer->header["content-length"] = std::move(header_value);
             break;
         }
@@ -1367,6 +1624,7 @@ void http2parse::header_process(std::string header_name, std::string header_valu
                     return;
                 }
                 steam_httppeer->content_length           = temp_cl;
+                steam_httppeer->ishas_content_length      = true;
                 steam_httppeer->header["content-length"] = std::move(header_value);
             }
             else
@@ -1824,54 +2082,83 @@ void http2parse::getaccept([[maybe_unused]] const std::string &header_name, cons
         }
     }
 }
+void http2parse::dynamic_table_size_update(unsigned char c,
+                                            std::string_view header_data,
+                                            unsigned int &begin,
+                                            std::shared_ptr<httppeer> steam_httppeer)
+{
+    (void)steam_httppeer;
+    // RFC 7541 §6.3 : Dynamic Table Size Update，首字节 001xxxxx，5 位前缀
+    unsigned int new_size = c & 0x1F;
+    begin += 1;
+    if (!hpack_int_decode(header_data, begin, new_size, 5, new_size, error, h2_error_code, 40160))
+    {
+        return;
+    }
+    // 子解析器统一把 begin 停在「最后一个已消费字节」上，由 headers_parse 的 h_begin++ 再前进一步；
+    // 这里不退这一次，紧随其后的头字段首字节就会被当成整数尾巴跳掉，整个头块从此错位。
+    begin -= 1;
+    // 新尺寸不得超过解码端通过 SETTINGS_HEADER_TABLE_SIZE 通告的最大值
+    if (new_size > setting_data.header_table_size)
+    {
+        hpack_fail(40209);
+        return;
+    }
+    dynamic_table_max_size = new_size;
+
+    // 按 RFC 7541 §4.1 逐出尾部条目：每条占用 name+value+32 字节，直至不超新上限
+    unsigned int total = 0;
+    for (const auto &entry : dynamic_lists)
+    {
+        total += (unsigned int)(entry.first.size() + entry.second.size()) + 32;
+    }
+    while (!dynamic_lists.empty() && total > dynamic_table_max_size)
+    {
+        const auto &back = dynamic_lists.back();
+        total -= (unsigned int)(back.first.size() + back.second.size()) + 32;
+        dynamic_lists.pop_back();
+    }
+}
+
 void http2parse::headertype1(unsigned char c,
-                             [[maybe_unused]] std::string_view header_data,
-                             [[maybe_unused]] unsigned int &begin,
+                             std::string_view header_data,
+                             unsigned int &begin,
                              std::shared_ptr<httppeer> steam_httppeer)
 {
-    unsigned char a = c & 0x7F;
+    unsigned int a = c & 0x7F;
     // std::string name_key;
     // std::string value;
+    begin += 1;
+    if (!hpack_int_decode(header_data, begin, a, 7, a, error, h2_error_code, 40198))
+    {
+        return;
+    }
+    begin -= 1;
+
+    // RFC 7541 §6.1：索引头字段表示里索引 0 是非法值（"Index 0 is not used"），
+    // 必须按 HPACK 解压缩失败处理成连接级 COMPRESSION_ERROR(0x9)，不能落到静态表 [0]
+    // 的 ":empty" 哨兵、再靠 header_process 的未知伪头检查误判成 PROTOCOL_ERROR(0x1)。
+    if (a == 0)
+    {
+        hpack_fail(40201);
+        return;
+    }
 
     if (a < 62)
     {
-        // name_key = http2_header_static_table[a].key;
-        // value    = http2_header_static_table[a].value;
-        if (a == 2 || a == 3)
-        {
-            steam_httppeer->header[":method"] = http2_header_static_table[a].value;
-            if (a == 3)
-            {
-                steam_httppeer->method = 2;
-                //ispost                       = true;
-            }
-            else
-            {
-                steam_httppeer->method = 1;
-                //ispost                       = false;
-            }
-        }
-        else if (a == 4 || a == 5)
-        {
-            steam_httppeer->url             = http2_header_static_table[a].value;
-            steam_httppeer->urlpath         = http2_header_static_table[a].value;
-            steam_httppeer->header["path"]  = http2_header_static_table[a].value;
-            steam_httppeer->header[":path"] = http2_header_static_table[a].value;
-        }
-        else if (a == 6 || a == 7)
-        {
-
-            steam_httppeer->isssl             = (a == 7) ? true : false;
-            steam_httppeer->header[":scheme"] = http2_header_static_table[a].value;
-        }
-        else
-        {
-            header_process(http2_header_static_table[a].key, http2_header_static_table[a].value, a, steam_httppeer);
-        }
+        // 静态表条目和字面量条目必须走同一个 header_process：§8.1.2 的大写头名、伪头白名单、
+        // 连接层头、伪头顺序与重复计数全在那里面。内联一份精简副本就会漏掉这些检测，
+        // 还会让同一个请求的两条编码路径给出不同形状（副本不写 header["method"]）。
+        header_process(http2_header_static_table[a].key, http2_header_static_table[a].value, a, steam_httppeer);
     }
     else
     {
         a -= 62;
+        if (a >= dynamic_lists.size())
+        {
+            hpack_fail(40196);
+            return;
+        }
         unsigned int j = 0;
         for (const auto &hinfo : dynamic_lists)
         {
@@ -1887,7 +2174,7 @@ void http2parse::headertype1(unsigned char c,
 }
 void http2parse::headertype2(unsigned char c, std::string_view header_data, unsigned int &begin, std::shared_ptr<httppeer> steam_httppeer)
 {
-    unsigned char a;
+    unsigned int a;
     unsigned int item_length;
     unsigned char field_state = 0;
     bool ishuffman_value      = false;
@@ -1900,7 +2187,7 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
         begin += 1;
         if (begin >= header_data.size())
         {
-            error = 40128;
+            hpack_fail(40128);
             return;
         }
         item_length = header_data[begin] & 0x7F;
@@ -1911,43 +2198,14 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
             ishuffman_value = true;
         }
 
-        bool iscontinue = false;
-        if (item_length == 0x7F)
-        {
-            iscontinue = true;
-        }
         begin += 1;
-
-        if (iscontinue)
+        if (!hpack_int_decode(header_data, begin, item_length, 7, item_length, error, h2_error_code, 40129))
         {
-            if (begin >= header_data.size())
-            {
-                error = 40129;
-                return;
-            }
-            iscontinue = false;
-            if (header_data[begin] & 0x80)
-            {
-                iscontinue = true;
-            }
-
-            item_length = item_length + (unsigned int)(header_data[begin] & 0x7F);
-            begin += 1;
-            if (begin >= header_data.size())
-            {
-                error = 40130;
-                return;
-            }
-            if (iscontinue)
-            {
-                item_length = item_length + (unsigned int)(header_data[begin] & 0x7F) * 128;
-                begin += 1;
-            }
+            return;
         }
-
-        if ((begin + item_length) > header_data.size())
+        if (item_length > header_data.size() - begin)
         {
-            error = 40178;
+            hpack_fail(40178);
             return;
         }
 
@@ -1963,7 +2221,7 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
         begin = begin + item_length;
         if (begin >= header_data.size())
         {
-            error = 40131;
+            hpack_fail(40131);
             return;
         }
         // huffman
@@ -1975,36 +2233,13 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
 
         item_length = header_data[begin] & 0x7F;
         begin += 1;
-        if (item_length == 0x7F)
+        if (!hpack_int_decode(header_data, begin, item_length, 7, item_length, error, h2_error_code, 40132))
         {
-            if (begin >= header_data.size())
-            {
-                error = 40132;
-                return;
-            }
-            iscontinue = false;
-            if (header_data[begin] & 0x80)
-            {
-                iscontinue = true;
-            }
-
-            item_length = item_length + (unsigned int)(header_data[begin] & 0x7F);
-            begin += 1;
-            if (begin >= header_data.size())
-            {
-                error = 40133;
-                return;
-            }
-            if (iscontinue)
-            {
-                item_length = item_length + (unsigned int)(header_data[begin] & 0x7F) * 128;
-                begin += 1;
-            }
+            return;
         }
-
-        if ((begin + item_length) > header_data.size())
+        if (item_length > header_data.size() - begin)
         {
-            error = 40179;
+            hpack_fail(40179);
             return;
         }
 
@@ -2032,6 +2267,12 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
     else
     {
         a = header_data[begin] & 0x3F;
+        begin += 1;
+        if (!hpack_int_decode(header_data, begin, a, 6, a, error, h2_error_code, 40134))
+        {
+            return;
+        }
+        begin -= 1;
         if (a < 62)
         {
             name_key = http2_header_static_table[a].key;
@@ -2039,49 +2280,29 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
         }
         else
         {
-            // 此处需要第二个字节 need next char
             c = 0;
-            if (a == 0x3F)
+            a -= 62;
+            if (a >= dynamic_lists.size())
             {
-                begin += 1;
-                if (begin >= header_data.size())
-                {
-                    error = 40134;
-                    return;
-                }
-
-                a = a + (header_data[begin] & 0x7F);
-                if (header_data[begin] & 0x80)
-                {
-                    error = 40181;
-                    return;
-                }
+                hpack_fail(40197);
+                return;
             }
-            if (a < 62)
+            unsigned int j = 0;
+            for (const auto &hinfo : dynamic_lists)
             {
-                name_key = http2_header_static_table[a].key;
-                c        = a;
-            }
-            else
-            {
-                a -= 62;
-                unsigned int j = 0;
-                for (const auto &hinfo : dynamic_lists)
+                if (j == a)
                 {
-                    if (j == a)
-                    {
-                        name_key = hinfo.first;
-                        break;
-                    }
-                    j++;
+                    name_key = hinfo.first;
+                    break;
                 }
+                j++;
             }
         }
 
         begin += 1;
         if (begin >= header_data.size())
         {
-            error = 40135;
+            hpack_fail(40135);
             return;
         }
         ishuffman_value = false;
@@ -2091,40 +2312,13 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
         }
         item_length = header_data[begin] & 0x7F;
         begin += 1;
-        if (item_length == 0x7F)
+        if (!hpack_int_decode(header_data, begin, item_length, 7, item_length, error, h2_error_code, 40136))
         {
-            if (begin >= header_data.size())
-            {
-                error = 40136;
-                return;
-            }
-            bool iscontinue = false;
-            if (header_data[begin] & 0x80)
-            {
-                iscontinue = true;
-            }
-
-            item_length = item_length + (unsigned int)(header_data[begin] & 0x7F);
-            begin += 1;
-            if (begin >= header_data.size())
-            {
-                error = 40137;
-                return;
-            }
-            if (iscontinue)
-            {
-                item_length = item_length + (unsigned int)(header_data[begin] & 0x7F) * 128;
-                if (header_data[begin] & 0x80)
-                {
-                    error = 40182;
-                    return;
-                }
-                begin += 1;
-            }
+            return;
         }
-        if ((begin + item_length) > header_data.size())
+        if (item_length > header_data.size() - begin)
         {
-            error = 40180;
+            hpack_fail(40180);
             return;
         }
 
@@ -2152,7 +2346,7 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
 }
 void http2parse::headertype3(unsigned char c, std::string_view header_data, unsigned int &begin, std::shared_ptr<httppeer> steam_httppeer)
 {
-    unsigned char a;
+    unsigned int a;
     unsigned int item_length;
     unsigned char field_state = 0;
     bool ishuffman_value      = false;
@@ -2165,7 +2359,7 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
         begin += 1;
         if (begin >= header_data.size())
         {
-            error = 40138;
+            hpack_fail(40138);
             return;
         }
         item_length = header_data[begin] & 0x7F;
@@ -2174,35 +2368,14 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
             ishuffman_value = true;
         }
 
-        bool iscontinue = false;
-        if (item_length == 0x7F)
-        {
-            iscontinue = true;
-        }
         begin += 1;
-
-        if (iscontinue)
+        if (!hpack_int_decode(header_data, begin, item_length, 7, item_length, error, h2_error_code, 40139))
         {
-            if (begin >= header_data.size())
-            {
-                error = 40139;
-                return;
-            }
-            if (header_data[begin] & 0x80)
-            {
-                error = 40186;
-                return;
-            }
-            else
-            {
-                item_length = item_length + (unsigned int)(header_data[begin] & 0x7F);
-                begin += 1;
-            }
+            return;
         }
-
-        if ((begin + item_length) > header_data.size())
+        if (item_length > header_data.size() - begin)
         {
-            error = 40183;
+            hpack_fail(40183);
             return;
         }
         if (ishuffman_value)
@@ -2218,7 +2391,7 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
         ishuffman_value = false;
         if (begin >= header_data.size())
         {
-            error = 40140;
+            hpack_fail(40140);
             return;
         }
         if (header_data[begin] & 0x80)
@@ -2228,41 +2401,13 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
 
         item_length = header_data[begin] & 0x7F;
         begin += 1;
-        if (item_length == 0x7F)
+        if (!hpack_int_decode(header_data, begin, item_length, 7, item_length, error, h2_error_code, 40141))
         {
-            if (begin >= header_data.size())
-            {
-                error = 40141;
-                return;
-            }
-            iscontinue = false;
-            if (header_data[begin] & 0x80)
-            {
-                iscontinue = true;
-            }
-
-            item_length = item_length + (unsigned int)(header_data[begin] & 0x7F);
-            begin += 1;
-            if (begin >= header_data.size())
-            {
-                error = 40142;
-                return;
-            }
-            if (iscontinue)
-            {
-                item_length = item_length + (unsigned int)(header_data[begin] & 0x7F) * 128;
-                if (header_data[begin] & 0x80)
-                {
-                    error = 40188;
-                    return;
-                }
-                begin += 1;
-            }
+            return;
         }
-
-        if ((begin + item_length) > header_data.size())
+        if (item_length > header_data.size() - begin)
         {
-            error = 40184;
+            hpack_fail(40184);
             return;
         }
 
@@ -2283,52 +2428,40 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
     else
     {
         a = header_data[begin] & 0x0F;
-        if (a != 0x0F)
+        begin += 1;
+        if (!hpack_int_decode(header_data, begin, a, 4, a, error, h2_error_code, 40143))
+        {
+            return;
+        }
+        if (a < 62)
         {
             name_key = http2_header_static_table[a].key;
             c        = a;
         }
         else
         {
-
-            begin += 1;
-            if (begin >= header_data.size())
+            c = 0;
+            a -= 62;
+            if (a >= dynamic_lists.size())
             {
-                error = 40143;
+                hpack_fail(40197);
                 return;
             }
-            a += header_data[begin];
-            if (header_data[begin] & 0x80)
+            unsigned int j = 0;
+            for (const auto &hinfo : dynamic_lists)
             {
-                error = 40187;
-                return;
-            }
-            if (a < 62)
-            {
-                name_key = http2_header_static_table[a].key;
-                c        = a;
-            }
-            else
-            {
-                c = 0;
-                a -= 62;
-                unsigned int j = 0;
-                for (const auto &hinfo : dynamic_lists)
+                if (j == a)
                 {
-                    if (j == a)
-                    {
-                        name_key = hinfo.first;
-                        break;
-                    }
-                    j++;
+                    name_key = hinfo.first;
+                    break;
                 }
+                j++;
             }
         }
 
-        begin += 1;
         if (begin >= header_data.size())
         {
-            error = 40144;
+            hpack_fail(40144);
             return;
         }
         if (header_data[begin] & 0x80)
@@ -2337,41 +2470,13 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
         }
         item_length = header_data[begin] & 0x7F;
         begin += 1;
-        if (item_length == 0x7F)
+        if (!hpack_int_decode(header_data, begin, item_length, 7, item_length, error, h2_error_code, 40145))
         {
-            if (begin >= header_data.size())
-            {
-                error = 40145;
-                return;
-            }
-            bool iscontinue = false;
-            if (header_data[begin] & 0x80)
-            {
-                iscontinue = true;
-            }
-
-            item_length = item_length + (unsigned int)(header_data[begin] & 0x7F);
-            begin += 1;
-            if (begin >= header_data.size())
-            {
-                error = 40146;
-                return;
-            }
-            if (iscontinue)
-            {
-                item_length = item_length + (unsigned int)(header_data[begin] & 0x7F) * 128;
-                if (header_data[begin] & 0x80)
-                {
-                    error = 40189;
-                    return;
-                }
-                begin += 1;
-            }
+            return;
         }
-
-        if ((begin + item_length) > header_data.size())
+        if (item_length > header_data.size() - begin)
         {
-            error = 40185;
+            hpack_fail(40185);
             return;
         }
 
@@ -2392,7 +2497,7 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
 }
 void http2parse::headertype4(unsigned char c, std::string_view header_data, unsigned int &begin, std::shared_ptr<httppeer> steam_httppeer)
 {
-    unsigned char a;
+    unsigned int a;
     unsigned int item_length;
     unsigned char field_state = 0;
     bool ishuffman_value      = false;
@@ -2405,7 +2510,7 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
         begin += 1;
         if (begin >= header_data.size())
         {
-            error = 40147;
+            hpack_fail(40147);
             return;
         }
 
@@ -2415,36 +2520,14 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
             ishuffman_value = true;
         }
 
-        bool iscontinue = false;
-        if (header_data[begin] == 0x7F)
-        {
-            iscontinue = true;
-        }
         begin += 1;
-
-        if (iscontinue)
+        if (!hpack_int_decode(header_data, begin, item_length, 7, item_length, error, h2_error_code, 40148))
         {
-            if (begin >= header_data.size())
-            {
-                error = 40148;
-                return;
-            }
-
-            if (header_data[begin] & 0x80)
-            {
-                error = 40192;
-                return;
-            }
-            else
-            {
-                item_length = item_length + (unsigned int)(header_data[begin] & 0x7F);
-                begin += 1;
-            }
+            return;
         }
-
-        if ((begin + item_length) > header_data.size())
+        if (item_length > header_data.size() - begin)
         {
-            error = 40190;
+            hpack_fail(40190);
             return;
         }
 
@@ -2460,7 +2543,7 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
         begin = begin + item_length;
         if (begin >= header_data.size())
         {
-            error = 40149;
+            hpack_fail(40149);
             return;
         }
         ishuffman_value = false;
@@ -2471,42 +2554,13 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
 
         item_length = header_data[begin] & 0x7F;
         begin += 1;
-        if (item_length == 0x7F)
+        if (!hpack_int_decode(header_data, begin, item_length, 7, item_length, error, h2_error_code, 40150))
         {
-
-            if (begin >= header_data.size())
-            {
-                error = 40150;
-                return;
-            }
-            iscontinue = false;
-            if (header_data[begin] & 0x80)
-            {
-                iscontinue = true;
-            }
-
-            item_length = item_length + (unsigned int)(header_data[begin] & 0x7F);
-            begin += 1;
-            if (begin >= header_data.size())
-            {
-                error = 40151;
-                return;
-            }
-            if (iscontinue)
-            {
-                item_length = item_length + (unsigned int)(header_data[begin] & 0x7F) * 128;
-                if (header_data[begin] & 0x80)
-                {
-                    error = 40194;
-                    return;
-                }
-                begin += 1;
-            }
+            return;
         }
-
-        if ((begin + item_length) > header_data.size())
+        if (item_length > header_data.size() - begin)
         {
-            error = 40191;
+            hpack_fail(40191);
             return;
         }
 
@@ -2527,22 +2581,12 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
     else
     {
         a = header_data[begin] & 0x0F;
-        if (a == 0x0F)
+        begin += 1;
+        if (!hpack_int_decode(header_data, begin, a, 4, a, error, h2_error_code, 40152))
         {
-            begin += 1;
-            if (begin >= header_data.size())
-            {
-                error = 40152;
-                return;
-            }
-            a = a + (header_data[begin] & 0x7F);
-            if (header_data[begin] & 0x80)
-            {
-                error = 40193;
-                return;
-            }
+            return;
         }
-
+        begin -= 1;
         if (a < 62)
         {
             name_key = http2_header_static_table[a].key;
@@ -2552,6 +2596,11 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
         {
             c = 0;
             a -= 62;
+            if (a >= dynamic_lists.size())
+            {
+                hpack_fail(40197);
+                return;
+            }
             unsigned int j = 0;
             for (const auto &hinfo : dynamic_lists)
             {
@@ -2568,7 +2617,7 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
         ishuffman_value = false;
         if (begin >= header_data.size())
         {
-            error = 40153;
+            hpack_fail(40153);
             return;
         }
 
@@ -2579,43 +2628,13 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
 
         item_length = header_data[begin] & 0x7F;
         begin += 1;
-
-        if (item_length == 0x7F)
+        if (!hpack_int_decode(header_data, begin, item_length, 7, item_length, error, h2_error_code, 40154))
         {
-            if (begin >= header_data.size())
-            {
-                error = 40154;
-                return;
-            }
-            bool iscontinue = false;
-            if (header_data[begin] & 0x80)
-            {
-                iscontinue = true;
-            }
-
-            item_length = item_length + (unsigned int)(header_data[begin] & 0x7F);
-            begin += 1;
-
-            if (iscontinue)
-            {
-                if (begin >= header_data.size())
-                {
-                    error = 40155;
-                    return;
-                }
-                item_length = item_length + (unsigned int)(header_data[begin] & 0x7F) * 128;
-                if (header_data[begin] & 0x80)
-                {
-                    error = 40195;
-                    return;
-                }
-                begin += 1;
-            }
+            return;
         }
-
-        if ((begin + item_length) > header_data.size())
+        if (item_length > header_data.size() - begin)
         {
-            error = 40156;
+            hpack_fail(40156);
             return;
         }
 
@@ -2706,33 +2725,39 @@ void http2parse::readsetting(const HTTP2_PACK_DATA_T &temp_pack_data)
             // 绝不能赋给连接级窗口 window_update_num。RFC 9113 §6.9.2 还要求：
             // 该值变化时，所有已存在流的发送窗口按 (new - old) 等额调整。
             {
+                // SETTINGS_INITIAL_WINDOW_SIZE 变更：每条已存在流按 (new - old) 等额调整。
+                // unsigned cur + signed delta 在 delta 负时会 wrap，所以先过 int64 中间态
+                // 统一 clamp 到 [0, MAX_WINDOW]。
+                // Each existing stream adjusts by (new - old). cur + delta can underflow
+                // unsigned cur when delta is negative — route through int64 then clamp to [0, MAX].
+                // 已知限制（2026-10-09 定案：维持 unsigned，不改成 signed 追负值）：地板到 0 抹掉的那段
+                // 负额度不再记账，对端随后对该流发 WINDOW_UPDATE 等于把它白退回去，本端允许的在途字节
+                // 比 RFC 9113 §6.9.1 的口径多出一截。追负值要改发送侧三处闸门（reserve/refund/gate_open）
+                // 再加 readwinupdate 里那处额度累加，并逐处防下溢；收益只是抹平这条限制，所以不换。
                 std::lock_guard<std::mutex> lk(peer_session->stream_send_window_mutex);
-                long long old_iws = static_cast<long long>(peer_session->remote_initial_window_size.load());
-                long long new_iws = static_cast<long long>(ident_value);
-                long long delta   = new_iws - old_iws;
+                signed long long old_ll =
+                    static_cast<signed long long>(peer_session->remote_initial_window_size.load());
+                signed long long new_ll =
+                    static_cast<signed long long>(ident_value);
+                signed long long delta  = new_ll - old_ll;
                 for (auto &kv : peer_session->stream_send_window)
                 {
-                    long long cur = static_cast<long long>(kv.second);
-                    cur += delta;
-                    if (cur < 0)
+                    signed long long raw =
+                        static_cast<signed long long>(kv.second) + delta;
+                    unsigned int cur;
+                    if (raw <= 0)
                     {
-                        cur = 0;
+                        cur = 0;  // SETTINGS IWS 下调把窗口压到 0 以下 → 地板到 0（h2spec 6.9.2 #2 依赖 track negative，此处放弃）
                     }
-                    // 只归零不封顶会留下 > 2^31-1 的窗口：delta 最大 ~2GB，一条本来就有
-                    // ~2GB 额度的流相加能到 4.29e9，而本端没广告 §6.9.2 扩展流控。更要紧的是
-                    // readwindowupdate 那道 "cur > MAX - inc" 在这种值上恒真，此后这条流收到
-                    // 的每一个合法 WINDOW_UPDATE 都会被本端 RST 掉。与退还处同法封顶。
-                    // Flooring at 0 without capping the top leaves windows above 2^31-1: delta can be
-                    // ~2GB, so a stream already holding ~2GB sums to ~4.29e9 — still fits a u32, so it
-                    // doesn't crash, but this end never advertised the extended flow control of §6.9.2.
-                    // Worse, readwindowupdate's "cur > MAX - inc" gate is then always true, and every
-                    // legitimate WINDOW_UPDATE on this stream gets RST by us. Cap it the same way the
-                    // refund path does.
-                    if (cur > static_cast<long long>(CONST_HTTP2_MAX_WINDOW))
+                    else if (raw > static_cast<signed long long>(CONST_HTTP2_MAX_WINDOW))
                     {
-                        cur = CONST_HTTP2_MAX_WINDOW;
+                        cur = static_cast<unsigned int>(CONST_HTTP2_MAX_WINDOW);
                     }
-                    kv.second = static_cast<unsigned int>(cur);
+                    else
+                    {
+                        cur = static_cast<unsigned int>(raw);
+                    }
+                    kv.second = cur;
                 }
             }
             peer_session->remote_initial_window_size.store(ident_value);
@@ -2742,7 +2767,7 @@ void http2parse::readsetting(const HTTP2_PACK_DATA_T &temp_pack_data)
             if (ident_value < 16384 || ident_value > 16777215)
             {
                 // RFC 9113 §6.5.2: 合法范围 [2^14, 2^24-1]
-                error = 40034;
+                error = 40216;
                 return;
             }
             setting_data.max_frame_size = ident_value;
@@ -2833,7 +2858,7 @@ void http2parse::readwinupdate(const HTTP2_PACK_DATA_T &temp_pack_data)
     if (ident_stream == 0)
     {
         // RFC 9113 §6.9.1: WINDOW_UPDATE 的增量必须大于 0，为 0 属于 PROTOCOL_ERROR
-        error = 40036;
+        error = 40218;
         return;
     }
 
@@ -2857,7 +2882,9 @@ void http2parse::readwinupdate(const HTTP2_PACK_DATA_T &temp_pack_data)
         {
             // RFC 9113 §6.9.1: 发送窗口超过 2^31-1 必须按 FLOW_CONTROL_ERROR 处理。
             // 连接级的额度错在连接上，只能整条断开（error 通道回 GOAWAY）。
-            error = 40036;
+            // 走 set_conn_error 确保 GOAWAY 带出正确的 FLOW_CONTROL_ERROR(0x3)，
+            // 而不是默认 PROTOCOL_ERROR(0x1)：对端据此把本端判定为流控违规而非协议违例。
+            set_conn_error(40036, 0x3);
             return;
         }
         peer_session->window_update_num.store(granted + ident_stream);
@@ -2887,8 +2914,11 @@ void http2parse::readwinupdate(const HTTP2_PACK_DATA_T &temp_pack_data)
         // 对 half-closed 之外的流发 RST，且对 closed 流的一切帧都该忽略）。
         if (!http2_wu_stream_id_ok(wu_sid, max_client_stream_id))
         {
-            winupdate_dropped++;
-            DEBUG_LOG("http2 window_update on invalid stream %u", wu_sid);
+            // RFC 9113 §5.1：idle 流（从未 OPEN 过，即 id 大于本连接见过的最大客户端流 id，
+            // 或偶数/id=0 这类本端不应收到的流 id）上的 WINDOW_UPDATE 是连接级错误 PROTOCOL_ERROR。
+            // 已 OPEN 但已关闭的流（sid <= max_client_stream_id 且本端不再认得）走下面 ③ 的静默丢弃，
+            // 那是 RFC 允许的"对关闭流的所有帧都忽略"。
+            set_conn_error(40213, 0x1);
             return;
         }
         {
@@ -2917,16 +2947,29 @@ void http2parse::readwinupdate(const HTTP2_PACK_DATA_T &temp_pack_data)
         }
         // stream_send_window 存的是「剩余额度」（发送时直接扣减），所以溢出校验
         // 作用在本值上就是对的，与连接级那套「累计授予额」不同。
-        unsigned long long cur = it->second;
-        if (cur > (unsigned long long)(CONST_HTTP2_MAX_WINDOW - ident_stream))
+        // 全 unsigned 域：ident_stream 是 uint32，先判自身 ≤ MAX（否则增量超界）；
+        // cur + ident_stream 用 unsigned long long 中间态防 32-bit wrap。
+        // Guard increment ≤ MAX first, then compute sum in unsigned long long to dodge wrap.
+        unsigned int cur = it->second;
+        unsigned long long sum =
+            static_cast<unsigned long long>(cur) +
+            static_cast<unsigned long long>(ident_stream);
+        if (ident_stream > CONST_HTTP2_MAX_WINDOW ||
+            sum > static_cast<unsigned long long>(CONST_HTTP2_MAX_WINDOW))
         {
-            // 流级溢出只撤这一条流：额度错在流上，按 RFC 9113 §5.1 用流错误处理，
+            // 流级发送窗口溢出：额度错在流上，按 RFC 9113 §5.1 走流错误处理，
             // 不必带走整条连接上其它在途的流。
-            peer_session->http2_send_rst_stream(wu_sid, CONST_HTTP2_STREAM_ERROR_FLOW_CONTROL);
-            need_wakeup_send_threads = true;
+            // 不再在这里裸发 RST——裸发会漏掉 cleanup_stream，导致 http_data /
+            // http_post_data / 发送窗口条目泄漏到连接关闭才清，状态随请求数
+            // 无限增长（与 Rapid Reset 类攻击同理，给对端留无界入口）。
+            // 交给主循环统一分流：http2_handle_parse_error 会发
+            // RST_STREAM(FLOW_CONTROL_ERROR=0x3)、调 cleanup_stream 回收该流
+            // 全部状态、clear_error 后继续复用连接。h2_error_code 沿用 0x3，
+            // 与裸发时完全一致；内部码 40036 仅作日志标识，不参与线上判定。
+            set_stream_error(40036, wu_sid, CONST_HTTP2_STREAM_ERROR_FLOW_CONTROL);
             return;
         }
-        it->second = static_cast<unsigned int>(cur + ident_stream);
+        it->second = static_cast<unsigned int>(sum);
         // 流级窗口抬升：这条流可能就是挂在 parked_list 里等它的那一个
         need_wakeup_send_threads = true;
     }
@@ -2959,6 +3002,15 @@ void http2parse::readping(const HTTP2_PACK_DATA_T &temp_pack_data)
 void http2parse::readrst_stream(const HTTP2_PACK_DATA_T &temp_pack_data)
 {
     DEBUG_LOG("readrst_stream %u ", temp_pack_data.stream_id);
+    // RFC 9113 §5.1：idle 流（id 为 0、偶数、或大于本连接见过的最大客户端流 id）上的
+    // RST_STREAM 是连接级错误 PROTOCOL_ERROR。已 OPEN 但之后关闭的流收到 RST_STREAM 是允许的，
+    // 走下面的正常清理（无操作）即可，不要误判成连接错误。
+    if (temp_pack_data.stream_id == 0 || (temp_pack_data.stream_id & 0x1) == 0 ||
+        temp_pack_data.stream_id > max_client_stream_id)
+    {
+        set_conn_error(40214, 0x1);
+        return;
+    }
     // connection means the peer is opening then immediately cancelling streams
     // to exhaust CPU. Once the count exceeds 250, flag an error so the caller
     // sends GOAWAY and closes the connection.
@@ -2968,25 +3020,66 @@ void http2parse::readrst_stream(const HTTP2_PACK_DATA_T &temp_pack_data)
     }
     if (rst_stream_count > 250)
     {
-        error = 40210;
+        // Rapid Reset 防护触发：连接级错误，GOAWAY 断连。显式 set_conn_error 保证
+        // error_is_conn=true 且 GOAWAY 带出 PROTOCOL_ERROR(0x1)，不依赖默认值。
+        set_conn_error(40220, 0x1);
     }
-    auto iter = http_data_weak.find(temp_pack_data.stream_id);
-    if (iter != http_data_weak.end())
+    // 撤销一条流 = 这条流的全部状态都不再需要，回收口径只有一处（cleanup_stream）。
+    // 自己写一遍子集会漏掉 http_data / http_post_data / stream_list：业务控制器照样被
+    // spawn（对端已经取消的请求仍然落库），而收 body 中途被撤销的流会一直占着临时文件和 FILE 句柄。
+    cleanup_stream(temp_pack_data.stream_id);
+}
+
+// RST_STREAM / 流级错误后回收该流的全部状态：
+// 清掉 http_data / http_post_data / 接收窗口 / 发送窗口 / 弱引用 / 未解完的头部块，
+// 并从待派发队列移除，避免状态随请求数无限增长，也防止流还在 stream_list
+// 里被 spawn 成孤儿。readrst_stream 也走这里，两处回收口径是同一份代码。
+void http2parse::cleanup_stream(unsigned int sid)
+{
+    http_data.erase(sid);
+    http_post_data.erase(sid);
+    stream_recv_window.erase(sid);
+    // 头部块解到一半就被撤销的流：这一块永远不会再完成，留着条目就是留着预算。
+    // 正常解完的路径已经在 readheaders 末尾 erase 过，这里是空操作。
+    http2_header_recvs.erase(sid);
+
+    if (!stream_list.empty())
     {
-        std::shared_ptr<httppeer> temp_peer = iter->second.lock();
+        std::queue<unsigned int> tmp;
+        while (!stream_list.empty())
+        {
+            unsigned int s = stream_list.front();
+            stream_list.pop();
+            if (s != sid)
+            {
+                tmp.push(s);
+            }
+        }
+        stream_list.swap(tmp);
+    }
+
+    auto wit = http_data_weak.find(sid);
+    if (wit != http_data_weak.end())
+    {
+        std::shared_ptr<httppeer> temp_peer = wit->second.lock();
         if (temp_peer)
         {
             temp_peer->isclose = true;
         }
-        http_data_weak.erase(iter);
+        http_data_weak.erase(wit);
     }
-    // 流已被对端撤销，不再需要为它记账
-    stream_recv_window.erase(temp_pack_data.stream_id);
-    // 同步清理发送侧该流的窗口记账，避免 map 随被撤销的流累积
     {
         std::lock_guard<std::mutex> lk(peer_session->stream_send_window_mutex);
-        peer_session->stream_send_window.erase(temp_pack_data.stream_id);
+        peer_session->stream_send_window.erase(sid);
     }
+}
+
+void http2parse::clear_error()
+{
+    error           = 0;
+    error_is_conn   = true;
+    error_stream_id = 0;
+    h2_error_code   = 0x1;
 }
 
 void http2parse::readrawfileformdata(HTTP2_POST_DATA_T &temp_post_data, unsigned char islast_pack)
@@ -3889,7 +3982,7 @@ void http2parse::post_multipart_itemcontent(HTTP2_POST_DATA_T &temp_post_data, b
             temp_post_data.filename.push_back(temp_post_data.field_item[pos_m]);
             if (temp_post_data.filename.size() > 512)
             {
-                error = 40034;
+                error = 40217;
                 return;
             }
         }
@@ -4004,7 +4097,7 @@ void http2parse::post_multipart_itemcontent(HTTP2_POST_DATA_T &temp_post_data, b
             size_t n                  = fwrite(&keyvalue_field[0], 1, keyvalue_field.size(), temp_post_data.fp.get());
             if (n != keyvalue_field.size())
             {
-                error = 40036;
+                error = 40219;
                 temp_post_data.fp.reset();
                 std::remove(temp_post_data.temp_filename.c_str());// 再删除孤儿文件
                 return;
@@ -4516,14 +4609,62 @@ void http2parse::readpostdata(const HTTP2_PACK_DATA_T &temp_pack_data)
     auto iter                 = http_data.find(temp_pack_data.stream_id);
     if (iter == http_data.end())
     {
-        //如果没有头部信息，那么是错误的协议
-        error = 40025;
+        // 流不在 http_data 里，分两种身份，不能一律按"陌生流"处理：
+        // ① 本连接从未见过的流（流 0、偶数流、或 id 大于已开过的最大流 id）：
+        //    RFC 9113 §5.1 规定 idle 上收到 DATA 是连接错误 PROTOCOL_ERROR，保持 GOAWAY 行为。
+        // ② 见过但已派发/结束的流：http_data 在派发时已被 extract 掉，等响应发完这条流对
+        //    客户端就是 closed。此时再来 DATA 是流错误 STREAM_CLOSED，按 ① 把它 GOAWAY 掉整条
+        //    连接属于误伤（h2spec 6.1.2 / 5.1.x 期望 RST_STREAM(STREAM_CLOSED)，连接关闭只是勉强放过）；
+        //    而且单纯 GOAWAY 还容易被当成"连接级错误"，与 RFC 5.4.2 的"流级错误"要求不符。
+        if (temp_pack_data.stream_id == 0 || (temp_pack_data.stream_id & 0x1) == 0 ||
+            temp_pack_data.stream_id > max_client_stream_id)
+        {
+            set_conn_error(40215, 0x1);  // 0x1 = PROTOCOL_ERROR
+        }
+        else
+        {
+            set_stream_error(40211, temp_pack_data.stream_id, 0x5);  // 0x5 = STREAM_CLOSED
+        }
+        return;
+    }
+
+    // 这条流在头块阶段就被站点限额拒掉了：正文一律丢弃，不落盘、也不再派发第二份响应。
+    // 丢弃不等于可以不记账：连接级窗口的扣减与补量照正常路径走一遍，只跳过越限判定。
+    // 「直接原额发 WINDOW_UPDATE」是错的——本端计数没扣就补量，等于每丢一帧就把对端的
+    // 连接窗口往上顶一截，攒久了超 2^31-1，对端必须按 FLOW_CONTROL_ERROR 断连。
+    // 流级窗口不碰：这条流已经答完，额度没有后续复用者。
+    if (iter->second->reject_status > 0)
+    {
+        unsigned int drop_bytes = temp_pack_data.length;
+        if (drop_bytes > conn_recv_window_num)
+        {
+            drop_bytes = conn_recv_window_num;
+        }
+        conn_recv_window_num -= drop_bytes;
+        if (conn_recv_window_num < CONST_HTTP2_WINDOW_UPDATE_THRESHOLD)
+        {
+            peer_session->send_window_update_conn(CONST_HTTP2_LOCAL_INITIAL_WINDOW - conn_recv_window_num);
+            need_wakeup_send_threads = true;
+            conn_recv_window_num     = CONST_HTTP2_LOCAL_INITIAL_WINDOW;
+        }
         return;
     }
 
     auto post_iter = http_post_data.find(temp_pack_data.stream_id);
     if (post_iter == http_post_data.end())
     {
+        // 该流还没建过 http_post_data：
+        //  * 正常 POST/PUT（HEADERS 未带 END_STREAM，isfinish=false）：首个 body DATA 到达，
+        //    按 body 收集逻辑建 http_post_data。
+        //  * 但 HEADERS 已带 END_STREAM（isfinish=true）说明请求体为空、客户端此侧已发完，
+        //    流已进入 half-closed(remote)/closed。此时再来 DATA 是 RFC 9113 §5.1 规定的
+        //    流错误 STREAM_CLOSED，绝不能当成 body 收下——否则会和已派发的请求重复响应
+        //    （h2spec 6.1.2 / 5.1.x 失败），也违背了"流级错误"的语义。
+        if (iter->second->isfinish)
+        {
+            set_stream_error(40211, temp_pack_data.stream_id, 0x5);  // 0x5 = STREAM_CLOSED
+            return;
+        }
         HTTP2_POST_DATA_T temp_p;
         temp_p.peer = iter->second;
 
@@ -4543,7 +4684,10 @@ void http2parse::readpostdata(const HTTP2_PACK_DATA_T &temp_pack_data)
     unsigned int content_bytes = static_cast<unsigned int>(temp_pack_data.payload.size());
     if (new_size_num > 0)
     {
-        if (new_size_num >= temp_pack_data.payload.size())
+        // RFC 9113 §6.1：Pad Length 字段为 0（即"带 PADDED 标志但零填充"或"只有填充、
+        // 正文为空"）是合法帧，payload 恰好等于 header_offset + padded_length。
+        // 用 >= 会误杀这类合法空 DATA 帧，必须严格大于才算填充越界。
+        if (new_size_num > temp_pack_data.payload.size())
         {
             error = 40206;
             return;
@@ -4574,28 +4718,29 @@ void http2parse::readpostdata(const HTTP2_PACK_DATA_T &temp_pack_data)
     // 不能用「全局计数越线」去决定该补给哪一条流。
     unsigned int fc_bytes = temp_pack_data.length;
 
-    if (conn_recv_window_num < fc_bytes)
-    {
-        conn_recv_window_num = 0;
-    }
-    else
-    {
-        conn_recv_window_num -= fc_bytes;
-    }
-
+    // RFC 9113 §6.9："A receiver MAY respond with a stream error (Section 5.4.2) or
+    // connection error (Section 5.4.1) of type FLOW_CONTROL_ERROR if it is unable to
+    // accept a frame." 两级都合法，这里取**流级**那一支：流控的存在理由（§5.2.2）就是
+    // 「这条流收不下还要能继续收别的流」，为一枚超窗 DATA 帧发 GOAWAY 会把整条连接上
+    // 所有在途流一起带走。
+    // 窗口不够时不能截断继续——对端可以发一个超大 PADDED 帧一次穿透本端背压（窗口被砍到 0 再补回，但正文已被正常处理）。
+    // Guard both windows before accepting; overflow ⇒ RST_STREAM(FLOW_CONTROL_ERROR)
+    // and drop the frame + all subsequent on this stream.
     auto s_win_iter = stream_recv_window.find(temp_pack_data.stream_id);
     if (s_win_iter == stream_recv_window.end())
     {
         s_win_iter = stream_recv_window.emplace(temp_pack_data.stream_id, CONST_HTTP2_LOCAL_INITIAL_WINDOW).first;
     }
-    if (s_win_iter->second < fc_bytes)
+    if (fc_bytes > conn_recv_window_num || fc_bytes > s_win_iter->second)
     {
-        s_win_iter->second = 0;
+        // 流级 RST_STREAM 后这条流后续 DATA 都走 http_data 已派发/已结束分支
+        // （isfinish 置 true），不会再被当成 body 收下。
+        set_stream_error(40210, temp_pack_data.stream_id, 0x3);  // 0x3 = FLOW_CONTROL_ERROR
+        return;
     }
-    else
-    {
-        s_win_iter->second -= fc_bytes;
-    }
+
+    conn_recv_window_num -= fc_bytes;
+    s_win_iter->second   -= fc_bytes;
 
     if (conn_recv_window_num < CONST_HTTP2_WINDOW_UPDATE_THRESHOLD)
     {
@@ -4620,7 +4765,7 @@ void http2parse::readpostdata(const HTTP2_PACK_DATA_T &temp_pack_data)
 
     if (is_last_pack)
     {
-        if (post_iter->second.exp_length != iter->second->content_length)
+        if (iter->second->ishas_content_length && post_iter->second.exp_length != iter->second->content_length)
         {
             error = 40202;
             return;
@@ -4636,47 +4781,76 @@ void http2parse::readpostdata(const HTTP2_PACK_DATA_T &temp_pack_data)
 
 void http2parse::process_pack()
 {
+    // // RFC 9113 §6.10：头部块进行中（header_block_pending）收到非 CONTINUATION(0x09) 帧，
+    // // 属连接级 PROTOCOL_ERROR，必须 GOAWAY。否则未完成的请求会被当完整请求继续处理、回 DATA。
+    // // 单标志位 O(1) 判断，不遍历任何容器，正常分发路径零开销。
+    // if (header_block_pending && pack_data.frame_type != 0x09)
+    // {
+    //     set_conn_error(40036, 0x1);
+    //     return;
+    // }
+
+    // RFC 9113 §4.2 帧定长：长度与帧类型不匹配属于连接级错误 FRAME_SIZE_ERROR(0x6)，
+    // 必须 GOAWAY；合并到分发 switch，省一次跳转表查找。
     switch (pack_data.frame_type)
     {
     case 0x00:
-        // DATA
+        // DATA（长度可变）
         readpostdata(pack_data);
         break;
     case 0x01:
-        // HEADERS
+        // HEADERS（长度可变）
         readheaders(pack_data);
         break;
-    case 0x02:
-        // PRIORITY
+    case 0x02: // PRIORITY 固定 5 字节
+        if (pack_data.length != 5)
+        {
+            set_conn_error(40030, 0x6);
+            return;
+        }
         readpriority(pack_data);
         break;
-    case 0x03:
-        // RST_STREAM
+    case 0x03: // RST_STREAM 固定 4 字节
+        if (pack_data.length != 4)
+        {
+            set_conn_error(40031, 0x6);
+            return;
+        }
         readrst_stream(pack_data);
         break;
-    case 0x04:
-        // SETTINGS
+    case 0x04: // SETTINGS 长度须为 6 的倍数
+        if (pack_data.length % 6 != 0)
+        {
+            set_conn_error(40032, 0x6);
+            return;
+        }
         readsetting(pack_data);
         break;
     case 0x05:
         error = 40016;
         return;
-        break;
-    case 0x06:
-        // PING
+    case 0x06: // PING 固定 8 字节
+        if (pack_data.length != 8)
+        {
+            set_conn_error(40033, 0x6);
+            return;
+        }
         readping(pack_data);
         break;
     case 0x07:
-        // GOAWAY
+        // GOAWAY（长度可变）
         readgoaway(pack_data);
         break;
-    case 0x08:
-        // WINDOW_UPDATE
+    case 0x08: // WINDOW_UPDATE 固定 4 字节
+        if (pack_data.length != 4)
+        {
+            set_conn_error(40034, 0x6);
+            return;
+        }
         readwinupdate(pack_data);
-
         break;
     case 0x09:
-        // CONTINUATION
+        // CONTINUATION（长度可变）
         readheaders(pack_data);
         break;
     default:
@@ -4836,11 +5010,11 @@ void http2parse::read_pack_data(const unsigned char *buffer, unsigned int buffer
     }
 }
 
-void http2parse::process(const unsigned char *buffer, unsigned int buffersize)
+unsigned int http2parse::process(const unsigned char *buffer, unsigned int buffersize)
 {
     if (error > 0)
     {
-        return;
+        return 0;
     }
     readoffset = 0;
     for (; readoffset < buffersize;)
@@ -4851,5 +5025,7 @@ void http2parse::process(const unsigned char *buffer, unsigned int buffersize)
             break;
         }
     }
+    // 出错时停在坏帧末尾：其后已读进来的帧要靠这个返回值交给调用方续着解
+    return readoffset;
 }
 }// namespace http

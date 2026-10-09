@@ -2,7 +2,7 @@
 #define ORM_PG_FORTUNEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 17 Sep 2026 23:22:11 GMT
+*本文件为自动生成 Thu, 08 Oct 2026 06:25:12 GMT
 ***/
 #include <iostream>
 #include <charconv>

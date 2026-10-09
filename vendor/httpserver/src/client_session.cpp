@@ -628,7 +628,8 @@ void client_session::http2_send_rst_stream(unsigned int s_stream_id, unsigned in
 
     // 重投要把调用方变成阻塞/排队语义，而环满通常发生在连接正在收尾时；
     // 这里只记账并留日志，不改变调用形状。
-    if (!http2_ring_queue->push(_recvack, 13))
+    bool rst_pushed = http2_ring_queue->push(_recvack, 13);
+    if (!rst_pushed)
     {
         http2_ring_queue_drop_count++;
         LOG_ERROR << " http2 control frame dropped, ring full, type:rst" << LOG_END;
@@ -668,15 +669,42 @@ bool client_session::send_zero_data(unsigned int stream_id)
     return http2_ring_queue->push(_recvack, 9);
 }
 
-asio::awaitable<void> client_session::async_send_goway()
+void client_session::send_goaway(unsigned int last_stream_id, unsigned int error_code)
 {
-    const static std::string _recvack = {0x00, 0x00, 0x08, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    if (!http2_ring_queue->push(_recvack))
+    // RFC 7540 §6.8 GOAWAY 帧
+    //   帧头(9B): length=8, type=0x07, flags=0, stream_id=0
+    //   载荷(8B): last_stream_id(4B) + error_code(4B), network byte order (big-endian)
+    // 大端 = 高位字节在前，参考本文件 send_window_update_conn 的正确写法
+    unsigned char _recvack[17] = {
+        0x00, 0x00, 0x08,  // 长度 = 8
+        0x07,               // GOAWAY 帧类型
+        0x00,               // flags = 0
+        0x00, 0x00, 0x00, 0x00,  // stream_id = 0
+        0x00, 0x00, 0x00, 0x00,  // last_stream_id (big-endian 32bit)
+        0x00, 0x00, 0x00, 0x00   // error_code (big-endian 32bit)
+    };
+    // 载荷从字节 9 起（0..8 是 9 字节帧头），下标照 send_window_update_conn 的口径来
+    // last_stream_id: 从高字节到低字节（big-endian）
+    _recvack[9]  = (last_stream_id >> 24) & 0xFF;
+    _recvack[10] = (last_stream_id >> 16) & 0xFF;
+    _recvack[11] = (last_stream_id >> 8)  & 0xFF;
+    _recvack[12] =  last_stream_id        & 0xFF;
+    // error_code: 同上
+    _recvack[13] = (error_code >> 24) & 0xFF;
+    _recvack[14] = (error_code >> 16) & 0xFF;
+    _recvack[15] = (error_code >> 8)  & 0xFF;
+    _recvack[16] =  error_code        & 0xFF;
+
+    if (!http2_ring_queue->push(_recvack, 17))
     {
         http2_ring_queue_drop_count++;
         LOG_ERROR << " http2 control frame dropped, ring full, type:goway" << LOG_END;
     }
+}
 
+asio::awaitable<void> client_session::async_send_goway(unsigned int last_stream_id, unsigned int error_code)
+{
+    send_goaway(last_stream_id, error_code);
     co_return;
 }
 

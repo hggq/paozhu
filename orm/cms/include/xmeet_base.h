@@ -2,7 +2,7 @@
 #define ORM_CMS_XMEETBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Wed, 23 Sep 2026 18:17:13 GMT
+*本文件为自动生成 Thu, 08 Oct 2026 06:25:06 GMT
 ***/
 #include <iostream>
 #include <charconv>

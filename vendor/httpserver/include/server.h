@@ -250,6 +250,12 @@ class httpserver
     asio::awaitable<void> http2_send_status_content(std::shared_ptr<httppeer> peer, unsigned int status_code, const std::string &bodycontent);
     asio::awaitable<bool> http2_static_file_authority(std::shared_ptr<httppeer> peer);
 
+    // 集中处理 HTTP/2 解析期错误：连接级→GOAWAY 断连（返回 true，调用方 break）；
+    // 流级→RST_STREAM 重置该流、cleanup、清错，并标记 need_wakeup_send_threads 由主循环末尾
+    // 统一唤醒发送协程（返回 false，连接继续复用）。解析器只需 set_conn_error/set_stream_error 置位，
+    // 错误分流与收发细节全部收敛于此，业务帧处理代码无需关心 GOAWAY/RST 差异。
+    asio::awaitable<bool> http2_handle_parse_error(http2parse &h2, std::shared_ptr<client_session> sess);
+
     // CORS 预检自动回复：按站点白名单判定 Allow-Origin，补上 Allow-Methods 等预检专用头，
     // 并发送 200 空响应（解析期 cors_origin_process() 设的 ACAO/Vary 会先被清掉再重设）。
     //

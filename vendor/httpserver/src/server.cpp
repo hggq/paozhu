@@ -714,6 +714,36 @@ asio::awaitable<void> httpserver::http2_send_status_content(std::shared_ptr<http
 
     co_return;
 }
+
+// 集中处理 HTTP/2 解析期错误。返回 true 表示连接应被拆除（已 GOAWAY）。
+asio::awaitable<bool> httpserver::http2_handle_parse_error(http2parse &h2, std::shared_ptr<client_session> sess)
+{
+    if (h2.error == 0)
+        co_return false;
+
+    if (h2.error_is_conn)
+    {
+        // 连接级错误（RFC 9113 §5.4.1）：GOAWAY 断连，不带正文。
+        // 这里不再"先回一帧 403 让客户端有可读响应"：403 那帧进的是全局发送线程的工作表
+        // （sent_data_list），GOAWAY 进的是本连接的发送环，两者没有先后保证，环满时 403
+        // 还会整帧丢掉。既然那一帧既可能晚于 GOAWAY 也可能根本发不出去，就不要留一句
+        // 和代码不符的承诺——客户端判断为什么断连，看 GOAWAY 的错误码。
+        // RFC 9113 §6.8：last_stream_id 是对端判断「哪些流可以安全重发」的唯一依据，
+        // 报 0 等于谎称一条流都没处理过，已应答的 POST 会被重发；错误码同理要带出去。
+        co_await sess->async_send_goway(h2.max_client_stream_id, h2.h2_error_code);
+        co_return true;
+    }
+
+    // 流级错误（RFC 9113 §5.4.2）：只 RST_STREAM 重置该流，保留连接。
+    sess->http2_send_rst_stream(h2.error_stream_id, h2.h2_error_code);
+    h2.cleanup_stream(h2.error_stream_id);
+    h2.clear_error();
+    // 落到主循环末尾统一唤醒发送协程，把 RST 真正发走（read_some 可能长期阻塞，
+    // 不能依赖下一轮；直接 waituphttp2() 与发送协程停泊存在竞态，统一在末尾兜底最稳）。
+    h2.need_wakeup_send_threads = true;
+    co_return false;
+}
+
 asio::awaitable<void> httpserver::send_cors_domain(std::shared_ptr<httppeer> peer)
 {
     // OPTIONS preflight: emit capability headers, decide Allow-Origin from whitelist,
@@ -2696,8 +2726,9 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                 offsetnum = 0;
             }
 
-            http2pre->process(&peer_session->_cache_data[offsetnum], readnum - offsetnum);
-            offsetnum = 0;
+            // 只前移真正消费掉的长度：流级错误时 process() 停在坏帧末尾，
+            // 其后已经读进来的其它流帧要留给下一轮，不能跟着这一帧一起作废
+            offsetnum += http2pre->process(&peer_session->_cache_data[offsetnum], readnum - offsetnum);
             // 落在陌生/已结束流上的 WINDOW_UPDATE 只丢不报，没有这条输出就完全不可观测
             // （要点是"丢掉的帧不能变成永久条目"）。攒批上报：坏帧可以按字节
             // 洪水，日志不能跟着一起洪水。
@@ -2730,15 +2761,11 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
             if (http2pre->error > 0)
             {
                 DEBUG_LOG("http2 error:%d;", http2pre->error);
-                // 提示响应必须挂在客户端已开过的合法流上：stream id = 0 只允许连接级帧，
-                // 发 HEADERS 是协议错误。尚无任何流（连接级错误）时直接靠 GOAWAY 收场。
-                if (http2pre->max_client_stream_id > 0)
+                // 统一错误分流：连接级→GOAWAY 断连（返回 true），流级→RST 重置该流（返回 false，连接复用）。
+                if (co_await http2_handle_parse_error(*http2pre, peer_session))
                 {
-                    peer->stream_id = http2pre->max_client_stream_id;
-                    co_await http2_send_status_content(peer, 403, "client request error %d;");
+                    break;
                 }
-                co_await peer_session->async_send_goway();
-                break;
             }
             peer_session->time_limit.store(timeid());
             while (!http2pre->stream_list.empty())
@@ -2775,6 +2802,16 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                 {
                     asio::co_spawn(peer_session->strand_, [this, sp = stream_ptr]() -> asio::awaitable<void>
                                    { co_await send_cors_domain(sp); },
+                                   asio::detached);
+                }
+                else if (stream_ptr->reject_status > 0)
+                {
+                    // 站点上传限额：头块解完就判掉了，正文一帧没收，直接回状态页，不进业务控制器。
+                    // 与下面 405 那条同一个形状；这条流后续到达的 DATA 由解析器丢弃并还回连接窗口。
+                    std::string limit_body = "<h3>" + std::to_string(stream_ptr->reject_status) + " upload size limit</h3>";
+                    asio::co_spawn(peer_session->strand_,
+                                   [this, sp = stream_ptr, body = std::move(limit_body)]() -> asio::awaitable<void>
+                                   { co_await http2_send_status_content(sp, sp->reject_status, body); },
                                    asio::detached);
                 }
                 else if (stream_ptr->method == HEAD_METHOD::PUT || stream_ptr->method == HEAD_METHOD::DELETE ||
@@ -2849,7 +2886,13 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
 
                 http2pre->need_wakeup_send_threads = false;
             }
-            readnum = 0;
+            // 只有整块读完才允许下一轮 read_some 覆盖 _cache_data（它从下标 0 写，
+            // 未解析的尾部一旦被覆盖就永久丢帧）；留着尾巴就接着从 offsetnum 解。
+            if (offsetnum >= readnum)
+            {
+                readnum   = 0;
+                offsetnum = 0;
+            }
         }
         // 发送环三个计数在本连接内收尾时报一次：overflow 是"环满、这一帧留到下一轮重发"
         // （push 直接被拒），backpressure 是"环积压到阈值、本轮主动让路"（还没 push 就退），
@@ -5174,18 +5217,19 @@ unsigned long long httpserver::http2_reserve_send_window(client_session *session
                      .emplace(stream_id, session_obj->remote_initial_window_size.load())
                      .first;
         }
-        if (it->second == 0)
+        unsigned int avail = it->second;
+        if (avail == 0)
         {
             got = 0;
         }
-        else if ((unsigned long long)it->second < conn_take)
+        else if (avail < conn_take)
         {
-            got        = it->second;
+            got        = avail;
             it->second = 0;
         }
         else
         {
-            it->second -= (unsigned int)conn_take;
+            it->second -= static_cast<unsigned int>(conn_take);
         }
     }
     if (got < conn_take)
@@ -5218,14 +5262,17 @@ void httpserver::http2_refund_send_window(client_session *session_obj, unsigned 
             // unbounded growth ensues. Just drop this reservation.
             return;
         }
-        unsigned long long restored = (unsigned long long)it->second + back;
-        // 期间该流可能又收到 WINDOW_UPDATE，加回预留不能超过 RFC 9113 §6.9.1 窗口上限。
-        // Stream may receive WINDOW_UPDATE meanwhile; returned reserve must not exceed RFC 9113 §6.9.1 cap.
-        if (restored > (unsigned long long)CONST_HTTP2_MAX_WINDOW)
+        // 全 unsigned 域：cur + back 用 unsigned long long 中间态绕开 32-bit wrap，
+        // 加完 clamp 回 RFC MAX_WINDOW。
+        // Fully unsigned: cur + back in unsigned long long to dodge 32-bit wrap,
+        // then clamp to RFC MAX_WINDOW.
+        unsigned long long restored =
+            static_cast<unsigned long long>(it->second) + back;
+        if (restored > static_cast<unsigned long long>(CONST_HTTP2_MAX_WINDOW))
         {
-            restored = (unsigned long long)CONST_HTTP2_MAX_WINDOW;
+            restored = CONST_HTTP2_MAX_WINDOW;
         }
-        it->second = (unsigned int)restored;
+        it->second = static_cast<unsigned int>(restored);
     }
     // 事件边：退还额度时，连接级那笔可能正好松开另一条挂起流（剩余额 =
     // Event edge: returned quota may unblock another parked stream (headroom =

@@ -28,6 +28,7 @@
 #include <tuple>
 #include <typeinfo>
 #include <memory>
+#include <optional>
 #include <list>
 #include <queue>
 #include <cmath>
@@ -850,6 +851,7 @@ namespace orm
             }
             if (!islock_conn)
                 conn_obj->back_pg_edit_conn(std::move(conn));
+
             return affected;
         }
 
@@ -1039,6 +1041,7 @@ namespace orm
             }
             if (!islock_conn)
                 conn_obj->back_pg_edit_conn(std::move(edit_conn_l));
+
             co_return affected;
         }
 
@@ -1211,6 +1214,7 @@ namespace orm
             }
             if (!islock_conn)
                 conn_obj->back_pg_edit_conn(std::move(conn));
+
             return affected;
         }
 
@@ -1392,6 +1396,7 @@ namespace orm
             }
             if (!islock_conn)
                 conn_obj->back_pg_edit_conn(std::move(edit_conn_l));
+
             co_return affected;
         }
 
@@ -2846,26 +2851,23 @@ namespace orm
 
                 if (iscache)
                 {
-                    if (exptime > 0)
+                    if (temprecord.size() > 0)
                     {
-                        if (temprecord.size() > 0)
-                        {
-                            std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
+                        std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
 
-                            model_meta_cache<std::vector<std::vector<std::string>>> &temp_cache =
-                                model_meta_cache<std::vector<std::vector<std::string>>>::getinstance();
-                            temp_cache.save(sqlhashid, temprecord, exptime);
+                        model_meta_cache<std::vector<std::vector<std::string>>> &temp_cache =
+                            model_meta_cache<std::vector<std::vector<std::string>>>::getinstance();
+                        temp_cache.save(sqlhashid, temprecord, exptime);
 
-                            exptime += 1;
-                            model_meta_cache<std::vector<std::string>> &table_cache = model_meta_cache<std::vector<std::string>>::getinstance();
-                            table_cache.save(sqlhashid, table_fieldname, exptime);
+                        if (exptime > 0) exptime += 1;
+                        model_meta_cache<std::vector<std::string>> &table_cache = model_meta_cache<std::vector<std::string>>::getinstance();
+                        table_cache.save(sqlhashid, table_fieldname, exptime);
 
-                            model_meta_cache<std::map<std::string, unsigned int>> &tablemap_cache =
-                                model_meta_cache<std::map<std::string, unsigned int>>::getinstance();
-                            tablemap_cache.save(sqlhashid, table_fieldmap, exptime);
-                            exptime = 0;
-                            iscache = false;
-                        }
+                        model_meta_cache<std::map<std::string, unsigned int>> &tablemap_cache =
+                            model_meta_cache<std::map<std::string, unsigned int>>::getinstance();
+                        tablemap_cache.save(sqlhashid, table_fieldmap, exptime);
+                        exptime = 0;
+                        iscache = false;
                     }
                 }
 
@@ -3410,7 +3412,8 @@ namespace orm
                 if (get_record_cache(sqlhashid))
                 {
                     iscache = false;
-                    return 0;
+                    is_hit_cache = true;
+                    return static_cast<unsigned int>(B_BASE::record.size());
                 }
             }
 
@@ -3497,12 +3500,9 @@ namespace orm
 
                 if (iscache)
                 {
-                    if (exptime > 0)
-                    {
-                        save_cache(exptime);
-                        exptime = 0;
-                        iscache = false;
-                    }
+                    save_cache(exptime);
+                    exptime = 0;
+                    iscache = false;
                 }
                 return effect_num;
             }
@@ -3562,7 +3562,8 @@ namespace orm
                 if (get_record_cache(sqlhashid))
                 {
                     iscache = false;
-                    co_return 0;
+                    is_hit_cache = true;
+                    co_return static_cast<unsigned int>(B_BASE::record.size());
                 }
             }
 
@@ -3647,12 +3648,9 @@ namespace orm
                 }
                 if (iscache)
                 {
-                    if (exptime > 0)
-                    {
-                        save_cache(exptime);
-                        exptime = 0;
-                        iscache = false;
-                    }
+                    save_cache(exptime);
+                    exptime = 0;
+                    iscache = false;
                 }
                 co_return effect_num;
             }
@@ -3711,6 +3709,7 @@ namespace orm
                 if (get_record_cache(sqlhashid))
                 {
                     iscache = false;
+                    is_hit_cache = true;
                     return *mod;
                 }
             }
@@ -3798,12 +3797,9 @@ namespace orm
 
                 if (iscache)
                 {
-                    if (exptime > 0)
-                    {
-                        save_cache(exptime);
-                        exptime = 0;
-                        iscache = false;
-                    }
+                    save_cache(exptime);
+                    exptime = 0;
+                    iscache = false;
                 }
                 return *mod;
             }
@@ -3863,6 +3859,7 @@ namespace orm
                 if (get_record_cache(sqlhashid))
                 {
                     iscache = false;
+                    is_hit_cache = true;
                     co_return 1;
                 }
             }
@@ -3949,12 +3946,9 @@ namespace orm
                 }
                 if (iscache)
                 {
-                    if (exptime > 0)
-                    {
-                        save_cache(exptime);
-                        exptime = 0;
-                        iscache = false;
-                    }
+                    save_cache(exptime);
+                    exptime = 0;
+                    iscache = false;
                 }
                 co_return effect_num;
             }
@@ -4494,7 +4488,8 @@ namespace orm
                 if (get_data_cache(sqlhashid))
                 {
                     iscache = false;
-                    return 0;
+                    is_hit_cache = true;
+                    return 1u;
                 }
             }
 
@@ -4593,12 +4588,9 @@ namespace orm
 
                 if (iscache)
                 {
-                    if (exptime > 0)
-                    {
-                        save_data_cache(exptime);
-                        exptime = 0;
-                        iscache = false;
-                    }
+                    save_data_cache(exptime);
+                    exptime = 0;
+                    iscache = false;
                 }
                 return effect_num;
             }
@@ -4656,7 +4648,8 @@ namespace orm
                 if (get_data_cache(sqlhashid))
                 {
                     iscache = false;
-                    co_return 0;
+                    is_hit_cache = true;
+                    co_return 1u;
                 }
             }
 
@@ -4753,12 +4746,9 @@ namespace orm
                 }
                 if (iscache)
                 {
-                    if (exptime > 0)
-                    {
-                        save_data_cache(exptime);
-                        exptime = 0;
-                        iscache = false;
-                    }
+                    save_data_cache(exptime);
+                    exptime = 0;
+                    iscache = false;
                 }
                 co_return effect_num;
             }
@@ -4775,6 +4765,7 @@ namespace orm
         M_MODEL &use_cache(int cache_time = 0)
         {
             iscache = true;
+            is_hit_cache = false;
             exptime = cache_time;
             return *mod;
         }
@@ -4837,8 +4828,7 @@ namespace orm
             }
             catch (const std::exception &e)
             {
-                error_msg = std::string(e.what());
-                unlock_conn();
+                
             }
 
             B_BASE::data_reset();
@@ -4906,38 +4896,45 @@ namespace orm
             temp_cache.save(sqlhashid, cache_data, exp_time);
             return true;
         }
+        // 旧接口：保留 throw 语义（缓存 miss → throw）；catch 块不碰 ORM 状态
+        // Deprecated → 新代码用 try_get_cache()
         const typename B_BASE::meta get_cache(const std::string &cache_key_name)
         {
-            try
+            model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
+            std::size_t sqlhashid                               = std::hash<std::string>{}(cache_key_name);
+            auto hit                                            = temp_cache.try_get(sqlhashid);
+            if (!hit)
             {
-                model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
-                std::size_t sqlhashid                               = std::hash<std::string>{}(cache_key_name);
-                return temp_cache.get(sqlhashid);
+                throw std::runtime_error("Not in cache");
             }
-            catch (const std::exception &e)
-            {
-                error_msg = std::string(e.what());
-                unlock_conn();
-            }
-
-            throw std::runtime_error("Not in cache");
+            return *hit;
         }
 
         const std::vector<typename B_BASE::meta> get_vector_cache(const std::string &cache_key_name)
         {
-            try
+            model_meta_cache<std::vector<typename B_BASE::meta>> &temp_cache = model_meta_cache<std::vector<typename B_BASE::meta>>::getinstance();
+            std::size_t sqlhashid                                            = std::hash<std::string>{}(cache_key_name);
+            auto hit                                                         = temp_cache.try_get(sqlhashid);
+            if (!hit)
             {
-                model_meta_cache<std::vector<typename B_BASE::meta>> &temp_cache = model_meta_cache<std::vector<typename B_BASE::meta>>::getinstance();
-                std::size_t sqlhashid                                            = std::hash<std::string>{}(cache_key_name);
-                return temp_cache.get(sqlhashid);
+                throw std::runtime_error("Not in cache");
             }
-            catch (const std::exception &e)
-            {
-                error_msg = std::string(e.what());
-                unlock_conn();
-            }
+            return *hit;
+        }
 
-            throw std::runtime_error("Not in cache");
+        // 新接口：不 throw，miss/过期返回 std::nullopt
+        std::optional<typename B_BASE::meta> try_get_cache(const std::string &cache_key_name)
+        {
+            model_meta_cache<typename B_BASE::meta> &temp_cache = model_meta_cache<typename B_BASE::meta>::getinstance();
+            std::size_t sqlhashid                               = std::hash<std::string>{}(cache_key_name);
+            return temp_cache.try_get(sqlhashid);
+        }
+
+        std::optional<std::vector<typename B_BASE::meta>> try_get_vector_cache(const std::string &cache_key_name)
+        {
+            model_meta_cache<std::vector<typename B_BASE::meta>> &temp_cache = model_meta_cache<std::vector<typename B_BASE::meta>>::getinstance();
+            std::size_t sqlhashid                                            = std::hash<std::string>{}(cache_key_name);
+            return temp_cache.try_get(sqlhashid);
         }
 
         bool get_record_cache(std::size_t cache_key_name)
@@ -4950,8 +4947,7 @@ namespace orm
             }
             catch (const std::exception &e)
             {
-                error_msg = std::string(e.what());
-                unlock_conn();
+                
             }
 
             B_BASE::record.clear();
@@ -5227,7 +5223,8 @@ namespace orm
                 if (get_data_cache(sqlhashid))
                 {
                     iscache = false;
-                    return 0;
+                    is_hit_cache = true;
+                    return 1u;
                 }
             }
 
@@ -5312,12 +5309,9 @@ namespace orm
                 }
                 if (iscache)
                 {
-                    if (exptime > 0)
-                    {
-                        save_data_cache(exptime);
-                        exptime = 0;
-                        iscache = false;
-                    }
+                    save_data_cache(exptime);
+                    exptime = 0;
+                    iscache = false;
                 }
                 return effect_num;
             }
@@ -5358,7 +5352,8 @@ namespace orm
                 if (get_data_cache(sqlhashid))
                 {
                     iscache = false;
-                    co_return 0;
+                    is_hit_cache = true;
+                    co_return 1u;
                 }
             }
 
@@ -5442,12 +5437,9 @@ namespace orm
                 }
                 if (iscache)
                 {
-                    if (exptime > 0)
-                    {
-                        save_data_cache(exptime);
-                        exptime = 0;
-                        iscache = false;
-                    }
+                    save_data_cache(exptime);
+                    exptime = 0;
+                    iscache = false;
                 }
                 co_return effect_num;
             }
@@ -10954,6 +10946,7 @@ namespace orm
                 last.remove_suffix(1);
             if (!last.empty())
                 fields.push_back(last);
+
             return fields;
         }
 
@@ -11024,6 +11017,7 @@ namespace orm
             {
                 conn_obj->back_pg_edit_conn(std::move(conn));
             }
+
             return affected;
         }
 
@@ -11131,6 +11125,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 unlock_conn();
             }
+
             co_return (unsigned int) - 1;
         }
 
@@ -11206,6 +11201,7 @@ namespace orm
             {
                 conn_obj->back_pg_edit_conn(std::move(conn));
             }
+
             return affected;
         }
 
@@ -11289,6 +11285,7 @@ namespace orm
             }
             if (affected != static_cast<unsigned int>(-1))
                 B_BASE::clear_dirty();
+
             co_return affected;
         }
 
@@ -11365,6 +11362,7 @@ namespace orm
             {
                 conn_obj->back_pg_edit_conn(std::move(conn));
             }
+
             return affected;
         }
 
@@ -11478,6 +11476,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 unlock_conn();
             }
+
             co_return (unsigned int) - 1;
         }
 
@@ -11542,6 +11541,7 @@ namespace orm
             {
                 conn_obj->back_pg_edit_conn(std::move(conn));
             }
+
             return affected;
         }
 
@@ -11588,6 +11588,7 @@ namespace orm
             {
                 conn_obj->back_pg_edit_conn(std::move(conn));
             }
+
             return affected;
         }
 
@@ -11672,6 +11673,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 unlock_conn();
             }
+
             co_return (unsigned int) - 1;
         }
 
@@ -11742,6 +11744,7 @@ namespace orm
             {
                 conn_obj->back_pg_edit_conn(std::move(conn));
             }
+
             return std::make_tuple(effect_num, static_cast<unsigned long long>(last_id));
         }
 
@@ -11857,6 +11860,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 unlock_conn();
             }
+
             co_return std::make_tuple(0, 0ULL);
         }
 
@@ -11950,6 +11954,7 @@ namespace orm
             {
                 conn_obj->back_pg_edit_conn(std::move(conn));
             }
+
             return std::make_tuple(effect_num, static_cast<unsigned long long>(first_id));
         }
 
@@ -12087,6 +12092,7 @@ namespace orm
                 error_msg = std::string(e.what());
                 unlock_conn();
             }
+
             co_return std::make_tuple(0, 0ULL);
         }
 
@@ -12103,6 +12109,7 @@ namespace orm
 
         // std::list<std::string> commit_sqllist;
         bool iscache            = false;
+        bool is_hit_cache      = false;
         bool iserror            = false;
         bool islock_conn        = false;
         int exptime             = 0;

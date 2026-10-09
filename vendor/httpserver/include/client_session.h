@@ -121,7 +121,10 @@ class client_session : public std::enable_shared_from_this<client_session>
     void cancel();
     void half_stop();
     asio::awaitable<std::string> async_stop();
-    asio::awaitable<void> async_send_goway();
+    // 同步版 GOAWAY 发送（push ring buffer，不阻塞，解析层同步代码可直接调）
+    void send_goaway(unsigned int last_stream_id = 0, unsigned int error_code = 0);
+    // 协程版（复用同步版），server.cpp 里 co_await 调用
+    asio::awaitable<void> async_send_goway(unsigned int last_stream_id = 0, unsigned int error_code = 0);
 
     asio::awaitable<unsigned int> async_send_writer(const std::string &msg);
     asio::awaitable<unsigned int> async_send_writer(std::string_view msg);
@@ -174,8 +177,13 @@ class client_session : public std::enable_shared_from_this<client_session>
     //                          仅由对端 stream id = 0 的 WINDOW_UPDATE 抬升，只增不减。
     //   has_send_update_num    连接级「累计已发额」，发送 DATA 时累加。
     //                          连接级剩余额 = window_update_num - has_send_update_num。
-    //   stream_send_window     每流「剩余额度」（与上面相反，发送 DATA 时直接扣减），
-    //                          初值取对端 SETTINGS_INITIAL_WINDOW_SIZE。
+    //   stream_send_window     每流「剩余额度」unsigned int（与上面相反，发送 DATA 时直接扣减），
+    //                          初值取对端 SETTINGS_INITIAL_WINDOW_SIZE；
+    //                          SETTINGS IWS 下调时地板到 0，不跟踪负值（h2spec 6.9.2 #2 依赖负值
+    //                          跟踪，但流控窗口本质是"还有多少额度可以发"，unsigned 更直接）。
+    //                          Floor to 0 on SETTINGS IWS reduction — flow-control window is
+    //                          "remaining quota", unsigned models that naturally; h2spec 6.9.2 #2
+    //                          expects negative tracking but that's a spec edge we trade for simplicity.
     //   remote_initial_window_size  对端 SETTINGS_INITIAL_WINDOW_SIZE，新流首次
     //                          发送/首次收到该流 WINDOW_UPDATE 时据此懒初始化。
     // 头两个还借给 websocket 用一次：client_websocket_loop 从 URL 里取出两个数字段，

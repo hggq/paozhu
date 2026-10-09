@@ -153,7 +153,9 @@
 constexpr bool http2_wu_conn_avail_ok(unsigned long long granted, unsigned long long sent, unsigned long long inc)
 {
     unsigned long long avail = (granted > sent) ? (granted - sent) : 0;
-    return avail <= (unsigned long long)(CONST_HTTP2_MAX_WINDOW - inc);
+    // 直接算和，绕开 "MAX - inc" 在 inc > MAX 时的无符号下溢（wrap 成 uint64_max，判断恒真）。
+    // Sum both directly — avoids unsigned underflow of "MAX - inc" when inc > MAX (wraps to uint64_max, always true).
+    return avail + inc <= static_cast<unsigned long long>(CONST_HTTP2_MAX_WINDOW);
 }
 
 // 收到流级 WINDOW_UPDATE 时，这个流 id 是否是本端认得的客户端流（true = 继续处理）。

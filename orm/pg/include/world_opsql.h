@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM SQLITE intermediate connection layer, sourced from MySQL, PostgreSQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Thu, 17 Sep 2026 23:22:11 GMT
+ *  Creation time Thu, 08 Oct 2026 06:25:12 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -28,6 +28,7 @@
 #include <tuple>
 #include <typeinfo>
 #include <memory>
+#include <optional>
 #include <list>
 #include <queue>
 #include <cmath>
@@ -851,6 +852,7 @@ namespace pg
             }
             if (!islock_conn)
                 conn_obj->back_pg_edit_conn(std::move(conn));
+
             return affected;
         }
 
@@ -1040,6 +1042,7 @@ namespace pg
             }
             if (!islock_conn)
                 conn_obj->back_pg_edit_conn(std::move(edit_conn_l));
+
             co_return affected;
         }
 
@@ -1212,6 +1215,7 @@ namespace pg
             }
             if (!islock_conn)
                 conn_obj->back_pg_edit_conn(std::move(conn));
+
             return affected;
         }
 
@@ -1393,6 +1397,7 @@ namespace pg
             }
             if (!islock_conn)
                 conn_obj->back_pg_edit_conn(std::move(edit_conn_l));
+
             co_return affected;
         }
 
@@ -1767,15 +1772,7 @@ M_MODEL& ornotnullRandomnumber()
 	{return whereOrNotNull(B_BASE::cols::randomnumber);
 	}
 
-        M_MODEL &select(std::string_view fields)
-        {
-            if (selectsql.size() > 0)
-            {
-                selectsql.push_back(',');
-            }
-            selectsql.append(fields);
-            return *mod;
-        }
+        ORM_SELECT_FIELDS(M_MODEL, B_BASE, &world_info::col_names)
 
         // === 兼容旧版 char/string 操作符 ===
         static orm::wq char_to_wq(char op)
@@ -2580,7 +2577,7 @@ M_MODEL& ornotnullRandomnumber()
             size_t p      = 0;
             while ((p = s.find('\'', p)) != std::string::npos)
             {
-                s.insert(p, "''");
+                s.replace(p, 1, "''");
                 p += 2;
             }
             out.append("'");
@@ -2594,21 +2591,29 @@ M_MODEL& ornotnullRandomnumber()
         static http::obj_val wrap_like_value(const http::obj_val &v, bool left, bool right)
         {
             std::string s = v.to_string();
+            // 先转义值内的 LIKE 通配符与转义符本身，避免用户输入的 % / _ / ! 被当成语义符
+            // 选用 ! 作 LIKE ESCAPE 字符，可规避各库对反斜杠在字符串字面量里的转义差异
+            std::string escaped;
+            escaped.reserve(s.size() + 4);
+            for (char c : s)
+            {
+                if (c == '!' || c == '%' || c == '_')
+                    escaped.push_back('!');
+                escaped.push_back(c);
+            }
             if (left)
-            {
-                s.insert(s.begin(), '%');
-            }
+                escaped.insert(escaped.begin(), '%');
             if (right)
-            {
-                s.push_back('%');
-            }
-            return http::obj_val(std::move(s));
+                escaped.push_back('%');
+            return http::obj_val(std::move(escaped));
         }
 
         void append_like_text(std::string &out, const http::obj_val &v, bool left, bool right)
         {
             // LIKE 模式恒为字符串字面量，不按列类型走 need_quote
             escape_text_value(out, wrap_like_value(v, left, right), true);
+            // 显式声明 ESCAPE '!'，与 wrap_like_value 的转义字符保持一致（覆盖文本与预编译两种路径）
+            out.append(" ESCAPE '!'");
         }
 
         static http::obj_val prepared_like_bind(const orm_where_sql_t &item)
@@ -3270,26 +3275,23 @@ M_MODEL& ornotnullRandomnumber()
 
                 if (iscache)
                 {
-                    if (exptime > 0)
+                    if (temprecord.size() > 0)
                     {
-                        if (temprecord.size() > 0)
-                        {
-                            std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
+                        std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
 
-                            model_meta_cache<std::vector<std::vector<std::string>>> &temp_cache =
-                                model_meta_cache<std::vector<std::vector<std::string>>>::getinstance();
-                            temp_cache.save(sqlhashid, temprecord, exptime);
+                        model_meta_cache<std::vector<std::vector<std::string>>> &temp_cache =
+                            model_meta_cache<std::vector<std::vector<std::string>>>::getinstance();
+                        temp_cache.save(sqlhashid, temprecord, exptime);
 
-                            exptime += 1;
-                            model_meta_cache<std::vector<std::string>> &table_cache = model_meta_cache<std::vector<std::string>>::getinstance();
-                            table_cache.save(sqlhashid, table_fieldname, exptime);
+                        exptime += 1;
+                        model_meta_cache<std::vector<std::string>> &table_cache = model_meta_cache<std::vector<std::string>>::getinstance();
+                        table_cache.save(sqlhashid, table_fieldname, exptime);
 
-                            model_meta_cache<std::map<std::string, unsigned int>> &tablemap_cache =
-                                model_meta_cache<std::map<std::string, unsigned int>>::getinstance();
-                            tablemap_cache.save(sqlhashid, table_fieldmap, exptime);
-                            exptime = 0;
-                            iscache = false;
-                        }
+                        model_meta_cache<std::map<std::string, unsigned int>> &tablemap_cache =
+                            model_meta_cache<std::map<std::string, unsigned int>>::getinstance();
+                        tablemap_cache.save(sqlhashid, table_fieldmap, exptime);
+                        exptime = 0;
+                        iscache = false;
                     }
                 }
 
@@ -3834,7 +3836,8 @@ M_MODEL& ornotnullRandomnumber()
                 if (get_record_cache(sqlhashid))
                 {
                     iscache = false;
-                    return 0;
+                    is_hit_cache = true;
+                    return static_cast<unsigned int>(B_BASE::record.size());
                 }
             }
 
@@ -3921,12 +3924,9 @@ M_MODEL& ornotnullRandomnumber()
 
                 if (iscache)
                 {
-                    if (exptime > 0)
-                    {
-                        save_cache(exptime);
-                        exptime = 0;
-                        iscache = false;
-                    }
+                    save_cache(exptime);
+                    exptime = 0;
+                    iscache = false;
                 }
                 return effect_num;
             }
@@ -3986,7 +3986,8 @@ M_MODEL& ornotnullRandomnumber()
                 if (get_record_cache(sqlhashid))
                 {
                     iscache = false;
-                    co_return 0;
+                    is_hit_cache = true;
+                    co_return static_cast<unsigned int>(B_BASE::record.size());
                 }
             }
 
@@ -4071,12 +4072,9 @@ M_MODEL& ornotnullRandomnumber()
                 }
                 if (iscache)
                 {
-                    if (exptime > 0)
-                    {
-                        save_cache(exptime);
-                        exptime = 0;
-                        iscache = false;
-                    }
+                    save_cache(exptime);
+                    exptime = 0;
+                    iscache = false;
                 }
                 co_return effect_num;
             }
@@ -4135,6 +4133,7 @@ M_MODEL& ornotnullRandomnumber()
                 if (get_record_cache(sqlhashid))
                 {
                     iscache = false;
+                    is_hit_cache = true;
                     return *mod;
                 }
             }
@@ -4222,12 +4221,9 @@ M_MODEL& ornotnullRandomnumber()
 
                 if (iscache)
                 {
-                    if (exptime > 0)
-                    {
-                        save_cache(exptime);
-                        exptime = 0;
-                        iscache = false;
-                    }
+                    save_cache(exptime);
+                    exptime = 0;
+                    iscache = false;
                 }
                 return *mod;
             }
@@ -4287,6 +4283,7 @@ M_MODEL& ornotnullRandomnumber()
                 if (get_record_cache(sqlhashid))
                 {
                     iscache = false;
+                    is_hit_cache = true;
                     co_return 1;
                 }
             }
@@ -4373,12 +4370,9 @@ M_MODEL& ornotnullRandomnumber()
                 }
                 if (iscache)
                 {
-                    if (exptime > 0)
-                    {
-                        save_cache(exptime);
-                        exptime = 0;
-                        iscache = false;
-                    }
+                    save_cache(exptime);
+                    exptime = 0;
+                    iscache = false;
                 }
                 co_return effect_num;
             }
@@ -4918,7 +4912,8 @@ M_MODEL& ornotnullRandomnumber()
                 if (get_data_cache(sqlhashid))
                 {
                     iscache = false;
-                    return 0;
+                    is_hit_cache = true;
+                    return 1u;
                 }
             }
 
@@ -5017,12 +5012,9 @@ M_MODEL& ornotnullRandomnumber()
 
                 if (iscache)
                 {
-                    if (exptime > 0)
-                    {
-                        save_data_cache(exptime);
-                        exptime = 0;
-                        iscache = false;
-                    }
+                    save_data_cache(exptime);
+                    exptime = 0;
+                    iscache = false;
                 }
                 return effect_num;
             }
@@ -5080,7 +5072,8 @@ M_MODEL& ornotnullRandomnumber()
                 if (get_data_cache(sqlhashid))
                 {
                     iscache = false;
-                    co_return 0;
+                    is_hit_cache = true;
+                    co_return 1u;
                 }
             }
 
@@ -5177,12 +5170,9 @@ M_MODEL& ornotnullRandomnumber()
                 }
                 if (iscache)
                 {
-                    if (exptime > 0)
-                    {
-                        save_data_cache(exptime);
-                        exptime = 0;
-                        iscache = false;
-                    }
+                    save_data_cache(exptime);
+                    exptime = 0;
+                    iscache = false;
                 }
                 co_return effect_num;
             }
@@ -5199,6 +5189,7 @@ M_MODEL& ornotnullRandomnumber()
         M_MODEL &use_cache(int cache_time = 0)
         {
             iscache = true;
+            is_hit_cache = false;
             exptime = cache_time;
             return *mod;
         }
@@ -5261,8 +5252,7 @@ M_MODEL& ornotnullRandomnumber()
             }
             catch (const std::exception &e)
             {
-                error_msg = std::string(e.what());
-                unlock_conn();
+                
             }
 
             B_BASE::data_reset();
@@ -5330,38 +5320,45 @@ M_MODEL& ornotnullRandomnumber()
             temp_cache.save(sqlhashid, cache_data, exp_time);
             return true;
         }
+        // 旧接口：保留 throw 语义（缓存 miss → throw）；catch 块不碰 ORM 状态
+        // Deprecated → 新代码用 try_get_cache()
         const world_info::meta get_cache(const std::string &cache_key_name)
         {
-            try
+            model_meta_cache<world_info::meta> &temp_cache = model_meta_cache<world_info::meta>::getinstance();
+            std::size_t sqlhashid                               = std::hash<std::string>{}(cache_key_name);
+            auto hit                                            = temp_cache.try_get(sqlhashid);
+            if (!hit)
             {
-                model_meta_cache<world_info::meta> &temp_cache = model_meta_cache<world_info::meta>::getinstance();
-                std::size_t sqlhashid                               = std::hash<std::string>{}(cache_key_name);
-                return temp_cache.get(sqlhashid);
+                throw std::runtime_error("Not in cache");
             }
-            catch (const std::exception &e)
-            {
-                error_msg = std::string(e.what());
-                unlock_conn();
-            }
-
-            throw std::runtime_error("Not in cache");
+            return *hit;
         }
 
         const std::vector<world_info::meta> get_vector_cache(const std::string &cache_key_name)
         {
-            try
+            model_meta_cache<std::vector<world_info::meta>> &temp_cache = model_meta_cache<std::vector<world_info::meta>>::getinstance();
+            std::size_t sqlhashid                                            = std::hash<std::string>{}(cache_key_name);
+            auto hit                                                         = temp_cache.try_get(sqlhashid);
+            if (!hit)
             {
-                model_meta_cache<std::vector<world_info::meta>> &temp_cache = model_meta_cache<std::vector<world_info::meta>>::getinstance();
-                std::size_t sqlhashid                                            = std::hash<std::string>{}(cache_key_name);
-                return temp_cache.get(sqlhashid);
+                throw std::runtime_error("Not in cache");
             }
-            catch (const std::exception &e)
-            {
-                error_msg = std::string(e.what());
-                unlock_conn();
-            }
+            return *hit;
+        }
 
-            throw std::runtime_error("Not in cache");
+        // 新接口：不 throw，miss/过期返回 std::nullopt
+        std::optional<world_info::meta> try_get_cache(const std::string &cache_key_name)
+        {
+            model_meta_cache<world_info::meta> &temp_cache = model_meta_cache<world_info::meta>::getinstance();
+            std::size_t sqlhashid                               = std::hash<std::string>{}(cache_key_name);
+            return temp_cache.try_get(sqlhashid);
+        }
+
+        std::optional<std::vector<world_info::meta>> try_get_vector_cache(const std::string &cache_key_name)
+        {
+            model_meta_cache<std::vector<world_info::meta>> &temp_cache = model_meta_cache<std::vector<world_info::meta>>::getinstance();
+            std::size_t sqlhashid                                            = std::hash<std::string>{}(cache_key_name);
+            return temp_cache.try_get(sqlhashid);
         }
 
         bool get_record_cache(std::size_t cache_key_name)
@@ -5374,8 +5371,7 @@ M_MODEL& ornotnullRandomnumber()
             }
             catch (const std::exception &e)
             {
-                error_msg = std::string(e.what());
-                unlock_conn();
+                
             }
 
             B_BASE::record.clear();
@@ -5651,7 +5647,8 @@ M_MODEL& ornotnullRandomnumber()
                 if (get_data_cache(sqlhashid))
                 {
                     iscache = false;
-                    return 0;
+                    is_hit_cache = true;
+                    return 1u;
                 }
             }
 
@@ -5736,12 +5733,9 @@ M_MODEL& ornotnullRandomnumber()
                 }
                 if (iscache)
                 {
-                    if (exptime > 0)
-                    {
-                        save_data_cache(exptime);
-                        exptime = 0;
-                        iscache = false;
-                    }
+                    save_data_cache(exptime);
+                    exptime = 0;
+                    iscache = false;
                 }
                 return effect_num;
             }
@@ -5782,7 +5776,8 @@ M_MODEL& ornotnullRandomnumber()
                 if (get_data_cache(sqlhashid))
                 {
                     iscache = false;
-                    co_return 0;
+                    is_hit_cache = true;
+                    co_return 1u;
                 }
             }
 
@@ -5866,12 +5861,9 @@ M_MODEL& ornotnullRandomnumber()
                 }
                 if (iscache)
                 {
-                    if (exptime > 0)
-                    {
-                        save_data_cache(exptime);
-                        exptime = 0;
-                        iscache = false;
-                    }
+                    save_data_cache(exptime);
+                    exptime = 0;
+                    iscache = false;
                 }
                 co_return effect_num;
             }
@@ -5897,9 +5889,9 @@ M_MODEL& ornotnullRandomnumber()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -6016,9 +6008,9 @@ M_MODEL& ornotnullRandomnumber()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -6126,9 +6118,9 @@ M_MODEL& ornotnullRandomnumber()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -6235,9 +6227,9 @@ M_MODEL& ornotnullRandomnumber()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -6343,9 +6335,9 @@ M_MODEL& ornotnullRandomnumber()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -6462,9 +6454,9 @@ M_MODEL& ornotnullRandomnumber()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -6649,9 +6641,9 @@ M_MODEL& ornotnullRandomnumber()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -6759,9 +6751,9 @@ M_MODEL& ornotnullRandomnumber()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -7015,9 +7007,9 @@ M_MODEL& ornotnullRandomnumber()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -7128,9 +7120,9 @@ M_MODEL& ornotnullRandomnumber()
                     effect_num = 1;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -7275,7 +7267,7 @@ M_MODEL& ornotnullRandomnumber()
                 insertsql.append(B_BASE::getPKname());
                 long long insert_last_id = 0;
                 unsigned int fetch_count = edit_conn->fetch_directly(insertsql,
-                                                                     [&insert_last_id](int col_count, char **col_names, auto get_data) -> bool
+                                                                     [&insert_last_id, this](int col_count, char **col_names, auto get_data) -> bool
                                                                      {
                                                                          (void)col_count;
                                                                          (void)col_names;
@@ -7286,6 +7278,11 @@ M_MODEL& ornotnullRandomnumber()
                                                                              auto r      = std::from_chars(reinterpret_cast<const char *>(ptr), reinterpret_cast<const char *>(ptr) + len, v, 10);
                                                                              if (r.ec == std::errc())
                                                                                  insert_last_id = v;
+                                                                             else
+                                                                             {
+                                                                                 error_msg = "failed to parse returning pk";
+                                                                                 iserror   = true;
+                                                                             }
                                                                          }
                                                                          return true;
                                                                      });
@@ -7361,7 +7358,7 @@ M_MODEL& ornotnullRandomnumber()
                 insertsql.append(B_BASE::getPKname());
                 long long insert_last_id = 0;
                 unsigned int fetch_count = co_await edit_conn->async_fetch_directly(insertsql,
-                                                                                    [&insert_last_id](int col_count, char **col_names, auto get_data) -> bool
+                                                                                    [&insert_last_id, this](int col_count, char **col_names, auto get_data) -> bool
                                                                                     {
                                                                                         (void)col_count;
                                                                                         (void)col_names;
@@ -7372,6 +7369,11 @@ M_MODEL& ornotnullRandomnumber()
                                                                                             auto r      = std::from_chars(reinterpret_cast<const char *>(ptr), reinterpret_cast<const char *>(ptr) + len, v, 10);
                                                                                             if (r.ec == std::errc())
                                                                                                 insert_last_id = v;
+                                                                                            else
+                                                                                            {
+                                                                                                error_msg = "failed to parse returning pk";
+                                                                                                iserror   = true;
+                                                                                            }
                                                                                         }
                                                                                         return true;
                                                                                     });
@@ -7447,7 +7449,7 @@ M_MODEL& ornotnullRandomnumber()
                 insertsql.append(B_BASE::getPKname());
                 long long insert_last_id = 0;
                 unsigned int fetch_count = edit_conn->fetch_directly(insertsql,
-                                                                     [&insert_last_id](int col_count, char **col_names, auto get_data) -> bool
+                                                                     [&insert_last_id, this](int col_count, char **col_names, auto get_data) -> bool
                                                                      {
                                                                          (void)col_count;
                                                                          (void)col_names;
@@ -7458,6 +7460,11 @@ M_MODEL& ornotnullRandomnumber()
                                                                              auto r      = std::from_chars(reinterpret_cast<const char *>(ptr), reinterpret_cast<const char *>(ptr) + len, v, 10);
                                                                              if (r.ec == std::errc())
                                                                                  insert_last_id = v;
+                                                                             else
+                                                                             {
+                                                                                 error_msg = "failed to parse returning pk";
+                                                                                 iserror   = true;
+                                                                             }
                                                                          }
                                                                          return true;
                                                                      });
@@ -7533,7 +7540,7 @@ M_MODEL& ornotnullRandomnumber()
                 insertsql.append(B_BASE::getPKname());
                 long long insert_last_id = 0;
                 unsigned int fetch_count = co_await edit_conn->async_fetch_directly(insertsql,
-                                                                                    [&insert_last_id](int col_count, char **col_names, auto get_data) -> bool
+                                                                                    [&insert_last_id, this](int col_count, char **col_names, auto get_data) -> bool
                                                                                     {
                                                                                         (void)col_count;
                                                                                         (void)col_names;
@@ -7544,6 +7551,11 @@ M_MODEL& ornotnullRandomnumber()
                                                                                             auto r      = std::from_chars(reinterpret_cast<const char *>(ptr), reinterpret_cast<const char *>(ptr) + len, v, 10);
                                                                                             if (r.ec == std::errc())
                                                                                                 insert_last_id = v;
+                                                                                            else
+                                                                                            {
+                                                                                                error_msg = "failed to parse returning pk";
+                                                                                                iserror   = true;
+                                                                                            }
                                                                                         }
                                                                                         return true;
                                                                                     });
@@ -7619,7 +7631,7 @@ M_MODEL& ornotnullRandomnumber()
                 insertsql.append(B_BASE::getPKname());
                 long long insert_last_id = 0;
                 unsigned int fetch_count = edit_conn->fetch_directly(insertsql,
-                                                                     [&insert_last_id](int col_count, char **col_names, auto get_data) -> bool
+                                                                     [&insert_last_id, this](int col_count, char **col_names, auto get_data) -> bool
                                                                      {
                                                                          (void)col_count;
                                                                          (void)col_names;
@@ -7630,6 +7642,11 @@ M_MODEL& ornotnullRandomnumber()
                                                                              auto r      = std::from_chars(reinterpret_cast<const char *>(ptr), reinterpret_cast<const char *>(ptr) + len, v, 10);
                                                                              if (r.ec == std::errc())
                                                                                  insert_last_id = v;
+                                                                             else
+                                                                             {
+                                                                                 error_msg = "failed to parse returning pk";
+                                                                                 iserror   = true;
+                                                                             }
                                                                          }
                                                                          return true;
                                                                      });
@@ -7705,7 +7722,7 @@ M_MODEL& ornotnullRandomnumber()
                 insertsql.append(B_BASE::getPKname());
                 long long insert_last_id = 0;
                 unsigned int fetch_count = co_await edit_conn->async_fetch_directly(insertsql,
-                                                                                    [&insert_last_id](int col_count, char **col_names, auto get_data) -> bool
+                                                                                    [&insert_last_id, this](int col_count, char **col_names, auto get_data) -> bool
                                                                                     {
                                                                                         (void)col_count;
                                                                                         (void)col_names;
@@ -7716,6 +7733,11 @@ M_MODEL& ornotnullRandomnumber()
                                                                                             auto r      = std::from_chars(reinterpret_cast<const char *>(ptr), reinterpret_cast<const char *>(ptr) + len, v, 10);
                                                                                             if (r.ec == std::errc())
                                                                                                 insert_last_id = v;
+                                                                                            else
+                                                                                            {
+                                                                                                error_msg = "failed to parse returning pk";
+                                                                                                iserror   = true;
+                                                                                            }
                                                                                         }
                                                                                         return true;
                                                                                     });
@@ -7765,9 +7787,9 @@ M_MODEL& ornotnullRandomnumber()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 sqlstring = B_BASE::make_update_sql("");
@@ -7872,7 +7894,7 @@ M_MODEL& ornotnullRandomnumber()
                 insertsql.append(B_BASE::getPKname());
                 long long insert_last_id = 0;
                 unsigned int fetch_count = edit_conn->fetch_directly(insertsql,
-                                                                     [&insert_last_id](int col_count, char **col_names, auto get_data) -> bool
+                                                                     [&insert_last_id, this](int col_count, char **col_names, auto get_data) -> bool
                                                                      {
                                                                          (void)col_count;
                                                                          (void)col_names;
@@ -7883,6 +7905,11 @@ M_MODEL& ornotnullRandomnumber()
                                                                              auto r      = std::from_chars(reinterpret_cast<const char *>(ptr), reinterpret_cast<const char *>(ptr) + len, v, 10);
                                                                              if (r.ec == std::errc())
                                                                                  insert_last_id = v;
+                                                                             else
+                                                                             {
+                                                                                 error_msg = "failed to parse returning pk";
+                                                                                 iserror   = true;
+                                                                             }
                                                                          }
                                                                          return true;
                                                                      });
@@ -7926,9 +7953,9 @@ M_MODEL& ornotnullRandomnumber()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 sqlstring = B_BASE::make_update_sql("");
@@ -8046,7 +8073,7 @@ M_MODEL& ornotnullRandomnumber()
                     insertsql.append(B_BASE::getPKname());
                     long long insert_last_id = 0;
                     unsigned int fetch_count = co_await edit_conn->async_fetch_directly(insertsql,
-                                                                                        [&insert_last_id](int col_count, char **col_names, auto get_data) -> bool
+                                                                                        [&insert_last_id, this](int col_count, char **col_names, auto get_data) -> bool
                                                                                         {
                                                                                             (void)col_count;
                                                                                             (void)col_names;
@@ -8057,6 +8084,11 @@ M_MODEL& ornotnullRandomnumber()
                                                                                                 auto r      = std::from_chars(reinterpret_cast<const char *>(ptr), reinterpret_cast<const char *>(ptr) + len, v, 10);
                                                                                                 if (r.ec == std::errc())
                                                                                                     insert_last_id = v;
+                                                                                                else
+                                                                                                {
+                                                                                                    error_msg = "failed to parse returning pk";
+                                                                                                    iserror   = true;
+                                                                                                }
                                                                                             }
                                                                                             return true;
                                                                                         });
@@ -9313,14 +9345,22 @@ M_MODEL& ornotnullRandomnumber()
             return sqlstring;
         }
 
+        // PG 专用：在 INSERT 后追加 RETURNING <pk>，供 db_conn::insert_query() 回读自增主键。
+        // MySQL/SQLite 不支持 RETURNING，对应方言请直接用 commit_insert()（自增 id 来自连接隐式状态）。
         std::string commit_insert(world_info::meta &insert_data)
         {
-            return B_BASE::make_data_insert_sql(insert_data);
+            std::string sql = B_BASE::make_data_insert_sql(insert_data);
+            sql.append(" RETURNING ");
+            sql.append(B_BASE::getPKname());
+            return sql;
         }
 
         std::string commit_insert()
         {
-            return B_BASE::make_data_insert_sql();
+            std::string sql = B_BASE::make_data_insert_sql();
+            sql.append(" RETURNING ");
+            sql.append(B_BASE::getPKname());
+            return sql;
         }
         std::string commit_update(const std::string &fieldname)
         {
@@ -9333,9 +9373,9 @@ M_MODEL& ornotnullRandomnumber()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -9354,18 +9394,6 @@ M_MODEL& ornotnullRandomnumber()
             else
             {
                 sqlstring.append(where_clause);
-            }
-            if (!groupsql.empty())
-            {
-                sqlstring.append(groupsql);
-            }
-            if (!ordersql.empty())
-            {
-                sqlstring.append(ordersql);
-            }
-            if (!limitsql.empty())
-            {
-                sqlstring.append(limitsql);
             }
             return sqlstring;
         }
@@ -9389,9 +9417,9 @@ M_MODEL& ornotnullRandomnumber()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -9409,18 +9437,6 @@ M_MODEL& ornotnullRandomnumber()
             {
                 sqlstring.append(where_clause);
             }
-            if (!groupsql.empty())
-            {
-                sqlstring.append(groupsql);
-            }
-            if (!ordersql.empty())
-            {
-                sqlstring.append(ordersql);
-            }
-            if (!limitsql.empty())
-            {
-                sqlstring.append(limitsql);
-            }
             return sqlstring;
         }
 
@@ -9435,9 +9451,9 @@ M_MODEL& ornotnullRandomnumber()
                     std::ostringstream tempsql;
                     tempsql << " ";
                     tempsql << B_BASE::getPKname();
-                    tempsql << " = '";
+                    tempsql << " = ";
                     tempsql << B_BASE::getPK();
-                    tempsql << "' ";
+                    tempsql << " ";
                     where_clause = tempsql.str();
                 }
                 else
@@ -9457,18 +9473,6 @@ M_MODEL& ornotnullRandomnumber()
             else
             {
                 sqlstring.append(where_clause);
-            }
-            if (!groupsql.empty())
-            {
-                sqlstring.append(groupsql);
-            }
-            if (!ordersql.empty())
-            {
-                sqlstring.append(ordersql);
-            }
-            if (!limitsql.empty())
-            {
-                sqlstring.append(limitsql);
             }
             return sqlstring;
         }
@@ -9735,7 +9739,7 @@ M_MODEL& ornotnullRandomnumber()
             out.append(std::to_string(++n));
         }
 
-        // --- 自增主键列本轮是否发 DEFAULT ---
+        // --- 自增主键列插入时是否发 DEFAULT ---
         // SERIAL/BIGSERIAL 只是带 nextval 默认值的整数列，显式绑定 0 会把 0 当成给定主键写入
         // （第二次插入即主键冲突），因此值为 0 时交给序列取值。
         // 与文本路径 make_data_insert_sql 的 `if(data.xx==0) ... DEFAULT` 分支同构。
@@ -9760,7 +9764,7 @@ M_MODEL& ornotnullRandomnumber()
             returnsql.append(B_BASE::getPKname());
 
             bool got_first = false;
-            return conn->fetch_prepared(returnsql, params, [&first_id, &got_first](int col_count, char **col_names, auto get_data) -> bool
+            return conn->fetch_prepared(returnsql, params, [&first_id, &got_first, this](int col_count, char **col_names, auto get_data) -> bool
                                         {
                                             (void)col_count;
                                             (void)col_names;
@@ -9777,6 +9781,11 @@ M_MODEL& ornotnullRandomnumber()
                                                                              10);
                                                     if (r.ec == std::errc())
                                                         first_id = v;
+                                                    else
+                                                    {
+                                                        error_msg = "failed to parse returning pk";
+                                                        iserror   = true;
+                                                    }
                                                 }
                                             }
                                             return true;// 继续读完结果集：总行数即插入行数
@@ -9858,18 +9867,22 @@ M_MODEL& ornotnullRandomnumber()
                 case orm::wq::like:
                     where_clause.append(" LIKE ");
                     _pg_ph(where_clause, ph);
+                    where_clause.append(" ESCAPE '!'");
                     break;
                 case orm::wq::llike:
                     where_clause.append(" LIKE ");
                     _pg_ph(where_clause, ph);
+                    where_clause.append(" ESCAPE '!'");
                     break;
                 case orm::wq::rlike:
                     where_clause.append(" LIKE ");
                     _pg_ph(where_clause, ph);
+                    where_clause.append(" ESCAPE '!'");
                     break;
                 case orm::wq::nlike:
                     where_clause.append(" NOT LIKE ");
                     _pg_ph(where_clause, ph);
+                    where_clause.append(" ESCAPE '!'");
                     break;
                 case orm::wq::in:
                 case orm::wq::notin:
@@ -10023,10 +10036,10 @@ M_MODEL& ornotnullRandomnumber()
                                                              if (ptr == nullptr)
                                                              {
                                                                  static const unsigned char null_value = 0;
-                                                                 assign_field_value(col_pos_map[ij], (unsigned char *)&null_value, 0, B_BASE::data);
+                                                                 assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
                                                                  continue;
                                                              }
-                                                             assign_field_value(col_pos_map[ij], ptr, len, B_BASE::data);
+                                                             assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
                                                          }
                                                          return false;// LIMIT 1，一行后停止
                                                      });
@@ -10090,10 +10103,10 @@ M_MODEL& ornotnullRandomnumber()
                         if (ptr == nullptr)
                         {
                             static const unsigned char null_value = 0;
-                            assign_field_value(col_pos_map[ij], (unsigned char *)&null_value, 0, data_temp);
+                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
                             continue;
                         }
-                        assign_field_value(col_pos_map[ij], ptr, len, data_temp);
+                        assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
                     }
                     B_BASE::record.emplace_back(std::move(data_temp));
                     return true; });
@@ -10617,10 +10630,10 @@ M_MODEL& ornotnullRandomnumber()
                         if (ptr == nullptr)
                         {
                             static const unsigned char null_value = 0;
-                            assign_field_value(col_pos_map[ij], (unsigned char *)&null_value, 0, B_BASE::data);
+                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
                             continue;
                         }
-                        assign_field_value(col_pos_map[ij], ptr, len, B_BASE::data);
+                        assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
                     }
                     return false; });
 
@@ -10687,10 +10700,10 @@ M_MODEL& ornotnullRandomnumber()
                         if (ptr == nullptr)
                         {
                             static const unsigned char null_value = 0;
-                            assign_field_value(col_pos_map[ij], (unsigned char *)&null_value, 0, data_temp);
+                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
                             continue;
                         }
-                        assign_field_value(col_pos_map[ij], ptr, len, data_temp);
+                        assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
                     }
                     B_BASE::record.emplace_back(std::move(data_temp));
                     return true; });
@@ -10761,13 +10774,13 @@ M_MODEL& ornotnullRandomnumber()
                                                              if (ptr == nullptr)
                                                              {
                                                                  static const unsigned char null_value = 0;
-                                                                 assign_field_value(col_pos_map[ij], (unsigned char *)&null_value, 0, B_BASE::data);
+                                                                 assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
                                                                  continue;
                                                              }
-                                                             assign_field_value(col_pos_map[ij], ptr, len, B_BASE::data);
+                                                             assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
                                                          }
                                                          effect_num = 1;
-                                                         return false; // 只取一行
+                                                         return false;// 只取一行
                                                      });
 
             if (conn->isdebug)
@@ -10819,7 +10832,7 @@ M_MODEL& ornotnullRandomnumber()
                                                                         {
                                                                             if (col_names[ij] == nullptr || col_names[ij][0] == '\0')
                                                                                 continue;
-                                                                            auto [ptr, len] = get_data(ij);
+                                                                            auto [ptr, len]   = get_data(ij);
                                                                             unsigned char pos = B_BASE::findcolpos(col_names[ij]);
                                                                             if (ptr == nullptr)
                                                                             {
@@ -10830,7 +10843,7 @@ M_MODEL& ornotnullRandomnumber()
                                                                             assign_field_value(pos, ptr, len, B_BASE::data);
                                                                         }
                                                                         effect_num = 1;
-                                                                        return false; // 只取一行
+                                                                        return false;// 只取一行
                                                                     });
 
             if (conn->isdebug)
@@ -11357,6 +11370,7 @@ M_MODEL& ornotnullRandomnumber()
                 last.remove_suffix(1);
             if (!last.empty())
                 fields.push_back(last);
+
             return fields;
         }
 
@@ -11397,7 +11411,7 @@ M_MODEL& ornotnullRandomnumber()
             // 两者皆无时拒绝发出语句（与 exec_remove 的守卫同构）。
             if (where_clause.empty())
             {
-                sqlstring = "exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                sqlstring = "exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition, refusing to execute";
                 error_msg = sqlstring;
                 iserror   = true;
                 return (unsigned int)-1;
@@ -11427,6 +11441,7 @@ M_MODEL& ornotnullRandomnumber()
             {
                 conn_obj->back_pg_edit_conn(std::move(conn));
             }
+
             return affected;
         }
 
@@ -11469,7 +11484,7 @@ M_MODEL& ornotnullRandomnumber()
             // 两者皆无时拒绝发出语句（与 async_exec_remove 的守卫同构）。
             if (where_clause.empty())
             {
-                sqlstring = "async_exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                sqlstring = "async_exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition, refusing to execute";
                 error_msg = sqlstring;
                 iserror   = true;
                 co_return (unsigned int) - 1;
@@ -11534,6 +11549,7 @@ M_MODEL& ornotnullRandomnumber()
                 error_msg = std::string(e.what());
                 unlock_conn();
             }
+
             co_return (unsigned int) - 1;
         }
 
@@ -11577,7 +11593,7 @@ M_MODEL& ornotnullRandomnumber()
             // 两者皆无时拒绝发出语句（与 exec_remove 的守卫同构）。
             if (where_clause.empty())
             {
-                sqlstring = "exec_update_dirty: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                sqlstring = "exec_update_dirty: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition, refusing to execute";
                 error_msg = sqlstring;
                 iserror   = true;
                 return (unsigned int)-1;
@@ -11609,6 +11625,7 @@ M_MODEL& ornotnullRandomnumber()
             {
                 conn_obj->back_pg_edit_conn(std::move(conn));
             }
+
             return affected;
         }
 
@@ -11652,7 +11669,7 @@ M_MODEL& ornotnullRandomnumber()
             // 两者皆无时拒绝发出语句（与 exec_remove 的守卫同构）。
             if (where_clause.empty())
             {
-                sqlstring = "async_exec_update_dirty: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                sqlstring = "async_exec_update_dirty: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition, refusing to execute";
                 error_msg = sqlstring;
                 iserror   = true;
                 co_return (unsigned int) - 1;
@@ -11692,6 +11709,7 @@ M_MODEL& ornotnullRandomnumber()
             }
             if (affected != static_cast<unsigned int>(-1))
                 B_BASE::clear_dirty();
+
             co_return affected;
         }
 
@@ -11738,7 +11756,7 @@ M_MODEL& ornotnullRandomnumber()
             // 两者皆无时拒绝发出语句（与 exec_remove 的守卫同构）。
             if (where_clause.empty())
             {
-                sqlstring = "exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                sqlstring = "exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition, refusing to execute";
                 error_msg = sqlstring;
                 iserror   = true;
                 return (unsigned int)-1;
@@ -11768,6 +11786,7 @@ M_MODEL& ornotnullRandomnumber()
             {
                 conn_obj->back_pg_edit_conn(std::move(conn));
             }
+
             return affected;
         }
 
@@ -11816,7 +11835,7 @@ M_MODEL& ornotnullRandomnumber()
             // 两者皆无时拒绝发出语句（与 async_exec_remove 的守卫同构）。
             if (where_clause.empty())
             {
-                sqlstring = "async_exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                sqlstring = "async_exec_update: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition, refusing to execute";
                 error_msg = sqlstring;
                 iserror   = true;
                 co_return (unsigned int) - 1;
@@ -11881,6 +11900,7 @@ M_MODEL& ornotnullRandomnumber()
                 error_msg = std::string(e.what());
                 unlock_conn();
             }
+
             co_return (unsigned int) - 1;
         }
 
@@ -11915,7 +11935,7 @@ M_MODEL& ornotnullRandomnumber()
             // 两者皆无时拒绝发出语句（与 exec_remove 的守卫同构）。
             if (where_clause.empty())
             {
-                sqlstring = "exec_update_fields: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                sqlstring = "exec_update_fields: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition, refusing to execute";
                 error_msg = sqlstring;
                 iserror   = true;
                 return (unsigned int)-1;
@@ -11945,6 +11965,7 @@ M_MODEL& ornotnullRandomnumber()
             {
                 conn_obj->back_pg_edit_conn(std::move(conn));
             }
+
             return affected;
         }
 
@@ -11961,7 +11982,7 @@ M_MODEL& ornotnullRandomnumber()
             // 拒绝发出语句（与文本路径 build_remove_sql 的"返回空串"约定同构）。
             if (where_clause.empty())
             {
-                sqlstring = "exec_remove: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                sqlstring = "exec_remove: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition, refusing to execute";
                 error_msg = sqlstring;
                 iserror   = true;
                 return (unsigned int)-1;
@@ -11991,6 +12012,7 @@ M_MODEL& ornotnullRandomnumber()
             {
                 conn_obj->back_pg_edit_conn(std::move(conn));
             }
+
             return affected;
         }
 
@@ -12010,7 +12032,7 @@ M_MODEL& ornotnullRandomnumber()
             // 拒绝发出语句（与同步 exec_remove 的守卫同构）。
             if (where_clause.empty())
             {
-                sqlstring = "async_exec_remove: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition，拒绝执行";
+                sqlstring = "async_exec_remove: wheresql is empty and the primary key is less than or equal to 0, lacking a WHERE condition, refusing to execute";
                 error_msg = sqlstring;
                 iserror   = true;
                 co_return (unsigned int) - 1;
@@ -12075,6 +12097,7 @@ M_MODEL& ornotnullRandomnumber()
                 error_msg = std::string(e.what());
                 unlock_conn();
             }
+
             co_return (unsigned int) - 1;
         }
 
@@ -12145,6 +12168,7 @@ M_MODEL& ornotnullRandomnumber()
             {
                 conn_obj->back_pg_edit_conn(std::move(conn));
             }
+
             return std::make_tuple(effect_num, static_cast<unsigned long long>(last_id));
         }
 
@@ -12212,7 +12236,7 @@ M_MODEL& ornotnullRandomnumber()
                     edit_conn->begin_time();
                 }
                 long long last_id = 0;
-                unsigned int rows = co_await edit_conn->async_fetch_prepared(sql, params, [&last_id](int col_count, char **col_names, auto get_data) mutable -> bool
+                unsigned int rows = co_await edit_conn->async_fetch_prepared(sql, params, [&last_id, this](int col_count, char **col_names, auto get_data) mutable -> bool
                                                                              {
                         (void)col_count;
                         (void)col_names;
@@ -12224,6 +12248,11 @@ M_MODEL& ornotnullRandomnumber()
                                                     reinterpret_cast<const char *>(ptr) + len, v, 10);
                             if (r.ec == std::errc())
                                 last_id = v;
+                            else
+                            {
+                                error_msg = "failed to parse returning pk";
+                                iserror   = true;
+                            }
                         }
                         return true; });
                 if (edit_conn->isdebug)
@@ -12255,6 +12284,7 @@ M_MODEL& ornotnullRandomnumber()
                 error_msg = std::string(e.what());
                 unlock_conn();
             }
+
             co_return std::make_tuple(0, 0ULL);
         }
 
@@ -12348,6 +12378,7 @@ M_MODEL& ornotnullRandomnumber()
             {
                 conn_obj->back_pg_edit_conn(std::move(conn));
             }
+
             return std::make_tuple(effect_num, static_cast<unsigned long long>(first_id));
         }
 
@@ -12438,7 +12469,7 @@ M_MODEL& ornotnullRandomnumber()
                     edit_conn->begin_time();
                 }
                 long long first_id = 0;
-                unsigned int rows  = co_await edit_conn->async_fetch_prepared(sql, params, [&first_id](int col_count, char **col_names, auto get_data) mutable -> bool
+                unsigned int rows  = co_await edit_conn->async_fetch_prepared(sql, params, [&first_id, this](int col_count, char **col_names, auto get_data) mutable -> bool
                                                                              {
                         (void)col_count;
                         (void)col_names;
@@ -12450,6 +12481,11 @@ M_MODEL& ornotnullRandomnumber()
                                                     reinterpret_cast<const char *>(ptr) + len, v, 10);
                             if (r.ec == std::errc())
                                 first_id = v;
+                            else
+                            {
+                                error_msg = "failed to parse returning pk";
+                                iserror   = true;
+                            }
                         }
                         return true; });
                 if (edit_conn->isdebug)
@@ -12480,6 +12516,7 @@ M_MODEL& ornotnullRandomnumber()
                 error_msg = std::string(e.what());
                 unlock_conn();
             }
+
             co_return std::make_tuple(0, 0ULL);
         }
 
@@ -12497,6 +12534,7 @@ M_MODEL& ornotnullRandomnumber()
 
         // std::list<std::string> commit_sqllist;
         bool iscache            = false;
+        bool is_hit_cache      = false;
         bool iserror            = false;
         bool islock_conn        = false;
         int exptime             = 0;
