@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM SQLITE intermediate connection layer, sourced from MySQL, PostgreSQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Thu, 08 Oct 2026 06:25:12 GMT
+ *  Creation time Fri, 09 Oct 2026 10:26:10 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -3202,7 +3202,7 @@ M_MODEL& ornotnullMessage()
                             model_meta_cache<std::vector<std::vector<std::string>>>::getinstance();
                         temp_cache.save(sqlhashid, temprecord, exptime);
 
-                        exptime += 1;
+                        if (exptime > 0) exptime += 1;
                         model_meta_cache<std::vector<std::string>> &table_cache = model_meta_cache<std::vector<std::string>>::getinstance();
                         table_cache.save(sqlhashid, table_fieldname, exptime);
 

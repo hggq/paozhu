@@ -2730,7 +2730,7 @@ void http2parse::readsetting(const HTTP2_PACK_DATA_T &temp_pack_data)
                 // 统一 clamp 到 [0, MAX_WINDOW]。
                 // Each existing stream adjusts by (new - old). cur + delta can underflow
                 // unsigned cur when delta is negative — route through int64 then clamp to [0, MAX].
-                // 已知限制（2026-10-09 定案：维持 unsigned，不改成 signed 追负值）：地板到 0 抹掉的那段
+                // 已知限制（2026-10-09 定案：维持 unsigned，不改成 signed 追负值, 不然不好维护窗口）：地板到 0 抹掉的那段
                 // 负额度不再记账，对端随后对该流发 WINDOW_UPDATE 等于把它白退回去，本端允许的在途字节
                 // 比 RFC 9113 §6.9.1 的口径多出一截。追负值要改发送侧三处闸门（reserve/refund/gate_open）
                 // 再加 readwinupdate 里那处额度累加，并逐处防下溢；收益只是抹平这条限制，所以不换。
@@ -2965,8 +2965,10 @@ void http2parse::readwinupdate(const HTTP2_PACK_DATA_T &temp_pack_data)
             // 交给主循环统一分流：http2_handle_parse_error 会发
             // RST_STREAM(FLOW_CONTROL_ERROR=0x3)、调 cleanup_stream 回收该流
             // 全部状态、clear_error 后继续复用连接。h2_error_code 沿用 0x3，
-            // 与裸发时完全一致；内部码 40036 仅作日志标识，不参与线上判定。
-            set_stream_error(40036, wu_sid, CONST_HTTP2_STREAM_ERROR_FLOW_CONTROL);
+            // 与裸发时完全一致；内部码 40221 仅作日志标识，不参与线上判定。
+            // 刻意不共用连接级那一处的 40036：两级判定用的是两套不同算式（那里判累计获准额，
+            // 这里判本条流的剩余额度），同号会让日志里分不出是哪一路触发的。
+            set_stream_error(40221, wu_sid, CONST_HTTP2_STREAM_ERROR_FLOW_CONTROL);
             return;
         }
         it->second = static_cast<unsigned int>(sum);
@@ -2979,9 +2981,14 @@ void http2parse::readwinupdate(const HTTP2_PACK_DATA_T &temp_pack_data)
 //
 void http2parse::readping(const HTTP2_PACK_DATA_T &temp_pack_data)
 {
+    // RFC 9113 §6.7：PING 的 ACK 标志表示对端对我们 PING 请求的回应。本实现从不主动
+    // 发 PING 请求，因此对端任何带 ACK 的 PING 都属于「未 solicited」的协议违规：
+    // §6.7 明文 "MUST NOT send a PING frame with the ACK flag set unless it has received
+    // a PING frame from the peer with the ACK flag not set"。收到即按连接级 PROTOCOL_ERROR
+    // 断连（h2spec 6.7.1），不能像之前那样静默 return 留着连接。
     if ((temp_pack_data.flags & 0x01) > 0)
     {
-        DEBUG_LOG("readping ack %d", temp_pack_data.length);
+        set_conn_error(40052, 0x1);
         return;
     }
 
@@ -4713,8 +4720,9 @@ void http2parse::readpostdata(const HTTP2_PACK_DATA_T &temp_pack_data)
         return;
     }
 
-    // RFC 9113 §6.9.1：DATA 帧的整个 payload 都计入流控（含 Pad Length 与 Padding），
-    // temp_pack_data.length 正是这个口径。连接级与流级必须各自独立扣减、各自独立补量，
+    // RFC 9113 §6.1（DATA）："The entire DATA frame payload is included in flow control,
+    // including the Pad Length and Padding fields if present." temp_pack_data.length 正是这个口径。
+    // 连接级与流级必须各自独立扣减、各自独立补量，
     // 不能用「全局计数越线」去决定该补给哪一条流。
     unsigned int fc_bytes = temp_pack_data.length;
 
@@ -4796,13 +4804,34 @@ void http2parse::process_pack()
     {
     case 0x00:
         // DATA（长度可变）
+        // RFC 9113 §4.2.2 / §4.2.3：帧 payload 不得超过本端愿意接受的最大帧大小。
+        // 本实现不主动下发 SETTINGS_MAX_FRAME_SIZE，按 RFC 默认上限 2^14 = 16384 执行
+        // （不能用 setting_data.max_frame_size——它会被对端 SETTINGS 覆盖成对端上限，
+        // 那样对端就能把我们的接受上限抬高成 DoS 入口）。超界属连接级 FRAME_SIZE_ERROR。
+        if (pack_data.length > 16384)
+        {
+            set_conn_error(40050, 0x6);
+            return;
+        }
         readpostdata(pack_data);
         break;
     case 0x01:
         // HEADERS（长度可变）
+        // 同上：帧 payload 不得超过本端接受上限（默认 16384），否则连接级 FRAME_SIZE_ERROR。
+        if (pack_data.length > 16384)
+        {
+            set_conn_error(40051, 0x6);
+            return;
+        }
         readheaders(pack_data);
         break;
     case 0x02: // PRIORITY 固定 5 字节
+        // RFC 9113 §6.3：PRIORITY 必须关联一条流，stream_id 为 0 是连接级 PROTOCOL_ERROR。
+        if (pack_data.stream_id == 0)
+        {
+            set_conn_error(40047, 0x1);
+            return;
+        }
         if (pack_data.length != 5)
         {
             set_conn_error(40030, 0x6);
@@ -4819,6 +4848,12 @@ void http2parse::process_pack()
         readrst_stream(pack_data);
         break;
     case 0x04: // SETTINGS 长度须为 6 的倍数
+        // RFC 9113 §6.5.1：SETTINGS 只作用于连接，stream_id 非 0 是连接级 PROTOCOL_ERROR。
+        if (pack_data.stream_id != 0)
+        {
+            set_conn_error(40048, 0x1);
+            return;
+        }
         if (pack_data.length % 6 != 0)
         {
             set_conn_error(40032, 0x6);
@@ -4830,6 +4865,12 @@ void http2parse::process_pack()
         error = 40016;
         return;
     case 0x06: // PING 固定 8 字节
+        // RFC 9113 §6.7：PING 不关联任何流，stream_id 非 0 是连接级 PROTOCOL_ERROR。
+        if (pack_data.stream_id != 0)
+        {
+            set_conn_error(40049, 0x1);
+            return;
+        }
         if (pack_data.length != 8)
         {
             set_conn_error(40033, 0x6);

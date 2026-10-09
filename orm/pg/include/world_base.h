@@ -2,7 +2,7 @@
 #define ORM_PG_WORLDBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 08 Oct 2026 06:25:12 GMT
+*本文件为自动生成 Fri, 09 Oct 2026 10:26:10 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -592,9 +592,9 @@ namespace world_info
         
     inline constexpr std::array<std::string_view,2> col_names={"id","randomnumber"};
 	static constexpr std::array<unsigned char,2> col_types={3,3};
-	static constexpr std::array<unsigned short,2> col_length={4,4};
+	static constexpr std::array<unsigned short,2> col_length={4,0};
 	static constexpr std::array<unsigned char,2> col_decimals={0,0};
-	static constexpr std::array<bool,2> col_null={false,false};
+	static constexpr std::array<bool,2> col_null={true,true};
 	static constexpr std::array<bool,2> col_indexed={true,false};
 	static constexpr std::string_view auto_pk_name ="id";
 	static constexpr int auto_pk_index = 0;
