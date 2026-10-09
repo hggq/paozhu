@@ -435,7 +435,7 @@ void http2parse::headers_parse(const HTTP2_HEADER_FRAME_T &header_block_obj, std
         stream_list.emplace(header_stream_id);
     }
 
-    // ---- RFC 9113 §8.1.2.3 请求伪头跨头块校验（headertypeX 全跑完才知道）----
+    // ---- RFC 7540 §8.1.2.3 请求伪头跨头块校验（headertypeX 全跑完才知道）----
     // Finalize: duplicate / missing / empty pseudo-headers.
     // 重复伪头 → PROTOCOL_ERROR（h2spec 8.1.2.3 #5/#6/#7）
     if (steam_httppeer->h2_method_dup ||
@@ -1156,13 +1156,13 @@ void http2parse::header_process(std::string header_name, std::string header_valu
 {
     DEBUG_LOG("header:%s:%s|%d", header_name.c_str(), header_value.c_str(), table_num);
 
-    // ---- RFC 9113 §8.1.2 单元素头合规校验（每条头一解码完立刻能判，不跨状态）----
+    // ---- RFC 7540 §8.1.2 单元素头合规校验（每条头一解码完立刻能判，不跨状态）----
     // All static-table entries (table_num > 0) are HPACK-defined lowercase headers,
     // so these guards apply universally — a tainted encoder would have to use the
     // literal-insert paths (table_num == 0) to smuggle them in.
     //
     // ① 头名里有任何大写 → PROTOCOL_ERROR（h2spec 8.1.2 #1）。HTTP/2 头名必须全小写。
-    // Header names MUST be lowercase per RFC 9113 §8.1.2.
+    // Header names MUST be lowercase per RFC 7540 §8.1.2.
     for (unsigned char c : header_name)
     {
         if (c >= 'A' && c <= 'Z')
@@ -1193,7 +1193,7 @@ void http2parse::header_process(std::string header_name, std::string header_valu
             return;
         }
     }
-    // ③ 连接层头（RFC 9113 §8.1.2.2）— HTTP/1.1 专用，HTTP/2 必须拆帧走不同机制
+    // ③ 连接层头（RFC 7540 §8.1.2.2）— HTTP/1.1 专用，HTTP/2 必须拆帧走不同机制
     // Connection-specific headers are HTTP/1.1 only; HTTP/2 has distinct frames.
     static constexpr const char *const k_conn_hop_by_hop[] = {
         "connection", "keep-alive", "proxy-connection", "te", "transfer-encoding", "upgrade"
@@ -1202,8 +1202,8 @@ void http2parse::header_process(std::string header_name, std::string header_valu
     {
         if (header_name == h)
         {
-            // TE 例外：值为 trailers 是 RFC 9113 §8.1.2.2 允许的，其它值是 PROTOCOL_ERROR
-            // TE is allowed only with value "trailers" (RFC 9113 §8.1.2.2).
+            // TE 例外：值为 trailers 是 RFC 7540 §8.1.2.2 允许的，其它值是 PROTOCOL_ERROR
+            // TE is allowed only with value "trailers" (RFC 7540 §8.1.2.2).
             if (header_name == "te" && header_value == "trailers")
             {
                 break;
@@ -1213,7 +1213,7 @@ void http2parse::header_process(std::string header_name, std::string header_valu
         }
     }
 
-    // ---- RFC 9113 §8.1.2 跨状态计数（单元素校验已过，这里只计状态）----
+    // ---- RFC 7540 §8.1.2 跨状态计数（单元素校验已过，这里只计状态）----
     // 伪头在普通头之后出现 → PROTOCOL_ERROR（h2spec 8.1.2.1 #4）
     // Pseudo-headers MUST precede any regular header field.
     if (!header_name.empty() && header_name[0] == ':')
@@ -2146,7 +2146,7 @@ void http2parse::headertype1(unsigned char c,
 
     if (a < 62)
     {
-        // 静态表条目和字面量条目必须走同一个 header_process：§8.1.2 的大写头名、伪头白名单、
+        // 静态表条目和字面量条目必须走同一个 header_process：RFC 7540 §8.1.2 的大写头名、伪头白名单、
         // 连接层头、伪头顺序与重复计数全在那里面。内联一份精简副本就会漏掉这些检测，
         // 还会让同一个请求的两条编码路径给出不同形状（副本不写 header["method"]）。
         header_process(http2_header_static_table[a].key, http2_header_static_table[a].value, a, steam_httppeer);
@@ -2830,7 +2830,7 @@ void http2parse::readwinupdate(const HTTP2_PACK_DATA_T &temp_pack_data)
 {
     DEBUG_LOG("readwinupdate %zu", temp_pack_data.payload.size());
 
-    // RFC 9113 §6.9.1：WINDOW_UPDATE 的载荷恰好 4 字节，其他长度是 FRAME_SIZE_ERROR。
+    // RFC 9113 §6.9：WINDOW_UPDATE 的载荷恰好 4 字节，其他长度是 FRAME_SIZE_ERROR。
     // 只判 < 4 时，多出来的字节会被静默忽略（分帧按帧头声明的 length 精确消费，
     // 不会造成后续帧错位，但该报错的不报）。
     if (temp_pack_data.payload.size() != 4)
@@ -2857,7 +2857,7 @@ void http2parse::readwinupdate(const HTTP2_PACK_DATA_T &temp_pack_data)
 
     if (ident_stream == 0)
     {
-        // RFC 9113 §6.9.1: WINDOW_UPDATE 的增量必须大于 0，为 0 属于 PROTOCOL_ERROR
+        // RFC 9113 §6.9: WINDOW_UPDATE 的增量必须大于 0，为 0 属于 PROTOCOL_ERROR
         error = 40218;
         return;
     }

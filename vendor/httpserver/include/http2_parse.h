@@ -272,7 +272,7 @@ class http2parse
     // 置流级错误（随 RST_STREAM 重置该流，保留连接）；sid 为出错流 id
     void set_stream_error(unsigned int code, unsigned int sid, unsigned int h2 = 0x1);
     // HPACK（RFC 7541）解码层失败：内部编码坏了、索引越界、整数/字符串长度解不出来，
-    // 错误码必须是 COMPRESSION_ERROR(0x9)；头字段本身的违例（§8.1.2）不走这里，仍是 PROTOCOL_ERROR。
+    // 错误码必须是 COMPRESSION_ERROR(0x9)；头字段本身的违例（RFC 7540 §8.1.2）不走这里，仍是 PROTOCOL_ERROR。
     void hpack_fail(unsigned int code)
     {
         error         = code;

@@ -1828,13 +1828,15 @@ Regenerate later with `bin/paozhu_cli orm <tag>` (see §5.1) when you enable a d
 
 Do **not** `rm -rf` the whole `viewsrc/` directory — the registration headers under `viewsrc/include/` must be kept as skeletons. Four sub-steps.
 
-#### 4.1 Remove the view source and template directories
+#### 4.1 Remove the compiled view sources and empty the template directory
 
 ```bash
-rm -rf viewsrc/view/ view/
+rm -rf viewsrc/view/
+rm -rf view/*
+mkdir -p view
 ```
 
-`viewsrc/view/` holds the C++ implementations; `view/` holds the HTML templates. Both are example code and can be deleted directly.
+`viewsrc/view/` holds the C++ implementations and is an output — the generator creates it again before writing, so it can go. `view/` holds the HTML templates and is an input: `paozhu_cli view` only prints `view directory not in current path` when it is missing and never creates it, so the trim empties it and keeps the directory.
 
 #### 4.2 Empty the `namespace view` block in `viewsrc/include/viewsrc.h`
 

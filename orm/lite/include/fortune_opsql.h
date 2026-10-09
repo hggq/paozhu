@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM SQLITE intermediate connection layer, sourced from MySQL, SQLITE 中间连接层，来源MySQL
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Fri, 09 Oct 2026 10:26:14 GMT
+ *  Creation time Fri, 09 Oct 2026 14:32:09 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -285,7 +285,16 @@ namespace lite
 
             std::string where_clause;
             build_prepared_where(where_clause, params);
-            sql.append(" WHERE ").append(where_clause);
+            // where_clause 为空时必须兜底，否则发出悬空 WHERE 导致语法错误
+            sql.append(" WHERE ");
+            if (where_clause.empty())
+            {
+                sql.append(" 1 ");
+            }
+            else
+            {
+                sql.append(where_clause);
+            }
 
             if (!groupsql.empty())
                 sql.append(groupsql);
@@ -525,7 +534,16 @@ namespace lite
 
             std::string where_clause;
             build_prepared_where(where_clause, params);
-            sql.append(" WHERE ").append(where_clause);
+            // where_clause 为空时必须兜底，否则发出悬空 WHERE 导致语法错误
+            sql.append(" WHERE ");
+            if (where_clause.empty())
+            {
+                sql.append(" 1 ");
+            }
+            else
+            {
+                sql.append(where_clause);
+            }
 
             if (!groupsql.empty())
                 sql.append(groupsql);

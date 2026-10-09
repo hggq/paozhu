@@ -304,7 +304,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     // std::list<std::future<int>> window_update_results;
     // std::promise<int> window_update_promise;
 
-    // ---- RFC 9113 §8.1.2 伪头跨状态校验标记（HTTP/2 头解析完即置 true 后不再写）----
+    // ---- RFC 7540 §8.1.2 伪头跨状态校验标记（HTTP/2 头解析完即置 true 后不再写）----
     // Pseudo-header tracking — set during header parsing, never touched after dispatch.
     bool h2_method_seen  = false;  // :method 至少出现过一次
     bool h2_method_dup   = false;  // :method 重复出现过（h2spec 8.1.2.3 #5）

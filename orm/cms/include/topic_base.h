@@ -2,7 +2,7 @@
 #define ORM_CMS_TOPICBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 09 Oct 2026 10:26:08 GMT
+*本文件为自动生成 Fri, 09 Oct 2026 14:32:02 GMT
 ***/
 #include <iostream>
 #include <charconv>

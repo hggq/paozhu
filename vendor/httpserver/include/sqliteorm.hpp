@@ -284,7 +284,16 @@ namespace orm
 
             std::string where_clause;
             build_prepared_where(where_clause, params);
-            sql.append(" WHERE ").append(where_clause);
+            // where_clause 为空时必须兜底，否则发出悬空 WHERE 导致语法错误
+            sql.append(" WHERE ");
+            if (where_clause.empty())
+            {
+                sql.append(" 1 ");
+            }
+            else
+            {
+                sql.append(where_clause);
+            }
 
             if (!groupsql.empty())
                 sql.append(groupsql);
@@ -524,7 +533,16 @@ namespace orm
 
             std::string where_clause;
             build_prepared_where(where_clause, params);
-            sql.append(" WHERE ").append(where_clause);
+            // where_clause 为空时必须兜底，否则发出悬空 WHERE 导致语法错误
+            sql.append(" WHERE ");
+            if (where_clause.empty())
+            {
+                sql.append(" 1 ");
+            }
+            else
+            {
+                sql.append(where_clause);
+            }
 
             if (!groupsql.empty())
                 sql.append(groupsql);

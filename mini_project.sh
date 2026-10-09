@@ -355,16 +355,21 @@ echo "  OK models/ schema/ orm/ emptied (empty orm/orm.h kept)"
 
 # ============================================================
 # Step 4 — Clean view files (keep registration skeleton)
-#   4.1 Remove viewsrc/view/ and view/
+#   4.1 Remove viewsrc/view/, empty view/ (directory kept)
 #   4.2 Empty the namespace view body inside viewsrc/include/viewsrc.h
 #   4.3 Empty function bodies in viewsrc/include/regviewmethod.hpp
 # ============================================================
 echo ""
 echo "[Step 4/${TOTAL_STEPS}] Cleaning view files..."
 
-# 4.1 Remove view sources and templates
+# 4.1 Remove the compiled view sources; empty view/ but keep the directory.
+#   view/ is an INPUT: paozhu_cli view only warns "view directory not in
+#   current path" when it is missing and never creates it, so leave an empty
+#   dir behind. viewsrc/view/ is an OUTPUT — the generator create_directories()
+#   the destination before writing, so that one may go.
 rm -rf viewsrc/view/
-rm -rf view/
+rm -rf view/*
+mkdir -p view
 
 # 4.2 Empty the internal namespace in viewsrc.h
 cat > viewsrc/include/viewsrc.h << 'EOF'
@@ -416,7 +421,7 @@ namespace http
 #endif
 EOF
 
-echo "  OK viewsrc/view/ and view/ removed"
+echo "  OK viewsrc/view/ removed, view/ emptied (directory kept)"
 echo "  OK viewsrc.h / regviewmethod.hpp registration content emptied"
 
 # 4.4 Clean www/default, keep only index.html (content: Hello World! Paozhu)

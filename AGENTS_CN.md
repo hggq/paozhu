@@ -1769,13 +1769,15 @@ EOF
 
 这一步不能直接 `rm -rf` 整个目录，因为 `viewsrc/include/` 下的注册头文件需要保留骨架。分四小步进行。
 
-#### 4.1 删除视图源码和模板目录
+#### 4.1 删除视图编译产物、清空模板目录
 
 ```bash
-rm -rf viewsrc/view/ view/
+rm -rf viewsrc/view/
+rm -rf view/*
+mkdir -p view
 ```
 
-`viewsrc/view/` 是视图的 C++ 实现源码，`view/` 是 HTML 模板。两者都是示例代码，直接删除。
+`viewsrc/view/` 是视图的 C++ 实现产物，属于输出目录 —— 生成器写文件前会自己 `create_directories`，可以直接删。`view/` 是 HTML 模板目录，属于输入：`paozhu_cli view` 找不到它只打印 "view directory not in current path"，不会替你创建，所以要清空内容、保留空目录。
 
 #### 4.2 清空 viewsrc/include/viewsrc.h 中的 namespace view 内容
 
