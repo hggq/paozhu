@@ -243,6 +243,12 @@ class httpserver
 
     void listeners();
     void listener();
+    void ratelimiter();
+
+    // 入口按负载插值算当前放行率：has_save_link_count → [new_wait_num, accept_wait_num] 百分比 → [num1, num2]
+    void compute_rate_from_load(unsigned int has_save_link_count);
+    // 被限速连接入队：同时进跟踪表 + 限速队列，通知 ratelimiter
+    void enqueue_rate_limited(std::shared_ptr<client_session> peer);
 
     asio::awaitable<void> http1_send_status_content(std::shared_ptr<httppeer> peer, unsigned int status_code, const std::string &bodycontent);
     asio::awaitable<bool> http1_static_file_authority(std::shared_ptr<httppeer> peer);
@@ -440,13 +446,22 @@ class httpserver
     std::atomic_uint total_http2_count = 0;
     std::atomic_uint total_http1_count = 0;
 
-    std::atomic_uint rate_limit_new_wait_num    = 300;
-    std::atomic_uint rate_limit_accept_wait_num = 600;
-    std::atomic_uint rate_limit_accept_time     = 500;
+    std::atomic_uint rate_limit_new_wait_num    = 300;  // 开始限速的负载阈值
+    std::atomic_uint rate_limit_accept_wait_num = 600;  // 最严限速的负载阈值（插值上界）
+
+    std::atomic_uint rate_limit_second_num1     = 20;   // 低负载放行率 20/s
+    std::atomic_uint rate_limit_second_num2     = 5;    // 高负载放行率 5/s
+    std::atomic_uint rate_limit_second_time_num = 20;   // 当前放行率，入口按负载插值
+    std::atomic_uint rate_queue_count           = 0;    // 限速队列当前长度（无锁读取用）
+    std::atomic_uint rate_limited_count         = 0;    // 累计被限速次数
+    std::atomic_uint rate_expired_count         = 0;    // 累计"放行时 16 秒接机租约已过期"的次数：这些连接已被或即将被 httpwatch 收割
+
+    std::condition_variable rate_limit_condition;
+    std::mutex rate_limit_mutex;
 
     std::mutex socket_session_lists_mutex;
     std::list<std::weak_ptr<client_session>> socket_session_lists;
-    //std::list<std::shared_ptr<client_session>> socket_session_wait_clear;
+    std::list<std::shared_ptr<client_session>> socket_session_wait_rate; //如果限速了放入限速线程入站
 
     std::condition_variable send_data_condition;
 

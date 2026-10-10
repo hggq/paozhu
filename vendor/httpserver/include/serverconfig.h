@@ -156,7 +156,9 @@ class serverconfig
 
     unsigned int rate_limit_new_wait_num    = 300;
     unsigned int rate_limit_accept_wait_num = 600;
-    unsigned int rate_limit_accept_time     = 500;
+
+    unsigned int rate_limit_second_num1     = 20 ;
+    unsigned int rate_limit_second_num2     = 5 ;
 
     unsigned int acme_every_day_time = 7;
     unsigned int acme_every_num      = 5;

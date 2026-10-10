@@ -1230,36 +1230,68 @@ bool serverconfig::loadserverglobalconfig()
         rate_limit_accept_wait_num = 600;
     }
 
-    if (map_value["default"]["rate_limit_accept_time"].size() > 0)
+    if (map_value["default"]["rate_limit_second_num1"].size() > 0)
     {
-        rate_limit_accept_time = 0;
-        for (size_t i = 0; i < map_value["default"]["rate_limit_accept_time"].size(); i++)
+        rate_limit_second_num1 = 0;
+        for (size_t i = 0; i < map_value["default"]["rate_limit_second_num1"].size(); i++)
         {
-            if (map_value["default"]["rate_limit_accept_time"][i] >= '0' && map_value["default"]["rate_limit_accept_time"][i] <= '9')
+            if (map_value["default"]["rate_limit_second_num1"][i] >= '0' && map_value["default"]["rate_limit_second_num1"][i] <= '9')
             {
-                rate_limit_accept_time = rate_limit_accept_time * 10 + (map_value["default"]["rate_limit_accept_time"][i] - '0');
+                rate_limit_second_num1 = rate_limit_second_num1 * 10 + (map_value["default"]["rate_limit_second_num1"][i] - '0');
                 continue;
             }
-            else if (map_value["default"]["rate_limit_accept_time"][i] == 0x20)
+            else if (map_value["default"]["rate_limit_second_num1"][i] == 0x20)
             {
                 continue;
             }
             break;
         }
 
-        if (rate_limit_accept_time < 10)
+        if (rate_limit_second_num1 < 5)
         {
-            rate_limit_accept_time = 10;
+            rate_limit_second_num1 = 5;
         }
 
-        if (rate_limit_accept_time > 1500)
+        if (rate_limit_second_num1 > 5000)
         {
-            rate_limit_accept_time = 1500;
+            rate_limit_second_num1 = 5000;
         }
     }
     else
     {
-        rate_limit_accept_time = 500;
+        rate_limit_second_num1 = 20;
+    }
+
+    if (map_value["default"]["rate_limit_second_num2"].size() > 0)
+    {
+        rate_limit_second_num2 = 0;
+        for (size_t i = 0; i < map_value["default"]["rate_limit_second_num2"].size(); i++)
+        {
+            if (map_value["default"]["rate_limit_second_num2"][i] >= '0' && map_value["default"]["rate_limit_second_num2"][i] <= '9')
+            {
+                rate_limit_second_num2 = rate_limit_second_num2 * 10 + (map_value["default"]["rate_limit_second_num2"][i] - '0');
+                continue;
+            }
+            else if (map_value["default"]["rate_limit_second_num2"][i] == 0x20)
+            {
+                continue;
+            }
+            break;
+        }
+
+        if (rate_limit_second_num2 < 2)
+        {
+            rate_limit_second_num2 = 1;
+        }
+
+        if (rate_limit_second_num2 > 300)
+        {
+            rate_limit_second_num2 = 300;
+        }
+    }
+    else
+    {
+        rate_limit_second_num2 = 5;
     }
 
     if (map_value["default"]["acme_every_day"].size() > 0)
