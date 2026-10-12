@@ -8,6 +8,7 @@
 #include <sstream>
 #include <map>
 #include <list>
+#include <vector>
 
 #include "templateparsefile.hpp"
 int viewfilecli(bool auto_all = false, bool force_all = false)
@@ -57,7 +58,9 @@ int viewfilecli(bool auto_all = false, bool force_all = false)
     }
     if (force_all)
     {
-        int k = 1;
+        // tp.reset() 会 fileslist.clear()，所以先把名字抄出来：直接拿 fileslist 的迭代器
+        // 边遍历边 reset 会让 it 悬空（parseto 读到空文件名，随后的 it++ 直接段错误）
+        std::vector<std::string> forcelist;
         for (auto it = tp.fileslist.begin(); it != tp.fileslist.end(); it++)
         {
             fs::path p = it->first;
@@ -66,13 +69,16 @@ int viewfilecli(bool auto_all = false, bool force_all = false)
             {
                 continue;
             }
-            std::string tempfile = "viewsrc/";
-            tempfile.append(it->first);
-            fs::path tmpath = tempfile;
+            forcelist.push_back(it->first);
+        }
+        int k = 1;
+        for (auto it = forcelist.begin(); it != forcelist.end(); it++)
+        {
+            fs::path tmpath = std::string("viewsrc/") + *it;
             tmpath.replace_extension(".cpp");
             tp.reset();
-            tp.parseto(it->first, tmpath.string());
-            std::cout << k << " \033[32m[+]\033[0m \033[1m\033[31m" << it->first << "\033[0m ->" << tmpath.string() << std::endl;
+            tp.parseto(*it, tmpath.string());
+            std::cout << k << " \033[32m[+]\033[0m \033[1m\033[31m" << *it << "\033[0m ->" << tmpath.string() << std::endl;
             k++;
         }
         return 0;
