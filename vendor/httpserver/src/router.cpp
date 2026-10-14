@@ -385,10 +385,7 @@ asio::awaitable<std::string> router::co_call_regfun(std::shared_ptr<httppeer> &p
     auto const &h = _handlers[idx];
     if (h.reg_kind == fn_kind::sync && h.regfun)
     {
-        auto step = co_await co_pool_run_step(
-            std::function<std::string()>([fn = h.regfun, peer]()
-                                         { return fn(peer); }),
-            asio::use_awaitable);
+        auto step = co_await co_pool_run_step(h.regfun, peer, asio::use_awaitable);
         if (step.eptr)
         {
             DEBUG_LOG("sync regfun threw on pool, refuse:%s %s", name.c_str(), exception_text(step.eptr).c_str());
@@ -454,10 +451,7 @@ asio::awaitable<bool> router::co_run_site_hooks(std::shared_ptr<httppeer> &peer,
         std::string ret;
         if (h.reg_kind == fn_kind::sync && h.regfun)
         {
-            auto step = co_await co_pool_run_step(
-                std::function<std::string()>([fn = h.regfun, peer]()
-                                             { return fn(peer); }),
-                asio::use_awaitable);
+            auto step = co_await co_pool_run_step(h.regfun, peer, asio::use_awaitable);
             if (step.eptr)
             {
                 fail_500(peer, exception_text(step.eptr));
@@ -646,10 +640,7 @@ asio::awaitable<std::string> router::co_resolve(std::shared_ptr<httppeer> peer, 
         if (h.pre_kind == fn_kind::sync && h.pre)
         {
             has_pre   = true;
-            auto step = co_await co_pool_run_step(
-                std::function<std::string()>([fn = h.pre, peer]()
-                                             { return fn(peer); }),
-                asio::use_awaitable);
+            auto step = co_await co_pool_run_step(h.pre, peer, asio::use_awaitable);
             if (step.eptr)
             {
                 fail_500(peer, exception_text(step.eptr));
@@ -705,10 +696,7 @@ asio::awaitable<std::string> router::co_resolve(std::shared_ptr<httppeer> peer, 
         if (h.reg_kind == fn_kind::sync && h.regfun)
         {
             has_reg   = true;
-            auto step = co_await co_pool_run_step(
-                std::function<std::string()>([fn = h.regfun, peer]()
-                                             { return fn(peer); }),
-                asio::use_awaitable);
+            auto step = co_await co_pool_run_step(h.regfun, peer, asio::use_awaitable);
             if (step.eptr)
             {
                 fail_500(peer, exception_text(step.eptr));
@@ -774,10 +762,7 @@ asio::awaitable<std::string> router::co_resolve(std::shared_ptr<httppeer> peer, 
             auto const &loop_h = _handlers[loop_idx];
             if (loop_h.reg_kind == fn_kind::sync && loop_h.regfun)
             {
-                auto step = co_await co_pool_run_step(
-                    std::function<std::string()>([fn = loop_h.regfun, peer]()
-                                                 { return fn(peer); }),
-                    asio::use_awaitable);
+                auto step = co_await co_pool_run_step(loop_h.regfun, peer, asio::use_awaitable);
                 if (step.eptr)
                     fail_500(peer, exception_text(step.eptr));
                 else if (step.rejected)
@@ -854,9 +839,13 @@ void router::validate_site_hooks()
             for (auto const &name : lists)
             {
                 if (registered(name))
+                {
                     kept.push_back(name);
+                }
                 else
+                {
                     DEBUG_LOG("site hook not registered, dropped:%s", name.c_str());
+                }
             }
             lists.swap(kept);
         };

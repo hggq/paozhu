@@ -99,10 +99,7 @@ bool http2_boundary_normalize(std::string &out, const std::string &raw)
 // 返回 true 成功；失败时 err_code 写入 error_out，begin 前进位置不确定
 // h2_error_out 同步写成 COMPRESSION_ERROR(0x9)：整数解不出来是 HPACK 压缩会话的错，
 // 不是 §8.1 的语义错，GOAWAY 带 0x1 会让对端按协议违例去处理，重发策略判错方向。
-static bool hpack_int_decode(std::string_view data, unsigned int &begin,
-                               unsigned int initial_value, int prefix_bits,
-                               unsigned int &out_result,
-                               unsigned int &error_out, unsigned int &h2_error_out, int err_code)
+static bool hpack_int_decode(std::string_view data, unsigned int &begin, unsigned int initial_value, int prefix_bits, unsigned int &out_result, unsigned int &error_out, unsigned int &h2_error_out, int err_code)
 {
     unsigned int prefix_mask = (1u << prefix_bits) - 1;
     if (initial_value != prefix_mask)
@@ -118,16 +115,16 @@ static bool hpack_int_decode(std::string_view data, unsigned int &begin,
     {
         if (begin >= data.size())
         {
-            error_out     = err_code;
-            h2_error_out  = 0x9;
+            error_out    = err_code;
+            h2_error_out = 0x9;
             return false;
         }
         unsigned char b = (unsigned char)data[begin];
 
         if (shift > 56)
         {
-            error_out     = err_code;
-            h2_error_out  = 0x9;
+            error_out    = err_code;
+            h2_error_out = 0x9;
             return false;
         }
 
@@ -143,8 +140,8 @@ static bool hpack_int_decode(std::string_view data, unsigned int &begin,
 
     if (acc > 0xFFFFFFFFULL)
     {
-        error_out     = err_code;
-        h2_error_out  = 0x9;
+        error_out    = err_code;
+        h2_error_out = 0x9;
         return false;
     }
     out_result = (unsigned int)acc;
@@ -318,7 +315,7 @@ void http2parse::readheaders(const HTTP2_PACK_DATA_T &temp_pack_data)
     // isssl 的唯一事实来源是 socket（h1 侧也是从 socket 取值）。它原先由 :scheme 的头值反推，
     // 于是明文连接上对端发索引 7（:scheme https）就能把 is_ssl() 伪造成 true，TLS 连接上发索引 6
     // 又把真连接写成 false；而字面量形式的 :scheme 压根不落到那行，同一个请求两种编码两个答案。
-    steam_httppeer->isssl          = peer_session->isssl;
+    steam_httppeer->isssl = peer_session->isssl;
 
     headers_parse(iter->second, steam_httppeer);
 
@@ -649,7 +646,6 @@ void http2parse::path_process([[maybe_unused]] const std::string &header_name, c
             steam_httppeer->compress = 10;
         }
 #endif
-
     }
 
     steam_httppeer->url = steam_httppeer->urlpath;
@@ -1167,7 +1163,7 @@ void http2parse::header_process(std::string header_name, std::string header_valu
     {
         if (c >= 'A' && c <= 'Z')
         {
-            set_conn_error(40025, 0x1);  // PROTOCOL_ERROR
+            set_conn_error(40025, 0x1);// PROTOCOL_ERROR
             return;
         }
     }
@@ -1176,8 +1172,11 @@ void http2parse::header_process(std::string header_name, std::string header_valu
     if (!header_name.empty() && header_name[0] == ':')
     {
         static constexpr const char *const k_req_pseudos[] = {
-            ":method", ":scheme", ":path", ":authority", ":protocol"
-        };
+            ":method",
+            ":scheme",
+            ":path",
+            ":authority",
+            ":protocol"};
         bool known = false;
         for (const char *p : k_req_pseudos)
         {
@@ -1189,15 +1188,19 @@ void http2parse::header_process(std::string header_name, std::string header_valu
         }
         if (!known)
         {
-            set_conn_error(40025, 0x1);  // PROTOCOL_ERROR — 未知伪头 / 响应伪头 :status
+            set_conn_error(40025, 0x1);// PROTOCOL_ERROR — 未知伪头 / 响应伪头 :status
             return;
         }
     }
     // ③ 连接层头（RFC 7540 §8.1.2.2）— HTTP/1.1 专用，HTTP/2 必须拆帧走不同机制
     // Connection-specific headers are HTTP/1.1 only; HTTP/2 has distinct frames.
     static constexpr const char *const k_conn_hop_by_hop[] = {
-        "connection", "keep-alive", "proxy-connection", "te", "transfer-encoding", "upgrade"
-    };
+        "connection",
+        "keep-alive",
+        "proxy-connection",
+        "te",
+        "transfer-encoding",
+        "upgrade"};
     for (const char *h : k_conn_hop_by_hop)
     {
         if (header_name == h)
@@ -1208,7 +1211,7 @@ void http2parse::header_process(std::string header_name, std::string header_valu
             {
                 break;
             }
-            set_conn_error(40025, 0x1);  // PROTOCOL_ERROR
+            set_conn_error(40025, 0x1);// PROTOCOL_ERROR
             return;
         }
     }
@@ -1220,23 +1223,29 @@ void http2parse::header_process(std::string header_name, std::string header_valu
     {
         if (steam_httppeer->h2_regular_seen)
         {
-            set_conn_error(40025, 0x1);  // PROTOCOL_ERROR
+            set_conn_error(40025, 0x1);// PROTOCOL_ERROR
             return;
         }
         if (header_name == ":method")
         {
-            if (steam_httppeer->h2_method_seen) steam_httppeer->h2_method_dup = true;
-            else                                  steam_httppeer->h2_method_seen = true;
+            if (steam_httppeer->h2_method_seen)
+                steam_httppeer->h2_method_dup = true;
+            else
+                steam_httppeer->h2_method_seen = true;
         }
         else if (header_name == ":scheme")
         {
-            if (steam_httppeer->h2_scheme_seen) steam_httppeer->h2_scheme_dup = true;
-            else                                  steam_httppeer->h2_scheme_seen = true;
+            if (steam_httppeer->h2_scheme_seen)
+                steam_httppeer->h2_scheme_dup = true;
+            else
+                steam_httppeer->h2_scheme_seen = true;
         }
         else if (header_name == ":path")
         {
-            if (steam_httppeer->h2_path_seen) steam_httppeer->h2_path_dup = true;
-            else                                steam_httppeer->h2_path_seen = true;
+            if (steam_httppeer->h2_path_seen)
+                steam_httppeer->h2_path_dup = true;
+            else
+                steam_httppeer->h2_path_seen = true;
         }
     }
     else
@@ -1390,7 +1399,7 @@ void http2parse::header_process(std::string header_name, std::string header_valu
                 return;
             }
             steam_httppeer->content_length           = temp_cl;
-            steam_httppeer->ishas_content_length      = true;
+            steam_httppeer->ishas_content_length     = true;
             steam_httppeer->header["content-length"] = std::move(header_value);
             break;
         }
@@ -1624,7 +1633,7 @@ void http2parse::header_process(std::string header_name, std::string header_valu
                     return;
                 }
                 steam_httppeer->content_length           = temp_cl;
-                steam_httppeer->ishas_content_length      = true;
+                steam_httppeer->ishas_content_length     = true;
                 steam_httppeer->header["content-length"] = std::move(header_value);
             }
             else
@@ -2083,9 +2092,9 @@ void http2parse::getaccept([[maybe_unused]] const std::string &header_name, cons
     }
 }
 void http2parse::dynamic_table_size_update(unsigned char c,
-                                            std::string_view header_data,
-                                            unsigned int &begin,
-                                            std::shared_ptr<httppeer> steam_httppeer)
+                                           std::string_view header_data,
+                                           unsigned int &begin,
+                                           std::shared_ptr<httppeer> steam_httppeer)
 {
     (void)steam_httppeer;
     // RFC 7541 §6.3 : Dynamic Table Size Update，首字节 001xxxxx，5 位前缀
@@ -2739,7 +2748,7 @@ void http2parse::readsetting(const HTTP2_PACK_DATA_T &temp_pack_data)
                     static_cast<signed long long>(peer_session->remote_initial_window_size.load());
                 signed long long new_ll =
                     static_cast<signed long long>(ident_value);
-                signed long long delta  = new_ll - old_ll;
+                signed long long delta = new_ll - old_ll;
                 for (auto &kv : peer_session->stream_send_window)
                 {
                     signed long long raw =
@@ -2747,7 +2756,7 @@ void http2parse::readsetting(const HTTP2_PACK_DATA_T &temp_pack_data)
                     unsigned int cur;
                     if (raw <= 0)
                     {
-                        cur = 0;  // SETTINGS IWS 下调把窗口压到 0 以下 → 地板到 0（h2spec 6.9.2 #2 依赖 track negative，此处放弃）
+                        cur = 0;// SETTINGS IWS 下调把窗口压到 0 以下 → 地板到 0（h2spec 6.9.2 #2 依赖 track negative，此处放弃）
                     }
                     else if (raw > static_cast<signed long long>(CONST_HTTP2_MAX_WINDOW))
                     {
@@ -2922,6 +2931,9 @@ void http2parse::readwinupdate(const HTTP2_PACK_DATA_T &temp_pack_data)
             return;
         }
         {
+            // lock() 在这里只当「这条流还认得吗」的存在性判断：不取对象、不写成员，
+            // 复活出来的那份强引用随语句结束立刻释放。
+            // 业务协程还在跑的流（peer 仍被链上某处持有）算 known，它的窗口额度要更新而不是丢弃。
             auto weak_iter = http_data_weak.find(wu_sid);
             bool stream_known =
                 http_data.contains(wu_sid) ||
@@ -3068,6 +3080,10 @@ void http2parse::cleanup_stream(unsigned int sid)
     auto wit = http_data_weak.find(sid);
     if (wit != http_data_weak.end())
     {
+        // 这条流被 RST 或已关闭：peer 还在就把 isclose 置真（停止外发的信号），然后从弱表里摘掉。
+        // lock() 复活出来的强引用只在本语句块内有效；写的是 atomic<bool>（httppeer.h:230），
+        // 发送线程在 http2_loop_send_sequence 与 http2_send_queue_loop 里只读它做停止判断，
+        // 这里不碰其他成员，所以跨线程读写不会交织。
         std::shared_ptr<httppeer> temp_peer = wit->second.lock();
         if (temp_peer)
         {
@@ -4626,11 +4642,11 @@ void http2parse::readpostdata(const HTTP2_PACK_DATA_T &temp_pack_data)
         if (temp_pack_data.stream_id == 0 || (temp_pack_data.stream_id & 0x1) == 0 ||
             temp_pack_data.stream_id > max_client_stream_id)
         {
-            set_conn_error(40215, 0x1);  // 0x1 = PROTOCOL_ERROR
+            set_conn_error(40215, 0x1);// 0x1 = PROTOCOL_ERROR
         }
         else
         {
-            set_stream_error(40211, temp_pack_data.stream_id, 0x5);  // 0x5 = STREAM_CLOSED
+            set_stream_error(40211, temp_pack_data.stream_id, 0x5);// 0x5 = STREAM_CLOSED
         }
         return;
     }
@@ -4669,7 +4685,7 @@ void http2parse::readpostdata(const HTTP2_PACK_DATA_T &temp_pack_data)
         //    （h2spec 6.1.2 / 5.1.x 失败），也违背了"流级错误"的语义。
         if (iter->second->isfinish)
         {
-            set_stream_error(40211, temp_pack_data.stream_id, 0x5);  // 0x5 = STREAM_CLOSED
+            set_stream_error(40211, temp_pack_data.stream_id, 0x5);// 0x5 = STREAM_CLOSED
             return;
         }
         HTTP2_POST_DATA_T temp_p;
@@ -4743,12 +4759,12 @@ void http2parse::readpostdata(const HTTP2_PACK_DATA_T &temp_pack_data)
     {
         // 流级 RST_STREAM 后这条流后续 DATA 都走 http_data 已派发/已结束分支
         // （isfinish 置 true），不会再被当成 body 收下。
-        set_stream_error(40210, temp_pack_data.stream_id, 0x3);  // 0x3 = FLOW_CONTROL_ERROR
+        set_stream_error(40210, temp_pack_data.stream_id, 0x3);// 0x3 = FLOW_CONTROL_ERROR
         return;
     }
 
     conn_recv_window_num -= fc_bytes;
-    s_win_iter->second   -= fc_bytes;
+    s_win_iter->second -= fc_bytes;
 
     if (conn_recv_window_num < CONST_HTTP2_WINDOW_UPDATE_THRESHOLD)
     {
@@ -4825,7 +4841,7 @@ void http2parse::process_pack()
         }
         readheaders(pack_data);
         break;
-    case 0x02: // PRIORITY 固定 5 字节
+    case 0x02:// PRIORITY 固定 5 字节
         // RFC 9113 §6.3：PRIORITY 必须关联一条流，stream_id 为 0 是连接级 PROTOCOL_ERROR。
         if (pack_data.stream_id == 0)
         {
@@ -4839,7 +4855,7 @@ void http2parse::process_pack()
         }
         readpriority(pack_data);
         break;
-    case 0x03: // RST_STREAM 固定 4 字节
+    case 0x03:// RST_STREAM 固定 4 字节
         if (pack_data.length != 4)
         {
             set_conn_error(40031, 0x6);
@@ -4847,7 +4863,7 @@ void http2parse::process_pack()
         }
         readrst_stream(pack_data);
         break;
-    case 0x04: // SETTINGS 长度须为 6 的倍数
+    case 0x04:// SETTINGS 长度须为 6 的倍数
         // RFC 9113 §6.5.1：SETTINGS 只作用于连接，stream_id 非 0 是连接级 PROTOCOL_ERROR。
         if (pack_data.stream_id != 0)
         {
@@ -4864,7 +4880,7 @@ void http2parse::process_pack()
     case 0x05:
         error = 40016;
         return;
-    case 0x06: // PING 固定 8 字节
+    case 0x06:// PING 固定 8 字节
         // RFC 9113 §6.7：PING 不关联任何流，stream_id 非 0 是连接级 PROTOCOL_ERROR。
         if (pack_data.stream_id != 0)
         {
@@ -4882,7 +4898,7 @@ void http2parse::process_pack()
         // GOAWAY（长度可变）
         readgoaway(pack_data);
         break;
-    case 0x08: // WINDOW_UPDATE 固定 4 字节
+    case 0x08:// WINDOW_UPDATE 固定 4 字节
         if (pack_data.length != 4)
         {
             set_conn_error(40034, 0x6);

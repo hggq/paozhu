@@ -1363,6 +1363,8 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
 
             if (peer->ischunked)
             {
+                // chunked 的分块由 handler 自己入队，这张发送槽在本协程里一次没用过，先还给池。
+                send_queue_obj.back_cache_ptr(send_file_obj);
                 co_return;
             }
             send_file_obj->header.clear();
@@ -2809,8 +2811,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                     // 站点上传限额：头块解完就判掉了，正文一帧没收，直接回状态页，不进业务控制器。
                     // 与下面 405 那条同一个形状；这条流后续到达的 DATA 由解析器丢弃并还回连接窗口。
                     std::string limit_body = "<h3>" + std::to_string(stream_ptr->reject_status) + " upload size limit</h3>";
-                    asio::co_spawn(peer_session->strand_,
-                                   [this, sp = stream_ptr, body = std::move(limit_body)]() -> asio::awaitable<void>
+                    asio::co_spawn(peer_session->strand_, [this, sp = stream_ptr, body = std::move(limit_body)]() -> asio::awaitable<void>
                                    { co_await http2_send_status_content(sp, sp->reject_status, body); },
                                    asio::detached);
                 }
@@ -2857,6 +2858,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                     access_loglist.emplace_back(log_item);
                 }
 #endif
+                // 登记这条流的 peer 弱引用：WINDOW_UPDATE、RST 等帧到达时用它能判断流还在不在。
                 http2pre->http_data_weak.insert_or_assign(block_steamid, stream_ptr);
             }
 
@@ -7548,7 +7550,7 @@ asio::awaitable<void> httpserver::async_mqtt_subpub_loop(
 
         // 3. 注册回调：mqtt_client 收 PUBLISH 时派发业务钩子
         auto self               = client;
-        mqc->async_run_loop_fun = [self, &io_ctx](std::shared_ptr<http::mqtt_client> mqc,
+        mqc->async_run_loop_fun = [self, &io_ctx]([[maybe_unused]] std::shared_ptr<http::mqtt_client> s,
                                                   const http::mqtt_recv_packet_t &pkt)
             -> asio::awaitable<void>
         {
@@ -7672,15 +7674,14 @@ asio::awaitable<void> httpserver::async_mqtt_subpub_loop(
 // 线性从Level1到Level2递减
 void httpserver::compute_rate_from_load(unsigned int has_save_link_count)
 {
-    unsigned int lo  = rate_limit_new_wait_num.load();
-    unsigned int hi  = rate_limit_accept_wait_num.load();
+    unsigned int lo   = rate_limit_new_wait_num.load();
+    unsigned int hi   = rate_limit_accept_wait_num.load();
     unsigned int span = (hi > lo) ? (hi - lo) : 1;
-    unsigned int pct = (has_save_link_count > hi) ? 100
-                    : (has_save_link_count > lo) ? (uint64_t)(has_save_link_count - lo) * 100 / span
-                    : 0;
+    unsigned int pct  = (has_save_link_count > hi) ? 100 : (has_save_link_count > lo) ? (uint64_t)(has_save_link_count - lo) * 100 / span :
+                                                                                        0;
     unsigned int num1 = rate_limit_second_num1.load();
     unsigned int num2 = rate_limit_second_num2.load();
-    unsigned int r = num1 - (num1 - num2) * pct / 100;
+    unsigned int r    = num1 - (num1 - num2) * pct / 100;
     rate_limit_second_time_num.store(r);
 }
 
@@ -7704,7 +7705,7 @@ void httpserver::ratelimiter()
     unsigned int per_slot_passed = 0;
     unsigned int pass_per_slot   = 0;
     unsigned int total_passed_5s = 0;
-    unsigned int slot_frac_acc   = 0;   // 整数累积，单位 1/1000
+    unsigned int slot_frac_acc   = 0;// 整数累积，单位 1/1000
 
     auto last_sec_tp  = std::chrono::steady_clock::now();
     auto last_log_tp  = last_sec_tp;
@@ -7733,10 +7734,10 @@ void httpserver::ratelimiter()
         }
         unsigned int limited_now   = rate_limited_count.load(std::memory_order_relaxed);
         unsigned int limited_delta = limited_now - limited_base;
-        limited_base = limited_now;
+        limited_base               = limited_now;
         unsigned int expired_now   = rate_expired_count.load(std::memory_order_relaxed);
         unsigned int expired_delta = expired_now - expired_base;
-        expired_base = expired_now;
+        expired_base               = expired_now;
 
         if (qsz > 0 || total_passed_5s > 0 || limited_delta > 0)
         {
@@ -7760,9 +7761,10 @@ void httpserver::ratelimiter()
 
     while (!isstop)
     {
-        rate_limit_condition.wait_for(lk, std::chrono::seconds(5),
-            [this] { return isstop || rate_queue_count.load(std::memory_order_relaxed) > 0; });
-        if (isstop) break;
+        rate_limit_condition.wait_for(lk, std::chrono::seconds(5), [this]
+                                      { return isstop || rate_queue_count.load(std::memory_order_relaxed) > 0; });
+        if (isstop)
+            break;
 
         // ===== 内循环：200ms slot 放行，队空回外循环 =====
         while (!isstop)
@@ -7772,35 +7774,38 @@ void httpserver::ratelimiter()
             if (inow - last_slot_tp >= std::chrono::milliseconds(200))
             {
                 auto elapsed_ms = (unsigned int)std::chrono::duration_cast<std::chrono::milliseconds>(
-                                      inow - last_slot_tp).count();
-                last_slot_tp = inow;
+                                      inow - last_slot_tp)
+                                      .count();
+                last_slot_tp    = inow;
                 per_slot_passed = 0;
 
                 if (inow - last_sec_tp >= std::chrono::seconds(1))
                 {
-                    last_sec_tp = inow;
+                    last_sec_tp    = inow;
                     per_sec_passed = 0;
                 }
 
                 // 整数累积：按实际流逝时间加 rate*elapsed_ms，够 1000 放 1 个
                 unsigned int cur_rate = rate_limit_second_time_num.load();
                 slot_frac_acc += cur_rate * elapsed_ms;
-                pass_per_slot  = slot_frac_acc / 1000;
+                pass_per_slot = slot_frac_acc / 1000;
                 slot_frac_acc %= 1000;
             }
 
             bool did_pass = false;
             while (per_slot_passed < pass_per_slot &&
-                   per_sec_passed  < rate_limit_second_time_num.load())
+                   per_sec_passed < rate_limit_second_time_num.load())
             {
                 std::shared_ptr<client_session> peer = nullptr;
                 {
                     std::unique_lock<std::mutex> lk2(socket_session_lists_mutex);
-                    if (socket_session_wait_rate.empty()) break;
+                    if (socket_session_wait_rate.empty())
+                        break;
                     peer = std::move(socket_session_wait_rate.front());
                     socket_session_wait_rate.pop_front();
                 }
-                if (!peer) break;
+                if (!peer)
+                    break;
                 rate_queue_count.fetch_sub(1, std::memory_order_relaxed);
 
                 // 排队期间没人刷新 time_limit，超过 76 秒上下 httpwatch 会把它关掉；
@@ -7811,11 +7816,13 @@ void httpserver::ratelimiter()
                 }
 
                 if (peer->isssl)
-                    asio::co_spawn(peer->strand_,
-                        [peer, this]() mutable { return sslhandshake(peer); }, asio::detached);
+                    asio::co_spawn(peer->strand_, [peer, this]() mutable
+                                   { return sslhandshake(peer); },
+                                   asio::detached);
                 else
-                    asio::co_spawn(peer->strand_,
-                        [peer, this]() mutable { return clientpeerfun(peer, false); }, asio::detached);
+                    asio::co_spawn(peer->strand_, [peer, this]() mutable
+                                   { return clientpeerfun(peer, false); },
+                                   asio::detached);
 
                 per_slot_passed++;
                 per_sec_passed++;
@@ -8079,7 +8086,6 @@ void httpserver::listeners()
                 lock_sock.unlock();
 #endif
 
-                
                 asio::co_spawn(peer_session->strand_, [peer_session, this]() mutable
                                { return sslhandshake(peer_session); },
                                asio::detached);
@@ -10631,7 +10637,7 @@ asio::io_context &httpserver::get_ctx()
 void httpserver::stop()
 {
     isstop = true;
-    rate_limit_condition.notify_all();   // 叫醒 ratelimiter 检查 isstop
+    rate_limit_condition.notify_all();// 叫醒 ratelimiter 检查 isstop
     // 唤醒所有阻塞在 accept() 的 listener 线程，并把监听 fd 交回 acceptor 自己关。三步各管一段：
     //   cancel()   Windows(Vista+) 上是 CancelIoEx，asio 唯一的跨线程唤醒入口——
     //              那边的 closesocket 叫不醒挂在 accept() 里的线程；POSIX 下只作废 asio
