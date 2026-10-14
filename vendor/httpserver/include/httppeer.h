@@ -223,7 +223,10 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     bool issendheader = false;
     bool ischunked    = false;
     bool isfinish     = false;
-    bool issend       = false;
+    // 流响应是否已收尾。发送线程在最后一帧入环后置真，连接级读协程遍历挂着的流时会读它
+    // （http2parse::clsoesend），和 isclose 同一族字段，所以按同样的形状放成原子：
+    // 普通 bool 时读侧可能永远看不到置位，也可能读到写一半的状态。
+    std::atomic<bool> issend{false};
     // 每流关闭标志：被读协程（连接级解析）置位以中止「已派发到 http2loop 的流」的出站响应，
     // 发送线程按它丢弃该流已入队的响应。改 atomic 是因为读协程写、发送线程读是真正的跨线程访问，
     // 原先靠执行顺序巧合不重叠才没出事；流级 RST_STREAM 让这次写读变成并发。

@@ -1276,8 +1276,10 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
         DEBUG_LOG("http2loop:%s regfun:%d sendtype:%d", peer->sendfilename.c_str(), routeidx, sendtype);
         if (sendtype == 1)
         {
-            DEBUG_LOG("is_static_pre:%d", sysconfigpath.sitehostinfos[peer->host_index].is_static_pre);
-            if (peer->host_index < sysconfigpath.sitehostinfos.size() && sysconfigpath.sitehostinfos[peer->host_index].is_static_pre)
+            const bool is_static_pre = peer->host_index < sysconfigpath.sitehostinfos.size() &&
+                                       sysconfigpath.sitehostinfos[peer->host_index].is_static_pre;
+            DEBUG_LOG("is_static_pre:%d", is_static_pre ? 1 : 0);
+            if (is_static_pre)
             {
                 if ((co_await http2_static_file_authority(peer)))
                 {
@@ -2692,7 +2694,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
         peer_session->time_limit.store(timeid());
         peer->client_ip = peer_session->getremoteip();
         // 这个 peer 只用于连接级错误时的提示响应。必须绑定 socket_session：
-        // 发送侧第一步就查 socket_session.use_count() == 0，未绑定会直接把作业回收，
+        // 发送侧第一步就查 socket_session 是否为空，未绑定会直接把作业回收，
         // 403 正文永远发不出去（只剩 GOAWAY）。
         peer->socket_session = peer_session;
 
@@ -2864,7 +2866,10 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
 
             if (error_state > 0)
             {
-                co_await peer_session->async_send_goway();
+                // last_stream_id 必须报「最后受理的流」：传 0 等于谎称一条都没处理，
+                // 客户端把在途流全部作废，随后真实的响应就成了迟到帧（压测 late 形态）。
+                // 与 http2_handle_parse_error 的连接级路径同口径（本文件 :733）。
+                co_await peer_session->async_send_goway(http2pre->max_client_stream_id, 0);
                 break;
             }
 
@@ -2872,7 +2877,8 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
             if (http2pre->steam_count > 512)
             {
                 DEBUG_LOG("client http2 > 2024 stream close ");
-                co_await peer_session->async_send_goway();
+                // 同上：本连接已经受理过流，GOAWAY 要带真实水位。
+                co_await peer_session->async_send_goway(http2pre->max_client_stream_id, 0);
                 break;
             }
 #endif
@@ -5615,7 +5621,7 @@ bool httpserver::http2_loop_send_sequence(std::shared_ptr<http2_send_data_t> sq_
     }
     std::shared_ptr<httppeer> peer = sq_obj->peer;
 
-    if (sq_obj->peer->socket_session.use_count() == 0)
+    if (!sq_obj->peer->socket_session)// 未绑定会话＝这条作业没有发送出口，置 issend 让外层回收
     {
         peer->issend = true;
         return false;

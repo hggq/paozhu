@@ -46,6 +46,22 @@ option(ENABLE_WEBSOCKETS_CLIENT "Enable framework WebSocket long-connect client 
 option(ENABLE_SOCKETS_CLIENT "Enable framework bare TCP Socket long-connect client support" ON)
 option(ENABLE_MQTT_CLIENT "Enable framework MQTT broker long-connect client support" ON)
 
+# Sanitizer switches. ASan is enabled automatically for Debug builds (see target_compile_options below), so:
+#   ENABLE_TSAN  cannot be combined with ASan => requires a non-Debug CMAKE_BUILD_TYPE (e.g. RelWithDebInfo)
+#   ENABLE_UBSAN can be used together with ASan
+# Applies only to the paozhu target; asio is header-only, so nothing extra is compiled for it.
+option(ENABLE_TSAN "Build paozhu with ThreadSanitizer (needs a non-Debug CMAKE_BUILD_TYPE)" OFF)
+option(ENABLE_UBSAN "Build paozhu with UndefinedBehaviorSanitizer" OFF)
+if(ENABLE_TSAN AND ENABLE_UBSAN)
+  message(FATAL_ERROR "ENABLE_TSAN and ENABLE_UBSAN are mutually exclusive")
+endif()
+if(ENABLE_TSAN AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+  message(FATAL_ERROR "Debug already forces ASan; ENABLE_TSAN needs a non-Debug build type (e.g. RelWithDebInfo)")
+endif()
+if((ENABLE_TSAN OR ENABLE_UBSAN) AND MSVC)
+  message(FATAL_ERROR "ENABLE_TSAN/ENABLE_UBSAN are only wired for GNU/Clang/AppleClang")
+endif()
+
 if(ENABLE_SQLITE)
   message(STATUS "ENABLE_SQLITE = ${ENABLE_SQLITE}")
 else()
@@ -112,6 +128,11 @@ endif()
 
 # ---- Output directories ----
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin")
+# Sanitizer builds output to a separate bin_san dir: relinking would clobber an instance running from bin/paozhu
+if(ENABLE_TSAN OR ENABLE_UBSAN)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin_san")
+  file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin_san")
+endif()
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/temp")
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/log")
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/cache")
@@ -121,7 +142,7 @@ file(MAKE_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/orm")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # ---- Helper: recursive include directories (kept for compatibility) ----
-# 用于系统/第三方库目录（忽略内部警告）
+# For system/third-party library directories (internal warnings suppressed)
 function(include_system_dirs_recursively root_dir)
   if(IS_DIRECTORY ${root_dir})
     message(STATUS "include dir (system): ${root_dir}")
@@ -135,11 +156,11 @@ function(include_system_dirs_recursively root_dir)
   endforeach()
 endfunction()
 
-# 用于项目业务代码（保持严格警告）
+# For project business code (strict warnings kept)
 function(include_project_dirs_recursively root_dir)
   if(IS_DIRECTORY ${root_dir})
     message(STATUS "include dir (project): ${root_dir}")
-    include_directories(${root_dir})   # 不加 SYSTEM
+    include_directories(${root_dir})   # without SYSTEM
   endif()
   file(GLOB_RECURSE subdirs LIST_DIRECTORIES true RELATIVE ${root_dir} ${root_dir}/*)
   foreach(sub IN LISTS subdirs)
@@ -379,6 +400,17 @@ target_link_options(paozhu PRIVATE
   $<$<AND:$<CONFIG:Debug>,$<CXX_COMPILER_ID:GNU,Clang,AppleClang>>:-fsanitize=address>
 )
 
+# Sanitizer builds: applied only to the paozhu target; paozhu_cli keeps its default build.
+# TSan uses -O1: -fsanitize=thread with -O2 inlines away stack frames, so reported stacks lose the call chain.
+if(ENABLE_TSAN)
+  target_compile_options(paozhu PRIVATE -g -O1 -fsanitize=thread -fno-omit-frame-pointer)
+  target_link_options(paozhu PRIVATE -fsanitize=thread)
+endif()
+if(ENABLE_UBSAN)
+  target_compile_options(paozhu PRIVATE -g -fsanitize=undefined -fno-omit-frame-pointer)
+  target_link_options(paozhu PRIVATE -fsanitize=undefined)
+endif()
+
 target_compile_definitions(paozhu PRIVATE
   $<$<CONFIG:Debug>:DEBUG>
 )
@@ -447,7 +479,7 @@ target_include_directories(paozhu PRIVATE
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/vendor/httpcli")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/controller")
 
-# ===== 代码生成：paozhu_pre（每次构建都运行） =====
+# ===== Code generation: paozhu_pre (runs on every build) =====
 add_custom_target(paozhu_codegen ALL
     COMMAND $<TARGET_FILE:paozhu_pre> "${CMAKE_CURRENT_SOURCE_DIR}"
     DEPENDS paozhu_pre
@@ -455,7 +487,7 @@ add_custom_target(paozhu_codegen ALL
     COMMENT "Running paozhu_pre to generate controller stubs..."
 )
 
-# ===== 让 paozhu 主目标等待代码生成完毕 =====
+# ===== Make the main paozhu target wait until code generation finishes =====
 add_dependencies(paozhu paozhu_codegen)
 
 # ---- Platform specific settings ----

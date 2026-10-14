@@ -123,8 +123,16 @@ class client_session : public std::enable_shared_from_this<client_session>
     asio::awaitable<std::string> async_stop();
     // 同步版 GOAWAY 发送（push ring buffer，不阻塞，解析层同步代码可直接调）
     void send_goaway(unsigned int last_stream_id = 0, unsigned int error_code = 0);
-    // 协程版（复用同步版），server.cpp 里 co_await 调用
+    // 协程版：入环后等本连接发送环排空再返回（见 flush_send_ring 的竞争分析）。
+    // 调用方（client_http2_loop 的各 break 路径、http2loop 异常路径）随后会 cancel()，
+    // 不等排空就会把环里的 GOAWAY 与在途响应一起杀掉。
     asio::awaitable<void> async_send_goway(unsigned int last_stream_id = 0, unsigned int error_code = 0);
+    // 关闭前冲刷：有界等待发送环排空。绝不直接写 socket——本连接唯一写者是
+    // 同 strand 上的 ring_client_server 协程，并发第二个 async_write 会把两帧的
+    // 字节在流上交错；这里只 co_await 定时器，每次让出 strand 都让消费者的写完成推进。
+    // pop 在 async_write 完成之后（环空 ⇒ 队尾 GOAWAY 已写出）。上限 2 秒：
+    // 客户端停读时不无限拖住 teardown，超时后照旧走 cancel()。
+    asio::awaitable<void> flush_send_ring();
 
     asio::awaitable<unsigned int> async_send_writer(const std::string &msg);
     asio::awaitable<unsigned int> async_send_writer(std::string_view msg);
@@ -155,7 +163,10 @@ class client_session : public std::enable_shared_from_this<client_session>
 
     bool isssl      = false;
     bool isgoway    = false;
-    bool isclose    = false;
+    // 连接关闭旗：连接自己的 strand 上置位，两条 http2 发送线程每帧都读它决定还要不要发。
+    // 一边写一边读是跨线程访问，所以放成原子；普通 bool 时读侧可能一直看到旧值，
+    // 响应会继续往已经关掉的连接上堆。
+    std::atomic_bool isclose{false};
     bool iserror    = false;
     bool half_close = false;
     bool ws_deflate = false;// WebSocket 已协商 permessage-deflate（101 回带扩展头时置位）

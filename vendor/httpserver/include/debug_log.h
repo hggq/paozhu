@@ -17,13 +17,24 @@ namespace http
     class debug_log
     {
     public:
+        // ---- 跨线程共享（inline static，全进程一份）----
+        // 配置只在启动时由主线程经 setDebug()/setLogfile() 写入（server.cpp 唯一调用点）。
+        // 若留在实例里，thread_local 化后工作线程各拿一份空路径/默认开关，日志落盘直接失效；
+        // writemutex 每线程一把等于没有锁，fopen/fwrite 的跨线程互斥同样必须上收到类级。
+        inline static bool debug = true;
+        inline static std::mutex writemutex;
+        inline static std::string file_log_pathname;
+        inline static std::string file_runtime_pathname;
+        inline static std::string file_error_pathname;
+
+        // ---- 线程私有（thread_local 实例持有）----
+        // output/issave/cache_list* 沿「LOG_ERROR << a << b << LOG_END」一条链连续读写。
+        // 原进程级单例被两条线程各拼各的：append 扩容先 new 后 delete，
+        // 一方扩容 free 掉另一方正拿着的旧缓冲 → ASan use-after-free
+        //（现场：dispatch_parked → http2_send_rst_stream，T28/T29 同一行 debug_log.h）。
+        // 拼接状态按线程切开后，这条竞争整类消失。
         unsigned char issave = 0;
-        bool debug = true;
         std::string output;
-        std::string file_log_pathname;
-        std::string file_runtime_pathname;
-        std::string file_error_pathname;
-        std::mutex writemutex;
         std::string cache_list1;
         std::string cache_list2;
         std::string cache_list3;
@@ -359,8 +370,13 @@ namespace http
         }
         static debug_log &instance()
         {
-            static debug_log singleton;
-            return singleton;
+            // 每线程一份拼接状态：LOG 链的 append 从此只碰本线程的对象，
+            // 跨线程撕 output 的 use-after-free 整类消失。
+            // 用指针 + 不析构：thread_local 值对象会在线程退出时先死，
+            // 收尾/join 之后任何一行日志都会命中已销毁实例；指针本身平凡析构，
+            // 对象随进程存活。代价是每线程一份缓冲永不归还，上界=线程数×实例大小。
+            thread_local debug_log *singleton = new debug_log();
+            return *singleton;
         }
         debug_log &get()
         {

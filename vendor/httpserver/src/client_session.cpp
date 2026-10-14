@@ -700,11 +700,66 @@ void client_session::send_goaway(unsigned int last_stream_id, unsigned int error
         http2_ring_queue_drop_count++;
         LOG_ERROR << " http2 control frame dropped, ring full, type:goway" << LOG_END;
     }
+    else if (http2_need_wakeup)
+    {
+        // 入环必须踢醒可能挂在 co_client_session_task 里的消费者：
+        // 注册后复查（server.cpp 发起侧）只兜「先入队后挂起」，
+        // 「先挂起后入队」靠的就是生产者这边查 http2_need_wakeup。
+        // DATA/收尾帧路径都有这一脚，控制帧原先没有——GOAWAY 入环后
+        // 消费者睡死，直到 teardown 才被 cancel 一起杀掉。
+        waituphttp2();
+    }
+}
+
+asio::awaitable<void> client_session::flush_send_ring()
+{
+    // 有界排空：见 client_session.h 注释。不写 socket（唯一写者是 ring_client_server，
+    // 并发第二个 async_write 会交错字节流），只等——每轮 sleep 让出 strand，
+    // 消费者的 async_write 完成事件才能被这个 strand 串行跑出来。
+    // 环空即「全部帧已写出」：pop 在 async_write 完成之后（见 ring_client_server 消费序）。
+    if (http2_ring_queue == nullptr)
+    {
+        co_return;
+    }
+    // strand_ 本身作 timer 的 executor：到期回调仍在本连接 strand 串行域内跑，
+    // 不能用 strand_.context()——那是 execution_context，没有 get_executor，编不过。
+    asio::steady_timer drain_timer(strand_);
+    // 2 秒上限、20 毫秒粒度：本地环排空通常在毫秒级；客户端停读时不无限拖住 teardown。
+    for (unsigned int tick = 0; tick < 100; tick++)
+    {
+        // 消费者（ring_client_server）遇 isclose/iserror 会退出，环再无人排空；
+        // socket 已被关同理。这几种情况立刻放弃等待，不空转满 2 秒。
+        if (isclose || iserror)
+        {
+            break;
+        }
+        bool sock_open = isssl ? (sslsocket && sslsocket->lowest_layer().is_open())
+                               : (socket && socket->is_open());
+        if (!sock_open)
+        {
+            break;
+        }
+        if (http2_ring_queue->has_size() == 0)
+        {
+            break;
+        }
+        drain_timer.expires_after(std::chrono::milliseconds(20));
+        co_await drain_timer.async_wait(asio::use_awaitable);
+        if (http2_ring_queue->has_size() == 0)
+        {
+            break;
+        }
+    }
+    co_return;
 }
 
 asio::awaitable<void> client_session::async_send_goway(unsigned int last_stream_id, unsigned int error_code)
 {
     send_goaway(last_stream_id, error_code);
+    // 入环成功才等排空；环满被丢弃时没有帧可冲，直接返回走原路径。
+    // 调用方紧随其后的 break → cancel() 不等这一脚，就会把 GOAWAY 连在途响应一起杀掉
+    //（RFC 9113 §6.8 的优雅关闭退化成裸 RST，客户端在途流全部挂死——压测 conn4 形态）。
+    co_await flush_send_ring();
     co_return;
 }
 
