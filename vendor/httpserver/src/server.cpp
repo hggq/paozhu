@@ -218,6 +218,24 @@ asio::awaitable<void> httpserver::http2_send_file_range(std::shared_ptr<httppeer
             statecode                     = 206;
         }
 
+        // HEAD：忽略 Range，按完整实体回响应头（RFC 9110 §9.3.2），不出 body
+        if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
+        {
+            send_file_obj->type            = 11;
+            send_file_obj->content.clear();
+            send_file_obj->content_length  = filesize;
+            peer->status(200);
+            peer->length(filesize);
+            peer->type(send_file_obj->content_type);
+            send_file_obj->header        = peer->make_http2_header(0);
+            send_file_obj->is_sendheader = false;
+            std::unique_lock<std::mutex> lock(send_data_mutex);
+            sent_data_list.emplace_back(send_file_obj);
+            lock.unlock();
+            send_data_condition.notify_one();
+            co_return;
+        }
+
         peer->status(statecode);
         peer->length(send_file_obj->content_length - send_file_obj->current_num);
         peer->type(send_file_obj->content_type);
@@ -478,20 +496,35 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
             co_return;
         }
 
-        // compress
-
-        if (peer->state.gzip || peer->state.br)
+        // HEAD：不压缩、不出 body，只回带正确 Content-Length 的响应头（RFC 9110 §9.3.2）
+        if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
         {
-            if (send_file_obj->content_length > 0 && send_file_obj->content_length < 16877216 && send_file_obj->file_ext.size() > 0 && mime_compress.contains(send_file_obj->file_ext))
+            peer->compress                 = 0;
+            send_file_obj->type            = 11;   // 内存体；空 content → 发送线程补 END_STREAM 空 DATA 帧
+            send_file_obj->content.clear();
+            send_file_obj->content_length  = static_cast<unsigned long long>(file_length);
+            peer->status(200);
+            peer->length(static_cast<unsigned long long>(file_length));
+            peer->type(send_file_obj->content_type);
+            send_file_obj->header        = peer->make_http2_header(0);
+            send_file_obj->is_sendheader = false;
+        }
+        else
+        {
+            // compress
+            if (peer->state.gzip || peer->state.br)
             {
-                if (send_file_obj->etag.size() > 0)
+                if (send_file_obj->content_length > 0 && send_file_obj->content_length < 16877216 && send_file_obj->file_ext.size() > 0 && mime_compress.contains(send_file_obj->file_ext))
                 {
-                    co_await http2_co_send_compress(peer, send_file_obj);
+                    if (send_file_obj->etag.size() > 0)
+                    {
+                        co_await http2_co_send_compress(peer, send_file_obj);
+                    }
                 }
             }
-        }
 
-        co_await http2_send_sequence_header(peer, send_file_obj);
+            co_await http2_send_sequence_header(peer, send_file_obj);
+        }
         // add send sequence
         std::unique_lock<std::mutex> lock(send_data_mutex);
         sent_data_list.emplace_back(send_file_obj);
@@ -941,13 +974,20 @@ void httpserver::http2_compress_output(std::shared_ptr<httppeer> &peer, std::sha
 void httpserver::clear_peer_data(std::shared_ptr<httppeer> &peer)
 {
     peer->output.clear();
-    peer->output.shrink_to_fit();
+    // 容量没过阈值就留着下个请求接着用，keep-alive 上省掉一次重新分配
+    if (peer->output.capacity() > CONST_PEER_BUFFER_SHRINK_SIZE)
+    {
+        peer->output.shrink_to_fit();
+    }
     peer->get.clear();
     peer->post.clear();
     peer->files.clear();
     peer->json.clear();
     peer->rawcontent.clear();
-    peer->rawcontent.shrink_to_fit();
+    if (peer->rawcontent.capacity() > CONST_PEER_BUFFER_SHRINK_SIZE)
+    {
+        peer->rawcontent.shrink_to_fit();
+    }
     peer->val.clear();
     peer->cookie.clear();
     peer->session.clear();
@@ -1230,6 +1270,9 @@ asio::awaitable<void> httpserver::http2_fastcgi(std::shared_ptr<httppeer> peer)
 }
 asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
 {
+    // 动态链的发送槽在业务执行前就取走了；抛出时把它记在这里，收尾统一归还
+    std::shared_ptr<http2_send_data_t> dyn_send_obj;
+    bool dyn_slot_handed = false;
     try
     {
         serverconfig &sysconfigpath = getserversysconfig();
@@ -1276,6 +1319,8 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
         DEBUG_LOG("http2loop:%s regfun:%d sendtype:%d", peer->sendfilename.c_str(), routeidx, sendtype);
         if (sendtype == 1)
         {
+            // 防盗链钩子读 client.session，静态通路也要先把会话解析出来
+            peer->parse_session();
             const bool is_static_pre = peer->host_index < sysconfigpath.sitehostinfos.size() &&
                                        sysconfigpath.sitehostinfos[peer->host_index].is_static_pre;
             DEBUG_LOG("is_static_pre:%d", is_static_pre ? 1 : 0);
@@ -1304,6 +1349,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
         }
         else if (sendtype == 2 && peer->host_index < sysconfigpath.sitehostinfos.size() && sysconfigpath.sitehostinfos[peer->host_index].is_show_directory)
         {
+            peer->parse_session();
             peer->output = displaydirectory(peer->sendfilename,
                                             peer->urlpath,
                                             peer->get["sort"].as_string(),
@@ -1315,7 +1361,17 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             auto send_file_obj               = send_queue_obj.get_cache_ptr();
             send_file_obj->cache_data.resize(15360);
             send_file_obj->content.clear();
-            http2_compress_output(peer, send_file_obj);
+            // HEAD：不做压缩（没有 body），否则 content_length 与正文对不上
+            if (peer->method != static_cast<unsigned char>(HEAD_METHOD::HEAD))
+            {
+                http2_compress_output(peer, send_file_obj);
+            }
+            else
+            {
+                peer->compress                = 0;
+                send_file_obj->content_length = peer->output.size();
+                peer->length(peer->output.size());
+            }
 
             if (peer->get_status() < 100)
             {
@@ -1330,7 +1386,15 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
 
             if (peer->compress == 0)
             {
-                send_file_obj->content = std::move(peer->output);
+                // HEAD：body 留空，发送线程补 END_STREAM 空 DATA 帧
+                if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
+                {
+                    send_file_obj->content.clear();
+                }
+                else
+                {
+                    send_file_obj->content = std::move(peer->output);
+                }
             }
             send_file_obj->peer          = peer;
             send_file_obj->is_sendheader = false;
@@ -1355,6 +1419,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
 
             http2_send_queue &send_queue_obj = get_http2_send_queue();
             auto send_file_obj               = send_queue_obj.get_cache_ptr();
+            dyn_send_obj                     = send_file_obj;
             send_file_obj->cache_data.resize(15360);
             send_file_obj->content.clear();
             send_file_obj->header.clear();
@@ -1371,7 +1436,17 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             }
             send_file_obj->header.clear();
 
-            http2_compress_output(peer, send_file_obj);
+            // HEAD：不做压缩、不出 body（RFC 9110 §9.3.2）
+            if (peer->method != static_cast<unsigned char>(HEAD_METHOD::HEAD))
+            {
+                http2_compress_output(peer, send_file_obj);
+            }
+            else
+            {
+                peer->compress                = 0;
+                send_file_obj->content_length = peer->output.size();
+                peer->length(peer->output.size());
+            }
 
             if (peer->get_status() < 100)
             {
@@ -1386,13 +1461,21 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             DEBUG_LOG("http2_send_content");
             if (peer->compress == 0)
             {
-                send_file_obj->content = std::move(peer->output);
+                if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
+                {
+                    send_file_obj->content.clear();
+                }
+                else
+                {
+                    send_file_obj->content = std::move(peer->output);
+                }
             }
             send_file_obj->peer          = peer;
             send_file_obj->is_sendheader = false;
             send_file_obj->type          = 11;
             std::unique_lock<std::mutex> lock(send_data_mutex);
             sent_data_list.emplace_back(send_file_obj);
+            dyn_slot_handed = true;
             lock.unlock();
             send_data_condition.notify_one();
 
@@ -1401,15 +1484,31 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
         }
         co_return;
     }
-    catch (std::exception &e)
+    catch (const std::exception &e)
     {
-        DEBUG_LOG("http2loop exception send_goway");
+        add_error_lists("http2loop exception: " + std::string(e.what()) + " url: " + peer->urlpath + "\n");
         peer->isclose = true;
+    }
+    catch (...)
+    {
+        // throw int / "text" 这类非 std::exception 的抛出上面那一支接不住。这一路是
+        // co_spawn(..., asio::detached) 起的，异常传上去会被那个空完成的 handler 直接丢掉：
+        // 这条流既没有响应也没有 RST，客户端只能挂到超时，线上连一条线索都没有
+        add_error_lists("http2loop unknown exception url: " + peer->urlpath + "\n");
+        peer->isclose = true;
+    }
+    if (dyn_send_obj && !dyn_slot_handed)
+    {
+        // 抛出时这张槽还没交给发送线程，还回池：outstanding 只有 back_cache_ptr 会减，
+        // 漏一次就永久漂移，「连接收尾后归零」这条账以后就没法看了
+        get_http2_send_queue().back_cache_ptr(dyn_send_obj);
     }
     if (peer->isclose)
     {
         DEBUG_LOG("http2loop exception send_goway");
-        co_await peer->socket_session->async_send_goway();
+        // last_stream_id 用这条流自己的 id：留空等于告诉客户端「整条连接一条流都没处理过」，
+        // 它会把已经应答过的请求（含 POST）全部重发。水位口径见本文件另外三处 async_send_goway
+        co_await peer->socket_session->async_send_goway(peer->stream_id, 0);
     }
     co_return;
 }
@@ -1515,21 +1614,30 @@ asio::awaitable<void> httpserver::http1_send_file(std::shared_ptr<httppeer> peer
             co_return;
         }
 
-        // compress
-
-        if (peer->state.gzip || peer->state.br)
+        // HEAD：不压缩、不出 body，只回带正确 Content-Length 的响应头（RFC 9110 §9.3.2）
+        if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
         {
-            if (send_file_obj->content_length > 0 && send_file_obj->content_length < 16877216 && send_file_obj->file_ext.size() > 0 && mime_compress.contains(send_file_obj->file_ext))
+            // 防止沿用上次请求的压缩标记，让响应头误带 Content-Encoding
+            peer->compress = 0;
+        }
+        else
+        {
+            // compress
+            if (peer->state.gzip || peer->state.br)
             {
-                if (send_file_obj->etag.size() > 0)
+                if (send_file_obj->content_length > 0 && send_file_obj->content_length < 16877216 && send_file_obj->file_ext.size() > 0 && mime_compress.contains(send_file_obj->file_ext))
                 {
-                    co_await http2_co_send_compress(peer, send_file_obj);
+                    if (send_file_obj->etag.size() > 0)
+                    {
+                        co_await http2_co_send_compress(peer, send_file_obj);
+                    }
                 }
             }
         }
 
         co_await http1_send_file_header(peer, peer_session, send_file_obj);
-        if (send_file_obj->content_length == 0)
+        // HEAD：头已带正确 Content-Length，不写 body 直接归还槽位
+        if (send_file_obj->content_length == 0 || peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
         {
             send_queue_obj.back_cache_ptr(send_file_obj);
             co_return;
@@ -1736,7 +1844,9 @@ asio::awaitable<void> httpserver::http1_send_file_range(std::shared_ptr<httppeer
 
         co_await peer_session->async_send_writer(send_file_obj->header);
 
-        if ((send_file_obj->content_length - send_file_obj->current_num) == 0)
+        // HEAD：头已带 Content-Length，不写 body（RFC 9110 §9.3.2）
+        if ((send_file_obj->content_length - send_file_obj->current_num) == 0 ||
+            peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
         {
             send_queue_obj.back_cache_ptr(send_file_obj);
             co_return;
@@ -2027,212 +2137,262 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
         peer->socket_session = peer_session->get_ptr();
     }
 
-    serverconfig &sysconfigpath = getserversysconfig();
+    // 字节一旦写向客户端就只能断连：这时再补一段 500，客户端会把它当成上一段响应的正文
+    bool wrotetoclient = false;
+    bool catched       = false;
+    std::string excepttext;
+    try
+    {
+        serverconfig &sysconfigpath = getserversysconfig();
 
-    // sitepath 必须在预查之前定好：带点 URL 的「先落盘」要用它拼出盘上那个文件
-    peer->sitepath = sysconfigpath.getsitewwwpath(peer->host_index);
+        // sitepath 必须在预查之前定好：带点 URL 的「先落盘」要用它拼出盘上那个文件
+        peer->sitepath = sysconfigpath.getsitewwwpath(peer->host_index);
 
-    // 路由预查：带点 URL 先落盘，然后两段查表；>=0 是命中的 handler 下标
-    int routeidx = peer->prefetch_routing();
+        // 路由预查：带点 URL 先落盘，然后两段查表；>=0 是命中的 handler 下标
+        int routeidx = peer->prefetch_routing();
 
-    // compress==10 是解析阶段的轻量 php 后缀标记；真正要不要走 fastcgi：
-    // 先排除注解路由已命中（routeidx>=0 优先），再查 hostinfo.isuse_php 和 php_root_document
+        // compress==10 是解析阶段的轻量 php 后缀标记；真正要不要走 fastcgi：
+        // 先排除注解路由已命中（routeidx>=0 优先），再查 hostinfo.isuse_php 和 php_root_document
 #ifdef ENABLE_FASTCGI
-    if (peer->compress == 10 && routeidx < 0)
-    {
-        if (peer->host_index < sysconfigpath.sitehostinfos.size() && sysconfigpath.sitehostinfos[peer->host_index].isuse_php != 1)
+        if (peer->compress == 10 && routeidx < 0)
         {
-            // 本站没开 php 支持，请求 .php → 直接 404
-            peer->compress = 0;
-        }
-        else if (!check_php_dispatch(peer))
-        {
-            // 开了 php 但找不到对应 .php 文件 → 清零 compress，走正常磁盘/动态链流程
-            peer->compress = 0;
-        }
-        else
-        {
-            // check_php_dispatch 已设好 compress/linktype/sendfilename，直接走 fastcgi
-            co_await http1_fastcgi(peer);
-            co_return;
-        }
-    }
-#endif
-
-    // 注解路由命中 → 直接进动态链
-    unsigned char sendtype = 0;
-    if (routeidx >= 0)
-    {
-        // 跳过 get_fileinfo，直接进 router 动态链
-    }
-    else if (!peer->sitepath.empty())
-    {
-        sendtype = peer->get_fileinfo();
-    }
-
-    DEBUG_LOG("http1loop:%s regfun:%d sendtype:%d", peer->sendfilename.c_str(), routeidx, sendtype);
-    if (sendtype == 1)
-    {
-        if (peer->host_index < sysconfigpath.sitehostinfos.size() && sysconfigpath.sitehostinfos[peer->host_index].is_static_pre)
-        {
-            if ((co_await http1_static_file_authority(peer)))
+            if (peer->host_index < sysconfigpath.sitehostinfos.size() && sysconfigpath.sitehostinfos[peer->host_index].isuse_php != 1)
             {
-                peer->output.clear();
+                // 本站没开 php 支持，请求 .php → 直接 404
+                peer->compress = 0;
+            }
+            else if (!check_php_dispatch(peer))
+            {
+                // 开了 php 但找不到对应 .php 文件 → 清零 compress，走正常磁盘/动态链流程
+                peer->compress = 0;
             }
             else
             {
+                // check_php_dispatch 已设好 compress/linktype/sendfilename，直接走 fastcgi
+                wrotetoclient = true;
+                co_await http1_fastcgi(peer);
                 co_return;
             }
         }
+#endif
 
-        if (peer->state.rangebytes)
+        // 注解路由命中 → 直接进动态链
+        unsigned char sendtype = 0;
+        if (routeidx >= 0)
         {
-            co_await http1_send_file_range(peer, peer_session);
+            // 跳过 get_fileinfo，直接进 router 动态链
+        }
+        else if (!peer->sitepath.empty())
+        {
+            sendtype = peer->get_fileinfo();
+        }
+
+        DEBUG_LOG("http1loop:%s regfun:%d sendtype:%d", peer->sendfilename.c_str(), routeidx, sendtype);
+        if (sendtype == 1)
+        {
+            // 防盗链钩子读 client.session，静态通路也要先把会话解析出来
+            peer->parse_session();
+            if (peer->host_index < sysconfigpath.sitehostinfos.size() && sysconfigpath.sitehostinfos[peer->host_index].is_static_pre)
+            {
+                // 防盗链不通过时它自己把 403 写出去了，所以从这里开始算「已经发过字节」
+                wrotetoclient = true;
+                if ((co_await http1_static_file_authority(peer)))
+                {
+                    peer->output.clear();
+                }
+                else
+                {
+                    co_return;
+                }
+            }
+
+            if (peer->state.rangebytes)
+            {
+                wrotetoclient = true;
+                co_await http1_send_file_range(peer, peer_session);
+            }
+            else
+            {
+                wrotetoclient = true;
+                co_await http1_send_file(peer, peer_session);
+            }
+            co_return;
+        }
+        else if (sendtype == 2 && peer->host_index < sysconfigpath.sitehostinfos.size() && sysconfigpath.sitehostinfos[peer->host_index].is_show_directory)
+        {
+            peer->parse_session();
+            peer->output = displaydirectory(peer->sendfilename,
+                                            peer->urlpath,
+                                            peer->get["sort"].as_string(),
+                                            sysconfigpath.configpath);
+            peer->status(200);
+            peer->type("text/html; charset=utf-8");
+            peer->compress = 0;
+            // HEAD 不做压缩（没有 body 可压），否则 Content-Encoding 与正文对不上
+            if (peer->method != static_cast<unsigned char>(HEAD_METHOD::HEAD) && (peer->state.gzip || peer->state.br))
+            {
+                if (str_casecmp(peer->content_type, "text/html; charset=utf-8") ||
+                    str_casecmp(peer->content_type, "application/json") ||
+                    str_casecmp(peer->content_type, "text/html") ||
+                    str_casecmp(peer->content_type, "application/json; charset=utf-8"))
+                {
+                    if (peer->output.size() > 100)
+                    {
+                        std::string tempcompress;
+                        bool compressed_ok = false;
+                        if (peer->state.br)
+                        {
+                            brotli_encode(peer->output, tempcompress);
+                            peer->compress = 2;
+                            compressed_ok  = true;
+                        }
+                        else if (compress(peer->output.data(), peer->output.size(), tempcompress, Z_DEFAULT_COMPRESSION) == Z_OK)
+                        {
+                            // peer->output   = tempcompress;
+                            peer->compress = 1;
+                            compressed_ok  = true;
+                        }
+
+                        if (compressed_ok)
+                        {
+                            peer->length(tempcompress.size());
+                            peer->output = peer->make_http1_header();
+                            peer->output.append("\r\n");
+                            wrotetoclient = true;
+                            co_await peer_session->async_send_writer(peer->output);
+                            co_await peer_session->async_send_writer(tempcompress);
+                            clear_peer_data(peer);
+                            co_return;
+                        }
+                        // 压缩失败：回退为不压缩，避免响应头声明了 Content-Encoding 而内容未压缩
+                        peer->compress = 0;
+                    }
+                }
+            }
+            peer->length(peer->output.size());
+            std::string htmlcontent = peer->make_http1_header();
+            htmlcontent.append("\r\n");
+            wrotetoclient = true;
+            co_await peer_session->async_send_writer(htmlcontent);
+            // HEAD：头已带 Content-Length，不写 body（RFC 9110 §9.3.2）
+            if (peer->method != static_cast<unsigned char>(HEAD_METHOD::HEAD))
+            {
+                co_await peer_session->async_send_writer(peer->output);
+            }
+            clear_peer_data(peer);
+            co_return;
         }
         else
         {
-            co_await http1_send_file(peer, peer_session);
-        }
-        co_return;
-    }
-    else if (sendtype == 2 && peer->host_index < sysconfigpath.sitehostinfos.size() && sysconfigpath.sitehostinfos[peer->host_index].is_show_directory)
-    {
-        peer->output = displaydirectory(peer->sendfilename,
-                                        peer->urlpath,
-                                        peer->get["sort"].as_string(),
-                                        sysconfigpath.configpath);
-        peer->status(200);
-        peer->type("text/html; charset=utf-8");
-        peer->compress = 0;
-        // 与 http1_send_file / http2_compress_output 保持一致：gzip 与 br 都要支持
-        if (peer->state.gzip || peer->state.br)
-        {
-            if (str_casecmp(peer->content_type, "text/html; charset=utf-8") ||
-                str_casecmp(peer->content_type, "application/json") ||
-                str_casecmp(peer->content_type, "text/html") ||
-                str_casecmp(peer->content_type, "application/json; charset=utf-8"))
-            {
-                if (peer->output.size() > 100)
-                {
-                    std::string tempcompress;
-                    bool compressed_ok = false;
-                    if (peer->state.br)
-                    {
-                        brotli_encode(peer->output, tempcompress);
-                        peer->compress = 2;
-                        compressed_ok  = true;
-                    }
-                    else if (compress(peer->output.data(), peer->output.size(), tempcompress, Z_DEFAULT_COMPRESSION) == Z_OK)
-                    {
-                        // peer->output   = tempcompress;
-                        peer->compress = 1;
-                        compressed_ok  = true;
-                    }
+            DEBUG_LOG("---  http1 dynamic --------");
+            peer->linktype = 0;
+            peer->parse_session();
 
-                    if (compressed_ok)
-                    {
-                        peer->length(tempcompress.size());
-                        peer->output = peer->make_http1_header();
-                        peer->output.append("\r\n");
-                        co_await peer_session->async_send_writer(peer->output);
-                        co_await peer_session->async_send_writer(tempcompress);
-                        clear_peer_data(peer);
-                        co_return;
-                    }
-                    // 压缩失败：回退为不压缩，避免响应头声明了 Content-Encoding 而内容未压缩
-                    peer->compress = 0;
-                }
-            }
-        }
-        peer->length(peer->output.size());
-        std::string htmlcontent = peer->make_http1_header();
-        htmlcontent.append("\r\n");
-        co_await peer_session->async_send_writer(htmlcontent);
-        co_await peer_session->async_send_writer(peer->output);
-        clear_peer_data(peer);
-        co_return;
-    }
-    else
-    {
-        DEBUG_LOG("---  http1 dynamic --------");
-        peer->linktype = 0;
-        peer->parse_session();
-
-        peer->status(200);
-        peer->content_type.clear();
-        peer->etag.clear();
-        peer->output.clear();
-
-        DEBUG_LOG("---  http1 co handle %s--------", peer->sendfilename.c_str());
-
-        // — v6: 链的执行统一在 router::co_resolve —
-        // sync pre/regfun → ThreadPool，coro → 就地 co_await
-        co_await get_router().co_resolve(peer, routeidx);
-
-        if (peer->ischunked)
-        {
-            co_return;
-        }
-
-        if (peer->get_status() < 100)
-        {
             peer->status(200);
-        }
-        // 默认 Content-Type 在链跑完之后、由 isset_type() 把关补：co_resolve 期间 content_type
-        // 保持"未设置"，业务 handler 内部可用 isset_type() 判断自己有没有设过类型；没设才落到 text/html。
-        if (!peer->isset_type())
-        {
-            peer->type("text/html; charset=utf-8");
-        }
-        peer->compress = 0;
-        // 与 http1_send_file / http2_compress_output 保持一致：gzip 与 br 都要支持
-        if (peer->state.gzip || peer->state.br)
-        {
-            if (str_casecmp(peer->content_type, "text/html; charset=utf-8") ||
-                str_casecmp(peer->content_type, "application/json") ||
-                str_casecmp(peer->content_type, "text/html") ||
-                str_casecmp(peer->content_type, "application/json; charset=utf-8"))
-            {
-                if (peer->output.size() > 100)
-                {
-                    std::string tempcompress;
-                    bool compressed_ok = false;
-                    if (peer->state.br)
-                    {
-                        brotli_encode(peer->output, tempcompress);
-                        peer->compress = 2;
-                        compressed_ok  = true;
-                    }
-                    else if (compress(peer->output.data(), peer->output.size(), tempcompress, Z_DEFAULT_COMPRESSION) == Z_OK)
-                    {
-                        // peer->output   = tempcompress;
-                        peer->compress = 1;
-                        compressed_ok  = true;
-                    }
+            peer->content_type.clear();
+            peer->etag.clear();
+            peer->output.clear();
 
-                    if (compressed_ok)
+            DEBUG_LOG("---  http1 co handle %s--------", peer->sendfilename.c_str());
+
+            // — v6: 链的执行统一在 router::co_resolve —
+            // sync pre/regfun → ThreadPool，coro → 就地 co_await
+            co_await get_router().co_resolve(peer, routeidx);
+
+            if (peer->ischunked)
+            {
+                co_return;
+            }
+
+            if (peer->get_status() < 100)
+            {
+                peer->status(200);
+            }
+            // 默认 Content-Type 在链跑完之后、由 isset_type() 把关补：co_resolve 期间 content_type
+            // 保持"未设置"，业务 handler 内部可用 isset_type() 判断自己有没有设过类型；没设才落到 text/html。
+            if (!peer->isset_type())
+            {
+                peer->type("text/html; charset=utf-8");
+            }
+            peer->compress = 0;
+            // HEAD 不做压缩：没有 body 可压；压了 content_length 与正文对不上（RFC 9110 §9.3.2）
+            if (peer->method != static_cast<unsigned char>(HEAD_METHOD::HEAD) && (peer->state.gzip || peer->state.br))
+            {
+                if (str_casecmp(peer->content_type, "text/html; charset=utf-8") ||
+                    str_casecmp(peer->content_type, "application/json") ||
+                    str_casecmp(peer->content_type, "text/html") ||
+                    str_casecmp(peer->content_type, "application/json; charset=utf-8"))
+                {
+                    if (peer->output.size() > 100)
                     {
-                        peer->length(tempcompress.size());
-                        std::string htmlcontent = peer->make_http1_header();
-                        htmlcontent.append("\r\n");
-                        co_await peer_session->async_send_writer(htmlcontent);
-                        co_await peer_session->async_send_writer(tempcompress);
-                        DEBUG_LOG("---  http1 compress send --------");
-                        clear_peer_data(peer);
-                        co_return;
+                        std::string tempcompress;
+                        bool compressed_ok = false;
+                        if (peer->state.br)
+                        {
+                            brotli_encode(peer->output, tempcompress);
+                            peer->compress = 2;
+                            compressed_ok  = true;
+                        }
+                        else if (compress(peer->output.data(), peer->output.size(), tempcompress, Z_DEFAULT_COMPRESSION) == Z_OK)
+                        {
+                            // peer->output   = tempcompress;
+                            peer->compress = 1;
+                            compressed_ok  = true;
+                        }
+
+                        if (compressed_ok)
+                        {
+                            peer->length(tempcompress.size());
+                            std::string htmlcontent = peer->make_http1_header();
+                            htmlcontent.append("\r\n");
+                            wrotetoclient = true;
+                            co_await peer_session->async_send_writer(htmlcontent);
+                            co_await peer_session->async_send_writer(tempcompress);
+                            DEBUG_LOG("---  http1 compress send --------");
+                            clear_peer_data(peer);
+                            co_return;
+                        }
+                        // 压缩失败：回退为不压缩，避免响应头声明了 Content-Encoding 而内容未压缩
+                        peer->compress = 0;
                     }
-                    // 压缩失败：回退为不压缩，避免响应头声明了 Content-Encoding 而内容未压缩
-                    peer->compress = 0;
                 }
             }
+            peer->length(peer->output.size());
+            std::string htmlcontent = peer->make_http1_header();
+            htmlcontent.append("\r\n");
+            wrotetoclient = true;
+            co_await peer_session->async_send_writer(htmlcontent);
+            // HEAD：头已带 Content-Length，不写 body
+            if (peer->method != static_cast<unsigned char>(HEAD_METHOD::HEAD))
+            {
+                co_await peer_session->async_send_writer(peer->output);
+            }
+            DEBUG_LOG("---  http1 output send --------");
+            clear_peer_data(peer);
         }
-        peer->length(peer->output.size());
-        std::string htmlcontent = peer->make_http1_header();
-        htmlcontent.append("\r\n");
-        co_await peer_session->async_send_writer(htmlcontent);
-        co_await peer_session->async_send_writer(peer->output);
-        DEBUG_LOG("---  http1 output send --------");
-        clear_peer_data(peer);
+        co_return;
+    }
+    catch (const std::exception &e)
+    {
+        catched    = true;
+        excepttext = e.what();
+    }
+    catch (...)
+    {
+        // throw int / "text" 这类非 std::exception 的抛出上一支接不住
+        catched    = true;
+        excepttext = "unknown exception";
+    }
+    if (catched)
+    {
+        // 抛出原因只进错误日志：回给客户端的是固定文案的 500，内部异常文本不外泄
+        add_error_lists("http1loop exception: " + excepttext + " url: " + peer->urlpath + "\n");
+        // 一个字节都没发过才补 500；否则只能把连接关掉，让客户端按「响应不完整」处理
+        if (!wrotetoclient && !peer->ischunked)
+        {
+            co_await http1_send_bad_server(peer, peer_session);
+        }
+        peer->state.keepalive = false;
     }
     co_return;
 }
@@ -2435,6 +2595,9 @@ unsigned int httpserver::make_h2c_header(std::shared_ptr<httppeer> peer, std::sh
     const static unsigned char pre_fix_char[] = {0x00, 0x00, 0x00, 0x01, 0x05, 0x00, 0x00, 0x00, 0x01, 0x82, 0x86, 0x44};
     std::memcpy(peer_session->_cache_data, pre_fix_char, sizeof(pre_fix_char));
 
+    // 升级请求只搬三项：:path（url 含 query 串）、:authority（host）、User-Agent；
+    // 方法固定 GET，帧头带 END_STREAM，body 与其它请求头（含 Cookie）不搬。
+    // 所以依赖 Cookie/会话或需要 POST body 的接口在 h2c 升级请求上拿不到数据。
     // _cache_data 是 malloc(CACHE_DATA_LENGTH=4096) 的连接池缓冲：逐字节写入而不做边界判断，
     // 会被 url / host / User-Agent（各自可达 16KB）冲出去，帧长度也不能截断成 8 位。
     // 这里三个字段都是 HPACK 7 位长度前缀的字符串(≤127)，先算总需求长度，
@@ -2573,19 +2736,30 @@ asio::awaitable<unsigned int> httpserver::client_http1_loop(bool isssl, unsigned
                     peer->httpv         = 2;
                     peer->isfinish      = true;
                     peer->issend        = false;
-                    bool isok           = co_await peer_session->co_send_switch101();
                     peer->stream_id     = 1;
                     peer->isssl         = isssl ? true : false;
 
-                    if (isok)
-                    {
-                        readnum = make_h2c_header(peer, peer_session, log_item);
-                        co_return readnum;
-                    }
-                    else
+                    // make_h2c_header 从缓冲区开头写首帧，升级请求之后同包到达的字节会被覆盖丢弃，
+                    // 所以连接前言必须在收到 101 之后另起一包送来。
+                    // The first frame is written from the head of the buffer, so preface bytes that
+                    // share the upgrade packet are dropped; the client must send them after the 101.
+
+                    // 先构造 H2 首帧、成功后再回 101：构造失败时直接收口，
+                    // 避免 101 已发出却没有 H2 帧、客户端在已升级状态永久等帧。
+                    // Build the first H2 frame before replying 101; on failure close right away
+                    // instead of leaving a bogus upgraded state with no frames.
+                    unsigned int first_frame_len = make_h2c_header(peer, peer_session, log_item);
+                    if (first_frame_len == 0)
                     {
                         co_return 3;
                     }
+
+                    if (!co_await peer_session->co_send_switch101())
+                    {
+                        co_return 3;
+                    }
+
+                    co_return first_frame_len;
                 }
 
                 if (hook_host_http1(peer))
@@ -3713,8 +3887,9 @@ static void resident_hook_failed(const char *what, const std::exception_ptr &ept
 }
 
 // 协程钩子的收口，和 co_sync_hook_void 对称：抛出留在协程里接住并记录失败原因。
-// 放出去会一路撞到 co_spawn(..., asio::detached) 的默认 handler —— 那是在 io_context
-// 线程上重抛，整个进程跟着没；而这三条循环是常驻的，一次业务抛出不能带走服务。
+// 放出去会一路撞到 co_spawn(..., asio::detached) 的默认 handler —— 它接到异常什么都不做，
+// 既不重抛也不留日志，这条消息就此无声消失，线上没有任何线索可查；
+// 而这三条循环是常驻的，一次业务抛出不能带走服务。
 [[maybe_unused]] static asio::awaitable<void>
 co_resident_hook_void(const char *what, asio::awaitable<void> hook)
 {
@@ -5061,11 +5236,13 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
         total_count++;
         if (check_blockip(peer_session))
         {
+            peer_session->stop();
             co_return;
         }
 
         if (peer_session->_cache_data == nullptr)
         {
+            peer_session->stop();
             co_return;
         }
 #ifndef BENCHMARK
@@ -5092,8 +5269,8 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                 if (client_type_num > 9)
                 {
                     // h2c 升级：http1_loop 已回 101，此处 client_type_num 是
-                    // make_h2c_header 写出的 stream 1 首帧长度（合法 15~398，
-                    // 返回 0 表示构造失败，已被 >9 的门槛排除）。
+                    // make_h2c_header 写出的 stream 1 首帧长度（合法 15~398）；
+                    // 首帧构造失败时 http1_loop 不会发 101，直接以 3 落进下面的 ==3 分支。
                     // 门槛不能写成 >256：URL/Host/UA 较长的合法升级会被误杀。
                     std::string request_content;
                     request_content.resize(client_type_num);
@@ -5103,12 +5280,25 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                         request_content[i] = peer_session->_cache_data[i];
                     }
 
+                    // 升级请求同包带到的前言字节已被首帧覆盖，这里按 0 已读进入，
+                    // 前言由 client_h2_enter 从套接字补读。
                     readnum = 0;
-                    co_await client_h2_enter(peer_session, readnum, request_content);
+                    if (co_await client_h2_enter(peer_session, readnum, request_content) == 3)
+                    {
+                        peer_session->stop();
+                    }
                     co_return;
                 }
                 else if (client_type_num == 3)
                 {
+                    co_return;
+                }
+                else
+                {
+                    // client_http1_loop 的契约是「3 或首帧长度」：3 走上面的分支，
+                    // 首帧长度走 >9，这里正常不可达；留着只是返回值形状将来被改动时
+                    // 兜底关连接，不把没收口的连接悬着。
+                    peer_session->stop();
                     co_return;
                 }
             }
@@ -5118,7 +5308,10 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                 // H2C cleartext (PRI * HTTP/2.0 preface) or h2 via TLS ALPN.
                 // 与 h2c 共用同一入口，前言校验与补读都在里面完成
                 DEBUG_LOG("peer_session co_send_setting");
-                co_await client_h2_enter(peer_session, readnum, std::string_view{});
+                if (co_await client_h2_enter(peer_session, readnum, std::string_view{}) == 3)
+                {
+                    peer_session->stop();
+                }
                 co_return;
             }
             else if (client_type_num == 7)

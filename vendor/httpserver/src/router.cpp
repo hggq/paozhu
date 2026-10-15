@@ -466,7 +466,22 @@ asio::awaitable<bool> router::co_run_site_hooks(std::shared_ptr<httppeer> &peer,
         }
         else if (h.reg_kind == fn_kind::coro && h.co_regfun)
         {
-            ret = co_await h.co_regfun(peer);
+            // 同步那一支的抛出由池的记账带回来，这一支没人包：不接住就一路抛回请求协程，
+            // 连接被拆掉、一个字节都没发，比 500 更难查
+            try
+            {
+                ret = co_await h.co_regfun(peer);
+            }
+            catch (const std::exception &e)
+            {
+                fail_500(peer, e.what());
+                co_return true;
+            }
+            catch (...)
+            {
+                fail_500(peer, "unknown exception");
+                co_return true;
+            }
         }
         if (is_pre && ret.size() == 4 && str_casecmp(ret, "exit"))
             co_return true;

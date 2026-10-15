@@ -197,6 +197,14 @@ asio::awaitable<bool> client_session::read_first(unsigned int &readnum)
             iserror = true;
             co_return true;
         }
+        if (readnum == 0)
+        {
+            // 无错误却读回 0 字节，只可能是对端已关闭
+            // Zero bytes without error only means the peer has closed.
+            isclose = true;
+            iserror = true;
+            co_return true;
+        }
         if (isclose || iserror)
         {
             co_return true;

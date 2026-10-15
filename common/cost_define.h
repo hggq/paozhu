@@ -210,4 +210,11 @@ constexpr bool http2_wu_stream_id_ok(unsigned long long sid, unsigned long long 
 #define CONST_HTTP2_STREAM_ERROR_FLOW_CONTROL 0x03
 #define CONST_HTTP2_STREAM_ERROR_CANCEL 0x08
 #define CONST_HTTP2_STREAM_ERROR_ENHANCE_YOUR_CALM 0x0B
+
+// 请求对象复用缓冲的归还阈值（字节）。响应缓冲跟着连接活到下一个请求，每次清空都收缩
+// 就等于每请求重新分配一次；只有被大响应撑到过容量阈值的才还回分配器。
+// Reuse-buffer trim threshold (bytes). Response buffers live on to the next request; shrinking
+// on every clear means a fresh allocation each time. Only buffers whose capacity grew past this
+// are returned to the allocator.
+#define CONST_PEER_BUFFER_SHRINK_SIZE 131072
 #endif
