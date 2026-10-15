@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 09 Oct 2026 14:32:02 GMT
+*本文件为自动生成 Thu, 15 Oct 2026 11:48:21 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -71,7 +71,7 @@ namespace article_info
 		 unsigned  int  classtype = 0; ///**/
 		 unsigned  int  userid = 0; ///**/
 		 int  sortid = 0; ///*排序*/
-		 std::string  topicname = ""; ///**/
+		 std::string  topicname = "NULL"; ///**/
 		 std::string  title = ""; ///**/
 		 std::string  keywords = ""; ///*关键字*/
 		 std::string  fromsource = ""; ///*文章来源*/
@@ -102,7 +102,7 @@ namespace article_info
 		 unsigned  int  classtype = 0; ///**/
 		 unsigned  int  userid = 0; ///**/
 		 int  sortid = 0; ///*排序*/
-		 std::string  topicname = ""; ///**/
+		 std::string  topicname = "NULL"; ///**/
 		 std::string  title = ""; ///**/
 		 std::string  keywords = ""; ///*关键字*/
 		 std::string  fromsource = ""; ///*文章来源*/
@@ -135,7 +135,7 @@ namespace article_info
 		 unsigned  int  classtype = 0; ///**/
 		 unsigned  int  userid = 0; ///**/
 		 int  sortid = 0; ///*排序*/
-		 std::string  topicname = ""; ///**/
+		 std::string  topicname = "NULL"; ///**/
 		 std::string  title = ""; ///**/
 		 std::string  keywords = ""; ///*关键字*/
 		 std::string  fromsource = ""; ///*文章来源*/

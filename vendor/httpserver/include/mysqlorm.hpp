@@ -10025,7 +10025,7 @@ namespace orm
 
             auto col_pos_map  = std::vector<unsigned char>();
             bool first_row    = true;
-            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, conn, &col_pos_map, &first_row](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, &conn, &col_pos_map, &first_row](int col_count, char **col_names, auto get_data) mutable -> bool
                                                                     {
                     if (first_row)
                     {
@@ -10098,7 +10098,7 @@ namespace orm
 
             auto col_pos_map  = std::vector<unsigned char>();
             bool first_row    = true;
-            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, conn, &col_pos_map, &first_row](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, &conn, &col_pos_map, &first_row](int col_count, char **col_names, auto get_data) mutable -> bool
                                                                     {
                     if (first_row)
                     {
@@ -10248,7 +10248,7 @@ namespace orm
             if (conn->isdebug)
                 conn->begin_time();
 
-            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, conn](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this](int col_count, char **col_names, auto get_data) mutable -> bool
                                                                     {
                                                                         for (int ij = 0; ij < col_count; ij++)
                                                                         {

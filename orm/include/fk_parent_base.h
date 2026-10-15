@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_FK_PARENTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 09 Oct 2026 14:31:58 GMT
+*本文件为自动生成 Thu, 15 Oct 2026 11:48:18 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -41,13 +41,13 @@ namespace fk_parent_info
     struct meta
     {
 		 int  id = 0; ///**/
-		 std::string  name = ""; ///**/
+		 std::string  name = "NULL"; ///**/
 	};
   
     struct meta_tree
     {
 		 int  id = 0; ///**/
-		 std::string  name = ""; ///**/
+		 std::string  name = "NULL"; ///**/
 
 	 std::vector<meta_tree> children;
  };
@@ -55,7 +55,7 @@ namespace fk_parent_info
     struct meta_tree_ptr
     {
 		 int  id = 0; ///**/
-		 std::string  name = ""; ///**/
+		 std::string  name = "NULL"; ///**/
 
 	 std::vector<std::unique_ptr<meta_tree>> children;
  };

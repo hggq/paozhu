@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Fri, 09 Oct 2026 14:32:02 GMT
+ *  Creation time Thu, 15 Oct 2026 11:48:21 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -11133,7 +11133,7 @@ M_MODEL& ornotnullSubprice()
 
             auto col_pos_map  = std::vector<unsigned char>();
             bool first_row    = true;
-            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, conn, &col_pos_map, &first_row](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, &conn, &col_pos_map, &first_row](int col_count, char **col_names, auto get_data) mutable -> bool
                                                                     {
                     if (first_row)
                     {
@@ -11206,7 +11206,7 @@ M_MODEL& ornotnullSubprice()
 
             auto col_pos_map  = std::vector<unsigned char>();
             bool first_row    = true;
-            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, conn, &col_pos_map, &first_row](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, &conn, &col_pos_map, &first_row](int col_count, char **col_names, auto get_data) mutable -> bool
                                                                     {
                     if (first_row)
                     {
@@ -11356,7 +11356,7 @@ M_MODEL& ornotnullSubprice()
             if (conn->isdebug)
                 conn->begin_time();
 
-            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, conn](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this](int col_count, char **col_names, auto get_data) mutable -> bool
                                                                     {
                                                                         for (int ij = 0; ij < col_count; ij++)
                                                                         {

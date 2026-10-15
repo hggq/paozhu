@@ -472,6 +472,8 @@ namespace http
         reg_raw("", "/list_mqtt_loop", nullptr, nullptr, nullptr, list_mqtt_loop);
         reg_raw("", "/test_ormfk_co", nullptr, nullptr, nullptr, test_ormfk_co);
         reg_raw("", "/test_ormprepared_co", nullptr, nullptr, nullptr, test_ormprepared_co);
+        reg_raw("", "/test_ormprepared_appendco", nullptr, nullptr, nullptr, test_ormprepared_appendco);
+        reg_raw("", "/stresshello", nullptr, nullptr, nullptr, stresshello);
         reg_raw("", "/redis/bench/async", nullptr, nullptr, nullptr, test_redis_bench_async);
         reg_raw("", "/redis/bench/async_concurrent", nullptr, nullptr, nullptr, test_redis_bench_async_concurrent);
         reg_raw("", "/redis/bench/pool", nullptr, nullptr, nullptr, test_redis_bench_pool);

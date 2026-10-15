@@ -172,4 +172,101 @@ asio::awaitable<std::string> test_ormprepared_co(std::shared_ptr<httppeer> peer)
     co_return "";
 }
 
+//@urlpath(null,test_ormprepared_appendco)
+asio::awaitable<std::string> test_ormprepared_appendco(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+
+    unsigned int n = client.get["n"].to_int();
+    if (n == 0)
+    {
+        n = 10;
+    }
+    else if (n > 200)
+    {
+        n = 200;
+    }
+
+    try
+    {
+        // 1) 普通列名，第一次走冷路径，第二次同一句 sql 走语句缓存热路径；record 只增不清
+        auto world = orm::World();
+        world.AND("id", orm::wq::be, 1).AND("id", orm::wq::le, 500);
+        world.select("id,randomnumber");
+        world.limit(0, n);
+        unsigned int cold = co_await world.async_exec_fetch_append();
+        client << "<p>append cold rows:" << cold << " record:" << world.record.size() << " err:" << world.error_msg << "</p>";
+        unsigned int warm = co_await world.async_exec_fetch_append();
+        client << "<p>append warm rows:" << warm << " record:" << world.record.size() << " err:" << world.error_msg << "</p>";
+        if (!world.record.empty())
+        {
+            client << "<p>append first row id:" << world.record[0].id << " randomnumber:" << world.record[0].randomnumber << "</p>";
+        }
+        client << "<p>" << world.sqlstring << "</p>";
+
+        // 2) 别名查询：靠 conn->prepared_col_org_names() 物理列名兜底，id 落得进来说明回调里读到了连接
+        auto alias = orm::World();
+        alias.AND("id", orm::wq::be, 1).AND("id", orm::wq::le, 500);
+        alias.select("id AS myid,randomnumber");
+        alias.limit(0, n);
+        unsigned int arows = co_await alias.async_exec_fetch_append();
+        client << "<p>append alias rows:" << arows << " record:" << alias.record.size() << " err:" << alias.error_msg << "</p>";
+        if (!alias.record.empty())
+        {
+            client << "<p>append alias first id:" << alias.record[0].id << " randomnumber:" << alias.record[0].randomnumber << "</p>";
+        }
+        unsigned int arows2 = co_await alias.async_exec_fetch_append();
+        client << "<p>append alias warm rows:" << arows2 << " record:" << alias.record.size() << " err:" << alias.error_msg << "</p>";
+
+        // 3) 同一个别名给 async_exec_one()：也有兜底，id 应非 0
+        auto aliasone = orm::World();
+        aliasone.where(orm::world_info::cols::id, 1);
+        aliasone.select("id AS myid,randomnumber");
+        co_await aliasone.async_exec_one();
+        client << "<p>exec_one alias id:" << aliasone.data.id << " randomnumber:" << aliasone.data.randomnumber << "</p>";
+
+        // 4) 对照：async_exec_fetch_one() 的回调没有兜底，同一条别名查询 id 应为 0
+        auto oneark = orm::World();
+        oneark.where(orm::world_info::cols::id, 1);
+        oneark.select("id AS myid,randomnumber");
+        co_await oneark.async_exec_fetch_one();
+        client << "<p>fetch_one alias id:" << oneark.data.id << " randomnumber:" << oneark.data.randomnumber << "</p>";
+
+        auto real = orm::World();
+        real.where(orm::world_info::cols::id, 1);
+        real.select("id,randomnumber");
+        co_await real.async_exec_fetch_one();
+        client << "<p>fetch_one real id:" << real.data.id << " randomnumber:" << real.data.randomnumber << "</p>";
+    }
+    catch (std::exception &e)
+    {
+        client << "<p>exception:" << e.what() << "</p>";
+    }
+    co_return "";
+}
+
+//@urlpath(null,stresshello)
+asio::awaitable<std::string> stresshello(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+    auto users = orm::cms::Sysuser();
+    try
+    {
+        unsigned int n = co_await users.eqName("admin").async_exec_fetch_one();
+        if (n > 0)
+        {
+            client << "<p>found:" << users.data.name << "</p>";
+        }
+        else
+        {
+            client << "<p>Not found</p>";
+        }
+    }
+    catch (std::exception &e)
+    {
+        client << "<p>" << e.what() << "</p>";
+    }
+    co_return "";
+}
+
 }// namespace http
