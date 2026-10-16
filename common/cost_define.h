@@ -26,6 +26,18 @@
 // Socket RPC handshake (request line + query) cumulative cap (bytes); disconnect on hit to block slow-lorris memory exhaustion
 #define CONST_TCP_HANDSHAKE_MAX 4096
 
+// RPC 私有协议（vendor/httpserver/src/rpc_parse.cpp）的三道上界：
+// 请求行累计字节（含查询串）、KV 段条数、KV 段总字节；超限按协议错误断连。
+// RPC private-protocol caps: request-line cumulative bytes, KV count, KV total bytes.
+#define CONST_RPC_LINE_MAX 8192
+#define CONST_RPC_KV_MAX_ITEMS 64
+#define CONST_RPC_KV_MAX_BYTES (256 * 1024)
+// RPC 响应 body 在内存中的上限（字节）：声明大小 > 此值才落盘到临时文件，
+// <= 此值留在 page.content 内存。与 WebSocket 的 16M 内存口径对齐。
+// RPC response body in-memory cap: declared size above this spills to a temp file;
+// at/below stays in page.content. Aligned with the WebSocket 16MB in-memory stance.
+#define CONST_RPC_BODY_MEM_LIMIT (16 * 1024 * 1024)
+
 #define CONST_WEBSOCKET_POST_TEXT_SIZE 16777216
 #define CONST_WEBSOCKET_POST_DATA_SIZE 4294967295
 
@@ -45,8 +57,10 @@
 //   协程模式   = 在途 async_onmessage 条数/载荷字节（那条路径没有队列，协程本身就是队列）。
 // 越水位先暂停 async_read 做背压（每轮只喂 4096B，未读字节留在内核缓冲，压力退回对端 TCP 窗口），
 // 有界等待到期仍未退到 LOW 水位才丢弃最新一条并计数——默认不断连。
-// 条数是主尺子（list::size() O(1) 且无漂移）；字节尺子非维护计数：非协程模式在越限慢路径现场遍历求和
-// （content_list 由业务代码自行 pop_front，维护式计数必漂），协程模式由派发包装协程成对 reserve/release。
+// 条数是主尺子（list::size() O(1) 且无漂移）；字节尺子非维护计数，两把都在入队那一刻判：
+// push 里同一把锁内现场遍历求和（content_list 由业务代码自行 pop_front，维护式计数必漂；
+// 健康队列只有几条，堵到几十条才变贵，而那正是准备丢弃的路径）。
+// 协程模式由派发包装协程成对 reserve/release。
 // 阈值依据：本机实测合法快消费路径在 30MB/s × 100MB 洪泛下自然峰值仅 7 条 / 448KB。
 // WebSocket ingress dispatch watermark (per connection). Both modes bound their own unbounded queue:
 // non-coroutine = content_list depth/bytes; coroutine = in-flight async_onmessage count/bytes.
@@ -58,6 +72,25 @@
 #define CONST_WEBSOCKET_QUEUE_HIGH_BYTES 8388608
 #define CONST_WEBSOCKET_QUEUE_LOW_BYTES 2097152
 #define CONST_WEBSOCKET_QUEUE_STALL_MAX_MS 2000
+
+// WebSocket 保活（每连接）。默认值：服务端不发 ping，空闲连接靠 IDLE_LIMIT 兜底回收。
+//   IDLE_LIMIT     入站活动空闲上限（秒）。读循环每收到一批字节就把回收期限推到 now+该值，
+//                  到点由 httpwatch 的超时扫描断连。该扫描还带 clean_cron 宽限
+//                  （conf/server.conf 的 t600 ⇒ 实际断连比上限晚约 11 分钟）。
+//   PING_INTERVAL  服务端主动发 ping 的周期（秒）；0 = 不发。空闲连接自己不会产生入站字节，
+//                  要把 IDLE_LIMIT 设到比对端静默时长更短就得开 ping：对端的 pong 就是那条
+//                  入站活动。半开的死连接一个字节都收不到，上限一到即回收。
+//                  必须小于 IDLE_LIMIT，否则连接会在下一次 ping 之前就被回收掉。
+// WebSocket keepalive per connection; defaults mean no ping and idle reaping after IDLE_LIMIT.
+#define CONST_WEBSOCKET_IDLE_LIMIT 86400
+#define CONST_WEBSOCKET_PING_INTERVAL 0
+
+// WebSocket 客户端保活（每条出站连接）。默认 0 = 关闭，与未实现时行为一致。
+//   客户端主动 ping 的周期（秒）。半开连接（对端进程僵死、NAT 静默过期）收不到任何入站字节，
+//   只能靠 ping 换 pong 来证明对端还活着；连续 3 个周期没有入站字节即判死，交给看护线程回收。
+//   0 之外还要求连接在 client_context 的超时链表里（async_connect / add_client_task_loop 都会登记）。
+// WebSocket client keepalive ping interval in seconds; 0 disables it. Silence over 3 intervals kills the link.
+#define CONST_WEBSOCKET_CLIENT_PING_INTERVAL 0
 
 // socket 入站接收队列水位（每连接）。这里的单位是"一次 read 拿到的字节切片"，不是"一条消息"：
 // read_socket 是 async_read_some 进 4096 字节缓冲（与 ws/h1 的 _cache_data 对齐），切片没有帧边界，

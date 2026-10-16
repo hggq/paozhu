@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM SQLITE intermediate connection layer, sourced from MySQL, PostgreSQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Thu, 15 Oct 2026 11:48:28 GMT
+ *  Creation time Fri, 16 Oct 2026 22:50:21 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -1442,10 +1442,19 @@ namespace pg
             }
             break;
                 case 1:
+            data_temp.set_null(fk_parent_info::null_col::name, false);
             data_temp.name.assign(reinterpret_cast<const char*>(result_temp_data), value_size);
             break;
                 
         }
+    }
+    
+    // 未匹配的列传 255，非可空列映射为 -1，两种情况都不置位
+    void set_field_null(unsigned char index_pos, fk_parent_info::meta &data_temp)
+    {
+        if (static_cast<std::size_t>(index_pos) >= fk_parent_info::col_count) return;
+        int null_bit = fk_parent_info::null_index_of[index_pos];
+        if (null_bit >= 0) data_temp.null_bits.set(static_cast<std::size_t>(null_bit));
     }
     
         void assign_field_value_binary(unsigned char index_pos, col_value_variant val, fk_parent_info::meta &data_temp)
@@ -1456,7 +1465,9 @@ namespace pg
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.id = 0;
+                    }
                     else if constexpr (std::is_same_v<T, int64_t>)
                         data_temp.id = static_cast<decltype(data_temp.id )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
@@ -1471,7 +1482,10 @@ namespace pg
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.name.clear();
+                        data_temp.set_null(fk_parent_info::null_col::name);
+                    }
                     else if constexpr (std::is_same_v<T, std::string_view>)
                         data_temp.name.assign(v.data(), v.size());
                     else
@@ -1489,6 +1503,7 @@ namespace pg
                 return http::obj_val(static_cast<long long>(data_temp.id));
                 break;
             case 1:
+                if (data_temp.is_null(fk_parent_info::null_col::name)) return http::obj_val(nullptr);
                 return http::obj_val(std::string(data_temp.name));
                 break;
             default:
@@ -3831,8 +3846,8 @@ M_MODEL& ornotnullName()
                                                                                auto [ptr, len] = get_data(ij);
                                                                                if (ptr == nullptr)
                                                                                {
-                                                                                   static const unsigned char null_value = 0;
-                                                                                   assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
+                                                                                   
+                                                                                   set_field_null(static_cast<unsigned char>(col_pos_map[ij]), data_temp);
                                                                                    continue;
                                                                                }
                                                                                assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
@@ -3981,8 +3996,8 @@ M_MODEL& ornotnullName()
                                                                                               auto [ptr, len] = get_data(ij);
                                                                                               if (ptr == nullptr)
                                                                                               {
-                                                                                                  static const unsigned char null_value = 0;
-                                                                                                  assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
+                                                                                                  
+                                                                                                  set_field_null(static_cast<unsigned char>(col_pos_map[ij]), data_temp);
                                                                                                   continue;
                                                                                               }
                                                                                               assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
@@ -4128,8 +4143,8 @@ M_MODEL& ornotnullName()
                                                                                auto [ptr, len] = get_data(ij);
                                                                                if (ptr == nullptr)
                                                                                {
-                                                                                   static const unsigned char null_value = 0;
-                                                                                   assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
+                                                                                   
+                                                                                   set_field_null(static_cast<unsigned char>(col_pos_map[ij]), data_temp);
                                                                                    continue;
                                                                                }
                                                                                assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
@@ -4279,8 +4294,8 @@ M_MODEL& ornotnullName()
                                                                                               auto [ptr, len] = get_data(ij);
                                                                                               if (ptr == nullptr)
                                                                                               {
-                                                                                                  static const unsigned char null_value = 0;
-                                                                                                  assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
+                                                                                                  
+                                                                                                  set_field_null(static_cast<unsigned char>(col_pos_map[ij]), data_temp);
                                                                                                   continue;
                                                                                               }
                                                                                               assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
@@ -4903,8 +4918,8 @@ M_MODEL& ornotnullName()
                                                                                    auto [ptr, len] = get_data(ij);
                                                                                    if (ptr == nullptr)
                                                                                    {
-                                                                                       static const unsigned char null_value = 0;
-                                                                                       assign_field_value(field_pos[ij], (unsigned char *)&null_value, 0, data_temp);
+                                                                                       
+                                                                                       set_field_null(field_pos[ij], data_temp);
                                                                                        continue;
                                                                                    }
                                                                                    assign_field_value(field_pos[ij], ptr, len, data_temp);
@@ -4919,8 +4934,8 @@ M_MODEL& ornotnullName()
                                                                                    auto [ptr, len] = get_data(ij);
                                                                                    if (ptr == nullptr)
                                                                                    {
-                                                                                       static const unsigned char null_value = 0;
-                                                                                       assign_field_value(field_pos[ij], (unsigned char *)&null_value, 0, B_BASE::data);
+                                                                                       
+                                                                                       set_field_null(field_pos[ij], B_BASE::data);
                                                                                        continue;
                                                                                    }
                                                                                    assign_field_value(field_pos[ij], ptr, len, B_BASE::data);
@@ -5063,8 +5078,8 @@ M_MODEL& ornotnullName()
                                                                                                   auto [ptr, len] = get_data(ij);
                                                                                                   if (ptr == nullptr)
                                                                                                   {
-                                                                                                      static const unsigned char null_value = 0;
-                                                                                                      assign_field_value(field_pos[ij], (unsigned char *)&null_value, 0, data_temp);
+                                                                                                      
+                                                                                                      set_field_null(field_pos[ij], data_temp);
                                                                                                       continue;
                                                                                                   }
                                                                                                   assign_field_value(field_pos[ij], ptr, len, data_temp);
@@ -5079,8 +5094,8 @@ M_MODEL& ornotnullName()
                                                                                                   auto [ptr, len] = get_data(ij);
                                                                                                   if (ptr == nullptr)
                                                                                                   {
-                                                                                                      static const unsigned char null_value = 0;
-                                                                                                      assign_field_value(field_pos[ij], (unsigned char *)&null_value, 0, B_BASE::data);
+                                                                                                      
+                                                                                                      set_field_null(field_pos[ij], B_BASE::data);
                                                                                                       continue;
                                                                                                   }
                                                                                                   assign_field_value(field_pos[ij], ptr, len, B_BASE::data);
@@ -5643,8 +5658,8 @@ M_MODEL& ornotnullName()
                                                                                auto [ptr, len] = get_data(ij);
                                                                                if (ptr == nullptr)
                                                                                {
-                                                                                   static const unsigned char null_value = 0;
-                                                                                   assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
+                                                                                   
+                                                                                   set_field_null(static_cast<unsigned char>(col_pos_map[ij]), B_BASE::data);
                                                                                    continue;
                                                                                }
                                                                                assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
@@ -5771,8 +5786,8 @@ M_MODEL& ornotnullName()
                                                                                               auto [ptr, len] = get_data(ij);
                                                                                               if (ptr == nullptr)
                                                                                               {
-                                                                                                  static const unsigned char null_value = 0;
-                                                                                                  assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
+                                                                                                  
+                                                                                                  set_field_null(static_cast<unsigned char>(col_pos_map[ij]), B_BASE::data);
                                                                                                   continue;
                                                                                               }
                                                                                               assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
@@ -9974,8 +9989,8 @@ M_MODEL& ornotnullName()
                                                              auto [ptr, len] = get_data(ij);
                                                              if (ptr == nullptr)
                                                              {
-                                                                 static const unsigned char null_value = 0;
-                                                                 assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
+                                                                 
+                                                                 set_field_null(static_cast<unsigned char>(col_pos_map[ij]), B_BASE::data);
                                                                  continue;
                                                              }
                                                              assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
@@ -10041,8 +10056,8 @@ M_MODEL& ornotnullName()
                         auto [ptr, len] = get_data(ij);
                         if (ptr == nullptr)
                         {
-                            static const unsigned char null_value = 0;
-                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
+                            
+                            set_field_null(static_cast<unsigned char>(col_pos_map[ij]), data_temp);
                             continue;
                         }
                         assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
@@ -10568,8 +10583,8 @@ M_MODEL& ornotnullName()
                         auto [ptr, len] = get_data(ij);
                         if (ptr == nullptr)
                         {
-                            static const unsigned char null_value = 0;
-                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
+                            
+                            set_field_null(static_cast<unsigned char>(col_pos_map[ij]), B_BASE::data);
                             continue;
                         }
                         assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
@@ -10638,8 +10653,8 @@ M_MODEL& ornotnullName()
                         auto [ptr, len] = get_data(ij);
                         if (ptr == nullptr)
                         {
-                            static const unsigned char null_value = 0;
-                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
+                            
+                            set_field_null(static_cast<unsigned char>(col_pos_map[ij]), data_temp);
                             continue;
                         }
                         assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
@@ -10712,8 +10727,8 @@ M_MODEL& ornotnullName()
                                                              auto [ptr, len] = get_data(ij);
                                                              if (ptr == nullptr)
                                                              {
-                                                                 static const unsigned char null_value = 0;
-                                                                 assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
+                                                                 
+                                                                 set_field_null(static_cast<unsigned char>(col_pos_map[ij]), B_BASE::data);
                                                                  continue;
                                                              }
                                                              assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
@@ -10775,8 +10790,8 @@ M_MODEL& ornotnullName()
                                                                             unsigned char pos = B_BASE::findcolpos(col_names[ij]);
                                                                             if (ptr == nullptr)
                                                                             {
-                                                                                static const unsigned char null_value = 0;
-                                                                                assign_field_value(pos, (unsigned char *)&null_value, 0, B_BASE::data);
+                                                                                
+                                                                                set_field_null(pos, B_BASE::data);
                                                                                 continue;
                                                                             }
                                                                             assign_field_value(pos, ptr, len, B_BASE::data);

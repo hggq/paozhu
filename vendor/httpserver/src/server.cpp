@@ -221,9 +221,9 @@ asio::awaitable<void> httpserver::http2_send_file_range(std::shared_ptr<httppeer
         // HEAD：忽略 Range，按完整实体回响应头（RFC 9110 §9.3.2），不出 body
         if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
         {
-            send_file_obj->type            = 11;
+            send_file_obj->type = 11;
             send_file_obj->content.clear();
-            send_file_obj->content_length  = filesize;
+            send_file_obj->content_length = filesize;
             peer->status(200);
             peer->length(filesize);
             peer->type(send_file_obj->content_type);
@@ -499,10 +499,10 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
         // HEAD：不压缩、不出 body，只回带正确 Content-Length 的响应头（RFC 9110 §9.3.2）
         if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
         {
-            peer->compress                 = 0;
-            send_file_obj->type            = 11;   // 内存体；空 content → 发送线程补 END_STREAM 空 DATA 帧
+            peer->compress      = 0;
+            send_file_obj->type = 11;// 内存体；空 content → 发送线程补 END_STREAM 空 DATA 帧
             send_file_obj->content.clear();
-            send_file_obj->content_length  = static_cast<unsigned long long>(file_length);
+            send_file_obj->content_length = static_cast<unsigned long long>(file_length);
             peer->status(200);
             peer->length(static_cast<unsigned long long>(file_length));
             peer->type(send_file_obj->content_type);
@@ -3041,8 +3041,8 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
             if (error_state > 0)
             {
                 // last_stream_id 必须报「最后受理的流」：传 0 等于谎称一条都没处理，
-                // 客户端把在途流全部作废，随后真实的响应就成了迟到帧（压测 late 形态）。
-                // 与 http2_handle_parse_error 的连接级路径同口径（本文件 :733）。
+                // 客户端把在途流全部作废，随后真实的响应就成了迟到帧。
+                // 与 http2_handle_parse_error 的连接级路径同理。
                 co_await peer_session->async_send_goway(http2pre->max_client_stream_id, 0);
                 break;
             }
@@ -3434,8 +3434,9 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
             asio::co_spawn(peer_session->strand_, ring_client_server(peer_session), asio::detached);
         }
 
-        // 有定时器的连接加入定时队列，放在 101 入环之后保证 FIFO
-        if (websockets->durtime > 0)
+        // 有定时器的连接加入定时队列，放在 101 入环之后保证 FIFO。
+        // 开了服务端 ping 保活时所有连接都要进表——保活是框架职责，跟业务要不要 run_loop 无关。
+        if (websockets->durtime > 0 || CONST_WEBSOCKET_PING_INTERVAL > 0)
         {
             std::lock_guard<std::mutex> lk(websocket_task_mutex);
             websockettasks.emplace_back(websockets);
@@ -3477,7 +3478,7 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
         unsigned int readnum               = 0;
         unsigned int seq_id                = 0;
         unsigned long long total_recv_data = 0;
-        // 越水位且有界等待后仍不退的丢弃数（本连接累计，收尾时一行日志）
+        // 本连接累计丢过多少条入站消息（越水位丢最新一条、线程池拒单取回都算），收尾时一行日志
         unsigned long long ws_ingress_dropped = 0;
         ws::ws_parser ws_in_parser;
         // 入站限额来自编译期常量（common/cost_define.h）
@@ -3493,6 +3494,35 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
                                 CONST_WEBSOCKET_SPILL_THRESHOLD);
         peer_session->ws_deflate = ws_deflate_ext;
         ws_in_parser.set_deflate_ext(ws_deflate_ext);
+
+        // 丢掉一条入站消息的收尾：落盘的文件顺手 unlink，本连接计数加一，按 1/256 节流记一行日志。
+        // 越水位丢弃和线程池拒单取回都走这里，保证"消息要么在队列里等着业务来取，要么进了这个计数"。
+        auto drop_ingress_message = [&](websockets_data_list_t &dropped, const char *cause)
+        {
+            if (dropped.isfile && !dropped.value.empty())
+            {
+                std::remove(dropped.value.c_str());
+            }
+            ws_ingress_dropped += 1;
+            if (ws_ingress_dropped != 1 && ws_ingress_dropped % 256 != 0)
+            {
+                return;
+            }
+#ifndef BENCHMARK
+            log_item.clear();
+            log_item.append(peer_session->client_ip);
+            log_item.push_back(0x20);
+            log_item.append(std::to_string(peer_session->client_port));
+            log_item.append(" websocket ingress ");
+            log_item.append(cause);
+            log_item.append(std::to_string(ws_ingress_dropped));
+            log_item.append(" messages");
+            log_item.push_back('\n');
+            std::unique_lock<std::mutex> lock(log_mutex);
+            error_loglist.emplace_back(log_item);
+            lock.unlock();
+#endif
+        };
 
         for (;;)
         {
@@ -3621,11 +3651,17 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
                 }
                 else if (ctrl.op == ws::opcode::ping)
                 {
+                    // 旧钩子名字沿用至今：收到 ping 时调它，业务迁到 onping 后再删
                     websockets->onpong();
+                    websockets->onping(ctrl.payload);
                     // Pong 走环，与业务 send 统一出口
                     ws::post_send_pong(*peer_session, ctrl.payload);
                 }
-                // opcode::pong 忽略
+                else if (ctrl.op == ws::opcode::pong)
+                {
+                    // 收到我方 ping 的回应。存活记账不依赖这个钩子：读循环底部按收到的字节刷新
+                    websockets->onpong(ctrl.payload);
+                }
             }
 
             // 处理就绪的数据消息
@@ -3675,40 +3711,48 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
                     {
                         // 双工：投完立刻回去继续收帧，不等业务钩子（seqid 已经带在消息里，
                         // 要排序是业务的事）。钩子抛异常由 run_conn_task 收口并记日志。
-                        // 池没接单时这条任务被丢弃并计数（getconndropped），读循环不断、连接不关。
-                        post_conn_step("ws.onmessage", [ws = websockets]()
-                                       { ws->onmessage(); });
+                        if (!post_conn_step("ws.onmessage", [ws = websockets]()
+                                            { ws->onmessage(); }))
+                        {
+                            // 线程池没接单（关池那几秒、以及测试钩子两条路）：这条消息没人来取了，
+                            // 从队尾拿回来按丢弃记账，队列里不留无人认领的消息。
+                            // 队尾不是这一条说明业务已经把它取走，那就只记账、不动别人的消息。
+                            websockets_data_list_t take_back;
+                            bool got_back = false;
+                            {
+                                std::lock_guard<std::mutex> lock(websockets->content_list_mutex);
+                                if (!websockets->content_list.empty() &&
+                                    websockets->content_list.back().seqid == ws_temp_data.seqid)
+                                {
+                                    take_back = std::move(websockets->content_list.back());
+                                    websockets->content_list.pop_back();
+                                    got_back = true;
+                                }
+                            }
+                            // got_back=false 时 ws_temp_data 已被 push 搬空，这里只会加一条丢弃计数：
+                            // 那条消息已被业务取走，落盘文件的删除责任随之归业务，不再由框架 unlink。
+                            drop_ingress_message(got_back ? take_back : ws_temp_data, "pool reject, dropped ");
+                        }
                     }
                 }
                 else
                 {
                     // 有界等待（CONST_WEBSOCKET_QUEUE_STALL_MAX_MS）后水位仍堵着：丢最新一条并计数，
-                    // 默认不断连。落盘消息必须顺手 unlink，丢一条漏一个临时文件（R3 同族）。
-                    if (ws_temp_data.isfile)
-                    {
-                        std::remove(ws_temp_data.value.c_str());
-                    }
-                    ws_ingress_dropped += 1;
-                    if (ws_ingress_dropped == 1 || ws_ingress_dropped % 256 == 0)
-                    {
-#ifndef BENCHMARK
-                        log_item.clear();
-                        log_item.append(peer_session->client_ip);
-                        log_item.push_back(0x20);
-                        log_item.append(std::to_string(peer_session->client_port));
-                        log_item.append(" websocket ingress queue over watermark, dropped ");
-                        log_item.append(std::to_string(ws_ingress_dropped));
-                        log_item.append(" messages");
-                        log_item.push_back('\n');
-                        std::unique_lock<std::mutex> lock(log_mutex);
-                        error_loglist.emplace_back(log_item);
-                        lock.unlock();
-#endif
-                    }
+                    // 默认不断连。落盘消息的 unlink 在收尾里做，丢一条漏一个临时文件（R3 同族）。
+                    drop_ingress_message(ws_temp_data, "queue over watermark, dropped ");
                 }
             }
 
-            peer_session->time_limit.store(timeid() + 86400);
+            // 每收到一批入站字节就把回收期限往前推（pong 也算），上限见 CONST_WEBSOCKET_IDLE_LIMIT
+            unsigned int rx_now = timeid();// 同一批入站只取一次时刻，两处刷新共用这份快照
+            peer_session->time_limit.store(rx_now + CONST_WEBSOCKET_IDLE_LIMIT);
+            // 同时刷 pong 存活判定的观测点：与 time_limit 同拍，避免"time_limit 被 run_loop 续期
+            // 但其实没有真实入站"的口径偏差（run_loop 续期业务心跳不算真实对端存活）。
+            // Both refresh points in the same batch — keeps pong-timeout immune to run_loop
+            // synthetic heartbeats that extend time_limit without real inbound bytes.
+            // 放在 websockets_api（per-WS-conn）上，避免 client_session（HTTP/1/2/WS 共用）膨胀。
+            // Lives on websockets_api (per-WS-conn) to keep client_session lean.
+            websockets->ws_last_rx_seen.store(rx_now, std::memory_order_relaxed);
             if (websockets->isclose)
             {
                 if (ws_ingress_dropped > 0)
@@ -4487,8 +4531,8 @@ asio::awaitable<unsigned int> httpserver::client_tcp_loop(unsigned int readnum, 
 }
 
 // ====== MQTT 5 Will 延迟发布（will_delay_interval，§3.2.2.26.3 / §4.3.3）======
-// 客户端在 CONNECT 属性里声明的延迟秒数此前只是存进结构体（mqtt_frame.cpp:565），
-// 服务端收到断连就立刻发遗嘱。下面这两个计数是这条支路的在途量与丢弃量。
+// 客户端在 CONNECT 属性里声明的延迟秒数；不声明（0）就在断连时立刻发遗嘱。
+// 下面这两个计数是这条支路的在途量与丢弃量。
 static std::atomic<unsigned long long> mqtt_will_delay_pending = 0;
 static std::atomic<unsigned long long> mqtt_will_delay_dropped = 0;
 
@@ -4539,11 +4583,11 @@ static asio::awaitable<void> mqtt_publish_delayed_will(std::string client_id,
         co_return;
     }
 
-    // 取消判据：到期时这个 client_id 已被别的会话占着 ⇒ 客户端在延迟窗口内重连过，遗嘱作废
+    // 取消条件：到期时这个 client_id 已被别的会话占着 ⇒ 客户端在延迟窗口内重连过，遗嘱作废
     // （MQTT 5 §4.3.3）。调度之后本会话就 cleanup() 把自己从索引摘掉了，所以"没被接管"的正常
     // 到期在这里读到的是空指针 —— 不能反过来写成"find_client 等于本会话才发"，那样每条都发不出去。
     // 已知边界：窗口内"重连、又断开"会把索引腾空，于是这条旧遗嘱仍会发出去。要修它得给
-    // client_id 加一个"已被接管过"的世代号，本框架没有可恢复会话状态，先如实记下。
+    // client_id 加一个"已被接管过"的世代号，本框架没有可恢复会话状态，暂不处理。
     if (mqtt_broker::instance().find_client(client_id))
     {
         co_return;
@@ -4878,7 +4922,7 @@ asio::awaitable<unsigned int> httpserver::client_mqtt_loop(unsigned int readnum,
         if (wi.has && !clean_disconnect && established && !sess->is_taken_over())
         {
             // will_delay_interval>0 就把发布推迟到客户端声明的秒数（超上限按上限，不丢弃），
-            // 窗口内该 client_id 被新会话占着则取消；0 走原来的立即发布，行为与改造前一致。
+            // 窗口内该 client_id 被新会话占着则取消；0 则立即发布。
             unsigned long long delay = wi.will_delay_interval;
             if (delay > CONST_MQTT_WILL_DELAY_MAX_SEC)
             {
@@ -5126,8 +5170,7 @@ asio::awaitable<void> httpserver::handle_mqtt_subscribe(std::shared_ptr<http::mq
             for (auto &rm : retained_list)
             {
                 // 属性要还原成「出站 PUBLISH 属性」（剩余寿命递减 + 丢弃方向相关字段），
-                // 否则入库时存的 content_type / user_properties 等全部丢失
-                //（to_publish_props 此前一直是死代码，见 P1-4）。
+                // 否则入库时存的 content_type / user_properties 等全部丢失。
                 // 返回 false = 该条滞留期间已过 Message Expiry → 不再投递。
                 mqtt_publish_props rprops;
                 if (!rm.to_publish_props(rprops, now_sec))
@@ -5712,10 +5755,10 @@ void httpserver::requeue_stuck_parked()
             return;
         }
     } while (!send_queue_obj.belt_sweep_second.compare_exchange_weak(prev_second, this_second, std::memory_order_acq_rel, std::memory_order_acquire));
-    // 拍与拍之间还要一把"只试不等"的互斥：上一拍还在跑（摘全表 + 逐条重算闸门，表长
+    // 拍与拍之间还要一把"只试不等"的互斥：上一拍还在跑（摘全表 + 逐条重算闸门，表足够长时
     // Try-lock mutex between beats: previous beat still running (full-table drain + per-entry
-    // gate recompute — table long or ASan-slowed can stretch past one beat),
-    // 或 ASan 拖慢能跑过一拍），下面那三个静态量就有第二个写者。抢不到就跳过这一拍，
+    // gate recompute — a long table can stretch past one beat),
+    // 能跑过一拍），下面那三个静态量就有第二个写者。抢不到就跳过这一拍，
     // three statics would have a second writer. Skip this beat on contention —
     // 兜底本来就允许某一拍被漏掉——事件边才是正常路径。
     // belt sweep is allowed to miss beats; event edges are the normal path.
@@ -6263,16 +6306,18 @@ void httpserver::http2_send_queue_loop([[maybe_unused]] unsigned char index_id)
                 // 也递一次到（未到期的开销仍然只有一次原子读 + 一次失败的 CAS）。此刻
                 // send_data_mutex 是空的：上面那次 %4 摘活的锁已经出了作用域。
                 requeue_stuck_parked();
-                int loop_per_num                                                  = thread_sent_data_list.size();
+                std::size_t loop_per_num                                          = thread_sent_data_list.size();
                 const std::chrono::time_point<std::chrono::steady_clock> sq_start = std::chrono::steady_clock::now();
 
                 for (auto iter = thread_sent_data_list.begin(); iter != thread_sent_data_list.end();)
                 {
-                    loop_per_num--;
-                    if (loop_per_num < 0)
+                    // 本趟只处理进循环时快照的那批元素：计数到 0 即退出。
+                    // 判零必须在自减之前：无符号计数越过 0 会回卷成最大值，上界就失效了。
+                    if (loop_per_num == 0)
                     {
                         break;
                     }
+                    --loop_per_num;
                     // 需要检查 sp 对象
                     // Need to inspect sp object.
                     std::shared_ptr<http2_send_data_t> sp = *iter;
@@ -6501,14 +6546,9 @@ void httpserver::websocket_loop(int fps)
                     }
                     bool need_run = (peer->loop_num > 0) && (peer->durtime > 0) && (fps % peer->durtime == 0);
                     tick_items.emplace_back(peer, need_run);
-                    if (peer->loop_num == 0)
-                    {
-                        iter = websockettasks.erase(iter);
-                    }
-                    else
-                    {
-                        ++iter;
-                    }
+                    // 连接还活着就留在表里：保活 ping 要覆盖每一条，
+                    // 不能因为业务把 loop_num 减到 0 就把这条连的框架职责一起停掉。
+                    ++iter;
                 }
             }
 
@@ -6521,6 +6561,53 @@ void httpserver::websocket_loop(int fps)
                     if (peer->session_sock && peer->session_sock->http2_need_wakeup)
                     {
                         peer->session_sock->waituphttp2();
+                    }
+                    // 保活 ping：空闲连接自己不会产生入站字节，服务端发 ping，对端回的 pong
+                    // 就是那条入站活动（读循环拿它刷新回收期限）。周期 0 = 关闭。
+                    if (CONST_WEBSOCKET_PING_INTERVAL > 0 && peer->session_sock)
+                    {
+                        unsigned int &next_ping = peer->ws_next_ping;
+                        if (next_ping == 0)
+                        {
+                            next_ping = timeid() + CONST_WEBSOCKET_PING_INTERVAL;
+                        }
+                        else if (timeid() >= next_ping)
+                        {
+                            peer->send_ping();
+                            next_ping = timeid() + CONST_WEBSOCKET_PING_INTERVAL;
+                        }
+                        // pong 超时撤连：连续 N * INTERVAL 秒无任何真实入站（含 pong），
+                        // 视为对端静默挂掉（半开/NAT 过期/移动切换）。主动发 close(1011) 让对端
+                        // 尽早收到；同时把 next_ping 置到 MAX，留在定时表里也永远不再发 ping，
+                        // 等 httpwatch 扫到 isclose 自然收走。
+                        // Pong-timeout drop: N * INTERVAL seconds without real inbound (pong counts)
+                        // ⇒ peer silently down. Send close(1011) + pin next_ping to MAX so we stop
+                        // pinging this slot; httpwatch picks up isclose and drains the session.
+                        // 观测点放在 websockets_api（per-WS-conn），避免 client_session 膨胀。
+                        // Observation point lives on websockets_api (per-WS-conn), not the shared
+                        // HTTP/1/2/WS client_session skeleton.
+                        constexpr unsigned int kPongTimeoutSec = CONST_WEBSOCKET_PING_INTERVAL * 3;
+                        unsigned int last_rx                   = peer->ws_last_rx_seen.load(
+                            std::memory_order_relaxed);
+                        if (last_rx != 0 && timeid() - last_rx > kPongTimeoutSec)
+                        {
+#ifndef BENCHMARK
+                            log_item.clear();
+                            log_item.append(peer->session_sock->client_ip);
+                            log_item.push_back(0x20);
+                            log_item.append(std::to_string(peer->session_sock->client_port));
+                            log_item.append(" websocket pong timeout(");
+                            log_item.append(std::to_string(kPongTimeoutSec));
+                            log_item.append("s), closing 1011");
+                            log_item.push_back('\n');
+                            std::unique_lock<std::mutex> lock(log_mutex);
+                            error_loglist.emplace_back(log_item);
+                            lock.unlock();
+#endif
+                            ws::post_send_close(*peer->session_sock, 1011);
+                            peer->session_sock->isclose.store(true);
+                            peer->ws_next_ping = ~0U;
+                        }
                     }
                     if (item.second && peer->session_sock)
                     {
@@ -7437,7 +7524,7 @@ asio::awaitable<void> httpserver::async_ws_subpub_loop(
         ws->strand_ = asio::make_strand(io_ctx);
         ws->timeout(cfg.timeout_sec);
         // 常驻连接交给看护线程的 dur 托管分支：dur_time_loop_fun 非空且 durtime > 0 时，
-        // 看护线程那一拍只发心跳、不做超时检查（client_context.cpp:136-149）。
+        // 看护线程那一拍只发心跳、不做超时检查。
         // 不这么写的话，pump 正 parked 在读上、链路空闲到期限就被在看护线程上 close_connect()。
         // 注：看护线程 1 拍 = 250ms，这里的 durtime 是它的拍数；业务侧 durtime 是 1s 一拍，两者不同单位。
         ws->durtime           = client->durtime > 0 ? client->durtime : 8;

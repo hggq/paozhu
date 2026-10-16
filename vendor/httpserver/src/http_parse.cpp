@@ -613,7 +613,6 @@ void httpparse::methodprocess(std::string_view contentline)
             peer->compress = 10;
         }
 #endif
-
     }
 
     header_key.clear();
@@ -2201,7 +2200,7 @@ void httpparse::read_rawfile_formdata(std::string_view raw_http_post_data)
         // 落盘名统一由 make_http_temp_raw_name() 生成：文件名带 pzraw_ 前缀，
         // 该前缀是 httpwatch 周期清理时识别「框架自己的临时文件」的唯一依据，
         // 不要在此自行拼接文件名，否则文件会长期留在 temp_path 里。
-        std::string temp_filename = localvar.temp_path;// + "temp/";
+        std::string temp_filename = localvar.temp_path;
         temp_filename.append(http::make_http_temp_raw_name());
 
         std::unique_ptr<std::FILE, int (*)(FILE *)> fpa(std::fopen(temp_filename.c_str(), "wb"), std::fclose);

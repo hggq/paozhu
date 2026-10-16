@@ -300,6 +300,7 @@ asio::awaitable<bool> async_send_email::async_send()
                 std::tie(ec) = co_await sslsock->lowest_layer().async_connect(*iter, tuple_awaitable);
                 if (ec)
                 {
+                    ++iter;
                     continue;
                 }
                 break;
@@ -590,6 +591,7 @@ asio::awaitable<bool> async_send_email::async_send()
                 std::tie(ec) = co_await sock->async_connect(*iter, tuple_awaitable);
                 if (ec)
                 {
+                    ++iter;
                     continue;
                 }
                 break;

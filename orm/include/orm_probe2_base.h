@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_ORM_PROBE2BASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 15 Oct 2026 11:48:18 GMT
+*本文件为自动生成 Fri, 16 Oct 2026 22:50:07 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -40,12 +40,28 @@ namespace orm_probe2_info
 
     };
 
+    // 只含允许 NULL 的列，位下标从 0 连续分配，与物理列号解耦
+    enum class null_col : unsigned char
+    {
+		v = 0,
+		big_id = 1,
+		pad = 2,
+    };
+    static constexpr std::size_t nullable_count = 3;
+    // 物理列下标 -> NULL 位下标，非可空列为 -1
+    static constexpr std::array<int,col_count> null_index_of={-1,0,1,2};
+
     struct meta
     {
 		 int  id = 0; ///**/
 		 std::string  v = "NULL"; ///**/
 		 unsigned  long long  big_id = NULL; ///**/
 		 std::string  pad = "NULL"; ///**/
+		
+		// SQL NULL 位图，默认全 0 表示非 NULL
+		std::bitset<nullable_count> null_bits{};
+		bool is_null(null_col c) const { return null_bits.test(static_cast<std::size_t>(c)); }
+		void set_null(null_col c, bool on = true) { null_bits.set(static_cast<std::size_t>(c), on); }
 	};
   
     struct meta_tree
@@ -54,6 +70,11 @@ namespace orm_probe2_info
 		 std::string  v = "NULL"; ///**/
 		 unsigned  long long  big_id = NULL; ///**/
 		 std::string  pad = "NULL"; ///**/
+		
+		// SQL NULL 位图，默认全 0 表示非 NULL
+		std::bitset<nullable_count> null_bits{};
+		bool is_null(null_col c) const { return null_bits.test(static_cast<std::size_t>(c)); }
+		void set_null(null_col c, bool on = true) { null_bits.set(static_cast<std::size_t>(c), on); }
 
 	 std::vector<meta_tree> children;
  };
@@ -64,6 +85,11 @@ namespace orm_probe2_info
 		 std::string  v = "NULL"; ///**/
 		 unsigned  long long  big_id = NULL; ///**/
 		 std::string  pad = "NULL"; ///**/
+		
+		// SQL NULL 位图，默认全 0 表示非 NULL
+		std::bitset<nullable_count> null_bits{};
+		bool is_null(null_col c) const { return null_bits.test(static_cast<std::size_t>(c)); }
+		void set_null(null_col c, bool on = true) { null_bits.set(static_cast<std::size_t>(c), on); }
 
 	 std::vector<std::unique_ptr<meta_tree>> children;
  };
@@ -617,6 +643,7 @@ namespace orm_probe2_info
 struct orm_probe2_base
 {
     using cols = orm_probe2_info::cols;
+    using null_col = orm_probe2_info::null_col;
       orm_probe2_info::meta data;
     std::vector<orm_probe2_info::meta> record;
 static constexpr std::string_view _rmstag="default";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -800,13 +827,25 @@ break;
  }else{ 
 	tempsql<<std::to_string(data.id);
 }
+if(data.is_null(orm_probe2_info::null_col::v)){
+	tempsql<<",null";
+}else{
 tempsql<<",'"<<stringaddslash(data.v)<<"'";
+}
+if(data.is_null(orm_probe2_info::null_col::big_id)){
+	tempsql<<",null";
+}else{
 if(data.big_id==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(data.big_id);
 }
+}
+if(data.is_null(orm_probe2_info::null_col::pad)){
+	tempsql<<",null";
+}else{
 tempsql<<",'"<<stringaddslash(data.pad)<<"'";
+}
 tempsql<<")";
 
      
@@ -837,13 +876,25 @@ tempsql<<")";
  }else{ 
 	tempsql<<std::to_string(insert_data.id);
 }
+if(insert_data.is_null(orm_probe2_info::null_col::v)){
+	tempsql<<",null";
+}else{
 tempsql<<",'"<<stringaddslash(insert_data.v)<<"'";
+}
+if(insert_data.is_null(orm_probe2_info::null_col::big_id)){
+	tempsql<<",null";
+}else{
 if(insert_data.big_id==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(insert_data.big_id);
 }
+}
+if(insert_data.is_null(orm_probe2_info::null_col::pad)){
+	tempsql<<",null";
+}else{
 tempsql<<",'"<<stringaddslash(insert_data.pad)<<"'";
+}
 tempsql<<")";
 
      
@@ -882,13 +933,25 @@ tempsql<<")";
 	 }else{ 
 	tempsql<<std::to_string(insert_data[i].id);
 	}
+if(insert_data[i].is_null(orm_probe2_info::null_col::v)){
+	tempsql<<",null";
+}else{
 		tempsql<<",'"<<stringaddslash(insert_data[i].v)<<"'";
+}
+if(insert_data[i].is_null(orm_probe2_info::null_col::big_id)){
+	tempsql<<",null";
+}else{
 	if(insert_data[i].big_id==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(insert_data[i].big_id);
 	}
+}
+if(insert_data[i].is_null(orm_probe2_info::null_col::pad)){
+	tempsql<<",null";
+}else{
 		tempsql<<",'"<<stringaddslash(insert_data[i].pad)<<"'";
+}
 		tempsql<<")";
 	 } 
 
@@ -913,13 +976,25 @@ tempsql<<")";
  }else{ 
 	tempsql<<"id="<<std::to_string(data.id);
 }
+if(data.is_null(orm_probe2_info::null_col::v)){
+	tempsql<<",v=null";
+}else{
 tempsql<<",v='"<<stringaddslash(data.v)<<"'";
+}
+if(data.is_null(orm_probe2_info::null_col::big_id)){
+	tempsql<<",big_id=null";
+}else{
 if(data.big_id==0){
 	tempsql<<",big_id=0";
  }else{ 
 	tempsql<<",big_id="<<std::to_string(data.big_id);
 }
+}
+if(data.is_null(orm_probe2_info::null_col::pad)){
+	tempsql<<",pad=null";
+}else{
 tempsql<<",pad='"<<stringaddslash(data.pad)<<"'";
+}
  }else{ 
 
      
@@ -974,10 +1049,12 @@ if(data.id==0){
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
+ if(data.is_null(orm_probe2_info::null_col::v)){ tempsql<<"v=null"; break; } 
 tempsql<<"v='"<<stringaddslash(data.v)<<"'";
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
+ if(data.is_null(orm_probe2_info::null_col::big_id)){ tempsql<<"big_id=null"; break; } 
 if(data.big_id==0){
 	tempsql<<"big_id=0";
  }else{ 
@@ -986,6 +1063,7 @@ if(data.big_id==0){
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
+ if(data.is_null(orm_probe2_info::null_col::pad)){ tempsql<<"pad=null"; break; } 
 tempsql<<"pad='"<<stringaddslash(data.pad)<<"'";
  break;
 
@@ -1021,9 +1099,11 @@ tempsql<<"pad='"<<stringaddslash(data.pad)<<"'";
                         }
                         break;
                     case 1:
+                        if(data.is_null(orm_probe2_info::null_col::v)){ tempsql<<"v=null"; break; }
                         tempsql<<"v='"<<stringaddslash(data.v)<<"'";
                         break;
                     case 2:
+                        if(data.is_null(orm_probe2_info::null_col::big_id)){ tempsql<<"big_id=null"; break; }
                         if(data.big_id==0){
                             tempsql<<"big_id=0";
                         }else{ 
@@ -1031,6 +1111,7 @@ tempsql<<"pad='"<<stringaddslash(data.pad)<<"'";
                         }
                         break;
                     case 3:
+                        if(data.is_null(orm_probe2_info::null_col::pad)){ tempsql<<"pad=null"; break; }
                         tempsql<<"pad='"<<stringaddslash(data.pad)<<"'";
                         break;
                 }
@@ -1079,13 +1160,25 @@ tempsql<<"pad='"<<stringaddslash(data.pad)<<"'";
 	 }else{ 
 	tempsql<<std::to_string(record[i].id);
 	}
+if(record[i].is_null(orm_probe2_info::null_col::v)){
+	tempsql<<",null";
+}else{
 	tempsql<<",'"<<stringaddslash(record[i].v)<<"'";
+}
+if(record[i].is_null(orm_probe2_info::null_col::big_id)){
+	tempsql<<",null";
+}else{
 	if(record[i].big_id==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].big_id);
 	}
+}
+if(record[i].is_null(orm_probe2_info::null_col::pad)){
+	tempsql<<",null";
+}else{
 	tempsql<<",'"<<stringaddslash(record[i].pad)<<"'";
+}
 	tempsql<<")";
   }
  
@@ -1129,13 +1222,25 @@ tempsql<<"pad='"<<stringaddslash(data.pad)<<"'";
 	 }else{ 
 	tempsql<<std::to_string(record[i].id);
 	}
+if(record[i].is_null(orm_probe2_info::null_col::v)){
+	tempsql<<",null";
+}else{
 	tempsql<<",'"<<stringaddslash(record[i].v)<<"'";
+}
+if(record[i].is_null(orm_probe2_info::null_col::big_id)){
+	tempsql<<",null";
+}else{
 	if(record[i].big_id==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].big_id);
 	}
+}
+if(record[i].is_null(orm_probe2_info::null_col::pad)){
+	tempsql<<",null";
+}else{
 	tempsql<<",'"<<stringaddslash(record[i].pad)<<"'";
+}
 	tempsql<<")";
 	 }
 	 tempsql<<" as new ON DUPLICATE KEY UPDATE ";
@@ -1854,20 +1959,34 @@ tempsql<<"\"pad\":\""<<http::utf8_to_jsonstring(record[n].pad)<<"\"";
  std::string  getV(){  return data.v; } 
  std::string & getRefV(){  return std::ref(data.v); } 
  void setV( std::string  &val){  data.v=val;
+		 data.set_null(null_col::v, false);
 		 set_dirty(1);  }
  void setV(std::string_view val){  data.v=val;
+		 data.set_null(null_col::v, false);
 		 set_dirty(1);  }
+ void setNullV(){  data.set_null(null_col::v);
+		 set_dirty(1);  }
+ bool isNullV() const {  return data.is_null(null_col::v); } 
 
  unsigned  long long  getBigId(){  return data.big_id; } 
  void setBigId( unsigned  long long  val){  data.big_id=val;
+		 data.set_null(null_col::big_id, false);
 		 set_dirty(2);  }
+ void setNullBigId(){  data.set_null(null_col::big_id);
+		 set_dirty(2);  }
+ bool isNullBigId() const {  return data.is_null(null_col::big_id); } 
 
  std::string  getPad(){  return data.pad; } 
  std::string & getRefPad(){  return std::ref(data.pad); } 
  void setPad( std::string  &val){  data.pad=val;
+		 data.set_null(null_col::pad, false);
 		 set_dirty(3);  }
  void setPad(std::string_view val){  data.pad=val;
+		 data.set_null(null_col::pad, false);
 		 set_dirty(3);  }
+ void setNullPad(){  data.set_null(null_col::pad);
+		 set_dirty(3);  }
+ bool isNullPad() const {  return data.is_null(null_col::pad); } 
 
 orm_probe2_info::meta getnewData(){
  	 struct orm_probe2_info::meta newdata;

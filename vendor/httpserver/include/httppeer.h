@@ -224,28 +224,28 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     bool ischunked    = false;
     bool isfinish     = false;
     // 流响应是否已收尾。发送线程在最后一帧入环后置真，连接级读协程遍历挂着的流时会读它
-    // （http2parse::clsoesend），和 isclose 同一族字段，所以按同样的形状放成原子：
+    // （http2parse::clsoesend）。和 isclose 一样是跨线程读写，所以放成原子：
     // 普通 bool 时读侧可能永远看不到置位，也可能读到写一半的状态。
     std::atomic<bool> issend{false};
-    // 每流关闭标志：被读协程（连接级解析）置位以中止「已派发到 http2loop 的流」的出站响应，
-    // 发送线程按它丢弃该流已入队的响应。改 atomic 是因为读协程写、发送线程读是真正的跨线程访问，
-    // 原先靠执行顺序巧合不重叠才没出事；流级 RST_STREAM 让这次写读变成并发。
+    // 每流关闭标志：由读协程（连接级解析）置位以中止「已派发到 http2loop 的流」的出站响应，
+    // 发送线程按它丢弃该流已入队的响应。置位和读取可以同时发生（流级 RST_STREAM 就走读协程），
+    // 所以这一位必须是原子。
     std::atomic<bool> isclose{false};
-    bool isssl        = false;
-    bool keepalive    = true;
-    bool isso         = false;
-    bool iscors       = false;
-    bool isfile       = false;
+    bool isssl     = false;
+    bool keepalive = true;
+    bool isso      = false;
+    bool iscors    = false;
+    bool isfile    = false;
     // 仅 HTTP/1 用：Origin 早于 Host 到达时挂起判定（值已在 header["origin"] 里），
     // 等 getheaderhost() 解析出 Host、host_index 定下后补判，避免每请求都查一次 header
     bool cors_origin_pending  = false;
     bool ishas_content_length = false;
 
     unsigned char posttype   = 0;
-    unsigned char compress     = 0;
-    unsigned int host_index    = 0;
-    unsigned int stream_id     = 0;
-    unsigned int status_code   = 0;
+    unsigned char compress   = 0;
+    unsigned int host_index  = 0;
+    unsigned int stream_id   = 0;
+    unsigned int status_code = 0;
     // 仅 HTTP/2 用：站点上传限额在头块阶段就判掉这条请求时，这里存要回的状态码（0 = 不拒）。
     // 非 0 即代表「正文一帧都不收」：读循环按它直接派发状态页，解析器按它丢弃后到的 DATA。
     unsigned int reject_status = 0;
@@ -257,10 +257,10 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     // 没有它，一条比自己的间隔还慢的任务会被两个池线程同时跑，而且越攒越多。
     std::atomic<bool> timeloop_inflight{false};
     // 间隔任务要跑的那个 regfun 的名字。它过去借的是 pathinfos[0]，而 pathinfos 是每个请求
-    // 由解析器重填的（http_parse.cpp:520、http2_parse.cpp:409），keep-alive 上的下一个请求
-    // 就把任务名换成了新 URL 的段，登记因此活不过下一次请求；这里改成任务自己的一份。
+    // 由解析器重填的，keep-alive 上的下一个请求就把任务名换成了新 URL 的段，
+    // 任务名因此活不过下一次请求；这里改成任务自己的一份。
     std::string timeloop_taskname;
-    unsigned int request_time  = 0;
+    unsigned int request_time = 0;
     //unsigned int time_limit             = 0;
     unsigned long long content_length   = 0;
     unsigned long long sessionfile_time = 0;
@@ -309,13 +309,13 @@ class httppeer : public std::enable_shared_from_this<httppeer>
 
     // ---- RFC 7540 §8.1.2 伪头跨状态校验标记（HTTP/2 头解析完即置 true 后不再写）----
     // Pseudo-header tracking — set during header parsing, never touched after dispatch.
-    bool h2_method_seen  = false;  // :method 至少出现过一次
-    bool h2_method_dup   = false;  // :method 重复出现过（h2spec 8.1.2.3 #5）
-    bool h2_scheme_seen  = false;  // :scheme 至少出现过一次
-    bool h2_scheme_dup   = false;  // :scheme 重复出现过（h2spec 8.1.2.3 #6）
-    bool h2_path_seen    = false;  // :path 至少出现过一次
-    bool h2_path_dup     = false;  // :path 重复出现过（h2spec 8.1.2.3 #7）
-    bool h2_regular_seen = false;  // 是否已出现普通头（伪头顺序校验 h2spec 8.1.2.1 #4）
+    bool h2_method_seen  = false;// :method 至少出现过一次
+    bool h2_method_dup   = false;// :method 重复出现过（h2spec 8.1.2.3 #5）
+    bool h2_scheme_seen  = false;// :scheme 至少出现过一次
+    bool h2_scheme_dup   = false;// :scheme 重复出现过（h2spec 8.1.2.3 #6）
+    bool h2_path_seen    = false;// :path 至少出现过一次
+    bool h2_path_dup     = false;// :path 重复出现过（h2spec 8.1.2.3 #7）
+    bool h2_regular_seen = false;// 是否已出现普通头（伪头顺序校验 h2spec 8.1.2.1 #4）
 };
 // — v6 router —
 enum class fn_kind : uint8_t

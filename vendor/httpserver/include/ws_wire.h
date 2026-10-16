@@ -247,12 +247,6 @@ class message_assembler
 // permessage-deflate 压缩标记；RSV2=2/RSV3=1 保留必须为 0）
 std::string serialize_frame(opcode op, std::string_view payload, bool fin = true, unsigned char rsv = 0);
 
-std::string make_close_frame(uint16_t code = 1000, std::string_view reason = {});
-
-std::string make_ping_frame(std::string_view payload = "ping");
-
-std::string make_pong_frame(std::string_view payload);
-
 }// namespace ws
 }// namespace http
 

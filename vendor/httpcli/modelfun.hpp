@@ -122,6 +122,61 @@ struct table_columns_info_t
     bool is_indexed         = false;// 字段是否在任何索引中 (PK/UNI/MUL)
 };
 
+// 可空列布局：位下标从 0 连续分配，只给允许 NULL 的列，与物理列号解耦
+struct null_bits_layout_t
+{
+    unsigned int nullable_count = 0;
+    std::vector<int> null_index_of;          // 长度 == 列数，非可空列为 -1
+    std::vector<unsigned int> nullable_cols; // 可空列的物理下标，按列序
+};
+
+inline null_bits_layout_t build_null_bits_layout(const std::vector<table_columns_info_t> &cols)
+{
+    null_bits_layout_t lay;
+    lay.null_index_of.assign(cols.size(), -1);
+    for (unsigned int i = 0; i < cols.size(); i++)
+    {
+        if (cols[i].is_nullable)
+        {
+            lay.null_index_of[i] = static_cast<int>(lay.nullable_count);
+            lay.nullable_cols.push_back(i);
+            lay.nullable_count++;
+        }
+    }
+    return lay;
+}
+
+// 写侧可空列包装：置位的列直接输出 null_text，未置位时走原有取值逻辑。
+// 形参必须是 null_col 枚举，不能把物理列下标当位下标传进去。
+inline std::string null_wrap_cond(const null_bits_layout_t &lay, unsigned int j,
+                                  const std::string &info_name, const std::string &row_expr,
+                                  const std::string &col_name)
+{
+    if (lay.null_index_of[j] < 0)
+    {
+        return "";
+    }
+    return row_expr + ".is_null(" + info_name + "::null_col::" + col_name + ")";
+}
+
+inline void emit_null_wrap_open(std::ostringstream &out, const std::string &cond, const std::string &null_text)
+{
+    if (cond.empty())
+    {
+        return;
+    }
+    out << "if(" << cond << "){\n\ttempsql<<\"" << null_text << "\";\n}else{\n";
+}
+
+inline void emit_null_wrap_close(std::ostringstream &out, const std::string &cond)
+{
+    if (cond.empty())
+    {
+        return;
+    }
+    out << "}\n";
+}
+
 // ============================================================
 // foreign-one-many: 外键映射结构
 // ============================================================
@@ -210,8 +265,8 @@ void assign_field_value(unsigned char index_pos, unsigned char *result_temp_data
         }
         break;
     case 3:
-        // MySQL SHOW COLUMNS "Null" 列: YES=可空(3字节), NO=NOT NULL(2字节)
-        data_temp.is_nullable = (value_size == 3);
+        // MySQL SHOW COLUMNS "Null" 列: YES=可空, NO=NOT NULL
+        data_temp.is_nullable = (value_size == 3 && result_temp_data[0] == 'Y' && result_temp_data[1] == 'E' && result_temp_data[2] == 'S');
         break;
     case 4:
         if (value_size > 0)
@@ -1009,6 +1064,10 @@ bool sqlite_get_column_info(std::shared_ptr<orm::sqlite_conn_base> lite_conn, co
         {
             col_info.is_pk      = true;
             col_info.is_indexed = true;// 主键即索引
+            // 主键列一律按 NOT NULL 归一化: PRAGMA 对 INTEGER PRIMARY KEY(rowid 别名) 会报 notnull=0,
+            // 不归一化主键会被算进可空集合 (与离线 DDL 路径保持同一口径)
+            // primary key columns are always NOT NULL; PRAGMA reports notnull=0 for the rowid alias
+            col_info.is_nullable = false;
             // INTEGER 主键即 rowid 别名, 自动增长 (与 MySQL AUTO_INCREMENT 对应)
             if (col_info.col_type == 0x03 || col_info.col_type == 0x08 || col_info.col_type == 0x02)
             {
@@ -1914,14 +1973,24 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
         switch(index_pos)
         {
             )";
+    null_bits_layout_t null_lay = build_null_bits_layout(table_column_info_lists);
+    std::string null_info_name  = real_model_name + "_info";
     for (unsigned int m = 0; m < table_column_info_lists.size(); m++)
     {
+        // 可空列取到非空值时清 NULL 位，避免 fetch_one 复用 B_BASE::data 时上一次的位残留
+        std::string nullclear_stmt;
+        if (null_lay.null_index_of[m] >= 0)
+        {
+            nullclear_stmt = "\n            data_temp.set_null(" + null_info_name + "::null_col::" + table_column_info_lists[m].col_name + ", false);";
+        }
         append_content += R"(case )";
 
         append_content.append(std::to_string(m));
         if (table_column_info_lists[m].big_type == 1 && table_column_info_lists[m].is_datetime == false)
         {
-            append_content += R"(:
+            append_content += ":";
+            append_content += nullclear_stmt;
+            append_content += R"(
             data_temp.)";
             append_content.append(table_column_info_lists[m].col_name);
             append_content += R"(.assign(reinterpret_cast<const char*>(result_temp_data), value_size);
@@ -1930,7 +1999,9 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
         }
         else if (table_column_info_lists[m].big_type == 1 && table_column_info_lists[m].is_datetime == true)
         {
-            append_content += R"(:
+            append_content += ":";
+            append_content += nullclear_stmt;
+            append_content += R"(
             data_temp.)";
             append_content.append(table_column_info_lists[m].col_name);
             append_content += R"(.assign(reinterpret_cast<const char*>(result_temp_data), value_size);
@@ -1939,7 +2010,9 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
         }
         else if (table_column_info_lists[m].big_type == 2)
         {
-            append_content += R"(:
+            append_content += ":";
+            append_content += nullclear_stmt;
+            append_content += R"(
              {
                data_temp.)";
             append_content.append(table_column_info_lists[m].col_name);
@@ -1967,7 +2040,9 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
         }
         else if (table_column_info_lists[m].big_type == 3)
         {
-            append_content += R"(:
+            append_content += ":";
+            append_content += nullclear_stmt;
+            append_content += R"(
                 {
 
                 #if defined(_LIBCPP_VERSION) && \
@@ -2038,6 +2113,21 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
     }
     )";
 
+    // ===== 查询结果该列是 SQL NULL 时的置位函数 =====
+    if (null_lay.nullable_count > 0)
+    {
+        append_content += "\n    // 未匹配的列传 255，非可空列映射为 -1，两种情况都不置位\n";
+        append_content += "    void set_field_null(unsigned char index_pos, " + null_info_name + "::meta &data_temp)\n    {\n";
+        append_content += "        if (static_cast<std::size_t>(index_pos) >= " + null_info_name + "::col_count) return;\n";
+        append_content += "        int null_bit = " + null_info_name + "::null_index_of[index_pos];\n";
+        append_content += "        if (null_bit >= 0) data_temp.null_bits.set(static_cast<std::size_t>(null_bit));\n";
+        append_content += "    }\n    ";
+    }
+    else
+    {
+        append_content += "\n    void set_field_null(unsigned char /*index_pos*/, " + null_info_name + "::meta & /*data_temp*/) {}\n    ";
+    }
+
     // ===== SQLite prepared 二进制赋值函数：assign_field_value_binary =====
     append_content += "\n        void assign_field_value_binary(unsigned char index_pos, col_value_variant val, ";
     append_content += model_name_info;
@@ -2050,10 +2140,20 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
         case_body += "                std::visit([&](auto&& v){\n";
         case_body += "                    using T = std::decay_t<decltype(v)>;\n";
 
+        // monostate 就是二进制协议里的 SQL NULL
+        std::string nullset_stmt;
+        if (null_lay.null_index_of[m] >= 0)
+        {
+            nullset_stmt = "                        data_temp.set_null(" + null_info_name + "::null_col::" + col.col_name + ");\n";
+        }
+
         if (col.big_type == 1)
         {
             case_body += "                    if constexpr (std::is_same_v<T, std::monostate>)\n";
+            case_body += "                    {\n";
             case_body += "                        data_temp." + col.col_name + ".clear();\n";
+            case_body += nullset_stmt;
+            case_body += "                    }\n";
             case_body += "                    else if constexpr (std::is_same_v<T, std::string_view>)\n";
             case_body += "                        data_temp." + col.col_name + ".assign(v.data(), v.size());\n";
             case_body += "                    else\n";
@@ -2062,7 +2162,10 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
         else if (col.big_type == 2)
         {
             case_body += "                    if constexpr (std::is_same_v<T, std::monostate>)\n";
+            case_body += "                    {\n";
             case_body += "                        data_temp." + col.col_name + " = 0;\n";
+            case_body += nullset_stmt;
+            case_body += "                    }\n";
             case_body += "                    else if constexpr (std::is_same_v<T, int64_t>)\n";
             case_body += "                        data_temp." + col.col_name + " = static_cast<decltype(data_temp." + col.col_name + " )>(v);\n";
             case_body += "                    else if constexpr (std::is_same_v<T, uint64_t>)\n";
@@ -2075,7 +2178,10 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
         else if (col.big_type == 3)
         {
             case_body += "                    if constexpr (std::is_same_v<T, std::monostate>)\n";
+            case_body += "                    {\n";
             case_body += "                        data_temp." + col.col_name + " = 0.0;\n";
+            case_body += nullset_stmt;
+            case_body += "                    }\n";
             case_body += "                    else if constexpr (std::is_same_v<T, int64_t>)\n";
             case_body += "                        data_temp." + col.col_name + " = static_cast<double>(v);\n";
             case_body += "                    else if constexpr (std::is_same_v<T, uint64_t>)\n";
@@ -2106,6 +2212,11 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
         append_content += "            case ";
         append_content.append(std::to_string(m));
         append_content += ":\n";
+        if (null_lay.null_index_of[m] >= 0)
+        {
+            // 置了 NULL 位的列绑定 SQL NULL，而不是把 0 / 空串写进库
+            append_content += "                if (data_temp.is_null(" + null_info_name + "::null_col::" + table_column_info_lists[m].col_name + ")) return http::obj_val(nullptr);\n";
+        }
         if (table_column_info_lists[m].big_type == 1)
         {
             append_content += "                return http::obj_val(std::string(data_temp.";
@@ -2243,6 +2354,43 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
     };
     */
 
+    // ===== 模板里"该列取回 SQL NULL"的分支改走 set_field_null =====
+    // 只有存在可空列的表才替换；没有可空列的表产物保持不变，SQL NULL 仍按默认值回填。
+    if (null_lay.nullable_count > 0)
+    {
+        static const std::array<std::pair<std::string, std::string>, 5> null_forms = {{
+            {"assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);",
+             "set_field_null(static_cast<unsigned char>(col_pos_map[ij]), data_temp);"},
+            {"assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);",
+             "set_field_null(static_cast<unsigned char>(col_pos_map[ij]), B_BASE::data);"},
+            {"assign_field_value(field_pos[ij], (unsigned char *)&null_value, 0, data_temp);",
+             "set_field_null(field_pos[ij], data_temp);"},
+            {"assign_field_value(field_pos[ij], (unsigned char *)&null_value, 0, B_BASE::data);",
+             "set_field_null(field_pos[ij], B_BASE::data);"},
+            {"assign_field_value(pos, (unsigned char *)&null_value, 0, B_BASE::data);",
+             "set_field_null(pos, B_BASE::data);"},
+        }};
+
+        unsigned int null_site_num = 0;
+        for (const auto &form : null_forms)
+        {
+            null_site_num += string_replace_all(template_content, form.first, form.second);
+        }
+
+        if (null_site_num == 0 || template_content.find("&null_value") != std::string::npos)
+        {
+            // 还有调用点没换掉: 保留 null_value 声明, 产物照样能编译, 只是这些列的
+            // SQL NULL 仍旧回填默认值, 这里报出来让生成时就能看见
+            std::cout << "\033[1m\033[31m" << table_name << " table NULL branch not replaced, sql null still fills default value ("
+                      << null_site_num << " sites)\033[0m" << std::endl;
+        }
+        else
+        {
+            // 调用点全部换掉后，这个只为取地址而存在的占位变量就没人用了
+            string_replace_all(template_content, "static const unsigned char null_value = 0;", "");
+        }
+    }
+
     ///*appendwhere*/
     n = string_replace(template_content, "/*appendwhere*/", append_content);
     append_content.clear();
@@ -2375,6 +2523,26 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
     orm_ensure_dir(paths);
 
     int num_fields = table_column_info_lists.size();// mysql_num_fields(result);
+
+    // 可空列布局：枚举项、位图宽度、物理列下标->位下标的映射都由它一处产出
+    null_bits_layout_t null_lay = build_null_bits_layout(table_column_info_lists);
+    {
+        std::cout << "       cols=" << table_column_info_lists.size() << " nullable=" << null_lay.nullable_count;
+        if (null_lay.nullable_count > 0)
+        {
+            std::cout << " [";
+            for (unsigned int i = 0; i < null_lay.nullable_cols.size(); i++)
+            {
+                if (i > 0)
+                {
+                    std::cout << ",";
+                }
+                std::cout << table_column_info_lists[null_lay.nullable_cols[i]].col_name;
+            }
+            std::cout << "]";
+        }
+        std::cout << std::endl;
+    }
 
     std::vector<std::string> table, tablecollist;
     std::vector<unsigned int> tablecelwidth;
@@ -2679,6 +2847,17 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
         metalist.push_back(collnametemp);
     }
 
+    // 位图成员追加在字段尾部：meta / meta_tree / meta_tree_ptr 三个结构共用同一份 metalist
+    if (null_lay.nullable_count > 0)
+    {
+        std::string nullbits_decl;
+        nullbits_decl += "\n\t\t// SQL NULL 位图，默认全 0 表示非 NULL\n";
+        nullbits_decl += "\t\tstd::bitset<nullable_count> null_bits{};\n";
+        nullbits_decl += "\t\tbool is_null(null_col c) const { return null_bits.test(static_cast<std::size_t>(c)); }\n";
+        nullbits_decl += "\t\tvoid set_null(null_col c, bool on = true) { null_bits.set(static_cast<std::size_t>(c), on); }";
+        metalist.push_back(nullbits_decl);
+    }
+
     std::string filebasename = modelspath;
 
     std::string modelfileclass = modelspath;
@@ -2917,6 +3096,39 @@ namespace )";
     headtxt += R"(
     };
 )";
+
+    if (null_lay.nullable_count > 0)
+    {
+        headtxt += R"(
+    // 只含允许 NULL 的列，位下标从 0 连续分配，与物理列号解耦
+    enum class null_col : unsigned char
+    {
+)";
+        for (unsigned int i = 0; i < null_lay.nullable_cols.size(); i++)
+        {
+            headtxt.append("\t\t");
+            headtxt.append(table_column_info_lists[null_lay.nullable_cols[i]].col_name);
+            headtxt.append(" = ");
+            headtxt.append(std::to_string(i));
+            headtxt.append(",\n");
+        }
+        headtxt += R"(    };
+    static constexpr std::size_t nullable_count = )";
+        headtxt.append(std::to_string(null_lay.nullable_count));
+        headtxt += R"(;
+    // 物理列下标 -> NULL 位下标，非可空列为 -1
+    static constexpr std::array<int,col_count> null_index_of={)";
+        for (unsigned int j = 0; j < null_lay.null_index_of.size(); j++)
+        {
+            if (j > 0)
+            {
+                headtxt.append(",");
+            }
+            headtxt.append(std::to_string(null_lay.null_index_of[j]));
+        }
+        headtxt += R"(};
+)";
+    }
 
     std::ostringstream filemodelstrem;
 
@@ -4711,6 +4923,13 @@ struct )";
     headtxt += R"(::cols;
 )";
 
+    if (null_lay.nullable_count > 0)
+    {
+        headtxt += "    using null_col = ";
+        headtxt.append(model_info_name);
+        headtxt += "::null_col;\n";
+    }
+
     headtxt += R"(      )";
     headtxt.append(model_info_name);
     headtxt += R"(::meta data;
@@ -5187,6 +5406,8 @@ struct )";
 
     for (unsigned int j = 0; j < tablecollist.size(); j++)
     {
+        std::string nullcond = null_wrap_cond(null_lay, j, model_info_name, "data", tablecollist[j]);
+        emit_null_wrap_open(insertstrem, nullcond, j == 0 ? "null" : ",null");
         // 数字
         // if (j == 0)
         if (table_type[j] < 10)/// 0xF6 NEWDECIMAL 已归为 string 类, 不再走数字分支
@@ -5246,6 +5467,7 @@ struct )";
                     }
                 }
 
+                emit_null_wrap_close(insertstrem, nullcond);
                 continue;
             }
         }
@@ -5296,6 +5518,7 @@ struct )";
                 }
             }
 
+            emit_null_wrap_close(insertstrem, nullcond);
             continue;
         }
         if (colltypeshuzi[j] < 30)
@@ -5323,6 +5546,7 @@ struct )";
 
             insertstrem << "tempsql<<\",'\"<<stringaddslash(data." << tablecollist[j] << ")<<\"'\";\n";
         }
+        emit_null_wrap_close(insertstrem, nullcond);
     }
     insertstrem << "tempsql<<\")\";\n";
     headtxt.append(insertstrem.str());
@@ -5374,6 +5598,8 @@ struct )";
     for (unsigned int j = 0; j < tablecollist.size(); j++)
     {
 
+        std::string nullcond = null_wrap_cond(null_lay, j, model_info_name, "insert_data", tablecollist[j]);
+        emit_null_wrap_open(insertstrem, nullcond, j == 0 ? "null" : ",null");
         // 数字
         // if (j == 0)
         if (table_type[j] < 10)/// 0xF6 NEWDECIMAL 已归为 string 类, 不再走数字分支
@@ -5433,6 +5659,7 @@ struct )";
                     }
                 }
 
+                emit_null_wrap_close(insertstrem, nullcond);
                 continue;
             }
         }
@@ -5483,6 +5710,7 @@ struct )";
                 }
             }
 
+            emit_null_wrap_close(insertstrem, nullcond);
             continue;
         }
         if (colltypeshuzi[j] < 30)
@@ -5510,6 +5738,7 @@ struct )";
 
             insertstrem << "tempsql<<\",'\"<<stringaddslash(insert_data." << tablecollist[j] << ")<<\"'\";\n";
         }
+        emit_null_wrap_close(insertstrem, nullcond);
     }
     insertstrem << "tempsql<<\")\";\n";
     headtxt.append(insertstrem.str());
@@ -5573,6 +5802,8 @@ struct )";
     for (unsigned int j = 0; j < tablecollist.size(); j++)
     {
 
+        std::string nullcond = null_wrap_cond(null_lay, j, model_info_name, "insert_data[i]", tablecollist[j]);
+        emit_null_wrap_open(insertstrem, nullcond, j == 0 ? "null" : ",null");
         // 数字
         // if (j == 0)
         if (table_type[j] < 10)/// 0xF6 NEWDECIMAL 已归为 string 类, 不再走数字分支
@@ -5632,6 +5863,7 @@ struct )";
                     }
                 }
 
+                emit_null_wrap_close(insertstrem, nullcond);
                 continue;
             }
         }
@@ -5684,6 +5916,7 @@ struct )";
                 }
             }
 
+            emit_null_wrap_close(insertstrem, nullcond);
             continue;
         }
         if (colltypeshuzi[j] < 30)
@@ -5711,6 +5944,7 @@ struct )";
 
             insertstrem << "\t\ttempsql<<\",'\"<<stringaddslash(insert_data[i]." << tablecollist[j] << ")<<\"'\";\n";
         }
+        emit_null_wrap_close(insertstrem, nullcond);
     }
     insertstrem << "\t\ttempsql<<\")\";\n\t } \n";
     headtxt.append(insertstrem.str());
@@ -5753,6 +5987,8 @@ struct )";
     for (unsigned int j = 0; j < tablecollist.size(); j++)
     {
 
+        std::string nullcond = null_wrap_cond(null_lay, j, model_info_name, "data", tablecollist[j]);
+        emit_null_wrap_open(updatestrem, nullcond, (j == 0 ? "" : ",") + tablecollist[j] + "=null");
         // 数字
         if (colltypeshuzi[j] < 30)
         {
@@ -5806,6 +6042,7 @@ struct )";
                             << ")<<\"'\";\n";
             }
         }
+        emit_null_wrap_close(updatestrem, nullcond);
     }
     headtxt.append(updatestrem.str());
 
@@ -5871,6 +6108,14 @@ struct )";
         // 数字
         update2strem << " case " << std::to_string(j) << ":\n";
         update2strem << " if(jj>0){ tempsql<<\",\"; } \n";
+        {
+            // 置空的列直接输出 col=null，逗号已由上一行统一给出
+            std::string nullcond = null_wrap_cond(null_lay, j, model_info_name, "data", tablecollist[j]);
+            if (!nullcond.empty())
+            {
+                update2strem << " if(" << nullcond << "){ tempsql<<\"" << tablecollist[j] << "=null\"; break; } \n";
+            }
+        }
         if (colltypeshuzi[j] < 30)
         {
             update2strem << "if(data." << tablecollist[j] << "==0){\n";
@@ -5966,6 +6211,14 @@ struct )";
     for (unsigned int j = 0; j < tablecollist.size(); j++)
     {
         headtxt += "                    case " + std::to_string(j) + ":\n";
+        {
+            // setNullXxx 已标 dirty，置空的列必然进 SET 列表；逗号由外层 !first 统一给出
+            std::string nullcond = null_wrap_cond(null_lay, j, model_info_name, "data", tablecollist[j]);
+            if (!nullcond.empty())
+            {
+                headtxt += "                        if(" + nullcond + "){ tempsql<<\"" + tablecollist[j] + "=null\"; break; }\n";
+            }
+        }
 
         if (colltypeshuzi[j] < 30)
         {
@@ -6071,6 +6324,8 @@ struct )";
 
     for (unsigned int j = 0; j < tablecollist.size(); j++)
     {
+        std::string nullcond = null_wrap_cond(null_lay, j, model_info_name, "record[i]", tablecollist[j]);
+        emit_null_wrap_open(update2strem, nullcond, j == 0 ? "null" : ",null");
         // 数字
         // if (j == 0)
         if (table_type[j] < 10)/// 0xF6 NEWDECIMAL 已归为 string 类, 不再走数字分支
@@ -6115,6 +6370,7 @@ struct )";
                         update2strem << "\t}\n";
                     }
                 }
+                emit_null_wrap_close(update2strem, nullcond);
                 continue;
             }
         }
@@ -6157,6 +6413,7 @@ struct )";
                     update2strem << "\ttempsql<<\"'\"<<stringaddslash(record[i]." << tablecollist[j] << ")<<\"'\";\n";
                 }
             }
+            emit_null_wrap_close(update2strem, nullcond);
             continue;
         }
         if (colltypeshuzi[j] < 30)
@@ -6184,6 +6441,7 @@ struct )";
 
             update2strem << "\ttempsql<<\",'\"<<stringaddslash(record[i]." << tablecollist[j] << ")<<\"'\";\n";
         }
+        emit_null_wrap_close(update2strem, nullcond);
     }
     update2strem << "\ttempsql<<\")\";\n  }\n ";
     if (db_type == DBType::POSTGRESQL)
@@ -6243,6 +6501,8 @@ struct )";
 
     for (unsigned int j = 0; j < tablecollist.size(); j++)
     {
+        std::string nullcond = null_wrap_cond(null_lay, j, model_info_name, "record[i]", tablecollist[j]);
+        emit_null_wrap_open(update2strem, nullcond, j == 0 ? "null" : ",null");
         // 数字
         // if (j == 0)
         if (table_type[j] < 10)/// 0xF6 NEWDECIMAL 已归为 string 类, 不再走数字分支
@@ -6287,6 +6547,7 @@ struct )";
                         update2strem << "\t}\n";
                     }
                 }
+                emit_null_wrap_close(update2strem, nullcond);
                 continue;
             }
         }
@@ -6329,6 +6590,7 @@ struct )";
                     update2strem << "\ttempsql<<\"'\"<<stringaddslash(record[i]." << tablecollist[j] << ")<<\"'\";\n";
                 }
             }
+            emit_null_wrap_close(update2strem, nullcond);
             continue;
         }
         if (colltypeshuzi[j] < 30)
@@ -6356,6 +6618,7 @@ struct )";
 
             update2strem << "\ttempsql<<\",'\"<<stringaddslash(record[i]." << tablecollist[j] << ")<<\"'\";\n";
         }
+        emit_null_wrap_close(update2strem, nullcond);
     }
     update2strem << "\ttempsql<<\")\";\n";
     update2strem << "\t }\n";
@@ -7560,24 +7823,34 @@ struct )";
 
         getsetstrem << " get" << uptempstring << "(){  return data." + tablecollist[j] + "; } \n";
 
+        // 可空列：写有效值时清掉 NULL 位，另外生成 setNullXxx/isNullXxx
+        int null_bit = null_lay.null_index_of[j];
+        std::string nullclear;
+        std::string nullenum;
+        if (null_bit >= 0)
+        {
+            nullenum  = "null_col::" + tablecollist[j];
+            nullclear = "\n\t\t data.set_null(" + nullenum + ", false);";
+        }
+
         if (colltypeshuzi[j] > 29)
         {
             getsetstrem << collisttype[j];
             getsetstrem << "& getRef" << uptempstring << "(){  return std::ref(data." + tablecollist[j] + "); } \n";
             getsetstrem << " void set" << uptempstring << "(" << collisttype[j]
-                        << " &val){  data." + tablecollist[j] + "=val;\n\t\t set_dirty(" + std::to_string(j) + ");  }\n";
+                        << " &val){  data." + tablecollist[j] + "=val;" + nullclear + "\n\t\t set_dirty(" + std::to_string(j) + ");  }\n";
 
             if (collisttype[j].find("std::string") != std::string::npos)
             {
                 getsetstrem << " void set" << uptempstring
-                            << "(std::string_view val){  data." + tablecollist[j] + "=val;\n\t\t set_dirty(" + std::to_string(j) + ");  }\n";
+                            << "(std::string_view val){  data." + tablecollist[j] + "=val;" + nullclear + "\n\t\t set_dirty(" + std::to_string(j) + ");  }\n";
             }
             else
             {
                 getsetstrem << " void set" << uptempstring << "(" << collisttype[j]
-                            << " &val){  data." + tablecollist[j] + "=val;\n\t\t set_dirty(" + std::to_string(j) + ");  }\n";
+                            << " &val){  data." + tablecollist[j] + "=val;" + nullclear + "\n\t\t set_dirty(" + std::to_string(j) + ");  }\n";
                 getsetstrem << " void set" << uptempstring << "(" << collisttype[j]
-                            << " val){  data." + tablecollist[j] + "=val;\n\t\t set_dirty(" + std::to_string(j) + ");  }\n";
+                            << " val){  data." + tablecollist[j] + "=val;" + nullclear + "\n\t\t set_dirty(" + std::to_string(j) + ");  }\n";
             }
         }
         else
@@ -7590,8 +7863,15 @@ struct )";
             else
             {
                 getsetstrem << " void set" << uptempstring << "(" << collisttype[j]
-                            << " val){  data." + tablecollist[j] + "=val;\n\t\t set_dirty(" + std::to_string(j) + ");  }\n";
+                            << " val){  data." + tablecollist[j] + "=val;" + nullclear + "\n\t\t set_dirty(" + std::to_string(j) + ");  }\n";
             }
+        }
+
+        if (null_bit >= 0)
+        {
+            getsetstrem << " void setNull" << uptempstring << "(){  data.set_null(" << nullenum
+                        << ");\n\t\t set_dirty(" + std::to_string(j) + ");  }\n";
+            getsetstrem << " bool isNull" << uptempstring << "() const {  return data.is_null(" << nullenum << "); } \n";
         }
         getsetstrem << "\n";
     }
@@ -8099,6 +8379,11 @@ struct )";
             }
             j++;
         }
+        if (null_lay.nullable_count > 0)
+        {
+            itemmember_str.append("\t\t\t\t\t\ttemp_obja.null_bits=record[i].null_bits;\n");
+            tree_torecord_str.append("\t\t\ttemp_obja.null_bits=sourcedata[i].null_bits;\n");
+        }
         headtxt += R"(
     )";
         headtxt += model_info_name;
@@ -8121,6 +8406,10 @@ struct )";
             headtxt.append(fe);
             headtxt.append(";\n");
         }
+        if (null_lay.nullable_count > 0)
+        {
+            headtxt.append("\ttemp_obja.null_bits=record[i].null_bits;\n");
+        }
         headtxt += R"(
         return  temp_obja;   
     })";
@@ -8141,6 +8430,10 @@ struct )";
             headtxt.append("=data.");
             headtxt.append(fe);
             headtxt.append(";\n");
+        }
+        if (null_lay.nullable_count > 0)
+        {
+            headtxt.append("\ttemp_obja.null_bits=data.null_bits;\n");
         }
         headtxt += R"(
         return  temp_obja;   
@@ -8164,6 +8457,10 @@ struct )";
             headtxt.append("=tempdata.");
             headtxt.append(fe);
             headtxt.append(";\n");
+        }
+        if (null_lay.nullable_count > 0)
+        {
+            headtxt.append("\ttemp_obja.null_bits=tempdata.null_bits;\n");
         }
         headtxt += R"(
         return  temp_obja;   
@@ -9278,6 +9575,12 @@ static bool load_schema_fallback(const std::string &tag, DBType db_type, std::ve
             col.is_auto_inc   = field.is_auto_inc;
             col.is_unsigned   = field.is_unsigned;
             col.is_nullable   = field.is_nullable;// dbtypes.hpp 已正确解析 NOT NULL / NULL
+            // 主键列一律按 NOT NULL 归一化: MySQL/PostgreSQL 本身就强制, SQLite 的
+            // INTEGER PRIMARY KEY 在离线 DDL 里会报可空, 不归一化主键会被算进可空集合
+            if (col.is_pk)
+            {
+                col.is_nullable = false;
+            }
             col.default_value = field.default_value;
             col.comment       = field.comment;
 

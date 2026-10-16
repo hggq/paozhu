@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTABASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 15 Oct 2026 11:48:21 GMT
+*本文件为自动生成 Fri, 16 Oct 2026 22:50:12 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -43,6 +43,15 @@ namespace testa_info
 
     };
 
+    // 只含允许 NULL 的列，位下标从 0 连续分配，与物理列号解耦
+    enum class null_col : unsigned char
+    {
+		value_id = 0,
+    };
+    static constexpr std::size_t nullable_count = 1;
+    // 物理列下标 -> NULL 位下标，非可空列为 -1
+    static constexpr std::array<int,col_count> null_index_of={-1,-1,0,-1,-1,-1};
+
     struct meta
     {
 		 unsigned  int  id = 0; ///**/
@@ -51,6 +60,11 @@ namespace testa_info
 		 std::string  content = ""; ///**/
 		 unsigned  char  deleted = 0; ///**/
 		 unsigned  int  deletetime = 0; ///**/
+		
+		// SQL NULL 位图，默认全 0 表示非 NULL
+		std::bitset<nullable_count> null_bits{};
+		bool is_null(null_col c) const { return null_bits.test(static_cast<std::size_t>(c)); }
+		void set_null(null_col c, bool on = true) { null_bits.set(static_cast<std::size_t>(c), on); }
 	};
   
     struct meta_tree
@@ -61,6 +75,11 @@ namespace testa_info
 		 std::string  content = ""; ///**/
 		 unsigned  char  deleted = 0; ///**/
 		 unsigned  int  deletetime = 0; ///**/
+		
+		// SQL NULL 位图，默认全 0 表示非 NULL
+		std::bitset<nullable_count> null_bits{};
+		bool is_null(null_col c) const { return null_bits.test(static_cast<std::size_t>(c)); }
+		void set_null(null_col c, bool on = true) { null_bits.set(static_cast<std::size_t>(c), on); }
 
 	 std::vector<meta_tree> children;
  };
@@ -73,6 +92,11 @@ namespace testa_info
 		 std::string  content = ""; ///**/
 		 unsigned  char  deleted = 0; ///**/
 		 unsigned  int  deletetime = 0; ///**/
+		
+		// SQL NULL 位图，默认全 0 表示非 NULL
+		std::bitset<nullable_count> null_bits{};
+		bool is_null(null_col c) const { return null_bits.test(static_cast<std::size_t>(c)); }
+		void set_null(null_col c, bool on = true) { null_bits.set(static_cast<std::size_t>(c), on); }
 
 	 std::vector<std::unique_ptr<meta_tree>> children;
  };
@@ -632,6 +656,7 @@ namespace testa_info
 struct testa_base
 {
     using cols = testa_info::cols;
+    using null_col = testa_info::null_col;
       testa_info::meta data;
     std::vector<testa_info::meta> record;
 static constexpr std::string_view _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -864,10 +889,14 @@ if(data.parentid==0){
  }else{ 
 	tempsql<<","<<std::to_string(data.parentid);
 }
+if(data.is_null(testa_info::null_col::value_id)){
+	tempsql<<",null";
+}else{
 if(data.value_id==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(data.value_id);
+}
 }
 tempsql<<",'"<<stringaddslash(data.content)<<"'";
 if(data.deleted==0){
@@ -915,10 +944,14 @@ if(insert_data.parentid==0){
  }else{ 
 	tempsql<<","<<std::to_string(insert_data.parentid);
 }
+if(insert_data.is_null(testa_info::null_col::value_id)){
+	tempsql<<",null";
+}else{
 if(insert_data.value_id==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(insert_data.value_id);
+}
 }
 tempsql<<",'"<<stringaddslash(insert_data.content)<<"'";
 if(insert_data.deleted==0){
@@ -974,11 +1007,15 @@ tempsql<<")";
 	 }else{ 
 	tempsql<<","<<std::to_string(insert_data[i].parentid);
 	}
+if(insert_data[i].is_null(testa_info::null_col::value_id)){
+	tempsql<<",null";
+}else{
 	if(insert_data[i].value_id==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(insert_data[i].value_id);
 	}
+}
 		tempsql<<",'"<<stringaddslash(insert_data[i].content)<<"'";
 	if(insert_data[i].deleted==0){
 	tempsql<<",0";
@@ -1019,10 +1056,14 @@ if(data.parentid==0){
  }else{ 
 	tempsql<<",parentid="<<std::to_string(data.parentid);
 }
+if(data.is_null(testa_info::null_col::value_id)){
+	tempsql<<",value_id=null";
+}else{
 if(data.value_id==0){
 	tempsql<<",value_id=0";
  }else{ 
 	tempsql<<",value_id="<<std::to_string(data.value_id);
+}
 }
 tempsql<<",content='"<<stringaddslash(data.content)<<"'";
 if(data.deleted==0){
@@ -1097,6 +1138,7 @@ if(data.parentid==0){
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
+ if(data.is_null(testa_info::null_col::value_id)){ tempsql<<"value_id=null"; break; } 
 if(data.value_id==0){
 	tempsql<<"value_id=0";
  }else{ 
@@ -1163,6 +1205,7 @@ if(data.deletetime==0){
                         }
                         break;
                     case 2:
+                        if(data.is_null(testa_info::null_col::value_id)){ tempsql<<"value_id=null"; break; }
                         if(data.value_id==0){
                             tempsql<<"value_id=0";
                         }else{ 
@@ -1237,11 +1280,15 @@ if(data.deletetime==0){
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].parentid);
 	}
+if(record[i].is_null(testa_info::null_col::value_id)){
+	tempsql<<",null";
+}else{
 	if(record[i].value_id==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].value_id);
 	}
+}
 	tempsql<<",'"<<stringaddslash(record[i].content)<<"'";
 	if(record[i].deleted==0){
 	tempsql<<",0";
@@ -1301,11 +1348,15 @@ if(data.deletetime==0){
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].parentid);
 	}
+if(record[i].is_null(testa_info::null_col::value_id)){
+	tempsql<<",null";
+}else{
 	if(record[i].value_id==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].value_id);
 	}
+}
 	tempsql<<",'"<<stringaddslash(record[i].content)<<"'";
 	if(record[i].deleted==0){
 	tempsql<<",0";
@@ -2154,7 +2205,11 @@ if(record[n].deletetime==0){
 
  char  getValueId(){  return data.value_id; } 
  void setValueId( char  val){  data.value_id=val;
+		 data.set_null(null_col::value_id, false);
 		 set_dirty(2);  }
+ void setNullValueId(){  data.set_null(null_col::value_id);
+		 set_dirty(2);  }
+ bool isNullValueId() const {  return data.is_null(null_col::value_id); } 
 
  std::string  getContent(){  return data.content; } 
  std::string & getRefContent(){  return std::ref(data.content); } 
@@ -2404,6 +2459,7 @@ if(tree_data[n].deletetime==0){
 	temp_obja.content=record[i].content;
 	temp_obja.deleted=record[i].deleted;
 	temp_obja.deletetime=record[i].deletetime;
+	temp_obja.null_bits=record[i].null_bits;
 
         return  temp_obja;   
     }testa_info::meta_tree treedata_from_data()
@@ -2415,6 +2471,7 @@ if(tree_data[n].deletetime==0){
 	temp_obja.content=data.content;
 	temp_obja.deleted=data.deleted;
 	temp_obja.deletetime=data.deletetime;
+	temp_obja.null_bits=data.null_bits;
 
         return  temp_obja;   
     }testa_info::meta_tree treedata_from_data(const testa_info::meta &tempdata)
@@ -2425,6 +2482,7 @@ if(tree_data[n].deletetime==0){
 	temp_obja.content=tempdata.content;
 	temp_obja.deleted=tempdata.deleted;
 	temp_obja.deletetime=tempdata.deletetime;
+	temp_obja.null_bits=tempdata.null_bits;
 
         return  temp_obja;   
     }     
@@ -2445,6 +2503,7 @@ if(tree_data[n].deletetime==0){
 						temp_obja.content=record[i].content;
 						temp_obja.deleted=record[i].deleted;
 						temp_obja.deletetime=record[i].deletetime;
+						temp_obja.null_bits=record[i].null_bits;
 
                     temp.push_back(temp_obja);
                 }
@@ -2463,6 +2522,7 @@ if(tree_data[n].deletetime==0){
 						temp_obja.content=record[i].content;
 						temp_obja.deleted=record[i].deleted;
 						temp_obja.deletetime=record[i].deletetime;
+						temp_obja.null_bits=record[i].null_bits;
 
                     temp.push_back(temp_obja);
                     break;
@@ -2494,6 +2554,7 @@ if(tree_data[n].deletetime==0){
 						temp_obja.content=record[i].content;
 						temp_obja.deleted=record[i].deleted;
 						temp_obja.deletetime=record[i].deletetime;
+						temp_obja.null_bits=record[i].null_bits;
 
                 targetdata.push_back(temp_obja);
             }
@@ -2518,6 +2579,7 @@ if(tree_data[n].deletetime==0){
 			temp_obja.content=sourcedata[i].content;
 			temp_obja.deleted=sourcedata[i].deleted;
 			temp_obja.deletetime=sourcedata[i].deletetime;
+			temp_obja.null_bits=sourcedata[i].null_bits;
 
             record.push_back(temp_obja);
             if(sourcedata[i].children.size()>0)

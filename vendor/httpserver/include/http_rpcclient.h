@@ -9,144 +9,153 @@
 
 namespace http
 {
-    struct rpc_parameter_t
+struct rpc_parameter_t
+{
+    std::string name;
+    std::string value;
+};
+
+struct rpc_page_info_t
+{
+    bool isfile                       = false;
+    bool ischunked                    = false;
+    unsigned int status_code          = 0;
+    unsigned long long page_size      = 0;
+    unsigned long long content_length = 0;
+    unsigned long long read_size      = 0;
+    std::string status_msg;
+    std::vector<rpc_parameter_t> header;
+    std::vector<rpc_parameter_t> cookie;
+    std::string content;
+    std::string tempfile;
+    std::string content_type;
+    std::string encode_type;
+};
+
+class rpc_client : public std::enable_shared_from_this<rpc_client>
+{
+  public:
+    void timeout(unsigned int t) { exptime = t; };
+    unsigned int timeout() { return exptime; };
+    void reset_timeout()
     {
-        std::string name;
-        std::string value;
+        timeout_end.store(timeid() + exptime);
     };
-    
-    struct rpc_page_info_t
+    void reset_connect_timeout()
     {
-        bool isfile=false;
-        bool ischunked=false;
-        unsigned int status_code;
-        unsigned long long page_size=0;
-        unsigned long long content_length=0;
-        unsigned long long read_size=0;
-        std::string status_msg;
-        std::vector<rpc_parameter_t> header;
-        std::vector<rpc_parameter_t> cookie;
-        std::string content;
-        std::string tempfile;
-        std::string content_type;
-        std::string encode_type;
+        timeout_end.fetch_add(exptime, std::memory_order_relaxed);
+        exptime = 30;
     };
-
-    class rpc_client : public std::enable_shared_from_this<rpc_client>
+    void set_timeout(unsigned int t)
     {
-        public:
-            void timeout(unsigned int t) { exptime = t; };
-            unsigned int timeout() { return exptime; };
-            void reset_timeout()
-            {
-                timeout_end.store(timeid() + exptime);
-            };
-            void reset_connect_timeout()
-            {
-                timeout_end.fetch_add(exptime, std::memory_order_relaxed);
-                exptime = 30;
-            };
-            void set_timeout(unsigned int t)
-            {
-                timeout_end.store(timeid() + t);
-            };
-            unsigned int get_timeout()
-            {
-                return timeout_end.load();
-            };
- 
-    public:
-        rpc_client();
-        ~rpc_client();
-        void reset();
-        void close_connect();
-        void set_header(std::string_view name,std::string_view value);
-        void set_host(std::string_view name);
-        void set_url(std::string_view name);
-        void send();
-        void process_headkv();
-        asio::awaitable<void> async_send();
-        asio::awaitable<void> async_send_data(std::string_view send_content);
-        asio::awaitable<void> async_ssl_send_data(std::string_view send_content);
-
-        void send_data(std::string_view send_content);
-        void ssl_send_data(std::string_view send_content);
-
-        bool init_https_sock();
-        bool init_http_sock();
-        asio::awaitable<bool> async_init_https_sock();
-        asio::awaitable<bool> async_init_http_sock();
-
-        asio::awaitable<unsigned int> async_write(unsigned char *data, unsigned int buffersize);
-        asio::awaitable<unsigned int> async_write(std::string_view value);
-        asio::awaitable<unsigned int> async_read(unsigned char *data,unsigned int buffersize);
-        asio::awaitable<unsigned int> async_read(std::string &data);
-
-        unsigned int write(unsigned char *data, unsigned int buffersize);
-        unsigned int write(std::string_view value);
-        unsigned int read(unsigned char *data,unsigned int buffersize);
-        unsigned int read(std::string &data);
-
-        void process(const unsigned char *buffer, unsigned int buffersize);
-        void process_parameter(const unsigned char *buffer, unsigned int buffersize);
-        void process_append(const unsigned char *buffer, unsigned int buffersize);
-        void process_value(const unsigned char *buffer, unsigned int readnum);
-        void process_body_chunk(const unsigned char *buffer, unsigned int readnum);
-        void process_body(const unsigned char *buffer, unsigned int readnum);
-
-        asio::awaitable<void> async_run_loop();
-        void run_loop();
-
-        void dur_time_loop();
-        asio::awaitable<void> async_dur_time_loop();
-
-        bool connect(std::string_view url,unsigned int time_out_num=0);
-        bool connect();
-        asio::awaitable<bool> async_connect(std::string_view url,unsigned int time_out_num=0);
-        asio::awaitable<bool> async_connect();
-
-    public:
-        bool iserror = false;
-        bool isssl = false;
-        bool isbody =false;
-        bool isfinish = false;
-        bool iswait_exit =false;
-        bool isco = false;
-        bool isclose = false;
-        unsigned char exptime = 0;
-        unsigned char cur_process_type = 0;
-        unsigned int durtime=0;
-        unsigned int offsetnum = 0;
-        unsigned int port=0;
-        unsigned int val_size = 0;
-        std::atomic<unsigned int> timeout_end = 0;
-        std::atomic_flag socket_read_lock = ATOMIC_FLAG_INIT;
-
-        std::string url;
-        std::string host;
-        std::string content_type;
-        std::string content;
-        std::string error_msg;
-        std::string read_key;   //read temp var in the header
-        std::string read_value;
-
-        unsigned char* data = nullptr;
-        long long content_size = 0;
-        struct rpc_page_info_t page;
-        std::vector<rpc_parameter_t> parameter;
-        std::shared_ptr<asio::ip::tcp::socket> sock                       = {nullptr};
-        std::shared_ptr<asio::ssl::stream<asio::ip::tcp::socket>> sslsock = {nullptr};
-        std::shared_ptr<asio::ssl::context> ssl_context                   = {nullptr};
-        std::function<void(std::shared_ptr<rpc_client>)> chunk_process  = nullptr;
-        std::unique_ptr<std::FILE, int (*)(FILE *)> uprawfile;
-        asio::error_code ec;
-        asio::strand<asio::io_context::executor_type> strand_;
-
-        std::function<void(std::shared_ptr<rpc_client>,unsigned int)> run_loop_fun = nullptr;
-        std::function<asio::awaitable<void>(std::shared_ptr<rpc_client>,unsigned int)> async_run_loop_fun = nullptr;
-
-        std::function<void(std::shared_ptr<rpc_client>)> dur_time_loop_fun = nullptr;
-        std::function<asio::awaitable<void>(std::shared_ptr<rpc_client>)> async_dur_time_loop_fun = nullptr;
+        timeout_end.store(timeid() + t);
     };
-}
+    unsigned int get_timeout()
+    {
+        return timeout_end.load();
+    };
+
+  public:
+    rpc_client();
+    ~rpc_client();
+    void reset();
+    void close_connect();
+    void set_header(std::string_view name, std::string_view value);
+    void set_host(std::string_view name);
+    void set_url(std::string_view name);
+    void send();
+    void process_headkv();
+    asio::awaitable<void> async_send();
+    asio::awaitable<void> async_send_data(std::string_view send_content);
+    asio::awaitable<void> async_ssl_send_data(std::string_view send_content);
+
+    void send_data(std::string_view send_content);
+    void ssl_send_data(std::string_view send_content);
+
+    bool init_https_sock();
+    bool init_http_sock();
+    asio::awaitable<bool> async_init_https_sock();
+    asio::awaitable<bool> async_init_http_sock();
+
+    asio::awaitable<unsigned int> async_write(unsigned char *data, unsigned int buffersize);
+    asio::awaitable<unsigned int> async_write(std::string_view value);
+    asio::awaitable<unsigned int> async_read(unsigned char *data, unsigned int buffersize);
+    asio::awaitable<unsigned int> async_read(std::string &data);
+
+    unsigned int write(unsigned char *data, unsigned int buffersize);
+    unsigned int write(std::string_view value);
+    unsigned int read(unsigned char *data, unsigned int buffersize);
+    unsigned int read(std::string &data);
+
+    void process(const unsigned char *buffer, unsigned int buffersize);
+    void process_parameter(const unsigned char *buffer, unsigned int buffersize);
+    void process_append(const unsigned char *buffer, unsigned int buffersize);
+    void process_value(const unsigned char *buffer, unsigned int readnum);
+    void process_body_chunk(const unsigned char *buffer, unsigned int readnum);
+    void process_body(const unsigned char *buffer, unsigned int readnum);
+
+    asio::awaitable<void> async_run_loop();
+    void run_loop();
+
+    void dur_time_loop();
+    asio::awaitable<void> async_dur_time_loop();
+
+    bool connect(std::string_view url, unsigned int time_out_num = 0);
+    bool connect();
+    asio::awaitable<bool> async_connect(std::string_view url, unsigned int time_out_num = 0);
+    asio::awaitable<bool> async_connect();
+
+  public:
+    bool iserror                          = false;
+    bool isssl                            = false;
+    bool isbody                           = false;
+    bool isfinish                         = false;
+    bool iswait_exit                      = false;
+    bool isco                             = false;
+    bool isclose                          = false;
+    unsigned char exptime                 = 0;
+    unsigned char cur_process_type        = 0;
+    unsigned int durtime                  = 0;
+    unsigned int offsetnum                = 0;
+    unsigned int port                     = 0;
+    unsigned int val_size                 = 0;
+    bool chunk_head_high                  = false;//chunk 长度头只收到高字节，低字节在下一段
+    unsigned char chunk_head_byte         = 0;
+    std::atomic<unsigned int> timeout_end = 0;
+    std::atomic_flag socket_read_lock     = ATOMIC_FLAG_INIT;
+
+    std::string url;
+    std::string host;
+    std::string content_type;
+    std::string content;
+    std::string error_msg;
+    std::string read_key;//read temp var in the header
+    std::string read_value;
+
+    // [加固] 本响应头部 KV 段的统计，对齐 rpc_parse.cpp 服务端上限：
+    // 条数 / 总字节超限即按协议错误断连，防止恶意服务端用海量 / 超长头部把客户端撑爆。
+    // read_value 是纯内存 std::string，不像 body 那样 >64KB 落盘，必须显式封顶。
+    // 一次性请求每次都是新 rpc_client（成员默认 0 即可）；run_loop 路径（当前零调用）复用时需 reset。
+    unsigned int kv_num         = 0;// 本响应 KV 段条数（上限 CONST_RPC_KV_MAX_ITEMS）
+    unsigned long long kv_bytes = 0;// 本响应 KV 段累计字节（上限 CONST_RPC_KV_MAX_BYTES）
+
+    unsigned char *data    = nullptr;
+    long long content_size = 0;
+    struct rpc_page_info_t page;
+    std::vector<rpc_parameter_t> parameter;
+    std::shared_ptr<asio::ip::tcp::socket> sock                       = {nullptr};
+    std::shared_ptr<asio::ssl::stream<asio::ip::tcp::socket>> sslsock = {nullptr};
+    std::shared_ptr<asio::ssl::context> ssl_context                   = {nullptr};
+    std::function<void(std::shared_ptr<rpc_client>)> chunk_process    = nullptr;
+    std::unique_ptr<std::FILE, int (*)(FILE *)> uprawfile;
+    asio::error_code ec;
+    asio::strand<asio::io_context::executor_type> strand_;
+
+    std::function<void(std::shared_ptr<rpc_client>, unsigned int)> run_loop_fun                        = nullptr;
+    std::function<asio::awaitable<void>(std::shared_ptr<rpc_client>, unsigned int)> async_run_loop_fun = nullptr;
+
+    std::function<void(std::shared_ptr<rpc_client>)> dur_time_loop_fun                        = nullptr;
+    std::function<asio::awaitable<void>(std::shared_ptr<rpc_client>)> async_dur_time_loop_fun = nullptr;
+};
+}// namespace http
 #endif

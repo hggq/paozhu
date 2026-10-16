@@ -2,7 +2,7 @@
 #define ORM_PG_FK_PARENTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 15 Oct 2026 11:48:28 GMT
+*本文件为自动生成 Fri, 16 Oct 2026 22:50:21 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -39,16 +39,35 @@ namespace fk_parent_info
 
     };
 
+    // 只含允许 NULL 的列，位下标从 0 连续分配，与物理列号解耦
+    enum class null_col : unsigned char
+    {
+		name = 0,
+    };
+    static constexpr std::size_t nullable_count = 1;
+    // 物理列下标 -> NULL 位下标，非可空列为 -1
+    static constexpr std::array<int,col_count> null_index_of={-1,0};
+
     struct meta
     {
 		 int  id = 0; ///**/
 		 std::string  name = ""; ///**/
+		
+		// SQL NULL 位图，默认全 0 表示非 NULL
+		std::bitset<nullable_count> null_bits{};
+		bool is_null(null_col c) const { return null_bits.test(static_cast<std::size_t>(c)); }
+		void set_null(null_col c, bool on = true) { null_bits.set(static_cast<std::size_t>(c), on); }
 	};
   
     struct meta_tree
     {
 		 int  id = 0; ///**/
 		 std::string  name = ""; ///**/
+		
+		// SQL NULL 位图，默认全 0 表示非 NULL
+		std::bitset<nullable_count> null_bits{};
+		bool is_null(null_col c) const { return null_bits.test(static_cast<std::size_t>(c)); }
+		void set_null(null_col c, bool on = true) { null_bits.set(static_cast<std::size_t>(c), on); }
 
 	 std::vector<meta_tree> children;
  };
@@ -57,6 +76,11 @@ namespace fk_parent_info
     {
 		 int  id = 0; ///**/
 		 std::string  name = ""; ///**/
+		
+		// SQL NULL 位图，默认全 0 表示非 NULL
+		std::bitset<nullable_count> null_bits{};
+		bool is_null(null_col c) const { return null_bits.test(static_cast<std::size_t>(c)); }
+		void set_null(null_col c, bool on = true) { null_bits.set(static_cast<std::size_t>(c), on); }
 
 	 std::vector<std::unique_ptr<meta_tree>> children;
  };
@@ -594,7 +618,7 @@ namespace fk_parent_info
 	static constexpr std::array<unsigned char,2> col_types={3,252};
 	static constexpr std::array<unsigned short,2> col_length={4,0};
 	static constexpr std::array<unsigned char,2> col_decimals={0,0};
-	static constexpr std::array<bool,2> col_null={true,true};
+	static constexpr std::array<bool,2> col_null={false,true};
 	static constexpr std::array<bool,2> col_indexed={true,false};
 	static constexpr std::string_view auto_pk_name ="id";
 	static constexpr int auto_pk_index = 0;
@@ -604,6 +628,7 @@ namespace fk_parent_info
 struct fk_parent_base
 {
     using cols = fk_parent_info::cols;
+    using null_col = fk_parent_info::null_col;
       fk_parent_info::meta data;
     std::vector<fk_parent_info::meta> record;
 static constexpr std::string_view _rmstag="pg";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -775,7 +800,11 @@ tempsql<<"DEFAULT";
  }else{ 
 	tempsql<<std::to_string(data.id);
 }
+if(data.is_null(fk_parent_info::null_col::name)){
+	tempsql<<",null";
+}else{
 tempsql<<",'"<<stringaddslash(data.name)<<"'";
+}
 tempsql<<")";
 
      
@@ -806,7 +835,11 @@ tempsql<<"DEFAULT";
  }else{ 
 	tempsql<<std::to_string(insert_data.id);
 }
+if(insert_data.is_null(fk_parent_info::null_col::name)){
+	tempsql<<",null";
+}else{
 tempsql<<",'"<<stringaddslash(insert_data.name)<<"'";
+}
 tempsql<<")";
 
      
@@ -845,7 +878,11 @@ tempsql<<")";
 	 }else{ 
 	tempsql<<std::to_string(insert_data[i].id);
 	}
+if(insert_data[i].is_null(fk_parent_info::null_col::name)){
+	tempsql<<",null";
+}else{
 		tempsql<<",'"<<stringaddslash(insert_data[i].name)<<"'";
+}
 		tempsql<<")";
 	 } 
 
@@ -870,7 +907,11 @@ tempsql<<")";
  }else{ 
 	tempsql<<"id="<<std::to_string(data.id);
 }
+if(data.is_null(fk_parent_info::null_col::name)){
+	tempsql<<",name=null";
+}else{
 tempsql<<",name='"<<stringaddslash(data.name)<<"'";
+}
  }else{ 
 
      
@@ -925,6 +966,7 @@ if(data.id==0){
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
+ if(data.is_null(fk_parent_info::null_col::name)){ tempsql<<"name=null"; break; } 
 tempsql<<"name='"<<stringaddslash(data.name)<<"'";
  break;
 
@@ -960,6 +1002,7 @@ tempsql<<"name='"<<stringaddslash(data.name)<<"'";
                         }
                         break;
                     case 1:
+                        if(data.is_null(fk_parent_info::null_col::name)){ tempsql<<"name=null"; break; }
                         tempsql<<"name='"<<stringaddslash(data.name)<<"'";
                         break;
                 }
@@ -1008,7 +1051,11 @@ tempsql<<"name='"<<stringaddslash(data.name)<<"'";
 	 }else{ 
 	tempsql<<std::to_string(record[i].id);
 	}
+if(record[i].is_null(fk_parent_info::null_col::name)){
+	tempsql<<",null";
+}else{
 	tempsql<<",'"<<stringaddslash(record[i].name)<<"'";
+}
 	tempsql<<")";
   }
  	tempsql<<" ON CONFLICT DO NOTHING";
@@ -1053,7 +1100,11 @@ tempsql<<"name='"<<stringaddslash(data.name)<<"'";
 	 }else{ 
 	tempsql<<std::to_string(record[i].id);
 	}
+if(record[i].is_null(fk_parent_info::null_col::name)){
+	tempsql<<",null";
+}else{
 	tempsql<<",'"<<stringaddslash(record[i].name)<<"'";
+}
 	tempsql<<")";
 	 }
 	 tempsql<<" ON CONFLICT (id) DO UPDATE SET ";
@@ -1700,9 +1751,14 @@ tempsql<<"\"name\":\""<<http::utf8_to_jsonstring(record[n].name)<<"\"";
  std::string  getName(){  return data.name; } 
  std::string & getRefName(){  return std::ref(data.name); } 
  void setName( std::string  &val){  data.name=val;
+		 data.set_null(null_col::name, false);
 		 set_dirty(1);  }
  void setName(std::string_view val){  data.name=val;
+		 data.set_null(null_col::name, false);
 		 set_dirty(1);  }
+ void setNullName(){  data.set_null(null_col::name);
+		 set_dirty(1);  }
+ bool isNullName() const {  return data.is_null(null_col::name); } 
 
 fk_parent_info::meta getnewData(){
  	 struct fk_parent_info::meta newdata;

@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Thu, 15 Oct 2026 11:48:21 GMT
+ *  Creation time Fri, 16 Oct 2026 22:50:12 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -1507,6 +1507,7 @@ namespace cms
             }
             break;
                 case 5:
+            data_temp.set_null(article_info::null_col::topicname, false);
             data_temp.topicname.assign(reinterpret_cast<const char*>(result_temp_data), value_size);
             break;
                 case 6:
@@ -1667,6 +1668,14 @@ namespace cms
         }
     }
     
+    // 未匹配的列传 255，非可空列映射为 -1，两种情况都不置位
+    void set_field_null(unsigned char index_pos, article_info::meta &data_temp)
+    {
+        if (static_cast<std::size_t>(index_pos) >= article_info::col_count) return;
+        int null_bit = article_info::null_index_of[index_pos];
+        if (null_bit >= 0) data_temp.null_bits.set(static_cast<std::size_t>(null_bit));
+    }
+    
         void assign_field_value_binary(unsigned char index_pos, col_value_variant val, article_info::meta &data_temp)
     {
         switch(index_pos)
@@ -1675,7 +1684,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.aid = 0;
+                    }
                     else if constexpr (std::is_same_v<T, int64_t>)
                         data_temp.aid = static_cast<decltype(data_temp.aid )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
@@ -1690,7 +1701,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.topicid = 0;
+                    }
                     else if constexpr (std::is_same_v<T, int64_t>)
                         data_temp.topicid = static_cast<decltype(data_temp.topicid )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
@@ -1705,7 +1718,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.classtype = 0;
+                    }
                     else if constexpr (std::is_same_v<T, int64_t>)
                         data_temp.classtype = static_cast<decltype(data_temp.classtype )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
@@ -1720,7 +1735,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.userid = 0;
+                    }
                     else if constexpr (std::is_same_v<T, int64_t>)
                         data_temp.userid = static_cast<decltype(data_temp.userid )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
@@ -1735,7 +1752,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.sortid = 0;
+                    }
                     else if constexpr (std::is_same_v<T, int64_t>)
                         data_temp.sortid = static_cast<decltype(data_temp.sortid )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
@@ -1750,7 +1769,10 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.topicname.clear();
+                        data_temp.set_null(article_info::null_col::topicname);
+                    }
                     else if constexpr (std::is_same_v<T, std::string_view>)
                         data_temp.topicname.assign(v.data(), v.size());
                     else
@@ -1761,7 +1783,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.title.clear();
+                    }
                     else if constexpr (std::is_same_v<T, std::string_view>)
                         data_temp.title.assign(v.data(), v.size());
                     else
@@ -1772,7 +1796,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.keywords.clear();
+                    }
                     else if constexpr (std::is_same_v<T, std::string_view>)
                         data_temp.keywords.assign(v.data(), v.size());
                     else
@@ -1783,7 +1809,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.fromsource.clear();
+                    }
                     else if constexpr (std::is_same_v<T, std::string_view>)
                         data_temp.fromsource.assign(v.data(), v.size());
                     else
@@ -1794,7 +1822,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.author.clear();
+                    }
                     else if constexpr (std::is_same_v<T, std::string_view>)
                         data_temp.author.assign(v.data(), v.size());
                     else
@@ -1805,7 +1835,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.addip.clear();
+                    }
                     else if constexpr (std::is_same_v<T, std::string_view>)
                         data_temp.addip.assign(v.data(), v.size());
                     else
@@ -1816,7 +1848,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.createtime.clear();
+                    }
                     else if constexpr (std::is_same_v<T, std::string_view>)
                         data_temp.createtime.assign(v.data(), v.size());
                     else
@@ -1827,7 +1861,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.addtime = 0;
+                    }
                     else if constexpr (std::is_same_v<T, int64_t>)
                         data_temp.addtime = static_cast<decltype(data_temp.addtime )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
@@ -1842,7 +1878,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.readnum = 0;
+                    }
                     else if constexpr (std::is_same_v<T, int64_t>)
                         data_temp.readnum = static_cast<decltype(data_temp.readnum )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
@@ -1857,7 +1895,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.review = 0;
+                    }
                     else if constexpr (std::is_same_v<T, int64_t>)
                         data_temp.review = static_cast<decltype(data_temp.review )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
@@ -1872,7 +1912,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.icoimg.clear();
+                    }
                     else if constexpr (std::is_same_v<T, std::string_view>)
                         data_temp.icoimg.assign(v.data(), v.size());
                     else
@@ -1883,7 +1925,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.content.clear();
+                    }
                     else if constexpr (std::is_same_v<T, std::string_view>)
                         data_temp.content.assign(v.data(), v.size());
                     else
@@ -1894,7 +1938,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.mdcontent.clear();
+                    }
                     else if constexpr (std::is_same_v<T, std::string_view>)
                         data_temp.mdcontent.assign(v.data(), v.size());
                     else
@@ -1905,7 +1951,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.isopen = 0;
+                    }
                     else if constexpr (std::is_same_v<T, int64_t>)
                         data_temp.isopen = static_cast<decltype(data_temp.isopen )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
@@ -1920,7 +1968,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.ishome = 0;
+                    }
                     else if constexpr (std::is_same_v<T, int64_t>)
                         data_temp.ishome = static_cast<decltype(data_temp.ishome )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
@@ -1935,7 +1985,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.iscomment = 0;
+                    }
                     else if constexpr (std::is_same_v<T, int64_t>)
                         data_temp.iscomment = static_cast<decltype(data_temp.iscomment )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
@@ -1950,7 +2002,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.showtype = 0;
+                    }
                     else if constexpr (std::is_same_v<T, int64_t>)
                         data_temp.showtype = static_cast<decltype(data_temp.showtype )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
@@ -1965,7 +2019,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.fromlocal.clear();
+                    }
                     else if constexpr (std::is_same_v<T, std::string_view>)
                         data_temp.fromlocal.assign(v.data(), v.size());
                     else
@@ -1976,7 +2032,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.texturl.clear();
+                    }
                     else if constexpr (std::is_same_v<T, std::string_view>)
                         data_temp.texturl.assign(v.data(), v.size());
                     else
@@ -1987,7 +2045,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.summary.clear();
+                    }
                     else if constexpr (std::is_same_v<T, std::string_view>)
                         data_temp.summary.assign(v.data(), v.size());
                     else
@@ -1998,7 +2058,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.editauthor.clear();
+                    }
                     else if constexpr (std::is_same_v<T, std::string_view>)
                         data_temp.editauthor.assign(v.data(), v.size());
                     else
@@ -2009,7 +2071,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.relatecontent.clear();
+                    }
                     else if constexpr (std::is_same_v<T, std::string_view>)
                         data_temp.relatecontent.assign(v.data(), v.size());
                     else
@@ -2039,6 +2103,7 @@ namespace cms
                 return http::obj_val(static_cast<long long>(data_temp.sortid));
                 break;
             case 5:
+                if (data_temp.is_null(article_info::null_col::topicname)) return http::obj_val(nullptr);
                 return http::obj_val(std::string(data_temp.topicname));
                 break;
             case 6:
@@ -7072,7 +7137,8 @@ M_MODEL& ornotnullRelatecontent()
                             model_meta_cache<std::vector<std::vector<std::string>>>::getinstance();
                         temp_cache.save(sqlhashid, temprecord, exptime);
 
-                        if (exptime > 0) exptime += 1;
+                        if (exptime > 0)
+                            exptime += 1;
                         model_meta_cache<std::vector<std::string>> &table_cache = model_meta_cache<std::vector<std::string>>::getinstance();
                         table_cache.save(sqlhashid, table_fieldname, exptime);
 
@@ -7624,7 +7690,7 @@ M_MODEL& ornotnullRelatecontent()
                 std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
                 if (get_record_cache(sqlhashid))
                 {
-                    iscache = false;
+                    iscache      = false;
                     is_hit_cache = true;
                     return static_cast<unsigned int>(B_BASE::record.size());
                 }
@@ -7680,8 +7746,8 @@ M_MODEL& ornotnullRelatecontent()
                                                                                auto [ptr, len] = get_data(ij);
                                                                                if (ptr == nullptr)
                                                                                {
-                                                                                   static const unsigned char null_value = 0;
-                                                                                   assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
+                                                                                   
+                                                                                   set_field_null(static_cast<unsigned char>(col_pos_map[ij]), data_temp);
                                                                                    continue;
                                                                                }
                                                                                assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
@@ -7773,7 +7839,7 @@ M_MODEL& ornotnullRelatecontent()
                 std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
                 if (get_record_cache(sqlhashid))
                 {
-                    iscache = false;
+                    iscache      = false;
                     is_hit_cache = true;
                     co_return static_cast<unsigned int>(B_BASE::record.size());
                 }
@@ -7829,8 +7895,8 @@ M_MODEL& ornotnullRelatecontent()
                                                                                               auto [ptr, len] = get_data(ij);
                                                                                               if (ptr == nullptr)
                                                                                               {
-                                                                                                  static const unsigned char null_value = 0;
-                                                                                                  assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
+                                                                                                  
+                                                                                                  set_field_null(static_cast<unsigned char>(col_pos_map[ij]), data_temp);
                                                                                                   continue;
                                                                                               }
                                                                                               assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
@@ -7919,7 +7985,7 @@ M_MODEL& ornotnullRelatecontent()
                 std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
                 if (get_record_cache(sqlhashid))
                 {
-                    iscache = false;
+                    iscache      = false;
                     is_hit_cache = true;
                     return *mod;
                 }
@@ -7975,8 +8041,8 @@ M_MODEL& ornotnullRelatecontent()
                                                                                auto [ptr, len] = get_data(ij);
                                                                                if (ptr == nullptr)
                                                                                {
-                                                                                   static const unsigned char null_value = 0;
-                                                                                   assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
+                                                                                   
+                                                                                   set_field_null(static_cast<unsigned char>(col_pos_map[ij]), data_temp);
                                                                                    continue;
                                                                                }
                                                                                assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
@@ -8068,7 +8134,7 @@ M_MODEL& ornotnullRelatecontent()
                 std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
                 if (get_record_cache(sqlhashid))
                 {
-                    iscache = false;
+                    iscache      = false;
                     is_hit_cache = true;
                     co_return 1;
                 }
@@ -8125,8 +8191,8 @@ M_MODEL& ornotnullRelatecontent()
                                                                                               auto [ptr, len] = get_data(ij);
                                                                                               if (ptr == nullptr)
                                                                                               {
-                                                                                                  static const unsigned char null_value = 0;
-                                                                                                  assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
+                                                                                                  
+                                                                                                  set_field_null(static_cast<unsigned char>(col_pos_map[ij]), data_temp);
                                                                                                   continue;
                                                                                               }
                                                                                               assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
@@ -8692,7 +8758,7 @@ M_MODEL& ornotnullRelatecontent()
                 std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
                 if (get_data_cache(sqlhashid))
                 {
-                    iscache = false;
+                    iscache      = false;
                     is_hit_cache = true;
                     return 1u;
                 }
@@ -8753,8 +8819,8 @@ M_MODEL& ornotnullRelatecontent()
                                                                                    auto [ptr, len] = get_data(ij);
                                                                                    if (ptr == nullptr)
                                                                                    {
-                                                                                       static const unsigned char null_value = 0;
-                                                                                       assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
+                                                                                       
+                                                                                       set_field_null(static_cast<unsigned char>(col_pos_map[ij]), data_temp);
                                                                                        continue;
                                                                                    }
                                                                                    assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
@@ -8768,8 +8834,8 @@ M_MODEL& ornotnullRelatecontent()
                                                                                    auto [ptr, len] = get_data(ij);
                                                                                    if (ptr == nullptr)
                                                                                    {
-                                                                                       static const unsigned char null_value = 0;
-                                                                                       assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
+                                                                                       
+                                                                                       set_field_null(static_cast<unsigned char>(col_pos_map[ij]), B_BASE::data);
                                                                                        continue;
                                                                                    }
                                                                                    assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
@@ -8859,7 +8925,7 @@ M_MODEL& ornotnullRelatecontent()
                 std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
                 if (get_data_cache(sqlhashid))
                 {
-                    iscache = false;
+                    iscache      = false;
                     is_hit_cache = true;
                     co_return 1u;
                 }
@@ -8920,8 +8986,8 @@ M_MODEL& ornotnullRelatecontent()
                                                                                                   auto [ptr, len] = get_data(ij);
                                                                                                   if (ptr == nullptr)
                                                                                                   {
-                                                                                                      static const unsigned char null_value = 0;
-                                                                                                      assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
+                                                                                                      
+                                                                                                      set_field_null(static_cast<unsigned char>(col_pos_map[ij]), data_temp);
                                                                                                       continue;
                                                                                                   }
                                                                                                   assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
@@ -8935,8 +9001,8 @@ M_MODEL& ornotnullRelatecontent()
                                                                                                   auto [ptr, len] = get_data(ij);
                                                                                                   if (ptr == nullptr)
                                                                                                   {
-                                                                                                      static const unsigned char null_value = 0;
-                                                                                                      assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
+                                                                                                      
+                                                                                                      set_field_null(static_cast<unsigned char>(col_pos_map[ij]), B_BASE::data);
                                                                                                       continue;
                                                                                                   }
                                                                                                   assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
@@ -8983,9 +9049,9 @@ M_MODEL& ornotnullRelatecontent()
 
         M_MODEL &use_cache(int cache_time = 0)
         {
-            iscache = true;
+            iscache      = true;
             is_hit_cache = false;
-            exptime = cache_time;
+            exptime      = cache_time;
             return *mod;
         }
         bool isuse_cache(bool iscachedate = false)
@@ -9047,7 +9113,6 @@ M_MODEL& ornotnullRelatecontent()
             }
             catch (const std::exception &e)
             {
-                
             }
 
             B_BASE::data_reset();
@@ -9166,7 +9231,6 @@ M_MODEL& ornotnullRelatecontent()
             }
             catch (const std::exception &e)
             {
-                
             }
 
             B_BASE::record.clear();
@@ -9443,7 +9507,7 @@ M_MODEL& ornotnullRelatecontent()
                 std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
                 if (get_data_cache(sqlhashid))
                 {
-                    iscache = false;
+                    iscache      = false;
                     is_hit_cache = true;
                     return 1u;
                 }
@@ -9501,8 +9565,8 @@ M_MODEL& ornotnullRelatecontent()
                                                                                auto [ptr, len] = get_data(ij);
                                                                                if (ptr == nullptr)
                                                                                {
-                                                                                   static const unsigned char null_value = 0;
-                                                                                   assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
+                                                                                   
+                                                                                   set_field_null(static_cast<unsigned char>(col_pos_map[ij]), B_BASE::data);
                                                                                    continue;
                                                                                }
                                                                                assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
@@ -9572,7 +9636,7 @@ M_MODEL& ornotnullRelatecontent()
                 std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
                 if (get_data_cache(sqlhashid))
                 {
-                    iscache = false;
+                    iscache      = false;
                     is_hit_cache = true;
                     co_return 1u;
                 }
@@ -9629,8 +9693,8 @@ M_MODEL& ornotnullRelatecontent()
                                                                                               auto [ptr, len] = get_data(ij);
                                                                                               if (ptr == nullptr)
                                                                                               {
-                                                                                                  static const unsigned char null_value = 0;
-                                                                                                  assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
+                                                                                                  
+                                                                                                  set_field_null(static_cast<unsigned char>(col_pos_map[ij]), B_BASE::data);
                                                                                                   continue;
                                                                                               }
                                                                                               assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
@@ -13580,8 +13644,8 @@ M_MODEL& ornotnullRelatecontent()
                                                              auto [ptr, len] = get_data(ij);
                                                              if (ptr == nullptr)
                                                              {
-                                                                 static const unsigned char null_value = 0;
-                                                                 assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
+                                                                 
+                                                                 set_field_null(static_cast<unsigned char>(col_pos_map[ij]), B_BASE::data);
                                                                  continue;
                                                              }
                                                              assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
@@ -13651,8 +13715,8 @@ M_MODEL& ornotnullRelatecontent()
                         auto [ptr, len] = get_data(ij);
                         if (ptr == nullptr)
                         {
-                            static const unsigned char null_value = 0;
-                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
+                            
+                            set_field_null(static_cast<unsigned char>(col_pos_map[ij]), data_temp);
                             continue;
                         }
                         assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
@@ -14182,8 +14246,8 @@ M_MODEL& ornotnullRelatecontent()
                         auto [ptr, len] = get_data(ij);
                         if (ptr == nullptr)
                         {
-                            static const unsigned char null_value = 0;
-                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
+                            
+                            set_field_null(static_cast<unsigned char>(col_pos_map[ij]), B_BASE::data);
                             continue;
                         }
                         assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
@@ -14256,8 +14320,8 @@ M_MODEL& ornotnullRelatecontent()
                         auto [ptr, len] = get_data(ij);
                         if (ptr == nullptr)
                         {
-                            static const unsigned char null_value = 0;
-                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
+                            
+                            set_field_null(static_cast<unsigned char>(col_pos_map[ij]), data_temp);
                             continue;
                         }
                         assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
@@ -14285,7 +14349,6 @@ M_MODEL& ornotnullRelatecontent()
             co_return co_await async_exec_fetch_append();
         }
         asio::awaitable<unsigned int> async_exec_fetch_to() { co_return co_await async_exec_fetch(); }
-
 
         // --- exec_fetch_one：预编译 SELECT limit 1 同步版（填充 data）---
         unsigned int exec_fetch_one()
@@ -14331,14 +14394,14 @@ M_MODEL& ornotnullRelatecontent()
                                                              auto [ptr, len] = get_data(ij);
                                                              if (ptr == nullptr)
                                                              {
-                                                                 static const unsigned char null_value = 0;
-                                                                 assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
+                                                                 
+                                                                 set_field_null(static_cast<unsigned char>(col_pos_map[ij]), B_BASE::data);
                                                                  continue;
                                                              }
                                                              assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
                                                          }
                                                          effect_num = 1;
-                                                         return false; // 只取一行
+                                                         return false;// 只取一行
                                                      });
 
             if (conn->isdebug)
@@ -14390,18 +14453,18 @@ M_MODEL& ornotnullRelatecontent()
                                                                         {
                                                                             if (col_names[ij] == nullptr || col_names[ij][0] == '\0')
                                                                                 continue;
-                                                                            auto [ptr, len] = get_data(ij);
+                                                                            auto [ptr, len]   = get_data(ij);
                                                                             unsigned char pos = B_BASE::findcolpos(col_names[ij]);
                                                                             if (ptr == nullptr)
                                                                             {
-                                                                                static const unsigned char null_value = 0;
-                                                                                assign_field_value(pos, (unsigned char *)&null_value, 0, B_BASE::data);
+                                                                                
+                                                                                set_field_null(pos, B_BASE::data);
                                                                                 continue;
                                                                             }
                                                                             assign_field_value(pos, ptr, len, B_BASE::data);
                                                                         }
                                                                         effect_num = 1;
-                                                                        return false; // 只取一行
+                                                                        return false;// 只取一行
                                                                     });
 
             if (conn->isdebug)
@@ -16007,7 +16070,7 @@ M_MODEL& ornotnullRelatecontent()
 
         // std::list<std::string> commit_sqllist;
         bool iscache            = false;
-        bool is_hit_cache      = false;
+        bool is_hit_cache       = false;
         bool iserror            = false;
         bool islock_conn        = false;
         int exptime             = 0;

@@ -240,6 +240,7 @@ asio::awaitable<bool> socket_client::async_init_https_sock()
         std::tie(ec) = co_await sslsock->lowest_layer().async_connect(*iter, tuple_awaitable);
         if (ec)
         {
+            ++iter;
             continue;
         }
         break;
@@ -283,6 +284,7 @@ asio::awaitable<bool> socket_client::async_init_http_sock()
         std::tie(ec) = co_await sock->async_connect(*iter, tuple_awaitable);
         if (ec)
         {
+            ++iter;
             continue;
         }
         break;

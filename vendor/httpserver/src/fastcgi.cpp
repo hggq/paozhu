@@ -68,6 +68,7 @@ asio::awaitable<bool> fastcgi::co_init_http_sock()
             std::tie(ec) = co_await sock->async_connect(*iter, tuple_awaitable);
             if (ec)
             {
+                ++iter;
                 continue;
             }
             break;

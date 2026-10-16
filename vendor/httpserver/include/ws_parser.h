@@ -88,7 +88,6 @@ class ws_parser
     unsigned int frame_mask_offset_  = 0;
     size_t frame_fed_                = 0;    // 本帧已喂给聚合/解压的载荷字节（0 字节末分片补冲净用）
     bool frame_fin_                  = false;// 当前帧 FIN 位（载荷消费段引用）
-    unsigned int next_seq_id_        = 0;
 };
 
 }// namespace ws

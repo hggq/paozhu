@@ -87,6 +87,32 @@ inline std::string remove_quotes(const std::string &str)
     return str;
 }
 
+// 切掉列定义里第一个位于字符串字面量之外的 -- 行注释。
+// 序列化器会把列注释写成行尾 "-- 注释"，注释里出现裸 null / not null
+// 字样会翻转该列的可空性判定，故 token 化前先截断。
+inline std::string cut_line_comment(const std::string &str)
+{
+    char quote = 0;
+    for (size_t i = 0; i < str.size(); i++)
+    {
+        char c = str[i];
+        if (quote != 0)
+        {
+            if (c == quote)
+                quote = 0;
+            continue;
+        }
+        if (c == '\'' || c == '"' || c == '`')
+        {
+            quote = c;
+            continue;
+        }
+        if (c == '-' && i + 1 < str.size() && str[i + 1] == '-')
+            return str.substr(0, i);
+    }
+    return str;
+}
+
 inline bool starts_with_icase(const std::string &str, const std::string &prefix)
 {
     if (str.size() < prefix.size())
@@ -4338,7 +4364,7 @@ inline bool parse_pg_ddl(const std::string &ddl_text, db_table_info &table)
         }
 
         // 解析约束 (NOT NULL / NULL / DEFAULT / PRIMARY KEY / UNIQUE / COLLATE)
-        std::string rest = trim(fd.substr(te));
+        std::string rest = trim(cut_line_comment(fd.substr(te)));
         std::istringstream iss(rest);
         std::string tok;
         while (iss >> tok)
@@ -4889,7 +4915,7 @@ inline bool parse_sqlite_ddl(const std::string &ddl_text, db_table_info &table)
         }
 
         // 约束解析
-        std::string rest = trim(fd.substr(name_end));
+        std::string rest = trim(cut_line_comment(fd.substr(name_end)));
         std::istringstream iss(rest);
         std::string tok;
         bool first_kw = true;

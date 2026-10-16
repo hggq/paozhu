@@ -673,24 +673,5 @@ std::string serialize_frame(opcode op, std::string_view payload, bool fin, unsig
     return out;
 }
 
-std::string make_close_frame(uint16_t code, std::string_view reason)
-{
-    std::string body;
-    body.push_back(static_cast<char>((code >> 8) & 0xFF));
-    body.push_back(static_cast<char>(code & 0xFF));
-    body.append(reason);
-    return serialize_frame(opcode::close, body);
-}
-
-std::string make_ping_frame(std::string_view payload)
-{
-    return serialize_frame(opcode::ping, payload);
-}
-
-std::string make_pong_frame(std::string_view payload)
-{
-    return serialize_frame(opcode::pong, payload);
-}
-
 }// namespace ws
 }// namespace http

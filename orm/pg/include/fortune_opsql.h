@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM SQLITE intermediate connection layer, sourced from MySQL, PostgreSQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Thu, 15 Oct 2026 11:48:28 GMT
+ *  Creation time Fri, 16 Oct 2026 22:50:21 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -1446,6 +1446,8 @@ namespace pg
         }
     }
     
+    void set_field_null(unsigned char /*index_pos*/, fortune_info::meta & /*data_temp*/) {}
+    
         void assign_field_value_binary(unsigned char index_pos, col_value_variant val, fortune_info::meta &data_temp)
     {
         switch(index_pos)
@@ -1454,7 +1456,9 @@ namespace pg
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.id = 0;
+                    }
                     else if constexpr (std::is_same_v<T, int64_t>)
                         data_temp.id = static_cast<decltype(data_temp.id )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
@@ -1469,7 +1473,9 @@ namespace pg
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.message.clear();
+                    }
                     else if constexpr (std::is_same_v<T, std::string_view>)
                         data_temp.message.assign(v.data(), v.size());
                     else

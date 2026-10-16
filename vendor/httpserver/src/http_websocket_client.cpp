@@ -21,18 +21,22 @@ websocket_client::~websocket_client()
 }
 void websocket_client::reset()
 {
-    iserror          = false;
-    isssl            = false;
-    isbody           = false;
-    isfinish         = false;
-    iswait_exit      = false;
-    exptime          = 0;
-    cur_process_type = 0;
-    offsetnum        = 0;
-    port             = 0;
-    val_size         = 0;
-    timeout_end      = 0;
-    ready_state      = 0;
+    iserror               = false;
+    isssl                 = false;
+    isbody                = false;
+    isfinish              = false;
+    iswait_exit           = false;
+    isclose_recv_         = false;
+    exptime               = 0;
+    cur_process_type      = 0;
+    offsetnum             = 0;
+    port                  = 0;
+    val_size              = 0;
+    timeout_end           = 0;
+    ready_state           = 0;
+    last_rx_sec           = 0;
+    next_ping_sec         = 0;
+    handshake_resp_begin_ = 0;
 
     url.clear();
     host.clear();
@@ -109,161 +113,112 @@ void websocket_client::set_url(std::string_view name)
         url = name;
         return;
     }
-    if (name.size() > 7)
-    {
-        if (name[0] == 'w' && name[1] == 's' && name[2] == ':' && name[3] == '/' && name[4] == '/')
-        {
-            std::string temp_str;
-            unsigned int i = 5;
-            for (; i < name.size(); i++)
-            {
-                if (name[i] == '/')
-                {
-                    if (temp_str.size() > 0)
-                    {
-                        host = temp_str;
-                    }
-                    temp_str.clear();
-                    break;
-                }
-                else if (name[i] == ':')
-                {
-                    if (temp_str.size() > 0)
-                    {
-                        host = temp_str;
-                    }
-                    temp_str.clear();
-                    port = 0;
-                    for (; i < name.size(); i++)
-                    {
-                        if (name[i] == '/')
-                        {
-                            break;
-                        }
-                        if (name[i] >= '0' && name[i] <= '9')
-                        {
-                            port = port * 10 + (name[i] - '0');
-                        }
-                    }
-                    break;
-                }
-                temp_str.push_back(name[i]);
-            }
-            for (; i < name.size(); i++)
-            {
-                url.push_back(name[i]);
-            }
-            if (port == 0)
-            {
-                port = 80;
-            }
-        }
-        else if (name[0] == 'w' && name[1] == 's' && name[2] == 's' && name[3] == ':' && name[4] == '/' && name[5] == '/')
-        {
-            std::string temp_str;
-            unsigned int i = 6;
-            isssl          = true;
-            for (; i < name.size(); i++)
-            {
-                if (name[i] == '/')
-                {
-                    if (temp_str.size() > 0)
-                    {
-                        host = temp_str;
-                    }
-
-                    break;
-                }
-                else if (name[i] == ':')
-                {
-                    if (temp_str.size() > 0)
-                    {
-                        host = temp_str;
-                    }
-
-                    port = 0;
-                    for (; i < name.size(); i++)
-                    {
-                        if (name[i] == '/')
-                        {
-                            break;
-                        }
-                        if (name[i] >= '0' && name[i] <= '9')
-                        {
-                            port = port * 10 + (name[i] - '0');
-                        }
-                    }
-                    break;
-                }
-                temp_str.push_back(name[i]);
-            }
-            for (; i < name.size(); i++)
-            {
-                url.push_back(name[i]);
-            }
-            if (port == 0)
-            {
-                port = 443;
-            }
-        }
-        else if (name[0] >= '0' && name[0] <= '9')
-        {
-            std::string temp_str;
-            unsigned int i = 0;
-            for (; i < name.size(); i++)
-            {
-                if (name[i] == '/')
-                {
-                    if (temp_str.size() > 0)
-                    {
-                        host = temp_str;
-                    }
-                    temp_str.clear();
-                    break;
-                }
-                else if (name[i] == ':')
-                {
-                    if (temp_str.size() > 0)
-                    {
-                        host = temp_str;
-                    }
-                    temp_str.clear();
-                    port = 0;
-                    for (; i < name.size(); i++)
-                    {
-                        if (name[i] == '/')
-                        {
-                            break;
-                        }
-                        if (name[i] >= '0' && name[i] <= '9')
-                        {
-                            port = port * 10 + (name[i] - '0');
-                        }
-                    }
-                    break;
-                }
-                temp_str.push_back(name[i]);
-            }
-            for (; i < name.size(); i++)
-            {
-                url.push_back(name[i]);
-            }
-            if (port == 0)
-            {
-                port = 80;
-            }
-        }
-        else
-        {
-            error_msg = "url formatting error";
-            iserror   = true;
-        }
-    }
-    else
+    if (name.size() <= 7)
     {
         error_msg = "url too short";
         iserror   = true;
+        return;
     }
+    // 三种可识别形状：ws://host[:port][/路径]、wss:// 同上、以及数字开头的裸 host。
+    // 解析全程只用局部量，成功才一次性写入 host/port/url —— 半途失败不会残留上一轮的值，
+    // 也不会把两次的路径拼起来（旧写法是 url.push_back 累加）。
+    std::string_view rest;
+    unsigned int default_port = 80;
+    bool ssl                  = false;
+    if (name[0] == 'w' && name[1] == 's' && name[2] == ':' && name[3] == '/' && name[4] == '/')
+    {
+        rest = name.substr(5);
+    }
+    else if (name[0] == 'w' && name[1] == 's' && name[2] == 's' && name[3] == ':' && name[4] == '/' && name[5] == '/')
+    {
+        rest         = name.substr(6);
+        ssl          = true;
+        default_port = 443;
+    }
+    else if (name[0] >= '0' && name[0] <= '9')
+    {
+        rest = name;
+    }
+    else
+    {
+        error_msg = "url formatting error";
+        iserror   = true;
+        return;
+    }
+
+    std::size_t i = 0;
+    std::string temp_host;
+    if (i < rest.size() && rest[i] == '[')
+    {
+        // IPv6 字面值：host 在方括号里，括号内的冒号不是端口分隔符。
+        // 入库时剥掉括号——地址解析要的是裸地址，方括号只在写 Host: 请求头时才需要。
+        std::size_t close = rest.find(']', i + 1);
+        if (close == std::string_view::npos)
+        {
+            error_msg = "url formatting error";
+            iserror   = true;
+            return;
+        }
+        temp_host.assign(rest, i + 1, close - i - 1);
+        i = close + 1;
+    }
+    else
+    {
+        std::size_t end = rest.find_first_of("/:", i);
+        if (end == std::string_view::npos)
+        {
+            end = rest.size();
+        }
+        temp_host.assign(rest, i, end - i);
+        i = end;
+    }
+    if (temp_host.empty())
+    {
+        error_msg = "url formatting error";
+        iserror   = true;
+        return;
+    }
+    // 括号收尾后只允许 ':'（端口）、'/'（路径）或直接结束
+    unsigned long long temp_port = 0;
+    if (i < rest.size() && rest[i] == ':')
+    {
+        i++;
+        for (; i < rest.size() && rest[i] != '/'; i++)
+        {
+            if (rest[i] < '0' || rest[i] > '9')
+            {
+                continue;// 端口段的非数字字符跳过（与旧解析一致，不判格式错）
+            }
+            temp_port = temp_port * 10 + static_cast<unsigned long long>(rest[i] - '0');
+        }
+        if (temp_port > 65535)
+        {
+            error_msg = "url port error";
+            iserror   = true;
+            return;
+        }
+    }
+    else if (i < rest.size() && rest[i] != '/')
+    {
+        error_msg = "url formatting error";
+        iserror   = true;
+        return;
+    }
+    // 没有路径段时按 RFC 6455 §4.1 取 "/"，请求行才是合法的 "GET / HTTP/1.1"
+    std::string temp_url;
+    if (i < rest.size())
+    {
+        temp_url.assign(rest, i, rest.size() - i);
+    }
+    else
+    {
+        temp_url = "/";
+    }
+
+    isssl = ssl;
+    host  = temp_host;
+    port  = (temp_port == 0) ? default_port : static_cast<unsigned int>(temp_port);
+    url   = temp_url;
 }
 
 asio::awaitable<bool> websocket_client::async_init_https_sock()
@@ -283,6 +238,7 @@ asio::awaitable<bool> websocket_client::async_init_https_sock()
         std::tie(ec) = co_await sslsock->lowest_layer().async_connect(*iter, tuple_awaitable);
         if (ec)
         {
+            ++iter;
             continue;
         }
         break;
@@ -326,6 +282,7 @@ asio::awaitable<bool> websocket_client::async_init_http_sock()
         std::tie(ec) = co_await sock->async_connect(*iter, tuple_awaitable);
         if (ec)
         {
+            ++iter;
             continue;
         }
         break;
@@ -350,7 +307,7 @@ asio::awaitable<bool> websocket_client::async_connect()
 {
     bool isinit = false;
 
-    if (url.size() < 5)
+    if (url.empty())
     {
         iserror   = true;
         error_msg = "url empty";
@@ -416,6 +373,49 @@ bool websocket_client::add_client_task_loop()
         iserror   = true;
         return false;
     }
+}
+
+// 保活判定：由看护线程每秒一拍调用，只碰记账字段，不加锁、不做 IO。
+// 返回 1 表示本拍该发一条 ping（由看护线程在锁外经出站队列发出），
+// 返回 2 表示连续 3 个周期没有入站字节，已置 iswait_exit 交给看护线程下一拍关连接摘链表。
+unsigned int websocket_client::keepalive_check(unsigned int nowsec)
+{
+    constexpr unsigned int interval = CONST_WEBSOCKET_CLIENT_PING_INTERVAL;
+    if constexpr (interval == 0)
+    {
+        return 0;// 关闭档：这些记账字段全程不被读写
+    }
+    if (isclose_recv_)
+    {
+        return 0;// 已经收到对端 close，等回声写完就收摊，不再探测
+    }
+    unsigned int last = last_rx_sec.load();
+    if (last == 0)
+    {
+        // 第一次被看护线程看到：以本拍为静默起点，避免刚登记就按"连接建立前"的时间判死
+        last = nowsec;
+        last_rx_sec.store(last);
+    }
+    if (nowsec >= last + interval * 3)
+    {
+        // 不写 error_msg：那个 std::string 由连接自己的协程和业务线程读写，看护线程碰它就是数据竞争。
+        // 判死只立面旗，拆除沿用既有路径（下一拍 close_erase → close_connect），
+        // 业务侧经 on_close/async_on_close 收到收摊通知。
+        DEBUG_LOG("websocket client keepalive timeout, idle over %u sec", interval * 3);
+        iswait_exit = true;
+        return 2;
+    }
+    if (next_ping_sec == 0)
+    {
+        next_ping_sec = nowsec + interval;// 第一条 ping 也要等满一个周期
+    }
+    if (nowsec < next_ping_sec)
+    {
+        return 0;
+    }
+    // 不补发欠账：看护线程可能因为进程挂起跳过若干拍，一次一拍会形成 ping 风暴
+    next_ping_sec = nowsec + interval;
+    return 1;
 }
 
 asio::awaitable<unsigned int> websocket_client::async_read(unsigned char *read_data, unsigned int buffersize)
@@ -638,10 +638,23 @@ asio::awaitable<unsigned int> websocket_client::async_send_frame(std::string fra
         co_return 0;
     }
     const unsigned int queued = static_cast<unsigned int>(frame.size());
-    if (enqueue_frame(std::move(frame)))
+    bool mine                 = enqueue_frame(std::move(frame));
+    if (!mine && iserror)
+    {
+        // 队列溢出：这一帧根本没进队列，返回值不能报"发了 queued 字节"
+        co_return 0;
+    }
+    if (mine)
     {
         co_await pump_send_queue();
+        if (iserror)
+        {
+            // 本 pump 因写失败折损，剩余帧（含还没轮到写的这一帧）已被作废清空
+            co_return 0;
+        }
     }
+    // 注：!mine 且未出错时是"别的 pump 协程接管了队列"，本函数不等它写完就返回，
+    // 返回值含义是"帧已被队列接走"，不是"已确认写出"。
     co_return queued;
 }
 
@@ -713,6 +726,8 @@ unsigned int websocket_client::write(std::string_view value)
     return 0;
 }
 
+// 阻塞读：会占住当前线程直到有字节到达。只能在非 io_context 线程上调用，
+// 在事件循环线程上调用会冻结该 io_context 上的所有协程。
 unsigned int websocket_client::read(unsigned char *buffer_data, unsigned int buffersize)
 {
     if (socket_read_lock.test_and_set())
@@ -791,8 +806,16 @@ unsigned int websocket_client::read(std::string &buffer_data)
 
 void websocket_client::close_connect()
 {
-    if (isssl)
-    {
+    // cancel + close 投递到本连接的 strand 上执行，而不是在调用线程直接关：
+    // 1) 出站 pump 协程（close 回声、pong、业务写）都在这个 strand 上，strand 队列
+    //    先进先出，排到 pump 之后就能等最后一帧写完再关，回声不会被截断；
+    // 2) 调用线程（看护线程、业务线程）和 strand 上的在途 async_write 并发操作
+    //    同一个 socket 对象是 asio 明确禁止的。
+    // 老连接对象的 socket 句柄按值捕获：即使对象复用重连或被析构，这里关掉的仍是
+    // 本次拿到的那对 socket，不会误关新连接，也不会漏关。
+    asio::post(strand_, [sock = this->sock, sslsock = this->sslsock]()
+               {
+        std::error_code ec;
         if (sslsock)
         {
             if (sslsock->lowest_layer().is_open())
@@ -801,19 +824,19 @@ void websocket_client::close_connect()
                 sslsock->lowest_layer().close(ec);
             }
         }
-    }
-    else
-    {
-        if (sock && sock->is_open())
+        if (sock)
         {
-            // 同 socket_client::close_connect()：先 cancel 再 close，
-            // 否则 parked 在 async_read 上的常驻协程可能永远等不到 handler。
-            sock->cancel(ec);
-            sock->close(ec);
-        }
-    }
+            if (sock->is_open())
+            {
+                // 先 cancel 再 close，否则 parked 在 async_read 上的常驻协程
+                // 可能永远等不到 handler
+                sock->cancel(ec);
+                sock->close(ec);
+            }
+        } });
 }
 
+// 阻塞读循环，同 read()：只能在非 io_context 线程上调用
 void websocket_client::run_loop()
 {
     auto self = shared_from_this();
@@ -837,7 +860,7 @@ void websocket_client::run_loop()
     }
     for (;;)
     {
-        if (iserror)
+        if (iserror || isclose_recv_)
         {
             return;
         }
@@ -923,7 +946,7 @@ asio::awaitable<void> websocket_client::async_run_loop()
     }
     for (;;)
     {
-        if (iserror)
+        if (iserror || isclose_recv_)
         {
             co_return;
         }
@@ -991,7 +1014,17 @@ std::string websocket_client::make_http_header()
     send_header_content = "GET ";
     send_header_content.append(url);
     send_header_content.append(" HTTP/1.1\r\nHost: ");
-    send_header_content.append(host);
+    // IPv6 字面值的 host 存的是裸地址（地址解析要用），Host 头里必须加回方括号（RFC 7230 §5.4）
+    if (host.find(':') != std::string::npos)
+    {
+        send_header_content.append("[");
+        send_header_content.append(host);
+        send_header_content.append("]");
+    }
+    else
+    {
+        send_header_content.append(host);
+    }
     send_header_content.append("\r\n");
 
     if (parameter.size() > 0)
@@ -1063,15 +1096,16 @@ bool websocket_client::process_handshake(unsigned char *read_data, unsigned int 
         iserror = true;
         return false;
     }
-    if (read_data[offsetnum] == 0x20)
+    // 状态行的第一个 token 必须是 "HTTP/1.x"：只查空格后的三个字符会让 "X 101" 也判成握手成功。
+    // 这里 offsetnum 就是该 token 的长度（上面那个循环只在遇到空格时停下）。
+    if (offsetnum < 8 ||
+        !str_casecmp_pre(std::string_view(reinterpret_cast<const char *>(read_data), offsetnum), "HTTP/1."))
     {
-        offsetnum++;
-    }
-    else
-    {
-        iserror = true;
+        error_msg = "handshake status line error";
+        iserror   = true;
         return false;
     }
+    offsetnum++;
 
     if (offsetnum + 3 > readnum)
     {
@@ -1124,10 +1158,49 @@ bool websocket_client::process_handshake(unsigned char *read_data, unsigned int 
     }
 
     //handshake
-    bool isok = false;
-    if (parameter.size() > 0)
+    // 只扫本次握手追加进来的响应头（handshake_resp_begin_ 之后），请求头不参与判定。
+    // Accept 与 Extensions 各用一个布尔，谁都不覆盖谁：单个布尔时，Extensions 在前、
+    // Accept 在后会把"协商失败"覆盖成成功。
+    const unsigned int resp_begin = (handshake_resp_begin_ < parameter.size()) ? handshake_resp_begin_ : static_cast<unsigned int>(parameter.size());
+    bool accept_ok                = false;
+    // 对端不回 Sec-WebSocket-Extensions ＝ 双方都不压缩，是合法结果；只有回了参数不符的
+    // permessage-deflate 才算协商失败
+    bool ext_ok      = true;
+    bool saw_upgrade = false;
+    bool saw_connect = false;
+    // Connection 允许 "keepalive, Upgrade" 这类多 token 写法（RFC 7230 §6.1），按 token 逐个比
+    auto has_token = [](std::string_view value, std::string_view token) -> bool
     {
-        for (unsigned int i = 0; i < parameter.size(); i++)
+        std::size_t start = 0;
+        while (start <= value.size())
+        {
+            std::size_t comma    = value.find(',', start);
+            std::size_t stop     = (comma == std::string_view::npos) ? value.size() : comma;
+            std::size_t trim_be  = start;
+            std::size_t trim_end = stop;
+            while (trim_be < trim_end && (value[trim_be] == ' ' || value[trim_be] == '\t'))
+            {
+                trim_be++;
+            }
+            while (trim_end > trim_be && (value[trim_end - 1] == ' ' || value[trim_end - 1] == '\t'))
+            {
+                trim_end--;
+            }
+            if (str_casecmp(value.substr(trim_be, trim_end - trim_be), token))
+            {
+                return true;
+            }
+            if (comma == std::string_view::npos)
+            {
+                break;
+            }
+            start = comma + 1;
+        }
+        return false;
+    };
+    if (parameter.size() > resp_begin)
+    {
+        for (unsigned int i = resp_begin; i < parameter.size(); i++)
         {
             if (str_casecmp(parameter[i].name, "Sec-WebSocket-Accept"))
             {
@@ -1141,11 +1214,9 @@ bool websocket_client::process_handshake(unsigned char *read_data, unsigned int 
                 magicKey.clear();
                 magicKey = base64_encode((char *)digest, SHA_DIGEST_LENGTH, false);
 
-                if (str_casecmp(parameter[i].value, magicKey))
-                {
-                    isok = true;
-                }
-                else
+                // Accept 是 RFC 要求的 MUST 响应头：出现过但值不对，和根本没出现，都是失败
+                accept_ok = str_casecmp(parameter[i].value, magicKey);
+                if (!accept_ok)
                 {
                     error_msg = "response Handshake error";
                 }
@@ -1157,7 +1228,7 @@ bool websocket_client::process_handshake(unsigned char *read_data, unsigned int 
                 if (offers_deflate && !open_deflate)
                 {
                     // 未 offer 却收到 permessage-deflate 应答：对端违规，判握手失败
-                    isok      = false;
+                    ext_ok    = false;
                     error_msg = "Server negotiated permessage-deflate but it was not offered";
                 }
                 else if (offers_deflate)
@@ -1168,21 +1239,51 @@ bool websocket_client::process_handshake(unsigned char *read_data, unsigned int 
                     bool cli_noctx = ext.find("client_no_context_takeover") != std::string::npos;
                     if (srv_noctx && cli_noctx)
                     {
+                        ext_ok    = true;
                         isdeflate = true;
                     }
                     else
                     {
-                        isok      = false;
+                        ext_ok    = false;
                         error_msg = "permessage-deflate negotiation mismatch (no-context "
                                     "params required)";
                     }
                 }
+            }
+            else if (str_casecmp(parameter[i].name, "Upgrade"))
+            {
+                saw_upgrade = has_token(parameter[i].value, "websocket");
+            }
+            else if (str_casecmp(parameter[i].name, "Connection"))
+            {
+                saw_connect = has_token(parameter[i].value, "Upgrade");
             }
         }
     }
     else
     {
         error_msg = "response header empty";
+    }
+    bool isok = accept_ok && ext_ok && saw_upgrade && saw_connect;
+    if (!isok && error_msg.empty())
+    {
+        // 头缺失时给个明确原因，否则调用方只看到 " process_handshake error"
+        if (!accept_ok)
+        {
+            error_msg = "missing Sec-WebSocket-Accept";
+        }
+        else if (!saw_upgrade)
+        {
+            error_msg = "missing Upgrade: websocket";
+        }
+        else if (!saw_connect)
+        {
+            error_msg = "missing Connection: Upgrade";
+        }
+        else
+        {
+            error_msg = "extension negotiation failed";
+        }
     }
     return isok;
 }
@@ -1237,6 +1338,9 @@ void websocket_client::process_header(unsigned char *read_data, unsigned int dat
 asio::awaitable<bool> websocket_client::websocket_handshake()
 {
     auto self = shared_from_this();
+    // parameter 前半段是请求头（set_header/add_headers），process_header 会把响应头追加在后面；
+    // 记下分界，握手校验只扫本次追加的响应头
+    handshake_resp_begin_ = static_cast<unsigned int>(parameter.size());
     if (data == nullptr)
     {
         data = static_cast<unsigned char *>(std::malloc(512 * sizeof(unsigned char)));
@@ -1480,6 +1584,11 @@ std::string websocket_client::make_pong(std::string_view payload)
 {
     return serialize_frame(ws_opcode::pong, payload);
 }
+// 保活探测帧：空载荷 ping（客户端出站一律带掩码，由 serialize_frame 负责）
+std::string websocket_client::make_ping()
+{
+    return serialize_frame(ws_opcode::ping, std::string_view());
+}
 // 向后兼容接口：内部转发到 serialize_frame()（README 的 ws client 示例引用了 make_ws_text）。
 int websocket_client::make_ws_data(char *msg, unsigned int msgLen, std::string &outBuf)
 {
@@ -1533,7 +1642,7 @@ bool websocket_client::on_inflated_bytes(const unsigned char *out, std::size_t n
 {
     if (recv_data.content.size() + n > CONST_WEBSOCKET_MAX_MESSAGE_SIZE)
     {
-        in_msg_too_big_ = true;// 解压后超限（解压炸弹防护），归因为消息过长
+        in_msg_too_big_ = true;// 解压后超限（解压炸弹防护），按"消息过长"失败
         return false;
     }
     recv_data.content.append(reinterpret_cast<const char *>(out), n);
@@ -1547,6 +1656,14 @@ bool websocket_client::on_inflated_bytes(const unsigned char *out, std::size_t n
 
 unsigned int websocket_client::process_data(unsigned char *inputdata, unsigned int buffersize)
 {
+    if constexpr (CONST_WEBSOCKET_CLIENT_PING_INTERVAL > 0)
+    {
+        // 任何入站字节都证明对端还活着（保活 pong 回来的那批也走这里），静默计时从此刻重新起算
+        if (buffersize > 0)
+        {
+            last_rx_sec.store(timeid());
+        }
+    }
     auto fail = [this](const char *msg) -> unsigned int
     {
         error_msg = msg;
@@ -1772,8 +1889,9 @@ unsigned int websocket_client::process_data(unsigned char *inputdata, unsigned i
             }
             else if (in_op_ == ws_opcode::close)
             {
-                // 回声 close（携带对端状态码）；iserror 由消费协程在发出后置位，
-                // 避免置位过早导致回声帧被 pump 的作废分支丢弃
+                // 回声 close（携带对端状态码）。iserror 必须等 pump 把回声写完之后再置：
+                // pump 的循环头一见 iserror 就收摊，sending_guard 析构会清空队列里的剩余帧，
+                // 提前置位等于把这条回声帧丢掉，对端收不到关闭应答。
                 auto self = shared_from_this();
                 std::string code;
                 if (in_ctl_buf_.size() >= 2)
@@ -1790,6 +1908,9 @@ unsigned int websocket_client::process_data(unsigned char *inputdata, unsigned i
                 }
                 std::string echo = serialize_frame(ws_opcode::close, code);
                 bool mine        = enqueue_frame(std::move(echo));
+                // 收到 close 就不再挂新读：对端可以只发 close 不发 FIN，
+                // 那时不设这面旗的读循环会一直 parked 在 async_read_some 上等一个不会来的字节
+                isclose_recv_ = true;
                 asio::co_spawn(strand_, [self, mine]() mutable -> asio::awaitable<void>
                                {
                         if (mine)
@@ -1854,7 +1975,7 @@ void websocket_client::reset_recv_status()
     recv_data.total_length   = 0;
     recv_data.content.clear();
 }
-// 出站压缩（permessage-deflate 已协商时）：仅 text 开启（裁定），binary 不压缩；
+// 出站压缩（permessage-deflate 已协商时）：仅 text 开启，binary 不压缩；
 // 载荷超过阈值才尝试压缩，raw_deflate_once 在压缩不省时返回 false，此时按原文 RSV1=0 发送。
 static std::string make_out_frame(websocket_client &cli, ws_opcode op, std::string_view value)
 {
@@ -1900,7 +2021,7 @@ asio::awaitable<unsigned int> websocket_client::async_text_read()
     }
     for (;;)
     {
-        if (iserror)
+        if (iserror || isclose_recv_)
         {
             co_return 0;
         }

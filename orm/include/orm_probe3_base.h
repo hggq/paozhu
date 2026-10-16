@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_ORM_PROBE3BASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 15 Oct 2026 11:48:18 GMT
+*本文件为自动生成 Fri, 16 Oct 2026 22:50:07 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -38,16 +38,35 @@ namespace orm_probe3_info
 
     };
 
+    // 只含允许 NULL 的列，位下标从 0 连续分配，与物理列号解耦
+    enum class null_col : unsigned char
+    {
+		v = 0,
+    };
+    static constexpr std::size_t nullable_count = 1;
+    // 物理列下标 -> NULL 位下标，非可空列为 -1
+    static constexpr std::array<int,col_count> null_index_of={-1,0};
+
     struct meta
     {
 		 std::string  tag = ""; ///**/
 		 std::string  v = ""; ///**/
+		
+		// SQL NULL 位图，默认全 0 表示非 NULL
+		std::bitset<nullable_count> null_bits{};
+		bool is_null(null_col c) const { return null_bits.test(static_cast<std::size_t>(c)); }
+		void set_null(null_col c, bool on = true) { null_bits.set(static_cast<std::size_t>(c), on); }
 	};
   
     struct meta_tree
     {
 		 std::string  tag = ""; ///**/
 		 std::string  v = ""; ///**/
+		
+		// SQL NULL 位图，默认全 0 表示非 NULL
+		std::bitset<nullable_count> null_bits{};
+		bool is_null(null_col c) const { return null_bits.test(static_cast<std::size_t>(c)); }
+		void set_null(null_col c, bool on = true) { null_bits.set(static_cast<std::size_t>(c), on); }
 
 	 std::vector<meta_tree> children;
  };
@@ -56,6 +75,11 @@ namespace orm_probe3_info
     {
 		 std::string  tag = ""; ///**/
 		 std::string  v = ""; ///**/
+		
+		// SQL NULL 位图，默认全 0 表示非 NULL
+		std::bitset<nullable_count> null_bits{};
+		bool is_null(null_col c) const { return null_bits.test(static_cast<std::size_t>(c)); }
+		void set_null(null_col c, bool on = true) { null_bits.set(static_cast<std::size_t>(c), on); }
 
 	 std::vector<std::unique_ptr<meta_tree>> children;
  };
@@ -603,6 +627,7 @@ namespace orm_probe3_info
 struct orm_probe3_base
 {
     using cols = orm_probe3_info::cols;
+    using null_col = orm_probe3_info::null_col;
       orm_probe3_info::meta data;
     std::vector<orm_probe3_info::meta> record;
 static constexpr std::string_view _rmstag="default";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -776,7 +801,11 @@ break;
         tempsql<<") VALUES (";
 
         tempsql<<"'"<<stringaddslash(data.tag)<<"'";
+if(data.is_null(orm_probe3_info::null_col::v)){
+	tempsql<<",null";
+}else{
 tempsql<<",'"<<stringaddslash(data.v)<<"'";
+}
 tempsql<<")";
 
      
@@ -803,7 +832,11 @@ tempsql<<")";
         tempsql<<") VALUES (";
 
         tempsql<<"'"<<stringaddslash(insert_data.tag)<<"'";
+if(insert_data.is_null(orm_probe3_info::null_col::v)){
+	tempsql<<",null";
+}else{
 tempsql<<",'"<<stringaddslash(insert_data.v)<<"'";
+}
 tempsql<<")";
 
      
@@ -838,7 +871,11 @@ tempsql<<")";
             tempsql<<"(";
 
             	tempsql<<"'"<<stringaddslash(insert_data[i].tag)<<"'";
+if(insert_data[i].is_null(orm_probe3_info::null_col::v)){
+	tempsql<<",null";
+}else{
 		tempsql<<",'"<<stringaddslash(insert_data[i].v)<<"'";
+}
 		tempsql<<")";
 	 } 
 
@@ -859,7 +896,11 @@ tempsql<<")";
         if(isall){
 
         tempsql<<"tag='"<<stringaddslash(data.tag)<<"'";
+if(data.is_null(orm_probe3_info::null_col::v)){
+	tempsql<<",v=null";
+}else{
 tempsql<<",v='"<<stringaddslash(data.v)<<"'";
+}
  }else{ 
 
      
@@ -910,6 +951,7 @@ tempsql<<"tag='"<<stringaddslash(data.tag)<<"'";
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
+ if(data.is_null(orm_probe3_info::null_col::v)){ tempsql<<"v=null"; break; } 
 tempsql<<"v='"<<stringaddslash(data.v)<<"'";
  break;
 
@@ -941,6 +983,7 @@ tempsql<<"v='"<<stringaddslash(data.v)<<"'";
                         tempsql<<"tag='"<<stringaddslash(data.tag)<<"'";
                         break;
                     case 1:
+                        if(data.is_null(orm_probe3_info::null_col::v)){ tempsql<<"v=null"; break; }
                         tempsql<<"v='"<<stringaddslash(data.v)<<"'";
                         break;
                 }
@@ -985,7 +1028,11 @@ tempsql<<"v='"<<stringaddslash(data.v)<<"'";
             }
             tempsql << "(";
             	tempsql<<"'"<<stringaddslash(record[i].tag)<<"'";
+if(record[i].is_null(orm_probe3_info::null_col::v)){
+	tempsql<<",null";
+}else{
 	tempsql<<",'"<<stringaddslash(record[i].v)<<"'";
+}
 	tempsql<<")";
   }
  
@@ -1025,7 +1072,11 @@ tempsql<<"v='"<<stringaddslash(data.v)<<"'";
             }
             tempsql << "(";
             	tempsql<<"'"<<stringaddslash(record[i].tag)<<"'";
+if(record[i].is_null(orm_probe3_info::null_col::v)){
+	tempsql<<",null";
+}else{
 	tempsql<<",'"<<stringaddslash(record[i].v)<<"'";
+}
 	tempsql<<")";
 	 }
 	 tempsql<<" as new ON DUPLICATE KEY UPDATE ";
@@ -1653,9 +1704,14 @@ tempsql<<"\"v\":\""<<http::utf8_to_jsonstring(record[n].v)<<"\"";
  std::string  getV(){  return data.v; } 
  std::string & getRefV(){  return std::ref(data.v); } 
  void setV( std::string  &val){  data.v=val;
+		 data.set_null(null_col::v, false);
 		 set_dirty(1);  }
  void setV(std::string_view val){  data.v=val;
+		 data.set_null(null_col::v, false);
 		 set_dirty(1);  }
+ void setNullV(){  data.set_null(null_col::v);
+		 set_dirty(1);  }
+ bool isNullV() const {  return data.is_null(null_col::v); } 
 
 orm_probe3_info::meta getnewData(){
  	 struct orm_probe3_info::meta newdata;

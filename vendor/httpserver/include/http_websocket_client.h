@@ -42,7 +42,7 @@ class websocket_client : public std::enable_shared_from_this<websocket_client>
     unsigned int timeout() { return exptime; };
     // timeout==0 视为"无限期但仍受看护"：写入大哨兵值，永不过期，
     // 但连接仍留在超时链表里，由 dur 心跳（dur_time_loop_fun）每拍刷新，不会被 idle 误杀。
-    static constexpr unsigned int kInfiniteTimeoutSec = 0x3FFFFFFF; // ~34 年
+    static constexpr unsigned int kInfiniteTimeoutSec = 0x3FFFFFFF;// ~34 年
     void reset_timeout()
     {
         timeout_end.store(timeid() + (exptime == 0 ? kInfiniteTimeoutSec : exptime));
@@ -78,6 +78,9 @@ class websocket_client : public std::enable_shared_from_this<websocket_client>
 
     asio::awaitable<unsigned int> async_text_read();
 
+    // 以下 write/read/run_loop 是阻塞调用，会占住当前线程直到网络事件完成。
+    // 只能在业务任务线程（非 io_context 线程）上调用：在 io_context 线程上调用会
+    // 冻结该 io_context，本连接与其它连接的所有协程都停止推进。
     unsigned int write(unsigned char *data, unsigned int buffersize);
     unsigned int write(std::string_view value);
     unsigned int read(unsigned char *data, unsigned int buffersize);
@@ -88,7 +91,7 @@ class websocket_client : public std::enable_shared_from_this<websocket_client>
     //asio::awaitable<unsigned int> async_data_write(unsigned char *data, unsigned int buffersize);
     asio::awaitable<unsigned int> async_data_write(std::string_view value);
 
-    void run_loop();
+    void run_loop();// 阻塞循环，同 write/read：只能在非 io_context 线程上调用
     asio::awaitable<void> async_run_loop();
 
     void close_connect();
@@ -113,7 +116,8 @@ class websocket_client : public std::enable_shared_from_this<websocket_client>
 
     std::string make_pong();
     std::string make_pong(std::string_view payload);
-    // 注：make_ping/make_ws_header/make_mark 无调用方， 已删除。
+    std::string make_ping();// 保活探测帧（空载荷），由看护线程按周期发出
+    // 注：make_ws_header/make_mark 无调用方，已删除。
     // make_ws_text/make_ws_data 为向后兼容接口，内部转发 serialize_frame()。
 
     int make_ws_data(char *msg, unsigned int msgLen, std::string &outBuf);
@@ -126,6 +130,9 @@ class websocket_client : public std::enable_shared_from_this<websocket_client>
     void reset_recv_status();
 
     bool add_client_task_loop();
+    // 保活判定（看护线程每秒一拍调用，只碰记账字段，不加锁不做 IO）：
+    // 返回 0 = 本拍无动作；1 = 该发一条 ping；2 = 静默超时，已置 iswait_exit 交给看护线程回收。
+    unsigned int keepalive_check(unsigned int nowsec);
     void set_deflate(bool isstatus);
     bool un_pack(const std::string &pack_data, std::string &outBuf);
     bool un_pack(std::string &outBuf);
@@ -178,8 +185,8 @@ class websocket_client : public std::enable_shared_from_this<websocket_client>
     // ---- 入站 permessage-deflate（已协商 isdeflate 时，RSV1 消息先解压再交付）----
     bool in_frame_rsv1_       = false;  // 当前帧头 RSV1 位，用于拒绝续帧/控制帧误用
     bool in_msg_deflated_     = false;  // 当前消息（含其续帧）属于一条压缩流
-    bool in_msg_too_big_      = false;  // 解压后字节超消息上限（sink 归因 1009）
-    bool in_inflate_utf8_bad_ = false;  // 解压后 text 字节非法 UTF-8（sink 归因 1007）
+    bool in_msg_too_big_      = false;  // 解压后字节超消息上限，置位后按"消息过长"失败
+    bool in_inflate_utf8_bad_ = false;  // 解压后 text 字节非法 UTF-8，置位后按"编码非法"失败
     ws::permessage_inflate in_inflator_;// no-context：每条消息末帧冲净并重置
     static bool inflate_sink(const unsigned char *out, std::size_t n, void *ud);
     bool on_inflated_bytes(const unsigned char *out, std::size_t n);
@@ -217,6 +224,17 @@ class websocket_client : public std::enable_shared_from_this<websocket_client>
     std::function<asio::awaitable<void>(std::shared_ptr<websocket_client>)> async_recv_finish_fun   = nullptr;
 
     std::function<void(std::shared_ptr<websocket_client>)> run_task_fun = nullptr;//time-consuming task
+
+    // 后四个字段一律放在类尾：插在中间会挪动已有字段的偏移，
+    // 只重编部分目标文件的增量构建里，旧目标文件内联展开的访问代码会读错格。
+    // 保活记账是前两个字段：ping 周期常数为 0 时它们全程不被读写。
+    std::atomic<unsigned int> last_rx_sec = 0;// 最后一次收到入站字节的秒值：入站线程写、看护线程读
+    unsigned int next_ping_sec            = 0;// 下一条 ping 的到期秒值：只有看护线程碰这个字段
+    // 本次握手往 parameter 追加响应头的起始下标。parameter 同时装 set_header 灌的请求头，
+    // 握手校验必须从这个下标起，否则请求头会被当成响应头参与判定。
+    unsigned int handshake_resp_begin_ = 0;
+    // 已收到对端 close 帧：读循环据此及时退出，回声仍在出站队列里等写出
+    bool isclose_recv_ = false;
 };
 }// namespace http
 #endif

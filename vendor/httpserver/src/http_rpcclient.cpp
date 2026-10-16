@@ -14,6 +14,7 @@
 #include "server_localvar.h"
 #include "http_rpcclient.h"
 #include "client_context.h"
+#include "common/cost_define.h"// CONST_RPC_KV_MAX_ITEMS / CONST_RPC_KV_MAX_BYTES
 #include "func.h"
 
 namespace http
@@ -171,7 +172,13 @@ asio::awaitable<void> rpc_client::async_send()
     send_content.push_back(0x0A);
     send_content.append("HOST ");
 
-    unsigned short value_size_h = host.size();
+    // 长度字段只有两字节，超长直接失败，不截断
+    if (host.size() > 0xFFFF)
+    {
+        iserror = true;
+        co_return;
+    }
+    unsigned short value_size_h = static_cast<unsigned short>(host.size());
     unsigned char aa            = value_size_h & 0xFF;
 
     value_size_h     = value_size_h & 0xFF00;
@@ -188,7 +195,7 @@ asio::awaitable<void> rpc_client::async_send()
     {
         send_content.push_back(0x00);
         send_content.push_back(0x02);
-        unsigned short value_size = content.size();
+        unsigned short value_size = static_cast<unsigned short>(content.size());
         unsigned char a           = value_size & 0xFF;
         value_size                = value_size & 0xFF00;
         unsigned char b           = value_size >> 8;
@@ -200,7 +207,7 @@ asio::awaitable<void> rpc_client::async_send()
         send_content.push_back(0x00);
         send_content.push_back(0x04);
 
-        unsigned int value_size = content.size();
+        unsigned int value_size = static_cast<unsigned int>(content.size());
         unsigned char a;
         a = (value_size & 0xFF000000) >> 24;
         send_content.push_back(a);
@@ -255,22 +262,27 @@ asio::awaitable<void> rpc_client::async_send()
             co_return;
         }
 
-        send_content.push_back(0x00);
-        send_content.push_back(0x02);
-        unsigned short value_size = content_type.size();
+        unsigned short value_size = static_cast<unsigned short>(content_type.size());
         unsigned char a           = value_size & 0xFF;
         value_size                = value_size & 0xFF00;
         unsigned char b           = value_size >> 8;
         send_content.push_back(b);
         send_content.push_back(a);
+        send_content.append(content_type);
     }
     send_content.push_back(0x0A);
 
     for (unsigned int i = 0; i < parameter.size(); i++)
     {
+        // 长度字段只有两字节，超长直接失败，不截断
+        if (parameter[i].value.size() > 0xFFFF)
+        {
+            iserror = true;
+            co_return;
+        }
         send_content.append(parameter[i].name);
         send_content.push_back(0x20);
-        unsigned short value_size = parameter[i].value.size();
+        unsigned short value_size = static_cast<unsigned short>(parameter[i].value.size());
         unsigned char a           = value_size & 0xFF;
         value_size                = value_size & 0xFF00;
         unsigned char b           = value_size >> 8;
@@ -310,7 +322,13 @@ void rpc_client::send()
     send_content.push_back(0x0A);
     send_content.append("HOST ");
 
-    unsigned short value_size_h = host.size();
+    // 长度字段只有两字节，超长直接失败，不截断
+    if (host.size() > 0xFFFF)
+    {
+        iserror = true;
+        return;
+    }
+    unsigned short value_size_h = static_cast<unsigned short>(host.size());
     unsigned char aa            = value_size_h & 0xFF;
 
     value_size_h     = value_size_h & 0xFF00;
@@ -327,7 +345,7 @@ void rpc_client::send()
     {
         send_content.push_back(0x00);
         send_content.push_back(0x02);
-        unsigned short value_size = content.size();
+        unsigned short value_size = static_cast<unsigned short>(content.size());
         unsigned char a           = value_size & 0xFF;
         value_size                = value_size & 0xFF00;
         unsigned char b           = value_size >> 8;
@@ -339,7 +357,7 @@ void rpc_client::send()
         send_content.push_back(0x00);
         send_content.push_back(0x04);
 
-        unsigned int value_size = content.size();
+        unsigned int value_size = static_cast<unsigned int>(content.size());
         unsigned char a;
         a = (value_size & 0xFF000000) >> 24;
         send_content.push_back(a);
@@ -394,22 +412,27 @@ void rpc_client::send()
             return;
         }
 
-        send_content.push_back(0x00);
-        send_content.push_back(0x02);
-        unsigned short value_size = content_type.size();
+        unsigned short value_size = static_cast<unsigned short>(content_type.size());
         unsigned char a           = value_size & 0xFF;
         value_size                = value_size & 0xFF00;
         unsigned char b           = value_size >> 8;
         send_content.push_back(b);
         send_content.push_back(a);
+        send_content.append(content_type);
     }
     send_content.push_back(0x0A);
 
     for (unsigned int i = 0; i < parameter.size(); i++)
     {
+        // 长度字段只有两字节，超长直接失败，不截断
+        if (parameter[i].value.size() > 0xFFFF)
+        {
+            iserror = true;
+            return;
+        }
         send_content.append(parameter[i].name);
         send_content.push_back(0x20);
-        unsigned short value_size = parameter[i].value.size();
+        unsigned short value_size = static_cast<unsigned short>(parameter[i].value.size());
         unsigned char a           = value_size & 0xFF;
         value_size                = value_size & 0xFF00;
         unsigned char b           = value_size >> 8;
@@ -456,6 +479,7 @@ asio::awaitable<bool> rpc_client::async_init_https_sock()
         std::tie(ec) = co_await sslsock->lowest_layer().async_connect(*iter, tuple_awaitable);
         if (ec)
         {
+            ++iter;
             continue;
         }
         break;
@@ -497,6 +521,7 @@ asio::awaitable<bool> rpc_client::async_init_http_sock()
         std::tie(ec) = co_await sock->async_connect(*iter, tuple_awaitable);
         if (ec)
         {
+            ++iter;
             continue;
         }
         break;
@@ -555,7 +580,7 @@ asio::awaitable<void> rpc_client::async_ssl_send_data(std::string_view send_cont
             isbody          = false;
             while (true)
             {
-                memset(data, 0x00, 2048);
+                memset(read_data, 0x00, sizeof(read_data));
                 if (exptime > 0)
                 {
                     reset_timeout();
@@ -647,7 +672,7 @@ asio::awaitable<void> rpc_client::async_send_data(std::string_view send_content)
             isbody          = false;
             while (true)
             {
-                memset(read_data, 0x00, 2048);
+                memset(read_data, 0x00, sizeof(read_data));
                 if (exptime > 0)
                 {
                     reset_timeout();
@@ -698,6 +723,14 @@ asio::awaitable<void> rpc_client::async_send_data(std::string_view send_content)
 
 void rpc_client::process_headkv()
 {
+    // [加固] 对齐服务端 rpc_parse.cpp：每完成一个 KV 段即累计条数 / 字节，超限按协议错误断连。
+    kv_num++;
+    kv_bytes += static_cast<unsigned long long>(read_key.size()) + read_value.size();
+    if (kv_num > CONST_RPC_KV_MAX_ITEMS || kv_bytes > CONST_RPC_KV_MAX_BYTES)
+    {
+        iserror = true;
+        return;
+    }
     if (read_key.size() == 6 && read_key == "cookie")
     {
         read_key.clear();
@@ -763,20 +796,26 @@ void rpc_client::process_headkv()
     }
     else if (read_key.size() == 4 && read_key == "size")
     {
-        unsigned int i = 0;
-        page.page_size = 0;
-        for (; i < read_value.size(); i++)
+        if (read_value.size() > 8)
         {
-            page.page_size = (page.page_size << 8) + read_value[i];
-        }
-        content_size   = page.page_size;
-        page.read_size = page.page_size;
-        if (content_size > 68719476735)
-        {
-            //to long long(>15G)
+            //长度字段最多 8 字节
             iserror = true;
             return;
         }
+        unsigned long long v = 0;
+        for (unsigned int i = 0; i < read_value.size(); i++)
+        {
+            v = (v << 8) + static_cast<unsigned char>(read_value[i]);
+        }
+        if (v > 68719476735ULL)
+        {
+            //超过 64G
+            iserror = true;
+            return;
+        }
+        page.page_size = v;
+        content_size   = static_cast<long long>(v);
+        page.read_size = v;
     }
     else
     {
@@ -788,9 +827,22 @@ void rpc_client::process_headkv()
 }
 void rpc_client::process_value(const unsigned char *buffer, unsigned int readnum)
 {
+    if (val_size == 0)
+    {
+        //空值：不消费净荷字节，直接去读值结束符
+        cur_process_type = 11;
+        return;
+    }
     for (; offsetnum < readnum; offsetnum++)
     {
         read_value.push_back(buffer[offsetnum]);
+        // [加固] read_value 单条 KV 值的后盾上限：2 字节长度前缀已把单值框在 ≤64KB，
+        // 此处再封顶 CONST_RPC_KV_MAX_BYTES，作为前缀逻辑被绕过时的兜底。
+        if (read_value.size() > CONST_RPC_KV_MAX_BYTES)
+        {
+            iserror = true;
+            return;
+        }
         val_size--;
         if (val_size == 0)
         {
@@ -828,7 +880,7 @@ void rpc_client::process_append(const unsigned char *buffer, unsigned int readnu
 void rpc_client::process(const unsigned char *buffer, unsigned int readnum)
 {
     offsetnum = 0;
-    if (readnum < 6)
+    if (readnum < 7)
     {
         error_msg = "too short response";
         iserror   = true;
@@ -863,7 +915,7 @@ void rpc_client::process(const unsigned char *buffer, unsigned int readnum)
                 page.status_msg.push_back(buffer[offsetnum]);
             }
 
-            if (buffer[offsetnum] != 0x0A)
+            if (offsetnum >= readnum || buffer[offsetnum] != 0x0A)
             {
                 error_msg = "header info error";
                 iserror   = true;
@@ -924,7 +976,7 @@ void rpc_client::process_parameter(const unsigned char *buffer, unsigned int rea
             return;
         }
 
-        if (buffer[offsetnum] == 0x20)
+        if (offsetnum < readnum && buffer[offsetnum] == 0x20)
         {
             offsetnum++;
         }
@@ -1011,7 +1063,7 @@ void rpc_client::process_parameter(const unsigned char *buffer, unsigned int rea
     else if (cur_process_type == 12)
     {
         //值还没有读到空格 The value has not yet reached the space
-        if (buffer[offsetnum] == 0x0A)
+        if (offsetnum < readnum && buffer[offsetnum] == 0x0A)
         {
             offsetnum++;
         }
@@ -1085,30 +1137,84 @@ void rpc_client::process_body_chunk(const unsigned char *buffer, unsigned int re
     {
         if (page.read_size == 0)
         {
-            page.read_size = buffer[offsetnum];
-            page.read_size = page.read_size << 8;
-            offsetnum++;
-            if (offsetnum < readnum)
+            if (chunk_head_high)
             {
-                page.read_size = page.read_size | buffer[offsetnum];
+                page.read_size = ((unsigned int)chunk_head_byte << 8) | buffer[offsetnum];
+                offsetnum++;
+                chunk_head_high = false;
+            }
+            else
+            {
+                chunk_head_byte = buffer[offsetnum];
+                offsetnum++;
+                if (offsetnum >= readnum)
+                {
+                    //长度头跨段：等下一段的低字节
+                    chunk_head_high = true;
+                    return;
+                }
+                page.read_size = ((unsigned int)chunk_head_byte << 8) | buffer[offsetnum];
                 offsetnum++;
             }
             if (page.read_size == 0)
             {
-                isfinish            = true;
-                page.content_length = page.content.size();
+                if (page.isfile)
+                {
+                    // 内容已在临时文件：关闭句柄收尾；content_length 已在 append_body 累计
+                    uprawfile.reset(nullptr);
+                }
+                else
+                {
+                    page.content_length = page.content.size();
+                }
+                isfinish = true;
                 return;
             }
         }
 
         if (offsetnum < readnum)
         {
-            unsigned int temp_size = readnum - offsetnum;
+            // 落盘门面：未超 CONST_RPC_BODY_MEM_LIMIT 留内存；超了（或已切到文件）写临时文件。
+            // 首次切文件时把已累积在 page.content 的部分先刷入文件，保证 body 完整不断裂。
+            auto append_body = [&](const unsigned char *p, size_t n)
+            {
+                if (page.isfile || (page.content.size() + n) > CONST_RPC_BODY_MEM_LIMIT)
+                {
+                    if (uprawfile == nullptr)
+                    {
+                        server_loaclvar &localvar = get_server_global_var();
+                        std::string tmppath       = localvar.temp_path;
+                        tmppath.append(make_http_temp_raw_name());
+                        uprawfile.reset(fopen(tmppath.c_str(), "wb"));
+                        page.tempfile = tmppath;
+                        if (uprawfile == nullptr)
+                        {
+                            iserror = true;
+                            return;
+                        }
+                        page.isfile = true;
+                        if (!page.content.empty())
+                        {
+                            fwrite(page.content.data(), page.content.size(), 1, uprawfile.get());
+                            page.content.clear();
+                        }
+                    }
+                    fwrite(p, n, 1, uprawfile.get());
+                }
+                else
+                {
+                    page.content.append((const char *)p, n);
+                }
+                page.content_length += n;
+            };
+
+            unsigned long long temp_size = readnum - offsetnum;
             if (temp_size > page.read_size)
             {
-                page.content.append((char *)&buffer[offsetnum], page.read_size);
+                unsigned long long consumed = page.read_size;
+                append_body(&buffer[offsetnum], (size_t)consumed);
+                offsetnum += (unsigned int)consumed;
                 page.read_size = 0;
-                offsetnum      = offsetnum + page.read_size;
                 if (chunk_process != nullptr)
                 {
                     chunk_process(shared_from_this());
@@ -1118,7 +1224,7 @@ void rpc_client::process_body_chunk(const unsigned char *buffer, unsigned int re
             }
             else
             {
-                page.content.append((char *)&buffer[offsetnum], temp_size);
+                append_body(&buffer[offsetnum], (size_t)temp_size);
                 if (chunk_process != nullptr)
                 {
                     chunk_process(shared_from_this());
@@ -1161,8 +1267,13 @@ void rpc_client::process_body(const unsigned char *buffer, unsigned int readnum)
         isfinish = true;
         return;
     }
-    if (page.page_size > 65536)
+    if (page.page_size > CONST_RPC_BODY_MEM_LIMIT)
     {
+        if (offsetnum >= readnum)
+        {
+            //本段没有净荷字节：不建文件、不开句柄
+            return;
+        }
         if (uprawfile == nullptr)
         {
             server_loaclvar &localvar = get_server_global_var();
@@ -1188,21 +1299,11 @@ void rpc_client::process_body(const unsigned char *buffer, unsigned int readnum)
             iserror = true;
             return;
         }
-        if (offsetnum < readnum)
-        {
-            fwrite(&buffer[offsetnum], (readnum - offsetnum), 1, uprawfile.get());
-        }
-        else if (offsetnum == readnum)
-        {
-            return;
-        }
-        else
-        {
-            //
-            iserror = true;
-            return;
-        }
-        page.read_size = page.read_size - (readnum - offsetnum);
+        unsigned long long avail = readnum - offsetnum;
+        unsigned long long take  = (avail < page.read_size) ? avail : page.read_size;
+        fwrite(&buffer[offsetnum], take, 1, uprawfile.get());
+        offsetnum += (unsigned int)take;
+        page.read_size = page.read_size - take;
         if (page.read_size > 68719476735)
         {
             // too conent
@@ -1219,28 +1320,22 @@ void rpc_client::process_body(const unsigned char *buffer, unsigned int readnum)
     }
     else
     {
-        if (offsetnum < readnum)
-        {
-            page.content.append((char *)&buffer[offsetnum], (readnum - offsetnum));
-            if (content_size >= 0 && page.content.size() == static_cast<size_t>(content_size))
-            {
-                isfinish            = true;
-                page.content_length = content_size;
-                return;
-            }
-        }
-        else if (offsetnum == readnum)
+        if (offsetnum >= readnum)
         {
             return;
         }
-        else
+        unsigned long long avail = readnum - offsetnum;
+        unsigned long long take  = (avail < page.read_size) ? avail : page.read_size;
+        page.content.append((char *)&buffer[offsetnum], take);
+        offsetnum += (unsigned int)take;
+        if (content_size >= 0 && page.content.size() == static_cast<size_t>(content_size))
         {
-            //read error
-            iserror = true;
+            isfinish            = true;
+            page.content_length = content_size;
             return;
         }
 
-        page.read_size = page.read_size - (readnum - offsetnum);
+        page.read_size = page.read_size - take;
         if (page.read_size > 68719476735)
         {
             // too conent
@@ -1270,6 +1365,13 @@ void rpc_client::run_loop()
     if (data == nullptr)
     {
         data = static_cast<unsigned char *>(std::malloc(512 * sizeof(unsigned char)));
+        if (data == nullptr)
+        {
+            error_msg = "read buffer alloc failed";
+            iserror   = true;
+            socket_read_lock.clear();
+            return;
+        }
     }
 
     for (;;)
@@ -1360,6 +1462,13 @@ asio::awaitable<void> rpc_client::async_run_loop()
     if (data == nullptr)
     {
         data = static_cast<unsigned char *>(std::malloc(512 * sizeof(unsigned char)));
+        if (data == nullptr)
+        {
+            error_msg = "read buffer alloc failed";
+            iserror   = true;
+            socket_read_lock.clear();
+            co_return;
+        }
     }
 
     for (;;)
@@ -1784,7 +1893,13 @@ bool rpc_client::connect(std::string_view rpcurl, unsigned int time_out_num)
     send_content.push_back(0x0A);
     send_content.append("HOST ");
 
-    unsigned short value_size_h = host.size();
+    // 长度字段只有两字节，超长直接失败，不截断
+    if (host.size() > 0xFFFF)
+    {
+        iserror = true;
+        return false;
+    }
+    unsigned short value_size_h = static_cast<unsigned short>(host.size());
     unsigned char aa            = value_size_h & 0xFF;
 
     value_size_h     = value_size_h & 0xFF00;
@@ -1801,7 +1916,7 @@ bool rpc_client::connect(std::string_view rpcurl, unsigned int time_out_num)
     {
         send_content.push_back(0x00);
         send_content.push_back(0x02);
-        unsigned short value_size = content.size();
+        unsigned short value_size = static_cast<unsigned short>(content.size());
         unsigned char a           = value_size & 0xFF;
         value_size                = value_size & 0xFF00;
         unsigned char b           = value_size >> 8;
@@ -1813,7 +1928,7 @@ bool rpc_client::connect(std::string_view rpcurl, unsigned int time_out_num)
         send_content.push_back(0x00);
         send_content.push_back(0x04);
 
-        unsigned int value_size = content.size();
+        unsigned int value_size = static_cast<unsigned int>(content.size());
         unsigned char a;
         a = (value_size & 0xFF000000) >> 24;
         send_content.push_back(a);
@@ -1868,22 +1983,27 @@ bool rpc_client::connect(std::string_view rpcurl, unsigned int time_out_num)
             return false;
         }
 
-        send_content.push_back(0x00);
-        send_content.push_back(0x02);
-        unsigned short value_size = content_type.size();
+        unsigned short value_size = static_cast<unsigned short>(content_type.size());
         unsigned char a           = value_size & 0xFF;
         value_size                = value_size & 0xFF00;
         unsigned char b           = value_size >> 8;
         send_content.push_back(b);
         send_content.push_back(a);
+        send_content.append(content_type);
     }
     send_content.push_back(0x0A);
 
     for (unsigned int i = 0; i < parameter.size(); i++)
     {
+        // 长度字段只有两字节，超长直接失败，不截断
+        if (parameter[i].value.size() > 0xFFFF)
+        {
+            iserror = true;
+            return false;
+        }
         send_content.append(parameter[i].name);
         send_content.push_back(0x20);
-        unsigned short value_size = parameter[i].value.size();
+        unsigned short value_size = static_cast<unsigned short>(parameter[i].value.size());
         unsigned char a           = value_size & 0xFF;
         value_size                = value_size & 0xFF00;
         unsigned char b           = value_size >> 8;
@@ -1940,7 +2060,13 @@ bool rpc_client::connect()
     send_content.push_back(0x0A);
     send_content.append("HOST ");
 
-    unsigned short value_size_h = host.size();
+    // 长度字段只有两字节，超长直接失败，不截断
+    if (host.size() > 0xFFFF)
+    {
+        iserror = true;
+        return false;
+    }
+    unsigned short value_size_h = static_cast<unsigned short>(host.size());
     unsigned char aa            = value_size_h & 0xFF;
 
     value_size_h     = value_size_h & 0xFF00;
@@ -1957,7 +2083,7 @@ bool rpc_client::connect()
     {
         send_content.push_back(0x00);
         send_content.push_back(0x02);
-        unsigned short value_size = content.size();
+        unsigned short value_size = static_cast<unsigned short>(content.size());
         unsigned char a           = value_size & 0xFF;
         value_size                = value_size & 0xFF00;
         unsigned char b           = value_size >> 8;
@@ -1969,7 +2095,7 @@ bool rpc_client::connect()
         send_content.push_back(0x00);
         send_content.push_back(0x04);
 
-        unsigned int value_size = content.size();
+        unsigned int value_size = static_cast<unsigned int>(content.size());
         unsigned char a;
         a = (value_size & 0xFF000000) >> 24;
         send_content.push_back(a);
@@ -2024,22 +2150,27 @@ bool rpc_client::connect()
             return false;
         }
 
-        send_content.push_back(0x00);
-        send_content.push_back(0x02);
-        unsigned short value_size = content_type.size();
+        unsigned short value_size = static_cast<unsigned short>(content_type.size());
         unsigned char a           = value_size & 0xFF;
         value_size                = value_size & 0xFF00;
         unsigned char b           = value_size >> 8;
         send_content.push_back(b);
         send_content.push_back(a);
+        send_content.append(content_type);
     }
     send_content.push_back(0x0A);
 
     for (unsigned int i = 0; i < parameter.size(); i++)
     {
+        // 长度字段只有两字节，超长直接失败，不截断
+        if (parameter[i].value.size() > 0xFFFF)
+        {
+            iserror = true;
+            return false;
+        }
         send_content.append(parameter[i].name);
         send_content.push_back(0x20);
-        unsigned short value_size = parameter[i].value.size();
+        unsigned short value_size = static_cast<unsigned short>(parameter[i].value.size());
         unsigned char a           = value_size & 0xFF;
         value_size                = value_size & 0xFF00;
         unsigned char b           = value_size >> 8;
@@ -2096,7 +2227,13 @@ asio::awaitable<bool> rpc_client::async_connect(std::string_view rpcurl, unsigne
     send_content.push_back(0x0A);
     send_content.append("HOST ");
 
-    unsigned short value_size_h = host.size();
+    // 长度字段只有两字节，超长直接失败，不截断
+    if (host.size() > 0xFFFF)
+    {
+        iserror = true;
+        co_return false;
+    }
+    unsigned short value_size_h = static_cast<unsigned short>(host.size());
     unsigned char aa            = value_size_h & 0xFF;
 
     value_size_h     = value_size_h & 0xFF00;
@@ -2113,7 +2250,7 @@ asio::awaitable<bool> rpc_client::async_connect(std::string_view rpcurl, unsigne
     {
         send_content.push_back(0x00);
         send_content.push_back(0x02);
-        unsigned short value_size = content.size();
+        unsigned short value_size = static_cast<unsigned short>(content.size());
         unsigned char a           = value_size & 0xFF;
         value_size                = value_size & 0xFF00;
         unsigned char b           = value_size >> 8;
@@ -2125,7 +2262,7 @@ asio::awaitable<bool> rpc_client::async_connect(std::string_view rpcurl, unsigne
         send_content.push_back(0x00);
         send_content.push_back(0x04);
 
-        unsigned int value_size = content.size();
+        unsigned int value_size = static_cast<unsigned int>(content.size());
         unsigned char a;
         a = (value_size & 0xFF000000) >> 24;
         send_content.push_back(a);
@@ -2180,22 +2317,27 @@ asio::awaitable<bool> rpc_client::async_connect(std::string_view rpcurl, unsigne
             co_return false;
         }
 
-        send_content.push_back(0x00);
-        send_content.push_back(0x02);
-        unsigned short value_size = content_type.size();
+        unsigned short value_size = static_cast<unsigned short>(content_type.size());
         unsigned char a           = value_size & 0xFF;
         value_size                = value_size & 0xFF00;
         unsigned char b           = value_size >> 8;
         send_content.push_back(b);
         send_content.push_back(a);
+        send_content.append(content_type);
     }
     send_content.push_back(0x0A);
 
     for (unsigned int i = 0; i < parameter.size(); i++)
     {
+        // 长度字段只有两字节，超长直接失败，不截断
+        if (parameter[i].value.size() > 0xFFFF)
+        {
+            iserror = true;
+            co_return false;
+        }
         send_content.append(parameter[i].name);
         send_content.push_back(0x20);
-        unsigned short value_size = parameter[i].value.size();
+        unsigned short value_size = static_cast<unsigned short>(parameter[i].value.size());
         unsigned char a           = value_size & 0xFF;
         value_size                = value_size & 0xFF00;
         unsigned char b           = value_size >> 8;
@@ -2252,7 +2394,13 @@ asio::awaitable<bool> rpc_client::async_connect()
     send_content.push_back(0x0A);
     send_content.append("HOST ");
 
-    unsigned short value_size_h = host.size();
+    // 长度字段只有两字节，超长直接失败，不截断
+    if (host.size() > 0xFFFF)
+    {
+        iserror = true;
+        co_return false;
+    }
+    unsigned short value_size_h = static_cast<unsigned short>(host.size());
     unsigned char aa            = value_size_h & 0xFF;
 
     value_size_h     = value_size_h & 0xFF00;
@@ -2269,7 +2417,7 @@ asio::awaitable<bool> rpc_client::async_connect()
     {
         send_content.push_back(0x00);
         send_content.push_back(0x02);
-        unsigned short value_size = content.size();
+        unsigned short value_size = static_cast<unsigned short>(content.size());
         unsigned char a           = value_size & 0xFF;
         value_size                = value_size & 0xFF00;
         unsigned char b           = value_size >> 8;
@@ -2281,7 +2429,7 @@ asio::awaitable<bool> rpc_client::async_connect()
         send_content.push_back(0x00);
         send_content.push_back(0x04);
 
-        unsigned int value_size = content.size();
+        unsigned int value_size = static_cast<unsigned int>(content.size());
         unsigned char a;
         a = (value_size & 0xFF000000) >> 24;
         send_content.push_back(a);
@@ -2336,22 +2484,27 @@ asio::awaitable<bool> rpc_client::async_connect()
             co_return false;
         }
 
-        send_content.push_back(0x00);
-        send_content.push_back(0x02);
-        unsigned short value_size = content_type.size();
+        unsigned short value_size = static_cast<unsigned short>(content_type.size());
         unsigned char a           = value_size & 0xFF;
         value_size                = value_size & 0xFF00;
         unsigned char b           = value_size >> 8;
         send_content.push_back(b);
         send_content.push_back(a);
+        send_content.append(content_type);
     }
     send_content.push_back(0x0A);
 
     for (unsigned int i = 0; i < parameter.size(); i++)
     {
+        // 长度字段只有两字节，超长直接失败，不截断
+        if (parameter[i].value.size() > 0xFFFF)
+        {
+            iserror = true;
+            co_return false;
+        }
         send_content.append(parameter[i].name);
         send_content.push_back(0x20);
-        unsigned short value_size = parameter[i].value.size();
+        unsigned short value_size = static_cast<unsigned short>(parameter[i].value.size());
         unsigned char a           = value_size & 0xFF;
         value_size                = value_size & 0xFF00;
         unsigned char b           = value_size >> 8;
@@ -2501,7 +2654,7 @@ void rpc_client::send_data(std::string_view send_content)
             isbody          = false;
             while (true)
             {
-                memset(read_data, 0x00, 2048);
+                memset(read_data, 0x00, sizeof(read_data));
                 if (exptime > 0)
                 {
                     reset_timeout();
@@ -2591,7 +2744,7 @@ void rpc_client::ssl_send_data(std::string_view send_content)
             isbody          = false;
             while (true)
             {
-                memset(read_data, 0x00, 2048);
+                memset(read_data, 0x00, sizeof(read_data));
                 if (exptime > 0)
                 {
                     reset_timeout();

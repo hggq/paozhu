@@ -27,8 +27,6 @@ build_release
 build_release/*
 bin
 bin/*
-test
-test/*
 
 # IDE / 编辑器 / Editors
 .idea

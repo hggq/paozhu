@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM SQLITE intermediate connection layer, sourced from MySQL, SQLITE 中间连接层，来源MySQL
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Thu, 15 Oct 2026 11:48:24 GMT
+ *  Creation time Fri, 16 Oct 2026 22:50:17 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -1452,6 +1452,8 @@ namespace lite
         }
     }
     
+    void set_field_null(unsigned char /*index_pos*/, world_info::meta & /*data_temp*/) {}
+    
         void assign_field_value_binary(unsigned char index_pos, col_value_variant val, world_info::meta &data_temp)
     {
         switch(index_pos)
@@ -1460,7 +1462,9 @@ namespace lite
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.id = 0;
+                    }
                     else if constexpr (std::is_same_v<T, int64_t>)
                         data_temp.id = static_cast<decltype(data_temp.id )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
@@ -1475,7 +1479,9 @@ namespace lite
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.randomnumber = 0;
+                    }
                     else if constexpr (std::is_same_v<T, int64_t>)
                         data_temp.randomnumber = static_cast<decltype(data_temp.randomnumber )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)

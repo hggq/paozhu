@@ -684,24 +684,35 @@ void client_session::send_goaway(unsigned int last_stream_id, unsigned int error
     //   载荷(8B): last_stream_id(4B) + error_code(4B), network byte order (big-endian)
     // 大端 = 高位字节在前，参考本文件 send_window_update_conn 的正确写法
     unsigned char _recvack[17] = {
-        0x00, 0x00, 0x08,  // 长度 = 8
-        0x07,               // GOAWAY 帧类型
-        0x00,               // flags = 0
-        0x00, 0x00, 0x00, 0x00,  // stream_id = 0
-        0x00, 0x00, 0x00, 0x00,  // last_stream_id (big-endian 32bit)
-        0x00, 0x00, 0x00, 0x00   // error_code (big-endian 32bit)
+        0x00,
+        0x00,
+        0x08,// 长度 = 8
+        0x07,// GOAWAY 帧类型
+        0x00,// flags = 0
+        0x00,
+        0x00,
+        0x00,
+        0x00,// stream_id = 0
+        0x00,
+        0x00,
+        0x00,
+        0x00,// last_stream_id (big-endian 32bit)
+        0x00,
+        0x00,
+        0x00,
+        0x00// error_code (big-endian 32bit)
     };
     // 载荷从字节 9 起（0..8 是 9 字节帧头），下标照 send_window_update_conn 的口径来
     // last_stream_id: 从高字节到低字节（big-endian）
     _recvack[9]  = (last_stream_id >> 24) & 0xFF;
     _recvack[10] = (last_stream_id >> 16) & 0xFF;
-    _recvack[11] = (last_stream_id >> 8)  & 0xFF;
-    _recvack[12] =  last_stream_id        & 0xFF;
+    _recvack[11] = (last_stream_id >> 8) & 0xFF;
+    _recvack[12] = last_stream_id & 0xFF;
     // error_code: 同上
     _recvack[13] = (error_code >> 24) & 0xFF;
     _recvack[14] = (error_code >> 16) & 0xFF;
-    _recvack[15] = (error_code >> 8)  & 0xFF;
-    _recvack[16] =  error_code        & 0xFF;
+    _recvack[15] = (error_code >> 8) & 0xFF;
+    _recvack[16] = error_code & 0xFF;
 
     if (!http2_ring_queue->push(_recvack, 17))
     {
@@ -741,8 +752,7 @@ asio::awaitable<void> client_session::flush_send_ring()
         {
             break;
         }
-        bool sock_open = isssl ? (sslsocket && sslsocket->lowest_layer().is_open())
-                               : (socket && socket->is_open());
+        bool sock_open = isssl ? (sslsocket && sslsocket->lowest_layer().is_open()) : (socket && socket->is_open());
         if (!sock_open)
         {
             break;

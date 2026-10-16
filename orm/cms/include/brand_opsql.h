@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Thu, 15 Oct 2026 11:48:21 GMT
+ *  Creation time Fri, 16 Oct 2026 22:50:12 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -1509,6 +1509,8 @@ namespace cms
         }
     }
     
+    void set_field_null(unsigned char /*index_pos*/, brand_info::meta & /*data_temp*/) {}
+    
         void assign_field_value_binary(unsigned char index_pos, col_value_variant val, brand_info::meta &data_temp)
     {
         switch(index_pos)
@@ -1517,7 +1519,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.brandid = 0;
+                    }
                     else if constexpr (std::is_same_v<T, int64_t>)
                         data_temp.brandid = static_cast<decltype(data_temp.brandid )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
@@ -1532,7 +1536,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.userid = 0;
+                    }
                     else if constexpr (std::is_same_v<T, int64_t>)
                         data_temp.userid = static_cast<decltype(data_temp.userid )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
@@ -1547,7 +1553,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.topicid = 0;
+                    }
                     else if constexpr (std::is_same_v<T, int64_t>)
                         data_temp.topicid = static_cast<decltype(data_temp.topicid )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
@@ -1562,7 +1570,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.sortid = 0;
+                    }
                     else if constexpr (std::is_same_v<T, int64_t>)
                         data_temp.sortid = static_cast<decltype(data_temp.sortid )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
@@ -1577,7 +1587,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.logo.clear();
+                    }
                     else if constexpr (std::is_same_v<T, std::string_view>)
                         data_temp.logo.assign(v.data(), v.size());
                     else
@@ -1588,7 +1600,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.title.clear();
+                    }
                     else if constexpr (std::is_same_v<T, std::string_view>)
                         data_temp.title.assign(v.data(), v.size());
                     else
@@ -1599,7 +1613,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.name.clear();
+                    }
                     else if constexpr (std::is_same_v<T, std::string_view>)
                         data_temp.name.assign(v.data(), v.size());
                     else
@@ -1610,7 +1626,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.introduce.clear();
+                    }
                     else if constexpr (std::is_same_v<T, std::string_view>)
                         data_temp.introduce.assign(v.data(), v.size());
                     else
@@ -1621,7 +1639,9 @@ namespace cms
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.detailcontent.clear();
+                    }
                     else if constexpr (std::is_same_v<T, std::string_view>)
                         data_temp.detailcontent.assign(v.data(), v.size());
                     else
@@ -4336,7 +4356,8 @@ M_MODEL& ornotnullDetailcontent()
                             model_meta_cache<std::vector<std::vector<std::string>>>::getinstance();
                         temp_cache.save(sqlhashid, temprecord, exptime);
 
-                        if (exptime > 0) exptime += 1;
+                        if (exptime > 0)
+                            exptime += 1;
                         model_meta_cache<std::vector<std::string>> &table_cache = model_meta_cache<std::vector<std::string>>::getinstance();
                         table_cache.save(sqlhashid, table_fieldname, exptime);
 
@@ -4888,7 +4909,7 @@ M_MODEL& ornotnullDetailcontent()
                 std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
                 if (get_record_cache(sqlhashid))
                 {
-                    iscache = false;
+                    iscache      = false;
                     is_hit_cache = true;
                     return static_cast<unsigned int>(B_BASE::record.size());
                 }
@@ -5037,7 +5058,7 @@ M_MODEL& ornotnullDetailcontent()
                 std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
                 if (get_record_cache(sqlhashid))
                 {
-                    iscache = false;
+                    iscache      = false;
                     is_hit_cache = true;
                     co_return static_cast<unsigned int>(B_BASE::record.size());
                 }
@@ -5183,7 +5204,7 @@ M_MODEL& ornotnullDetailcontent()
                 std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
                 if (get_record_cache(sqlhashid))
                 {
-                    iscache = false;
+                    iscache      = false;
                     is_hit_cache = true;
                     return *mod;
                 }
@@ -5332,7 +5353,7 @@ M_MODEL& ornotnullDetailcontent()
                 std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
                 if (get_record_cache(sqlhashid))
                 {
-                    iscache = false;
+                    iscache      = false;
                     is_hit_cache = true;
                     co_return 1;
                 }
@@ -5956,7 +5977,7 @@ M_MODEL& ornotnullDetailcontent()
                 std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
                 if (get_data_cache(sqlhashid))
                 {
-                    iscache = false;
+                    iscache      = false;
                     is_hit_cache = true;
                     return 1u;
                 }
@@ -6123,7 +6144,7 @@ M_MODEL& ornotnullDetailcontent()
                 std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
                 if (get_data_cache(sqlhashid))
                 {
-                    iscache = false;
+                    iscache      = false;
                     is_hit_cache = true;
                     co_return 1u;
                 }
@@ -6247,9 +6268,9 @@ M_MODEL& ornotnullDetailcontent()
 
         M_MODEL &use_cache(int cache_time = 0)
         {
-            iscache = true;
+            iscache      = true;
             is_hit_cache = false;
-            exptime = cache_time;
+            exptime      = cache_time;
             return *mod;
         }
         bool isuse_cache(bool iscachedate = false)
@@ -6311,7 +6332,6 @@ M_MODEL& ornotnullDetailcontent()
             }
             catch (const std::exception &e)
             {
-                
             }
 
             B_BASE::data_reset();
@@ -6430,7 +6450,6 @@ M_MODEL& ornotnullDetailcontent()
             }
             catch (const std::exception &e)
             {
-                
             }
 
             B_BASE::record.clear();
@@ -6707,7 +6726,7 @@ M_MODEL& ornotnullDetailcontent()
                 std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
                 if (get_data_cache(sqlhashid))
                 {
-                    iscache = false;
+                    iscache      = false;
                     is_hit_cache = true;
                     return 1u;
                 }
@@ -6836,7 +6855,7 @@ M_MODEL& ornotnullDetailcontent()
                 std::size_t sqlhashid = std::hash<std::string>{}(sqlstring);
                 if (get_data_cache(sqlhashid))
                 {
-                    iscache = false;
+                    iscache      = false;
                     is_hit_cache = true;
                     co_return 1u;
                 }
@@ -11550,7 +11569,6 @@ M_MODEL& ornotnullDetailcontent()
         }
         asio::awaitable<unsigned int> async_exec_fetch_to() { co_return co_await async_exec_fetch(); }
 
-
         // --- exec_fetch_one：预编译 SELECT limit 1 同步版（填充 data）---
         unsigned int exec_fetch_one()
         {
@@ -11602,7 +11620,7 @@ M_MODEL& ornotnullDetailcontent()
                                                              assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
                                                          }
                                                          effect_num = 1;
-                                                         return false; // 只取一行
+                                                         return false;// 只取一行
                                                      });
 
             if (conn->isdebug)
@@ -11654,7 +11672,7 @@ M_MODEL& ornotnullDetailcontent()
                                                                         {
                                                                             if (col_names[ij] == nullptr || col_names[ij][0] == '\0')
                                                                                 continue;
-                                                                            auto [ptr, len] = get_data(ij);
+                                                                            auto [ptr, len]   = get_data(ij);
                                                                             unsigned char pos = B_BASE::findcolpos(col_names[ij]);
                                                                             if (ptr == nullptr)
                                                                             {
@@ -11665,7 +11683,7 @@ M_MODEL& ornotnullDetailcontent()
                                                                             assign_field_value(pos, ptr, len, B_BASE::data);
                                                                         }
                                                                         effect_num = 1;
-                                                                        return false; // 只取一行
+                                                                        return false;// 只取一行
                                                                     });
 
             if (conn->isdebug)
@@ -13271,7 +13289,7 @@ M_MODEL& ornotnullDetailcontent()
 
         // std::list<std::string> commit_sqllist;
         bool iscache            = false;
-        bool is_hit_cache      = false;
+        bool is_hit_cache       = false;
         bool iserror            = false;
         bool islock_conn        = false;
         int exptime             = 0;

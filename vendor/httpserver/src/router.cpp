@@ -220,7 +220,8 @@ int router::lookup_registered(std::shared_ptr<httppeer> &peer, std::string &matc
     unsigned int slot = peer_slot(peer);
     int matched_plen  = 0;
 
-    // 一个 slot 内由短到长；matched_plen 是命中前缀的下标，参数段从这一段往后填
+    // 一个 slot 内由短到长；matched_plen 是命中前缀的下标，命中前缀占掉 pathinfos[0..plen]，参数段从 plen+1 起填
+    // shortest first; matched_plen is the matched prefix index, whose segments are pathinfos[0..plen]; args begin at plen+1
     auto walk_one_slot = [&](unsigned int s) -> int
     {
         for (int plen = 0; plen < (int)prefixes.size(); ++plen)
@@ -247,7 +248,9 @@ int router::lookup_registered(std::shared_ptr<httppeer> &peer, std::string &matc
         if (up != _urlpath_map.end())
         {
             auto const &names = up->second;
-            for (unsigned int m = (unsigned int)matched_plen; m < peer->pathinfos.size(); ++m)
+            // prefixes[plen] 由 pathinfos[0..plen] 拼成，参数段必须从 plen+1 开始填
+            // prefixes[plen] already covers pathinfos[0..plen]; args start at plen+1
+            for (unsigned int m = static_cast<unsigned int>(matched_plen) + 1; m < peer->pathinfos.size(); ++m)
             {
                 if (m < names.size() && !names[m].empty())
                 {
@@ -782,6 +785,27 @@ asio::awaitable<std::string> router::co_resolve(std::shared_ptr<httppeer> peer, 
                     fail_500(peer, exception_text(step.eptr));
                 else if (step.rejected)
                     fail_503(peer);
+            }
+            else if (loop_h.reg_kind == fn_kind::coro && loop_h.co_regfun)
+            {
+                // 本函数就是协程帧，协程条目就地 await，和主 handler 步同一套处置
+                // we already are a coroutine frame: await the coro entry in place, same handling as the main step
+                try
+                {
+                    co_await loop_h.co_regfun(peer);
+                }
+                catch (const std::exception &e)
+                {
+                    fail_500(peer, e.what());
+                }
+                catch (...)
+                {
+                    fail_500(peer, "unknown exception");
+                }
+            }
+            else
+            {
+                DEBUG_LOG("frametasks_timeloop registered without a callable regfun");
             }
             break;
         }

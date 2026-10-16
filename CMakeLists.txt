@@ -45,6 +45,7 @@ endif()
 option(ENABLE_WEBSOCKETS_CLIENT "Enable framework WebSocket long-connect client support" ON)
 option(ENABLE_SOCKETS_CLIENT "Enable framework bare TCP Socket long-connect client support" ON)
 option(ENABLE_MQTT_CLIENT "Enable framework MQTT broker long-connect client support" ON)
+option(ENABLE_TESTS "Build test executables in tests/" OFF)
 
 # Sanitizer switches. ASan is enabled automatically for Debug builds (see target_compile_options below), so:
 #   ENABLE_TSAN  cannot be combined with ASan => requires a non-Debug CMAKE_BUILD_TYPE (e.g. RelWithDebInfo)
@@ -769,4 +770,10 @@ if(ENABLE_CONF_INSTALL AND UNIX)
     message(STATUS [=[paozhu: conf/ copied to ${PAOZHU_CONF_DIR}]=])
   ")
   message(STATUS "paozhu: 'make install' will copy conf/ to ${PAOZHU_CONF_DIR}")
+endif()
+
+# ---- Tests (cmake -DENABLE_TESTS=ON) ----
+# 放在依赖处理之后：tests 目标要复用 asio / OpenSSL / Threads / SQLite 等依赖目标
+if(ENABLE_TESTS)
+  add_subdirectory(tests)
 endif()

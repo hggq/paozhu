@@ -161,8 +161,8 @@ class client_session : public std::enable_shared_from_this<client_session>
     unsigned char *_cache_data  = nullptr;
     std::atomic_uint time_limit = 0;
 
-    bool isssl      = false;
-    bool isgoway    = false;
+    bool isssl   = false;
+    bool isgoway = false;
     // 连接关闭旗：连接自己的 strand 上置位，两条 http2 发送线程每帧都读它决定还要不要发。
     // 一边写一边读是跨线程访问，所以放成原子；普通 bool 时读侧可能一直看到旧值，
     // 响应会继续往已经关掉的连接上堆。

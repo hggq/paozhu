@@ -132,9 +132,16 @@ bool http2_send_queue::detach_parked(const client_session *session_obj, std::lis
     std::unique_lock<std::mutex> lock(parked_mutex);
     for (auto iter = parked_list.begin(); iter != parked_list.end();)
     {
-        // session_obj 为空表示摘出全部（兜底扫描逐条重算闸门）
-        if (session_obj == nullptr ||
-            ((*iter)->peer && (*iter)->peer->socket_session.get() == session_obj))
+        // session_obj 为空表示摘出全部（兜底扫描逐条重算闸门）；
+        // peer 已空的条目不属于任何连接，按会话摘时也一并摘走，否则它只能等 6s 兜底扫描；
+        // 摘下后由 dispatch_parked 的无 peer 闸门路径（gate 直接放行 → ready → 发送线程
+        // 顶部存活过滤）收口回池，不会被 reattach 挂回。
+        // null session = drain all (belt sweep); a null peer belongs to no connection, so
+        // drain it on a per-session call too — otherwise it waits for the 6s belt sweep.
+        // dispatch_parked's no-peer gate path (gate passes → ready → send-thread liveness
+        // filter) recycles it; it is never reattached.
+        if (session_obj == nullptr || !(*iter)->peer ||
+            (*iter)->peer->socket_session.get() == session_obj)
         {
             out.splice(out.end(), parked_list, iter++);
             parked.fetch_sub(1);

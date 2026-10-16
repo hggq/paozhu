@@ -20,6 +20,7 @@
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+#include <type_traits>
 
 #include <asio/co_spawn.hpp>
 #include <asio/detached.hpp>
@@ -100,6 +101,7 @@ enum class timeout_action
     close_erase,
     dur_tick_async,
     dur_tick_sync,
+    keepalive_ping,// 只有 websocket_client 会排进来
 };
 
 template <typename T>
@@ -131,6 +133,21 @@ void scan_timeout_list(std::list<std::weak_ptr<T>> &lst, std::mutex &mtx, unsign
                 actions.push_back({peer, timeout_action::close_erase});
                 lst.erase(iter++);
                 continue;
+            }
+            if constexpr (std::is_same_v<T, websocket_client>)
+            {
+                // 保活判定排在下面 dur 分支的早 continue 之前：dur 心跳只证明本端还在跑，
+                // 不证明对端活着。半开连接靠这里发的 ping 换 pong，静默够久即判死。
+                unsigned int keepalive = peer->keepalive_check(nowtimeid);
+                if (keepalive == 1)
+                {
+                    actions.push_back({peer, timeout_action::keepalive_ping});
+                }
+                else if (keepalive == 2)
+                {
+                    ++iter;
+                    continue;// 已置 iswait_exit，下一拍由上面的 close_erase 分支收摊
+                }
             }
             if constexpr (HasDur)
             {
@@ -170,9 +187,21 @@ void scan_timeout_list(std::list<std::weak_ptr<T>> &lst, std::mutex &mtx, unsign
                                    { return p->async_dur_time_loop_fun(p->shared_from_this()); },
                                    asio::detached);
                 }
-                else
+                else if (item.action == timeout_action::dur_tick_sync)
                 {
                     item.peer->dur_time_loop_fun(item.peer->shared_from_this());
+                }
+                else if constexpr (std::is_same_v<T, websocket_client>)
+                {
+                    if (item.action == timeout_action::keepalive_ping)
+                    {
+                        // ping 走这条连接自己的出站队列串行化（与业务写、自动 pong 不交错）
+                        asio::co_spawn(item.peer->strand_, [p = item.peer]() mutable -> asio::awaitable<void>
+                                       {
+                            co_await p->async_send_frame(p->make_ping());
+                            co_return; },
+                                       asio::detached);
+                    }
                 }
             }
         }

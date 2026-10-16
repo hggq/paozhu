@@ -29,7 +29,7 @@ bool post_send_text(client_session &session, std::string_view payload)
 
 bool post_send_binary(client_session &session, std::string_view payload)
 {
-    // 裁定：出站压缩仅对 text 开启，binary 不压缩
+    // 出站压缩只对 text 开启，binary 不压缩
     return post_send_frame(session, opcode::binary, payload);
 }
 
@@ -38,10 +38,20 @@ bool post_send_close(client_session &session, uint16_t code, std::string_view re
     std::string body;
     body.push_back(static_cast<char>((code >> 8) & 0xFF));
     body.push_back(static_cast<char>(code & 0xFF));
-    // RFC 6455 §5.5：控制帧载荷 ≤125 字节，状态码占 2 字节，原因截到 123
-    if (reason.size() > 123)
-        reason = reason.substr(0, 123);
-    body.append(reason);
+    // RFC 6455 §5.5：控制帧载荷 ≤125 字节，状态码占 2 字节，原因最多 123 字节。
+    // §7.1.7 又要求原因必须是合法 UTF-8，所以非法输入整段丢弃只发 2 字节状态码；
+    // 合法输入按码点边界回退截断，避免把末尾的多字节字符切成一半发出去。
+    if (!reason.empty() && utf8_valid(reason))
+    {
+        size_t cut = reason.size();
+        while (cut > 123)// 回退到上一个完整字符起点
+        {
+            --cut;
+            while (cut > 0 && ((unsigned char)reason[cut] & 0xC0) == 0x80)
+                --cut;
+        }
+        body.append(reason.substr(0, cut));
+    }
     return post_send_frame(session, opcode::close, body);
 }
 

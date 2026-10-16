@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_ORM_PROBEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 15 Oct 2026 11:48:18 GMT
+*本文件为自动生成 Fri, 16 Oct 2026 22:50:07 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -42,6 +42,19 @@ namespace orm_probe_info
 
     };
 
+    // 只含允许 NULL 的列，位下标从 0 连续分配，与物理列号解耦
+    enum class null_col : unsigned char
+    {
+		v = 0,
+		dec_col = 1,
+		t_col = 2,
+		dt_col = 3,
+		big = 4,
+    };
+    static constexpr std::size_t nullable_count = 5;
+    // 物理列下标 -> NULL 位下标，非可空列为 -1
+    static constexpr std::array<int,col_count> null_index_of={-1,0,1,2,3,4};
+
     struct meta
     {
 		 int  id = 0; ///**/
@@ -50,6 +63,11 @@ namespace orm_probe_info
 		 std::string  t_col = "NULL"; ///**/
 		 std::string  dt_col = "NULL"; ///**/
 		 std::string  big = ""; ///**/
+		
+		// SQL NULL 位图，默认全 0 表示非 NULL
+		std::bitset<nullable_count> null_bits{};
+		bool is_null(null_col c) const { return null_bits.test(static_cast<std::size_t>(c)); }
+		void set_null(null_col c, bool on = true) { null_bits.set(static_cast<std::size_t>(c), on); }
 	};
   
     struct meta_tree
@@ -60,6 +78,11 @@ namespace orm_probe_info
 		 std::string  t_col = "NULL"; ///**/
 		 std::string  dt_col = "NULL"; ///**/
 		 std::string  big = ""; ///**/
+		
+		// SQL NULL 位图，默认全 0 表示非 NULL
+		std::bitset<nullable_count> null_bits{};
+		bool is_null(null_col c) const { return null_bits.test(static_cast<std::size_t>(c)); }
+		void set_null(null_col c, bool on = true) { null_bits.set(static_cast<std::size_t>(c), on); }
 
 	 std::vector<meta_tree> children;
  };
@@ -72,6 +95,11 @@ namespace orm_probe_info
 		 std::string  t_col = "NULL"; ///**/
 		 std::string  dt_col = "NULL"; ///**/
 		 std::string  big = ""; ///**/
+		
+		// SQL NULL 位图，默认全 0 表示非 NULL
+		std::bitset<nullable_count> null_bits{};
+		bool is_null(null_col c) const { return null_bits.test(static_cast<std::size_t>(c)); }
+		void set_null(null_col c, bool on = true) { null_bits.set(static_cast<std::size_t>(c), on); }
 
 	 std::vector<std::unique_ptr<meta_tree>> children;
  };
@@ -631,6 +659,7 @@ namespace orm_probe_info
 struct orm_probe_base
 {
     using cols = orm_probe_info::cols;
+    using null_col = orm_probe_info::null_col;
       orm_probe_info::meta data;
     std::vector<orm_probe_info::meta> record;
 static constexpr std::string_view _rmstag="default";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -824,16 +853,36 @@ break;
  }else{ 
 	tempsql<<std::to_string(data.id);
 }
+if(data.is_null(orm_probe_info::null_col::v)){
+	tempsql<<",null";
+}else{
 tempsql<<",'"<<stringaddslash(data.v)<<"'";
+}
+if(data.is_null(orm_probe_info::null_col::dec_col)){
+	tempsql<<",null";
+}else{
 tempsql<<",'"<<stringaddslash(data.dec_col)<<"'";
+}
+if(data.is_null(orm_probe_info::null_col::t_col)){
+	tempsql<<",null";
+}else{
 tempsql<<",'"<<stringaddslash(data.t_col)<<"'";
+}
+if(data.is_null(orm_probe_info::null_col::dt_col)){
+	tempsql<<",null";
+}else{
   
 if(data.dt_col.size()==0){ 
 tempsql<<", CURRENT_TIMESTAMP ";
  }else{ 
  tempsql<<",'"<<stringaddslash(data.dt_col)<<"'";
  }
+}
+if(data.is_null(orm_probe_info::null_col::big)){
+	tempsql<<",null";
+}else{
 tempsql<<",'"<<stringaddslash(data.big)<<"'";
+}
 tempsql<<")";
 
      
@@ -864,16 +913,36 @@ tempsql<<")";
  }else{ 
 	tempsql<<std::to_string(insert_data.id);
 }
+if(insert_data.is_null(orm_probe_info::null_col::v)){
+	tempsql<<",null";
+}else{
 tempsql<<",'"<<stringaddslash(insert_data.v)<<"'";
+}
+if(insert_data.is_null(orm_probe_info::null_col::dec_col)){
+	tempsql<<",null";
+}else{
 tempsql<<",'"<<stringaddslash(insert_data.dec_col)<<"'";
+}
+if(insert_data.is_null(orm_probe_info::null_col::t_col)){
+	tempsql<<",null";
+}else{
 tempsql<<",'"<<stringaddslash(insert_data.t_col)<<"'";
+}
+if(insert_data.is_null(orm_probe_info::null_col::dt_col)){
+	tempsql<<",null";
+}else{
   
 if(insert_data.dt_col.size()==0){ 
 tempsql<<", CURRENT_TIMESTAMP ";
  }else{ 
  tempsql<<",'"<<insert_data.dt_col<<"'";
  }
+}
+if(insert_data.is_null(orm_probe_info::null_col::big)){
+	tempsql<<",null";
+}else{
 tempsql<<",'"<<stringaddslash(insert_data.big)<<"'";
+}
 tempsql<<")";
 
      
@@ -912,16 +981,36 @@ tempsql<<")";
 	 }else{ 
 	tempsql<<std::to_string(insert_data[i].id);
 	}
+if(insert_data[i].is_null(orm_probe_info::null_col::v)){
+	tempsql<<",null";
+}else{
 		tempsql<<",'"<<stringaddslash(insert_data[i].v)<<"'";
+}
+if(insert_data[i].is_null(orm_probe_info::null_col::dec_col)){
+	tempsql<<",null";
+}else{
 		tempsql<<",'"<<stringaddslash(insert_data[i].dec_col)<<"'";
+}
+if(insert_data[i].is_null(orm_probe_info::null_col::t_col)){
+	tempsql<<",null";
+}else{
 		tempsql<<",'"<<stringaddslash(insert_data[i].t_col)<<"'";
+}
+if(insert_data[i].is_null(orm_probe_info::null_col::dt_col)){
+	tempsql<<",null";
+}else{
   
 		if(insert_data[i].dt_col.size()==0){ 
 		tempsql<<", CURRENT_TIMESTAMP ";
 		 }else{ 
  tempsql<<",'"<<insert_data[i].dt_col<<"'";
  }
+}
+if(insert_data[i].is_null(orm_probe_info::null_col::big)){
+	tempsql<<",null";
+}else{
 		tempsql<<",'"<<stringaddslash(insert_data[i].big)<<"'";
+}
 		tempsql<<")";
 	 } 
 
@@ -946,16 +1035,36 @@ tempsql<<")";
  }else{ 
 	tempsql<<"id="<<std::to_string(data.id);
 }
+if(data.is_null(orm_probe_info::null_col::v)){
+	tempsql<<",v=null";
+}else{
 tempsql<<",v='"<<stringaddslash(data.v)<<"'";
+}
+if(data.is_null(orm_probe_info::null_col::dec_col)){
+	tempsql<<",dec_col=null";
+}else{
 tempsql<<",dec_col='"<<stringaddslash(data.dec_col)<<"'";
+}
+if(data.is_null(orm_probe_info::null_col::t_col)){
+	tempsql<<",t_col=null";
+}else{
 tempsql<<",t_col='"<<stringaddslash(data.t_col)<<"'";
+}
+if(data.is_null(orm_probe_info::null_col::dt_col)){
+	tempsql<<",dt_col=null";
+}else{
   
 if(data.dt_col.size()==0){ 
 tempsql<<",dt_col=CURRENT_TIMESTAMP";
  }else{ 
  tempsql<<",dt_col'='"<<stringaddslash(data.dt_col)<<"'";
  }
+}
+if(data.is_null(orm_probe_info::null_col::big)){
+	tempsql<<",big=null";
+}else{
 tempsql<<",big='"<<stringaddslash(data.big)<<"'";
+}
  }else{ 
 
      
@@ -1010,18 +1119,22 @@ if(data.id==0){
  break;
  case 1:
  if(jj>0){ tempsql<<","; } 
+ if(data.is_null(orm_probe_info::null_col::v)){ tempsql<<"v=null"; break; } 
 tempsql<<"v='"<<stringaddslash(data.v)<<"'";
  break;
  case 2:
  if(jj>0){ tempsql<<","; } 
+ if(data.is_null(orm_probe_info::null_col::dec_col)){ tempsql<<"dec_col=null"; break; } 
 tempsql<<"dec_col='"<<stringaddslash(data.dec_col)<<"'";
  break;
  case 3:
  if(jj>0){ tempsql<<","; } 
+ if(data.is_null(orm_probe_info::null_col::t_col)){ tempsql<<"t_col=null"; break; } 
 tempsql<<"t_col='"<<stringaddslash(data.t_col)<<"'";
  break;
  case 4:
  if(jj>0){ tempsql<<","; } 
+ if(data.is_null(orm_probe_info::null_col::dt_col)){ tempsql<<"dt_col=null"; break; } 
   
 if(data.dt_col.size()==0){ 
 tempsql<<"dt_col=CURRENT_TIMESTAMP";
@@ -1031,6 +1144,7 @@ tempsql<<"dt_col=CURRENT_TIMESTAMP";
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
+ if(data.is_null(orm_probe_info::null_col::big)){ tempsql<<"big=null"; break; } 
 tempsql<<"big='"<<stringaddslash(data.big)<<"'";
  break;
 
@@ -1066,15 +1180,19 @@ tempsql<<"big='"<<stringaddslash(data.big)<<"'";
                         }
                         break;
                     case 1:
+                        if(data.is_null(orm_probe_info::null_col::v)){ tempsql<<"v=null"; break; }
                         tempsql<<"v='"<<stringaddslash(data.v)<<"'";
                         break;
                     case 2:
+                        if(data.is_null(orm_probe_info::null_col::dec_col)){ tempsql<<"dec_col=null"; break; }
                         tempsql<<"dec_col='"<<stringaddslash(data.dec_col)<<"'";
                         break;
                     case 3:
+                        if(data.is_null(orm_probe_info::null_col::t_col)){ tempsql<<"t_col=null"; break; }
                         tempsql<<"t_col='"<<stringaddslash(data.t_col)<<"'";
                         break;
                     case 4:
+                        if(data.is_null(orm_probe_info::null_col::dt_col)){ tempsql<<"dt_col=null"; break; }
                         if(data.dt_col.size()==0){ 
                             tempsql<<"dt_col=CURRENT_TIMESTAMP";
                         }else{ 
@@ -1082,6 +1200,7 @@ tempsql<<"big='"<<stringaddslash(data.big)<<"'";
                         }
                         break;
                     case 5:
+                        if(data.is_null(orm_probe_info::null_col::big)){ tempsql<<"big=null"; break; }
                         tempsql<<"big='"<<stringaddslash(data.big)<<"'";
                         break;
                 }
@@ -1130,16 +1249,36 @@ tempsql<<"big='"<<stringaddslash(data.big)<<"'";
 	 }else{ 
 	tempsql<<std::to_string(record[i].id);
 	}
+if(record[i].is_null(orm_probe_info::null_col::v)){
+	tempsql<<",null";
+}else{
 	tempsql<<",'"<<stringaddslash(record[i].v)<<"'";
+}
+if(record[i].is_null(orm_probe_info::null_col::dec_col)){
+	tempsql<<",null";
+}else{
 	tempsql<<",'"<<stringaddslash(record[i].dec_col)<<"'";
+}
+if(record[i].is_null(orm_probe_info::null_col::t_col)){
+	tempsql<<",null";
+}else{
 	tempsql<<",'"<<stringaddslash(record[i].t_col)<<"'";
+}
+if(record[i].is_null(orm_probe_info::null_col::dt_col)){
+	tempsql<<",null";
+}else{
   
 	if(record[i].dt_col.size()==0){ 
 	tempsql<<", CURRENT_TIMESTAMP ";
 	 }else{ 
  tempsql<<",'"<<stringaddslash(record[i].dt_col)<<"'";
  }
+}
+if(record[i].is_null(orm_probe_info::null_col::big)){
+	tempsql<<",null";
+}else{
 	tempsql<<",'"<<stringaddslash(record[i].big)<<"'";
+}
 	tempsql<<")";
   }
  
@@ -1183,16 +1322,36 @@ tempsql<<"big='"<<stringaddslash(data.big)<<"'";
 	 }else{ 
 	tempsql<<std::to_string(record[i].id);
 	}
+if(record[i].is_null(orm_probe_info::null_col::v)){
+	tempsql<<",null";
+}else{
 	tempsql<<",'"<<stringaddslash(record[i].v)<<"'";
+}
+if(record[i].is_null(orm_probe_info::null_col::dec_col)){
+	tempsql<<",null";
+}else{
 	tempsql<<",'"<<stringaddslash(record[i].dec_col)<<"'";
+}
+if(record[i].is_null(orm_probe_info::null_col::t_col)){
+	tempsql<<",null";
+}else{
 	tempsql<<",'"<<stringaddslash(record[i].t_col)<<"'";
+}
+if(record[i].is_null(orm_probe_info::null_col::dt_col)){
+	tempsql<<",null";
+}else{
   
 	if(record[i].dt_col.size()==0){ 
 	tempsql<<", CURRENT_TIMESTAMP ";
 	 }else{ 
  tempsql<<",'"<<stringaddslash(record[i].dt_col)<<"'";
  }
+}
+if(record[i].is_null(orm_probe_info::null_col::big)){
+	tempsql<<",null";
+}else{
 	tempsql<<",'"<<stringaddslash(record[i].big)<<"'";
+}
 	tempsql<<")";
 	 }
 	 tempsql<<" as new ON DUPLICATE KEY UPDATE ";
@@ -1965,37 +2124,62 @@ tempsql<<"\"big\":\""<<http::utf8_to_jsonstring(record[n].big)<<"\"";
  std::string  getV(){  return data.v; } 
  std::string & getRefV(){  return std::ref(data.v); } 
  void setV( std::string  &val){  data.v=val;
+		 data.set_null(null_col::v, false);
 		 set_dirty(1);  }
  void setV(std::string_view val){  data.v=val;
+		 data.set_null(null_col::v, false);
 		 set_dirty(1);  }
+ void setNullV(){  data.set_null(null_col::v);
+		 set_dirty(1);  }
+ bool isNullV() const {  return data.is_null(null_col::v); } 
 
  std::string  getDecCol(){  return data.dec_col; } 
  std::string & getRefDecCol(){  return std::ref(data.dec_col); } 
  void setDecCol( std::string  &val){  data.dec_col=val;
+		 data.set_null(null_col::dec_col, false);
 		 set_dirty(2);  }
  void setDecCol(std::string_view val){  data.dec_col=val;
+		 data.set_null(null_col::dec_col, false);
 		 set_dirty(2);  }
+ void setNullDecCol(){  data.set_null(null_col::dec_col);
+		 set_dirty(2);  }
+ bool isNullDecCol() const {  return data.is_null(null_col::dec_col); } 
 
  std::string  getTCol(){  return data.t_col; } 
  std::string & getRefTCol(){  return std::ref(data.t_col); } 
  void setTCol( std::string  &val){  data.t_col=val;
+		 data.set_null(null_col::t_col, false);
 		 set_dirty(3);  }
  void setTCol(std::string_view val){  data.t_col=val;
+		 data.set_null(null_col::t_col, false);
 		 set_dirty(3);  }
+ void setNullTCol(){  data.set_null(null_col::t_col);
+		 set_dirty(3);  }
+ bool isNullTCol() const {  return data.is_null(null_col::t_col); } 
 
  std::string  getDtCol(){  return data.dt_col; } 
  std::string & getRefDtCol(){  return std::ref(data.dt_col); } 
  void setDtCol( std::string  &val){  data.dt_col=val;
+		 data.set_null(null_col::dt_col, false);
 		 set_dirty(4);  }
  void setDtCol(std::string_view val){  data.dt_col=val;
+		 data.set_null(null_col::dt_col, false);
 		 set_dirty(4);  }
+ void setNullDtCol(){  data.set_null(null_col::dt_col);
+		 set_dirty(4);  }
+ bool isNullDtCol() const {  return data.is_null(null_col::dt_col); } 
 
  std::string  getBig(){  return data.big; } 
  std::string & getRefBig(){  return std::ref(data.big); } 
  void setBig( std::string  &val){  data.big=val;
+		 data.set_null(null_col::big, false);
 		 set_dirty(5);  }
  void setBig(std::string_view val){  data.big=val;
+		 data.set_null(null_col::big, false);
 		 set_dirty(5);  }
+ void setNullBig(){  data.set_null(null_col::big);
+		 set_dirty(5);  }
+ bool isNullBig() const {  return data.is_null(null_col::big); } 
 
 orm_probe_info::meta getnewData(){
  	 struct orm_probe_info::meta newdata;

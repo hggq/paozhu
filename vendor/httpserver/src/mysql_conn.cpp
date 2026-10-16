@@ -4149,11 +4149,13 @@ RETRY_LABEL:
                         else
                         {
                             // 以 row_end 为长度边界：防止行内最后字段的长度前缀
-                            // 跨行读取下一行字节作为长度（M-4）
+                            // 跨行读取下一行字节作为长度
                             unsigned long long length = pack_real_num(accum_buf.data(), row_end, pos);
-                            if (length > 0 && pos + (unsigned int)length <= row_end)
+                            // length==0 是空串（长度前缀 0x00），编码为有效指针+长度 0 与 NULL 区分；
+                            // 长度越出行边界（截断/损坏的行）才按 NULL 兜底
+                            if (pos + (unsigned int)length <= row_end)
                             {
-                                row_data_cache_ptrs_.push_back({&accum_buf[pos], (size_t)length});
+                                row_data_cache_ptrs_.push_back({accum_buf.data() + pos, (size_t)length});
                                 pos += (unsigned int)length;
                             }
                             else
@@ -4692,9 +4694,11 @@ RETRY_LABEL:
                             // 以 row_end 为长度边界：防止行内最后字段的长度前缀
                             // 跨行读取下一行字节作为长度
                             unsigned long long length = pack_real_num(accum_buf.data(), row_end, pos);
-                            if (length > 0 && pos + (unsigned int)length <= row_end)
+                            // length==0 是空串（长度前缀 0x00），编码为有效指针+长度 0 与 NULL 区分；
+                            // 长度越出行边界（截断/损坏的行）才按 NULL 兜底
+                            if (pos + (unsigned int)length <= row_end)
                             {
-                                row_data_cache_ptrs_.push_back({&accum_buf[pos], (size_t)length});
+                                row_data_cache_ptrs_.push_back({accum_buf.data() + pos, (size_t)length});
                                 pos += (unsigned int)length;
                             }
                             else
@@ -5708,7 +5712,7 @@ RETRY_EXEC_DML:
                 // 首个响应既非 OK 也非 ERR = column count, 即语句实际返回了结果集
                 // (把 SELECT 误用成 exec_dml_prepared)。此前只读首包就返回, 结果集其余
                 // 字节残留在 socket(可能停在任意物理包中间), 下一条命令会把行内容当
-                // 包头读出超大长度, 在 read_loop 永久等待 → 连接卡死(探针 E 段复现)。
+                // 包头读出超大长度, 在 read_loop 永久等待 → 连接卡死。
                 // 因此显式报错, 并把整个结果集排空到终结包(0xFE/0xFF)后保持连接可用。
                 error_msg  = "exec_dml_prepared: statement returned a result set (not DML)";
                 error_code = 10;
@@ -6383,7 +6387,7 @@ RETRY_FETCH:
                     // 硬基线（连接期门禁已要求服务器 advertise CLIENT_DEPRECATE_EOF）之下，列定义段
                     // 中途不会再有任何 0xFE 包：分隔包不存在，终结包只在全列收齐之后才发。走到这里
                     // 的前提只有"本轮列数与实际列定义包数不符 = 协议失步"，转 ROWS 会去等一个永不再来
-                    // 的行包(D-10 形状)；按终结包消费并收束结果集才能保住流对齐。
+                    // 的行包；按终结包消费并收束结果集才能保住流对齐。
                     consumed += total_pkt_len;
                     current_phase = phase::DONE;
                     stop          = true;
@@ -6408,7 +6412,7 @@ RETRY_FETCH:
                         col_name.clear();
                     }
                     // 行解码只认本轮列定义包里的类型：stmt_col_types_ 是「最近一次 prepare」
-                    // 的类型，ALTER 之后或换一条 SQL 都会让解码错位且不产生任何错误码(D-1/D-2)。
+                    // 的类型，ALTER 之后或换一条 SQL 都会让解码错位且不产生任何错误码。
                     uint8_t t_code  = 0xFE;// 解析不出类型时按 STRING，与行解码越界默认一致
                     bool t_unsigned = false;
                     uint8_t t_dec   = 0;// 解析不出精度时按 0 位小数(不打印分数部分)
@@ -6912,7 +6916,7 @@ RETRY_FETCH_BIN:
                     // 硬基线（连接期门禁已要求服务器 advertise CLIENT_DEPRECATE_EOF）之下，列定义段
                     // 中途不会再有任何 0xFE 包：分隔包不存在，终结包只在全列收齐之后才发。走到这里
                     // 的前提只有"本轮列数与实际列定义包数不符 = 协议失步"，转 ROWS 会去等一个永不再来
-                    // 的行包(D-10 形状)；按终结包消费并收束结果集才能保住流对齐。
+                    // 的行包；按终结包消费并收束结果集才能保住流对齐。
                     consumed += total_pkt_len;
                     current_phase = phase::DONE;
                     stop          = true;
@@ -6937,7 +6941,7 @@ RETRY_FETCH_BIN:
                         col_name.clear();
                     }
                     // 行解码只认本轮列定义包里的类型：stmt_col_types_ 是「最近一次 prepare」
-                    // 的类型，ALTER 之后或换一条 SQL 都会让解码错位且不产生任何错误码(D-1/D-2)。
+                    // 的类型，ALTER 之后或换一条 SQL 都会让解码错位且不产生任何错误码。
                     uint8_t t_code  = 0xFE;// 解析不出类型时按 STRING，与行解码越界默认一致
                     bool t_unsigned = false;
                     uint8_t t_dec   = 0;// 解析不出精度时按 0 位小数(不打印分数部分)
@@ -7478,7 +7482,7 @@ RETRY_ASYNC_DML:
             auto &accum_buf = accum_holder.buf;
 
             unsigned int n = co_await async_read_loop();
-            // execute 已发出, 响应丢失不等于服务端没做: 不重发 (D3)
+            // execute 已发出, 响应丢失不等于服务端没做: 不重发
             if (n == 0)
                 co_return (unsigned int) - 1;
             accum_buf.insert(accum_buf.end(), _cache_data, _cache_data + n);
@@ -7970,7 +7974,7 @@ RETRY_ASYNC_FETCH:
                         col_name.clear();
                     }
                     // 行解码只认本轮列定义包里的类型：stmt_col_types_ 是「最近一次 prepare」
-                    // 的类型，ALTER 之后或换一条 SQL 都会让解码错位且不产生任何错误码(D-1/D-2)。
+                    // 的类型，ALTER 之后或换一条 SQL 都会让解码错位且不产生任何错误码。
                     uint8_t t_code  = 0xFE;// 解析不出类型时按 STRING，与行解码越界默认一致
                     bool t_unsigned = false;
                     uint8_t t_dec   = 0;// 解析不出精度时按 0 位小数(不打印分数部分)
@@ -8530,7 +8534,7 @@ RETRY_ASYNC_FETCH_BIN:
                         col_name.clear();
                     }
                     // 行解码只认本轮列定义包里的类型：stmt_col_types_ 是「最近一次 prepare」
-                    // 的类型，ALTER 之后或换一条 SQL 都会让解码错位且不产生任何错误码(D-1/D-2)。
+                    // 的类型，ALTER 之后或换一条 SQL 都会让解码错位且不产生任何错误码。
                     uint8_t t_code  = 0xFE;// 解析不出类型时按 STRING，与行解码越界默认一致
                     bool t_unsigned = false;
                     uint8_t t_dec   = 0;// 解析不出精度时按 0 位小数(不打印分数部分)

@@ -68,11 +68,11 @@ struct http2_send_data_t
         stream_id        = 0;
         //        file_modify_time=0;
 
-        content_length      = 0;
-        current_num         = 0;
-        last_progress_time  = std::chrono::steady_clock::now();
-        own_state           = 0;
-        block_reason        = 0;
+        content_length     = 0;
+        current_num        = 0;
+        last_progress_time = std::chrono::steady_clock::now();
+        own_state          = 0;
+        block_reason       = 0;
 
         fp.reset();
         peer.reset();
@@ -137,7 +137,7 @@ class http2_send_queue
     // 把它们挪到 CAS 之外访问就是竞争。
     std::atomic<unsigned long long> belt_sweep_second = 0;
     // 单趟扫描的互斥标志。上面那条 CAS 只保证两次扫描的*起点*相隔不少于一拍，不保证上一拍
-    // 已经结束——一趟扫描要摘全表、逐条重算闸门，表足够长（或 ASan 拖慢）时能跑过一拍，
+    // 已经结束——一趟扫描要摘全表、逐条重算闸门，表足够长时能跑过一拍，
     // 而函数里那三个边沿静态量必须由单趟扫描独占。抢不到这个标志的那一次直接跳过本拍：
     // 兜底本来就允许某一拍被漏掉，事件边才是正常路径。
     std::atomic<unsigned char> belt_sweep_busy = 0;

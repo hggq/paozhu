@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 15 Oct 2026 11:48:21 GMT
+*本文件为自动生成 Fri, 16 Oct 2026 22:50:12 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -64,6 +64,15 @@ namespace article_info
 
     };
 
+    // 只含允许 NULL 的列，位下标从 0 连续分配，与物理列号解耦
+    enum class null_col : unsigned char
+    {
+		topicname = 0,
+    };
+    static constexpr std::size_t nullable_count = 1;
+    // 物理列下标 -> NULL 位下标，非可空列为 -1
+    static constexpr std::array<int,col_count> null_index_of={-1,-1,-1,-1,-1,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+
     struct meta
     {
 		 unsigned  int  aid = 0; ///**/
@@ -93,6 +102,11 @@ namespace article_info
 		 std::string  summary = ""; ///*文章摘要*/
 		 std::string  editauthor = ""; ///*文章编辑*/
 		 std::string  relatecontent = ""; ///*相关内容*/
+		
+		// SQL NULL 位图，默认全 0 表示非 NULL
+		std::bitset<nullable_count> null_bits{};
+		bool is_null(null_col c) const { return null_bits.test(static_cast<std::size_t>(c)); }
+		void set_null(null_col c, bool on = true) { null_bits.set(static_cast<std::size_t>(c), on); }
 	};
   
     struct meta_tree
@@ -124,6 +138,11 @@ namespace article_info
 		 std::string  summary = ""; ///*文章摘要*/
 		 std::string  editauthor = ""; ///*文章编辑*/
 		 std::string  relatecontent = ""; ///*相关内容*/
+		
+		// SQL NULL 位图，默认全 0 表示非 NULL
+		std::bitset<nullable_count> null_bits{};
+		bool is_null(null_col c) const { return null_bits.test(static_cast<std::size_t>(c)); }
+		void set_null(null_col c, bool on = true) { null_bits.set(static_cast<std::size_t>(c), on); }
 
 	 std::vector<meta_tree> children;
  };
@@ -157,6 +176,11 @@ namespace article_info
 		 std::string  summary = ""; ///*文章摘要*/
 		 std::string  editauthor = ""; ///*文章编辑*/
 		 std::string  relatecontent = ""; ///*相关内容*/
+		
+		// SQL NULL 位图，默认全 0 表示非 NULL
+		std::bitset<nullable_count> null_bits{};
+		bool is_null(null_col c) const { return null_bits.test(static_cast<std::size_t>(c)); }
+		void set_null(null_col c, bool on = true) { null_bits.set(static_cast<std::size_t>(c), on); }
 
 	 std::vector<std::unique_ptr<meta_tree>> children;
  };
@@ -779,6 +803,7 @@ namespace article_info
 struct article_base
 {
     using cols = article_info::cols;
+    using null_col = article_info::null_col;
       article_info::meta data;
     std::vector<article_info::meta> record;
 static constexpr std::string_view _rmstag="cms";//this value must be default or tag value, tag in mysqlconnect config file .
@@ -1077,7 +1102,11 @@ if(data.sortid==0){
  }else{ 
 	tempsql<<","<<std::to_string(data.sortid);
 }
+if(data.is_null(article_info::null_col::topicname)){
+	tempsql<<",null";
+}else{
 tempsql<<",'"<<stringaddslash(data.topicname)<<"'";
+}
 tempsql<<",'"<<stringaddslash(data.title)<<"'";
 tempsql<<",'"<<stringaddslash(data.keywords)<<"'";
 tempsql<<",'"<<stringaddslash(data.fromsource)<<"'";
@@ -1177,7 +1206,11 @@ if(insert_data.sortid==0){
  }else{ 
 	tempsql<<","<<std::to_string(insert_data.sortid);
 }
+if(insert_data.is_null(article_info::null_col::topicname)){
+	tempsql<<",null";
+}else{
 tempsql<<",'"<<stringaddslash(insert_data.topicname)<<"'";
+}
 tempsql<<",'"<<stringaddslash(insert_data.title)<<"'";
 tempsql<<",'"<<stringaddslash(insert_data.keywords)<<"'";
 tempsql<<",'"<<stringaddslash(insert_data.fromsource)<<"'";
@@ -1285,7 +1318,11 @@ tempsql<<")";
 	 }else{ 
 	tempsql<<","<<std::to_string(insert_data[i].sortid);
 	}
+if(insert_data[i].is_null(article_info::null_col::topicname)){
+	tempsql<<",null";
+}else{
 		tempsql<<",'"<<stringaddslash(insert_data[i].topicname)<<"'";
+}
 		tempsql<<",'"<<stringaddslash(insert_data[i].title)<<"'";
 		tempsql<<",'"<<stringaddslash(insert_data[i].keywords)<<"'";
 		tempsql<<",'"<<stringaddslash(insert_data[i].fromsource)<<"'";
@@ -1379,7 +1416,11 @@ if(data.sortid==0){
  }else{ 
 	tempsql<<",sortid="<<std::to_string(data.sortid);
 }
+if(data.is_null(article_info::null_col::topicname)){
+	tempsql<<",topicname=null";
+}else{
 tempsql<<",topicname='"<<stringaddslash(data.topicname)<<"'";
+}
 tempsql<<",title='"<<stringaddslash(data.title)<<"'";
 tempsql<<",keywords='"<<stringaddslash(data.keywords)<<"'";
 tempsql<<",fromsource='"<<stringaddslash(data.fromsource)<<"'";
@@ -1515,6 +1556,7 @@ if(data.sortid==0){
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
+ if(data.is_null(article_info::null_col::topicname)){ tempsql<<"topicname=null"; break; } 
 tempsql<<"topicname='"<<stringaddslash(data.topicname)<<"'";
  break;
  case 6:
@@ -1690,6 +1732,7 @@ tempsql<<"relatecontent='"<<stringaddslash(data.relatecontent)<<"'";
                         }
                         break;
                     case 5:
+                        if(data.is_null(article_info::null_col::topicname)){ tempsql<<"topicname=null"; break; }
                         tempsql<<"topicname='"<<stringaddslash(data.topicname)<<"'";
                         break;
                     case 6:
@@ -1849,7 +1892,11 @@ tempsql<<"relatecontent='"<<stringaddslash(data.relatecontent)<<"'";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].sortid);
 	}
+if(record[i].is_null(article_info::null_col::topicname)){
+	tempsql<<",null";
+}else{
 	tempsql<<",'"<<stringaddslash(record[i].topicname)<<"'";
+}
 	tempsql<<",'"<<stringaddslash(record[i].title)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].keywords)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].fromsource)<<"'";
@@ -1962,7 +2009,11 @@ tempsql<<"relatecontent='"<<stringaddslash(data.relatecontent)<<"'";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].sortid);
 	}
+if(record[i].is_null(article_info::null_col::topicname)){
+	tempsql<<",null";
+}else{
 	tempsql<<",'"<<stringaddslash(record[i].topicname)<<"'";
+}
 	tempsql<<",'"<<stringaddslash(record[i].title)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].keywords)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].fromsource)<<"'";
@@ -3527,9 +3578,14 @@ tempsql<<"\"relatecontent\":\""<<http::utf8_to_jsonstring(record[n].relateconten
  std::string  getTopicname(){  return data.topicname; } 
  std::string & getRefTopicname(){  return std::ref(data.topicname); } 
  void setTopicname( std::string  &val){  data.topicname=val;
+		 data.set_null(null_col::topicname, false);
 		 set_dirty(5);  }
  void setTopicname(std::string_view val){  data.topicname=val;
+		 data.set_null(null_col::topicname, false);
 		 set_dirty(5);  }
+ void setNullTopicname(){  data.set_null(null_col::topicname);
+		 set_dirty(5);  }
+ bool isNullTopicname() const {  return data.is_null(null_col::topicname); } 
 
  std::string  getTitle(){  return data.title; } 
  std::string & getRefTitle(){  return std::ref(data.title); } 

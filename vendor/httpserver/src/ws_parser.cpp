@@ -171,8 +171,8 @@ bool ws_parser::feed(const unsigned char *data, size_t len)
 
                 if (assembler_.finished())
                 {
+                    // seqid 由派发层统一分配，解析器不再自带一套只写不读的序号
                     websockets_data_list_t msg;
-                    msg.seqid = next_seq_id_++;
                     if (assembler_.is_spilled())
                     {
                         msg.isfile = true;
@@ -247,7 +247,6 @@ void ws_parser::reset()
     frame_fed_          = 0;
     ctl_payload_.clear();
     frame_mask_offset_ = 0;
-    next_seq_id_       = 0;
 }
 
 bool ws_parser::assembler_sink(const unsigned char *out, size_t n, void *ud)

@@ -2886,17 +2886,29 @@ void http2parse::readwinupdate(const HTTP2_PACK_DATA_T &temp_pack_data)
         // 「未确认的剩余额度」，所以溢出校验必须作用在差值上；作用在累计值上会
         // 在长连接上必然误杀：累计授予额只增不减，发满 2^31-1 字节之后，
         // 每一个合法的 WINDOW_UPDATE 都会被拒成连接级错误。
-        const unsigned long long granted = peer_session->window_update_num.load();
-        if (!http2_wu_conn_avail_ok(granted, peer_session->has_send_update_num.load(), ident_stream))
+        // 累加做成 CAS 循环：不再依赖「h2 帧解析只在本连接 strand 上、写者唯一」这条
+        // 架构约定来保证 load-check-store 不丢并发 WINDOW_UPDATE 的增量。溢出判定放进
+        // 循环每轮重算，与发送侧 http2_reserve_send_window 的 CAS 同形；has_send_update_num
+        // 只由发送线程 CAS 推进，这里只取快照参与差值判定。
+        // CAS loop instead of load-check-store: correctness no longer rests on the
+        // strand-single-writer assumption. Overflow is rechecked every round, same shape as
+        // the send-side reserve CAS (has_send_update_num is only CAS-advanced by send threads;
+        // it is read as a snapshot for the available-window check).
+        unsigned long long granted = peer_session->window_update_num.load();
+        for (;;)
         {
-            // RFC 9113 §6.9.1: 发送窗口超过 2^31-1 必须按 FLOW_CONTROL_ERROR 处理。
-            // 连接级的额度错在连接上，只能整条断开（error 通道回 GOAWAY）。
-            // 走 set_conn_error 确保 GOAWAY 带出正确的 FLOW_CONTROL_ERROR(0x3)，
-            // 而不是默认 PROTOCOL_ERROR(0x1)：对端据此把本端判定为流控违规而非协议违例。
-            set_conn_error(40036, 0x3);
-            return;
+            if (!http2_wu_conn_avail_ok(granted, peer_session->has_send_update_num.load(), ident_stream))
+            {
+                // RFC 9113 §6.9.1: 发送窗口超过 2^31-1 必须按 FLOW_CONTROL_ERROR 处理。
+                // 连接级的额度错在连接上，只能整条断开（error 通道回 GOAWAY）。
+                // 走 set_conn_error 确保 GOAWAY 带出正确的 FLOW_CONTROL_ERROR(0x3)，
+                // 而不是默认 PROTOCOL_ERROR(0x1)：对端据此把本端判定为流控违规而非协议违例。
+                set_conn_error(40036, 0x3);
+                return;
+            }
+            if (peer_session->window_update_num.compare_exchange_weak(granted, granted + ident_stream))
+                break;
         }
-        peer_session->window_update_num.store(granted + ident_stream);
         // 连接级发送窗口抬升：可能有流因为「累计授予 - 累计已发 = 0」挂在那里
         need_wakeup_send_threads = true;
     }
@@ -3081,7 +3093,7 @@ void http2parse::cleanup_stream(unsigned int sid)
     if (wit != http_data_weak.end())
     {
         // 这条流被 RST 或已关闭：peer 还在就把 isclose 置真（停止外发的信号），然后从弱表里摘掉。
-        // lock() 复活出来的强引用只在本语句块内有效；写的是 atomic<bool>（httppeer.h:230），
+        // lock() 复活出来的强引用只在本语句块内有效；isclose 是 std::atomic<bool>，
         // 发送线程在 http2_loop_send_sequence 与 http2_send_queue_loop 里只读它做停止判断，
         // 这里不碰其他成员，所以跨线程读写不会交织。
         std::shared_ptr<httppeer> temp_peer = wit->second.lock();
@@ -3117,7 +3129,7 @@ void http2parse::readrawfileformdata(HTTP2_POST_DATA_T &temp_post_data, unsigned
         // 落盘名统一由 make_http_temp_raw_name() 生成：文件名带 pzraw_ 前缀，
         // 该前缀是 httpwatch 周期清理时识别「框架自己的临时文件」的唯一依据，
         // 不要在此自行拼接文件名，否则文件会长期留在 temp_path 里。
-        temp_post_data.temp_filename = localvar.temp_path;// + "temp/";
+        temp_post_data.temp_filename = localvar.temp_path;
         temp_post_data.temp_filename.append(http::make_http_temp_raw_name());
 
         std::unique_ptr<std::FILE, int (*)(FILE *)> fpa(std::fopen(temp_post_data.temp_filename.c_str(), "wb"), std::fclose);
@@ -4944,15 +4956,17 @@ void http2parse::read_pack_data(const unsigned char *buffer, unsigned int buffer
             j = pack_data.subpad.size();
             for (; j < 9; j++)
             {
-                pack_data.subpad.push_back(buffer[readoffset]);
-                readoffset++;
-                // j 已经走到 8 说明第 9 个字节刚补齐，帧头是完整的，不能报错
-                // （只要 readoffset 触底就报 40005，会在 TCP 恰好切在帧头最后一个字节时误杀连接）
-                if (j < 8 && readoffset >= buffersize)
+                // 读之前先判边界：正常流程到不了这里（截断已由上方攒包逻辑拦住），
+                // 仅作后续重构改坏攒包逻辑时的保险
+                // Check before reading: unreachable in normal flow (truncation is
+                // handled above), kept as a guard against future refactor breaks.
+                if (readoffset >= buffersize)
                 {
                     error = 40005;
                     return;
                 }
+                pack_data.subpad.push_back(buffer[readoffset]);
+                readoffset++;
             }
             j                = 0;
             pack_data.length = (unsigned char)pack_data.subpad[j++];
