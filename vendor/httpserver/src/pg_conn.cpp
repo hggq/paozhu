@@ -1853,7 +1853,6 @@ unsigned int pg_conn_base::write()
 
 asio::awaitable<unsigned int> pg_conn_base::async_write_sql(const std::string &sql)
 {
-    unsigned int n = 0;
     send_data.clear();
     send_data.push_back('Q');
     int32_t len = 4 + sql.size() + 1;
@@ -1863,6 +1862,7 @@ asio::awaitable<unsigned int> pg_conn_base::async_write_sql(const std::string &s
     send_data.append(sql);
     send_data.push_back('\0');
 
+    std::size_t io_n = 0;
     if (isclose)
     {
         co_return 0;
@@ -1873,15 +1873,15 @@ asio::awaitable<unsigned int> pg_conn_base::async_write_sql(const std::string &s
 
     if (conn_link->sock_type == 1)
     {
-        std::tie(conn_link->ec, n) = co_await asio::async_write(*conn_link->socket, asio::buffer(send_data), tuple_awaitable);
+        std::tie(conn_link->ec, io_n) = co_await asio::async_write(*conn_link->socket, asio::buffer(send_data), tuple_awaitable);
     }
     else if (conn_link->sock_type == 2)
     {
-        std::tie(conn_link->ec, n) = co_await asio::async_write(*conn_link->sslsocket, asio::buffer(send_data), tuple_awaitable);
+        std::tie(conn_link->ec, io_n) = co_await asio::async_write(*conn_link->sslsocket, asio::buffer(send_data), tuple_awaitable);
     }
     else if (conn_link->sock_type == 3)
     {
-        std::tie(conn_link->ec, n) = co_await asio::async_write(*conn_link->localsocket, asio::buffer(send_data), tuple_awaitable);
+        std::tie(conn_link->ec, io_n) = co_await asio::async_write(*conn_link->localsocket, asio::buffer(send_data), tuple_awaitable);
     }
 
     if (conn_link->ec)
@@ -1891,12 +1891,12 @@ asio::awaitable<unsigned int> pg_conn_base::async_write_sql(const std::string &s
         co_return 0;
     }
     query_num++;
-    co_return n;
+    co_return static_cast<unsigned int>(io_n);
 }
 
 asio::awaitable<unsigned int> pg_conn_base::async_write()
 {
-    unsigned int n = 0;
+    std::size_t io_n = 0;
     if (isclose)
     {
         co_return 0;
@@ -1907,15 +1907,15 @@ asio::awaitable<unsigned int> pg_conn_base::async_write()
 
     if (conn_link->sock_type == 1)
     {
-        std::tie(conn_link->ec, n) = co_await asio::async_write(*conn_link->socket, asio::buffer(send_data), tuple_awaitable);
+        std::tie(conn_link->ec, io_n) = co_await asio::async_write(*conn_link->socket, asio::buffer(send_data), tuple_awaitable);
     }
     else if (conn_link->sock_type == 2)
     {
-        std::tie(conn_link->ec, n) = co_await asio::async_write(*conn_link->sslsocket, asio::buffer(send_data), tuple_awaitable);
+        std::tie(conn_link->ec, io_n) = co_await asio::async_write(*conn_link->sslsocket, asio::buffer(send_data), tuple_awaitable);
     }
     else if (conn_link->sock_type == 3)
     {
-        std::tie(conn_link->ec, n) = co_await asio::async_write(*conn_link->localsocket, asio::buffer(send_data), tuple_awaitable);
+        std::tie(conn_link->ec, io_n) = co_await asio::async_write(*conn_link->localsocket, asio::buffer(send_data), tuple_awaitable);
     }
 
     if (conn_link->ec)
@@ -1925,7 +1925,7 @@ asio::awaitable<unsigned int> pg_conn_base::async_write()
         co_return 0;
     }
     query_num++;
-    co_return n;
+    co_return static_cast<unsigned int>(io_n);
 }
 
 bool pg_conn_base::ping()

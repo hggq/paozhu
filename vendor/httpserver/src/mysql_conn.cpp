@@ -2610,12 +2610,12 @@ unsigned int mysql_conn_base::write()
 
 asio::awaitable<unsigned int> mysql_conn_base::async_write_sql(const std::string &sql)
 {
-    unsigned int n = 0;
+    unsigned int pkg_len = 0;
 
-    n = sql.length() + 1;
+    pkg_len = sql.length() + 1;
 
     // 与同步版一致：超过 16MB 拒绝发送，避免 3 字节长度字段溢出
-    if (n >= 0xFFFFFF)
+    if (pkg_len >= 0xFFFFFF)
     {
         error_msg  = "async_write_sql: SQL too large (>16MB), cannot send in single packet: " + std::to_string(sql.length());
         error_code = 20;
@@ -2624,14 +2624,14 @@ asio::awaitable<unsigned int> mysql_conn_base::async_write_sql(const std::string
     }
 
     send_data.clear();
-    send_data.push_back((n & 0xFF));
-    send_data.push_back((n >> 8 & 0xFF));
-    send_data.push_back((n >> 16 & 0xFF));
+    send_data.push_back((pkg_len & 0xFF));
+    send_data.push_back((pkg_len >> 8 & 0xFF));
+    send_data.push_back((pkg_len >> 16 & 0xFF));
     send_data.push_back(0x00);
     send_data.push_back(0x03);
     send_data.append(sql);
 
-    n = 0;
+    std::size_t io_n = 0;
     if (isclose)
     {
         co_return 0;
@@ -2642,15 +2642,15 @@ asio::awaitable<unsigned int> mysql_conn_base::async_write_sql(const std::string
 
     if (conn_link->sock_type == 1)
     {
-        std::tie(conn_link->ec, n) = co_await asio::async_write(*conn_link->socket, asio::buffer(send_data), tuple_awaitable);
+        std::tie(conn_link->ec, io_n) = co_await asio::async_write(*conn_link->socket, asio::buffer(send_data), tuple_awaitable);
     }
     else if (conn_link->sock_type == 2)
     {
-        std::tie(conn_link->ec, n) = co_await asio::async_write(*conn_link->sslsocket, asio::buffer(send_data), tuple_awaitable);
+        std::tie(conn_link->ec, io_n) = co_await asio::async_write(*conn_link->sslsocket, asio::buffer(send_data), tuple_awaitable);
     }
     else if (conn_link->sock_type == 3)
     {
-        std::tie(conn_link->ec, n) = co_await asio::async_write(*conn_link->localsocket, asio::buffer(send_data), tuple_awaitable);
+        std::tie(conn_link->ec, io_n) = co_await asio::async_write(*conn_link->localsocket, asio::buffer(send_data), tuple_awaitable);
     }
 
     if (conn_link->ec)
@@ -2660,12 +2660,12 @@ asio::awaitable<unsigned int> mysql_conn_base::async_write_sql(const std::string
         co_return 0;
     }
     query_num++;
-    co_return n;
+    co_return static_cast<unsigned int>(io_n);
 }
 
 asio::awaitable<unsigned int> mysql_conn_base::async_write()
 {
-    unsigned int n = 0;
+    std::size_t io_n = 0;
     if (isclose)
     {
         co_return 0;
@@ -2676,15 +2676,15 @@ asio::awaitable<unsigned int> mysql_conn_base::async_write()
 
     if (conn_link->sock_type == 1)
     {
-        std::tie(conn_link->ec, n) = co_await asio::async_write(*conn_link->socket, asio::buffer(send_data), tuple_awaitable);
+        std::tie(conn_link->ec, io_n) = co_await asio::async_write(*conn_link->socket, asio::buffer(send_data), tuple_awaitable);
     }
     else if (conn_link->sock_type == 2)
     {
-        std::tie(conn_link->ec, n) = co_await asio::async_write(*conn_link->sslsocket, asio::buffer(send_data), tuple_awaitable);
+        std::tie(conn_link->ec, io_n) = co_await asio::async_write(*conn_link->sslsocket, asio::buffer(send_data), tuple_awaitable);
     }
     else if (conn_link->sock_type == 3)
     {
-        std::tie(conn_link->ec, n) = co_await asio::async_write(*conn_link->localsocket, asio::buffer(send_data), tuple_awaitable);
+        std::tie(conn_link->ec, io_n) = co_await asio::async_write(*conn_link->localsocket, asio::buffer(send_data), tuple_awaitable);
     }
 
     if (conn_link->ec)
@@ -2694,7 +2694,7 @@ asio::awaitable<unsigned int> mysql_conn_base::async_write()
         co_return 0;
     }
     query_num++;
-    co_return n;
+    co_return static_cast<unsigned int>(io_n);
 }
 
 bool mysql_conn_base::ping()

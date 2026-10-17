@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM SQLITE intermediate connection layer, sourced from MySQL, PostgreSQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sat, 17 Oct 2026 00:28:04 GMT
+ *  Creation time Sat, 17 Oct 2026 02:09:28 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -231,7 +231,7 @@ namespace pg
 
                 unsigned int querysql_len = 0;
                 unsigned int fetch_count  = select_conn->fetch_directly(sqlstring,
-                                                                       [&querysql_len](int col_count, char **col_names, auto get_data) -> bool
+                                                                       [&querysql_len](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                                                        {
                                                                            (void)col_count;
                                                                            (void)col_names;
@@ -318,7 +318,7 @@ namespace pg
                 conn->begin_time();
 
             unsigned int count_val = 0;
-            conn->fetch_prepared(sql, params, [&count_val]([[maybe_unused]] int col_count, [[maybe_unused]] char **col_names, auto get_data) -> bool
+            conn->fetch_prepared(sql, params, [&count_val]([[maybe_unused]] int col_count, [[maybe_unused]] char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                  {
                     auto [ptr, len] = get_data(0);
                     if (ptr) {
@@ -485,7 +485,7 @@ namespace pg
 
                 unsigned int querysql_len = 0;
                 unsigned int fetch_count  = co_await select_conn->async_fetch_directly(sqlstring,
-                                                                                      [&querysql_len](int col_count, char **col_names, auto get_data) -> bool
+                                                                                      [&querysql_len](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                                                                       {
                                                                                           (void)col_count;
                                                                                           (void)col_names;
@@ -579,7 +579,7 @@ namespace pg
                 select_conn_l->begin_time();
 
             unsigned int count_val = 0;
-            co_await select_conn_l->async_fetch_prepared(sql, params, [&count_val]([[maybe_unused]] int col_count, [[maybe_unused]] char **col_names, auto get_data) -> bool
+            co_await select_conn_l->async_fetch_prepared(sql, params, [&count_val]([[maybe_unused]] int col_count, [[maybe_unused]] char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                                          {
                     auto [ptr, len] = get_data(0);
                     if (ptr) {
@@ -3234,7 +3234,7 @@ M_MODEL& ornotnullExtra()
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                                                                       [this, &temprecord](int col_count, char **col_names, auto get_data) -> bool
+                                                                       [this, &temprecord](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                                                        {
                                                                            std::map<std::string, std::string> data_temp;
                                                                            for (int ij = 0; ij < col_count; ij++)
@@ -3387,7 +3387,7 @@ M_MODEL& ornotnullExtra()
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                                                                       [this, &temprecord, &table_fieldname, &table_fieldmap, first_col = true](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                       [this, &temprecord, &table_fieldname, &table_fieldmap, first_col = true](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                                        {
                                                                            if (first_col)
                                                                            {
@@ -3535,7 +3535,7 @@ M_MODEL& ornotnullExtra()
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                                                                       [this, &custom_record, &callback](int col_count, char **col_names, auto get_data) -> bool
+                                                                       [this, &custom_record, &callback](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                                                        {
                                                                            T data_temp;
                                                                            for (int ij = 0; ij < col_count; ij++)
@@ -3656,7 +3656,7 @@ M_MODEL& ornotnullExtra()
                 }
 
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
-                                                                                      [this, &custom_record, &callback](int col_count, char **col_names, auto get_data) -> bool
+                                                                                      [this, &custom_record, &callback](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                                                                       {
                                                                                           T data_temp;
                                                                                           for (int ij = 0; ij < col_count; ij++)
@@ -3775,7 +3775,7 @@ M_MODEL& ornotnullExtra()
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                                                                       [this, &custom_record](int col_count, char **col_names, auto get_data) -> bool
+                                                                       [this, &custom_record](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                                                        {
                                                                            T data_temp;
                                                                            for (int ij = 0; ij < col_count; ij++)
@@ -3896,7 +3896,7 @@ M_MODEL& ornotnullExtra()
                 }
 
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
-                                                                                      [this, &custom_record](int col_count, char **col_names, auto get_data) -> bool
+                                                                                      [this, &custom_record](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                                                                       {
                                                                                           T data_temp;
                                                                                           for (int ij = 0; ij < col_count; ij++)
@@ -4027,7 +4027,7 @@ M_MODEL& ornotnullExtra()
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                                                                       [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                       [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                                        {
                                                                            // 列位映射仅首行构建（同一结果集列序固定）：后续行按列号直接索引。
                                                                            if (first_row)
@@ -4177,7 +4177,7 @@ M_MODEL& ornotnullExtra()
                 }
 
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
-                                                                                      [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                      [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                                                       {
                                                                                           // 列位映射仅首行构建（同一结果集列序固定）：后续行按列号直接索引。
                                                                                           if (first_row)
@@ -4324,7 +4324,7 @@ M_MODEL& ornotnullExtra()
                     select_conn->begin_time();
                 }
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                                                                       [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                       [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                                        {
                                                                            // 列位映射仅首行构建（同一结果集列序固定）：后续行按列号直接索引。
                                                                            if (first_row)
@@ -4475,7 +4475,7 @@ M_MODEL& ornotnullExtra()
                     select_conn->begin_time();
                 }
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
-                                                                                      [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                      [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                                                       {
                                                                                           // 列位映射仅首行构建（同一结果集列序固定）：后续行按列号直接索引。
                                                                                           if (first_row)
@@ -4614,7 +4614,7 @@ M_MODEL& ornotnullExtra()
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                                                                       [this, &custom_record, &callback](int col_count, char **col_names, auto get_data) -> bool
+                                                                       [this, &custom_record, &callback](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                                                        {
                                                                            T data_temp;
                                                                            for (int ij = 0; ij < col_count; ij++)
@@ -4736,7 +4736,7 @@ M_MODEL& ornotnullExtra()
                 }
 
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
-                                                                                      [this, &custom_record, &callback](int col_count, char **col_names, auto get_data) -> bool
+                                                                                      [this, &custom_record, &callback](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                                                                       {
                                                                                           T data_temp;
                                                                                           for (int ij = 0; ij < col_count; ij++)
@@ -4857,7 +4857,7 @@ M_MODEL& ornotnullExtra()
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                                                                       [this, &custom_struct](int col_count, char **col_names, auto get_data) -> bool
+                                                                       [this, &custom_struct](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                                                        {
                                                                            for (int ij = 0; ij < col_count; ij++)
                                                                            {
@@ -4977,7 +4977,7 @@ M_MODEL& ornotnullExtra()
                 }
 
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
-                                                                                      [this, &custom_struct](int col_count, char **col_names, auto get_data) -> bool
+                                                                                      [this, &custom_struct](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                                                                       {
                                                                                           for (int ij = 0; ij < col_count; ij++)
                                                                                           {
@@ -5105,7 +5105,7 @@ M_MODEL& ornotnullExtra()
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                                                                       [this, isappend](int col_count, char **col_names, auto get_data) -> bool
+                                                                       [this, isappend](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                                                        {
                                                                            std::vector<unsigned char> field_pos;
                                                                            for (int ii = 0; ii < col_count; ii++)
@@ -5265,7 +5265,7 @@ M_MODEL& ornotnullExtra()
                 }
 
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
-                                                                                      [this, isappend](int col_count, char **col_names, auto get_data) -> bool
+                                                                                      [this, isappend](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                                                                       {
                                                                                           std::vector<unsigned char> field_pos;
                                                                                           for (int ii = 0; ii < col_count; ii++)
@@ -5606,7 +5606,7 @@ M_MODEL& ornotnullExtra()
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                                                                       [this, &valuetemp](int col_count, char **col_names, auto get_data) -> bool
+                                                                       [this, &valuetemp](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                                                        {
                                                                            http::obj_val json_temp_v;
                                                                            for (int ij = 0; ij < col_count; ij++)
@@ -5727,7 +5727,7 @@ M_MODEL& ornotnullExtra()
                     select_conn->begin_time();
                 }
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
-                                                                                      [this, &valuetemp](int col_count, char **col_names, auto get_data) -> bool
+                                                                                      [this, &valuetemp](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                                                                       {
                                                                                           http::obj_val json_temp_v;
                                                                                           for (int ij = 0; ij < col_count; ij++)
@@ -5840,7 +5840,7 @@ M_MODEL& ornotnullExtra()
                 }
 
                 unsigned int fetch_count = select_conn->fetch_directly(sqlstring,
-                                                                       [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                       [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                                        {
                                                                            // 列位映射仅首行构建（同一结果集列序固定）：后续行按列号直接索引。
                                                                            if (first_row)
@@ -5968,7 +5968,7 @@ M_MODEL& ornotnullExtra()
                     select_conn->begin_time();
                 }
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(sqlstring,
-                                                                                      [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char **col_names, auto get_data) mutable -> bool
+                                                                                      [this, col_pos_map = std::vector<int>{}, first_row = true](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                                                       {
                                                                                           // 列位映射仅首行构建（同一结果集列序固定）：后续行按列号直接索引。
                                                                                           if (first_row)
@@ -7423,7 +7423,7 @@ M_MODEL& ornotnullExtra()
                 insertsql.append(B_BASE::getPKname());
                 long long insert_last_id = 0;
                 unsigned int fetch_count = edit_conn->fetch_directly(insertsql,
-                                                                     [&insert_last_id, this](int col_count, char **col_names, auto get_data) -> bool
+                                                                     [&insert_last_id, this](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                                                      {
                                                                          (void)col_count;
                                                                          (void)col_names;
@@ -7514,7 +7514,7 @@ M_MODEL& ornotnullExtra()
                 insertsql.append(B_BASE::getPKname());
                 long long insert_last_id = 0;
                 unsigned int fetch_count = co_await edit_conn->async_fetch_directly(insertsql,
-                                                                                    [&insert_last_id, this](int col_count, char **col_names, auto get_data) -> bool
+                                                                                    [&insert_last_id, this](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                                                                     {
                                                                                         (void)col_count;
                                                                                         (void)col_names;
@@ -7605,7 +7605,7 @@ M_MODEL& ornotnullExtra()
                 insertsql.append(B_BASE::getPKname());
                 long long insert_last_id = 0;
                 unsigned int fetch_count = edit_conn->fetch_directly(insertsql,
-                                                                     [&insert_last_id, this](int col_count, char **col_names, auto get_data) -> bool
+                                                                     [&insert_last_id, this](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                                                      {
                                                                          (void)col_count;
                                                                          (void)col_names;
@@ -7696,7 +7696,7 @@ M_MODEL& ornotnullExtra()
                 insertsql.append(B_BASE::getPKname());
                 long long insert_last_id = 0;
                 unsigned int fetch_count = co_await edit_conn->async_fetch_directly(insertsql,
-                                                                                    [&insert_last_id, this](int col_count, char **col_names, auto get_data) -> bool
+                                                                                    [&insert_last_id, this](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                                                                     {
                                                                                         (void)col_count;
                                                                                         (void)col_names;
@@ -7787,7 +7787,7 @@ M_MODEL& ornotnullExtra()
                 insertsql.append(B_BASE::getPKname());
                 long long insert_last_id = 0;
                 unsigned int fetch_count = edit_conn->fetch_directly(insertsql,
-                                                                     [&insert_last_id, this](int col_count, char **col_names, auto get_data) -> bool
+                                                                     [&insert_last_id, this](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                                                      {
                                                                          (void)col_count;
                                                                          (void)col_names;
@@ -7878,7 +7878,7 @@ M_MODEL& ornotnullExtra()
                 insertsql.append(B_BASE::getPKname());
                 long long insert_last_id = 0;
                 unsigned int fetch_count = co_await edit_conn->async_fetch_directly(insertsql,
-                                                                                    [&insert_last_id, this](int col_count, char **col_names, auto get_data) -> bool
+                                                                                    [&insert_last_id, this](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                                                                     {
                                                                                         (void)col_count;
                                                                                         (void)col_names;
@@ -8050,7 +8050,7 @@ M_MODEL& ornotnullExtra()
                 insertsql.append(B_BASE::getPKname());
                 long long insert_last_id = 0;
                 unsigned int fetch_count = edit_conn->fetch_directly(insertsql,
-                                                                     [&insert_last_id, this](int col_count, char **col_names, auto get_data) -> bool
+                                                                     [&insert_last_id, this](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                                                      {
                                                                          (void)col_count;
                                                                          (void)col_names;
@@ -8229,7 +8229,7 @@ M_MODEL& ornotnullExtra()
                     insertsql.append(B_BASE::getPKname());
                     long long insert_last_id = 0;
                     unsigned int fetch_count = co_await edit_conn->async_fetch_directly(insertsql,
-                                                                                        [&insert_last_id, this](int col_count, char **col_names, auto get_data) -> bool
+                                                                                        [&insert_last_id, this](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                                                                         {
                                                                                             (void)col_count;
                                                                                             (void)col_names;
@@ -8346,7 +8346,7 @@ M_MODEL& ornotnullExtra()
                     select_conn->begin_time();
                 }
                 unsigned int fetch_count = select_conn->fetch_directly(rawsql,
-                                                                       [this, &result_record](int col_count, char **col_names, auto get_data) -> bool
+                                                                       [this, &result_record](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                                                        {
                                                                            T data_temp;
                                                                            for (int ij = 0; ij < col_count; ij++)
@@ -8454,7 +8454,7 @@ M_MODEL& ornotnullExtra()
                     select_conn->begin_time();
                 }
                 unsigned int fetch_count = co_await select_conn->async_fetch_directly(rawsql,
-                                                                                      [this, &result_record](int col_count, char **col_names, auto get_data) -> bool
+                                                                                      [this, &result_record](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                                                                       {
                                                                                           T data_temp;
                                                                                           for (int ij = 0; ij < col_count; ij++)
@@ -9920,7 +9920,7 @@ M_MODEL& ornotnullExtra()
             returnsql.append(B_BASE::getPKname());
 
             bool got_first = false;
-            return conn->fetch_prepared(returnsql, params, [&first_id, &got_first, this](int col_count, char **col_names, auto get_data) -> bool
+            return conn->fetch_prepared(returnsql, params, [&first_id, &got_first, this](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) -> bool
                                         {
                                             (void)col_count;
                                             (void)col_names;
@@ -10174,7 +10174,7 @@ M_MODEL& ornotnullExtra()
 
             auto col_pos_map  = std::vector<unsigned char>();
             bool first_row    = true;
-            unsigned int rows = conn->fetch_prepared(sql, params, [this, &col_pos_map, &first_row](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = conn->fetch_prepared(sql, params, [this, &col_pos_map, &first_row](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                      {
                                                          if (first_row)
                                                          {
@@ -10240,7 +10240,7 @@ M_MODEL& ornotnullExtra()
             auto col_pos_map = std::vector<unsigned char>();
             bool first_row   = true;
 
-            unsigned int rows = conn->fetch_prepared(sql, params, [this, &col_pos_map, &first_row](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = conn->fetch_prepared(sql, params, [this, &col_pos_map, &first_row](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                      {
                     if (first_row)
                     {
@@ -10319,7 +10319,7 @@ M_MODEL& ornotnullExtra()
             if (conn->isdebug)
                 conn->begin_time();
 
-            unsigned int rows = conn->fetch_prepared(sql, params, [this, &custom_record, &callback](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = conn->fetch_prepared(sql, params, [this, &custom_record, &callback](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                      {
                     T data_temp;
                     for (int ij = 0; ij < col_count; ij++)
@@ -10374,7 +10374,7 @@ M_MODEL& ornotnullExtra()
             if (conn->isdebug)
                 conn->begin_time();
 
-            unsigned int rows = conn->fetch_prepared(sql, params, [this, &custom_record](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = conn->fetch_prepared(sql, params, [this, &custom_record](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                      {
                     T data_temp;
                     for (int ij = 0; ij < col_count; ij++)
@@ -10429,7 +10429,7 @@ M_MODEL& ornotnullExtra()
             if (conn->isdebug)
                 conn->begin_time();
 
-            unsigned int rows = conn->fetch_prepared(sql, params, [this, &custom_record, &callback](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = conn->fetch_prepared(sql, params, [this, &custom_record, &callback](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                      {
                     T data_temp;
                     for (int ij = 0; ij < col_count; ij++)
@@ -10484,7 +10484,7 @@ M_MODEL& ornotnullExtra()
             if (conn->isdebug)
                 conn->begin_time();
 
-            unsigned int rows = conn->fetch_prepared(sql, params, [this, &custom_record](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = conn->fetch_prepared(sql, params, [this, &custom_record](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                      {
                     T data_temp;
                     for (int ij = 0; ij < col_count; ij++)
@@ -10538,7 +10538,7 @@ M_MODEL& ornotnullExtra()
             if (conn->isdebug)
                 conn->begin_time();
 
-            unsigned int rows = conn->fetch_prepared(sql, params, [&custom_record, &callback](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = conn->fetch_prepared(sql, params, [&custom_record, &callback](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                      {
                                                          for (int ij = 0; ij < col_count; ij++)
                                                          {
@@ -10591,7 +10591,7 @@ M_MODEL& ornotnullExtra()
             if (conn->isdebug)
                 conn->begin_time();
 
-            unsigned int rows = conn->fetch_prepared(sql, params, [&custom_record](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = conn->fetch_prepared(sql, params, [&custom_record](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                      {
                                                          for (int ij = 0; ij < col_count; ij++)
                                                          {
@@ -10644,7 +10644,7 @@ M_MODEL& ornotnullExtra()
             if (conn->isdebug)
                 conn->begin_time();
 
-            unsigned int rows = conn->fetch_prepared(sql, params, [this, &custom_record, &callback](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = conn->fetch_prepared(sql, params, [this, &custom_record, &callback](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                      {
                                                          T data_temp;
                                                          for (int ij = 0; ij < col_count; ij++)
@@ -10700,7 +10700,7 @@ M_MODEL& ornotnullExtra()
             if (conn->isdebug)
                 conn->begin_time();
 
-            unsigned int rows = conn->fetch_prepared(sql, params, [this, &custom_record](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = conn->fetch_prepared(sql, params, [this, &custom_record](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                      {
                                                          T data_temp;
                                                          for (int ij = 0; ij < col_count; ij++)
@@ -10768,7 +10768,7 @@ M_MODEL& ornotnullExtra()
 
             auto col_pos_map  = std::vector<unsigned char>();
             bool first_row    = true;
-            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, &col_pos_map, &first_row](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, &col_pos_map, &first_row](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                                     {
                     if (first_row)
                     {
@@ -10837,7 +10837,7 @@ M_MODEL& ornotnullExtra()
 
             auto col_pos_map  = std::vector<unsigned char>();
             bool first_row    = true;
-            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, &col_pos_map, &first_row](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, &col_pos_map, &first_row](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                                     {
                     if (first_row)
                     {
@@ -10909,7 +10909,7 @@ M_MODEL& ornotnullExtra()
 
             auto col_pos_map  = std::vector<unsigned char>();
             bool first_row    = true;
-            unsigned int rows = conn->fetch_prepared(sql, params, [this, conn, &col_pos_map, &first_row](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = conn->fetch_prepared(sql, params, [this, conn, &col_pos_map, &first_row](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                      {
                                                          if (first_row)
                                                          {
@@ -10982,7 +10982,7 @@ M_MODEL& ornotnullExtra()
             if (conn->isdebug)
                 conn->begin_time();
 
-            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, conn](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, conn](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                                     {
                                                                         for (int ij = 0; ij < col_count; ij++)
                                                                         {
@@ -11048,7 +11048,7 @@ M_MODEL& ornotnullExtra()
             if (conn->isdebug)
                 conn->begin_time();
 
-            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, &custom_record, &callback](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, &custom_record, &callback](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                                     {
                     T data_temp;
                     for (int ij = 0; ij < col_count; ij++)
@@ -11110,7 +11110,7 @@ M_MODEL& ornotnullExtra()
             if (conn->isdebug)
                 conn->begin_time();
 
-            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, &custom_record](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, &custom_record](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                                     {
                     T data_temp;
                     for (int ij = 0; ij < col_count; ij++)
@@ -11171,7 +11171,7 @@ M_MODEL& ornotnullExtra()
             if (conn->isdebug)
                 conn->begin_time();
 
-            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, &custom_record, &callback](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, &custom_record, &callback](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                                     {
                     T data_temp;
                     for (int ij = 0; ij < col_count; ij++)
@@ -11232,7 +11232,7 @@ M_MODEL& ornotnullExtra()
             if (conn->isdebug)
                 conn->begin_time();
 
-            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, &custom_record](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, &custom_record](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                                     {
                     T data_temp;
                     for (int ij = 0; ij < col_count; ij++)
@@ -11293,7 +11293,7 @@ M_MODEL& ornotnullExtra()
             if (conn->isdebug)
                 conn->begin_time();
 
-            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [&custom_record, &callback](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [&custom_record, &callback](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                                     {
                     for (int ij = 0; ij < col_count; ij++)
                     {
@@ -11351,7 +11351,7 @@ M_MODEL& ornotnullExtra()
             if (conn->isdebug)
                 conn->begin_time();
 
-            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [&custom_record](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [&custom_record](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                                     {
                     for (int ij = 0; ij < col_count; ij++)
                     {
@@ -11409,7 +11409,7 @@ M_MODEL& ornotnullExtra()
             if (conn->isdebug)
                 conn->begin_time();
 
-            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, &custom_record, &callback](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, &custom_record, &callback](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                                     {
                     T data_temp;
                     for (int ij = 0; ij < col_count; ij++)
@@ -11470,7 +11470,7 @@ M_MODEL& ornotnullExtra()
             if (conn->isdebug)
                 conn->begin_time();
 
-            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, &custom_record](int col_count, char **col_names, auto get_data) mutable -> bool
+            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this, &custom_record](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                                     {
                     T data_temp;
                     for (int ij = 0; ij < col_count; ij++)
@@ -12392,7 +12392,7 @@ M_MODEL& ornotnullExtra()
                     edit_conn->begin_time();
                 }
                 long long last_id = 0;
-                unsigned int rows = co_await edit_conn->async_fetch_prepared(sql, params, [&last_id, this](int col_count, char **col_names, auto get_data) mutable -> bool
+                unsigned int rows = co_await edit_conn->async_fetch_prepared(sql, params, [&last_id, this](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                                              {
                         (void)col_count;
                         (void)col_names;
@@ -12625,7 +12625,7 @@ M_MODEL& ornotnullExtra()
                     edit_conn->begin_time();
                 }
                 long long first_id = 0;
-                unsigned int rows  = co_await edit_conn->async_fetch_prepared(sql, params, [&first_id, this](int col_count, char **col_names, auto get_data) mutable -> bool
+                unsigned int rows  = co_await edit_conn->async_fetch_prepared(sql, params, [&first_id, this](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
                                                                              {
                         (void)col_count;
                         (void)col_names;

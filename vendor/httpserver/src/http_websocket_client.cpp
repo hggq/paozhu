@@ -815,13 +815,13 @@ void websocket_client::close_connect()
     // 本次拿到的那对 socket，不会误关新连接，也不会漏关。
     asio::post(strand_, [sock = this->sock, sslsock = this->sslsock]()
                {
-        std::error_code ec;
+        std::error_code sec;
         if (sslsock)
         {
             if (sslsock->lowest_layer().is_open())
             {
-                sslsock->lowest_layer().cancel(ec);
-                sslsock->lowest_layer().close(ec);
+                sslsock->lowest_layer().cancel(sec);
+                sslsock->lowest_layer().close(sec);
             }
         }
         if (sock)
@@ -830,8 +830,8 @@ void websocket_client::close_connect()
             {
                 // 先 cancel 再 close，否则 parked 在 async_read 上的常驻协程
                 // 可能永远等不到 handler
-                sock->cancel(ec);
-                sock->close(ec);
+                sock->cancel(sec);
+                sock->close(sec);
             }
         } });
 }

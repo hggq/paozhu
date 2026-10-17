@@ -26,7 +26,7 @@ std::string pxapidepartmentsaddpost(std::shared_ptr<httppeer> peer)
         deps.setIsopen(client.json["isopen"].to_int());
 
         auto [effect_num, lastdepid] = deps.save();
-        lastdepid                    = deps.getPK();
+        lastdepid                    = static_cast<unsigned long long>(deps.getPK());
         if (deps.error_msg.size() > 0)
         {
             //std::cout << deps.error_msg << std::endl;
@@ -67,7 +67,7 @@ std::string pxapidepartmentseditpost(std::shared_ptr<httppeer> peer)
         deps.setMemo(client.json["desc"].to_string());
         deps.setIsopen(client.json["isopen"].to_int());
 
-        unsigned int lastdepid = client.json["value"].to_int();
+        unsigned long long lastdepid = static_cast<unsigned long long>(client.json["value"].to_int());
         if (lastdepid > 0)
         {
             deps.setPK(lastdepid);
@@ -78,7 +78,7 @@ std::string pxapidepartmentseditpost(std::shared_ptr<httppeer> peer)
             std::tie(std::ignore, lastdepid) = deps.save();
         }
 
-        lastdepid = deps.getPK();
+        lastdepid = static_cast<unsigned long long>(deps.getPK());
         if (deps.error_msg.size() > 0)
         {
             //std::cout << deps.error_msg << std::endl;
