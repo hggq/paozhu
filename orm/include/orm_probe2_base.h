@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_ORM_PROBE2BASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 16 Oct 2026 22:50:07 GMT
+*本文件为自动生成 Sat, 17 Oct 2026 00:27:57 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -54,9 +54,9 @@ namespace orm_probe2_info
     struct meta
     {
 		 int  id = 0; ///**/
-		 std::string  v = "NULL"; ///**/
-		 unsigned  long long  big_id = NULL; ///**/
-		 std::string  pad = "NULL"; ///**/
+		 std::string  v = ""; ///**/
+		 unsigned  long long  big_id = 0; ///**/
+		 std::string  pad = ""; ///**/
 		
 		// SQL NULL 位图，默认全 0 表示非 NULL
 		std::bitset<nullable_count> null_bits{};
@@ -67,9 +67,9 @@ namespace orm_probe2_info
     struct meta_tree
     {
 		 int  id = 0; ///**/
-		 std::string  v = "NULL"; ///**/
-		 unsigned  long long  big_id = NULL; ///**/
-		 std::string  pad = "NULL"; ///**/
+		 std::string  v = ""; ///**/
+		 unsigned  long long  big_id = 0; ///**/
+		 std::string  pad = ""; ///**/
 		
 		// SQL NULL 位图，默认全 0 表示非 NULL
 		std::bitset<nullable_count> null_bits{};
@@ -82,9 +82,9 @@ namespace orm_probe2_info
     struct meta_tree_ptr
     {
 		 int  id = 0; ///**/
-		 std::string  v = "NULL"; ///**/
-		 unsigned  long long  big_id = NULL; ///**/
-		 std::string  pad = "NULL"; ///**/
+		 std::string  v = ""; ///**/
+		 unsigned  long long  big_id = 0; ///**/
+		 std::string  pad = ""; ///**/
 		
 		// SQL NULL 位图，默认全 0 表示非 NULL
 		std::bitset<nullable_count> null_bits{};

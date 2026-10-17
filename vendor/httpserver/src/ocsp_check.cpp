@@ -312,14 +312,16 @@ OCSPResult ocsp_checker::parse_ocsp_response(const std::vector<uint8_t> &raw,
     }
 
     // 7. 提取时间字段（格式: YYYYMMDDHHMMSSZ）
+    // OpenSSL 3 隐藏了 ASN1_GENERALIZEDTIME 结构体，不能直接 .data/.length；
+    // 用 ASN1_STRING 族的 accessor（1.1 引入、3.0 继续保留）。
     if (this_update)
         result.this_update.assign(
-            reinterpret_cast<const char *>(this_update->data),
-            this_update->length);
+            reinterpret_cast<const char *>(ASN1_STRING_get0_data(this_update)),
+            static_cast<std::size_t>(ASN1_STRING_length(this_update)));
     if (next_update)
         result.next_update.assign(
-            reinterpret_cast<const char *>(next_update->data),
-            next_update->length);
+            reinterpret_cast<const char *>(ASN1_STRING_get0_data(next_update)),
+            static_cast<std::size_t>(ASN1_STRING_length(next_update)));
 
     oss << "[OCSP_PARSE] SUCCESS, this_update=" << result.this_update
         << " next_update=" << result.next_update << "\n";

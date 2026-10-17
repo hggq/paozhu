@@ -2,7 +2,7 @@
 #define ORM_CMS_TESTABASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 16 Oct 2026 22:50:12 GMT
+*本文件为自动生成 Sat, 17 Oct 2026 00:28:01 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -56,7 +56,7 @@ namespace testa_info
     {
 		 unsigned  int  id = 0; ///**/
 		 unsigned  int  parentid = 0; ///*父id[id tree]*/
-		 char  value_id = NULL; ///**/
+		 char  value_id = 0; ///**/
 		 std::string  content = ""; ///**/
 		 unsigned  char  deleted = 0; ///**/
 		 unsigned  int  deletetime = 0; ///**/
@@ -71,7 +71,7 @@ namespace testa_info
     {
 		 unsigned  int  id = 0; ///**/
 		 unsigned  int  parentid = 0; ///*父id[id tree]*/
-		 char  value_id = NULL; ///**/
+		 char  value_id = 0; ///**/
 		 std::string  content = ""; ///**/
 		 unsigned  char  deleted = 0; ///**/
 		 unsigned  int  deletetime = 0; ///**/
@@ -88,7 +88,7 @@ namespace testa_info
     {
 		 unsigned  int  id = 0; ///**/
 		 unsigned  int  parentid = 0; ///*父id[id tree]*/
-		 char  value_id = NULL; ///**/
+		 char  value_id = 0; ///**/
 		 std::string  content = ""; ///**/
 		 unsigned  char  deleted = 0; ///**/
 		 unsigned  int  deletetime = 0; ///**/
