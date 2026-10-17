@@ -2827,7 +2827,11 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
 
         if (table_column_info_lists[i].big_type == 1)
         {
-            collnametemp = collnametemp + " " + table_column_info_lists[i].col_name + " = \"" + table_column_info_lists[i].default_value + "\"; ///*" + table_column_info_lists[i].comment + "*/";
+            // big_type 是字符串/TEXT，默认值原样进引号；DEFAULT NULL 降级为空串，
+            // 避免生成 "NULL" 作为初始内容被业务当真值使用
+            std::string dv = table_column_info_lists[i].default_value;
+            if (dv == "NULL" || dv == "null") dv.clear();
+            collnametemp = collnametemp + " " + table_column_info_lists[i].col_name + " = \"" + dv + "\"; ///*" + table_column_info_lists[i].comment + "*/";
         }
         else
         {
@@ -2838,7 +2842,10 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
             {
                 at = at.substr(1, at.size() - 2);
             }
-            if (at.size() == 0)
+            // "NULL" / "null" 是数据库层声明的 DEFAULT NULL（information_schema/PRAGMA 原样返回），
+            // 对数值类型不能直接生成 = NULL（GCC 会报 -Wconversion-null，且整数上的 NULL 等于 0 也语义歧义）；
+            // 空串或 NULL 一律降级为 0，业务靠 is_null()/set_null() 区分 SQL NULL 与零值
+            if (at.empty() || at == "NULL" || at == "null")
             {
                 at = "0";
             }

@@ -389,7 +389,9 @@ inline std::string generate_csr_pem(EVP_PKEY *pkey,
     X509_REQ_set_version(req.get(), 0);
     X509_REQ_set_pubkey(req.get(), pkey);
 
-    X509_NAME *name = X509_REQ_get_subject_name(req.get());
+    // OpenSSL 3 返回 const X509_NAME*，但指针指向 req 内部可修改的 subject name，
+    // 所有权属于 req；const_cast 安全（1.1 时代该 API 本来就返回非 const）。
+    X509_NAME *name = const_cast<X509_NAME *>(X509_REQ_get_subject_name(req.get()));
     if (!domains.empty())
     {
         X509_NAME_add_entry_by_txt(
