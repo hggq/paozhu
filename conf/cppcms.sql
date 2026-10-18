@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- 主机： localhost
--- 生成日期： 2026-09-15 06:59:31
+-- 生成日期： 2026-10-17 08:40:17
 -- 服务器版本： 8.4.4
 -- PHP 版本： 8.5.7
 
@@ -191,6 +191,55 @@ CREATE TABLE `logininfo` (
   `agent` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `urlpath` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='登录记录';
+
+-- --------------------------------------------------------
+
+--
+-- 表的结构 `orderlist`
+--
+
+CREATE TABLE `orderlist` (
+  `orderid` int NOT NULL,
+  `userid` int NOT NULL,
+  `wxid` int NOT NULL,
+  `product_trade` varchar(64) COLLATE utf8mb4_general_ci NOT NULL COMMENT 'product id',
+  `paytype` tinyint UNSIGNED NOT NULL DEFAULT '0' COMMENT '支付渠道 0=未标记 1=alipay 2=wxpayv2 3=wxpayv3 4=weixinxcx',
+  `openid` varchar(64) COLLATE utf8mb4_general_ci NOT NULL,
+  `wxorder` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT 'out order',
+  `storeorder` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT 'in order',
+  `totalnum` int UNSIGNED NOT NULL,
+  `addtime` int UNSIGNED NOT NULL,
+  `paytime` int UNSIGNED NOT NULL,
+  `payip` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `username` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `address` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `mobile` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `payprice` int UNSIGNED NOT NULL COMMENT 'cents',
+  `shipprice` int UNSIGNED NOT NULL COMMENT 'cents',
+  `isrefund` tinyint NOT NULL,
+  `isship` tinyint NOT NULL,
+  `isfinsh` tinyint NOT NULL,
+  `isremove` tinyint UNSIGNED NOT NULL COMMENT '用户删除，后台不删除',
+  `refundnum` int UNSIGNED NOT NULL,
+  `paytitle` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `liuyan` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `excomany` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '快递公司',
+  `exnumber` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '快递单号',
+  `expaddtime` int UNSIGNED NOT NULL COMMENT '快递添加时间',
+  `goodsid` int UNSIGNED NOT NULL COMMENT 'product id',
+  `status` int NOT NULL COMMENT '流转状态',
+  `jifen` int UNSIGNED NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='订单表';
+
+--
+-- 转存表中的数据 `orderlist`
+--
+
+INSERT INTO `orderlist` (`orderid`, `userid`, `wxid`, `product_trade`, `paytype`, `openid`, `wxorder`, `storeorder`, `totalnum`, `addtime`, `paytime`, `payip`, `username`, `address`, `mobile`, `payprice`, `shipprice`, `isrefund`, `isship`, `isfinsh`, `isremove`, `refundnum`, `paytitle`, `content`, `liuyan`, `excomany`, `exnumber`, `expaddtime`, `goodsid`, `status`, `jifen`) VALUES
+(9, 0, 0, '', 1, '', '202609212332045208', '', 1, 1790004724, 0, '127.0.0.1', '', '', '', 1, 0, 0, 0, 0, 0, 0, '测试商品', '测试商品描述', '', '', '', 0, 0, 0, 0),
+(22, 0, 0, '', 2, '', 'v2n1790007250QMnAEK', 'SO1790007251XEgb0j', 1, 1790007251, 0, '', '', '', '', 1, 0, 0, 0, 0, 0, 0, 'V2测试商品', '', '', '', '', 0, 0, 0, 0),
+(27, 0, 0, '', 3, '', 'native1790221041LH3MCA', 'SO1790221041rdtw8e', 1, 1790221041, 0, '', '', '', '', 1, 0, 0, 0, 0, 0, 0, 'APIv3测试商品', '', '', '', '', 0, 0, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -716,6 +765,13 @@ ALTER TABLE `logininfo`
   ADD PRIMARY KEY (`lgid`);
 
 --
+-- 表的索引 `orderlist`
+--
+ALTER TABLE `orderlist`
+  ADD PRIMARY KEY (`orderid`),
+  ADD UNIQUE KEY `uk_wxorder` (`wxorder`);
+
+--
 -- 表的索引 `product`
 --
 ALTER TABLE `product`
@@ -872,6 +928,12 @@ ALTER TABLE `logininfo`
   MODIFY `lgid` int UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
+-- 使用表AUTO_INCREMENT `orderlist`
+--
+ALTER TABLE `orderlist`
+  MODIFY `orderid` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
+
+--
 -- 使用表AUTO_INCREMENT `product`
 --
 ALTER TABLE `product`
@@ -923,7 +985,7 @@ ALTER TABLE `sysroleperms`
 -- 使用表AUTO_INCREMENT `sysuser`
 --
 ALTER TABLE `sysuser`
-  MODIFY `adminid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10182;
+  MODIFY `adminid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10183;
 
 --
 -- 使用表AUTO_INCREMENT `testa`

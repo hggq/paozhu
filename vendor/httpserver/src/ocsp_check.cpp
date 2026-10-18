@@ -145,7 +145,8 @@ OCSPResult ocsp_checker::parse_ocsp_response(const std::vector<uint8_t> &raw,
                 debug_log->append(oss.str());
             return result;
         }
-        if (X509_STORE_add_cert(store.get(), issuer_cert) != 1)
+        // store 里也放副本：verify 会改写证书状态，原始 issuer 留给后面的 OCSP_cert_to_id
+        if (X509_STORE_add_cert(store.get(), issuer_copy.get()) != 1)
         {
             result.error_msg = "X509_STORE_add_cert(issuer) failed";
             oss << "[OCSP_PARSE] FAIL: X509_STORE_add_cert failed\n";
@@ -277,7 +278,8 @@ OCSPResult ocsp_checker::parse_ocsp_response(const std::vector<uint8_t> &raw,
             time_t t_this = timegm(&tm_this);
 #endif
             oss << "[OCSP_PARSE] this_update t=" << t_this << " now=" << time(nullptr) << "\n";
-            if (time(nullptr) < t_this)
+            // 容差 60 秒：responder 时钟比本机快几十秒属正常
+            if (time(nullptr) + 60 < t_this)
             {
                 result.error_msg = "OCSP thisUpdate is in the future";
                 result.status    = OCSPStatus::OCSP_ERROR;
@@ -299,6 +301,8 @@ OCSPResult ocsp_checker::parse_ocsp_response(const std::vector<uint8_t> &raw,
             time_t t_next = timegm(&tm_next);
 #endif
             oss << "[OCSP_PARSE] next_update t=" << t_next << " now=" << time(nullptr) << "\n";
+            result.next_update_ts  = static_cast<long long>(t_next);
+            result.has_next_update = true;
             if (time(nullptr) >= t_next)
             {
                 result.error_msg = "OCSP nextUpdate has expired";

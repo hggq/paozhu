@@ -9,6 +9,7 @@
 #include <iostream>
 #include <fstream>
 #include <filesystem>
+#include "func.h"// str2uint64_strict
 
 namespace http
 {
@@ -38,7 +39,7 @@ bool acme_config::save_eab_credentials(const std::string &eab_kid, const std::st
 {
     if (config_filename.empty())
     {
-        std::cerr << "[ACME] 配置文件路径为空，无法保存 EAB 凭证\n";
+        std::cerr << "[ACME] config file path is empty, cannot save EAB credentials\n";
         return false;
     }
 
@@ -90,18 +91,12 @@ std::string acme_config::get_email()
 unsigned char acme_config::get_days_remain()
 {
     std::string temp_day = ini_conf.get_value("info", "days_remain", "10");
-    unsigned char days   = 0;
+    unsigned long long days = 10;
 
-    if (temp_day.size() > 1)
+    if (!str2uint64_strict(temp_day, days))
     {
-        if (temp_day[0] >= '0' && temp_day[0] <= '9')
-        {
-            days = temp_day[0] - '0';
-        }
-        if (temp_day[1] >= '0' && temp_day[1] <= '9')
-        {
-            days = days * 10 + temp_day[1] - '0';
-        }
+        days = 10;
+        std::cout << "[ACME] days_remain is not usable: " << temp_day << ", fallback to 10" << std::endl;
     }
 
     if (days > 89)
@@ -114,7 +109,7 @@ unsigned char acme_config::get_days_remain()
         days = 2;
     }
 
-    return days;
+    return static_cast<unsigned char>(days);
 }
 
 std::string acme_config::get_domain_cert_save_path()

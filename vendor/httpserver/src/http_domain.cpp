@@ -34,6 +34,7 @@
 #include "httpclient.h"
 #include "datetime.h"
 #include "func.h"
+#include "urlcode.h"
 namespace http
 {
 namespace fs = std::filesystem;
@@ -261,8 +262,7 @@ eab_credentials_t fetch_eab_by_email(std::string_view url, std::string_view emai
 {
     //"Step 0: 通过邮箱申请 EAB 凭证..."
     //post https://api.zerossl.com/acme/eab-credentials-email
-    std::string body = "email=";
-    body.append(email);
+    std::string body = "email=" + url_encode(email.data(), static_cast<int>(email.size()));
 
     std::shared_ptr<http::client> https = std::make_shared<http::client>();
     https->post(url);
@@ -274,7 +274,7 @@ eab_credentials_t fetch_eab_by_email(std::string_view url, std::string_view emai
     https->send();
 
     if (https->get_status() != 200)
-        throw std::runtime_error("EAB 请求失败: HTTP " + std::to_string(https->get_status()) + "\n响应: " + https->get_body());
+        throw std::runtime_error("EAB request failed: HTTP " + std::to_string(https->get_status()) + "\nresponse: " + https->get_body());
 
     eab_credentials_t eab;
     if (https->page.isjson == 1)
@@ -286,17 +286,17 @@ eab_credentials_t fetch_eab_by_email(std::string_view url, std::string_view emai
         }
         else
         {
-            throw std::runtime_error("EAB 申请失败:\n" + https->get_body());
+            throw std::runtime_error("EAB request rejected:\n" + https->get_body());
         }
     }
     else
     {
-        throw std::runtime_error("EAB 请求失败: JSON " + std::to_string(https->get_status()) + "\n响应: " + https->get_body());
+        throw std::runtime_error("EAB request failed: JSON " + std::to_string(https->get_status()) + "\nresponse: " + https->get_body());
     }
 
     if (eab.eab_kid.empty() || eab.eab_hmac_key.empty())
     {
-        throw std::runtime_error("EAB 响应缺少字段:\n" + https->get_body());
+        throw std::runtime_error("EAB response missing fields:\n" + https->get_body());
     }
     return eab;
 }
@@ -465,11 +465,21 @@ void refresh_all_ocsp_staples()
             {
                 unsigned char cbuf[4096];
                 size_t cn;
+                bool too_big = false;
                 while ((cn = fread(cbuf, 1, sizeof(cbuf), cf)) > 0)
                 {
                     if (cached_der.size() + cn > MAX_OCSP_FILE_SIZE)
+                    {
+                        too_big = true;
                         break;
+                    }
                     cached_der.insert(cached_der.end(), cbuf, cbuf + cn);
+                }
+                // 超限的文件只留前一半是残帧，整体丢弃当作没有缓存
+                if (too_big)
+                {
+                    oss << "[OCSP] cache file over " << MAX_OCSP_FILE_SIZE << " bytes, ignored\n";
+                    cached_der.clear();
                 }
                 fclose(cf);
 
@@ -480,32 +490,20 @@ void refresh_all_ocsp_staples()
                     oss << cache_parse_log;
                     if (cached_result.status == OCSPStatus::GOOD)
                     {
-                        // 检查 next_update 是否过期（格式: YYYYMMDDHHMMSSZ）
-                        bool is_fresh       = true;
+                        // 剩余有效期不足 24 小时就提前刷新；响应没有 nextUpdate 时不敢当作新鲜
+                        bool is_fresh       = false;
                         long time_remaining = 0;
-                        if (cached_result.next_update.size() >= 14)
+                        const long prefetch_window = 86400;
+                        if (cached_result.has_next_update)
                         {
-                            const std::string &nu = cached_result.next_update;
-                            oss << "[OCSP] cached next_update: " << nu << "\n";
-                            struct tm tm_next{};
-                            tm_next.tm_year = (nu[0] - '0') * 1000 + (nu[1] - '0') * 100 + (nu[2] - '0') * 10 + (nu[3] - '0') - 1900;
-                            tm_next.tm_mon  = (nu[4] - '0') * 10 + (nu[5] - '0') - 1;
-                            tm_next.tm_mday = (nu[6] - '0') * 10 + (nu[7] - '0');
-                            tm_next.tm_hour = (nu[8] - '0') * 10 + (nu[9] - '0');
-                            tm_next.tm_min  = (nu[10] - '0') * 10 + (nu[11] - '0');
-                            tm_next.tm_sec  = (nu[12] - '0') * 10 + (nu[13] - '0');
-
-#ifdef WIN32
-                            time_t t_next = _mkgmtime(&tm_next);
-#else
-                            time_t t_next = timegm(&tm_next);
-#endif
-
-                            time_t now_t   = time(nullptr);
-                            time_remaining = (long)(t_next - now_t);
-                            // 还有3小时就要过期了，保险点 24小时，提前一天更新
-                            if (now_t >= t_next + 86400)
-                                is_fresh = false;
+                            time_t now_t = time(nullptr);
+                            time_remaining = (long)(static_cast<time_t>(cached_result.next_update_ts) - now_t);
+                            oss << "[OCSP] cached next_update remaining=" << time_remaining << "s\n";
+                            is_fresh = (time_remaining > prefetch_window);
+                        }
+                        else
+                        {
+                            oss << "[OCSP] cached response has no nextUpdate, treat as stale\n";
                         }
                         if (is_fresh)
                         {
@@ -520,10 +518,8 @@ void refresh_all_ocsp_staples()
                                 oss << "[OCSP] cached etag: " << cached_etag << " time_remaining=" << time_remaining << "s\n";
                             }
 
-                            // 判断是否需要 ETag 条件请求：
-                            // 缓存仍有效且 next_update 还有超过 24 小时 → 发 ETag 检查是否有更新
-                            // 这样即使缓存没过期，也能及时发现证书被吊销
-                            if (!cached_etag.empty() && time_remaining > 86400)
+                            // 有 ETag 就发条件请求，好尽早发现吊销
+                            if (!cached_etag.empty())
                             {
                                 oss << "[OCSP] cache valid, sending conditional request with ETag\n";
                                 // 跳过 continue，走 ETag 条件请求路径
@@ -540,14 +536,7 @@ void refresh_all_ocsp_staples()
                 }
             }
         }
-        if (cache_valid && cached_etag.empty())
-        {
-            ocsp_debug.append(oss.str());
-            oss.str("");
-            continue;
-        }
-
-        // 标记是否走 ETag 条件请求
+        // 走到这里要么是缓存不新鲜，要么是新鲜且带 ETag 的条件请求档
         bool use_etag = cache_valid && !cached_etag.empty();
         ocsp_debug.append(oss.str());
         oss.str("");
@@ -600,13 +589,22 @@ void refresh_all_ocsp_staples()
                     std::vector<uint8_t> file_data;
                     unsigned char buf[4096];
                     size_t n;
+                    bool fb_too_big = false;
                     while ((n = fread(buf, 1, sizeof(buf), fb)) > 0)
                     {
                         if (file_data.size() + n > MAX_OCSP_FILE_SIZE)
+                        {
+                            fb_too_big = true;
                             break;
+                        }
                         file_data.insert(file_data.end(), buf, buf + n);
                     }
                     fclose(fb);
+                    if (fb_too_big)
+                    {
+                        oss << "[OCSP] fallback file over " << MAX_OCSP_FILE_SIZE << " bytes, ignored\n";
+                        file_data.clear();
+                    }
                     oss << "[OCSP] file fallback loaded size=" << file_data.size() << "\n";
                     if (!file_data.empty())
                     {
@@ -692,6 +690,13 @@ void refresh_all_ocsp_staples()
             else if (result.status == OCSPStatus::REVOKED)
             {
                 oss << "[OCSP] REVOKED: " << domain_name << " reason=" << result.reason << "\n";
+                // 空数据即"该域名不发 staple"，握手侧靠空表判断
+                cfg.set_ocsp_staple(domain_name, std::vector<uint8_t>());
+                // 删掉磁盘缓存，避免下一轮又从文件里把这个已吊销的响应读回来
+                std::error_code rm_ec;
+                fs::remove(cache_path, rm_ec);
+                fs::remove(etag_path, rm_ec);
+                std::cerr << "[OCSP] REVOKED " << domain_name << " reason=" << result.reason << std::endl;
             }
             else
             {

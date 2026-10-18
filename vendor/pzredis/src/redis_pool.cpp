@@ -152,9 +152,10 @@ std::unique_ptr<redis_conn_base> redis_pool_section_t::get_conn()
     return borrow_(std::move(nc));
 }
 
-// 协程路径：给 HTTP 协程用。async_connect 不阻塞事件循环。
-// 注意：这个函数通常不直接调用，而是通过 async_exec co_spawn 到全局 io_context 上运行，
-// 这样 resolver.async_resolve 就不会卡在原请求的 strand 上。
+// 协程路径：给 HTTP 协程用。async_connect 的 DNS 解析和握手都是 co_await，不阻塞事件循环。
+// 调用方直接 co_await 本函数（async_exec / async_publish 就是这样），不 co_spawn 到全局 io_context：
+// 建连的续体因此回到调用方自己的 executor，strand 上的一次慢握手会拖住同 strand 的其他操作，
+// 付出的换成省掉两次 dispatch 和一个协程帧。
 asio::awaitable<std::unique_ptr<redis_conn_base>> redis_pool_section_t::async_get_conn()
 {
     {

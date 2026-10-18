@@ -14,10 +14,19 @@
 // --settings-timeout 是握手阶段超时：连上后这么多毫秒没收到服务端 SETTINGS 就判该连接失败并快速收尾，
 // 不必干等总 --deadline（默认 5000ms，传 0 关闭、只受 --deadline 约束）。
 // 想压多条连接传 --conns N，或并跑多个本程序进程。
+// POST 正文模式（测 multipart 上传这类要靠 DATA 帧切片的请求）：
+//   ./bin/http2_multiclient --port 18890 --path /tfilepost --method POST \
+//       --content-type 'multipart/form-data; boundary=XXXX' --body-file /abs/body.bin \
+//       --frame-size 997 --dump-body --conns 1 --streams 3 --inflight 1
+// --frame-size 决定每个 DATA 帧的负载字节数（服务端 SETTINGS_MAX_FRAME_SIZE 会再钳一次），
+// 传小值就能把分隔符、字段名切成跨帧；正文整条流一次发完，所以必须 --inflight 1，
+// 且正文不超过 60000 字节——本端不跟踪发送窗口，只靠初始 65535 窗口兜，
+// 一条流回完才开下一条，服务端就已经把这段窗口还回来了。
+// --dump-body 把每条完成流的响应体打出来（单条最多 8192 字节），配合 grep 判字段值。
 // 输出一律用 endl 冲刷：stdout 重定向到文件是块缓冲，不冲刷则进程挂住时一行都看不到。
 //
 // 输出行：START / SETTINGS-TIMEOUT(握手超时，仅发生时) / PROGRESS(每秒每连接) / CONN(每连接汇总)
-//         / BODY(响应体形状分布)
+//         / BODY(响应体形状分布) / BODY-DUMP(--dump-body 时每条完成流的响应体)
 //         / LATE(HEADERS/DATA 落在已关闭或本端没开过的流上，仅 late>0 时出现)
 //         / STUCK(每条没回完的流收到了什么，仅 stuck>0 时出现)
 //         / SUMMARY / REQUESTS path=… count=…（与服务端命中日志对账取这条 count）/ VERDICT PASS|FAIL。
@@ -31,7 +40,9 @@
 #include <cstdint>
 #include <cstring>
 #include <deque>
+#include <fstream>
 #include <iostream>
+#include <iterator>
 #include <map>
 #include <memory>
 #include <string>
@@ -62,6 +73,10 @@ constexpr unsigned char FR_FLAG_END_HEADERS = 0x4;
 // 连接级接收窗口目标值。初值恒为 65535（RFC 9113 §6.9.1），SETTINGS 改不了，只能用流 0 的 WINDOW_UPDATE 抬。
 constexpr unsigned int h2_conn_window_target = 16777215;
 
+// --dump-body 时单条流最多留这么多响应体字节；判 multipart 时正文可能整段回显，
+// 所以上限要盖得住一条 4 万余字的上传，否则判据只能看到截断的前缀。
+constexpr std::size_t body_dump_cap = 131072;
+
 struct options
 {
     std::string host               = "127.0.0.1";
@@ -74,6 +89,15 @@ struct options
     unsigned long long deadline_ms = 60000;
     // 握手超时：连上后等服务端 SETTINGS 的最长毫秒数；0 = 不单独限制，交给总 --deadline
     unsigned int settings_timeout_ms = 5000;
+    // POST 正文：--body-file 非空即每条流都发这份正文，按 --frame-size 切成多个 DATA 帧
+    std::string method       = "GET";
+    std::string content_type;
+    std::string body_file;
+    unsigned int frame_size  = 16384;
+    bool dump_body           = false;
+    // POST 正文默认带 Content-Length；传 --send-cl 0 就不带，用来看服务端怎么收尾这条流
+    bool send_cl = true;
+    std::string body;// main() 读进来的正文内容
 };
 
 unsigned int be_to_uint(const unsigned char *p)
@@ -106,21 +130,88 @@ std::vector<unsigned char> build_frame(unsigned char type, unsigned char flags, 
     return frame;
 }
 
-// 请求头块，索引取自 HPACK 静态表（RFC 7541，与框架实现一致）：
-// 2=:method GET、6=:scheme http 用纯索引；:authority=1、:path=4 用 never-indexed 字面量（0x10|索引）。
-// 值长度只用 1 字节，所以 path/authority 限制在 126 字节内；高位不置 1 表示未做 Huffman。
-std::vector<unsigned char> make_request_header_block(const std::string &path, const std::string &authority)
+// 请求头块。索引取自 vendor/httpserver/include/http2_frame.h 里那张 http2_header_static_table
+// （服务端解码用的就是它；下标与 RFC 7541 附录 A 并不一致：那里 content-type 是 24，这里是 31，
+// 表里多了 accept-ranges/allow/cache-control 等项，所以本端必须按框架的表取号）：
+// 2=:method GET、3=:method POST、6=:scheme http 用纯索引；
+// :authority、:path、content-type、content-length 用 never-indexed 字面量。
+// 值长度只用 1 字节，所以 path/authority/content-type 各自限制在 126 字节内；高位不置 1 表示未做 Huffman。
+//
+// 服务端读名字索引只用低 4 位前缀（http2_parse.cpp 的 0001xxxx 分支：`& 0x0F` 加续字节），
+// 而 RFC 7541 里这一位是 7 位前缀，所以 15 及以上的号必须走续字节，不能塞进一个字节。
+void push_never_indexed(std::vector<unsigned char> &out, unsigned int name_index)
+{
+    if (name_index < 15)
+    {
+        out.push_back(static_cast<unsigned char>(0x10 | name_index));
+        return;
+    }
+    out.push_back(0x1F);
+    name_index -= 15;
+    while (name_index >= 128)
+    {
+        out.push_back(static_cast<unsigned char>(0x80 | (name_index & 0x7F)));
+        name_index >>= 7;
+    }
+    out.push_back(static_cast<unsigned char>(name_index));
+}
+
+std::vector<unsigned char> make_request_header_block(const options &opt)
 {
     std::vector<unsigned char> block;
-    block.push_back(0x82);// :method GET
+    if (opt.method == "POST")
+    {
+        block.push_back(0x83);// :method POST
+    }
+    else
+    {
+        block.push_back(0x82);// :method GET
+    }
     block.push_back(0x86);// :scheme http
     block.push_back(0x11);// :authority，never indexed，名字取静态表 1
-    block.push_back(static_cast<unsigned char>(authority.size()));
-    block.insert(block.end(), authority.begin(), authority.end());
+    block.push_back(static_cast<unsigned char>(opt.authority.size()));
+    block.insert(block.end(), opt.authority.begin(), opt.authority.end());
     block.push_back(0x14);// :path，never indexed，名字取静态表 4
-    block.push_back(static_cast<unsigned char>(path.size()));
-    block.insert(block.end(), path.begin(), path.end());
+    block.push_back(static_cast<unsigned char>(opt.path.size()));
+    block.insert(block.end(), opt.path.begin(), opt.path.end());
+    if (!opt.content_type.empty())
+    {
+        push_never_indexed(block, 31);// content-type，框架静态表 31
+        block.push_back(static_cast<unsigned char>(opt.content_type.size()));
+        block.insert(block.end(), opt.content_type.begin(), opt.content_type.end());
+    }
+    if (!opt.body.empty() && opt.send_cl)
+    {
+        std::string cl = std::to_string(opt.body.size());
+        push_never_indexed(block, 28);// content-length，框架静态表 28
+        block.push_back(static_cast<unsigned char>(cl.size()));
+        block.insert(block.end(), cl.begin(), cl.end());
+    }
     return block;
+}
+
+// 响应体里可能有非打印字节（正文被当成字段值回显时就会），打之前转义成 \xHH，
+// 让 BODY-DUMP 恒是一行纯 ASCII，判据才能按行取。bytes= 仍是转义前的真实长度。
+std::string escape_body(const std::string &in)
+{
+    static const char hex[] = "0123456789abcdef";
+    std::string out;
+    out.reserve(in.size());
+    for (unsigned char b : in)
+    {
+        if (b >= 0x20 && b < 0x7F)
+        {
+            out.push_back(static_cast<char>(b));
+        }
+        else
+        {
+            out.push_back('\\');
+            out.push_back('x');
+            out.push_back(hex[b >> 4]);
+            out.push_back(hex[b & 0x0F]);
+        }
+    }
+    return out;
 }
 
 std::vector<unsigned char> make_window_update(unsigned int stream_id, unsigned int increment)
@@ -138,6 +229,8 @@ struct h2conn
     unsigned int id;
 
     unsigned int inflight_limit = 100;
+    // 服务端 SETTINGS_MAX_FRAME_SIZE(0x5)：本端发 DATA 时按它再钳一次；缺省按 RFC 允许的下限 16384
+    unsigned int max_frame_size = 16384;
     // 服务端 SETTINGS 到货前不开流：在途上限要以服务端广告的 MAX_CONCURRENT_STREAMS 为准，开超了会被 RST
     bool server_settings_seen     = false;
     unsigned int next_stream_id   = 1;
@@ -149,6 +242,10 @@ struct h2conn
     unsigned int never_served     = 0;
     unsigned long long data_bytes = 0;
     bool got_goaway               = false;
+    // GOAWAY 读数：错误码、最后一个已处理流号、附带调试文本（框架会把错码文本塞在 payload 尾部）
+    unsigned int goaway_code      = 0;
+    unsigned int goaway_last_sid  = 0;
+    std::string goaway_debug;
     bool broken                   = false;
     std::string broken_msg;
 
@@ -162,6 +259,7 @@ struct h2conn
         unsigned int data_len    = 0;
         unsigned int last_flags  = 0;
         bool end_stream          = false;
+        std::string body;// 仅 --dump-body 时填充，最多 body_dump_cap 字节
     };
     std::map<unsigned int, stream_seen> stream_detail;
 
@@ -213,8 +311,24 @@ struct h2conn
         {
             unsigned int sid = next_stream_id;
             next_stream_id += 2;
-            std::vector<unsigned char> block = make_request_header_block(opt.path, opt.authority);
-            send_raw(build_frame(FR_HEADERS, FR_FLAG_END_HEADERS | FR_FLAG_END_STREAM, sid, block));
+            std::vector<unsigned char> block = make_request_header_block(opt);
+            if (opt.body.empty())
+            {
+                // 无正文：HEADERS 自带 END_STREAM 就是完整请求
+                send_raw(build_frame(FR_HEADERS, FR_FLAG_END_HEADERS | FR_FLAG_END_STREAM, sid, block));
+            }
+            else
+            {
+                send_raw(build_frame(FR_HEADERS, FR_FLAG_END_HEADERS, sid, block));
+                unsigned int chunk = std::min(opt.frame_size, max_frame_size);
+                for (unsigned int off = 0; off < opt.body.size(); off += chunk)
+                {
+                    unsigned int n     = std::min(chunk, static_cast<unsigned int>(opt.body.size()) - off);
+                    std::vector<unsigned char> payload(opt.body.begin() + off, opt.body.begin() + off + n);
+                    unsigned char flags = (off + n >= opt.body.size()) ? FR_FLAG_END_STREAM : 0;
+                    send_raw(build_frame(FR_DATA, flags, sid, payload));
+                }
+            }
             if (broken)
             {
                 return;
@@ -239,6 +353,14 @@ struct h2conn
         else
         {
             completed++;
+            if (opt.dump_body)
+            {
+                auto d = stream_detail.find(sid);
+                std::string view = (d == stream_detail.end()) ? std::string() : d->second.body;
+                std::cout << "BODY-DUMP conn=" << id << " sid=" << sid << " bytes=" << view.size()
+                          << " total=" << ((d == stream_detail.end()) ? 0u : d->second.data_len)
+                          << " body=" << escape_body(view) << std::endl;
+            }
         }
     }
 
@@ -343,6 +465,11 @@ struct h2conn
                     // SETTINGS_MAX_CONCURRENT_STREAMS(0x3)：在途上限取配置值与服务端广告值的较小者
                     inflight_limit = std::min(opt.inflight, value);
                 }
+                else if (ident == 0x5 && value > 0)
+                {
+                    // SETTINGS_MAX_FRAME_SIZE(0x5)：单个 DATA 帧负载的硬上限
+                    max_frame_size = value;
+                }
             }
             break;
         case FR_HEADERS:
@@ -375,6 +502,11 @@ struct h2conn
             sd.data_frames++;
             sd.data_len += length;
             sd.last_flags = flags;
+            if (opt.dump_body && sd.body.size() < body_dump_cap)
+            {
+                std::size_t take = std::min(body_dump_cap - sd.body.size(), payload.size());
+                sd.body.append(reinterpret_cast<const char *>(payload.data()), take);
+            }
             if (length > 0)
             {
                 // 消费多少还多少：流级和连接级窗口各补一次
@@ -396,12 +528,21 @@ struct h2conn
             got_goaway = true;
             if (length >= 8)
             {
+                // 把服务端给的所以然留在读数里：光知道"连接被拆"判不出是哪类协议违例
+                goaway_code = be_to_uint(payload.data() + 4);
+                goaway_last_sid = be_to_uint(payload.data()) & 0x7FFFFFFFu;
+                if (length > 8)
+                {
+                    goaway_debug.assign(reinterpret_cast<const char *>(payload.data() + 8), length - 8);
+                }
+                std::cout << "GOAWAY conn=" << id << " last_sid=" << goaway_last_sid
+                          << " code=0x" << std::hex << goaway_code << std::dec
+                          << (goaway_debug.empty() ? "" : " debug=\"" + goaway_debug + "\"") << std::endl;
                 // last_sid 最高位是保留位，比较前清掉（RFC 9113 §6.8）；
                 // 流号大于它的在途流服务端承诺不会处理，计入 never_served
-                unsigned int last_sid = be_to_uint(payload.data()) & 0x7FFFFFFFu;
                 for (auto iter = live_streams.begin(); iter != live_streams.end();)
                 {
-                    if (iter->first > last_sid)
+                    if (iter->first > goaway_last_sid)
                     {
                         iter = live_streams.erase(iter);
                         never_served++;
@@ -515,6 +656,18 @@ bool parse_options(int argc, char **argv, options &opt)
             opt.deadline_ms = num;
         else if (key == "--settings-timeout" && parse_uint(value, 0xFFFFFFFFULL, num))
             opt.settings_timeout_ms = static_cast<unsigned int>(num);
+        else if (key == "--method")
+            opt.method = value;
+        else if (key == "--content-type")
+            opt.content_type = value;
+        else if (key == "--body-file")
+            opt.body_file = value;
+        else if (key == "--frame-size" && parse_uint(value, 0xFFFFFFFFULL, num) && num > 0)
+            opt.frame_size = static_cast<unsigned int>(num);
+        else if (key == "--dump-body" && parse_uint(value, 1, num))
+            opt.dump_body = (num == 1);
+        else if (key == "--send-cl" && parse_uint(value, 1, num))
+            opt.send_cl = (num == 1);
         else
         {
             std::cout << "BAD-ARG " << key << " " << value << std::endl;
@@ -536,6 +689,36 @@ bool parse_options(int argc, char **argv, options &opt)
         std::cout << "BAD-ARG authority must be 1..126 bytes" << std::endl;
         return false;
     }
+    if (opt.method != "GET" && opt.method != "POST")
+    {
+        std::cout << "BAD-ARG method must be GET or POST" << std::endl;
+        return false;
+    }
+    if (opt.content_type.size() > 126)
+    {
+        std::cout << "BAD-ARG content-type must be 0..126 bytes (single-byte HPACK length)" << std::endl;
+        return false;
+    }
+    if (!opt.body_file.empty() && opt.method != "POST")
+    {
+        std::cout << "BAD-ARG body-file needs --method POST" << std::endl;
+        return false;
+    }
+    if (opt.method == "POST" && !opt.body_file.empty())
+    {
+        // 本端不跟踪发送窗口（流级和连接级都只有初始 65535），所以一条正文必须整段塞进初始窗口；
+        // 且要一次发完一条流再开下一条，否则多条在途正文的合计会越过连接级窗口
+        if (opt.inflight != 1)
+        {
+            std::cout << "BAD-ARG POST body needs --inflight 1 (send window is not tracked)" << std::endl;
+            return false;
+        }
+        if (opt.content_type.empty())
+        {
+            std::cout << "BAD-ARG POST body needs --content-type" << std::endl;
+            return false;
+        }
+    }
     return true;
 }
 }// namespace
@@ -546,6 +729,23 @@ int main(int argc, char **argv)
     if (!parse_options(argc, argv, opt))
     {
         return 2;
+    }
+    if (!opt.body_file.empty())
+    {
+        std::ifstream in(opt.body_file, std::ios::binary);
+        if (!in)
+        {
+            std::cout << "FATAL open body-file " << opt.body_file << std::endl;
+            return 1;
+        }
+        opt.body.assign(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
+        if (opt.body.size() > 60000)
+        {
+            std::cout << "BAD-ARG body must be <= 60000 bytes (initial send window is 65535)" << std::endl;
+            return 2;
+        }
+        std::cout << "BODY loaded bytes=" << opt.body.size() << " frame_size=" << opt.frame_size
+                  << " path=" << opt.path << std::endl;
     }
 
     asio::io_context io;
@@ -576,6 +776,8 @@ int main(int argc, char **argv)
     auto last_beat  = begin_time;
     std::cout << "START conns=" << opt.conns << " streams_per_conn=" << opt.streams
               << " inflight=" << opt.inflight << " settings_timeout_ms=" << opt.settings_timeout_ms
+              << " method=" << opt.method << " body_bytes=" << opt.body.size()
+              << " frame_size=" << opt.frame_size << " dump_body=" << (opt.dump_body ? 1 : 0)
               << " path=" << opt.path << " host=" << opt.authority
               << " target=" << opt.host << ":" << opt.port << std::endl;
 

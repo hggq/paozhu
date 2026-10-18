@@ -1,0 +1,1 @@
+s|if (!isnotmatch && tail_is(1, '[\]n') == 0)|if (!isnotmatch \&\& false)|g

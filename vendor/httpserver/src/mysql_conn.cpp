@@ -6585,12 +6585,14 @@ RETRY_FETCH:
 
                 // 用 row_values + row_nulls 做 get_data lambda:
                 //   SQL NULL → (nullptr, 0); 空串等非 NULL 值 → (有效指针, len, 可为 0)
+                // 按引用捕获：get_data 只在这一次 handler 调用中被调用，handler 返回后
+                // 这两个容器就不再被读；按值捕获会让 handler 的 std::function 每次构造都整行深拷一遍。
                 auto captured = std::move(row_values);
                 auto colnull  = std::move(row_nulls);
                 bool cont     = handler(
                     static_cast<int>(expected_cols),
                     name_ptrs_cache.data(),
-                    [captured, colnull](int idx) -> std::tuple<unsigned char *, size_t>
+                    [&captured, &colnull](int idx) -> std::tuple<unsigned char *, size_t>
                     {
                         if (idx < 0 || idx >= static_cast<int>(captured.size()))
                             return {nullptr, 0};
@@ -7113,13 +7115,13 @@ RETRY_FETCH_BIN:
                 for (auto &n : col_names)
                     name_ptrs_cache.push_back(n.data());
 
-                // 用 row_values + row_nulls 做 get_data lambda:
-                //   SQL NULL → (nullptr, 0); 空串等非 NULL 值 → (有效指针, len, 可为 0)
+                // 用 row_variants 做 get_data lambda: SQL NULL → std::monostate
+                // 按引用捕获：get_data 只在这一次 handler 调用中被调用，handler 返回后就不再读 row_v。
                 auto row_v = std::move(row_variants);
                 bool cont  = handler(
                     static_cast<int>(expected_cols),
                     name_ptrs_cache.data(),
-                    [row_v](int idx) -> orm::col_value_variant
+                    [&row_v](int idx) -> orm::col_value_variant
                     {
                         if (idx < 0 || idx >= static_cast<int>(row_v.size()))
                             return orm::col_value_variant{std::monostate{}};
@@ -8136,12 +8138,13 @@ RETRY_ASYNC_FETCH:
 
                 // 用 row_values + row_nulls 做 get_data lambda(同 sync 版):
                 //   SQL NULL → (nullptr, 0); 空串等非 NULL 值 → (有效指针, len, 可为 0)
+                // 按引用捕获，理由同 sync 版：handler 返回后这两个容器不再被读。
                 auto captured = std::move(row_values);
                 auto colnull  = std::move(row_nulls);
                 bool cont     = handler(
                     static_cast<int>(expected_cols),
                     name_ptrs_cache.data(),
-                    [captured, colnull](int idx) -> std::tuple<unsigned char *, size_t>
+                    [&captured, &colnull](int idx) -> std::tuple<unsigned char *, size_t>
                     {
                         if (idx < 0 || idx >= static_cast<int>(captured.size()))
                             return {nullptr, 0};
@@ -8695,13 +8698,13 @@ RETRY_ASYNC_FETCH_BIN:
                 for (auto &n : col_names)
                     name_ptrs_cache.push_back(n.data());
 
-                // 用 row_values + row_nulls 做 get_data lambda(同 sync 版):
-                //   SQL NULL → (nullptr, 0); 空串等非 NULL 值 → (有效指针, len, 可为 0)
+                // 用 row_variants 做 get_data lambda(同 sync 版): SQL NULL → std::monostate
+                // 按引用捕获，理由同 sync 版：handler 返回后就不再读 row_v。
                 auto row_v = std::move(row_variants);
                 bool cont  = handler(
                     static_cast<int>(expected_cols),
                     name_ptrs_cache.data(),
-                    [row_v](int idx) -> orm::col_value_variant
+                    [&row_v](int idx) -> orm::col_value_variant
                     {
                         if (idx < 0 || idx >= static_cast<int>(row_v.size()))
                             return orm::col_value_variant{std::monostate{}};

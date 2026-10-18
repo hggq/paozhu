@@ -78,7 +78,7 @@ bool acme_run::load_acme_config(const std::string &filename)
     std::ostringstream oss;
     if (!acme_ini.load(filepath))
     {
-        oss << "[ACME] 无法加载配置文件: " << filepath << "\n";
+        oss << "[ACME] cannot load config file: " << filepath << "\n";
         message_debug.append(oss.str());
         return false;
     }
@@ -96,11 +96,11 @@ bool acme_run::load_acme_config(const std::string &filename)
     days_remain = acme_ini.get_days_remain();
     cert_path   = acme_ini.get_domain_cert_save_path();
 
-    oss << "[ACME] 配置信息:\n";
+    oss << "[ACME] config:\n";
     oss << "  email:      " << email << "\n";
     oss << "  acme_path:  " << acme_path << "\n";
     oss << "  server_url: " << acme_ini.get_server_url() << "\n";
-    oss << "  eab_kid:    " << (acme_ini.has_eab_credentials() ? "(已配置)" : "(未配置)") << "\n";
+    oss << "  eab_kid:    " << (acme_ini.has_eab_credentials() ? "(set)" : "(not set)") << "\n";
     message_debug.append(oss.str());
     oss.str("");
     return true;
@@ -116,7 +116,7 @@ cert_validity_t acme_run::check_domain_cert_pem(const std::string &domainname)
 {
     if (domainname.empty())
     {
-        throw std::runtime_error("域名为空");
+        throw std::runtime_error("domain list is empty");
     }
 
     std::string path = acme_path.empty() ? "certs" : acme_path;
@@ -192,7 +192,7 @@ bool acme_run::run()
         // 检查域名列表
         if (domains.empty())
         {
-            oss << "[ACME] 错误: 未设置域名\n";
+            oss << "[ACME] error: no domain set\n";
             message_debug.append(oss.str());
             return false;
         }
@@ -226,36 +226,36 @@ bool acme_run::run()
             strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S UTC", &tm_val);
             std::string isodatetime = std::string(buf);
 
-            oss << "[ACME] 现有证书过期时间: " << isodatetime << "\n";
+            oss << "[ACME] existing certificate expires: " << isodatetime << "\n";
             if (!cv.is_expired)
             {
-                oss << "[ACME] 现有证书剩余天数: " << cv.days_remaining << " 保存目录:" << output_dir << "\n";
+                oss << "[ACME] existing certificate days remaining: " << cv.days_remaining << " output dir:" << output_dir << "\n";
 
                 if (isforce)
                 {
-                    oss << "[ACME] 证书重新申请新证书...\n";
+                    oss << "[ACME] requesting a new certificate...\n";
                 }
                 else
                 {
                     if (cv.days_remaining > days_remain)
                     {
-                        oss << "[ACME] 证书仍在有效期内 (剩余 "
-                            << cv.days_remaining << " 天)，无需申请\n";
+                        oss << "[ACME] certificate still valid (remaining "
+                            << cv.days_remaining << " days), no need to request\n";
                         message_debug.append(oss.str());
                         return true;
                     }
-                    oss << "[ACME] 证书即将过期，开始重新申请...\n";
+                    oss << "[ACME] certificate is about to expire, requesting a new one...\n";
                 }
             }
             else
             {
-                oss << "[ACME] 证书不存在或已过期，开始申请...\n";
+                oss << "[ACME] certificate missing or expired, requesting...\n";
             }
         }
         catch (const std::exception &e)
         {
-            oss << "[ACME] 检查证书有效期失败: " << e.what() << "\n";
-            oss << "[ACME] 将继续申请新证书...\n";
+            oss << "[ACME] certificate validity check failed: " << e.what() << "\n";
+            oss << "[ACME] continuing with a new certificate request...\n";
         }
 
         // ====================================================
@@ -263,10 +263,10 @@ bool acme_run::run()
         // ====================================================
         oss << "\n";
         oss << "==========================================\n";
-        oss << "  ZeroSSL ACME 证书申请\n";
+        oss << "  ZeroSSL ACME certificate request\n";
         oss << "==========================================\n";
-        oss << "  邮箱:    " << email << "\n";
-        oss << "  域名:    ";
+        oss << "  email:   " << email << "\n";
+        oss << "  domain:  ";
         for (size_t i = 0; i < domains.size(); ++i)
         {
             if (i > 0)
@@ -275,7 +275,7 @@ bool acme_run::run()
         }
         oss << "\n";
         oss << "  Webroot: " << webroot << "\n";
-        oss << "  输出:    " << output_dir << "\n";
+        oss << "  output:  " << output_dir << "\n";
         oss << "  ACME:    " << acme_ini.get_server_url() << "\n";
         oss << "==========================================\n\n";
 
@@ -288,24 +288,25 @@ bool acme_run::run()
 
         if (eab_kid.empty() || eab_hmac_key.empty())
         {
-            oss << "[ACME] EAB 凭证未配置，通过邮箱申请...\n";
+            oss << "[ACME] EAB credentials not set, requesting by email...\n";
             eab_credentials_t eab = fetch_eab_by_email(acme_ini.get_eab_api(), email);
             eab_kid               = eab.eab_kid;
             eab_hmac_key          = eab.eab_hmac_key;
             need_save_eab         = true;
-            oss << "[ACME] EAB 凭证获取成功\n";
+            oss << "[ACME] EAB credentials obtained\n";
             oss << "  eab_kid:      " << eab_kid << "\n";
-            oss << "  eab_hmac_key: " << eab_hmac_key << "\n";
+            // hmac key 是长期凭证，只留前 6 位用于比对是哪一份
+            oss << "  eab_hmac_key: " << eab_hmac_key.substr(0, 6) << "****\n";
         }
         else
         {
-            oss << "[ACME] 使用已有 EAB 凭证\n";
+            oss << "[ACME] using existing EAB credentials\n";
         }
 
         // ====================================================
         //  Step 1: 创建 ACME 客户端
         // ====================================================
-        oss << "[ACME] Step 1: 初始化 ACME 客户端...\n";
+        oss << "[ACME] Step 1: init ACME client...\n";
         acme_client acme(
             acme_ini.get_server_url(),
             eab_kid,
@@ -318,24 +319,24 @@ bool acme_run::run()
         bool has_existing_key        = acme.load_account_key(account_key_path);
         if (has_existing_key)
         {
-            oss << "[ACME] 复用已有账号密钥\n";
+            oss << "[ACME] reusing existing account key\n";
         }
         else
         {
-            oss << "[ACME] 将生成新账号密钥\n";
+            oss << "[ACME] will generate a new account key\n";
         }
 
         // ====================================================
         //  Step 2: 获取 ACME 目录
         // ====================================================
-        oss << "[ACME] Step 2: 获取 ACME 目录...\n";
+        oss << "[ACME] Step 2: fetch ACME directory...\n";
         acme.fetch_directory();
 
         // ====================================================
         //  Step 3: 创建账号 (带 EAB 绑定)
         //  新密钥 → 注册新账号并保存; 已有密钥 → 复用账号
         // ====================================================
-        oss << "[ACME] Step 3: 创建 ACME 账号...\n";
+        oss << "[ACME] Step 3: create ACME account...\n";
         acme.create_account();
         if (!has_existing_key)
         {
@@ -345,20 +346,20 @@ bool acme_run::run()
         // ====================================================
         //  Step 4: 新建证书订单
         // ====================================================
-        oss << "[ACME] Step 4: 新建证书订单...\n";
+        oss << "[ACME] Step 4: new certificate order...\n";
         acme.new_order(domains);
 
         // ====================================================
         //  🔑 Step 5-8: 验证所有域名 (替代原来的单域名四步调用)
         // ====================================================
-        oss << "[ACME] Step 5-8: 验证所有域名...\n";
+        oss << "[ACME] Step 5-8: validate all domains...\n";
         acme.verify_all_domains(webroot, 30, 10);// 最多等 30×10=300秒
 
         // ====================================================
         //  Step 9: 生成 CSR + finalize (保持不变)
         // ====================================================
         std::this_thread::sleep_for(std::chrono::seconds(10));
-        oss << "[ACME] Step 9: 生成 CSR 并提交...\n";
+        oss << "[ACME] Step 9: generate CSR and submit...\n";
         acme.finalize_order(domains, output_dir);
         std::this_thread::sleep_for(std::chrono::seconds(10));
 
@@ -402,7 +403,7 @@ bool acme_run::run()
         // ====================================================
         //  Step 10: 下载证书
         // ====================================================
-        oss << "[ACME] Step 10: 下载证书...\n";
+        oss << "[ACME] Step 10: download certificate...\n";
         acme.download_certificate(output_dir, 20, 10);
 
         // ====================================================
@@ -410,7 +411,7 @@ bool acme_run::run()
         // ====================================================
         if (need_save_eab)
         {
-            oss << "\n[ACME] 保存 EAB 凭证到 acme.conf...\n";
+            oss << "\n[ACME] saving EAB credentials to acme.conf...\n";
             acme_ini.save_eab_credentials(eab_kid, eab_hmac_key);
         }
 
@@ -419,15 +420,15 @@ bool acme_run::run()
         // ====================================================
         oss << "\n";
         oss << "==========================================\n";
-        oss << "  证书申请成功!\n";
+        oss << "  certificate request succeeded!\n";
         oss << "==========================================\n";
         oss << "\n";
-        oss << "  输出文件:\n";
-        oss << "    " << acme_path << "/account_key.pem  - ACME 账号私钥 (所有域名共用)\n";
-        oss << "    " << output_dir << "/privkey.pem      - 证书私钥\n";
-        oss << "    " << output_dir << "/cert.pem         - 服务器证书\n";
-        oss << "    " << output_dir << "/chain.pem        - CA 中间证书链\n";
-        oss << "    " << output_dir << "/fullchain.pem    - 证书 + CA 链\n";
+        oss << "  output files:\n";
+        oss << "    " << acme_path << "/account_key.pem  - ACME account key (shared by all domains)\n";
+        oss << "    " << output_dir << "/privkey.pem      - certificate private key\n";
+        oss << "    " << output_dir << "/cert.pem         - full chain (same content as fullchain.pem)\n";
+        oss << "    " << output_dir << "/chain.pem        - CA intermediate chain\n";
+        oss << "    " << output_dir << "/fullchain.pem    - certificate + CA chain\n";
         oss << "\n";
         message_debug.append(oss.str());
         oss.str("");
@@ -437,7 +438,7 @@ bool acme_run::run()
     {
         message_debug.append(oss.str());
         oss.str("");
-        oss << "[ACME] 程序异常: " << e.what() << "\n";
+        oss << "[ACME] uncaught exception: " << e.what() << "\n";
 
         // 打印 OpenSSL 错误栈
         unsigned long err;

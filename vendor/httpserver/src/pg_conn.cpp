@@ -4447,12 +4447,14 @@ RETRY_RECONNECT:
                         name_ptrs_cache.push_back(n.data());
                 }
 
+                // 按引用捕获：get_data 只在这一次 handler 调用中被调用，handler 返回后
+                // 这两个容器就不再被读；按值捕获会让 handler 的 std::function 每次构造都整行深拷一遍。
                 auto captured      = std::move(row_values);
                 auto captured_null = std::move(row_is_null);
                 bool cont          = handler(
                     static_cast<int>(col_count),
                     name_ptrs_cache.data(),
-                    [captured, captured_null](int idx) -> std::tuple<unsigned char *, size_t>
+                    [&captured, &captured_null](int idx) -> std::tuple<unsigned char *, size_t>
                     {
                         if (idx < 0 || idx >= static_cast<int>(captured.size()))
                             return {nullptr, 0};
@@ -5281,12 +5283,13 @@ RETRY_RECONNECT:
                             name_ptrs_cache.push_back(cn.data());
                     }
 
+                    // 按引用捕获，理由同 sync 版：handler 返回后这两个容器不再被读。
                     auto captured      = std::move(row_values);
                     auto captured_null = std::move(row_is_null);
                     bool cont          = handler(
                         static_cast<int>(col_count),
                         name_ptrs_cache.data(),
-                        [captured, captured_null](int idx) -> std::tuple<unsigned char *, size_t>
+                        [&captured, &captured_null](int idx) -> std::tuple<unsigned char *, size_t>
                         {
                             if (idx < 0 || idx >= static_cast<int>(captured.size()))
                                 return {nullptr, 0};

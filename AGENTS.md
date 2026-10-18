@@ -1194,22 +1194,32 @@ no Redis, no file, no serialization, and no `orm.conf` / `server.conf` key enabl
 disables it — the call is the only switch. The block is byte-identical in all three dialect
 templates.
 
-**What is stored.** The key is `std::hash<std::string>{}(sqlstring)`, the fully built
-statement, so the select list, the WHERE text, the group/order and the limit are all part
-of it. The DB tag is not; a model's tag is fixed when it is constructed. Two stores exist,
-selected by the value type, and they never collide:
+**What is stored.** Two stores exist, selected by the value type, and they never collide:
 
 | Store | Value | Written by | Read by |
 |-------|-------|------------|---------|
-| `meta` | `data` (one row) | `fetch_one()`, `get_one()`, `save_data_cache()` | `fetch_one()`, `get_one()`, `get_data_cache()` |
-| `std::vector<meta>` | `record` (row set) | `fetch()`, `fetch_append()`, `save_cache()` | `fetch()`, `fetch_append()`, `get_record_cache()` |
+| `meta` | `data` (one row) | `fetch_one()`, `get_one()`, `exec_one()`, `save_data_cache()` | `fetch_one()`, `get_one()`, `exec_one()`, `get_data_cache()` |
+| `std::vector<meta>` | `record` (row set) | `fetch()`, `fetch_append()`, `exec_fetch()`, `save_cache()` | `fetch()`, `fetch_append()`, `exec_fetch()`, `get_record_cache()` |
+
+The two paths build different keys, so an entry written by one is never read by the other:
+
+- **text path** (`fetch()`, `fetch_one()`, `get_one()` …) — `std::hash<std::string>{}(sqlstring)`,
+  the fully built statement, so the select list, the WHERE text, the group/order and the limit are
+  all part of it. The DB tag is not; a model's tag is fixed when it is constructed.
+- **prepared path** (`exec_one()`, `exec_fetch()` and their `async_` twins) —
+  `orm::exec_cache_key(dbtag, sqlstring, params)` (`vendor/httpserver/include/orm_common.h`), i.e.
+  the tag the model is currently bound to, the statement with its `?` / `$n` placeholders, and every
+  bound value framed as `type byte + decimal length + ':' + text`. Two statements that differ only
+  in a bound value get different keys, and the same statement run against another tag through
+  `switchDB()` gets a different key.
 
 `fetch_row()` keeps its rows in three further stores — the
 `std::vector<std::vector<std::string>>` itself, the column-name vector and the name → index
-map — keyed the same way. Their value types say nothing about the model, so all three are
+map — keyed like the text path. Their value types say nothing about the model, so all three are
 shared process-wide: unlike the two stores above, they are not per-`meta`-type.
-`fetch_to()` / `fetch_one_to()` are never cached, and neither is anything on the prepared
-path.
+Nothing else is cached: `fetch_to()` / `fetch_one_to()` / `fetch_obj()`, `count()` /
+`exec_count()`, `page()` / `exec_page()`, `exec_fetch_append()`, the `exec_fetch_to()` /
+`exec_one_to()` / `exec_one_append()` template readers, and every write.
 
 **Arming a read-through.** `use_cache(int cache_time = 0)` is chainable and arms the next
 read; `cache_time` is a TTL in seconds, `0` meaning *never expires*.
@@ -1219,22 +1229,33 @@ auto articles = orm::cms::Article();
 articles.where("isopen", 1).where("topicid", 3).use_cache(60).fetch();  // record store, 60s
 ```
 
-Before the statement goes out, the read consults its store; on a hit it fills `record` /
-`data`, disarms and returns. After a real read it writes back only
-`if (iscache && exptime > 0)`, then disarms. Taken literally, that yields three rules:
+Before the statement goes out, the read consults its store; on a hit it fills `record` / `data`,
+disarms, sets `is_hit_cache`, and returns the rows it handed back — `record.size()` for a row-set
+read, `1` for a single-row read — so `if (model.fetch_one() > 0)` reads a hit as a success. After
+a real read it writes back and disarms, under these guards:
 
-- `use_cache()` with the default TTL never stores anything — the write-back needs
-  `exptime > 0`. It means "arm, then do nothing", not "cache forever".
-- A hit returns `0` from `fetch()` / `async_fetch()` / `fetch_one()` / `get_one()`, exactly
-  what an empty result set returns, so `if (model.fetch_one() > 0)` reads every cache hit as
-  a failure.
-- Nothing else disarms the slot. `clear()` and `clearWhere()` reset `iscache` but leave
-  `exptime` behind; `set_cache_state(bool)` sets the flag alone.
+| Read | Store | Write-back guard | Caches an empty result? |
+|------|-------|------------------|-------------------------|
+| `fetch()` / `fetch_append()` (+ `async_`) | `record` | `iscache` | yes |
+| `exec_fetch()` (+ `async_exec_fetch()`) | `record` | `iscache && !iserror` | yes, but never after a read that reported an error |
+| `fetch_one()` / `get_one()` (+ `async_`) | `meta` | `iscache && effect_num > 0` | no |
+| `exec_one()` (+ `async_exec_one()`) | `meta` | `iscache && !iserror && effect_num > 0` | no |
+
+The single-row store cannot tell "no such row" from "one row that happens to be all zeros", so it
+stores only a row that was actually read. Three consequences worth stating:
+
+- `use_cache()` with the default TTL stores a **permanent** entry (`0` = never expires). The
+  sweeper never collects it; only `remove_cache()` / `clear_cache()` drops it.
+- An error does not block a text write-back: `fetch()` that failed still stores the empty `record`.
+  The `exec_fetch()` form adds `!iserror`, so one connection hiccup cannot be pinned as a permanent
+  empty result set.
+- Nothing else disarms the slot. `clear()` and `clearWhere()` reset `iscache` (and `effect_num`), but
+  leave `exptime` behind; `set_cache_state(bool)` sets the flag alone.
 
 **Writes never invalidate.** No `save()`, `update()`, `update_dirty()`, `update_col()`,
-`replace_col()` or `remove()` touches either store, and the `exec_*` / `async_exec_*` path
-neither consults nor fills the cache. Rows changed through those methods, through
-`orm::db_conn`, or by any other process keep being served until the TTL lapses.
+`replace_col()` or `remove()` touches either store, and no `exec_*` write does either. Rows changed
+through those methods, through `orm::db_conn`, or by any other process keep being served until the
+TTL lapses — including rows this very object just wrote.
 
 **There is no refresh in place.** `model_meta_cache::save()` inserts; if the key is already
 present it rewrites only the stored `exptime` and leaves the old rows untouched
@@ -1247,25 +1268,29 @@ and `record` respectively). The three stores `fetch_row()` uses are keyed by gen
 types, so every model shares them; nothing on a model clears them and they age out by TTL
 alone.
 
-**A miss has side effects.** `get_data_cache()` and `get_record_cache()` set `error_msg`
-and call `unlock_conn()` when the key is absent. `iserror` stays false, but a cold read
-inside a `lock_conn()` batch hands the connection back to the pool.
+**A miss is silent.** `get_data_cache()` and `get_record_cache()` swallow the
+`std::runtime_error` thrown by `model_meta_cache::get()`, then reset `data` / `record` and
+return `false`. They set neither `error_msg` nor `iserror` and never call `unlock_conn()`, so
+a cold read inside a `lock_conn()` batch keeps its connection. The lookup that missed also
+erases the entry when it was present but expired.
 
 **Named keys.** The manual API takes a caller-chosen `std::string` and hashes it itself,
 which is how you cache anything whose SQL the DSL builds differently. The accessors that
-return a stored value — `get_cache(name)` and `get_vector_cache(name)` — signal a miss by
-throwing `std::runtime_error("Not in cache")` after setting `error_msg` and calling
-`unlock_conn()`, so they need a `try`. `check_cache()`, `get_record_cache()` and
-`update_cache()` take the `std::size_t` instead, so hash the same name with
-`std::hash<std::string>{}(name)`.
+return a stored value come in two spellings: `get_cache(name)` and `get_vector_cache(name)`
+throw `std::runtime_error("Not in cache")` on a miss — without touching `error_msg`,
+`iserror` or the connection — so they need a `try`; `try_get_cache(name)` and
+`try_get_vector_cache(name)` return a `std::optional` instead and are the spelling to use in
+new code. `check_cache()`, `get_record_cache()` and `update_cache()` take the
+`std::size_t` directly, so hash the same name with `std::hash<std::string>{}(name)`.
 
 ```cpp
 const std::string key = "cms:article:top3:" + std::to_string(topicid);
-try
+auto hit = articles.try_get_vector_cache(key);
+if (hit)
 {
-    articles.record = articles.get_vector_cache(key);   // throws on a miss
+    articles.record = *hit;
 }
-catch (const std::exception &)
+else
 {
     articles.clearWhere();
     articles.where("isopen", 1).desc("aid").limit(3).fetch();
@@ -1274,25 +1299,37 @@ catch (const std::exception &)
 ```
 
 `save_vector_cache(name, rows, ttl)` and `save_cache(name, rows, ttl)` are the same call.
-`remove_cache()` with no argument keys off `sqlstring`, so it does something only after a
-statement has been built on that object.
+`remove_cache()` with no argument keys off `std::hash<std::string>{}(sqlstring)`, so it does
+something only after a text-path statement has been built on that object — and it can never
+reach a prepared entry, whose key also contains the tag and the bound values. To evict one,
+hand back the key the read actually used:
+
+```cpp
+auto articles = orm::cms::Article();
+articles.where("isopen", 1).use_cache(60).exec_fetch();
+articles.remove_cache(articles.last_exec_cache_hash);   // 0 = nothing was armed, do not use
+```
 
 **`isuse_cache()` is not a hit flag.** With no argument it reports whether the slot is still
-armed. `isuse_cache(true)` returns `exptime == 0 && iscache == false`, whose meaning flips
-with the TTL mode: after a real read under `use_cache(60)` the write-back has just zeroed
-both, so it returns `true`, while a hit leaves `exptime` at `60` and returns `false`. Under
-`use_cache()` (TTL `0`) it is the other way round. Treat it as "the arming was consumed",
-not as "the rows came from cache".
+armed. `isuse_cache(true)` returns `exptime == 0 && iscache == false`, and what a read leaves
+behind differs by path, so the reading is not comparable across them: after a real text-path
+read the write-back has just zeroed both, so it returns `true`; a text-path **hit** zeroes
+`iscache` only and leaves `exptime` at `60`, so it returns `false`; an `exec_*` hit zeroes both
+in one block, so it returns `true` whether or not the rows came from cache. Treat it as "the
+arming slot is empty", not as "the rows came from cache" — `is_hit_cache` is the flag that
+answers that question, and it is set by the `record` / `meta` read-throughs but not by
+`fetch_row()`.
 
 **A cold `fetch_row()` does not throw.** Its read consults three stores under one key, and
 `model_meta_cache::get()` throws on a miss or an expired entry, so the three gets sit in a
-`try` and a miss — or a set that lapsed unevenly — falls through to a real query. A hit
-counts only when all three succeed, which is why the returned tuple never carries rows with
-an empty column-name list. `fetch_obj()` touches the cache in neither direction: it reads
-from the database every time and writes nothing back, so it cannot empty out the `record`
-store that `fetch()` reads through. `fetch_row()` consumes the `use_cache(ttl)` arming on a
-hit and keeps it on a miss, so the write-back at the end of a real read still runs;
-`fetch_obj()` never looks at it, so an arming left on the object survives to the next read.
+`try`; a miss — or a set that lapsed unevenly — falls through to a real query. A hit counts
+only when all three succeed **and** the stored row set is non-empty, which is why the returned
+tuple never carries rows with an empty column-name list. The write-back mirrors that: it runs
+only when the query returned at least one row, and it stores the rows under `exptime` while the
+two name stores get `exptime + 1`, so the rows always lapse first. An empty result therefore
+writes nothing and leaves the slot armed, and a hit disarms without zeroing `exptime`.
+`fetch_obj()` touches the cache in neither direction: it reads from the database every time and
+writes nothing back, so it cannot empty out the `record` store that `fetch()` reads through.
 The named-key accessors above still throw by design.
 
 ---
@@ -1484,7 +1521,8 @@ already means `OR col = val`, and `>` / `>=` are spelled `whereOrBT` / `whereOrB
 
 | Method | Returns |
 |--------|---------|
-| `fetch()` / `fetch_one()` | effect count; rows in `record`, first row in `data` |
+| `fetch()` | effect count; rows land in `record`, `data` is left alone |
+| `fetch_one(isappend = false)` | effect count; the row lands in `data`, and `record` is appended only when `isappend` is true |
 | `fetch_append()` | appends rows to `record` |
 | `fetch_to(vec)` / `fetch_one_to(obj)` | fill a custom `orm::Base` struct |
 | `count()` | number of matching rows |
@@ -1536,24 +1574,28 @@ holds one row (`data`), `vector` holds a row set (`record`).
 
 | Method | Store | Notes |
 |--------|-------|-------|
-| `use_cache(ttl = 0)` | — | chainable; arms the next text-path read |
-| `isuse_cache(bydate = false)` | — | the arming flag, not a hit indicator |
+| `use_cache(ttl = 0)` | — | chainable; arms the next read — a text-path read or `exec_one()` / `exec_fetch()` |
+| `isuse_cache(bydate = false)` | — | the arming flag, not a hit indicator; `is_hit_cache` is the hit flag |
 | `set_cache_state(bool)` | — | force `iscache`, leaves `exptime` |
 | `save_data_cache(ttl = 0)` | `meta` | stores `data` under `hash(sqlstring)` |
 | `save_data_cache(name, row, ttl = 0)` | `meta` | caller-named key |
+| `save_data_cache(key, row, ttl = 0)` | `meta` | a `std::size_t` key — use with `last_exec_cache_hash` |
 | `save_cache(ttl = 0)` | `vector` | stores `record` under `hash(sqlstring)` |
 | `save_cache(key, rows, ttl = 0)` / `save_cache(name, rows, ttl = 0)` / `save_vector_cache(name, rows, ttl = 0)` | `vector` | caller-named key |
 | `save_cache(name, row, ttl = 0)` | `meta` | one row under a name |
-| `get_data_cache(key)` / `get_record_cache(key)` | `meta` / `vector` | fill `data` / `record`, return `bool`; a miss writes `error_msg` and calls `unlock_conn()` |
+| `get_data_cache(key)` / `get_record_cache(key)` | `meta` / `vector` | fill `data` / `record`, return `bool`; a miss resets them and returns `false` without touching `error_msg`, `iserror` or the connection |
 | `get_cache(name)` / `get_vector_cache(name)` | `meta` / `vector` | return the stored value; **throw** `std::runtime_error` on a miss |
+| `try_get_cache(name)` / `try_get_vector_cache(name)` | `meta` / `vector` | the non-throwing twins: `std::optional`, empty on a miss |
 | `check_cache(key)` | `meta` | `-1` absent, `0` permanent, else seconds remaining |
-| `update_cache(ttl = 0)` / `update_cache(key, ttl)` | `vector` | TTL only; `-1` when the key is absent |
-| `remove_cache()` / `remove_cache(key)` | `meta` + `record` | the no-arg form keys off `sqlstring`; `true` when either store held the key |
+| `update_cache(ttl = 0)` / `update_cache(key, ttl)` | `vector` | TTL only; `-1` absent, `0` when the stored entry was permanent, else `1` |
+| `remove_cache()` / `remove_cache(key)` | `meta` + `record` | the no-arg form keys off `hash(sqlstring)` and cannot reach a prepared entry; `true` when either store held the key |
 | `clear_cache()` / `remove_exptime_cache()` | `meta` + `record` | whole stores / entries whose TTL lapsed |
+| `last_exec_cache_hash` | — | public `std::size_t`: the key the last armed `exec_*` read used, for `remove_cache()`; `0` when none |
 
-Read-through is built into `fetch()`, `fetch_append()`, `fetch_one()`, `get_one()` and their
-`async_` twins, plus `fetch_row()`; `fetch_obj()` neither reads nor writes, and no `exec_*`
-method reads or writes.
+Read-through is built into `fetch()`, `fetch_append()`, `fetch_one()`, `get_one()`,
+`exec_one()`, `exec_fetch()` and their `async_` twins, plus `fetch_row()`; `fetch_obj()`,
+`fetch_to()` / `fetch_one_to()`, `count()` / `exec_count()`, `page()` / `exec_page()` and
+`exec_fetch_append()` touch the cache in neither direction.
 
 **Untyped result shapes** — for a column list the typed `meta` cannot express. These read
 the same `select()/where()/limit()` state as `fetch()`.
@@ -1566,9 +1608,9 @@ the same `select()/where()/limit()` state as `fetch()`.
 | `get_one(id)` / `async_get_one(id)` | `long long` | one row by primary key into `data`; ignores `wheresql` entirely, so a chained `where()` is silently dropped |
 
 Both forms of `get_one()` return the number of rows read, so `if (m.get_one(id) > 0)` means
-the row landed in `data`. The one exception is the result cache: a `use_cache()` hit returns
-`0` from every read-through method, `get_one()` included, so when a cache may be armed test
-`data` rather than the return code.
+the row landed in `data`. A result-cache hit reports the same codes as the read it replaced —
+`record.size()` for a row-set read, `1` for a single-row read — so a caller that tests the
+return value does not need to know whether the cache answered; `is_hit_cache` tells it which.
 
 **Table and connection switching**
 

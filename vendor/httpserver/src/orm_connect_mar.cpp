@@ -115,9 +115,9 @@ void orm_connect_mar_t::save_log(const std::string &filename)
         return;
     }
 #else
+    // 锁 [0, 4GB) 覆盖 O_APPEND 的追加区间, 与 POSIX 的 SEEK_END/l_len=0 等价
     auto native_handle = (HANDLE)_get_osfhandle(fd);
-    auto file_size     = GetFileSize(native_handle, nullptr);
-    if (!LockFile(native_handle, file_size, 0, file_size, 0))
+    if (!LockFile(native_handle, 0, 0, 0, MAXDWORD))
     {
         close(fd);
         return;
@@ -138,7 +138,7 @@ void orm_connect_mar_t::save_log(const std::string &filename)
         return;
     }
 #else
-    if (!UnlockFile(native_handle, file_size, 0, file_size, 0))
+    if (!UnlockFile(native_handle, 0, 0, 0, MAXDWORD))
     {
         close(fd);
         return;

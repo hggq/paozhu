@@ -1,0 +1,1 @@
+s|if (!peer->isfinish && error == 0 && http_content_length >= peer->content_length)|if (!peer->isfinish \&\& false)|

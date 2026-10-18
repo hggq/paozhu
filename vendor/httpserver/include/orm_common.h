@@ -1222,6 +1222,35 @@ inline bool exec_bind_guard(unsigned int ph, const std::vector<http::obj_val> &p
     return true;
 }
 
+// exec_* 结果缓存的 key：dbtag + SQL 文本 + 逐个绑定参数。
+// 带 dbtag 是因为 switchDB() 只换连接池、不换生成的模型类，同一份 SQL 会打到不同库；
+// 带参数值是因为占位符数量相同、值不同的两条语句必须分开缓存。
+// 每个参数写成「类型字节 + 十进制长度 + ':' + 值」，参数个数也写进串：值里出现的 '|'、':'
+// 或数字都不参与分帧，两条不同参数组合不可能拼出同一个串。
+// 三份方言模板共用这一处定义，改这里只需重新编译，不必重新生成 _opsql.h。
+inline std::size_t exec_cache_key(const std::string &dbtag,
+                                  const std::string &sql,
+                                  const std::vector<http::obj_val> &params)
+{
+    std::string ckey;
+    ckey.reserve(dbtag.size() + sql.size() + params.size() * 8 + 16);
+    ckey.append(dbtag);
+    ckey.push_back('|');
+    ckey.append(sql);
+    ckey.push_back('|');
+    ckey.append(std::to_string(params.size()));
+    ckey.push_back(':');
+    for (const auto &p : params)
+    {
+        std::string val = p.to_string();
+        ckey.push_back(static_cast<char>(p.get_type()));
+        ckey.append(std::to_string(val.size()));
+        ckey.push_back(':');
+        ckey.append(val);
+    }
+    return std::hash<std::string>{}(ckey);
+}
+
 // One row loop shared by the three backends' prepared text handlers and the legacy
 // fetch_directly, so the 42 thin wrappers need no copy.
 // land(rec, col_name, ptr, len, col_index) is the only injection point: ① passes an adapter

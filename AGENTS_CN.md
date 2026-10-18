@@ -1162,19 +1162,30 @@ asio::awaitable<void> handle_request()
 列化，也没有任何 `orm.conf` / `server.conf` 配置项能开启或关闭它 —— 调用本身就是唯一的开
 关。这段代码在三个方言模板中逐字节相同。
 
-**存的是什么。** 缓存键是 `std::hash<std::string>{}(sqlstring)`，即完整拼好的语句，所以
-select 列表、WHERE 文本、group/order 和 limit 全部参与构成键；DB 标签不参与，标签在模型构
-造时就固定了。按值类型分成两个存储，彼此永不冲突：
+**存的是什么。** 按值类型分成两个存储，彼此永不冲突：
 
 | 存储 | 值 | 写入者 | 读取者 |
 |------|-----|--------|--------|
-| `meta` | `data`（单行） | `fetch_one()`、`get_one()`、`save_data_cache()` | `fetch_one()`、`get_one()`、`get_data_cache()` |
-| `std::vector<meta>` | `record`（结果集） | `fetch()`、`fetch_append()`、`save_cache()` | `fetch()`、`fetch_append()`、`get_record_cache()` |
+| `meta` | `data`（单行） | `fetch_one()`、`get_one()`、`exec_one()`、`save_data_cache()` | `fetch_one()`、`get_one()`、`exec_one()`、`get_data_cache()` |
+| `std::vector<meta>` | `record`（结果集） | `fetch()`、`fetch_append()`、`exec_fetch()`、`save_cache()` | `fetch()`、`fetch_append()`、`exec_fetch()`、`get_record_cache()` |
+
+两条路径算出的键不同，所以一方写入的条目另一方永远读不到：
+
+- **文本路径**（`fetch()`、`fetch_one()`、`get_one()` …）—— `std::hash<std::string>{}(sqlstring)`，
+  即完整拼好的语句，所以 select 列表、WHERE 文本、group/order 和 limit 全部参与构成键；DB 标签
+  不参与，标签在模型构造时就固定了。
+- **预编译路径**（`exec_one()`、`exec_fetch()` 及其 `async_` 孪生）——
+  `orm::exec_cache_key(dbtag, sqlstring, params)`（`vendor/httpserver/include/orm_common.h`），即
+  模型当前绑定的标签、带 `?` / `$n` 占位符的语句，以及每一个绑定值 —— 每个值按“类型字节 + 十进制
+  长度 + `:` + 文本”分帧。只有绑定值不同的两条语句键不同；同一条语句经 `switchDB()` 打到另一个
+  标签上，键也不同。
 
 `fetch_row()` 把行存放在另外三个存储里 —— `std::vector<std::vector<std::string>>` 本身、
-列名向量、以及 名 → 下标 的映射 —— 键的算法相同。这三个值类型都不携带模型信息，所以它们
+列名向量、以及 名 → 下标 的映射 —— 键与文本路径同法。这三个值类型都不携带模型信息，所以它们
 是全进程共享的：与上面两个存储不同，它们不按 `meta` 类型分份。
-`fetch_to()` / `fetch_one_to()` 永不走缓存，预编译路径上的任何方法也都不走。
+其余一概不缓存：`fetch_to()` / `fetch_one_to()` / `fetch_obj()`、`count()` / `exec_count()`、
+`page()` / `exec_page()`、`exec_fetch_append()`、`exec_fetch_to()` / `exec_one_to()` /
+`exec_one_append()` 这些模板读取器，以及所有写操作。
 
 **装填一次读穿。** `use_cache(int cache_time = 0)` 可链式调用，为下一次读取装填；
 `cache_time` 是以秒为单位的 TTL，`0` 表示 *永不过期*。
@@ -1184,21 +1195,32 @@ auto articles = orm::cms::Article();
 articles.where("isopen", 1).where("topicid", 3).use_cache(60).fetch();  // record 存储，60 秒
 ```
 
-语句发出之前，读取方法先查自己那个存储；命中就填充 `record` / `data`、解除装填并返回。
-真正读完之后，只在 `if (iscache && exptime > 0)` 成立时回写，然后解除装填。严格按这段代码
-理解，会得到三条结论：
+语句发出之前，读取方法先查自己那个存储；命中就填充 `record` / `data`、解除装填、置上
+`is_hit_cache`，并把交回去的行数当作返回值 —— 结果集读取返回 `record.size()`，单行读取返回
+`1` —— 所以 `if (model.fetch_one() > 0)` 会把命中读成成功。真正读完之后回写并解除装填，各自
+的门禁如下：
 
-- 使用默认 TTL 的 `use_cache()` 什么都不会存 —— 回写要求 `exptime > 0`。它的含义是“装填，
-  然后什么都不做”，不是“永久缓存”。
-- 命中时 `fetch()` / `async_fetch()` / `fetch_one()` / `get_one()` 返回 `0`，与结果集为空时
-  的返回值完全一样，所以 `if (model.fetch_one() > 0)` 会把每一次缓存命中都当成失败。
-- 没有别的东西会解除装填。`clear()` 和 `clearWhere()` 重置 `iscache` 但把 `exptime` 留在
-  原处；`set_cache_state(bool)` 只设置这个标志。
+| 读取 | 存储 | 回写门禁 | 会缓存空结果吗？ |
+|------|------|----------|------------------|
+| `fetch()` / `fetch_append()`（含 `async_`） | `record` | `iscache` | 会 |
+| `exec_fetch()`（含 `async_exec_fetch()`） | `record` | `iscache && !iserror` | 会，但一次报了错的读取不会 |
+| `fetch_one()` / `get_one()`（含 `async_`） | `meta` | `iscache && effect_num > 0` | 不会 |
+| `exec_one()`（含 `async_exec_one()`） | `meta` | `iscache && !iserror && effect_num > 0` | 不会 |
+
+单行存储分不清“没有这一行”和“有一行但全是零值”，所以只在真的读到行时才存。由此有三条值得
+讲明的结论：
+
+- 用默认 TTL 的 `use_cache()` 存的是**永久**条目（`0` = 永不过期）。清理线程永远不会收走它，
+  只有 `remove_cache()` / `clear_cache()` 能丢掉。
+- 文本路径的回写不看错误：`fetch()` 即使失败也会把空的 `record` 存进去。`exec_fetch()` 多了
+  一条 `!iserror`，于是一次连接抖动不会被钉成永久的空结果集。
+- 没有别的东西会解除装填。`clear()` 和 `clearWhere()` 重置 `iscache`（以及 `effect_num`），
+  但把 `exptime` 留在原处；`set_cache_state(bool)` 只设置这个标志。
 
 **写操作从不失效。** `save()`、`update()`、`update_dirty()`、`update_col()`、
-`replace_col()`、`remove()` 都不碰任何一个存储；`exec_*` / `async_exec_*` 路径既不查缓存也
-不填缓存。凡是经这些方法、经 `orm::db_conn`、或被其他进程改动过的行，都会被一直返回，直到
-TTL 到期。
+`replace_col()`、`remove()` 都不碰任何一个存储，任何 `exec_*` 写操作也一样。凡是经这些方法、
+经 `orm::db_conn`、或被其他进程改动过的行，都会被一直返回，直到 TTL 到期 —— 包括本对象刚刚
+写进去的那些行。
 
 **不存在就地刷新。** `model_meta_cache::save()` 做的是插入；若键已存在，它只重写存储项的
 `exptime`，行数据原样保留（`cover_data` 默认 `false`，且没有任何包装函数传它）。对仍然有效
@@ -1209,24 +1231,27 @@ TTL 到期。
 `fetch_row()` 用的三个存储以通用值类型为键，所有模型共用，模型上没有清理它们的入口，只能
 靠 TTL 到期。
 
-**未命中有副作用。** `get_data_cache()` 与 `get_record_cache()` 在键不存在时会写 `error_msg`
-并调用 `unlock_conn()`。`iserror` 仍为 false，但在 `lock_conn()` 批次里做一次冷读取，会把连
-接放回连接池。
+**未命中是静默的。** `get_data_cache()` 与 `get_record_cache()` 吞掉 `model_meta_cache::get()`
+抛出的 `std::runtime_error`，然后重置 `data` / `record` 并返回 `false`。它们既不写 `error_msg`
+也不置 `iserror`，更不调用 `unlock_conn()`，所以在 `lock_conn()` 批次里做一次冷读取，连接仍然
+留在手上。那次没命中的查找如果碰到“条目还在但已过期”，会顺手把它删掉。
 
 **具名键。** 手动 API 接受调用方自选的 `std::string` 并自行哈希，这正是给“SQL 文本由 DSL
-拼得不稳定”的查询做缓存的办法。返回存储值的两个访问器 —— `get_cache(name)` 与
-`get_vector_cache(name)` —— 用抛异常表达未命中：先写 `error_msg`、调用 `unlock_conn()`，再
-抛 `std::runtime_error("Not in cache")`，所以必须放在 `try` 里。而 `check_cache()`、
+拼得不稳定”的查询做缓存的办法。返回存储值的访问器有两种写法：`get_cache(name)` 与
+`get_vector_cache(name)` 在未命中时抛 `std::runtime_error("Not in cache")` —— 不碰 `error_msg`、
+`iserror`，也不碰连接 —— 所以必须放在 `try` 里；`try_get_cache(name)` 与
+`try_get_vector_cache(name)` 改为返回 `std::optional`，新代码请用这一对。而 `check_cache()`、
 `get_record_cache()`、`update_cache()` 要的是 `std::size_t`，同一个名字请用
 `std::hash<std::string>{}(name)` 自己哈希。
 
 ```cpp
 const std::string key = "cms:article:top3:" + std::to_string(topicid);
-try
+auto hit = articles.try_get_vector_cache(key);
+if (hit)
 {
-    articles.record = articles.get_vector_cache(key);   // 未命中会抛异常
+    articles.record = *hit;
 }
-catch (const std::exception &)
+else
 {
     articles.clearWhere();
     articles.where("isopen", 1).desc("aid").limit(3).fetch();
@@ -1235,22 +1260,32 @@ catch (const std::exception &)
 ```
 
 `save_vector_cache(name, rows, ttl)` 与 `save_cache(name, rows, ttl)` 是同一个调用。无参的
-`remove_cache()` 以 `sqlstring` 为键，所以在该对象上先拼出语句才有意义。
+`remove_cache()` 以 `std::hash<std::string>{}(sqlstring)` 为键，所以在该对象上先拼出文本路径
+语句才有意义 —— 它永远够不到预编译条目，后者的键里还含标签和全部绑定值。要淘汰一条预编译
+条目，就把那次读取真正用过的键交回去：
+
+```cpp
+auto articles = orm::cms::Article();
+articles.where("isopen", 1).use_cache(60).exec_fetch();
+articles.remove_cache(articles.last_exec_cache_hash);   // 0 = 没装填过，别用
+```
 
 **`isuse_cache()` 不是命中标志。** 无参时它表示装填是否还在。`isuse_cache(true)` 返回
-`exptime == 0 && iscache == false`，而这个条件的含义随 TTL 模式翻转：在 `use_cache(60)` 下
-真正读完之后，回写恰好把两者都清零，于是它返回 `true`；而命中时 `exptime` 仍是 `60`，于是
-返回 `false`。在 `use_cache()`（TTL `0`）下又反过来。请把它理解成“装填已被消耗”，而不是
-“这些行来自缓存”。
+`exptime == 0 && iscache == false`，而一次读取留下什么随路径不同，所以两边的读数不可互相
+比较：文本路径真正读完之后，回写刚好把两者都清零，于是返回 `true`；文本路径**命中**只清
+`iscache`，`exptime` 仍是 `60`，于是返回 `false`；`exec_*` 命中在一个代码块里把两者都清零，
+于是无论行是不是来自缓存，它都返回 `true`。请把它理解成“装填槽已空”，而不是“这些行来自
+缓存”——回答后一个问题的是 `is_hit_cache`，而且它只由 `record` / `meta` 那几条读穿设置，
+`fetch_row()` 不设。
 
 **冷缓存下的 `fetch_row()` 不再抛异常。** 它的读取要在同一个键上查三个存储，而
 `model_meta_cache::get()` 在未命中或条目已过期时会抛，所以这三个 `get()` 现在写在 `try`
-里：未命中、或者三个存储过期得不一致，都会落到真正的查询上。只有三者全部成功才算命中，因
-此返回的元组不会带着行数据却配一个空的列名列表。`fetch_obj()` 两个方向都不碰缓存：每次都
-从数据库读，也不回写，所以它不可能把 `fetch()` 读穿的那个 `record` 存储掏空。
-`fetch_row()` 命中时消耗掉 `use_cache(ttl)` 的装填，未命中时保留它，于是真正读完之后的回写
-照常执行；`fetch_obj()` 根本不看它，留在对象上的装填会活到下一次读取。上面那组具名键访问
-器仍然按设计抛异常。
+里：未命中、或者三个存储过期得不一致，都会落到真正的查询上。只有三者全部成功、且存着的行集
+非空，才算命中，因此返回的元组不会带着行数据却配一个空的列名列表。回写与这个判据对齐：只有
+查询真的返回了至少一行才写，并且行数据用 `exptime` 存、两个名字存储用 `exptime + 1` 存，所以
+行一定先到期。于是空结果什么都不写、并把装填留在槽上；命中则解除装填但不清 `exptime`。
+`fetch_obj()` 两个方向都不碰缓存：每次都从数据库读，也不回写，所以它不可能把 `fetch()` 读穿的
+那个 `record` 存储掏空。上面那组具名键访问器仍然按设计抛异常。
 
 ---
 
@@ -1440,7 +1475,8 @@ client.val["list"].push(item);
 
 | 方法 | 返回值 |
 |------|--------|
-| `fetch()` / `fetch_one()` | 生效行数；结果在 `record`，首行在 `data` |
+| `fetch()` | 生效行数；结果进 `record`，不碰 `data` |
+| `fetch_one(isappend = false)` | 生效行数；结果进 `data`，只有 `isappend` 为 true 时才追加 `record` |
 | `fetch_append()` | 把结果追加进 `record` |
 | `fetch_to(vec)` / `fetch_one_to(obj)` | 写入自定义 `orm::Base` 结构体 |
 | `count()` | 匹配行数 |
@@ -1491,23 +1527,28 @@ client.val["list"].push(item);
 
 | 方法 | 存储 | 说明 |
 |------|------|------|
-| `use_cache(ttl = 0)` | — | 可链式调用；为下一次文本路径读取装填 |
-| `isuse_cache(bydate = false)` | — | 装填标志，不是命中指示器 |
+| `use_cache(ttl = 0)` | — | 可链式调用；为下一次读取装填 —— 文本路径读取，或 `exec_one()` / `exec_fetch()` |
+| `isuse_cache(bydate = false)` | — | 装填标志，不是命中指示器；命中与否看 `is_hit_cache` |
 | `set_cache_state(bool)` | — | 强制设置 `iscache`，不动 `exptime` |
 | `save_data_cache(ttl = 0)` | `meta` | 以 `hash(sqlstring)` 为键存 `data` |
 | `save_data_cache(name, row, ttl = 0)` | `meta` | 调用方指定的键 |
+| `save_data_cache(key, row, ttl = 0)` | `meta` | 键是 `std::size_t` —— 与 `last_exec_cache_hash` 配合用 |
 | `save_cache(ttl = 0)` | `vector` | 以 `hash(sqlstring)` 为键存 `record` |
 | `save_cache(key, rows, ttl = 0)` / `save_cache(name, rows, ttl = 0)` / `save_vector_cache(name, rows, ttl = 0)` | `vector` | 调用方指定的键 |
 | `save_cache(name, row, ttl = 0)` | `meta` | 用名字存单行 |
-| `get_data_cache(key)` / `get_record_cache(key)` | `meta` / `vector` | 填充 `data` / `record`，返回 `bool`；未命中会写 `error_msg` 并调用 `unlock_conn()` |
+| `get_data_cache(key)` / `get_record_cache(key)` | `meta` / `vector` | 填充 `data` / `record`，返回 `bool`；未命中会重置它们并返回 `false`，不碰 `error_msg`、`iserror`，也不碰连接 |
 | `get_cache(name)` / `get_vector_cache(name)` | `meta` / `vector` | 返回存储的值；未命中**抛** `std::runtime_error` |
+| `try_get_cache(name)` / `try_get_vector_cache(name)` | `meta` / `vector` | 不抛异常的一对：返回 `std::optional`，未命中为空 |
 | `check_cache(key)` | `meta` | `-1` 不存在，`0` 永不过期，其余为剩余秒数 |
-| `update_cache(ttl = 0)` / `update_cache(key, ttl)` | `vector` | 只改 TTL；键不存在返回 `-1` |
-| `remove_cache()` / `remove_cache(key)` | `meta` + `record` | 无参版本以 `sqlstring` 为键；任一存储里有这个键就返回 `true` |
+| `update_cache(ttl = 0)` / `update_cache(key, ttl)` | `vector` | 只改 TTL；键不存在 `-1`，原条目本是永久的返回 `0`，其余 `1` |
+| `remove_cache()` / `remove_cache(key)` | `meta` + `record` | 无参版本以 `hash(sqlstring)` 为键，够不到预编译条目；任一存储里有这个键就返回 `true` |
 | `clear_cache()` / `remove_exptime_cache()` | `meta` + `record` | 整个存储 / TTL 已到期的条目 |
+| `last_exec_cache_hash` | — | 公开成员 `std::size_t`：上一次挂挡的 `exec_*` 读取真正使用的键，交给 `remove_cache()`；`0` 表示没跑过 |
 
-读穿逻辑内置在 `fetch()`、`fetch_append()`、`fetch_one()`、`get_one()` 及其 `async_` 兄弟
-里，另有 `fetch_row()`；`fetch_obj()` 既不读也不写，任何 `exec_*` 方法都不读写缓存。
+读穿逻辑内置在 `fetch()`、`fetch_append()`、`fetch_one()`、`get_one()`、`exec_one()`、
+`exec_fetch()` 及其 `async_` 兄弟里，另有 `fetch_row()`；`fetch_obj()`、
+`fetch_to()` / `fetch_one_to()`、`count()` / `exec_count()`、`page()` / `exec_page()` 和
+`exec_fetch_append()` 两个方向都不碰缓存。
 
 **无类型结果形态** —— 用于类型化的 `meta` 表达不出的列组合。它们读取与 `fetch()` 相同的
 `select()/where()/limit()` 状态。
@@ -1520,8 +1561,8 @@ client.val["list"].push(item);
 | `get_one(id)` / `async_get_one(id)` | `long long` | 按主键取一行进 `data`；完全忽略 `wheresql`，所以链式 `where()` 会被静默丢弃 |
 
 两种 `get_one()` 都返回读到的行数，所以 `if (m.get_one(id) > 0)` 就意味着这一行已经落进
-`data`。唯一的例外是结果缓存：命中时每一个读穿方法（包括 `get_one()`）都返回 `0`，所以可
-能用到缓存时，判断依据请用 `data` 而不是返回值。
+`data`。结果缓存命中时的返回值和被它替代的那次真实读取一致 —— 结果集读取返回 `record.size()`，
+单行读取返回 `1` —— 所以只看返回值的调用方无需知道是不是缓存答的；要区分就用 `is_hit_cache`。
 
 **表名与连接切换**
 

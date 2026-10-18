@@ -487,20 +487,26 @@ void httpparse::methodprocess(std::string_view contentline)
     peer->iscors = (method == HEAD_METHOD::OPTIONS);
     // 解析结果写入 state.keepalive，响应头(peer->keepalive)与 server 循环里"是否关闭连接"的依据从此取同一值。
     {
-        size_t vpos = contentline.find("HTTP/1.");
-        if (vpos != std::string_view::npos && (vpos + 8) <= contentline.size())
+        // 版本 token 必须是请求行末尾、紧跟最后一个空格的 8 字节，且只接受
+        // HTTP/1.1 / HTTP/1.0。整行 find("HTTP/1.") 会被 URL 内 "HTTP/1.1" 伪造，
+        // 也会把 HTTP/1.9 静默当 1.0。
+        std::string_view ver;
+        size_t vsp = contentline.find_last_of(' ');
+        if (vsp != std::string_view::npos && vsp + 1 < contentline.size())
         {
-            if (contentline[vpos + 7] == '1')
-            {
-                peer->state.version   = 0x11;// 1.1
-                peer->state.keepalive = true;
-            }
-            else
-            {
-                peer->state.version   = 0x10;// 1.0
-                peer->state.keepalive = false;
-            }
+            ver = contentline.substr(vsp + 1);
         }
+        if (ver == "HTTP/1.1")
+        {
+            peer->state.version   = 0x11;
+            peer->state.keepalive = true;
+        }
+        else if (ver == "HTTP/1.0")
+        {
+            peer->state.version   = 0x10;
+            peer->state.keepalive = false;
+        }
+        // 其它（无版本 token / HTTP/1.9 / 非法）：保持 headstate_t 默认 keepalive=false
     }
     peer->keepalive = peer->state.keepalive;
     headerstep      = 1;
@@ -1699,6 +1705,7 @@ void httpparse::getheaderhost(std::string_view header_value)
             }
 
             ioffset++;
+            bool ipv6closed = false;
             for (; ioffset < linesize; ioffset++)
             {
                 if (header_value[ioffset] >= '0' && header_value[ioffset] <= '9')
@@ -1719,6 +1726,7 @@ void httpparse::getheaderhost(std::string_view header_value)
                 }
                 else if (header_value[ioffset] == ']')
                 {
+                    ipv6closed = true;
                     ioffset++;
                     if (ioffset < linesize && header_value[ioffset] == 0x3A)
                     {
@@ -1733,6 +1741,11 @@ void httpparse::getheaderhost(std::string_view header_value)
                     error = 40077;
                     return;
                 }
+            }
+            if (!ipv6closed)
+            {
+                error = 40077;// IPv6 字面量未闭合 ']'
+                return;
             }
         }
         else
@@ -1821,7 +1834,7 @@ void httpparse::read_http_header_block(const unsigned char *buffer, unsigned int
                     isfinish_header = true;
                     return;
                 }
-                http_content_length += header_line.size();
+                http_content_length += header_line.size() + 2;
 
                 process_header_line(header_line);
                 header_line.clear();
@@ -2900,25 +2913,52 @@ void httpparse::post_multipart_formdata()
 {
     unsigned int pos_m = temp_post_data->field_offset;
 
+    //看 "--" 前面第 dist 个字节是不是 want：1 是，0 不是，-1 看不见。
+    //这两个字节可能还在本包的段里，也可能已经进了 field_item（段起点之前），
+    //再往前（跨包、或大文件已刷盘）就取不到，只能按 -1 处理。
+    auto prev_is = [&](unsigned int dist, char want) -> int
+    {
+        unsigned int seg = pos_m - temp_post_data->field_offset;
+        if (dist <= seg)
+        {
+            return (temp_post_data->content[pos_m - dist] == want) ? 1 : 0;
+        }
+        unsigned int back = dist - seg;
+        if (temp_post_data->field_item.size() < back)
+        {
+            return -1;
+        }
+        return (temp_post_data->field_item[temp_post_data->field_item.size() - back] == want) ? 1 : 0;
+    };
+    //跨包那几条支路里 "--" 存在 pre_content 中，前面的字节只剩 field_item 尾部
+    auto tail_is = [&](unsigned int back, char want) -> int
+    {
+        if (temp_post_data->field_item.size() < back)
+        {
+            return -1;
+        }
+        return (temp_post_data->field_item[temp_post_data->field_item.size() - back] == want) ? 1 : 0;
+    };
+
     //处理上次剩余的
     if (temp_post_data->pre_content.size() > 0)
     {
         if (temp_post_data->pre_content.size() == 1)
         {
             bool isnotmatch = true;
+            bool isrunout   = false;
             if (temp_post_data->content[pos_m] == '-')
             {
                 //说明已经命中两个，接着直接匹配boundary
                 pos_m++;
-                if ((pos_m + temp_post_data->boundary.size()) > temp_post_data->content.size())
-                {
-                    //两次数量小于boundary.size()
-                    temp_post_data->field_offset = temp_post_data->content.size();
-                    return;
-                }
                 unsigned int i = 0;
                 for (; i < temp_post_data->boundary.size(); i++)
                 {
+                    if (pos_m >= temp_post_data->content.size())
+                    {
+                        isrunout = true;
+                        break;
+                    }
                     if (temp_post_data->content[pos_m] != temp_post_data->boundary[i])
                     {
                         pos_m = temp_post_data->field_offset;
@@ -2931,6 +2971,20 @@ void httpparse::post_multipart_formdata()
                     isnotmatch = false;
                 }
             }
+            //横线前面明确不是换行，这段是数据内容里的横线
+            if (!isnotmatch && tail_is(1, '\n') == 0)
+            {
+                isnotmatch = true;
+            }
+            if (isrunout)
+            {
+                //本包在边界文本中间用完了：横线连同已经对上的部分先留在 pre_content，
+                //下一包接着比，不能就地丢掉这些字节。
+                temp_post_data->pre_content.append(
+                    temp_post_data->content.substr(temp_post_data->field_offset, pos_m - temp_post_data->field_offset));
+                temp_post_data->field_offset = temp_post_data->content.size();
+                return;
+            }
             //说明是假匹配
             temp_post_data->pre_content.clear();
             if (isnotmatch)
@@ -2942,7 +2996,7 @@ void httpparse::post_multipart_formdata()
             else
             {
                 temp_post_data->field_offset = pos_m;
-                if (temp_post_data->field_item.size() > 1)
+                if (tail_is(1, '\n') == 1 && tail_is(2, '\r') == 1 && temp_post_data->field_item.size() > 1)
                 {
                     temp_post_data->field_item.resize(temp_post_data->field_item.size() - 2);
                 }
@@ -2978,15 +3032,15 @@ void httpparse::post_multipart_formdata()
         else if (temp_post_data->pre_content.size() == 2)
         {
             bool isnotmatch = true;
-            if ((pos_m + temp_post_data->boundary.size()) > temp_post_data->content.size())
-            {
-                //两次数量小于boundary.size()
-                temp_post_data->field_offset = temp_post_data->content.size();
-                return;
-            }
-            unsigned int i = 0;
+            bool isrunout   = false;
+            unsigned int i  = 0;
             for (; i < temp_post_data->boundary.size(); i++)
             {
+                if (pos_m >= temp_post_data->content.size())
+                {
+                    isrunout = true;
+                    break;
+                }
                 if (temp_post_data->content[pos_m] != temp_post_data->boundary[i])
                 {
                     pos_m = temp_post_data->field_offset;
@@ -2997,6 +3051,19 @@ void httpparse::post_multipart_formdata()
             if (i == temp_post_data->boundary.size())
             {
                 isnotmatch = false;
+            }
+            //横线前面明确不是换行，这段是数据内容里的横线
+            if (!isnotmatch && tail_is(1, '\n') == 0)
+            {
+                isnotmatch = true;
+            }
+            if (isrunout)
+            {
+                //本包在边界文本中间用完了：已经对上的部分先留在 pre_content，下一包接着比
+                temp_post_data->pre_content.append(
+                    temp_post_data->content.substr(temp_post_data->field_offset, pos_m - temp_post_data->field_offset));
+                temp_post_data->field_offset = temp_post_data->content.size();
+                return;
             }
 
             //说明是假匹配
@@ -3012,7 +3079,7 @@ void httpparse::post_multipart_formdata()
             else
             {
                 temp_post_data->field_offset = pos_m;
-                if (temp_post_data->field_item.size() > 1)
+                if (tail_is(1, '\n') == 1 && tail_is(2, '\r') == 1 && temp_post_data->field_item.size() > 1)
                 {
                     temp_post_data->field_item.resize(temp_post_data->field_item.size() - 2);
                 }
@@ -3050,15 +3117,17 @@ void httpparse::post_multipart_formdata()
         {
             //3个字符，进入boundary 匹配
             bool isnotmatch = true;
+            bool isrunout   = false;
 
-            if ((pos_m + temp_post_data->boundary.size()) > temp_post_data->content.size())
-            {
-                temp_post_data->field_offset = temp_post_data->content.size();
-                return;
-            }
+            //pre_content 里 "--" 后面那几个字节已经和 boundary 对上了，从剩下的接着比
             unsigned int i = temp_post_data->pre_content.size() - 2;
             for (; i < temp_post_data->boundary.size(); i++)
             {
+                if (pos_m >= temp_post_data->content.size())
+                {
+                    isrunout = true;
+                    break;
+                }
                 if (temp_post_data->content[pos_m] != temp_post_data->boundary[i])
                 {
                     pos_m = temp_post_data->field_offset;
@@ -3069,6 +3138,19 @@ void httpparse::post_multipart_formdata()
             if (i == temp_post_data->boundary.size())
             {
                 isnotmatch = false;
+            }
+            //横线前面明确不是换行，这段是数据内容里的横线
+            if (!isnotmatch && tail_is(1, '\n') == 0)
+            {
+                isnotmatch = true;
+            }
+            if (isrunout)
+            {
+                //本包在边界文本中间用完了：已经对上的部分先留在 pre_content，下一包接着比
+                temp_post_data->pre_content.append(
+                    temp_post_data->content.substr(temp_post_data->field_offset, pos_m - temp_post_data->field_offset));
+                temp_post_data->field_offset = temp_post_data->content.size();
+                return;
             }
 
             //说明是假匹配
@@ -3085,7 +3167,7 @@ void httpparse::post_multipart_formdata()
                 temp_post_data->pre_content.clear();
                 temp_post_data->field_offset = pos_m;
 
-                if (temp_post_data->field_item.size() > 1)
+                if (tail_is(1, '\n') == 1 && tail_is(2, '\r') == 1 && temp_post_data->field_item.size() > 1)
                 {
                     temp_post_data->field_item.resize(temp_post_data->field_item.size() - 2);
                 }
@@ -3135,6 +3217,16 @@ void httpparse::post_multipart_formdata()
                     j++;
                     if (j < temp_post_data->content.size())
                     {
+                        // 分隔符的 '--' 前面必须是 CRLF；数据内容里的 '--' 不当边界，
+                        // 免得把字段截断、还把末尾两个字节当成 CRLF 吞掉。
+                        // 那两个字节取不到时（跨包、大文件分块已刷盘）仍按边界处理。
+                        int dash_lf = prev_is(1, '\n');
+                        int dash_cr = prev_is(2, '\r');
+                        if (dash_lf == 0)
+                        {
+                            continue;// 普通数据，继续扫描，后续 append 会把它并回 field_item
+                        }
+
                         //主要是检查是否匹配或最后
                         unsigned int i = 0;
                         for (; i < temp_post_data->boundary.size();)
@@ -3155,7 +3247,8 @@ void httpparse::post_multipart_formdata()
 
                             temp_post_data->field_item.append(&temp_post_data->content[temp_post_data->field_offset], pos_m - temp_post_data->field_offset);
 
-                            if (temp_post_data->field_item.size() > 1)
+                            // 确认前面是 CRLF 才剥掉这两个字节
+                            if (dash_lf == 1 && dash_cr == 1 && temp_post_data->field_item.size() > 1)
                             {
                                 temp_post_data->field_item.resize(temp_post_data->field_item.size() - 2);
                             }
@@ -3274,7 +3367,17 @@ void httpparse::read_http_post_block(const unsigned char *buffer, unsigned int b
                 char first = buffer[readoffset];
                 if (first == '-')
                 {
-                    posttype = 2;// multipart
+                    // 走到这里说明请求没带 Content-Type，头里也就没有 boundary 可用。
+                    // 没有 boundary 还按 multipart 解，正文里每个 "--" 都会被当成分隔符；
+                    // 退回原始正文分支，body 原样落盘给业务自己读。
+                    if (temp_post_data != nullptr && !temp_post_data->boundary.empty())
+                    {
+                        posttype = 2;// multipart
+                    }
+                    else
+                    {
+                        posttype = 5;// fallback: raw
+                    }
                 }
                 else if (first == '{' || first == '[')
                 {
@@ -3314,6 +3417,12 @@ void httpparse::read_http_post_block(const unsigned char *buffer, unsigned int b
             {
                 temp_post_data = std::make_unique<HTTP_POST_DATA_T>();
             }
+            // 无 boundary：匹配循环会把任意 '--' 当成分隔符，必须显式报错。
+            if (temp_post_data->boundary.empty())
+            {
+                error = 40099;
+                return;
+            }
 
             temp_post_data->content = std::string_view((const char *)&buffer[readoffset], avail);
             readoffset += avail;
@@ -3345,6 +3454,13 @@ void httpparse::read_http_post_block(const unsigned char *buffer, unsigned int b
                 }
             }
 
+            // 边界文本正好断在包尾时，它后面那两条横线 "-" "-" 分在两个包里，结束标记认不出来，
+            // 请求就会一直等下去。声明的 body 字节已经全部读完，不会再有属于本次请求的字节了，这里收尾。
+            if (!peer->isfinish && error == 0 && http_content_length >= peer->content_length)
+            {
+                peer->isfinish = true;
+            }
+
             if (peer->isfinish)
             {
                 reset_uploadfile();
@@ -3361,7 +3477,19 @@ void httpparse::read_http_post_block(const unsigned char *buffer, unsigned int b
             readoffset += avail;
             if (peer->rawcontent.size() >= peer->content_length)
             {
-                peer->json.from_json(peer->rawcontent);
+                try
+                {
+                    peer->json.from_json(peer->rawcontent);
+                }
+                catch (...)
+                {
+                    // 畸形 / 超长 JSON 会抛 json_parse_error；必须就地消化，
+                    // 否则异常沿协程栈上抛会丢弃甚至崩溃该连接处理协程（DoS 向量）。
+                    // 复用 40081（JSON 体积错误）作为解析失败的统一出口，已由
+                    // server 侧 http1_send_bad_request 映射为 400 响应。
+                    error = 40081;
+                    return;
+                }
                 peer->isfinish = true;
             }
 

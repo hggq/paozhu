@@ -3,12 +3,10 @@
 namespace http
 {
 //@urlpath(null,hello)
-std::string testhello(std::shared_ptr<httppeer> peer)
+asio::awaitable<std::string> testhello(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->get_peer();
-    client << " Hello world! 🧨 Paozhu c++ web framework ";
-
-    return "";
+    peer->output = "<p>Hello, world!</p>";
+    co_return "";
 }
 
 //@urlpath(null,hellobusy)

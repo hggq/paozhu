@@ -1,0 +1,1 @@
+s|if (dash_lf == 1 && dash_cr == 1 && temp_post_data->field_item.size() > 1)|if (temp_post_data->field_item.size() > 1)|

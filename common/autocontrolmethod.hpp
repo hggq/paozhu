@@ -36,6 +36,7 @@
 #include "test_httppeersend.h"
 #include "test_leftjoin.h"
 #include "test_mqtt_client.h"
+#include "test_orm.h"
 #include "test_ormfk.h"
 #include "test_ormprepared.h"
 #include "test_parse_ini.h"
@@ -390,7 +391,6 @@ namespace http
         reg_raw("", "/tjsonpost", nullptr, nullptr, testformjsonpost, nullptr);
         reg_raw("", "/txmlupload", nullptr, nullptr, testformxmlpost, nullptr);
         reg_raw("", "/addpostfile", nullptr, nullptr, testuploadpostfile, nullptr);
-        reg_raw("", "/hello", nullptr, nullptr, testhello, nullptr);
         reg_raw("", "/hellobusy", nullptr, nullptr, testhellobusy, nullptr);
         reg_raw("", "/testhttpclient1", nullptr, nullptr, testhttpclient_get_body, nullptr);
         reg_raw("", "/testhttpclient3", nullptr, nullptr, testhttpclient_get_timebody, nullptr);
@@ -470,6 +470,7 @@ namespace http
         reg_raw("", "/start_mqtt_loop", nullptr, nullptr, nullptr, start_mqtt_loop);
         reg_raw("", "/stop_mqtt_loop", nullptr, nullptr, nullptr, stop_mqtt_loop);
         reg_raw("", "/list_mqtt_loop", nullptr, nullptr, nullptr, list_mqtt_loop);
+        reg_raw("", "/testormhello", nullptr, nullptr, nullptr, testormhello);
         reg_raw("", "/test_ormfk_co", nullptr, nullptr, nullptr, test_ormfk_co);
         reg_raw("", "/test_ormprepared_co", nullptr, nullptr, nullptr, test_ormprepared_co);
         reg_raw("", "/test_ormprepared_appendco", nullptr, nullptr, nullptr, test_ormprepared_appendco);
@@ -525,6 +526,7 @@ namespace http
         reg_raw("", "/fx/exc/reject503_pre", nullptr, nullptr, nullptr, testfxexc_reject503_pre);
         reg_raw("", "/fx/lane/a", nullptr, nullptr, nullptr, testfxlanea);
         reg_raw("", "/fx/lane/rejectonce", nullptr, nullptr, nullptr, testfxlanerejectonce);
+        reg_raw("", "/hello", nullptr, nullptr, nullptr, testhello);
         reg_raw("", "/testcosendmaildo", nullptr, nullptr, nullptr, test_co_sendmaildo);
         reg_raw("saas.com", "/testcohandle", nullptr, nullptr, nullptr, saas::test_co_handle);
 

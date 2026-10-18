@@ -34,6 +34,8 @@
 #include "httphook.h"
 #include "func.h"
 
+#include <cerrno>
+
 #include "orm_conn_pool.h"
 #include "orm_connect_mar.h"
 
@@ -1927,17 +1929,13 @@ asio::awaitable<void> httpserver::http1_send_file_range(std::shared_ptr<httppeer
 
 asio::awaitable<void> httpserver::http1_send_status_content(std::shared_ptr<httppeer> peer, unsigned int status_code, const std::string &bodycontent)
 {
-    std::string htmlcontent;
     peer->status(status_code);
     peer->type("text/html; charset=utf-8");
     peer->length(bodycontent.size());
-    htmlcontent = peer->make_http1_header();
+    std::string htmlcontent = peer->make_http1_header();
     htmlcontent.append("\r\n");
+    htmlcontent.append(bodycontent);
     co_await peer->socket_session->async_send_writer(htmlcontent);
-    if (bodycontent.size() > 0)
-    {
-        co_await peer->socket_session->async_send_writer(bodycontent);
-    }
     co_return;
 }
 asio::awaitable<bool> httpserver::http1_static_file_authority(std::shared_ptr<httppeer> peer)
@@ -2114,8 +2112,8 @@ asio::awaitable<void> httpserver::http1_fastcgi(std::shared_ptr<httppeer> peer)
                     peer->length(tempcompress.size());
                     peer->output = peer->make_http1_header();
                     peer->output.append("\r\n");
+                    peer->output.append(tempcompress);
                     co_await peer->socket_session->async_send_writer(peer->output);
-                    co_await peer->socket_session->async_send_writer(tempcompress);
                     co_return;
                 }
             }
@@ -2124,8 +2122,8 @@ asio::awaitable<void> httpserver::http1_fastcgi(std::shared_ptr<httppeer> peer)
     peer->length(peer->output.size());
     std::string htmlcontent = peer->make_http1_header();
     htmlcontent.append("\r\n");
+    htmlcontent.append(peer->output);
     co_await peer->socket_session->async_send_writer(htmlcontent);
-    co_await peer->socket_session->async_send_writer(peer->output);
     clear_peer_data(peer);
     co_return;
 }
@@ -2258,9 +2256,9 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
                             peer->length(tempcompress.size());
                             peer->output = peer->make_http1_header();
                             peer->output.append("\r\n");
+                            peer->output.append(tempcompress);
                             wrotetoclient = true;
                             co_await peer_session->async_send_writer(peer->output);
-                            co_await peer_session->async_send_writer(tempcompress);
                             clear_peer_data(peer);
                             co_return;
                         }
@@ -2273,11 +2271,15 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
             std::string htmlcontent = peer->make_http1_header();
             htmlcontent.append("\r\n");
             wrotetoclient = true;
-            co_await peer_session->async_send_writer(htmlcontent);
-            // HEAD：头已带 Content-Length，不写 body（RFC 9110 §9.3.2）
-            if (peer->method != static_cast<unsigned char>(HEAD_METHOD::HEAD))
+            if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
             {
-                co_await peer_session->async_send_writer(peer->output);
+                // HEAD：头已带 Content-Length，不写 body（RFC 9110 §9.3.2）
+                co_await peer_session->async_send_writer(htmlcontent);
+            }
+            else
+            {
+                htmlcontent.append(peer->output);
+                co_await peer_session->async_send_writer(htmlcontent);
             }
             clear_peer_data(peer);
             co_return;
@@ -2345,9 +2347,9 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
                             peer->length(tempcompress.size());
                             std::string htmlcontent = peer->make_http1_header();
                             htmlcontent.append("\r\n");
+                            htmlcontent.append(tempcompress);
                             wrotetoclient = true;
                             co_await peer_session->async_send_writer(htmlcontent);
-                            co_await peer_session->async_send_writer(tempcompress);
                             DEBUG_LOG("---  http1 compress send --------");
                             clear_peer_data(peer);
                             co_return;
@@ -2361,11 +2363,15 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
             std::string htmlcontent = peer->make_http1_header();
             htmlcontent.append("\r\n");
             wrotetoclient = true;
-            co_await peer_session->async_send_writer(htmlcontent);
-            // HEAD：头已带 Content-Length，不写 body
-            if (peer->method != static_cast<unsigned char>(HEAD_METHOD::HEAD))
+            if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
             {
-                co_await peer_session->async_send_writer(peer->output);
+                // HEAD：头已带 Content-Length，不写 body（RFC 9110 §9.3.2）
+                co_await peer_session->async_send_writer(htmlcontent);
+            }
+            else
+            {
+                htmlcontent.append(peer->output);
+                co_await peer_session->async_send_writer(htmlcontent);
             }
             DEBUG_LOG("---  http1 output send --------");
             clear_peer_data(peer);
@@ -7310,7 +7316,7 @@ asio::awaitable<void> httpserver::async_redis_subpub_loop(
         if (!sec)
         {
             auto wait = backoff();
-            fprintf(stderr, "[redis_subpub] %s: no section → wait %lld\n", client->section_name().c_str(), (long long)wait.count());
+            fprintf(stderr, "[redis_subpub] %s: no section -> wait %lld\n", client->section_name().c_str(), (long long)wait.count());
             asio::steady_timer t(io_ctx, wait);
             co_await t.async_wait(asio::use_awaitable);
             continue;
@@ -7327,7 +7333,7 @@ asio::awaitable<void> httpserver::async_redis_subpub_loop(
                                            { client->on_disconnect(); },
                                            nullptr);
             auto wait = backoff();
-            fprintf(stderr, "[redis_subpub] %s: async_start fail → wait %lld\n", client->section_name().c_str(), (long long)wait.count());
+            fprintf(stderr, "[redis_subpub] %s: async_start fail -> wait %lld\n", client->section_name().c_str(), (long long)wait.count());
             asio::steady_timer t(io_ctx, wait);
             co_await t.async_wait(asio::use_awaitable);
             continue;
@@ -7479,7 +7485,7 @@ asio::awaitable<void> httpserver::async_redis_subpub_loop(
         if (client->isclose)
             break;
         auto wait = backoff();
-        fprintf(stderr, "[redis_subpub] %s: pump exit → wait %lld\n", client->section_name().c_str(), (long long)wait.count());
+        fprintf(stderr, "[redis_subpub] %s: pump exit -> wait %lld\n", client->section_name().c_str(), (long long)wait.count());
         asio::steady_timer t(io_ctx, wait);
         co_await t.async_wait(asio::use_awaitable);
     }
@@ -7509,7 +7515,7 @@ asio::awaitable<void> httpserver::async_ws_subpub_loop(
         if (!sec)
         {
             auto wait = backoff();
-            fprintf(stderr, "[ws_subpub] %s: no section → wait %lld\n", client->section_name().c_str(), (long long)wait.count());
+            fprintf(stderr, "[ws_subpub] %s: no section -> wait %lld\n", client->section_name().c_str(), (long long)wait.count());
             asio::steady_timer t(io_ctx, wait);
             co_await t.async_wait(asio::use_awaitable);
             continue;
@@ -7547,7 +7553,7 @@ asio::awaitable<void> httpserver::async_ws_subpub_loop(
         if (!co_await ws->async_connect())
         {
             auto wait = backoff();
-            fprintf(stderr, "[ws_subpub] %s: async_connect fail err='%s' → wait %lld\n", client->section_name().c_str(), ws->error_msg.c_str(), (long long)wait.count());
+            fprintf(stderr, "[ws_subpub] %s: async_connect fail err='%s' -> wait %lld\n", client->section_name().c_str(), ws->error_msg.c_str(), (long long)wait.count());
             if (client->is_coroutine_)
                 co_await co_resident_hook_void("ws_subpub.async_on_close", client->async_on_close());
             else
@@ -7640,7 +7646,7 @@ asio::awaitable<void> httpserver::async_ws_subpub_loop(
         if (client->isclose)
             break;
         auto wait = backoff();
-        fprintf(stderr, "[ws_subpub] %s: pump exit → wait %lld\n", client->section_name().c_str(), (long long)wait.count());
+        fprintf(stderr, "[ws_subpub] %s: pump exit -> wait %lld\n", client->section_name().c_str(), (long long)wait.count());
         asio::steady_timer t(io_ctx, wait);
         co_await t.async_wait(asio::use_awaitable);
     }
@@ -7669,7 +7675,7 @@ asio::awaitable<void> httpserver::async_sock_subpub_loop(
         if (!sec)
         {
             auto wait = backoff();
-            fprintf(stderr, "[sock_subpub] %s: no section → wait %lld\n", client->section_name().c_str(), (long long)wait.count());
+            fprintf(stderr, "[sock_subpub] %s: no section -> wait %lld\n", client->section_name().c_str(), (long long)wait.count());
             asio::steady_timer t(io_ctx, wait);
             co_await t.async_wait(asio::use_awaitable);
             continue;
@@ -7695,7 +7701,7 @@ asio::awaitable<void> httpserver::async_sock_subpub_loop(
         if (!co_await sock->async_tcp_connect())
         {
             auto wait = backoff();
-            fprintf(stderr, "[sock_subpub] %s: async_tcp_connect fail err='%s' → wait %lld\n", client->section_name().c_str(), sock->error_msg.c_str(), (long long)wait.count());
+            fprintf(stderr, "[sock_subpub] %s: async_tcp_connect fail err='%s' -> wait %lld\n", client->section_name().c_str(), sock->error_msg.c_str(), (long long)wait.count());
             if (client->is_coroutine_)
                 co_await co_resident_hook_void("sock_subpub.async_on_close", client->async_on_close());
             else
@@ -7781,7 +7787,7 @@ asio::awaitable<void> httpserver::async_sock_subpub_loop(
         if (client->isclose)
             break;
         auto wait = backoff();
-        fprintf(stderr, "[sock_subpub] %s: pump exit → wait %lld\n", client->section_name().c_str(), (long long)wait.count());
+        fprintf(stderr, "[sock_subpub] %s: pump exit -> wait %lld\n", client->section_name().c_str(), (long long)wait.count());
         asio::steady_timer t(io_ctx, wait);
         co_await t.async_wait(asio::use_awaitable);
     }
@@ -7810,7 +7816,7 @@ asio::awaitable<void> httpserver::async_mqtt_subpub_loop(
         if (!sec)
         {
             auto wait = backoff();
-            fprintf(stderr, "[mqtt_subpub] %s: no section → wait %lld\n", client->section_name().c_str(), (long long)wait.count());
+            fprintf(stderr, "[mqtt_subpub] %s: no section -> wait %lld\n", client->section_name().c_str(), (long long)wait.count());
             asio::steady_timer t(io_ctx, wait);
             co_await t.async_wait(asio::use_awaitable);
             continue;
@@ -7882,7 +7888,7 @@ asio::awaitable<void> httpserver::async_mqtt_subpub_loop(
         if (!co_await mqc->async_tcp_connect())
         {
             auto wait = backoff();
-            fprintf(stderr, "[mqtt_subpub] %s: async_tcp_connect fail err='%s' → wait %lld\n", client->section_name().c_str(), mqc->error_msg.c_str(), (long long)wait.count());
+            fprintf(stderr, "[mqtt_subpub] %s: async_tcp_connect fail err='%s' -> wait %lld\n", client->section_name().c_str(), mqc->error_msg.c_str(), (long long)wait.count());
             if (client->is_coroutine_)
                 co_await co_resident_hook_void("mqtt_subpub.async_on_close", client->async_on_close());
             else
@@ -7896,7 +7902,7 @@ asio::awaitable<void> httpserver::async_mqtt_subpub_loop(
         if (!co_await mqc->async_mqtt_connect())
         {
             auto wait = backoff();
-            fprintf(stderr, "[mqtt_subpub] %s: async_mqtt_connect fail err='%s' → wait %lld\n", client->section_name().c_str(), mqc->error_msg.c_str(), (long long)wait.count());
+            fprintf(stderr, "[mqtt_subpub] %s: async_mqtt_connect fail err='%s' -> wait %lld\n", client->section_name().c_str(), mqc->error_msg.c_str(), (long long)wait.count());
             if (client->is_coroutine_)
                 co_await co_resident_hook_void("mqtt_subpub.async_on_close", client->async_on_close());
             else
@@ -7947,7 +7953,7 @@ asio::awaitable<void> httpserver::async_mqtt_subpub_loop(
         if (client->isclose)
             break;
         auto wait = backoff();
-        fprintf(stderr, "[mqtt_subpub] %s: disconnected → wait %lld\n", client->section_name().c_str(), (long long)wait.count());
+        fprintf(stderr, "[mqtt_subpub] %s: disconnected -> wait %lld\n", client->section_name().c_str(), (long long)wait.count());
         asio::steady_timer t(io_ctx, wait);
         co_await t.async_wait(asio::use_awaitable);
     }
@@ -8995,7 +9001,7 @@ void httpserver::httpwatch_memory_monitor(unsigned int mysqlpool_time)
                     }
                     else
                     {
-                        ++iter;
+                        socket_session_lists.erase(iter++);
                     }
                 }
                 lock_sock_c.unlock();
@@ -9004,136 +9010,174 @@ void httpserver::httpwatch_memory_monitor(unsigned int mysqlpool_time)
     }
 }
 
+// 完整写出缓冲区, 处理 EINTR 与短写; 返回实际写出字节数(全部写出 == size)
+static std::size_t pz_write_all(int fd, const char *data, std::size_t size)
+{
+    std::size_t off = 0;
+    while (off < size)
+    {
+        ssize_t n = ::write(fd, data + off, size - off);
+        if (n < 0)
+        {
+            if (errno == EINTR)
+            {
+                continue;
+            }
+            break;
+        }
+        if (n == 0)
+        {
+            break;
+        }
+        off += static_cast<std::size_t>(n);
+    }
+    return off;
+}
+
+// 把日志列表整体追加写出; 任一写入失败时, 把当前及剩余条目放回全局队列,
+// 下一轮 flush 重试, 避免短写/失败导致日志被静默丢弃
+static void pz_flush_loglist(int fd, std::list<std::string> &global, std::mutex &m)
+{
+    std::list<std::string> flush;
+    {
+        std::lock_guard<std::mutex> lk(m);
+        flush.swap(global);
+    }
+    for (auto it = flush.begin(); it != flush.end(); ++it)
+    {
+        if (it->empty())
+        {
+            continue;
+        }
+        if (pz_write_all(fd, it->data(), it->size()) != it->size())
+        {
+            std::lock_guard<std::mutex> lk(m);
+            global.splice(global.end(), flush, it, flush.end());
+            break;
+        }
+    }
+}
+
 void httpserver::httpwatch_flush_access_log(const std::string &access_path)
 {
-    if (!access_loglist.empty())
     {
+        std::lock_guard<std::mutex> logchecklock(log_mutex);
+        if (access_loglist.empty())
+        {
+            return;
+        }
+    }
 #ifndef _MSC_VER
 #ifndef _WIN32
-        struct flock lockstr = {};
+    struct flock lockstr = {};
 #endif
-        int fd = open(access_path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
-        if (fd == -1)
-        {
-            return;
-        }
-
-#ifndef _WIN32
-        lockstr.l_type   = F_WRLCK;
-        lockstr.l_whence = SEEK_END;
-        lockstr.l_start  = 0;
-        lockstr.l_len    = 0;
-        lockstr.l_pid    = 0;
-
-        if (fcntl(fd, F_SETLK, &lockstr) == -1)
-        {
-            close(fd);
-            return;
-        }
-#else
-        auto native_handle = (HANDLE)_get_osfhandle(fd);
-        auto file_size     = GetFileSize(native_handle, nullptr);
-        if (!LockFile(native_handle, file_size, 0, file_size, 0))
-        {
-            close(fd);
-            return;
-        }
-#endif
-        std::unique_lock<std::mutex> logacclock(log_mutex);
-        std::size_t n_write = 0;
-        while (!access_loglist.empty())
-        {
-            n_write = write(fd, access_loglist.front().data(), access_loglist.front().size());
-            access_loglist.pop_front();
-            if (n_write < 1)
-            {
-                access_loglist.clear();
-                break;
-            }
-        }
-        logacclock.unlock();
-
-#ifndef _WIN32
-        lockstr.l_type = F_UNLCK;
-        if (fcntl(fd, F_SETLK, &lockstr) == -1)
-        {
-            close(fd);
-            return;
-        }
-#else
-        if (!UnlockFile(native_handle, file_size, 0, file_size, 0))
-        {
-            close(fd);
-            return;
-        }
-#endif
-        close(fd);
-#endif
+    int fd = open(access_path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
+    if (fd == -1)
+    {
+        return;
     }
+
+#ifndef _WIN32
+    lockstr.l_type   = F_WRLCK;
+    lockstr.l_whence = SEEK_END;
+    lockstr.l_start  = 0;
+    lockstr.l_len    = 0;
+    lockstr.l_pid    = 0;
+
+    if (fcntl(fd, F_SETLK, &lockstr) == -1)
+    {
+        close(fd);
+        return;
+    }
+#else
+    // O_APPEND 写在文件末尾, 锁必须覆盖 [0, 4GB) 才能保证追加区间被保护;
+    // 按 file_size 计算区间在文件为空时锁 0 字节等于无锁, 且写入超出 file_size 字节后即失效
+    auto native_handle = (HANDLE)_get_osfhandle(fd);
+    if (!LockFile(native_handle, 0, 0, 0, MAXDWORD))
+    {
+        close(fd);
+        return;
+    }
+#endif
+
+    pz_flush_loglist(fd, access_loglist, log_mutex);
+
+#ifndef _WIN32
+    lockstr.l_type = F_UNLCK;
+    if (fcntl(fd, F_SETLK, &lockstr) == -1)
+    {
+        close(fd);
+        return;
+    }
+#else
+    if (!UnlockFile(native_handle, 0, 0, 0, MAXDWORD))
+    {
+        close(fd);
+        return;
+    }
+#endif
+    close(fd);
+#endif
 }
 
 void httpserver::httpwatch_flush_error_log(const std::string &error_path)
 {
-    if (!error_loglist.empty())
     {
+        std::lock_guard<std::mutex> logchecklock(log_mutex);
+        if (error_loglist.empty())
+        {
+            return;
+        }
+    }
 #ifndef _MSC_VER
 #ifndef _WIN32
-        struct flock lockstr = {};
+    struct flock lockstr = {};
 #endif
-        int fd = open(error_path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
-        if (fd == -1)
-        {
-            return;
-        }
-
-#ifndef _WIN32
-        lockstr.l_type   = F_WRLCK;
-        lockstr.l_whence = SEEK_END;
-        lockstr.l_start  = 0;
-        lockstr.l_len    = 0;
-        lockstr.l_pid    = 0;
-
-        if (fcntl(fd, F_SETLK, &lockstr) == -1)
-        {
-            close(fd);
-            return;
-        }
-#else
-        auto native_handle = (HANDLE)_get_osfhandle(fd);
-        auto file_size     = GetFileSize(native_handle, nullptr);
-        if (!LockFile(native_handle, file_size, 0, file_size, 0))
-        {
-            close(fd);
-            return;
-        }
-#endif
-
-        std::unique_lock<std::mutex> logerrlock(log_mutex);
-        while (!error_loglist.empty())
-        {
-            std::size_t n_write = write(fd, error_loglist.front().data(), error_loglist.front().size());
-            error_loglist.pop_front();
-            (void)n_write;
-        }
-        logerrlock.unlock();
-
-#ifndef _WIN32
-        lockstr.l_type = F_UNLCK;
-        if (fcntl(fd, F_SETLK, &lockstr) == -1)
-        {
-            close(fd);
-            return;
-        }
-#else
-        if (!UnlockFile(native_handle, file_size, 0, file_size, 0))
-        {
-            close(fd);
-            return;
-        }
-#endif
-        close(fd);
-#endif
+    int fd = open(error_path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
+    if (fd == -1)
+    {
+        return;
     }
+
+#ifndef _WIN32
+    lockstr.l_type   = F_WRLCK;
+    lockstr.l_whence = SEEK_END;
+    lockstr.l_start  = 0;
+    lockstr.l_len    = 0;
+    lockstr.l_pid    = 0;
+
+    if (fcntl(fd, F_SETLK, &lockstr) == -1)
+    {
+        close(fd);
+        return;
+    }
+#else
+    auto native_handle = (HANDLE)_get_osfhandle(fd);
+    if (!LockFile(native_handle, 0, 0, 0, MAXDWORD))
+    {
+        close(fd);
+        return;
+    }
+#endif
+
+    pz_flush_loglist(fd, error_loglist, log_mutex);
+
+#ifndef _WIN32
+    lockstr.l_type = F_UNLCK;
+    if (fcntl(fd, F_SETLK, &lockstr) == -1)
+    {
+        close(fd);
+        return;
+    }
+#else
+    if (!UnlockFile(native_handle, 0, 0, 0, MAXDWORD))
+    {
+        close(fd);
+        return;
+    }
+#endif
+    close(fd);
+#endif
 }
 
 void httpserver::httpwatch_mysql_pool_maintenance(unsigned int &mysqlpool_time, const std::tm *now, unsigned int old_total_count)
@@ -9387,7 +9431,8 @@ void httpserver::httpwatch_clear_timeout_sessions(unsigned int clean_cron_min, u
             }
             else
             {
-                ++iter;
+                socket_session_lists.erase(iter++);
+                ok_count_num++;
             }
         }
         lock_sock_c.unlock();
@@ -9651,6 +9696,9 @@ void httpserver::httpwatch_check_restart_threshold(unsigned int restart_process_
     }
 }
 
+// OCSP 刷新一次只跑一个线程：上一轮还没跑完就跳过本轮触发，避免刷新线程堆积
+static std::atomic<bool> ocsp_refresh_running = false;
+
 void httpserver::httpwatch()
 {
 #ifdef __APPLE__
@@ -9781,9 +9829,20 @@ void httpserver::httpwatch()
             // OCSP Stapling refresh
             if (mysqlpool_time % ocsp_interval_time == 9)
             {
-                std::thread t_ocsp([]()
-                                   { refresh_all_ocsp_staples(); });
-                t_ocsp.detach();
+                bool expect_idle = false;
+                if (ocsp_refresh_running.compare_exchange_strong(expect_idle, true))
+                {
+                    std::thread t_ocsp([]()
+                                       {
+                                           refresh_all_ocsp_staples();
+                                           ocsp_refresh_running.store(false);
+                                       });
+                    t_ocsp.detach();
+                }
+                else
+                {
+                    DEBUG_LOG("ocsp refresh still running, skip this round");
+                }
             }
 
             mysqlpool_time += 1;
@@ -10523,22 +10582,19 @@ void httpserver::save_traffic_arrays()
         }
 #else
         auto native_handle = (HANDLE)_get_osfhandle(fd);
-        auto file_size     = GetFileSize(native_handle, nullptr);
-        if (!LockFile(native_handle, file_size, 0, file_size, 0))
+        if (!LockFile(native_handle, 0, 0, 0, MAXDWORD))
         {
             close(fd);
             return;
         }
 #endif
         std::unique_lock<std::mutex> loglock(log_mutex);
-        std::size_t n_write = write(fd, traffic_arrays.data(), traffic_arrays.size());
-        traffic_arrays.clear();
-        loglock.unlock();
-        // not use
-        if (true || n_write > 0)
+        std::size_t n_write = pz_write_all(fd, traffic_arrays.data(), traffic_arrays.size());
+        if (n_write == traffic_arrays.size())
         {
-            n_write = 0;
+            traffic_arrays.clear();
         }
+        loglock.unlock();
 
 #ifndef _WIN32
         lockstr.l_type = F_UNLCK;
@@ -10548,7 +10604,7 @@ void httpserver::save_traffic_arrays()
             return;
         }
 #else
-        if (!UnlockFile(native_handle, file_size, 0, file_size, 0))
+        if (!UnlockFile(native_handle, 0, 0, 0, MAXDWORD))
         {
             close(fd);
             return;
@@ -10743,10 +10799,6 @@ void httpserver::run(const std::string &sysconfpath)
         std::thread https(std::bind(&httpserver::listeners, this));
         std::thread http(std::bind(&httpserver::listener, this));
 
-#ifdef BENCHMARK
-        std::thread https2(std::bind(&httpserver::listeners, this));
-        std::thread http2(std::bind(&httpserver::listener, this));
-#endif
 // set thread priority — 设置线程优先级
 // set thread priority.
 #ifdef _WIN32
@@ -10757,16 +10809,6 @@ void httpserver::run(const std::string &sysconfpath)
         set_thread_priority(http, 90);
 #ifndef BENCHMARK
         set_thread_priority(httpwatch, 50);
-#endif
-#endif
-
-#ifdef BENCHMARK
-#ifdef _WIN32
-        set_thread_priority(https2, THREAD_PRIORITY_HIGHEST);
-        set_thread_priority(http2, THREAD_PRIORITY_HIGHEST);
-#else
-        set_thread_priority(https2, 90);
-        set_thread_priority(http2, 90);
 #endif
 #endif
 
@@ -10873,16 +10915,6 @@ void httpserver::run(const std::string &sysconfpath)
         {
             http.join();
         }
-#ifdef BENCHMARK
-        if (https2.joinable())
-        {
-            https2.join();
-        }
-        if (http2.joinable())
-        {
-            http2.join();
-        }
-#endif
 
         for (int i = 0; i < 2; ++i)
         {

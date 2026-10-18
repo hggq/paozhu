@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sat, 17 Oct 2026 02:09:26 GMT
+ *  Creation time Sun, 18 Oct 2026 14:28:04 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -182,7 +182,7 @@ namespace cms
             sqlstring.append(" WHERE ");
             if (where_clause.empty())
             {
-                sqlstring.append(" 1 ");
+                sqlstring.append(" true ");
             }
             else
             {
@@ -294,7 +294,7 @@ namespace cms
             sql.append(" WHERE ");
             if (where_clause.empty())
             {
-                sql.append(" 1 ");
+                sql.append(" true ");
             }
             else
             {
@@ -438,7 +438,7 @@ namespace cms
             sqlstring.append(" WHERE ");
             if (where_clause.empty())
             {
-                sqlstring.append(" 1 ");
+                sqlstring.append(" true ");
             }
             else
             {
@@ -548,7 +548,7 @@ namespace cms
             sql.append(" WHERE ");
             if (where_clause.empty())
             {
-                sql.append(" 1 ");
+                sql.append(" true ");
             }
             else
             {
@@ -7820,7 +7820,7 @@ M_MODEL& ornotnullJifen()
 
             if (where_clause.empty())
             {
-                sqlstring.append(" 1 ");
+                sqlstring.append(" true ");
             }
             else
             {
@@ -7941,7 +7941,7 @@ M_MODEL& ornotnullJifen()
 
             if (where_clause.empty())
             {
-                sqlstring.append(" 1 ");
+                sqlstring.append(" true ");
             }
             else
             {
@@ -8134,7 +8134,7 @@ M_MODEL& ornotnullJifen()
 
             if (where_clause.empty())
             {
-                sqlstring.append(" 1 ");
+                sqlstring.append(" true ");
             }
             else
             {
@@ -8256,7 +8256,7 @@ M_MODEL& ornotnullJifen()
 
             if (where_clause.empty())
             {
-                sqlstring.append(" 1 ");
+                sqlstring.append(" true ");
             }
             else
             {
@@ -8375,7 +8375,7 @@ M_MODEL& ornotnullJifen()
             sqlstring.append(" WHERE ");
             if (where_clause.empty())
             {
-                sqlstring.append(" 1 ");
+                sqlstring.append(" true ");
             }
             else
             {
@@ -8496,7 +8496,7 @@ M_MODEL& ornotnullJifen()
 
             if (where_clause.empty())
             {
-                sqlstring.append(" 1 ");
+                sqlstring.append(" true ");
             }
             else
             {
@@ -8615,7 +8615,7 @@ M_MODEL& ornotnullJifen()
 
             if (where_clause.empty())
             {
-                sqlstring.append(" 1 ");
+                sqlstring.append(" true ");
             }
             else
             {
@@ -8695,8 +8695,8 @@ M_MODEL& ornotnullJifen()
                                                                                auto [ptr, len] = get_data(ij);
                                                                                if (ptr == nullptr)
                                                                                {
-                                                                                   static const unsigned char null_value = 0;
-                                                                                   assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
+
+                                                                                   set_field_null(static_cast<unsigned char>(col_pos_map[ij]), data_temp);
                                                                                    continue;
                                                                                }
                                                                                assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
@@ -8764,7 +8764,7 @@ M_MODEL& ornotnullJifen()
 
             if (where_clause.empty())
             {
-                sqlstring.append(" 1 ");
+                sqlstring.append(" true ");
             }
             else
             {
@@ -8844,8 +8844,8 @@ M_MODEL& ornotnullJifen()
                                                                                               auto [ptr, len] = get_data(ij);
                                                                                               if (ptr == nullptr)
                                                                                               {
-                                                                                                  static const unsigned char null_value = 0;
-                                                                                                  assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
+
+                                                                                                  set_field_null(static_cast<unsigned char>(col_pos_map[ij]), data_temp);
                                                                                                   continue;
                                                                                               }
                                                                                               assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
@@ -8910,7 +8910,7 @@ M_MODEL& ornotnullJifen()
 
             if (where_clause.empty())
             {
-                sqlstring.append(" 1 ");
+                sqlstring.append(" true ");
             }
             else
             {
@@ -8950,7 +8950,7 @@ M_MODEL& ornotnullJifen()
 
                 if (conn_empty())
                 {
-                    return 0;
+                    return *mod;
                 }
                 //auto conn = conn_obj->get_mysql_select_conn();
                 if (islock_conn)
@@ -8990,8 +8990,8 @@ M_MODEL& ornotnullJifen()
                                                                                auto [ptr, len] = get_data(ij);
                                                                                if (ptr == nullptr)
                                                                                {
-                                                                                   static const unsigned char null_value = 0;
-                                                                                   assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
+
+                                                                                   set_field_null(static_cast<unsigned char>(col_pos_map[ij]), data_temp);
                                                                                    continue;
                                                                                }
                                                                                assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
@@ -9059,7 +9059,7 @@ M_MODEL& ornotnullJifen()
 
             if (where_clause.empty())
             {
-                sqlstring.append(" 1 ");
+                sqlstring.append(" true ");
             }
             else
             {
@@ -9140,8 +9140,8 @@ M_MODEL& ornotnullJifen()
                                                                                               auto [ptr, len] = get_data(ij);
                                                                                               if (ptr == nullptr)
                                                                                               {
-                                                                                                  static const unsigned char null_value = 0;
-                                                                                                  assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
+
+                                                                                                  set_field_null(static_cast<unsigned char>(col_pos_map[ij]), data_temp);
                                                                                                   continue;
                                                                                               }
                                                                                               assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
@@ -9210,7 +9210,7 @@ M_MODEL& ornotnullJifen()
 
             if (where_clause.empty())
             {
-                sqlstring.append(" 1 ");
+                sqlstring.append(" true ");
             }
             else
             {
@@ -9330,7 +9330,7 @@ M_MODEL& ornotnullJifen()
 
             if (where_clause.empty())
             {
-                sqlstring.append(" 1 ");
+                sqlstring.append(" true ");
             }
             else
             {
@@ -9449,7 +9449,7 @@ M_MODEL& ornotnullJifen()
 
             if (where_clause.empty())
             {
-                sqlstring.append(" 1 ");
+                sqlstring.append(" true ");
             }
             else
             {
@@ -9569,7 +9569,7 @@ M_MODEL& ornotnullJifen()
 
             if (where_clause.empty())
             {
-                sqlstring.append(" 1 ");
+                sqlstring.append(" true ");
             }
             else
             {
@@ -9685,7 +9685,7 @@ M_MODEL& ornotnullJifen()
 
             if (where_clause.empty())
             {
-                sqlstring.append(" 1 ");
+                sqlstring.append(" true ");
             }
             else
             {
@@ -9768,8 +9768,8 @@ M_MODEL& ornotnullJifen()
                                                                                    auto [ptr, len] = get_data(ij);
                                                                                    if (ptr == nullptr)
                                                                                    {
-                                                                                       static const unsigned char null_value = 0;
-                                                                                       assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
+
+                                                                                       set_field_null(static_cast<unsigned char>(col_pos_map[ij]), data_temp);
                                                                                        continue;
                                                                                    }
                                                                                    assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
@@ -9783,8 +9783,8 @@ M_MODEL& ornotnullJifen()
                                                                                    auto [ptr, len] = get_data(ij);
                                                                                    if (ptr == nullptr)
                                                                                    {
-                                                                                       static const unsigned char null_value = 0;
-                                                                                       assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
+
+                                                                                       set_field_null(static_cast<unsigned char>(col_pos_map[ij]), B_BASE::data);
                                                                                        continue;
                                                                                    }
                                                                                    assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
@@ -9813,7 +9813,7 @@ M_MODEL& ornotnullJifen()
                     conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
 
-                if (iscache)
+                if (iscache && effect_num > 0)
                 {
                     save_data_cache(exptime);
                     exptime = 0;
@@ -9852,7 +9852,7 @@ M_MODEL& ornotnullJifen()
 
             if (where_clause.empty())
             {
-                sqlstring.append(" 1 ");
+                sqlstring.append(" true ");
             }
             else
             {
@@ -9935,8 +9935,8 @@ M_MODEL& ornotnullJifen()
                                                                                                   auto [ptr, len] = get_data(ij);
                                                                                                   if (ptr == nullptr)
                                                                                                   {
-                                                                                                      static const unsigned char null_value = 0;
-                                                                                                      assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
+
+                                                                                                      set_field_null(static_cast<unsigned char>(col_pos_map[ij]), data_temp);
                                                                                                       continue;
                                                                                                   }
                                                                                                   assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
@@ -9950,8 +9950,8 @@ M_MODEL& ornotnullJifen()
                                                                                                   auto [ptr, len] = get_data(ij);
                                                                                                   if (ptr == nullptr)
                                                                                                   {
-                                                                                                      static const unsigned char null_value = 0;
-                                                                                                      assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
+
+                                                                                                      set_field_null(static_cast<unsigned char>(col_pos_map[ij]), B_BASE::data);
                                                                                                       continue;
                                                                                                   }
                                                                                                   assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
@@ -9978,7 +9978,7 @@ M_MODEL& ornotnullJifen()
                 {
                     conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
-                if (iscache)
+                if (iscache && effect_num > 0)
                 {
                     save_data_cache(exptime);
                     exptime = 0;
@@ -10094,6 +10094,13 @@ M_MODEL& ornotnullJifen()
             return true;
         }
 
+        bool save_data_cache(std::size_t cache_key_name, const orderlist_info::meta &cache_data, int exp_time = 0)
+        {
+            model_meta_cache<orderlist_info::meta> &temp_cache = model_meta_cache<orderlist_info::meta>::getinstance();
+            temp_cache.save(cache_key_name, cache_data, exp_time);
+            return true;
+        }
+
         bool save_data_cache(const std::string &cache_key_name, const orderlist_info::meta &cache_data, int exp_time = 0)
         {
             model_meta_cache<orderlist_info::meta> &temp_cache = model_meta_cache<orderlist_info::meta>::getinstance();
@@ -10206,7 +10213,7 @@ M_MODEL& ornotnullJifen()
 
             if (where_clause.empty())
             {
-                sqlstring.append(" 1 ");
+                sqlstring.append(" true ");
             }
             else
             {
@@ -10329,7 +10336,7 @@ M_MODEL& ornotnullJifen()
 
             if (where_clause.empty())
             {
-                sqlstring.append(" 1 ");
+                sqlstring.append(" true ");
             }
             else
             {
@@ -10514,8 +10521,8 @@ M_MODEL& ornotnullJifen()
                                                                                auto [ptr, len] = get_data(ij);
                                                                                if (ptr == nullptr)
                                                                                {
-                                                                                   static const unsigned char null_value = 0;
-                                                                                   assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
+
+                                                                                   set_field_null(static_cast<unsigned char>(col_pos_map[ij]), B_BASE::data);
                                                                                    continue;
                                                                                }
                                                                                assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
@@ -10541,7 +10548,7 @@ M_MODEL& ornotnullJifen()
                 {
                     conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
-                if (iscache)
+                if (iscache && effect_num > 0)
                 {
                     save_data_cache(exptime);
                     exptime = 0;
@@ -10642,8 +10649,8 @@ M_MODEL& ornotnullJifen()
                                                                                               auto [ptr, len] = get_data(ij);
                                                                                               if (ptr == nullptr)
                                                                                               {
-                                                                                                  static const unsigned char null_value = 0;
-                                                                                                  assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
+
+                                                                                                  set_field_null(static_cast<unsigned char>(col_pos_map[ij]), B_BASE::data);
                                                                                                   continue;
                                                                                               }
                                                                                               assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
@@ -10669,7 +10676,7 @@ M_MODEL& ornotnullJifen()
                 {
                     conn_obj->back_mysql_select_conn(std::move(select_conn));
                 }
-                if (iscache)
+                if (iscache && effect_num > 0)
                 {
                     save_data_cache(exptime);
                     exptime = 0;
@@ -13989,7 +13996,7 @@ M_MODEL& ornotnullJifen()
 
             if (where_clause.empty())
             {
-                sqlstring.append(" 1 ");
+                sqlstring.append(" true ");
             }
             else
             {
@@ -14556,7 +14563,23 @@ M_MODEL& ornotnullJifen()
             std::string sql = build_prepared_select(params, true);
             sqlstring       = sql;
 
+            std::size_t cachehash = 0;
+            if (iscache)
+            {
+                cachehash            = orm::exec_cache_key(dbtag, sqlstring, params);
+                last_exec_cache_hash = cachehash;
+                if (get_data_cache(cachehash))
+                {
+                    iscache      = false;
+                    exptime      = 0;
+                    is_hit_cache = true;
+                    effect_num   = 1;
+                    return 1u;
+                }
+            }
+
             B_BASE::data_reset();
+            effect_num = 0;
             if (iserror)
             {
                 return 0;
@@ -14593,8 +14616,8 @@ M_MODEL& ornotnullJifen()
                                                              auto [ptr, len] = get_data(ij);
                                                              if (ptr == nullptr)
                                                              {
-                                                                 static const unsigned char null_value = 0;
-                                                                 assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
+
+                                                                 set_field_null(static_cast<unsigned char>(col_pos_map[ij]), B_BASE::data);
                                                                  continue;
                                                              }
                                                              assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
@@ -14613,6 +14636,14 @@ M_MODEL& ornotnullJifen()
             if (!islock_conn)
             {
                 conn_obj->back_mysql_select_conn(std::move(conn));
+            }
+            // 单行缓存分不出"没查到"和"查到一行全零"，只在实际读到行时写回；
+            // 这次读报过错（iserror）也不写，否则一次连接抖动就能把空行钉进缓存。
+            if (iscache && !iserror && effect_num > 0)
+            {
+                save_data_cache(cachehash, B_BASE::data, exptime);
+                exptime = 0;
+                iscache = false;
             }
             return rows;
         }
@@ -14664,8 +14695,8 @@ M_MODEL& ornotnullJifen()
                         auto [ptr, len] = get_data(ij);
                         if (ptr == nullptr)
                         {
-                            static const unsigned char null_value = 0;
-                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
+                            
+                            set_field_null(static_cast<unsigned char>(col_pos_map[ij]), data_temp);
                             continue;
                         }
                         assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
@@ -14692,8 +14723,38 @@ M_MODEL& ornotnullJifen()
         // --- exec_fetch_to：预编译 SELECT，覆盖 record（不追加）---
         unsigned int exec_fetch()
         {
+            std::vector<http::obj_val> params;
+            std::string sql = build_prepared_select(params);
+            sqlstring       = sql;
+
+            std::size_t cachehash = 0;
+            if (iscache)
+            {
+                cachehash            = orm::exec_cache_key(dbtag, sqlstring, params);
+                last_exec_cache_hash = cachehash;
+                if (get_record_cache(cachehash))
+                {
+                    iscache      = false;
+                    exptime      = 0;
+                    is_hit_cache = true;
+                    effect_num   = static_cast<unsigned int>(B_BASE::record.size());
+                    return effect_num;
+                }
+            }
+
             B_BASE::record_reset();
-            return exec_fetch_append();
+            unsigned int rows = exec_fetch_append();
+
+            // 出错（包括取不到连接）时 record 是空的，写回去会把一次连接抖动钉成永久空结果；
+            // 正常查到 0 行仍然写回，空结果本身也是一种缓存。
+            if (iscache && !iserror)
+            {
+                save_cache(cachehash, B_BASE::record, exptime);
+                exptime = 0;
+                iscache = false;
+            }
+
+            return rows;
         }
         unsigned int exec_fetch_to()
         {
@@ -15149,7 +15210,23 @@ M_MODEL& ornotnullJifen()
             std::string sql = build_prepared_select(params, true);
             sqlstring       = sql;
 
+            std::size_t cachehash = 0;
+            if (iscache)
+            {
+                cachehash            = orm::exec_cache_key(dbtag, sqlstring, params);
+                last_exec_cache_hash = cachehash;
+                if (get_data_cache(cachehash))
+                {
+                    iscache      = false;
+                    exptime      = 0;
+                    is_hit_cache = true;
+                    effect_num   = 1;
+                    co_return 1u;
+                }
+            }
+
             B_BASE::data_reset();
+            effect_num = 0;
             if (iserror)
             {
                 co_return 0;
@@ -15195,8 +15272,8 @@ M_MODEL& ornotnullJifen()
                         auto [ptr, len] = get_data(ij);
                         if (ptr == nullptr)
                         {
-                            static const unsigned char null_value = 0;
-                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
+                            
+                            set_field_null(static_cast<unsigned char>(col_pos_map[ij]), B_BASE::data);
                             continue;
                         }
                         assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
@@ -15213,6 +15290,13 @@ M_MODEL& ornotnullJifen()
             if (!islock_conn)
                 conn_obj->back_mysql_select_conn(std::move(select_conn));
             effect_num = rows;
+            // 同 exec_one：空结果分不出"没查到"和"查到一行全零"，读到行才写回。
+            if (iscache && !iserror && effect_num > 0)
+            {
+                save_data_cache(cachehash, B_BASE::data, exptime);
+                exptime = 0;
+                iscache = false;
+            }
             co_return rows;
         }
 
@@ -15269,8 +15353,8 @@ M_MODEL& ornotnullJifen()
                         auto [ptr, len] = get_data(ij);
                         if (ptr == nullptr)
                         {
-                            static const unsigned char null_value = 0;
-                            assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);
+                            
+                            set_field_null(static_cast<unsigned char>(col_pos_map[ij]), data_temp);
                             continue;
                         }
                         assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, data_temp);
@@ -15294,138 +15378,48 @@ M_MODEL& ornotnullJifen()
         // --- async_exec_fetch / async_exec_fetch_to：预编译 SELECT 异步版（覆盖 record）---
         asio::awaitable<unsigned int> async_exec_fetch()
         {
+            std::vector<http::obj_val> params;
+            std::string sql = build_prepared_select(params);
+            sqlstring       = sql;
+
+            std::size_t cachehash = 0;
+            if (iscache)
+            {
+                cachehash            = orm::exec_cache_key(dbtag, sqlstring, params);
+                last_exec_cache_hash = cachehash;
+                if (get_record_cache(cachehash))
+                {
+                    iscache      = false;
+                    exptime      = 0;
+                    is_hit_cache = true;
+                    effect_num   = static_cast<unsigned int>(B_BASE::record.size());
+                    co_return effect_num;
+                }
+            }
+
             B_BASE::record_reset();
-            co_return co_await async_exec_fetch_append();
+            unsigned int rows = co_await async_exec_fetch_append();
+
+            // 同同步版：出错时不写回，正常 0 行仍然写回。
+            if (iscache && !iserror)
+            {
+                save_cache(cachehash, B_BASE::record, exptime);
+                exptime = 0;
+                iscache = false;
+            }
+
+            co_return rows;
         }
         asio::awaitable<unsigned int> async_exec_fetch_to() { co_return co_await async_exec_fetch(); }
 
-        // --- exec_fetch_one：预编译 SELECT limit 1 同步版（填充 data）---
+        // --- exec_fetch_one / async_exec_fetch_one：exec_one / async_exec_one 的旧名字 ---
         unsigned int exec_fetch_one()
         {
-            std::vector<http::obj_val> params;
-            std::string sql = build_prepared_select(params, true);
-            sqlstring       = sql;
-
-            B_BASE::data_reset();
-            effect_num = 0;
-            if (iserror)
-            {
-                return 0;
-            }
-            if (conn_empty())
-            {
-                return 0;
-            }
-
-            auto conn = _get_prepared_select_conn();
-            if (conn->isdebug)
-                conn->begin_time();
-
-            auto col_pos_map  = std::vector<unsigned char>();
-            bool first_row    = true;
-            unsigned int rows = conn->fetch_prepared(sql, params, [this, conn, &col_pos_map, &first_row](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
-                                                     {
-                                                         if (first_row)
-                                                         {
-                                                             col_pos_map.assign(col_count, 255);
-                                                             const auto &org_names = conn->prepared_col_org_names();
-                                                             for (int ii = 0; ii < col_count; ii++)
-                                                             {
-                                                                 if (col_names[ii] && col_names[ii][0] != 0x00)
-                                                                     col_pos_map[ii] = B_BASE::findcolpos(col_names[ii]);
-                                                                 if (col_pos_map[ii] == 255 && ii < static_cast<int>(org_names.size()))
-                                                                     col_pos_map[ii] = B_BASE::findcolpos(org_names[ii]);
-                                                             }
-                                                             first_row = false;
-                                                         }
-                                                         for (int ij = 0; ij < col_count; ij++)
-                                                         {
-                                                             auto [ptr, len] = get_data(ij);
-                                                             if (ptr == nullptr)
-                                                             {
-                                                                 static const unsigned char null_value = 0;
-                                                                 assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);
-                                                                 continue;
-                                                             }
-                                                             assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), ptr, len, B_BASE::data);
-                                                         }
-                                                         effect_num = 1;
-                                                         return false;// 只取一行
-                                                     });
-
-            if (conn->isdebug)
-                conn->finish_time();
-            if (rows == 0 && !conn->error_msg.empty())
-            {
-                iserror   = true;
-                error_msg = conn->error_msg;
-            }
-            if (!islock_conn)
-                conn_obj->back_mysql_select_conn(std::move(conn));
-            return effect_num;
+            return exec_one();
         }
-
-        // --- async_exec_fetch_one：预编译 SELECT limit 1 异步版（填充 data）---
         asio::awaitable<unsigned int> async_exec_fetch_one()
         {
-            std::vector<http::obj_val> params;
-            std::string sql = build_prepared_select(params, true);
-            sqlstring       = sql;
-
-            B_BASE::data_reset();
-            effect_num = 0;
-            if (iserror)
-            {
-                co_return 0;
-            }
-            if (conn_empty())
-            {
-                co_return 0;
-            }
-
-            if (islock_conn)
-            {
-                if (!select_conn || select_conn->isclose)
-                    select_conn = co_await conn_obj->async_get_mysql_select_conn();
-            }
-            else
-            {
-                select_conn = co_await conn_obj->async_get_mysql_select_conn();
-            }
-            auto conn = select_conn;
-            if (conn->isdebug)
-                conn->begin_time();
-
-            unsigned int rows = co_await conn->async_fetch_prepared(sql, params, [this](int col_count, char **col_names, std::function<std::tuple<unsigned char *, size_t>(int)> get_data) mutable -> bool
-                                                                    {
-                                                                        for (int ij = 0; ij < col_count; ij++)
-                                                                        {
-                                                                            if (col_names[ij] == nullptr || col_names[ij][0] == '\0')
-                                                                                continue;
-                                                                            auto [ptr, len]   = get_data(ij);
-                                                                            unsigned char pos = B_BASE::findcolpos(col_names[ij]);
-                                                                            if (ptr == nullptr)
-                                                                            {
-                                                                                static const unsigned char null_value = 0;
-                                                                                assign_field_value(pos, (unsigned char *)&null_value, 0, B_BASE::data);
-                                                                                continue;
-                                                                            }
-                                                                            assign_field_value(pos, ptr, len, B_BASE::data);
-                                                                        }
-                                                                        effect_num = 1;
-                                                                        return false;// 只取一行
-                                                                    });
-
-            if (conn->isdebug)
-                conn->finish_time();
-            if (rows == 0 && !conn->error_msg.empty())
-            {
-                iserror   = true;
-                error_msg = conn->error_msg;
-            }
-            if (!islock_conn)
-                conn_obj->back_mysql_select_conn(std::move(select_conn));
-            co_return effect_num;
+            co_return co_await async_exec_one();
         }
 
         // ===== SELECT 异步模板版 =====
@@ -17024,6 +17018,9 @@ M_MODEL& ornotnullJifen()
         bool islock_conn        = false;
         int exptime             = 0;
         unsigned int effect_num = 0;
+        // 上一次挂挡(use_cache)的 exec_* 读真正使用的缓存 key。exec_* 的 key 含绑定参数，
+        // 业务自己算不出来，需要删条目时把这个值交给 remove_cache(std::size_t)。0 = 没跑过。
+        std::size_t last_exec_cache_hash = 0;
 
         std::vector<orm_where_sql_t> wheresql;
         M_MODEL *mod;

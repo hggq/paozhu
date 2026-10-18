@@ -12,14 +12,26 @@ std::string testormcache(std::shared_ptr<httppeer> peer)
     httppeer &client = peer->get_peer();
     client << " test orm cache ";
     auto articles = orm::cms::Article();
-    int aid       = 5;
-
-    articles.where("isopen", 1).where("aid", aid).limit(1).use_cache().fetch_one();
-    client << "<br />title:" << articles.getTitle();
-    if (articles.isuse_cache())
+    long long aid  = client.get["aid"].to_int();
+    if (aid == 0)
     {
-        articles.save_cache(60);//cache 60 second
+        aid = 13;
+    }
+
+    // use_cache() 不带参数即永久条目；fetch_one 读写都走 data 那一格
+    articles.where("isopen", 1).where("aid", aid).use_cache().fetch_one();
+    client << "<br />title:" << articles.getTitle();
+    if (articles.is_hit_cache)
+    {
         client << "<p>  this visit to cache </p>";
+    }
+    else if (articles.effect() > 0)
+    {
+        client << "<p>  read from db, saved with no expiry </p>";
+    }
+    else
+    {
+        client << "<p>  no row, nothing saved </p>";
     }
     return "";
 }
@@ -30,14 +42,26 @@ std::string testormcacheb(std::shared_ptr<httppeer> peer)
     httppeer &client = peer->get_peer();
     client << " test orm cache B style ";
     auto articles = orm::cms::Article();
-    int aid       = 5;
-
-    articles.where("isopen", 1).where("aid", aid).limit(1).use_cache(60).fetch_one();
-    client << "<br />title:" << articles.getTitle();
-    if (articles.isuse_cache(true))
+    long long aid  = client.get["aid"].to_int();
+    if (aid == 0)
     {
-        //is has cache data
+        aid = 13;
+    }
+
+    articles.where("isopen", 1).where("aid", aid).use_cache(60).fetch_one();
+    client << "<br />title:" << articles.getTitle();
+    // is_hit_cache 才是命中旗标；isuse_cache 看的是装填格子剩下的状态
+    if (articles.is_hit_cache)
+    {
         client << "<p>  this visit to cache </p>";
+    }
+    else if (articles.effect() > 0)
+    {
+        client << "<p>  read from db, saved 60 second </p>";
+    }
+    else
+    {
+        client << "<p>  no row, nothing saved </p>";
     }
     return "";
 }
@@ -48,7 +72,11 @@ std::string testormcachec(std::shared_ptr<httppeer> peer)
     httppeer &client = peer->get_peer();
     client << " test orm cache fetchRow style ";
     auto articles = orm::cms::Article();
-    int aid       = 5;
+    long long aid  = client.get["aid"].to_int();
+    if (aid == 0)
+    {
+        aid = 13;
+    }
 
     auto [colnames, colnamemaps, vallists] = articles.where("isopen", 1).where("aid", aid).limit(1).use_cache(60).fetch_row();
 
@@ -77,9 +105,17 @@ std::string testormcachec(std::shared_ptr<httppeer> peer)
         }
     }
 
-    if (articles.isuse_cache(true))
+    // fetch_row 不设 is_hit_cache：真正读库回写会把 exptime 归零，命中则留下 60
+    if (vallists.empty())
     {
-        //is has cache data
+        client << "<p>  no row, nothing saved </p>";
+    }
+    else if (articles.isuse_cache(true))
+    {
+        client << "<p>  read from db, saved 60 second </p>";
+    }
+    else
+    {
         client << "<p>  this visit to cache </p>";
     }
     return "";
@@ -112,16 +148,17 @@ std::string testormcache_d(std::shared_ptr<httppeer> peer)
     auto &record_cache = orm::model_meta_cache<std::vector<orm::cms::article_info::meta>>::getinstance();
     auto cached = record_cache.try_get(hash);   // ← 源头 API，any opsql 都能用
 
-    if (cached)
+    if (cached && !cached->empty())
     {
         client << "<b>HIT</b> cache key=<code>" << key << "</code>"
                << "<br />title:" << (*cached)[0].title;
         return "";
     }
 
-    // --- 3. miss：走 DB ---
+    // --- 3. miss：走 DB。具名 key 存的是 record，所以用 fetch()；
+    //        fetch_one() 只填 data，record 一直是空的 ---
     orm::cms::Article u;
-    u.where("aid", orm::wq::eq, aid).limit(1).fetch_one();
+    u.where("aid", orm::wq::eq, aid).limit(1).fetch();
 
     if (u.iserror)
     {
@@ -140,7 +177,7 @@ std::string testormcache_d(std::shared_ptr<httppeer> peer)
     // record_cache.save(hash, u.record, 60);
 
     client << "<b>MISS → DB → FILL</b> cache key=<code>" << key << "</code>"
-           << "<br />title:" << u.getTitle();
+           << "<br />title:" << u.record[0].title;
 
     return "";
 }
@@ -173,7 +210,7 @@ std::string testormcache_d_invalidate(std::shared_ptr<httppeer> peer)
 //   源头 API（orm_cache.hpp）：
 //     try_get(hash)        → std::optional<T>   首选，不 throw
 //     get(hash)            → T                  旧接口，miss throw
-//     save(hash, data, ttl)                      存
+//     save(hash, data, ttl, cover)   存；cover 为 true 才覆盖旧内容，否则只续期
 //     remove(hash)                                删一个
 //     clear()                                     清全部
 //     check(hash)          → int                 查剩余秒数 / -1 不存在 / 0 永久
@@ -206,9 +243,9 @@ std::string testormcache_e(std::shared_ptr<httppeer> peer)
         }
     }
 
-    // miss：走 DB
+    // miss：走 DB。具名 key 存的是 record，所以用 fetch()；fetch_one() 只填 data
     orm::cms::Article u;
-    u.where("aid", orm::wq::eq, aid).limit(1).fetch_one();
+    u.where("aid", orm::wq::eq, aid).limit(1).fetch();
 
     if (u.iserror)
     {
@@ -221,11 +258,11 @@ std::string testormcache_e(std::shared_ptr<httppeer> peer)
         return "";
     }
 
-    // 存缓存（源头 save，hash 预计算）
-    record_cache.save(hash, u.record, 60);
+    // 存缓存（源头 save，hash 预计算）；第四个参数才覆盖旧值，缺省时只续期
+    record_cache.save(hash, u.record, 60, true);
 
     client << "<b>MISS → DB → SOURCE SAVE</b> cache key=<code>" << key << "</code>"
-           << "<br />title:" << u.getTitle();
+           << "<br />title:" << u.record[0].title;
 
     return "";
 }

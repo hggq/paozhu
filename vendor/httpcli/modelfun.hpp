@@ -2354,42 +2354,8 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
     };
     */
 
-    // ===== 模板里"该列取回 SQL NULL"的分支改走 set_field_null =====
-    // 只有存在可空列的表才替换；没有可空列的表产物保持不变，SQL NULL 仍按默认值回填。
-    if (null_lay.nullable_count > 0)
-    {
-        static const std::array<std::pair<std::string, std::string>, 5> null_forms = {{
-            {"assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, data_temp);",
-             "set_field_null(static_cast<unsigned char>(col_pos_map[ij]), data_temp);"},
-            {"assign_field_value(static_cast<unsigned char>(col_pos_map[ij]), (unsigned char *)&null_value, 0, B_BASE::data);",
-             "set_field_null(static_cast<unsigned char>(col_pos_map[ij]), B_BASE::data);"},
-            {"assign_field_value(field_pos[ij], (unsigned char *)&null_value, 0, data_temp);",
-             "set_field_null(field_pos[ij], data_temp);"},
-            {"assign_field_value(field_pos[ij], (unsigned char *)&null_value, 0, B_BASE::data);",
-             "set_field_null(field_pos[ij], B_BASE::data);"},
-            {"assign_field_value(pos, (unsigned char *)&null_value, 0, B_BASE::data);",
-             "set_field_null(pos, B_BASE::data);"},
-        }};
-
-        unsigned int null_site_num = 0;
-        for (const auto &form : null_forms)
-        {
-            null_site_num += string_replace_all(template_content, form.first, form.second);
-        }
-
-        if (null_site_num == 0 || template_content.find("&null_value") != std::string::npos)
-        {
-            // 还有调用点没换掉: 保留 null_value 声明, 产物照样能编译, 只是这些列的
-            // SQL NULL 仍旧回填默认值, 这里报出来让生成时就能看见
-            std::cout << "\033[1m\033[31m" << table_name << " table NULL branch not replaced, sql null still fills default value ("
-                      << null_site_num << " sites)\033[0m" << std::endl;
-        }
-        else
-        {
-            // 调用点全部换掉后，这个只为取地址而存在的占位变量就没人用了
-            string_replace_all(template_content, "static const unsigned char null_value = 0;", "");
-        }
-    }
+    // SQL NULL 的置位调用写在方言模板体里（各 16 处 set_field_null(...)），
+    // 这里不再做字符串替换；set_field_null 的定义按上面的可空性分支生成，无可空列的表是空函数体。
 
     ///*appendwhere*/
     n = string_replace(template_content, "/*appendwhere*/", append_content);

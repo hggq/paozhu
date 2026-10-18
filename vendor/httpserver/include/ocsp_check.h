@@ -29,6 +29,8 @@ struct OCSPResult
     int reason = -1;        // 吊销原因（仅 REVOKED 时有效）
     std::string this_update;// OCSP 响应的 thisUpdate
     std::string next_update;// OCSP 响应的 nextUpdate
+    long long next_update_ts = 0;// nextUpdate 的 UTC 秒数，仅 has_next_update 为真时有意义
+    bool has_next_update     = false;// 响应里是否带 nextUpdate
 };
 
 // ============================================================

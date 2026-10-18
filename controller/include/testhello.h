@@ -6,6 +6,6 @@
 
 namespace http
 {        
-	std::string testhello(std::shared_ptr<httppeer> peer);
+	asio::awaitable<std::string> testhello(std::shared_ptr<httppeer> peer);
 	std::string testhellobusy(std::shared_ptr<httppeer> peer);
 }
