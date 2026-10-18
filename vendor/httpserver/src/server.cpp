@@ -9010,13 +9010,14 @@ void httpserver::httpwatch_memory_monitor(unsigned int mysqlpool_time)
     }
 }
 
+#ifndef _WIN32
 // 完整写出缓冲区, 处理 EINTR 与短写; 返回实际写出字节数(全部写出 == size)
 static std::size_t pz_write_all(int fd, const char *data, std::size_t size)
 {
     std::size_t off = 0;
     while (off < size)
     {
-        ssize_t n = ::write(fd, data + off, size - off);
+        int n = static_cast<int>(::write(fd, data + off, size - off));
         if (n < 0)
         {
             if (errno == EINTR)
@@ -9057,6 +9058,7 @@ static void pz_flush_loglist(int fd, std::list<std::string> &global, std::mutex 
         }
     }
 }
+#endif
 
 void httpserver::httpwatch_flush_access_log(const std::string &access_path)
 {
@@ -9067,17 +9069,14 @@ void httpserver::httpwatch_flush_access_log(const std::string &access_path)
             return;
         }
     }
-#ifndef _MSC_VER
 #ifndef _WIN32
     struct flock lockstr = {};
-#endif
     int fd = open(access_path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
     if (fd == -1)
     {
         return;
     }
 
-#ifndef _WIN32
     lockstr.l_type   = F_WRLCK;
     lockstr.l_whence = SEEK_END;
     lockstr.l_start  = 0;
@@ -9089,33 +9088,15 @@ void httpserver::httpwatch_flush_access_log(const std::string &access_path)
         close(fd);
         return;
     }
-#else
-    // O_APPEND 写在文件末尾, 锁必须覆盖 [0, 4GB) 才能保证追加区间被保护;
-    // 按 file_size 计算区间在文件为空时锁 0 字节等于无锁, 且写入超出 file_size 字节后即失效
-    auto native_handle = (HANDLE)_get_osfhandle(fd);
-    if (!LockFile(native_handle, 0, 0, 0, MAXDWORD))
-    {
-        close(fd);
-        return;
-    }
-#endif
 
     pz_flush_loglist(fd, access_loglist, log_mutex);
 
-#ifndef _WIN32
     lockstr.l_type = F_UNLCK;
     if (fcntl(fd, F_SETLK, &lockstr) == -1)
     {
         close(fd);
         return;
     }
-#else
-    if (!UnlockFile(native_handle, 0, 0, 0, MAXDWORD))
-    {
-        close(fd);
-        return;
-    }
-#endif
     close(fd);
 #endif
 }
@@ -9129,17 +9110,14 @@ void httpserver::httpwatch_flush_error_log(const std::string &error_path)
             return;
         }
     }
-#ifndef _MSC_VER
 #ifndef _WIN32
     struct flock lockstr = {};
-#endif
     int fd = open(error_path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
     if (fd == -1)
     {
         return;
     }
 
-#ifndef _WIN32
     lockstr.l_type   = F_WRLCK;
     lockstr.l_whence = SEEK_END;
     lockstr.l_start  = 0;
@@ -9151,31 +9129,15 @@ void httpserver::httpwatch_flush_error_log(const std::string &error_path)
         close(fd);
         return;
     }
-#else
-    auto native_handle = (HANDLE)_get_osfhandle(fd);
-    if (!LockFile(native_handle, 0, 0, 0, MAXDWORD))
-    {
-        close(fd);
-        return;
-    }
-#endif
 
     pz_flush_loglist(fd, error_loglist, log_mutex);
 
-#ifndef _WIN32
     lockstr.l_type = F_UNLCK;
     if (fcntl(fd, F_SETLK, &lockstr) == -1)
     {
         close(fd);
         return;
     }
-#else
-    if (!UnlockFile(native_handle, 0, 0, 0, MAXDWORD))
-    {
-        close(fd);
-        return;
-    }
-#endif
     close(fd);
 #endif
 }
@@ -10560,19 +10522,17 @@ void httpserver::save_traffic_arrays()
 
     if (!traffic_arrays.empty())
     {
-#ifndef _MSC_VER
+#ifndef _WIN32
         int fd = open(currentpath.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
         if (fd == -1)
         {
             return;
         }
 
-#ifndef _WIN32
         lockstr.l_type   = F_WRLCK;
         lockstr.l_whence = SEEK_END;
         lockstr.l_start  = 0;
         lockstr.l_len    = 0;
-
         lockstr.l_pid = 0;
 
         if (fcntl(fd, F_SETLK, &lockstr) == -1)
@@ -10580,14 +10540,6 @@ void httpserver::save_traffic_arrays()
             close(fd);
             return;
         }
-#else
-        auto native_handle = (HANDLE)_get_osfhandle(fd);
-        if (!LockFile(native_handle, 0, 0, 0, MAXDWORD))
-        {
-            close(fd);
-            return;
-        }
-#endif
         std::unique_lock<std::mutex> loglock(log_mutex);
         std::size_t n_write = pz_write_all(fd, traffic_arrays.data(), traffic_arrays.size());
         if (n_write == traffic_arrays.size())
@@ -10596,20 +10548,12 @@ void httpserver::save_traffic_arrays()
         }
         loglock.unlock();
 
-#ifndef _WIN32
         lockstr.l_type = F_UNLCK;
         if (fcntl(fd, F_SETLK, &lockstr) == -1)
         {
             close(fd);
             return;
         }
-#else
-        if (!UnlockFile(native_handle, 0, 0, 0, MAXDWORD))
-        {
-            close(fd);
-            return;
-        }
-#endif
         close(fd);
 #endif
     }

@@ -31,7 +31,7 @@
     do                                                                                                                        \
     {                                                                                                                         \
         const char *error_str     = __FILE__;                                                                                 \
-        unsigned int str_len_size = strlen(__FILE__) - 1;                                                                     \
+        std::size_t str_len_size = strlen(__FILE__) - 1;                                                                      \
         unsigned int pos_n_offset = 0;                                                                                        \
         for (; str_len_size > 0; str_len_size--)                                                                              \
         {                                                                                                                     \
@@ -51,7 +51,7 @@
     do                                                                                                                          \
     {                                                                                                                           \
         const char *warning_str   = __FILE__;                                                                                   \
-        unsigned int str_len_size = strlen(__FILE__) - 1;                                                                       \
+        std::size_t str_len_size = strlen(__FILE__) - 1;                                                                        \
         unsigned int pos_n_offset = 0;                                                                                          \
         for (; str_len_size > 0; str_len_size--)                                                                                \
         {                                                                                                                       \
@@ -78,7 +78,7 @@
     do                                                                                                                 \
     {                                                                                                                  \
         const char *debug_str     = __FILE__;                                                                          \
-        unsigned int str_len_size = strlen(__FILE__) - 1;                                                              \
+        std::size_t str_len_size = strlen(__FILE__) - 1;                                                               \
         unsigned int pos_n_offset = 0;                                                                                 \
         for (; str_len_size > 0; str_len_size--)                                                                       \
         {                                                                                                              \
