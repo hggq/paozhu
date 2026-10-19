@@ -23,9 +23,8 @@ router &get_router()
     return instance;
 }
 
-// 站点钩子（method_pre / method_after）单次请求最多执行 15 条（界值来自 size() < 16 的写法）。
-// 越界时 run_site_hooks 一条都不跑，所以启动期必须把越界报出来（见 validate_site_hooks）
-constexpr size_t site_hook_limit = 15;
+// site_hook_limit / trimmed_hooks 已移到 router.h inline 定义
+// site_hook_limit / trimmed_hooks now live inline in router.h
 
 namespace
 {
@@ -167,7 +166,7 @@ int router::find_in_slot(unsigned int slot, const std::string &key, std::string 
 // — 注册名查找：本站 slot → 全局 slot 0 各一次原样查，都没中且名字不带开头的 '/' 时补一个 '/'
 //    再走一遍同样的两级；matched_name 回填真正命中的键名 —
 // 注册表的键一律带 '/'（reg_add 写入时规范化，注解口和手写口同一个规则），
-// 而 conf 里的钩子名、业务 push_flow
+// 而 conf 里的钩子名、业务 push_next/push_last
 // 和 handler 返回的跳转名允许两种写法 ⇒ 只有这一侧收两种写法。
 // URL 那三个查表口（lookup_exact / lookup_registered / lookup_key_in_slots）不走这里，
 // 免得给请求路径补斜杠改变精确匹配语义
@@ -324,7 +323,7 @@ int router::find_sitecontent(std::shared_ptr<httppeer> &peer, const std::string 
     return find_name_in_slots(peer_slot(peer), sitecontent, matched);
 }
 
-// — 编排栈排空：业务在 handler 里 push_flow("名字")，等被依赖的那条跑完（返回空串）后由这里弹出执行 —
+// — 编排栈排空：业务在 handler 里 push_next/push_last("名字")，等被依赖的那条跑完（返回空串）后由这里弹出执行 —
 // 弹出取栈尾（pop_flow 用 back），所以后压的先执行；一个 handler 执行完只弹一个，
 // 剩下的等它自己那次「返回空串」再弹，直到栈空或整链触顶。
 // is_coro_driver=false（同步链）时，弹到协程条目就停下：请求已经跑到链尾、正文可能已写出，
@@ -334,21 +333,29 @@ int router::pop_flow_index(std::shared_ptr<httppeer> &peer, std::string &cur_pat
     if (!peer->flow_method || peer->flow_method->empty())
         return -1;
 
-    std::string name = peer->pop_flow();
-    std::string matched;
-    int idx = find_name_in_slots(peer_slot(peer), name, matched);
-    if (idx < 0)
+    // 弹栈时可能遇到压错的未注册名：这种条目应当"跳过并继续弹下一个"，
+    // 不能因为栈顶一个坏名就 return -1 让调用方 break 掉整条编排（LIFO 下会把
+    // 下面所有正常步骤一起吞掉）。只有栈真的弹空了才返回 -1。
+    // 协程条目在同步链上属于"不支持跨类型排空"，按设计停下（return -1），不跳过。
+    while (!peer->flow_method->empty())
     {
-        DEBUG_LOG("flow stack name not registered:%s", name.c_str());
-        return -1;
+        std::string name = peer->pop_flow();
+        std::string matched;
+        int idx = find_name_in_slots(peer_slot(peer), name, matched);
+        if (idx < 0)
+        {
+            DEBUG_LOG("flow stack name not registered, skip:%s", name.c_str());
+            continue;
+        }
+        if (!is_coro_driver && _handlers[idx].reg_kind == fn_kind::coro)
+        {
+            DEBUG_LOG("flow stack pops a coro route on sync chain, stop drain:%s", name.c_str());
+            return -1;
+        }
+        cur_path = matched;
+        return idx;
     }
-    if (!is_coro_driver && _handlers[idx].reg_kind == fn_kind::coro)
-    {
-        DEBUG_LOG("flow stack pops a coro route on sync chain, stop drain:%s", name.c_str());
-        return -1;
-    }
-    cur_path = matched;
-    return idx;
+    return -1;
 }
 
 // — 只跑一个注册名的 sync regfun（static_pre 防盗链、站点钩子共用入口）—
@@ -421,17 +428,34 @@ asio::awaitable<std::string> router::co_call_regfun(std::shared_ptr<httppeer> &p
     co_return "";
 }
 
-// — 站点钩子：只跑 regfun，不跑钩子自身的 pre；前置钩子返回 "exit" 终止整链 —
+// — 站点钩子（method_pre / method_after）：只跑 regfun，不跑钩子自身的 pre —
+// 钩子层语义 = 一串串行 pre，第一个拒了就停，没拒才跑下一个。
+// 钩子层没有 handler 要放行、不支持 jump，所以放行条件只有空串一种。
+// 非空一律视为拒绝——无论是 "exit"、call_sync_regfun 的 "coro-refused" 哨兵，
+// 还是业务 pre 直接返回的鉴权失败原因串，统统拒掉。
+// 原来只认 "exit" 会让 "coro-refused" 哨兵和鉴权失败原因串被放过（审计问题 #4）。
+//
+// "ok" / 同名注册名放行 / "exit" 终止 / jump 跳转 这些语义属于 classify_step()，
+// 消费的是 handler 自己的 pre 返回值（resolve/co_resolve 主链），和钩子层无关。
+//
+// 超限时截断到前 site_hook_limit 条继续执行，避免整条丢弃导致鉴权静默失效（审计问题 #2）。
+//
+// site hooks: run only regfun, skip hook's own pre.
+// Semantics = serial pre chain: first reject stops, empty ret is the only pass signal.
+// "ok"/same-name/exit/jump are classify_step() semantics for handler's own pre — NOT here.
+// Any non-empty ret = reject, covering "exit", "coro-refused" sentinel, and auth-fail strings.
+// Overflow trimmed to first N hooks instead of dropping all.
 bool router::run_site_hooks(std::shared_ptr<httppeer> &peer,
                             std::vector<std::string> const &lists,
                             bool is_pre)
 {
-    if (lists.empty() || lists.size() > site_hook_limit)
+    if (lists.empty())
         return false;
-    for (auto const &name : lists)
+    auto safe = trimmed_hooks(lists);
+    for (auto const &name : safe)
     {
         std::string ret = call_sync_regfun(peer, name);
-        if (is_pre && ret.size() == 4 && str_casecmp(ret, "exit"))
+        if (is_pre && !ret.empty())
             return true;
     }
     return false;
@@ -441,10 +465,11 @@ asio::awaitable<bool> router::co_run_site_hooks(std::shared_ptr<httppeer> &peer,
                                                 std::vector<std::string> const &lists,
                                                 bool is_pre)
 {
-    if (lists.empty() || lists.size() > site_hook_limit)
+    if (lists.empty())
         co_return false;
+    auto safe = trimmed_hooks(lists);
 
-    for (auto const &name : lists)
+    for (auto const &name : safe)
     {
         int idx = find_sitecontent(peer, name);
         if (idx < 0)
@@ -486,14 +511,15 @@ asio::awaitable<bool> router::co_run_site_hooks(std::shared_ptr<httppeer> &peer,
                 co_return true;
             }
         }
-        if (is_pre && ret.size() == 4 && str_casecmp(ret, "exit"))
+        if (is_pre && !ret.empty())
             co_return true;
     }
     co_return false;
 }
 
 // — 同步整链（原先由 ThreadPool::http_clientrun 调用，该调用点已 #if 0，见 threadpool.cpp 里停用的 http_clientrun 段）—
-// 当前无调用者、只作备查；重新启用前须先与 co_resolve() 对齐，分叉点见 router.h 里 resolve() 的声明注释
+// 当前无调用者、只作备查；sync pre / sync regfun 加 try/catch 以与 co_resolve 的 fail_500 语义对齐
+// sync dispatch (currently #if 0). Sync pre and regfun wrapped in try/catch to mirror co_resolve's fail_500 path
 std::string router::resolve(std::shared_ptr<httppeer> peer)
 {
     serverconfig const &cfg      = getserversysconfig();
@@ -525,7 +551,22 @@ std::string router::resolve(std::shared_ptr<httppeer> peer)
 
         if (h.pre_kind == fn_kind::sync && h.pre)
         {
-            sitecontent   = h.pre(peer);
+            try
+            {
+                sitecontent = h.pre(peer);
+            }
+            catch (std::exception const &e)
+            {
+                fail_500(peer, e.what());
+                sitecontent.clear();
+                break;
+            }
+            catch (...)
+            {
+                fail_500(peer, "unknown exception in sync pre");
+                sitecontent.clear();
+                break;
+            }
             chain_act act = classify_step(sitecontent, true, cur_path);
             if (act == chain_act::stop)
             {
@@ -555,7 +596,22 @@ std::string router::resolve(std::shared_ptr<httppeer> peer)
 
         if (h.reg_kind == fn_kind::sync && h.regfun)
         {
-            sitecontent = h.regfun(peer);
+            try
+            {
+                sitecontent = h.regfun(peer);
+            }
+            catch (std::exception const &e)
+            {
+                fail_500(peer, e.what());
+                sitecontent.clear();
+                break;
+            }
+            catch (...)
+            {
+                fail_500(peer, "unknown exception in sync regfun");
+                sitecontent.clear();
+                break;
+            }
         }
         else if (h.reg_kind == fn_kind::coro)
         {
@@ -902,94 +958,23 @@ void router::validate_site_hooks()
         prune(site.action_after_lists);
         site.is_method_after = !site.action_after_lists.empty();
 
-        // 越界时 run_site_hooks / co_run_site_hooks 整表不跑，method_pre 里的鉴权会静默失效；
-        // 这是请求期行为，启动期是唯一能把话说清楚的时机
+        // 越界时 run_site_hooks / co_run_site_hooks 会截断到前 site_hook_limit 条继续执行；
+        // 启动期把截断事实报出来，避免配置了 16+ 条后以为全部生效
+        // overflow at runtime is trimmed, startup warns that truncation happens
         if (site.action_pre_lists.size() > site_hook_limit)
         {
-            fprintf(stderr, "[ROUTE-WARN] site %s method_pre has %zu hooks, over %zu, none of them run\n", site.mainhost.c_str(), site.action_pre_lists.size(), site_hook_limit);
+            fprintf(stderr, "[ROUTE-WARN] site %s method_pre has %zu hooks, trimmed to %zu\n",
+                    site.mainhost.c_str(), site.action_pre_lists.size(), site_hook_limit);
         }
         if (site.action_after_lists.size() > site_hook_limit)
         {
-            fprintf(stderr, "[ROUTE-WARN] site %s method_after has %zu hooks, over %zu, none of them run\n", site.mainhost.c_str(), site.action_after_lists.size(), site_hook_limit);
+            fprintf(stderr, "[ROUTE-WARN] site %s method_after has %zu hooks, trimmed to %zu\n",
+                    site.mainhost.c_str(), site.action_after_lists.size(), site_hook_limit);
         }
     }
 }
 
-// — 路由表导出：把一条 URL 对回「哪一行注册、绑哪个函数」—
-namespace
-{
-const char *kind_text(fn_kind k)
-{
-    if (k == fn_kind::sync)
-        return "sync";
-    if (k == fn_kind::coro)
-        return "coro";
-    return "none";
-}
-}// namespace
-
-std::string router::routes_text(const std::string &filter)
-{
-    std::vector<std::string> slotname(_slots.size());
-    for (auto const &kv : _site_to_slot)
-    {
-        if (kv.second < slotname.size())
-            slotname[kv.second] = kv.first;
-    }
-
-    std::ostringstream oss;
-    unsigned long long shown = 0;
-    unsigned long long total = 0;
-    for (unsigned int s = 0; s < _slots.size(); ++s)
-    {
-        std::string sname = (s == 0 ? "global" : (slotname[s].empty() ? "?" : slotname[s]));
-        for (auto const &item : _slots[s].path_map)
-        {
-            ++total;
-            if (!filter.empty() && item.first != filter)
-                continue;
-            ++shown;
-
-            oss << "slot=" << s << "(" << sname << ")  path=" << item.first
-                << "  idx=" << item.second;
-            int idx = checked_idx(item.second);
-            if (idx < 0)
-            {
-                oss << "  handler=OUT-OF-RANGE\n";
-                continue;
-            }
-            auto const &h = _handlers[idx];
-            oss << "  pre=" << kind_text(h.pre_kind) << "  reg=" << kind_text(h.reg_kind);
-
-            auto up = _urlpath_map.find((unsigned int)idx);
-            if (up != _urlpath_map.end())
-            {
-                bool first = true;
-                for (auto const &nm : up->second)
-                {
-                    if (nm.empty())
-                        continue;
-                    if (first)
-                    {
-                        oss << "  urlpath=";
-                        first = false;
-                    }
-                    else
-                    {
-                        oss << ",";
-                    }
-                    oss << nm;
-                }
-            }
-            oss << "  reg@ " << h.reg_file << ":" << h.reg_line << "  [" << h.reg_fn << "]\n";
-        }
-    }
-    oss << "shown " << shown << " total " << total << " handlers " << _handlers.size()
-        << " slots " << _slots.size() << " dropped " << _route_reg_dropped
-        << " dup " << _route_reg_dup << "\n";
-    return oss.str();
-}
-
+// routes_text() 和其依赖的 kind_text() 已一并删除（2026-10-19 重构）
 void force_pool_reject_once()
 {
     get_server_app().clientrunpool.force_reject_sync_once();

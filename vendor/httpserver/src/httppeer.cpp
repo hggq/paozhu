@@ -142,7 +142,7 @@ unsigned int reg_add(const std::string &site, const std::string &path, reg_metho
         ++_route_reg_dropped;
         // stderr 而不是 DEBUG_LOG：这条是「你 conf 里没有这个站点段」的部署诊断，
         // Release 也要看得见，且 stdout 重定向到文件时是块缓冲，启动期这几行会压在缓冲区里
-        fprintf(stderr, "[ROUTE-WARN] reg site not in conf, route dropped:site=%s path=%s reg@%s:%u\n", site.c_str(), key.c_str(), entry.reg_file, entry.reg_line);
+        fprintf(stderr, "[ROUTE-WARN] reg site not in conf, route dropped:site=%s path=%s\n", site.c_str(), key.c_str());
         return (unsigned int)-1;
     }
     unsigned int idx = (unsigned int)_handlers.size();
@@ -151,11 +151,10 @@ unsigned int reg_add(const std::string &site, const std::string &path, reg_metho
     if (!ins.second)
     {
         // 重名：先 emplace 探测、失败就不 push —— 这样不会产生「挂在 _handlers 里却没任何
-        // path_map 指向」的孤儿 entry（那种 entry 会让 routes_text() 末尾的 handlers N 大于真实
-        // 路由数 total，排查时误读为「有路由没挂上」）。
+        // path_map 指向」的孤儿 entry（handler 数 > 注册路由数，排查时误读为「有路由没挂上」）。
         auto const &kept = _handlers[ins.first->second];
         ++_route_reg_dup;
-        fprintf(stderr, "[ROUTE-WARN] duplicate route name kept first:slot=%d path=%s keep reg@%s:%u drop reg@%s:%u\n", slot, key.c_str(), kept.reg_file, kept.reg_line, entry.reg_file, entry.reg_line);
+        fprintf(stderr, "[ROUTE-WARN] duplicate route name kept first:slot=%d path=%s\n", slot, key.c_str());
         return ins.first->second;
     }
     _handlers.push_back(std::move(entry));
@@ -785,10 +784,17 @@ std::string httppeer::get_hosturl()
     }
     return tempurl;
 }
+// 站点上传限额检查，host_index 守卫与 get_siteid/get_theme 等站点访问点统一
+// site upload limit check; host_index guard aligns with other site accessors
 unsigned int httppeer::check_upload_limit()
 {
     serverconfig &sysconfigpath = getserversysconfig();
-    if (sysconfigpath.sitehostinfos[host_index].is_limit_upload && content_length > sysconfigpath.sitehostinfos[host_index].upload_max_size)
+    if (host_index >= sysconfigpath.sitehostinfos.size())
+    {
+        return 0;
+    }
+    auto const &site = sysconfigpath.sitehostinfos[host_index];
+    if (site.is_limit_upload && content_length > site.upload_max_size)
     {
         DEBUG_LOG("upload file size limit %lld", content_length);
         return 403;
@@ -2097,21 +2103,26 @@ void httppeer::cors_method(const std::string &header_v)
         }
     }
 }
-void httppeer::push_flow(const std::string &m_name)
+void httppeer::push_next(const std::string &name)
 {
     if (!flow_method)
     {
         flow_method = std::make_unique<std::list<std::string>>();
     }
-    flow_method->push_back(m_name);
+    flow_method->push_back(name); // 栈顶：后压先出
 }
-void httppeer::push_front_flow(const std::string &m_name)
+void httppeer::push_last(const std::string &name)
 {
     if (!flow_method)
     {
         flow_method = std::make_unique<std::list<std::string>>();
     }
-    flow_method->push_front(m_name);
+    flow_method->push_front(name); // 栈底：先压先出（顺序拆解默认推荐）
+}
+void httppeer::push_steps(std::initializer_list<const char *> names)
+{
+    for (auto n : names)
+        push_last(n); // 声明顺序即执行顺序
 }
 std::string httppeer::pop_flow()
 {

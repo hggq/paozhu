@@ -25,6 +25,7 @@
 #include <vector>
 #include <cstring>
 #include <string_view>
+#include <limits>
 namespace http
 {
 namespace fs = std::filesystem;
@@ -39,6 +40,9 @@ struct reg_autoitem
     std::string filename;
     bool is_co = false;      // handler 是否协程（兼容旧逻辑）
     bool pre_is_co = false;  // pre 是否协程
+    // 注解可选 mask_code：//@urlpath(pre,handler):123456 里的 123456，没写默认为 0
+    // extracted from optional //@urlpath(...):digits suffix; default 0 when absent
+    unsigned int mask_code = 0;
 };
 struct file_regitem
 {
@@ -503,6 +507,38 @@ class pickcontrol
                     tempname.push_back(filecontent[j]);
                 }
 
+                // j now points to ')' or '\n' —— optionally extract ":digits" mask_code after ')'
+                unsigned int mask_code = 0;
+                if (j < filecontent.size() && filecontent[j] == ')')
+                {
+                    unsigned int mpos = j + 1;
+                    // skip spaces/tabs after ')'
+                    while (mpos < filecontent.size() && (filecontent[mpos] == ' ' || filecontent[mpos] == '\t'))
+                        mpos++;
+                    if (mpos < filecontent.size() && filecontent[mpos] == ':')
+                    {
+                        mpos++; // skip ':'
+                        unsigned int mstart = mpos;
+                        while (mpos < filecontent.size() && filecontent[mpos] >= '0' && filecontent[mpos] <= '9')
+                            mpos++;
+                        if (mpos > mstart)
+                        {
+                            // parse digits; overflow clamps to UINT_MAX
+                            unsigned long v = std::stoul(filecontent.substr(mstart, mpos - mstart));
+                            mask_code = static_cast<unsigned int>(
+                                v > (unsigned long)std::numeric_limits<unsigned int>::max()
+                                    ? std::numeric_limits<unsigned int>::max() : v);
+                        }
+                        else if (mpos < filecontent.size() && filecontent[mpos] != 0x0A)
+                        {
+                            // ':' followed by non-digits — warn and ignore
+                            std::fprintf(stderr,
+                                         "[ROUTE-WARN] invalid mask_code after ':', expected digits in %s\n",
+                                         methodpathfile.c_str());
+                        }
+                    }
+                }
+
                 i = j;
                 std::string linestr, func_pre_type;
                 if (tempname.empty())
@@ -673,6 +709,7 @@ class pickcontrol
                 struct reg_autoitem reg_temp;
                 reg_temp.pre     = prename;
                 reg_temp.urlpath = tempname;
+                reg_temp.mask_code = mask_code;  // extracted from //@urlpath(...):digits
                 // 规范化：确保非空 urlpath 以 '/' 开头 — normalize: ensure non-empty urlpath starts with '/'
                 if (!reg_temp.urlpath.empty() && reg_temp.urlpath.front() != '/')
                 {

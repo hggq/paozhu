@@ -28,7 +28,7 @@
 #include <thread>
 #include <atomic>
 #include <chrono>
-#include <source_location>
+#include <initializer_list>
 
 #include "request.h"
 #include "client_session.h"
@@ -147,9 +147,19 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     //（缺省 POST, GET, OPTIONS, QUERY），与 send_cors_domain() 校验
     // Access-Control-Request-Method 用的是同一份名单，加方法改配置即可
     void cors_method(const std::string &header_v = "");
-    // 方法链的压栈/出栈，给业务做任务编排（按图执行）用：pop 出来自己决定下一个跑谁。
-    void push_flow(const std::string &);
-    void push_front_flow(const std::string &);
+    // —— 任务编排栈（执行顺序语义，推荐业务使用）——
+    // 模型：一个"待办栈"，handler 返回 "" 时框架弹栈顶执行。
+    //   push_next(name)  → name 是"下一个要跑的"，后压的先跑（插队到栈顶）
+    //   push_last(name)  → name 排到最后跑，等价于压栈底（顺序拆解的默认推荐）
+    //   push_steps({..}) → 批量 push_last，声明顺序即执行顺序
+    //   pop_flow()       → 框架内部弹栈用，业务一般不调
+    // 顺序直觉：
+    //   push_next(A); push_next(B);   // 执行顺序: B, A
+    //   push_last(A); push_last(B);   // 执行顺序: A, B
+    // 跳转/exit 协议不变：return "" 弹栈继续；return "exit" 终止不弹；return "名字" 直接跳转。
+    void push_next(const std::string &name); // 栈顶（后压先出）
+    void push_last(const std::string &name); // 栈底（先压先出）
+    void push_steps(std::initializer_list<const char *> names);
     std::string pop_flow();
     unsigned char add_timeloop_task(const std::string &, unsigned int);
     void clear_timeloop_task();
@@ -333,14 +343,10 @@ struct reg_methold_mid_t
     fn_kind reg_kind = fn_kind::none;
     std::function<std::string(std::shared_ptr<httppeer>)> regfun;
     std::function<asio::awaitable<std::string>(std::shared_ptr<httppeer>)> co_regfun;
-    // 注册条目自带的业务掩码：路由不读它，和 flow_method 那三个方法一样留给任务编排（图执行）用
+    // 注册条目自带的业务掩码：路由不读它，留给任务编排（图执行）用
+    // 注解格式 //@urlpath(pre,handler):数字 提取，无冒号默认 0
+    // business mask code for graph/flow task orchestration; extracted from //@urlpath(...):digits, default 0
     unsigned int mask_code = 0;
-    // 注册点溯源：reg_raw 的尾默认参在调用方行求值，所以这里记的是
-    // common/autocontrolmethod.hpp（或手写注册表）里那一行，不是本头文件。
-    // file_name() 是静态字面量可以直接存指针；function_name() 的生命周期标准未保证，按值存。
-    const char *reg_file  = "";
-    unsigned int reg_line = 0;
-    std::string reg_fn;
 };
 
 struct SiteSlot
@@ -370,9 +376,14 @@ void make_404_content(std::shared_ptr<httppeer> peer);
 // v6 注册：唯一底层函数 reg_raw，pre/reg 各自独立指定 fn_kind
 // 同步函数传 pre_sync / reg_sync（另一个传 nullptr）；协程函数传 co_pre / co_reg（另一个传 nullptr）
 // autopickmethod 根据注解类型自动组合；手写注册也直接调这个
-// 注册面门禁（未知 site 丢弃、同名保留首次）在 reg_add 里，source_location 必须在这里求值
+// mask_code 默认 0；注解 //@urlpath(...):数字 由 autopickmethod 生成器填充
 inline unsigned int reg_raw(
-    const std::string &site, const std::string &path, std::function<std::string(std::shared_ptr<httppeer>)> pre_sync, std::function<asio::awaitable<std::string>(std::shared_ptr<httppeer>)> co_pre, std::function<std::string(std::shared_ptr<httppeer>)> reg_sync, std::function<asio::awaitable<std::string>(std::shared_ptr<httppeer>)> co_reg, const std::source_location &loc = std::source_location::current())
+    const std::string &site, const std::string &path,
+    std::function<std::string(std::shared_ptr<httppeer>)> pre_sync,
+    std::function<asio::awaitable<std::string>(std::shared_ptr<httppeer>)> co_pre,
+    std::function<std::string(std::shared_ptr<httppeer>)> reg_sync,
+    std::function<asio::awaitable<std::string>(std::shared_ptr<httppeer>)> co_reg,
+    unsigned int mask_code = 0)
 {
     reg_methold_mid_t e;
     if (pre_sync)
@@ -401,9 +412,7 @@ inline unsigned int reg_raw(
         e.co_regfun = std::move(co_reg);
     }
 
-    e.reg_file = loc.file_name();
-    e.reg_line = (unsigned int)loc.line();
-    e.reg_fn   = loc.function_name();
+    e.mask_code = mask_code;
 
     return reg_add(site, path, std::move(e));
 }

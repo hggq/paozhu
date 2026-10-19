@@ -232,6 +232,8 @@ int main(int argc, char *argv[])
                 // 只把 sync 改成 coro（注解文本一字不动）时，漏了它 .h 就不会重建，
                 // 于是 .h 还声明着 std::string，而生成表已经把它放进 co 槽位 —— 编译期才炸。
                 md5hash.append(method_item[j].func_type);
+                // mask_code 进 hash：只改冒号后的数字也得重建 .h
+                md5hash.append(std::to_string(method_item[j].mask_code));
                 // 第一遍：把本文件注解函数的返回类型登记进全仓索引。
                 // pre 常常定义在别的文件里（admin_islogin 这类共用前置），只在本文件里嗅探
                 // 签名会漏，漏了就默认按 sync 处理。先全扫一遍，第二遍再按这个索引定夺。
@@ -518,7 +520,8 @@ int main(int argc, char *argv[])
 
         automethod_content += "        reg_raw(\"" + site + "\", \"" + parsed_path + "\", "
                             + pre_sync + ", " + co_pre + ", "
-                            + reg_sync + ", " + co_reg + ");\r\n";
+                            + reg_sync + ", " + co_reg + ", "
+                            + std::to_string(item.mask_code) + ");\r\n";
 
         if (!urlpath_names.empty()) {
             automethod_content += "        reg_urlpath(\"" + site + "\", \""

@@ -64,38 +64,6 @@ std::string paozhu_status(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(null,paozhu_routes)
-std::string paozhu_routes(std::shared_ptr<httppeer> peer)
-{
-    httppeer &client = peer->get_peer();
-    // 这张表导出每一条路由的名字、前置钩子和注册位置（文件:行号）。任何来源都能读到它，
-    // 等于把站点内部的路径清单双手递出去。所以只放行本机/内网来源（ip_is_local()，
-    // 与证书下载页同一个闸门）；client_ip 取套接字对端地址，伪造请求头换不来本机身份。
-    // 拒绝时正文与"本构建没编这一功能"那批桩逐字节一致：连"这条诊断路由存在"也不透露。
-    if (!ip_is_local(client.client_ip))
-    {
-        client.status(404);
-        client.val.set_object();
-        client.val["error"] = "not found";
-        client.out_json();
-        return "";
-    }
-    server_loaclvar &static_server_var = get_server_global_var();
-    if (!static_server_var.debug_enable)
-    {
-        client << "debug_enable off";
-        return "";
-    }
-    std::string filter;
-    if (client.get.isset("name"))
-    {
-        filter = client.get["name"].to_string();
-    }
-    peer->type("text/plain; charset=utf-8");
-    client << get_router().routes_text(filter);
-    return "";
-}
-
 //@urlpath(null,frametasks_timeloop)
 std::string frametasks_timeloop(std::shared_ptr<httppeer> peer)
 {

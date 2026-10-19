@@ -1,6 +1,7 @@
 #ifndef HTTP_ROUTER_H
 #define HTTP_ROUTER_H
 
+#include <algorithm>
 #include <map>
 #include <memory>
 #include <string>
@@ -12,6 +13,21 @@
 
 namespace http
 {
+
+// 站点钩子（method_pre / method_after）单次请求最多执行 15 条。
+// 超限时截断到前 site_hook_limit 条继续执行，避免整条丢弃导致鉴权静默失效。
+// max site hooks per request; overflow is trimmed to first N instead of dropping all
+constexpr size_t site_hook_limit = 15;
+
+// 站点钩子列表安全截断：超限保留前 N 条，避免整条丢弃导致鉴权静默失效。
+// router.cpp 内 run_site_hooks/co_run_site_hooks 共用；tests 里也可独立 include 复用。
+// trim hook list to first site_hook_limit entries; shared by router.cpp and tests
+inline std::vector<std::string> trimmed_hooks(std::vector<std::string> const &lists)
+{
+    if (lists.size() <= site_hook_limit)
+        return lists;
+    return std::vector<std::string>(lists.begin(), lists.begin() + site_hook_limit);
+}
 
 class router
 {
@@ -33,11 +49,6 @@ class router
     int find_sitecontent(std::shared_ptr<httppeer> &peer, const std::string &sitecontent);
 
     std::vector<reg_methold_mid_t> const &handlers() const { return _handlers; }
-
-    // — 路由表导出：filter 非空时只留精确同名注册名 —
-    // 每条打印 slot/path/idx、pre 与 reg 的种类、urlpath 参数名，以及注册点 file:line，
-    // 用来把一条 URL 直接对回「哪一行注册、绑哪个函数」。
-    std::string routes_text(const std::string &filter);
 
     // — 只跑一个注册名的 sync regfun（同步链的站点钩子、timeloop 用）—
     // 未注册返回空串（调用方按放行处理）；注册的是协程条目时返回非空哨兵 "coro-refused"，

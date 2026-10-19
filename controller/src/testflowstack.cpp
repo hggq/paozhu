@@ -11,25 +11,29 @@
 //   sync  handler → co_pool_run_step → ThreadPool
 //   coro handler → 直接 co_await
 //
-// 业务代码在 handler 里 push_flow("名字") 把后续要跑的路由压到编排栈，
+// 业务代码在 handler 里 push_next/push_last("名字") 把后续要跑的路由压到编排栈，
 // 等当前 handler return ""（正常结束）之后，框架从栈顶弹一个出来接着跑，
 // 直到栈空。exit 返回值则立即终止，不弹栈。
 //
-//   push_flow(...)       → 压栈，后压的先出（LIFO）
-//   push_front_flow(...) → 压栈底，先压的先出（FIFO）
+//   push_next(...)       → 下一个执行（栈顶，后压先出）：插队 / 依赖等待用
+//   push_last(...)       → 排到最后执行（栈底，先压先出）：顺序拆解默认推荐
+//   push_steps({..})     → 批量 push_last，声明顺序即执行顺序
 //   return ""            → 正常结束，继续弹栈
 //   return "exit"        → 显式终止，不弹栈
 //   return "别的名字"     → 直接跳到那个注册名（不经过栈）
 //
+//   顺序拆解（推荐，最易读）：push_last(A); push_last(B); 执行顺序 A→B
+//   嵌套/依赖等待才用 push_next：push_next(自己) 插队在已排的收尾之前
+//
 // 【什么时候用 / When to use】
 //
-// 1. 等某个异步条件就绪再跑主逻辑（先 push 自己，再跳条件检查；第二次进来
+// 1. 等某个异步条件就绪再跑主逻辑（先 push_next 自己，再跳条件检查；第二次进来
 //    时条件已满足 → 这就是 fx/depa + fx/depb 的"依赖等待"模式）
 //    Wait for an async condition before running main logic.
 //
 // 2. 一个主 handler 后接一串收尾步骤，不想写成超长同步代码，按职责拆开：
-//    先跑 A，A 里压 B、C，框架自动按序弹出执行。
-//    Decompose a long handler into focused steps, queued via push_flow.
+//    先跑 A，A 里 push_last B、C，框架自动按序弹出执行。
+//    Decompose a long handler into focused steps, queued via push_last.
 //
 // 3. pre 是 coro（要 co_await 外部鉴权接口）但 regfun 是 sync（老逻辑），
 //    或者反过来——框架两种都能接，业务随便写。
@@ -37,7 +41,7 @@
 //
 // 【安全 / Safety】
 //
-//   - 自引用 push_flow 会触发安全计数器（32 步截断），不会无限循环。
+//   - 自引用 push_next 会触发安全计数器（32 步截断），不会无限循环。
 //   - push 不存在的路由名被静默忽略（不会改判 404）。
 //   - 异常通路：sync throw → co_pool_run_step 内部 catch → 500；
 //     coro throw → co_resolve 里 try/catch → 500。
@@ -84,37 +88,36 @@ std::string testfxguarded(std::shared_ptr<httppeer> peer)
 }
 
 // @urlpath(null,fx/a)
-// demo: multiple push_flow / push_front_flow patterns via query param m
-// 演示：编排栈 LIFO / FIFO / 嵌套 各种压栈顺序
-//   m=1 → 压 b，出 A;B;
-//   m=2 → 先压 b 再压 c，栈顶是 c，出 A;C;B;（LIFO）
-//   m=3 → push_flow(b) + push_front_flow(c)，c 在底 b 在上，出 A;B;C;（FIFO）
+// demo: push_next / push_last / push_steps patterns via query param m
+// 演示：执行顺序语义下的各种编排
+//   m=1 → push_next(b)，出 A;B;
+//   m=2 → push_next(b) + push_next(c)，栈顶是 c，出 A;C;B;（插队/后压先出）
+//   m=3 → push_steps({b,c})，声明顺序即执行顺序，出 A;B;C;（顺序拆解推荐写法）
 std::string testfxa(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
     std::string m    = client.get["m"].to_string();
     if (m == "1")
     {
-        client.push_flow("fx/b");
+        client.push_next("fx/b");
     }
     else if (m == "2")
     {
-        client.push_flow("fx/b");
-        client.push_flow("fx/c");
+        client.push_next("fx/b");
+        client.push_next("fx/c");
     }
     else if (m == "3")
     {
-        client.push_flow("fx/b");
-        client.push_front_flow("fx/c");
+        client.push_steps({"fx/b", "fx/c"}); // 顺序拆解：声明顺序 = 执行顺序
     }
     else if (m == "4")
     {
-        client.push_flow("fx/b");
+        client.push_next("fx/b");
     }
     else if (m == "5")
     {
-        client.push_flow("fx/plain");
-        client.push_flow("fx/guarded");
+        client.push_next("fx/plain");
+        client.push_next("fx/guarded");
     }
     client << "A;";
     return "";// 正常 return 空串才会触发栈弹出
@@ -129,7 +132,7 @@ std::string testfxb(std::shared_ptr<httppeer> peer)
     client << "B;";
     if (client.get["pushd"].to_string() == "1")
     {
-        client.push_flow("fx/d");// 自己压自己的下游
+        client.push_next("fx/d");// 自己压自己的下游
     }
     return "";
 }
@@ -168,7 +171,7 @@ std::string testfxplain(std::shared_ptr<httppeer> peer)
 std::string testfxloop(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
-    client.push_flow("fx/loop");// 压自己
+    client.push_next("fx/loop");// 压自己
     client << "L;";
     return "";
 }
@@ -179,7 +182,7 @@ std::string testfxloop(std::shared_ptr<httppeer> peer)
 std::string testfxgone(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
-    client.push_flow("no_such_step");
+    client.push_next("no_such_step");
     client << "GONE;";
     return "";
 }
@@ -190,7 +193,7 @@ std::string testfxgone(std::shared_ptr<httppeer> peer)
 std::string testfxexit(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
-    client.push_flow("fx/b");// 压了但不会弹
+    client.push_next("fx/b");// 压了但不会弹
     client << "EXIT;";
     return "exit";// 显式终止
 }
@@ -205,7 +208,7 @@ std::string testfxdepa(std::shared_ptr<httppeer> peer)
     httppeer &client = peer->get_peer();
     if (peer->output.find("B;") == std::string::npos)
     {
-        client.push_flow("fx/depa");// 压自己，让自己第二次被弹出来
+        client.push_next("fx/depa");// 压自己，让自己第二次被弹出来
         return "fx/depb";           // 立即跳去跑依赖
     }
     client << "A2;";// 第二次进来，依赖已就绪
@@ -228,23 +231,23 @@ std::string testfxdepb(std::shared_ptr<httppeer> peer)
 
 // @urlpath(null,fx/coro)
 // demo: coro handler pushes a sync route — mixed works both ways
-// 演示：coro regfun 里 push_flow("fx/b")（sync handler），链能正确桥接
+// 演示：coro regfun 里 push_next("fx/b")（sync handler），链能正确桥接
 asio::awaitable<std::string> testfxcoro(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
     client << "CORO;";
-    client.push_flow("fx/b");// 推一个 sync handler
+    client.push_next("fx/b");// 推一个 sync handler
     co_return "";
 }
 
 // @urlpath(null,fx/coroa)
 // demo: coro → push coro (pure coro chain)
-// 演示：coro regfun 里 push_flow 另一个 coro
+// 演示：coro regfun 里 push_next 另一个 coro
 asio::awaitable<std::string> testfxcoroa(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
     client << "COROA;";
-    client.push_flow("fx/corob");// coro → push coro
+    client.push_next("fx/corob");// coro → push coro
     co_return "";
 }
 
@@ -259,12 +262,12 @@ asio::awaitable<std::string> testfxcorob(std::shared_ptr<httppeer> peer)
 
 // @urlpath(null,fx/sync_push_coro)
 // demo: sync → push coro (bridge into coro world)
-// 演示：sync handler 里 push_flow 一个 coro——框架会把链切换进协程 driver
+// 演示：sync handler 里 push_next 一个 coro——框架会把链切换进协程 driver
 std::string testfxsyncpushcoro(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
     client << "SYNC;";
-    client.push_flow("fx/coroc");// sync → push coro
+    client.push_next("fx/coroc");// sync → push coro
     return "";
 }
 
@@ -297,7 +300,7 @@ std::string testfxcoropresync(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
     client << "SYNC_AFTER_CORO_PRE;";
-    client.push_flow("fx/corob");// sync → push coro
+    client.push_next("fx/corob");// sync → push coro
     return "";
 }
 
@@ -311,7 +314,7 @@ std::string testfxmixchain_sync(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
     client << "MIX_S;";
-    client.push_flow("fx/mix_coro");// sync → push coro
+    client.push_next("fx/mix_coro");// sync → push coro
     return "";
 }
 
@@ -320,7 +323,7 @@ asio::awaitable<std::string> testfxmixchain_coro(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
     client << "MIX_C;";
-    client.push_flow("fx/mix_tail");// coro → push sync
+    client.push_next("fx/mix_tail");// coro → push sync
     co_return "";
 }
 
