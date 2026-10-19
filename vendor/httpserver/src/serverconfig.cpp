@@ -1428,6 +1428,17 @@ bool serverconfig::loadserverglobalconfig()
         ip6_enable = false;
     }
 
+    // 常驻出站客户端停机自检路由 /resident_stop 的开关，默认关；要诊断页才写 1。
+    // 只在启动期起作用：路由注册发生在 run() 开头，运行中改这个值不会增删路由。
+    if (map_value["default"]["resident_client_show"].size() > 0 && map_value["default"]["resident_client_show"][0] == '1')
+    {
+        resident_client_show = true;
+    }
+    else
+    {
+        resident_client_show = false;
+    }
+
     tempinfo_default.php_root_document = tempinfo_default.wwwpath;
     sitehostinfos.push_back(std::move(tempinfo_default));
     for (auto [first, second] : map_value)
@@ -2214,7 +2225,9 @@ SSL_CTX *serverconfig::getctx(std::string filename)
         filepath.append(filename);
         filepath.append(".pem");
         DEBUG_LOG(" ssl file:%s", filepath.c_str());
-        if (filename[0] == 'w' && filename[1] == 'w' && filename[2] == 'w' && filename[3] == '.')
+        // 需要 size >= 4 防止短域名越界读取, 与 http_domain.cpp 逻辑一致
+        bool is_www = (filename.size() > 4 && filename[0] == 'w' && filename[1] == 'w' && filename[2] == 'w' && filename[3] == '.');
+        if (is_www)
         {
             if (::SSL_CTX_use_certificate_chain_file(ctx, filepath.c_str()) != 1)
             {
@@ -2288,6 +2301,9 @@ void serverconfig::clearctx()
     }
     g_ctxMap.clear();
     clear_ctx = false;
+    // SSL_CTX 全部重建后, 旧证书的 OCSP staple 也必须清除
+    // 否则续期后新证书握手时会拿到旧证书的 OCSP 响应 (certID 不匹配)
+    clear_all_ocsp_staples();
 }
 
 // ============================================================
@@ -2402,6 +2418,24 @@ void serverconfig::enable_ocsp_stapling(SSL_CTX *ctx)
     // 注册 OCSP stapling 回调，传入 this 指针作为参数
     SSL_CTX_set_tlsext_status_cb(ctx, ocsp_stapling_cb);
     SSL_CTX_set_tlsext_status_arg(ctx, this);
+}
+
+void serverconfig::clear_ocsp_staple(const std::string &domain)
+{
+    // 单个域名清除: copy-on-write, 删除指定 key
+    std::lock_guard<std::mutex> lock(ocsp_cache_mutex_);
+    if (!ocsp_cache_)
+        return;
+    auto new_map = std::make_shared<std::unordered_map<std::string, std::vector<uint8_t>>>(*ocsp_cache_);
+    new_map->erase(domain);
+    ocsp_cache_ = std::shared_ptr<const std::unordered_map<std::string, std::vector<uint8_t>>>(std::move(new_map));
+}
+
+void serverconfig::clear_all_ocsp_staples()
+{
+    // 全局清除: 直接置空, 下一轮 refresh_all_ocsp_staples 会重新填充
+    std::lock_guard<std::mutex> lock(ocsp_cache_mutex_);
+    ocsp_cache_.reset();
 }
 
 }// namespace http

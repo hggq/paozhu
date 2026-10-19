@@ -173,12 +173,12 @@ OCSPResult ocsp_checker::parse_ocsp_response(const std::vector<uint8_t> &raw,
     oss << "[OCSP_PARSE] OCSP_basic_verify OK\n";
 
     // 4b. nonce 验证（防重放攻击）
-    //    如果提供了原始请求 DER，从中反序列化出 OCSP_REQUEST，
-    //    用 OCSP_check_nonce 验证请求与响应中的 nonce 一致。
-    //    OCSP_check_nonce 返回: 1=匹配, 0=双方都无nonce, -1=单方有nonce或不匹配
-    //    很多OCSP响应者(如Sectigo经Cloudflare代理)不回传nonce，返回-1是正常现象
-    //    仅当双方都有nonce但不一致时才视为安全问题，但OCSP_check_nonce无法区分
-    //    "响应无nonce"和"nonce不匹配"，所以-1降级为警告而非失败
+    //    OpenSSL 1.1+ OCSP_check_nonce 返回值:
+    //      1 = nonce 匹配 (OK)
+    //      0 = 双方都没有 nonce (正常, 很多 responder 不加 nonce)
+    //     -1 = 单方有 nonce (正常, responder 不回 nonce)
+    //      2 = 仅响应有 nonce 或仅请求有 (同上, 不同版本语义略有差异)
+    //      3 = 双方都有 nonce 但不一致 (重放/伪造, 必须拒绝!)
     if (ocsp_req_der && !ocsp_req_der->empty())
     {
         oss << "[OCSP_PARSE] nonce check, req_der size=" << ocsp_req_der->size() << "\n";
@@ -197,9 +197,18 @@ OCSPResult ocsp_checker::parse_ocsp_response(const std::vector<uint8_t> &raw,
             {
                 oss << "[OCSP_PARSE] WARN: no nonce in both request and response\n";
             }
-            else// nonce_ret == -1
+            else if (nonce_ret == 3)
             {
-                oss << "[OCSP_PARSE] WARN: nonce missing in response or mismatch (ret=-1), accepting anyway\n";
+                // 双方都有 nonce 但不一致 -> 可能是重放攻击, 拒绝!
+                result.status   = OCSPStatus::OCSP_ERROR;
+                result.error_msg = "nonce mismatch: request nonce differs from response nonce, possible replay attack";
+                oss << "[OCSP_PARSE] FAIL: nonce mismatch (ret=3), rejecting response\n";
+                return result;
+            }
+            else
+            {
+                // ret == -1 或 2: 单方有 nonce, 正常降级警告
+                oss << "[OCSP_PARSE] WARN: nonce missing in one side (ret=" << nonce_ret << "), accepting anyway\n";
             }
         }
         else

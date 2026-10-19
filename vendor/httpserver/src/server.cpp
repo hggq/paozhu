@@ -42,6 +42,7 @@
 #include "autocontrolmethod.hpp"
 #include "reghttpmethod.hpp"
 #include "reghttpmethod_pre.hpp"
+#include "resident_stop.h"
 #include "regviewmethod.hpp"
 #include "autorestfulpaths.hpp"
 #include "client_context.h"
@@ -10652,6 +10653,11 @@ void httpserver::run(const std::string &sysconfpath)
         _initauto_all_httputils();
         _inithttpmethodregto();
         _inithttpmethodregto_pre();
+        // 常驻客户端停机自检页默认不挂，server.conf [default] resident_client_show = 1 才注册
+        if (sysconfigpath.resident_client_show)
+        {
+            reg_resident_stop_route();
+        }
         // conf 解析期注册表还是空的，钩子名的存在性只能在这里补验
         get_router().validate_site_hooks();
 

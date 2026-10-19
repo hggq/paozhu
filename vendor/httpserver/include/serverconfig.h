@@ -127,6 +127,10 @@ class serverconfig
     void set_ocsp_staple_to_ssl(SSL *ssl, const std::string &domain);
     // 启用 SSL_CTX 的 OCSP Stapling 回调
     void enable_ocsp_stapling(SSL_CTX *ctx);
+    // 清除单个域名的 OCSP staple (续期/吊销后使用)
+    void clear_ocsp_staple(const std::string &domain);
+    // 清除所有 OCSP staple (SSL_CTX 全局重载时使用)
+    void clear_all_ocsp_staples();
 
   private:
     // OCSP stapling 回调：OpenSSL 在 TLS 握手时调用，返回预取的 OCSP 响应
@@ -150,6 +154,8 @@ class serverconfig
     bool isallnothttp2                 = true;
     bool is_limit_upload               = false;
     bool ip6_enable                    = false;
+    bool resident_client_show          = false;
+    
     unsigned int siteusehtmlchachetime = 0;
     unsigned int upload_max_size       = 0;
     unsigned int http_header_max_size  = 0;

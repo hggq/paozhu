@@ -358,10 +358,9 @@ bool acme_run::run()
         // ====================================================
         //  Step 9: 生成 CSR + finalize (保持不变)
         // ====================================================
-        std::this_thread::sleep_for(std::chrono::seconds(10));
         oss << "[ACME] Step 9: generate CSR and submit...\n";
+        // finalize_order 内部已包含 authz 轮询 + order ready 确认 + processing->valid 轮询
         acme.finalize_order(domains, output_dir);
-        std::this_thread::sleep_for(std::chrono::seconds(10));
 
         // // ====================================================
         // //  Step 5: 获取 HTTP-01 挑战
