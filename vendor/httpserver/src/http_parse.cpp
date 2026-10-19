@@ -3456,6 +3456,8 @@ void httpparse::read_http_post_block(const unsigned char *buffer, unsigned int b
 
             // 边界文本正好断在包尾时，它后面那两条横线 "-" "-" 分在两个包里，结束标记认不出来，
             // 请求就会一直等下去。声明的 body 字节已经全部读完，不会再有属于本次请求的字节了，这里收尾。
+            // 到这里还没认到闭合分隔符，说明 body 被截断：最后一段的头部没解析过，整段丢掉，
+            // 不送进解析器——送进去要么把这个请求判成坏请求，要么交出一个值末尾多两字节的字段。
             if (!peer->isfinish && error == 0 && http_content_length >= peer->content_length)
             {
                 peer->isfinish = true;

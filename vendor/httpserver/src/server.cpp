@@ -79,6 +79,7 @@
 #include <pthread.h>
 #include <sched.h>
 #endif
+#include "pz_fileio.h"
 
 #ifdef ENABLE_BOOST
 #include "loadviewso.h"
@@ -9010,14 +9011,23 @@ void httpserver::httpwatch_memory_monitor(unsigned int mysqlpool_time)
     }
 }
 
-#ifndef _WIN32
 // 完整写出缓冲区, 处理 EINTR 与短写; 返回实际写出字节数(全部写出 == size)
 static std::size_t pz_write_all(int fd, const char *data, std::size_t size)
 {
     std::size_t off = 0;
     while (off < size)
     {
-        int n = static_cast<int>(::write(fd, data + off, size - off));
+#ifdef _WIN32
+        // _write 的长度参数是 unsigned int, 单次最多写 2GB-1
+        std::size_t remain = size - off;
+        if (remain > 0x7FFFFFFFu)
+        {
+            remain = 0x7FFFFFFFu;
+        }
+        int n = pz_fd_write(fd, data + off, static_cast<unsigned int>(remain));
+#else
+        ssize_t n = pz_fd_write(fd, data + off, size - off);
+#endif
         if (n < 0)
         {
             if (errno == EINTR)
@@ -9058,7 +9068,6 @@ static void pz_flush_loglist(int fd, std::list<std::string> &global, std::mutex 
         }
     }
 }
-#endif
 
 void httpserver::httpwatch_flush_access_log(const std::string &access_path)
 {
@@ -9069,36 +9078,44 @@ void httpserver::httpwatch_flush_access_log(const std::string &access_path)
             return;
         }
     }
-#ifndef _WIN32
-    struct flock lockstr = {};
-    int fd = open(access_path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
+    int fd = pz_fd_open(access_path.c_str(), O_WRONLY | O_CREAT | O_APPEND | PZ_O_BINARY, 0666);
     if (fd == -1)
     {
         return;
     }
 
-    lockstr.l_type   = F_WRLCK;
-    lockstr.l_whence = SEEK_END;
-    lockstr.l_start  = 0;
-    lockstr.l_len    = 0;
-    lockstr.l_pid    = 0;
+#ifdef _WIN32
+    // 锁 [0, 4GB) 覆盖 O_APPEND 的追加区间, 与 POSIX 的 SEEK_END/l_len=0 等价
+    auto native_handle = (HANDLE)_get_osfhandle(fd);
+    if (!LockFile(native_handle, 0, 0, 0, MAXDWORD))
+    {
+        pz_fd_close(fd);
+        return;
+    }
+#else
+    struct flock lockstr = {};
+    lockstr.l_type       = F_WRLCK;
+    lockstr.l_whence     = SEEK_END;
+    lockstr.l_start      = 0;
+    lockstr.l_len        = 0;
+    lockstr.l_pid        = 0;
 
     if (fcntl(fd, F_SETLK, &lockstr) == -1)
     {
-        close(fd);
+        pz_fd_close(fd);
         return;
     }
+#endif
 
     pz_flush_loglist(fd, access_loglist, log_mutex);
 
+#ifdef _WIN32
+    UnlockFile(native_handle, 0, 0, 0, MAXDWORD);
+#else
     lockstr.l_type = F_UNLCK;
-    if (fcntl(fd, F_SETLK, &lockstr) == -1)
-    {
-        close(fd);
-        return;
-    }
-    close(fd);
+    fcntl(fd, F_SETLK, &lockstr);
 #endif
+    pz_fd_close(fd);
 }
 
 void httpserver::httpwatch_flush_error_log(const std::string &error_path)
@@ -9110,36 +9127,43 @@ void httpserver::httpwatch_flush_error_log(const std::string &error_path)
             return;
         }
     }
-#ifndef _WIN32
-    struct flock lockstr = {};
-    int fd = open(error_path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
+    int fd = pz_fd_open(error_path.c_str(), O_WRONLY | O_CREAT | O_APPEND | PZ_O_BINARY, 0666);
     if (fd == -1)
     {
         return;
     }
 
-    lockstr.l_type   = F_WRLCK;
-    lockstr.l_whence = SEEK_END;
-    lockstr.l_start  = 0;
-    lockstr.l_len    = 0;
-    lockstr.l_pid    = 0;
+#ifdef _WIN32
+    auto native_handle = (HANDLE)_get_osfhandle(fd);
+    if (!LockFile(native_handle, 0, 0, 0, MAXDWORD))
+    {
+        pz_fd_close(fd);
+        return;
+    }
+#else
+    struct flock lockstr = {};
+    lockstr.l_type       = F_WRLCK;
+    lockstr.l_whence     = SEEK_END;
+    lockstr.l_start      = 0;
+    lockstr.l_len        = 0;
+    lockstr.l_pid        = 0;
 
     if (fcntl(fd, F_SETLK, &lockstr) == -1)
     {
-        close(fd);
+        pz_fd_close(fd);
         return;
     }
+#endif
 
     pz_flush_loglist(fd, error_loglist, log_mutex);
 
+#ifdef _WIN32
+    UnlockFile(native_handle, 0, 0, 0, MAXDWORD);
+#else
     lockstr.l_type = F_UNLCK;
-    if (fcntl(fd, F_SETLK, &lockstr) == -1)
-    {
-        close(fd);
-        return;
-    }
-    close(fd);
+    fcntl(fd, F_SETLK, &lockstr);
 #endif
+    pz_fd_close(fd);
 }
 
 void httpserver::httpwatch_mysql_pool_maintenance(unsigned int &mysqlpool_time, const std::tm *now, unsigned int old_total_count)
@@ -10510,9 +10534,6 @@ void httpserver::save_traffic_arrays()
 {
     server_loaclvar &static_server_var = get_server_global_var();
     std::string currentpath            = static_server_var.log_path;
-#ifndef _WIN32
-    struct flock lockstr = {};
-#endif
 
     if (currentpath.size() > 0 && currentpath.back() != '/')
     {
@@ -10522,24 +10543,33 @@ void httpserver::save_traffic_arrays()
 
     if (!traffic_arrays.empty())
     {
-#ifndef _WIN32
-        int fd = open(currentpath.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0666);
+        int fd = pz_fd_open(currentpath.c_str(), O_WRONLY | O_CREAT | O_APPEND | PZ_O_BINARY, 0666);
         if (fd == -1)
         {
             return;
         }
 
-        lockstr.l_type   = F_WRLCK;
-        lockstr.l_whence = SEEK_END;
-        lockstr.l_start  = 0;
-        lockstr.l_len    = 0;
-        lockstr.l_pid = 0;
+#ifdef _WIN32
+        auto native_handle = (HANDLE)_get_osfhandle(fd);
+        if (!LockFile(native_handle, 0, 0, 0, MAXDWORD))
+        {
+            pz_fd_close(fd);
+            return;
+        }
+#else
+        struct flock lockstr = {};
+        lockstr.l_type       = F_WRLCK;
+        lockstr.l_whence     = SEEK_END;
+        lockstr.l_start      = 0;
+        lockstr.l_len        = 0;
+        lockstr.l_pid        = 0;
 
         if (fcntl(fd, F_SETLK, &lockstr) == -1)
         {
-            close(fd);
+            pz_fd_close(fd);
             return;
         }
+#endif
         std::unique_lock<std::mutex> loglock(log_mutex);
         std::size_t n_write = pz_write_all(fd, traffic_arrays.data(), traffic_arrays.size());
         if (n_write == traffic_arrays.size())
@@ -10548,14 +10578,13 @@ void httpserver::save_traffic_arrays()
         }
         loglock.unlock();
 
+#ifdef _WIN32
+        UnlockFile(native_handle, 0, 0, 0, MAXDWORD);
+#else
         lockstr.l_type = F_UNLCK;
-        if (fcntl(fd, F_SETLK, &lockstr) == -1)
-        {
-            close(fd);
-            return;
-        }
-        close(fd);
+        fcntl(fd, F_SETLK, &lockstr);
 #endif
+        pz_fd_close(fd);
     }
 }
 

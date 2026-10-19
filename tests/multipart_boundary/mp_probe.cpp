@@ -379,7 +379,52 @@ int main()
         cs.want     = w;
         cases.push_back(cs);
     }
+    // 截断 body 的三条：请求声明的字节读完了，但一直没认到闭合分隔符。
+    // 这三种情形都把最后一段整段丢掉，请求照常结束、不判坏请求；只比整包读数，不做分段枚举。
+    auto pushnoflag = [&](const std::string &name, const std::string &body, Want w)
+    {
+        Case cs;
+        cs.name     = name;
+        cs.ctype    = "multipart/form-data; boundary=" + BD;
+        cs.body     = body;
+        cs.judge    = false;
+        cs.pairs    = false;
+        cs.has_want = true;
+        cs.want     = w;
+        cases.push_back(cs);
+    };
+    {
+        // 尾字段头部完整、值也在，只缺最后的 "--边界--"
+        Want w;
+        w.keys  = 1;
+        w.alpha = "AAA";
+        pushnoflag("T2-unclosed-tail",
+                   tp("alpha", "AAA") + "--" + BD + "\r\nContent-Disposition: form-data; name=\"beta\"\r\n\r\nTAILVAL\r\n",
+                   w);
+    }
+    {
+        // 尾字段连头部都被截断（引号没闭合、没有值）
+        Want w;
+        w.keys  = 1;
+        w.alpha = "AAA";
+        pushnoflag("T3-unclosed-broken-header",
+                   tp("alpha", "AAA") + "--" + BD + "\r\nContent-Disposition: form-data; name=\"bt", w);
+    }
+    {
+        // 尾段是文件 part：整段的头部和内容都在，只缺闭合分隔符
+        // 实测：这段连临时文件都没建（头部没解析过，isfile 还是 false，落盘名是空的），
+        // 所以文件正文跟尾字段一样整段丢掉。
+        Want w;
+        w.keys   = 1;
+        w.alpha  = "AAA";
+        w.up     = "";
+        w.upsize = 0;
+        pushnoflag("T4-unclosed-filetail", tp("alpha", "AAA") + fp("up", "up.bin", "FILEDATA-123"), w);
+    }
     // 读数臂：只打印整包读数，不参与判据
+    // 尾段是文件 part，但正文里没有单个 "-"（上一个臂的正文有），看两种写法的收尾是否一致
+    cases.push_back({"R-filetail-nodash", "multipart/form-data; boundary=" + BD,
+                     tp("alpha", "AAA") + fp("up", "up.bin", "FILEBYTES"), false, false});
     cases.push_back({"R-empty-boundary", "multipart/form-data",
                      tp("alpha", "AAA") + "--" + BD + "--\r\n", false, false});
     cases.push_back({"R-no-ctype-dashbody", "",

@@ -16,7 +16,7 @@ SUM="$RUN/h1arms_summary.log"
 mkdir -p "$RUN"
 : > "$SUM"
 
-PAIRS_ALL=("M1 1" "M2 1" "M3 3" "M4 1" "M5 1" "M6 3")
+PAIRS_ALL=("M1 1" "M2 1" "M3 3" "M4 1" "M5 1" "M6 3" "MB 1" "MC 1")
 if [ "$#" -gt 0 ]; then
     PAIRS=()
     for want in "$@"; do

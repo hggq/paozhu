@@ -1,0 +1,1 @@
+/!peer->isfinish && error == 0 && http_content_length/,/^[ ]*reset_uploadfile();$/s|^                reset_uploadfile();$|                post_multipart_itemcontent(false); temp_post_data->field_item.clear(); reset_uploadfile(); // MUT-B6B|

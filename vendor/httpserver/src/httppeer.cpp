@@ -26,11 +26,7 @@
 #include <cmath>
 #include <thread>
 #include <chrono>
-
-#ifndef _MSC_VER
-#include <sys/fcntl.h>
-#include <unistd.h>
-#endif
+#include "pz_fileio.h"
 
 #ifdef WIN32
 #define stat _stat
@@ -329,46 +325,48 @@ void httppeer::parse_session_file(const std::string &sessionfile)
     {
         return;
     }
-#ifndef _MSC_VER
-    int fd = open(root_path.c_str(), O_RDONLY);
+    int fd = pz_fd_open(root_path.c_str(), O_RDONLY | PZ_O_BINARY);
     if (fd == -1)
     {
-        // perror("open");
         return;
     }
 
-#ifndef _WIN32
-    // 锁住整个文件
+#ifdef _WIN32
+    // 抢不到锁就本次不读, sessionfile_time 不推进, 下一次请求重试
+    auto native_handle = (HANDLE)_get_osfhandle(fd);
+    if (!LockFile(native_handle, 0, 0, 0, MAXDWORD))
+    {
+        pz_fd_close(fd);
+        return;
+    }
+#else
     struct flock lock = {};
     lock.l_type       = F_RDLCK;
     lock.l_whence     = 0;
     lock.l_start      = 0;
     lock.l_len        = 0;
-
-    lock.l_pid = 0;
+    lock.l_pid        = 0;
 
     if (fcntl(fd, F_SETLKW, &lock) == -1)
     {
-        close(fd);
-        return;
-    }
-#else
-    // lock file by using win32 api
-    auto native_handle = (HANDLE)_get_osfhandle(fd);
-    if (!LockFile(native_handle, 0, 0, 0, MAXDWORD))
-    {
-        close(fd);
+        pz_fd_close(fd);
         return;
     }
 #endif
 
-    int filelen = lseek(fd, 0L, SEEK_END);
+    int filelen = static_cast<int>(pz_fd_seek(fd, 0L, SEEK_END));
     if (filelen > 0)
     {
         temp_session_file.clear();
         temp_session_file.resize(filelen);
-        lseek(fd, 0L, SEEK_SET);
-        int readsize = read(fd, temp_session_file.data(), filelen);
+        pz_fd_seek(fd, 0L, SEEK_SET);
+        int readsize = -1;
+#ifdef _WIN32
+        readsize = pz_fd_read(fd, temp_session_file.data(), static_cast<unsigned int>(filelen));
+#else
+        ssize_t n_read = pz_fd_read(fd, temp_session_file.data(), static_cast<std::size_t>(filelen));
+        readsize       = static_cast<int>(n_read);
+#endif
         if (readsize > 0)
         {
             temp_session_file.resize(readsize);
@@ -384,23 +382,14 @@ void httppeer::parse_session_file(const std::string &sessionfile)
         }
     }
 
-#ifndef _WIN32
-    lock.l_type = F_UNLCK;
-    if (fcntl(fd, F_SETLKW, &lock) == -1)
-    {
-        close(fd);
-        return;
-    }
+#ifdef _WIN32
+    UnlockFile(native_handle, 0, 0, 0, MAXDWORD);
 #else
-    if (!UnlockFile(native_handle, 0, 0, 0, MAXDWORD))
-    {
-        close(fd);
-        return;
-    }
+    lock.l_type = F_UNLCK;
+    fcntl(fd, F_SETLKW, &lock);
 #endif
 
-    close(fd);
-#endif
+    pz_fd_close(fd);
 
     sessionfile_time = tempsesstime;
 }
@@ -537,61 +526,70 @@ void httppeer::save_session_file(const std::string &sessionfile)
     // sessionfile.append("_sess");
     root_path.append(sessionfile);
     root_path.append("_sess");
-#ifndef _MSC_VER
-    int fd = open(root_path.c_str(), O_RDWR | O_CREAT | O_TRUNC, 0666);
+    // 不用 O_TRUNC: 抢不到锁时旧 session 必须还活着, 等下次保存
+    int fd = pz_fd_open(root_path.c_str(), O_RDWR | O_CREAT | PZ_O_BINARY, 0666);
     if (fd == -1)
     {
-        // perror("open");
         return;
     }
 
-#ifndef _WIN32
-    // 锁住整个文件
+#ifdef _WIN32
+    // 抢不到锁就本次不写, sessionfile_time 不推进, 下一次 save_session() 重试
+    auto native_handle = (HANDLE)_get_osfhandle(fd);
+    if (!LockFile(native_handle, 0, 0, 0, MAXDWORD))
+    {
+        pz_fd_close(fd);
+        return;
+    }
+#else
     struct flock lock = {};
     lock.l_type       = F_WRLCK;
     lock.l_whence     = 0;
     lock.l_start      = 0;
     lock.l_len        = 0;
-
-    lock.l_pid = 0;
+    lock.l_pid        = 0;
 
     if (fcntl(fd, F_SETLKW, &lock) == -1)
     {
-        return;
-    }
-#else
-    // lock file by using win32 api
-    auto native_handle = (HANDLE)_get_osfhandle(fd);
-    if (!LockFile(native_handle, 0, 0, 0, MAXDWORD))
-    {
+        pz_fd_close(fd);
         return;
     }
 #endif
+
+    // 拿到锁之后才截断
+    if (pz_fd_trunc(fd, 0) != 0)
+    {
+        DEBUG_LOG("save session file truncate failed %s", root_path.c_str());
+#ifdef _WIN32
+        UnlockFile(native_handle, 0, 0, 0, MAXDWORD);
+#else
+        lock.l_type = F_UNLCK;
+        fcntl(fd, F_SETLKW, &lock);
+#endif
+        pz_fd_close(fd);
+        return;
+    }
 
     temp_session_file = session.to_json();
 
-    ssize_t n = write(fd, temp_session_file.data(), temp_session_file.size());
-    if (n > 0)
-    {
-        n = 0;
-    }
-
-#ifndef _WIN32
-    lock.l_type = F_UNLCK;
-    if (fcntl(fd, F_SETLKW, &lock) == -1)
-    {
-
-        return;
-    }
+#ifdef _WIN32
+    int n_write = pz_fd_write(fd, temp_session_file.data(), static_cast<unsigned int>(temp_session_file.size()));
 #else
-    if (!UnlockFile(native_handle, 0, 0, 0, MAXDWORD))
+    ssize_t n_write = pz_fd_write(fd, temp_session_file.data(), temp_session_file.size());
+#endif
+    if (n_write < 0 || static_cast<std::size_t>(n_write) != temp_session_file.size())
     {
-        return;
+        DEBUG_LOG("save session file write failed %s", root_path.c_str());
     }
+
+#ifdef _WIN32
+    UnlockFile(native_handle, 0, 0, 0, MAXDWORD);
+#else
+    lock.l_type = F_UNLCK;
+    fcntl(fd, F_SETLKW, &lock);
 #endif
 
-    close(fd);
-#endif
+    pz_fd_close(fd);
     sessionfile_time = timeid();
 }
 void httppeer::clear_session()

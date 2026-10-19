@@ -8,6 +8,7 @@
 #include <string>
 #include <ctime>
 #include <cmath>
+#include "pz_fileio.h"
 #include "terminal_color.h"
 #include <openssl/sha.h>
 #include <openssl/evp.h>
@@ -90,62 +91,55 @@ void orm_connect_mar_t::save_log(const std::string &filename)
         return;
     }
 
-#ifndef _WIN32
-    struct flock lockstr = {};
-#endif
-
-#ifndef _MSC_VER
-    int fd = open(filename.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0640);
+    int fd = pz_fd_open(filename.c_str(), O_WRONLY | O_CREAT | O_APPEND | PZ_O_BINARY, 0640);
     if (fd == -1)
     {
         return;
     }
 
-#ifndef _WIN32
-    lockstr.l_type   = F_WRLCK;
-    lockstr.l_whence = SEEK_END;
-    lockstr.l_start  = 0;
-    lockstr.l_len    = 0;
+#ifdef _WIN32
+    // 锁 [0, 4GB) 覆盖 O_APPEND 的追加区间, 与 POSIX 的 SEEK_END/l_len=0 等价
+    auto native_handle = (HANDLE)_get_osfhandle(fd);
+    if (!LockFile(native_handle, 0, 0, 0, MAXDWORD))
+    {
+        pz_fd_close(fd);
+        return;
+    }
+#else
+    struct flock lockstr = {};
+    lockstr.l_type       = F_WRLCK;
+    lockstr.l_whence     = SEEK_END;
+    lockstr.l_start      = 0;
+    lockstr.l_len        = 0;
 
     lockstr.l_pid = 0;
 
     if (fcntl(fd, F_SETLK, &lockstr) == -1)
     {
-        close(fd);
-        return;
-    }
-#else
-    // 锁 [0, 4GB) 覆盖 O_APPEND 的追加区间, 与 POSIX 的 SEEK_END/l_len=0 等价
-    auto native_handle = (HANDLE)_get_osfhandle(fd);
-    if (!LockFile(native_handle, 0, 0, 0, MAXDWORD))
-    {
-        close(fd);
+        pz_fd_close(fd);
         return;
     }
 #endif
-    std::size_t n_write = write(fd, temp_file_content.data(), temp_file_content.size());
-    if (n_write != temp_file_content.size())
+
+#ifdef _WIN32
+    // _write 的长度参数是 unsigned int; push_log 的门限是 2MB, 追加内容远小于该上限
+    int n_write = pz_fd_write(fd, temp_file_content.data(), static_cast<unsigned int>(temp_file_content.size()));
+#else
+    ssize_t n_write = pz_fd_write(fd, temp_file_content.data(), temp_file_content.size());
+#endif
+    if (n_write < 0 || static_cast<std::size_t>(n_write) != temp_file_content.size())
     {
         // 日志写入失败（磁盘满/IO错误），忽略以免影响主流程
         n_write = 0;
     }
 
-#ifndef _WIN32
-    lockstr.l_type = F_UNLCK;
-    if (fcntl(fd, F_SETLK, &lockstr) == -1)
-    {
-        close(fd);
-        return;
-    }
+#ifdef _WIN32
+    UnlockFile(native_handle, 0, 0, 0, MAXDWORD);
 #else
-    if (!UnlockFile(native_handle, 0, 0, 0, MAXDWORD))
-    {
-        close(fd);
-        return;
-    }
+    lockstr.l_type = F_UNLCK;
+    fcntl(fd, F_SETLK, &lockstr);
 #endif
-    close(fd);
-#endif
+    pz_fd_close(fd);
 }
 void orm_connect_mar_t::watch_mysql_connect(std::weak_ptr<mysql_conn_base> conn)
 {
