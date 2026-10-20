@@ -19,6 +19,7 @@
 #include <vector>
 #include <set>
 #include <cmath>
+#include <cstdlib>   // std::exit
 #include "mysql_conn.h"
 #include "orm_conn_pool.h"
 #include "pg_conn.h"
@@ -234,6 +235,15 @@ void assign_field_value(unsigned char index_pos, unsigned char *result_temp_data
             if (result_temp_data[i] == '(')
             {
                 i++;
+                // 括号内开头是引号 = enum/set 枚举串, 跳过整个 (...)
+                // MySQL SHOW COLUMNS 返回 enum('a','b') / set('x','y'), 不是纯数字格式
+                if (i < value_size && (result_temp_data[i] == '\'' || result_temp_data[i] == '"'))
+                {
+                    for (; i < value_size; i++)
+                        if (result_temp_data[i] == ')')
+                            break;
+                    break;
+                }
                 for (; i < value_size; i++)
                 {
                     if (result_temp_data[i] == ')')
@@ -1892,8 +1902,9 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
 
     if (template_content.size() == 0)
     {
-        std::cout << "You must execute the CLI command in the project root directory." << std::endl;
-        return;
+        std::cerr << "[FAIL] ORM template not found or empty. "
+                  << "You must execute the CLI command in the project root directory." << std::endl;
+        std::exit(1);
     }
 
     // --- leftJoin/innerJoin 字符串版: 注入命名空间前缀(目前先不用, 因为org_table不好弄) ---
@@ -1907,36 +1918,45 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
     if (db_type == DBType::POSTGRESQL)
     {
         n = string_replace_all(template_content, "HTTP_POSTGRESQL_ORM_HPP", header_name);
+        if (n == 0)
+            std::cerr << "  [WARN] template placeholder 'HTTP_POSTGRESQL_ORM_HPP' not found" << std::endl;
     }
     else if (db_type == DBType::SQLITE)
     {
         n = string_replace_all(template_content, "HTTP_SQLITE_ORM_HPP", header_name);
+        if (n == 0)
+            std::cerr << "  [WARN] template placeholder 'HTTP_SQLITE_ORM_HPP' not found" << std::endl;
     }
     else
     {
         n = string_replace_all(template_content, "HTTP_MYSQL_ORM_HPP", header_name);
-    }
-    if (n == 0)
-    {
-        //error
+        if (n == 0)
+            std::cerr << "  [WARN] template placeholder 'HTTP_MYSQL_ORM_HPP' not found" << std::endl;
     }
     n = string_replace_all(template_content, "mysql_orm", modelName_m);
     if (n == 0)
-    {
-        //error
-    }
+        std::cerr << "  [WARN] template placeholder 'mysql_orm' not found" << std::endl;
+
     std::string model_name_info = "#include \"" + real_model_name + "_base.h\"\n/*baseincludefile*/";
     n                           = string_replace(template_content, "/*baseincludefile*/", model_name_info);
+    if (n == 0)
+        std::cerr << "  [WARN] template placeholder '/*baseincludefile*/' not found" << std::endl;
 
     model_name_info = real_model_name;
     model_name_info.append("_info::cols");
 
     n = string_replace_all(template_content, "typename B_BASE::cols", model_name_info);
+    if (n == 0)
+        std::cerr << "  [WARN] template placeholder 'typename B_BASE::cols' not found" << std::endl;
 
     model_name_info = real_model_name;
     model_name_info.append("_info::meta");
     n = string_replace(template_content, "{{date}}", getgmtdatetime());
+    if (n == 0)
+        std::cerr << "  [WARN] template placeholder '{{date}}' not found" << std::endl;
     n = string_replace_all(template_content, "typename B_BASE::meta", model_name_info);
+    if (n == 0)
+        std::cerr << "  [WARN] template placeholder 'typename B_BASE::meta' not found" << std::endl;
 
     // 预编译语句方法引用模型列名数组：col_names 定义在 {model}_info 命名空间（非 world_base 成员），
     // 模板里写作 B_BASE::col_names，此处替换为 {model}_info::col_names。
@@ -1945,20 +1965,31 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
     std::string col_names_ref = real_model_name;
     col_names_ref.append("_info::col_names");
     n = string_replace_all(template_content, "B_BASE::col_names", col_names_ref);
+    if (n == 0)
+        std::cerr << "  [WARN] template placeholder 'B_BASE::col_names' not found" << std::endl;
 
     // get_field_value 是 opsql 类自身成员（由生成器注入），去掉 B_BASE:: 限定
     n = string_replace_all(template_content, "B_BASE::get_field_value", "get_field_value");
+    if (n == 0)
+        std::cerr << "  [WARN] template placeholder 'B_BASE::get_field_value' not found" << std::endl;
 
     // get_insert_field_value 同为生成器注入的 opsql 成员（预编译 INSERT 专用，自增主键 0→NULL）
     n = string_replace_all(template_content, "B_BASE::get_insert_field_value", "get_insert_field_value");
+    if (n == 0)
+        std::cerr << "  [WARN] template placeholder 'B_BASE::get_insert_field_value' not found" << std::endl;
 
     // auto_pk_index 放到 _info namespace 里（始终存在，-1=无自增主键），与 col_names/auto_pk_name 同级
     std::string auto_pk_index_ref = real_model_name;
     auto_pk_index_ref.append("_info::auto_pk_index");
     n = string_replace_all(template_content, "B_BASE::auto_pk_index", auto_pk_index_ref);
+    if (n == 0)
+        std::cerr << "  [WARN] template placeholder 'B_BASE::auto_pk_index' not found" << std::endl;
+
     if (real_tag.size() > 0)
     {
         n = string_replace(template_content, "/*tagnamespace*/", "namespace " + real_tag);
+        if (n == 0)
+            std::cerr << "  [WARN] template placeholder '/*tagnamespace*/' not found" << std::endl;
     }
     else
     {
@@ -2432,8 +2463,8 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
     fp = fopen(template_file.c_str(), "wb");
     if (fp == NULL)
     {
-        std::cout << "\033[1m\033[31mError\033[0m open file fail: " << template_file << std::endl;
-        return;
+        std::cerr << "[FAIL] ORM write open fail: " << template_file << std::endl;
+        std::exit(1);
     }
     fwrite(template_content.data(), 1, template_content.size(), fp);
     fclose(fp);
@@ -2985,8 +3016,8 @@ int create_orm_model_baseinfo_file(const std::string &prj_root_path, const std::
     FILE *f = fopen(filebasename.c_str(), "wb");
     if (!f)
     {
-        std::cout << "\033[1m\033[31mError\033[0m open file fail: " << filebasename << std::endl;
-        return 0;
+        std::cerr << "[FAIL] ORM model write open fail: " << filebasename << std::endl;
+        std::exit(1);
     }
     headtxt.append("ORM_");
     headtxt.append(rmstag);
@@ -4764,6 +4795,7 @@ namespace )";
     headtxt.clear();
 
     filemodelstrem.str("");
+
     // 用 inline(constexpr) 而非 static constexpr: col_names 的地址会作为 NTTP 实参
     // (orm::table_col<B_BASE, &xxx_info::col_names>), static 是内部链接、每个 TU 一份副本,
     // 会让该特化在不同 TU 指向不同对象(严格来说是 IFNDR)。inline 保证全程序唯一实体。
@@ -4791,7 +4823,7 @@ namespace )";
     }
     filemodelstrem << "};\r\n";
 
-    filemodelstrem << "\tstatic constexpr std::array<unsigned short," << std::to_string(table_column_info_lists.size()) << "> col_length={";
+    filemodelstrem << "\tstatic constexpr std::array<unsigned int," << std::to_string(table_column_info_lists.size()) << "> col_length={";
 
     for (unsigned char j = 0; j < table_column_info_lists.size(); j++)
     {
@@ -5136,7 +5168,14 @@ struct )";
                                 if (samenum == 1 && butong_has[butong_pos[indexchar]] == 0)
                                 {
                                     butong_has[butong_pos[indexchar]] = 1;
-                                    filemodelstrem << " if(coln.size()>" << std::to_string(iii) << "&&(coln[" << std::to_string(iii) << "]=='" << (char)indexchar << "'||coln[" << std::to_string(iii) << "]=='" << (char)(indexchar - 32) << "')){ return " << std::to_string(butong_pos[indexchar]) << "; }\n";
+                                    filemodelstrem << " if(coln.size()>" << std::to_string(iii) << "&&coln[" << std::to_string(iii) << "]=='" << (char)indexchar << "'";
+                                    // 仅当 indexchar 是小写字母时才追加大写 OR 分支, 实现大小写不敏感匹配;
+                                    // 数字/下划线等没有对应的大小写变体, 不应盲目减 32 生成无意义控制字符分支
+                                    if (indexchar >= 'a' && indexchar <= 'z')
+                                    {
+                                        filemodelstrem << "||coln[" << std::to_string(iii) << "]=='" << (char)(indexchar - 32) << "'";
+                                    }
+                                    filemodelstrem << "){ return " << std::to_string(butong_pos[indexchar]) << "; }\n";
                                 }
                             }
                         }
@@ -10938,6 +10977,16 @@ dbtype=mysql
 
         model_name.clear();
         model_name = table_lists[i_table].substr(link_config_item.pretable.size());
+
+        // 列数硬上限: std::array<unsigned char, N> 元素类型语义要求索引 < 256;
+        // 契约违反是硬错误, 直接退出进程让用户第一时间看到, 而不是静默继续或死循环
+        if (table_column_info_lists.size() > 255)
+        {
+            std::cerr << "  [FAIL] ORM gen: table '" << table_lists[i_table]
+                      << "' has " << table_column_info_lists.size()
+                      << " columns, exceeding tool limit of 255." << std::endl;
+            std::exit(1);
+        }
 
         //create orm operate file
         auto it_fk                         = fk_map.find(table_lists[i_table]);

@@ -153,10 +153,22 @@ inline int migrate_cli(const std::string &dbtag1 = "", const std::string &dbtag2
     std::cout << "  Target type: " << db_type_display(dst_type) << std::endl;
 
     // 同源同目标检查: SQLite 比较文件路径, 网络库比较 host/port/dbname/user
+    // SQLite 的路径要先归一化再比: ./data/a.db、data/../data/a.db 和 data/a.db 是同一个文件,
+    // 按字符串相等认不出来, 自迁移保护就形同虚设。目标库文件可能还没创建, 所以用
+    // weakly_canonical (不要求文件存在, canonical 会抛); 归一化失败时退回原始字符串比较。
     bool same_db = false;
     if (src_type == DB_TYPE::SQLITE || dst_type == DB_TYPE::SQLITE)
     {
-        same_db = (src_type == dst_type) && (sqlite_conn_path(src_config) == sqlite_conn_path(dst_config));
+        if (src_type == dst_type)
+        {
+            std::string src_path = sqlite_conn_path(src_config);
+            std::string dst_path = sqlite_conn_path(dst_config);
+            std::error_code ec_src;
+            std::error_code ec_dst;
+            fs::path src_key   = fs::weakly_canonical(src_path, ec_src);
+            fs::path dst_key   = fs::weakly_canonical(dst_path, ec_dst);
+            same_db            = (ec_src || ec_dst) ? (src_path == dst_path) : (src_key == dst_key);
+        }
     }
     else
     {
@@ -443,11 +455,15 @@ inline int migrate_cli(const std::string &dbtag1 = "", const std::string &dbtag2
                 }
             }
 
+            unsigned long long batch_written = 0;
             for (auto &row : batch_rows)
             {
                 std::string ins_err;
                 if (insert_row(dst.conn, dst_type, table_info.table_name, table_info.fields, row, ins_err))
+                {
                     rows_written++;
+                    batch_written++;
+                }
                 else
                 {
                     rows_failed++;
@@ -460,10 +476,11 @@ inline int migrate_cli(const std::string &dbtag1 = "", const std::string &dbtag2
                 auto dst_sqlite = dst.get<orm::sqlite_conn_base>();
                 if (dst_sqlite->exec_sql("COMMIT") < 0)
                 {
-                    // COMMIT 失败 = 整批回滚, 这批不能算写出
+                    // COMMIT 失败 = 整批回滚, 这批报成功的行一条都没落库。
+                    // 只把本批写出的那部分退回失败数：逐行已经报过的 INSERT 失败不再重复计一次。
                     std::cerr << "\n  \033[31m[FAIL]\033[0m COMMIT failed: " << dst_sqlite->error_msg << std::flush;
-                    rows_written = rows_written > batch_rows.size() ? rows_written - batch_rows.size() : 0;
-                    rows_failed += batch_rows.size();
+                    rows_written -= batch_written;
+                    rows_failed += batch_written;
                 }
             }
 

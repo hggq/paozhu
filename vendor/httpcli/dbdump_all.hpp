@@ -31,6 +31,7 @@ using dbtypes::build_insert_sql_pg;
 using dbtypes::build_insert_sql_sqlite;
 using dbtypes::build_source_column_expr;
 using dbtypes::check_row_width;
+using dbtypes::collect_pk_columns;
 using dbtypes::convert_table_for_target;
 using dbtypes::create_connection;
 using dbtypes::db_table_info;
@@ -274,10 +275,32 @@ inline int dump_all_cli(const std::string &dbtag           = "",
             select_cols += build_source_column_expr(src_type, table_info.fields[i]);
         }
 
+        // 无 ORDER BY 的 LIMIT/OFFSET 不保证行序稳定，源表边导出边被写入时会重读或漏读。
+        // 有主键按主键排序分页；无主键不拒单（导出是只读动作），但真翻到第二页时提醒一次。
+        std::vector<std::string> pk_cols = collect_pk_columns(table_info);
+        bool can_page_order              = !pk_cols.empty();
+        bool warned_no_pk                = false;
+
         while (true)
         {
-            std::string data_sql = "SELECT " + select_cols + " FROM " + quote_identifier(src_type, table_name) +
-                                   " LIMIT " + std::to_string(batch_size) + " OFFSET " + std::to_string(offset);
+            std::string data_sql = "SELECT " + select_cols + " FROM " + quote_identifier(src_type, table_name);
+            if (can_page_order)
+            {
+                data_sql += " ORDER BY ";
+                for (size_t i = 0; i < pk_cols.size(); i++)
+                {
+                    if (i > 0)
+                        data_sql += ", ";
+                    data_sql += quote_identifier(src_type, pk_cols[i]);
+                }
+            }
+            else if (offset > 0 && !warned_no_pk)
+            {
+                warned_no_pk = true;
+                std::cout << " \033[33m[WARN]\033[0m no primary key: paging past " << exported
+                          << " rows without ORDER BY, rows may repeat or be skipped if this table is being written" << std::flush;
+            }
+            data_sql += " LIMIT " + std::to_string(batch_size) + " OFFSET " + std::to_string(offset);
 
             std::vector<dbtypes::row_data_t> batch_rows;
             bool fetch_ok = fetch_rows(src.conn, src_type, data_sql, batch_rows);

@@ -51,8 +51,8 @@ int main(int argc, char *argv[])
                      "  paozhu_cli json          update json reflect files\n"
                      "  paozhu_cli orm <dbtag>   update ORM files, dbtag e.g. cms (see conf/orm.conf)\n"
                      "  paozhu_cli dbmigrate <dbtag1> <dbtag2> [force]  migrate database\n"
-                     "  paozhu_cli dbdump-schema <dbtag> <filename.sql> [-target=mysql|pg]  export table structures\n"
-                     "  paozhu_cli dbdump-all <dbtag> <filename.sql> [-target=mysql|pg]     export schema + data\n"
+                     "  paozhu_cli dbdump-schema <dbtag> <filename.sql> [-target=mysql|pg] [-nodrop]  export table structures\n"
+                     "  paozhu_cli dbdump-all <dbtag> <filename.sql> [-target=mysql|pg] [-nodrop]      export schema + data\n"
                      "  paozhu_cli schema-check [tag]                   verifies schema/<tag>/tables/*.sql whole\n"
                      "  paozhu_cli schema-regen <tag> [-dry-run]        use gen_ddl() rewrite normalized SQL\n"
                      "  paozhu_cli dbcreate <dbtag> [-u <admin>]        Create database + user + optional import\n"
@@ -115,7 +115,7 @@ int main(int argc, char *argv[])
     {
         if (argc < 4)
         {
-            std::cout << "Usage: paozhu_cli dbdump-schema <dbtag> <filename.sql> [-target=mysql|postgresql]" << std::endl;
+            std::cout << "Usage: paozhu_cli dbdump-schema <dbtag> <filename.sql> [-target=mysql|postgresql] [-nodrop]" << std::endl;
             std::cout << "  dbtag:    database tag (from conf/orm.conf)" << std::endl;
             std::cout << "  filename: output SQL file path" << std::endl;
             std::cout << "  -target:  target database type for DDL conversion (optional)" << std::endl;
@@ -123,6 +123,7 @@ int main(int argc, char *argv[])
         }
 
         std::string target_arg;
+        bool nodrop = false;
         for (int i = 4; i < argc; i++)
         {
             std::string arg = argv[i];
@@ -130,16 +131,20 @@ int main(int argc, char *argv[])
             {
                 target_arg = arg.substr(8);
             }
+            else if (arg == "-nodrop")
+            {
+                nodrop = true;
+            }
         }
 
-        return dbdump::dump_schema_cli(argv[2], argv[3], target_arg);
+        return dbdump::dump_schema_cli(argv[2], argv[3], target_arg, !nodrop);
     }
 
     if (commandstr == "dbdump-all")
     {
         if (argc < 4)
         {
-            std::cout << "Usage: paozhu_cli dbdump-all <dbtag> <filename.sql> [-target=mysql|postgresql]" << std::endl;
+            std::cout << "Usage: paozhu_cli dbdump-all <dbtag> <filename.sql> [-target=mysql|postgresql] [-nodrop]" << std::endl;
             std::cout << "  dbtag:    database tag (from conf/orm.conf)" << std::endl;
             std::cout << "  filename: output SQL file path" << std::endl;
             std::cout << "  -target:  target database type for DDL conversion (optional)" << std::endl;
@@ -147,6 +152,7 @@ int main(int argc, char *argv[])
         }
 
         std::string target_arg;
+        bool nodrop = false;
         for (int i = 4; i < argc; i++)
         {
             std::string arg = argv[i];
@@ -154,9 +160,13 @@ int main(int argc, char *argv[])
             {
                 target_arg = arg.substr(8);
             }
+            else if (arg == "-nodrop")
+            {
+                nodrop = true;
+            }
         }
 
-        return dbdump::dump_all_cli(argv[2], argv[3], target_arg);
+        return dbdump::dump_all_cli(argv[2], argv[3], target_arg, !nodrop);
     }
 
     if (commandstr == "schema-check")

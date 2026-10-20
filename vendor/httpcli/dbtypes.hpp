@@ -584,6 +584,23 @@ inline std::string mysql_type_to_pg(const std::string &mysql_type, unsigned int 
     return type_lower;
 }
 
+// MySQL 里同样存在这些类型名（可以带参数），源库写法原样保留不丢信息；
+// 其余是 PG 专有写法（bpchar/varbit/interval/money/cidr/inet/macaddr/tsvector/xml，
+// 数组类型名形如 _text），拼进 MySQL DDL 会被服务端当成语法错误，整表建不出来。
+inline bool mysql_has_same_decl_name(const std::string &name_lower)
+{
+    static const char *const same[] = {"int",    "integer", "decimal",   "numeric", "float",  "double",
+                                       "bit",    "char",    "varchar",   "binary",  "varbinary", "text",
+                                       "blob",   "date",    "time",      "datetime", "timestamp", "year",
+                                       "json"};
+    for (const char *one : same)
+    {
+        if (name_lower == one)
+            return true;
+    }
+    return false;
+}
+
 inline std::string pg_type_to_mysql(const std::string &pg_type, unsigned int length, unsigned char decimals = 0)
 {
     std::string type_lower = to_lower(pg_type);
@@ -637,13 +654,29 @@ inline std::string pg_type_to_mysql(const std::string &pg_type, unsigned int len
     if (type_lower == "json" || type_lower == "jsonb")
         return "longtext";
 
+    // 兜底: 上面没列到的写法不能原样进 MySQL DDL。
+    // "基名(参数)" 且基名 MySQL 也认 (如 numeric(10,2)、bit(8)) 才原样保留,
+    // 其余一律降级成 text 并告警——产物至少还能回放到目标库。
     size_t bracket_pos = type_lower.find('(');
     if (bracket_pos != std::string::npos)
     {
-        return pg_type;
+        std::string base = trim(type_lower.substr(0, bracket_pos));
+        if (base == "double precision")
+            return "double";
+        if (!type_lower.empty() && type_lower.back() == ')' && mysql_has_same_decl_name(base))
+        {
+            return pg_type;
+        }
+        std::cout << "  [WARN] pg_type_to_mysql: unmapped type '" << pg_type << "' written as TEXT" << std::endl;
+        return "text";
     }
 
-    return pg_type;
+    if (mysql_has_same_decl_name(type_lower))
+    {
+        return pg_type;
+    }
+    std::cout << "  [WARN] pg_type_to_mysql: unmapped type '" << pg_type << "' written as TEXT" << std::endl;
+    return "text";
 }
 
 // ===================== SQLite 类型映射 (保留原始声明策略) =====================

@@ -4,8 +4,7 @@
 // 功能:
 //   1. load_schema_fallback()  — DB 不可用时从 SQL 文件加载表结构
 //   2. schema_check_tag()      — 校验单个 tag 的 SQL 文件完整性
-//   3. schema_check_all()      — 校验所有已存在的 tag
-//   4. schema_regen_sql()      — 用 dbtypes::gen_ddl() 重写规范化 SQL
+//   3. schema_regen_sql()      — 用 dbtypes::gen_ddl() 重写规范化 SQL
 //
 // 依赖: dbtypes.hpp (parse_pg_ddl / parse_sqlite_ddl / parse_mysql_show_create / gen_ddl)
 // ============================================================
@@ -152,9 +151,9 @@ inline int schema_check_tag(const std::string &tag, DBType db_type)
         rep.filename = path.filename().string();
 
         // 读文件
-        std::ifstream fs(path);
+        std::ifstream ifs(path);
         std::stringstream ss;
-        ss << fs.rdbuf();
+        ss << ifs.rdbuf();
         std::string sql = ss.str();
 
         // 解析
@@ -270,36 +269,6 @@ inline int schema_check_tag(const std::string &tag, DBType db_type)
 }
 
 // ============================================================
-// schema-check: 所有 tag（自动扫描 schema/*/tables/）
-// ============================================================
-inline int schema_check_all()
-{
-    if (!fs::exists("schema"))
-    {
-        std::cout << "schema/ Directory does not exist" << std::endl;
-        return 0;
-    }
-
-    int worst = 0;
-    for (auto &entry : fs::directory_iterator("schema"))
-    {
-        if (!entry.is_directory())
-            continue;
-        std::string tag = entry.path().filename().string();
-
-        // 从 schema 里只有 tables/ 子目录才能校验
-        if (!fs::exists(entry.path() / "tables"))
-            continue;
-
-        // 默认按 MySQL 解析（保守选择）；用户如需精确可单独指定
-        int rc = schema_check_tag(tag, DBType::MYSQL);
-        if (rc > worst)
-            worst = rc;
-    }
-    return worst;
-}
-
-// ============================================================
 // schema-regen: 用 gen_ddl() 重写某个 tag 的所有 SQL 文件
 //   先 parse 再 gen_ddl，规范化格式
 // ============================================================
@@ -363,12 +332,14 @@ inline int schema_regen_tag(const std::string &tag, DBType db_type, bool dry_run
 // =================================================================
 
 // 内部: 从 orm::get_orm_config_file() 构建 tag → DBType 映射
+// 只取主库（link_type == 0）：同一 tag 的从库段可能排在前面，
+// 若按出现顺序取第一个，读到的是从库的 dbtype，解析器就选错了。
 inline std::map<std::string, orm::DB_TYPE> load_tag_dbtype_map()
 {
     std::map<std::string, orm::DB_TYPE> m;
     auto cfgs = orm::get_orm_config_file("conf/orm.conf");
     for (const auto &c : cfgs)
-        if (m.find(c.tag) == m.end())// 只取 main 组（第一组）
+        if (c.link_type == 0 && m.find(c.tag) == m.end())
             m[c.tag] = c.db_type;
     return m;
 }
