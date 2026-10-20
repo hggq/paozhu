@@ -2562,6 +2562,12 @@ asio::awaitable<void> httpserver::ring_client_server(std::shared_ptr<client_sess
                 // 事件边：环腾出一个槽位就把本连接挂起的对象重算一遍闸门。 parked 为 0
                 // 时这只是一次原子读，不抢锁；有挂起时逐帧回灌，让发送侧能持续把环填到
                 // 让路阈值，而不是等环彻底排空。
+                // 同一拍先补发本端接收窗口的欠账补量帧：补量帧只可能在环满时被拒，
+                // 而环要继续收帧必须先走到这里这一次 head_ 前移。
+                if (peer_session->has_pending_window_update())
+                {
+                    peer_session->flush_pending_window_update();
+                }
                 if (get_http2_send_queue().parked.load() > 0)
                 {
                     requeue_parked(*peer_session);
@@ -3089,7 +3095,10 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
         // dropped 是"这一帧真的没了"。三者都不报出来，"零丢弃"就只是一句无法核实的说法。
         if (peer_session->http2_ring_overflow_count.load() > 0 ||
             peer_session->http2_ring_queue_drop_count.load() > 0 ||
-            peer_session->http2_ring_backpressure_count.load() > 0)
+            peer_session->http2_ring_backpressure_count.load() > 0 ||
+            peer_session->http2_window_update_requeue_count.load() > 0 ||
+            peer_session->conn_grant_pending > 0 ||
+            peer_session->stream_grant_pending.empty() == false)
         {
             log_item.clear();
             log_item.append("http2 ring stats overflow ");
@@ -3098,6 +3107,14 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
             log_item.append(std::to_string(peer_session->http2_ring_queue_drop_count.load()));
             log_item.append(" backpressure ");
             log_item.append(std::to_string(peer_session->http2_ring_backpressure_count.load()));
+            // 补量帧被环拒过几次（wu_requeue）、到关闭还欠着多少（wu_pending 连接级/流级条数）。
+            // 后者非零说明这些额度始终没能发出去，是重投机制唯一的失败证据。
+            log_item.append(" wu_requeue ");
+            log_item.append(std::to_string(peer_session->http2_window_update_requeue_count.load()));
+            log_item.append(" wu_pending ");
+            log_item.append(std::to_string(peer_session->conn_grant_pending));
+            log_item.append("/");
+            log_item.append(std::to_string(peer_session->stream_grant_pending.size()));
             // 全局挂起表与在途对象数：连接收尾时这两个都该归零，不归零就是有对象
             // 停在 parked_list 里拽着 peer 和文件句柄（泄漏），这条是运行期唯一的观测手段。
             log_item.append(" parked ");

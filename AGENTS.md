@@ -1371,10 +1371,10 @@ template body, so an unregenerated tree keeps compiling the old code (§5.1).
 
 ```bash
 # Migrate from cms to pg
-./bin/paozhu_cli dbmigrate cms pg
+./bin/paozhu_cli dbconvert cms pg
 
 # Force migration (overwrite existing tables)
-./bin/paozhu_cli dbmigrate cms pg force
+./bin/paozhu_cli dbconvert cms pg force
 ```
 
 ### 6.5 SQL Export
@@ -1730,7 +1730,7 @@ code-generation time, so `orm::Fortune` can only ever talk to the MySQL `[defaul
 section, while `orm::pg::Fortune` and `orm::lite::Fortune` are separate generated classes
 tied to PostgreSQL and SQLite. To run on another engine, generate that tag with
 `./bin/paozhu_cli orm <tag>` and use its namespace; `dbtype` in `orm.conf` decides which
-client a *new* tag gets, and `./bin/paozhu_cli dbmigrate <from> <to>` moves the data
+client a *new* tag gets, and `./bin/paozhu_cli dbconvert <from> <to>` moves the data
 across.
 
 **Q: A predicate the query DSL does not cover — how do I express it in `where()`?**  

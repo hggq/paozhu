@@ -190,6 +190,7 @@ inline int dump_schema_cli(const std::string &dbtag           = "",
     outfile << "-- Host: " << src_config.host << "\n";
     outfile << "-- Export time: " << time_buf << "\n";
     outfile << "-- Tables: " << table_list.size() << "\n";
+    outfile << "-- Drop: " << (include_drop ? "yes" : "no (-nodrop)") << "\n";
     outfile << "-- ============================================\n\n";
 
     if (table_list.empty())

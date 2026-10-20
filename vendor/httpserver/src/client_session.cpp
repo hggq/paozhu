@@ -596,7 +596,10 @@ asio::awaitable<bool> client_session::co_send_switch101()
 asio::awaitable<void> client_session::co_send_setting()
 {
     unsigned char _recvack[] = {0x00, 0x00, 0x0C, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x64, 0x00, 0x04, 0x00, 0xFF, 0xFF, 0xFF};
-    http2_ring_queue->push(_recvack, 21);
+    if (!http2_ring_queue->push(_recvack, 21))
+    {
+        http2_ring_queue_drop_count++;
+    }
     co_return;
 }
 
@@ -682,7 +685,7 @@ void client_session::send_goaway(unsigned int last_stream_id, unsigned int error
     // RFC 7540 §6.8 GOAWAY 帧
     //   帧头(9B): length=8, type=0x07, flags=0, stream_id=0
     //   载荷(8B): last_stream_id(4B) + error_code(4B), network byte order (big-endian)
-    // 大端 = 高位字节在前，参考本文件 send_window_update_conn 的正确写法
+    // 大端 = 高位字节在前，参考本文件 push_window_update_conn 的正确写法
     unsigned char _recvack[17] = {
         0x00,
         0x00,
@@ -702,7 +705,7 @@ void client_session::send_goaway(unsigned int last_stream_id, unsigned int error
         0x00,
         0x00// error_code (big-endian 32bit)
     };
-    // 载荷从字节 9 起（0..8 是 9 字节帧头），下标照 send_window_update_conn 的口径来
+    // 载荷从字节 9 起（0..8 是 9 字节帧头），下标照 push_window_update_conn 的口径来
     // last_stream_id: 从高字节到低字节（big-endian）
     _recvack[9]  = (last_stream_id >> 24) & 0xFF;
     _recvack[10] = (last_stream_id >> 16) & 0xFF;
@@ -784,9 +787,13 @@ asio::awaitable<void> client_session::async_send_goway(unsigned int last_stream_
 void client_session::send_recv_setting()
 {
     unsigned char _recvack[] = {0x00, 0x00, 0x00, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00};
-    http2_ring_queue->push(_recvack, 9);
+    if (!http2_ring_queue->push(_recvack, 9))
+    {
+        http2_ring_queue_drop_count++;
+    }
 }
-void client_session::send_window_update_conn(unsigned int up_num)
+
+bool client_session::push_window_update_conn(unsigned int up_num)
 {
     // 单帧：stream id = 0（连接级）。RFC 9113 §6.9.2：连接级窗口初值恒为 65535，
     // 且只能通过本帧改变，SETTINGS_INITIAL_WINDOW_SIZE 对它无效。
@@ -801,14 +808,10 @@ void client_session::send_window_update_conn(unsigned int up_num)
     up_num                   = up_num >> 8;
     _recvack[9]              = up_num & 0xFF;
 
-    // 丢了只是拖慢对端继续发 body（对端下次 DATA 前会等自己的窗口），不重试。
-    if (!http2_ring_queue->push(_recvack, 13))
-    {
-        http2_ring_queue_drop_count++;
-    }
+    return http2_ring_queue->push(_recvack, 13);
 }
 
-void client_session::send_window_update_stream(unsigned int stmid, unsigned int up_num)
+bool client_session::push_window_update_stream(unsigned int stmid, unsigned int up_num)
 {
     // 单帧：stream id = stmid（流级）。只影响这一条流，不得顺带改动连接级窗口。
     unsigned char _recvack[] = {0x00, 0x00, 0x04, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
@@ -829,9 +832,62 @@ void client_session::send_window_update_stream(unsigned int stmid, unsigned int 
     // RFC 9113 §6.1：流标识符最高位是保留位，发送时必须为 0
     _recvack[5] = stmid & 0x7F;
 
-    if (!http2_ring_queue->push(_recvack, 13))
+    return http2_ring_queue->push(_recvack, 13);
+}
+
+void client_session::grant_conn_window(unsigned int up_num)
+{
+    if (up_num == 0)
     {
-        http2_ring_queue_drop_count++;
+        return;
+    }
+    // 一笔补量 = 把对端恢复到本端计数 FULL 所需的量，所以欠账之和不会超过 FULL，
+    // 合帧重投也就不需要按 2^31-1 钳制。
+    conn_grant_pending += up_num;
+    if (push_window_update_conn(conn_grant_pending))
+    {
+        conn_grant_pending = 0;
+        return;
+    }
+    http2_window_update_requeue_count++;
+}
+
+void client_session::grant_stream_window(unsigned int stmid, unsigned int up_num)
+{
+    if (up_num == 0)
+    {
+        return;
+    }
+    unsigned int &pending = stream_grant_pending[stmid];
+    pending += up_num;
+    if (push_window_update_stream(stmid, pending))
+    {
+        stream_grant_pending.erase(stmid);
+        return;
+    }
+    http2_window_update_requeue_count++;
+}
+
+void client_session::flush_pending_window_update()
+{
+    if (conn_grant_pending > 0)
+    {
+        if (!push_window_update_conn(conn_grant_pending))
+        {
+            // 环又满了：整笔留在账上，下一个腾出的槽位再来一次
+            http2_window_update_requeue_count++;
+            return;
+        }
+        conn_grant_pending = 0;
+    }
+    for (auto iter = stream_grant_pending.begin(); iter != stream_grant_pending.end();)
+    {
+        if (!push_window_update_stream(iter->first, iter->second))
+        {
+            http2_window_update_requeue_count++;
+            break;
+        }
+        iter = stream_grant_pending.erase(iter);
     }
 }
 

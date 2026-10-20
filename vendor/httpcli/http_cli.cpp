@@ -19,7 +19,7 @@
 #include "tmplatefun.hpp"
 #include "ccontrollfun.hpp"
 #include "modelfun.hpp"
-#include "dbmigrate.hpp"
+#include "dbconvert.hpp"
 #include "dbdump_schema.hpp"
 #include "dbdump_all.hpp"
 #include "dbschema_check.hpp"
@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
                      "  paozhu_cli view force    force regenerate all view templates to cpp\n"
                      "  paozhu_cli json          update json reflect files\n"
                      "  paozhu_cli orm <dbtag>   update ORM files, dbtag e.g. cms (see conf/orm.conf)\n"
-                     "  paozhu_cli dbmigrate <dbtag1> <dbtag2> [force]  migrate database\n"
+                     "  paozhu_cli dbconvert <dbtag1> <dbtag2> [force]  convert database\n"
                      "  paozhu_cli dbdump-schema <dbtag> <filename.sql> [-target=mysql|pg] [-nodrop]  export table structures\n"
                      "  paozhu_cli dbdump-all <dbtag> <filename.sql> [-target=mysql|pg] [-nodrop]      export schema + data\n"
                      "  paozhu_cli schema-check [tag]                   verifies schema/<tag>/tables/*.sql whole\n"
@@ -59,8 +59,8 @@ int main(int argc, char *argv[])
                      "Example:\n"
                      "  paozhu_cli orm pg                               generate ORM from PostgreSQL [pg]\n"
                      "  paozhu_cli orm default                          generate ORM from MySQL [default]\n"
-                     "  paozhu_cli dbmigrate cms pg                     migrate MySQL [cms] to PG [pg]\n"
-                     "  paozhu_cli dbmigrate cms pg force               migrate, overwrite existing\n"
+                     "  paozhu_cli dbconvert cms pg                     convert MySQL [cms] to PG [pg]\n"
+                     "  paozhu_cli dbconvert cms pg force               convert, overwrite existing\n"
                      "  paozhu_cli dbdump-schema cms ./schema.sql       export MySQL [cms] to SQL file\n"
                      "  paozhu_cli dbdump-schema cms ./pg.sql -target=pg export MySQL as PG DDL\n"
                      "  paozhu_cli dbdump-all cms ./dump.sql            export MySQL schema+data\n"
@@ -98,17 +98,17 @@ int main(int argc, char *argv[])
         return modelcli(argv[2]);
     }
 
-    if (commandstr == "dbmigrate")
+    if (commandstr == "dbconvert")
     {
         if (argc < 4)
         {
-            std::cout << "Usage: paozhu_cli dbmigrate <dbtag1> <dbtag2> [force]" << std::endl;
+            std::cout << "Usage: paozhu_cli dbconvert <dbtag1> <dbtag2> [force]" << std::endl;
             std::cout << "  dbtag1: source database tag (from conf/orm.conf)" << std::endl;
             std::cout << "  dbtag2: target database tag (from conf/orm.conf)" << std::endl;
             std::cout << "  force:  drop and recreate if table already exists (optional)" << std::endl;
             return 1;
         }
-        return dbmigrate::migrate_cli(argv[2], argv[3], (argc >= 5 ? argv[4] : ""));
+        return dbconvert::convert_cli(argv[2], argv[3], (argc >= 5 ? argv[4] : ""));
     }
 
     if (commandstr == "dbdump-schema")

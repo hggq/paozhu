@@ -121,6 +121,13 @@ void httpparse::procssparamter(std::string_view header_temp, std::string_view he
                 }
             }
 
+            // [ 后没找到对应的 ] — 畸形 key: a[ / a[b[ / a[bc 等
+            if (!ishaskey)
+            {
+                error = 40007;
+                return;
+            }
+
             std::string key2name;
             if (ishaskey)
             {
@@ -308,11 +315,13 @@ void httpparse::procssparamter(std::string_view header_temp, std::string_view he
                     j       = n;
                     isgroup = false;
                 }
-                else
+                else if (header_temp[n] != '[')
                 {
-
-                    // 没有数组
+                    // 解析完一级 key 后既不是二级 [ 也不是行尾 — 畸形 key: a[]x] / a[b]c 等
+                    error = 40007;
+                    return;
                 }
+                // else header_temp[n] == '[' — 进入第二级 key 解析 (保持原逻辑)
             }
             if (isgroup)
             {
@@ -1184,40 +1193,35 @@ void httpparse::getaccept(std::string_view header_value)
             switch (buffer_value.length())
             {
             case 10:
-                if (buffer_value[6] == 'a' && buffer_value[7] == 'v' && buffer_value[8] == 'i' &&
-                    buffer_value[9] == 'f')
+                // 只看 [6..9] 会被 application/xxxavif 等 10 字节串误命中, 必须确认前缀是 image/
+                if (str_casecmp(buffer_value, "image/avif"))
                 {
                     peer->state.avif = true;
                 }
-                else if (buffer_value[6] == 'w' && buffer_value[7] == 'e' && buffer_value[8] == 'b' &&
-                         buffer_value[9] == 'p')
+                else if (str_casecmp(buffer_value, "image/webp"))
                 {
                     peer->state.webp = true;
                 }
                 break;
             case 16:
-                //application/json
                 if (str_casecmp(buffer_value, "application/json"))
                 {
                     peer->state.accept_json = true;
                 }
                 break;
             case 15:
-                //application/xml
                 if (str_casecmp(buffer_value, "application/xml"))
                 {
                     peer->state.accept_xml = true;
                 }
                 break;
             case 9:
-                //text/json
                 if (str_casecmp(buffer_value, "text/json"))
                 {
-                    peer->state.accept_xml = true;
+                    peer->state.accept_json = true;
                 }
                 break;
             case 8:
-                //text/xml
                 if (str_casecmp(buffer_value, "text/xml"))
                 {
                     peer->state.accept_xml = true;

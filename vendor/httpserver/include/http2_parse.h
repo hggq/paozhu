@@ -301,6 +301,9 @@ class http2parse
     void procssparamter(std::string_view buffer_key, std::string_view buffer_value, std::shared_ptr<httppeer> steam_httppeer);
     void process_pack();
     void read_pack_data(const unsigned char *buffer, unsigned int buffersize);
+    // 收到的字节按实从本端接收窗口扣掉；扣到阈值以下就把这一笔补量记下来投递。
+    // 扣减是饱和的（不小于 0），给「收下了但正文不要」的出口用。
+    void consume_conn_window(unsigned int bytes);
 
   public:
     unsigned int error      = 0;
@@ -314,10 +317,10 @@ class http2parse
     bool        error_is_conn    = true;
     unsigned int readoffset = 0;
 
-    // // 头部块是否进行中：某流 HEADERS/CONTINUATION 尚未 END_HEADERS 时为真。
-    // // 用于 RFC 9113 §6.10：进行中收到非 CONTINUATION 帧即连接级 PROTOCOL_ERROR。
-    // // 用单标志替代每帧遍历 http2_header_recvs，避免占用正常分发路径。
-    // bool header_block_pending = false;
+    // 头部块是否进行中：某流 HEADERS/CONTINUATION 尚未 END_HEADERS 时为真。
+    // 用于 RFC 9113 §6.10：进行中收到非 CONTINUATION 帧即连接级 PROTOCOL_ERROR。
+    // 单标志位：正常分发路径仅一条 bool 比较，零开销；罕见的多流交错 pending 时可能提前断连。
+    bool header_block_pending = false;
 
     unsigned int steam_count = 0;
     unsigned int isfinsish   = 0;

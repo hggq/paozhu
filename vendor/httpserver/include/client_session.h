@@ -113,8 +113,19 @@ class client_session : public std::enable_shared_from_this<client_session>
     // WINDOW_UPDATE 必须区分层级：连接级只认 stream id = 0，流级只认具体流。
     // 不能一次推入「连接级 + 流级」两个帧且用同一个增量：那等于每来一个 POST 就把
     // 对端连接窗口顶高 16MB，约 129 次后超过 2^31-1，对端必须按 FLOW_CONTROL_ERROR 断连。
-    void send_window_update_conn(unsigned int up_num);
-    void send_window_update_stream(unsigned int stmid, unsigned int up_num);
+    // 这两个只负责组帧投递，返回是否进了发送环；调用方用下面的 grant_*，不要直接用它们。
+    bool push_window_update_conn(unsigned int up_num);
+    bool push_window_update_stream(unsigned int stmid, unsigned int up_num);
+    // 补量额度先记在账上再投递。投递失败（发送环满）时额度留在账里，由本连接发送环
+    // 每腾出一个槽位重投一次，所以「这一帧没发出去」不再等于「这条链路停摆」。
+    void grant_conn_window(unsigned int up_num);
+    void grant_stream_window(unsigned int stmid, unsigned int up_num);
+    bool has_pending_window_update() const
+    {
+        return conn_grant_pending > 0 || stream_grant_pending.empty() == false;
+    }
+    // 由 ring_client_server 在 head_ 前移之后调用：把记在账上、还没投递出去的补量发走。
+    void flush_pending_window_update();
 
     void http2_send_rst_stream(unsigned int s_stream_id, unsigned int stream_error_code);
     void stop();
@@ -222,12 +233,20 @@ class client_session : public std::enable_shared_from_this<client_session>
     // 这个数目前在哪里打印：http2 连接收尾时的 "http2 ring stats overflow"；原生 socket 收尾时的
     // "tcp ring close ... refuse="。websocket / mqtt 的连接目前没有落这一行的地方。
     std::atomic<unsigned long long> http2_ring_overflow_count = 0;
-    // 无法重投的控制帧（RST / GOAWAY / WINDOW_UPDATE）被环满丢掉的次数：
-    // http2_send_rst_stream / async_send_goway / send_window_update_conn /
-    // send_window_update_stream 里 push 被拒各加一次。
-    // DATA 与收尾帧走重投，不计在这里；两者分开才看得出「背压」与「真丢帧」的差别。
+    // 无法重投的控制帧（RST / GOAWAY / 本端 SETTINGS / SETTINGS ACK / PING ACK）被环满丢掉的次数：
+    // co_send_setting / send_recv_setting / http2_send_rst_stream / send_goaway /
+    // readping 里 push 被拒各加一次。
+    // DATA 与收尾帧走重投，WINDOW_UPDATE 走欠账重投（下面的 requeue 计数），都不计在这里；
+    // 分开才看得出「背压」「待重投」「真丢帧」三种差别。
     // 只有 http2 会话会走到那几个函数，websocket / mqtt / 原生 socket 上它恒为 0。
     std::atomic<unsigned long long> http2_ring_queue_drop_count = 0;
+    // 本端接收窗口的补量帧被发送环拒过多少次（每一次都留在账上等下一个腾出的槽位）。
+    // 收尾时账上如果还有余额，说明这些额度到连接关闭都没发出去。
+    std::atomic<unsigned long long> http2_window_update_requeue_count = 0;
+    // 两个欠账字段只由本连接 strand 上的两个协程读写（解帧协程记账、发送环消费协程冲刷），
+    // strand 把它们串行化，所以不需要原子量也不需要锁。
+    unsigned int conn_grant_pending = 0;
+    std::map<unsigned int, unsigned int> stream_grant_pending;
     // 发送侧看到环里积压超过阈值（16 槽里的 10 槽）而主动让过这一轮的次数：
     // http2_send_gate_open 判闸时加一次，http2_send_queue_loop 里让路时再加。
     // 这一支在 push() 之前就 return，所以它不体现在 overflow 里；不单独记的话

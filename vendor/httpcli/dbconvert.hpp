@@ -2,11 +2,11 @@
  *  @author 黄自权 huangziquan
  *  @date 2026-08-14
  *  @dest 数据库转换迁移工具 - MySQL <-> PostgreSQL <-> SQLite
- *  Usage: paozhu_cli dbmigrate <dbtag1> <dbtag2>
+ *  Usage: paozhu_cli dbconvert <dbtag1> <dbtag2>
  */
 
-#ifndef _DBMIGRATE_HPP
-#define _DBMIGRATE_HPP
+#ifndef _DBCONVERT_HPP
+#define _DBCONVERT_HPP
 
 #include <iostream>
 #include <cstdio>
@@ -22,7 +22,7 @@
 #include "dbtypes.hpp"
 
 namespace fs = std::filesystem;
-namespace dbmigrate
+namespace dbconvert
 {
 
 using dbtypes::build_source_column_expr;
@@ -66,18 +66,18 @@ inline std::string build_create_table(const db_table_info &info, DB_TYPE target_
 
 // ===================== 主迁移逻辑 =====================
 
-inline int migrate_cli(const std::string &dbtag1 = "", const std::string &dbtag2 = "", const std::string &force_flag = "")
+inline int convert_cli(const std::string &dbtag1 = "", const std::string &dbtag2 = "", const std::string &force_flag = "")
 {
     if (dbtag1.empty() || dbtag2.empty())
     {
-        std::cout << "Usage: paozhu_cli dbmigrate <dbtag1> <dbtag2> [force]" << std::endl;
+        std::cout << "Usage: paozhu_cli dbconvert <dbtag1> <dbtag2> [force]" << std::endl;
         std::cout << "  dbtag1: source database tag (from conf/orm.conf)" << std::endl;
         std::cout << "  dbtag2: target database tag (from conf/orm.conf)" << std::endl;
         std::cout << "  force:  drop and recreate if table already exists (optional)" << std::endl;
-        std::cout << "Example: paozhu_cli dbmigrate cms pg" << std::endl;
-        std::cout << "         (migrate MySQL [cms] to PostgreSQL [pg], skip existing tables)" << std::endl;
-        std::cout << "         paozhu_cli dbmigrate cms pg force" << std::endl;
-        std::cout << "         (migrate and overwrite existing tables)" << std::endl;
+        std::cout << "Example: paozhu_cli dbconvert cms pg" << std::endl;
+        std::cout << "         (convert MySQL [cms] to PostgreSQL [pg], skip existing tables)" << std::endl;
+        std::cout << "         paozhu_cli dbconvert cms pg force" << std::endl;
+        std::cout << "         (convert and overwrite existing tables)" << std::endl;
         return 1;
     }
 
@@ -251,7 +251,7 @@ inline int migrate_cli(const std::string &dbtag1 = "", const std::string &dbtag2
     if (!tables_ok)
     {
         // 列表查询失败 != 源库没表: 当成成功空跑会让一次迁移静默什么都没做
-        std::cerr << "  [ERROR] Failed to list source tables, nothing migrated." << std::endl;
+        std::cerr << "  [ERROR] Failed to list source tables, nothing converted." << std::endl;
         return 1;
     }
 
@@ -487,7 +487,7 @@ inline int migrate_cli(const std::string &dbtag1 = "", const std::string &dbtag2
             rows_read += batch_rows.size();
 
             std::cout << "\r  [" << (ti + 1) << "/" << staged.size() << "] " << table_name
-                      << " \033[33m[MIGRATING]\033[0m written " << rows_written << "/" << total_count
+                      << " \033[33m[CONVERTING]\033[0m written " << rows_written << "/" << total_count
                       << " rows" << std::flush;
         }
 
@@ -514,7 +514,7 @@ inline int migrate_cli(const std::string &dbtag1 = "", const std::string &dbtag2
         // 判据是"写出数 == 源表行数", 不是"有没有逐行报错"
         if (!read_failed && rows_written == total_count)
         {
-            std::cout << " \033[32m[OK]\033[0m " << rows_written << " rows migrated" << std::endl;
+            std::cout << " \033[32m[OK]\033[0m " << rows_written << " rows converted" << std::endl;
             total_success++;
         }
         else
@@ -526,7 +526,7 @@ inline int migrate_cli(const std::string &dbtag1 = "", const std::string &dbtag2
     }
 
     std::cout << "\n  ===============================" << std::endl;
-    std::cout << "  Migration Summary:" << std::endl;
+    std::cout << "  Conversion Summary:" << std::endl;
     std::cout << "    Total tables:     " << table_list.size() << std::endl;
     std::cout << "    Success:          \033[32m" << total_success << "\033[0m" << std::endl;
     std::cout << "    Failed:           \033[31m" << total_fail << "\033[0m" << std::endl;
@@ -542,6 +542,6 @@ inline int migrate_cli(const std::string &dbtag1 = "", const std::string &dbtag2
     return 0;
 }
 
-}// namespace dbmigrate
+}// namespace dbconvert
 
-#endif// _DBMIGRATE_HPP
+#endif// _DBCONVERT_HPP

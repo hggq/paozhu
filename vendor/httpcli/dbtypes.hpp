@@ -673,6 +673,9 @@ inline std::string pg_type_to_mysql(const std::string &pg_type, unsigned int len
 
     if (mysql_has_same_decl_name(type_lower))
     {
+        // 裸名带宽度只有 bit 这一种: MySQL 的 BIT 不写宽度就是 BIT(1), 位宽会静默塌掉。
+        if (type_lower == "bit" && length > 1)
+            return "bit(" + std::to_string(length) + ")";
         return pg_type;
     }
     std::cout << "  [WARN] pg_type_to_mysql: unmapped type '" << pg_type << "' written as TEXT" << std::endl;
@@ -2492,10 +2495,16 @@ inline bool pg_get_table_schema(std::shared_ptr<orm::pg_conn_base> pg_conn,
                     try
                     {
                         int32_t mod = std::stoi(col_val);
-                        if (mod > 4 && mod <= 0x7FFFFFF0)
+                        // typname 在本查询中先于 atttypmod 处理, field.field_type 已就绪
+                        std::string tl = to_lower(field.field_type);
+                        if ((tl == "bit" || tl == "varbit") && mod > 0 && mod <= 0x7FFFFFF0)
                         {
-                            // typname 在本查询中先于 atttypmod 处理, field.field_type 已就绪
-                            std::string tl = to_lower(field.field_type);
+                            // bit(n)/varbit(n) 的 typmod 就是位数, 不像 numeric/varchar 那样带 +4 偏移,
+                            // 所以不能放在下面的 mod > 4 门槛里——bit(2) 会被当成"没有长度"。
+                            field.length = static_cast<unsigned int>(mod);
+                        }
+                        else if (mod > 4 && mod <= 0x7FFFFFF0)
+                        {
                             if (tl == "numeric" || tl == "decimal")
                             {
                                 // numeric(p,s) 编码: ((p << 16) | s) + 4
@@ -4131,9 +4140,25 @@ inline bool parse_pg_ddl(const std::string &ddl_text, db_table_info &table)
             continue;
         std::string fl = to_lower(fd);
 
+        // 表级约束允许带名字: CONSTRAINT "名字" PRIMARY KEY (...)。
+        // 把 "CONSTRAINT <名字> " 前缀剥掉, 下面的分派只看约束本体; 本体为空则原样走。
+        size_t cbody = 0;
+        if (fl.find("constraint") == 0)
+        {
+            size_t ns = fl.find_first_not_of(" \t", 10);
+            if (ns != std::string::npos)
+            {
+                size_t ne = fl.find_first_of(" \t", ns);
+                if (ne != std::string::npos && ne + 1 < fl.size())
+                    cbody = ne + 1;
+            }
+        }
+        std::string cl = fl.substr(cbody);
+
         // 表级外键: CONSTRAINT "name" FOREIGN KEY ("col") REFERENCES ...
         // 或: FOREIGN KEY ("col") REFERENCES ...
-        if (fl.find("constraint") == 0 || fl.find("foreign key") == 0)
+        // 只有本体真是外键才进这条分支, 否则具名 PRIMARY KEY 整行会被这里吞掉。
+        if (cl.find("foreign key") == 0)
         {
             db_foreign_key_info fk;
             size_t scan = 0;
@@ -4227,8 +4252,8 @@ inline bool parse_pg_ddl(const std::string &ddl_text, db_table_info &table)
             continue;
         }
 
-        // 跳过表级 PRIMARY KEY(col1,col2) / UNIQUE(col) / CHECK / EXCLUDE
-        if (fl.find("primary key") == 0)
+        // 表级 PRIMARY KEY(col1,col2)；UNIQUE(col) / CHECK / EXCLUDE 整行跳过
+        if (cl.find("primary key") == 0)
         {
             size_t po = fd.find('('), pc = fd.find(')');
             if (po != std::string::npos && pc != std::string::npos)
@@ -4250,7 +4275,10 @@ inline bool parse_pg_ddl(const std::string &ddl_text, db_table_info &table)
             }
             continue;
         }
-        if (fl.find("unique") == 0 || fl.find("check") == 0 || fl.find("exclude") == 0)
+        if (cl.find("unique") == 0 || cl.find("check") == 0 || cl.find("exclude") == 0)
+            continue;
+        // 认不出来的具名约束 (CONSTRAINT x DEFERRABLE 之类) 整行跳过, 不能当列定义解析
+        if (fl.find("constraint") == 0)
             continue;
 
         // 列定义: "colname" TYPE [constraints...]
@@ -4783,7 +4811,21 @@ inline bool parse_sqlite_ddl(const std::string &ddl_text, db_table_info &table)
             continue;
         std::string fl = to_lower(fd);
 
-        if (fl.find("primary key") == 0)
+        // 表级约束可以带名字: CONSTRAINT "名字" PRIMARY KEY (...)。剥掉前缀后按约束本体分派。
+        size_t cbody = 0;
+        if (fl.find("constraint") == 0)
+        {
+            size_t ns = fl.find_first_not_of(" \t", 10);
+            if (ns != std::string::npos)
+            {
+                size_t ne = fl.find_first_of(" \t", ns);
+                if (ne != std::string::npos && ne + 1 < fl.size())
+                    cbody = ne + 1;
+            }
+        }
+        std::string cl = fl.substr(cbody);
+
+        if (cl.find("primary key") == 0)
         {
             size_t po = fd.find('('), pc = fd.find(')');
             if (po != std::string::npos && pc != std::string::npos)
@@ -4804,12 +4846,13 @@ inline bool parse_sqlite_ddl(const std::string &ddl_text, db_table_info &table)
             }
             continue;
         }
-        if (fl.find("unique") == 0 || fl.find("check") == 0)
+        if (cl.find("unique") == 0 || cl.find("check") == 0)
             continue;
 
         // SQLite 表级外键: CONSTRAINT name FOREIGN KEY (col) REFERENCES parent(col) ...
         // 或: FOREIGN KEY (col) REFERENCES parent(col) ...
-        if (fl.find("constraint") == 0 || fl.find("foreign key") == 0)
+        // 本体真是外键才进这条分支, 否则具名主键/检查约束会被整行吞掉。
+        if (cl.find("foreign key") == 0)
         {
             db_foreign_key_info fk;
             size_t scan = 0;
@@ -4897,6 +4940,10 @@ inline bool parse_sqlite_ddl(const std::string &ddl_text, db_table_info &table)
                 table.foreign_keys.push_back(fk);
             continue;
         }
+
+        // 认不出来的具名约束 (CONSTRAINT x DEFERRABLE 之类) 整行跳过, 不能当列定义解析
+        if (fl.find("constraint") == 0)
+            continue;
 
         db_field_info field;
         size_t name_end = fd.find_first_of(" \t");
