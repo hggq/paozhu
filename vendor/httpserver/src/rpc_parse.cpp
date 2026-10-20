@@ -79,6 +79,19 @@ void rpc_parse::process_headkv()
             iserror = true;
             return;
         }
+        // 严格域名白名单：host 值后续可能被拼进文件路径，
+        // 跟 HTTP/1 getheaderhost / HTTP/2 header_host_process 保持同一口径，
+        // 只允许 [0-9a-zA-Z.-]，非法字符直接按协议错误断连。
+        for (unsigned int i = 0; i < read_value.size(); i++)
+        {
+            unsigned char c = read_value[i];
+            if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') ||
+                  (c >= 'A' && c <= 'Z') || c == '.' || c == '-'))
+            {
+                iserror = true;
+                return;
+            }
+        }
         has_host   = true;
         peer->host = read_value;
     }
