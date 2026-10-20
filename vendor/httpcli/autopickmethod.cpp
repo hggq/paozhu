@@ -201,9 +201,9 @@ int main(int argc, char *argv[])
                 if (ns_warned.emplace(pairkey, true).second)
                 {
                     std::fprintf(stderr,
-                                 "[ROUTE-WARN] domain dirs '%s' and '%s' both map to namespace '%s' "
+                                 "\033[1m\033[31m[ROUTE-WARN] domain dirs '%s' and '%s' both map to namespace '%s' "
                                  "(namespace = the part before the first '.'); same-named handlers "
-                                 "in them will collide at compile time\n",
+                                 "in them will collide at compile time\033[0m\n",
                                  owner.first->second.c_str(), domain_value.c_str(), nsname.c_str());
                 }
             }
@@ -362,8 +362,8 @@ int main(int argc, char *argv[])
             if (it == sig_is_co.end())
             {
                 std::fprintf(stderr,
-                             "[PRE-WARN] %s: handler %s pre '%s' signature not found in any controller "
-                             "file, assumed sync; if it is a coroutine the generated reg_raw will not compile\n",
+                             "\033[1m\033[31m[PRE-WARN] %s: handler %s pre '%s' signature not found in any controller "
+                             "file, assumed sync; if it is a coroutine the generated reg_raw will not compile\033[0m\n",
                              item.filename.c_str(), item.func.c_str(), item.pre.c_str());
                 continue;
             }
@@ -462,8 +462,8 @@ int main(int argc, char *argv[])
         {
             // 路由照样注册（行为不变），只在生成期喊一声：这条注解运行期打不到
             std::fprintf(stderr,
-                         "[ROUTE-WARN] %s: handler %s urlpath '%s' has a fixed segment after ':param', "
-                         "it registers as '%s' and can never match (params must be trailing), route will 404\n",
+                         "\033[1m\033[31m[ROUTE-WARN] %s: handler %s urlpath '%s' has a fixed segment after ':param', "
+                         "it registers as '%s' and can never match (params must be trailing), route will 404\033[0m\n",
                          item.filename.c_str(), item.func.c_str(), item.urlpath.c_str(), parsed_path.c_str());
         }
 
@@ -591,8 +591,8 @@ int main(int argc, char *argv[])
                 if (!key.empty() && key == gkey)
                 {
                     std::fprintf(stderr,
-                                 "[ROUTE-WARN] %s: hand-written '%s' also generated from an @urlpath "
-                                 "annotation; reg_add keeps the first, so this hand-written entry is dead\n",
+                                 "\033[1m\033[31m[ROUTE-WARN] %s: hand-written '%s' also generated from an @urlpath "
+                                 "annotation; reg_add keeps the first, so this hand-written entry is dead\033[0m\n",
                                  file.c_str(), path.c_str());
                     break;
                 }

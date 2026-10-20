@@ -1,5 +1,5 @@
 // ============================================================
-// dbscheme_check.hpp  —  schema/<tag>/tables/*.sql 管理工具
+// dbschema_check.hpp  —  schema/<tag>/tables/*.sql 管理工具
 //
 // 功能:
 //   1. load_schema_fallback()  — DB 不可用时从 SQL 文件加载表结构
@@ -22,7 +22,7 @@
 
 namespace fs = std::filesystem;
 
-namespace dbscheme
+namespace dbschema
 {
 
 // ============================================================
@@ -374,7 +374,7 @@ inline std::map<std::string, orm::DB_TYPE> load_tag_dbtype_map()
 }
 
 // paozhu_cli schema-check [dbtag]
-inline int dbschemacheckcli(int argc, char *argv[])
+inline int check_cli(int argc, char *argv[])
 {
     auto tag_dbtype = load_tag_dbtype_map();
 
@@ -420,7 +420,7 @@ inline int dbschemacheckcli(int argc, char *argv[])
 }
 
 // paozhu_cli schema-regen <dbtag> [-dry-run]
-inline int dbschemaregencli(int argc, char *argv[])
+inline int regen_cli(int argc, char *argv[])
 {
     if (argc < 3)
     {
@@ -451,4 +451,4 @@ inline int dbschemaregencli(int argc, char *argv[])
     return schema_regen_tag(tag, dt, dry);
 }
 
-}// namespace dbscheme
+}// namespace dbschema

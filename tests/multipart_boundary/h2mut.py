@@ -19,12 +19,13 @@ RUNOUT_APPEND = """                temp_post_data.pre_content.append(
 
 ARMS = {
     # 主扫描的 "-- 前面必须是 CRLF" 判定关掉（保留剥字节的门）
-    "mu1": [("if (dash_lf == 0)", "if (dash_lf == 99)", 1)],
+    "mu1": [("if (dash_lf == 0 || (dash_lf == 1 && dash_cr != 1))", "if (false)", 1)],
     # 主扫描剥掉两个字节改成无条件剥（保留判定）
     "mu2": [("if (dash_lf == 1 && dash_cr == 1 && temp_post_data.field_item.size() > 1)",
              "if (temp_post_data.field_item.size() > 1)", 1)],
     # 三条跨帧支路的 CRLF 判定关掉（保留剥字节的门）
-    "mu3": [("if (!isnotmatch && tail_is(1, '\\n') == 0)", "if (!isnotmatch && tail_is(1, '\\n') == 99)", 3)],
+    "mu3": [("if (!isnotmatch && (tail_is(1, '\\n') == 0 || (tail_is(1, '\\n') == 1 && tail_is(2, '\\r') != 1)))",
+             "if (!isnotmatch && false)", 3)],
     # 三条跨帧支路剥字节改成无条件剥（保留判定）
     "mu4": [("if (tail_is(1, '\\n') == 1 && tail_is(2, '\\r') == 1 && temp_post_data.field_item.size() > 1)",
              "if (temp_post_data.field_item.size() > 1)", 3)],

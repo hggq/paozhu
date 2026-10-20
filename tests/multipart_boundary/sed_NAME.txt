@@ -1,0 +1,4 @@
+# 牙齿臂 MUT-NAME：把临时件名的唯一段退回"秒级时间戳 + 每次调用重新播种的随机串"。
+# 这正是撞车原本的成因：rand_string 一秒内重播同一个序列，秒级时间戳又分不开同请求里的两个 part。
+# 锚点必须恰好命中 1 行；漂了就报 ANCHOR_DRIFT 跳过，那种红不能归因。
+s#    return std::to_string(usec) + std::to_string(seq.fetch_add(1)) + rand_string(6, 0);#    return std::to_string(timeid()) + rand_string(6, 0); // MUT-NAME#

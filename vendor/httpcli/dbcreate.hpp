@@ -1,5 +1,5 @@
 /*
- *  @dest schema-createdb  — CLI: paozhu_cli schema-createdb <dbtag> [-u <admin_user>]
+ *  @dest dbcreate  — CLI: paozhu_cli dbcreate <dbtag> [-u <admin_user>]
  *  1. 从 conf/orm.conf 解析 dbtag 配置
  *  2. MySQL/PG: admin 连系统库 → CREATE DATABASE → CREATE USER → GRANT
  *     SQLite:  跳过（文件系统）
@@ -10,7 +10,7 @@
 #pragma once
 
 #include "dbtypes.hpp"
-#include "dbscheme_check.hpp"// parse_any_ddl, to_dbtypes_dbtype
+#include "dbschema_check.hpp"// parse_any_ddl, to_dbtypes_dbtype
 #include "parse_ini.h"
 #include "orm_common.h"
 
@@ -40,7 +40,7 @@
 
 namespace fs = std::filesystem;
 
-namespace dbcreatedb
+namespace dbcreate
 {
 
 // ========== 颜色 ==========
@@ -430,7 +430,7 @@ inline exec_stats exec_sql_list(
 // MySQL: CREATE DATABASE + CREATE USER + GRANT
 // =============================================================
 
-inline int createdb_mysql(
+inline int create_mysql(
     const std::string &host, const std::string &port, const std::string &admin_user, const std::string &admin_pwd, const std::string &dbname, const std::string &app_user, const std::string &app_pwd)
 {
     asio::io_context ioc;
@@ -540,7 +540,7 @@ inline int createdb_mysql(
 // PostgreSQL: CREATE DATABASE + CREATE ROLE + GRANT
 // =============================================================
 
-inline int createdb_pg(
+inline int create_pg(
     const std::string &host, const std::string &port, const std::string &admin_user, const std::string &admin_pwd, const std::string &dbname, const std::string &app_user, const std::string &app_pwd)
 {
     asio::io_context ioc;
@@ -652,7 +652,7 @@ inline int createdb_pg(
 // SQLite: 仅创建文件
 // =============================================================
 
-inline int createdb_sqlite(const std::string &dbfile)
+inline int create_sqlite(const std::string &dbfile)
 {
     asio::io_context ioc;
 
@@ -733,7 +733,7 @@ inline int import_schema(
         std::string raw_sql = ss.str();
 
         dbtypes::db_table_info info;
-        bool ok = dbscheme::parse_any_ddl(raw_sql, dbtype, info);
+        bool ok = dbschema::parse_any_ddl(raw_sql, dbtype, info);
         if (!ok || info.table_name.empty())
         {
             std::cout << C_RED << "[FAIL]" << C_RESET
@@ -897,7 +897,7 @@ inline int import_schema(
 // CLI Main Entrance
 // =============================================================
 
-inline int createdb_cli(const std::string &dbtag, const std::string &admin_user)
+inline int create_cli(const std::string &dbtag, const std::string &admin_user)
 {
     // ---- 安全校验 ----
     if (!dbtypes::is_safe_dbtag(dbtag))
@@ -955,7 +955,7 @@ inline int createdb_cli(const std::string &dbtag, const std::string &admin_user)
                       << " SQLite configuration is missing the host (should be the database file path)" << std::endl;
             return 1;
         }
-        rc = createdb_sqlite(cfg.host);
+        rc = create_sqlite(cfg.host);
     }
     else
     {
@@ -972,11 +972,11 @@ inline int createdb_cli(const std::string &dbtag, const std::string &admin_user)
 
         if (dbtype == dbtypes::DB_TYPE::MYSQL)
         {
-            rc = createdb_mysql(cfg.host, cfg.port, admin_user, getpass("  Enter admin password: "), cfg.dbname, app_user, app_pwd);
+            rc = create_mysql(cfg.host, cfg.port, admin_user, getpass("  Enter admin password: "), cfg.dbname, app_user, app_pwd);
         }
         else
         {
-            rc = createdb_pg(cfg.host, cfg.port, admin_user, getpass("  Enter admin password: "), cfg.dbname, app_user, app_pwd);
+            rc = create_pg(cfg.host, cfg.port, admin_user, getpass("  Enter admin password: "), cfg.dbname, app_user, app_pwd);
         }
     }
 
@@ -1004,4 +1004,4 @@ inline int createdb_cli(const std::string &dbtag, const std::string &admin_user)
     return rc;
 }
 
-}// namespace dbcreatedb
+}// namespace dbcreate

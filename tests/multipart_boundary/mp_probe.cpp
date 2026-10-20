@@ -309,12 +309,11 @@ int main()
     }
     {
         // 值与分隔符之间只有一个 \n（没有 \r）：畸形框架。
-        // 期望：分隔符照样认（和改前一样，否则后面的字段全丢），但不剥字节——
-        // 剥 2 个会吃掉值里的 'A'（改前就是这么吃的）。
+        // 分隔符前面必须是完整 CRLF，缺 \r 就退回当普通数据，整段粘成 alpha 一个值，
+        // 直到下一个真正带 CRLF 的分隔符（这里是闭合那条）才切。
         Want w;
-        w.keys  = 2;
-        w.alpha = "AAA\n";
-        w.beta  = "BBB";
+        w.keys  = 1;
+        w.alpha = "AAA\n--" + BD + "\r\nContent-Disposition: form-data; name=\"beta\"\r\n\r\nBBB";
         push("J-lf-only-delim",
              "--" + BD + "\r\nContent-Disposition: form-data; name=\"alpha\"\r\n\r\nAAA\n" + tp("beta", "BBB") +
                  "--" + BD + "--\r\n",

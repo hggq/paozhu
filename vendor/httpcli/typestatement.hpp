@@ -30,6 +30,38 @@ struct obj_reflect_type
     // void display(int level = 0) { level = 1; }
 };
 
+// True only for a user-defined reflect struct field type (not builtin/std/struct/class/rawjson).
+inline bool is_user_reflect_type(const std::string &t)
+{
+    if (t.empty() || t == "struct" || t == "class" || t == "rawjson")
+    {
+        return false;
+    }
+    if (t.rfind("std::", 0) == 0)
+    {
+        return false;
+    }
+    static const char *builtins[] = {
+        "unsigned int", "unsigned char", "int", "char", "unsigned long long", "long long",
+        "float", "double", "bool", "long", "short", "unsigned", "signed", "size_t", "void"};
+    for (const char *b : builtins)
+    {
+        if (t == b)
+        {
+            return false;
+        }
+    }
+    // must look like a plain identifier / qualified name (no spaces, template args, arrays)
+    for (char c : t)
+    {
+        if (c == ' ' || c == '\t' || c == '<' || c == '>' || c == '[' || c == ']' || c == ',' || c == '*')
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 class typejsonfiles
 {
   public:
@@ -1347,6 +1379,77 @@ static unsigned int _paozhu_json_skip_value(const std::string &_json_data, unsig
                             }
                             )";
             }
+            else if (json_reflect_data.children[i].type == "std::map<std::string,int>")
+            {
+                ishas = 1;
+                tempcontent += R"(
+                            if (http::str_casecmp(_json_key_name, ")";
+                tempcontent += json_reflect_data.children[i].name;
+                tempcontent += R"("))
+                            {)";
+                obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
+                tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 6);
+                tempcontent += R"(
+                            }
+                            )";
+            }
+            else if (json_reflect_data.children[i].type == "std::map<std::string,std::string>")
+            {
+                ishas = 1;
+                tempcontent += R"(
+                            if (http::str_casecmp(_json_key_name, ")";
+                tempcontent += json_reflect_data.children[i].name;
+                tempcontent += R"("))
+                            {)";
+                obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
+                tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 7);
+                tempcontent += R"(
+                            }
+                            )";
+            }
+            else if (json_reflect_data.children[i].type == "std::map<int,std::string>")
+            {
+                ishas = 1;
+                tempcontent += R"(
+                            if (http::str_casecmp(_json_key_name, ")";
+                tempcontent += json_reflect_data.children[i].name;
+                tempcontent += R"("))
+                            {)";
+                obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
+                tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 8);
+                tempcontent += R"(
+                            }
+                            )";
+            }
+            else if (json_reflect_data.children[i].type == "std::map<std::string,float>")
+            {
+                ishas = 1;
+                tempcontent += R"(
+                            if (http::str_casecmp(_json_key_name, ")";
+                tempcontent += json_reflect_data.children[i].name;
+                tempcontent += R"("))
+                            {)";
+                obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
+                tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 9);
+                tempcontent += R"(
+                            }
+                            )";
+            }
+            else if (is_user_reflect_type(json_reflect_data.children[i].type))
+            {
+                ishas = 1;
+                tempcontent += R"(
+                            if (http::str_casecmp(_json_key_name, ")";
+                tempcontent += json_reflect_data.children[i].name;
+                tempcontent += R"("))
+                            {)";
+                tempcontent += R"(
+                            _offset=)";
+                tempcontent += "json_decode(" + tempobjname + json_reflect_data.children[i].name;
+                tempcontent += R"(,_json_data,_offset);
+                            }
+                            )";
+            }
         }
 
         // 当没有item时候
@@ -2082,6 +2185,77 @@ static unsigned int _paozhu_json_skip_value(const std::string &_json_data, unsig
                             }
                             )";
             }
+            else if (json_reflect_data.children[i].type == "std::map<std::string,int>")
+            {
+                ishas = 1;
+                tempcontent += R"(
+                            if (http::str_casecmp(_json_key_name, ")";
+                tempcontent += json_reflect_data.children[i].name;
+                tempcontent += R"("))
+                            {)";
+                obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
+                tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 6);
+                tempcontent += R"(
+                            }
+                            )";
+            }
+            else if (json_reflect_data.children[i].type == "std::map<std::string,std::string>")
+            {
+                ishas = 1;
+                tempcontent += R"(
+                            if (http::str_casecmp(_json_key_name, ")";
+                tempcontent += json_reflect_data.children[i].name;
+                tempcontent += R"("))
+                            {)";
+                obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
+                tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 7);
+                tempcontent += R"(
+                            }
+                            )";
+            }
+            else if (json_reflect_data.children[i].type == "std::map<int,std::string>")
+            {
+                ishas = 1;
+                tempcontent += R"(
+                            if (http::str_casecmp(_json_key_name, ")";
+                tempcontent += json_reflect_data.children[i].name;
+                tempcontent += R"("))
+                            {)";
+                obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
+                tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 8);
+                tempcontent += R"(
+                            }
+                            )";
+            }
+            else if (json_reflect_data.children[i].type == "std::map<std::string,float>")
+            {
+                ishas = 1;
+                tempcontent += R"(
+                            if (http::str_casecmp(_json_key_name, ")";
+                tempcontent += json_reflect_data.children[i].name;
+                tempcontent += R"("))
+                            {)";
+                obj_name_array_tempname = tempobjname + json_reflect_data.children[i].name;
+                tempcontent += array_item_fromjson(json_reflect_data.children[i], obj_name_array_tempname, 1, 9);
+                tempcontent += R"(
+                            }
+                            )";
+            }
+            else if (is_user_reflect_type(json_reflect_data.children[i].type))
+            {
+                ishas = 1;
+                tempcontent += R"(
+                            if (http::str_casecmp(_json_key_name, ")";
+                tempcontent += json_reflect_data.children[i].name;
+                tempcontent += R"("))
+                            {)";
+                tempcontent += R"(
+                            _offset=)";
+                tempcontent += "json_decode(" + tempobjname + json_reflect_data.children[i].name;
+                tempcontent += R"(,_json_data,_offset);
+                            }
+                            )";
+            }
         }
 
         // 当没有item时候
@@ -2704,7 +2878,7 @@ static unsigned int _paozhu_json_skip_value(const std::string &_json_data, unsig
         unsigned ishas          = 0;
 
         tempcontent = R"(  
-            if(_json_data[_offset]==0x5B)
+            if(_json_data[_offset]==0x5B||_json_data[_offset]==0x7D)
             {
                 _offset+=1;
             }
@@ -2713,8 +2887,8 @@ static unsigned int _paozhu_json_skip_value(const std::string &_json_data, unsig
             {
                 //去除空格
                 _offset=http::json_string_trim(_json_data,_offset);
-                //如果是右侧中括号表示这个对象已经结束
-                if(_json_data[_offset]==0x5D)
+                //如果是右侧括号表示这个对象已经结束
+                if(_json_data[_offset]==0x5D||_json_data[_offset]==0x7D)
                 {
                     _offset+=1;
                     break;
@@ -2731,11 +2905,12 @@ static unsigned int _paozhu_json_skip_value(const std::string &_json_data, unsig
 
         if (typenum == 6)
         {
+            ishas = 1;
             tempcontent += R"( 
                             for ( ; _offset < _json_data.size(); _offset++)
                             {
                                 _offset=http::json_string_trim(_json_data,_offset);
-                                if (_json_data[_offset] == ']')
+                                if (_json_data[_offset] == ']' || _json_data[_offset] == '}')
                                 {
                                     break;
                                 }
@@ -2783,17 +2958,22 @@ static unsigned int _paozhu_json_skip_value(const std::string &_json_data, unsig
                                     )";
             tempcontent += R"( 
                                 }
+                                if(_offset < _json_data.size() && (_json_data[_offset]==']'||_json_data[_offset]=='}'))
+                                {
+                                    break;
+                                }
                                 
                             }
                             )";
         }
         else if (typenum == 7)
         {
+            ishas = 1;
             tempcontent += R"( 
                             for ( ; _offset < _json_data.size(); _offset++)
                             {
                                 _offset=http::json_string_trim(_json_data,_offset);
-                                if (_json_data[_offset] == ']')
+                                if (_json_data[_offset] == ']' || _json_data[_offset] == '}')
                                 {
                                     break;
                                 }
@@ -2815,17 +2995,13 @@ static unsigned int _paozhu_json_skip_value(const std::string &_json_data, unsig
                                         return _offset; 
                                     }
                                     _offset+=1;
-                                    _json_value_name.clear();
-                                    for(;_offset<_json_data.size();_offset++)
+                                                                        unsigned int t_value_offset=_offset;
+                                    _json_value_name=http::jsonstring_to_utf8(&_json_data[_offset],_json_data.size()-_offset,t_value_offset);
+                                    _offset=t_value_offset;
+                                    if(_offset < _json_data.size() && _json_data[_offset]==0x22)
                                     {
-                                        //结束条件
-                                        if(_json_data[_offset]==','||_json_data[_offset]==']'||_json_data[_offset]=='}'||_json_data[_offset]==0x20||_json_data[_offset]==0x0A||_json_data[_offset]==0x0D||_json_data[_offset]=='\t')
-                                        {
-                                            break;
-                                        }
-                                        _json_value_name.push_back(_json_data[_offset]);
+                                        _offset+=1;
                                     }
-                                    
                                     )";
             tempcontent += jsonobjtypename;
             tempcontent += R"([_json_key_name]=_json_value_name;
@@ -2833,17 +3009,22 @@ static unsigned int _paozhu_json_skip_value(const std::string &_json_data, unsig
 
             tempcontent += R"( 
                                 }
+                                if(_offset < _json_data.size() && (_json_data[_offset]==']'||_json_data[_offset]=='}'))
+                                {
+                                    break;
+                                }
                                 
                             }
                             )";
         }
         else if (typenum == 8)
         {
+            ishas = 1;
             tempcontent += R"( 
                             for ( ; _offset < _json_data.size(); _offset++)
                             {
                                 _offset=http::json_string_trim(_json_data,_offset);
-                                if (_json_data[_offset] == ']')
+                                if (_json_data[_offset] == ']' || _json_data[_offset] == '}')
                                 {
                                     break;
                                 }
@@ -2865,23 +3046,19 @@ static unsigned int _paozhu_json_skip_value(const std::string &_json_data, unsig
                                         return _offset; 
                                     }
                                     _offset+=1;
-                                    _json_value_name.clear();
-                                    for(;_offset<_json_data.size();_offset++)
+                                                                        unsigned int t_value_offset=_offset;
+                                    _json_value_name=http::jsonstring_to_utf8(&_json_data[_offset],_json_data.size()-_offset,t_value_offset);
+                                    _offset=t_value_offset;
+                                    if(_offset < _json_data.size() && _json_data[_offset]==0x22)
                                     {
-                                        //结束条件
-                                        if(_json_data[_offset]==','||_json_data[_offset]==']'||_json_data[_offset]=='}'||_json_data[_offset]==0x20||_json_data[_offset]==0x0A||_json_data[_offset]==0x0D||_json_data[_offset]=='\t')
-                                        {
-                                            break;
-                                        }
-                                        _json_value_name.push_back(_json_data[_offset]);
+                                        _offset+=1;
                                     }
-                                    
                                     )";
 
             tempcontent += R"( 
                                      try{
                                         int a=)";
-            tempcontent += "=std::stoi(_json_key_name)";
+            tempcontent += "std::stoi(_json_key_name);";
             tempcontent += jsonobjtypename;
             tempcontent += R"([a]=_json_value_name;
                                     }catch (...) 
@@ -2892,17 +3069,22 @@ static unsigned int _paozhu_json_skip_value(const std::string &_json_data, unsig
                                     )";
             tempcontent += R"( 
                                 }
+                                if(_offset < _json_data.size() && (_json_data[_offset]==']'||_json_data[_offset]=='}'))
+                                {
+                                    break;
+                                }
                                 
                             }
                             )";
         }
         else if (typenum == 9)
         {
+            ishas = 1;
             tempcontent += R"( 
                             for ( ; _offset < _json_data.size(); _offset++)
                             {
                                 _offset=http::json_string_trim(_json_data,_offset);
-                                if (_json_data[_offset] == ']')
+                                if (_json_data[_offset] == ']' || _json_data[_offset] == '}')
                                 {
                                     break;
                                 }
@@ -2951,6 +3133,10 @@ static unsigned int _paozhu_json_skip_value(const std::string &_json_data, unsig
                                    
                                     )";
             tempcontent += R"( 
+                                }
+                                if(_offset < _json_data.size() && (_json_data[_offset]==']'||_json_data[_offset]=='}'))
+                                {
+                                    break;
                                 }
                                 
                             }
@@ -3745,10 +3931,10 @@ unsigned int json_decode(std::vector<)";
         {
             maincontent += R"(_stream << "\")";
             maincontent += json_reflect_data.name;
-            maincontent += R"(\":" << )";
+            maincontent += R"(\":" << json_encode()";
             maincontent += pre_name;
             maincontent += json_reflect_data.name;
-            maincontent += R"(.to_json();
+            maincontent += R"();
                 )";
         }
         else if (json_reflect_data.type.size() > 10 && json_reflect_data.type[0] == 's' &&
@@ -3784,8 +3970,8 @@ unsigned int json_decode(std::vector<)";
         {
             maincontent += R"(_stream << "\")";
             maincontent += json_reflect_data.name;
-            maincontent += R"(\":[";
-      unsigned int count_i=0;     
+            maincontent += R"(\":{";
+      { unsigned int count_i=0;     
       for (auto&[first,second]:)";
 
             maincontent += pre_name;
@@ -3796,18 +3982,18 @@ unsigned int json_decode(std::vector<)";
         {
           _stream << ",";
         }
-        _stream <<"{\""<<std::to_string(first)<<"\",\""<<http::utf8_to_jsonstring(second)<<"\"}";
+        _stream <<"\""<<std::to_string(first)<<"\":\""<<http::utf8_to_jsonstring(second)<<"\"";
         count_i+=1;
       }
-      _stream << "]";
+      } _stream << "}";
         )";
         }
         else if (json_reflect_data.type == "std::map<std::string,std::string>")
         {
             maincontent += R"(_stream << "\")";
             maincontent += json_reflect_data.name;
-            maincontent += R"(\":[";
-      unsigned int count_i=0;     
+            maincontent += R"(\":{";
+      { unsigned int count_i=0;     
       for (auto&[first,second]:)";
 
             maincontent += pre_name;
@@ -3818,18 +4004,18 @@ unsigned int json_decode(std::vector<)";
         {
           _stream << ",";
         }
-        _stream <<"{\""<<http::utf8_to_jsonstring(first)<<"\",\""<<http::utf8_to_jsonstring(second)<<"\"}";
+        _stream <<"\""<<http::utf8_to_jsonstring(first)<<"\":\""<<http::utf8_to_jsonstring(second)<<"\"";
         count_i+=1;
       }
-      _stream << "]";
+      } _stream << "}";
         )";
         }
         else if (json_reflect_data.type == "std::map<std::string,int>")
         {
             maincontent += R"(_stream << "\")";
             maincontent += json_reflect_data.name;
-            maincontent += R"(\":[";
-           unsigned int count_i=0;     
+            maincontent += R"(\":{";
+           { unsigned int count_i=0;     
       for (auto&[first,second]:)";
 
             maincontent += pre_name;
@@ -3840,10 +4026,32 @@ unsigned int json_decode(std::vector<)";
         {
           _stream << ",";
         }
-        _stream <<"{\""<<http::utf8_to_jsonstring(first)<<"\","<<std::to_string(second)<<"}";
+        _stream <<"\""<<http::utf8_to_jsonstring(first)<<"\":"<<std::to_string(second);
         count_i+=1;
       }
-      _stream << "]";
+      } _stream << "}";
+        )";
+        }
+        else if (json_reflect_data.type == "std::map<std::string,float>")
+        {
+            maincontent += R"(_stream << "\")";
+            maincontent += json_reflect_data.name;
+            maincontent += R"(\":{";
+      { unsigned int count_i=0;
+      for (auto&[first,second]:)";
+
+            maincontent += pre_name;
+            maincontent += json_reflect_data.name;
+            maincontent += R"()
+      {
+        if (count_i > 0)
+        {
+          _stream << ",";
+        }
+        _stream <<"\""<<http::utf8_to_jsonstring(first)<<"\":"<<std::to_string(second);
+        count_i+=1;
+      }
+      } _stream << "}";
         )";
         }
         return maincontent;

@@ -3,6 +3,8 @@
 #include <functional>
 #include <list>
 #include <map>
+#include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <mutex>
 #include <queue>
@@ -363,7 +365,16 @@ void get_filename(const std::string &filename, std::string &filename_name, std::
         return;
     for (; j >= 0; j--)
     {
-        if (filename[j] == '.')
+        unsigned char c = static_cast<unsigned char>(filename[j]);
+        // 跳过空字节（防御空字节截断）
+        if (c == 0) continue;
+        // 反斜杠视作分隔符（Windows 路径兼容 + 路径穿越防御）
+        if (c == '/' || c == '\\')
+        {
+            j--;
+            break;
+        }
+        if (c == '.')
         {
             if (filename_name.size() == 2 && filename_name[0] == 'z' && filename_name[1] == 'g')
             {
@@ -373,11 +384,6 @@ void get_filename(const std::string &filename, std::string &filename_name, std::
             filename_ext = filename_name;
             filename_name.clear();
             continue;
-        }
-        if (filename[j] == '/')
-        {
-            j--;
-            break;
         }
         filename_name.push_back(filename[j]);
     }
@@ -396,7 +402,16 @@ std::string get_filename(const std::string &filename)
         return "";
     for (; j >= 0; j--)
     {
-        if (filename[j] == '.')
+        unsigned char c = static_cast<unsigned char>(filename[j]);
+        // 跳过空字节
+        if (c == 0) continue;
+        // 反斜杠视作分隔符
+        if (c == '/' || c == '\\')
+        {
+            j--;
+            break;
+        }
+        if (c == '.')
         {
             if (filename_name.size() == 2 && filename_name[0] == 'z' && filename_name[1] == 'g')
             {
@@ -404,11 +419,6 @@ std::string get_filename(const std::string &filename)
             }
             filename_name.clear();
             continue;
-        }
-        if (filename[j] == '/')
-        {
-            j--;
-            break;
         }
         filename_name.push_back(filename[j]);
     }
@@ -1804,15 +1814,34 @@ std::string str2safefile(const char *source, unsigned int str_length)
     std::string temp;
     for (size_t i = 0; i < str_length; i++)
     {
-
-        if ((source[i] > 0x2F && source[i] < 0x3A) || source[i] == '.' || source[i] == '[' || source[i] == ']' ||
-            source[i] == '(' || source[i] == ')' || source[i] == '~' || source[i] == '_' || source[i] == '-' ||
-            (source[i] > 0x40 && source[i] < 0x5B) || (source[i] > 0x60 && source[i] < 0x7B))
+        unsigned char c = static_cast<unsigned char>(source[i]);
+        // 空字节：C 字符串终止符，必须显式跳过防止截断/绕权
+        if (c == 0) continue;
+        // 白名单：A-Z a-z 0-9 . _ - () ~ []
+        // /  \  ..  : 等路径穿越字符不在白名单，自动被过滤
+        if ((c > 0x2F && c < 0x3A) || c == '.' || c == '[' || c == ']' ||
+            c == '(' || c == ')' || c == '~' || c == '_' || c == '-' ||
+            (c > 0x40 && c < 0x5B) || (c > 0x60 && c < 0x7B))
         {
-            temp.push_back(source[i]);
+            temp.push_back(c);
         }
     }
     return temp;
+}
+std::string safe_filename(std::string_view raw)
+{
+    std::string s;
+    s.reserve(raw.size());
+    for (unsigned char c : raw)
+    {
+        if (c == 0) continue;            // 去掉空字节
+        if (c == '\\') s.push_back('/');  // Windows 分隔符统一成正斜杠，随后一起按 '/' 取 basename
+        else s.push_back(c);
+    }
+    auto pos = s.find_last_of('/');        // 只取最后一段 basename，吃掉所有上半部分
+    if (pos != std::string::npos)
+        s = s.substr(pos + 1);
+    return s;                              // 不含 '/' 或 '\'，扩展名保留
 }
 std::string str2safemethold(const char *source, unsigned int str_length)
 {
@@ -2556,16 +2585,31 @@ bool ip_is_local(const std::string &ip)
     return false;
 }
 
+// 临时件名字里"每次调用必不同"的那一段：微秒时间戳 + 进程内自增号 + 6 位随机。
+// rand_string 每调用一次就重新 srand(time(NULL))，同一秒内重播的是同一个序列；
+// 秒级时间戳也不够，同一个请求里两个 content_length 相同的文件 part 会取到同名文件，
+// 后一个把前一个覆盖掉（回显的 size 各归各，只有读盘才发现少了一个）。
+static std::string temp_name_uniq_tail()
+{
+    static std::atomic<unsigned long long> seq{0};
+    unsigned long long usec = std::chrono::duration_cast<std::chrono::microseconds>(
+                                  std::chrono::system_clock::now().time_since_epoch())
+                                  .count();
+    return std::to_string(usec) + std::to_string(seq.fetch_add(1)) + rand_string(6, 0);
+}
+
 std::string make_http_temp_raw_name()
 {
-    // 原名是裸 hash(去重性靠 hash)，这里统一加上前缀，便于 httpwatch 精确识别
-    std::string seed = std::string(HTTP_TEMP_RAW_PREFIX) + std::to_string(timeid()) + rand_string(6, 0);
+    // 原名是裸 hash(去重性靠 hash)，这里统一加上前缀，便于 httpwatch 精确识别；
+    // 白名单只认 前缀 + 纯数字，所以唯一性进种子、名字仍旧是 hash 的十进制。
+    std::string seed = std::string(HTTP_TEMP_RAW_PREFIX) + temp_name_uniq_tail();
     return std::string(HTTP_TEMP_RAW_PREFIX) + std::to_string(std::hash<std::string>{}(seed));
 }
 
 std::string make_http_temp_upload_name(unsigned long long content_length)
 {
-    return std::string(HTTP_TEMP_UPLOAD_PREFIX) + std::to_string(timeid()) + rand_string(6, 0) + "_" + std::to_string(content_length);
+    // 名字形状仍是 前缀 + 字母数字 + _ + 长度，httpwatch 的 is_http_temp_filename 白名单照旧命中。
+    return std::string(HTTP_TEMP_UPLOAD_PREFIX) + temp_name_uniq_tail() + "_" + std::to_string(content_length);
 }
 
 bool is_http_temp_filename(std::string_view name)

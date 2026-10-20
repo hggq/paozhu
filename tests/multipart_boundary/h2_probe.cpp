@@ -304,11 +304,11 @@ int main()
         push("I-embed-delim", tp("alpha", w.alpha) + tp("beta", "BBB") + close_, w);
     }
     {
-        // 值与分隔符之间只有一个 \n：分隔符照样认，但不剥字节（剥 2 个会吃掉值里的 'A'）
+        // 值与分隔符之间只有一个 \n：缺 \r 就不算分隔符，整段粘成 alpha 一个值，
+        // 直到下一个真正带 CRLF 的分隔符（这里是闭合那条）才切。
         Want w;
-        w.keys  = 2;
-        w.alpha = "AAA\n";
-        w.beta  = "BBB";
+        w.keys  = 1;
+        w.alpha = "AAA\n--" + BD + "\r\nContent-Disposition: form-data; name=\"beta\"\r\n\r\nBBB";
         push("J-lf-only-delim",
              "--" + BD + "\r\nContent-Disposition: form-data; name=\"alpha\"\r\n\r\nAAA\n" + tp("beta", "BBB") + close_, w);
     }

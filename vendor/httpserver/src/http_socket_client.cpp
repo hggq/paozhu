@@ -2,6 +2,7 @@
 #include "client_context.h"
 #include "atomic_guard.h"
 #include <future>
+#include <algorithm>
 
 namespace http
 {
@@ -38,11 +39,18 @@ void socket_client::reset()
     ssl_context.reset();
 }
 
+// 去掉 header name / value 里的 CR / LF —— 防止常驻 socket 客户端握手出站请求头被注入。
+static inline std::string strip_crlf(std::string s)
+{
+    s.erase(std::remove_if(s.begin(), s.end(), [](unsigned char c) { return c == '\r' || c == '\n'; }), s.end());
+    return s;
+}
+
 void socket_client::set_header(std::string_view name, std::string_view value)
 {
     socket_parameter_t a;
-    a.name  = name;
-    a.value = value;
+    a.name  = strip_crlf(std::string(name));
+    a.value = strip_crlf(std::string(value));
     parameter.emplace_back(a);
 }
 void socket_client::set_port(unsigned int n)

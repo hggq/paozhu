@@ -19,9 +19,11 @@
 //       --content-type 'multipart/form-data; boundary=XXXX' --body-file /abs/body.bin \
 //       --frame-size 997 --dump-body --conns 1 --streams 3 --inflight 1
 // --frame-size 决定每个 DATA 帧的负载字节数（服务端 SETTINGS_MAX_FRAME_SIZE 会再钳一次），
-// 传小值就能把分隔符、字段名切成跨帧；正文整条流一次发完，所以必须 --inflight 1，
-// 且正文不超过 60000 字节——本端不跟踪发送窗口，只靠初始 65535 窗口兜，
-// 一条流回完才开下一条，服务端就已经把这段窗口还回来了。
+// 传小值就能把分隔符、字段名切成跨帧。
+// 正文按发送窗口（连接级和流级各自一份）分批发，窗口空了就等服务端 WINDOW_UPDATE 续发，
+// 所以正文没有长度上限，多条在途流也能各发各的；代价是 --deadline 要按上传带宽留够。
+// 想精确控制"刷盘缝"落在正文哪个偏移，用 --inflight 1 配 --frame-size：
+// 每帧一次解析，累计到货字节数就是 frame_size 的整数倍（减去 HEADERS 不占正文）。
 // --dump-body 把每条完成流的响应体打出来（单条最多 8192 字节），配合 grep 判字段值。
 // 输出一律用 endl 冲刷：stdout 重定向到文件是块缓冲，不冲刷则进程挂住时一行都看不到。
 //
@@ -231,6 +233,19 @@ struct h2conn
     unsigned int inflight_limit = 100;
     // 服务端 SETTINGS_MAX_FRAME_SIZE(0x5)：本端发 DATA 时按它再钳一次；缺省按 RFC 允许的下限 16384
     unsigned int max_frame_size = 16384;
+    // 发送窗口：连接级初值恒 65535（SETTINGS 改不了，只能靠对端 WINDOW_UPDATE 抬）；
+    // 流级初值 = 对端 SETTINGS_INITIAL_WINDOW_SIZE(0x4)，服务端改这个值时要在已开流上按差量调整。
+    long long conn_send_window = 65535;
+    long long stream_send_init = 65535;
+    std::map<unsigned int, long long> stream_send_window;
+    // 窗口不够时排在这里的正文还没发完，收到 WINDOW_UPDATE 或 SETTINGS 后续发
+    struct pending_body
+    {
+        unsigned int sid  = 0;
+        std::size_t offset = 0;
+    };
+    std::deque<pending_body> send_queue;
+
     // 服务端 SETTINGS 到货前不开流：在途上限要以服务端广告的 MAX_CONCURRENT_STREAMS 为准，开超了会被 RST
     bool server_settings_seen     = false;
     unsigned int next_stream_id   = 1;
@@ -241,6 +256,13 @@ struct h2conn
     unsigned int status_other     = 0;
     unsigned int never_served     = 0;
     unsigned long long data_bytes = 0;
+    // 发送侧读数：正文实际写出去多少字节、收到多少条 WINDOW_UPDATE（连接级/流级各一）。
+    // 卡在窗口上时（正文没发完又没收到响应）只有这组读数能分清是本端停手还是对端不回。
+    unsigned long long body_sent    = 0;
+    unsigned int wu_conn            = 0;
+    unsigned int wu_stream          = 0;
+    // 流已关闭但正文还没发完的字节数（服务端提前 END_STREAM 或 RST 才有值）
+    unsigned long long body_undelivered = 0;
     bool got_goaway               = false;
     // GOAWAY 读数：错误码、最后一个已处理流号、附带调试文本（框架会把错码文本塞在 payload 尾部）
     unsigned int goaway_code      = 0;
@@ -320,14 +342,12 @@ struct h2conn
             else
             {
                 send_raw(build_frame(FR_HEADERS, FR_FLAG_END_HEADERS, sid, block));
-                unsigned int chunk = std::min(opt.frame_size, max_frame_size);
-                for (unsigned int off = 0; off < opt.body.size(); off += chunk)
+                if (broken)
                 {
-                    unsigned int n     = std::min(chunk, static_cast<unsigned int>(opt.body.size()) - off);
-                    std::vector<unsigned char> payload(opt.body.begin() + off, opt.body.begin() + off + n);
-                    unsigned char flags = (off + n >= opt.body.size()) ? FR_FLAG_END_STREAM : 0;
-                    send_raw(build_frame(FR_DATA, flags, sid, payload));
+                    return;
                 }
+                stream_send_window[sid] = stream_send_init;
+                send_queue.push_back(pending_body{sid, 0});
             }
             if (broken)
             {
@@ -335,6 +355,66 @@ struct h2conn
             }
             live_streams[sid] = std::chrono::steady_clock::now();
             opened++;
+        }
+        flush_send();
+    }
+
+    // 按发送窗口把排队的正文一段段发出去：连接级窗口空了整体停手，
+    // 某条流自己的窗口空了只跳过它，别的流照发。窗口回来时由 WINDOW_UPDATE/SETTINGS 再调这里。
+    void flush_send()
+    {
+        while (!broken && !send_queue.empty())
+        {
+            bool progress = false;
+            for (auto iter = send_queue.begin(); iter != send_queue.end();)
+            {
+                if (conn_send_window <= 0)
+                {
+                    break;
+                }
+                auto witer = stream_send_window.find(iter->sid);
+                if (witer == stream_send_window.end() || witer->second <= 0)
+                {
+                    ++iter;
+                    continue;
+                }
+                unsigned int chunk = std::min(opt.frame_size, max_frame_size);
+                std::size_t left   = opt.body.size() - iter->offset;
+                std::size_t allow  = static_cast<std::size_t>(std::min<long long>(
+                    conn_send_window, std::min<long long>(witer->second, chunk)));
+                unsigned int n = static_cast<unsigned int>(std::min(allow, left));
+                if (n == 0)
+                {
+                    ++iter;
+                    continue;
+                }
+                std::vector<unsigned char> payload(opt.body.begin() + iter->offset,
+                                                   opt.body.begin() + iter->offset + n);
+                unsigned char flags = (iter->offset + n >= opt.body.size()) ? FR_FLAG_END_STREAM : 0;
+                send_raw(build_frame(FR_DATA, flags, iter->sid, payload));
+                if (broken)
+                {
+                    return;
+                }
+                conn_send_window -= n;
+                witer->second -= n;
+                body_sent += n;
+                iter->offset += n;
+                progress      = true;
+                if (iter->offset >= opt.body.size())
+                {
+                    stream_send_window.erase(iter->sid);
+                    iter = send_queue.erase(iter);
+                }
+                else
+                {
+                    ++iter;
+                }
+            }
+            if (!progress)
+            {
+                return;
+            }
         }
     }
 
@@ -346,6 +426,21 @@ struct h2conn
             return;
         }
         live_streams.erase(iter);
+        // 流已经关了（服务端提前回完、或被 RST），正文没发完的那部分不能再发：
+        // 往已关闭的流上写 DATA 是协议违例。这种流单独计数，否则判据会把"半截请求"当成上传成功。
+        stream_send_window.erase(sid);
+        for (auto qiter = send_queue.begin(); qiter != send_queue.end();)
+        {
+            if (qiter->sid == sid)
+            {
+                body_undelivered += opt.body.size() - qiter->offset;
+                qiter            = send_queue.erase(qiter);
+            }
+            else
+            {
+                ++qiter;
+            }
+        }
         if (reset)
         {
             got_rst++;
@@ -465,13 +560,26 @@ struct h2conn
                     // SETTINGS_MAX_CONCURRENT_STREAMS(0x3)：在途上限取配置值与服务端广告值的较小者
                     inflight_limit = std::min(opt.inflight, value);
                 }
+                else if (ident == 0x4)
+                {
+                    // SETTINGS_INITIAL_WINDOW_SIZE(0x4)：改的是流级发送窗口的基准，
+                    // 已开的流要按差量一起调（RFC 9113 §6.9.2），连接级窗口不受 SETTINGS 影响
+                    long long delta = static_cast<long long>(value) - stream_send_init;
+                    stream_send_init = static_cast<long long>(value);
+                    for (auto &sw : stream_send_window)
+                    {
+                        sw.second += delta;
+                    }
+                }
                 else if (ident == 0x5 && value > 0)
                 {
                     // SETTINGS_MAX_FRAME_SIZE(0x5)：单个 DATA 帧负载的硬上限
                     max_frame_size = value;
                 }
             }
+            flush_send();
             break;
+
         case FR_HEADERS:
         {
             note_late(type, sid, length, flags);
@@ -560,8 +668,32 @@ struct h2conn
                 send_raw(build_frame(FR_PING, FR_FLAG_ACK, 0, payload));
             }
             break;
-        case FR_PUSH_PROMISE:
         case FR_WINDOW_UPDATE:
+        {
+            if (length < 4)
+            {
+                break;
+            }
+            // 最高位是保留位，比较前清掉（RFC 9113 §6.9）
+            unsigned int increment = be_to_uint(payload.data()) & 0x7FFFFFFFu;
+            if (sid == 0)
+            {
+                conn_send_window += increment;
+                wu_conn++;
+            }
+            else
+            {
+                auto witer = stream_send_window.find(sid);
+                if (witer != stream_send_window.end())
+                {
+                    witer->second += increment;
+                }
+                wu_stream++;
+            }
+            flush_send();
+            break;
+        }
+        case FR_PUSH_PROMISE:
         case FR_CONTINUATION:
         default:
             break;
@@ -706,13 +838,6 @@ bool parse_options(int argc, char **argv, options &opt)
     }
     if (opt.method == "POST" && !opt.body_file.empty())
     {
-        // 本端不跟踪发送窗口（流级和连接级都只有初始 65535），所以一条正文必须整段塞进初始窗口；
-        // 且要一次发完一条流再开下一条，否则多条在途正文的合计会越过连接级窗口
-        if (opt.inflight != 1)
-        {
-            std::cout << "BAD-ARG POST body needs --inflight 1 (send window is not tracked)" << std::endl;
-            return false;
-        }
         if (opt.content_type.empty())
         {
             std::cout << "BAD-ARG POST body needs --content-type" << std::endl;
@@ -739,11 +864,6 @@ int main(int argc, char **argv)
             return 1;
         }
         opt.body.assign(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
-        if (opt.body.size() > 60000)
-        {
-            std::cout << "BAD-ARG body must be <= 60000 bytes (initial send window is 65535)" << std::endl;
-            return 2;
-        }
         std::cout << "BODY loaded bytes=" << opt.body.size() << " frame_size=" << opt.frame_size
                   << " path=" << opt.path << std::endl;
     }
@@ -835,6 +955,11 @@ int main(int argc, char **argv)
                   << " status200=" << c->status_200 << " status_other=" << c->status_other
                   << " rst=" << c->got_rst << " never_served=" << c->never_served
                   << " stuck=" << c->live_streams.size() << " data_bytes=" << c->data_bytes
+                  << (opt.body.empty() ? "" : " body_sent=" + std::to_string(c->body_sent) + "/" +
+                                                    std::to_string(opt.body.size()) +
+                                                    " wu_conn=" + std::to_string(c->wu_conn) +
+                                                    " wu_stream=" + std::to_string(c->wu_stream))
+                  << (c->body_undelivered > 0 ? " body_undelivered=" + std::to_string(c->body_undelivered) : "")
                   << (c->broken ? " broken=\"" + c->broken_msg + "\"" : "")
                   << (c->got_goaway ? " goaway=1" : "") << std::endl;
         // 响应体形状分布：定长 JSON 只该有一种 (帧数,字节数) 组合；

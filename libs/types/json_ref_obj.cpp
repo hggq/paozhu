@@ -273,7 +273,7 @@ std::string json_encode(const std::vector<json_ref_obj_recent_orders_t> &json_re
                     
                             if (http::str_casecmp(_json_key_name, "items"))
                             {  
-            if(_json_data[_offset]==0x5B)
+            if(_json_data[_offset]==0x5B||_json_data[_offset]==0x7D)
             {
                 _offset+=1;
             }
@@ -282,8 +282,8 @@ std::string json_encode(const std::vector<json_ref_obj_recent_orders_t> &json_re
             {
                 //去除空格
                 _offset=http::json_string_trim(_json_data,_offset);
-                //如果是右侧中括号表示这个对象已经结束
-                if(_json_data[_offset]==0x5D)
+                //如果是右侧括号表示这个对象已经结束
+                if(_json_data[_offset]==0x5D||_json_data[_offset]==0x7D)
                 {
                     _offset+=1;
                     break;
@@ -1702,7 +1702,7 @@ std::string json_encode(const std::vector<json_ref_obj> &json_reflectobj)
                     
                             if (http::str_casecmp(_json_key_name, "tags"))
                             {  
-            if(_json_data[_offset]==0x5B)
+            if(_json_data[_offset]==0x5B||_json_data[_offset]==0x7D)
             {
                 _offset+=1;
             }
@@ -1711,8 +1711,8 @@ std::string json_encode(const std::vector<json_ref_obj> &json_reflectobj)
             {
                 //去除空格
                 _offset=http::json_string_trim(_json_data,_offset);
-                //如果是右侧中括号表示这个对象已经结束
-                if(_json_data[_offset]==0x5D)
+                //如果是右侧括号表示这个对象已经结束
+                if(_json_data[_offset]==0x5D||_json_data[_offset]==0x7D)
                 {
                     _offset+=1;
                     break;

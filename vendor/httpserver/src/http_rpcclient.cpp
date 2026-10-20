@@ -11,6 +11,7 @@
  */
 #include <memory>
 #include <string>
+#include <algorithm>
 #include "server_localvar.h"
 #include "http_rpcclient.h"
 #include "client_context.h"
@@ -19,6 +20,13 @@
 
 namespace http
 {
+// 去掉 header name / value 里的 CR / LF —— 防止出站 RPC 请求头被注入。
+static inline std::string strip_crlf(std::string s)
+{
+    s.erase(std::remove_if(s.begin(), s.end(), [](unsigned char c) { return c == '\r' || c == '\n'; }), s.end());
+    return s;
+}
+
 rpc_client::rpc_client() : uprawfile(nullptr, std::fclose), strand_(asio::make_strand(*(get_client_context_obj().ioc))) { iserror = false; }
 rpc_client::~rpc_client()
 {
@@ -30,8 +38,8 @@ rpc_client::~rpc_client()
 void rpc_client::set_header(std::string_view name, std::string_view value)
 {
     rpc_parameter_t a;
-    a.name  = name;
-    a.value = value;
+    a.name  = strip_crlf(std::string(name));
+    a.value = strip_crlf(std::string(value));
     parameter.emplace_back(a);
 }
 

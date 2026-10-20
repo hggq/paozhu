@@ -11,13 +11,11 @@
 #include "testview.h"
 #include "testcrud.h"
 #include "testhello.h"
-#include "testjson.h"
 #include "testmodel.h"
 namespace http
 {
 inline void _inithttpmethodregto()
 {
-    REG_SYNC_SYNC("", "/testjson",    nullptr, testjson);
     REG_SYNC_SYNC("", "/testmodel",   nullptr, testmodel);
     REG_SYNC_SYNC("", "/testmodelsmartptr", nullptr, testmodelsmartptr);
     REG_SYNC_SYNC("", "/testlogin",   nullptr, testlogin);

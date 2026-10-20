@@ -1326,22 +1326,22 @@ articles.remove_cache(articles.last_exec_cache_hash);   // 0 = 没装填过，�
 
 ```bash
 # 从 cms 迁移到 pg
-./bin/paozhu_cli dbconver cms pg
+./bin/paozhu_cli dbmigrate cms pg
 
 # 强制迁移（覆盖已有表）
-./bin/paozhu_cli dbconver cms pg force
+./bin/paozhu_cli dbmigrate cms pg force
 ```
 
 ### 6.5 SQL 导出
 
 ```bash
 # 导出表结构
-./bin/paozhu_cli dbtable cms ./schema.sql
-./bin/paozhu_cli dbtable cms ./pg.sql -target=pg      # 导出为 PG 语法
+./bin/paozhu_cli dbdump-schema cms ./schema.sql
+./bin/paozhu_cli dbdump-schema cms ./pg.sql -target=pg      # 导出为 PG 语法
 
 # 导出结构+数据
-./bin/paozhu_cli dbexport cms ./dump.sql
-./bin/paozhu_cli dbexport cms ./mysql.sql -target=mysql
+./bin/paozhu_cli dbdump-all cms ./dump.sql
+./bin/paozhu_cli dbdump-all cms ./mysql.sql -target=mysql
 ```
 
 ---
@@ -1675,7 +1675,7 @@ make -j$(nproc)
 永远只连 `[default]` 这个 MySQL 节，而 `orm::pg::Fortune` 与 `orm::lite::Fortune` 是另外
 生成的类，分别绑定 PostgreSQL 与 SQLite。要换引擎，就用 `./bin/paozhu_cli orm <tag>` 生成
 该标签并使用其命名空间；`orm.conf` 里的 `dbtype` 只决定*新*标签使用哪种客户端，
-`./bin/paozhu_cli dbconver <from> <to>` 负责搬运数据。
+`./bin/paozhu_cli dbmigrate <from> <to>` 负责搬运数据。
 
 **Q: DSL 覆盖不到的谓词，怎么写进 `where()`？**  
 不能把 SQL 片段交给 `where()`。它的第一个参数是列名，操作符单独传（

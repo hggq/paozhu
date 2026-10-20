@@ -62,6 +62,9 @@ std::string hex2str(std::string_view source, unsigned char sp = 0);
 std::string str2safepath(const char *source, unsigned int str_length);
 std::string str2safefile(const char *source, unsigned int str_length);
 std::string str2safemethold(const char *source, unsigned int str_length);
+// multipart filename 安全化：只保留 basename，吃掉路径分隔符、反斜杠、空字节。
+// 防御路径穿越（如 "../../etc/cron.d/malicious"），保留扩展名。
+std::string safe_filename(std::string_view raw);
 std::string get_safepath(std::string_view str1);
 std::string numstr_to_sql(const char *source, unsigned int str_length, char b = ',');
 std::string dir_name(std::string_view name);

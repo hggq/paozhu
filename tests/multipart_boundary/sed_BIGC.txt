@@ -1,0 +1,2 @@
+s#    std::string carry = field_item.substr(field_item.size() - 2, 2);#    std::string carry;// MUT-BIGC 不取尾巴#
+s#    field_item.resize(field_item.size() - 2);#    (void)field_item;// MUT-BIGC 不缩尾巴#

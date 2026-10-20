@@ -1167,6 +1167,25 @@ void http2parse::header_process(std::string header_name, std::string header_valu
             return;
         }
     }
+    // ①b Header name / value 里不能含 C0 控制字符（RFC 7540 §8.1.2 / RFC 9110 §5.6.3）。
+    // 尤其 CR(0x0D) LF(0x0A) 会导致请求走私、header 注入。header name 禁止任何 C0；
+    // header value 仅 tab(0x09) 合法（RFC 允许的水平制表符，历史上用作折叠行续）。
+    for (unsigned char c : header_name)
+    {
+        if (c < 0x20 || c == 0x7F)
+        {
+            set_conn_error(40025, 0x1);// PROTOCOL_ERROR
+            return;
+        }
+    }
+    for (unsigned char c : header_value)
+    {
+        if ((c < 0x20 && c != 0x09) || c == 0x7F)
+        {
+            set_conn_error(40025, 0x1);// PROTOCOL_ERROR
+            return;
+        }
+    }
     // ② 响应伪头（:status）出现在请求里、未知伪头 → PROTOCOL_ERROR（h2spec 8.1.2.1 #1/#2）
     // Pseudo-headers are request-only (:method/:scheme/:path/:authority / response-only :status).
     if (!header_name.empty() && header_name[0] == ':')
@@ -1835,8 +1854,10 @@ void http2parse::callposttype(const std::string &buffer_value, std::shared_ptr<h
         if (str_casecmp(buffer_value, "multipart/form-data"))
         {
             steam_httppeer->content_type = "multipart/form-data";
-            //block_data_info_ptr->posttype      = 2;
-            steam_httppeer->posttype = 2;
+            // 同步设置两个 posttype：callposttype 早期只写 peer->posttype，
+            // body 处理（L4589）却看 pd.posttype，漏了会导致空 boundary 绕过 40099 检查
+            pd.posttype                  = 2;
+            steam_httppeer->posttype     = 2;
             return;
         }
         break;
@@ -1956,19 +1977,20 @@ void http2parse::getcontenttype([[maybe_unused]] const std::string &header_name,
         }
         buffer_value.push_back(header_value[i]);
     }
-    if (buffer_value.size() > 0)
+    // Content-Type 扫描结束；boundary 参数声明了但值为空也视为非法
+    if (statetemp == 2)
+    {
+        if (!http2_boundary_normalize(iter->second.boundary, buffer_value))
+        {
+            error = 40099;
+            return;
+        }
+    }
+    else if (buffer_value.size() > 0)
     {
         if (statetemp == 1)
         {
             iter->second.chartset = buffer_value;
-        }
-        else if (statetemp == 2)
-        {
-            if (!http2_boundary_normalize(iter->second.boundary, buffer_value))
-            {
-                error = 40099;
-                return;
-            }
         }
         else
         {
@@ -3531,7 +3553,7 @@ void http2parse::multipart_post_file_field(HTTP2_POST_DATA_T &temp_post_data)
 
                             http::obj_val objtemp;
                             objtemp.set_object();
-                            objtemp["filename"] = temp_post_data.filename;
+                            objtemp["filename"] = safe_filename(temp_post_data.filename);
                             objtemp["name"]     = temp_post_data.field_name;
                             objtemp["tempfile"] = temp_post_data.temp_filename;
                             objtemp["type"]     = temp_post_data.mimetype;
@@ -3560,7 +3582,7 @@ void http2parse::multipart_post_file_field(HTTP2_POST_DATA_T &temp_post_data)
 
                             http::obj_val objtemp;
                             objtemp.set_object();
-                            objtemp["filename"] = temp_post_data.filename;
+                            objtemp["filename"] = safe_filename(temp_post_data.filename);
                             objtemp["name"]     = temp_post_data.field_name;
                             objtemp["tempfile"] = temp_post_data.temp_filename;
                             objtemp["type"]     = temp_post_data.mimetype;
@@ -3593,7 +3615,7 @@ void http2parse::multipart_post_file_field(HTTP2_POST_DATA_T &temp_post_data)
 
                             http::obj_val objtemp;
                             objtemp.set_object();
-                            objtemp["filename"] = temp_post_data.filename;
+                            objtemp["filename"] = safe_filename(temp_post_data.filename);
                             objtemp["name"]     = temp_post_data.field_name;
                             objtemp["tempfile"] = temp_post_data.temp_filename;
                             objtemp["type"]     = temp_post_data.mimetype;
@@ -3626,7 +3648,7 @@ void http2parse::multipart_post_file_field(HTTP2_POST_DATA_T &temp_post_data)
 
                             http::obj_val objtemp;
                             objtemp.set_object();
-                            objtemp["filename"] = temp_post_data.filename;
+                            objtemp["filename"] = safe_filename(temp_post_data.filename);
                             objtemp["name"]     = temp_post_data.field_name;
                             objtemp["tempfile"] = temp_post_data.temp_filename;
                             objtemp["type"]     = temp_post_data.mimetype;
@@ -3656,7 +3678,7 @@ void http2parse::multipart_post_file_field(HTTP2_POST_DATA_T &temp_post_data)
 
                         http::obj_val objtemp;
                         objtemp.set_object();
-                        objtemp["filename"] = temp_post_data.filename;
+                        objtemp["filename"] = safe_filename(temp_post_data.filename);
                         objtemp["name"]     = temp_post_data.field_name;
                         objtemp["tempfile"] = temp_post_data.temp_filename;
                         objtemp["type"]     = temp_post_data.mimetype;
@@ -3681,7 +3703,7 @@ void http2parse::multipart_post_file_field(HTTP2_POST_DATA_T &temp_post_data)
 
                         http::obj_val objtemp;
                         objtemp.set_object();
-                        objtemp["filename"] = temp_post_data.filename;
+                        objtemp["filename"] = safe_filename(temp_post_data.filename);
                         objtemp["name"]     = temp_post_data.field_name;
                         objtemp["tempfile"] = temp_post_data.temp_filename;
                         objtemp["type"]     = temp_post_data.mimetype;
@@ -3712,7 +3734,7 @@ void http2parse::multipart_post_file_field(HTTP2_POST_DATA_T &temp_post_data)
     if (isgroup)
     {
         temp_post_data.peer->files[temp_post_data.field_name].set_object();
-        temp_post_data.peer->files[temp_post_data.field_name]["filename"] = temp_post_data.filename;
+        temp_post_data.peer->files[temp_post_data.field_name]["filename"] = safe_filename(temp_post_data.filename);
         temp_post_data.peer->files[temp_post_data.field_name]["name"]     = temp_post_data.field_name;
         temp_post_data.peer->files[temp_post_data.field_name]["tempfile"] = temp_post_data.temp_filename;
         temp_post_data.peer->files[temp_post_data.field_name]["type"]     = temp_post_data.mimetype;
@@ -3800,6 +3822,21 @@ void http2parse::post_www_form_urlencoded(HTTP2_POST_DATA_T &temp_post_data)
         }
         post_form_to_postfield(buffer_key, field_value, temp_post_data.peer);
     }
+}
+
+//大文件正文中途落盘时，先把 field_item 末尾两个字节留在内存里。
+//分隔符前面必定是 CRLF，这两个字节一旦写进文件，下一帧的 "--" 就回看不到：
+//回看全空会把它们当成正文（文件末尾多出两个字节），只看见 LF 那半个又会把
+//真分隔符判成普通数据吞进文件里，后面的字段一起丢掉。
+static std::string take_delim_crlf_tail(std::string &field_item)
+{
+    if (field_item.size() < 2)
+    {
+        return std::string();
+    }
+    std::string carry = field_item.substr(field_item.size() - 2, 2);
+    field_item.resize(field_item.size() - 2);
+    return carry;
 }
 
 void http2parse::post_multipart_itemcontent_append(HTTP2_POST_DATA_T &temp_post_data)
@@ -4231,8 +4268,8 @@ void http2parse::post_multipart_formdata(HTTP2_POST_DATA_T &temp_post_data, [[ma
                     isnotmatch = false;
                 }
             }
-            //横线前面明确不是换行，这段是数据内容里的横线
-            if (!isnotmatch && tail_is(1, '\n') == 0)
+            //横线前面有 LF 但没有 CR（tail_cr!=1，含 0 和 -1）或明确不是换行（tail_lf=0）时置为假匹配
+            if (!isnotmatch && (tail_is(1, '\n') == 0 || (tail_is(1, '\n') == 1 && tail_is(2, '\r') != 1)))
             {
                 isnotmatch = true;
             }
@@ -4312,8 +4349,8 @@ void http2parse::post_multipart_formdata(HTTP2_POST_DATA_T &temp_post_data, [[ma
             {
                 isnotmatch = false;
             }
-            //横线前面明确不是换行，这段是数据内容里的横线
-            if (!isnotmatch && tail_is(1, '\n') == 0)
+            //横线前面有 LF 但没有 CR（tail_cr!=1，含 0 和 -1）或明确不是换行（tail_lf=0）时置为假匹配
+            if (!isnotmatch && (tail_is(1, '\n') == 0 || (tail_is(1, '\n') == 1 && tail_is(2, '\r') != 1)))
             {
                 isnotmatch = true;
             }
@@ -4398,8 +4435,8 @@ void http2parse::post_multipart_formdata(HTTP2_POST_DATA_T &temp_post_data, [[ma
             {
                 isnotmatch = false;
             }
-            //横线前面明确不是换行，这段是数据内容里的横线
-            if (!isnotmatch && tail_is(1, '\n') == 0)
+            //横线前面有 LF 但没有 CR（tail_cr!=1，含 0 和 -1）或明确不是换行（tail_lf=0）时置为假匹配
+            if (!isnotmatch && (tail_is(1, '\n') == 0 || (tail_is(1, '\n') == 1 && tail_is(2, '\r') != 1)))
             {
                 isnotmatch = true;
             }
@@ -4475,12 +4512,13 @@ void http2parse::post_multipart_formdata(HTTP2_POST_DATA_T &temp_post_data, [[ma
                     j++;
                     if (j < temp_post_data.content.size())
                     {
-                        // 分隔符的 '--' 前面必须是 CRLF；数据内容里的 '--' 不当边界，
-                        // 免得把字段截断、还把末尾两个字节当成 CRLF 吞掉。
-                        // 那两个字节取不到时（跨帧、大文件分块已刷盘）仍按边界处理。
+                        // 分隔符的 '--' 前面必须是 CRLF 或整体不可见（body 开头、跨帧、大文件刷盘）。
+                        // 明确有 LF 但没有 CR（dash_lf=1, dash_cr!=1，含 0 和 -1）拒绝；
+                        // 明确都不是（dash_lf=0）也拒绝。
+                        // 整体不可见（dash_lf=-1）时放行——第一个 boundary 就是 body 开头。
                         int dash_lf = prev_is(1, '\n');
                         int dash_cr = prev_is(2, '\r');
-                        if (dash_lf == 0)
+                        if (dash_lf == 0 || (dash_lf == 1 && dash_cr != 1))
                         {
                             continue;// 普通数据，继续扫描，后续 append 会把它并回 field_item
                         }
@@ -4518,7 +4556,8 @@ void http2parse::post_multipart_formdata(HTTP2_POST_DATA_T &temp_post_data, [[ma
                             {
                                 if (temp_post_data.content[j] == '-' && temp_post_data.content[j + 1] == '-')
                                 {
-                                    temp_post_data.field_offset   = j + 1;
+                                    // 跳过结束标记的两个 '-'：j 指向第一个 '-', j+1 指向第二个 '-'
+                                    temp_post_data.field_offset   = j + 2;
                                     temp_post_data.peer->isfinish = true;
                                 }
                                 else if (temp_post_data.content[j] == '\r' && temp_post_data.content[j + 1] == '\n')
@@ -4659,8 +4698,12 @@ void http2parse::post_data_process(HTTP2_POST_DATA_T &temp_post_data, unsigned c
                 if (temp_post_data.isfile && temp_post_data.field_item.size() > 2097152)
                 {
                     //及时消化掉大文件中间内容，尽快保存到文件
-                    post_multipart_itemcontent_append(temp_post_data);
-                    temp_post_data.field_item.clear();
+                    if (temp_post_data.fp)
+                    {
+                        std::string carry = take_delim_crlf_tail(temp_post_data.field_item);
+                        post_multipart_itemcontent_append(temp_post_data);
+                        temp_post_data.field_item = std::move(carry);
+                    }
                 }
                 else if (temp_post_data.field_item.size() > 2097152)
                 {
@@ -4672,8 +4715,9 @@ void http2parse::post_data_process(HTTP2_POST_DATA_T &temp_post_data, unsigned c
                         if (pos != std::string::npos)
                         {
                             reset_uploadfile(temp_post_data);
+                            std::string carry = take_delim_crlf_tail(temp_post_data.field_item);
                             post_multipart_itemcontent(temp_post_data, false);
-                            temp_post_data.field_item.clear();
+                            temp_post_data.field_item = std::move(carry);
                         }
                     }
                 }

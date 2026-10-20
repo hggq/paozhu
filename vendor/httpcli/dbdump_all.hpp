@@ -1,12 +1,12 @@
 /*
  *  @author 黄自权 huangziquan
- *  @date 2026-08-14
- *  @dest 导出数据库表结构到SQL文件
- *  Usage: paozhu_cli dbtable <dbtag> <filename.sql> [-target=mysql|postgresql|sqlite]
+ *  @date 2026-08-15
+ *  @dest 导出数据库表结构+数据到SQL文件 (支持跨数据库类型)
+ *  Usage: dbdump-all <dbtag> <filename.sql> [-target=mysql|postgresql|sqlite]
  */
 
-#ifndef _DBTABLE_HPP
-#define _DBTABLE_HPP
+#ifndef _DBDUMP_ALL_HPP
+#define _DBDUMP_ALL_HPP
 
 #include <iostream>
 #include <cstdio>
@@ -23,14 +23,20 @@
 #include "dbtypes.hpp"
 
 namespace fs = std::filesystem;
-namespace dbtable
+namespace dbdump
 {
 
+using dbtypes::build_insert_sql_mysql;
+using dbtypes::build_insert_sql_pg;
+using dbtypes::build_insert_sql_sqlite;
+using dbtypes::build_source_column_expr;
+using dbtypes::check_row_width;
 using dbtypes::convert_table_for_target;
 using dbtypes::create_connection;
 using dbtypes::db_table_info;
 using dbtypes::db_type_display;
 using dbtypes::dedup_global_index_names;
+using dbtypes::fetch_rows;
 using dbtypes::flatten_line_comment;
 using dbtypes::gen_ddl;
 using dbtypes::get_table_schema;
@@ -39,30 +45,32 @@ using dbtypes::is_safe_dbtag;
 using dbtypes::is_safe_filename;
 using dbtypes::is_valid_sql_identifier;
 using dbtypes::is_valid_target_type_str;
+using dbtypes::now_stamp;// 产物头部写真实生成时刻，不用 __DATE__ __TIME__
 using dbtypes::parse_target_type;
+using dbtypes::quote_identifier;
 using orm::DB_TYPE;
 
-// ===================== 主入口 =====================
+// ===================== 主导出逻辑 =====================
 
-inline int dbtablecli(const std::string &dbtag           = "",
-                      const std::string &filename        = "",
-                      const std::string &target_type_str = "",
-                      bool include_drop                  = true)
+inline int dump_all_cli(const std::string &dbtag           = "",
+                        const std::string &filename        = "",
+                        const std::string &target_type_str = "",
+                        bool include_drop                  = true)
 {
     if (dbtag.empty() || filename.empty())
     {
-        std::cout << "Usage: paozhu_cli dbtable <dbtag> <filename.sql> [-target=mysql|postgresql|sqlite] [-nodrop]" << std::endl;
+        std::cout << "Usage: paozhu_cli dbdump-all <dbtag> <filename.sql> [-target=mysql|postgresql|sqlite] [-nodrop]" << std::endl;
         std::cout << "  dbtag:    database tag (from conf/orm.conf)" << std::endl;
         std::cout << "  filename: output SQL file path" << std::endl;
         std::cout << "  -target:  target database type for DDL conversion (optional)" << std::endl;
         std::cout << "            mysql, postgresql, pg, sqlite, sqlite3" << std::endl;
-        std::cout << "  -nodrop:  The product does not export DROP TABLE IF EXISTS (it will not delete the table when it is rolled back to the database with a table of the same name)" << std::endl;
-        std::cout << "Example: paozhu_cli dbtable cms ./schema.sql" << std::endl;
-        std::cout << "         (export MySQL [cms] table structures to ./schema.sql)" << std::endl;
-        std::cout << "         paozhu_cli dbtable cms ./pg_schema.sql -target=postgresql" << std::endl;
-        std::cout << "         (export MySQL [cms] table structures as PostgreSQL DDL)" << std::endl;
-        std::cout << "         paozhu_cli dbtable cms ./sqlite_schema.sql -target=sqlite" << std::endl;
-        std::cout << "         (export MySQL [cms] table structures as SQLite DDL)" << std::endl;
+        std::cout << "  -nodrop:  The product does not output DROP TABLE IF EXISTS (when rolling back to a database with a table of the same name, the table will not be deleted)" << std::endl;
+        std::cout << "Example: paozhu_cli dbdump-all cms ./dump.sql" << std::endl;
+        std::cout << "         (export MySQL [cms] schema+data to ./dump.sql)" << std::endl;
+        std::cout << "         paozhu_cli dbdump-all pg ./mysql_dump.sql -target=mysql" << std::endl;
+        std::cout << "         (export PG schema+data as MySQL DDL+INSERT)" << std::endl;
+        std::cout << "         paozhu_cli dbdump-all cms ./sqlite_dump.sql -target=sqlite" << std::endl;
+        std::cout << "         (export MySQL schema+data as SQLite DDL+INSERT)" << std::endl;
         return 1;
     }
 
@@ -85,7 +93,7 @@ inline int dbtablecli(const std::string &dbtag           = "",
     }
     // ---- 安全验证完成 ----
 
-    std::cout << "\033[36m 🍄 Database Table Exporter\033[0m" << std::endl;
+    std::cout << "\033[36m 🍄 Database Exporter (Schema + Data)\033[0m" << std::endl;
     std::cout << "  Source: \033[35m[" << dbtag << "]\033[0m" << std::endl;
     std::cout << "  Output: \033[35m" << filename << "\033[0m" << std::endl;
 
@@ -144,10 +152,10 @@ inline int dbtablecli(const std::string &dbtag           = "",
         std::cerr << "  [ERROR] " << src.error_msg << std::endl;
         return 1;
     }
-    std::cout << "  [OK] " << db_type_display(src_type) << " connected" << std::endl;
+    std::cout << "  \033[32m[OK]\033[0m " << db_type_display(src_type) << " connected" << std::endl;
 
-    bool tables_ok  = false;
-    auto table_list = get_tables(src.conn, src_type, &tables_ok);
+    bool tables_ok = false;
+    auto tables    = get_tables(src.conn, src_type, &tables_ok);
 
     if (!tables_ok)
     {
@@ -156,9 +164,8 @@ inline int dbtablecli(const std::string &dbtag           = "",
         return 1;
     }
 
-    std::cout << "\n  Found " << table_list.size() << " tables." << std::endl;
+    std::cout << "  Tables found: " << tables.size() << std::endl;
 
-    // Open output file（零表也要打开：否则上一轮的陈旧产物会被当成本次结果
     std::ofstream outfile(filename);
     if (!outfile.is_open())
     {
@@ -166,34 +173,22 @@ inline int dbtablecli(const std::string &dbtag           = "",
         return 1;
     }
 
-    // Write file header
-    time_t now = time(nullptr);
-    char time_buf[64];
-#if defined(_WIN32)
-    struct tm tm_buf;
-    localtime_s(&tm_buf, &now);
-    strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S", &tm_buf);
-#else
-    struct tm tm_buf;
-    localtime_r(&now, &tm_buf);
-    strftime(time_buf, sizeof(time_buf), "%Y-%m-%d %H:%M:%S", &tm_buf);
-#endif
-
     outfile << "-- ============================================\n";
-    outfile << "-- Database Table Structure Export\n";
-    outfile << "-- Source: " << dbtag << " (" << db_type_display(src_type) << ")\n";
+    outfile << "-- Database Export\n";
+    outfile << "-- Source: " << dbtag << "\n";
+    outfile << "-- Database: " << src_config.dbname << "\n";
+    outfile << "-- Type: " << db_type_display(src_type) << "\n";
     if (target_type != src_type)
     {
-        outfile << "-- Target DDL: " << db_type_display(target_type) << " (converted)\n";
+        outfile << "-- Target: " << db_type_display(target_type) << " (converted)\n";
     }
-    outfile << "-- Database: " << src_config.dbname << "\n";
-    outfile << "-- Host: " << src_config.host << "\n";
-    outfile << "-- Export time: " << time_buf << "\n";
-    outfile << "-- Tables: " << table_list.size() << "\n";
+    outfile << "-- Date: " << now_stamp() << "\n";
+    outfile << "-- Drop: " << (include_drop ? "yes" : "no (-nodrop)") << "\n";
     outfile << "-- ============================================\n\n";
 
-    if (table_list.empty())
+    if (tables.empty())
     {
+        // 文件已截断并写上头部: 零表也要覆盖掉上一轮的陈旧产物
         outfile << "-- No tables in database.\n";
         outfile.close();
         std::cout << "  [INFO] No tables found in database." << std::endl;
@@ -204,14 +199,14 @@ inline int dbtablecli(const std::string &dbtag           = "",
     unsigned int fail_count    = 0;
     std::vector<db_table_info> collected_tables;// collect first, dedup indexes, then write
 
-    for (size_t ti = 0; ti < table_list.size(); ti++)
+    // --- Phase 1: collect schemas ---
+    for (const auto &table_name : tables)
     {
-        const std::string &table_name = table_list[ti];
+        std::cout << "  Collecting: " << table_name << " ... " << std::flush;
 
-        std::cout << "  [" << (ti + 1) << "/" << table_list.size() << "] " << table_name << std::flush;
-
-        // 白名单比三库实际允许的字面量更窄，但产物中表名不加引号，
-        // 放行奇形表名只会生成回放必炸的 SQL，所以跳过并计入 fail_count。
+        // 白名单比三库实际允许的字面量更窄，但保留: 产物中的表名不加引号,
+        // 放行奇形表名只会生成回放必炸的 SQL, 所以这里跳过并计入 fail_count。
+        // 判定放在进度行之后, 否则 [SKIP] 无法对应到第几张表。
         if (!is_valid_sql_identifier(table_name))
         {
             std::cout << " \033[33m[SKIP]\033[0m invalid table name (not in artifact)" << std::endl;
@@ -235,9 +230,7 @@ inline int dbtablecli(const std::string &dbtag           = "",
         }
 
         collected_tables.push_back(std::move(table_info));
-
         std::cout << " \033[32m[OK]\033[0m" << std::endl;
-        success_count++;
     }
 
     // P1-2 fix: PostgreSQL/SQLite require schema-global unique index names.
@@ -248,18 +241,108 @@ inline int dbtablecli(const std::string &dbtag           = "",
         std::cout << "\n  [P1-2] Deduplicated " << renamed << " colliding index name(s) by prepending table name." << std::endl;
     }
 
+    // --- Phase 2: write DDL + data ---
     for (const auto &table_info : collected_tables)
     {
+        const std::string &table_name = table_info.table_name;
+        std::cout << "  Exporting: " << table_name << " ... ";
+
         std::string ddl = gen_ddl(table_info, target_type, include_drop);
 
         outfile << "-- -------------------------------------------\n";
-        outfile << "-- Table: " << table_info.table_name << "\n";
+        outfile << "-- Table: " << table_name << "\n";
         if (!table_info.table_comment.empty())
         {
             outfile << "-- Comment: " << flatten_line_comment(table_info.table_comment) << "\n";
         }
         outfile << "-- -------------------------------------------\n";
         outfile << ddl << "\n";
+
+        // Export data in batches
+        const unsigned int batch_size = 500;
+        unsigned long long offset     = 0;
+        unsigned long long exported   = 0;
+        bool data_failed              = false;
+
+        // 显式列清单: 与 INSERT 列表同源 (table_info.fields), 生成列 / 隐藏列被过滤后
+        // SELECT * 会比 schema 多列, 按位置映射就串列了
+        std::string select_cols;
+        for (size_t i = 0; i < table_info.fields.size(); i++)
+        {
+            if (i > 0)
+                select_cols += ", ";
+            select_cols += build_source_column_expr(src_type, table_info.fields[i]);
+        }
+
+        while (true)
+        {
+            std::string data_sql = "SELECT " + select_cols + " FROM " + quote_identifier(src_type, table_name) +
+                                   " LIMIT " + std::to_string(batch_size) + " OFFSET " + std::to_string(offset);
+
+            std::vector<dbtypes::row_data_t> batch_rows;
+            bool fetch_ok = fetch_rows(src.conn, src_type, data_sql, batch_rows);
+
+            if (!fetch_ok)
+            {
+                // 查询出错与"读到末尾"是两件事: 混在一起会把半截数据报成导出成功
+                std::cout << " \033[31m[FAIL]\033[0m data query failed after " << exported << " rows" << std::endl;
+                outfile << "-- !! INTERRUPTED: data export aborted for table " << table_name << " after " << exported
+                        << " rows; the INSERTs above are a PARTIAL dump !!\n";
+                fail_count++;
+                data_failed = true;
+                break;
+            }
+            if (batch_rows.empty())
+                break;
+
+            for (const auto &row : batch_rows)
+            {
+                // 直接调 builder 会绕过 insert_row 里的行宽校验, 列数不符时 builder 静默截断
+                std::string width_err;
+                if (!check_row_width(table_info.fields, row, table_name, width_err))
+                {
+                    std::cout << " \033[31m[FAIL]\033[0m " << width_err << std::endl;
+                    outfile << "-- !! INTERRUPTED: " << width_err
+                            << ", the INSERTs above are a PARTIAL dump !!\n";
+                    fail_count++;
+                    data_failed = true;
+                    break;
+                }
+
+                if (target_type == DB_TYPE::POSTGRESQL)
+                {
+                    outfile << build_insert_sql_pg(table_name, table_info.fields, row, 0, table_info.fields.size());
+                }
+                else if (target_type == DB_TYPE::SQLITE)
+                {
+                    // SQLite 目标: 文本 INSERT (BLOB 列输出 X'十六进制' 字面量)
+                    outfile << build_insert_sql_sqlite(table_name, table_info.fields, row, 0, table_info.fields.size());
+                }
+                else
+                {
+                    outfile << build_insert_sql_mysql(table_name, table_info.fields, row, 0, table_info.fields.size());
+                }
+                outfile << ";\n";
+                exported++;
+            }
+
+            if (data_failed)
+                break;
+
+            offset += batch_rows.size();
+            if (batch_rows.size() < batch_size)
+                break;
+        }
+
+        outfile << "\n";
+
+        if (data_failed)
+        {
+            continue;// 上面已打 [FAIL] 并计入 fail_count，这里不能再报成功
+        }
+
+        std::cout << " \033[32m[OK]\033[0m (" << exported << " rows)" << std::endl;
+        success_count++;
     }
 
     // 写失败(磁盘满/只读目录等)不能被静默吞掉: 产物残缺却报成功
@@ -284,6 +367,6 @@ inline int dbtablecli(const std::string &dbtag           = "",
     return fail_count > 0 ? 1 : 0;
 }
 
-}// namespace dbtable
+}// namespace dbdump
 
-#endif// _DBTABLE_HPP
+#endif // _DBDUMP_ALL_HPP

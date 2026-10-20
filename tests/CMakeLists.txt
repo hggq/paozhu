@@ -92,4 +92,10 @@ foreach(test_src IN LISTS test_cpp_files)
   if(test_name MATCHES "http2_ring")
     target_sources(${test_name} PRIVATE "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/http2_ring_queue.cpp")
   endif()
+
+  # 文件名安全单测：把 func.cpp 编进去，测试 safe_filename / str2safefile / get_filename 三个公开安全函数
+  # Filename-safety tests: compile func.cpp in to exercise safe_filename / str2safefile / get_filename.
+  if(test_name MATCHES "filename_safety")
+    target_sources(${test_name} PRIVATE "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/func.cpp")
+  endif()
 endforeach()

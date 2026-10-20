@@ -3709,36 +3709,35 @@ client &client::save(std::string path_file)
     return *this;
 }
 
+// 去掉 header name / value 里的 CR / LF —— 防止业务把用户输入塞进出站请求头时，
+// 攻击者用换行注入第二个 header。
+static inline std::string strip_crlf(std::string s)
+{
+    s.erase(std::remove_if(s.begin(), s.end(), [](unsigned char c) { return c == '\r' || c == '\n'; }), s.end());
+    return s;
+}
+
 client &client::set_header(std::string key, std::string value)
 {
-
-    header[key] = value;
+    header[strip_crlf(std::move(key))] = strip_crlf(std::move(value));
     return *this;
 }
 client &client::add_header(std::string key, std::string value)
 {
-
-    header[key] = value;
+    header[strip_crlf(std::move(key))] = strip_crlf(std::move(value));
     return *this;
 }
 client &client::add_header(std::string vvalue)
 {
+    // 原实现把 0x0D('\r') 当 header 行分隔符、0x0A 跳过：攻击者传 "X: a\rY: b" 会在解析阶段
+    // 就被 \r 切成两个 header。必须在解析前先清掉 \r/\n，落盘处 strip 才拦得住。
+    vvalue = strip_crlf(std::move(vvalue));
     std::string key;
     std::string value;
 
     for (unsigned int j = 0; j < vvalue.size(); j++)
     {
-        if (vvalue[j] == 0x0A)
-        {
-            continue;
-        }
-        if (vvalue[j] == 0x0D)
-        {
-            header[key] = value;
-            key.clear();
-            value.clear();
-        }
-        else if (vvalue[j] == ':')
+        if (vvalue[j] == ':')
         {
             key = value;
             value.clear();
@@ -3751,7 +3750,7 @@ client &client::add_header(std::string vvalue)
 
     if (key.size() > 0 && value.size() > 0)
     {
-        header[key] = value;
+        header[strip_crlf(std::move(key))] = strip_crlf(std::move(value));
     }
 
     return *this;
@@ -4047,9 +4046,9 @@ void client::buildheader()
     {
         if (!second.is_array())
         {
-            request.append(first);
+            request.append(strip_crlf(first));
             request.append(": ");
-            request.append(second.to_string());
+            request.append(strip_crlf(second.to_string()));
             request.append("\r\n");
         }
     }

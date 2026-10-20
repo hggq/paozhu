@@ -667,7 +667,7 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
                     
                             if (http::str_casecmp(_json_key_name, "names"))
                             {  
-            if(_json_data[_offset]==0x5B)
+            if(_json_data[_offset]==0x5B||_json_data[_offset]==0x7D)
             {
                 _offset+=1;
             }
@@ -676,8 +676,8 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
             {
                 //去除空格
                 _offset=http::json_string_trim(_json_data,_offset);
-                //如果是右侧中括号表示这个对象已经结束
-                if(_json_data[_offset]==0x5D)
+                //如果是右侧括号表示这个对象已经结束
+                if(_json_data[_offset]==0x5D||_json_data[_offset]==0x7D)
                 {
                     _offset+=1;
                     break;
@@ -725,7 +725,7 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
                         unsigned int temp_size=json_reflectobj.names.size();
                         temp_size-=1;
                           
-            if(_json_data[_offset]==0x5B)
+            if(_json_data[_offset]==0x5B||_json_data[_offset]==0x7D)
             {
                 _offset+=1;
             }
@@ -734,8 +734,8 @@ std::string json_encode(const std::vector<department_listoutjson_t> &json_reflec
             {
                 //去除空格
                 _offset=http::json_string_trim(_json_data,_offset);
-                //如果是右侧中括号表示这个对象已经结束
-                if(_json_data[_offset]==0x5D)
+                //如果是右侧括号表示这个对象已经结束
+                if(_json_data[_offset]==0x5D||_json_data[_offset]==0x7D)
                 {
                     _offset+=1;
                     break;

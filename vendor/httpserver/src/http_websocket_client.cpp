@@ -1,4 +1,5 @@
 #include <random>
+#include <algorithm>
 #include <openssl/sha.h>//for SHA1
 #include "http_websocket_client.h"
 #include "client_context.h"
@@ -63,11 +64,18 @@ void websocket_client::set_deflate(bool isstatus)
 {
     open_deflate = isstatus;
 }
+// 去掉 header name / value 里的 CR / LF —— 防止 WebSocket 握手出站请求头被注入。
+static inline std::string strip_crlf(std::string s)
+{
+    s.erase(std::remove_if(s.begin(), s.end(), [](unsigned char c) { return c == '\r' || c == '\n'; }), s.end());
+    return s;
+}
+
 void websocket_client::set_header(std::string_view name, std::string_view value)
 {
     websocket_parameter_t a;
-    a.name  = name;
-    a.value = value;
+    a.name  = strip_crlf(std::string(name));
+    a.value = strip_crlf(std::string(value));
     parameter.emplace_back(a);
 }
 void websocket_client::add_headers(std::string_view raw)

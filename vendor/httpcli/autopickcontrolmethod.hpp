@@ -474,6 +474,12 @@ class pickcontrol
             {
                 std::string prename;
                 std::string tempname;
+                // 注解只支持两个参数：//@urlpath(pre,urlpath)。
+                // 旧逻辑是"每个逗号都把 tempname 挪给 prename"，于是 (a,b,c) 会被读成
+                // pre=b / urlpath=c —— 生成出来的路由和肉眼看到的注解完全对不上，
+                // 而且编译期不报错、运行期只是 404。改成：只认第一个逗号，后面一律丢弃并报红。
+                unsigned int comma_count = 0;
+                unsigned int extra_start = 0;  // 第 3 个参数（含）之后的起点，只用来报警
                 unsigned int j = i + offset_temp;
                 for (; j < filecontent.size(); j++)
                 {
@@ -484,8 +490,16 @@ class pickcontrol
                     }
                     if (filecontent[j] == ',')
                     {
-                        prename = tempname;
-                        tempname.clear();
+                        if (comma_count == 0)
+                        {
+                            prename = tempname;
+                            tempname.clear();
+                        }
+                        else if (comma_count == 1)
+                        {
+                            extra_start = j + 1;
+                        }
+                        comma_count++;
                         continue;
                     }
                     if (filecontent[j] == '"')
@@ -504,7 +518,42 @@ class pickcontrol
                     {
                         continue;
                     }
+                    if (comma_count >= 2)
+                    {
+                        // 第 3 个及以后的参数不再往 tempname 里攒
+                        continue;
+                    }
                     tempname.push_back(filecontent[j]);
+                }
+
+                // 多于一个逗号 = 多于两个参数：按前两个注册，多余部分丢掉并报红
+                if (comma_count > 1)
+                {
+                    std::string extra_args;
+                    if (j > extra_start)
+                    {
+                        extra_args = filecontent.substr(extra_start, j - extra_start);
+                        while (!extra_args.empty()
+                               && (extra_args.back() == ' ' || extra_args.back() == '\t'
+                                   || extra_args.back() == 0x0d))
+                        {
+                            extra_args.pop_back();
+                        }
+                    }
+                    unsigned int line_no = 1;
+                    for (unsigned int k = 0; k < i; k++)
+                    {
+                        if (filecontent[k] == 0x0A)
+                        {
+                            line_no++;
+                        }
+                    }
+                    std::fprintf(stderr,
+                                 "\033[1m\033[31m[ROUTE-WARN] %s:%u: //@urlpath takes only 2 args "
+                                 "(pre,urlpath), got %u; extra arg(s) '%s' dropped, "
+                                 "registered as pre='%s' urlpath='%s'\033[0m\n",
+                                 methodpathfile.c_str(), line_no, comma_count + 1, extra_args.c_str(),
+                                 prename.c_str(), tempname.c_str());
                 }
 
                 // j now points to ')' or '\n' —— optionally extract ":digits" mask_code after ')'
@@ -533,7 +582,7 @@ class pickcontrol
                         {
                             // ':' followed by non-digits — warn and ignore
                             std::fprintf(stderr,
-                                         "[ROUTE-WARN] invalid mask_code after ':', expected digits in %s\n",
+                                         "\033[1m\033[31m[ROUTE-WARN] invalid mask_code after ':', expected digits in %s\033[0m\n",
                                          methodpathfile.c_str());
                         }
                     }
@@ -733,7 +782,7 @@ class pickcontrol
                     // 这种签名既写不进 controller/include，也塞不进 reg_raw 的两个参数槽；
                     // 照旧注册只会让生成文件报 undeclared identifier，这里丢掉并当场喊出来
                     std::fprintf(stderr,
-                                 "[PRE-WARN] %s: handler %s return type '%s' is not a controller signature, route not registered\n",
+                                 "\033[1m\033[31m[PRE-WARN] %s: handler %s return type '%s' is not a controller signature, route not registered\033[0m\n",
                                  methodpathfile.c_str(), reg_temp.func.c_str(), reg_temp.func_type.c_str());
                     continue;
                 }

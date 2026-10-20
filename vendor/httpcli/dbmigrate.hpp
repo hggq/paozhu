@@ -2,11 +2,11 @@
  *  @author 黄自权 huangziquan
  *  @date 2026-08-14
  *  @dest 数据库转换迁移工具 - MySQL <-> PostgreSQL <-> SQLite
- *  Usage: paozhu_cli dbconver <dbtag1> <dbtag2>
+ *  Usage: paozhu_cli dbmigrate <dbtag1> <dbtag2>
  */
 
-#ifndef _DBCONVER_HPP
-#define _DBCONVER_HPP
+#ifndef _DBMIGRATE_HPP
+#define _DBMIGRATE_HPP
 
 #include <iostream>
 #include <cstdio>
@@ -22,7 +22,7 @@
 #include "dbtypes.hpp"
 
 namespace fs = std::filesystem;
-namespace dbconver
+namespace dbmigrate
 {
 
 using dbtypes::build_source_column_expr;
@@ -66,17 +66,17 @@ inline std::string build_create_table(const db_table_info &info, DB_TYPE target_
 
 // ===================== 主迁移逻辑 =====================
 
-inline int dbconvercli(const std::string &dbtag1 = "", const std::string &dbtag2 = "", const std::string &force_flag = "")
+inline int migrate_cli(const std::string &dbtag1 = "", const std::string &dbtag2 = "", const std::string &force_flag = "")
 {
     if (dbtag1.empty() || dbtag2.empty())
     {
-        std::cout << "Usage: paozhu_cli dbconver <dbtag1> <dbtag2> [force]" << std::endl;
+        std::cout << "Usage: paozhu_cli dbmigrate <dbtag1> <dbtag2> [force]" << std::endl;
         std::cout << "  dbtag1: source database tag (from conf/orm.conf)" << std::endl;
         std::cout << "  dbtag2: target database tag (from conf/orm.conf)" << std::endl;
         std::cout << "  force:  drop and recreate if table already exists (optional)" << std::endl;
-        std::cout << "Example: paozhu_cli dbconver cms pg" << std::endl;
+        std::cout << "Example: paozhu_cli dbmigrate cms pg" << std::endl;
         std::cout << "         (migrate MySQL [cms] to PostgreSQL [pg], skip existing tables)" << std::endl;
-        std::cout << "         paozhu_cli dbconver cms pg force" << std::endl;
+        std::cout << "         paozhu_cli dbmigrate cms pg force" << std::endl;
         std::cout << "         (migrate and overwrite existing tables)" << std::endl;
         return 1;
     }
@@ -525,6 +525,6 @@ inline int dbconvercli(const std::string &dbtag1 = "", const std::string &dbtag2
     return 0;
 }
 
-}// namespace dbconver
+}// namespace dbmigrate
 
-#endif// _DBCONVER_HPP
+#endif// _DBMIGRATE_HPP

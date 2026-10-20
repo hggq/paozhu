@@ -30,7 +30,7 @@
 #include "orm_conn_pool.h"
 #include "orm_common.h"
 
-// 历史遗留的全局 DBType 枚举：原本定义在 modelfun.hpp 中，但 dbscheme_check.hpp
+// 历史遗留的全局 DBType 枚举：原本定义在 modelfun.hpp 中，但 dbschema_check.hpp
 // 的接口也用到它，导致后者隐式依赖 modelfun.hpp（包含顺序不同即编译失败）。
 // 统一下沉到此公共头，供两者共用。
 enum class DBType
@@ -3425,7 +3425,7 @@ inline std::string build_insert_sql_pg(const std::string &table_name,
     return oss.str();
 }
 
-// SQLite 目标的文本形式 INSERT (供 dbexport .sql 输出; 直接写库请用 sqlite_insert_row 绑定形式)
+// SQLite 目标的文本形式 INSERT (供 dbdump-all .sql 输出; 直接写库请用 sqlite_insert_row 绑定形式)
 // BLOB 列输出 X'十六进制' 字面量; 转义仅用 '' (不识别反斜杠转义)
 inline std::string build_insert_sql_sqlite(const std::string &table_name,
                                            const std::vector<db_field_info> &fields,

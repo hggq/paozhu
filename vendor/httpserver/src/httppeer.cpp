@@ -152,7 +152,6 @@ unsigned int reg_add(const std::string &site, const std::string &path, reg_metho
     {
         // 重名：先 emplace 探测、失败就不 push —— 这样不会产生「挂在 _handlers 里却没任何
         // path_map 指向」的孤儿 entry（handler 数 > 注册路由数，排查时误读为「有路由没挂上」）。
-        auto const &kept = _handlers[ins.first->second];
         ++_route_reg_dup;
         fprintf(stderr, "[ROUTE-WARN] duplicate route name kept first:slot=%d path=%s\n", slot, key.c_str());
         return ins.first->second;
@@ -1162,24 +1161,34 @@ unsigned int httppeer::get_status() { return status_code; }
 void httppeer::status(unsigned int http_code) { status_code = http_code; }
 void httppeer::type(const std::string &a) { content_type = a; }
 bool httppeer::isset_type() { return content_type.size() > 0 ? true : false; }
+// 去掉 header name / value 里的 CR / LF —— HTTP header 行禁止出现控制字符，
+// 用替换（erase）而非拒绝：业务偶尔把含换行的脏数据塞进 header，静默清理比丢整个 header 更安全。
+static inline std::string strip_crlf(std::string s)
+{
+    s.erase(std::remove_if(s.begin(), s.end(), [](unsigned char c) { return c == '\r' || c == '\n'; }), s.end());
+    return s;
+}
+
 void httppeer::set_header(const std::string &a, const std::string &v)
 {
+    std::string safe_a = strip_crlf(a);
+    std::string safe_v = strip_crlf(v);
     if (httpv == 2)
     {
-        std::string temp = a;
+        std::string temp = safe_a;
         std::transform(temp.begin(), temp.end(), temp.begin(), ::tolower);
         if (http2_header_codes_table[temp] > 0)
         {
-            http2_send_header[http2_header_codes_table[temp]] = v;
+            http2_send_header[http2_header_codes_table[temp]] = safe_v;
         }
         else
         {
-            send_header[temp] = v;
+            send_header[temp] = safe_v;
         }
     }
     else
     {
-        send_header[a] = v;
+        send_header[safe_a] = safe_v;
     }
 }
 
@@ -1307,6 +1316,12 @@ void httppeer::set_cookie(std::string key,
     {
         secure = true;
     }
+    // 去掉 CRLF：key/value 虽过了 url_encode（已把 \r\n 编码成 %0D%0A），但 domain/path 是裸写，
+    // 统一 strip 兜底。
+    key   = strip_crlf(std::move(key));
+    value = strip_crlf(std::move(value));
+    domain = strip_crlf(std::move(domain));
+    path   = strip_crlf(std::move(path));
     cookie.set(key, value, exptime, domain, path, secure, httponly, issamesite);
     //send_cookie.set(key, val, exptime, domain, path, secure, httponly, issamesite);
 

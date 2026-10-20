@@ -1,1 +1,1 @@
-s|if (!isnotmatch && tail_is(1, '[\]n') == 0)|if (!isnotmatch \&\& false)|g
+s#if (!isnotmatch && (tail_is(1, '[\]n') == 0 || (tail_is(1, '[\]n') == 1 && tail_is(2, '[\]r') != 1)))#if (!isnotmatch \&\& false) // MUT-M6#g

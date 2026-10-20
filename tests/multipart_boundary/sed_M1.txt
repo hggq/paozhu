@@ -1,1 +1,1 @@
-s|if (dash_lf == 0)|if (dash_lf == 99)|
+s#if (dash_lf == 0 || (dash_lf == 1 && dash_cr != 1))#if (false) // MUT-M1#
