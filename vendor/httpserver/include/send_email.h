@@ -7,7 +7,11 @@
 #include <string_view>
 #include <vector>
 #include <list>
+#include <atomic>
+#include <memory>
+#include <mutex>
 #include "http_socket.h"
+#include "datetime.h"
 
 namespace http
 {
@@ -76,7 +80,7 @@ namespace http
      * 实现SMTP协议的客户端，支持AUTH LOGIN认证方式，可发送纯文本或HTML邮件，
      * 支持添加附件。使用状态机模式管理SMTP会话流程。
      */
-    class send_email
+    class send_email : public std::enable_shared_from_this<send_email>
     {
     public:
         /**
@@ -145,7 +149,50 @@ namespace http
          */
         std::string getgmttime();
 
+        // 读超时交给 client_context 的常驻扫描循环，这里只提供它要的几样东西：
+        // 一个截止时刻（秒）、两个状态旗、一个能把阻塞中的读打断掉的 close_connect()。
+        // 字段名和用法与 http::client 保持一致。
+
+        /// 当前读超时截止时刻（unix 秒），0 表示不设超时
+        unsigned int get_timeout() const
+        {
+            return timeout_end.load();
+        }
+
+        /// 把读超时设为 now + t 秒；发信开始时设一次，之后每读一次续期一次
+        void set_timeout(unsigned int t)
+        {
+            timeout_end.store(http::timeid() + t);
+        }
+
+        /// 清掉读超时（会话结束后调用，避免残留的截止时刻被误判成过期）
+        void disarm()
+        {
+            timeout_end.store(0);
+        }
+
+        /// 本次发信是否因读超时而被打断
+        bool is_read_timeout() const
+        {
+            return timed_out_.load();
+        }
+
+        /// 到点由超时循环调用：只 shutdown 不断连接，socket 仍由本对象持有到会话结束
+        void close_connect();
+
     public:
+        std::atomic<unsigned int> timeout_end = 0;    ///< 读超时截止时刻（unix 秒）
+        std::atomic_bool iserror     = false;         ///< 出错标志，超时循环会读
+        std::atomic_bool iswait_exit = false;         ///< 到点待关闭标志，超时循环置位
+        std::atomic_bool timed_out_  = false;         ///< 是否真的触发过读超时
+
+        // 到点的关闭在超时线程上跑，会话结束的释放（smtp_session_guard）在业务线程上跑，
+        // 两边碰的是同一个句柄对象：一边读、一边 reset 是未定义行为。这把锁护住句柄本身，
+        // 连接对象由关闭方先拷到本地再用完整。
+        std::mutex sock_mtx;                                                           ///< 保护下面两个句柄的交换
+        std::shared_ptr<asio::ip::tcp::socket> sock;                               ///< 明文连接（同步版会话期间持有）
+        std::shared_ptr<asio::ssl::stream<asio::ip::tcp::socket>> sslsock;         ///< SSL 连接（同步版会话期间持有）
+
         std::string smpturl;                              ///< SMTP服务器地址
         std::string username;                             ///< 邮箱账号（用于认证和发件人）
         std::string password;                             ///< 邮箱密码

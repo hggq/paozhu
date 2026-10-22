@@ -323,8 +323,8 @@ void httppeer::parse_session_file(const std::string &sessionfile)
     {
         return;
     }
-    int fd = pz_fd_open(root_path.c_str(), O_RDONLY | PZ_O_BINARY);
-    if (fd == -1)
+    fd_handle fd(pz_fd_open(root_path.c_str(), O_RDONLY | PZ_O_BINARY));
+    if (!fd)
     {
         return;
     }
@@ -334,7 +334,6 @@ void httppeer::parse_session_file(const std::string &sessionfile)
     auto native_handle = (HANDLE)_get_osfhandle(fd);
     if (!LockFile(native_handle, 0, 0, 0, MAXDWORD))
     {
-        pz_fd_close(fd);
         return;
     }
 #else
@@ -347,17 +346,16 @@ void httppeer::parse_session_file(const std::string &sessionfile)
 
     if (fcntl(fd, F_SETLKW, &lock) == -1)
     {
-        pz_fd_close(fd);
         return;
     }
 #endif
 
-    int filelen = static_cast<int>(pz_fd_seek(fd, 0L, SEEK_END));
+    std::int64_t filelen = pz_fd_seek(fd, 0, SEEK_END);
     if (filelen > 0)
     {
         temp_session_file.clear();
-        temp_session_file.resize(filelen);
-        pz_fd_seek(fd, 0L, SEEK_SET);
+        temp_session_file.resize(static_cast<std::size_t>(filelen));
+        pz_fd_seek(fd, 0, SEEK_SET);
         int readsize = -1;
 #ifdef _WIN32
         readsize = pz_fd_read(fd, temp_session_file.data(), static_cast<unsigned int>(filelen));
@@ -386,8 +384,6 @@ void httppeer::parse_session_file(const std::string &sessionfile)
     lock.l_type = F_UNLCK;
     fcntl(fd, F_SETLKW, &lock);
 #endif
-
-    pz_fd_close(fd);
 
     sessionfile_time = tempsesstime;
 }
@@ -525,8 +521,8 @@ void httppeer::save_session_file(const std::string &sessionfile)
     root_path.append(sessionfile);
     root_path.append("_sess");
     // 不用 O_TRUNC: 抢不到锁时旧 session 必须还活着, 等下次保存
-    int fd = pz_fd_open(root_path.c_str(), O_RDWR | O_CREAT | PZ_O_BINARY, 0666);
-    if (fd == -1)
+    fd_handle fd(pz_fd_open(root_path.c_str(), O_RDWR | O_CREAT | PZ_O_BINARY, 0666));
+    if (!fd)
     {
         return;
     }
@@ -536,7 +532,6 @@ void httppeer::save_session_file(const std::string &sessionfile)
     auto native_handle = (HANDLE)_get_osfhandle(fd);
     if (!LockFile(native_handle, 0, 0, 0, MAXDWORD))
     {
-        pz_fd_close(fd);
         return;
     }
 #else
@@ -549,7 +544,6 @@ void httppeer::save_session_file(const std::string &sessionfile)
 
     if (fcntl(fd, F_SETLKW, &lock) == -1)
     {
-        pz_fd_close(fd);
         return;
     }
 #endif
@@ -564,7 +558,6 @@ void httppeer::save_session_file(const std::string &sessionfile)
         lock.l_type = F_UNLCK;
         fcntl(fd, F_SETLKW, &lock);
 #endif
-        pz_fd_close(fd);
         return;
     }
 
@@ -587,7 +580,6 @@ void httppeer::save_session_file(const std::string &sessionfile)
     fcntl(fd, F_SETLKW, &lock);
 #endif
 
-    pz_fd_close(fd);
     sessionfile_time = timeid();
 }
 void httppeer::clear_session()

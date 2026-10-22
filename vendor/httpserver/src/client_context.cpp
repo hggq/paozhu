@@ -36,6 +36,8 @@
 #include "http_rpcclient.h"
 #include "http_socket_client.h"
 #include "http_websocket_client.h"
+#include "send_email.h"
+#include "async_send_email.h"
 
 namespace http
 {
@@ -234,13 +236,13 @@ void client_context::time_out_loop()
     {
         {
             std::unique_lock<std::mutex> lock(this->timeout_mutex);
-            if (this->timeout_lists.empty() && this->rpc_timeout_lists.empty() && this->socket_timeout_lists.empty() && this->websocket_timeout_lists.empty() && this->mqtt_timeout_lists.empty())
+            if (this->timeout_lists.empty() && this->rpc_timeout_lists.empty() && this->socket_timeout_lists.empty() && this->websocket_timeout_lists.empty() && this->mqtt_timeout_lists.empty() && this->smtp_timeout_lists.empty() && this->async_smtp_timeout_lists.empty())
             {
                 fps = 0;
                 this->timeout_condition.wait(
                     lock,
                     [this]
-                    { return this->isstop || !this->timeout_lists.empty() || !this->rpc_timeout_lists.empty() || !this->socket_timeout_lists.empty() || !this->websocket_timeout_lists.empty() || !this->mqtt_timeout_lists.empty(); });
+                    { return this->isstop || !this->timeout_lists.empty() || !this->rpc_timeout_lists.empty() || !this->socket_timeout_lists.empty() || !this->websocket_timeout_lists.empty() || !this->mqtt_timeout_lists.empty() || !this->smtp_timeout_lists.empty() || !this->async_smtp_timeout_lists.empty(); });
             }
         }
         // 被 isstop 叫醒就收摊：下面那一拍含 sleep_until，最长要等 4 秒，
@@ -268,6 +270,9 @@ void client_context::time_out_loop()
             scan_timeout_list<websocket_client, true, true>(websocket_timeout_lists, timeout_mutex, nowtimeid, fps);
             //mqtt
             scan_timeout_list<mqtt_client, false, false>(mqtt_timeout_lists, timeout_mutex, nowtimeid, fps);
+            //邮件发送：没有 dur 心跳，timeout_end==0 表示常驻不过期
+            scan_timeout_list<send_email, false, true>(smtp_timeout_lists, timeout_mutex, nowtimeid, fps);
+            scan_timeout_list<async_send_email, false, true>(async_smtp_timeout_lists, timeout_mutex, nowtimeid, fps);
         }
 
         std::this_thread::sleep_until(m_EndFrame);

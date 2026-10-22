@@ -30,6 +30,11 @@
 namespace http
 {
 
+// 邮件发送两族在这里只登记 weak_ptr，不需要它们的完整定义；
+// 反过来包含 send_email.h 会和它已有的头文件依赖形成环。
+class send_email;
+class async_send_email;
+
 class client_context
 {
   public:
@@ -57,6 +62,27 @@ class client_context
             timeout_list.push_back(peer);
         }
         timeout_condition.notify_one();
+    }
+
+    // 会话正常结束时把本对象的节点摘掉。到期判定带"timeout==0 不过期"的保护，
+    // 所以 disarm 之后的节点不会自己过期，要等对象析构才走；反复用同一个对象
+    // 发信就会在链表里攒出一串空节点，这里给一个和 add 对称的反注册。
+    template <typename T>
+    void remove_timeout_list(std::list<std::weak_ptr<T>> &timeout_list, const std::shared_ptr<T> &peer)
+    {
+        std::lock_guard<std::mutex> lk(timeout_mutex);
+        for (auto iter = timeout_list.begin(); iter != timeout_list.end();)
+        {
+            auto p = iter->lock();
+            if (!p || p == peer)
+            {
+                iter = timeout_list.erase(iter);
+            }
+            else
+            {
+                ++iter;
+            }
+        }
     }
     void stop();
     asio::io_context &get_ctx();
@@ -88,6 +114,8 @@ class client_context
     std::list<std::weak_ptr<socket_client>> socket_timeout_lists;
     std::list<std::weak_ptr<websocket_client>> websocket_timeout_lists;
     std::list<std::weak_ptr<mqtt_client>> mqtt_timeout_lists;
+    std::list<std::weak_ptr<send_email>> smtp_timeout_lists;
+    std::list<std::weak_ptr<async_send_email>> async_smtp_timeout_lists;
 };
 client_context &get_client_context_obj(asio::io_context *io_context = nullptr);
 

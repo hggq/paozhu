@@ -5,7 +5,9 @@
 #include <vector>
 #include <list>
 #include <memory>
+#include <atomic>
 #include "http_socket.h"
+#include "datetime.h"
 #include "client_context.h"
 
 namespace http
@@ -78,7 +80,41 @@ namespace http
          */
         std::string getgmttime();
 
+        // 读超时交给 client_context 的常驻扫描循环，接口与同步版 send_email 同名同语义。
+
+        /// 当前读超时截止时刻（unix 秒），0 表示不设超时
+        unsigned int get_timeout() const
+        {
+            return timeout_end.load();
+        }
+
+        /// 把读超时设为 now + t 秒；发信开始时设一次，之后每读一次续期一次
+        void set_timeout(unsigned int t)
+        {
+            timeout_end.store(http::timeid() + t);
+        }
+
+        /// 清掉读超时（会话结束后调用，避免残留的截止时刻被误判成过期）
+        void disarm()
+        {
+            timeout_end.store(0);
+        }
+
+        /// 本次发信是否因读超时而被打断
+        bool is_read_timeout() const
+        {
+            return timed_out_.load();
+        }
+
+        /// 到点由超时循环调用：shutdown 底层连接，唤醒挂起中的异步读
+        void close_connect();
+
     public:
+        std::atomic<unsigned int> timeout_end = 0;    ///< 读超时截止时刻（unix 秒）
+        std::atomic_bool iserror     = false;         ///< 出错标志，超时循环会读
+        std::atomic_bool iswait_exit = false;         ///< 到点待关闭标志，超时循环置位
+        std::atomic_bool timed_out_  = false;         ///< 是否真的触发过读超时
+
         std::string smpturl;                              ///< SMTP服务器地址
         std::string username;                             ///< 邮箱账号（用于认证和发件人）
         std::string password;                             ///< 邮箱密码

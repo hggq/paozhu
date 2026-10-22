@@ -91,8 +91,8 @@ void orm_connect_mar_t::save_log(const std::string &filename)
         return;
     }
 
-    int fd = pz_fd_open(filename.c_str(), O_WRONLY | O_CREAT | O_APPEND | PZ_O_BINARY, 0640);
-    if (fd == -1)
+    fd_handle fd(pz_fd_open(filename.c_str(), O_WRONLY | O_CREAT | O_APPEND | PZ_O_BINARY, 0640));
+    if (!fd)
     {
         return;
     }
@@ -102,7 +102,6 @@ void orm_connect_mar_t::save_log(const std::string &filename)
     auto native_handle = (HANDLE)_get_osfhandle(fd);
     if (!LockFile(native_handle, 0, 0, 0, MAXDWORD))
     {
-        pz_fd_close(fd);
         return;
     }
 #else
@@ -116,7 +115,6 @@ void orm_connect_mar_t::save_log(const std::string &filename)
 
     if (fcntl(fd, F_SETLK, &lockstr) == -1)
     {
-        pz_fd_close(fd);
         return;
     }
 #endif
@@ -139,7 +137,6 @@ void orm_connect_mar_t::save_log(const std::string &filename)
     lockstr.l_type = F_UNLCK;
     fcntl(fd, F_SETLK, &lockstr);
 #endif
-    pz_fd_close(fd);
 }
 void orm_connect_mar_t::watch_mysql_connect(std::weak_ptr<mysql_conn_base> conn)
 {

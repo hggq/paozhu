@@ -1667,6 +1667,12 @@ client.val["list"].push(item);
 - 使用 OpenSSL 3.0+
 - 证书自动续期（ACME）
 
+### 9.5 出站连接超时
+- 所有出站客户端连接（http / rpc / socket / websocket / mqtt / smtp）的读超时统一登记到 `client_context` 的常驻超时循环，全进程只用一条线程。
+- 不要为单条连接自建看门狗线程，也不要使用 `SO_RCVTIMEO`：两者都按会话数线性增长，且唤醒精度并不更好。
+- 这类对象必须由 `std::shared_ptr` 持有（注册表存的是 `weak_ptr`），并暴露扫描模板要读的契约：`timeout_end`、`iserror`、`iswait_exit`、`get_timeout()`、`set_timeout()`、`close_connect()`。
+- 循环按整秒判定、4 秒一拍，超时可能晚几秒才落地；这是共享一条线程换来的代价。
+
 ---
 
 ## 十、开发工作流

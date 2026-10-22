@@ -9372,8 +9372,8 @@ void httpserver::httpwatch_flush_access_log(const std::string &access_path)
             return;
         }
     }
-    int fd = pz_fd_open(access_path.c_str(), O_WRONLY | O_CREAT | O_APPEND | PZ_O_BINARY, 0666);
-    if (fd == -1)
+    fd_handle fd(pz_fd_open(access_path.c_str(), O_WRONLY | O_CREAT | O_APPEND | PZ_O_BINARY, 0666));
+    if (!fd)
     {
         return;
     }
@@ -9383,7 +9383,6 @@ void httpserver::httpwatch_flush_access_log(const std::string &access_path)
     auto native_handle = (HANDLE)_get_osfhandle(fd);
     if (!LockFile(native_handle, 0, 0, 0, MAXDWORD))
     {
-        pz_fd_close(fd);
         return;
     }
 #else
@@ -9396,7 +9395,6 @@ void httpserver::httpwatch_flush_access_log(const std::string &access_path)
 
     if (fcntl(fd, F_SETLK, &lockstr) == -1)
     {
-        pz_fd_close(fd);
         return;
     }
 #endif
@@ -9409,7 +9407,6 @@ void httpserver::httpwatch_flush_access_log(const std::string &access_path)
     lockstr.l_type = F_UNLCK;
     fcntl(fd, F_SETLK, &lockstr);
 #endif
-    pz_fd_close(fd);
 }
 
 void httpserver::httpwatch_flush_error_log(const std::string &error_path)
@@ -9421,8 +9418,8 @@ void httpserver::httpwatch_flush_error_log(const std::string &error_path)
             return;
         }
     }
-    int fd = pz_fd_open(error_path.c_str(), O_WRONLY | O_CREAT | O_APPEND | PZ_O_BINARY, 0666);
-    if (fd == -1)
+    fd_handle fd(pz_fd_open(error_path.c_str(), O_WRONLY | O_CREAT | O_APPEND | PZ_O_BINARY, 0666));
+    if (!fd)
     {
         return;
     }
@@ -9431,7 +9428,6 @@ void httpserver::httpwatch_flush_error_log(const std::string &error_path)
     auto native_handle = (HANDLE)_get_osfhandle(fd);
     if (!LockFile(native_handle, 0, 0, 0, MAXDWORD))
     {
-        pz_fd_close(fd);
         return;
     }
 #else
@@ -9444,7 +9440,6 @@ void httpserver::httpwatch_flush_error_log(const std::string &error_path)
 
     if (fcntl(fd, F_SETLK, &lockstr) == -1)
     {
-        pz_fd_close(fd);
         return;
     }
 #endif
@@ -9457,7 +9452,6 @@ void httpserver::httpwatch_flush_error_log(const std::string &error_path)
     lockstr.l_type = F_UNLCK;
     fcntl(fd, F_SETLK, &lockstr);
 #endif
-    pz_fd_close(fd);
 }
 
 void httpserver::httpwatch_mysql_pool_maintenance(unsigned int &mysqlpool_time, const std::tm *now, unsigned int old_total_count)
@@ -9580,7 +9574,7 @@ void httpserver::httpwatch_clear_timeout_sessions(unsigned int clean_cron_min, u
     nowtimeid                      = nowtimeid - clean_cron_time_ago - 60;
 
     std::unique_lock<std::mutex> lock_sock(socket_session_lists_mutex);
-    session_count_num = socket_session_lists.size();
+    session_count_num = static_cast<unsigned int>(socket_session_lists.size());
     lock_sock.unlock();
 
     unsigned int remove_linknum = session_count_num / 10;
@@ -10027,7 +10021,7 @@ void httpserver::httpwatch_check_restart_threshold(unsigned int restart_process_
                                                    unsigned int old_total_count)
 {
     // Check every 5 seconds for over threshold
-    if (now->tm_hour < restart_process_time_end && now->tm_hour > restart_process_time_start)
+    if (now != nullptr && now->tm_hour < restart_process_time_end && now->tm_hour > restart_process_time_start)
     {
         if (restart_process_num > 0)
         {
@@ -10155,19 +10149,30 @@ void httpserver::httpwatch()
             httpwatch_flush_error_log(error_path);
 
             std::time_t t = std::time(nullptr);
-            std::tm *now  = std::localtime(&t);
+            std::tm now_buf{};
+#ifdef _WIN32
+            bool time_ok = (localtime_s(&now_buf, &t) == 0);
+#else
+            bool time_ok = (localtime_r(&t, &now_buf) != nullptr);
+#endif
+            // 取不到本地时间（time_t 越界）时 now 置空，下面按小时/按分钟判定的几处整段跳过。
+            // 失败时 now_buf 是全零的合法 tm，拿它去比小时会按 1900-01-01 00:00 误触发证书申请或定时重启。
+            std::tm *now = time_ok ? &now_buf : nullptr;
 
             // MySQL pool maintenance
-            httpwatch_mysql_pool_maintenance(mysqlpool_time, now, old_total_count);
+            if (now != nullptr)
+            {
+                httpwatch_mysql_pool_maintenance(mysqlpool_time, now, old_total_count);
+            }
 
             // ACME task trigger
-            if (now->tm_hour == acme_every_day_time && is_run_acme)
+            if (now != nullptr && now->tm_hour == acme_every_day_time && is_run_acme)
             {
                 is_run_acme = false;
                 std::thread t_acme(&httpserver::acme_task, this);
                 t_acme.detach();
             }
-            if (now->tm_hour == acme_every_day_time_reset)
+            if (now != nullptr && now->tm_hour == acme_every_day_time_reset)
             {
                 is_run_acme = true;
             }
@@ -10193,10 +10198,11 @@ void httpserver::httpwatch()
 
             mysqlpool_time += 1;
             DEBUG_LOG("clear mysql poll time:%d,client live:%d", mysqlpool_time, total_count.load());
-            DEBUG_LOG("cron type:%c day:%d,hour:%d min:%d", cron_type, cron_day, cron_hour, now->tm_min);
+            DEBUG_LOG("cron type:%c day:%d,hour:%d min:%d", cron_type, cron_day, cron_hour,
+                      now != nullptr ? now->tm_min : -1);
 
             // Cron reboot check (only after 40 cycles and within first 3 minutes)
-            if (mysqlpool_time > 40)
+            if (mysqlpool_time > 40 && now != nullptr)
             {
                 httpwatch_check_cron_reboot(cron_type, cron_day, cron_hour, now);
             }
@@ -10235,7 +10241,7 @@ void httpserver::httpwatch()
                 error_msg_loop.push_back(0x20);
                 error_msg_loop.append(std::to_string(total_http1_count.load()));
                 error_msg_loop.push_back(0x20);
-                error_msg_loop.append(get_date("%Y-%m-%d %X", t));
+                error_msg_loop.append(get_date("%Y-%m-%d %X", static_cast<unsigned int>(t)));
 
                 error_msg_loop.push_back(0x20);
                 error_msg_loop.append(std::to_string(restart_process_num));
@@ -10547,7 +10553,7 @@ void httpserver::acme_update()
             {
                 primary_domain = domain;
                 domains.push_back(primary_domain);
-                unsigned char pos_n    = domain.size() - 1;
+                size_t pos_n           = domain.size() - 1;
                 unsigned int dou_count = 0;
 
                 //测试有几个点
@@ -10575,7 +10581,7 @@ void httpserver::acme_update()
                     {
                         if (domain[k] == '.')
                         {
-                            unsigned int nn = k;
+                            auto nn = k;
                             k--;
                             subdomain.clear();
 
@@ -10907,8 +10913,8 @@ void httpserver::save_traffic_arrays()
 
     if (!traffic_arrays.empty())
     {
-        int fd = pz_fd_open(currentpath.c_str(), O_WRONLY | O_CREAT | O_APPEND | PZ_O_BINARY, 0666);
-        if (fd == -1)
+        fd_handle fd(pz_fd_open(currentpath.c_str(), O_WRONLY | O_CREAT | O_APPEND | PZ_O_BINARY, 0666));
+        if (!fd)
         {
             return;
         }
@@ -10917,7 +10923,6 @@ void httpserver::save_traffic_arrays()
         auto native_handle = (HANDLE)_get_osfhandle(fd);
         if (!LockFile(native_handle, 0, 0, 0, MAXDWORD))
         {
-            pz_fd_close(fd);
             return;
         }
 #else
@@ -10930,7 +10935,6 @@ void httpserver::save_traffic_arrays()
 
         if (fcntl(fd, F_SETLK, &lockstr) == -1)
         {
-            pz_fd_close(fd);
             return;
         }
 #endif
@@ -10948,7 +10952,6 @@ void httpserver::save_traffic_arrays()
         lockstr.l_type = F_UNLCK;
         fcntl(fd, F_SETLK, &lockstr);
 #endif
-        pz_fd_close(fd);
     }
 }
 

@@ -1,4 +1,3 @@
-#include <chrono>
 #include <cstdarg>
 #include <cstring>
 #include <stdexcept>
@@ -13,6 +12,7 @@
 #include "async_send_email.h"
 #include "session_id.h"
 #include "func.h"
+#include "terminal_color.h"
 #include "client_context.h"
 
 namespace http
@@ -24,66 +24,65 @@ constexpr long long kMaxAttachmentBytes = 4LL * 1024 * 1024 * 1024 - 1;
 
 namespace
 {
-// 协程发送的 SMTP 读超时：每次等服务器应答最多 30 秒。到点关闭底层连接，
-// 挂起的读会以 operation_aborted 完成，让整次发送失败而不是永久等待。
-constexpr std::chrono::seconds kSmtpReadTimeout(30);
+// 协程发送的 SMTP 读超时：每次等服务器应答最多 30 秒。截止时刻记在
+// async_send_email 自己身上，由 client_context 的常驻循环到点 shutdown 底层连接，
+// 挂起的读会带着错误完成，让整次发送失败而不是永久等待。
+// 到点判定是整秒 + 4 秒一拍，且要两拍（先标记再关闭），所以实际打断比 30 秒晚，
+// 实测界值 36 秒。
+constexpr unsigned int kSmtpReadTimeout = 30;
 
-class smtp_read_timeout : public std::enable_shared_from_this<smtp_read_timeout>
+// 整个会话只登记一次；每次读之前续期。对象必须是 shared_ptr 持有的，
+// 栈对象拿不到 shared_from_this()，那次发信就没有读超时（只记日志，不抛）。
+void register_async_smtp_timeout(async_send_email &mail)
+{
+    mail.iswait_exit = false;
+    mail.timed_out_  = false;
+    mail.set_timeout(kSmtpReadTimeout);
+    try
+    {
+        client_context &temp_io_context = get_client_context_obj();
+        temp_io_context.add_timeout_list(temp_io_context.async_smtp_timeout_lists, mail.shared_from_this());
+    }
+    catch (const std::exception &e)
+    {
+        DEBUG_LOG("smtp timeout register failed: %s", e.what());
+    }
+}
+
+// 收摊时反过来：清掉截止时刻，再把本对象的节点从链表里摘掉。
+// 只 disarm 不摘节点的话，这个空节点要等对象析构才走（timeout==0 判不出过期）。
+void unregister_async_smtp_timeout(async_send_email &mail)
+{
+    mail.disarm();
+    try
+    {
+        client_context &temp_io_context = get_client_context_obj();
+        temp_io_context.remove_timeout_list(temp_io_context.async_smtp_timeout_lists, mail.shared_from_this());
+    }
+    catch (const std::exception &e)
+    {
+        DEBUG_LOG("smtp timeout unregister failed: %s", e.what());
+    }
+}
+
+// 会话结束时摘掉读超时并释放本对象持有的连接（协程帧销毁时执行）。
+// 这个守卫在 strand_ 上随协程帧销毁，到点关闭那条也排到了 strand_ 上，
+// 两边由 strand 串行，所以这里不需要同步版那把句柄锁。
+class async_smtp_session_guard
 {
   public:
-    explicit smtp_read_timeout(asio::any_io_executor executor) : timer_(std::move(executor)) {}
-
-    void watch(std::shared_ptr<asio::ip::tcp::socket> plain,
-               std::shared_ptr<asio::ssl::stream<asio::ip::tcp::socket>> tls)
+    explicit async_smtp_session_guard(async_send_email &mail) : mail_(mail)
     {
-        plain_socket_ = std::move(plain);
-        ssl_socket_   = std::move(tls);
     }
-
-    void arm()
+    ~async_smtp_session_guard()
     {
-        unsigned int generation = ++generation_;
-        timer_.expires_after(kSmtpReadTimeout);
-        timer_.async_wait([self = shared_from_this(), generation](const asio::error_code &ec)
-        {
-            if (!ec && self->generation_ == generation)
-            {
-                self->on_timeout();
-            }
-        });
-    }
-
-    void disarm()
-    {
-        ++generation_;
-        timer_.cancel();
-    }
-
-    bool fired() const
-    {
-        return fired_;
+        unregister_async_smtp_timeout(mail_);
+        mail_.sslsock.reset();
+        mail_.sock.reset();
     }
 
   private:
-    void on_timeout()
-    {
-        fired_ = true;
-        asio::error_code ignored;
-        if (ssl_socket_)
-        {
-            ssl_socket_->lowest_layer().close(ignored);
-        }
-        else if (plain_socket_)
-        {
-            plain_socket_->close(ignored);
-        }
-    }
-
-    asio::steady_timer timer_;
-    std::shared_ptr<asio::ip::tcp::socket> plain_socket_;
-    std::shared_ptr<asio::ssl::stream<asio::ip::tcp::socket>> ssl_socket_;
-    unsigned int generation_ = 0;
-    bool fired_              = false;
+    async_send_email &mail_;
 };
 
 // 反复读 socket 直到凑齐一条完整 SMTP 应答。应答写进 out（最多 out_size-1 字节），
@@ -91,7 +90,7 @@ class smtp_read_timeout : public std::enable_shared_from_this<smtp_read_timeout>
 template <class Stream>
 asio::awaitable<unsigned int> read_smtp_response_async(Stream &stream, std::string &readbuf,
                                                        char *out, std::size_t out_size,
-                                                       smtp_read_timeout &timeout,
+                                                       async_send_email &mail,
                                                        std::string &errormsg)
 {
     for (;;)
@@ -112,13 +111,47 @@ asio::awaitable<unsigned int> read_smtp_response_async(Stream &stream, std::stri
             co_return 0;
         }
         char chunk[1024];
-        timeout.arm();
+        mail.set_timeout(kSmtpReadTimeout);
         std::size_t got = co_await stream.async_read_some(asio::buffer(chunk, sizeof(chunk)), asio::use_awaitable);
-        timeout.disarm();
         readbuf.append(chunk, got);
     }
 }
 }// namespace
+
+/**
+ * @brief 读超时到点时由 client_context 的循环调用
+ *
+ * 只 shutdown 不 close：连接还是本对象持有，协程帧销毁时由守卫释放；
+ * 在这里 close 会把还在用的对象拆掉。
+ * 在途的异步读挂在自己的 strand_ 上，从别的线程直接碰 socket 是 asio 禁止的，
+ * 所以非 strand 线程只把关闭排进 strand_ 队列（排在已入队的读写之后），
+ * 真正动手的还是这条连接自己的线程。
+ */
+void async_send_email::close_connect()
+{
+    timed_out_.store(true);
+    if (!strand_.running_in_this_thread())
+    {
+        // weak_from_this：析构期 shared_from_this() 会抛。锁不到说明已经没有共享
+        // 所有权能续命，而扫描线程手里那份是刚摘的快照，就地收才是安全的。
+        auto self = weak_from_this().lock();
+        if (self)
+        {
+            asio::post(strand_, [self]()
+                       { self->close_connect(); });
+            return;
+        }
+    }
+    asio::error_code ignored;
+    if (sslsock)
+    {
+        sslsock->lowest_layer().shutdown(asio::ip::tcp::socket::shutdown_both, ignored);
+    }
+    else if (sock)
+    {
+        sock->shutdown(asio::ip::tcp::socket::shutdown_both, ignored);
+    }
+}
 
 /**
  * @brief 添加邮件附件
@@ -366,18 +399,21 @@ bool async_send_email::sendloop()
  *
  * 使用示例（在协程环境中调用）：
  * @code
- * http::async_send_email mail("smtp.163.com", "user@163.com",
- *                             "authcode", 25, true);   // 第5个参数 isssl=true
- * mail.fromname   = "网站名称";
- * mail.replyemail = "user@163.com";
- * mail.toemail    = "someone@example.com";
- * mail.toname     = "收件人";
- * mail.subject    = "邮件主题";
- * mail.content    = "<h1>邮件正文</h1>";
- * mail.addattachments("/path/to/file.docx");  // 可选：添加附件
- * bool ok = co_await mail.async_send();       // 协程挂起，不阻塞当前线程
- * if (!ok) { std::cout << mail.errormsg; }    // 失败原因
+ * auto mail = std::make_shared<http::async_send_email>(
+ *     "smtp.163.com", "user@163.com", "authcode", 25, true);   // 第5个参数 isssl=true
+ * mail->fromname   = "网站名称";
+ * mail->replyemail = "user@163.com";
+ * mail->toemail    = "someone@example.com";
+ * mail->toname     = "收件人";
+ * mail->subject    = "邮件主题";
+ * mail->content    = "<h1>邮件正文</h1>";
+ * mail->addattachments("/path/to/file.docx");  // 可选：添加附件
+ * bool ok = co_await mail->async_send();       // 协程挂起，不阻塞当前线程
+ * if (!ok) { std::cout << mail->errormsg; }    // 失败原因
  * @endcode
+ *
+ * @note 必须用 std::make_shared 持有：读超时登记在 client_context 的常驻循环上，
+ *       栈对象登记不进去，那次发信就没有读超时。
  *
  * @note 该方法必须返回 awaitable<bool>，需要在 asio 协程（co_await 上下文）中使用；
  *       相比同步版 send_email::send()，它不会阻塞当前执行线程，适合高并发场景。
@@ -386,15 +422,13 @@ bool async_send_email::sendloop()
  */
 asio::awaitable<bool> async_send_email::async_send()
 {
-    std::shared_ptr<smtp_read_timeout> read_timeout;
+    async_smtp_session_guard scope_guard(*this);
     try
     {
-        read_timeout = std::make_shared<smtp_read_timeout>(strand_);
         if (isssl)
         {
             ssl_context = std::make_shared<asio::ssl::context>(asio::ssl::context::sslv23);
             sslsock = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(strand_, *ssl_context);
-            read_timeout->watch(nullptr, sslsock);
             ssl_context->set_default_verify_paths();
 
             asio::ip::tcp::resolver resolver(strand_);
@@ -423,19 +457,18 @@ asio::awaitable<bool> async_send_email::async_send()
             ssl_context->set_verify_mode(asio::ssl::verify_peer);
             ssl_context->set_verify_callback(asio::ssl::host_name_verification(smpturl));
 
-            read_timeout->arm();
+            register_async_smtp_timeout(*this);
             std::tie(ec) = co_await sslsock->async_handshake(asio::ssl::stream_base::client, tuple_awaitable);
-            read_timeout->disarm();
             if (ec)
             {
-                errormsg.append(read_timeout->fired() ? "smtp read timeout!" : "ssl handshake error!");
+                errormsg.append(is_read_timeout() ? "smtp read timeout!" : "ssl handshake error!");
                 co_return false;
             }
 
             state = SEND_START;
             unsigned int n;
 
-            n = co_await read_smtp_response_async(*sslsock, smtp_readbuf_, data, sizeof(data), *read_timeout, errormsg);
+            n = co_await read_smtp_response_async(*sslsock, smtp_readbuf_, data, sizeof(data), *this, errormsg);
             if (n == 0)
             {
                 co_return false;
@@ -556,7 +589,7 @@ asio::awaitable<bool> async_send_email::async_send()
                             co_await sslsock->async_write_some(asio::buffer(sendcommand), asio::use_awaitable);
                         }
 
-                        n = co_await read_smtp_response_async(*sslsock, smtp_readbuf_, data, sizeof(data), *read_timeout, errormsg);
+                        n = co_await read_smtp_response_async(*sslsock, smtp_readbuf_, data, sizeof(data), *this, errormsg);
                         if (n == 0)
                         {
                             co_return false;
@@ -743,7 +776,6 @@ asio::awaitable<bool> async_send_email::async_send()
         else
         {
             sock = std::make_shared<asio::ip::tcp::socket>(strand_);
-            read_timeout->watch(sock, nullptr);
             asio::ip::tcp::resolver resolver(strand_);
             auto endpoints = co_await resolver.async_resolve(smpturl, std::to_string(port), asio::use_awaitable);
 
@@ -765,9 +797,11 @@ asio::awaitable<bool> async_send_email::async_send()
                 co_return false;
             }
 
+            register_async_smtp_timeout(*this);
+
             unsigned int n;
             state = SEND_START;
-            n = co_await read_smtp_response_async(*sock, smtp_readbuf_, data, sizeof(data), *read_timeout, errormsg);
+            n = co_await read_smtp_response_async(*sock, smtp_readbuf_, data, sizeof(data), *this, errormsg);
             if (n == 0)
             {
                 co_return false;
@@ -888,7 +922,7 @@ asio::awaitable<bool> async_send_email::async_send()
                             co_await sock->async_write_some(asio::buffer(sendcommand), asio::use_awaitable);
                         }
 
-                        n = co_await read_smtp_response_async(*sock, smtp_readbuf_, data, sizeof(data), *read_timeout, errormsg);
+                        n = co_await read_smtp_response_async(*sock, smtp_readbuf_, data, sizeof(data), *this, errormsg);
                         if (n == 0)
                         {
                             co_return false;
@@ -1075,7 +1109,7 @@ asio::awaitable<bool> async_send_email::async_send()
     }
     catch (std::exception &e)
     {
-        if (read_timeout && read_timeout->fired())
+        if (is_read_timeout())
         {
             errormsg.append("smtp read timeout!");
         }

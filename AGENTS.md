@@ -1727,6 +1727,12 @@ every other method, leaves a latched `iserror` alone. After a **failed** `switch
 - Use OpenSSL 3.0+.
 - Automatic certificate renewal (ACME).
 
+### 9.5 Outbound connection timeouts
+- Every outbound client connection (http / rpc / socket / websocket / mqtt / smtp) registers its read deadline on the `client_context` resident timeout loop — one thread for the whole process.
+- Do not spawn a per-connection watchdog thread, and do not use `SO_RCVTIMEO`; both leak one resource per session and neither scales.
+- Such objects are held by `std::shared_ptr` (the registry keeps a `weak_ptr`) and expose the contract the scan loop reads: `timeout_end`, `iserror`, `iswait_exit`, `get_timeout()`, `set_timeout()`, `close_connect()`.
+- The loop judges expiry in whole seconds on a 4-second tick, so a timeout can land several seconds late; that is the accepted trade for sharing one thread.
+
 ---
 
 ## X. Development Workflow

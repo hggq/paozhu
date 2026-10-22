@@ -1,4 +1,5 @@
 #include <chrono>
+#include <memory>
 #include <thread>
 #include "httppeer.h"
 #include "testsendmail.h"
@@ -41,39 +42,40 @@ std::string testsendmaildo(std::shared_ptr<httppeer> peer)
         client << "</p>";
     }
 
-    send_email s;
+    // 必须用 shared_ptr 持有：读超时登记在 client_context 的常驻超时循环上。
+    auto s = std::make_shared<send_email>();
 
     // 以下为发送前的参数配置，请替换为真实的值。
-    s.isssl   = false; // ssl on off   ssl port 465，若开启 SSL 请将 port 设为 465
-    s.smpturl = "smtp.163.com"; // SMTP 服务器地址
-    s.port    = 25;             // SMTP 端口（明文 25/587，SSL 465）
+    s->isssl   = false; // ssl on off   ssl port 465，若开启 SSL 请将 port 设为 465
+    s->smpturl = "smtp.163.com"; // SMTP 服务器地址
+    s->port    = 25;              // SMTP 端口（明文 25/587，SSL 465）
 
-    s.username = "XXX@163.com"; // 邮箱账号（发件人账号）
-    s.password = "XXXXXXX";     // 邮箱密码（网易/腾讯需使用授权码）
+    s->username = "XXX@163.com"; // 邮箱账号（发件人账号）
+    s->password = "XXXXXXX";     // 邮箱密码（网易/腾讯需使用授权码）
 
-    s.replyemail = "XXX@163.com";   // 回复邮箱地址（收件人点击“回复”时使用的地址）
-    s.fromname   = "web site name"; // 发件人显示名称
+    s->replyemail = "XXX@163.com";   // 回复邮箱地址（收件人点击“回复”时使用的地址）
+    s->fromname   = "web site name"; // 发件人显示名称
 
-    s.toemail = client.post["toemail"].to_string(); // 收件人邮箱地址（可从前端表单获取）
-    s.toname  = client.post["toname"].to_string();  // 收件人显示名称
+    s->toemail = client.post["toemail"].to_string(); // 收件人邮箱地址（可从前端表单获取）
+    s->toname  = client.post["toname"].to_string();  // 收件人显示名称
 
-    s.subject = client.post["subject"].to_string();  // 邮件主题
-    s.content = client.post["msgbody"].to_string();  // 邮件正文（默认为 HTML 内容）
+    s->subject = client.post["subject"].to_string();  // 邮件主题
+    s->content = client.post["msgbody"].to_string();  // 邮件正文（默认为 HTML 内容）
 
     // 可选：添加附件（传入本地文件路径，文件必须存在）
-    // s.addattachments("会议议程安排.docx");
+    // s->addattachments("会议议程安排.docx");
 
     // 同步发送：此处会阻塞直到发送完成
-    if (s.send())
+    if (s->send())
     {
         client << "<p>send ok</p>";
     }
     else
     {
         client << "<p>";
-        client << s.errormsg;
+        client << s->errormsg;
         client << "</p>";
-        // std::cout<<s.errormsg<<std::endl;
+        // std::cout<<s->errormsg<<std::endl;
     }
 
     return "";
@@ -94,39 +96,40 @@ asio::awaitable<std::string> test_co_sendmaildo(std::shared_ptr<httppeer> peer)
         client << "</p>";
     }
 
-    async_send_email s;
+    // 必须用 shared_ptr 持有：读超时登记在 client_context 的常驻超时循环上。
+    auto s = std::make_shared<async_send_email>();
 
     // 以下为发送前的参数配置，请替换为真实的值。
-    s.isssl   = false; // ssl on off   ssl port 465，若开启 SSL 请将 port 设为 465
-    s.smpturl = "smtp.163.com"; // SMTP 服务器地址
-    s.port    = 25;             // SMTP 端口（明文 25/587，SSL 465）
+    s->isssl   = false; // ssl on off   ssl port 465，若开启 SSL 请将 port 设为 465
+    s->smpturl = "smtp.163.com"; // SMTP 服务器地址
+    s->port    = 25;              // SMTP 端口（明文 25/587，SSL 465）
 
-    s.username = "XXX@163.com"; // 邮箱账号（发件人账号）
-    s.password = "XXXXXXX";     // 邮箱密码（网易/腾讯需使用授权码）
+    s->username = "XXX@163.com"; // 邮箱账号（发件人账号）
+    s->password = "XXXXXXX";     // 邮箱密码（网易/腾讯需使用授权码）
 
-    s.replyemail = "XXX@163.com";   // 回复邮箱地址（收件人点击“回复”时使用的地址）
-    s.fromname   = "web site name"; // 发件人显示名称
+    s->replyemail = "XXX@163.com";   // 回复邮箱地址（收件人点击“回复”时使用的地址）
+    s->fromname   = "web site name"; // 发件人显示名称
 
-    s.toemail = client.post["toemail"].to_string(); // 收件人邮箱地址（可从前端表单获取）
-    s.toname  = client.post["toname"].to_string();  // 收件人显示名称
+    s->toemail = client.post["toemail"].to_string(); // 收件人邮箱地址（可从前端表单获取）
+    s->toname  = client.post["toname"].to_string();  // 收件人显示名称
 
-    s.subject = client.post["subject"].to_string();  // 邮件主题
-    s.content = client.post["msgbody"].to_string();  // 邮件正文（默认为 HTML 内容）
+    s->subject = client.post["subject"].to_string();  // 邮件主题
+    s->content = client.post["msgbody"].to_string();  // 邮件正文（默认为 HTML 内容）
 
     // 可选：添加附件（传入本地文件路径，文件必须存在）
-    // s.addattachments("会议议程安排.docx");
+    // s->addattachments("会议议程安排.docx");
 
-    // 同步发送：此处会阻塞直到发送完成
-    if (co_await s.async_send())
+    // 协程发送：挂起当前协程，不阻塞执行线程
+    if (co_await s->async_send())
     {
         client << "<p>send ok</p>";
     }
     else
     {
         client << "<p>";
-        client << s.errormsg;
+        client << s->errormsg;
         client << "</p>";
-        // std::cout<<s.errormsg<<std::endl;
+        // std::cout<<s->errormsg<<std::endl;
     }
 
     co_return "";
