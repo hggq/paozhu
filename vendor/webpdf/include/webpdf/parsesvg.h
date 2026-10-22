@@ -70,7 +70,7 @@ private:
     };
     std::map<std::string, GradientDef> gradients;
     std::map<std::string, int> gradient_shading_ids;
-    void collect_defs(const std::vector<std::shared_ptr<HTMLNode>>& children);
+    void collect_defs(const std::vector<std::shared_ptr<HTMLNode>>& children, int depth = 0);
     bool get_gradient_color(const std::string& id, int& r, int& g, int& b);
     bool is_gradient_fill(const std::map<std::string, std::string>& attrs, std::string& grad_id);
     void fill_gradient(const std::string& grad_id, double bx, double by, double bw, double bh);

@@ -19,11 +19,11 @@ namespace pz
 {
 struct PZ_EXCEL_CELL_STYLE
 {
-    unsigned char numfmtid = 0;
-    unsigned char fontid   = 0;
-    unsigned char fillid   = 0;
-    unsigned char borderid = 0;
-    unsigned char xfid     = 0;
+    unsigned int numfmtid = 0;
+    unsigned int fontid   = 0;
+    unsigned int fillid   = 0;
+    unsigned int borderid = 0;
+    unsigned int xfid     = 0;
 
     bool apply_fmt    = false;
     bool apply_font   = false;
@@ -78,7 +78,7 @@ struct PZ_EXCEL_CELL
 {
     unsigned char v_type  = 0;
     unsigned char t_type  = 0;
-    unsigned char s_type  = 0;
+    unsigned int  s_type  = 0;
     unsigned char width   = 0;
     unsigned char heigh   = 0;
     unsigned char h_align = 0;
@@ -225,8 +225,13 @@ class excel
         return setCell<T>(row_num, col_num, value);
     }
 
-    //设置单元格 文字内容颜色 利用PZ_EXCEL_CELL_STYLE PZ_EXCEL_CELL_STYLE
+    // Set cell background color (fill). For font color use setCellFontColor().
+    // 设置单元格底色（fill）。字体颜色请用 setCellFontColor()。
     void setCellColor(const std::string &key, std::string_view value);
+
+    // Set cell font color (legacy behavior that setCellColor used to do).
+    // 设置单元格字体颜色，原 setCellColor 的旧行为迁移至此。
+    void setCellFontColor(const std::string &key, std::string_view value);
 
     excel &addSheet(const std::string &name);
 
@@ -471,6 +476,7 @@ class excel
   public:
     std::vector<std::string> shared_strings;
     std::map<std::string, std::string> workbook_mapfiles;
+    std::map<std::string, std::string> workbook_target_to_rid;
     std::vector<PZ_EXCEL_SHEET> sheets;
     std::string error_msg;
 

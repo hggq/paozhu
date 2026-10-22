@@ -972,7 +972,7 @@ void client_session::flush_parked_send()
 
     std::list<std::shared_ptr<http2_send_data_t>> drained;
     auto &send_queue_obj = get_http2_send_queue();
-    if (!send_queue_obj.detach_parked(this, drained))
+    if (!send_queue_obj.detach_parked(this, 0, drained))
     {
         return;
     }
@@ -1509,13 +1509,16 @@ bool client_session::post_write(std::string_view msg)
         http2_ring_overflow_count.fetch_add(1, std::memory_order_relaxed);
         return false;
     }
+    // 先记账再入环：帧一旦发布到环上，消费者就可能写完并做减法；若在 push 之后才累加，
+    // 消费者读到的旧值会让这一帧的字节永久留在 bytes 里，累计过闸后本连接再也写不出去。
+    http2_ring_queue->bytes.fetch_add(msg.size(), std::memory_order_relaxed);
     if (!http2_ring_queue->push(reinterpret_cast<const unsigned char *>(msg.data()),
                                 static_cast<unsigned int>(msg.size())))
     {
+        http2_ring_queue->bytes.fetch_sub(msg.size(), std::memory_order_relaxed);
         http2_ring_overflow_count.fetch_add(1, std::memory_order_relaxed);
         return false;
     }
-    http2_ring_queue->bytes.fetch_add(msg.size(), std::memory_order_relaxed);
     if (http2_need_wakeup)
     {
         waituphttp2();

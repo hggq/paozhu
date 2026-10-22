@@ -1,4 +1,6 @@
 #include "parsecss.h"
+#include "webpdf.h"
+#include "webpdf_color.h"
 #include <sstream>
 #include <algorithm>
 #include <cctype>
@@ -12,6 +14,13 @@ std::string CSSParser::_trim(const std::string& s) {
     if (start == std::string::npos) return "";
     size_t end = s.find_last_not_of(" \t\n\r");
     return s.substr(start, end - start + 1);
+}
+
+// 只剥掉成对的引号；单个前引号（解析残缺）保持原样，否则会吃掉最后一个字符
+static std::string strip_matched_quotes(const std::string& s) {
+    if (s.size() >= 2 && (s.front() == '\'' || s.front() == '"') && s.back() == s.front())
+        return s.substr(1, s.size() - 2);
+    return s;
 }
 
 std::string CSSParser::_to_lower(const std::string& s) {
@@ -48,24 +57,11 @@ double CSSParser::_parse_length(const std::string& val, double base) {
 std::string CSSParser::_parse_color(const std::string& val) {
     std::string v = _trim(val);
     if (v.empty()) return "";
-    if (v[0] == '#') {
-        std::string hex = v.substr(1);
-        if (hex.size() == 3) {
-            std::string full;
-            for (char c : hex) { full += c; full += c; }
-            hex = full;
-        }
-        if (hex.size() == 6) {
-            try {
-                int r = std::stoi(hex.substr(0, 2), nullptr, 16);
-                int g = std::stoi(hex.substr(2, 2), nullptr, 16);
-                int b = std::stoi(hex.substr(4, 2), nullptr, 16);
-                return std::to_string(r) + " " + std::to_string(g) + " " + std::to_string(b);
-            } catch (const std::exception&) {
-                return "";
-            }
-        }
-    }
+    int r = 0, g = 0, b = 0;
+    if (parse_web_color(v, r, g, b))
+        return std::to_string(r) + " " + std::to_string(g) + " " + std::to_string(b);
+    if (v[0] == '#')
+        return "";
     return v;
 }
 
@@ -74,9 +70,7 @@ void CSSParser::_apply_property(CSSStyle& style, const std::string& prop, const 
     std::string v = _trim(val);
 
     if (p == "font-family") {
-        style.font_family = v;
-        if (!style.font_family.empty() && style.font_family.front() == '\'')
-            style.font_family = style.font_family.substr(1, style.font_family.size() - 2);
+        style.font_family = strip_matched_quotes(v);
     } else if (p == "font-size") {
         style.font_size = _parse_length(v);
     } else if (p == "font-weight") {
@@ -101,10 +95,11 @@ void CSSParser::_apply_property(CSSStyle& style, const std::string& prop, const 
             size_t url_end = v.find(')', url_start);
             if (url_end != std::string::npos) {
                 std::string url = _trim(v.substr(url_start, url_end - url_start));
-                if (!url.empty() && (url.front() == '"' || url.front() == '\'')) {
-                    url = url.substr(1, url.size() - 2);
-                }
-                style.background_image = url;
+                url = strip_matched_quotes(url);
+                // A style sheet comes from the document, so it may only name a
+                // file inside the image directory.
+                if (is_safe_document_image_path(url))
+                    style.background_image = url;
             }
         }
     } else if (p == "background-color") {
@@ -118,10 +113,9 @@ void CSSParser::_apply_property(CSSStyle& style, const std::string& prop, const 
             size_t url_end = v.find(')', url_start);
             if (url_end != std::string::npos) {
                 std::string url = _trim(v.substr(url_start, url_end - url_start));
-                if (!url.empty() && (url.front() == '"' || url.front() == '\'')) {
-                    url = url.substr(1, url.size() - 2);
-                }
-                style.background_image = url;
+                url = strip_matched_quotes(url);
+                if (is_safe_document_image_path(url))
+                    style.background_image = url;
             }
         }
         std::string color_part = v;

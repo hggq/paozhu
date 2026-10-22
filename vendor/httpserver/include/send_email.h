@@ -1,13 +1,74 @@
 #pragma once
 
+#include <cstddef>
+#include <cstring>
 #include <functional>
 #include <string>
+#include <string_view>
 #include <vector>
 #include <list>
 #include "http_socket.h"
 
 namespace http
 {
+    // SMTP 响应按 CRLF 分行：末行第 4 字节是空格（或整行只有 3 位码）才算应答结束，
+    // 前面带 '-' 的行是续行。一次 recv 可能只给半行，也可能给好几条应答，
+    // 所以从持久缓冲 buf 里取：取到一条就搬进 out，剩余字节留给下一次调用。
+    // 返回 1 取到、0 还不够、-1 超过缓冲上限。
+    inline int take_smtp_response(std::string &buf, std::string &out)
+    {
+        constexpr std::size_t kMaxSmtpResponse = 64 * 1024;
+        std::size_t pos = 0;
+        for (;;)
+        {
+            std::size_t eol = buf.find("\r\n", pos);
+            if (eol == std::string::npos)
+            {
+                return buf.size() > kMaxSmtpResponse ? -1 : 0;
+            }
+            bool last = (eol - pos == 3) || (eol - pos >= 4 && buf[pos + 3] == ' ');
+            if (last)
+            {
+                out.assign(buf, 0, eol);
+                buf.erase(0, eol + 2);
+                return 1;
+            }
+            pos = eol + 2;
+        }
+    }
+
+    // 数据阶段以 '.' 开头的行要双写，否则会被服务器当成正文结束标记
+    inline std::string smtp_dot_stuff(const std::string &body)
+    {
+        std::string out;
+        out.reserve(body.size() + 16);
+        bool line_start = true;
+        for (char c : body)
+        {
+            if (line_start && c == '.')
+            {
+                out.push_back('.');
+            }
+            out.push_back(c);
+            line_start = (c == '\n');
+        }
+        return out;
+    }
+
+    // 头字段值里不能出现 CR/LF，否则可以拼出额外的头甚至正文
+    inline std::string smtp_header_value(std::string_view value)
+    {
+        std::string out;
+        out.reserve(value.size());
+        for (char c : value)
+        {
+            if (c != '\r' && c != '\n')
+            {
+                out.push_back(c);
+            }
+        }
+        return out;
+    }
 
     /**
      * @brief SMTP邮件发送类，支持SSL/TLS加密连接和附件发送
@@ -46,18 +107,6 @@ namespace http
         send_email(std::string smpt_url, std::string account, std::string passwd) : smpturl(smpt_url), username(account), password(passwd)
         {
         }
-
-        /**
-         * @brief 设置邮件参数并发送
-         * @param reply_email 回复邮箱地址
-         * @param from_name 发件人显示名称
-         * @param to_email 收件人邮箱地址
-         * @param to_name 收件人显示名称
-         * @param tosubject 邮件主题
-         * @param body 邮件正文内容
-         * @return true表示发送成功，false表示失败
-         */
-        bool send(std::string reply_email, std::string from_name, std::string to_email, std::string to_name, std::string tosubject, std::string body);
 
         /**
          * @brief 执行邮件发送（根据isssl选择加密或明文连接）
@@ -103,9 +152,42 @@ namespace http
         unsigned int port = 25;                           ///< SMTP端口，默认25，SSL通常用465
         bool isssl = false;                               ///< 是否启用SSL加密
         bool ishtml = false;                              ///< 是否为HTML格式邮件
+        bool ehlo_failed_ = false;                       ///< EHLO被拒绝(5xx)后回退HELO的标志
 
         std::string sendcommand;                          ///< 当前要发送的SMTP命令
         char data[2049];                                  ///< 接收服务器响应的缓冲区
+        std::string smtp_readbuf_;                        ///< 读取缓冲：保存未凑成完整应答的剩余字节
+
+        // 反复调用 read_chunk 直到凑齐一条完整应答；data 里是整条应答（截到 2048），
+        // 返回值为长度，0 表示读失败。read_chunk(buf, cap) 返回读到的字节数，失败返回 <=0。
+        template <class ReadFn>
+        unsigned int read_smtp_response(ReadFn &&read_chunk)
+        {
+            for (;;)
+            {
+                std::string response;
+                int st = take_smtp_response(smtp_readbuf_, response);
+                if (st == 1)
+                {
+                    unsigned int len = response.size() > 2048 ? 2048 : static_cast<unsigned int>(response.size());
+                    std::memset(data, 0x00, sizeof(data));
+                    std::memcpy(data, response.data(), len);
+                    return len;
+                }
+                if (st < 0)
+                {
+                    errormsg.append("smtp response too long!");
+                    return 0;
+                }
+                char chunk[1024];
+                int got = read_chunk(chunk, sizeof(chunk));
+                if (got <= 0)
+                {
+                    return 0;
+                }
+                smtp_readbuf_.append(chunk, static_cast<std::size_t>(got));
+            }
+        }
 
         /**
          * @brief SMTP会话状态枚举，定义邮件发送流程的各个阶段

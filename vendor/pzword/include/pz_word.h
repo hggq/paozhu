@@ -20,7 +20,8 @@ struct WORD_RUN
     bool italic = false;
     bool underline = false;
     std::string color;       // w:color 的 val 值，如 "FF0000"
-    std::string highlight;   // w:highlight 的 val 值，如 "yellow"
+    std::string highlight;   // w:highlight 的 val 值（仅预定义色名，如 "yellow"），写回 docx 用 w:highlight
+    std::string bg_color;    // 文字底纹背景色 hex（来自 w:shd fill 或 HTML background-color），写回用 w:shd w:fill
     unsigned char font_size = 0;
     std::string font_name;
 };
@@ -154,6 +155,7 @@ class word
         static const size_t MAX_FILE_SIZE = 100 * 1024 * 1024;
         static const size_t MAX_ZIP_ENTRIES = 10000;
         static const size_t MAX_TOTAL_IMAGE_SIZE = 256 * 1024 * 1024;  // read() 图片数据总量上限
+        static const size_t MAX_TOTAL_UNZIP_SIZE = 512 * 1024 * 1024;  // read() 所有条目解压后总量上限（防 zip bomb 放大）
         static const unsigned int MAX_HEADING_LEVEL = 5;
         static const int MAX_PARSE_DEPTH = 64;  // 递归解析深度上限，防止恶意嵌套打爆栈
 

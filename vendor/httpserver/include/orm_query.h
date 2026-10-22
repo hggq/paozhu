@@ -6619,6 +6619,13 @@ class db_conn : std::enable_shared_from_this<db_conn>
         co_return co_await pg_async_edit_query_single_impl(rawsql, result_record);
     }
 
+    //// 事务从 begin_commit() 开始，必须在同一个 db_conn 对象上走完 commit() 或 rollback()。
+    //// MySQL/PostgreSQL 的事务只属于这条 db_conn 借到的连接，别的调用方看不到。
+    //// SQLite 一个数据库文件只有一条常驻连接：begin_commit() 开的是这条共享会话的事务，
+    //// 期间其他调用方（含 ORM 模型自己借连接发出的写）也落在这个事务里，
+    //// 由 hold 事务的那条线 commit 或 rollback 一起收尾。
+    //// 因此 SQLite 侧要让模型写进同一个事务，必须 lock_conn(sqlite_edit_conn) 借这条连接，
+    //// 且事务里只放必要的少量语句，尽快 commit 或 rollback。
     bool begin_commit();
     bool commit();
     void rollback();

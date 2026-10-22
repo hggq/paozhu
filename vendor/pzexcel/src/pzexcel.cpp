@@ -1,4 +1,5 @@
 #include <cstdlib>
+#include <cstdio>
 #include <cstdint>
 #include <cstring>
 #include <cmath>
@@ -19,7 +20,7 @@ static std::string xml_escape(const std::string &s)
 {
     std::string result;
     result.reserve(s.size());
-    for (char c : s)
+    for (unsigned char c : s)
     {
         switch (c)
         {
@@ -28,7 +29,56 @@ static std::string xml_escape(const std::string &s)
         case '>': result += "&gt;"; break;
         case '"': result += "&quot;"; break;
         case '\'': result += "&apos;"; break;
-        default: result += c;
+        default:
+            // XML 1.0 不允许控制字符，原样写出去 Excel 会拒绝打开整个文件
+            if (c == 0x7F || (c < 0x20 && c != '\t' && c != '\n' && c != '\r'))
+                break;
+            result += static_cast<char>(c);
+        }
+    }
+    return result;
+}
+
+// 读入时反转义一次，写回时 xml_escape 再转义，往返才不会把 &amp; 叠加成 &amp;amp;
+static std::string xml_unescape(std::string_view s)
+{
+    std::string result;
+    result.reserve(s.size());
+    for (std::size_t i = 0; i < s.size(); i++)
+    {
+        if (s[i] != '&')
+        {
+            result.push_back(s[i]);
+            continue;
+        }
+        if (s.compare(i, 5, "&amp;") == 0)
+        {
+            result += '&';
+            i += 4;
+        }
+        else if (s.compare(i, 4, "&lt;") == 0)
+        {
+            result += '<';
+            i += 3;
+        }
+        else if (s.compare(i, 4, "&gt;") == 0)
+        {
+            result += '>';
+            i += 3;
+        }
+        else if (s.compare(i, 6, "&quot;") == 0)
+        {
+            result += '"';
+            i += 5;
+        }
+        else if (s.compare(i, 6, "&apos;") == 0)
+        {
+            result += '\'';
+            i += 5;
+        }
+        else
+        {
+            result += '&';
         }
     }
     return result;
@@ -44,6 +94,7 @@ void excel::clear()
     shared_string_map.clear();
     sheets.clear();
     workbook_mapfiles.clear();
+    workbook_target_to_rid.clear();
     error_msg.clear();
     fonts.clear();
     bgcolors.clear();
@@ -173,6 +224,8 @@ bool excel::read(const std::string &zipfilename)
     size_t zip_entry_count = 0;
     size_t total_unzip_size = 0;
 
+    // --- 第一遍：处理 metadata（rels / workbook / sharedStrings / styles），
+    //     确保 workbook_mapfiles 和 sheets 条目在第二遍处理工作表之前全部就绪。
     for (const auto &tempname : file_list)
     {
         if (zip_entry_count >= MAX_ZIP_ENTRIES) break;
@@ -208,13 +261,23 @@ bool excel::read(const std::string &zipfilename)
         {
             process_workbook_rels(tempname, file_content);
         }
-        else if (str_casecmp_pre(tempname, "xl/worksheets/sheet"))
-        {
-            process_worksheets_sheet(tempname, file_content);
-        }
         else if (str_casecmp_pre(tempname, "xl/styles.xml"))
         {
             process_styles(tempname, file_content);
+        }
+    }
+
+    // --- 第二遍：处理 worksheet XML。此时 workbook_mapfiles 已就绪，
+    //     process_worksheets_sheet 可以通过反查表 Target→r:id 正确归属每个工作表。
+    for (const auto &tempname : file_list)
+    {
+        if (str_casecmp_pre(tempname, "xl/worksheets/sheet"))
+        {
+            if (!zf.read_file_to_string(tempname, file_content))
+                continue;
+            if (file_content.size() > MAX_FILE_SIZE)
+                continue;
+            process_worksheets_sheet(tempname, file_content);
         }
     }
 
@@ -544,7 +607,7 @@ void excel::process_styles([[maybe_unused]] const std::string &filename, const s
                         }
                         else if (str_casecmp_pre_safe(file_content, si, "</font>"))
                         {
-                            si = si + sizeof("</font>") - 1;
+                            si = si + sizeof("</font>") - 2;
                             si = si - 1;
                             break;
                         }
@@ -553,7 +616,7 @@ void excel::process_styles([[maybe_unused]] const std::string &filename, const s
                 }
                 else if (str_casecmp_pre_safe(file_content, si, "</fonts>"))
                 {
-                    si = si + sizeof("</fonts>") - 1;
+                    si = si + sizeof("</fonts>") - 2;
                     si = si - 1;
                     break;
                 }
@@ -572,107 +635,136 @@ void excel::process_styles([[maybe_unused]] const std::string &filename, const s
                     si = si + sizeof("<fill>") - 1;
                     for (; si < file_content.size(); si++)
                     {
-                        if (str_casecmp_pre_safe(file_content, si, "patternType=\""))
+                        if (str_casecmp_pre_safe(file_content, si, "<patternFill"))
                         {
-                            si = si + sizeof("patternType=\"") - 1;
-                            std::string temp_ptype;
+                            si = si + sizeof("<patternFill") - 1;
+                            // 扫 patternType="..."
                             for (; si < file_content.size(); si++)
                             {
-                                if (file_content[si] == '"' || file_content[si] == 0x2F || file_content[si] == '>')
+                                if (str_casecmp_pre_safe(file_content, si, "patternType=\""))
                                 {
-                                    si = si - 1;
-                                    break;
-                                }
-                                temp_ptype.push_back(file_content[si]);
-                            }
-                            temp_fill.pattern_type = std::move(temp_ptype);
-                        }
-                        else if (file_content[si] == 0x2F)
-                        {
-                            si = si - 1;
-                            break;
-                        }
-                        else if (file_content[si] == '>')
-                        {
-                            for (; si < file_content.size(); si++)
-                            {
-                                if (str_casecmp_pre_safe(file_content, si, "<fgColor "))
-                                {
-                                    si = si + sizeof("<fgColor ") - 1;
-                                    std::string bg_color;
+                                    si = si + sizeof("patternType=\"") - 1;
+                                    std::string temp_ptype;
                                     for (; si < file_content.size(); si++)
                                     {
-                                        if (str_casecmp_pre_safe(file_content, si, "theme=\""))
-                                        {
-                                            temp_fill.bg_type = 1;
-                                            si                = si + sizeof("theme=\"") - 1;
-                                            for (; si < file_content.size(); si++)
-                                            {
-                                                if (file_content[si] == '"')
-                                                {
-                                                    si = si - 1;
-                                                    break;
-                                                }
-                                                bg_color.push_back(file_content[si]);
-                                            }
-                                        }
-                                        else if (str_casecmp_pre_safe(file_content, si, "tint=\""))
-                                        {
-                                            si = si + sizeof("tint=\"") - 1;
-                                            for (; si < file_content.size(); si++)
-                                            {
-                                                if (file_content[si] == '"')
-                                                {
-                                                    si = si - 1;
-                                                    break;
-                                                }
-                                                bg_color.push_back(file_content[si]);
-                                            }
-                                        }
-                                        else if (file_content[si] == '"' || file_content[si] == 0x2F || file_content[si] == '>')
+                                        char c = file_content[si];
+                                        if (c == '"' || c == '>' || c == '/')
                                         {
                                             si = si - 1;
                                             break;
                                         }
+                                        temp_ptype.push_back(c);
                                     }
-                                    temp_fill.fgColor = bg_color;
+                                    temp_fill.pattern_type = std::move(temp_ptype);
                                 }
-                                else if (str_casecmp_pre_safe(file_content, si, "<bgColor "))
+                                // patternFill 自闭合或开始扫 fgColor/bgColor
+                                if (file_content[si] == '/' || file_content[si] == '>')
                                 {
-                                    si = si + sizeof("<bgColor ") - 1;
-                                    std::string bg_color;
+                                    // 扫完 patternFill 后，patternFill 本身可能是自闭合 />
+                                    // 或者后面跟着 <fgColor ...>
+                                    si++;
                                     for (; si < file_content.size(); si++)
                                     {
-                                        if (str_casecmp_pre_safe(file_content, si, "indexed=\""))
+                                        // 终止：</patternFill> 说明没有 fgColor/bgColor
+                                        if (str_casecmp_pre_safe(file_content, si, "</patternFill"))
                                         {
-                                            si = si + sizeof("indexed=\"") - 1;
+                                            si = si + sizeof("</patternFill") - 1;
+                                            goto fill_end; // 跳到 fill 结束标签处理
+                                        }
+                                        // 扫 <fgColor ...>
+                                        if (str_casecmp_pre_safe(file_content, si, "<fgColor "))
+                                        {
+                                            si = si + sizeof("<fgColor ") - 1;
+                                            std::string bg_color;
                                             for (; si < file_content.size(); si++)
                                             {
-                                                if (file_content[si] == '"')
+                                                if (str_casecmp_pre_safe(file_content, si, "rgb=\""))
+                                                {
+                                                    si = si + sizeof("rgb=\"") - 1;
+                                                    for (; si < file_content.size(); si++)
+                                                    {
+                                                        if (file_content[si] == '"')
+                                                        {
+                                                            si = si - 1;
+                                                            break;
+                                                        }
+                                                        bg_color.push_back(file_content[si]);
+                                                    }
+                                                }
+                                                else if (str_casecmp_pre_safe(file_content, si, "theme=\""))
+                                                {
+                                                    temp_fill.bg_type = 1;
+                                                    si                = si + sizeof("theme=\"") - 1;
+                                                    for (; si < file_content.size(); si++)
+                                                    {
+                                                        if (file_content[si] == '"')
+                                                        {
+                                                            si = si - 1;
+                                                            break;
+                                                        }
+                                                        bg_color.push_back(file_content[si]);
+                                                    }
+                                                }
+                                                else if (str_casecmp_pre_safe(file_content, si, "tint=\""))
+                                                {
+                                                    si = si + sizeof("tint=\"") - 1;
+                                                    for (; si < file_content.size(); si++)
+                                                    {
+                                                        if (file_content[si] == '"')
+                                                        {
+                                                            si = si - 1;
+                                                            break;
+                                                        }
+                                                        bg_color.push_back(file_content[si]);
+                                                    }
+                                                }
+                                                else if (file_content[si] == '"' || file_content[si] == '/' || file_content[si] == '>')
                                                 {
                                                     si = si - 1;
                                                     break;
                                                 }
-                                                bg_color.push_back(file_content[si]);
                                             }
+                                            temp_fill.fgColor = bg_color;
+                                        }
+                                        else if (str_casecmp_pre_safe(file_content, si, "<bgColor "))
+                                        {
+                                            si = si + sizeof("<bgColor ") - 1;
+                                            std::string bg_color;
+                                            for (; si < file_content.size(); si++)
+                                            {
+                                                if (str_casecmp_pre_safe(file_content, si, "indexed=\""))
+                                                {
+                                                    si = si + sizeof("indexed=\"") - 1;
+                                                    for (; si < file_content.size(); si++)
+                                                    {
+                                                        if (file_content[si] == '"')
+                                                        {
+                                                            si = si - 1;
+                                                            break;
+                                                        }
+                                                        bg_color.push_back(file_content[si]);
+                                                    }
+                                                }
+                                            }
+                                            temp_fill.bgcolor = bg_color;
                                         }
                                     }
-                                    temp_fill.bgcolor = bg_color;
+                                    break; // 跳出 patternFill 循环，回到 fill 主循环
                                 }
                             }
-                            break;
                         }
                         else if (str_casecmp_pre_safe(file_content, si, "</fill>"))
                         {
-                            si = si + sizeof("</fill>") - 1;
+                            si = si + sizeof("</fill>") - 2;
                             break;
                         }
                     }
+                    fill_end:
                     bgcolors.push_back(temp_fill);
                 }
                 else if (str_casecmp_pre_safe(file_content, si, "</fills>"))
                 {
-                    si = si + sizeof("</fills>") - 1;
+                    si = si + sizeof("</fills>") - 2;
                     break;
                 }
             }
@@ -752,7 +844,7 @@ void excel::process_styles([[maybe_unused]] const std::string &filename, const s
                         } else if (str_casecmp_pre_safe(file_content, si, "<diagonal")) {
                             parse_border_side("<diagonal", temp_border.diagonal);
                         } else if (str_casecmp_pre_safe(file_content, si, "</border>")) {
-                            si = si + sizeof("</border>") - 1;
+                            si = si + sizeof("</border>") - 2;
                             borders.push_back(temp_border);
                             break;
                         }
@@ -760,7 +852,7 @@ void excel::process_styles([[maybe_unused]] const std::string &filename, const s
                 }
                 else if (str_casecmp_pre_safe(file_content, si, "</borders>"))
                 {
-                    si = si + sizeof("</borders>") - 1;
+                    si = si + sizeof("</borders>") - 2;
                     break;
                 }
             }
@@ -779,8 +871,9 @@ void excel::process_styles([[maybe_unused]] const std::string &filename, const s
                 if (str_casecmp_pre_safe(file_content, si, "<xf ") || str_casecmp_pre_safe(file_content, si, "<xf/"))
                 {
                     PZ_EXCEL_CELL_STYLE style;
-                    bool self_closing = (si + 3 < file_content.size() && file_content[si + 3] == '/');
                     si = si + sizeof("<xf ") - 1;
+                    // 自闭合：<xf .../> —— 扫属性循环里显式检测 "/>" 序列
+                    // 非自闭合：<xf ...>...</xf> —— 扫属性遇到 ">" 后继续 alignment 子循环
                     for (; si < file_content.size(); si++)
                     {
                         if (str_casecmp_pre_safe(file_content, si, "numFmtId=\""))
@@ -793,7 +886,7 @@ void excel::process_styles([[maybe_unused]] const std::string &filename, const s
                                 if (file_content[si] >= '0' && file_content[si] <= '9')
                                     val = val * 10 + (file_content[si] - '0');
                             }
-                            style.numfmtid = (val > 255) ? 255 : static_cast<unsigned char>(val);
+                            style.numfmtid = static_cast<unsigned int>(val);
                         }
                         else if (str_casecmp_pre_safe(file_content, si, "fontId=\""))
                         {
@@ -805,7 +898,7 @@ void excel::process_styles([[maybe_unused]] const std::string &filename, const s
                                 if (file_content[si] >= '0' && file_content[si] <= '9')
                                     val = val * 10 + (file_content[si] - '0');
                             }
-                            style.fontid = (val > 255) ? 255 : static_cast<unsigned char>(val);
+                            style.fontid = static_cast<unsigned int>(val);
                         }
                         else if (str_casecmp_pre_safe(file_content, si, "fillId=\""))
                         {
@@ -817,7 +910,7 @@ void excel::process_styles([[maybe_unused]] const std::string &filename, const s
                                 if (file_content[si] >= '0' && file_content[si] <= '9')
                                     val = val * 10 + (file_content[si] - '0');
                             }
-                            style.fillid = (val > 255) ? 255 : static_cast<unsigned char>(val);
+                            style.fillid = static_cast<unsigned int>(val);
                         }
                         else if (str_casecmp_pre_safe(file_content, si, "borderId=\""))
                         {
@@ -829,7 +922,7 @@ void excel::process_styles([[maybe_unused]] const std::string &filename, const s
                                 if (file_content[si] >= '0' && file_content[si] <= '9')
                                     val = val * 10 + (file_content[si] - '0');
                             }
-                            style.borderid = (val > 255) ? 255 : static_cast<unsigned char>(val);
+                            style.borderid = static_cast<unsigned int>(val);
                         }
                         else if (str_casecmp_pre_safe(file_content, si, "xfId=\""))
                         {
@@ -841,7 +934,7 @@ void excel::process_styles([[maybe_unused]] const std::string &filename, const s
                                 if (file_content[si] >= '0' && file_content[si] <= '9')
                                     val = val * 10 + (file_content[si] - '0');
                             }
-                            style.xfid = (val > 255) ? 255 : static_cast<unsigned char>(val);
+                            style.xfid = static_cast<unsigned int>(val);
                         }
                         else if (str_casecmp_pre_safe(file_content, si, "applyFont=\"1\""))
                         {
@@ -863,46 +956,59 @@ void excel::process_styles([[maybe_unused]] const std::string &filename, const s
                             si = si + sizeof("applyBorder=\"1\"") - 1;
                             style.apply_border = true;
                         }
-                        else if (file_content[si] == '>' || file_content[si] == '/')
+                        else if (str_casecmp_pre_safe(file_content, si, "/>"))
                         {
-                            if (file_content[si] == '/')
-                                self_closing = true;
-                            si++;
+                            // 自闭合 <xf .../>：越过 /> 后直接 push
+                            si = si + 1; // si 停在 '>' 上，外层 for si++ 移到下一个字符
+                            break;
+                        }
+                        else if (file_content[si] == '>')
+                        {
+                            // 非自闭合：si 停在 '>'，让外层 for si++ 进入 alignment 子循环
                             break;
                         }
                     }
-                    if (!self_closing)
+                    // 属性循环 break 时 si 停在 '>' 上；先越过它
+                    si++;
+                    // 非自闭合：需要扫 alignment 属性直到 </xf>
+                    // 自闭合：直接遇到 </cellXfs> 或 <xf ，立刻 break 跳过
+                    for (; si < file_content.size(); si++)
                     {
-                        for (; si < file_content.size(); si++)
+                        if (str_casecmp_pre_safe(file_content, si, "</xf>"))
                         {
-                            if (str_casecmp_pre_safe(file_content, si, "horizontal=\""))
-                            {
-                                si = si + sizeof("horizontal=\"") - 1;
-                                style.align.clear();
-                                for (; si < file_content.size(); si++)
-                                {
-                                    if (file_content[si] == '"') break;
-                                    style.align.push_back(file_content[si]);
-                                }
-                                style.apply_align = true;
-                            }
-                            else if (str_casecmp_pre_safe(file_content, si, "vertical=\""))
-                            {
-                                si = si + sizeof("vertical=\"") - 1;
-                                style.valign.clear();
-                                for (; si < file_content.size(); si++)
-                                {
-                                    if (file_content[si] == '"') break;
-                                    style.valign.push_back(file_content[si]);
-                                }
-                                style.apply_align = true;
-                            }
-                            else if (str_casecmp_pre_safe(file_content, si, "</xf>"))
-                            {
-                                si = si + sizeof("</xf>") - 1;
-                                break;
-                            }
+                            si = si + sizeof("</xf>") - 2;
+                            break;
                         }
+                        else if (str_casecmp_pre_safe(file_content, si, "<xf ") ||
+                                 str_casecmp_pre_safe(file_content, si, "<xf/") ||
+                                 str_casecmp_pre_safe(file_content, si, "</cellXfs>"))
+                        {
+                            si--;
+                            break;
+                        }
+                        else if (str_casecmp_pre_safe(file_content, si, "horizontal=\""))
+                        {
+                            si = si + sizeof("horizontal=\"") - 1;
+                            style.align.clear();
+                            for (; si < file_content.size(); si++)
+                            {
+                                if (file_content[si] == '"') break;
+                                style.align.push_back(file_content[si]);
+                            }
+                            style.apply_align = true;
+                        }
+                        else if (str_casecmp_pre_safe(file_content, si, "vertical=\""))
+                        {
+                            si = si + sizeof("vertical=\"") - 1;
+                            style.valign.clear();
+                            for (; si < file_content.size(); si++)
+                            {
+                                if (file_content[si] == '"') break;
+                                style.valign.push_back(file_content[si]);
+                            }
+                            style.apply_align = true;
+                        }
+                        // 新增：遇到 '</xf>' 里的 '<' 也说明是 xf 结束 —— 但 str_casecmp_pre_safe 应该已经处理
                     }
                     styles.push_back(style);
                 }
@@ -917,41 +1023,71 @@ void excel::process_styles([[maybe_unused]] const std::string &filename, const s
 }
 void excel::process_worksheets_sheet(const std::string &filename, const std::string &file_content)
 {
-    unsigned int offset   = sizeof("xl/worksheets/sheet") - 1;
-    unsigned int sheet_id = 0, active_sheet_index = 0xFFFF;
+    unsigned int active_sheet_index = 0xFFFF;
     unsigned int max_row = 0;
     unsigned int max_col = 0;
     unsigned int row_num = 0;
     unsigned int col_num = 0;
-    for (unsigned int i = offset; i < filename.size(); i++)
+
+    // 用 Target→rId 反查表匹配 sheet，而非依赖文件名数字
+    // Match sheet via Target→rId map; OOXML sheetId and sheetN.xml index are not always aligned
+    std::string rel_target;
+    constexpr const char *prefix = "xl/";
+    if (filename.size() > 3 && filename.compare(0, 3, prefix) == 0)
+        rel_target = filename.substr(3);
+    else
+        rel_target = filename;
+
+    auto rid_it = workbook_target_to_rid.find(rel_target);
+    if (rid_it != workbook_target_to_rid.end())
     {
-        if (filename[i] == '.')
+        const std::string &rid = rid_it->second;
+        for (unsigned int i = 0; i < sheets.size(); i++)
         {
-            break;
-        }
-        else if (filename[i] > 0x2F && filename[i] < 0x3A)
-        {
-            if (sheet_id < 100000)
-                sheet_id = sheet_id * 10 + (filename[i] - '0');
+            if (sheets[i].sheet_file == rid)
+            {
+                active_sheet_index = i;
+                break;
+            }
         }
     }
-    //check sheet at
-    for (row_num = 0; row_num < sheets.size(); row_num++)
+
+    // Fallback: 反表没命中（畸形文件 / 老旧格式），退回原来的文件名→数字匹配
+    if (active_sheet_index == 0xFFFF)
     {
-        if (sheets[row_num].sheet_index == sheet_id)
+        unsigned int offset   = sizeof("xl/worksheets/sheet") - 1;
+        unsigned int sheet_id = 0;
+        for (unsigned int i = offset; i < filename.size(); i++)
         {
-            active_sheet_index = row_num;
-            break;
+            if (filename[i] == '.')
+            {
+                break;
+            }
+            else if (filename[i] > 0x2F && filename[i] < 0x3A)
+            {
+                if (sheet_id < 100000)
+                    sheet_id = sheet_id * 10 + (filename[i] - '0');
+            }
+        }
+        for (unsigned int i = 0; i < sheets.size(); i++)
+        {
+            if (sheets[i].sheet_index == sheet_id)
+            {
+                active_sheet_index = i;
+                break;
+            }
         }
     }
+
     if (active_sheet_index == 0xFFFF)
     {
         PZ_EXCEL_SHEET temp_sheet;
-        temp_sheet.sheet_index = sheet_id;
+        // 无法归属时把 filename 存进 sheet_file 兜底，避免完全丢失
+        temp_sheet.sheet_file = rel_target;
         sheets.push_back(std::move(temp_sheet));
-
         active_sheet_index = sheets.size() - 1;
     }
+
     size_t si = 0;
 
     for (; si < file_content.size(); si++)
@@ -967,45 +1103,89 @@ void excel::process_worksheets_sheet(const std::string &filename, const std::str
                 {
                     si = si + sizeof("ref=\"") - 1;
                     std::string begin_str;
+                    std::string end_str;
+                    bool is_single_cell = false;
 
+                    // 扫完整个 ref 值，无论有没有冒号。单格场景用 begin_str/end_str 相同，
+                    // 双格场景分别取左上角和右下角。
                     for (; si < file_content.size(); si++)
                     {
-                        if (file_content[si] == ':')
+                        char c = file_content[si];
+                        if (c == '"')
                         {
-                            si++;
                             break;
                         }
+                        if (c == ':')
+                        {
+                            // 冒号后进入右下角，继续扫到 "
+                            for (si++; si < file_content.size(); si++)
+                            {
+                                char c2 = file_content[si];
+                                if (c2 == '"')
+                                    break;
+                                end_str.push_back(c2);
+                            }
+                            break;
+                        }
+                        begin_str.push_back(c);
                     }
-                    for (; si < file_content.size(); si++)
+                    if (end_str.empty())
                     {
-                        if (file_content[si] == '"')
+                        is_single_cell = true;
+                        end_str        = begin_str; // 单格 ref，max_row/max_col 来自同一个字符串
+                    }
+
+                    // 从 begin_str / end_str 解析列字母和行号
+                    auto parse_cell_ref = [](const std::string &ref_str, unsigned int &out_row,
+                                             std::string &out_col) {
+                        for (char c : ref_str)
                         {
-                            break;
+                            if (c > 0x2F && c < 0x3A)
+                            {
+                                if (out_row < MAX_ROWS)
+                                    out_row = out_row * 10 + (c - '0');
+                            }
+                            else if (c > 0x40 && c < 0x5B)
+                            {
+                                out_col.push_back(c);
+                            }
+                            else if (c > 0x60 && c < 0x7B)
+                            {
+                                out_col.push_back((c - 32));
+                            }
                         }
-                        else if (file_content[si] > 0x2F && file_content[si] < 0x3A)
+                    };
+
+                    unsigned int begin_row = 0;
+                    std::string  begin_col;
+                    unsigned int end_row   = 0;
+                    std::string  end_col;
+
+                    parse_cell_ref(begin_str, begin_row, begin_col);
+                    parse_cell_ref(end_str, end_row, end_col);
+
+                    // max_row / max_col 取右下角（或单格自身），
+                    // 但要保证不会因为左上角更大反而"减小"了已有值
+                    unsigned int final_row = (is_single_cell || end_row > 0) ? end_row : begin_row;
+                    unsigned int final_col = 0;
+                    for (char c : end_col)
+                    {
+                        if (final_col < MAX_COLS)
+                            final_col = final_col * 26 + (c - 0x40);
+                    }
+                    if (final_col == 0)
+                    {
+                        for (char c : begin_col)
                         {
-                            if (max_row < MAX_ROWS)
-                                max_row = max_row * 10 + (file_content[si] - '0');
-                        }
-                        else if (file_content[si] > 0x40 && file_content[si] < 0x5B)
-                        {
-                            begin_str.push_back(file_content[si]);
-                        }
-                        else if (file_content[si] > 0x60 && file_content[si] < 0x7B)
-                        {
-                            begin_str.push_back((file_content[si] - 32));
-                        }
-                        else
-                        {
-                            break;
+                            if (final_col < MAX_COLS)
+                                final_col = final_col * 26 + (c - 0x40);
                         }
                     }
 
-                    for (unsigned int i = 0; i < begin_str.size(); i++)
-                    {
-                        if (max_col < MAX_COLS)
-                            max_col = max_col * 26 + (begin_str[i] - 0x40);
-                    }
+                    if (final_row > max_row)
+                        max_row = final_row;
+                    if (final_col > max_col)
+                        max_col = final_col;
 
                     break;
                 }
@@ -1123,7 +1303,7 @@ void excel::process_worksheets_sheet(const std::string &filename, const std::str
                                             style_num = style_num * 10 + (file_content[si] - '0');
                                         }
                                     }
-                                    temp_cell.s_type = (style_num > 255) ? 255 : (unsigned char)style_num;
+                                    temp_cell.s_type = static_cast<unsigned int>(style_num);
                                     continue;
                                 }
                                 else if (str_casecmp_pre_safe(file_content, si, "t=\""))
@@ -1267,12 +1447,16 @@ void excel::process_worksheets_sheet(const std::string &filename, const std::str
                                 }
                                 if (temp_v_str.size() > 0)
                                 {
-                                    has_value = true;
-                                    size_t ss_idx = shared_strings.size();
+                                    std::string cell_str = xml_unescape(temp_v_str);
+                                    size_t ss_idx        = shared_strings.size();
                                     if (ss_idx < MAX_SHARED_STRINGS)
-                                        shared_strings.push_back(temp_v_str);
-                                    temp_cell.value.i = static_cast<long long>(ss_idx);
-                                    temp_cell.v_type  = 5;
+                                    {
+                                        has_value = true;
+                                        shared_strings.push_back(cell_str);
+                                        shared_string_map[cell_str] = ss_idx;
+                                        temp_cell.value.i           = static_cast<long long>(ss_idx);
+                                        temp_cell.v_type            = 5;
+                                    }
                                 }
                             }
 
@@ -1280,12 +1464,16 @@ void excel::process_worksheets_sheet(const std::string &filename, const std::str
                             //string (not a shared-string index), store it as one.
                             if (is_has_v && temp_cell.t_type == 'S' && temp_v_str.size() > 0)
                             {
-                                has_value     = true;
-                                size_t ss_idx = shared_strings.size();
+                                std::string cell_str = xml_unescape(temp_v_str);
+                                size_t ss_idx        = shared_strings.size();
                                 if (ss_idx < MAX_SHARED_STRINGS)
-                                    shared_strings.push_back(temp_v_str);
-                                temp_cell.value.i = static_cast<long long>(ss_idx);
-                                temp_cell.v_type  = 5;
+                                {
+                                    has_value     = true;
+                                    shared_strings.push_back(cell_str);
+                                    shared_string_map[cell_str] = ss_idx;
+                                    temp_cell.value.i           = static_cast<long long>(ss_idx);
+                                    temp_cell.v_type            = 5;
+                                }
                                 temp_v_str.clear();
                             }
 
@@ -1303,7 +1491,12 @@ void excel::process_worksheets_sheet(const std::string &filename, const std::str
                                 }
                             }
 
-                            if (has_value && row_num > 0 && col_num > 0)
+                            // 自闭合样式单元格（无 <v>）也要保留，否则 read→write 往返后样式消失
+                            // Preserve styled-only cells (no <v>), otherwise styles vanish after roundtrip
+                            if (!has_value && temp_cell.s_type > 0)
+                                temp_cell.v_type = 99;
+
+                            if ((has_value || temp_cell.s_type > 0) && row_num > 0 && col_num > 0)
                             {
                                 auto it = sheets[active_sheet_index].values.find(row_num);
                                 if (it != sheets[active_sheet_index].values.end())
@@ -1413,6 +1606,8 @@ void excel::process_workbook_rels([[maybe_unused]] const std::string &filename, 
 
                     if (temp_id_str.size() > 0 && temp_target_str.size() > 0)
                     {
+                        // 反查表先填（正表 move 后 temp_* 会被清空）
+                        workbook_target_to_rid[temp_target_str] = temp_id_str;
                         workbook_mapfiles.insert({std::move(temp_id_str), std::move(temp_target_str)});
                     }
                     //
@@ -1588,7 +1783,7 @@ void excel::process_shared_strings([[maybe_unused]] const std::string &filename,
                             }
                         }
                     }
-                    temp_s_str.clear();
+                    // 一个 <si> 里的多个 <t> 是同一段文本的富文本分段，要累加而不是覆盖
                     for (; si < file_content.size(); si++)
                     {
                         if (str_casecmp_pre_safe(file_content, si, "</t>"))
@@ -1604,9 +1799,10 @@ void excel::process_shared_strings([[maybe_unused]] const std::string &filename,
                 {
                     if (shared_strings.size() < MAX_SHARED_STRINGS)
                     {
-                        size_t idx = shared_strings.size();
-                        shared_strings.push_back(temp_s_str);
-                        shared_string_map[temp_s_str] = idx;
+                        std::string value = xml_unescape(temp_s_str);
+                        size_t idx        = shared_strings.size();
+                        shared_strings.push_back(std::move(value));
+                        shared_string_map[shared_strings.back()] = idx;
                     }
                     si = si + sizeof("</si>") - 2;
                     break;
@@ -1738,8 +1934,9 @@ std::string excel::getDate(const std::string &key, const std::string &date_forma
             }
         }
     }
-    // Excel 1900 leap year bug: serial > 60 includes fictitious Feb 29, 1900
-    double adj_vall = (cell_vall > 60.0) ? (cell_vall - 1.0) : cell_vall;
+    // Excel 1900 日期系统：序列号本身就是 1 基，且虚构了 1900-02-29；
+    // 年循环已经把 1900 按 366 天处理过，这里再减 1 会让 1900-03-01 之后整体偏一天。
+    double adj_vall = cell_vall;
     unsigned long long t_v = static_cast<unsigned long long>(std::ceil(adj_vall * 86400));
     unsigned int temp_val = 1900;
     std::tm output_tm{};
@@ -1792,12 +1989,15 @@ std::string excel::getDate(const std::string &key, const std::string &date_forma
         unsigned int t_month = monthdays[temp_val] * 86400;
         if (temp_val == 1)
         {
-            if (output_tm.tm_year % 400 == 0 || (output_tm.tm_year % 4 == 0 && output_tm.tm_year % 100 != 0))
+            // 年循环已按 366 天处理 1900 年，月循环必须同口径，否则 1900-03-01 之后整体偏一天
+            if (output_tm.tm_year == 1900 || output_tm.tm_year % 400 == 0 ||
+                (output_tm.tm_year % 4 == 0 && output_tm.tm_year % 100 != 0))
             {
                 t_month += 86400;
             }
         }
-        if (t_v >= t_month)
+        // t_v 是 1 基天数，严格大于才会跨月；取等时正落在本月最后一天
+        if (t_v > t_month)
         {
             t_v -= t_month;
         }
@@ -1951,8 +2151,111 @@ static std::string normalize_color(std::string_view value)
     return s;
 }
 
+static bool same_cell_style(const PZ_EXCEL_CELL_STYLE &a, const PZ_EXCEL_CELL_STYLE &b)
+{
+    return a.numfmtid == b.numfmtid && a.fontid == b.fontid && a.fillid == b.fillid &&
+           a.borderid == b.borderid && a.xfid == b.xfid && a.apply_fmt == b.apply_fmt &&
+           a.apply_font == b.apply_font && a.apply_fill == b.apply_fill &&
+           a.apply_align == b.apply_align && a.apply_border == b.apply_border &&
+           a.align == b.align && a.valign == b.valign;
+}
+
+static size_t find_cell_style(const std::vector<PZ_EXCEL_CELL_STYLE> &styles, const PZ_EXCEL_CELL_STYLE &target)
+{
+    for (size_t i = 0; i < styles.size(); i++)
+    {
+        if (same_cell_style(styles[i], target))
+            return i;
+    }
+    return SIZE_MAX;
+}
+
+// 以单元格现有样式为底，只替换填充或字体，避免把边框、数字格式和对齐一并抹掉
+static unsigned int cell_base_style(const PZ_EXCEL_SHEET &sheet, unsigned int row_num, unsigned int col_num, const std::vector<PZ_EXCEL_CELL_STYLE> &styles)
+{
+    auto row_it = sheet.values.find(row_num);
+    if (row_it != sheet.values.end())
+    {
+        auto cell_it = row_it->second.find(col_num);
+        if (cell_it != row_it->second.end() && cell_it->second.s_type < styles.size())
+            return cell_it->second.s_type;
+    }
+    return 0;
+}
+
 void excel::setCellColor(const std::string &key, std::string_view value)
 {
+    // Set cell background color (fill), not font color.
+    // 设置单元格底色，而非字体颜色。
+    if (index >= sheets.size())
+        return;
+
+    auto [row_num, col_num] = cellstr_to_num(key);
+    if (row_num == 0 || col_num == 0)
+        return;
+    if (row_num > MAX_ROWS || col_num > MAX_COLS)
+        return;
+
+    ensure_default_style(fonts, bgcolors, borders, styles, defaults_ready);
+
+    std::string color_str = normalize_color(value);
+
+    // 找 / 建一个 solid + fgColor 匹配的 fill 条目（fillid）
+    size_t fill_idx = SIZE_MAX;
+    for (size_t i = 0; i < bgcolors.size(); i++)
+    {
+        if (bgcolors[i].pattern_type == "solid" &&
+            bgcolors[i].fgColor == color_str)
+        {
+            fill_idx = i;
+            break;
+        }
+    }
+    if (fill_idx == SIZE_MAX)
+    {
+        PZ_EXCEL_CELL_FILL f;
+        f.pattern_type = "solid";
+        f.fgColor      = color_str;
+        bgcolors.push_back(f);
+        fill_idx = bgcolors.size() - 1;
+    }
+
+    PZ_EXCEL_CELL_STYLE new_style = styles[cell_base_style(sheets[index], row_num, col_num, styles)];
+    new_style.fillid              = static_cast<unsigned int>(fill_idx);
+    new_style.apply_fill          = true;
+
+    size_t style_idx = find_cell_style(styles, new_style);
+    if (style_idx == SIZE_MAX)
+    {
+        styles.push_back(new_style);
+        style_idx = styles.size() - 1;
+    }
+
+    auto it = sheets[index].values.find(row_num);
+    if (it != sheets[index].values.end())
+    {
+        auto cell_it = it->second.find(col_num);
+        if (cell_it != it->second.end())
+        {
+            cell_it->second.s_type = static_cast<unsigned int>(style_idx);
+            return;
+        }
+    }
+
+    PZ_EXCEL_CELL temp_cell;
+    temp_cell.s_type                       = static_cast<unsigned int>(style_idx);
+    temp_cell.v_type                       = 99;
+    sheets[index].values[row_num][col_num] = std::move(temp_cell);
+    if (row_num > sheets[index].rows)
+        sheets[index].rows = row_num;
+    if (col_num > sheets[index].cols)
+        sheets[index].cols = col_num;
+}
+
+void excel::setCellFontColor(const std::string &key, std::string_view value)
+{
+    // Set cell font color (legacy behavior that setCellColor used to do).
+    // 设置单元格字体颜色，原 setCellColor 的旧行为迁移至此。
     if (index >= sheets.size())
         return;
 
@@ -1986,28 +2289,14 @@ void excel::setCellColor(const std::string &key, std::string_view value)
         font_idx = fonts.size() - 1;
     }
 
-    size_t style_idx = SIZE_MAX;
-    for (size_t i = 0; i < styles.size(); i++)
-    {
-        if (styles[i].fontid == font_idx && styles[i].apply_font &&
-            styles[i].fillid == 0 && styles[i].borderid == 0 &&
-            styles[i].numfmtid == 0 && styles[i].xfid == 0)
-        {
-            style_idx = i;
-            break;
-        }
-    }
+    PZ_EXCEL_CELL_STYLE new_style = styles[cell_base_style(sheets[index], row_num, col_num, styles)];
+    new_style.fontid              = static_cast<unsigned int>(font_idx);
+    new_style.apply_font          = true;
 
+    size_t style_idx = find_cell_style(styles, new_style);
     if (style_idx == SIZE_MAX)
     {
-        PZ_EXCEL_CELL_STYLE s;
-        s.numfmtid   = 0;
-        s.fontid     = (font_idx > 255) ? 255 : static_cast<unsigned char>(font_idx);
-        s.fillid     = 0;
-        s.borderid   = 0;
-        s.xfid       = 0;
-        s.apply_font = true;
-        styles.push_back(s);
+        styles.push_back(new_style);
         style_idx = styles.size() - 1;
     }
 
@@ -2017,13 +2306,14 @@ void excel::setCellColor(const std::string &key, std::string_view value)
         auto cell_it = it->second.find(col_num);
         if (cell_it != it->second.end())
         {
-            cell_it->second.s_type = (style_idx > 255) ? 255 : static_cast<unsigned char>(style_idx);
+            cell_it->second.s_type = static_cast<unsigned int>(style_idx);
             return;
         }
     }
 
     PZ_EXCEL_CELL temp_cell;
-    temp_cell.s_type                       = (style_idx > 255) ? 255 : static_cast<unsigned char>(style_idx);
+    temp_cell.s_type                       = static_cast<unsigned int>(style_idx);
+    temp_cell.v_type                       = 99;
     sheets[index].values[row_num][col_num] = std::move(temp_cell);
     if (row_num > sheets[index].rows)
         sheets[index].rows = row_num;
@@ -2082,7 +2372,9 @@ static std::string gen_workbook_xml(const std::vector<PZ_EXCEL_SHEET> &sheets)
     for (unsigned int i = 0; i < sheets.size(); i++)
     {
         std::string name = sheets[i].name.empty() ? "Sheet" + std::to_string(i + 1) : sheets[i].name;
-        unsigned int sid = (sheets[i].sheet_index > 0) ? sheets[i].sheet_index : (i + 1);
+        // sheetId 使用数组序号，确保与 Target 文件名、content-types 一致
+        // Use array index for sheetId to stay aligned with Target filenames and content-types
+        unsigned int sid = i + 1;
         xml += "<sheet name=\"" + xml_escape(name) + "\" sheetId=\"" + std::to_string(sid) + "\" r:id=\"rId" + std::to_string(i + 1) + "\"/>";
     }
     xml += "</sheets>";
@@ -2097,8 +2389,9 @@ static std::string gen_workbook_rels_xml(const std::vector<PZ_EXCEL_SHEET> &shee
     unsigned int sheet_count = sheets.size();
     for (unsigned int i = 0; i < sheet_count; i++)
     {
-        unsigned int sid = (sheets[i].sheet_index > 0) ? sheets[i].sheet_index : (i + 1);
-        xml += "<Relationship Id=\"rId" + std::to_string(i + 1) + "\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet" + std::to_string(sid) + ".xml\"/>";
+        // Target 文件名统一用数组序号，和 content-types / workbook.xml 一致
+        // Use array index for Target filenames to stay consistent with content-types and workbook.xml
+        xml += "<Relationship Id=\"rId" + std::to_string(i + 1) + "\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\" Target=\"worksheets/sheet" + std::to_string(i + 1) + ".xml\"/>";
     }
     xml += "<Relationship Id=\"rId" + std::to_string(sheet_count + 1) + "\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\" Target=\"styles.xml\"/>";
     xml += "<Relationship Id=\"rId" + std::to_string(sheet_count + 2) + "\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme\" Target=\"theme/theme1.xml\"/>";
@@ -2184,11 +2477,11 @@ static std::string gen_styles_xml(const std::map<std::string, std::string> &numf
     xml += "<fills count=\"" + std::to_string(bgcolors.size()) + "\">";
     for (auto &f : bgcolors)
     {
-        xml += "<fill><patternFill patternType=\"" + f.pattern_type + "\">";
+        xml += "<fill><patternFill patternType=\"" + xml_escape(f.pattern_type) + "\">";
         if (!f.fgColor.empty())
-            xml += "<fgColor rgb=\"" + f.fgColor + "\"/>";
+            xml += "<fgColor rgb=\"" + xml_escape(f.fgColor) + "\"/>";
         if (!f.bgcolor.empty())
-            xml += "<bgColor rgb=\"" + f.bgcolor + "\"/>";
+            xml += "<bgColor rgb=\"" + xml_escape(f.bgcolor) + "\"/>";
         xml += "</patternFill></fill>";
     }
     xml += "</fills>";
@@ -2255,9 +2548,9 @@ static std::string gen_styles_xml(const std::map<std::string, std::string> &numf
         {
             xml += "<alignment";
             if (!s.align.empty())
-                xml += " horizontal=\"" + s.align + "\"";
+                xml += " horizontal=\"" + xml_escape(s.align) + "\"";
             if (!s.valign.empty())
-                xml += " vertical=\"" + s.valign + "\"";
+                xml += " vertical=\"" + xml_escape(s.valign) + "\"";
             xml += "/>";
         }
         xml += "</xf>";
@@ -2420,6 +2713,14 @@ bool excel::write(const std::string &zipfilename)
 
     unsigned int sheet_count = sheets.size();
 
+    // 任何一步失败都关闭并删除已写出的半成品，避免调用方拿到一个损坏的 xlsx
+    auto abort_write = [&]() -> bool {
+        zf.close();
+        std::error_code ec;
+        std::filesystem::remove(zipfilename, ec);
+        return false;
+    };
+
     auto add_entry = [&](const std::string& name, const std::string& content) -> bool {
         if (!zf.add_file_from_string(name, content)) {
             error_msg = "Error: Failed to add " + name + ": " + zf.error_msg();
@@ -2430,56 +2731,57 @@ bool excel::write(const std::string &zipfilename)
 
     if (!add_entry("[Content_Types].xml", gen_content_types_xml(sheet_count)))
     {
-        return false;
+        return abort_write();
     }
 
     if (!add_entry("_rels/.rels", gen_rels_xml()))
     {
-        return false;
+        return abort_write();
     }
 
     if (!add_entry("docProps/core.xml", gen_core_xml()))
     {
-        return false;
+        return abort_write();
     }
 
     if (!add_entry("docProps/app.xml", gen_app_xml(sheets)))
     {
-        return false;
+        return abort_write();
     }
 
     if (!add_entry("xl/workbook.xml", gen_workbook_xml(sheets)))
     {
-        return false;
+        return abort_write();
     }
 
     if (!add_entry("xl/_rels/workbook.xml.rels", gen_workbook_rels_xml(sheets)))
     {
-        return false;
+        return abort_write();
     }
 
     if (!add_entry("xl/sharedStrings.xml", gen_shared_strings_xml(shared_strings)))
     {
-        return false;
+        return abort_write();
     }
 
     if (!add_entry("xl/styles.xml", gen_styles_xml(numfmts, fonts, bgcolors, borders, styles)))
     {
-        return false;
+        return abort_write();
     }
 
     if (!add_entry("xl/theme/theme1.xml", gen_theme_xml()))
     {
-        return false;
+        return abort_write();
     }
 
     for (unsigned int i = 0; i < sheet_count; i++)
     {
-        unsigned int sid = (sheets[i].sheet_index > 0) ? sheets[i].sheet_index : (i + 1);
-        std::string sheet_path = "xl/worksheets/sheet" + std::to_string(sid) + ".xml";
+        // 写入 zip 的 sheet 文件名统一用数组序号
+        // Use array-index filenames when writing sheets into zip
+        std::string sheet_path = "xl/worksheets/sheet" + std::to_string(i + 1) + ".xml";
         if (!add_entry(sheet_path, gen_sheet_xml(sheets[i], shared_strings, styles)))
         {
-            return false;
+            return abort_write();
         }
     }
 

@@ -26,7 +26,8 @@ struct http2_send_queue_cache
     std::atomic<unsigned char> tail_{0};
     std::mutex http2_queue_send_mutex;
     // 积压字节数：只有 post_write（mqtt/websocket 入口）累加，消费者写完整帧后饱和减；
-    // http2 直 push 点不记账，恒为 0。
+    // http2 直 push 点不记账，恒为 0。累加必须早于 push 发布 tail_：消费者看到帧后就会
+    // 做减法，先减后加会让这一帧的字节永久留在计数里。
     std::atomic<unsigned long long> bytes{0};
 
     // 两个 push 都必须把帧字节深拷贝进槽：入环成功后发送对象即可回收，回池的 reset() 会清掉

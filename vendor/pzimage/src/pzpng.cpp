@@ -453,6 +453,10 @@ bool png::read(const std::string &filename)
     if (!inflateIDAT())
         return false;
     decode();
+    // decode() 是 void: 位深/隔行/数据长度不合格时它直接返回, 不填 pixels。
+    // 这里如实报失败, 否则调用方拿着 info.width 非零的空缓冲去 at() 就是越界
+    if (pixels.empty())
+        return false;
     return true;
 }
 
@@ -461,6 +465,9 @@ void png::decode()
     if (data_.empty())
         return;
     if (static_cast<size_t>(info.width) * info.height > MAX_PIXELS)
+        return;
+    // Adam7 隔行的 IDAT 按 7 个 pass 交错, 逐行解码会得到错位图像
+    if (info.interlace != 0)
         return;
     switch (info.colortype)
     {
@@ -471,6 +478,9 @@ void png::decode()
     case 6: decodeTruecolor(4); break;
     default: break;
     }
+    // 上面几条路径都把样本压进了 8 位 ColorRGBA; 留着 1/2/4/16 会让 save()/imshow()
+    // 走进 encode() 的 bitdepth != 8 分支而失败
+    info.bitdepth = 8;
 }
 
 // ---------- 创建空白图像 ----------

@@ -131,6 +131,31 @@
 // Temp-file (pzraw_/pzup_) lifetime under temp_path (seconds, default 24h). httpwatch scans at this interval; only whitelisted prefixes + files older than N are removed. Session/static-compress/business files untouched. Overridable via server.conf [default] temp_clean_time.
 #define CONST_HTTP_TEMP_FILE_LIVE_TIME (3600 * 24)
 
+// 静态压缩缓存的年龄上限（秒，默认 7 天）：按文件的最后写入时间算，超过才回收。
+// 命中会给大条目续期（见下面的 REFRESH_*），所以热点大缓存长期保留；其余条目
+// 写入 7 天后到期，下一次请求再重新压缩。实际删除时刻还要加上一个扫除周期
+// （httpwatch 的 temp_clean_time，默认 24 小时）。
+// httpwatch_clear_temp_files 是非递归的，永远扫不到 statichtml 子树；ETag 含 mtime，
+// 每次发版都会生成新键，没有回收就是单向增长。
+// 不加 server.conf 键：缓存是纯派生数据，删掉最多重压一次。
+// Age limit of the static compression cache (seconds, default 7d), measured from the file's
+// last-write time. Hits refresh large entries (see REFRESH_* below), so hot large caches stay
+// indefinitely; everything else expires 7 days after it was written and is recompressed on the
+// next request. Actual deletion happens at the first sweep (temp_clean_time, default 24h) after
+// that. httpwatch_clear_temp_files is non-recursive and never reaches the statichtml subtree;
+// the ETag embeds mtime so every deploy mints a new key. No server.conf key: the cache is pure
+// derived data; deleting it costs one recompress.
+#define CONST_HTTP_STATIC_CACHE_AGE_LIMIT (3600 * 24 * 7)
+
+// 命中续期门槛：源文件 ≥ 该值才续期。压缩比高的文件缓存可能只有几 KB，
+// 但重压代价按源文件算，所以门槛用源文件长度，不用缓存文件长度。
+// Hits refresh the last-write time only for sources at least this large: a highly compressible
+// file may cache down to a few KB, while the recompression cost still follows the source size.
+#define CONST_HTTP_STATIC_CACHE_REFRESH_MIN_SIZE (1024 * 1024)
+// 只在条目年龄超过该值时写一次 mtime（默认半个回收周期）。
+// Write the last-write time at most once per this age (default half the collection period).
+#define CONST_HTTP_STATIC_CACHE_REFRESH_AGE ((CONST_HTTP_STATIC_CACHE_AGE_LIMIT) / 2)
+
 #define COOKIE_SESSION_NAME "PHPSESSID"
 
 // ---- HTTP/2 单连接资源上限（http2_parse.cpp）----

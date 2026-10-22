@@ -17,6 +17,9 @@ namespace image {
 
 static const double PI = 3.14159265358979323846;
 
+// 像素总量上限, 与 pzpng 的 MAX_PIXELS 同值; 超过则直接拒绝解码
+static constexpr uint64_t MAX_JPEG_PIXELS = 100ULL * 1024 * 1024;
+
 // Zig-Zag 顺序
 static const int zigzag_order[64] = {
      0,  1,  8, 16,  9,  2,  3, 10,
@@ -96,15 +99,16 @@ static const uint8_t std_chrom_quant[64] = {
 // ==================== Huffman 编解码结构 ====================
 
 struct HuffTable {
-    uint8_t bits[16];
-    uint8_t vals[256];
-    int num_vals;
+    // 全部零初始化: 文件没有定义该表、或定义到一半被拒绝时, 读到的也是确定的空表
+    uint8_t bits[16] = {};
+    uint8_t vals[256] = {};
+    int num_vals = 0;
     // 编码用: symbol -> (code, length)
-    uint16_t enc_code[256];
-    uint8_t enc_len[256];
+    uint16_t enc_code[256] = {};
+    uint8_t enc_len[256] = {};
     // 解码用
-    uint16_t mincode[17], maxcode[17];
-    int valptr[17];
+    uint16_t mincode[17] = {}, maxcode[17] = {};
+    int valptr[17] = {};
 
     void build() {
         // 构建编码表 (JPEG Annex C 标准 canonical code 生成)
@@ -145,6 +149,9 @@ struct HuffTable {
     }
 
     int decode(uint16_t code_val, int len) const {
+        // 表里没有一条码(文件根本没给这张表定义 Huffman 表)时不做任何匹配,
+        // 否则全零的 mincode/maxcode 会把 0 当成一条合法码, 解出一张假图
+        if (num_vals == 0) return -1;
         if (len >= 1 && len <= 16 && code_val >= mincode[len] && code_val <= maxcode[len]) {
             return vals[valptr[len] + (code_val - mincode[len])];
         }
@@ -317,7 +324,8 @@ static uint16_t encodeValue(int val, int cat) {
 
 // 从附加位解码值
 static int decodeValue(uint16_t bits, int cat) {
-    if (cat == 0) return 0;
+    // cat 来自 Huffman 符号值, 由文件决定; 限制在 0..15 保证下面的移位量有效
+    if (cat <= 0 || cat > 15) return 0;
     int val = bits;
     if (val < (1 << (cat - 1))) {
         val = val - (1 << cat) + 1;
@@ -789,12 +797,14 @@ void jpg::fillColor(const ColorRGB &c) {
 }
 
 void jpg::setPixel(uint32_t x, uint32_t y, const ColorRGB &c) {
-    if ((int)x < width && (int)y < height)
+    // 用有符号 64 位比较: x/y 是 uint32_t, 截成 int 会让大值变负数而绕过检查;
+    // 与 uint32_t 比较又会让 width/height 为 0 或负数时变成恒真
+    if ((int64_t)x < (int64_t)width && (int64_t)y < (int64_t)height)
         at(x, y) = c;
 }
 
 ColorRGB jpg::getPixel(uint32_t x, uint32_t y) const {
-    if ((int)x < width && (int)y < height)
+    if ((int64_t)x < (int64_t)width && (int64_t)y < (int64_t)height)
         return at(x, y);
     return ColorRGB{0, 0, 0};
 }
@@ -1548,12 +1558,17 @@ bool jpg::read(const std::string& filename) {
             memset(&si, 0, sizeof(si));
             readU16(); // seg_len
             si.ns = readU8();
-            for (int i = 0; i < si.ns && i < 4; i++) {
+            if (si.ns < 1 || si.ns > 4) return false;
+            for (int i = 0; i < si.ns; i++) {
                 si.comp_sel[i] = readU8();
                 si.td_ta[i] = readU8();
+                // 表选择器只允许 0..3; 解码时按 nibble 取 tables[8], 越界会读到结构体外
+                if (((si.td_ta[i] >> 4) & 0x0F) > 3 || (si.td_ta[i] & 0x0F) > 3) return false;
             }
             si.Ss = readU8();
             si.Se = readU8();
+            // zigzag 索引只有 0..63; Se 还是 progressive 每个写入循环的上界
+            if (si.Ss > 63 || si.Se > 63 || si.Ss > si.Se) return false;
             uint8_t ah_al = readU8();
             si.Ah = (ah_al >> 4) & 0x0F;
             si.Al = ah_al & 0x0F;
@@ -1664,13 +1679,21 @@ bool jpg::read(const std::string& filename) {
             img_h = readU16();
             img_w = readU16();
             if (img_w <= 0 || img_h <= 0 || img_w > 65535 || img_h > 65535) return false;
+            // 只限单边尺寸拦不住 65535x65535, 像素缓冲会按乘积一次性申请十几 GB
+            if ((uint64_t)img_w * (uint64_t)img_h > MAX_JPEG_PIXELS) return false;
             num_comp = readU8();
             if (num_comp < 1 || num_comp > 4) return false;
+            // 重建固定按 3 个色度分量取样, 只有 2 个分量时会索引到不存在的分量缓冲
+            if (num_comp == 2) return false;
             for (int i = 0; i < num_comp; i++) {
                 comp_id[i] = readU8();
                 comp_samp[i] = readU8();
                 comp_qt[i] = readU8();
                 if (comp_qt[i] >= 4) return false;
+                // 采样因子限 1..4: 0 会让分量块数为 0 却仍被索引, 15 会把块缓冲放大到十几 GB
+                int hc = (comp_samp[i] >> 4) & 0x0F;
+                int vc = comp_samp[i] & 0x0F;
+                if (hc < 1 || hc > 4 || vc < 1 || vc > 4) return false;
             }
         } else if (marker == 0xC2) { // SOF2 progressive
             is_progressive = true;
@@ -1679,13 +1702,21 @@ bool jpg::read(const std::string& filename) {
             img_h = readU16();
             img_w = readU16();
             if (img_w <= 0 || img_h <= 0 || img_w > 65535 || img_h > 65535) return false;
+            // 只限单边尺寸拦不住 65535x65535, 像素缓冲会按乘积一次性申请十几 GB
+            if ((uint64_t)img_w * (uint64_t)img_h > MAX_JPEG_PIXELS) return false;
             num_comp = readU8();
             if (num_comp < 1 || num_comp > 4) return false;
+            // 重建固定按 3 个色度分量取样, 只有 2 个分量时会索引到不存在的分量缓冲
+            if (num_comp == 2) return false;
             for (int i = 0; i < num_comp; i++) {
                 comp_id[i] = readU8();
                 comp_samp[i] = readU8();
                 comp_qt[i] = readU8();
                 if (comp_qt[i] >= 4) return false;
+                // 采样因子限 1..4: 0 会让分量块数为 0 却仍被索引, 15 会把块缓冲放大到十几 GB
+                int hc = (comp_samp[i] >> 4) & 0x0F;
+                int vc = comp_samp[i] & 0x0F;
+                if (hc < 1 || hc > 4 || vc < 1 || vc > 4) return false;
             }
         } else if (marker == 0xC4) { // DHT
             while (pos < seg_end) {
@@ -1700,7 +1731,11 @@ bool jpg::read(const std::string& filename) {
                     ht.bits[i] = readU8();
                     total += ht.bits[i];
                 }
-                for (int i = 0; i < total && i < 256; i++) {
+                // vals 只有 256 槽, 而 build() 按 bits 全量推进 k, 超限就读到结构体外
+                if (total > 256) return false;
+                // 符号值放不下本段时不能越过 seg_end 去读后面的段
+                if ((uint64_t)pos + (uint64_t)total > (uint64_t)seg_end) return false;
+                for (int i = 0; i < total; i++) {
                     ht.vals[i] = readU8();
                 }
                 ht.build();
@@ -1936,7 +1971,8 @@ bool jpg::read(const std::string& filename) {
                                                 }
                                                 k++;
                                             } while (k <= si.Se);
-                                            if (newval != 0) coeff[k] = newval; // 放置新系数
+                                            // 循环退出时 k 可以是 Se+1, Se=63 时正好落在块外
+                                            if (newval != 0 && k < 64) coeff[k] = newval; // 放置新系数
                                             k++; // 对应 libjpeg for 循环的 k++ (越过已处理位置)
                                         }
                                     }

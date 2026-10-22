@@ -6,6 +6,7 @@
 
 #include "sqlite_conn.h"
 
+#include <cctype>
 #include <climits>
 #include <cstdio>
 #include <cstdlib>
@@ -608,6 +609,17 @@ long long sqlite_conn_base::last_insert_rowid_impl()
     return static_cast<long long>(sqlite3_last_insert_rowid(db_));
 }
 
+// 同一次提交里取影响行数和自增主键；拆成两次提交会读到别的调用方刚插入的 rowid
+std::tuple<unsigned int, long long> sqlite_conn_base::exec_dml_with_rowid_impl(const std::string &sql)
+{
+    unsigned int affected = this->exec_dml_impl(sql);
+    if (affected == static_cast<unsigned int>(-1))
+    {
+        return {affected, 0};
+    }
+    return {affected, this->last_insert_rowid_impl()};
+}
+
 bool sqlite_conn_base::query_fetch_impl(const std::string &sql, sqlite_query_result &result)
 {
     this->clear_error();
@@ -778,6 +790,8 @@ bool sqlite_conn_base::query_scalar_impl(const std::string &sql, sqlite_scalar_r
 
 bool sqlite_conn_base::exec_bound_impl(const std::string &sql, const std::vector<sqlite_bind_param> &params)
 {
+    this->clear_error();
+
     if (!db_ || isclose_.load())
     {
         this->set_error("Database not connected");
@@ -825,6 +839,7 @@ bool sqlite_conn_base::exec_bound_impl(const std::string &sql, const std::vector
         int sqlite_err_code = sqlite3_errcode(db_);
         this->set_error(sqlite3_errmsg(db_));
         this->check_and_attempt_recovery(sqlite_err_code);
+        this->reconcile_transaction_state_after_error();
         return false;
     }
 
@@ -1314,6 +1329,12 @@ long long sqlite_conn_base::last_insert_rowid()
                                         { return this->last_insert_rowid_impl(); });
 }
 
+std::tuple<unsigned int, long long> sqlite_conn_base::exec_dml_with_rowid(const std::string &sql)
+{
+    return this->submit_sync<std::tuple<unsigned int, long long>>(
+        [this, &sql]() { return this->exec_dml_with_rowid_impl(sql); });
+}
+
 bool sqlite_conn_base::query_fetch(const std::string &sql, sqlite_query_result &result)
 {
     return this->submit_sync<bool>([this, &sql, &result]()
@@ -1380,6 +1401,17 @@ unsigned int sqlite_conn_base::fetch_directly_impl(
             {
                 return {const_cast<unsigned char *>(static_cast<const unsigned char *>(blob)), static_cast<size_t>(len)};
             }
+            if (blob)
+            {
+                return {const_cast<unsigned char *>(static_cast<const unsigned char *>(blob)), 0};
+            }
+            // 长度为 0 的 BLOB，column_blob 可能给空指针；column_text 仍给有效指针，
+            // 用它把"空值"和 NULL 分开（NULL 才是 {nullptr,0}）
+            const unsigned char *eb = sqlite3_column_text(stmt, col_idx);
+            if (eb)
+            {
+                return {const_cast<unsigned char *>(eb), 0};
+            }
             return {nullptr, 0};
         }
         else if (col_type == SQLITE_FLOAT)
@@ -1444,6 +1476,7 @@ unsigned int sqlite_conn_base::fetch_directly_impl(
         int sqlite_err_code = sqlite3_errcode(db_);
         this->set_error(sqlite3_errmsg(db_));
         this->check_and_attempt_recovery(sqlite_err_code);
+        this->reconcile_transaction_state_after_error();
         if (rc == SQLITE_SCHEMA)
         {
             // handler 已交付过行（有副作用），不能调用内重试；驱逐缓存语句，下次调用重新 prepare
@@ -1676,6 +1709,12 @@ asio::awaitable<long long> sqlite_conn_base::async_last_insert_rowid()
                                                       { return this->last_insert_rowid_impl(); });
 }
 
+asio::awaitable<std::tuple<unsigned int, long long>> sqlite_conn_base::async_exec_dml_with_rowid(const std::string &sql)
+{
+    co_return co_await this->run_on_worker<std::tuple<unsigned int, long long>>(
+        [this, sql]() { return this->exec_dml_with_rowid_impl(sql); });
+}
+
 asio::awaitable<bool> sqlite_conn_base::async_query_fetch(const std::string &sql, sqlite_query_result &result)
 {
     // sql 按值捕获（防临时对象悬垂）；result 是调用方持有的输出参数，
@@ -1751,7 +1790,8 @@ void sqlite_conn_base::submit_to_worker_cached(std::function<void()> task)
     if (!sqlite_worker_submit(worker_key_, task))
     {
         // worker 已停止（程序关闭/停服）：直接在调用线程执行任务，
-        // 否则 submit_sync 的 future.get() 将永久阻塞
+        // 否则 submit_sync 的 future.get() 将永久阻塞。
+        // 这条回退路径没有串行保证，同一连接必须只有单线程调用（契约见 float_buf_ 处）
         task();
     }
 }
@@ -1826,6 +1866,9 @@ void sqlite_init()
     g_shutdown_started.store(false, std::memory_order_release);
 }
 
+// 关停后所有 worker 线程退出，每条连接的提交都改为在调用线程内联执行；
+// 该形态下同一连接必须只有单线程调用，否则连接上的还原缓冲和语句缓存会串。
+// 接线到进程关闭流程时，先保证业务侧不再并发使用连接。
 void sqlite_shutdown()
 {
     bool expected = false;
@@ -2106,6 +2149,7 @@ unsigned int sqlite_conn_base::fetch_prepared_impl(
         if (rc != SQLITE_DONE && rc != SQLITE_ROW)
         {
             this->set_error(sqlite3_errmsg(db_));
+            this->reconcile_transaction_state_after_error();
             return row_num;
         }
         // 成功路径统一归零错误计数
@@ -2179,7 +2223,7 @@ unsigned int sqlite_conn_base::fetch_prepared_impl_binary(
             {
                 const char *p = reinterpret_cast<const char *>(sqlite3_column_text(stmt, col_idx));
                 if (!p)
-                    return std::monostate{};
+                    return std::string_view();// 列类型是 TEXT，空值不是 NULL
                 int len = sqlite3_column_bytes(stmt, col_idx);
                 return std::string_view(p, static_cast<size_t>(len > 0 ? len : 0));
             }
@@ -2187,7 +2231,7 @@ unsigned int sqlite_conn_base::fetch_prepared_impl_binary(
             {
                 const void *b = sqlite3_column_blob(stmt, col_idx);
                 if (!b)
-                    return std::monostate{};
+                    return std::string_view();// 列类型是 BLOB，空值不是 NULL
                 int len = sqlite3_column_bytes(stmt, col_idx);
                 return std::string_view(reinterpret_cast<const char *>(b),
                                         static_cast<size_t>(len > 0 ? len : 0));
@@ -2230,12 +2274,44 @@ unsigned int sqlite_conn_base::fetch_prepared_impl_binary(
         if (rc != SQLITE_DONE && rc != SQLITE_ROW)
         {
             this->set_error(sqlite3_errmsg(db_));
+            this->reconcile_transaction_state_after_error();
             return row_num;
         }
         consecutive_errors_.store(0);
         return row_num;
     }
     return 0;
+}
+
+// prepare 的 tail 指针非空白即说明文本里还有第二条语句；
+// 预编译通路只执行第一条，多语句必须显式拒绝，不能静默少执行
+static bool sqlite_sql_has_second_statement(sqlite3 *db, const std::string &sql)
+{
+    sqlite3_stmt *tmp = nullptr;
+    const char *tail  = nullptr;
+    if (sqlite3_prepare_v2(db, sql.c_str(), -1, &tmp, &tail) != SQLITE_OK)
+    {
+        if (tmp)
+        {
+            sqlite3_finalize(tmp);
+        }
+        return false;
+    }
+    if (tmp)
+    {
+        sqlite3_finalize(tmp);
+    }
+    while (tail && *tail)
+    {
+        unsigned char ch = (unsigned char)*tail;
+        if (std::isspace(ch) || ch == ';')
+        {
+            tail++;
+            continue;
+        }
+        return true;
+    }
+    return false;
 }
 
 unsigned int sqlite_conn_base::exec_dml_prepared_impl(
@@ -2254,6 +2330,12 @@ unsigned int sqlite_conn_base::exec_dml_prepared_impl(
     {
         consecutive_errors_.store(0);
         return 0;
+    }
+
+    if (sql.find(';') != std::string::npos && sqlite_sql_has_second_statement(db_, sql))
+    {
+        this->set_error("prepared statement must contain a single statement");
+        return (unsigned int)-1;
     }
 
     sqlite3_int64 total_before = sqlite3_total_changes(db_);
@@ -2278,6 +2360,12 @@ unsigned int sqlite_conn_base::exec_dml_prepared_impl(
         }
 
         int rc = sqlite3_step(stmt);
+        // 行返回型语句(INSERT/UPDATE/DELETE ... RETURNING)会先给行再结束，
+        // 取完剩余行才判错，否则语句已写入却被报成失败
+        while (rc == SQLITE_ROW)
+        {
+            rc = sqlite3_step(stmt);
+        }
         sqlite3_reset(stmt);
 
         if (rc == SQLITE_SCHEMA)
@@ -2287,7 +2375,10 @@ unsigned int sqlite_conn_base::exec_dml_prepared_impl(
         }
         if (rc != SQLITE_DONE)
         {
+            int sqlite_err_code = sqlite3_errcode(db_);
             this->set_error(sqlite3_errmsg(db_));
+            this->check_and_attempt_recovery(sqlite_err_code);
+            this->reconcile_transaction_state_after_error();
             return (unsigned int)-1;
         }
 
@@ -2303,6 +2394,18 @@ unsigned int sqlite_conn_base::exec_dml_prepared_impl(
         return 0;
     }
     return (unsigned int)-1;
+}
+
+// 同 exec_dml_with_rowid_impl：预编译写法和它的 rowid 在一次提交里取完
+std::tuple<unsigned int, long long> sqlite_conn_base::exec_dml_prepared_with_rowid_impl(
+    const std::string &sql, const std::vector<http::obj_val> &params)
+{
+    unsigned int affected = this->exec_dml_prepared_impl(sql, params);
+    if (affected == static_cast<unsigned int>(-1))
+    {
+        return {affected, 0};
+    }
+    return {affected, this->last_insert_rowid_impl()};
 }
 
 }// namespace orm

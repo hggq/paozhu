@@ -131,6 +131,12 @@ long long sqlite_conn_base::last_insert_rowid()
     return 0;
 }
 
+std::tuple<unsigned int, long long> sqlite_conn_base::exec_dml_with_rowid(const std::string & /*sql*/)
+{
+    error_msg = SQLITE_NOT_COMPILED_MSG;
+    return {static_cast<unsigned int>(-1), 0};
+}
+
 int sqlite_conn_base::exec_batch(const std::vector<std::string> & /*sqls*/)
 {
     error_msg = SQLITE_NOT_COMPILED_MSG;
@@ -170,11 +176,25 @@ unsigned int sqlite_conn_base::exec_dml_prepared(const std::string & /*sql*/,
     return static_cast<unsigned int>(-1);
 }
 
+std::tuple<unsigned int, long long> sqlite_conn_base::exec_dml_prepared_with_rowid(
+    const std::string & /*sql*/, const std::vector<http::obj_val> & /*params*/)
+{
+    error_msg = SQLITE_NOT_COMPILED_MSG;
+    return {static_cast<unsigned int>(-1), 0};
+}
+
 asio::awaitable<unsigned int> sqlite_conn_base::async_exec_dml_prepared(
     const std::string & /*sql*/, const std::vector<http::obj_val> & /*params*/)
 {
     error_msg = SQLITE_NOT_COMPILED_MSG;
     co_return static_cast<unsigned int>(-1);
+}
+
+asio::awaitable<std::tuple<unsigned int, long long>> sqlite_conn_base::async_exec_dml_prepared_with_rowid(
+    const std::string & /*sql*/, const std::vector<http::obj_val> & /*params*/)
+{
+    error_msg = SQLITE_NOT_COMPILED_MSG;
+    co_return std::tuple<unsigned int, long long>{static_cast<unsigned int>(-1), 0};
 }
 
 std::vector<std::string> sqlite_conn_base::get_table_list()
@@ -254,6 +274,12 @@ asio::awaitable<long long> sqlite_conn_base::async_last_insert_rowid()
 {
     error_msg = SQLITE_NOT_COMPILED_MSG;
     co_return 0;
+}
+
+asio::awaitable<std::tuple<unsigned int, long long>> sqlite_conn_base::async_exec_dml_with_rowid(const std::string & /*sql*/)
+{
+    error_msg = SQLITE_NOT_COMPILED_MSG;
+    co_return std::tuple<unsigned int, long long>{static_cast<unsigned int>(-1), 0};
 }
 
 void sqlite_conn_base::start_worker_thread(asio::io_context & /*ioc*/, const std::string & /*db_path*/)

@@ -2,8 +2,14 @@
 #include <cstring>
 #include <stdexcept>
 #include <string>
-#include <iostream>
-#include <sstream>
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
+#include <mutex>
+#include <thread>
+#if !defined(_WIN32)
+#include <sys/socket.h>
+#endif
 #include <openssl/hmac.h>
 #include <openssl/evp.h>
 #include <openssl/sha.h>
@@ -11,11 +17,114 @@
 #include "base64.h"
 #include "http_socket.h"
 #include "send_email.h"
+#include "session_id.h"
 #include "func.h"
 #include "client_context.h"
 
 namespace http
 {
+
+// 附件上限：base64_encode 的长度参数是 unsigned int，4GiB 及以上装不下，
+// 超限直接拒绝发送，避免长度截断后发出损坏内容。
+constexpr long long kMaxAttachmentBytes = 4LL * 1024 * 1024 * 1024 - 1;
+
+namespace
+{
+// 同步发送的 SMTP 读超时：每次读最多等 30 秒。asio 的同步读写内部是无限期 poll
+// 再 recv，SO_RCVTIMEO 对 poll 不生效，所以用看门狗线程在到点时 shutdown 底层
+// 连接，把阻塞中的 poll/recv 唤醒。
+constexpr std::chrono::seconds kSmtpReadTimeout(30);
+
+class smtp_read_watchdog
+{
+  public:
+    ~smtp_read_watchdog()
+    {
+        stop();
+    }
+
+    void start(asio::ip::tcp::socket::native_handle_type fd)
+    {
+        fd_ = fd;
+        refresh();
+        thread_ = std::thread([this]
+                              { loop(); });
+    }
+
+    void refresh()
+    {
+        deadline_ns_.store(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now().time_since_epoch()).count() + std::chrono::duration_cast<std::chrono::nanoseconds>(kSmtpReadTimeout).count());
+    }
+
+    void stop()
+    {
+        {
+            std::lock_guard<std::mutex> lk(mutex_);
+            stop_.store(true);
+        }
+        condition_.notify_all();
+        if (thread_.joinable())
+        {
+            thread_.join();
+        }
+    }
+
+    bool fired() const
+    {
+        return fired_.load();
+    }
+
+  private:
+    void loop()
+    {
+        std::unique_lock<std::mutex> lk(mutex_);
+        while (!stop_.load())
+        {
+            auto now      = std::chrono::steady_clock::now();
+            auto deadline = std::chrono::steady_clock::time_point(std::chrono::nanoseconds(deadline_ns_.load()));
+            if (now >= deadline)
+            {
+                fired_.store(true);
+                lk.unlock();
+#if defined(_WIN32)
+                ::shutdown(fd_, SD_BOTH);
+#else
+                ::shutdown(fd_, SHUT_RDWR);
+#endif
+                return;
+            }
+            auto wake = now + std::chrono::milliseconds(100);
+            if (deadline < wake)
+            {
+                wake = deadline;
+            }
+            condition_.wait_until(lk, wake, [this]
+                                  { return stop_.load(); });
+        }
+    }
+
+    asio::ip::tcp::socket::native_handle_type fd_{};
+    std::atomic<bool> stop_{false};
+    std::atomic<bool> fired_{false};
+    std::atomic<long long> deadline_ns_{0};
+    std::mutex mutex_;
+    std::condition_variable condition_;
+    std::thread thread_;
+};
+
+void append_smtp_read_error(std::string &errormsg, const asio::error_code &ec, bool timed_out)
+{
+    if (timed_out)
+    {
+        errormsg.append("smtp read timeout!");
+    }
+    else
+    {
+        errormsg.append("smtp read error: ");
+        errormsg.append(ec.message());
+    }
+}
+}// namespace
 
 /**
  * @brief 添加邮件附件
@@ -101,11 +210,15 @@ bool send_email::sendssldata()
             return false;
         }
 
+        smtp_read_watchdog read_guard;
+        read_guard.start(socket.lowest_layer().native_handle());
+
         ssl_context.set_verify_mode(asio::ssl::verify_peer);
         ssl_context.set_verify_callback(asio::ssl::host_name_verification(smpturl));
 
         try
         {
+            read_guard.refresh();
             socket.handshake(asio::ssl::stream_base::client, ec);
         }
         catch (const std::exception &e)
@@ -115,15 +228,35 @@ bool send_email::sendssldata()
 
         if (ec)
         {
-            errormsg.append("ssl handshake error!");
+            if (read_guard.fired())
+            {
+                errormsg.append("smtp read timeout!");
+            }
+            else
+            {
+                errormsg.append("ssl handshake error!");
+            }
             return false;
         }
 
         state = SEND_START;
         unsigned int n;
 
-        memset(data, 0x00, 2048);
-        n = socket.read_some(asio::buffer(data, 1024), ec);
+        n = read_smtp_response([&](char *buf, std::size_t cap)
+        {
+            read_guard.refresh();
+            std::size_t got = socket.read_some(asio::buffer(buf, cap), ec);
+            if (ec)
+            {
+                append_smtp_read_error(errormsg, ec, read_guard.fired());
+                return -1;
+            }
+            return static_cast<int>(got);
+        });
+        if (n == 0)
+        {
+            return false;
+        }
 
         if (state == SEND_START)
         {
@@ -153,48 +286,77 @@ bool send_email::sendssldata()
                     {
                         if (sendfiles.size() == 0)
                         {
-                            socket.write_some(asio::buffer(sendcommand));
+                            asio::write(socket, asio::buffer(sendcommand));
                         }
                         else
                         {
                             asio::write(socket, asio::buffer(sendcommand));
-                            unsigned int sendsize = 0;
-                            data[2048]            = 0;
+                            std::size_t sendsize = 0;
                             std::string filecontent;
                             std::string sendcontent;
 
                             for (size_t j = 0; j < sendfiles.size(); j++)
                             {
-                                if (sendfiles[j].predata.empty())
-                                {
-                                    break;
-                                }
-                                socket.write_some(asio::buffer(sendfiles[j].predata));
-
                                 FILE *ff = fopen(sendfiles[j].filename.c_str(), "rb");
-                                if (ff)
+                                if (!ff)
                                 {
-                                    fseek(ff, 0, SEEK_END);
-                                    unsigned int size = ftell(ff);
-                                    fseek(ff, 0, SEEK_SET);
-                                    sendsize = 0;
-                                    filecontent.clear();
-                                    filecontent.resize(size);
-                                    unsigned int nread = fread(filecontent.data(), 1, size, ff);
-                                    filecontent.resize(nread);
-                                    filecontent = base64_encode(filecontent.data(), filecontent.size(), false);
-
-                                    sendcontent.clear();
-                                    for (; sendsize < filecontent.size(); sendsize++)
-                                    {
-                                        if (sendsize % 76 == 0 && sendsize > 0)
-                                        {
-                                            sendcontent.append("\r\n");
-                                        }
-                                        sendcontent.push_back(filecontent[sendsize]);
-                                    }
-                                    asio::write(socket, asio::buffer(sendcontent.data(), sendcontent.size()));
+                                    continue;
                                 }
+                                asio::write(socket, asio::buffer(sendfiles[j].predata));
+
+                                if (fseek(ff, 0, SEEK_END) != 0)
+                                {
+                                    fclose(ff);
+                                    errormsg.append("attachment seek failed: ");
+                                    errormsg.append(sendfiles[j].filename);
+                                    return false;
+                                }
+                                long long size = ftell(ff);
+                                if (size < 0)
+                                {
+                                    fclose(ff);
+                                    errormsg.append("attachment size query failed: ");
+                                    errormsg.append(sendfiles[j].filename);
+                                    return false;
+                                }
+                                if (size > kMaxAttachmentBytes)
+                                {
+                                    fclose(ff);
+                                    errormsg.append("attachment too large (4GiB limit): ");
+                                    errormsg.append(sendfiles[j].filename);
+                                    return false;
+                                }
+                                if (fseek(ff, 0, SEEK_SET) != 0)
+                                {
+                                    fclose(ff);
+                                    errormsg.append("attachment seek failed: ");
+                                    errormsg.append(sendfiles[j].filename);
+                                    return false;
+                                }
+                                sendsize = 0;
+                                filecontent.clear();
+                                filecontent.resize(static_cast<std::size_t>(size));
+                                std::size_t nread = fread(filecontent.data(), 1, static_cast<std::size_t>(size), ff);
+                                if (nread != static_cast<std::size_t>(size))
+                                {
+                                    bool read_error = ferror(ff) != 0;
+                                    fclose(ff);
+                                    errormsg.append(read_error ? "attachment read error: " : "attachment truncated: ");
+                                    errormsg.append(sendfiles[j].filename);
+                                    return false;
+                                }
+                                filecontent = base64_encode(filecontent.data(), static_cast<unsigned int>(filecontent.size()), false);
+
+                                sendcontent.clear();
+                                for (; sendsize < filecontent.size(); sendsize++)
+                                {
+                                    if (sendsize % 76 == 0 && sendsize > 0)
+                                    {
+                                        sendcontent.append("\r\n");
+                                    }
+                                    sendcontent.push_back(filecontent[sendsize]);
+                                }
+                                asio::write(socket, asio::buffer(sendcontent.data(), sendcontent.size()));
                                 fclose(ff);
                             }
 
@@ -211,8 +373,21 @@ bool send_email::sendssldata()
                         socket.write_some(asio::buffer(sendcommand));
                     }
 
-                    memset(data, 0x00, 2048);
-                    n = socket.read_some(asio::buffer(data, 1024), ec);
+                    n = read_smtp_response([&](char *buf, std::size_t cap)
+                    {
+                        read_guard.refresh();
+                        std::size_t got = socket.read_some(asio::buffer(buf, cap), ec);
+                        if (ec)
+                        {
+                            append_smtp_read_error(errormsg, ec, read_guard.fired());
+                            return -1;
+                        }
+                        return static_cast<int>(got);
+                    });
+                    if (n == 0)
+                    {
+                        return false;
+                    }
                 }
 
                 if (data[0] == '2' || data[0] == '3' || data[0] == '4' || data[0] == '5')
@@ -232,7 +407,23 @@ bool send_email::sendssldata()
                     switch (state)
                     {
                     case SEND_EHLO:
-                        state = SEND_AUTH_LOGIN;
+                        if (temprenum == 250)
+                        {
+                            state = SEND_AUTH_LOGIN;
+                        }
+                        else if (!ehlo_failed_)
+                        {
+                            ehlo_failed_ = true;
+                            state        = SEND_EHLO;
+                        }
+                        else
+                        {
+                            for (size_t i = 0; i < n; i++)
+                            {
+                                errormsg.push_back(data[i]);
+                            }
+                            return false;
+                        }
                         break;
                     case SEND_AUTH_LOGIN:
                         if (temprenum == 334 || temprenum == 250)
@@ -243,7 +434,7 @@ bool send_email::sendssldata()
                         {
                             for (size_t i = 0; i < n; i++)
                             {
-                                errormsg.push_back(data[n]);
+                                errormsg.push_back(data[i]);
                             }
                             return false;
                         }
@@ -257,7 +448,7 @@ bool send_email::sendssldata()
                         {
                             for (size_t i = 0; i < n; i++)
                             {
-                                errormsg.push_back(data[n]);
+                                errormsg.push_back(data[i]);
                             }
                             return false;
                         }
@@ -271,7 +462,7 @@ bool send_email::sendssldata()
                         {
                             for (size_t i = 0; i < n; i++)
                             {
-                                errormsg.push_back(data[n]);
+                                errormsg.push_back(data[i]);
                             }
                             return false;
                         }
@@ -285,7 +476,7 @@ bool send_email::sendssldata()
                         {
                             for (size_t i = 0; i < n; i++)
                             {
-                                errormsg.push_back(data[n]);
+                                errormsg.push_back(data[i]);
                             }
                             return false;
                         }
@@ -299,7 +490,7 @@ bool send_email::sendssldata()
                         {
                             for (size_t i = 0; i < n; i++)
                             {
-                                errormsg.push_back(data[n]);
+                                errormsg.push_back(data[i]);
                             }
                             return false;
                         }
@@ -313,7 +504,7 @@ bool send_email::sendssldata()
                         {
                             for (size_t i = 0; i < n; i++)
                             {
-                                errormsg.push_back(data[n]);
+                                errormsg.push_back(data[i]);
                             }
                             return false;
                         }
@@ -327,7 +518,7 @@ bool send_email::sendssldata()
                         {
                             for (size_t i = 0; i < n; i++)
                             {
-                                errormsg.push_back(data[n]);
+                                errormsg.push_back(data[i]);
                             }
                             return false;
                         }
@@ -340,7 +531,7 @@ bool send_email::sendssldata()
                 {
                     state = SEND_ERROR;
                     errormsg.clear();
-                    for (size_t j = 0; j < 100; j++)
+                    for (size_t j = 0; j < n; j++)
                     {
                         if (data[j] != 0x00)
                         {
@@ -407,10 +598,26 @@ bool send_email::senddata()
             return false;
         }
 
+        smtp_read_watchdog read_guard;
+        read_guard.start(socket.native_handle());
+
         unsigned int n;
         state = SEND_START;
-        memset(data, 0x00, 2048);
-        n = socket.read_some(asio::buffer(data, 1024), ec);
+        n = read_smtp_response([&](char *buf, std::size_t cap)
+        {
+            read_guard.refresh();
+            std::size_t got = socket.read_some(asio::buffer(buf, cap), ec);
+            if (ec)
+            {
+                append_smtp_read_error(errormsg, ec, read_guard.fired());
+                return -1;
+            }
+            return static_cast<int>(got);
+        });
+        if (n == 0)
+        {
+            return false;
+        }
 
         if (state == SEND_START)
         {
@@ -440,48 +647,77 @@ bool send_email::senddata()
                     {
                         if (sendfiles.size() == 0)
                         {
-                            socket.write_some(asio::buffer(sendcommand));
+                            asio::write(socket, asio::buffer(sendcommand));
                         }
                         else
                         {
                             asio::write(socket, asio::buffer(sendcommand));
-                            unsigned int sendsize = 0;
-                            data[2048]            = 0;
+                            std::size_t sendsize = 0;
                             std::string filecontent;
                             std::string sendcontent;
 
                             for (size_t j = 0; j < sendfiles.size(); j++)
                             {
-                                if (sendfiles[j].predata.empty())
-                                {
-                                    break;
-                                }
-                                socket.write_some(asio::buffer(sendfiles[j].predata));
-
                                 FILE *ff = fopen(sendfiles[j].filename.c_str(), "rb");
-                                if (ff)
+                                if (!ff)
                                 {
-                                    fseek(ff, 0, SEEK_END);
-                                    unsigned int size = ftell(ff);
-                                    fseek(ff, 0, SEEK_SET);
-                                    sendsize = 0;
-                                    filecontent.clear();
-                                    filecontent.resize(size);
-                                    unsigned int nread = fread(filecontent.data(), 1, size, ff);
-                                    filecontent.resize(nread);
-                                    filecontent = base64_encode(filecontent.data(), filecontent.size(), false);
-
-                                    sendcontent.clear();
-                                    for (; sendsize < filecontent.size(); sendsize++)
-                                    {
-                                        if (sendsize % 76 == 0 && sendsize > 0)
-                                        {
-                                            sendcontent.append("\r\n");
-                                        }
-                                        sendcontent.push_back(filecontent[sendsize]);
-                                    }
-                                    asio::write(socket, asio::buffer(sendcontent.data(), sendcontent.size()));
+                                    continue;
                                 }
+                                asio::write(socket, asio::buffer(sendfiles[j].predata));
+
+                                if (fseek(ff, 0, SEEK_END) != 0)
+                                {
+                                    fclose(ff);
+                                    errormsg.append("attachment seek failed: ");
+                                    errormsg.append(sendfiles[j].filename);
+                                    return false;
+                                }
+                                long long size = ftell(ff);
+                                if (size < 0)
+                                {
+                                    fclose(ff);
+                                    errormsg.append("attachment size query failed: ");
+                                    errormsg.append(sendfiles[j].filename);
+                                    return false;
+                                }
+                                if (size > kMaxAttachmentBytes)
+                                {
+                                    fclose(ff);
+                                    errormsg.append("attachment too large (4GiB limit): ");
+                                    errormsg.append(sendfiles[j].filename);
+                                    return false;
+                                }
+                                if (fseek(ff, 0, SEEK_SET) != 0)
+                                {
+                                    fclose(ff);
+                                    errormsg.append("attachment seek failed: ");
+                                    errormsg.append(sendfiles[j].filename);
+                                    return false;
+                                }
+                                sendsize = 0;
+                                filecontent.clear();
+                                filecontent.resize(static_cast<std::size_t>(size));
+                                std::size_t nread = fread(filecontent.data(), 1, static_cast<std::size_t>(size), ff);
+                                if (nread != static_cast<std::size_t>(size))
+                                {
+                                    bool read_error = ferror(ff) != 0;
+                                    fclose(ff);
+                                    errormsg.append(read_error ? "attachment read error: " : "attachment truncated: ");
+                                    errormsg.append(sendfiles[j].filename);
+                                    return false;
+                                }
+                                filecontent = base64_encode(filecontent.data(), static_cast<unsigned int>(filecontent.size()), false);
+
+                                sendcontent.clear();
+                                for (; sendsize < filecontent.size(); sendsize++)
+                                {
+                                    if (sendsize % 76 == 0 && sendsize > 0)
+                                    {
+                                        sendcontent.append("\r\n");
+                                    }
+                                    sendcontent.push_back(filecontent[sendsize]);
+                                }
+                                asio::write(socket, asio::buffer(sendcontent.data(), sendcontent.size()));
                                 fclose(ff);
                             }
 
@@ -498,8 +734,21 @@ bool send_email::senddata()
                         socket.write_some(asio::buffer(sendcommand));
                     }
 
-                    memset(data, 0x00, 2048);
-                    n = socket.read_some(asio::buffer(data, 1024), ec);
+                    n = read_smtp_response([&](char *buf, std::size_t cap)
+                    {
+                        read_guard.refresh();
+                        std::size_t got = socket.read_some(asio::buffer(buf, cap), ec);
+                        if (ec)
+                        {
+                            append_smtp_read_error(errormsg, ec, read_guard.fired());
+                            return -1;
+                        }
+                        return static_cast<int>(got);
+                    });
+                    if (n == 0)
+                    {
+                        return false;
+                    }
                 }
 
                 if (data[0] == '2' || data[0] == '3' || data[0] == '4' || data[0] == '5')
@@ -519,7 +768,23 @@ bool send_email::senddata()
                     switch (state)
                     {
                     case SEND_EHLO:
-                        state = SEND_AUTH_LOGIN;
+                        if (temprenum == 250)
+                        {
+                            state = SEND_AUTH_LOGIN;
+                        }
+                        else if (!ehlo_failed_)
+                        {
+                            ehlo_failed_ = true;
+                            state        = SEND_EHLO;
+                        }
+                        else
+                        {
+                            for (size_t i = 0; i < n; i++)
+                            {
+                                errormsg.push_back(data[i]);
+                            }
+                            return false;
+                        }
                         break;
                     case SEND_AUTH_LOGIN:
                         if (temprenum == 334 || temprenum == 235 || temprenum == 250)
@@ -530,7 +795,7 @@ bool send_email::senddata()
                         {
                             for (size_t i = 0; i < n; i++)
                             {
-                                errormsg.push_back(data[n]);
+                                errormsg.push_back(data[i]);
                             }
                             return false;
                         }
@@ -544,7 +809,7 @@ bool send_email::senddata()
                         {
                             for (size_t i = 0; i < n; i++)
                             {
-                                errormsg.push_back(data[n]);
+                                errormsg.push_back(data[i]);
                             }
                             return false;
                         }
@@ -558,7 +823,7 @@ bool send_email::senddata()
                         {
                             for (size_t i = 0; i < n; i++)
                             {
-                                errormsg.push_back(data[n]);
+                                errormsg.push_back(data[i]);
                             }
                             return false;
                         }
@@ -572,7 +837,7 @@ bool send_email::senddata()
                         {
                             for (size_t i = 0; i < n; i++)
                             {
-                                errormsg.push_back(data[n]);
+                                errormsg.push_back(data[i]);
                             }
                             return false;
                         }
@@ -586,7 +851,7 @@ bool send_email::senddata()
                         {
                             for (size_t i = 0; i < n; i++)
                             {
-                                errormsg.push_back(data[n]);
+                                errormsg.push_back(data[i]);
                             }
                             return false;
                         }
@@ -600,7 +865,7 @@ bool send_email::senddata()
                         {
                             for (size_t i = 0; i < n; i++)
                             {
-                                errormsg.push_back(data[n]);
+                                errormsg.push_back(data[i]);
                             }
                             return false;
                         }
@@ -614,7 +879,7 @@ bool send_email::senddata()
                         {
                             for (size_t i = 0; i < n; i++)
                             {
-                                errormsg.push_back(data[n]);
+                                errormsg.push_back(data[i]);
                             }
                             return false;
                         }
@@ -627,7 +892,7 @@ bool send_email::senddata()
                 {
                     state = SEND_ERROR;
                     errormsg.clear();
-                    for (size_t j = 0; j < 100; j++)
+                    for (size_t j = 0; j < n; j++)
                     {
                         if (data[j] != 0x00)
                         {
@@ -681,10 +946,14 @@ std::string send_email::getgmttime()
 {
     time_t curr_time;
     curr_time = time((time_t *)NULL);
-    tm *timeInfo;
+    tm timeInfo{};
     char timestr[30] = {'\0'};
-    timeInfo         = gmtime(&curr_time);
-    strftime(timestr, sizeof(timestr), "%a, %d %b %Y %H:%M:%S GMT", timeInfo);
+#if defined(_WIN32)
+    gmtime_s(&timeInfo, &curr_time);
+#else
+    gmtime_r(&curr_time, &timeInfo);
+#endif
+    strftime(timestr, sizeof(timestr), "%a, %d %b %Y %H:%M:%S GMT", &timeInfo);
     std::string temp(timestr);
     return temp;
 }
@@ -709,8 +978,15 @@ bool send_email::sendloop()
     switch (state)
     {
     case SEND_EHLO:
-        sendcommand.append("HELO ");
-        sendcommand.append(smpturl);
+        if (ehlo_failed_)
+        {
+            sendcommand.append("HELO ");
+        }
+        else
+        {
+            sendcommand.append("EHLO ");
+        }
+        sendcommand.append(smtp_header_value(smpturl));
         sendcommand.append("\r\n");
         break;
 
@@ -733,13 +1009,13 @@ bool send_email::sendloop()
     case SEND_MAIL_FROM:
         sendcommand.clear();
         sendcommand.append("MAIL FROM:<");
-        sendcommand.append(username);
+        sendcommand.append(smtp_header_value(username));
         sendcommand.append(">\r\n");
         break;
 
     case SEND_RCPT_TO:
         sendcommand.append("RCPT TO:<");
-        sendcommand.append(toemail);
+        sendcommand.append(smtp_header_value(toemail));
         sendcommand.append(">\r\n");
         break;
 
@@ -755,13 +1031,13 @@ bool send_email::sendloop()
             sendcommand.append("From: =?UTF-8?B?");
             sendcommand.append(base64_encode(fromname.data(), fromname.size(), 0));
             sendcommand.append("?= <");
-            sendcommand.append(username);
+            sendcommand.append(smtp_header_value(username));
             sendcommand.append(">\r\n");
 
             sendcommand.append("To: =?UTF-8?B?");
             sendcommand.append(base64_encode(toname.data(), toname.size(), 0));
             sendcommand.append("?= <");
-            sendcommand.append(toemail);
+            sendcommand.append(smtp_header_value(toemail));
             sendcommand.append(">\r\n");
 
             sendcommand.append("Date: ");
@@ -769,25 +1045,19 @@ bool send_email::sendloop()
             sendcommand.append("\r\n");
 
             sendcommand.append("Subject: ");
-            sendcommand.append(subject);
+            sendcommand.append(smtp_header_value(subject));
             sendcommand.append("\r\n");
 
             sendcommand.append("Reply-To: <");
-            sendcommand.append(replyemail);
+            sendcommand.append(smtp_header_value(replyemail));
             sendcommand.append(">\r\n");
 
-            srand(time(0));
-            boundarystsr.clear();
-            std::stringstream ostr;
-            unsigned int c = rand() * 10000000;
-            ostr << c;
-            c = rand() * 10000000;
-            ostr << c;
-            boundarystsr.append(ostr.str());
+            boundarystsr = get_rand_session_id();
 
             sendcommand.append("Message-ID: <");
             sendcommand.append(boundarystsr);
-            sendcommand.append(replyemail);
+            sendcommand.append("@");
+            sendcommand.append(smtp_header_value(smpturl));
             sendcommand.append(">\r\n");
 
             boundarystsr.append("_paozhu_");
@@ -798,17 +1068,16 @@ bool send_email::sendloop()
             sendcommand.append(boundarystsr);
             sendcommand.append("\r\n");
             sendcommand.append("Content-Type: text/html; charset=UTF-8\r\n\r\n");
-            sendcommand.append(content);
+            sendcommand.append(smtp_dot_stuff(content));
             sendcommand.append("\r\n");
 
             n = 0;
-            sendfiles.resize(attachments.size());
+            sendfiles.clear();
             for (; n < attachments.size(); n++)
             {
                 FILE *ffile = fopen(attachments[n].c_str(), "rb");
                 if (!ffile)
                 {
-                    n -= 1;
                     continue;
                 }
                 fclose(ffile);
@@ -828,14 +1097,15 @@ bool send_email::sendloop()
                 }
                 filename_temp.append(attachments[n].substr(k));
 
-                sendfiles[n].predata.append("\r\n--");
-                sendfiles[n].predata.append(boundarystsr);
-                sendfiles[n].predata.append("\r\nContent-Type: application/octet-stream;\r\nContent-Transfer-Encoding: base64\r\nContent-Disposition: attachment; filename=\"=?UTF-8?B?");
-                sendfiles[n].predata.append(base64_encode(filename_temp.data(), filename_temp.size()));
-                sendfiles[n].predata.append("?=\"\r\n\r\n");
-                sendfiles[n].filename = attachments[n];
+                sendfile_t sf;
+                sf.predata.append("\r\n--");
+                sf.predata.append(boundarystsr);
+                sf.predata.append("\r\nContent-Type: application/octet-stream;\r\nContent-Transfer-Encoding: base64\r\nContent-Disposition: attachment; filename=\"=?UTF-8?B?");
+                sf.predata.append(base64_encode(filename_temp.data(), filename_temp.size()));
+                sf.predata.append("?=\"\r\n\r\n");
+                sf.filename = attachments[n];
+                sendfiles.push_back(std::move(sf));
             }
-            sendfiles.resize(n);
         }
         else
         {
@@ -845,13 +1115,13 @@ bool send_email::sendloop()
             sendcommand.append("From: =?UTF-8?B?");
             sendcommand.append(base64_encode(fromname.data(), fromname.size(), 0));
             sendcommand.append("?= <");
-            sendcommand.append(username);
+            sendcommand.append(smtp_header_value(username));
             sendcommand.append(">\r\n");
 
             sendcommand.append("To: =?UTF-8?B?");
             sendcommand.append(base64_encode(toname.data(), toname.size(), 0));
             sendcommand.append("?= <");
-            sendcommand.append(toemail);
+            sendcommand.append(smtp_header_value(toemail));
             sendcommand.append(">\r\n");
 
             sendcommand.append("Date: ");
@@ -859,25 +1129,22 @@ bool send_email::sendloop()
             sendcommand.append("\r\n");
 
             sendcommand.append("Subject: ");
-            sendcommand.append(subject);
+            sendcommand.append(smtp_header_value(subject));
             sendcommand.append("\r\n");
 
             sendcommand.append("Reply-To: <");
-            sendcommand.append(replyemail);
+            sendcommand.append(smtp_header_value(replyemail));
             sendcommand.append(">\r\n");
 
-            srand(time(0));
-            boundarystsr.clear();
-            std::stringstream ostr;
-            unsigned int c = rand() * 10000000;
-            ostr << c;
+            boundarystsr = get_rand_session_id();
 
             sendcommand.append("Message-ID: <");
-            sendcommand.append(ostr.str());
-            sendcommand.append(replyemail);
+            sendcommand.append(boundarystsr);
+            sendcommand.append("@");
+            sendcommand.append(smtp_header_value(smpturl));
             sendcommand.append(">\r\n\r\n");
 
-            sendcommand.append(content);
+            sendcommand.append(smtp_dot_stuff(content));
             sendcommand.append("\r\n\r\n.\r\n");
         }
         break;

@@ -6,9 +6,14 @@
 #include <vector>
 #include <fstream>
 #include <unordered_map>
+#include <functional>
 
 namespace pz
 {
+
+// ==================== ZIP 格式常量（读写共用） ====================
+static const uint16_t COMPRESSION_STORED      = 0;
+static const uint16_t COMPRESSION_DEFLATED    = 8;
 
 // ZIP 内部条目信息
 struct ZipEntry
@@ -19,6 +24,7 @@ struct ZipEntry
     uint32_t crc32;
     uint32_t compressed_size;
     uint32_t uncompressed_size;
+    uint32_t external_attrs = 0; // 中央目录里的外部属性，低字节 0x10 表示目录
     uint32_t local_header_offset;// 本地文件头在 ZIP 中的偏移
 };
 
@@ -97,9 +103,11 @@ class zip
     // ========== 读取相关 ==========
     bool find_eocd();
     bool parse_central_directory();
+    // 解压单个条目到输出目录（extract_file 按名字找到条目后、extract_all 按下标遍历时共用）
+    bool extract_entry_(const ZipEntry *entry, const std::string &output_dir);
 
     // ========== 写入相关 ==========
-    bool write_local_header(const std::string &zip_name, uint32_t uncompressed_size, uint32_t crc32, uint32_t compressed_size, bool use_data_descriptor = false);
+    bool write_local_header(const std::string &zip_name, uint32_t uncompressed_size, uint32_t crc32, uint32_t compressed_size, bool use_data_descriptor = false, uint16_t compression_method = COMPRESSION_DEFLATED);
     bool write_central_directory();
     bool write_eocd();
 
@@ -107,6 +115,11 @@ class zip
     bool append_(const void *data, size_t len);
     // 是否处于可写状态（文件模式流已打开，或内存模式已创建）
     bool can_write_() const;
+
+    // 共享解压内核：读取本地文件头→解压→校验(CRC / Z_STREAM_END / 大小一致性)→通过 sink 输出
+    // sink 返回 false 表示写出失败，解压立即中止
+    bool decompress_to_sink_(const ZipEntry* entry,
+                             std::function<bool(const char*, size_t)> sink);
     // 重置写入状态（create_zipfile / create_zipbuffer 共用）
     void begin_write_mode_();
 

@@ -563,9 +563,10 @@ void word::parse_run_properties(const std::string &content, size_t begin, size_t
         }
         else if(tag.name == "w:shd")
         {
-            // 文字底纹（Pages 用 w:shd 表示背景色，Word 用 w:highlight）
+            // 文字底纹背景色用 w:shd 的 fill（hex）。与 w:highlight（仅预定义色名）拆分，
+            // 否则 hex 写入 w:highlight 枚举会被 Word 忽略（Audit 兼容性缺口）
             std::string fill = get_tag_attr(content, tag, "w:fill");
-            if(!fill.empty() && fill != "auto") run.highlight = fill;
+            if(!fill.empty() && fill != "auto") run.bg_color = fill;
         }
     }
 }
@@ -798,6 +799,15 @@ void word::parse_table(const std::string &content, size_t begin, size_t end, WOR
                 }
                 merged_row.cells.push_back(std::move(row.cells[ci]));
             }
+            else
+            {
+                // 续接格保留为占位单元格(row_span==0)：写回时在后续行生成 <w:vMerge/>，
+                // 否则 docx→docx 往返会丢失续接格、列数不一致导致文档损坏（Audit Bug 1）
+                WORD_TABLE_CELL placeholder;
+                placeholder.row_span = 0;
+                placeholder.col_span = static_cast<unsigned char>(span);
+                merged_row.cells.push_back(std::move(placeholder));
+            }
             grid_col += span;
         }
         if(grid_col > table.cols) table.cols = static_cast<unsigned int>(grid_col);
@@ -992,6 +1002,10 @@ bool word::read(const std::string &zipfilename)
         return false;
     }
 
+    // 显式把单条目解压上限对齐到本模块的 MAX_FILE_SIZE（pzzip 默认 100MB 与之相同，
+    // 但显式设置可保证二者同步，并在调整常量时一致生效）—— Audit Bug 2
+    zf.set_max_uncompressed_size(static_cast<uint32_t>(MAX_FILE_SIZE));
+
     std::vector<std::string> file_list = zf.files_list();
 
     std::string file_content;
@@ -1001,6 +1015,7 @@ bool word::read(const std::string &zipfilename)
     std::map<std::string, std::vector<unsigned char>> image_datas;
     size_t zip_entry_count = 0;
     size_t total_image_bytes = 0;  // 图片数据总量，防海量条目撑爆内存
+    size_t total_unzip_size = 0;   // 所有条目解压后总量，防 zip bomb 放大（对齐 pzexcel 的 MAX_TOTAL_UNZIP_SIZE）
 
     for (const auto &tempname : file_list) {
         if (zip_entry_count >= MAX_ZIP_ENTRIES) break;
@@ -1013,18 +1028,21 @@ bool word::read(const std::string &zipfilename)
                 error_msg = "Error: Failed to read word/document.xml: " + zf.error_msg();
                 return false;
             }
+            total_unzip_size += document_xml.size();
         }
         else if (tempname == "word/styles.xml") {
             if (!zf.read_file_to_string(tempname, styles_xml)) {
                 error_msg = "Error: Failed to read word/styles.xml: " + zf.error_msg();
                 return false;
             }
+            total_unzip_size += styles_xml.size();
         }
         else if (tempname == "word/_rels/document.xml.rels") {
             if (!zf.read_file_to_string(tempname, rels_xml)) {
                 error_msg = "Error: Failed to read rels: " + zf.error_msg();
                 return false;
             }
+            total_unzip_size += rels_xml.size();
         }
         else if (tempname.size() > 10 && tempname.compare(0, 10, "word/media") == 0) {
             std::vector<unsigned char> img_data;
@@ -1035,6 +1053,12 @@ bool word::read(const std::string &zipfilename)
                     image_datas[tempname] = std::move(img_data);
                 }
             }
+        }
+
+        // 聚合解压总量越界（含图片），拒绝解压炸弹式放大—— Audit Bug 2
+        if (total_unzip_size + total_image_bytes > MAX_TOTAL_UNZIP_SIZE) {
+            error_msg = "Error: total uncompressed size exceeds limit";
+            return false;
         }
     }
 
@@ -1079,7 +1103,13 @@ bool word::read(const std::string &zipfilename)
     image_datas_ = std::move(image_datas);
 
     if(!styles_xml.empty()) parse_styles(styles_xml);
-    if(!document_xml.empty()) process_document(document_xml);
+    // 缺少 document.xml 属于非法 docx 包，必须与"空文档"区分（Audit Bug 3）
+    if(document_xml.empty())
+    {
+        error_msg = "Error: word/document.xml not found in the docx package";
+        return false;
+    }
+    process_document(document_xml);
     return true;
 }
 
@@ -1142,6 +1172,76 @@ bool word::read_from_unzipped(const std::string &base_path)
     file.read(&file_content[0], size);
     file.close();
     
+    // 加载图片关系与媒体数据，使 to_html 能解析 <w:drawing> 的 rId（Audit Bug 6）
+    {
+        std::string rels_path = dir + "word/_rels/document.xml.rels";
+        std::ifstream rf(rels_path, std::ios::binary);
+        if(rf)
+        {
+            rf.seekg(0, std::ios::end);
+            size_t rsize = static_cast<size_t>(rf.tellg());
+            rf.seekg(0, std::ios::beg);
+            if(rsize <= MAX_FILE_SIZE)
+            {
+                std::string rels_content(rsize, '\0');
+                rf.read(&rels_content[0], rsize);
+                XML_TAG rels_root;
+                size_t rsi = 0;
+                bool found = false;
+                while(next_element(rels_content, rsi, rels_content.size(), rels_root))
+                {
+                    rsi = rels_root.next;
+                    if(rels_root.name == "Relationships") { found = true; break; }
+                }
+                if(found)
+                {
+                    XML_TAG rel;
+                    size_t rsi2 = rels_root.body_start;
+                    while(next_element(rels_content, rsi2, rels_root.body_end, rel))
+                    {
+                        rsi2 = rel.next;
+                        if(rel.name != "Relationship") continue;
+                        std::string type = get_tag_attr(rels_content, rel, "Type");
+                        if(type.find("/image") == std::string::npos) continue;
+                        std::string rId = get_tag_attr(rels_content, rel, "Id");
+                        std::string target = get_tag_attr(rels_content, rel, "Target");
+                        if(rId.empty() || target.empty()) continue;
+                        if(target.find("..") != std::string::npos || target[0] == '/') continue;
+                        image_rels_[rId] = "word/" + target;
+                    }
+                }
+            }
+        }
+
+        // 扫描 word/media 目录读取图片二进制（受总量上限约束）
+        std::string media_dir = dir + "word/media";
+        std::error_code ec;
+        if(std::filesystem::is_directory(media_dir, ec))
+        {
+            size_t total_img = 0;
+            for(auto &entry : std::filesystem::directory_iterator(media_dir, ec))
+            {
+                if(!entry.is_regular_file(ec)) continue;
+                std::string fname = entry.path().filename().string();
+                std::string key = "word/media/" + fname;
+                std::ifstream mf(entry.path(), std::ios::binary);
+                if(!mf) continue;
+                mf.seekg(0, std::ios::end);
+                std::streamoff msize = mf.tellg();
+                if(msize < 0 || msize > static_cast<std::streamoff>(MAX_FILE_SIZE)) continue;
+                mf.seekg(0, std::ios::beg);
+                std::vector<unsigned char> data(static_cast<size_t>(msize));
+                mf.read(reinterpret_cast<char*>(data.data()), msize);
+                if(static_cast<size_t>(mf.gcount()) != static_cast<size_t>(msize)) continue;
+                if(total_img + data.size() <= MAX_TOTAL_IMAGE_SIZE)
+                {
+                    total_img += data.size();
+                    image_datas_[key] = std::move(data);
+                }
+            }
+        }
+    }
+
     process_document(file_content);
     return true;
 }
@@ -1359,6 +1459,10 @@ std::string word::to_html() const
                 {
                     style += "background-color:" + sanitize_token(run.highlight) + ";";
                 }
+                if(!run.bg_color.empty())
+                {
+                    style += "background-color:#" + sanitize_token(run.bg_color) + ";";
+                }
                 if(!run.font_name.empty())
                 {
                     style += "font-family:" + html_escape(run.font_name) + ";";
@@ -1413,6 +1517,8 @@ std::string word::to_html() const
                 html += "<tr>\n";
                 for(const auto &cell : row.cells)
                 {
+                    // 跳过 vMerge 续接占位格(row_span==0)，其区域已由上方带 rowspan 的单元格覆盖
+                    if(cell.row_span == 0) continue;
                     html += "<td";
                     if(cell.col_span > 1)
                         html += " colspan=\"" + std::to_string(cell.col_span) + "\"";
@@ -1513,6 +1619,7 @@ std::string word::to_html_with_images(const std::string &output_dir) const
                 if(run.font_size > 0) style += "font-size:" + std::to_string(run.font_size) + "px;";
                 if(!run.color.empty()) style += "color:#" + sanitize_token(run.color) + ";";
                 if(!run.highlight.empty()) style += "background-color:" + sanitize_token(run.highlight) + ";";
+                if(!run.bg_color.empty()) style += "background-color:#" + sanitize_token(run.bg_color) + ";";
                 if(!run.font_name.empty()) style += "font-family:" + html_escape(run.font_name) + ";";
                 
                 if(!style.empty())
@@ -1569,6 +1676,8 @@ std::string word::to_html_with_images(const std::string &output_dir) const
                 html += "<tr>";
                 for(const auto &cell : row.cells)
                 {
+                    // 跳过 vMerge 续接占位格(row_span==0)，其区域已由上方带 rowspan 的单元格覆盖
+                    if(cell.row_span == 0) continue;
                     html += "<td";
                     // rowspan/colspan
                     if(cell.row_span > 1)
@@ -1628,6 +1737,23 @@ static std::string xml_escape(const std::string &s)
         }
     }
     return result;
+}
+
+// 把文本按 '\n' 切分写进 out：换行转为 <w:br/>，其余照常 xml 转义。
+// 单元格/run 文本里的 '\n'（来自 HTML <br> 或 docx <w:br>）若不处理，Word 会将其渲染为空格（Audit Bug 7）
+static void append_docx_text_with_breaks(std::string &out, const std::string &text)
+{
+    size_t start = 0;
+    for(size_t i = 0; i < text.size(); i++)
+    {
+        if(text[i] == '\n')
+        {
+            out += xml_escape(text.substr(start, i - start));
+            out += "<w:br/>";
+            start = i + 1;
+        }
+    }
+    out += xml_escape(text.substr(start));
 }
 
 // HTML 解码：还原常见的 HTML 实体
@@ -2025,7 +2151,9 @@ void word::parse_html_style(const std::string &style_str, WORD_RUN &run) const
         }
         else if(prop == "background-color")
         {
-            run.highlight = val;
+            // HTML 背景色（hex 或色名）写入 bg_color，写回 docx 用 w:shd w:fill（而非 w:highlight 枚举）
+            if(!val.empty() && val[0] == '#') run.bg_color = val.substr(1);
+            else run.bg_color = val;
         }
         else if(prop == "font-family")
         {
@@ -2386,9 +2514,9 @@ void word::parse_html_inline(const std::string &content, size_t begin, size_t en
             pos = closing;
             continue;
         }
-        else if((name == "/span" || name == "/font" || (name == "span" && is_close) || (name == "font" && is_close)))
+        else if((name == "span" && is_close) || (name == "font" && is_close))
         {
-            // span 闭合：保存当前 run
+            // span/font 闭合：保存当前 run（name 不含前导 '/'，已由 scan_html_tag 剥离，故用 is_close 判定）
             if(!current_run.text.empty())
             {
                 para.runs.push_back(std::move(current_run));
@@ -2409,8 +2537,9 @@ void word::parse_html_inline(const std::string &content, size_t begin, size_t en
             pos = after;
             continue;
         }
-        else if(name == "br" || is_self)
+        else if(name == "br")
         {
+            // 仅 <br> 产生换行；其它自闭合标签（<hr/>、<meta/>、未知 <x/>）不再误当 <br>（Audit Bug 4）
             current_run.text += '\n';
             pos = after;
             continue;
@@ -2418,7 +2547,7 @@ void word::parse_html_inline(const std::string &content, size_t begin, size_t en
         else if(is_close)
         {
             // 块级元素的闭合标签，停止
-            if(name == "/p" || name == "/div" || (name.size() == 3 && name[0] == '/' && name[1] == 'h'))
+            if(name == "p" || name == "div" || (name.size() == 2 && name[0] == 'h' && name[1] >= '1' && name[1] <= '9'))
             {
                 pos = after;
                 break;
@@ -3302,7 +3431,13 @@ std::string word::gen_docx_document() const
                 }
                 if(!run.highlight.empty())
                 {
+                    // w:highlight 仅接受预定义色名（yellow/red...），sanitize_token 已清洗
                     rpr += "<w:highlight w:val=\"" + sanitize_token(run.highlight) + "\"/>";
+                }
+                if(!run.bg_color.empty())
+                {
+                    // 背景色（hex）用 w:shd w:fill，不要写进 w:highlight 枚举，否则被 Word 忽略
+                    rpr += "<w:shd w:val=\"clear\" w:color=\"auto\" w:fill=\"" + sanitize_token(run.bg_color) + "\"/>";
                 }
                 if(run.underline)
                     rpr += "<w:u w:val=\"single\"/>";
@@ -3313,14 +3448,19 @@ std::string word::gen_docx_document() const
                     xml += "<w:rPr>" + rpr + "</w:rPr>";
                 }
 
-                // w:t 元素，如果文本以空格开头或结尾，需要 xml:space="preserve"
+                // w:t 元素，如果文本以空格开头或结尾，需要 xml:space="preserve"；
+                // 文本中的 '\n'（来自 <w:br>/<w:cr>）转成 <w:br/>，避免被 Word 折叠为空格（Audit Bug 7）
                 if(!run.text.empty() && (run.text.front() == ' ' || run.text.back() == ' '))
                 {
-                    xml += "<w:t xml:space=\"preserve\">" + xml_escape(run.text) + "</w:t>";
+                    xml += "<w:t xml:space=\"preserve\">";
+                    append_docx_text_with_breaks(xml, run.text);
+                    xml += "</w:t>";
                 }
                 else
                 {
-                    xml += "<w:t>" + xml_escape(run.text) + "</w:t>";
+                    xml += "<w:t>";
+                    append_docx_text_with_breaks(xml, run.text);
+                    xml += "</w:t>";
                 }
 
                 xml += "</w:r>";
@@ -3443,14 +3583,22 @@ std::string word::gen_docx_document() const
                         {
                             xml += "<w:r><w:rPr><w:color w:val=\"" + sanitize_token(cell.text_color) + "\"/>";
                             if(!cell.text.empty() && (cell.text.front() == ' ' || cell.text.back() == ' '))
-                                xml += "</w:rPr><w:t xml:space=\"preserve\">" + xml_escape(cell.text) + "</w:t></w:r>";
+                            {
+                                xml += "</w:rPr><w:t xml:space=\"preserve\">";
+                                append_docx_text_with_breaks(xml, cell.text);
+                                xml += "</w:t></w:r>";
+                            }
                             else
-                                xml += "</w:rPr><w:t>" + xml_escape(cell.text) + "</w:t></w:r>";
+                            {
+                                xml += "</w:rPr><w:t>";
+                                append_docx_text_with_breaks(xml, cell.text);
+                                xml += "</w:t></w:r>";
+                            }
                         }
                         else
                         {
                             xml += "<w:r><w:t>";
-                            xml += xml_escape(cell.text);
+                            append_docx_text_with_breaks(xml, cell.text);
                             xml += "</w:t></w:r>";
                         }
                         xml += "</w:p>";

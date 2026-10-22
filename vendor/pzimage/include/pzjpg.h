@@ -63,11 +63,12 @@ public:
     ColorRGB &at(uint32_t x, uint32_t y) { return pixels[(size_t)y * width + x]; }
     const ColorRGB &at(uint32_t x, uint32_t y) const { return pixels[(size_t)y * width + x]; }
     ColorRGB *rowPtr(uint32_t y) {
-        if (pixels.empty() || (int)y >= height) return nullptr;
+        // 有符号 64 位比较: (int)y 截断大值会变成负数, 绕过检查后算出越界行指针
+        if (pixels.empty() || (int64_t)y >= (int64_t)height) return nullptr;
         return pixels.data() + (size_t)y * width;
     }
     const ColorRGB *rowPtr(uint32_t y) const {
-        if (pixels.empty() || (int)y >= height) return nullptr;
+        if (pixels.empty() || (int64_t)y >= (int64_t)height) return nullptr;
         return pixels.data() + (size_t)y * width;
     }
     // 兼容旧接口 (set 带越界检查; 读取可用 getPixel 带越界检查)

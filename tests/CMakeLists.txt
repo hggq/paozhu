@@ -2,10 +2,12 @@
 # 由根 CMake 的 -DENABLE_TESTS=ON 开启后才会进入本目录
 # Entered only when -DENABLE_TESTS=ON is passed to the root CMake.
 #
-# 约定：tests/ 下每个 *.cpp 自动生成同名可执行文件，新增文件无需改本文件。
+# 约定：tests/*.cpp 与 tests/orm/*.cpp 自动生成同名可执行文件，新增文件无需改本文件。
 # 特殊依赖按文件名识别：文件名含 sqlite 的需要 -DENABLE_SQLITE=ON。
-# Convention: every tests/*.cpp becomes an executable of the same name; no edit needed
-# for new files. Special deps are keyed by filename: "sqlite" needs -DENABLE_SQLITE=ON.
+# Convention: every tests/*.cpp and tests/orm/*.cpp becomes an executable of the same name;
+# no edit needed for new files. Special deps are keyed by filename: "sqlite" needs -DENABLE_SQLITE=ON.
+# tests/orm/ 的子目录（各轮探针自带构建脚本）不参与这里的自动发现。
+# Sub-directories under tests/orm/ (probes with their own build scripts) stay out of discovery.
 
 # 与 paozhu_cli 保持一致的头文件搜索路径
 # Include paths mirror the paozhu_cli target.
@@ -70,9 +72,14 @@ if(ENABLE_SQLITE)
   list(APPEND paozhu_test_common_libs paozhu_test_sqlite)
 endif()
 
-# 自动发现 tests/ 下所有 .cpp（CONFIGURE_DEPENDS：新增/删除文件自动重新配置）
-# Auto-discover every .cpp here (CONFIGURE_DEPENDS picks up added/removed files).
-file(GLOB test_cpp_files CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+# 自动发现 tests/ 与 tests/orm/ 下所有 .cpp（CONFIGURE_DEPENDS：新增/删除文件自动重新配置）
+# 只收这两层的直属文件，orm/ 里的探针子目录由各自脚本构建，不进 CMake 目标
+# Auto-discover .cpp in tests/ and tests/orm/ (CONFIGURE_DEPENDS picks up added/removed files).
+# Only these two levels: probe sub-directories under tests/orm/ are built by their own scripts.
+file(GLOB test_cpp_files CONFIGURE_DEPENDS
+  "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/orm/*.cpp"
+)
 
 foreach(test_src IN LISTS test_cpp_files)
   get_filename_component(test_name "${test_src}" NAME_WE)
@@ -93,9 +100,38 @@ foreach(test_src IN LISTS test_cpp_files)
     target_sources(${test_name} PRIVATE "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/http2_ring_queue.cpp")
   endif()
 
-  # 文件名安全单测：把 func.cpp 编进去，测试 safe_filename / str2safefile / get_filename 三个公开安全函数
-  # Filename-safety tests: compile func.cpp in to exercise safe_filename / str2safefile / get_filename.
+  # 文件名安全单测：把 func.cpp + datetime.cpp 编进去，覆盖 safe_filename / str2safefile / get_filename
+  # Filename-safety tests: compile func.cpp + datetime.cpp (rand_string is in datetime.cpp,
+  # pulled in by temp_name_uniq_tail inside func.cpp).
   if(test_name MATCHES "filename_safety")
-    target_sources(${test_name} PRIVATE "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/func.cpp")
+    target_sources(${test_name} PRIVATE
+      "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/func.cpp"
+      "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/datetime.cpp"
+    )
+  endif()
+
+  # --- test_pzexcel_p2: needs pzexcel + pzzip sources and ENABLE_OFFICE + zlib ---
+  if(test_name MATCHES "pzexcel_p2")
+    target_compile_definitions(${test_name} PRIVATE ENABLE_OFFICE)
+    target_include_directories(${test_name} PRIVATE
+      "${CMAKE_SOURCE_DIR}/vendor/pzexcel/include"
+      "${CMAKE_SOURCE_DIR}/vendor/pzzip/include"
+    )
+    target_sources(${test_name} PRIVATE
+      "${CMAKE_SOURCE_DIR}/vendor/pzexcel/src/pzexcel.cpp"
+      "${CMAKE_SOURCE_DIR}/vendor/pzzip/src/pzzip.cpp"
+    )
+    target_link_libraries(${test_name} PRIVATE ZLIB::ZLIB)
+  endif()
+
+  # --- test_pzzip: standalone pzzip unit test (sources + zlib) ---
+  if(test_name MATCHES "pzzip")
+    target_include_directories(${test_name} PRIVATE
+      "${CMAKE_SOURCE_DIR}/vendor/pzzip/include"
+    )
+    target_sources(${test_name} PRIVATE
+      "${CMAKE_SOURCE_DIR}/vendor/pzzip/src/pzzip.cpp"
+    )
+    target_link_libraries(${test_name} PRIVATE ZLIB::ZLIB)
   endif()
 endforeach()

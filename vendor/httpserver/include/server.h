@@ -191,13 +191,14 @@ class httpserver
     // connection has already been flushed — caller must recycle the object itself and
     // must NOT leave it in its own linked list.
     bool http2_park_send(std::shared_ptr<http2_send_data_t> &sp, unsigned char reason);
-    // 事件边统一入口：重算本连接所有挂起对象的闸门，够格的移进 sent_data_list 并唤醒。
-    // Unified event-edge entry: recompute gates for all parked objects on this connection,
-    // move eligible ones into sent_data_list and notify the send thread.
-    void requeue_parked(client_session &session_obj);
-    // 摘出来的一批按闸门分流：够格入队并唤醒，其余留在参数里由调用方挂回。返回入队条数。
+    // 事件边统一入口：只重算本连接中原因匹配的挂起对象（reason 0 = 全部），
+    // 够格的移进 sent_data_list 并唤醒。
+    // Unified event-edge entry: recompute gates for this connection's parked objects
+    // matching reason (0 = all), move eligible ones into sent_data_list and notify.
+    void requeue_parked(client_session &session_obj, unsigned char reason);
+    // 摘出来的一批按闸门分流：够格入队并唤醒，其余留在参数里由调用方挂回并刷新原因。返回入队条数。
     // Split a drained batch by gate: eligible ones enqueued + notified; the rest stay in the
-    // parameter for the caller to re-park. Returns the number enqueued.
+    // parameter for the caller to re-park with a refreshed reason. Returns the number enqueued.
     unsigned int dispatch_parked(std::list<std::shared_ptr<http2_send_data_t>> &in);
     // 兜底扫描：事件边漏了某次闸门抬升时，挂起的流最迟 CONST_HTTP2_BELT_SWEEP_SECONDS 秒后
     // 被重新评估，顺带给仍在表里的对象续 time_limit、给永久停读的流撤流。
@@ -279,6 +280,8 @@ class httpserver
     int checkhttp2(std::shared_ptr<client_session> peer_session);
     asio::awaitable<void> http1_send_bad_request(unsigned int, std::shared_ptr<client_session>);
     asio::awaitable<void> http1_send_method_not_allowed(std::shared_ptr<client_session>);
+    // RFC 9110 §15.5.17：不可满足的 Range → 416 + Content-Range: bytes */<complete-length>
+    asio::awaitable<void> http1_send_range_not_satisfiable(std::shared_ptr<client_session>, unsigned long long);
     asio::awaitable<void> http1_send_bad_server(std::shared_ptr<httppeer>, std::shared_ptr<client_session>);
 
     asio::awaitable<void> http1_send_file_header(std::shared_ptr<httppeer> peer,
@@ -320,6 +323,10 @@ class httpserver
     // 回收 temp_path 下框架自己的请求落盘临时文件（pzraw_/pzup_）与遗留孤儿文件。
     // Reap framework-owned temp files under temp_path (pzraw_/pzup_) and lingering orphan files.
     void httpwatch_clear_temp_files(unsigned int temp_live_time);
+    // 回收 <temp_path>/statichtml 下的静态压缩缓存（httpwatch_clear_temp_files 扫不到它）。
+    // Reap the static compression cache under <temp_path>/statichtml, which
+    // httpwatch_clear_temp_files cannot reach (it is non-recursive).
+    void httpwatch_clear_static_cache(unsigned int age_limit);
     void httpwatch_check_deadlock(unsigned char &plan_http1_exit, unsigned char &plan_http2_exit, unsigned int &old_ten_total_count, unsigned int old_total_count);
     void httpwatch_check_restart_threshold(unsigned int restart_process_num,
                                            int restart_process_time_start,

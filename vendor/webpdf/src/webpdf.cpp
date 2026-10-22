@@ -10,6 +10,7 @@
 #include "ttfparser.h"
 #include "parsehtml.h"
 #include <cstdio>
+#include <cctype>
 #include <cstring>
 #include <cstdlib>
 #include <cstdarg>
@@ -57,8 +58,16 @@ static std::string sprintf_str(const char* fmt, ...) {
     return "";
 }
 
-static bool validate_path(const std::string& path) {
+static bool path_is_absolute(const std::string& path) {
     if (path.empty()) return false;
+    if (path[0] == '/' || path[0] == '\\') return true;
+    if (path.size() > 1 && path[1] == ':') return true;
+    return false;
+}
+
+bool is_safe_image_path(const std::string& path) {
+    if (path.empty()) return false;
+    if (path.find('\0') != std::string::npos) return false;
     for (size_t i = 0; i < path.size(); i++) {
         if (path[i] == '/') {
             if (i + 1 < path.size() && path[i + 1] == '/') return false;
@@ -70,12 +79,19 @@ static bool validate_path(const std::string& path) {
     if (path.find("\\..\\") != std::string::npos) return false;
     if (path.compare(0, 3, "../") == 0) return false;
     if (path.compare(0, 3, "..\\") == 0) return false;
-    if (path.compare(path.size() - 3, 3, "/..") == 0) return false;
-    if (path.compare(path.size() - 3, 3, "\\..") == 0) return false;
+    if (path.size() >= 3) {
+        if (path.compare(path.size() - 3, 3, "/..") == 0) return false;
+        if (path.compare(path.size() - 3, 3, "\\..") == 0) return false;
+    }
     if (path == ".." || path == ".") return false;
     if (path.size() >= 2 && path[0] == ':' && path[1] == '\\') return false;
-    if (path.size() >= 2 && path[0] == '/' && path[1] == '/') return false;
+    if (path.find("://") != std::string::npos) return false;
+    if (path.compare(0, 5, "data:") == 0) return false;
     return true;
+}
+
+bool is_safe_document_image_path(const std::string& path) {
+    return is_safe_image_path(path) && !path_is_absolute(path);
 }
 
 static std::string canonicalize_path(const std::string& base, const std::string& file) {
@@ -161,6 +177,39 @@ static std::string canonicalize_path(const std::string& base, const std::string&
         result = "/" + result;
     return result;
 #endif
+}
+
+// Lexical containment: full must be a file inside base_dir, not merely start
+// with its name. A base that normalises away ("." or "") proves nothing, so it
+// is accepted rather than rejecting every relative image.
+static bool path_is_under(const std::string& base_dir, const std::string& full) {
+    std::string base = canonicalize_path(base_dir, "");
+    while (base.size() > 1 && (base.back() == '/' || base.back() == '\\'))
+        base.pop_back();
+    if (base.empty() || base == "." || base == "/" || base == "\\") return true;
+    if (full.size() <= base.size()) return false;
+    if (full.compare(0, base.size(), base) != 0) return false;
+    return full[base.size()] == '/' || full[base.size()] == '\\';
+}
+
+static double clamp_finite(double v, double lo, double hi) {
+    if (!std::isfinite(v)) return lo;
+    if (v < lo) return lo;
+    if (v > hi) return hi;
+    return v;
+}
+
+// Gradient stops reach the PDF as numbers written straight into a function
+// dictionary, so bound them and put them in offset order before sampling.
+static void normalize_shading_stops(std::vector<GradientStop>& stops) {
+    for (auto& s : stops) {
+        s.offset = clamp_finite(s.offset, 0.0, 1.0);
+        s.r = clamp_finite(s.r, 0.0, 255.0);
+        s.g = clamp_finite(s.g, 0.0, 255.0);
+        s.b = clamp_finite(s.b, 0.0, 255.0);
+    }
+    std::stable_sort(stops.begin(), stops.end(),
+        [](const GradientStop& a, const GradientStop& b) { return a.offset < b.offset; });
 }
 
 [[maybe_unused]] static bool is_valid_utf8(const unsigned char* s, size_t len) {
@@ -279,17 +328,14 @@ std::string webpdf::_read_file(const std::string& path) {
 std::string webpdf::_resolve_image_path(const std::string& file) const {
     if (file.empty())
         return file;
-    if (imagepath.empty())
+    if (!is_safe_image_path(file))
+        return "";
+    if (imagepath.empty() || path_is_absolute(file))
         return file;
-    if (file[0] == '/' || file[0] == '\\')
-        return file;
-    if (file.size() > 1 && file[1] == ':')
-        return file;
-    if (file.find("://") != std::string::npos || file.compare(0, 5, "data:") == 0)
-        return file;
-    if (!validate_path(file))
-        return file;
-    return canonicalize_path(imagepath, file);
+    std::string full = canonicalize_path(imagepath, file);
+    if (!path_is_under(imagepath, full))
+        return "";
+    return full;
 }
 
 void webpdf::Error(const std::string& msg) {
@@ -522,10 +568,18 @@ void webpdf::SetLineWidth(double width) {
 }
 
 void webpdf::SetDash(const std::string& pattern, double phase) {
-    DashPattern = pattern;
+    // The pattern is spliced verbatim into the page's content stream, so keep
+    // only what a dash array can be made of: numbers, separators and spaces.
+    std::string safe;
+    safe.reserve(pattern.size());
+    for (char c : pattern) {
+        if (std::isdigit((unsigned char)c) || c == '.' || c == ',' || c == ' ' || c == '-')
+            safe += c;
+    }
+    DashPattern = safe;
     DashPhase = phase;
     if (page > 0)
-        _out(sprintf_str("[%s] %.2f d", pattern.c_str(), phase * k));
+        _out(sprintf_str("[%s] %.2f d", safe.c_str(), phase * k));
 }
 
 void webpdf::SetDrawColor(int r, int g, int b) {
@@ -653,8 +707,11 @@ void webpdf::Footer() {
 
     std::string saved_family = FontFamily;
     std::string saved_style = FontStyle;
-    double saved_size = FontSize;
+    double saved_size_pt = FontSizePt;
+    FontInfo* saved_font = CurrentFont;
+    bool saved_underline = underline;
     std::string saved_color = TextColor;
+    bool saved_color_flag = ColorFlag;
     double saved_y = yPos;
 
     SetFont("Helvetica", "", 10);
@@ -664,10 +721,16 @@ void webpdf::Footer() {
 
     FontFamily = saved_family;
     FontStyle = saved_style;
-    FontSize = saved_size;
-    FontSizePt = saved_size;
+    CurrentFont = saved_font;
+    underline = saved_underline;
     TextColor = saved_color;
+    ColorFlag = saved_color_flag;
     yPos = saved_y;
+    // The page walk wrote Helvetica's Tf into this page's stream, so the content
+    // font has to be re-selected before the next text output, not just restored
+    // in the member variables.
+    if (CurrentFont)
+        SetFontSize(saved_size_pt);
 }
 
 FontInfo webpdf::_loadjsonfont(const std::string& path) {
@@ -829,6 +892,8 @@ void webpdf::AddFont(const std::string& family, const std::string& style, const 
     std::string fontdir = dir;
     if (fontdir.empty())
         fontdir = fontpath;
+    else
+        fontpath = dir;  // sibling lookups and font metrics use this directory too
     if (!fontdir.empty() && fontdir.back() != '/' && fontdir.back() != '\\')
         fontdir += '/';
 
@@ -2271,12 +2336,13 @@ void webpdf::StartCapture() {
     capture_mode = true;
     capture_buf.clear();
     // Disable auto page break during capture to avoid side effects
+    capture_saved_autopagebreak_ = AutoPageBreak;
     AutoPageBreak = false;
 }
 
 std::string webpdf::StopCapture() {
     capture_mode = false;
-    AutoPageBreak = true;
+    AutoPageBreak = capture_saved_autopagebreak_;
     std::string result = std::move(capture_buf);
     capture_buf.clear();
     return result;
@@ -2383,6 +2449,7 @@ std::string webpdf::DryRunPageContent(int page_idx) {
 void webpdf::BeginMeasure() {
     measure_mode_ = true;
     measure_start_y_ = yPos;
+    measure_saved_autopagebreak_ = AutoPageBreak;
     AutoPageBreak = false;
 }
 
@@ -2390,7 +2457,7 @@ double webpdf::EndMeasure() {
     double measured_h = yPos - measure_start_y_;
     if (measured_h < 0) measured_h = 0;
     measure_mode_ = false;
-    AutoPageBreak = true;
+    AutoPageBreak = measure_saved_autopagebreak_;
     return measured_h;
 }
 
@@ -2750,6 +2817,8 @@ void webpdf::_putoutlines() {
 }
 
 void webpdf::_putlinks(int page_idx) {
+    if (page_idx < 0 || (size_t)page_idx >= PageLinks.size())
+        return;
     for (size_t i = 0; i < PageLinks[page_idx].size(); i++) {
         PageLink& pl = PageLinks[page_idx][i];
         _newobj();
@@ -2760,16 +2829,25 @@ void webpdf::_putlinks(int page_idx) {
         _put(sprintf_str("<</Type /Annot /Subtype /Link /Rect [%.2f %.2f %.2f %.2f] /Border [0 0 0] ", x1, y1, x2, y2));
         if (pl.is_uri) {
             _put(sprintf_str("/A <</S /URI /URI %s>>>>", _textstring(pl.link_str).c_str()));
+        } else if (pl.link_int < 1 || (size_t)pl.link_int > links.size()) {
+            // The link id names no internal link. Keep the object so the
+            // numbering reserved in _putpages() stays aligned, close the
+            // dictionary and leave the annotation without a destination.
+            _put(">>");
         } else {
             auto& l = links[pl.link_int - 1];
             int page_id = l.first;
             double y_val = l.second;
-            double h_val;
-            if (PageInfo_vec[page_id - 1].has_size)
-                h_val = PageInfo_vec[page_id - 1].size_h;
-            else
-                h_val = (DefOrientation == "P") ? DefPageSize.second * k : DefPageSize.first * k;
-            _put(sprintf_str("/Dest [%d 0 R /XYZ 0 %.2f null]>>", PageInfo_vec[page_id - 1].n, h_val - y_val * k));
+            if (page_id < 1 || (size_t)page_id > PageInfo_vec.size())
+                _put(">>");
+            else {
+                double h_val;
+                if (PageInfo_vec[page_id - 1].has_size)
+                    h_val = PageInfo_vec[page_id - 1].size_h;
+                else
+                    h_val = (DefOrientation == "P") ? DefPageSize.second * k : DefPageSize.first * k;
+                _put(sprintf_str("/Dest [%d 0 R /XYZ 0 %.2f null]>>", PageInfo_vec[page_id - 1].n, h_val - y_val * k));
+            }
         }
         _put("endobj");
     }
@@ -2809,7 +2887,8 @@ void webpdf::_putresourcedict() {
     if (!shadings.empty()) {
         _put("/Shading <<");
         for (auto& s : shadings) {
-            _put(sprintf_str("/Sh%d %d 0 R", s.i, s.n));
+            if (s.n > 0)
+                _put(sprintf_str("/Sh%d %d 0 R", s.i, s.n));
         }
         _put(">>");
     }
@@ -3421,7 +3500,11 @@ void webpdf::_putshadings() {
 }
 
 void webpdf::_putshading(AxialShadingInfo& info) {
-    if (info.stops.size() < 2) return;
+    if (info.stops.empty()) return;
+    // A one-stop gradient has nothing to interpolate: paint it as a solid so the
+    // shading object always exists for the /Shading resource entry.
+    if (info.stops.size() == 1)
+        info.stops.push_back(info.stops.front());
 
     int func_n = 0;
     if (info.stops.size() == 2) {
@@ -3448,15 +3531,29 @@ void webpdf::_putshading(AxialShadingInfo& info) {
         std::string sample_data;
         for (int i = 0; i < size; i++) {
             double t = (double)i / (size - 1);
-            double r = 0, g = 0, b = 0;
-            for (size_t j = 0; j < info.stops.size() - 1; j++) {
-                double t0 = info.stops[j].offset;
-                double t1 = info.stops[j+1].offset;
-                if (t >= t0 && t <= t1) {
-                    double f = (t - t0) / (t1 - t0);
-                    r = info.stops[j].r + f * (info.stops[j+1].r - info.stops[j].r);
-                    g = info.stops[j].g + f * (info.stops[j+1].g - info.stops[j].g);
-                    b = info.stops[j].b + f * (info.stops[j+1].b - info.stops[j].b);
+            double r, g, b;
+            // /Extend [true true] repeats the end colours outside the stop
+            // range, so the samples have to do the same.
+            if (t <= info.stops.front().offset) {
+                r = info.stops.front().r;
+                g = info.stops.front().g;
+                b = info.stops.front().b;
+            } else if (t >= info.stops.back().offset) {
+                r = info.stops.back().r;
+                g = info.stops.back().g;
+                b = info.stops.back().b;
+            } else {
+                r = g = b = 0;
+                // Stops are sorted, so consecutive pairs tile [first, last].
+                for (size_t j = 0; j < info.stops.size() - 1; j++) {
+                    double t0 = info.stops[j].offset;
+                    double t1 = info.stops[j + 1].offset;
+                    if (t < t0 || t > t1) continue;
+                    double span = t1 - t0;
+                    double f = span > 0.0 ? (t - t0) / span : 0.0;
+                    r = info.stops[j].r + f * (info.stops[j + 1].r - info.stops[j].r);
+                    g = info.stops[j].g + f * (info.stops[j + 1].g - info.stops[j].g);
+                    b = info.stops[j].b + f * (info.stops[j + 1].b - info.stops[j].b);
                     break;
                 }
             }
@@ -3907,7 +4004,7 @@ ImageInfo webpdf::_parsepng(const std::string& file) {
 }
 
 void webpdf::Image(const std::string& file, double x, double y, double iw, double ih, const std::string& type, const std::string& link) {
-    if (!validate_path(file))
+    if (!is_safe_image_path(file))
         Error("Invalid image path: " + file);
     
     std::string key = file;
@@ -3922,6 +4019,8 @@ void webpdf::Image(const std::string& file, double x, double y, double iw, doubl
         t = _str_tolower(t);
         ImageInfo info;
         std::string real_path = _resolve_image_path(file);
+        if (real_path.empty())
+            Error("Invalid image path: " + file);
         if (t == "jpg" || t == "jpeg")
             info = _parsejpg(real_path);
         else if (t == "png")
@@ -3957,7 +4056,7 @@ void webpdf::Image(const std::string& file, double x, double y, double iw, doubl
 }
 
 bool webpdf::GetImageSize(const std::string& file, double& out_w, double& out_h) {
-    if (!validate_path(file))
+    if (!is_safe_image_path(file))
         return false;
     
     std::string key = file;
@@ -3970,6 +4069,8 @@ bool webpdf::GetImageSize(const std::string& file, double& out_w, double& out_h)
         t = _str_tolower(t);
         ImageInfo info;
         std::string real_path = _resolve_image_path(file);
+        if (real_path.empty())
+            return false;
         if (t == "jpg" || t == "jpeg")
             info = _parsejpg(real_path);
         else if (t == "png")
@@ -3986,7 +4087,7 @@ bool webpdf::GetImageSize(const std::string& file, double& out_w, double& out_h)
 }
 
 void webpdf::ImageRaw(const std::string& file, double x, double y, double iw, double ih) {
-    if (!validate_path(file))
+    if (!is_safe_image_path(file))
         return;
     std::string key = file;
     if (images.find(key) == images.end()) {
@@ -4008,6 +4109,7 @@ int webpdf::AddAxialShading(double x0, double y0, double x1, double y1, const st
     info.y1 = y1;
     info.is_radial = false;
     info.stops = stops;
+    normalize_shading_stops(info.stops);
     shadings.push_back(info);
     return info.i;
 }
@@ -4023,12 +4125,17 @@ int webpdf::AddRadialShading(double x0, double y0, double r0, double x1, double 
     info.r0 = r0;
     info.r1 = r1;
     info.stops = stops;
+    normalize_shading_stops(info.stops);
     shadings.push_back(info);
     return info.i;
 }
 
 void webpdf::ShadeFill(int shading_id) {
     if (shading_id < 0 || shading_id >= (int)shadings.size())
+        return;
+    // A gradient without colour stops gets no shading object, so its name is
+    // undefined on the page and painting with it would break the file.
+    if (shadings[shading_id].stops.empty())
         return;
     _out(sprintf_str("/Sh%d sh", shading_id));
 }

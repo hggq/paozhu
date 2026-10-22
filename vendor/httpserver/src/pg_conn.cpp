@@ -25,6 +25,52 @@
 namespace orm
 {
 
+// SCRAM 迭代次数上限。服务端返回的 iteration 直接进 PBKDF2，不设上限时
+// 恶意/误配服务端可用超大值把认证拖成 CPU DoS（PostgreSQL 默认 4096）
+static constexpr int kMaxScramIterations = 1000000;
+
+// PG 单条协议消息长度上限（含 4 字节长度字段）。服务端 pq_getmessage 以
+// MaxAllocSize(1GB-1) 拒收更大消息；发送端先拦下可避免长度字段被 int32 截断
+static constexpr size_t kMaxPgMessageSize = 0x3fffffff;
+
+// AuthenticationSASL 的机制列表是逐个 NUL 结尾的 C 字符串（末尾再补一个 NUL），
+// 不能按逗号切分；精确比对避免 "SCRAM-SHA-256" 误命中 "SCRAM-SHA-256-PLUS"
+static bool mechanism_offered(const std::string &list, const std::string &name)
+{
+    size_t pos = 0;
+    while (pos < list.size())
+    {
+        size_t end = list.find('\0', pos);
+        if (end == std::string::npos)
+            end = list.size();
+        if (end - pos == name.size() && list.compare(pos, name.size(), name) == 0)
+            return true;
+        pos = end + 1;
+    }
+    return false;
+}
+
+// SCRAM salt 的 base64 严格校验：长度须为 4 的倍数，'=' 只能在末尾且最多两个。
+// 非法字符会让 base64_decode 静默截断，认证失败时只剩"口令错"这类误导信息
+static bool is_valid_base64(const std::string &s)
+{
+    if (s.empty() || (s.size() % 4) != 0)
+        return false;
+    size_t pad = 0;
+    if (s[s.size() - 1] == '=')
+        ++pad;
+    if (s[s.size() - 2] == '=')
+        ++pad;
+    for (size_t i = 0; i < s.size() - pad; ++i)
+    {
+        char c = s[i];
+        if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+              (c >= '0' && c <= '9') || c == '+' || c == '/'))
+            return false;
+    }
+    return true;
+}
+
 pg_conn_base::pg_conn_base(std::unique_ptr<orm_conn_link_t> link) : conn_link(std::move(link))
 {
     error_code  = 0;
@@ -223,90 +269,6 @@ std::string xor_strings(const std::string &a, const std::string &b)
     return res;
 }
 
-unsigned int pg_conn_base::read_pack(unsigned char *data, unsigned int offset)
-{
-    // NOTE: 此函数为遗留/死代码（未被调用），缺少缓冲区总长度参数无法做边界检查。
-    // PG 协议使用 peek_pg_message() 进行消息解析，该函数不再使用。
-    unsigned int pack_length = buf_to_int32(data + offset);
-    offset                   = offset + 4;
-    offset                   = offset + pack_length;
-    return offset;
-}
-
-void pg_conn_base::read_col_info(const std::string &pack_info, field_info_t &temp_field_data)
-{
-    size_t pos = 0;
-
-    size_t null_pos = pack_info.find('\0', pos);
-    if (null_pos != std::string::npos)
-    {
-        temp_field_data.name = pack_info.substr(pos, null_pos - pos);
-        pos                  = null_pos + 1;
-    }
-
-    null_pos = pack_info.find('\0', pos);
-    if (null_pos != std::string::npos)
-    {
-        temp_field_data.table = pack_info.substr(pos, null_pos - pos);
-        pos                   = null_pos + 1;
-    }
-
-    null_pos = pack_info.find('\0', pos);
-    if (null_pos != std::string::npos)
-    {
-        temp_field_data.org_table = pack_info.substr(pos, null_pos - pos);
-        pos                       = null_pos + 1;
-    }
-
-    null_pos = pack_info.find('\0', pos);
-    if (null_pos != std::string::npos)
-    {
-        temp_field_data.org_name = pack_info.substr(pos, null_pos - pos);
-        pos                      = null_pos + 1;
-    }
-
-    null_pos = pack_info.find('\0', pos);
-    if (null_pos != std::string::npos)
-    {
-        temp_field_data.dbname = pack_info.substr(pos, null_pos - pos);
-        pos                    = null_pos + 1;
-    }
-
-    if (pos + 4 <= pack_info.size())
-    {
-        temp_field_data.column_length = buf_to_int32(reinterpret_cast<const unsigned char *>(pack_info.data() + pos));
-        pos += 4;
-    }
-
-    if (pos + 2 <= pack_info.size())
-    {
-        temp_field_data.charset = (pack_info[pos] << 8) | pack_info[pos + 1];
-        pos += 2;
-    }
-
-    if (pos + 4 <= pack_info.size())
-    {
-        temp_field_data.field_type = pack_info[pos + 3];
-        pos += 4;
-    }
-
-    if (pos + 2 <= pack_info.size())
-    {
-        temp_field_data.flags = (pack_info[pos] << 8) | pack_info[pos + 1];
-        pos += 2;
-    }
-
-    if (pos + 2 <= pack_info.size())
-    {
-        temp_field_data.decimals = pack_info[pos];
-    }
-}
-
-bool pg_conn_base::pack_eof_check(const pack_info_t &temp_pack_data)
-{
-    return temp_pack_data.error == 0;
-}
-
 bool pg_conn_base::read_full_sync(unsigned char *buf, size_t len)
 {
     asio::error_code ec;
@@ -365,7 +327,13 @@ bool pg_conn_base::read_message_sync(unsigned char &msg_type, std::string &paylo
 
 bool pg_conn_base::send_message_sync(unsigned char type, const std::string &payload)
 {
-    int32_t len = 4 + payload.size();
+    if (payload.size() > kMaxPgMessageSize - 4)
+    {
+        error_msg  = "message too large to send";
+        error_code = 9;
+        return false;
+    }
+    int32_t len = static_cast<int32_t>(4 + payload.size());
     unsigned char header[5];
     header[0] = type;
     int32_to_buf(len, header + 1);
@@ -453,12 +421,12 @@ static std::string unsupported_auth_message(int32_t auth_type)
 }
 
 // NoticeResponse('N') 载荷解析。真实结构为：自首字节起循环 {1字节字段码, C风格字符串}，直到字段码 0
-// 结束。旧实现误按首字节=='C' 后取 'S' 字段解析，与 parse_error_from_payload 的结构不符，导致
-// 实际 notices_ 恒为空；此处与 parse_error_from_payload 同构，仅把 'M'(正文) 字段收集到 notices_。
-static void collect_notice_messages(std::vector<std::string> &notices,
+// 结束。收集 'S'(severity) / 'C'(SQLSTATE) / 'M'(正文)；三者按字段顺序到达，循环结束后入列。
+static void collect_notice_messages(std::vector<pg_notice> &notices,
                                     const unsigned char *data,
                                     unsigned int len)
 {
+    pg_notice cur;
     unsigned int pos = 0;
     while (pos < len)
     {
@@ -468,12 +436,19 @@ static void collect_notice_messages(std::vector<std::string> &notices,
         size_t str_end = pos;
         while (str_end < len && data[str_end] != '\0')
             str_end++;
-        if (ftype == 'M')
-            notices.emplace_back(reinterpret_cast<const char *>(data + pos), str_end - pos);
+        std::string value(reinterpret_cast<const char *>(data + pos), str_end - pos);
+        if (ftype == 'S')
+            cur.severity = std::move(value);
+        else if (ftype == 'C')
+            cur.code = std::move(value);
+        else if (ftype == 'M')
+            cur.message = std::move(value);
         if (str_end >= len)
             break;
         pos = static_cast<unsigned int>(str_end) + 1;
     }
+    if (!cur.message.empty())
+        notices.push_back(std::move(cur));
 }
 
 bool pg_conn_base::handle_auth(const std::string &payload, const orm_conn_t &conn_config)
@@ -500,15 +475,25 @@ bool pg_conn_base::handle_auth(const std::string &payload, const orm_conn_t &con
 
 bool pg_conn_base::sasl_scram_sha256_sync(const std::string &mechanisms, const orm_conn_t &conn_config)
 {
-    if (mechanisms.find("SCRAM-SHA-256") == std::string::npos)
+    // 机制名精确匹配：同时提供 PLUS 时仍选 plain；只给 PLUS 时明确拒绝
+    if (!mechanism_offered(mechanisms, "SCRAM-SHA-256"))
     {
-        error_msg  = "SCRAM-SHA-256 not offered by server";
+        error_msg  = mechanism_offered(mechanisms, "SCRAM-SHA-256-PLUS")
+                         ? "server only offers SCRAM-SHA-256-PLUS (channel binding is not supported)"
+                         : "SCRAM-SHA-256 not offered by server";
         error_code = 15;
         isclose    = true;
         return false;
     }
 
     std::string client_nonce = generate_nonce(18);
+    if (client_nonce.empty())
+    {
+        error_msg  = "failed to generate SCRAM client nonce";
+        error_code = 15;
+        isclose    = true;
+        return false;
+    }
     // 用户名必须 SASL 转义
     std::string client_first_bare    = "n=" + escape_sasl_name(conn_config.user) + ",r=" + client_nonce;
     std::string client_first_message = "n,," + client_first_bare;
@@ -582,10 +567,25 @@ bool pg_conn_base::sasl_scram_sha256_sync(const std::string &mechanisms, const o
         isclose    = true;
         return false;
     }
+    if (iteration > kMaxScramIterations)
+    {
+        error_msg  = "server SCRAM iteration count exceeds limit";
+        error_code = 17;
+        isclose    = true;
+        return false;
+    }
     if (server_nonce.rfind(client_nonce, 0) != 0)
     {
         error_msg  = "server nonce does not start with client nonce";
         error_code = 18;
+        isclose    = true;
+        return false;
+    }
+
+    if (!is_valid_base64(salt_b64))
+    {
+        error_msg  = "invalid base64 salt in server-first-message";
+        error_code = 17;
         isclose    = true;
         return false;
     }
@@ -642,6 +642,13 @@ bool pg_conn_base::sasl_scram_sha256_sync(const std::string &mechanisms, const o
             return false;
         }
         std::string server_final = payload.substr(4);
+        if (server_final.size() >= 2 && server_final.compare(0, 2, "e=") == 0)
+        {
+            error_msg  = "SASL server reported error: " + server_final.substr(2);
+            error_code = 21;
+            isclose    = true;
+            return false;
+        }
         std::string server_signature_b64;
         pos = 0;
         while (pos < server_final.size())
@@ -760,7 +767,7 @@ bool pg_conn_base::process_server_messages_until_ready_sync(const orm_conn_t &co
             return false;
         case 'N':
         {
-            // NoticeResponse 载荷为 {1字节字段码, 字符串}\0...，取 'M'(正文) 入 notices_
+            // NoticeResponse 载荷为 {1字节字段码, 字符串}\0...，收集 'S'/'C'/'M' 入 notices_
             collect_notice_messages(notices_, reinterpret_cast<const unsigned char *>(payload.data()), static_cast<unsigned int>(payload.size()));
             break;
         }
@@ -1265,15 +1272,26 @@ asio::awaitable<bool> pg_conn_base::async_connect(const orm_conn_t &conn_config)
             }
             else if (auth_type == 10)
             {
-                if (payload.size() < 4 || payload.substr(4).find("SCRAM-SHA-256") == std::string::npos)
+                std::string mechanisms = payload.substr(4);
+                // 机制名精确匹配：同时提供 PLUS 时仍选 plain；只给 PLUS 时明确拒绝
+                if (!mechanism_offered(mechanisms, "SCRAM-SHA-256"))
                 {
-                    error_msg  = "SCRAM-SHA-256 not offered by server";
+                    error_msg  = mechanism_offered(mechanisms, "SCRAM-SHA-256-PLUS")
+                                     ? "server only offers SCRAM-SHA-256-PLUS (channel binding is not supported)"
+                                     : "SCRAM-SHA-256 not offered by server";
                     error_code = 15;
                     isclose    = true;
                     co_return false;
                 }
 
                 std::string client_nonce = generate_nonce(18);
+                if (client_nonce.empty())
+                {
+                    error_msg  = "failed to generate SCRAM client nonce";
+                    error_code = 15;
+                    isclose    = true;
+                    co_return false;
+                }
                 // 用户名必须 SASL 转义（同步路径 sasl_scram_sha256_sync 已做；此处异步内联副本遗漏，补回）
                 std::string client_first_bare    = "n=" + escape_sasl_name(conn_config.user) + ",r=" + client_nonce;
                 std::string client_first_message = "n,," + client_first_bare;
@@ -1379,6 +1397,22 @@ asio::awaitable<bool> pg_conn_base::async_connect(const orm_conn_t &conn_config)
                 }
                 std::string server_first_msg(tmp2.data(), data_len);
 
+                if (msg_type == 'E')
+                {
+                    parse_error_from_payload(reinterpret_cast<const unsigned char *>(tmp2.data()),
+                                             static_cast<unsigned int>(data_len));
+                    error_code = 21;// 认证失败码（parse_error_from_payload 默认 10 是查询错）
+                    isclose    = true;
+                    co_return false;
+                }
+                if (msg_type != 'R')
+                {
+                    error_msg  = "expected SASL continue";
+                    error_code = 16;
+                    isclose    = true;
+                    co_return false;
+                }
+
                 std::string server_nonce, salt_b64;
                 int iteration = 0;
                 size_t pos    = 0;
@@ -1411,6 +1445,27 @@ asio::awaitable<bool> pg_conn_base::async_connect(const orm_conn_t &conn_config)
                 if (server_nonce.empty() || salt_b64.empty() || iteration <= 0)
                 {
                     error_msg  = "invalid server-first-message";
+                    error_code = 17;
+                    isclose    = true;
+                    co_return false;
+                }
+                if (iteration > kMaxScramIterations)
+                {
+                    error_msg  = "server SCRAM iteration count exceeds limit";
+                    error_code = 17;
+                    isclose    = true;
+                    co_return false;
+                }
+                if (server_nonce.rfind(client_nonce, 0) != 0)
+                {
+                    error_msg  = "server nonce does not start with client nonce";
+                    error_code = 18;
+                    isclose    = true;
+                    co_return false;
+                }
+                if (!is_valid_base64(salt_b64))
+                {
+                    error_msg  = "invalid base64 salt in server-first-message";
                     error_code = 17;
                     isclose    = true;
                     co_return false;
@@ -1675,7 +1730,7 @@ asio::awaitable<bool> pg_conn_base::async_connect(const orm_conn_t &conn_config)
         }
         case 'N':
         {
-            // NoticeResponse 载荷为 {1字节字段码, 字符串}\0...，取 'M'(正文) 入 notices_
+            // NoticeResponse 载荷为 {1字节字段码, 字符串}\0...，收集 'S'/'C'/'M' 入 notices_
             collect_notice_messages(notices_, reinterpret_cast<const unsigned char *>(payload.data()), static_cast<unsigned int>(payload.size()));
             break;
         }
@@ -1768,6 +1823,12 @@ asio::awaitable<unsigned int> pg_conn_base::async_read_loop()
 
 unsigned int pg_conn_base::write_sql(const std::string &sql)
 {
+    if (sql.size() > kMaxPgMessageSize - 5)
+    {
+        error_msg  = "SQL statement too large to send";
+        error_code = 20;
+        return 0;
+    }
     unsigned int n = 0;
     send_data.clear();
     send_data.push_back('Q');
@@ -1853,6 +1914,12 @@ unsigned int pg_conn_base::write()
 
 asio::awaitable<unsigned int> pg_conn_base::async_write_sql(const std::string &sql)
 {
+    if (sql.size() > kMaxPgMessageSize - 5)
+    {
+        error_msg  = "SQL statement too large to send";
+        error_code = 20;
+        co_return 0;
+    }
     send_data.clear();
     send_data.push_back('Q');
     int32_t len = 4 + sql.size() + 1;
@@ -1968,10 +2035,10 @@ bool pg_conn_base::ping()
             if (conn_link->ec)
                 return false;
 
-            msg_len          = buf_to_int32(len_buf);
-            int32_t data_len = msg_len - 4;
+            msg_len = buf_to_int32(len_buf);
             if (msg_len < 4 || msg_len > 64 * 1024 * 1024)
                 return false;
+            int32_t data_len = msg_len - 4;
             if (data_len > 0)
             {
                 std::vector<char> tmp(data_len);
@@ -1990,10 +2057,10 @@ bool pg_conn_base::ping()
                 asio::read(*conn_link->socket, asio::buffer(len_buf, 4), conn_link->ec);
                 if (conn_link->ec)
                     return false;
-                msg_len  = buf_to_int32(len_buf);
-                data_len = msg_len - 4;
+                msg_len = buf_to_int32(len_buf);
                 if (msg_len < 4 || msg_len > 64 * 1024 * 1024)
                     return false;
+                data_len = msg_len - 4;
                 if (data_len > 0)
                 {
                     std::vector<char> tmp(data_len);
@@ -2026,10 +2093,10 @@ bool pg_conn_base::ping()
             if (conn_link->ec)
                 return false;
 
-            msg_len          = buf_to_int32(len_buf);
-            int32_t data_len = msg_len - 4;
+            msg_len = buf_to_int32(len_buf);
             if (msg_len < 4 || msg_len > 64 * 1024 * 1024)
                 return false;
+            int32_t data_len = msg_len - 4;
             if (data_len > 0)
             {
                 std::vector<char> tmp(data_len);
@@ -2048,10 +2115,10 @@ bool pg_conn_base::ping()
                 asio::read(*conn_link->sslsocket, asio::buffer(len_buf, 4), conn_link->ec);
                 if (conn_link->ec)
                     return false;
-                msg_len  = buf_to_int32(len_buf);
-                data_len = msg_len - 4;
+                msg_len = buf_to_int32(len_buf);
                 if (msg_len < 4 || msg_len > 64 * 1024 * 1024)
                     return false;
+                data_len = msg_len - 4;
                 if (data_len > 0)
                 {
                     std::vector<char> tmp(data_len);
@@ -2084,10 +2151,10 @@ bool pg_conn_base::ping()
             if (conn_link->ec)
                 return false;
 
-            msg_len          = buf_to_int32(len_buf);
-            int32_t data_len = msg_len - 4;
+            msg_len = buf_to_int32(len_buf);
             if (msg_len < 4 || msg_len > 64 * 1024 * 1024)
                 return false;
+            int32_t data_len = msg_len - 4;
             if (data_len > 0)
             {
                 std::vector<char> tmp(data_len);
@@ -2105,10 +2172,10 @@ bool pg_conn_base::ping()
                 asio::read(*conn_link->localsocket, asio::buffer(len_buf, 4), conn_link->ec);
                 if (conn_link->ec)
                     return false;
-                msg_len  = buf_to_int32(len_buf);
-                data_len = msg_len - 4;
+                msg_len = buf_to_int32(len_buf);
                 if (msg_len < 4 || msg_len > 64 * 1024 * 1024)
                     return false;
+                data_len = msg_len - 4;
                 if (data_len > 0)
                 {
                     std::vector<char> tmp(data_len);
@@ -2695,7 +2762,7 @@ unsigned int pg_conn_base::execute_and_fetch(
             }
             case 'N':// NoticeResponse - 收集警告/提示消息
             {
-                // 载荷为 {1字节字段码, 字符串}\0...，取 'M'(正文) 入 notices_
+                // 载荷为 {1字节字段码, 字符串}\0...，收集 'S'/'C'/'M' 入 notices_
                 collect_notice_messages(notices_, payload_start, payload_len);
                 break;
             }
@@ -2812,7 +2879,7 @@ asio::awaitable<unsigned int> pg_conn_base::async_execute_and_fetch(
             }
             case 'N':
             {
-                // 载荷为 {1字节字段码, 字符串}\0...，取 'M'(正文) 入 notices_
+                // 载荷为 {1字节字段码, 字符串}\0...，收集 'S'/'C'/'M' 入 notices_
                 collect_notice_messages(notices_, payload_start, payload_len);
                 break;
             }
@@ -5488,7 +5555,7 @@ RETRY_RECONNECT:
 
             col_names           = m->col_names;
             col_oids_for_result = m->col_oids;
-            col_formats         = m->col_fmt;
+            col_formats         = req_fmts;
             row_variants.reserve(col_oids_for_result.size());
             name_ptrs_cache.clear();
             name_ptrs_cache.reserve(col_names.size());
@@ -5774,7 +5841,7 @@ RETRY_RECONNECT:
 
             col_names           = m->col_names;
             col_oids_for_result = m->col_oids;
-            col_formats         = m->col_fmt;
+            col_formats         = req_fmts;
             row_variants.reserve(col_oids_for_result.size());
             name_ptrs_cache.clear();
             name_ptrs_cache.reserve(col_names.size());

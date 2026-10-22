@@ -259,6 +259,10 @@ class client_session : public std::enable_shared_from_this<client_session>
     // 关闭冲刷已发生：此后不再接收新的挂起（发送线程直接把对象回池）。
     // 没有这个闸门，冲刷之后挂进来的对象要等兜底扫描才回得来。
     std::atomic_bool send_park_closed = false;
+    // 本连接当前停留在挂起表里的发送对象数。环腾槽位 / 窗口更新 / 额度退还三条热路径
+    // 先读它，为 0 就不去抢全局挂起表的锁。无回灌在途时满足：
+    // sum(各连接 parked_count) == 挂起表长度 - 表内无 peer 条目数。
+    std::atomic<unsigned int> parked_count = 0;
     //std::string http2_ring_queue_temp;
 
     std::mutex http2_sock_mutex;

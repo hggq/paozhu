@@ -42,6 +42,7 @@
 #include "test_parse_ini.h"
 #include "test_pg_crud.h"
 #include "test_pzexcel.h"
+#include "test_pzexcel_p2.h"
 #include "test_pzjpg.h"
 #include "test_pzpng.h"
 #include "test_pzword.h"
@@ -265,6 +266,7 @@ namespace http
         reg_raw("", "/cms/pglist", nullptr, nullptr, article_pg_list, nullptr, 0);
         reg_raw("", "/cms/pgshow", nullptr, nullptr, article_pg_show, nullptr, 0);
         reg_raw("", "/test_pzexcel", nullptr, nullptr, test_pzexcel, nullptr, 0);
+        reg_raw("", "/test_pzexcel_p2", nullptr, nullptr, test_pzexcel_p2, nullptr, 0);
         reg_raw("", "/test_pzjpg", nullptr, nullptr, test_pzjpg, nullptr, 0);
         reg_raw("", "/test_outjpg", nullptr, nullptr, test_outjpg, nullptr, 0);
         reg_raw("", "/test_showjpg", nullptr, nullptr, test_showjpg, nullptr, 0);

@@ -2,7 +2,7 @@
 #define ORM_CMS_BLOGCATALOGBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sun, 18 Oct 2026 14:28:04 GMT
+*本文件为自动生成 Thu, 22 Oct 2026 11:07:17 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -613,7 +613,7 @@ namespace blogcatalog_info
         
     inline constexpr std::array<std::string_view,5> col_names={"bid","userid","dateid","articlenum","languageid"};
 	static constexpr std::array<unsigned char,5> col_types={3,3,3,3,3};
-	static constexpr std::array<unsigned short,5> col_length={0,0,0,0,0};
+	static constexpr std::array<unsigned int,5> col_length={0,0,0,0,0};
 	static constexpr std::array<unsigned char,5> col_decimals={0,0,0,0,0};
 	static constexpr std::array<bool,5> col_null={false,false,false,false,false};
 	static constexpr std::array<bool,5> col_indexed={true,false,false,false,false};

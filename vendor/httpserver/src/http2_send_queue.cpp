@@ -97,8 +97,17 @@ void http2_send_queue::park(std::shared_ptr<http2_send_data_t> sp, unsigned char
         return;
     }
     std::unique_lock<std::mutex> lock(parked_mutex);
+    client_session *owner = (sp->peer && sp->peer->socket_session)
+                                ? sp->peer->socket_session.get()
+                                : nullptr;
     sp->block_reason = reason;
     sp->own_state    = 3;
+    // 先加计数再入表：事件边在「入表之后、计数之前」到达会读到 0 而跳过这一条，
+    // 它就只能等 6 秒兜底。反过来最多让一次并发回灌扑空，不会漏唤醒。
+    if (owner)
+    {
+        owner->parked_count.fetch_add(1, std::memory_order_relaxed);
+    }
     parked_list.emplace_back(sp);
     auto here = std::prev(parked_list.end());
     parked.fetch_add(1);
@@ -116,6 +125,10 @@ void http2_send_queue::park(std::shared_ptr<http2_send_data_t> sp, unsigned char
     {
         parked_list.erase(here);
         parked.fetch_sub(1);
+        if (owner)
+        {
+            owner->parked_count.fetch_sub(1, std::memory_order_relaxed);
+        }
         lock.unlock();
         back_cache_ptr(sp);
         return;
@@ -123,7 +136,8 @@ void http2_send_queue::park(std::shared_ptr<http2_send_data_t> sp, unsigned char
     lock.unlock();
 }
 
-bool http2_send_queue::detach_parked(const client_session *session_obj, std::list<std::shared_ptr<http2_send_data_t>> &out)
+bool http2_send_queue::detach_parked(const client_session *session_obj, unsigned char reason,
+                                     std::list<std::shared_ptr<http2_send_data_t>> &out)
 {
     if (parked.load() == 0)
     {
@@ -140,11 +154,22 @@ bool http2_send_queue::detach_parked(const client_session *session_obj, std::lis
         // drain it on a per-session call too — otherwise it waits for the 6s belt sweep.
         // dispatch_parked's no-peer gate path (gate passes → ready → send-thread liveness
         // filter) recycles it; it is never reattached.
-        if (session_obj == nullptr || !(*iter)->peer ||
-            (*iter)->peer->socket_session.get() == session_obj)
+        const bool reason_match  = (reason == 0 || (*iter)->block_reason.load() == reason);
+        const bool session_match = session_obj == nullptr || !(*iter)->peer ||
+                                   (*iter)->peer->socket_session.get() == session_obj;
+        if (reason_match && session_match)
         {
+            // 减的是条目自己的连接，不是调用方传进来的 session_obj：
+            // 兜底扫描传 nullptr，若按调用方减，所有连接的计数都降不下来。
+            client_session *owner = ((*iter)->peer && (*iter)->peer->socket_session)
+                                        ? (*iter)->peer->socket_session.get()
+                                        : nullptr;
             out.splice(out.end(), parked_list, iter++);
             parked.fetch_sub(1);
+            if (owner)
+            {
+                owner->parked_count.fetch_sub(1, std::memory_order_relaxed);
+            }
         }
         else
         {
@@ -162,6 +187,13 @@ void http2_send_queue::reattach_parked(std::list<std::shared_ptr<http2_send_data
         return;
     }
     std::unique_lock<std::mutex> lock(parked_mutex);
+    for (auto &sp : in)
+    {
+        if (sp && sp->peer && sp->peer->socket_session)
+        {
+            sp->peer->socket_session->parked_count.fetch_add(1, std::memory_order_relaxed);
+        }
+    }
     parked.fetch_add(static_cast<unsigned int>(in.size()));
     parked_list.splice(parked_list.end(), in);
     lock.unlock();

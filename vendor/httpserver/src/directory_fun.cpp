@@ -28,19 +28,23 @@ namespace http
 std::string file_time_tostring(fs::file_time_type const &ftime)
 {
     time_t systimeid;
-    tm *lsystemTime;
+    tm lsystemTime{};
     unsigned char timeformat;
     std::ostringstream tempchache;
 
     auto elapse = std::chrono::duration_cast<std::chrono::seconds>(std::filesystem::file_time_type::clock::now().time_since_epoch() - std::chrono::system_clock::now().time_since_epoch()).count();
     systimeid = std::chrono::duration_cast<std::chrono::seconds>(ftime.time_since_epoch()).count()-elapse;
     //systimeid =std::chrono::duration_cast<std::chrono::seconds>(ftime.time_since_epoch() - std::chrono::system_clock::now().time_since_epoch()).count();
-    lsystemTime = localtime(&systimeid);
+#if defined(_WIN32)
+    localtime_s(&lsystemTime, &systimeid);
+#else
+    localtime_r(&systimeid, &lsystemTime);
+#endif
 
     tempchache.str("");
-    tempchache << (lsystemTime->tm_year + 1900);
+    tempchache << (lsystemTime.tm_year + 1900);
     tempchache << "-";
-    timeformat = lsystemTime->tm_mon + 1;
+    timeformat = lsystemTime.tm_mon + 1;
     if (timeformat < 10)
     {
         tempchache << "0" << std::to_string(timeformat);
@@ -51,46 +55,46 @@ std::string file_time_tostring(fs::file_time_type const &ftime)
     }
     tempchache << "-";
 
-    if (lsystemTime->tm_mday < 10)
+    if (lsystemTime.tm_mday < 10)
     {
-        tempchache << "0" << std::to_string(lsystemTime->tm_mday);
+        tempchache << "0" << std::to_string(lsystemTime.tm_mday);
     }
     else
     {
-        tempchache << std::to_string(lsystemTime->tm_mday);
+        tempchache << std::to_string(lsystemTime.tm_mday);
     }
 
     tempchache << " ";
 
-    if (lsystemTime->tm_hour < 10)
+    if (lsystemTime.tm_hour < 10)
     {
-        tempchache << "0" << std::to_string(lsystemTime->tm_hour);
+        tempchache << "0" << std::to_string(lsystemTime.tm_hour);
     }
     else
     {
-        tempchache << std::to_string(lsystemTime->tm_hour);
+        tempchache << std::to_string(lsystemTime.tm_hour);
     }
 
     tempchache << ":";
 
-    if (lsystemTime->tm_min < 10)
+    if (lsystemTime.tm_min < 10)
     {
-        tempchache << "0" << std::to_string(lsystemTime->tm_min);
+        tempchache << "0" << std::to_string(lsystemTime.tm_min);
     }
     else
     {
-        tempchache << std::to_string(lsystemTime->tm_min);
+        tempchache << std::to_string(lsystemTime.tm_min);
     }
 
     tempchache << ":";
 
-    if (lsystemTime->tm_sec < 10)
+    if (lsystemTime.tm_sec < 10)
     {
-        tempchache << "0" << std::to_string(lsystemTime->tm_sec);
+        tempchache << "0" << std::to_string(lsystemTime.tm_sec);
     }
     else
     {
-        tempchache << std::to_string(lsystemTime->tm_sec);
+        tempchache << std::to_string(lsystemTime.tm_sec);
     }
     return tempchache.str();
 }
@@ -162,18 +166,22 @@ std::string displaydirectory(std::string localpath, std::string urlpath, std::st
 
     senddatastring.append("<ul class=\"directorycontent\">");
     senddatastring.append("<li class=\"rowhead\">");
+    // 以下几处的 URL 与文件名都来自请求路径/磁盘文件名，一律 html_encode：
+    // href 与文本都要转（& 也要转，否则 &amp; 会被二次解释）。
+    // Everything below comes from the request path / on-disk file name — html_encode all of
+    // it, both href and text (& included, otherwise &amp; gets re-interpreted).
     senddatastring.append("<span class=\"filename\"><a href=\"");
-    senddatastring.append(urlpath);
+    senddatastring.append(http::html_encode(urlpath));
     senddatastring.append("\">");
 
     senddatastring.append("Filename");
     senddatastring.append("</a></span>");
     senddatastring.append("<span class=\"filesize\"><a href=\"");
-    senddatastring.append(urlpath);
+    senddatastring.append(http::html_encode(urlpath));
     senddatastring.append("?sort=size\">Size");
     senddatastring.append("</a></span>");
     senddatastring.append("<span class=\"time\"><a href=\"");
-    senddatastring.append(urlpath);
+    senddatastring.append(http::html_encode(urlpath));
     senddatastring.append("?sort=time\">Time");
 
     senddatastring.append("</a></span>");
@@ -184,7 +192,7 @@ std::string displaydirectory(std::string localpath, std::string urlpath, std::st
 
         senddatastring.append("<li class=\"directoryrow\">");
         senddatastring.append("<span class=\"filename\"><a href=\"");
-        senddatastring.append(parentpath);
+        senddatastring.append(http::html_encode(parentpath));
         senddatastring.append("\">");
         senddatastring.append("..");
         senddatastring.append("</a></span>");
@@ -258,20 +266,20 @@ std::string displaydirectory(std::string localpath, std::string urlpath, std::st
 
             if (fileslists[ii].ext.size() > 0 && fileslists[ii].ext[0] == '.')
             {
-                senddatastring.append(fileslists[ii].ext.substr(1));
+                senddatastring.append(http::html_encode(fileslists[ii].ext.substr(1)));
             }
             else
             {
-                senddatastring.append(fileslists[ii].ext);
+                senddatastring.append(http::html_encode(fileslists[ii].ext));
             }
             senddatastring.append("\"></i> <a href=\"");
         }
 
-        senddatastring.append(httpquestpath);
-        senddatastring.append(fileslists[ii].filename);
+        senddatastring.append(http::html_encode(httpquestpath));
+        senddatastring.append(http::html_encode(fileslists[ii].filename));
 
         senddatastring.append("\">");
-        senddatastring.append(fileslists[ii].filename);
+        senddatastring.append(http::html_encode(fileslists[ii].filename));
         senddatastring.append("</a></div>");
         senddatastring.append("<div class=\"filesize\">");
         if (fileslists[ii].time.size() < 3)
@@ -300,7 +308,7 @@ std::string displaydirectory(std::string localpath, std::string urlpath, std::st
             senddatastring.substr(beginpos + sizeof("<!---directoryurl---->") - 1);
 
         senddatastring = templatea;
-        senddatastring.append(urlpath);
+        senddatastring.append(http::html_encode(urlpath));
         senddatastring.append(templateb);
     }
 
@@ -547,18 +555,22 @@ std::string displaydirectory_attachfile(std::string localpath, std::string urlpa
 
     senddatastring.append("<ul class=\"directorycontent\">");
     senddatastring.append("<li class=\"rowhead\">");
+    // 以下几处的 URL 与文件名都来自请求路径/磁盘文件名，一律 html_encode：
+    // href 与文本都要转（& 也要转，否则 &amp; 会被二次解释）。
+    // Everything below comes from the request path / on-disk file name — html_encode all of
+    // it, both href and text (& included, otherwise &amp; gets re-interpreted).
     senddatastring.append("<span class=\"filename\"><a href=\"");
-    senddatastring.append(urlpath);
+    senddatastring.append(http::html_encode(urlpath));
     senddatastring.append("\">");
 
     senddatastring.append("Filename");
     senddatastring.append("</a></span>");
     senddatastring.append("<span class=\"filesize\"><a href=\"");
-    senddatastring.append(urlpath);
+    senddatastring.append(http::html_encode(urlpath));
     senddatastring.append("?sort=size\">Size");
     senddatastring.append("</a></span>");
     senddatastring.append("<span class=\"time\"><a href=\"");
-    senddatastring.append(urlpath);
+    senddatastring.append(http::html_encode(urlpath));
     senddatastring.append("?sort=time\">Time");
 
     senddatastring.append("</a></span>");
@@ -576,7 +588,7 @@ std::string displaydirectory_attachfile(std::string localpath, std::string urlpa
 
         senddatastring.append("<li class=\"directoryrowheader\">");
         senddatastring.append("<span class=\"filename\"><a href=\"");
-        senddatastring.append(parentpath);
+        senddatastring.append(http::html_encode(parentpath));
         senddatastring.append("\">");
         senddatastring.append("..");
         senddatastring.append("</a></span>");
@@ -656,18 +668,18 @@ std::string displaydirectory_attachfile(std::string localpath, std::string urlpa
 
         if (fileslists[ii].size > 0)
         {
-            senddatastring.append(realurlpath);
-            senddatastring.append(fileslists[ii].filename);
+            senddatastring.append(http::html_encode(realurlpath));
+            senddatastring.append(http::html_encode(fileslists[ii].filename));
             senddatastring.append("\" target=_blank>");
         }
         else
         {
-            senddatastring.append(httpquestpath);
-            senddatastring.append(fileslists[ii].filename);
+            senddatastring.append(http::html_encode(httpquestpath));
+            senddatastring.append(http::html_encode(fileslists[ii].filename));
             senddatastring.append("\">");
         }
 
-        senddatastring.append(fileslists[ii].filename);
+        senddatastring.append(http::html_encode(fileslists[ii].filename));
         senddatastring.append("</a></div>");
         senddatastring.append("<div class=\"filesize\">");
         if (fileslists[ii].time.size() < 3)
@@ -680,15 +692,15 @@ std::string displaydirectory_attachfile(std::string localpath, std::string urlpa
         }
         senddatastring.append("</div>");
         senddatastring.append("<div class=\"time\">");
-        senddatastring.append(fileslists[ii].time);
+        senddatastring.append(http::html_encode(fileslists[ii].time));
         senddatastring.append("</div>");
 
         if (fileslists[ii].size > 0)
         {
             senddatastring.append("<div class=\"editfile\"> <a href=\"");
-            senddatastring.append(deleteurlpath);
+            senddatastring.append(http::html_encode(deleteurlpath));
             senddatastring.append("?file=");
-            senddatastring.append(fileslists[ii].filename);
+            senddatastring.append(http::html_encode(fileslists[ii].filename));
             senddatastring.append("\" onclick=\"return confirm('Delete this image?')\">Delete</a></div>");
         }
         else
@@ -710,7 +722,7 @@ std::string displaydirectory_attachfile(std::string localpath, std::string urlpa
             senddatastring.substr(beginpos + sizeof("<!---directoryurl---->") - 1);
 
         senddatastring = templatea;
-        senddatastring.append(realurlpath);
+        senddatastring.append(http::html_encode(realurlpath));
         senddatastring.append(templateb);
     }
 
@@ -799,18 +811,22 @@ std::string displaydirectory_attachimg(std::string localpath, std::string urlpat
 
     senddatastring.append("<ul class=\"directorycontent\">");
     senddatastring.append("<li class=\"rowhead\">");
+    // 以下几处的 URL 与文件名都来自请求路径/磁盘文件名，一律 html_encode：
+    // href 与文本都要转（& 也要转，否则 &amp; 会被二次解释）。
+    // Everything below comes from the request path / on-disk file name — html_encode all of
+    // it, both href and text (& included, otherwise &amp; gets re-interpreted).
     senddatastring.append("<span class=\"filename\"><a href=\"");
-    senddatastring.append(urlpath);
+    senddatastring.append(http::html_encode(urlpath));
     senddatastring.append("\">");
 
     senddatastring.append("Filename");
     senddatastring.append("</a></span>");
     senddatastring.append("<span class=\"filesize\"><a href=\"");
-    senddatastring.append(urlpath);
+    senddatastring.append(http::html_encode(urlpath));
     senddatastring.append("?sort=size\">Size");
     senddatastring.append("</a></span>");
     senddatastring.append("<span class=\"time\"><a href=\"");
-    senddatastring.append(urlpath);
+    senddatastring.append(http::html_encode(urlpath));
     senddatastring.append("?sort=time\">Time");
 
     senddatastring.append("</a></span>");
@@ -828,7 +844,7 @@ std::string displaydirectory_attachimg(std::string localpath, std::string urlpat
 
         senddatastring.append("<li class=\"directoryrowheader\">");
         senddatastring.append("<span class=\"filename\"><a href=\"");
-        senddatastring.append(parentpath);
+        senddatastring.append(http::html_encode(parentpath));
         senddatastring.append("\">");
         senddatastring.append("..");
         senddatastring.append("</a></span>");
@@ -915,28 +931,28 @@ std::string displaydirectory_attachimg(std::string localpath, std::string urlpat
         {
             if (str_casecmp(fileslists[ii].ext, ".png") || str_casecmp(fileslists[ii].ext, ".jpg") || str_casecmp(fileslists[ii].ext, ".gif") || str_casecmp(fileslists[ii].ext, ".jpeg"))
             {
-                senddatastring.append(realurlpath);
-                senddatastring.append(fileslists[ii].filename);
+                senddatastring.append(http::html_encode(realurlpath));
+                senddatastring.append(http::html_encode(fileslists[ii].filename));
                 senddatastring.append("\" target=_blank><img src=\"");
-                senddatastring.append(realurlpath);
-                senddatastring.append(fileslists[ii].filename);
+                senddatastring.append(http::html_encode(realurlpath));
+                senddatastring.append(http::html_encode(fileslists[ii].filename));
                 senddatastring.append("\" width=\"60\" height=\"60\"/>");
             }
             else
             {
-                senddatastring.append(httpquestpath);
-                senddatastring.append(fileslists[ii].filename);
+                senddatastring.append(http::html_encode(httpquestpath));
+                senddatastring.append(http::html_encode(fileslists[ii].filename));
                 senddatastring.append("\">");
             }
         }
         else
         {
-            senddatastring.append(httpquestpath);
-            senddatastring.append(fileslists[ii].filename);
+            senddatastring.append(http::html_encode(httpquestpath));
+            senddatastring.append(http::html_encode(fileslists[ii].filename));
             senddatastring.append("\">");
         }
 
-        senddatastring.append(fileslists[ii].filename);
+        senddatastring.append(http::html_encode(fileslists[ii].filename));
         senddatastring.append("</a></div>");
         senddatastring.append("<div class=\"filesize\">");
         if (fileslists[ii].time.size() < 3)
@@ -949,15 +965,15 @@ std::string displaydirectory_attachimg(std::string localpath, std::string urlpat
         }
         senddatastring.append("</div>");
         senddatastring.append("<div class=\"time\">");
-        senddatastring.append(fileslists[ii].time);
+        senddatastring.append(http::html_encode(fileslists[ii].time));
         senddatastring.append("</div>");
 
         if (fileslists[ii].size > 0)
         {
             senddatastring.append("<div class=\"editfile\"> <a href=\"");
-            senddatastring.append(deleteurlpath);
+            senddatastring.append(http::html_encode(deleteurlpath));
             senddatastring.append("?file=");
-            senddatastring.append(fileslists[ii].filename);
+            senddatastring.append(http::html_encode(fileslists[ii].filename));
             senddatastring.append("\" onclick=\"return confirm('Delete this image?')\">Delete</a></div>");
         }
         else
@@ -979,7 +995,7 @@ std::string displaydirectory_attachimg(std::string localpath, std::string urlpat
             senddatastring.substr(beginpos + sizeof("<!---directoryurl---->") - 1);
 
         senddatastring = templatea;
-        senddatastring.append(realurlpath);
+        senddatastring.append(http::html_encode(realurlpath));
         senddatastring.append(templateb);
     }
 

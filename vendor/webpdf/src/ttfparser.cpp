@@ -52,9 +52,11 @@ void cff_parse_dict(const std::string& d, std::vector<CFFDictEntry>& out) {
             started = false;
             i = op_end;
         } else if (b0 == 28) {
+            if (i + 2 >= d.size()) break;  // truncated operand
             int16_t v = (int16_t)(((uint8_t)d[i + 1] << 8) | (uint8_t)d[i + 2]);
             operands.push_back(v); i += 3;
         } else if (b0 == 29) {
+            if (i + 4 >= d.size()) break;  // truncated operand
             int32_t v = ((uint8_t)d[i + 1] << 24) | ((uint8_t)d[i + 2] << 16) |
                         ((uint8_t)d[i + 3] << 8) | (uint8_t)d[i + 4];
             operands.push_back(v); i += 5;
@@ -79,8 +81,10 @@ void cff_parse_dict(const std::string& d, std::vector<CFFDictEntry>& out) {
         } else if (b0 >= 32 && b0 <= 246) {
             operands.push_back((int)b0 - 139); i += 1;
         } else if (b0 >= 247 && b0 <= 250) {
+            if (i + 1 >= d.size()) break;  // truncated operand
             operands.push_back((b0 - 247) * 256 + (uint8_t)d[i + 1] + 108); i += 2;
         } else if (b0 >= 251 && b0 <= 254) {
+            if (i + 1 >= d.size()) break;  // truncated operand
             operands.push_back(-((int)(b0 - 251)) * 256 - (uint8_t)d[i + 1] - 108); i += 2;
         } else {
             i += 1;
@@ -184,23 +188,31 @@ std::string cff_enc_op(int op) {
 
 // ---- Type2 charstring subr inliner ----------------------------------------
 // Decode one Type2 charstring operand at p, returning its byte length and value.
+// A length of 0 means the operand runs past the end of the charstring, so the
+// caller has to stop instead of advancing by it.
 size_t cs_operand_len(const std::string& cs, size_t p, double& val) {
+    val = 0;
+    if (p >= cs.size()) return 0;
     uint8_t b = (uint8_t)cs[p];
     if (b == 28) {
+        if (p + 2 >= cs.size()) return 0;
         int16_t v = (int16_t)(((uint8_t)cs[p + 1] << 8) | (uint8_t)cs[p + 2]);
         val = v; return 3;
     } else if (b >= 32 && b <= 246) {
         val = (int)b - 139; return 1;
     } else if (b >= 247 && b <= 250) {
+        if (p + 1 >= cs.size()) return 0;
         val = (b - 247) * 256 + (uint8_t)cs[p + 1] + 108; return 2;
     } else if (b >= 251 && b <= 254) {
+        if (p + 1 >= cs.size()) return 0;
         val = -((int)(b - 251)) * 256 - (uint8_t)cs[p + 1] - 108; return 2;
     } else if (b == 255) {
+        if (p + 4 >= cs.size()) return 0;
         int32_t v = ((uint8_t)cs[p + 1] << 24) | ((uint8_t)cs[p + 2] << 16) |
                     ((uint8_t)cs[p + 3] << 8) | (uint8_t)cs[p + 4];
         val = v / 65536.0; return 5;
     }
-    val = 0; return 1;
+    return 1;
 }
 
 // Recursively inline callsubr/callgsubr references so the resulting charstring
@@ -235,13 +247,14 @@ struct CFFInliner {
             uint8_t b = (uint8_t)cs[i];
             if (b >= 32 || b == 28) {
                 double val; size_t len = cs_operand_len(cs, i, val);
-                if (i + len > n) { ok = false; return; }
+                if (len == 0 || i + len > n) { ok = false; return; }
                 pending += cs.substr(i, len);
                 arg_len.push_back(len);
                 i += len;
             } else if (b == 10 || b == 29) { // callsubr / callgsubr
                 if (arg_len.empty()) { ok = false; return; }
                 size_t llen = arg_len.back();
+                if (llen == 0 || llen > pending.size()) { ok = false; return; }
                 double idxval;
                 cs_operand_len(pending, pending.size() - llen, idxval);
                 pending.erase(pending.size() - llen);
@@ -295,6 +308,92 @@ TTFParser::~TTFParser() {
         f.close();
 }
 
+void TTFParser::_read_cmap(const std::string& cmap_table, uint32_t cmap_offset,
+                           uint16_t cmap_format, std::map<uint32_t, uint16_t>& out) {
+    // Every count below is read out of the file, so the walk is capped: a real
+    // font does not map anything close to this many code points.
+    const uint64_t MAX_CMAP_STEPS = 0x40000;
+    uint64_t steps = 0;
+
+    if (cmap_format == 12) {
+        size_t p = cmap_offset + 12;
+        uint32_t numGroups = _get_ulong(cmap_table, p);
+        p += 4;
+        for (uint32_t i = 0; i < numGroups && p + 11 < cmap_table.size(); i++) {
+            uint32_t startCharCode = _get_ulong(cmap_table, p);
+            uint32_t endCharCode = _get_ulong(cmap_table, p + 4);
+            uint32_t startGlyphID = _get_ulong(cmap_table, p + 8);
+            p += 12;
+            for (uint32_t c = startCharCode; c <= endCharCode && startGlyphID + (c - startCharCode) < 0xFFFF; c++) {
+                if (++steps > MAX_CMAP_STEPS)
+                    throw TTFParserException("cmap format 12 too large");
+                uint16_t gid = (uint16_t)(startGlyphID + (c - startCharCode));
+                if (gid > 0) out[c] = gid;
+            }
+        }
+        return;
+    }
+
+    size_t fmt4 = cmap_offset;
+    size_t segCount = _get_ushort(cmap_table, fmt4 + 6) / 2;
+    // Eight table bytes per segment (endCount, startCount, idDelta,
+    // idRangeOffset); a header claiming more than the table holds is lying.
+    size_t room = cmap_table.size() > fmt4 + 14 ? cmap_table.size() - (fmt4 + 14) : 0;
+    if (segCount > room / 8) segCount = room / 8;
+    std::vector<uint16_t> endCount, startCount, idRangeOffset;
+    std::vector<int16_t> idDelta;
+    size_t p = fmt4 + 14;
+    for (size_t i = 0; i < segCount; i++) {
+        endCount.push_back(_get_ushort(cmap_table, p));
+        p += 2;
+    }
+    p += 2;
+    for (size_t i = 0; i < segCount; i++) {
+        startCount.push_back(_get_ushort(cmap_table, p));
+        p += 2;
+    }
+    for (size_t i = 0; i < segCount; i++) {
+        idDelta.push_back((int16_t)_get_ushort(cmap_table, p));
+        p += 2;
+    }
+    size_t ro_base = p;
+    for (size_t i = 0; i < segCount; i++) {
+        idRangeOffset.push_back(_get_ushort(cmap_table, p));
+        p += 2;
+    }
+
+    for (size_t i = 0; i < segCount; i++) {
+        uint16_t c1 = startCount[i];
+        uint16_t c2 = endCount[i];
+        int16_t d = idDelta[i];
+        uint16_t ro = idRangeOffset[i];
+        if (c1 == 0xFFFF) break;
+        for (uint32_t c = c1; c <= c2 && c < 0xFFFF; c++) {
+            if (++steps > MAX_CMAP_STEPS)
+                throw TTFParserException("cmap format 4 too large");
+            uint16_t gid;
+            if (ro > 0) {
+                size_t glyphIndex = ro_base + i * 2 + ro + (c - c1) * 2;
+                if (glyphIndex + 1 < cmap_table.size()) {
+                    gid = _get_ushort(cmap_table, glyphIndex);
+                    if (gid != 0) {
+                        int32_t g = (int32_t)gid + (int32_t)d;
+                        if (g < 0) g += 65536;
+                        gid = (uint16_t)(g & 0xFFFF);
+                    }
+                } else {
+                    gid = 0;
+                }
+            } else {
+                int32_t g = (int32_t)c + (int32_t)d;
+                if (g < 0) g += 65536;
+                gid = (uint16_t)(g & 0xFFFF);
+            }
+            if (gid > 0) out[c] = gid;
+        }
+    }
+}
+
 void TTFParser::Parse() {
     ParseOffsetTable();
 
@@ -338,74 +437,7 @@ void TTFParser::Parse() {
         throw TTFParserException("No Unicode cmap found");
 
     chars.clear();
-    if (cmap_format == 12) {
-        size_t p = unicode_cmap_offset + 12;
-        uint32_t numGroups = _get_ulong(cmap_table, p);
-        p += 4;
-        for (uint32_t i = 0; i < numGroups && p + 11 < cmap_table.size(); i++) {
-            uint32_t startCharCode = _get_ulong(cmap_table, p);
-            uint32_t endCharCode = _get_ulong(cmap_table, p + 4);
-            uint32_t startGlyphID = _get_ulong(cmap_table, p + 8);
-            p += 12;
-            for (uint32_t c = startCharCode; c <= endCharCode && startGlyphID + (c - startCharCode) < 0xFFFF; c++) {
-                uint16_t gid = (uint16_t)(startGlyphID + (c - startCharCode));
-                if (gid > 0) chars[c] = gid;
-            }
-        }
-    } else {
-        size_t fmt4 = unicode_cmap_offset;
-        uint16_t segCount = _get_ushort(cmap_table, fmt4 + 6) / 2;
-        std::vector<uint16_t> endCount, startCount, idRangeOffset;
-        std::vector<int16_t> idDelta;
-        size_t p = fmt4 + 14;
-        for (uint16_t i = 0; i < segCount; i++) {
-            endCount.push_back(_get_ushort(cmap_table, p));
-            p += 2;
-        }
-        p += 2;
-        for (uint16_t i = 0; i < segCount; i++) {
-            startCount.push_back(_get_ushort(cmap_table, p));
-            p += 2;
-        }
-        for (uint16_t i = 0; i < segCount; i++) {
-            idDelta.push_back((int16_t)_get_ushort(cmap_table, p));
-            p += 2;
-        }
-        size_t ro_base = p;
-        for (uint16_t i = 0; i < segCount; i++) {
-            idRangeOffset.push_back(_get_ushort(cmap_table, p));
-            p += 2;
-        }
-
-        for (uint16_t i = 0; i < segCount; i++) {
-            uint16_t c1 = startCount[i];
-            uint16_t c2 = endCount[i];
-            int16_t d = idDelta[i];
-            uint16_t ro = idRangeOffset[i];
-            if (c1 == 0xFFFF) break;
-            for (uint32_t c = c1; c <= c2 && c < 0xFFFF; c++) {
-                uint16_t gid;
-                if (ro > 0) {
-                    size_t glyphIndex = ro_base + i * 2 + ro + (c - c1) * 2;
-                    if (glyphIndex + 1 < cmap_table.size()) {
-                        gid = _get_ushort(cmap_table, glyphIndex);
-                        if (gid != 0) {
-                            int32_t g = (int32_t)gid + (int32_t)d;
-                            if (g < 0) g += 65536;
-                            gid = (uint16_t)(g & 0xFFFF);
-                        }
-                    } else {
-                        gid = 0;
-                    }
-                } else {
-                    int32_t g = (int32_t)c + (int32_t)d;
-                    if (g < 0) g += 65536;
-                    gid = (uint16_t)(g & 0xFFFF);
-                }
-                if (gid > 0) chars[c] = gid;
-            }
-        }
-    }
+    _read_cmap(cmap_table, unicode_cmap_offset, cmap_format, chars);
 
     std::string hmtx_table = _get_table("hmtx");
     glyphs.resize(numGlyphs);
@@ -413,6 +445,8 @@ void TTFParser::Parse() {
     size_t hsz = hmtx_table.size();
     uint16_t last_aw = 0;
     size_t nHM = std::min((size_t)numberOfHMetrics, hsz / 4);
+    // numberOfHMetrics 来自 maxp，可以比 numGlyphs 大；两个数组都只有 numGlyphs 格
+    nHM = std::min(nHM, (size_t)numGlyphs);
     for (size_t i = 0; i < nHM; i++) {
         last_aw = (hp[i*4] << 8) | hp[i*4+1];
         glyphs[i].advanceWidth = last_aw;
@@ -592,74 +626,7 @@ void TTFParser::Subset(const std::vector<uint32_t>& chars_vec) {
         throw TTFParserException("No Unicode cmap found");
 
     chars.clear();
-    if (cmap_format == 12) {
-        size_t p = unicode_cmap_offset + 12;
-        uint32_t numGroups = _get_ulong(cmap_table, p);
-        p += 4;
-        for (uint32_t i = 0; i < numGroups && p + 11 < cmap_table.size(); i++) {
-            uint32_t startCharCode = _get_ulong(cmap_table, p);
-            uint32_t endCharCode = _get_ulong(cmap_table, p + 4);
-            uint32_t startGlyphID = _get_ulong(cmap_table, p + 8);
-            p += 12;
-            for (uint32_t c = startCharCode; c <= endCharCode && startGlyphID + (c - startCharCode) < 0xFFFF; c++) {
-                uint16_t gid = (uint16_t)(startGlyphID + (c - startCharCode));
-                if (gid > 0) chars[c] = gid;
-            }
-        }
-    } else {
-        size_t fmt4 = unicode_cmap_offset;
-        uint16_t segCount = _get_ushort(cmap_table, fmt4 + 6) / 2;
-        std::vector<uint16_t> endCount, startCount, idRangeOffset;
-        std::vector<int16_t> idDelta;
-        size_t p = fmt4 + 14;
-        for (uint16_t i = 0; i < segCount; i++) {
-            endCount.push_back(_get_ushort(cmap_table, p));
-            p += 2;
-        }
-        p += 2;
-        for (uint16_t i = 0; i < segCount; i++) {
-            startCount.push_back(_get_ushort(cmap_table, p));
-            p += 2;
-        }
-        for (uint16_t i = 0; i < segCount; i++) {
-            idDelta.push_back((int16_t)_get_ushort(cmap_table, p));
-            p += 2;
-        }
-        size_t ro_base = p;
-        for (uint16_t i = 0; i < segCount; i++) {
-            idRangeOffset.push_back(_get_ushort(cmap_table, p));
-            p += 2;
-        }
-
-        for (uint16_t i = 0; i < segCount; i++) {
-            uint16_t c1 = startCount[i];
-            uint16_t c2 = endCount[i];
-            int16_t d = idDelta[i];
-            uint16_t ro = idRangeOffset[i];
-            if (c1 == 0xFFFF) break;
-            for (uint32_t c = c1; c <= c2 && c < 0xFFFF; c++) {
-                uint16_t gid;
-                if (ro > 0) {
-                    size_t glyphIndex = ro_base + i * 2 + ro + (c - c1) * 2;
-                    if (glyphIndex + 1 < cmap_table.size()) {
-                        gid = _get_ushort(cmap_table, glyphIndex);
-                        if (gid != 0) {
-                            int32_t g = (int32_t)gid + (int32_t)d;
-                            if (g < 0) g += 65536;
-                            gid = (uint16_t)(g & 0xFFFF);
-                        }
-                    } else {
-                        gid = 0;
-                    }
-                } else {
-                    int32_t g = (int32_t)c + (int32_t)d;
-                    if (g < 0) g += 65536;
-                    gid = (uint16_t)(g & 0xFFFF);
-                }
-                if (gid > 0) chars[c] = gid;
-            }
-        }
-    }
+    _read_cmap(cmap_table, unicode_cmap_offset, cmap_format, chars);
 
     std::string glyf_table = _get_table("glyf");
     std::string loca_table = _get_table("loca");
@@ -683,6 +650,8 @@ void TTFParser::Subset(const std::vector<uint32_t>& chars_vec) {
     size_t hsz = hmtx_table.size();
     uint16_t last_aw = 0;
     size_t nHM = std::min((size_t)numberOfHMetrics, hsz / 4);
+    // 同 Parse：maxp 的 numberOfHMetrics 可能超过 numGlyphs，两个数组按 numGlyphs 分配
+    nHM = std::min(nHM, (size_t)numGlyphs);
     for (size_t i = 0; i < nHM; i++) {
         last_aw = (hp[i*4] << 8) | hp[i*4+1];
         advanceWidths[i] = last_aw;
@@ -952,7 +921,11 @@ void TTFParser::Subset(const std::vector<uint32_t>& chars_vec) {
                     if (pos_in_glyph + 4 > data.size()) break;
                     flags = _get_ushort(data, pos_in_glyph);
                     uint16_t glyphIdx = _get_ushort(data, pos_in_glyph + 2);
-                    _set_ushort(data, pos_in_glyph + 2, glyphSet[glyphIdx]);
+                    // A component the closure pass above did not collect has no
+                    // place in the subset; point at notdef rather than inserting
+                    // a zero entry into the mapping on a lookup.
+                    auto comp_it = glyphSet.find(glyphIdx);
+                    _set_ushort(data, pos_in_glyph + 2, comp_it != glyphSet.end() ? comp_it->second : 0);
                     pos_in_glyph += 4;
                     if (flags & 0x01) pos_in_glyph += 4;
                     else pos_in_glyph += 2;
@@ -1455,8 +1428,14 @@ std::string TTFParser::_build_cmap4(const std::map<uint32_t, uint16_t>& uni_to_g
     std::sort(ents.begin(), ents.end());
 
     uint16_t segCount = (uint16_t)(ents.size() + 1);
-    uint16_t es = 0, p = 1;
-    while ((uint16_t)(p * 2) <= segCount) { p = (uint16_t)(p * 2); es++; }
+    // 用 32 位算最大 2 的幂：p 到 32768 后 (uint16_t)(p*2) 回绕成 0，
+    // 段数 ≥32768 时 uint16 的写法会永远满足条件
+    uint32_t p = 1;
+    uint16_t es = 0;
+    while (p * 2 <= segCount) {
+        p *= 2;
+        es++;
+    }
     uint16_t searchRange = (uint16_t)(2 * p);
     uint16_t rangeShift = (uint16_t)(2 * segCount - searchRange);
 

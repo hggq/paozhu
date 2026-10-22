@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_ORM_PROBE2BASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sun, 18 Oct 2026 14:28:09 GMT
+*本文件为自动生成 Thu, 22 Oct 2026 11:07:21 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -631,7 +631,7 @@ namespace orm_probe2_info
         
     inline constexpr std::array<std::string_view,4> col_names={"id","v","big_id","pad"};
 	static constexpr std::array<unsigned char,4> col_types={3,253,8,253};
-	static constexpr std::array<unsigned short,4> col_length={0,64,0,2000};
+	static constexpr std::array<unsigned int,4> col_length={0,64,0,2000};
 	static constexpr std::array<unsigned char,4> col_decimals={0,0,0,0};
 	static constexpr std::array<bool,4> col_null={false,true,true,true};
 	static constexpr std::array<bool,4> col_indexed={true,false,false,false};

@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSUSERBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sun, 18 Oct 2026 14:28:04 GMT
+*本文件为自动生成 Thu, 22 Oct 2026 11:07:18 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -725,7 +725,7 @@ namespace sysuser_info
         
     inline constexpr std::array<std::string_view,21> col_names={"adminid","name","password","textword","isopen","level","companyid","dpid","jobid","roleid","postid","created_at","enddate","qrtemp","gender","nickname","realname","avatar","mobile","email","wxuuid"};
 	static constexpr std::array<unsigned char,21> col_types={3,253,253,253,1,3,3,3,3,3,3,3,3,3,1,253,253,253,253,253,253};
-	static constexpr std::array<unsigned short,21> col_length={0,40,40,40,1,0,0,0,0,0,0,0,0,0,0,60,40,256,40,60,40};
+	static constexpr std::array<unsigned int,21> col_length={0,40,40,40,1,0,0,0,0,0,0,0,0,0,0,60,40,256,40,60,40};
 	static constexpr std::array<unsigned char,21> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	static constexpr std::array<bool,21> col_null={false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
 	static constexpr std::array<bool,21> col_indexed={true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};

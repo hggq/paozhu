@@ -2,7 +2,7 @@
 #define ORM_CMS_ORDERLISTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sun, 18 Oct 2026 14:28:04 GMT
+*本文件为自动生成 Thu, 22 Oct 2026 11:07:18 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -795,7 +795,7 @@ namespace orderlist_info
         
     inline constexpr std::array<std::string_view,31> col_names={"orderid","userid","wxid","product_trade","paytype","openid","wxorder","storeorder","totalnum","addtime","paytime","payip","username","address","mobile","payprice","shipprice","isrefund","isship","isfinsh","isremove","refundnum","paytitle","content","liuyan","excomany","exnumber","expaddtime","goodsid","status","jifen"};
 	static constexpr std::array<unsigned char,31> col_types={3,3,3,253,1,253,253,253,3,3,3,253,253,253,253,3,3,1,1,1,1,3,253,252,252,253,253,3,3,3,3};
-	static constexpr std::array<unsigned short,31> col_length={0,0,0,64,0,64,64,64,0,0,0,60,60,120,60,0,0,0,0,0,0,0,255,0,0,60,40,0,0,0,0};
+	static constexpr std::array<unsigned int,31> col_length={0,0,0,64,0,64,64,64,0,0,0,60,60,120,60,0,0,0,0,0,0,0,255,0,0,60,40,0,0,0,0};
 	static constexpr std::array<unsigned char,31> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	static constexpr std::array<bool,31> col_null={false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
 	static constexpr std::array<bool,31> col_indexed={true,false,false,false,false,false,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};

@@ -68,6 +68,8 @@ namespace orm
 // ======================== Worker 线程接口 ========================
 // 向指定数据库的 worker 投递任务；worker 已停止时返回 false（任务未投递）
 bool sqlite_worker_submit(const std::string &db_path, std::function<void()> task);
+// 关停链：shutdown 之后 worker 线程全部退出，任务改在调用线程内联执行，
+// 该形态要求同一连接只有单线程调用（契约见 sqlite_conn_base 的 float_buf_ 处）
 void sqlite_init();
 void sqlite_shutdown();
 void sqlite_worker_shutdown_all_safe();
@@ -194,6 +196,13 @@ class sqlite_conn_base
      */
     long long last_insert_rowid();
 
+    // 写语句和它的自增主键必须在同一次提交里取完：
+    // last_insert_rowid 是会话级状态，本方言所有调用方共用一条会话，
+    // 分成两次提交会读到别人插入的 id
+    std::tuple<unsigned int, long long> exec_dml_with_rowid(const std::string &sql);
+
+    asio::awaitable<std::tuple<unsigned int, long long>> async_exec_dml_with_rowid(const std::string &sql);
+
     bool query_fetch(const std::string &sql, sqlite_query_result &result);
     bool query_scalar(const std::string &sql, sqlite_scalar_result &result);
 
@@ -252,6 +261,13 @@ class sqlite_conn_base
                                                        RowHandler handler);
     asio::awaitable<unsigned int> async_exec_dml_prepared(const std::string &sql,
                                                           const std::vector<http::obj_val> &params);
+
+    // 同 exec_dml_with_rowid：影响行数和自增主键在同一次提交里取完
+    std::tuple<unsigned int, long long> exec_dml_prepared_with_rowid(
+        const std::string &sql, const std::vector<http::obj_val> &params);
+
+    asio::awaitable<std::tuple<unsigned int, long long>> async_exec_dml_prepared_with_rowid(
+        const std::string &sql, const std::vector<http::obj_val> &params);
 
     // ===== SQLite prepared 二进制版：driver 返回 typed variant，
     //       INTEGER/FLOAT 等列直接以原生类型返回，避免双向字符串转换 =====
@@ -338,6 +354,7 @@ class sqlite_conn_base
     int exec_sql_impl(const std::string &sql);
     unsigned int exec_dml_impl(const std::string &sql);
     long long last_insert_rowid_impl();
+    std::tuple<unsigned int, long long> exec_dml_with_rowid_impl(const std::string &sql);
     bool query_fetch_impl(const std::string &sql, sqlite_query_result &result);
     bool query_scalar_impl(const std::string &sql, sqlite_scalar_result &result);
 
@@ -363,6 +380,9 @@ class sqlite_conn_base
 
     unsigned int exec_dml_prepared_impl(const std::string &sql,
                                         const std::vector<http::obj_val> &params);
+
+    std::tuple<unsigned int, long long> exec_dml_prepared_with_rowid_impl(
+        const std::string &sql, const std::vector<http::obj_val> &params);
 
     bool integrity_check_impl(std::string &report);
     bool repair_database_impl();
@@ -396,14 +416,17 @@ class sqlite_conn_base
     sqlite_stmt_cache stmt_cache_{128};
 
     // REAL 列精度还原缓冲（%.17g 最长 24 字符，64 留足余量）
-    // 每连接一格：单 worker 串行操作，无跨线程竞争
+    // 每连接一格：worker 在跑时任务只在那条 worker 线程上串行执行，无跨线程竞争
+    // worker 停止后任务改在调用线程内联执行，此时同一连接必须只有单线程调用，
+    // 否则这一格和 SQLite 语句的生命周期都会串（多个执行者互相覆写、互相 finalize）
     // 契约：get_data 返回的指针只在本次 handler 调用内有效，必须立即拷贝走
     char float_buf_[64];
 
     std::atomic<bool> in_transaction_{false};
     // 事务互斥锁：SQLite 单连接模式下多个 db_conn 实例共享同一底层连接，
-    // 通过原子锁保证同一时刻只有一个事务拥有者，防止跨实例事务串扰
-    // （A 开启事务后 B 再次 begin 将被拒绝，B 的 commit 无法破坏 A 的事务）
+    // 通过原子锁保证同一时刻只有一个事务拥有者：begin 只允许一人取得
+    // （A 开启事务后 B 再次 begin 将被拒绝；commit/rollback 不校验持有者，
+    //   任何调用方都能结束当前事务，所以事务必须由 orm::db_conn 一条线用完）
     std::atomic_flag txn_lock_ = ATOMIC_FLAG_INIT;
     std::atomic<int> consecutive_errors_{0};
     // 恢复流程进行中标记：integrity_check_impl 内部查询失败会再次进入
@@ -427,6 +450,8 @@ class sqlite_conn_base
 template <typename T>
 inline T sqlite_conn_base::submit_sync(std::function<T()> fn)
 {
+    // worker 停了就在当前线程直接执行：这条路上没有串行保证，
+    // 同一连接必须只有单线程调用（契约见 float_buf_ 处）
     if (!worker_running_.load())
     {
         try
@@ -470,6 +495,7 @@ inline T sqlite_conn_base::submit_sync(std::function<T()> fn)
 template <typename T>
 inline asio::awaitable<T> sqlite_conn_base::run_on_worker(std::function<T()> fn)
 {
+    // 同 submit_sync：无 worker 时在协程所在线程直接执行，同一连接要求单线程调用
     if (!worker_running_.load())
         co_return fn();
     if (shutdown_error_.load())
@@ -533,6 +559,13 @@ inline unsigned int sqlite_conn_base::exec_dml_prepared(const std::string &sql,
                                            { return this->exec_dml_prepared_impl(sql, params); });
 }
 
+inline std::tuple<unsigned int, long long> sqlite_conn_base::exec_dml_prepared_with_rowid(
+    const std::string &sql, const std::vector<http::obj_val> &params)
+{
+    return this->submit_sync<std::tuple<unsigned int, long long>>(
+        [this, &sql, &params]() { return this->exec_dml_prepared_with_rowid_impl(sql, params); });
+}
+
 template <typename RowHandler>
 inline asio::awaitable<unsigned int> sqlite_conn_base::async_fetch_prepared(
     const std::string &sql, const std::vector<http::obj_val> &params, RowHandler handler)
@@ -571,6 +604,13 @@ inline asio::awaitable<unsigned int> sqlite_conn_base::async_exec_dml_prepared(
                                              { return this->exec_dml_prepared_impl(sql, params); });
 }
 
+inline asio::awaitable<std::tuple<unsigned int, long long>> sqlite_conn_base::async_exec_dml_prepared_with_rowid(
+    const std::string &sql, const std::vector<http::obj_val> &params)
+{
+    return this->run_on_worker<std::tuple<unsigned int, long long>>(
+        [this, sql, params]() { return this->exec_dml_prepared_with_rowid_impl(sql, params); });
+}
+
 #endif// def(ENABLE_SQLITE)
 
 #ifndef ENABLE_SQLITE
@@ -602,6 +642,13 @@ class sqlite_conn_base
      * @return rowid，未连接或无插入时返回 0
      */
     long long last_insert_rowid();
+
+    // 写语句和它的自增主键必须在同一次提交里取完：
+    // last_insert_rowid 是会话级状态，本方言所有调用方共用一条会话，
+    // 分成两次提交会读到别人插入的 id
+    std::tuple<unsigned int, long long> exec_dml_with_rowid(const std::string &sql);
+
+    asio::awaitable<std::tuple<unsigned int, long long>> async_exec_dml_with_rowid(const std::string &sql);
 
     bool query_fetch(const std::string &sql, sqlite_query_result &result);
     bool query_scalar(const std::string &sql, sqlite_scalar_result &result);
@@ -661,6 +708,13 @@ class sqlite_conn_base
                                                        RowHandler handler);
     asio::awaitable<unsigned int> async_exec_dml_prepared(const std::string &sql,
                                                           const std::vector<http::obj_val> &params);
+
+    // 同 exec_dml_with_rowid：影响行数和自增主键在同一次提交里取完
+    std::tuple<unsigned int, long long> exec_dml_prepared_with_rowid(
+        const std::string &sql, const std::vector<http::obj_val> &params);
+
+    asio::awaitable<std::tuple<unsigned int, long long>> async_exec_dml_prepared_with_rowid(
+        const std::string &sql, const std::vector<http::obj_val> &params);
 
     std::vector<std::string> get_table_list();
     std::vector<std::map<std::string, std::string>> get_table_info(const std::string &table);

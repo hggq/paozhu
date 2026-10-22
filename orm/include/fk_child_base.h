@@ -2,7 +2,7 @@
 #define ORM_DEFAULT_FK_CHILDBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sun, 18 Oct 2026 14:28:09 GMT
+*本文件为自动生成 Thu, 22 Oct 2026 11:07:21 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -623,7 +623,7 @@ namespace fk_child_info
         
     inline constexpr std::array<std::string_view,3> col_names={"id","parent_id","extra"};
 	static constexpr std::array<unsigned char,3> col_types={3,3,253};
-	static constexpr std::array<unsigned short,3> col_length={0,0,100};
+	static constexpr std::array<unsigned int,3> col_length={0,0,100};
 	static constexpr std::array<unsigned char,3> col_decimals={0,0,0};
 	static constexpr std::array<bool,3> col_null={false,true,true};
 	static constexpr std::array<bool,3> col_indexed={true,true,false};

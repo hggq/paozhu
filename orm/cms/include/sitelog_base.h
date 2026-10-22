@@ -2,7 +2,7 @@
 #define ORM_CMS_SITELOGBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sun, 18 Oct 2026 14:28:04 GMT
+*本文件为自动生成 Thu, 22 Oct 2026 11:07:18 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -676,7 +676,7 @@ namespace sitelog_info
         
     inline constexpr std::array<std::string_view,14> col_names={"logid","userid","memberid","ipport","httpv","ipaddress","visittime","useragent","referer","cururl","address","hostname","derefererurl","deurl"};
 	static constexpr std::array<unsigned char,14> col_types={3,3,3,3,1,253,253,253,253,253,253,253,253,253};
-	static constexpr std::array<unsigned short,14> col_length={0,0,0,0,0,60,30,512,512,512,120,60,512,512};
+	static constexpr std::array<unsigned int,14> col_length={0,0,0,0,0,60,30,512,512,512,120,60,512,512};
 	static constexpr std::array<unsigned char,14> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	static constexpr std::array<bool,14> col_null={false,false,false,false,false,false,false,false,false,false,false,false,false,false};
 	static constexpr std::array<bool,14> col_indexed={true,true,false,false,false,false,false,false,false,false,false,false,false,false};

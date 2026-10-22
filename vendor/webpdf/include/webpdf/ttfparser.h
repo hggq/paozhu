@@ -31,24 +31,24 @@ public:
 
     std::map<uint32_t, uint16_t> chars;
     std::vector<TTFGlyph> glyphs;
-    uint16_t unitsPerEm;
-    int16_t xMin, yMin, xMax, yMax;
+    uint16_t unitsPerEm = 0;
+    int16_t xMin = 0, yMin = 0, xMax = 0, yMax = 0;
     std::string postScriptName;
-    bool embeddable;
-    bool bold;
-    bool is_otf;
-    int16_t typoAscender;
-    int16_t typoDescender;
-    int16_t capHeight;
-    int16_t italicAngle;
-    int16_t underlinePosition;
-    int16_t underlineThickness;
-    bool isFixedPitch;
-    uint16_t numGlyphs;
-    uint16_t numberOfHMetrics;
-    int16_t hheaAscender;
-    int16_t hheaDescender;
-    uint16_t usWeightClass;
+    bool embeddable = false;
+    bool bold = false;
+    bool is_otf = false;
+    int16_t typoAscender = 0;
+    int16_t typoDescender = 0;
+    int16_t capHeight = 0;
+    int16_t italicAngle = 0;
+    int16_t underlinePosition = 0;
+    int16_t underlineThickness = 0;
+    bool isFixedPitch = false;
+    uint16_t numGlyphs = 0;
+    uint16_t numberOfHMetrics = 0;
+    int16_t hheaAscender = 0;
+    int16_t hheaDescender = 0;
+    uint16_t usWeightClass = 0;
     std::map<uint16_t, uint16_t> glyphMap;
     std::vector<uint32_t> subsettedGlyphs;
     // For the OTF/CFF subset path: maps each retained Unicode code point to its
@@ -82,6 +82,11 @@ private:
                                const std::vector<std::string>& tag_order);
     // Build a cmap table (format 4, platform 3 encoding 1) from Unicode -> GID.
     std::string _build_cmap4(const std::map<uint32_t, uint16_t>& uni_to_gid);
+    // Read a Unicode cmap subtable (format 12, else format 4) into code point ->
+    // GID. Parse() and Subset() want the same map, and the walk over a header
+    // whose counts come from the file has to be bounded in one place.
+    void _read_cmap(const std::string& cmap_table, uint32_t cmap_offset,
+                    uint16_t cmap_format, std::map<uint32_t, uint16_t>& out);
     void _set_ushort(std::string& data, size_t pos, uint16_t val);
     uint16_t _get_ushort(const std::string& data, size_t pos);
     uint32_t _get_ulong(const std::string& data, size_t pos);

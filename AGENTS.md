@@ -789,7 +789,28 @@ model.lock_conn();
 model.where("id", 1).fetch_one();
 // ... more operations
 model.unlock_conn();
+
+// Inside an orm::db_conn transaction the plain lock_conn() is not enough: the model still
+// borrows its own connection from the pool, so its writes go to another session and are
+// committed on their own. Pass the transaction connection to lock_conn() and the model
+// borrows that one instead; unlock_conn() then only unbinds — ownership stays with db_conn,
+// which returns the connection to the pool when it commits or rolls back.
+auto ulink = std::make_unique<orm::db_conn>("cms");
+if (ulink->begin_commit())
+{
+    auto article = orm::cms::Article();
+    article.lock_conn(ulink->mysql_edit_conn);   // the connection begin_commit() is holding
+    article.data.title = "in transaction";
+    article.where("aid", 1).update("title");     // now really inside the transaction
+    article.unlock_conn();
+    ulink->commit();                             // or rollback()
+}
 ```
+
+The connection member name follows the dialect: `mysql_edit_conn`, `pg_edit_conn`,
+`sqlite_edit_conn` (all public on `orm::db_conn`). Binding the wrong type is a compile error,
+so a model can never attach to another engine's transaction. Passing an empty pointer is a
+no-op, so only call this after `begin_commit()` returned true.
 
 ### 5.6 ORM Data Manipulation
 
@@ -1003,6 +1024,26 @@ inspect it, log it, or pass it to `edit_query()` / a bulk importer. `commit_upda
 fall back to the primary key, and with neither they return `""` (`commit_update()` also
 sets `error_msg = "warning empty where sql!"`). `commit_insert()` has no such guard.
 
+**Transactions.** `orm::db_conn` opens one with `begin_commit()` / `async_begin_commit()` and
+closes it with `commit()` / `rollback()` (`async_commit()` / `async_rollback()`); every statement
+sent through that object runs on the write connection the transaction holds. A model object is a
+separate holder — to write inside that transaction it has to borrow the same connection, see the
+`lock_conn(txn_conn)` note in §5.5. While a transaction is open, the driver refuses to
+auto-reconnect that connection: the old session was already rolled back when the socket died, and
+resending onto a fresh autocommit session would commit work the caller believes it rolled back.
+The call fails instead, and the connection is closed so the pool drops it. That gate reads the
+statement text, not the server-side session state, so `SET autocommit=0` is not a transaction for
+it: after a socket loss the driver reconnects, the old session has already rolled back, and the
+next write commits on its own. Open transactions through `orm::db_conn` (`orm_query.h`) — that is
+the path the driver tracks.
+
+**Rows over 16 MB (MySQL).** A single row whose text-protocol packet exceeds 16 MB — a large
+`LONGTEXT`/`LONGBLOB`, or `REPEAT()` of ~16.7 M characters — is not read: the fetch stops there,
+sets `error_code = 20` with `result row over 16MB (0xFFFFFF split) not supported`, returns the rows
+it delivered before that one, and leaves the connection usable. The same ceiling applies to a bound
+parameter (`COM_STMT_EXECUTE: payload too large`, also `error_code = 20`). Select narrower columns
+instead.
+
 ### 5.8 Prepared Statement Queries
 
 Every read and write has a prepared twin. The condition-building API is shared, so
@@ -1161,6 +1202,24 @@ auto d = orm::lite::Fortune();    // [lite]      SQLite     namespace orm::lite
 PostgreSQL emits `DEFAULT` for a zero auto-increment primary key so the sequence assigns
 it; SQLite binds `NULL` for the same case. Everything else — `exec_*`, joins, FK
 accessors, `andsub()/orsub()/endsub()` — behaves identically across the three.
+
+**SQLite: one resident connection per db file.** For a `dbtype = sqlite` tag the pool
+hands every caller the *same* connection object, and one worker thread per db file
+serializes the statements. That has three consequences you have to design around:
+
+- A transaction is a property of the shared session, not of your `orm::db_conn` object.
+  While it is open, every other caller's statement runs inside it too: an `INSERT` from
+  another request reports `affected = 1` and is then rolled back when the holder rolls
+  back. So writes that belong to the transaction must go through the same handle
+  (`model.lock_conn(ulink->sqlite_edit_conn)`, see §5.5), and nothing unrelated —
+  another request, another model object, a scheduled task — may touch that tag while the
+  transaction is open. Keep lite transactions short.
+- `commit()` / `rollback()` do not check who opened the transaction: the first caller to
+  call ends it for everyone. Finish the transaction on the same `orm::db_conn` that
+  opened it, and never call `commit_transaction()` on a handle you merely borrowed.
+- The auto-increment id belongs to the session, so read it in the same submission as the
+  write. The generated `insert()` / `save()` / `exec_insert*()` already do; do not hand
+  an `INSERT` to `orm::db_conn` and then read `last_insert_rowid()` as a second call.
 
 ### 5.12 Asynchronous ORM Operations
 
@@ -1516,6 +1575,7 @@ already means `OR col = val`, and `>` / `>=` are spelled `whereOrBT` / `whereOrB
 | `group(col)` | `GROUP BY` | `.group("topicid")` |
 | `having(cond)` | `HAVING` | `.having("count(*) > 1")` |
 | `lock_conn()` / `unlock_conn()` | reuse one connection across a batch | §5.5 |
+| `lock_conn(txn_conn)` | borrow the connection an `orm::db_conn` transaction is holding | §5.5 |
 
 **Execution — text path** (values escaped into the statement)
 

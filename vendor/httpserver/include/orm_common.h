@@ -1406,6 +1406,38 @@ asio::awaitable<unsigned int> async_exec_fetch_single(Conn &conn,
         });
 }
 
+// 预编译 exec_* 借出的连接在异常展开时自动归还：正常路径把 conn 移进 back_* 之后
+// 局部变量为空，析构不会再归还一次；lock_conn / 事务模式下连接归模型成员所有，不归还。
+template <class ConnPtr, class BackFn>
+class conn_guard
+{
+  public:
+    conn_guard(ConnPtr &conn, bool islock, BackFn back)
+        : conn_(conn), islock_(islock), back_(std::move(back))
+    {
+    }
+    ~conn_guard()
+    {
+        if (!islock_ && conn_)
+        {
+            back_(std::move(conn_));
+        }
+    }
+    conn_guard(const conn_guard &)            = delete;
+    conn_guard &operator=(const conn_guard &) = delete;
+
+  private:
+    ConnPtr &conn_;
+    bool islock_;
+    BackFn back_;
+};
+
+template <class ConnPtr, class BackFn>
+conn_guard<ConnPtr, BackFn> make_conn_guard(ConnPtr &conn, bool islock, BackFn back)
+{
+    return conn_guard<ConnPtr, BackFn>(conn, islock, std::move(back));
+}
+
 }// namespace orm
 
 #endif

@@ -14,6 +14,8 @@
 #include <string_view>
 #include "func.h"
 
+using namespace http;
+
 static int g_failures = 0;
 static int g_groups   = 0;
 

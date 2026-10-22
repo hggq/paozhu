@@ -327,6 +327,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
     conn_link->socket = std::make_unique<asio::ip::tcp::socket>(*conn_link->io_ctx);
     conn_link->ec.clear();
     server_enable_ssl = false;
+    in_transaction_.store(false);
     seq_next_id       = 0;
     std::memset(static_cast<void *>(&server_hello), 0, sizeof(server_hello));
 
@@ -1521,6 +1522,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
     conn_link->socket = std::make_unique<asio::ip::tcp::socket>(*conn_link->io_ctx);
     conn_link->ec.clear();
     server_enable_ssl = false;
+    in_transaction_.store(false);
     seq_next_id       = 0;
     std::memset(static_cast<void *>(&server_hello), 0, sizeof(server_hello));
 
@@ -3965,7 +3967,17 @@ RETRY_LABEL:
         phase current_phase  = phase::INIT;
         bool stop            = false;
         unsigned int rows    = 0;
-        bool handler_aborted = false;
+        bool handler_aborted = false;// 提前中止后继续排空到 0xFE 终结包
+
+        // 排空拆包行时补读；false = 连接已断
+        auto read_more = [&]() -> bool
+        {
+            unsigned int k = read_loop();
+            if (k == 0)
+                return false;
+            accum_buf.insert(accum_buf.end(), _cache_data, _cache_data + k);
+            return true;
+        };
 
         while (!stop)
         {
@@ -4049,10 +4061,18 @@ RETRY_LABEL:
                     }
                     if (status == 0xFE)
                     {
-                        // 0xFE 头 = 结果集终结包(OK-via-EOF)。服务器在列定义段之后是否再发一个
+                        // 列定义已收齐时, 首字节 0xFE 也可能是被拆包(>16MB)首行的长度前缀
+                        // —— 满块包不算终结包, 交还 ROWS 阶段重新判定(不消费本包)。
+                        // 列定义报文本身达不到满块: 服务端回显的列名截到 256 字节。
+                        if (pkt_len == 0xFFFFFFu && expected_cols > 0 && col_names.size() >= expected_cols)
+                        {
+                            current_phase = phase::ROWS;
+                            break;
+                        }
+                        // 其余 0xFE 头 = 结果集终结包(OK-via-EOF)。服务器在列定义段之后是否再发一个
                         // 5B 经典 EOF 分隔包，只取决于客户端有没有协商 CLIENT_DEPRECATE_EOF
                         // (protocol_classic.cc end_result_metadata)；本库的连接期硬门禁已要求
-                        // 服务器 advertise 该位 ⇒ 分隔包不存在，此位置的 0xFE 只可能是终结包。
+                        // 服务器 advertise 该位 ⇒ 分隔包不存在。
                         // 把它当分隔符吃掉就会转 ROWS 去等永不再来的行包(0 行结果集挂死)。
                         if (expected_cols > 0 && col_names.size() >= expected_cols)
                         {
@@ -4094,10 +4114,11 @@ RETRY_LABEL:
 
                 case phase::ROWS:
                 {
-                    if (status == 0xFE)
+                    if (status == 0xFE && pkt_len < 0xFFFFFFu)
                     {
                         // 0xFE 标记的 OK 包是结果集唯一终结符（可短至 7 字节）。
                         // 不支持经典 EOF 旧协议，无其他兜底。
+                        // 满块包的首字节可能是被拆包行的长度前缀，不算终结符。
                         current_phase = phase::DONE;
                         stop          = true;
                         consumed += total_pkt_len;
@@ -4109,9 +4130,57 @@ RETRY_LABEL:
                         return rows;
                     }
 
-                    if (handler_aborted)
+                    // 首包长度 == 0xFFFFFF(满块) = 该逻辑包(行/单值)被 MySQL net 层拆成多个
+                    // 物理包, 即结果 >16MB。范围决定(同预编译路径): 不支持续包拼接,
+                    // 显式报错并排空到该行边界/终结包, 不再静默截断/变 NULL。
+                    if (handler_aborted || pkt_len == 0xFFFFFFu)
                     {
-                        consumed += total_pkt_len;
+                        if (pkt_len == 0xFFFFFFu && !handler_aborted)
+                        {
+                            error_msg       = "fetch: result row over 16MB (0xFFFFFF split) not supported";
+                            error_code      = 20;
+                            handler_aborted = true;// 后续进入排空, 直到 0xFE 终结包
+                        }
+                        // 排空模式：整包丢弃直到 0xFE 终结包，不再解码也不再回调。
+                        // 拆包行必须先把续包全部消费到整行(逻辑包)边界, 避免把行内容
+                        // 的任意字节误判成行集终结包(status 0xFE)。
+                        size_t skip_end = consumed + total_pkt_len;
+                        if (pkt_len == 0xFFFFFFu)
+                        {
+                            size_t cur = skip_end;
+                            for (;;)
+                            {
+                                while (accum_buf.size() - cur < 4)
+                                {
+                                    if (!read_more())
+                                        break;
+                                }
+                                if (accum_buf.size() - cur < 4)
+                                {
+                                    consumed = cur;
+                                    break;
+                                }
+                                unsigned int cplen = accum_buf[cur] |
+                                                     (accum_buf[cur + 1] << 8) |
+                                                     (accum_buf[cur + 2] << 16);
+                                unsigned int ctotal = 4 + cplen;
+                                while (accum_buf.size() - cur < ctotal)
+                                {
+                                    if (!read_more())
+                                        break;
+                                }
+                                if (accum_buf.size() - cur < ctotal)
+                                {
+                                    consumed = cur;
+                                    break;
+                                }
+                                cur += ctotal;
+                                if (cplen < 0xFFFFFFu)
+                                    break;// 短块(可空) = 该逻辑包结束
+                            }
+                            skip_end = cur;
+                        }
+                        consumed = skip_end;
                         break;
                     }
 
@@ -4594,10 +4663,18 @@ RETRY_LABEL:
                     }
                     if (status == 0xFE)
                     {
-                        // 0xFE 头 = 结果集终结包(OK-via-EOF)。服务器在列定义段之后是否再发一个
+                        // 列定义已收齐时, 首字节 0xFE 也可能是被拆包(>16MB)首行的长度前缀
+                        // —— 满块包不算终结包, 交还 ROWS 阶段重新判定(不消费本包)。
+                        // 列定义报文本身达不到满块: 服务端回显的列名截到 256 字节。
+                        if (pkt_len == 0xFFFFFFu && expected_cols > 0 && col_names.size() >= expected_cols)
+                        {
+                            current_phase = phase::ROWS;
+                            break;
+                        }
+                        // 其余 0xFE 头 = 结果集终结包(OK-via-EOF)。服务器在列定义段之后是否再发一个
                         // 5B 经典 EOF 分隔包，只取决于客户端有没有协商 CLIENT_DEPRECATE_EOF
                         // (protocol_classic.cc end_result_metadata)；本库的连接期硬门禁已要求
-                        // 服务器 advertise 该位 ⇒ 分隔包不存在，此位置的 0xFE 只可能是终结包。
+                        // 服务器 advertise 该位 ⇒ 分隔包不存在。
                         // 把它当分隔符吃掉就会转 ROWS 去等永不再来的行包(0 行结果集挂死)。
                         if (expected_cols > 0 && col_names.size() >= expected_cols)
                         {
@@ -4637,10 +4714,11 @@ RETRY_LABEL:
 
                 case phase::ROWS:
                 {
-                    if (status == 0xFE)
+                    if (status == 0xFE && pkt_len < 0xFFFFFFu)
                     {
                         // 0xFE 标记的 OK 包是结果集唯一终结符（可短至 7 字节）。
                         // 不支持经典 EOF 旧协议，无其他兜底。
+                        // 满块包的首字节可能是被拆包行的长度前缀，不算终结符。
                         current_phase = phase::DONE;
                         stop          = true;
                         consumed += total_pkt_len;
@@ -4652,9 +4730,60 @@ RETRY_LABEL:
                         co_return rows;
                     }
 
-                    if (handler_aborted)
+                    // 首包长度 == 0xFFFFFF(满块) = 该逻辑包(行/单值)被拆成多个物理包(结果
+                    // >16MB)。范围决定(同预编译路径): 不支持续包拼接, 显式报错并排空
+                    // (同 sync 版), 不再静默截断/变 NULL。
+                    if (handler_aborted || pkt_len == 0xFFFFFFu)
                     {
-                        consumed += total_pkt_len;
+                        if (pkt_len == 0xFFFFFFu && !handler_aborted)
+                        {
+                            error_msg       = "async_fetch: result row over 16MB (0xFFFFFF split) not supported";
+                            error_code      = 20;
+                            handler_aborted = true;// 后续进入排空, 直到 0xFE 终结包
+                        }
+                        // 排空模式：整包丢弃直到 0xFE 终结包；拆包行先把续包消费到整行
+                        // (逻辑包)边界, 避免把行内容字节误判成行集终结包。
+                        size_t skip_end = consumed + total_pkt_len;
+                        if (pkt_len == 0xFFFFFFu)
+                        {
+                            size_t cur = skip_end;
+                            for (;;)
+                            {
+                                while (accum_buf.size() - cur < 4)
+                                {
+                                    unsigned int k = co_await async_read_loop();
+                                    if (k == 0)
+                                        break;
+                                    accum_buf.insert(accum_buf.end(), _cache_data, _cache_data + k);
+                                }
+                                if (accum_buf.size() - cur < 4)
+                                {
+                                    consumed = cur;
+                                    break;
+                                }
+                                unsigned int cplen = accum_buf[cur] |
+                                                     (accum_buf[cur + 1] << 8) |
+                                                     (accum_buf[cur + 2] << 16);
+                                unsigned int ctotal = 4 + cplen;
+                                while (accum_buf.size() - cur < ctotal)
+                                {
+                                    unsigned int k = co_await async_read_loop();
+                                    if (k == 0)
+                                        break;
+                                    accum_buf.insert(accum_buf.end(), _cache_data, _cache_data + k);
+                                }
+                                if (accum_buf.size() - cur < ctotal)
+                                {
+                                    consumed = cur;
+                                    break;
+                                }
+                                cur += ctotal;
+                                if (cplen < 0xFFFFFFu)
+                                    break;// 短块(可空) = 该逻辑包结束
+                            }
+                            skip_end = cur;
+                        }
+                        consumed = skip_end;
                         break;
                     }
 
@@ -5630,7 +5759,8 @@ RETRY_EXEC_DML:
         unsigned int payload_len = static_cast<unsigned int>(pkt_body.size());
         if (payload_len >= 0xFFFFFF)
         {
-            error_msg = "COM_STMT_EXECUTE: payload too large";
+            error_msg  = "COM_STMT_EXECUTE: payload too large";
+            error_code = 20;
             // 不 close：stmt_id 仍然有效
             return (unsigned int)-1;
         }
@@ -7448,7 +7578,8 @@ RETRY_ASYNC_DML:
         unsigned int payload_len = static_cast<unsigned int>(pkt_body.size());
         if (payload_len >= 0xFFFFFF)
         {
-            error_msg = "COM_STMT_EXECUTE: payload too large";
+            error_msg  = "COM_STMT_EXECUTE: payload too large";
+            error_code = 20;
             // 不 close：缓存 stmt_id 留着下次用
             co_return (unsigned int) - 1;
         }
@@ -8185,6 +8316,14 @@ bool mysql_conn_base::try_reconnect()
         return false;
     if (isclose)
         return false;
+    // 事务在途不能重连：旧会话随断线被服务端回滚，新会话是 autocommit，
+    // 重发即提交。拒绝时同样 hard_close()，让归还时被池丢弃、下次借出即新会话。
+    if (in_transaction_.load())
+    {
+        error_msg.append(" | reconnect refused: transaction in progress");
+        hard_close();
+        return false;
+    }
 
     // 缓存在 hard_close() 内部统一清理（那里 socket 状态确定），不重复清
     hard_close();
@@ -8201,6 +8340,13 @@ asio::awaitable<bool> mysql_conn_base::async_try_reconnect()
         co_return false;
     if (isclose)
         co_return false;
+    // 事务在途不能重连：同 try_reconnect()，旧会话已回滚、新会话是 autocommit
+    if (in_transaction_.load())
+    {
+        error_msg.append(" | reconnect refused: transaction in progress");
+        co_await async_hard_close();
+        co_return false;
+    }
 
     co_await async_hard_close();
 

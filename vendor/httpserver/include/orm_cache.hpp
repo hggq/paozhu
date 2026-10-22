@@ -26,8 +26,10 @@ inline unsigned int orm_timeid()
 template <typename BASE_T>
 std::map<std::size_t, BASE_T> &get_static_model_cache()
 {
-    static std::map<std::size_t, BASE_T> instance;
-    return instance;
+    // 清理线程是 detach 的，可能在 main 返回后再醒一次；缓存故意不析构，
+    // 以免它在静态析构之后访问已销毁的容器
+    static std::map<std::size_t, BASE_T> *instance = new std::map<std::size_t, BASE_T>();
+    return *instance;
 }
 
 // ===========================================================================
@@ -43,28 +45,29 @@ std::map<std::size_t, BASE_T> &get_static_model_cache()
 #endif
 
 // 类型擦除的 registry：每个 model_meta_cache<T> 注册一个 lambda 进去
+// 下面这几个守护线程会用到的单例同样不析构，理由同 get_static_model_cache()
 inline std::vector<std::function<void()>> &orm_cache_registry()
 {
-    static std::vector<std::function<void()>> v;
-    return v;
+    static std::vector<std::function<void()>> *v = new std::vector<std::function<void()>>();
+    return *v;
 }
 
 inline std::mutex &orm_cache_registry_mutex()
 {
-    static std::mutex m;
-    return m;
+    static std::mutex *m = new std::mutex();
+    return *m;
 }
 
 inline std::atomic<bool> &orm_cache_daemon_running()
 {
-    static std::atomic<bool> running{false};
-    return running;
+    static std::atomic<bool> *running = new std::atomic<bool>{false};
+    return *running;
 }
 
 inline std::condition_variable &orm_cache_daemon_cv()
 {
-    static std::condition_variable cv;
-    return cv;
+    static std::condition_variable *cv = new std::condition_variable();
+    return *cv;
 }
 
 // 启动守护线程；可多次调（幂等，第二次 no-op）
@@ -173,17 +176,18 @@ class model_meta_cache
             temp.exptime = 0;
         }
         std::unique_lock<std::mutex> lock(editlock);
-        auto [_, success] = obj.insert({hashid, std::move(temp)});
-        if (!success)
+        auto iter = obj.find(hashid);
+        if (iter == obj.end())
         {
-            if (cover_data)
-            {
-                obj[hashid] = temp;
-            }
-            else
-            {
-                obj[hashid].exptime = temp.exptime;
-            }
+            obj.emplace(hashid, std::move(temp));
+        }
+        else if (cover_data)
+        {
+            iter->second = std::move(temp);
+        }
+        else
+        {
+            iter->second.exptime = temp.exptime;
         }
     }
 
@@ -298,8 +302,9 @@ class model_meta_cache
 
     static model_meta_cache &getinstance()
     {
-        static model_meta_cache instance;   // 首次调用触发构造函数 → 自注册 + 启守护线程
-        return instance;
+        // 首次调用触发构造函数 → 自注册 + 启守护线程；实例不析构，理由同上
+        static model_meta_cache *instance = new model_meta_cache;
+        return *instance;
     }
 
   public:

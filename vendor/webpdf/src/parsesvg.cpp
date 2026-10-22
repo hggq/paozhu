@@ -1,5 +1,6 @@
 #define _USE_MATH_DEFINES
 #include "parsesvg.h"
+#include "webpdf_color.h"
 #include <cmath>
 #include <sstream>
 #include <iomanip>
@@ -103,59 +104,8 @@ std::vector<double> SVGRenderer::parse_num_list(const std::string& s) {
 }
 
 void SVGRenderer::parse_color(const std::string& s, int& r, int& g, int& b, bool& valid) {
-    valid = false;
-    r = g = b = 0;
-    std::string v = str_trim(s);
-    if (v.empty() || v == "none" || v == "null") return;
-
-    if (v[0] == '#') {
-        std::string hex = v.substr(1);
-        if (hex.size() == 3) {
-            std::string full;
-            for (char c : hex) { full += c; full += c; }
-            hex = full;
-        }
-        if (hex.size() == 6) {
-            try {
-                r = std::stoi(hex.substr(0, 2), nullptr, 16);
-                g = std::stoi(hex.substr(2, 2), nullptr, 16);
-                b = std::stoi(hex.substr(4, 2), nullptr, 16);
-                valid = true;
-            } catch (const std::exception&) {
-                r = g = b = 0;
-                valid = false;
-            }
-        }
-        return;
-    }
-
-    if (v.substr(0, 4) == "rgb(") {
-        std::string inner = v.substr(4);
-        size_t paren = inner.find(')');
-        if (paren != std::string::npos) inner = inner.substr(0, paren);
-        std::replace(inner.begin(), inner.end(), ',', ' ');
-        std::istringstream iss(inner);
-        iss >> r >> g >> b;
-        valid = true;
-        return;
-    }
-
-    std::string lower = str_tolower(v);
-    if (lower == "black")   { r = 0;   g = 0;   b = 0;   valid = true; }
-    else if (lower == "white")   { r = 255; g = 255; b = 255; valid = true; }
-    else if (lower == "red")     { r = 255; g = 0;   b = 0;   valid = true; }
-    else if (lower == "green")   { r = 0;   g = 128; b = 0;   valid = true; }
-    else if (lower == "blue")    { r = 0;   g = 0;   b = 255; valid = true; }
-    else if (lower == "yellow")  { r = 255; g = 255; b = 0;   valid = true; }
-    else if (lower == "cyan")    { r = 0;   g = 255; b = 255; valid = true; }
-    else if (lower == "magenta") { r = 255; g = 0;   b = 255; valid = true; }
-    else if (lower == "gray" || lower == "grey") { r = 128; g = 128; b = 128; valid = true; }
-    else if (lower == "orange")  { r = 255; g = 165; b = 0;   valid = true; }
-    else if (lower == "purple")  { r = 128; g = 0;   b = 128; valid = true; }
-    else if (lower == "brown")   { r = 165; g = 42;  b = 42;  valid = true; }
-    else if (lower == "pink")    { r = 255; g = 192; b = 203; valid = true; }
-    else if (lower == "navy")    { r = 0;   g = 0;   b = 128; valid = true; }
-    else if (lower == "teal")    { r = 0;   g = 128; b = 128; valid = true; }
+    valid = parse_web_color(s, r, g, b);
+    if (!valid) r = g = b = 0;
 }
 
 SVGRenderer::SVGRenderer(webpdf* p) : pdf(p), origin_x(0), origin_y(0), svg_width(0), svg_height(0) {}
@@ -201,10 +151,8 @@ void SVGRenderer::render(const std::shared_ptr<HTMLNode>& svg_node, double x, do
         }
     }
 
-    if (vb_w == 0 || vb_h == 0) {
-        vb_w = w_num;
-        vb_h = h_num;
-    }
+    if (vb_w <= 0) vb_w = w_num > 0 ? w_num : 1.0;
+    if (vb_h <= 0) vb_h = h_num > 0 ? h_num : 1.0;
 
     double scale_x = (pdf->k * w_mm) / vb_w;
     double scale_y = (pdf->k * h_mm) / vb_h;
@@ -283,12 +231,14 @@ static void parse_svg_style(const std::string& style, std::map<std::string, std:
     }
 }
 
-void SVGRenderer::collect_defs(const std::vector<std::shared_ptr<HTMLNode>>& children) {
+void SVGRenderer::collect_defs(const std::vector<std::shared_ptr<HTMLNode>>& children, int depth) {
+    if (depth >= MAX_RENDER_DEPTH)
+        return; // same nesting guard as render_children()
     for (auto& child : children) {
         if (child->type != HTMLNodeType::ELEMENT) continue;
         std::string tag = str_tolower(child->tag);
         if (tag == "defs" || tag == "g") {
-            collect_defs(child->children);
+            collect_defs(child->children, depth + 1);
         } else if (tag == "lineargradient" || tag == "radialgradient") {
             GradientDef grad;
             grad.is_linear = (tag == "lineargradient");

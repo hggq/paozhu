@@ -2,7 +2,7 @@
 #define ORM_CMS_PRODUCTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sun, 18 Oct 2026 14:28:04 GMT
+*本文件为自动生成 Thu, 22 Oct 2026 11:07:18 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -746,7 +746,7 @@ namespace product_info
         
     inline constexpr std::array<std::string_view,24> col_names={"pid","userid","topicid","bigid","smallid","brandid","isview","isstore","ishome","showtype","sntype","name","keywords","introduce","listimg","bigimg","maincontent","paracontent","samepro","attatchfiles","price","sortid","adddate","editdate"};
 	static constexpr std::array<unsigned char,24> col_types={3,3,3,3,3,3,1,1,1,1,253,253,253,252,252,253,252,252,253,252,3,3,253,253};
-	static constexpr std::array<unsigned short,24> col_length={0,0,0,0,0,0,0,0,0,0,128,253,256,0,0,254,0,0,254,0,0,0,20,20};
+	static constexpr std::array<unsigned int,24> col_length={0,0,0,0,0,0,0,0,0,0,128,253,256,0,0,254,0,0,254,0,0,0,20,20};
 	static constexpr std::array<unsigned char,24> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	static constexpr std::array<bool,24> col_null={false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
 	static constexpr std::array<bool,24> col_indexed={true,true,false,false,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,true,false,false};

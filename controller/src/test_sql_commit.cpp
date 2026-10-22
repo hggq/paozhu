@@ -183,6 +183,33 @@ std::string test_sql_commit(std::shared_ptr<httppeer> peer)
             newsqlstring = user_m.commit_remove();             // get DELETE SQL
 
         */
+
+        // A model borrows its own connection from the pool, so a write made inside a
+        // db_conn transaction lands on another (autocommit) session unless the model is
+        // told to use the transaction connection. lock_conn(txn_conn) does that: it binds
+        // this model's reads and writes to the connection begin_commit() is holding.
+        // Ownership stays with db_conn — unlock_conn() only unbinds, it never returns the
+        // connection to the pool.
+        auto txnlink = std::make_unique<orm::db_conn>("cms");
+        if (txnlink->begin_commit())
+        {
+            auto user_m = orm::cms::Sysuser();
+            user_m.lock_conn(txnlink->mysql_edit_conn);
+            user_m.data.nickname = "nicename_txn";
+            user_m.where("adminid", 10000);
+            user_m.update("nickname");
+            user_m.unlock_conn();
+            client << "model update in txn, effect:" << user_m.effect()
+                   << ", err:" << user_m.error_msg << "<br />";
+            // Roll back on purpose: the nickname must not stay in the table, and a
+            // follow-up read on another connection still shows the old value.
+            txnlink->rollback();
+            client << "rollback:" << txnlink->error_msg << "<hr>";
+        }
+        else
+        {
+            client << "begin_commit:FAIL " << txnlink->error_msg << "<br />";
+        }
     }
     catch (std::exception &e)
     {

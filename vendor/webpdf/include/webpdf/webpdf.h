@@ -19,6 +19,15 @@ public:
     explicit WebPDFException(const std::string& msg) : std::runtime_error("webpdf error: " + msg) {}
 };
 
+// Reject traversal sequences, embedded NUL bytes and URI schemes in a file name.
+// Absolute paths stay allowed: the application's own image calls may use them.
+bool is_safe_image_path(const std::string& path);
+
+// Same checks, and the name must additionally be relative. File names that come
+// out of a document (HTML attributes, CSS url()) may only address files inside
+// the configured image directory.
+bool is_safe_document_image_path(const std::string& path);
+
 struct UvEntry {
     bool is_range;
     int value;
@@ -315,6 +324,7 @@ protected:
     size_t header_start_pos = 0;
     bool capture_mode = false;
     std::string capture_buf;
+    bool capture_saved_autopagebreak_ = true;
     struct DryRunPageInfo {
         std::string dryrun_buf;
         double height = 0;
@@ -335,6 +345,7 @@ protected:
     double dryrun_start_y = 0;
     bool measure_mode_ = false;
     double measure_start_y_ = 0;
+    bool measure_saved_autopagebreak_ = true;
     std::string aliasNbPages;
     std::string ZoomMode;
     std::string LayoutMode;

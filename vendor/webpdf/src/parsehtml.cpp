@@ -67,26 +67,7 @@ static std::string decode_html_entities(const std::string& s) {
 }
 
 static bool is_safe_file_path(const std::string& path) {
-    if (path.empty()) return false;
-    for (size_t i = 0; i < path.size(); i++) {
-        if (path[i] == '/') {
-            if (i + 1 < path.size() && path[i + 1] == '/') return false;
-        } else if (path[i] == '\\') {
-            if (i + 1 < path.size() && path[i + 1] == '\\') return false;
-        }
-    }
-    if (path.find("/../") != std::string::npos) return false;
-    if (path.find("\\..\\") != std::string::npos) return false;
-    if (path.compare(0, 3, "../") == 0) return false;
-    if (path.compare(0, 3, "..\\") == 0) return false;
-    if (path.compare(path.size() - 3, 3, "/..") == 0) return false;
-    if (path.compare(path.size() - 3, 3, "\\..") == 0) return false;
-    if (path == ".." || path == ".") return false;
-    if (path[0] == '/' || path[0] == '\\') return false;
-    if (path.size() >= 2 && std::isalpha((unsigned char)path[0]) && path[1] == ':') return false;
-    if (path.find("://") != std::string::npos) return false;
-    if (path.find("data:") == 0) return false;
-    return true;
+    return is_safe_document_image_path(path);
 }
 
 HTMLRenderer::HTMLRenderer(webpdf* p) : pdf(p) {}
@@ -312,7 +293,11 @@ std::vector<std::shared_ptr<HTMLNode>> HTMLRenderer::parse_html(const std::strin
                                     tag_name == "input" || tag_name == "meta" || tag_name == "link");
 
             stack.back()->children.push_back(node);
-            if (!is_self_closing)
+            // The tree is walked recursively while rendering, so nesting deeper
+            // than the render guard would overflow the stack in a document that
+            // only opens tags. Past the cap an element becomes a leaf; a stray
+            // closing tag then stops at the root instead of popping further.
+            if (!is_self_closing && (int)stack.size() < MAX_RENDER_DEPTH)
                 stack.push_back(node);
         }
         pos = gt + 1;
@@ -3008,7 +2993,7 @@ void HTMLRenderer::render_nodes(const std::vector<std::shared_ptr<HTMLNode>>& no
                         line_buf_align_.clear();
 
                         if (is_svg) {
-                            std::ifstream svg_file(src);
+                            std::ifstream svg_file(pdf->_resolve_image_path(src));
                             if (svg_file.is_open()) {
                                 std::stringstream ss;
                                 ss << svg_file.rdbuf();
@@ -3529,7 +3514,7 @@ void HTMLRenderer::render_nodes(const std::vector<std::shared_ptr<HTMLNode>>& no
                                 size_t dot = bg_file.find_last_of('.');
                                 if (dot != std::string::npos && str_tolower(bg_file.substr(dot + 1)) == "svg") {
                                     is_svg_bg = true;
-                                    std::ifstream svg_file(bg_file);
+                                    std::ifstream svg_file(pdf->_resolve_image_path(bg_file));
                                     if (svg_file.is_open()) {
                                         std::stringstream ss;
                                         ss << svg_file.rdbuf();

@@ -37,4 +37,13 @@
 #define PZ_O_BINARY 0
 #endif
 
+// MSVC 的 long 是 32 位, 而 <cstdio> 的 fseek/ftell 用 long 传偏移和返回位置, 所以
+// 超过 2 GiB 的文件定位不到。这里把这两个名字映射到 CRT 自己的 64 位版本, 参数与返回
+// 值都按 64 位整数处理。映射生效之后, 同一个编译单元里不能再写 std::fseek / std::ftell
+// (限定名不会被替换, 会展开成不存在的 std::_fseeki64), 一律写不带前缀的 fseek / ftell。
+#ifdef _WIN32
+#define fseek _fseeki64
+#define ftell _ftelli64
+#endif
+
 #endif

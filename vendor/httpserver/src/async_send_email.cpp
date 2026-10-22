@@ -1,21 +1,124 @@
+#include <chrono>
 #include <cstdarg>
 #include <cstring>
 #include <stdexcept>
 #include <string>
-#include <iostream>
-#include <sstream>
 #include <openssl/hmac.h>
 #include <openssl/evp.h>
 #include <openssl/sha.h>
 #include <openssl/md5.h>
 #include "base64.h"
 #include "http_socket.h"
+#include "send_email.h"
 #include "async_send_email.h"
+#include "session_id.h"
 #include "func.h"
 #include "client_context.h"
 
 namespace http
 {
+
+// 附件上限：base64_encode 的长度参数是 unsigned int，4GiB 及以上装不下，
+// 超限直接拒绝发送，避免长度截断后发出损坏内容。
+constexpr long long kMaxAttachmentBytes = 4LL * 1024 * 1024 * 1024 - 1;
+
+namespace
+{
+// 协程发送的 SMTP 读超时：每次等服务器应答最多 30 秒。到点关闭底层连接，
+// 挂起的读会以 operation_aborted 完成，让整次发送失败而不是永久等待。
+constexpr std::chrono::seconds kSmtpReadTimeout(30);
+
+class smtp_read_timeout : public std::enable_shared_from_this<smtp_read_timeout>
+{
+  public:
+    explicit smtp_read_timeout(asio::any_io_executor executor) : timer_(std::move(executor)) {}
+
+    void watch(std::shared_ptr<asio::ip::tcp::socket> plain,
+               std::shared_ptr<asio::ssl::stream<asio::ip::tcp::socket>> tls)
+    {
+        plain_socket_ = std::move(plain);
+        ssl_socket_   = std::move(tls);
+    }
+
+    void arm()
+    {
+        unsigned int generation = ++generation_;
+        timer_.expires_after(kSmtpReadTimeout);
+        timer_.async_wait([self = shared_from_this(), generation](const asio::error_code &ec)
+        {
+            if (!ec && self->generation_ == generation)
+            {
+                self->on_timeout();
+            }
+        });
+    }
+
+    void disarm()
+    {
+        ++generation_;
+        timer_.cancel();
+    }
+
+    bool fired() const
+    {
+        return fired_;
+    }
+
+  private:
+    void on_timeout()
+    {
+        fired_ = true;
+        asio::error_code ignored;
+        if (ssl_socket_)
+        {
+            ssl_socket_->lowest_layer().close(ignored);
+        }
+        else if (plain_socket_)
+        {
+            plain_socket_->close(ignored);
+        }
+    }
+
+    asio::steady_timer timer_;
+    std::shared_ptr<asio::ip::tcp::socket> plain_socket_;
+    std::shared_ptr<asio::ssl::stream<asio::ip::tcp::socket>> ssl_socket_;
+    unsigned int generation_ = 0;
+    bool fired_              = false;
+};
+
+// 反复读 socket 直到凑齐一条完整 SMTP 应答。应答写进 out（最多 out_size-1 字节），
+// 返回长度；0 表示失败（应答超长）。多读出来的字节留在 readbuf 里给下一次调用。
+template <class Stream>
+asio::awaitable<unsigned int> read_smtp_response_async(Stream &stream, std::string &readbuf,
+                                                       char *out, std::size_t out_size,
+                                                       smtp_read_timeout &timeout,
+                                                       std::string &errormsg)
+{
+    for (;;)
+    {
+        std::string response;
+        int st = take_smtp_response(readbuf, response);
+        if (st == 1)
+        {
+            std::size_t cap = out_size > 0 ? out_size - 1 : 0;
+            unsigned int len = response.size() > cap ? static_cast<unsigned int>(cap) : static_cast<unsigned int>(response.size());
+            std::memset(out, 0x00, out_size);
+            std::memcpy(out, response.data(), len);
+            co_return len;
+        }
+        if (st < 0)
+        {
+            errormsg.append("smtp response too long!");
+            co_return 0;
+        }
+        char chunk[1024];
+        timeout.arm();
+        std::size_t got = co_await stream.async_read_some(asio::buffer(chunk, sizeof(chunk)), asio::use_awaitable);
+        timeout.disarm();
+        readbuf.append(chunk, got);
+    }
+}
+}// namespace
 
 /**
  * @brief 添加邮件附件
@@ -46,10 +149,14 @@ std::string async_send_email::getgmttime()
 {
     time_t curr_time;
     curr_time = time((time_t *)NULL);
-    tm *timeInfo;
+    tm timeInfo{};
     char timestr[30] = {'\0'};
-    timeInfo = gmtime(&curr_time);
-    strftime(timestr, sizeof(timestr), "%a, %d %b %Y %H:%M:%S GMT", timeInfo);
+#if defined(_WIN32)
+    gmtime_s(&timeInfo, &curr_time);
+#else
+    gmtime_r(&curr_time, &timeInfo);
+#endif
+    strftime(timestr, sizeof(timestr), "%a, %d %b %Y %H:%M:%S GMT", &timeInfo);
     std::string temp(timestr);
     return temp;
 }
@@ -74,8 +181,15 @@ bool async_send_email::sendloop()
     switch (state)
     {
     case SEND_EHLO:
-        sendcommand.append("HELO ");
-        sendcommand.append(smpturl);
+        if (ehlo_failed_)
+        {
+            sendcommand.append("HELO ");
+        }
+        else
+        {
+            sendcommand.append("EHLO ");
+        }
+        sendcommand.append(smtp_header_value(smpturl));
         sendcommand.append("\r\n");
         break;
 
@@ -98,13 +212,13 @@ bool async_send_email::sendloop()
     case SEND_MAIL_FROM:
         sendcommand.clear();
         sendcommand.append("MAIL FROM:<");
-        sendcommand.append(username);
+        sendcommand.append(smtp_header_value(username));
         sendcommand.append(">\r\n");
         break;
 
     case SEND_RCPT_TO:
         sendcommand.append("RCPT TO:<");
-        sendcommand.append(toemail);
+        sendcommand.append(smtp_header_value(toemail));
         sendcommand.append(">\r\n");
         break;
 
@@ -120,13 +234,13 @@ bool async_send_email::sendloop()
             sendcommand.append("From: =?UTF-8?B?");
             sendcommand.append(base64_encode(fromname.data(), fromname.size(), 0));
             sendcommand.append("?= <");
-            sendcommand.append(username);
+            sendcommand.append(smtp_header_value(username));
             sendcommand.append(">\r\n");
 
             sendcommand.append("To: =?UTF-8?B?");
             sendcommand.append(base64_encode(toname.data(), toname.size(), 0));
             sendcommand.append("?= <");
-            sendcommand.append(toemail);
+            sendcommand.append(smtp_header_value(toemail));
             sendcommand.append(">\r\n");
 
             sendcommand.append("Date: ");
@@ -134,25 +248,19 @@ bool async_send_email::sendloop()
             sendcommand.append("\r\n");
 
             sendcommand.append("Subject: ");
-            sendcommand.append(subject);
+            sendcommand.append(smtp_header_value(subject));
             sendcommand.append("\r\n");
 
             sendcommand.append("Reply-To: <");
-            sendcommand.append(replyemail);
+            sendcommand.append(smtp_header_value(replyemail));
             sendcommand.append(">\r\n");
 
-            srand(time(0));
-            boundarystsr.clear();
-            std::stringstream ostr;
-            unsigned int c = rand() * 10000000;
-            ostr << c;
-            c = rand() * 10000000;
-            ostr << c;
-            boundarystsr.append(ostr.str());
+            boundarystsr = get_rand_session_id();
 
             sendcommand.append("Message-ID: <");
             sendcommand.append(boundarystsr);
-            sendcommand.append(replyemail);
+            sendcommand.append("@");
+            sendcommand.append(smtp_header_value(smpturl));
             sendcommand.append(">\r\n");
 
             boundarystsr.append("_paozhu_");
@@ -163,17 +271,16 @@ bool async_send_email::sendloop()
             sendcommand.append(boundarystsr);
             sendcommand.append("\r\n");
             sendcommand.append("Content-Type: text/html; charset=UTF-8\r\n\r\n");
-            sendcommand.append(content);
+            sendcommand.append(smtp_dot_stuff(content));
             sendcommand.append("\r\n");
 
             n = 0;
-            sendfiles.resize(attachments.size());
+            sendfiles.clear();
             for (; n < attachments.size(); n++)
             {
                 FILE *ffile = fopen(attachments[n].c_str(), "rb");
                 if (!ffile)
                 {
-                    n -= 1;
                     continue;
                 }
                 fclose(ffile);
@@ -193,14 +300,15 @@ bool async_send_email::sendloop()
                 }
                 filename_temp.append(attachments[n].substr(k));
 
-                sendfiles[n].predata.append("\r\n--");
-                sendfiles[n].predata.append(boundarystsr);
-                sendfiles[n].predata.append("\r\nContent-Type: application/octet-stream;\r\nContent-Transfer-Encoding: base64\r\nContent-Disposition: attachment; filename=\"=?UTF-8?B?");
-                sendfiles[n].predata.append(base64_encode(filename_temp.data(), filename_temp.size()));
-                sendfiles[n].predata.append("?=\"\r\n\r\n");
-                sendfiles[n].filename = attachments[n];
+                sendfile_t sf;
+                sf.predata.append("\r\n--");
+                sf.predata.append(boundarystsr);
+                sf.predata.append("\r\nContent-Type: application/octet-stream;\r\nContent-Transfer-Encoding: base64\r\nContent-Disposition: attachment; filename=\"=?UTF-8?B?");
+                sf.predata.append(base64_encode(filename_temp.data(), filename_temp.size()));
+                sf.predata.append("?=\"\r\n\r\n");
+                sf.filename = attachments[n];
+                sendfiles.push_back(std::move(sf));
             }
-            sendfiles.resize(n);
         }
         else
         {
@@ -210,13 +318,13 @@ bool async_send_email::sendloop()
             sendcommand.append("From: =?UTF-8?B?");
             sendcommand.append(base64_encode(fromname.data(), fromname.size(), 0));
             sendcommand.append("?= <");
-            sendcommand.append(username);
+            sendcommand.append(smtp_header_value(username));
             sendcommand.append(">\r\n");
 
             sendcommand.append("To: =?UTF-8?B?");
             sendcommand.append(base64_encode(toname.data(), toname.size(), 0));
             sendcommand.append("?= <");
-            sendcommand.append(toemail);
+            sendcommand.append(smtp_header_value(toemail));
             sendcommand.append(">\r\n");
 
             sendcommand.append("Date: ");
@@ -224,25 +332,22 @@ bool async_send_email::sendloop()
             sendcommand.append("\r\n");
 
             sendcommand.append("Subject: ");
-            sendcommand.append(subject);
+            sendcommand.append(smtp_header_value(subject));
             sendcommand.append("\r\n");
 
             sendcommand.append("Reply-To: <");
-            sendcommand.append(replyemail);
+            sendcommand.append(smtp_header_value(replyemail));
             sendcommand.append(">\r\n");
 
-            srand(time(0));
-            boundarystsr.clear();
-            std::stringstream ostr;
-            unsigned int c = rand() * 10000000;
-            ostr << c;
+            boundarystsr = get_rand_session_id();
 
             sendcommand.append("Message-ID: <");
-            sendcommand.append(ostr.str());
-            sendcommand.append(replyemail);
+            sendcommand.append(boundarystsr);
+            sendcommand.append("@");
+            sendcommand.append(smtp_header_value(smpturl));
             sendcommand.append(">\r\n\r\n");
 
-            sendcommand.append(content);
+            sendcommand.append(smtp_dot_stuff(content));
             sendcommand.append("\r\n\r\n.\r\n");
         }
         break;
@@ -281,12 +386,15 @@ bool async_send_email::sendloop()
  */
 asio::awaitable<bool> async_send_email::async_send()
 {
+    std::shared_ptr<smtp_read_timeout> read_timeout;
     try
     {
+        read_timeout = std::make_shared<smtp_read_timeout>(strand_);
         if (isssl)
         {
             ssl_context = std::make_shared<asio::ssl::context>(asio::ssl::context::sslv23);
             sslsock = std::make_shared<asio::ssl::stream<asio::ip::tcp::socket>>(strand_, *ssl_context);
+            read_timeout->watch(nullptr, sslsock);
             ssl_context->set_default_verify_paths();
 
             asio::ip::tcp::resolver resolver(strand_);
@@ -315,18 +423,23 @@ asio::awaitable<bool> async_send_email::async_send()
             ssl_context->set_verify_mode(asio::ssl::verify_peer);
             ssl_context->set_verify_callback(asio::ssl::host_name_verification(smpturl));
 
+            read_timeout->arm();
             std::tie(ec) = co_await sslsock->async_handshake(asio::ssl::stream_base::client, tuple_awaitable);
+            read_timeout->disarm();
             if (ec)
             {
-                errormsg.append("ssl handshake error!");
+                errormsg.append(read_timeout->fired() ? "smtp read timeout!" : "ssl handshake error!");
                 co_return false;
             }
 
             state = SEND_START;
             unsigned int n;
 
-            memset(data, 0x00, 2048);
-            n = co_await sslsock->async_read_some(asio::buffer(data, 1024), asio::use_awaitable);
+            n = co_await read_smtp_response_async(*sslsock, smtp_readbuf_, data, sizeof(data), *read_timeout, errormsg);
+            if (n == 0)
+            {
+                co_return false;
+            }
 
             if (state == SEND_START)
             {
@@ -356,48 +469,77 @@ asio::awaitable<bool> async_send_email::async_send()
                         {
                             if (sendfiles.size() == 0)
                             {
-                                co_await sslsock->async_write_some(asio::buffer(sendcommand), asio::use_awaitable);
+                                co_await asio::async_write(*sslsock, asio::buffer(sendcommand), asio::use_awaitable);
                             }
                             else
                             {
                                 co_await asio::async_write(*sslsock, asio::buffer(sendcommand), asio::use_awaitable);
-                                unsigned int sendsize = 0;
-                                data[2048] = 0;
+                                std::size_t sendsize = 0;
                                 std::string filecontent;
                                 std::string sendcontent;
 
                                 for (unsigned int j = 0; j < sendfiles.size(); j++)
                                 {
-                                    if (sendfiles[j].predata.empty())
-                                    {
-                                        break;
-                                    }
-                                    co_await sslsock->async_write_some(asio::buffer(sendfiles[j].predata), asio::use_awaitable);
-
                                     FILE *ff = fopen(sendfiles[j].filename.c_str(), "rb");
-                                    if (ff)
+                                    if (!ff)
                                     {
-                                        fseek(ff, 0, SEEK_END);
-                                        unsigned int size = ftell(ff);
-                                        fseek(ff, 0, SEEK_SET);
-                                        sendsize = 0;
-                                        filecontent.clear();
-                                        filecontent.resize(size);
-                                        unsigned int nread = fread(filecontent.data(), 1, size, ff);
-                                        filecontent.resize(nread);
-                                        filecontent = base64_encode(filecontent.data(), filecontent.size(), false);
-
-                                        sendcontent.clear();
-                                        for (; sendsize < filecontent.size(); sendsize++)
-                                        {
-                                            if (sendsize % 76 == 0 && sendsize > 0)
-                                            {
-                                                sendcontent.append("\r\n");
-                                            }
-                                            sendcontent.push_back(filecontent[sendsize]);
-                                        }
-                                        co_await asio::async_write(*sslsock, asio::buffer(sendcontent.data(), sendcontent.size()), asio::use_awaitable);
+                                        continue;
                                     }
+                                    co_await asio::async_write(*sslsock, asio::buffer(sendfiles[j].predata), asio::use_awaitable);
+
+                                    if (fseek(ff, 0, SEEK_END) != 0)
+                                    {
+                                        fclose(ff);
+                                        errormsg.append("attachment seek failed: ");
+                                        errormsg.append(sendfiles[j].filename);
+                                        co_return false;
+                                    }
+                                    long long size = ftell(ff);
+                                    if (size < 0)
+                                    {
+                                        fclose(ff);
+                                        errormsg.append("attachment size query failed: ");
+                                        errormsg.append(sendfiles[j].filename);
+                                        co_return false;
+                                    }
+                                    if (size > kMaxAttachmentBytes)
+                                    {
+                                        fclose(ff);
+                                        errormsg.append("attachment too large (4GiB limit): ");
+                                        errormsg.append(sendfiles[j].filename);
+                                        co_return false;
+                                    }
+                                    if (fseek(ff, 0, SEEK_SET) != 0)
+                                    {
+                                        fclose(ff);
+                                        errormsg.append("attachment seek failed: ");
+                                        errormsg.append(sendfiles[j].filename);
+                                        co_return false;
+                                    }
+                                    sendsize = 0;
+                                    filecontent.clear();
+                                    filecontent.resize(static_cast<std::size_t>(size));
+                                    std::size_t nread = fread(filecontent.data(), 1, static_cast<std::size_t>(size), ff);
+                                    if (nread != static_cast<std::size_t>(size))
+                                    {
+                                        bool read_error = ferror(ff) != 0;
+                                        fclose(ff);
+                                        errormsg.append(read_error ? "attachment read error: " : "attachment truncated: ");
+                                        errormsg.append(sendfiles[j].filename);
+                                        co_return false;
+                                    }
+                                    filecontent = base64_encode(filecontent.data(), static_cast<unsigned int>(filecontent.size()), false);
+
+                                    sendcontent.clear();
+                                    for (; sendsize < filecontent.size(); sendsize++)
+                                    {
+                                        if (sendsize % 76 == 0 && sendsize > 0)
+                                        {
+                                            sendcontent.append("\r\n");
+                                        }
+                                        sendcontent.push_back(filecontent[sendsize]);
+                                    }
+                                    co_await asio::async_write(*sslsock, asio::buffer(sendcontent.data(), sendcontent.size()), asio::use_awaitable);
                                     fclose(ff);
                                 }
 
@@ -414,8 +556,11 @@ asio::awaitable<bool> async_send_email::async_send()
                             co_await sslsock->async_write_some(asio::buffer(sendcommand), asio::use_awaitable);
                         }
 
-                        memset(data, 0x00, 2048);
-                        n = co_await sslsock->async_read_some(asio::buffer(data, 1024), asio::use_awaitable);
+                        n = co_await read_smtp_response_async(*sslsock, smtp_readbuf_, data, sizeof(data), *read_timeout, errormsg);
+                        if (n == 0)
+                        {
+                            co_return false;
+                        }
                     }
 
                     if (data[0] == '2' || data[0] == '3' || data[0] == '4' || data[0] == '5')
@@ -435,7 +580,23 @@ asio::awaitable<bool> async_send_email::async_send()
                         switch (state)
                         {
                         case SEND_EHLO:
-                            state = SEND_AUTH_LOGIN;
+                            if (temprenum == 250)
+                            {
+                                state = SEND_AUTH_LOGIN;
+                            }
+                            else if (!ehlo_failed_)
+                            {
+                                ehlo_failed_ = true;
+                                state        = SEND_EHLO;
+                            }
+                            else
+                            {
+                                for (unsigned int i = 0; i < n; i++)
+                                {
+                                    errormsg.push_back(data[i]);
+                                }
+                                co_return false;
+                            }
                             break;
                         case SEND_AUTH_LOGIN:
                             if (temprenum == 334 || temprenum == 250)
@@ -446,7 +607,7 @@ asio::awaitable<bool> async_send_email::async_send()
                             {
                                 for (unsigned int i = 0; i < n; i++)
                                 {
-                                    errormsg.push_back(data[n]);
+                                    errormsg.push_back(data[i]);
                                 }
                                 co_return false;
                             }
@@ -460,7 +621,7 @@ asio::awaitable<bool> async_send_email::async_send()
                             {
                                 for (unsigned int i = 0; i < n; i++)
                                 {
-                                    errormsg.push_back(data[n]);
+                                    errormsg.push_back(data[i]);
                                 }
                                 co_return false;
                             }
@@ -474,7 +635,7 @@ asio::awaitable<bool> async_send_email::async_send()
                             {
                                 for (unsigned int i = 0; i < n; i++)
                                 {
-                                    errormsg.push_back(data[n]);
+                                    errormsg.push_back(data[i]);
                                 }
                                 co_return false;
                             }
@@ -488,7 +649,7 @@ asio::awaitable<bool> async_send_email::async_send()
                             {
                                 for (unsigned int i = 0; i < n; i++)
                                 {
-                                    errormsg.push_back(data[n]);
+                                    errormsg.push_back(data[i]);
                                 }
                                 co_return false;
                             }
@@ -502,7 +663,7 @@ asio::awaitable<bool> async_send_email::async_send()
                             {
                                 for (unsigned int i = 0; i < n; i++)
                                 {
-                                    errormsg.push_back(data[n]);
+                                    errormsg.push_back(data[i]);
                                 }
                                 co_return false;
                             }
@@ -516,7 +677,7 @@ asio::awaitable<bool> async_send_email::async_send()
                             {
                                 for (unsigned int i = 0; i < n; i++)
                                 {
-                                    errormsg.push_back(data[n]);
+                                    errormsg.push_back(data[i]);
                                 }
                                 co_return false;
                             }
@@ -530,7 +691,7 @@ asio::awaitable<bool> async_send_email::async_send()
                             {
                                 for (unsigned int i = 0; i < n; i++)
                                 {
-                                    errormsg.push_back(data[n]);
+                                    errormsg.push_back(data[i]);
                                 }
                                 co_return false;
                             }
@@ -543,7 +704,7 @@ asio::awaitable<bool> async_send_email::async_send()
                     {
                         state = SEND_ERROR;
                         errormsg.clear();
-                        for (unsigned int j = 0; j < 100; j++)
+                        for (unsigned int j = 0; j < n; j++)
                         {
                             if (data[j] != 0x00)
                             {
@@ -582,6 +743,7 @@ asio::awaitable<bool> async_send_email::async_send()
         else
         {
             sock = std::make_shared<asio::ip::tcp::socket>(strand_);
+            read_timeout->watch(sock, nullptr);
             asio::ip::tcp::resolver resolver(strand_);
             auto endpoints = co_await resolver.async_resolve(smpturl, std::to_string(port), asio::use_awaitable);
 
@@ -605,8 +767,11 @@ asio::awaitable<bool> async_send_email::async_send()
 
             unsigned int n;
             state = SEND_START;
-            memset(data, 0x00, 2048);
-            n = co_await sock->async_read_some(asio::buffer(data, 1024), asio::use_awaitable);
+            n = co_await read_smtp_response_async(*sock, smtp_readbuf_, data, sizeof(data), *read_timeout, errormsg);
+            if (n == 0)
+            {
+                co_return false;
+            }
 
             if (state == SEND_START)
             {
@@ -636,48 +801,77 @@ asio::awaitable<bool> async_send_email::async_send()
                         {
                             if (sendfiles.size() == 0)
                             {
-                                co_await sock->async_write_some(asio::buffer(sendcommand), asio::use_awaitable);
+                                co_await asio::async_write(*sock, asio::buffer(sendcommand), asio::use_awaitable);
                             }
                             else
                             {
                                 co_await asio::async_write(*sock, asio::buffer(sendcommand), asio::use_awaitable);
-                                unsigned int sendsize = 0;
-                                data[2048] = 0;
+                                std::size_t sendsize = 0;
                                 std::string filecontent;
                                 std::string sendcontent;
 
                                 for (unsigned int j = 0; j < sendfiles.size(); j++)
                                 {
-                                    if (sendfiles[j].predata.empty())
-                                    {
-                                        break;
-                                    }
-                                    co_await sock->async_write_some(asio::buffer(sendfiles[j].predata), asio::use_awaitable);
-
                                     FILE *ff = fopen(sendfiles[j].filename.c_str(), "rb");
-                                    if (ff)
+                                    if (!ff)
                                     {
-                                        fseek(ff, 0, SEEK_END);
-                                        unsigned int size = ftell(ff);
-                                        fseek(ff, 0, SEEK_SET);
-                                        sendsize = 0;
-                                        filecontent.clear();
-                                        filecontent.resize(size);
-                                        unsigned int nread = fread(filecontent.data(), 1, size, ff);
-                                        filecontent.resize(nread);
-                                        filecontent = base64_encode(filecontent.data(), filecontent.size(), false);
-
-                                        sendcontent.clear();
-                                        for (; sendsize < filecontent.size(); sendsize++)
-                                        {
-                                            if (sendsize % 76 == 0 && sendsize > 0)
-                                            {
-                                                sendcontent.append("\r\n");
-                                            }
-                                            sendcontent.push_back(filecontent[sendsize]);
-                                        }
-                                        co_await asio::async_write(*sock, asio::buffer(sendcontent.data(), sendcontent.size()), asio::use_awaitable);
+                                        continue;
                                     }
+                                    co_await asio::async_write(*sock, asio::buffer(sendfiles[j].predata), asio::use_awaitable);
+
+                                    if (fseek(ff, 0, SEEK_END) != 0)
+                                    {
+                                        fclose(ff);
+                                        errormsg.append("attachment seek failed: ");
+                                        errormsg.append(sendfiles[j].filename);
+                                        co_return false;
+                                    }
+                                    long long size = ftell(ff);
+                                    if (size < 0)
+                                    {
+                                        fclose(ff);
+                                        errormsg.append("attachment size query failed: ");
+                                        errormsg.append(sendfiles[j].filename);
+                                        co_return false;
+                                    }
+                                    if (size > kMaxAttachmentBytes)
+                                    {
+                                        fclose(ff);
+                                        errormsg.append("attachment too large (4GiB limit): ");
+                                        errormsg.append(sendfiles[j].filename);
+                                        co_return false;
+                                    }
+                                    if (fseek(ff, 0, SEEK_SET) != 0)
+                                    {
+                                        fclose(ff);
+                                        errormsg.append("attachment seek failed: ");
+                                        errormsg.append(sendfiles[j].filename);
+                                        co_return false;
+                                    }
+                                    sendsize = 0;
+                                    filecontent.clear();
+                                    filecontent.resize(static_cast<std::size_t>(size));
+                                    std::size_t nread = fread(filecontent.data(), 1, static_cast<std::size_t>(size), ff);
+                                    if (nread != static_cast<std::size_t>(size))
+                                    {
+                                        bool read_error = ferror(ff) != 0;
+                                        fclose(ff);
+                                        errormsg.append(read_error ? "attachment read error: " : "attachment truncated: ");
+                                        errormsg.append(sendfiles[j].filename);
+                                        co_return false;
+                                    }
+                                    filecontent = base64_encode(filecontent.data(), static_cast<unsigned int>(filecontent.size()), false);
+
+                                    sendcontent.clear();
+                                    for (; sendsize < filecontent.size(); sendsize++)
+                                    {
+                                        if (sendsize % 76 == 0 && sendsize > 0)
+                                        {
+                                            sendcontent.append("\r\n");
+                                        }
+                                        sendcontent.push_back(filecontent[sendsize]);
+                                    }
+                                    co_await asio::async_write(*sock, asio::buffer(sendcontent.data(), sendcontent.size()), asio::use_awaitable);
                                     fclose(ff);
                                 }
 
@@ -694,8 +888,11 @@ asio::awaitable<bool> async_send_email::async_send()
                             co_await sock->async_write_some(asio::buffer(sendcommand), asio::use_awaitable);
                         }
 
-                        memset(data, 0x00, 2048);
-                        n = co_await sock->async_read_some(asio::buffer(data, 1024), asio::use_awaitable);
+                        n = co_await read_smtp_response_async(*sock, smtp_readbuf_, data, sizeof(data), *read_timeout, errormsg);
+                        if (n == 0)
+                        {
+                            co_return false;
+                        }
                     }
 
                     if (data[0] == '2' || data[0] == '3' || data[0] == '4' || data[0] == '5')
@@ -715,7 +912,23 @@ asio::awaitable<bool> async_send_email::async_send()
                         switch (state)
                         {
                         case SEND_EHLO:
-                            state = SEND_AUTH_LOGIN;
+                            if (temprenum == 250)
+                            {
+                                state = SEND_AUTH_LOGIN;
+                            }
+                            else if (!ehlo_failed_)
+                            {
+                                ehlo_failed_ = true;
+                                state        = SEND_EHLO;
+                            }
+                            else
+                            {
+                                for (unsigned int i = 0; i < n; i++)
+                                {
+                                    errormsg.push_back(data[i]);
+                                }
+                                co_return false;
+                            }
                             break;
                         case SEND_AUTH_LOGIN:
                             if (temprenum == 334 || temprenum == 235 || temprenum == 250)
@@ -726,7 +939,7 @@ asio::awaitable<bool> async_send_email::async_send()
                             {
                                 for (unsigned int i = 0; i < n; i++)
                                 {
-                                    errormsg.push_back(data[n]);
+                                    errormsg.push_back(data[i]);
                                 }
                                 co_return false;
                             }
@@ -740,7 +953,7 @@ asio::awaitable<bool> async_send_email::async_send()
                             {
                                 for (unsigned int i = 0; i < n; i++)
                                 {
-                                    errormsg.push_back(data[n]);
+                                    errormsg.push_back(data[i]);
                                 }
                                 co_return false;
                             }
@@ -754,7 +967,7 @@ asio::awaitable<bool> async_send_email::async_send()
                             {
                                 for (unsigned int i = 0; i < n; i++)
                                 {
-                                    errormsg.push_back(data[n]);
+                                    errormsg.push_back(data[i]);
                                 }
                                 co_return false;
                             }
@@ -768,7 +981,7 @@ asio::awaitable<bool> async_send_email::async_send()
                             {
                                 for (unsigned int i = 0; i < n; i++)
                                 {
-                                    errormsg.push_back(data[n]);
+                                    errormsg.push_back(data[i]);
                                 }
                                 co_return false;
                             }
@@ -782,7 +995,7 @@ asio::awaitable<bool> async_send_email::async_send()
                             {
                                 for (unsigned int i = 0; i < n; i++)
                                 {
-                                    errormsg.push_back(data[n]);
+                                    errormsg.push_back(data[i]);
                                 }
                                 co_return false;
                             }
@@ -796,7 +1009,7 @@ asio::awaitable<bool> async_send_email::async_send()
                             {
                                 for (unsigned int i = 0; i < n; i++)
                                 {
-                                    errormsg.push_back(data[n]);
+                                    errormsg.push_back(data[i]);
                                 }
                                 co_return false;
                             }
@@ -810,7 +1023,7 @@ asio::awaitable<bool> async_send_email::async_send()
                             {
                                 for (unsigned int i = 0; i < n; i++)
                                 {
-                                    errormsg.push_back(data[n]);
+                                    errormsg.push_back(data[i]);
                                 }
                                 co_return false;
                             }
@@ -823,7 +1036,7 @@ asio::awaitable<bool> async_send_email::async_send()
                     {
                         state = SEND_ERROR;
                         errormsg.clear();
-                        for (unsigned int j = 0; j < 100; j++)
+                        for (unsigned int j = 0; j < n; j++)
                         {
                             if (data[j] != 0x00)
                             {
@@ -862,7 +1075,14 @@ asio::awaitable<bool> async_send_email::async_send()
     }
     catch (std::exception &e)
     {
-        errormsg.append(e.what());
+        if (read_timeout && read_timeout->fired())
+        {
+            errormsg.append("smtp read timeout!");
+        }
+        else
+        {
+            errormsg.append(e.what());
+        }
         co_return false;
     }
 }

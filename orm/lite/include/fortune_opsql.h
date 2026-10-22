@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM SQLITE intermediate connection layer, sourced from MySQL, SQLITE 中间连接层，来源MySQL
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sun, 18 Oct 2026 14:28:00 GMT
+ *  Creation time Thu, 22 Oct 2026 11:07:14 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -307,6 +307,8 @@ namespace lite
                 return 0;
 
             auto conn = _get_prepared_select_conn();
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_select_conn(std::move(c)); });
             if (conn->isdebug)
                 conn->begin_time();
 
@@ -844,6 +846,8 @@ namespace lite
                 return 0;
 
             auto conn = _get_prepared_edit_conn();
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_edit_conn(std::move(c)); });
             if (conn->isdebug)
                 conn->begin_time();
 
@@ -1208,6 +1212,8 @@ namespace lite
                 return 0;
 
             auto conn = _get_prepared_edit_conn();
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_edit_conn(std::move(c)); });
             if (conn->isdebug)
                 conn->begin_time();
 
@@ -7285,8 +7291,8 @@ M_MODEL& ornotnullMessage()
                 {
                     edit_conn->begin_time();
                 }
-                // exec_dml 无法接收 RETURNING 结果集：直接执行原 SQL，成功后用 last_insert_rowid 取自增主键
-                unsigned int affected = edit_conn->exec_dml(sqlstring);
+                // exec_dml 无法接收 RETURNING 结果集：直接执行原 SQL，影响行数与自增主键在同一次提交里取回
+                auto [affected, insert_last_id_raw] = edit_conn->exec_dml_with_rowid(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -7305,7 +7311,7 @@ M_MODEL& ornotnullMessage()
                 else
                 {
                     effect_num     = affected;
-                    insert_last_id = edit_conn->last_insert_rowid();
+                    insert_last_id = insert_last_id_raw;
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
@@ -7357,8 +7363,8 @@ M_MODEL& ornotnullMessage()
                 {
                     edit_conn->begin_time();
                 }
-                // exec_dml 无法接收 RETURNING 结果集：直接执行原 SQL，成功后用 last_insert_rowid 取自增主键
-                unsigned int affected = co_await edit_conn->async_exec_dml(sqlstring);
+                // exec_dml 无法接收 RETURNING 结果集：直接执行原 SQL，影响行数与自增主键在同一次提交里取回
+                auto [affected, insert_last_id_raw] = co_await edit_conn->async_exec_dml_with_rowid(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -7377,7 +7383,7 @@ M_MODEL& ornotnullMessage()
                 else
                 {
                     effect_num     = affected;
-                    insert_last_id = co_await edit_conn->async_last_insert_rowid();
+                    insert_last_id = insert_last_id_raw;
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
@@ -7429,8 +7435,8 @@ M_MODEL& ornotnullMessage()
                 {
                     edit_conn->begin_time();
                 }
-                // exec_dml 无法接收 RETURNING 结果集：直接执行原 SQL，成功后用 last_insert_rowid 取自增主键
-                unsigned int affected = edit_conn->exec_dml(sqlstring);
+                // exec_dml 无法接收 RETURNING 结果集：直接执行原 SQL，影响行数与自增主键在同一次提交里取回
+                auto [affected, insert_last_id_raw] = edit_conn->exec_dml_with_rowid(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -7449,7 +7455,7 @@ M_MODEL& ornotnullMessage()
                 else
                 {
                     effect_num     = affected;
-                    insert_last_id = edit_conn->last_insert_rowid();
+                    insert_last_id = insert_last_id_raw;
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
@@ -7501,8 +7507,8 @@ M_MODEL& ornotnullMessage()
                 {
                     edit_conn->begin_time();
                 }
-                // exec_dml 无法接收 RETURNING 结果集：直接执行原 SQL，成功后用 last_insert_rowid 取自增主键
-                unsigned int affected = co_await edit_conn->async_exec_dml(sqlstring);
+                // exec_dml 无法接收 RETURNING 结果集：直接执行原 SQL，影响行数与自增主键在同一次提交里取回
+                auto [affected, insert_last_id_raw] = co_await edit_conn->async_exec_dml_with_rowid(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -7521,7 +7527,7 @@ M_MODEL& ornotnullMessage()
                 else
                 {
                     effect_num     = affected;
-                    insert_last_id = co_await edit_conn->async_last_insert_rowid();
+                    insert_last_id = insert_last_id_raw;
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
@@ -7573,8 +7579,8 @@ M_MODEL& ornotnullMessage()
                 {
                     edit_conn->begin_time();
                 }
-                // exec_dml 无法接收 RETURNING 结果集：直接执行原 SQL，成功后用 last_insert_rowid 取自增主键
-                unsigned int affected = edit_conn->exec_dml(sqlstring);
+                // exec_dml 无法接收 RETURNING 结果集：直接执行原 SQL，影响行数与自增主键在同一次提交里取回
+                auto [affected, insert_last_id_raw] = edit_conn->exec_dml_with_rowid(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -7593,7 +7599,7 @@ M_MODEL& ornotnullMessage()
                 else
                 {
                     effect_num     = affected;
-                    insert_last_id = edit_conn->last_insert_rowid();
+                    insert_last_id = insert_last_id_raw;
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
@@ -7645,8 +7651,8 @@ M_MODEL& ornotnullMessage()
                 {
                     edit_conn->begin_time();
                 }
-                // exec_dml 无法接收 RETURNING 结果集：直接执行原 SQL，成功后用 last_insert_rowid 取自增主键
-                unsigned int affected = co_await edit_conn->async_exec_dml(sqlstring);
+                // exec_dml 无法接收 RETURNING 结果集：直接执行原 SQL，影响行数与自增主键在同一次提交里取回
+                auto [affected, insert_last_id_raw] = co_await edit_conn->async_exec_dml_with_rowid(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -7665,7 +7671,7 @@ M_MODEL& ornotnullMessage()
                 else
                 {
                     effect_num     = affected;
-                    insert_last_id = co_await edit_conn->async_last_insert_rowid();
+                    insert_last_id = insert_last_id_raw;
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
@@ -7798,8 +7804,8 @@ M_MODEL& ornotnullMessage()
                 {
                     edit_conn->begin_time();
                 }
-                // exec_dml 无法接收 RETURNING 结果集：直接执行原 SQL，成功后用 last_insert_rowid 取自增主键
-                unsigned int affected = edit_conn->exec_dml(sqlstring);
+                // exec_dml 无法接收 RETURNING 结果集：直接执行原 SQL，影响行数与自增主键在同一次提交里取回
+                auto [affected, insert_last_id_raw] = edit_conn->exec_dml_with_rowid(sqlstring);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -7818,7 +7824,7 @@ M_MODEL& ornotnullMessage()
                 else
                 {
                     effect_num     = affected;
-                    insert_last_id = edit_conn->last_insert_rowid();
+                    insert_last_id = insert_last_id_raw;
                     B_BASE::setPK(insert_last_id);
                     if (!islock_conn)
                     {
@@ -7958,8 +7964,8 @@ M_MODEL& ornotnullMessage()
                     {
                         edit_conn->begin_time();
                     }
-                    // exec_dml 无法接收 RETURNING 结果集：直接执行原 SQL，成功后用 last_insert_rowid 取自增主键
-                    unsigned int affected = co_await edit_conn->async_exec_dml(sqlstring);
+                    // exec_dml 无法接收 RETURNING 结果集：直接执行原 SQL，影响行数与自增主键在同一次提交里取回
+                    auto [affected, insert_last_id_raw] = co_await edit_conn->async_exec_dml_with_rowid(sqlstring);
                     if (edit_conn->isdebug)
                     {
                         edit_conn->finish_time();
@@ -7978,7 +7984,7 @@ M_MODEL& ornotnullMessage()
                     else
                     {
                         effect_num     = affected;
-                        insert_last_id = co_await edit_conn->async_last_insert_rowid();
+                        insert_last_id = insert_last_id_raw;
                         B_BASE::setPK(insert_last_id);
                         if (!islock_conn)
                         {
@@ -9398,9 +9404,37 @@ M_MODEL& ornotnullMessage()
         {
             islock_conn = true;
         }
+        // 挂接外部事务连接：本模型后续读写都走 begin_commit() 那条会话，
+        // 否则模型的写入是从池里另借的连接，不在该事务内。
+        // 读也绑同一条，事务里要读得到未提交的行。
+        // 所有权仍在调用方（db_conn），本模型只是借用，unlock_conn() 只解绑、绝不还池。
+        void lock_conn(std::shared_ptr<sqlite_conn_base> txn_conn)
+        {
+            if (!txn_conn)
+            {
+                return;
+            }
+            if (islock_conn)
+            {
+                unlock_conn();
+            }
+            islock_conn = true;
+            is_txn_conn = true;
+            select_conn = txn_conn;
+            edit_conn   = std::move(txn_conn);
+        }
         void unlock_conn()
         {
             islock_conn = false;
+            if (is_txn_conn)
+            {
+                // 借用的事务连接归调用方所有：还进 select 池会让带着未提交
+                // 事务的会话以只读连接的身份流通
+                is_txn_conn = false;
+                select_conn.reset();
+                edit_conn.reset();
+                return;
+            }
             if (conn_obj)
             {
                 if (select_conn)
@@ -9444,6 +9478,7 @@ M_MODEL& ornotnullMessage()
             iscache       = o.iscache;
             iserror       = o.iserror;
             islock_conn   = o.islock_conn;
+            is_txn_conn   = o.is_txn_conn;
             exptime       = o.exptime;
             effect_num    = o.effect_num;
             wheresql      = std::move(o.wheresql);
@@ -9454,6 +9489,7 @@ M_MODEL& ornotnullMessage()
             mod           = static_cast<M_MODEL *>(this);
             o.mod         = static_cast<M_MODEL *>(&o);
             o.islock_conn = false;
+            o.is_txn_conn = false;
         }
         fortune_opsql &operator=(fortune_opsql &&o) noexcept
         {
@@ -9470,6 +9506,7 @@ M_MODEL& ornotnullMessage()
                 iscache                      = o.iscache;
                 iserror                      = o.iserror;
                 islock_conn                  = o.islock_conn;
+                is_txn_conn                  = o.is_txn_conn;
                 exptime                      = o.exptime;
                 effect_num                   = o.effect_num;
                 wheresql                     = std::move(o.wheresql);
@@ -9480,6 +9517,7 @@ M_MODEL& ornotnullMessage()
                 mod                          = static_cast<M_MODEL *>(this);
                 o.mod                        = static_cast<M_MODEL *>(&o);
                 o.islock_conn                = false;
+                o.is_txn_conn                = false;
             }
             return *this;
         }
@@ -9790,6 +9828,8 @@ M_MODEL& ornotnullMessage()
             }
 
             auto conn = _get_prepared_select_conn();
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_select_conn(std::move(c)); });
             if (conn->isdebug)
                 conn->begin_time();
 
@@ -9862,6 +9902,8 @@ M_MODEL& ornotnullMessage()
             }
 
             auto conn = _get_prepared_select_conn();
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_select_conn(std::move(c)); });
             if (conn->isdebug)
                 conn->begin_time();
 
@@ -9974,6 +10016,8 @@ M_MODEL& ornotnullMessage()
             }
 
             auto conn = _get_prepared_select_conn();
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_select_conn(std::move(c)); });
             if (conn->isdebug)
                 conn->begin_time();
 
@@ -10029,6 +10073,8 @@ M_MODEL& ornotnullMessage()
             }
 
             auto conn = _get_prepared_select_conn();
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_select_conn(std::move(c)); });
             if (conn->isdebug)
                 conn->begin_time();
 
@@ -10084,6 +10130,8 @@ M_MODEL& ornotnullMessage()
             }
 
             auto conn = _get_prepared_select_conn();
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_select_conn(std::move(c)); });
             if (conn->isdebug)
                 conn->begin_time();
 
@@ -10139,6 +10187,8 @@ M_MODEL& ornotnullMessage()
             }
 
             auto conn = _get_prepared_select_conn();
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_select_conn(std::move(c)); });
             if (conn->isdebug)
                 conn->begin_time();
 
@@ -10193,6 +10243,8 @@ M_MODEL& ornotnullMessage()
             }
 
             auto conn = _get_prepared_select_conn();
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_select_conn(std::move(c)); });
             if (conn->isdebug)
                 conn->begin_time();
 
@@ -10246,6 +10298,8 @@ M_MODEL& ornotnullMessage()
             }
 
             auto conn = _get_prepared_select_conn();
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_select_conn(std::move(c)); });
             if (conn->isdebug)
                 conn->begin_time();
 
@@ -10299,6 +10353,8 @@ M_MODEL& ornotnullMessage()
             }
 
             auto conn = _get_prepared_select_conn();
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_select_conn(std::move(c)); });
             if (conn->isdebug)
                 conn->begin_time();
 
@@ -10355,6 +10411,8 @@ M_MODEL& ornotnullMessage()
             }
 
             auto conn = _get_prepared_select_conn();
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_select_conn(std::move(c)); });
             if (conn->isdebug)
                 conn->begin_time();
 
@@ -10437,6 +10495,8 @@ M_MODEL& ornotnullMessage()
                 select_conn = co_await conn_obj->async_get_sqlite_select_conn();
             }
             auto conn = select_conn;
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_select_conn(std::move(c)); });
             if (conn->isdebug)
                 conn->begin_time();
 
@@ -10513,6 +10573,8 @@ M_MODEL& ornotnullMessage()
                 select_conn = co_await conn_obj->async_get_sqlite_select_conn();
             }
             auto conn = select_conn;
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_select_conn(std::move(c)); });
             if (conn->isdebug)
                 conn->begin_time();
 
@@ -10634,6 +10696,8 @@ M_MODEL& ornotnullMessage()
                 select_conn = co_await conn_obj->async_get_sqlite_select_conn();
             }
             auto conn = select_conn;
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_select_conn(std::move(c)); });
             if (conn->isdebug)
                 conn->begin_time();
 
@@ -10696,6 +10760,8 @@ M_MODEL& ornotnullMessage()
                 select_conn = co_await conn_obj->async_get_sqlite_select_conn();
             }
             auto conn = select_conn;
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_select_conn(std::move(c)); });
             if (conn->isdebug)
                 conn->begin_time();
 
@@ -10757,6 +10823,8 @@ M_MODEL& ornotnullMessage()
                 select_conn = co_await conn_obj->async_get_sqlite_select_conn();
             }
             auto conn = select_conn;
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_select_conn(std::move(c)); });
             if (conn->isdebug)
                 conn->begin_time();
 
@@ -10818,6 +10886,8 @@ M_MODEL& ornotnullMessage()
                 select_conn = co_await conn_obj->async_get_sqlite_select_conn();
             }
             auto conn = select_conn;
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_select_conn(std::move(c)); });
             if (conn->isdebug)
                 conn->begin_time();
 
@@ -10879,6 +10949,8 @@ M_MODEL& ornotnullMessage()
                 select_conn = co_await conn_obj->async_get_sqlite_select_conn();
             }
             auto conn = select_conn;
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_select_conn(std::move(c)); });
             if (conn->isdebug)
                 conn->begin_time();
 
@@ -10937,6 +11009,8 @@ M_MODEL& ornotnullMessage()
                 select_conn = co_await conn_obj->async_get_sqlite_select_conn();
             }
             auto conn = select_conn;
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_select_conn(std::move(c)); });
             if (conn->isdebug)
                 conn->begin_time();
 
@@ -10995,6 +11069,8 @@ M_MODEL& ornotnullMessage()
                 select_conn = co_await conn_obj->async_get_sqlite_select_conn();
             }
             auto conn = select_conn;
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_select_conn(std::move(c)); });
             if (conn->isdebug)
                 conn->begin_time();
 
@@ -11056,6 +11132,8 @@ M_MODEL& ornotnullMessage()
                 select_conn = co_await conn_obj->async_get_sqlite_select_conn();
             }
             auto conn = select_conn;
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_select_conn(std::move(c)); });
             if (conn->isdebug)
                 conn->begin_time();
 
@@ -11173,6 +11251,8 @@ M_MODEL& ornotnullMessage()
             }
 
             auto conn             = _get_prepared_edit_conn();
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_edit_conn(std::move(c)); });
             unsigned int affected = conn->exec_dml_prepared(sql, params);
             effect_num            = affected;
             if (affected == static_cast<unsigned int>(-1))
@@ -11351,6 +11431,8 @@ M_MODEL& ornotnullMessage()
             }
 
             auto conn             = _get_prepared_edit_conn();
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_edit_conn(std::move(c)); });
             unsigned int affected = conn->exec_dml_prepared(sql, params);
             effect_num            = affected;
             if (affected == static_cast<unsigned int>(-1))
@@ -11510,6 +11592,8 @@ M_MODEL& ornotnullMessage()
             }
 
             auto conn             = _get_prepared_edit_conn();
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_edit_conn(std::move(c)); });
             unsigned int affected = conn->exec_dml_prepared(sql, params);
             effect_num            = affected;
             if (affected == static_cast<unsigned int>(-1))
@@ -11685,6 +11769,8 @@ M_MODEL& ornotnullMessage()
             }
 
             auto conn             = _get_prepared_edit_conn();
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_edit_conn(std::move(c)); });
             unsigned int affected = conn->exec_dml_prepared(sql, params);
             effect_num            = affected;
             if (affected == static_cast<unsigned int>(-1))
@@ -11732,6 +11818,8 @@ M_MODEL& ornotnullMessage()
             }
 
             auto conn             = _get_prepared_edit_conn();
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_edit_conn(std::move(c)); });
             unsigned int affected = conn->exec_dml_prepared(sql, params);
             effect_num            = affected;
             if (affected == static_cast<unsigned int>(-1))
@@ -11868,10 +11956,12 @@ M_MODEL& ornotnullMessage()
             }
 
             auto conn = _get_prepared_edit_conn();
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_edit_conn(std::move(c)); });
             if (conn->isdebug)
                 conn->begin_time();
 
-            unsigned int affected = conn->exec_dml_prepared(sql, params);
+            auto [affected, prep_rowid] = conn->exec_dml_prepared_with_rowid(sql, params);
 
             if (conn->isdebug)
                 conn->finish_time();
@@ -11879,7 +11969,7 @@ M_MODEL& ornotnullMessage()
             long long last_id = 0;
             if (affected != static_cast<unsigned int>(-1))
             {
-                last_id = conn->last_insert_rowid();
+                last_id = prep_rowid;
                 B_BASE::setPK(last_id);
             }
             else
@@ -11950,7 +12040,7 @@ M_MODEL& ornotnullMessage()
                 {
                     edit_conn->begin_time();
                 }
-                unsigned int affected = co_await edit_conn->async_exec_dml_prepared(sql, params);
+                auto [affected, prep_rowid] = co_await edit_conn->async_exec_dml_prepared_with_rowid(sql, params);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -11967,7 +12057,7 @@ M_MODEL& ornotnullMessage()
                     co_return std::make_tuple(0, 0ULL);
                 }
 
-                long long last_id = co_await edit_conn->async_last_insert_rowid();
+                long long last_id = prep_rowid;
                 B_BASE::setPK(last_id);
                 effect_num = affected;
                 if (!islock_conn)
@@ -12044,10 +12134,12 @@ M_MODEL& ornotnullMessage()
             }
 
             auto conn = _get_prepared_edit_conn();
+            // 借出的连接在异常展开时由 guard 归还；正常路径 std::move(conn) 后 guard 自动失效
+            auto conn_guard = orm::make_conn_guard(conn, islock_conn, [this](auto &&c) { conn_obj->back_sqlite_edit_conn(std::move(c)); });
             if (conn->isdebug)
                 conn->begin_time();
 
-            unsigned int affected = conn->exec_dml_prepared(sql, params);
+            auto [affected, prep_rowid] = conn->exec_dml_prepared_with_rowid(sql, params);
 
             if (conn->isdebug)
                 conn->finish_time();
@@ -12055,7 +12147,7 @@ M_MODEL& ornotnullMessage()
             long long first_id = 0;
             if (affected != static_cast<unsigned int>(-1))
             {
-                first_id = conn->last_insert_rowid();
+                first_id = prep_rowid;
             }
             else
             {
@@ -12147,7 +12239,7 @@ M_MODEL& ornotnullMessage()
                 {
                     edit_conn->begin_time();
                 }
-                unsigned int affected = co_await edit_conn->async_exec_dml_prepared(sql, params);
+                auto [affected, prep_rowid] = co_await edit_conn->async_exec_dml_prepared_with_rowid(sql, params);
                 if (edit_conn->isdebug)
                 {
                     edit_conn->finish_time();
@@ -12164,7 +12256,7 @@ M_MODEL& ornotnullMessage()
                     co_return std::make_tuple(0, 0ULL);
                 }
 
-                long long first_id = co_await edit_conn->async_last_insert_rowid();
+                long long first_id = prep_rowid;
                 effect_num         = affected;
                 if (!islock_conn)
                 {
@@ -12198,6 +12290,7 @@ M_MODEL& ornotnullMessage()
         bool is_hit_cache       = false;
         bool iserror            = false;
         bool islock_conn        = false;
+        bool is_txn_conn        = false;
         int exptime             = 0;
         unsigned int effect_num = 0;
         // 上一次挂挡(use_cache)的 exec_* 读真正使用的缓存 key。exec_* 的 key 含绑定参数，

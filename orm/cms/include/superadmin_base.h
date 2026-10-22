@@ -2,7 +2,7 @@
 #define ORM_CMS_SUPERADMINBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sun, 18 Oct 2026 14:28:04 GMT
+*本文件为自动生成 Thu, 22 Oct 2026 11:07:18 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -676,7 +676,7 @@ namespace superadmin_info
         
     inline constexpr std::array<std::string_view,14> col_names={"adminid","name","password","nickname","isopen","begindate","enddate","regdate","mobile","email","loginnum","qrtemp","wxuuid","basesitepath"};
 	static constexpr std::array<unsigned char,14> col_types={3,253,253,253,1,3,3,253,253,253,3,3,253,253};
-	static constexpr std::array<unsigned short,14> col_length={0,40,40,30,0,0,0,30,40,40,0,0,40,256};
+	static constexpr std::array<unsigned int,14> col_length={0,40,40,30,0,0,0,30,40,40,0,0,40,256};
 	static constexpr std::array<unsigned char,14> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	static constexpr std::array<bool,14> col_null={false,false,false,false,false,false,false,false,false,false,false,false,false,false};
 	static constexpr std::array<bool,14> col_indexed={true,false,false,false,false,false,false,false,false,false,false,false,false,false};

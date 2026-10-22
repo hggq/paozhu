@@ -1479,7 +1479,13 @@ std::string httppeer::make_http1_header()
     {
         http1header.append("Transfer-Encoding: chunked\r\n");
     }
-    else
+    // 304/204/1xx 不得带 Content-Length：RFC 9110 §8.6 要求 304 若带 CL，其值必须等于
+    // 同一请求 200 响应的实体长度，而本端 304 一律 length(0)，对非空文件是明确违规。
+    // 204 与 1xx 按定义无正文，同样不该带。
+    // No Content-Length on 304/204/1xx: RFC 9110 §8.6 requires a 304's Content-Length (if
+    // present) to equal the entity length of the 200 response; we always send length(0).
+    // 204 and 1xx are bodyless by definition.
+    else if (status_code != 304 && status_code != 204 && !(status_code >= 100 && status_code < 200))
     {
         http1header.append("Content-Length: ");
         http1header.append(std::to_string(content_length));
@@ -1578,7 +1584,12 @@ std::string httppeer::make_http2_header(unsigned char flag_code)
 
     make_http2_headers_static(http2header, status_code);
     set_http2_headers_flag(http2header, HTTP2_HEADER_END_HEADERS | flag_code);
-    make_http2_headers_item3(http2header, HTTP2_CODE_content_length, content_length);
+    // 同 make_http1_header()：304/204/1xx 不写 Content-Length（RFC 9110 §8.6）。
+    // Same as make_http1_header(): no Content-Length on 304/204/1xx (RFC 9110 §8.6).
+    if (status_code != 304 && status_code != 204 && !(status_code >= 100 && status_code < 200))
+    {
+        make_http2_headers_item3(http2header, HTTP2_CODE_content_length, content_length);
+    }
     make_http2_headers_item3(http2header, HTTP2_CODE_content_type, content_type);
 
     if (compress == 1)
@@ -2320,9 +2331,14 @@ range_parse_t parse_range_header(std::string_view header_value, headstate_t &sta
         return range_parse_t::not_bytes;// 非 bytes 单位，忽略该头
     }
 
-    unsigned int digits = 0;
     auto parse_number   = [&](unsigned long long &out) -> bool
     {
+        // 位数上限必须每个数独立计：放在 lambda 外会变成"起点+终点合计 14 位"，
+        // 于是 bytes=10485760-20971519（8+8 位）这种常见的 10 MB 以上分段请求被判语法错误。
+        // The digit cap must be per-number: declaring it outside the lambda makes it
+        // "start+end together ≤ 14 digits", so a common 8+8 digit range like
+        // bytes=10485760-20971519 is rejected as a syntax error.
+        unsigned int digits = 0;
         bool any = false;
         for (; j < linesize; j++)
         {

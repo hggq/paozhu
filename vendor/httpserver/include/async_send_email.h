@@ -85,9 +85,11 @@ namespace http
         unsigned int port = 25;                           ///< SMTP端口，默认25，SSL通常用465
         bool isssl = false;                               ///< 是否启用SSL加密
         bool ishtml = false;                              ///< 是否为HTML格式邮件
+        bool ehlo_failed_ = false;                       ///< EHLO被拒绝(5xx)后回退HELO的标志
 
         std::string sendcommand;                          ///< 当前要发送的SMTP命令
         char data[2049];                                  ///< 接收服务器响应的缓冲区
+        std::string smtp_readbuf_;                        ///< 读取缓冲：保存未凑成完整应答的剩余字节
 
         /**
          * @brief SMTP会话状态枚举，定义邮件发送流程的各个阶段

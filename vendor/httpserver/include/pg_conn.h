@@ -108,6 +108,13 @@ inline int16_t buf_to_int16(const unsigned char *buf)
 
 // ======================== PostgreSQL Connection Base Class ========================
 
+struct pg_notice
+{
+    std::string severity;   // 'S' - DEBUG / INFO / NOTICE / WARNING
+    std::string code;       // 'C' - SQLSTATE，如 00000 / 42P01
+    std::string message;    // 'M' - 正文
+};
+
 class pg_conn_base
 {
   public:
@@ -117,11 +124,6 @@ class pg_conn_base
     // Connection methods
     bool connect(const orm_conn_t &conn_config);
     asio::awaitable<bool> async_connect(const orm_conn_t &conn_config);
-
-    // Protocol parsing methods
-    unsigned int read_pack(unsigned char *data, unsigned int offset);
-    void read_col_info(const std::string &pack_info, field_info_t &temp_field_data);
-    bool pack_eof_check(const pack_info_t &temp_pack_data);
 
     // PG query result parsing
     std::vector<field_info_t> parse_row_description(const unsigned char *data, unsigned int len);
@@ -238,8 +240,9 @@ class pg_conn_base
         error_code = 0;
     }
 
-    // 连接层跟踪的事务状态：exec_dml 成功执行 BEGIN 置位，COMMIT/ROLLBACK/END 清除；
-    // 连接池归还路径据此判断是否需要自动 ROLLBACK 清理
+    // 连接层跟踪的事务状态：exec_dml 成功执行 BEGIN 置位，COMMIT/ROLLBACK/END 清除。
+    // 连接池归还路径不检查该标志、也不自动 ROLLBACK；事务收尾由调用方负责
+    //（orm::db_conn 析构时会先 rollback）。
     bool in_transaction() const { return in_transaction_.load(); }
 
     // 诊断用：本连接 prepared 结果列元数据缓存的当前条目数（§17.4 判据 4 的容量断言）
@@ -459,7 +462,7 @@ class pg_conn_base
     int backend_pid_   = 0;             // BackendKeyData: 后端进程 PID
     int cancel_secret_ = 0;             // BackendKeyData: 取消密钥
     std::string server_client_encoding_;// ParameterStatus: 服务器声明的 client_encoding
-    std::vector<std::string> notices_;  // NoticeResponse: 收集的警告/提示消息
+    std::vector<pg_notice> notices_;  // NoticeResponse: 收集的警告/提示消息
 
     // std::unique_ptr<asio::ip::tcp::socket> socket;
     // std::unique_ptr<asio::ssl::stream<asio::ip::tcp::socket>> sslsocket;

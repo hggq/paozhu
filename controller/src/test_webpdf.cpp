@@ -31,6 +31,13 @@ std::string test_webpdf(std::shared_ptr<httppeer> peer)
         file_conf.push_back('/');
     }
     file_conf.append("docs/");
+    // Absolute so a later change of the process working directory cannot move
+    // these files somewhere else.
+    file_conf = fs::absolute(file_conf).lexically_normal().string();
+    if (file_conf.back() != '/')
+    {
+        file_conf.push_back('/');
+    }
 
     if (peer->pathinfos.size() == 2 && peer->pathinfos[1] == "cn")
     {
@@ -43,7 +50,6 @@ std::string test_webpdf(std::shared_ptr<httppeer> peer)
             std::string font_file = "AlibabaPuHuiTi-Light.otf";
             std::string font_name = "AlibabaPuHuiTi-Light";
 
-            fs::path html_path = fs::absolute(html_file);
             fs::path pdf_path  = fs::absolute(pdf_file);
             fs::path font_dir  = fs::absolute(file_conf + "font");
 
@@ -72,7 +78,6 @@ std::string test_webpdf(std::shared_ptr<httppeer> peer)
             pdf->AddPage();
             pdf->AddFont(font_name, "", font_file, font_dir.string());
             pdf->SetFont(font_name, "", 14);
-            fs::current_path(fs::absolute(html_file).parent_path());
             pdf->WriteHTML(html);
 
             peer->type("application/pdf");
@@ -95,9 +100,6 @@ std::string test_webpdf(std::shared_ptr<httppeer> peer)
             std::string font_file = "AlibabaSans-Regular.otf";
             std::string font_name = "AlibabaSans-Regular";
 
-            // Resolve everything to absolute paths up front, before we change the
-            // working directory to the HTML's location for relative asset lookups.
-            fs::path html_path = fs::absolute(html_file);
             fs::path pdf_path  = fs::absolute(pdf_file);
             fs::path font_dir  = fs::absolute(file_conf + "font");
 
@@ -126,8 +128,8 @@ std::string test_webpdf(std::shared_ptr<httppeer> peer)
             pdf->AddFont(font_name, "", font_file, font_dir.string());
             pdf->SetFont(font_name, "", 14);
 
-            // Resources (images, etc.) in the HTML are relative to the HTML file.
-            //fs::current_path(html_path.parent_path());
+            // Document assets resolve against the images path set above, so the
+            // process working directory is left alone.
 
             pdf->WriteHTML(html);
             peer->type("application/pdf");
@@ -168,6 +170,13 @@ std::string test_otfpdf(std::shared_ptr<httppeer> peer)
         file_conf.push_back('/');
     }
     file_conf.append("docs/");
+    // Absolute so a later change of the process working directory cannot move
+    // these files somewhere else.
+    file_conf = fs::absolute(file_conf).lexically_normal().string();
+    if (file_conf.back() != '/')
+    {
+        file_conf.push_back('/');
+    }
 
     if (peer->pathinfos.size() == 2 && peer->pathinfos[1] == "cn")
     {
@@ -180,7 +189,6 @@ std::string test_otfpdf(std::shared_ptr<httppeer> peer)
             std::string font_file = "AlibabaPuHuiTi-Light.ttf";
             std::string font_name = "AlibabaPuHuiTi-Light";
 
-            fs::path html_path = fs::absolute(html_file);
             fs::path pdf_path  = fs::absolute(pdf_file);
             fs::path font_dir  = fs::absolute(file_conf + "font");
 
@@ -210,8 +218,8 @@ std::string test_otfpdf(std::shared_ptr<httppeer> peer)
             pdf->AddFont(font_name, "", font_file, font_dir.string());
             pdf->SetFont(font_name, "", 14);
 
-            // Resources (images, etc.) in the HTML are relative to the HTML file.
-            fs::current_path(html_path.parent_path());
+            // Document assets resolve against the images path set above, so the
+            // process working directory is left alone.
 
             pdf->WriteHTML(html);
 
@@ -235,9 +243,6 @@ std::string test_otfpdf(std::shared_ptr<httppeer> peer)
             std::string font_file = "AlibabaSans-Regular.ttf";
             std::string font_name = "AlibabaSans-Regular";
 
-            // Resolve everything to absolute paths up front, before we change the
-            // working directory to the HTML's location for relative asset lookups.
-            fs::path html_path = fs::absolute(html_file);
             fs::path pdf_path  = fs::absolute(pdf_file);
             fs::path font_dir  = fs::absolute(file_conf + "font");
 
@@ -266,8 +271,8 @@ std::string test_otfpdf(std::shared_ptr<httppeer> peer)
             pdf->AddFont(font_name, "", font_file, font_dir.string());
             pdf->SetFont(font_name, "", 14);
 
-            // Resources (images, etc.) in the HTML are relative to the HTML file.
-            fs::current_path(html_path.parent_path());
+            // Document assets resolve against the images path set above, so the
+            // process working directory is left alone.
 
             pdf->WriteHTML(html);
             peer->type("application/pdf");

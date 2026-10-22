@@ -1968,16 +1968,6 @@ void create_mysql_orm_operate_file(const std::string &prj_root_path, const std::
     if (n == 0)
         std::cerr << "  [WARN] template placeholder 'B_BASE::col_names' not found" << std::endl;
 
-    // get_field_value 是 opsql 类自身成员（由生成器注入），去掉 B_BASE:: 限定
-    n = string_replace_all(template_content, "B_BASE::get_field_value", "get_field_value");
-    if (n == 0)
-        std::cerr << "  [WARN] template placeholder 'B_BASE::get_field_value' not found" << std::endl;
-
-    // get_insert_field_value 同为生成器注入的 opsql 成员（预编译 INSERT 专用，自增主键 0→NULL）
-    n = string_replace_all(template_content, "B_BASE::get_insert_field_value", "get_insert_field_value");
-    if (n == 0)
-        std::cerr << "  [WARN] template placeholder 'B_BASE::get_insert_field_value' not found" << std::endl;
-
     // auto_pk_index 放到 _info namespace 里（始终存在，-1=无自增主键），与 col_names/auto_pk_name 同级
     std::string auto_pk_index_ref = real_model_name;
     auto_pk_index_ref.append("_info::auto_pk_index");
@@ -5168,14 +5158,16 @@ struct )";
                                 if (samenum == 1 && butong_has[butong_pos[indexchar]] == 0)
                                 {
                                     butong_has[butong_pos[indexchar]] = 1;
-                                    filemodelstrem << " if(coln.size()>" << std::to_string(iii) << "&&coln[" << std::to_string(iii) << "]=='" << (char)indexchar << "'";
+                                    filemodelstrem << " if(coln.size()>" << std::to_string(iii) << "&&(coln[" << std::to_string(iii) << "]=='" << (char)indexchar << "'";
                                     // 仅当 indexchar 是小写字母时才追加大写 OR 分支, 实现大小写不敏感匹配;
                                     // 数字/下划线等没有对应的大小写变体, 不应盲目减 32 生成无意义控制字符分支
                                     if (indexchar >= 'a' && indexchar <= 'z')
                                     {
                                         filemodelstrem << "||coln[" << std::to_string(iii) << "]=='" << (char)(indexchar - 32) << "'";
                                     }
-                                    filemodelstrem << "){ return " << std::to_string(butong_pos[indexchar]) << "; }\n";
+                                    // OR 分支必须整体括起来: 否则生成 (size>N && lower)||upper, 既触发
+                                    // -Wlogical-op-parentheses, 又让 upper 分支绕过长度检查去读 coln[N]
+                                    filemodelstrem << ")){ return " << std::to_string(butong_pos[indexchar]) << "; }\n";
                                 }
                             }
                         }

@@ -30,6 +30,10 @@ struct http2_send_data_t
 
     unsigned long long content_length = 0;//content_length
     unsigned long long current_num    = 0;
+    // 文件型任务是否需要按 current_num 重新定位读盘位置。读盘成功时文件位置跟着
+    // current_num 一起前进, 后面的帧可以省掉这次定位; 只有把两者拆开过的分支(帧没发出去
+    // 要回滚重发)必须重新置真, 否则会跳过已读未发的那一段。
+    bool need_seek = true;
 
     // 所有权状态。一个发送对象任一时刻只能有一个持有者，转换必须发生在锁内：
     //   0 空闲池（queue_list 里）
@@ -70,6 +74,7 @@ struct http2_send_data_t
 
         content_length     = 0;
         current_num        = 0;
+        need_seek          = true;
         last_progress_time = std::chrono::steady_clock::now();
         own_state          = 0;
         block_reason       = 0;
@@ -102,8 +107,10 @@ class http2_send_queue
     // 逐 tick 复查。表放这儿而不是放 client_session 上，是为了让兜底扫描有一张
     // 现成的名册：挂在 session 上就得每拍遍历 socket_session_lists 才能找到它们。
     //
-    // session_obj 传空 = 摘出全部（兜底扫描）。摘出后所有权归调用方，own_state 仍是 3。
-    bool detach_parked(const client_session *session_obj, std::list<std::shared_ptr<http2_send_data_t>> &out);
+    // session_obj 传空 = 摘出全部（兜底扫描）；reason 传 0 = 不按原因筛选，
+    // 传 1/2 只摘对应原因的条目。摘出后所有权归调用方，own_state 仍是 3。
+    bool detach_parked(const client_session *session_obj, unsigned char reason,
+                       std::list<std::shared_ptr<http2_send_data_t>> &out);
     // 发送线程发现闸门关上时把对象挂进来；own_state 的转换在锁内完成。
     void park(std::shared_ptr<http2_send_data_t> sp, unsigned char reason);
     // 闸门重算后仍不够格的挂回表里（调用方不再持有它们）。

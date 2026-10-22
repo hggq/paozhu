@@ -778,7 +778,26 @@ model.lock_conn();
 model.where("id", 1).fetch_one();
 // ... 更多操作
 model.unlock_conn();
+
+// 在 orm::db_conn 的事务里，光调用无参 lock_conn() 不够：模型仍然从连接池里另借一条，
+// 它的写入落在另一个会话上、自己就提交了。把事务正在持有的那条连接交给 lock_conn()，
+// 模型改为借用它；随后的 unlock_conn() 只解绑——所有权在 db_conn，
+// 由它在 commit()/rollback() 时把连接还回池里。
+auto ulink = std::make_unique<orm::db_conn>("cms");
+if (ulink->begin_commit())
+{
+    auto article = orm::cms::Article();
+    article.lock_conn(ulink->mysql_edit_conn);   // begin_commit() 持有的那条连接
+    article.data.title = "in transaction";
+    article.where("aid", 1).update("title");     // 现在真的在该事务内
+    article.unlock_conn();
+    ulink->commit();                             // 或者 rollback()
+}
 ```
+
+连接成员名跟着方言走：`mysql_edit_conn`、`pg_edit_conn`、`sqlite_edit_conn`（都是
+`orm::db_conn` 的 public 成员）。挂错方言的类型是编译期错误，模型不可能接到别的数据库的事务上；
+传空指针是 no-op，所以只在 `begin_commit()` 返回 true 之后再挂接。
 
 ### 5.6 ORM 数据操作
 
@@ -979,6 +998,22 @@ co_await articles.async_edit_query(sql);                // 协程版
 `wheresql` 为空时回退到主键，两者都没有时返回 `""`（`commit_update()` 还会置
 `error_msg = "warning empty where sql!"`）。`commit_insert()` 没有这道守卫。
 
+**事务。** `orm::db_conn` 用 `begin_commit()` / `async_begin_commit()` 开启事务，用
+`commit()` / `rollback()`（`async_commit()` / `async_rollback()`）收尾；经该对象发出的每条语句
+都跑在事务持有的那条写连接上。模型对象是另一个持有者——要在这个事务里写，必须把同一条连接借过去，
+见 §5.5 的 `lock_conn(txn_conn)` 说明。事务开着的时候，驱动层拒绝对该连接自动重连：
+socket 断掉的那一刻旧事务已被服务端回滚，往一条全新的 autocommit 会话上重发，
+等于把调用方以为已经滚掉的提交回去，所以这类调用改为直接失败，连接同时被关闭、由连接池丢弃。
+这道门禁读的是语句文本，不是服务端会话状态，所以 `SET autocommit=0` 在它眼里不算事务：那之后 socket
+断掉，驱动照常重连，旧会话已被回滚，下一条写入自己就提交了。事务一律经 `orm::db_conn`
+（`orm_query.h`）开启——驱动只跟踪这条路。
+
+**超过 16MB 的单行（MySQL）。** 文本协议里一条报文体超过 16MB 的行读不出来——大 `LONGTEXT`/`LONGBLOB`，
+或 `REPEAT()` 生成约 1670 万字符。读取就地停止，置 `error_code = 20`、`error_msg` 为
+`result row over 16MB (0xFFFFFF split) not supported`，此前已交付的行照常返回，连接仍然可用。
+同一个上限也适用于绑定参数（`COM_STMT_EXECUTE: payload too large`，同样 `error_code = 20`）。
+要读这类列请改为选取更窄的列。
+
 ### 5.8 预编译语句查询
 
 读与写的每个操作都有对应的预编译版本。构造条件的 API 完全共用，所以 `where()`、逐字段
@@ -1130,6 +1165,21 @@ auto d = orm::lite::Fortune();    // [lite]      SQLite     命名空间 orm::li
 PostgreSQL 在自增主键为 0 时会写入 `DEFAULT`，交给序列赋值；SQLite 同样的情况绑定 `NULL`。
 其余部分 —— `exec_*`、连接、外键访问器、`andsub()/orsub()/endsub()` —— 三者的行为完全
 相同。
+
+**SQLite：一个数据库文件只有一条常驻连接。** 对 `dbtype = sqlite` 的标签，连接池把**同一个**
+连接对象交给每一个调用方，每个数据库文件只有一条 worker 线程把语句排成串行。由此带来三条
+必须绕开的后果：
+
+- 事务是这条共享会话的属性，不是你这个 `orm::db_conn` 对象的属性。事务打开期间，其它调用方
+  的语句也落在它里面：另一个请求的 `INSERT` 会自报 `affected = 1`，然后在持有者回滚时被一起
+  回滚掉。所以属于该事务的写必须走同一条句柄（`model.lock_conn(ulink->sqlite_edit_conn)`，
+  见 §5.5），事务开着的时候不许有别的流量碰这个标签 —— 另一个请求、另一个模型对象、定时任务
+  都不行。lite 的事务要尽量短。
+- `commit()` / `rollback()` 不校验是谁开的事务：谁先调用就替所有人结束。事务要回到打开它的那个
+  `orm::db_conn` 上收尾，不要在你只是借到的句柄上调 `commit_transaction()`。
+- 自增主键属于会话，所以必须和写语句在同一次提交里取回。生成的 `insert()` / `save()` /
+  `exec_insert*()` 已经这样做；不要把 `INSERT` 交给 `orm::db_conn` 执行、再把
+  `last_insert_rowid()` 当成第二次调用去读。
 
 ### 5.12 异步 ORM 操作
 
@@ -1470,6 +1520,7 @@ client.val["list"].push(item);
 | `group(col)` | `GROUP BY` | `.group("topicid")` |
 | `having(cond)` | `HAVING` | `.having("count(*) > 1")` |
 | `lock_conn()` / `unlock_conn()` | 批量操作复用同一个连接 | §5.5 |
+| `lock_conn(事务连接)` | 借用 `orm::db_conn` 事务正在持有的那条连接 | §5.5 |
 
 **执行 —— 文本路径**（值被转义进语句）
 

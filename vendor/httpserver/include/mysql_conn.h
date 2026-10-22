@@ -350,7 +350,10 @@ class mysql_conn_base
     }
 
     // 连接层跟踪的事务状态：exec_dml 成功执行 BEGIN/START TRANSACTION 置位，
-    // COMMIT/ROLLBACK 清除；连接池归还路径据此判断是否需要自动 ROLLBACK 清理
+    // COMMIT/ROLLBACK 清除；供重连门禁读取（try_reconnect / async_try_reconnect
+    // 在事务在途时拒绝重连），连接池不使用该标志，也不会据此自动 ROLLBACK。
+    // 该标志只来自语句文本，不解析服务端状态位，所以 SET autocommit=0 不会置位；
+    // 事务边界请用 orm::db_conn（orm_query.h）的 begin_commit()/commit()。
     bool in_transaction() const { return in_transaction_.load(); }
 
     // 最近一次 fetch_prepared / async_fetch_prepared 结果集的"原始(物理)列名"，
