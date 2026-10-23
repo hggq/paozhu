@@ -439,12 +439,21 @@ void httppeer::parse_session()
         //         return;
         //     }
         // }
-        server_loaclvar &localvar = get_server_global_var();
-        switch (localvar.session_type)
+        // 会话读失败只退化成“没有会话”：抛出去会落到请求帧的兜底上，
+        // HTTP/1 变 500、HTTP/2 只发 GOAWAY 不给正文
+        try
         {
-        case 0: parse_session_file(sessionfile); break;
-        case 1: parse_session_memory(sessionfile); break;
-        default: parse_session_file(sessionfile); break;
+            server_loaclvar &localvar = get_server_global_var();
+            switch (localvar.session_type)
+            {
+            case 0: parse_session_file(sessionfile); break;
+            case 1: parse_session_memory(sessionfile); break;
+            default: parse_session_file(sessionfile); break;
+            }
+        }
+        catch (...)
+        {
+            session.clear();
         }
     }
 }

@@ -3582,7 +3582,8 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
             if (peer->isfinish || error > 0 || readoffset == before_offset)
             {
                 // 本次请求的 body 已消费完（或本包内已无可消费字节），
-                // 余下字节不再并入本次请求，也不再往下解析（残留字节一律丢弃）。
+                // 余下字节不再并入本次请求，也不再往下解析；readoffset 停在残留开头，
+                // 是留着下一轮接着解还是直接丢弃，由调用方决定。
                 break;
             }
         }

@@ -158,6 +158,15 @@
 
 #define COOKIE_SESSION_NAME "PHPSESSID"
 
+// HTTP/1 keepalive 单连接请求数上限：一条连接累计应答到这么多请求就关连接。
+// 口径含 CORS 预检——预检同样占一条连接的一次请求，只是不进业务；触发上限的这一条已完整应答。
+// 编译期常量，不进 server.conf；开销是每轮循环一次比较（计数本来就在涨）。
+// Max requests served on one HTTP/1 keepalive connection: once this many are answered, the
+// connection closes after the current response is flushed. CORS preflight counts too — it occupies
+// a request slot on the connection, it just does not run business code. The request that reaches the
+// limit is answered in full. Compile-time constant, no server.conf key.
+#define CONST_HTTP1_KEEPALIVE_MAX_REQUESTS 1000
+
 // ---- HTTP/2 单连接资源上限（http2_parse.cpp）----
 // 单连接上「未完成头部块」+「已建流但 body 未结束」的流数量上限。
 // server.cpp 的 steam_count 只统计「已派发」的流，客户端只发 HEADERS 不开 END_STREAM

@@ -2971,7 +2971,7 @@ asio::awaitable<unsigned int> httpserver::client_http1_loop(bool isssl, unsigned
             http1pre->process(peer_session->_cache_data, readnum);
             if (http1pre->method_not_allowed)
             {
-                // H3 补齐：有意不支持的方法（PUT/DELETE/TRACE/CONNECT）回 405 并关闭连接，
+                // 有意不支持的方法（PUT/DELETE/TRACE/CONNECT）回 405 并关闭连接，
                 // 不再复用连接，避免未消费的 body 被当成下一个请求解析。
                 co_await http1_send_method_not_allowed(peer_session);
                 co_return 3;
@@ -3104,12 +3104,40 @@ asio::awaitable<unsigned int> httpserver::client_http1_loop(bool isssl, unsigned
                 {
                     co_return 3;
                 }
+#ifndef BENCHMARK
+                // 一条连接累计应答到这么多请求就关连接；压测档不启用，
+                // 否则单连接打满会周期性断连、压测数据不可比。
+                // single_link_count 初值是 1、在本轮应答完之后才自增，所以这里到 N 就是第 N 条。
+                if (single_link_count >= CONST_HTTP1_KEEPALIVE_MAX_REQUESTS)
+                {
+                    co_return 3;
+                }
+#endif
+                // clear() 会把 readoffset 归零，先记下本次解析真正吃掉的字节数
+                unsigned int consumed = http1pre->readoffset;
                 http1pre->clear();
                 peer->clear();
                 peer_session->time_limit.store(timeid());
                 single_link_count++;
+                // 同一个包里没被吃掉的字节，是本条连接的下一条请求：read_some 固定从下标 0
+                // 写，不搬到头部就被覆盖，那条请求既不响应也不报错、连接一直挂着。
+                // 搬过去后下一轮的 if (readnum == 0) 不成立，先解析这段残留，解析完再决定读不读。
+                if (readnum > consumed)
+                {
+                    readnum -= consumed;
+                    std::memmove(peer_session->_cache_data, peer_session->_cache_data + consumed, readnum);
+                }
+                else
+                {
+                    readnum = 0;
+                }
             }
-            readnum = 0;
+            else
+            {
+                // 请求还没收完：这一轮交给解析器的字节它全吞下了（头块找不到 CRLF 时
+                // readoffset 推到 buffersize，body 按可用长度推进），清零让下一次 read_some 从 0 续写。
+                readnum = 0;
+            }
         }
     }
     catch (const std::exception &e)
@@ -5578,6 +5606,19 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
             co_return;
         }
 
+        // 首段可能被 TCP 拆成 <6 字节先到达（小 MTU / 代理分段），不能当作错误请求，
+        // 用 read_at_least 继续补读到协议嗅探所需的 6 字节；对端已关闭或出错则按 is_error 收口。
+        // readnum >= 6 时 read_at_least 直接返回 false（no-op），正常路径零开销。
+        if (readnum > 0 && readnum < 6)
+        {
+            is_error = co_await peer_session->read_at_least(6, readnum, 4096);
+            if (is_error)
+            {
+                log_client_first_error(peer_session, readnum);
+                co_return;
+            }
+        }
+
         // 协议判定至少需要 6 字节（checkhttp2 读 _cache_data[0..5]）。
         // 原为 readnum > 6，恰好 6 字节时会被误判成 HTTP/1 错误请求并回 400。
         if (readnum >= 6)
@@ -5612,6 +5653,10 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
                 }
                 else if (client_type_num == 3)
                 {
+                    // h1 loop 的契约是「返回 3 == 本连接不再复用」：响应字节已在 loop 里
+                    // co_await 到 async_send_writer 写完，这里关连接不会吞正文。
+                    // 重复调用安全：stop() 靠 socket->is_open() 兜住，已关就是空操作。
+                    peer_session->stop();
                     co_return;
                 }
                 else

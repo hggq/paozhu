@@ -13,8 +13,10 @@ namespace http
 template <typename BASETYPE_T>
 std::map<std::string, BASETYPE_T> &get_pz_cache()
 {
-    static std::map<std::string, BASETYPE_T> instance;
-    return instance;
+    // 周期清理线程可能在 main 返回后再醒一次；容器故意不析构，
+    // 以免它在静态析构之后访问已销毁的容器（orm 缓存同处置）
+    static std::map<std::string, BASETYPE_T> *instance = new std::map<std::string, BASETYPE_T>();
+    return *instance;
 }
 
 template <typename BASE_TYPE>
@@ -75,17 +77,18 @@ class pzcache
             temp.exptime = 0;
         }
         std::unique_lock<std::mutex> lock(editlock);
-        auto [_, success] = obj.emplace(hashid, std::move(temp));
-        if (!success)
+        auto iter = obj.find(hashid);
+        if (iter == obj.end())
         {
-            if (cover_data)
-            {
-                obj[hashid] = temp;
-            }
-            else
-            {
-                obj[hashid].exptime = temp.exptime;
-            }
+            obj.emplace(hashid, std::move(temp));
+        }
+        else if (cover_data)
+        {
+            iter->second = std::move(temp);
+        }
+        else
+        {
+            iter->second.exptime = temp.exptime;
         }
     }
 
@@ -101,6 +104,8 @@ class pzcache
         }
         return false;
     }
+    // 清所有 exptime != 0 且 < nowtime 的键；exptime==0（永久）与未过期项保留。
+    // 每个分支都必须推进迭代器，否则持 editlock 死循环 = 全站 session 读写卡死。
     void remove_exptime()
     {
         std::map<std::string, data_cache_t> &obj = get_pz_cache<data_cache_t>();
@@ -108,13 +113,13 @@ class pzcache
         std::unique_lock<std::mutex> lock(editlock);
         for (auto iter = obj.begin(); iter != obj.end();)
         {
-            if (iter->second.exptime == 0)
+            if (iter->second.exptime != 0 && iter->second.exptime < nowtime)
             {
-                continue;
+                iter = obj.erase(iter);
             }
-            if (iter->second.exptime < nowtime)
+            else
             {
-                obj.erase(iter++);
+                ++iter;
             }
         }
     }
@@ -195,8 +200,9 @@ class pzcache
     }
     static pzcache &conn()
     {
-        static pzcache instance;
-        return instance;
+        // 单例不析构：清理线程拿着本对象的 this，静态析构后它可能再醒一次
+        static pzcache *instance = new pzcache();
+        return *instance;
     }
 
   public:
