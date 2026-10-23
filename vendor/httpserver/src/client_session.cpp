@@ -618,7 +618,7 @@ bool client_session::http2_send_enddata(unsigned int s_stream_id)
     return http2_ring_queue->push(_recvack, 9);
 }
 
-void client_session::http2_send_rst_stream(unsigned int s_stream_id, unsigned int stream_error_code)
+bool client_session::http2_send_rst_stream(unsigned int s_stream_id, unsigned int stream_error_code)
 {
     unsigned char _recvack[] = {0x00, 0x00, 0x04, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     _recvack[8]              = s_stream_id & 0xFF;
@@ -637,14 +637,14 @@ void client_session::http2_send_rst_stream(unsigned int s_stream_id, unsigned in
     stream_error_code = stream_error_code >> 8;
     _recvack[9]       = stream_error_code & 0xFF;
 
-    // 重投要把调用方变成阻塞/排队语义，而环满通常发生在连接正在收尾时；
-    // 这里只记账并留日志，不改变调用形状。
+    // 环满就丢：不重投（重投要把调用方变成排队语义）。调用方拿到 false 后自己决定挂起重试。
     bool rst_pushed = http2_ring_queue->push(_recvack, 13);
     if (!rst_pushed)
     {
         http2_ring_queue_drop_count++;
         LOG_ERROR << " http2 control frame dropped, ring full, type:rst" << LOG_END;
     }
+    return rst_pushed;
 }
 asio::awaitable<void> client_session::http2_send_ping()
 {

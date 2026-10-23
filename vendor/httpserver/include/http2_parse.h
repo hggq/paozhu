@@ -262,6 +262,9 @@ class http2parse
     void headertype3(unsigned char c, std::string_view buffer, unsigned int &begin, std::shared_ptr<httppeer>);
     void headertype4(unsigned char c, std::string_view buffer, unsigned int &begin, std::shared_ptr<httppeer>);
     void dynamic_table_size_update(unsigned char c, std::string_view buffer, unsigned int &begin, std::shared_ptr<httppeer>);
+    // RFC 7541 §4.1：按字节逐出动态表尾部条目，直至 dynamic_table_size <= dynamic_table_max_size。
+    // 每次增量插入（headertype2）和显式 Size Update（dynamic_table_size_update）都要调。
+    void evict_dynamic_table();
 
   public:
     void headers_parse(const HTTP2_HEADER_FRAME_T &, std::shared_ptr<httppeer>);
@@ -333,7 +336,10 @@ class http2parse
 
     //std::vector<std::pair<std::string, std::string>> header_lists;
     std::list<std::pair<std::string, std::string>> dynamic_lists;
-    unsigned int dynamic_table_max_size = 4096;
+    unsigned int dynamic_table_max_size = CONST_HTTP2_DYNAMIC_TABLE_MAX_SIZE;
+    // dynamic_lists 当前占用字节数（每条 name+value+32），随插入与逐出同步增减，
+    // 让逐出不必每次重算全表。
+    unsigned int dynamic_table_size = 0;
     // struct http2_goaway_t goaway_data;
     // unsigned long long content_length;
     std::atomic_bool task_in               = false;

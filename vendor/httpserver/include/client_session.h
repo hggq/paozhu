@@ -127,7 +127,8 @@ class client_session : public std::enable_shared_from_this<client_session>
     // 由 ring_client_server 在 head_ 前移之后调用：把记在账上、还没投递出去的补量发走。
     void flush_pending_window_update();
 
-    void http2_send_rst_stream(unsigned int s_stream_id, unsigned int stream_error_code);
+    // 返回撤流帧有没有真的进发送环；false 表示环满被丢弃，调用方不能当作已收尾。
+    bool http2_send_rst_stream(unsigned int s_stream_id, unsigned int stream_error_code);
     void stop();
     void cancel();
     void half_stop();

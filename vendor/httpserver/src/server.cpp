@@ -540,6 +540,16 @@ asio::awaitable<void> httpserver::http2_co_send_compress(std::shared_ptr<httppee
             }
         }
     }
+    // 转成了内存型（16/17）就不再读盘：源文件句柄在这里放掉，否则它会一路挂到对象回池，
+    // 压缩响应并发高时等于每请求多占一个 fd。304 那一支已经在 http2_co_send_304 里
+    // fp.reset()，这里补上压缩这一支。
+    // Once it became in-memory (16/17) nothing reads the file again: release the handle here,
+    // or it lingers until the object is recycled — one extra fd per in-flight compressed
+    // response. The 304 branch already resets it in http2_co_send_304; this covers compression.
+    if (send_file_obj->type == 16 || send_file_obj->type == 17)
+    {
+        send_file_obj->fp.reset();
+    }
     co_return;
 }
 asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> peer)
@@ -5910,6 +5920,57 @@ static bool http2_send_progress_expired(const std::shared_ptr<http2_send_data_t>
     return stalled_sec > CONST_HTTP2_SEND_NO_PROGRESS_TIMEOUT;
 }
 
+// 撤流帧进了发送环才算这条流收口。没进环时既不置 issend，也不清窗口记账：
+// 条目被清掉后下一次预留会按对端初始窗口重建，等于白送一段额度。
+// A stream is only closed once the RST frame is in the send ring. On a full ring, leave both
+// issend and the window entry alone — a re-created entry would start from the peer's initial window.
+static bool http2_rst_and_close(client_session *session_obj, httppeer *peer)
+{
+    if (!session_obj->http2_send_rst_stream(peer->stream_id, CONST_HTTP2_STREAM_ERROR_INTERNAL))
+    {
+        return false;
+    }
+    if (session_obj->http2_need_wakeup)
+    {
+        session_obj->waituphttp2();
+    }
+    peer->issend = true;
+    {
+        std::lock_guard<std::mutex> lk(session_obj->stream_send_window_mutex);
+        session_obj->stream_send_window.erase(peer->stream_id);
+    }
+    return true;
+}
+
+// 发送对象退出发送线程的收口：已收尾/已关闭/连接正在拆的只清窗口记账（这张表原先只在
+// "取出时判 issend"那一处清，序列返回 false 直接回池的那一支会跳过它，条目随请求数增长）；
+// 还没收尾的补一次 RST。返回 false 表示 RST 没进环，调用方要挂起重试而不是回池。
+// Close-out when a send object leaves the send thread: already-finished or closing streams only
+// drop their window entry; everything else gets an RST. false = the frame didn't enqueue, park and retry.
+static bool http2_finish_send_stream(const std::shared_ptr<http2_send_data_t> &sp)
+{
+    if (!sp || !sp->peer || !sp->peer->socket_session)
+    {
+        return true;
+    }
+    httppeer *peer              = sp->peer.get();
+    client_session *session_obj = peer->socket_session.get();
+
+    // send_park_closed 说明挂起表已冲刷、不再收挂起（连接正在关闭）：没有接收方，补 RST 只是丢帧。
+    // Park table already flushed ⇒ the connection is going away; an RST here is a guaranteed drop.
+    if (peer->issend || peer->isclose || session_obj->isclose || session_obj->send_park_closed.load())
+    {
+        std::lock_guard<std::mutex> lk(session_obj->stream_send_window_mutex);
+        session_obj->stream_send_window.erase(peer->stream_id);
+        return true;
+    }
+    LOG_ERROR << " http2 send: stream left without end frame, rst stream, stream_id:"
+              << peer->stream_id << " current:" << sp->current_num << "/"
+              << sp->content_length << " type:" << (int)sp->type << " url:" << peer->url
+              << LOG_END;
+    return http2_rst_and_close(session_obj, peer);
+}
+
 // 摘出的挂起对象按闸门分流：够格的移进 sent_data_list 并唤醒发送线程，
 // Drained parked batch splits by gate: eligible → sent_data_list + notify send thread;
 // 不够格的留在 in 里，由调用方挂回表。挂起对象没人刷 time_limit，
@@ -6151,6 +6212,20 @@ bool httpserver::http2_loop_send_sequence(std::shared_ptr<http2_send_data_t> sq_
     {
         return false;
     }
+    // 内存体的两个边界由生产方各自维护：发多少字节看 content.size()，什么时候收尾看
+    // content_length。两者不一致时这里只报警，不改 content_length——头块在入队前就按
+    // httppeer 的 Content-Length 序列化好了，改这个数既补不齐少发的字节，反而会把
+    // "声明了正文却没有正文"变成空正文正常收尾（下面 content_length == 0 那一支）。
+    // Bytes sent come from content.size(), END_STREAM is decided by content_length. Log any
+    // disagreement; never rewrite content_length — the wire header is already serialised.
+    if (sq_obj->type != 1 && !sq_obj->only_send_header &&
+        sq_obj->content_length != sq_obj->content.size())
+    {
+        LOG_ERROR << " http2 send: content_length != content.size(), stream_id:" << peer->stream_id
+                  << " content_length:" << sq_obj->content_length
+                  << " content.size():" << (unsigned long long)sq_obj->content.size()
+                  << " type:" << (int)sq_obj->type << " url:" << peer->url << LOG_END;
+    }
     // 大文件下载时客户端（如 Safari）可能因磁盘写入停顿导致 TCP 窗口短暂关闭，
     // Large file downloads: client (e.g. Safari) may stall on disk writes → TCP window closes briefly,
     // 发送环会积压。阈值给慢客户端留缓冲，同时留槽位给控制帧收尾。
@@ -6387,8 +6462,14 @@ bool httpserver::http2_loop_send_sequence(std::shared_ptr<http2_send_data_t> sq_
                       << " offset:" << sq_obj->current_num
                       << " file:" << sq_obj->file_name << LOG_END;
             http2_refund_send_window(peer->socket_session.get(), peer->stream_id, reserved);
-            if (!peer->socket_session->http2_send_enddata(peer->stream_id))
+            // 定位都定不回去，剩下的字节一定发不出来。补 END_STREAM 等于把一个短于
+            // Content-Length 的响应当正常结束交给对端，所以撤流判错。
+            // The remaining bytes are unreachable; END_STREAM here would hand the peer a
+            // short-than-Content-Length response as if normal, so reset the stream instead.
+            if (!http2_rst_and_close(peer->socket_session.get(), peer.get()))
             {
+                // 环满没进去：偏移未动，挂起等腾出槽位，下一轮重新定位再补这一帧。
+                sq_obj->need_seek    = true;
                 sq_obj->standby_next = true;
                 if (peer->socket_session->http2_need_wakeup)
                 {
@@ -6396,12 +6477,6 @@ bool httpserver::http2_loop_send_sequence(std::shared_ptr<http2_send_data_t> sq_
                 }
                 sq_obj->block_reason = 2;
                 return true;
-            }
-            peer->issend         = true;
-            sq_obj->standby_next = true;
-            if (peer->socket_session->http2_need_wakeup)
-            {
-                peer->socket_session->waituphttp2();
             }
             return false;
         }
@@ -6409,22 +6484,23 @@ bool httpserver::http2_loop_send_sequence(std::shared_ptr<http2_send_data_t> sq_
         per_size = fread(&sq_obj->cache_data[9], 1, reserved, sq_obj->fp.get());
         if (per_size == 0)
         {
-            // 区分"已经读到文件结尾"与"读盘失败 / 文件传输途中被截断"。
-            // Distinguish "reached EOF" from "disk read failure / file truncated mid-transport".
-            // 后者意味着实发字节 < 声明 Content-Length，客户端只能判错，
-            // The latter means bytes_sent < declared Content-Length — client treats as error,
-            // 必须留下日志而不是静默当成正常结束。
-            // so we must log, not silently treat as normal end.
-            if (sq_obj->current_num < sq_obj->content_length)
-            {
-                LOG_ERROR << " http2 send file read error, stream_id:" << peer->stream_id
-                          << " current:" << sq_obj->current_num
-                          << " content_length:" << sq_obj->content_length
-                          << " file:" << sq_obj->file_name << LOG_END;
-            }
+            // 能走到这里，current_num 必然还没到 content_length（上面「已发完」那条出口
+            // 已经把正常 EOF 挡掉了），所以 fread 拿 0 只可能是读盘失败 / 文件在传输途中
+            // 被截断，而不是"正好读完"。
+            // Reaching here means current_num < content_length (the "all sent" exit above
+            // already caught normal EOF), so fread==0 can only be a read failure or a file
+            // truncated mid-transport — never "exactly finished".
+            LOG_ERROR << " http2 send file read error, stream_id:" << peer->stream_id
+                      << " current:" << sq_obj->current_num
+                      << " content_length:" << sq_obj->content_length
+                      << " file:" << sq_obj->file_name << LOG_END;
             http2_refund_send_window(peer->socket_session.get(), peer->stream_id, reserved);
-            if (!peer->socket_session->http2_send_enddata(peer->stream_id))
+            // 同上：承诺了 Content-Length 却发不满，END_STREAM 会把这种错误伪装成正常结束。
+            // Same as above: Content-Length was promised and can't be met; END_STREAM would
+            // launder the error into a normal end.
+            if (!http2_rst_and_close(peer->socket_session.get(), peer.get()))
             {
+                sq_obj->need_seek    = true;// 上面已置 false，重试必须重新定位
                 sq_obj->standby_next = true;
                 if (peer->socket_session->http2_need_wakeup)
                 {
@@ -6432,12 +6508,6 @@ bool httpserver::http2_loop_send_sequence(std::shared_ptr<http2_send_data_t> sq_
                 }
                 sq_obj->block_reason = 2;
                 return true;
-            }
-            peer->issend         = true;
-            sq_obj->standby_next = true;
-            if (peer->socket_session->http2_need_wakeup)
-            {
-                peer->socket_session->waituphttp2();
             }
             return false;
         }
@@ -6686,6 +6756,7 @@ void httpserver::http2_send_queue_loop([[maybe_unused]] unsigned char index_id)
                         if (!http2_park_send(sp, gate_block))
                         {
                             // 本连接已冲刷过挂起表（正在关闭），不再接收新的挂起：直接回池
+                            http2_finish_send_stream(sp);
                             thread_sent_data_list.erase(iter++);
                             get_http2_send_queue().back_cache_ptr(sp);
                         }
@@ -6735,9 +6806,35 @@ void httpserver::http2_send_queue_loop([[maybe_unused]] unsigned char index_id)
                         }
                         if (!seq_keep)
                         {
-                            thread_sent_data_list.erase(iter++);
-                            http2_send_queue &send_queue_obj = get_http2_send_queue();
-                            send_queue_obj.back_cache_ptr(sp);
+                            // 序列说"这条流不该再跑"：收尾责任在这里统一兜底（补 RST +
+                            // 清窗口记账），不再依赖每个 return false 分支各自记得收尾。
+                            // Sequence says "no more rounds for this stream": close-out is
+                            // centralised here (RST if unterminated + drop window bookkeeping)
+                            // instead of trusting every return-false branch to do it.
+                            if (http2_finish_send_stream(sp))
+                            {
+                                thread_sent_data_list.erase(iter++);
+                                http2_send_queue &send_queue_obj = get_http2_send_queue();
+                                send_queue_obj.back_cache_ptr(sp);
+                                continue;
+                            }
+                            // 撤流帧没进环：先挂起，腾出槽位后再来一轮把它补上。
+                            // The RST didn't enqueue — park it and retry once the ring frees a slot.
+                            sp->standby_next = true;
+                            sp->block_reason = 2;
+                            if (sp->peer->socket_session->http2_need_wakeup)
+                            {
+                                sp->peer->socket_session->waituphttp2();
+                            }
+                            if (!http2_park_send(sp, 2))
+                            {
+                                thread_sent_data_list.erase(iter++);
+                                get_http2_send_queue().back_cache_ptr(sp);
+                            }
+                            else
+                            {
+                                iter = thread_sent_data_list.erase(iter);
+                            }
                             continue;
                         }
                         if (seq_block != 0)
@@ -6746,6 +6843,11 @@ void httpserver::http2_send_queue_loop([[maybe_unused]] unsigned char index_id)
                             sp->block_reason = 0;
                             if (!http2_park_send(sp, seq_block))
                             {
+                                // 连接正在关闭、不再收挂起：这条流同样要在这里收口，
+                                // 否则它会带着"未收尾"状态被直接回池。
+                                // Connection closing, no more parking: this stream still needs
+                                // closing out here, or it gets recycled unterminated.
+                                http2_finish_send_stream(sp);
                                 thread_sent_data_list.erase(iter++);
                                 get_http2_send_queue().back_cache_ptr(sp);
                             }

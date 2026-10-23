@@ -22,7 +22,7 @@ struct http2_send_data_t
     bool isfinish                 = false;
     bool is_sendheader            = false;
     bool only_send_header         = false;
-    unsigned char type            = 0;//1 file 2 not use 3 gip file 4 br file    10 data (php fast-cgi) 11 peer.output  16 compress gzip content 16 compress br content
+    unsigned char type            = 0;//1 file 11 peer.output 16 compress gzip content 17 compress br content
     std::atomic_bool standby_next = true;
     unsigned int stream_id        = 0;
 

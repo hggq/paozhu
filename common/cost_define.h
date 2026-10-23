@@ -170,6 +170,16 @@
 // HTTP/2 host/:authority max length (same semantics as HTTP/1 Host). Reject oversize to avoid O(N) scan in header_host_process.
 #define CONST_HTTP2_HOST_MAX_SIZE 72
 
+// 本端 HPACK 解码动态表的字节上限。本端 SETTINGS 帧没有广告 0x01
+// SETTINGS_HEADER_TABLE_SIZE，按 RFC 9113 §6.5.2 就等于这个默认 4096；对端在头块里发
+// Dynamic Table Size Update 只能在本端上限以内调整（正常只会更小）。
+// 对端自己 SETTINGS 里的 header_table_size 是它那边解码表的大小，管不到本端。
+// Byte ceiling of our HPACK decoder dynamic table. Our SETTINGS frame sends no
+// SETTINGS_HEADER_TABLE_SIZE (0x01), so per RFC 9113 §6.5.2 we advertise exactly this 4096;
+// a peer's Dynamic Table Size Update may only resize within it. The peer's own advertised
+// header_table_size bounds its decoder, not ours.
+#define CONST_HTTP2_DYNAMIC_TABLE_MAX_SIZE 4096
+
 // HTTP/2 协议允许的最大窗口值（2^31-1）。SETTINGS_INITIAL_WINDOW_SIZE 与
 // WINDOW_UPDATE 累加超过该值必须按 RFC 9113 §6.9.1 报 FLOW_CONTROL_ERROR。
 // HTTP/2 protocol maximum window value (2^31-1). Accumulated SETTINGS_INITIAL_WINDOW_SIZE + WINDOW_UPDATE over this ⇒ FLOW_CONTROL_ERROR per RFC 9113 §6.9.1.
@@ -268,6 +278,13 @@ constexpr bool http2_wu_stream_id_ok(unsigned long long sid, unsigned long long 
 #define CONST_HTTP2_STREAM_ERROR_FLOW_CONTROL 0x03
 #define CONST_HTTP2_STREAM_ERROR_CANCEL 0x08
 #define CONST_HTTP2_STREAM_ERROR_ENHANCE_YOUR_CALM 0x0B
+// INTERNAL_ERROR(0x02)：响应已经承诺了 Content-Length，但本地读不出这么多字节
+// （fseek 失败 / fread 短读 / 文件在传输途中被截断）。此时发 END_STREAM 等于用一个
+// 长度不符的响应当正常结束，对端要解完 body 才发现短了；RST 能让它立刻判错。
+// INTERNAL_ERROR(0x02): Content-Length was promised but the bytes aren't there locally
+// (fseek failure / short fread / file truncated mid-transport). END_STREAM here would
+// launder it as a normal-but-short response; RST lets the peer fail fast.
+#define CONST_HTTP2_STREAM_ERROR_INTERNAL 0x02
 
 // 请求对象复用缓冲的归还阈值（字节）。响应缓冲跟着连接活到下一个请求，每次清空都收缩
 // 就等于每请求重新分配一次；只有被大响应撑到过容量阈值的才还回分配器。

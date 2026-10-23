@@ -2108,6 +2108,22 @@ void http2parse::getaccept([[maybe_unused]] const std::string &header_name, cons
         }
     }
 }
+
+// RFC 7541 §4.1：动态表总大小不得超过 dynamic_table_max_size，从尾部逐条逐出直至回到上限；
+// 每次增量插入（headertype2）和显式 Size Update 后都要调。
+// dynamic_table_size 是这张表的增量记账（每条 name+value+32），只有两处插入的 += 和这里的 -=
+// 在动它。新增变更点（清空整表、原地改已存条目）必须同笔记这个数：记多了会提前逐出，对端还在
+// 引用的索引落到 empty 上按 COMPRESSION_ERROR 断流；记少了会逐出不足，内存越过上限且无人报错。
+void http2parse::evict_dynamic_table()
+{
+    while (!dynamic_lists.empty() && dynamic_table_size > dynamic_table_max_size)
+    {
+        const auto &back = dynamic_lists.back();
+        dynamic_table_size -= (unsigned int)(back.first.size() + back.second.size()) + 32;
+        dynamic_lists.pop_back();
+    }
+}
+
 void http2parse::dynamic_table_size_update(unsigned char c,
                                            std::string_view header_data,
                                            unsigned int &begin,
@@ -2124,26 +2140,17 @@ void http2parse::dynamic_table_size_update(unsigned char c,
     // 子解析器统一把 begin 停在「最后一个已消费字节」上，由 headers_parse 的 h_begin++ 再前进一步；
     // 这里不退这一次，紧随其后的头字段首字节就会被当成整数尾巴跳掉，整个头块从此错位。
     begin -= 1;
-    // 新尺寸不得超过解码端通过 SETTINGS_HEADER_TABLE_SIZE 通告的最大值
-    if (new_size > setting_data.header_table_size)
+    // 新尺寸不得超过本端解码表广告的上限；setting_data.header_table_size 是对端给自己
+    // 解码表设的值，拿它当上限等于让对端单方面抬高本端内存上限
+    if (new_size > CONST_HTTP2_DYNAMIC_TABLE_MAX_SIZE)
     {
         hpack_fail(40209);
         return;
     }
     dynamic_table_max_size = new_size;
 
-    // 按 RFC 7541 §4.1 逐出尾部条目：每条占用 name+value+32 字节，直至不超新上限
-    unsigned int total = 0;
-    for (const auto &entry : dynamic_lists)
-    {
-        total += (unsigned int)(entry.first.size() + entry.second.size()) + 32;
-    }
-    while (!dynamic_lists.empty() && total > dynamic_table_max_size)
-    {
-        const auto &back = dynamic_lists.back();
-        total -= (unsigned int)(back.first.size() + back.second.size()) + 32;
-        dynamic_lists.pop_back();
-    }
+    // 按 RFC 7541 §4.1 逐出尾部条目，直至不超新上限
+    evict_dynamic_table();
 }
 
 void http2parse::headertype1(unsigned char c,
@@ -2282,13 +2289,11 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
         begin = begin + item_length;
 
         header_process(name_key, value, 0, steam_httppeer);
+        dynamic_table_size += (unsigned int)(name_key.size() + value.size()) + 32;
         dynamic_lists.push_front({name_key, std::move(value)});
 
         begin -= 1;
-        if (dynamic_lists.size() > 255)
-        {
-            dynamic_lists.pop_back();
-        }
+        evict_dynamic_table();
     }
     else
     {
@@ -2361,13 +2366,11 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
         begin = begin + item_length;
 
         header_process(name_key, value, c, steam_httppeer);
+        dynamic_table_size += (unsigned int)(name_key.size() + value.size()) + 32;
         dynamic_lists.push_front({name_key, std::move(value)});
 
         begin -= 1;
-        if (dynamic_lists.size() > 255)
-        {
-            dynamic_lists.pop_back();
-        }
+        evict_dynamic_table();
     }
 }
 void http2parse::headertype3(unsigned char c, std::string_view header_data, unsigned int &begin, std::shared_ptr<httppeer> steam_httppeer)
@@ -2684,9 +2687,15 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
 void http2parse::readsetting(const HTTP2_PACK_DATA_T &temp_pack_data)
 {
     // unsigned int j = readoffset;
-    if (temp_pack_data.flags == 0x01)
+    if (temp_pack_data.flags & 0x01)
     {
-        DEBUG_LOG("readsetting fackback %zu ", temp_pack_data.payload.size());
+        // RFC 9113 §6.5：带 ACK 的 SETTINGS 帧载荷必须为空，非 0 是 FRAME_SIZE_ERROR
+        if (!temp_pack_data.payload.empty())
+        {
+            set_conn_error(40053, 0x6);
+            return;
+        }
+        DEBUG_LOG("readsetting fackback");
         return;
     }
 
