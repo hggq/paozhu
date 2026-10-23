@@ -17,6 +17,7 @@
         <div class="col-6">
           <h2 id="horizontal-form">CMS Admin </h2>
           <form action="/cms/loginpost" method="post">
+            <input type="hidden" name="csrf_token" value="<%c echo<<obj["csrf_token"].as_string(); %>">
             <div class="row mb-3">
               <label for="username" class="col-sm-2 col-form-label">Username</label>
               <div class="col-sm-10">

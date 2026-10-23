@@ -7,6 +7,7 @@
 #include "request.h"
 #include "testcrud.h"
 #include "orm_query.h"
+#include "session_id.h"
 
 namespace orm::cust
 {
@@ -25,8 +26,16 @@ namespace http
 //@urlpath(null,cms/login)
 std::string articlelogin(std::shared_ptr<httppeer> peer)
 {
+    httppeer &client = peer->get_peer();
     // step1  show login page
     // 显示登录页面
+    // 每次打开登录页签发一个新的 CSRF token，存进 session，同时交给表单隐藏域
+    // Issue a fresh CSRF token per login page view; keep it in session and in the form field
+    // token 必须来自密码学安全随机源，rand_string() 每秒重播种，同一秒内可预测，不能用
+    std::string csrf_token         = get_rand_32char();
+    client.session["csrf_token"] = csrf_token;
+    client.val["csrf_token"]     = csrf_token;
+    client.save_session();
     peer->view("login/login");
     return "";
 }
@@ -50,6 +59,21 @@ std::string articleloginpost(std::shared_ptr<httppeer> peer)
 {
     // step2
     httppeer &client = peer->get_peer();
+
+    // CSRF 校验：session 里没有 token（没经过 /cms/login）或与表单提交的不一致，直接拒
+    // Reject when session has no token, or it differs from the submitted one
+    std::string session_token = client.session["csrf_token"].to_string();
+    std::string post_token    = client.post["csrf_token"].to_string();
+    if (session_token.empty() || post_token != session_token)
+    {
+        client.goto_url("/cms/login", 3, "CSRF 校验失败，请重新打开登录页！");
+        return "";
+    }
+    // 一次一用：比对通过后立刻作废，同一份表单重复提交会被拒
+    // Single use: clear the token so the same form cannot be submitted twice
+    client.session["csrf_token"] = "";
+    client.save_session();
+
     //注意必须处理用户输入的字符串，预防攻击
     //Be sure to handle user-input strings to prevent attacks
     std::string username = client.post["username"].to_escape();
