@@ -6,6 +6,9 @@
 # 特殊依赖按文件名识别：文件名含 sqlite 的需要 -DENABLE_SQLITE=ON。
 # Convention: every tests/*.cpp and tests/orm/*.cpp becomes an executable of the same name;
 # no edit needed for new files. Special deps are keyed by filename: "sqlite" needs -DENABLE_SQLITE=ON.
+# 名字含 pool_thread 的是例外：它需要整个框架的链接面与宏集，暂时不生成目标（理由见下面循环里那段）。
+# "pool_thread" is the exception: it needs the whole framework to link and to be compiled with, so no
+# target is generated for it yet — see the note inside the loop below.
 # tests/orm/ 的子目录（各轮探针自带构建脚本）不参与这里的自动发现。
 # Sub-directories under tests/orm/ (probes with their own build scripts) stay out of discovery.
 
@@ -91,6 +94,21 @@ foreach(test_src IN LISTS test_cpp_files)
     continue()
   endif()
 
+  # 线程切换用例要链接整个框架：它调 get_server_app()（定义在 server.cpp），而 server.cpp 又调
+  # 控制器/视图的注册入口，闭合面不是往目标里加两三个 .cpp 能补上的；而且它必须和框架用同一套
+  # ENABLE_* 宏编译——httpserver 与 ThreadPool 里有这些宏保护的成员，宏集不一致会读到错位的成员，
+  # 用例假红。测试目标只带 ORM 连接层，所以先不进自动发现；等框架源码收成一份共享对象库再挂回来。
+  # The pool-thread test links get_server_app() (server.cpp), which in turn pulls the controller and
+  # view registration entry points — the closure is the whole app, not a few extra sources. It also
+  # has to be compiled with the same ENABLE_* defines the framework uses: httpserver and ThreadPool
+  # keep members behind those guards, so a mismatched define set reads misaligned members and the
+  # cases fail for the wrong reason. Kept out of discovery until the framework ships a shared object
+  # library the tests can link.
+  if(test_name MATCHES "pool_thread")
+    message(STATUS "ENABLE_TESTS=ON: ${test_name} skipped (needs the whole framework + its ENABLE_* defines)")
+    continue()
+  endif()
+
   add_executable(${test_name} ${test_src})
   target_link_libraries(${test_name} PRIVATE ${paozhu_test_common_libs})
 
@@ -98,6 +116,13 @@ foreach(test_src IN LISTS test_cpp_files)
   # http2_ring tests compile the ring implementation in directly (server.cpp stays out).
   if(test_name MATCHES "http2_ring")
     target_sources(${test_name} PRIVATE "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/http2_ring_queue.cpp")
+  endif()
+
+  # jwt 用例把 http::jwt 实现编进测试目标：jwt.cpp 不在 paozhu_test_orm 的源集里，
+  # 不加这一段则 encode/verify/decode_without_verify 三个符号找不到
+  # jwt tests compile the http::jwt implementation in; without it the three jwt symbols stay undefined.
+  if(test_name MATCHES "jwt")
+    target_sources(${test_name} PRIVATE "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/jwt.cpp")
   endif()
 
   # 文件名安全单测：把 func.cpp + datetime.cpp 编进去，覆盖 safe_filename / str2safefile / get_filename

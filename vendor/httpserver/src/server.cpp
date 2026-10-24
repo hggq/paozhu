@@ -5582,6 +5582,7 @@ asio::awaitable<void> httpserver::clientpeerfun(std::shared_ptr<client_session> 
             total_http1_count--;
         }
 
+        // 握手阶段就失败的连接不计入流量：很多异常连接止步于 TLS 握手，不算真实业务负载
         total_count++;
         if (check_blockip(peer_session))
         {
@@ -8404,6 +8405,57 @@ asio::awaitable<void> httpserver::async_mqtt_subpub_loop(
 #endif
 
 // ========== 限速入口辅助函数 ==========
+// 60 秒流量窗口：两个 accept 线程共用这一份分桶计数，返回"最近约 60 秒进来多少连接"。
+// 桶按 秒 % 60 寻址，每桶记该秒拍到的 total_count；基线取"下一个要被覆盖的桶"（当前桶正在写，不能用）。
+// 秒级粒度，差一秒不影响判定：限速本来就是平滑放行，不是精确配额。
+unsigned int httpserver::update_minute_count(unsigned int sp_time)
+{
+    unsigned int now_total = total_count.load(std::memory_order_relaxed);
+
+    unsigned int last = win_last_sec.load(std::memory_order_relaxed);
+    if (last != sp_time)
+    {
+        if (last == 0)
+        {
+            // 本进程第一次采样：基线定在此刻，所以窗口滚满前算的是"自首个连接以来的累计"，
+            // 启动阶段先放 rate_limit_new_wait_num 个（默认 300）连接进去，再开始限速
+            startup_total.store(now_total, std::memory_order_relaxed);
+        }
+        // 没发生 accept 的秒里 total_count 不会变，把中间空秒补成同一个快照，补的是精确值
+        unsigned int from = (last == 0) ? sp_time : last + 1;
+        if (sp_time - from > 59)
+        {
+            from = sp_time - 59;  // 长时间空闲或时钟跳变：只补最近 60 个桶
+        }
+        for (unsigned int s = from; s <= sp_time; ++s)
+        {
+            unsigned int i = s % 60;
+            win_total[i].store(now_total, std::memory_order_relaxed);
+            win_sec[i].store(s, std::memory_order_relaxed);
+        }
+        win_last_sec.store(sp_time, std::memory_order_relaxed);
+    }
+
+    unsigned int oldidx  = (sp_time + 1) % 60;
+    unsigned int old_sec = win_sec[oldidx].load(std::memory_order_relaxed);
+
+    unsigned int base;
+    if (old_sec != 0 && old_sec <= sp_time && (sp_time - old_sec) <= 60)
+    {
+        base = win_total[oldidx].load(std::memory_order_relaxed);
+    }
+    else
+    {
+        // 该桶从没写过（进程还不满 60 秒）或时钟跳变，退回启动基线
+        base = startup_total.load(std::memory_order_relaxed);
+    }
+
+    // 时钟回拨会让 now_total 不大于 base，直接算 0（= 放行）
+    unsigned int has_save_link_count = (now_total > base) ? (now_total - base) : 0;
+    http2_minute_count.store(has_save_link_count, std::memory_order_relaxed);
+    return has_save_link_count;
+}
+
 // 按当前负载百分比算放行率：has_save_link_count ∈ [lo=300, hi=600] → pct ∈ [0,100] → rate ∈ [num1=20, num2=5]
 // 线性从Level1到Level2递减
 void httpserver::compute_rate_from_load(unsigned int has_save_link_count)
@@ -8692,14 +8744,6 @@ void httpserver::listeners()
     unsigned int error_count            = 0;
     unsigned int clear_error_count_time = 0;
 
-    unsigned int time_num_count[60];
-    unsigned int time_record[60];
-    unsigned int time_head           = 0;
-    unsigned int time_tail           = 0;
-    unsigned int has_save_link_count = 0;
-
-    std::memset(time_num_count, 0, sizeof(time_num_count));
-    std::memset(time_record, 0, sizeof(time_record));
     std::string logtemp;
 
     for (;;)
@@ -8782,40 +8826,15 @@ void httpserver::listeners()
 
 #ifndef BENCHMARK
 
-                if (rate_limit_status)
+                // 60-second traffic window + speed limit determination (two accepts share update_minute_count)
+                unsigned int has_save_link_count = update_minute_count(sp_time);
+                if (rate_limit_status &&
+                    has_save_link_count > rate_limit_new_wait_num.load() &&
+                    live_link_count.load() > rate_limit_new_wait_num.load())
                 {
-                    unsigned int cur_offset = time_head;
-
-                    for (; cur_offset != time_tail;)
-                    {
-                        if (sp_time - time_record[cur_offset] > 60)
-                        {
-                            cur_offset = (cur_offset + 1) % 60;
-                            continue;
-                        }
-                        break;
-                    }
-                    time_head = cur_offset;
-
-                    //update time_tail num
-                    if (sp_time > time_record[time_tail])
-                    {
-                        time_tail                 = (time_tail + 1) % 60;
-                        time_record[time_tail]    = sp_time;
-                        time_num_count[time_tail] = total_count.load();
-                    }
-                    else
-                    {
-                        time_num_count[time_tail] = total_count.load();
-                    }
-                    has_save_link_count = time_num_count[time_tail] - time_num_count[time_head];
-                    http2_minute_count.store(has_save_link_count);
-                    if (has_save_link_count > rate_limit_new_wait_num.load() && live_link_count.load() > rate_limit_new_wait_num.load())
-                    {
-                        compute_rate_from_load(has_save_link_count);
-                        enqueue_rate_limited(peer_session);
-                        continue;
-                    }
+                    compute_rate_from_load(has_save_link_count);
+                    enqueue_rate_limited(peer_session);
+                    continue;
                 }
 
                 std::unique_lock<std::mutex> lock_sock(socket_session_lists_mutex);
@@ -8908,14 +8927,6 @@ void httpserver::listener()
     unsigned int error_count            = 0;
     unsigned int clear_error_count_time = 0;
 
-    unsigned int time_num_count[60];
-    unsigned int time_record[60];
-    unsigned int time_head           = 0;
-    unsigned int time_tail           = 0;
-    unsigned int has_save_link_count = 0;
-
-    std::memset(time_num_count, 0, sizeof(time_num_count));
-    std::memset(time_record, 0, sizeof(time_record));
     std::string logtemp;
 
     for (;;)
@@ -8998,40 +9009,15 @@ void httpserver::listener()
 
 #ifndef BENCHMARK
 
-                if (rate_limit_status)
+                // 60-second traffic window + speed limit determination (two accepts share update_minute_count)
+                unsigned int has_save_link_count = update_minute_count(sp_time);
+                if (rate_limit_status &&
+                    has_save_link_count > rate_limit_new_wait_num.load() &&
+                    live_link_count.load() > rate_limit_new_wait_num.load())
                 {
-                    unsigned int cur_offset = time_head;
-
-                    for (; cur_offset != time_tail;)
-                    {
-                        if (sp_time - time_record[cur_offset] > 60)
-                        {
-                            cur_offset = (cur_offset + 1) % 60;
-                            continue;
-                        }
-                        break;
-                    }
-                    time_head = cur_offset;
-
-                    //update time_tail num
-                    if (sp_time > time_record[time_tail])
-                    {
-                        time_tail                 = (time_tail + 1) % 60;
-                        time_record[time_tail]    = sp_time;
-                        time_num_count[time_tail] = total_count.load();
-                    }
-                    else
-                    {
-                        time_num_count[time_tail] = total_count.load();
-                    }
-                    has_save_link_count = time_num_count[time_tail] - time_num_count[time_head];
-
-                    if (has_save_link_count > rate_limit_new_wait_num.load() && live_link_count.load() > rate_limit_new_wait_num.load())
-                    {
-                        compute_rate_from_load(has_save_link_count);
-                        enqueue_rate_limited(peer_session);
-                        continue;
-                    }
+                    compute_rate_from_load(has_save_link_count);
+                    enqueue_rate_limited(peer_session);
+                    continue;
                 }
 
                 std::unique_lock<std::mutex> lock_sock(socket_session_lists_mutex);

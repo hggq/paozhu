@@ -79,6 +79,7 @@
 #include "testipsearch.h"
 #include "testjson.h"
 #include "testjsonreflect.h"
+#include "testjwt.h"
 #include "testmarkdown.h"
 #include "testmodelfromjson.h"
 #include "testmoney_num.h"
@@ -401,6 +402,7 @@ namespace http
         reg_raw("", "/testjson", nullptr, nullptr, testjson, nullptr, 0);
         reg_raw("", "/test_requst", nullptr, nullptr, test_requst, nullptr, 0);
         reg_raw("", "/testjsonreflect", nullptr, nullptr, testjsonreflect, nullptr, 0);
+        reg_raw("", "/testjwt", nullptr, nullptr, testjwt, nullptr, 0);
         reg_raw("", "/testmarkdown2html", nullptr, nullptr, testmarkdown2html, nullptr, 0);
         reg_raw("", "/mfromjson", nullptr, nullptr, testmodelfromjson, nullptr, 0);
         reg_raw("", "/testtestmoneynum", nullptr, nullptr, testtestmoneynum, nullptr, 0);
