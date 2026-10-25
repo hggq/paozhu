@@ -53,7 +53,10 @@ enum class verify_error
     token_not_yet_valid,  // nbf > now + leeway | token not yet valid
     invalid_issuer,       // iss 不匹配 | issuer mismatch (placeholder, not default-checked)
     invalid_audience,     // aud 不匹配 | audience mismatch (placeholder, not default-checked)
-    invalid_claims        // exp/iat/nbf 在 payload 里但不是数字 | claim present, not a number
+    invalid_claims,       // exp/iat/nbf 在 payload 里但不是数字 | claim present, not a number
+    malformed_json,       // 解出来的段不是 JSON object | decoded section is not a JSON object
+    unsupported_critical, // header 带 crit 扩展 | header carries a crit extension
+    parsed_but_unverified // 只解析、未验签 | decoded, deliberately not verified
 };
 
 // ============================================================
@@ -126,6 +129,11 @@ verify_result verify(
  * Useful when caller needs to read header.alg first, then choose a key.
  *
  * Does NOT reject alg:none — that's intentional for gateway routing.
+ *
+ * WARNING: err==parsed_but_unverified 只表示"三段解析成功"，**不等于** token 可信。
+ * 绝不能用它替代 verify()：签名、alg、exp/nbf 一个都没查。
+ * err==parsed_but_unverified means "the segments parsed", NOT "the token is authentic".
+ * Never use it in place of verify(): no signature, alg or claim is checked.
  */
 verify_result decode_without_verify(const std::string &token);
 

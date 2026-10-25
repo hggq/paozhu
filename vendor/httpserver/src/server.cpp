@@ -8599,8 +8599,17 @@ void httpserver::ratelimiter()
                     break;
                 rate_queue_count.fetch_sub(1, std::memory_order_relaxed);
 
-                // 排队期间没人刷新 time_limit，超过 76 秒上下 httpwatch 会把它关掉；
-                // 这里只按原子量租约记一笔账，放行行为不变（照旧 co_spawn）。
+                // 排队期间没人刷新 time_limit（accept 时设的是 16 秒租约），过期只记一笔账，放行行为不变。
+                // 真正关掉它的是 httpwatch 的 idle 清扫：够格时刻 = 租约到期 + clean_cron_time_ago + 60，
+                // 未配 clean_cron 时那项为 0（即 accept 后 76 秒）。这条清扫约 305 秒一趟，每趟只扫名单
+                // 里一段随机区间，所以实际关闭通常晚于够格时刻；hard_kill_old_link 会在那同一趟里补一次
+                // 180 秒全量走查，内存超 75% 另有约 10 秒一趟的 180 秒全量走查（不经随机区间）。
+                // Queued peers get no time_limit refresh (accept sets a 16s lease); an expired one is only
+                // counted here and still co_spawns. httpwatch's idle sweep is what closes it, eligible at
+                // lease + clean_cron_time_ago + 60 — that term is 0 when clean_cron is unset, i.e. 76s
+                // after accept. That sweep runs about every 305s and each pass covers only a random slice
+                // of the list, so closing usually lags eligibility; hard_kill_old_link adds a full 180s
+                // walk to that same pass, and memory over 75% runs its own full 180s walk every ~10s.
                 if (peer->time_limit.load() < timeid())
                 {
                     rate_expired_count.fetch_add(1, std::memory_order_relaxed);
@@ -9132,6 +9141,32 @@ void httpserver::httpwatch_init_paths(std::string &currentpath, std::string &err
     if (rate_limit_second_num2 < 1)
     {
         rate_limit_second_num2 = 1;
+    }
+
+    // hi 必须严格高于 lo，否则 load 插值 span 退化为 1，中间档位丢失（只剩最松/最严两档跳变）。
+    // serverconfig.cpp 只在两个阈值都显式配置时才做这个校正（那边抬到 lo*2）；只配了
+    // rate_limit_new_wait_num 而没配 accept 时，accept 会停在默认值 600，这里补最后一道。
+    // 这个值还被 http2 发送队列线程（http2_send_queue_loop）复用为空闲对象的回收阈值：
+    // 抬高它，那侧会多留一些池化对象（只占内存，回收的是可复用对象本身，不动在途数据）。
+    // hi must strictly exceed lo; otherwise the load-interp span collapses to 1 and only the
+    // loosest / strictest tiers remain (a binary jump). serverconfig.cpp only applies this
+    // correction when both thresholds are configured explicitly; when only new_wait_num is
+    // configured, accept stays at its default 600 — this is the last line of defence.
+    // The http2 send-queue thread (http2_send_queue_loop) reuses this same value as the trim
+    // threshold for its idle pooled objects: raising it makes that side keep more objects
+    // (memory only — what trimming drops is reusable objects, never data in flight).
+    if (rate_limit_accept_wait_num <= rate_limit_new_wait_num)
+    {
+        // 抬到 lo*2（与 serverconfig.cpp 的补救一致），保住真实插值区间；lo 过半后退让为 lo+1。
+        // lo 已经是 UINT_MAX 时不存在比它大的 hi，保持原值不动（插值退化为最严档，不再回绕成 0）。
+        // Raise to lo*2 (same remedy as serverconfig.cpp) to keep a real interpolation span; past half
+        // range only lo+1 fits. At lo == UINT_MAX no larger hi is representable, so leave it alone
+        // rather than wrapping to 0.
+        unsigned int lo = rate_limit_new_wait_num.load();
+        if (lo < 0xFFFFFFFFu)
+        {
+            rate_limit_accept_wait_num = (lo > (0xFFFFFFFFu / 2u)) ? (lo + 1u) : (lo * 2u);
+        }
     }
 }
 

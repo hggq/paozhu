@@ -196,7 +196,8 @@ int main()
         std::string payload_b64 = http::b64url::encode(R"({"sub":"ghost"})");
         std::string token = header_b64 + "." + payload_b64 + ".";
         auto vr = jwt::decode_without_verify(token);
-        check("decode_without_verify ok despite alg:none", vr.err == verify_error::ok);
+        check("decode_without_verify reports parsed but unverified",
+              vr.err == verify_error::parsed_but_unverified);
         check("alg field parsed as none", vr.alg == "none");
         check("payload parsed", vr.payload_json.find("ghost") != std::string::npos);
     }
@@ -787,6 +788,97 @@ int main()
             R"({"alg":"HS256"})", R"({"note":"a{b}c{\"d}"})", key, algorithm::HS256);
         check("signed token with bracey value verifies",
               jwt::verify(token, key, algorithm::HS256).err == verify_error::ok);
+    }
+
+    // ============================================================
+    // 35) structural gates in verify: object shape, crit, duplicated members
+    // ============================================================
+    std::cout << "[35] verify structural gates\n";
+    {
+        const std::string key = "my-32-byte-secret-key---XXXXXX";
+
+        auto hs = [&](const std::string &hdr, const std::string &payload)
+        {
+            std::string token = jwt::encode(hdr, payload, key, algorithm::HS256);
+            return jwt::verify(token, key, algorithm::HS256);
+        };
+
+        // A hand-built section that is not an object is refused before the signature is
+        // looked at, so the short signature here never gets used
+        std::string hdr_b64 = b64url::encode(R"({"alg":"HS256"})");
+        std::string arr_b64 = b64url::encode(R"([{"exp":1}])");
+        auto vr_arr = jwt::verify(hdr_b64 + "." + arr_b64 + ".abc", key, algorithm::HS256);
+        check("array payload refused as malformed json",
+              vr_arr.err == verify_error::malformed_json);
+
+        std::string plain_hdr = b64url::encode("HS256");
+        std::string obj_b64   = b64url::encode(R"({"exp":9999999999})");
+        auto vr_hdr = jwt::verify(plain_hdr + "." + obj_b64 + ".abc", key, algorithm::HS256);
+        check("non-object header refused as malformed json",
+              vr_hdr.err == verify_error::malformed_json);
+
+        // control: same signature length, but both sections are objects -> the gate stays out
+        auto vr_shape_control = jwt::verify(hdr_b64 + "." + obj_b64 + ".abc", key, algorithm::HS256);
+        check("object sections reach the signature check",
+              vr_shape_control.err == verify_error::signature_mismatch);
+
+        // crit names an extension this implementation cannot understand, so it ends the
+        // verification even with a perfectly valid signature
+        auto vr_crit = hs(R"({"alg":"HS256","crit":["b64u"]})", R"({"sub":"x"})");
+        check("crit header refused", vr_crit.err == verify_error::unsupported_critical);
+        auto vr_crit_nested = hs(R"({"alg":"HS256","meta":{"crit":["b64u"]}})", R"({"sub":"x"})");
+        check("nested crit is not a critical header", vr_crit_nested.err == verify_error::ok);
+        auto vr_no_crit = hs(R"({"alg":"HS256"})", R"({"sub":"x"})");
+        check("header without crit still verifies", vr_no_crit.err == verify_error::ok);
+
+        // Two members with the same name: which one wins has no agreed answer, so the
+        // verifier refuses instead of picking the one this scanner happens to read first
+        auto vr_dup_alg = hs(R"({"alg":"HS256","alg":"HS256"})", R"({"sub":"x"})");
+        check("duplicated alg refused", vr_dup_alg.err == verify_error::alg_mismatch);
+        const time_t future = std::time(nullptr) + 3600;
+        const std::string s_future = std::to_string(static_cast<long long>(future));
+        auto vr_dup_exp = hs(R"({"alg":"HS256"})",
+                             "{\"exp\":" + s_future + ",\"exp\":" + s_future + "}");
+        check("duplicated exp refused even when identical",
+              vr_dup_exp.err == verify_error::invalid_claims);
+        auto vr_single_exp = hs(R"({"alg":"HS256"})", "{\"exp\":" + s_future + "}");
+        check("one exp of the same value still verifies", vr_single_exp.err == verify_error::ok);
+    }
+
+    // ============================================================
+    // 36) a closed-off tail does not discard what was already read
+    // ============================================================
+    std::cout << "[36] scanner tail with an unterminated string\n";
+    {
+        const std::string key = "my-32-byte-secret-key---XXXXXX";
+        const time_t      future = std::time(nullptr) + 3600;
+        const std::string s_future = std::to_string(static_cast<long long>(future));
+
+        std::string hdr_b64 = b64url::encode(R"({"alg":"HS256"})");
+
+        std::string cut_b64 = b64url::encode("{\"exp\":" + s_future + ",\"note\":\"unclosed");
+        auto vr_cut = jwt::verify(hdr_b64 + "." + cut_b64 + ".abc", key, algorithm::HS256);
+        check("verify still refuses the unclosed payload",
+              vr_cut.err == verify_error::malformed_json);
+
+        // The parse-only reader keeps whatever it read before the tail, so exp stays put
+        auto dv_cut = jwt::decode_without_verify(hdr_b64 + "." + cut_b64 + ".abc");
+        check("decode keeps exp read before an unclosed tail", dv_cut.exp == future);
+        check("decode still reports parsed but unverified",
+              dv_cut.err == verify_error::parsed_but_unverified);
+
+        // The duplicates counted before the tail are reported too, so a repeated claim is
+        // still judged illegal rather than quietly resolved to the first one
+        std::string dup_cut_b64 = b64url::encode(
+            "{\"exp\":" + s_future + ",\"exp\":" + s_future + ",\"note\":\"unclosed");
+        auto dv_dup_cut = jwt::decode_without_verify(hdr_b64 + "." + dup_cut_b64 + ".abc");
+        check("decode drops a claim whose duplicates were counted before the tail",
+              dv_dup_cut.exp == 0);
+
+        // No member at all before the tail: still nothing to hand back
+        std::string only_tail_b64 = b64url::encode("{\"note\":\"unclosed");
+        auto dv_only = jwt::decode_without_verify(hdr_b64 + "." + only_tail_b64 + ".abc");
+        check("decode reports 0 when only the tail was scanned", dv_only.exp == 0);
     }
 
     std::cout << "\n========================================\n"

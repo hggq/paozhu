@@ -95,8 +95,8 @@ std::string testjwt(std::shared_ptr<httppeer> peer)
          "err=" + std::to_string(static_cast<int>(vr.err)));
 
     auto dv = jwt::decode_without_verify(token);
-    line(dv.alg == "HS256" && dv.err == verify_error::ok, "decode_without_verify reads alg",
-         "alg=" + dv.alg);
+    line(dv.alg == "HS256" && dv.err == verify_error::parsed_but_unverified,
+         "decode_without_verify reads alg", "alg=" + dv.alg);
 
     client << "\n[2] exp / nbf claims\n";
 
@@ -173,7 +173,45 @@ std::string testjwt(std::shared_ptr<httppeer> peer)
     }
     line(threw, "payload that is not a JSON object is refused");
 
-    client << "\n[4] ES256 (key pair generated for this request)\n";
+    client << "\n[4] structural gates: object shape, crit, repeated members, cut-off tail\n";
+
+    // 这两条在验签之前判，所以签名段随便填什么都到不了 HMAC
+    std::string hdr_b64 = b64url::encode(R"({"alg":"HS256"})");
+    std::string arr_b64 =
+        b64url::encode(R"([{"exp":)" + std::to_string(static_cast<long long>(now - 10)) + R"(}])");
+    vr = jwt::verify(hdr_b64 + "." + arr_b64 + ".abc", secret, algorithm::HS256);
+    line(vr.err == verify_error::malformed_json, "array payload refused before the signature",
+         "err=" + std::to_string(static_cast<int>(vr.err)));
+
+    const std::string future_s = std::to_string(static_cast<long long>(now + 3600));
+    std::string cut_b64 =
+        b64url::encode(R"({"exp":)" + future_s + R"(,"note":"unclosed)");
+    vr = jwt::verify(hdr_b64 + "." + cut_b64 + ".abc", secret, algorithm::HS256);
+    line(vr.err == verify_error::malformed_json, "unclosed string refused by the object gate",
+         "err=" + std::to_string(static_cast<int>(vr.err)));
+    // decode_without_verify 不判读，只解析：闭合之前读到的 exp 要原样交出去
+    auto dv_cut = jwt::decode_without_verify(hdr_b64 + "." + cut_b64 + ".abc");
+    line(dv_cut.exp == now + 3600, "decode keeps the exp read before an unclosed tail",
+         "exp=" + std::to_string(static_cast<long long>(dv_cut.exp)) +
+             " err=" + std::to_string(static_cast<int>(dv_cut.err)));
+
+    std::string crit_token = jwt::encode(R"({"alg":"HS256","crit":["b64u"]})",
+                                         R"({"sub":"demo"})",
+                                         secret,
+                                         algorithm::HS256);
+    vr = jwt::verify(crit_token, secret, algorithm::HS256);
+    line(vr.err == verify_error::unsupported_critical, "header with crit refused",
+         "err=" + std::to_string(static_cast<int>(vr.err)));
+
+    std::string dup_token = jwt::encode(R"({"alg":"HS256"})",
+                                        R"({"exp":)" + future_s + R"(,"exp":)" + future_s + R"(})",
+                                        secret,
+                                        algorithm::HS256);
+    vr = jwt::verify(dup_token, secret, algorithm::HS256);
+    line(vr.err == verify_error::invalid_claims, "repeated exp refused even when both values match",
+         "err=" + std::to_string(static_cast<int>(vr.err)));
+
+    client << "\n[5] ES256 (key pair generated for this request)\n";
     try
     {
         EVP_PKEY_ptr kp = ec_crypto::generate_p256();
@@ -211,7 +249,7 @@ std::string testjwt(std::shared_ptr<httppeer> peer)
 
     if (client.get.isset("rsa") && client.get["rsa"].to_int() == 1)
     {
-        client << "\n[5] RS256 / PS256 (RSA-2048 generated for this request)\n";
+        client << "\n[6] RS256 / PS256 (RSA-2048 generated for this request)\n";
         try
         {
             EVP_PKEY *raw = EVP_PKEY_Q_keygen(nullptr, nullptr, "RSA", static_cast<size_t>(2048));

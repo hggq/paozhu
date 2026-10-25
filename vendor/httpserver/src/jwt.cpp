@@ -167,9 +167,17 @@ inline size_t value_end(const std::string &s, size_t start)
 // Raw text of the value of a top-level member named key. Members of nested objects are at
 // depth > 1 and never match; a string sitting in a value position is skipped because what
 // follows it is not a colon.
-inline bool find_top_member(const std::string &json, const std::string &key, std::string &out)
+// 不在首个命中处返回: hits != nullptr 时回报同名顶层成员的总数，重复与否交给调用方裁决。
+// 两个 "exp" 谁生效由各自的解析器决定，本类不能悄悄选一个而与调用方的 JSON 库选另一个。
+// Scanning does not stop at the first hit: with hits != nullptr the caller gets the total
+// and decides what a duplicate means. Which of two "exp" members wins is reader-defined,
+// and this class must not quietly pick one while the caller's parser picks the other.
+inline bool find_top_member(const std::string &json, const std::string &key, std::string &out,
+                            size_t *hits = nullptr)
 {
     const std::string quoted = "\"" + key + "\"";
+    size_t hit_count = 0;
+    bool   filled    = false;
     int depth = 0;
     for (size_t i = 0; i < json.size(); ++i)
     {
@@ -184,7 +192,7 @@ inline bool find_top_member(const std::string &json, const std::string &key, std
         }
         const size_t close = skip_string(json, i);
         if (close == std::string::npos)
-            return false;
+            break; // 尾部有字符串没闭合，只是不能再往下扫；已经读到的值和命中数照旧交出
         const bool hit = (depth == 1) && (json.compare(i, close - i + 1, quoted) == 0);
         i = close;
         if (!hit)
@@ -198,18 +206,24 @@ inline bool find_top_member(const std::string &json, const std::string &key, std
         ++p;
         while (p < json.size() && is_json_space(json[p]))
             ++p;
+        ++hit_count;
+        if (filled)
+            continue; // 值已取到，继续走只为把重复次数数完
         const size_t end = value_end(json, p);
         out = trim_json_text(json.substr(p, end - p));
-        return true;
+        filled = true;
     }
-    return false;
+    if (hits)
+        *hits = hit_count;
+    return filled;
 }
 
 // The member has to be a quoted string: {"alg":null} and {"alg":256} name no algorithm.
-inline bool find_top_string(const std::string &json, const std::string &key, std::string &out)
+inline bool find_top_string(const std::string &json, const std::string &key, std::string &out,
+                            size_t *hits = nullptr)
 {
     std::string raw;
-    if (!find_top_member(json, key, raw))
+    if (!find_top_member(json, key, raw, hits))
         return false;
     if (raw.size() < 2 || raw.front() != '"' || raw.back() != '"')
         return false;
@@ -295,8 +309,11 @@ inline claim_state parse_date(const std::string &v, long long &out)
 inline claim_state read_date_claim(const std::string &json, const std::string &key, long long &out)
 {
     std::string raw;
-    if (!find_top_member(json, key, raw))
+    size_t      hits = 0;
+    if (!find_top_member(json, key, raw, &hits))
         return claim_state::absent;
+    if (hits > 1)
+        return claim_state::invalid; // 同名成员重复: 谁生效没有定论，判非法而不是挑一个
     return parse_date(raw, out);
 }
 
@@ -666,7 +683,11 @@ verify_result decode_without_verify(const std::string &token)
     result.exp = claims.exp_as_time();
     result.iat = claims.iat_as_time();
     result.nbf = claims.nbf_as_time();
-    result.err          = verify_error::ok; // no verification means "ok to parse"
+    // 不回 ok: 这里没有验签，ok 与 verify() 成功共用会让"只看 err"的调用方把未验签 token
+    // 当合法。err 只表示"三段解析成功"。
+    // Not ok: nothing was verified, and sharing ok with a successful verify() lets a caller
+    // that only reads err treat an unverified token as authentic.
+    result.err = verify_error::parsed_but_unverified;
 
     return result;
 }
@@ -703,10 +724,27 @@ verify_result verify(
     std::string header_json  = b64url::decode(header_b64);
     std::string payload_json = b64url::decode(payload_b64);
 
+    // encode() 要求两段都是 JSON object，verify() 必须一致: payload 若是 [{"exp":...}]，exp
+    // 落在 depth==2，顶层扫描器看不见，过期检查会静默消失。
+    // Both sections must be JSON objects — the same gate encode() applies on the way in.
+    // A payload of [{"exp":...}] puts exp at depth 2 where the top-level scanner never sees
+    // it, and the expiry check silently disappears.
+    if (!is_json_object(header_json) || !is_json_object(payload_json))
+    {
+        result.err = verify_error::malformed_json;
+        return result;
+    }
+
+    // NOTE: decode_without_verify() 刻意不加此校验。它的定位是 "parse-only，供 gateway
+    // 路由阶段读 header.alg 选 key"，header.alg 不依赖 payload 形状。
+    // NOTE: decode_without_verify() intentionally skips this check — it exists so a gateway
+    // can read header.alg and pick a key without caring whether the payload shape is valid.
+
     // ---- Step 3: alg whitelist check ----
     std::string alg;
-    find_top_string(header_json, "alg", alg);
-    if (alg.empty())
+    size_t      alg_hits = 0;
+    find_top_string(header_json, "alg", alg, &alg_hits);
+    if (alg.empty() || alg_hits > 1) // 两个 alg 同样是"谁生效没定论"，一并拒掉
     {
         result.err = verify_error::alg_mismatch;
         return result;
@@ -722,6 +760,17 @@ verify_result verify(
     if (alg != alg_to_string(expected_alg))
     {
         result.err = verify_error::alg_mismatch;
+        return result;
+    }
+
+    // RFC 7515 §4.1.11: crit 列出的是"接收方必须理解才能接受"的扩展头。本实现不支持任何
+    // 扩展头，所以 crit 一旦出现就必须拒绝——不解析它的内容，存在即拒。
+    // Any crit entry names an extension the recipient must understand; this implementation
+    // understands none, so the mere presence of the member ends the verification.
+    std::string crit_raw;
+    if (find_top_member(header_json, "crit", crit_raw))
+    {
+        result.err = verify_error::unsupported_critical;
         return result;
     }
 
@@ -827,16 +876,25 @@ verify_result verify(
     if (claims.has_invalid())
         return fill(verify_error::invalid_claims);
 
-    time_t now = std::time(nullptr);
+    // leeway 加在 now 上，不加在 claim 上: parse_date() 允许 exp 顶到 time_t 上限、nbf 顶到
+    // 下限，所以 exp + leeway / nbf - leeway 是有符号溢出(UB)，理论上有符号溢出可能回绕成
+    // 相反的判定(now 离边界极远, 不会溢出; 用 long long 计算是为了连 32 位 time_t 也安全)。
+    // leeway is applied to `now`, never to the claim: parse_date() lets exp sit at time_t's
+    // maximum and nbf at its minimum, so `exp + leeway` / `nbf - leeway` are signed overflows
+    // (UB) that can wrap into the opposite verdict. `now` is a real clock reading, far from
+    // the bounds; the arithmetic runs in long long so even a 32-bit time_t cannot overflow.
+    const long long now_ll = static_cast<long long>(std::time(nullptr));
 
     // exp check: token expired if exp < (now - leeway)
     if (claims.exp_state == claim_state::present &&
-        now > claims.exp_as_time() + leeway_seconds)
+        now_ll - static_cast<long long>(leeway_seconds) >
+            static_cast<long long>(claims.exp_as_time()))
         return fill(verify_error::token_expired);
 
     // nbf check: token not yet valid if nbf > (now + leeway)
     if (claims.nbf_state == claim_state::present &&
-        now < claims.nbf_as_time() - leeway_seconds)
+        now_ll + static_cast<long long>(leeway_seconds) <
+            static_cast<long long>(claims.nbf_as_time()))
         return fill(verify_error::token_not_yet_valid);
 
     // ---- Step 7: all checks passed ----
