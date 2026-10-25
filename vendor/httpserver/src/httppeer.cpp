@@ -1166,7 +1166,9 @@ bool httppeer::isset_type() { return content_type.size() > 0 ? true : false; }
 // 用替换（erase）而非拒绝：业务偶尔把含换行的脏数据塞进 header，静默清理比丢整个 header 更安全。
 static inline std::string strip_crlf(std::string s)
 {
-    s.erase(std::remove_if(s.begin(), s.end(), [](unsigned char c) { return c == '\r' || c == '\n'; }), s.end());
+    s.erase(std::remove_if(s.begin(), s.end(), [](unsigned char c)
+                           { return c == '\r' || c == '\n'; }),
+            s.end());
     return s;
 }
 
@@ -1319,8 +1321,8 @@ void httppeer::set_cookie(std::string key,
     }
     // 去掉 CRLF：key/value 虽过了 url_encode（已把 \r\n 编码成 %0D%0A），但 domain/path 是裸写，
     // 统一 strip 兜底。
-    key   = strip_crlf(std::move(key));
-    value = strip_crlf(std::move(value));
+    key    = strip_crlf(std::move(key));
+    value  = strip_crlf(std::move(value));
     domain = strip_crlf(std::move(domain));
     path   = strip_crlf(std::move(path));
     cookie.set(key, value, exptime, domain, path, secure, httponly, issamesite);
@@ -2136,7 +2138,7 @@ void httppeer::push_next(const std::string &name)
     {
         flow_method = std::make_unique<std::list<std::string>>();
     }
-    flow_method->push_back(name); // 栈顶：后压先出
+    flow_method->push_back(name);// 栈顶：后压先出
 }
 void httppeer::push_last(const std::string &name)
 {
@@ -2144,12 +2146,12 @@ void httppeer::push_last(const std::string &name)
     {
         flow_method = std::make_unique<std::list<std::string>>();
     }
-    flow_method->push_front(name); // 栈底：先压先出（顺序拆解默认推荐）
+    flow_method->push_front(name);// 栈底：先压先出（顺序拆解默认推荐）
 }
 void httppeer::push_steps(std::initializer_list<const char *> names)
 {
     for (auto n : names)
-        push_last(n); // 声明顺序即执行顺序
+        push_last(n);// 声明顺序即执行顺序
 }
 std::string httppeer::pop_flow()
 {
@@ -2250,6 +2252,7 @@ void httppeer::clear()
     content_length   = 0;
     sessionfile_time = 0;
     upload_length    = 0;
+    mask_code        = 0;
 
     state.gzip              = false;
     state.deflate           = false;
@@ -2332,7 +2335,7 @@ range_parse_t parse_range_header(std::string_view header_value, headstate_t &sta
         return range_parse_t::not_bytes;// 非 bytes 单位，忽略该头
     }
 
-    auto parse_number   = [&](unsigned long long &out) -> bool
+    auto parse_number = [&](unsigned long long &out) -> bool
     {
         // 位数上限必须每个数独立计：放在 lambda 外会变成"起点+终点合计 14 位"，
         // 于是 bytes=10485760-20971519（8+8 位）这种常见的 10 MB 以上分段请求被判语法错误。
@@ -2340,7 +2343,7 @@ range_parse_t parse_range_header(std::string_view header_value, headstate_t &sta
         // "start+end together ≤ 14 digits", so a common 8+8 digit range like
         // bytes=10485760-20971519 is rejected as a syntax error.
         unsigned int digits = 0;
-        bool any = false;
+        bool any            = false;
         for (; j < linesize; j++)
         {
             if (header_value[j] < 0x30 || header_value[j] > 0x39)

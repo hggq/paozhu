@@ -549,6 +549,10 @@ std::string router::resolve(std::shared_ptr<httppeer> peer)
     {
         auto const &h = _handlers[idx];
 
+        // 本条注册的掩码先写进 peer，pre 和 handler 都能读到它做权限判断；
+        // 写在循环顶部，所以跳转或编排栈弹出的下一步会用自己那条的掩码覆盖。
+        peer->mask_code = h.mask_code;
+
         if (h.pre_kind == fn_kind::sync && h.pre)
         {
             try
@@ -709,6 +713,8 @@ asio::awaitable<std::string> router::co_resolve(std::shared_ptr<httppeer> peer, 
     while (safety_counter++ < 32)
     {
         auto const &h = _handlers[idx];
+
+        peer->mask_code = h.mask_code;// 与同步链同形：pre 先于 handler 看到本条的掩码
 
         bool has_pre = false;
         if (h.pre_kind == fn_kind::sync && h.pre)

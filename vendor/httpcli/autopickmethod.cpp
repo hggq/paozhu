@@ -447,6 +447,18 @@ int main(int argc, char *argv[])
 
     automethod_content.append(
 "\n    void _initauto_all_httputils()\n    {\n"
+"        // reg_raw(site, path, pre_sync, co_pre, reg_sync, co_reg, mask_code)\n"
+"        // reg_raw 参数说明 / parameter order:\n"
+"        //   1. site       : 域名字符串（空串 '' 表示全局 slot，等价于 mainhost）\n"
+"        //   2. path       : 注册的 URL 路径，:param 段已被剥掉（实际注册的是固定段前缀）\n"
+"        //   3. pre_sync   : 同步 pre 函数（std::string 返回），无 pre 则 nullptr\n"
+"        //   4. co_pre     : 协程 pre 函数（asio::awaitable<std::string> 返回），无则 nullptr\n"
+"        //   5. reg_sync   : 同步 handler（std::string 返回），另一个 handler 槽置 nullptr\n"
+"        //   6. co_reg     : 协程 handler（asio::awaitable<std::string> 返回），另一个槽置 nullptr\n"
+"        //   7. mask_code  : 注解 //@urlpath(pre,handler):数字 里的数字，无冒号默认为 0\n"
+"        //\n"
+"        // reg_urlpath(site, path, {param_names...})\n"
+"        //   当 URL 含 :param 段时，紧随 reg_raw 之后注册参数名表；无参数则不生成\n"
     );
 
     // 本轮生成出来的注册名，用来和手写注册表（common/reghttpmethod*.hpp）比对撞名
@@ -518,10 +530,23 @@ int main(int argc, char *argv[])
 
         generated_paths.insert(parsed_path);
 
+        // 生成行尾注释的相对路径：剥掉 src_path + "/" 前缀得到 plist[i] + ".cpp"
+        // relative path for trailing comment in generated reg_raw line
+        std::string rel_src = item.filename;
+        std::string src_prefix = src_path + "/";
+        if (rel_src.size() > src_prefix.size()
+            && rel_src.compare(0, src_prefix.size(), src_prefix) == 0)
+        {
+            rel_src = rel_src.substr(src_prefix.size());
+        }
+        std::string comment_src = "controller/src/" + rel_src;
+
         automethod_content += "        reg_raw(\"" + site + "\", \"" + parsed_path + "\", "
                             + pre_sync + ", " + co_pre + ", "
                             + reg_sync + ", " + co_reg + ", "
-                            + std::to_string(item.mask_code) + ");\r\n";
+                            + std::to_string(item.mask_code) + ");"
+                            + " // " + comment_src + ":" + std::to_string(item.line_no)
+                            + "\r\n";
 
         if (!urlpath_names.empty()) {
             automethod_content += "        reg_urlpath(\"" + site + "\", \""
@@ -530,7 +555,9 @@ int main(int argc, char *argv[])
                 if (k) automethod_content += ", ";
                 automethod_content += "\"" + urlpath_names[k] + "\"";
             }
-            automethod_content += "});\r\n";
+            automethod_content += "});"
+                                " // " + comment_src + ":" + std::to_string(item.line_no)
+                                + "\r\n";
         }
     };
 

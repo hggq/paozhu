@@ -109,8 +109,8 @@ paozhu/
 
 > **自动生成文件说明（请勿手动修改）**：
 > - `models/` 与 `orm/` 目录下的模型代码均由 `bin/paozhu_cli orm <dbtag>` 从数据库自动生成，最好不要手动修改；如需改动共享行为请修改 `vendor/httpserver/include/` 下的模板并重新生成（见 §5.1）。
-> - `common/autocontrolmethod.hpp` 由构建系统在编译项目时，从 `controller/src/` 抽取控制器函数自动生成，无需手动修改；改动控制器后重新编译即可刷新。
-> - `controller/include/` 目录同样由构建系统自动生成（为每个缺少头文件的 `controller/src/*.cpp` 补一个空头文件），无需手动修改。
+> - `common/autocontrolmethod.hpp` 由构建系统在编译项目时，从 `controller/src/` 抽取控制器函数自动生成，无需手动修改；改动控制器后重新编译即可刷新。每条 `reg_raw(...)` 和 `reg_urlpath(...)` 末尾都会带上 `// controller/src/<相对路径>:<行号>` 的源文件注释，方便直接跳转定位注解。
+> - `controller/include/` 目录同样由构建系统自动生成：每次构建都会跑代码生成步骤（CMake 目标 `paozhu_codegen`，执行 `bin/paozhu_pre`），由它按 `controller/src/<name>.cpp` 里带 `//@urlpath` 注解的函数写出 `controller/include/<name>.h` 的函数声明。**不要手写控制器头文件** —— 下一次构建会覆盖它，而且新控制器不写头文件也能编译通过。
 
 ---
 
@@ -216,13 +216,19 @@ eab_hmac_key =             ; EAB HMAC Key
 #include "orm.h"              // ORM 入口
 #include "httppeer.h"         // HTTP 请求/响应处理对象
 #include "func.h"             // 工具函数
-#include "example.h"          // 对应头文件
 
 namespace http
 {
 // 控制器函数实现
 }
 ```
+
+一个 `.cpp` 就是一个完整的控制器。不用写 `controller/include/example.h`，不用改
+`common/autocontrolmethod.hpp`，不用改 CMakeLists.txt：构建时的代码生成步骤会从本文件生成
+头文件里的函数声明（每个带 `//@urlpath` 注解的函数一条）和路由注册表。是否 include 那个生成头
+是可选的 —— 不 include 照样编译通过（老控制器都 include，那是唯一能在编译期而不是链接期发现
+`.cpp` 签名写错的办法）。**没有注解**的函数不会进生成头，所以多个控制器共用的辅助函数
+要放 `common/` 或 `libs/`，不要放在控制器里。
 
 ### 4.2 URL 路由注册
 
@@ -242,6 +248,7 @@ std::string testhello(std::shared_ptr<httppeer> peer)
 
 - 第一个参数: 前置过滤器函数名（`null` 表示无过滤器）
 - 第二个参数: URL 路径
+- 括号后面可选的 `:数字` 给这条注册挂一个路由掩码；路由在调用前置过滤器之前把它写进 `client.mask_code`（见 §4.8）
 
 ### 4.3 前置过滤器
 
@@ -605,6 +612,72 @@ asio::awaitable<std::string> techempowerupdates(std::shared_ptr<httppeer> peer)
 
 **注意**: 同步控制器（返回 `std::string`）和协程控制器（返回 `asio::awaitable<std::string>`）可以在同一项目中混用。框架会根据函数签名自动选择正确的执行路径。
 
+### 4.8 路由掩码（`mask_code`）
+
+每条注册条目可以带一个 `unsigned int`，框架只**搬运**它：路由在调用这条注册的前置过滤器之前
+把它写进请求，自己从不读取也不解释。可以用它存放权限位、租户 id，或任何前置过滤器和 handler
+需要一致同意、又不必重新解析 URL 的信息。
+
+**写法** —— 括号外面、冒号后面的数字：
+
+```cpp
+//@urlpath(null,maskpre/check)
+std::string test_mask_pre(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+    client << "pre 读到 mask_code=" << client.mask_code << "<br />";
+    if (client.mask_code == 0)
+    {
+        client << "掩码为 0，pre 拦下这次请求";
+        return "exit";
+    }
+    client << "掩码非 0，pre 放行";
+    return "ok";
+}
+
+//@urlpath(test_mask_pre,maskpre):123456
+std::string test_maskcode(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+    client << "handler 读到 mask_code=" << client.mask_code;
+    return "";
+}
+```
+
+**解析规则** —— 由 `vendor/httpcli/autopickcontrolmethod.hpp` 提取，写法不合理时它会在控制台喊一声：
+
+| 注解尾部 | 条目上存的掩码 |
+|----------|----------------|
+| 没有冒号 —— `//@urlpath(null,foo)` | `0` |
+| `//@urlpath(null,foo):123456` | `123456` |
+| `)` 与 `:` 之间有空格或制表符 | `123456` |
+| `:99999999999`（超过 `UINT_MAX`） | `UINT_MAX`，钳位 |
+| `:12abc` | `12` —— 数字读到第一个非数字为止，不告警 |
+| `:abc` | `0`，并打印 `[ROUTE-WARN] invalid mask_code after ':'` |
+
+**它怎么落到请求上**：注解 → `bin/paozhu_pre` 把它作为
+`reg_raw(site, path, pre_sync, co_pre, reg_sync, co_reg, mask_code)` 的最后一个参数写进
+`common/autocontrolmethod.hpp` → 存进 `reg_methold_mid_t::mask_code`
+（`vendor/httpserver/include/httppeer.h`）→ `router::resolve()` / `router::co_resolve()` 在
+派发循环的每一步顶部执行 `peer->mask_code = h.mask_code;`，位置在这条注册的 pre 之前。手写注册
+拿到的是 `0`：那是 `reg_raw()` 的默认参数，`REG_*` 便捷宏也不传这一位。
+
+**它是「每条」而不是「每请求」。** 赋值发生在链的每一步上，所以跳转（`return "/other/path"`）
+和从编排栈里弹出的下一步都会用**自己那条**的掩码覆盖，不继承上一步。`httppeer::clear()` 把这个
+字段归零，keep-alive 的每个请求都会走它；HTTP/2 每个流各有一个 `httppeer`。
+
+**拦入口请写在路由自己的 pre 上。** 有两个配置级的钩子跑在"选出路由条目"**之前** —— 站点的
+`action_pre`（`run_site_hooks` / `co_run_site_hooks`）和 `static_pre`（`call_sync_regfun` /
+`co_call_regfun`）—— 它们不是注册条目，所以读到的恒为 `0`。相对地，派发链的第一步在调用它的
+pre 之前就已经拿到本条的掩码，按掩码做拦截就该拦在那里。
+
+**掩码进代码生成的缓存键**，和前置函数名、函数名、urlpath、返回类型一起 —— 只改冒号后面那几个
+数字，下一次构建就会重建 `controller/include/<name>.h` 和注册表。
+
+**现成演示**：`controller/src/test_maskcode.cpp` 注册的就是这一对。`/maskpre` 带 `123456`，
+所以 pre 打印 `123456`、返回 `"ok"`，handler 再打印一次 `123456`。`/maskpre/check` 是同一个 pre
+函数单独注册的路由，注解里没有冒号，所以它读到 `0` 就地拦下。
+
 ---
 
 ## 五、ORM 使用指南
@@ -751,7 +824,8 @@ model.select("aid,title,addtime").fetch();
 // 分组
 model.group("category_id").fetch();
 
-// 聚合函数（无 sum/avg/max/min 链式方法，用 select 别名 + 自定义结构体读取）
+// 聚合函数（无 sum/avg/max/min 链式方法；
+// 用 select 别名 + 自定义结构体经 fetch_to 读取）
 namespace orm::cust
 {
     struct SumStruct : orm::Base<SumStruct>
@@ -779,9 +853,10 @@ model.where("id", 1).fetch_one();
 // ... 更多操作
 model.unlock_conn();
 
-// 在 orm::db_conn 的事务里，光调用无参 lock_conn() 不够：模型仍然从连接池里另借一条，
-// 它的写入落在另一个会话上、自己就提交了。把事务正在持有的那条连接交给 lock_conn()，
-// 模型改为借用它；随后的 unlock_conn() 只解绑——所有权在 db_conn，
+// 在 orm::db_conn 的事务里，光调用无参 lock_conn() 不够：模型仍然
+// 从连接池里另借一条，它的写入落在另一个会话上、自己就提交了。
+// 把事务正在持有的那条连接交给 lock_conn()，模型改为借用它；
+// 随后的 unlock_conn() 只解绑——所有权在 db_conn，
 // 由它在 commit()/rollback() 时把连接还回池里。
 auto ulink = std::make_unique<orm::db_conn>("cms");
 if (ulink->begin_commit())
@@ -828,7 +903,8 @@ model.where("aid", id).update_col("stock", -1);      // stock - 1
 // 字段替换
 model.where("aid", id).replace_col("content", "old", "new");
 
-// 按主键查询（setPK 用于记录 save() 后的自增ID，不能代替 where 查询）
+// 按主键查询（setPK 用于记录 save() 后的自增ID；
+// 它不能代替 where() 查询）
 model.where("aid", id).fetch_one();
 ```
 
@@ -1679,11 +1755,15 @@ client.val["list"].push(item);
 
 ### 10.1 新增控制器
 
-1. 在 `controller/src/` 创建实现文件（如 `newfeature.cpp`），并用 `//@urlpath` 注释注册路由。
-2. 对应的 `controller/include/newfeature.h` 可以不写：CMake 会为每个缺少头文件的
-   `controller/src/*.cpp` 自动 touch 一个空头文件。
-3. 不需要改 CMakeLists.txt —— `controller/src/*.cpp` 由
-   `file(GLOB_RECURSE ... CONFIGURE_DEPENDS)` 收集，直接重新编译即可纳入新文件。
+1. 在 `controller/src/` 创建**一个**实现文件（如 `newfeature.cpp`），用 `//@urlpath` 注释注册路由
+   —— 需要做的就只有这一步。
+2. **不要**写 `controller/include/newfeature.h`：构建时的代码生成步骤（`paozhu_codegen`，执行
+   `bin/paozhu_pre`）会按本文件的注解生成它，下一次构建还会把它覆盖掉；`.cpp` 是否 include 它都可以
+   （见 4.1）。
+3. **不要**改 `common/autocontrolmethod.hpp`（同一步代码生成会写入 `reg_raw()` 注册），也不要改
+   CMakeLists.txt —— `controller/src/*.cpp` 由 `file(GLOB_RECURSE ... CONFIGURE_DEPENDS)` 收集，
+   直接重新编译就会纳入新文件、刷新生成头并重新注册路由。
+4. 改动控制器后重新编译，路由即生效（如 `http://127.0.0.1/newfeature`）。
 
 ### 10.2 新增数据表模型
 
@@ -1748,6 +1828,17 @@ make -j$(nproc)
 
 **Q: 如何调试 SQL 查询？**  
 在 `server.conf` 中设置 `debug_enable = 1`，ORM 会自动记录生成的 SQL 语句。
+
+**Q: 新增控制器要不要手写头文件？**  
+不用。一个控制器就是一个文件：`controller/src/<name>.cpp` 加上 `//@urlpath` 注释。构建时的代码
+生成步骤（`paozhu_codegen`，执行 `bin/paozhu_pre`）会按这些注解写出对应的
+`controller/include/<name>.h`，并把 `reg_raw()` 注册写进 `common/autocontrolmethod.hpp`，所以
+这两个文件手写了也没用 —— 下一次构建就覆盖。在自己的 `.cpp` 里 include 那个生成头是可选的。两点要记：
+**没有 `//@urlpath` 注解的函数不会进生成头**，多个控制器共用的辅助函数要放 `common/` 或 `libs/`
+（见 §4.1）；代码生成的缓存看的是注解文本、函数返回类型、路由掩码（见 §4.8）以及生成头自身的
+mtime（`cache/method_notes.data`），所以把控制器在 `std::string` 和
+`asio::awaitable<std::string>` 之间来回改，只需重新构建即可 —— 别为了让签名对上而去手改生成头，
+改它只会让下一次构建把它重新覆盖掉。
 
 ---
 

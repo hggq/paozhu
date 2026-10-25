@@ -246,7 +246,7 @@ class httpserver
     void listener();
     void ratelimiter();
 
-    // 60 秒流量窗口：两个 accept 线程共用同一份分桶，返回最近约 60 秒的连接增量
+    // 60 秒流量窗口：分桶按调用线程各存一份，返回最近约 60 秒的连接增量（计数源是全局 total_count）
     unsigned int update_minute_count(unsigned int sp_time);
     // 入口按负载插值算当前放行率：has_save_link_count → [new_wait_num, accept_wait_num] 百分比 → [num1, num2]
     void compute_rate_from_load(unsigned int has_save_link_count);
@@ -451,14 +451,6 @@ class httpserver
     std::atomic_uint total_count        = 0;
     std::atomic_uint live_link_count    = 0;
     std::atomic_uint http2_minute_count = 0;
-
-    // 流量窗口：按 秒 % 60 分桶，每桶存"该秒拍到的 total_count"快照，两个 accept 线程共用。
-    // 没有 accept 的秒 total_count 不变，跨秒时把空桶补成同一快照，所以桶里永远有 60 秒内的值。
-    std::atomic_uint win_sec[60]   = {};  // 桶里记录的秒值，0 表示这个桶从没写过
-    std::atomic_uint win_total[60] = {};  // 该秒的 total_count 快照
-    std::atomic_uint win_last_sec  = 0;   // 上一次采样到第几秒，用来找需要补写的空桶
-    // 窗口滚满前的基线：本进程第一次采样时的 total_count
-    std::atomic_uint startup_total = 0;
 
     std::atomic_uint total_http2_count = 0;
     std::atomic_uint total_http1_count = 0;

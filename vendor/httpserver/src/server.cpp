@@ -8405,49 +8405,54 @@ asio::awaitable<void> httpserver::async_mqtt_subpub_loop(
 #endif
 
 // ========== 限速入口辅助函数 ==========
-// 60 秒流量窗口：两个 accept 线程共用这一份分桶计数，返回"最近约 60 秒进来多少连接"。
-// 桶按 秒 % 60 寻址，每桶记该秒拍到的 total_count；基线取"下一个要被覆盖的桶"（当前桶正在写，不能用）。
+// 60 秒流量窗口：返回"最近约 60 秒进来多少连接"。分桶是每条调用线程各自一份（两个 accept
+// 线程各一份），格子只有一个所有者，所以不需要锁也不需要原子访问；桶里拍的是全局 total_count，
+// 因此两份窗口量的是同一股总流量，不会各自只看到自己那个端口。
+// 桶按 秒 % 60 寻址，每桶记该秒拍到的快照；基线取"下一个要被覆盖的桶"（当前桶正在写，不能用）。
 // 秒级粒度，差一秒不影响判定：限速本来就是平滑放行，不是精确配额。
 unsigned int httpserver::update_minute_count(unsigned int sp_time)
 {
     unsigned int now_total = total_count.load(std::memory_order_relaxed);
 
-    unsigned int last = win_last_sec.load(std::memory_order_relaxed);
+    static thread_local unsigned int win_sec[60]   = {};  // 桶里记录的秒值，0 表示这个桶从没写过
+    static thread_local unsigned int win_total[60] = {};  // 该秒的 total_count 快照
+    static thread_local unsigned int win_last_sec  = 0;   // 上一次采样到第几秒，用来找需要补写的空桶
+
+    unsigned int last = win_last_sec;
     if (last != sp_time)
     {
-        if (last == 0)
-        {
-            // 本进程第一次采样：基线定在此刻，所以窗口滚满前算的是"自首个连接以来的累计"，
-            // 启动阶段先放 rate_limit_new_wait_num 个（默认 300）连接进去，再开始限速
-            startup_total.store(now_total, std::memory_order_relaxed);
-        }
-        // 没发生 accept 的秒里 total_count 不会变，把中间空秒补成同一个快照，补的是精确值
+        // 空秒补的是"这一次拍到的快照"：这条线程自己的秒里 total_count 不会变，但对面端口在那些
+        // 空秒里接进来的连接已经算进 now_total 了 ⇒ 补出来的基线偏新，算出的 cnt 偏小（偏松）。
+        // 这条线程密到每秒都接得到时，补的就是精确值。
+        // last == 0 说明这条线程还没采样过，只写当前这一格，不能从秒值 0 一路补过来
         unsigned int from = (last == 0) ? sp_time : last + 1;
         if (sp_time - from > 59)
         {
-            from = sp_time - 59;  // 长时间空闲或时钟跳变：只补最近 60 个桶
+            from = sp_time - 59;  // 长时间空闲或时钟跳变：整个环 60 桶全刷成当前快照，更早的秒本来就该出窗
         }
         for (unsigned int s = from; s <= sp_time; ++s)
         {
             unsigned int i = s % 60;
-            win_total[i].store(now_total, std::memory_order_relaxed);
-            win_sec[i].store(s, std::memory_order_relaxed);
+            win_total[i] = now_total;
+            win_sec[i]   = s;
         }
-        win_last_sec.store(sp_time, std::memory_order_relaxed);
+        win_last_sec = sp_time;
     }
 
     unsigned int oldidx  = (sp_time + 1) % 60;
-    unsigned int old_sec = win_sec[oldidx].load(std::memory_order_relaxed);
+    unsigned int old_sec = win_sec[oldidx];
 
     unsigned int base;
-    if (old_sec != 0 && old_sec <= sp_time && (sp_time - old_sec) <= 60)
+    if (old_sec != 0)
     {
-        base = win_total[oldidx].load(std::memory_order_relaxed);
+        // 这一格的秒值只可能由本线程自己写进去，必然落在 [sp_time-59, sp_time] 里，不用再判范围
+        base = win_total[oldidx];
     }
     else
     {
-        // 该桶从没写过（进程还不满 60 秒）或时钟跳变，退回启动基线
-        base = startup_total.load(std::memory_order_relaxed);
+        // 走到这里说明这一格从没写过（进程刚起来，或这条线程刚接第一两条），这时算的是自启动累计，
+        // 所以启动阶段正好放行 rate_limit_new_wait_num 个连接，之后才开始排队。
+        base = 0;
     }
 
     // 时钟回拨会让 now_total 不大于 base，直接算 0（= 放行）
@@ -8826,7 +8831,7 @@ void httpserver::listeners()
 
 #ifndef BENCHMARK
 
-                // 60-second traffic window + speed limit determination (two accepts share update_minute_count)
+                // 60-second traffic window + speed limit determination (each accept thread keeps its own ring)
                 unsigned int has_save_link_count = update_minute_count(sp_time);
                 if (rate_limit_status &&
                     has_save_link_count > rate_limit_new_wait_num.load() &&
@@ -9009,7 +9014,7 @@ void httpserver::listener()
 
 #ifndef BENCHMARK
 
-                // 60-second traffic window + speed limit determination (two accepts share update_minute_count)
+                // 60-second traffic window + speed limit determination (each accept thread keeps its own ring)
                 unsigned int has_save_link_count = update_minute_count(sp_time);
                 if (rate_limit_status &&
                     has_save_link_count > rate_limit_new_wait_num.load() &&

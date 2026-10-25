@@ -157,8 +157,8 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     //   push_next(A); push_next(B);   // 执行顺序: B, A
     //   push_last(A); push_last(B);   // 执行顺序: A, B
     // 跳转/exit 协议不变：return "" 弹栈继续；return "exit" 终止不弹；return "名字" 直接跳转。
-    void push_next(const std::string &name); // 栈顶（后压先出）
-    void push_last(const std::string &name); // 栈底（先压先出）
+    void push_next(const std::string &name);// 栈顶（后压先出）
+    void push_last(const std::string &name);// 栈底（先压先出）
     void push_steps(std::initializer_list<const char *> names);
     std::string pop_flow();
     unsigned char add_timeloop_task(const std::string &, unsigned int);
@@ -256,6 +256,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     unsigned int host_index  = 0;
     unsigned int stream_id   = 0;
     unsigned int status_code = 0;
+    unsigned int mask_code   = 0;//本次请求注册函数掩码，可以存放权限等，方便业务代码与pre hook通信;
     // 仅 HTTP/2 用：站点上传限额在头块阶段就判掉这条请求时，这里存要回的状态码（0 = 不拒）。
     // 非 0 即代表「正文一帧都不收」：读循环按它直接派发状态页，解析器按它丢弃后到的 DATA。
     unsigned int reject_status = 0;
@@ -343,9 +344,9 @@ struct reg_methold_mid_t
     fn_kind reg_kind = fn_kind::none;
     std::function<std::string(std::shared_ptr<httppeer>)> regfun;
     std::function<asio::awaitable<std::string>(std::shared_ptr<httppeer>)> co_regfun;
-    // 注册条目自带的业务掩码：路由不读它，留给任务编排（图执行）用
+    // 注册条目自带的业务掩码：派发时按条目写进 httppeer::mask_code，pre 和 handler 都能读
     // 注解格式 //@urlpath(pre,handler):数字 提取，无冒号默认 0
-    // business mask code for graph/flow task orchestration; extracted from //@urlpath(...):digits, default 0
+    // business mask code; the router copies it to httppeer::mask_code before calling pre/regfun
     unsigned int mask_code = 0;
 };
 
@@ -378,12 +379,7 @@ void make_404_content(std::shared_ptr<httppeer> peer);
 // autopickmethod 根据注解类型自动组合；手写注册也直接调这个
 // mask_code 默认 0；注解 //@urlpath(...):数字 由 autopickmethod 生成器填充
 inline unsigned int reg_raw(
-    const std::string &site, const std::string &path,
-    std::function<std::string(std::shared_ptr<httppeer>)> pre_sync,
-    std::function<asio::awaitable<std::string>(std::shared_ptr<httppeer>)> co_pre,
-    std::function<std::string(std::shared_ptr<httppeer>)> reg_sync,
-    std::function<asio::awaitable<std::string>(std::shared_ptr<httppeer>)> co_reg,
-    unsigned int mask_code = 0)
+    const std::string &site, const std::string &path, std::function<std::string(std::shared_ptr<httppeer>)> pre_sync, std::function<asio::awaitable<std::string>(std::shared_ptr<httppeer>)> co_pre, std::function<std::string(std::shared_ptr<httppeer>)> reg_sync, std::function<asio::awaitable<std::string>(std::shared_ptr<httppeer>)> co_reg, unsigned int mask_code = 0)
 {
     reg_methold_mid_t e;
     if (pre_sync)

@@ -43,6 +43,9 @@ struct reg_autoitem
     // 注解可选 mask_code：//@urlpath(pre,handler):123456 里的 123456，没写默认为 0
     // extracted from optional //@urlpath(...):digits suffix; default 0 when absent
     unsigned int mask_code = 0;
+    // 注解在源文件里的行号，用于 autocontrolmethod.hpp 生成行尾注释 // @source.cpp:line
+    // line number of the annotation in source; emitted as trailing comment in the generated reg_raw line
+    unsigned int line_no = 0;
 };
 struct file_regitem
 {
@@ -572,11 +575,20 @@ class pickcontrol
                             mpos++;
                         if (mpos > mstart)
                         {
-                            // parse digits; overflow clamps to UINT_MAX
-                            unsigned long v = std::stoul(filecontent.substr(mstart, mpos - mstart));
-                            mask_code = static_cast<unsigned int>(
-                                v > (unsigned long)std::numeric_limits<unsigned int>::max()
-                                    ? std::numeric_limits<unsigned int>::max() : v);
+                            // 饱和累加：越过 UINT_MAX 就定格在 UINT_MAX，后面的位数不再参与取值。
+                            // 不用 std::stoul —— unsigned long 只有 32 位的平台（Windows/LLP64）上
+                            // 它对 >UINT_MAX 的字符串抛 std::out_of_range，而这里没有 try，生成器会直接终止。
+                            unsigned long long v = 0;
+                            for (unsigned int d = mstart; d < mpos; d++)
+                            {
+                                v = v * 10 + (unsigned long long)(filecontent[d] - '0');
+                                if (v > (unsigned long long)std::numeric_limits<unsigned int>::max())
+                                {
+                                    v = (unsigned long long)std::numeric_limits<unsigned int>::max();
+                                    break;
+                                }
+                            }
+                            mask_code = (unsigned int)v;
                         }
                         else if (mpos < filecontent.size() && filecontent[mpos] != 0x0A)
                         {
@@ -586,6 +598,15 @@ class pickcontrol
                                          methodpathfile.c_str());
                         }
                     }
+                }
+
+                // 在 i 被推走之前（i = j 会把 i 挪到注解结尾），先按注解起始位置算好行号
+                // compute line number from annotation start BEFORE i is overwritten by i = j
+                unsigned int ann_line_no = 1;
+                for (unsigned int k = 0; k < i; k++)
+                {
+                    if (filecontent[k] == 0x0A)
+                        ann_line_no++;
                 }
 
                 i = j;
@@ -871,6 +892,7 @@ class pickcontrol
                 }
 
                 reg_temp.filename = methodpathfile;
+                reg_temp.line_no = ann_line_no;  // 用注解开头位置算好的行号
                 // site 与命名空间不在这里猜路径，由调用方按 split_domain_path 那一条规则填
                 temp.emplace_back(reg_temp);
                 continue;
