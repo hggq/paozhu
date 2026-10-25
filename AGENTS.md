@@ -213,6 +213,7 @@ eab_hmac_key =             ; EAB HMAC Key
 
 ```cpp
 // controller/src/example.cpp
+#include "example.h"           // Include the header named after this file (auto-generated, do not hand-write)
 #include "orm.h"              // ORM entry
 #include "httppeer.h"         // HTTP request/response handler
 #include "func.h"             // Utility functions
@@ -226,11 +227,11 @@ namespace http
 That single `.cpp` is all a controller needs. Do not write `controller/include/example.h`, do
 not edit `common/autocontrolmethod.hpp`, do not edit `CMakeLists.txt`: the build's codegen step
 generates the header (one declaration per `//@urlpath`-annotated function) and the route table
-from this file. Including that generated header is optional — a controller compiles fine without
-it (older controllers do include it, which is the only way a signature typo in the `.cpp` gets
-caught at compile time instead of link time). Functions **without** an annotation are not emitted
-into the generated header, so a helper shared by several controllers belongs in `common/` or
-`libs/`, not in a controller.
+from this file. Include that generated header (`#include "example.h"`) — the example above does
+it. It compiles fine without, but including it is the only way a signature typo in the `.cpp`
+gets caught at compile time instead of link time. Functions **without** an annotation are not
+emitted into the generated header, so a helper shared by several controllers belongs in `common/`
+or `libs/`, not in a controller.
 
 ### 4.2 URL Route Registration
 

@@ -213,9 +213,10 @@ eab_hmac_key =             ; EAB HMAC Key
 
 ```cpp
 // controller/src/example.cpp
-#include "orm.h"              // ORM 入口
-#include "httppeer.h"         // HTTP 请求/响应处理对象
-#include "func.h"             // 工具函数
+#include "example.h"              // 写上本文名对应头文件（头文件会自动生成，勿手写）
+#include "orm.h"                  // ORM 入口
+#include "httppeer.h"             // HTTP 请求/响应处理对象
+#include "func.h"                 // 工具函数
 
 namespace http
 {
@@ -225,10 +226,10 @@ namespace http
 
 一个 `.cpp` 就是一个完整的控制器。不用写 `controller/include/example.h`，不用改
 `common/autocontrolmethod.hpp`，不用改 CMakeLists.txt：构建时的代码生成步骤会从本文件生成
-头文件里的函数声明（每个带 `//@urlpath` 注解的函数一条）和路由注册表。是否 include 那个生成头
-是可选的 —— 不 include 照样编译通过（老控制器都 include，那是唯一能在编译期而不是链接期发现
-`.cpp` 签名写错的办法）。**没有注解**的函数不会进生成头，所以多个控制器共用的辅助函数
-要放 `common/` 或 `libs/`，不要放在控制器里。
+头文件里的函数声明（每个带 `//@urlpath` 注解的函数一条）和路由注册表。务必 include 那个生成头
+（`#include "example.h"`，上面示例已经写了）—— 不 include 也能编译过，但 include 是唯一能在
+编译期而不是链接期发现 `.cpp` 签名写错的办法。**没有注解**的函数不会进生成头，所以多个控制器
+共用的辅助函数要放 `common/` 或 `libs/`，不要放在控制器里。
 
 ### 4.2 URL 路由注册
 
