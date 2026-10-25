@@ -1243,12 +1243,13 @@ void httpparse::getaccept(std::string_view header_value)
         switch (buffer_value.length())
         {
         case 10:
-            if (buffer_value[6] == 'a' && buffer_value[7] == 'v' && buffer_value[8] == 'i' && buffer_value[9] == 'f')
+            // 只看 [6..9] 会被 application/xxxavif 等 10 字节串误命中, 必须确认前缀是 image/
+            // 主循环内已用 str_casecmp 做全串比较, 这里的末尾分支必须一致。
+            if (str_casecmp(buffer_value, "image/avif"))
             {
                 peer->state.avif = true;
             }
-            else if (buffer_value[6] == 'w' && buffer_value[7] == 'e' && buffer_value[8] == 'b' &&
-                     buffer_value[9] == 'p')
+            else if (str_casecmp(buffer_value, "image/webp"))
             {
                 peer->state.webp = true;
             }
@@ -1271,7 +1272,7 @@ void httpparse::getaccept(std::string_view header_value)
             //text/json
             if (str_casecmp(buffer_value, "text/json"))
             {
-                peer->state.accept_xml = true;
+                peer->state.accept_json = true;
             }
             break;
         case 8:
