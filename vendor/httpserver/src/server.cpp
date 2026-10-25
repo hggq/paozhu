@@ -9157,16 +9157,9 @@ void httpserver::httpwatch_init_paths(std::string &currentpath, std::string &err
     // (memory only — what trimming drops is reusable objects, never data in flight).
     if (rate_limit_accept_wait_num <= rate_limit_new_wait_num)
     {
-        // 抬到 lo*2（与 serverconfig.cpp 的补救一致），保住真实插值区间；lo 过半后退让为 lo+1。
-        // lo 已经是 UINT_MAX 时不存在比它大的 hi，保持原值不动（插值退化为最严档，不再回绕成 0）。
-        // Raise to lo*2 (same remedy as serverconfig.cpp) to keep a real interpolation span; past half
-        // range only lo+1 fits. At lo == UINT_MAX no larger hi is representable, so leave it alone
-        // rather than wrapping to 0.
-        unsigned int lo = rate_limit_new_wait_num.load();
-        if (lo < 0xFFFFFFFFu)
-        {
-            rate_limit_accept_wait_num = (lo > (0xFFFFFFFFu / 2u)) ? (lo + 1u) : (lo * 2u);
-        }
+        // 与 serverconfig.cpp 的补救一致：抬到 lo*2，保住真实的插值区间。
+        // Same remedy as serverconfig.cpp: raise to lo*2 so the interpolation span stays real.
+        rate_limit_accept_wait_num = rate_limit_new_wait_num * 2;
     }
 }
 
