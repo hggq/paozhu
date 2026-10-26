@@ -7,6 +7,12 @@
 #   ./mini_project.sh              Trim to clean scaffold (framework core + testhello)
 #   ./mini_project.sh --benchmark  Trim then overlay TechEmpower benchmark files
 #
+# Re-exec with bash when invoked via `sh` (dash on Debian/Ubuntu) which lacks
+# bash-only features like pipefail and BASH_SOURCE.
+if [ -z "${BASH_VERSION:-}" ]; then
+    exec bash "$0" "$@"
+fi
+
 set -euo pipefail
 
 # ---- Argument parsing ----
