@@ -8,8 +8,6 @@
 int string float等，框架自动解析URL、POST参数到微型对象里面，使用urlpath映射到函数挂载点，使用协程、线程池、数据库链接池。
 
 QQ群：668296235  
-作者也在一线写业务代码，根据经验开发本框架，如果有想法可以加群探讨或issues提问，本框架正缺人手，需要完善C++开发web生态。
-controller目录是实际使用例子，还在完善中，目前框架压力测试没有什么问题。  
 
 ### 1.特性🔥🔥🔥🔥🔥
 
@@ -766,16 +764,10 @@ asio::awaitable<std::string> test_socket_client(std::shared_ptr<httppeer> peer)
 [Paozhu快速入门](https://hggq.github.io/paozhudocs/)
 
  
-### 10.路线图
-
-* [ ] 1.增强HTTP特性  
-* [ ] 2.Httpclient 改善
-* [ ] 3.HTTP/2 客户端  
-
-### 11.贡献👏👋
+### 10.贡献👏👋
 
 欢迎提issue互相交流，当然也欢迎大家踊跃PR
 
-### 12.LICENSE
+### 11.LICENSE
 
 Paozhu遵循[MIT 开源协议](LICENSE)

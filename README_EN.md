@@ -758,18 +758,11 @@ asio::awaitable<std::string> test_socket_client(std::shared_ptr<httppeer> peer)
 - [Paozhu Documentation](https://hggq.github.io/paozhudocs/)
 
 
-### 10. Roadmap
-
-* [ ] Improved HTTP features  
-* [ ] Enhanced HTTP client  
-* [ ] HTTP/2 client  
-
-
-### 11. Contributing 👏👋
+### 10. Contributing 👏👋
 
 Feel free to open issues for discussions, and pull requests are always welcome!
 
 
-### 12. License
+### 11. License
 
 Paozhu is licensed under the [MIT License](LICENSE).
