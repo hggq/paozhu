@@ -962,9 +962,18 @@ void httpparse::process_header_line(std::string_view line_str)
         return;
     }
 
-    if (header_key.size() > 72)
+    if (header_key.size() > http::field_name_max_length)
     {
         error = 40004;
+        return;
+    }
+
+    // field-name 必须是 RFC 7230 token。带空格/制表符的头名会让下面按长度分派的
+    // switch 全部落空——CL、TE 这类决定请求边界的头被无声忽略，本端算出的边界
+    // 就和前置代理不一致。表在 http_header.h，h2 用的是同一份。
+    if (!http::is_valid_field_name(header_key))
+    {
+        error = 40003;
         return;
     }
 
@@ -1812,6 +1821,12 @@ void httpparse::read_http_header_block(const unsigned char *buffer, unsigned int
             http_content_length += 2;
             if (header_line.size() == 0)
             {
+                if (!isfinish_url)
+                {
+                    // 请求行还没解析到，说明这是消息之前的空行。RFC 9112 允许忽略它，
+                    // 但忽略不等于凭空生成一条 method/URL/host 全空的请求。CR+LF 已记账。
+                    return;
+                }
                 isfinish_header = true;
                 return;
             }
@@ -1827,6 +1842,14 @@ void httpparse::read_http_header_block(const unsigned char *buffer, unsigned int
 
     for (; pos_m < buffersize; pos_m++)
     {
+        if (buffer[pos_m] == '\n')
+        {
+            // 行终止只认 CRLF。能走到这里的 LF，前面必然不是同一行里的 CR——
+            // CRLF 在上一轮就 return 了，跨包那个 LF 由上面的分支吃掉。裸 LF 留在
+            // 行里会被原样带进 URL 和访问日志，等于让客户端往日志里加行。
+            error = 40223;
+            return;
+        }
         if (buffer[pos_m] == '\r')
         {
             unsigned int j = pos_m;
@@ -1837,6 +1860,12 @@ void httpparse::read_http_header_block(const unsigned char *buffer, unsigned int
                 readoffset = j + 1;
                 if (header_line.size() == 0)
                 {
+                    if (!isfinish_url)
+                    {
+                        // 同上：前导空行只跳过，不派发。这一行的 CRLF 还没记账，这里补上。
+                        http_content_length += 2;
+                        return;
+                    }
                     isfinish_header = true;
                     return;
                 }
@@ -1846,8 +1875,16 @@ void httpparse::read_http_header_block(const unsigned char *buffer, unsigned int
                 header_line.clear();
                 return;
             }
+            else if (j < buffersize)
+            {
+                // CR 后面本包里已经有字节、却不是 LF：不是合法行终止。
+                // 不能像下面那样把 CR 当"待定"存起来——那会顺手吞掉本包余下的字节。
+                error = 40222;
+                return;
+            }
             else
             {
+                // CR 正好是本包最后一个字节，是不是 CRLF 要等下一包首字节才能判。
                 pre_http_header = "\r";
                 header_line.append((char *)&buffer[readoffset], pos_m - readoffset);
                 readoffset = buffersize;
@@ -2613,7 +2650,8 @@ void httpparse::post_multipart_itemcontent(bool isfilefull)
             break;
         }
         keyname_field.push_back(temp_post_data->field_item[pos_m]);
-        if (keyname_field.size() > 64)
+        // 72：与 h2 (http2_parse.cpp) 同名分支同值，改动需两边同步
+        if (keyname_field.size() > 72)
         {
             error = 40045;
             return;
@@ -2731,7 +2769,8 @@ void httpparse::post_multipart_itemcontent(bool isfilefull)
                 break;
             }
             keyname_field.push_back(temp_post_data->field_item[pos_m]);
-            if (keyname_field.size() > 64)
+            // 72：与 h2 (http2_parse.cpp) 同名分支同值，改动需两边同步
+            if (keyname_field.size() > 72)
             {
                 error = 40030;
                 return;

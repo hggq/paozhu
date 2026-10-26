@@ -13,6 +13,7 @@
 #include <filesystem>
 
 #include <string_view>
+#include <array>
 
 #include <vector>
 #include <cmath>
@@ -30,6 +31,56 @@
 
 namespace http
 {
+// ---------------------------------------------------------------------------
+// field-name 合法性：RFC 7230 §3.2.6 的 token（tchar）。h1 与 h2 必须共用这一份，
+// 不准各自维护一张表。
+//
+// 只在一个方言里收紧的危险在于：头描述符变了，两边看到的请求就不再是同一个。
+// h1 侧出现过典型形态——头名里混进空格（"Content-Length "），按长度分派的解析
+// 直接落空，声明的 body 长度被无声丢掉，本端算出的请求边界与前置代理不一致。
+// 若 h2 仍放过同样的头名，同一条畸形请求在 80 端口被拒、在 443 端口被接受，
+// 攻击者只要挑放行的一侧即可。
+// ---------------------------------------------------------------------------
+namespace detail
+{
+constexpr std::array<bool, 256> build_field_name_table()
+{
+    std::array<bool, 256> table{};
+    // tchar = "!#$%&'*+-.^_`|~" / DIGIT / ALPHA，一个不多一个不少；
+    // 空格、冒号、控制字符都在表外。
+    for (char c : std::string_view("!#$%&'*+-.^_`|~0123456789"
+                                   "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"))
+    {
+        table[static_cast<unsigned char>(c)] = true;
+    }
+    return table;
+}
+}  // namespace detail
+
+// inline constexpr 才是「跨 TU 单一实体」：普通 constexpr 是内部链接，
+// 被下面的 inline 函数引用会构成 ODR 违规。
+inline constexpr std::array<bool, 256> field_name_chars = detail::build_field_name_table();
+
+// 头名的字节数上限，同样两边共用。h1 原为 72、h2 原为 48，同一条请求在 80 端口能过、
+// 到 443 端口才被 40164 拒——这个上限只关乎本端的解析成本、与请求是否合法无关，
+// 不该让客户端撞运气。取 72：覆盖现存最长的标准头名还有余量。
+// 它不是安全边界，真正的体量闸门是头块总字节（h1 的 CONST_HTTP_HEADER_BODY_SIZE）。
+inline constexpr std::size_t field_name_max_length = 72;
+
+// 空串返回 true：h1 侧另有 `header_key.size() == 0` 的判断与自己的错误码，
+// 这里不越权把它一起改掉。
+inline bool is_valid_field_name(std::string_view name)
+{
+    for (char c : name)
+    {
+        if (!field_name_chars[static_cast<unsigned char>(c)])
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 struct headstate_t
 {
     bool gzip              = false;
@@ -51,8 +102,8 @@ struct headstate_t
     bool accept_xml        = false;
     bool accept_html       = false;
 
-    unsigned char version;
-    unsigned int port;
+    unsigned char version              = 0;
+    unsigned int port                  = 0;
     unsigned char language[8]          = {0};
     unsigned int ifmodifiedsince = 0;
     unsigned int ifunmodifiedsince = 0;

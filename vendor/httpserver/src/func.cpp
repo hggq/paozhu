@@ -2714,7 +2714,9 @@ bool url_segments_normalize(std::vector<std::string> &pathinfos, const std::stri
     // URL path segment normalization (HTTP/1.x & HTTP/2 shared)
     // Caller splits on original "/" first; each segment:
     //   1. %XX decode via url_decode_path_impl() (does NOT turn "+" into space)
-    //   2. After decode, segment must not contain NUL, "/" or "\" — blocks %00/%2f/%5c bypass
+    //   2. After decode, segment must not contain NUL, "/", "\" or any control
+    //      byte (0x00-0x1f, 0x7f) — blocks %00/%2f/%5c and %0d/%0a bypass.
+    //      Bytes >= 0x80 stay allowed so UTF-8 paths keep working.
     //   3. "." skipped, ".." pops previous segment
     //   4. Segment length <= 255 bytes
     // Returns false = invalid segment; caller should return 400.
@@ -2732,10 +2734,12 @@ bool url_segments_normalize(std::vector<std::string> &pathinfos, const std::stri
         // %XX decode (reuses url_decode_path_impl, path keeps "+" literal)
         std::string decoded = url_decode_path_impl(raw_seg.c_str(), (int)raw_seg.size());
 
-        // Security check: no NUL, no slash, no backslash in decoded segment
+        // Security check: no NUL, no slash, no backslash, and no control
+        // character in a decoded segment (CR/LF/TAB would be logged raw)
         for (char c : decoded)
         {
-            if (c == '\x00' || c == '/' || c == '\\')
+            unsigned char u = static_cast<unsigned char>(c);
+            if (u == '\x00' || u == '/' || u == '\\' || u < 0x20 || u == 0x7f)
                 return false;
         }
 

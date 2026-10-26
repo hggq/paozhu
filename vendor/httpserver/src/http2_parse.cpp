@@ -1161,6 +1161,14 @@ void http2parse::header_process(std::string header_name, std::string header_valu
 {
     DEBUG_LOG("header:%s:%s|%d", header_name.c_str(), header_value.c_str(), table_num);
 
+    // ⓪ 空头名 → PROTOCOL_ERROR。h1 侧空 field-name 直接 400（http_parse.cpp 的 40003），
+    // h2 若不判，同一条畸形报文在两端就不是一个结果；空名还会以 "" 为键落进 header 表。
+    if (header_name.empty())
+    {
+        set_conn_error(40025, 0x1);// PROTOCOL_ERROR
+        return;
+    }
+
     // ---- RFC 7540 §8.1.2 单元素头合规校验（每条头一解码完立刻能判，不跨状态）----
     // All static-table entries (table_num > 0) are HPACK-defined lowercase headers,
     // so these guards apply universally — a tainted encoder would have to use the
@@ -1194,6 +1202,27 @@ void http2parse::header_process(std::string header_name, std::string header_valu
             set_conn_error(40025, 0x1);// PROTOCOL_ERROR
             return;
         }
+    }
+    // ①c 普通头名必须是 RFC 7230 token，与 h1 共用 http_header.h 里同一张表。
+    // 两边口径必须一致：同一条畸形请求不能在 80 端口被拒却在 443 端口被接受，
+    // 否则攻击者只要挑放行的一侧即可，h1 那边的收紧就形同虚设。
+    // 伪头（:method 等）开头带 ':'，本就不符合 token 语法，跳过本判断，
+    // 由下面 ② 的伪头白名单把关。
+    if (header_name[0] != ':')
+    {
+        if (!http::is_valid_field_name(header_name))
+        {
+            set_conn_error(40025, 0x1);// PROTOCOL_ERROR
+            return;
+        }
+    }
+    // ①d 头名长度上限用 http_header.h 里那个共享常量：原先只有字面量路径（else 分支）
+    // 判 48，静态表路径不判，而长度该是多少与这条头从哪条路径来无关。提到这里后
+    // 两条路径一视同仁（静态表那 61 个名字最长不过 35 字节，碰不到这条）。
+    if (header_name.size() > http::field_name_max_length)
+    {
+        set_conn_error(40164, 0x1);// 头名过长
+        return;
     }
     // ② 响应伪头（:status）出现在请求里、未知伪头 → PROTOCOL_ERROR（h2spec 8.1.2.1 #1/#2）
     // Pseudo-headers are request-only (:method/:scheme/:path/:authority / response-only :status).
@@ -1483,11 +1512,6 @@ void http2parse::header_process(std::string header_name, std::string header_valu
     }
     else
     {
-        if (header_name.size() > 48)
-        {
-            error = 40164;
-            return;
-        }
         std::string lower_name = str_tolower(header_name);
         switch (header_name.size())
         {
@@ -3929,7 +3953,8 @@ void http2parse::post_multipart_itemcontent(HTTP2_POST_DATA_T &temp_post_data, b
             break;
         }
         keyname_field.push_back(temp_post_data.field_item[pos_m]);
-        if (keyname_field.size() > 64)
+        // 72：与 h1 (http_parse.cpp) 同名分支同值，改动需两边同步
+        if (keyname_field.size() > 72)
         {
             error = 40045;
             return;
@@ -4047,7 +4072,8 @@ void http2parse::post_multipart_itemcontent(HTTP2_POST_DATA_T &temp_post_data, b
                 break;
             }
             keyname_field.push_back(temp_post_data.field_item[pos_m]);
-            if (keyname_field.size() > 64)
+            // 72：与 h1 (http_parse.cpp) 同名分支同值，改动需两边同步
+            if (keyname_field.size() > 72)
             {
                 error = 40030;
                 return;
