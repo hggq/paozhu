@@ -4,8 +4,7 @@
 <img src="https://hggq.github.io/paozhu/images/logo.svg">
 </div>
 
-**Paozhu**(炮竹🧨)是一个全栈快速的C++ web framework 开发框架，我们口号是“为 C++ Web 快速开发而生”，集成C++ ORM，开发速度跟脚本语言一样，日写1000行业务代码没有压力，框架集成了WebServer，自己原生解析HTTP/1、HTTP/2、JSON协议，GET、POST全部解析出来，POST几种方式都做了区分，框架自带一个OBJ微型对象，可以存放char
-int string float等，框架自动解析URL、POST参数到微型对象里面，使用urlpath映射到函数挂载点，使用协程、线程池、数据库链接池。
+**Paozhu** (炮竹🧨) —— 为 C++ Web 快速开发而生的全栈框架，集成 C++ ORM，开发速度媲美脚本语言，日写千行业务代码无压力。框架采用 I/O 协程池 + 用户代码线程池双池架构，Go 风格调度 HTTP 请求；注解路由 `//@urlpath` 自动提取实现零心智负担注册；ORM 协程 / 同步双模式自由切换；HTTP/1.1、HTTP/2、WebSocket、JSON 全部手写原生解析，无第三方依赖。
 
 项目诞生于 2022 年，历经多年打磨，已在生产环境稳定运行。
 
