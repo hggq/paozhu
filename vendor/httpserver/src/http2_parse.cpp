@@ -43,6 +43,12 @@
 #include <unistd.h>
 #endif
 
+// Windows 头文件把 DELETE 定义成宏，会干扰 HEAD_METHOD::DELETE 的写法。
+// Windows headers define DELETE as a macro; it breaks HEAD_METHOD::DELETE.
+#ifdef DELETE
+#undef DELETE
+#endif
+
 #ifdef WIN32
 #define stat _stat
 #endif
@@ -2265,7 +2271,7 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
         if (a < 62)
         {
             name_key = http2_header_static_table[a].key;
-            c        = a;
+            c        = static_cast<unsigned char>(a);
         }
         else
         {
@@ -2423,7 +2429,7 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
         if (a < 62)
         {
             name_key = http2_header_static_table[a].key;
-            c        = a;
+            c        = static_cast<unsigned char>(a);
         }
         else
         {
@@ -2577,7 +2583,7 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
         if (a < 62)
         {
             name_key = http2_header_static_table[a].key;
-            c        = a;
+            c        = static_cast<unsigned char>(a);
         }
         else
         {
