@@ -104,6 +104,7 @@ struct Rec
     unsigned int bufsize  = 0;   // 本轮交给 process() 的字节数
     unsigned int error    = 0;
     bool not_allowed      = false;
+    bool unknown          = false;
     bool finished         = false;
     bool header_done      = false;
     bool state_keepalive  = false;
@@ -161,6 +162,7 @@ public:
             r.bufsize         = readnum_;
             r.error           = pre_->error;
             r.not_allowed     = pre_->method_not_allowed;
+            r.unknown         = pre_->method_unknown;
             r.finished        = peer_->isfinish;
             r.header_done     = pre_->isfinish_header;
             r.state_keepalive = peer_->state.keepalive;
@@ -173,6 +175,11 @@ public:
             if (r.not_allowed)
             {
                 closed_reason_ = "method_not_allowed";
+                return;
+            }
+            if (r.unknown)
+            {
+                closed_reason_ = "method_unknown";
                 return;
             }
             if (r.error > 0)
@@ -420,15 +427,16 @@ int main()
         L.run();
         const std::vector<Rec> &v = L.recs();
         bool ok = v.size() == 2 && v[0].consumed == (unsigned int)(hdr.size() + 7) &&
-                  v[0].alpha == "1" && v[1].finished == false && v[1].error == 40066 &&
-                  v[1].consumed == 18 && v[1].bufsize == 37 && L.closed() == "bad_request";
+                  v[0].alpha == "1" && v[1].finished == false && v[1].unknown == true &&
+                  v[1].consumed == 18 && v[1].bufsize == 37 && L.closed() == "method_unknown";
         group_result("g7_declared_length_boundary_is_exact",
                      ok,
                      rd("hdr", hdr.size()) + " " + rd("c1", v.size() > 0 ? v[0].consumed : 0) + "/" +
                          std::to_string(hdr.size() + 7) + " " +
                          rds("alpha", v.size() > 0 ? v[0].alpha : "<none>") + " " +
                          rd("recs", v.size()) + " " +
-                         rd("err2", v.size() > 1 ? v[1].error : 0) + "/" +
+                         rdb("unk2", v.size() > 1 ? v[1].unknown : false) + "/" +
+                         rdb("fin2", v.size() > 1 ? v[1].finished : true) + " " +
                          std::to_string(v.size() > 1 ? v[1].consumed : 0) + ":" +
                          std::to_string(v.size() > 1 ? v[1].bufsize : 0) + " " + rds("closed", L.closed()));
     }
@@ -487,6 +495,36 @@ int main()
                     (v.empty() || v[0].error == 0 ? "" : std::to_string(v[0].error)) + " ";
         }
         group_result("g10_unsupported_methods_take_405_exit", hit == 4, "hit=" + std::to_string(hit) + " " + read);
+    }
+
+    // ===== 组 10b：框架表里没有的方法名走 501 出口（同样关连接，请求不进业务）=====
+    {
+        int hit = 0;
+        std::string read;
+        const char *verbs[] = {"PATCH", "PROPFIND", "ZGET"};
+        for (const char *verb : verbs)
+        {
+            Loop L;
+            L.push(std::string(verb) + " /ui HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Length: 3\r\n\r\nabc" +
+                   getreq("/never2"));
+            L.run();
+            const std::vector<Rec> &v = L.recs();
+            if (v.size() == 1 && v[0].unknown && !v[0].not_allowed && v[0].error == 0 &&
+                L.closed() == "method_unknown")
+                hit++;
+            read += std::string(verb) + ":" + std::to_string(v.size()) +
+                    (v.empty() ? "" : (v[0].unknown ? "uk" : (v[0].not_allowed ? "na" : "?"))) + " ";
+        }
+        // 方法名超过 8 个字符仍然按格式错误（400）处理，不落 501——钉住这条界值
+        Loop L9;
+        L9.push("BADMETHOD /ui HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n" + getreq("/never3"));
+        L9.run();
+        const std::vector<Rec> &v9 = L9.recs();
+        bool len_gate = v9.size() == 1 && v9[0].error == 40058 && !v9[0].unknown && L9.closed() == "bad_request";
+        group_result("g10b_unknown_methods_take_501_exit", hit == 3 && len_gate,
+                     "hit=" + std::to_string(hit) + " len_gate=" + std::to_string(len_gate ? 1 : 0) + " " + read +
+                         "9:" + std::to_string(v9.empty() ? 0u : v9[0].error) + "/" +
+                         std::to_string(v9.empty() ? 0u : (v9[0].unknown ? 1u : 0u)));
     }
 
     // ===== 组 11：请求前一行裸 CRLF 被当成一条空请求（既有语义，钉住读数防漂移）=====

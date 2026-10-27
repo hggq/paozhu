@@ -41,6 +41,20 @@ ARMS = [
         "        if (readoffset < buffersize && buffer[readoffset] == '\\r')\n"
         "        // MUT-3 认错包尾续接字节：上一包残留的 \\r 配不上本包的 \\n，直接报 40001\n",
     ),
+    (
+        "4",
+        "// MUT-4 default 分支退回 400：首字母不在表里的方法名不再是未实现，而是格式错误",
+        "    default:\n        method_unknown = true;\n    }\n",
+        "    default:\n"
+        "        // MUT-4 default 分支退回 400：首字母不在表里的方法名不再是未实现，而是格式错误\n"
+        "        error  = 40066;\n    }\n",
+    ),
+    (
+        "5",
+        "// MUT-5 认不出方法后继续往下解这一条消息：readoffset 跑到缓冲区末尾，isfinish 也被置真",
+        "        if (error > 0 || method_unknown)\n",
+        "        if (error > 0)  // MUT-5 认不出方法后继续往下解这一条消息\n",
+    ),
 ]
 
 data = open(src, encoding="utf-8").read()

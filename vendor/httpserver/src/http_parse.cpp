@@ -384,6 +384,12 @@ void httpparse::methodprocess(std::string_view contentline)
         error = 40058;
         return;
     }
+    if (header_key.empty())
+    {
+        // 请求行以空格开头：这一行根本不是 method，属于格式错误而不是未实现的方法。
+        error = 40066;
+        return;
+    }
     method = HEAD_METHOD::UNKNOW;
     switch (header_key[0])
     {
@@ -395,7 +401,7 @@ void httpparse::methodprocess(std::string_view contentline)
         }
         else
         {
-            error = 40059;
+            method_unknown = true;
         }
         break;
     case 'd':
@@ -407,7 +413,7 @@ void httpparse::methodprocess(std::string_view contentline)
         else
         {
             // 与 default 分支同一口径：D 开头但不是 DELETE 就是无法识别的方法
-            error = 40066;
+            method_unknown = true;
         }
         break;
     case 'h':
@@ -418,7 +424,7 @@ void httpparse::methodprocess(std::string_view contentline)
         }
         else
         {
-            error = 40060;
+            method_unknown = true;
         }
         break;
     case 'g':
@@ -429,7 +435,7 @@ void httpparse::methodprocess(std::string_view contentline)
         }
         else
         {
-            error = 40061;
+            method_unknown = true;
         }
         break;
     case 'p':
@@ -445,7 +451,7 @@ void httpparse::methodprocess(std::string_view contentline)
         }
         else
         {
-            error = 40062;
+            method_unknown = true;
         }
 
         break;
@@ -457,7 +463,7 @@ void httpparse::methodprocess(std::string_view contentline)
         }
         else
         {
-            error = 40063;
+            method_unknown = true;
         }
         break;
     case 'q':
@@ -468,7 +474,7 @@ void httpparse::methodprocess(std::string_view contentline)
         }
         else
         {
-            error = 40064;
+            method_unknown = true;
         }
         break;
     case 't':
@@ -479,15 +485,16 @@ void httpparse::methodprocess(std::string_view contentline)
         }
         else
         {
-            error = 40065;
+            method_unknown = true;
         }
         break;
     default:
-        method = HEAD_METHOD::UNKNOW;
-        error  = 40066;
+        method_unknown = true;
     }
-    if (error > 0)
+    if (method_unknown)
     {
+        // 方法名认不出来：不落 peer->method，也不解析这一行的后续部分，
+        // 由 server 回 501 并关闭连接（这一类方法的正文没人消费）。
         return;
     }
     peer->method = static_cast<unsigned char>(method);
@@ -2599,6 +2606,117 @@ static std::string take_delim_crlf_tail(std::string &field_item)
     return carry;
 }
 
+// 串比较（忽略大小写），长度由 a 决定，b 是字面量。
+static bool head_ci_equal(std::string_view a, const char *b)
+{
+    for (size_t i = 0; i < a.size(); i++)
+    {
+        if (b[i] == '\0')
+        {
+            return false;
+        }
+        char c = a[i];
+        if (c >= 'A' && c <= 'Z')
+        {
+            c = static_cast<char>(c + 32);
+        }
+        if (c != b[i])
+        {
+            return false;
+        }
+    }
+    return b[a.size()] == '\0';
+}
+
+// 判断 field_item 开头这一段是不是"声明了 filename 的 part 头"。
+// 走字节顺序必须和 post_multipart_itemcontent 的头解析一致（参数名上限 72、
+// name 值上限 512、名字与 '=' 之间不许有空格），否则判真之后正式解析会半路报错。
+// 只看传进来的这一段，超出即判否；判否什么都不做，交给正常解析。
+// 128：与 h2 (http2_parse.cpp) 同名分支同宽，改动需两边同步。
+static bool head_is_file_part(std::string_view head)
+{
+    size_t i = 0;
+    while (i < head.size() && (head[i] == '\r' || head[i] == '\n' || head[i] == '-'))
+    {
+        i++;
+    }
+
+    size_t begin = i;
+    while (i < head.size() && head[i] != ':')
+    {
+        i++;
+    }
+    if (i >= head.size() || (i - begin) > 72 || !head_ci_equal(head.substr(begin, i - begin), "Content-Disposition"))
+    {
+        return false;
+    }
+
+    while (i < head.size() && head[i] != ';')
+    {
+        i++;
+    }
+    if (i >= head.size())
+    {
+        return false;
+    }
+    i++;
+    while (i < head.size() && head[i] == ' ')
+    {
+        i++;
+    }
+
+    begin = i;
+    while (i < head.size() && head[i] != '=')
+    {
+        i++;
+    }
+    if (i >= head.size() || (i - begin) > 72 || !head_ci_equal(head.substr(begin, i - begin), "name"))
+    {
+        return false;
+    }
+    i++;
+
+    while (i < head.size() && (head[i] == ' ' || head[i] == '"' || head[i] == '='))
+    {
+        i++;
+    }
+    begin = i;
+    while (i < head.size() && head[i] != '"')
+    {
+        i++;
+    }
+    if (i >= head.size() || (i - begin) > 512)
+    {
+        return false;
+    }
+    i++;
+
+    while (i < head.size() && head[i] == ' ')
+    {
+        i++;
+    }
+    if (i >= head.size() || head[i] != ';')
+    {
+        return false;
+    }
+    i++;
+    while (i < head.size() && head[i] == ' ')
+    {
+        i++;
+    }
+
+    begin = i;
+    while (i < head.size() && head[i] != '=')
+    {
+        i++;
+    }
+    if (i >= head.size() || (i - begin) > 72)
+    {
+        return false;
+    }
+    return head_ci_equal(head.substr(begin, i - begin), "filename");
+}
+
 void httpparse::post_multipart_itemcontent_append()
 {
     //only process upload file
@@ -2946,8 +3064,10 @@ void httpparse::post_multipart_itemcontent(bool isfilefull)
             temp_post_data->filename.clear();
         }
     }
-    else
+    else if (isfilefull)
     {
+        // 只有整段读完（isfilefull）才当作文本域写入；中途探测时这一段还不完整，
+        // 写进去会截断，剩下的字节又没人接，所以这里宁可不写。
         post_form_to_postfield(temp_post_data->field_name, keyvalue_field);
     }
 }
@@ -3494,6 +3614,7 @@ void httpparse::read_http_post_block(const unsigned char *buffer, unsigned int b
                 post_multipart_formdata();
             }
 
+            // 3145728（3MB）：与 h2 (http2_parse.cpp) 同名分支同值，改动需两边同步。
             if (temp_post_data->isfile && temp_post_data->field_item.size() > 3145728)
             {
                 //及时消化掉大文件中间内容，尽快保存到文件
@@ -3508,15 +3629,24 @@ void httpparse::read_http_post_block(const unsigned char *buffer, unsigned int b
             {
                 if (!temp_post_data->isfile)
                 {
-                    std::string_view check_filename = std::string_view(temp_post_data->field_item.data(),
-                                                                       std::min<size_t>(temp_post_data->field_item.size(), 80));
-                    size_t pos                      = check_filename.find("filename");
-                    if (pos != std::string::npos)
+                    // 头还没被认出来就攒过了阈值：先看头部是否声明 filename，
+                    // 判真才转成文件流式落盘；判否什么都不动，等正常解析。
+                    std::string_view check_head = std::string_view(temp_post_data->field_item.data(),
+                                                                   std::min<size_t>(temp_post_data->field_item.size(), 128));
+                    if (head_is_file_part(check_head))
                     {
                         reset_uploadfile();
                         std::string carry = take_delim_crlf_tail(temp_post_data->field_item);
                         post_multipart_itemcontent(false);
-                        temp_post_data->field_item = std::move(carry);
+                        if (temp_post_data->isfile)
+                        {
+                            temp_post_data->field_item = std::move(carry);
+                        }
+                        else
+                        {
+                            // 正式解析没认成文件，把摘掉的尾部放回，一段字节都不丢
+                            temp_post_data->field_item.append(carry);
+                        }
                     }
                 }
             }
@@ -3679,8 +3809,10 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
             }
         }
 
-        if (error > 0)
+        if (error > 0 || method_unknown)
         {
+            // 方法名认不出来时不再解释这一条消息剩下的行：停在这里，readoffset 就停在
+            // 出错那一行末尾，与格式错误（error）同一走法。
             break;
         }
     }
@@ -3698,6 +3830,7 @@ void httpparse::clear()
 
     has_content_length = false;
     method_not_allowed = false;
+    method_unknown     = false;
 
     posttype          = 0;
     http_action_setup = 0;

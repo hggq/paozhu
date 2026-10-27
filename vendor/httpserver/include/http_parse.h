@@ -103,6 +103,8 @@ class httpparse
     bool has_content_length = false;
     // H3 补齐：命中有意不支持的方法（PUT/DELETE/TRACE/CONNECT），由 server 回 405 并关闭连接
     bool method_not_allowed = false;
+    // 方法名不在框架认得的表里（例如 PATCH），由 server 回 501 并关闭连接
+    bool method_unknown = false;
     HEAD_METHOD method;
     unsigned char posttype          = 0;
     unsigned char http_action_setup = 0;

@@ -146,153 +146,165 @@ asio::awaitable<void> httpserver::http2_send_file_range(std::shared_ptr<httppeer
     // HEAD 走 http2_co_send_file，按完整实体回响应头，不进入本函数。
     http2_send_queue &send_queue_obj = get_http2_send_queue();
     auto send_file_obj               = send_queue_obj.get_cache_ptr();
-    send_file_obj->cache_data.resize(15360);
-    send_file_obj->fp.reset(std::fopen(peer->sendfilename.c_str(), "rb"));
-
-    DEBUG_LOG("%s", peer->sendfilename.c_str());
-
-    // 长度取路由那次 stat 的结果（etag 用的 st_mtime 也来自同一次）：能进到这里说明
-    // sendfiletype==1，而它的每条落点都 stat 过同一个 sendfilename 并确认了 S_IFREG。
-    long long file_length = static_cast<long long>(peer->fileinfo.st_size);
-    if (send_file_obj->fp.get())
+    // 抛出时这个槽还没交给发送线程，还回池，别让 outstanding 漂移
+    try
     {
-        send_file_obj->peer           = peer;
-        send_file_obj->type           = 1;
-        send_file_obj->content_length = static_cast<unsigned long long>(file_length);
+        send_file_obj->cache_data.resize(15360);
+        send_file_obj->fp.reset(std::fopen(peer->sendfilename.c_str(), "rb"));
 
-        send_file_obj->file_ext = get_fileext(peer->sendfilename);
+        DEBUG_LOG("%s", peer->sendfilename.c_str());
 
-        send_file_obj->content_type.clear();
-
-        if (send_file_obj->file_ext.size() > 0)
+        // 长度取路由那次 stat 的结果（etag 用的 st_mtime 也来自同一次）：能进到这里说明
+        // sendfiletype==1，而它的每条落点都 stat 过同一个 sendfilename 并确认了 S_IFREG。
+        long long file_length = static_cast<long long>(peer->fileinfo.st_size);
+        if (send_file_obj->fp.get())
         {
-            auto mime_iter = mime_map.find(send_file_obj->file_ext);
+            send_file_obj->peer           = peer;
+            send_file_obj->type           = 1;
+            send_file_obj->content_length = static_cast<unsigned long long>(file_length);
 
-            if (mime_iter != mime_map.end())
+            send_file_obj->file_ext = get_fileext(peer->sendfilename);
+
+            send_file_obj->content_type.clear();
+
+            if (send_file_obj->file_ext.size() > 0)
             {
-                send_file_obj->content_type = mime_iter->second;
+                auto mime_iter = mime_map.find(send_file_obj->file_ext);
+
+                if (mime_iter != mime_map.end())
+                {
+                    send_file_obj->content_type = mime_iter->second;
+                }
             }
-        }
 
-        if (send_file_obj->content_type.size() == 0)
-        {
-            if (send_file_obj->content_length > 204800)
+            if (send_file_obj->content_type.size() == 0)
             {
-                send_file_obj->content_type = "application/octet-stream";
+                if (send_file_obj->content_length > 204800)
+                {
+                    send_file_obj->content_type = "application/octet-stream";
+                }
+                else
+                {
+                    send_file_obj->content_type = "text/plain";
+                }
+            }
+
+            unsigned long long filesize = send_file_obj->content_length;
+            // 后缀范围 bytes=-N 先归一化成绝对范围，再统一做合法性判断。
+            // 不能用 "rangebegin > 0 / rangeend > 0" 反推是否给过端点：bytes=0-0 与 bytes=-N 都会读错。
+            if (peer->state.rangebytes && peer->state.range_suffix)
+            {
+                unsigned long long suffix_len = peer->state.rangeend;
+                if (suffix_len > filesize)
+                {
+                    suffix_len = filesize;
+                }
+                peer->state.rangebegin    = filesize - suffix_len;
+                peer->state.rangeend      = (filesize > 0) ? (filesize - 1) : 0;
+                peer->state.range_has_end = true;
+            }
+
+            // 末端越界不算不可满足：RFC 9110 §14.1.2 要求按 length-1 收敛后回 206，
+            // 交给下面 range_has_end 的收敛块处理；只有起点越界和终点早于起点才回 416。
+            if (peer->state.rangebegin >= filesize ||
+                (peer->state.range_has_end && peer->state.rangeend < peer->state.rangebegin))
+            {
+                // RFC 9110 §15.5.17：不可满足的 Range 应回 416，并带 Content-Range: bytes */len。
+                // 回 400 会把"客户端请求越界"说成"请求语法错误"。
+                // RFC 9110 §15.5.17: an unsatisfiable Range is 416 with Content-Range: bytes */len.
+                // Answering 400 misreports an out-of-bounds range as a malformed request.
+                // http2_send_status_content() 内部已经入队并 notify，此处不得再把同一个
+                // send_file_obj 入队：它的 header 从未构建、is_sendheader 为 false，
+                // push("") 仍会成功占槽 → 对端先收到一个空帧，再收到没有 HEADERS 前缀的
+                // DATA 帧，直接帧错位。该对象并未入队，这里直接归还对象池。
+                peer->set_header("content-range", "bytes */" + std::to_string(filesize));
+                co_await http2_send_status_content(peer, 416, "client range request error!");
+                send_queue_obj.back_cache_ptr(std::move(send_file_obj));
+                co_return;
+            }
+
+            unsigned int statecode = 200;
+            if (peer->state.rangebytes)
+            {
+                send_file_obj->current_num = peer->state.rangebegin;
+                statecode                  = 206;
+                fseek(send_file_obj->fp.get(), (long long)send_file_obj->current_num, SEEK_SET);
+            }
+            if (peer->state.range_has_end)
+            {
+                // 末端越界按 RFC 9110 §14.1.2 收敛到最后一个字节：门槛必须含等号，
+                // 只拦 rangeend > filesize 时 rangeend == filesize 声明长度会多出 1 字节
+                if (peer->state.rangeend >= filesize)
+                {
+                    peer->state.rangeend = filesize - 1;
+                }
+                send_file_obj->content_length = peer->state.rangeend + 1;
+                statecode                     = 206;
+            }
+
+            peer->status(statecode);
+            peer->length(send_file_obj->content_length - send_file_obj->current_num);
+            peer->type(send_file_obj->content_type);
+
+            send_file_obj->etag = make_header_etag(filesize, peer->fileinfo.st_mtime + peer->url.size());
+
+            if (statecode == 206)
+            {
+                peer->set_header("content-range",
+                                 "bytes " + std::to_string(send_file_obj->current_num) + "-" + std::to_string(send_file_obj->content_length - 1) + "/" +
+                                     std::to_string(filesize));
             }
             else
             {
-                send_file_obj->content_type = "text/plain";
+                peer->set_header("accept-ranges", "bytes");
             }
-        }
+            DEBUG_LOG("start send file range");
+            peer->set_header("date", get_gmttime());
+            peer->set_header("last-modified", get_gmttime(peer->fileinfo.st_mtime));
 
-        unsigned long long filesize = send_file_obj->content_length;
-        // 后缀范围 bytes=-N 先归一化成绝对范围，再统一做合法性判断。
-        // 不能用 "rangebegin > 0 / rangeend > 0" 反推是否给过端点：bytes=0-0 与 bytes=-N 都会读错。
-        if (peer->state.rangebytes && peer->state.range_suffix)
-        {
-            unsigned long long suffix_len = peer->state.rangeend;
-            if (suffix_len > filesize)
-            {
-                suffix_len = filesize;
-            }
-            peer->state.rangebegin    = filesize - suffix_len;
-            peer->state.rangeend      = (filesize > 0) ? (filesize - 1) : 0;
-            peer->state.range_has_end = true;
-        }
+            peer->set_header("etag", send_file_obj->etag);
+            send_file_obj->header        = peer->make_http2_header(0);
+            send_file_obj->is_sendheader = false;
 
-        // 末端越界不算不可满足：RFC 9110 §14.1.2 要求按 length-1 收敛后回 206，
-        // 交给下面 range_has_end 的收敛块处理；只有起点越界和终点早于起点才回 416。
-        if (peer->state.rangebegin >= filesize ||
-            (peer->state.range_has_end && peer->state.rangeend < peer->state.rangebegin))
-        {
-            // RFC 9110 §15.5.17：不可满足的 Range 应回 416，并带 Content-Range: bytes */len。
-            // 回 400 会把"客户端请求越界"说成"请求语法错误"。
-            // RFC 9110 §15.5.17: an unsatisfiable Range is 416 with Content-Range: bytes */len.
-            // Answering 400 misreports an out-of-bounds range as a malformed request.
-            // http2_send_status_content() 内部已经入队并 notify，此处不得再把同一个
-            // send_file_obj 入队：它的 header 从未构建、is_sendheader 为 false，
-            // push("") 仍会成功占槽 → 对端先收到一个空帧，再收到没有 HEADERS 前缀的
-            // DATA 帧，直接帧错位。该对象并未入队，这里直接归还对象池。
-            peer->set_header("content-range", "bytes */" + std::to_string(filesize));
-            co_await http2_send_status_content(peer, 416, "client range request error!");
-            send_queue_obj.back_cache_ptr(send_file_obj);
-            co_return;
-        }
+            // add send sequence
 
-        unsigned int statecode = 200;
-        if (peer->state.rangebytes)
-        {
-            send_file_obj->current_num = peer->state.rangebegin;
-            statecode                  = 206;
-            fseek(send_file_obj->fp.get(), (long long)send_file_obj->current_num, SEEK_SET);
-        }
-        if (peer->state.range_has_end)
-        {
-            // 末端越界按 RFC 9110 §14.1.2 收敛到最后一个字节：门槛必须含等号，
-            // 只拦 rangeend > filesize 时 rangeend == filesize 声明长度会多出 1 字节
-            if (peer->state.rangeend >= filesize)
-            {
-                peer->state.rangeend = filesize - 1;
-            }
-            send_file_obj->content_length = peer->state.rangeend + 1;
-            statecode                     = 206;
-        }
-
-        peer->status(statecode);
-        peer->length(send_file_obj->content_length - send_file_obj->current_num);
-        peer->type(send_file_obj->content_type);
-
-        send_file_obj->etag = make_header_etag(filesize, peer->fileinfo.st_mtime + peer->url.size());
-
-        if (statecode == 206)
-        {
-            peer->set_header("content-range",
-                             "bytes " + std::to_string(send_file_obj->current_num) + "-" + std::to_string(send_file_obj->content_length - 1) + "/" +
-                                 std::to_string(filesize));
+            std::unique_lock<std::mutex> lock(send_data_mutex);
+            sent_data_list.emplace_back(std::move(send_file_obj));
+            lock.unlock();
+            send_data_condition.notify_one();
         }
         else
         {
-            peer->set_header("accept-ranges", "bytes");
+            // type 必须是 11（内存体）：2 是废弃分支，且漏设 content_length 会让发送线程走
+            // "content_length == 0" 的空 DATA 收尾，把正文整段丢掉。
+            // type must be 11 (in-memory body): 2 is a dead branch, and omitting content_length
+            // sends the sender down the content_length==0 empty-DATA path, dropping the payload.
+            send_file_obj->type    = 11;
+            send_file_obj->content = "<h3>500 Internal Server Error</h3>";
+            send_file_obj->content.append("<hr /><p>File: " + http::html_encode(peer->urlpath) + " Access is denied!</p>");
+            send_file_obj->content_length = send_file_obj->content.size();
+            peer->status(500);
+            peer->length(send_file_obj->content.size());
+            peer->type("text/html; charset=utf-8");
+            send_file_obj->header        = peer->make_http2_header(0);
+            send_file_obj->is_sendheader = false;
+            // 缺了 peer，发送线程第一道存活检查就会把作业回池，一帧都发不出去。
+            // Without peer the sender's first liveness check recycles the job — not a single frame out.
+            send_file_obj->peer = peer;
+
+            std::unique_lock<std::mutex> lock(send_data_mutex);
+            sent_data_list.emplace_back(std::move(send_file_obj));
+            lock.unlock();
+            send_data_condition.notify_one();
         }
-        DEBUG_LOG("start send file range");
-        peer->set_header("date", get_gmttime());
-        peer->set_header("last-modified", get_gmttime(peer->fileinfo.st_mtime));
-
-        peer->set_header("etag", send_file_obj->etag);
-        send_file_obj->header        = peer->make_http2_header(0);
-        send_file_obj->is_sendheader = false;
-
-        // add send sequence
-
-        std::unique_lock<std::mutex> lock(send_data_mutex);
-        sent_data_list.emplace_back(send_file_obj);
-        lock.unlock();
-        send_data_condition.notify_one();
     }
-    else
+    catch (...)
     {
-        // type 必须是 11（内存体）：2 是废弃分支，且漏设 content_length 会让发送线程走
-        // "content_length == 0" 的空 DATA 收尾，把正文整段丢掉。
-        // type must be 11 (in-memory body): 2 is a dead branch, and omitting content_length
-        // sends the sender down the content_length==0 empty-DATA path, dropping the payload.
-        send_file_obj->type    = 11;
-        send_file_obj->content = "<h3>500 Internal Server Error</h3>";
-        send_file_obj->content.append("<hr /><p>File: " + http::html_encode(peer->urlpath) + " Access is denied!</p>");
-        send_file_obj->content_length = send_file_obj->content.size();
-        peer->status(500);
-        peer->length(send_file_obj->content.size());
-        peer->type("text/html; charset=utf-8");
-        send_file_obj->header        = peer->make_http2_header(0);
-        send_file_obj->is_sendheader = false;
-        // 缺了 peer，发送线程第一道存活检查就会把作业回池，一帧都发不出去。
-        // Without peer the sender's first liveness check recycles the job — not a single frame out.
-        send_file_obj->peer = peer;
-
-        std::unique_lock<std::mutex> lock(send_data_mutex);
-        sent_data_list.emplace_back(send_file_obj);
-        lock.unlock();
-        send_data_condition.notify_one();
+        if (send_file_obj)
+        {
+            send_queue_obj.back_cache_ptr(send_file_obj);
+        }
+        throw;
     }
     co_return;
 }
@@ -343,10 +355,13 @@ asio::awaitable<void> httpserver::http2_co_send_compress(std::shared_ptr<httppee
         send_file_obj->file_name.push_back('/');
     }
     send_file_obj->file_name.append("statichtml");
+    // 缓存目录缺失/只读/无权限时不能把异常抛出协程：整段用 error_code 重载，
+    // 失败就当没有缓存，压缩结果照样在内存里发出去，只是不落盘。
+    std::error_code cache_ec;
     fs::path paths = send_file_obj->file_name;
-    if (!fs::exists(paths))
+    if (!fs::exists(paths, cache_ec))
     {
-        fs::create_directories(paths);
+        fs::create_directories(paths, cache_ec);
         // 0700 而不是 0777：缓存里放的是站点正文的压缩副本，原文件可能是 0600 的私有资源。
         // 用 replace 而不是 add —— add 只"加上"权限位，改不动 umask 已经给过的位。
         // 存量 0777 目录需要升级时手动改一次（见审计 P2-6）。
@@ -354,16 +369,16 @@ asio::awaitable<void> httpserver::http2_co_send_compress(std::shared_ptr<httppee
         // may be a private 0600 file. Use replace, not add — add only ORs bits in and cannot
         // clear whatever umask already granted. Pre-existing 0777 dirs must be fixed manually
         // once on upgrade (audit item P2-6).
-        fs::permissions(paths, fs::perms::owner_all, fs::perm_options::replace);
+        fs::permissions(paths, fs::perms::owner_all, fs::perm_options::replace, cache_ec);
     }
 
     send_file_obj->file_name.push_back('/');
     send_file_obj->file_name.push_back(send_file_obj->etag.size() > 0 ? send_file_obj->etag[0] : '0');
     paths = send_file_obj->file_name;
-    if (!fs::exists(paths))
+    if (!fs::exists(paths, cache_ec))
     {
-        fs::create_directories(paths);
-        fs::permissions(paths, fs::perms::owner_all, fs::perm_options::replace);
+        fs::create_directories(paths, cache_ec);
+        fs::permissions(paths, fs::perms::owner_all, fs::perm_options::replace, cache_ec);
     }
     send_file_obj->file_name.push_back('/');
     send_file_obj->file_name.append(send_file_obj->etag);
@@ -398,7 +413,7 @@ asio::awaitable<void> httpserver::http2_co_send_compress(std::shared_ptr<httppee
     const unsigned long long source_length = send_file_obj->content_length;
 
     bool cache_ok = false;
-    if (fs::exists(paths))
+    if (fs::exists(paths, cache_ec))
     {
         // If a compressed cache file already exists, return directly.
         std::unique_ptr<std::FILE, int (*)(FILE *)> fp(std::fopen(send_file_obj->file_name.c_str(), "rb"), std::fclose);
@@ -556,119 +571,131 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
 {
     http2_send_queue &send_queue_obj = get_http2_send_queue();
     auto send_file_obj               = send_queue_obj.get_cache_ptr();
-    send_file_obj->cache_data.resize(15360);
-    send_file_obj->fp.reset(std::fopen(peer->sendfilename.c_str(), "rb"));
-
-    DEBUG_LOG("%s", peer->sendfilename.c_str());
-
-    // 长度取路由那次 stat 的结果（etag 用的 st_mtime 也来自同一次）：能进到这里说明
-    // sendfiletype==1，而它的每条落点都 stat 过同一个 sendfilename 并确认了 S_IFREG。
-    long long file_length = static_cast<long long>(peer->fileinfo.st_size);
-    if (send_file_obj->fp.get())
+    // 抛出时这个槽还没交给发送线程，还回池，别让 outstanding 漂移
+    try
     {
-        send_file_obj->peer           = peer;
-        send_file_obj->type           = 1;
-        send_file_obj->content_length = static_cast<unsigned long long>(file_length);
+        send_file_obj->cache_data.resize(15360);
+        send_file_obj->fp.reset(std::fopen(peer->sendfilename.c_str(), "rb"));
 
-        send_file_obj->file_ext = get_fileext(peer->sendfilename);
+        DEBUG_LOG("%s", peer->sendfilename.c_str());
 
-        send_file_obj->content_type.clear();
-
-        if (send_file_obj->file_ext.size() > 0)
+        // 长度取路由那次 stat 的结果（etag 用的 st_mtime 也来自同一次）：能进到这里说明
+        // sendfiletype==1，而它的每条落点都 stat 过同一个 sendfilename 并确认了 S_IFREG。
+        long long file_length = static_cast<long long>(peer->fileinfo.st_size);
+        if (send_file_obj->fp.get())
         {
-            auto mime_iter = mime_map.find(send_file_obj->file_ext);
-
-            if (mime_iter != mime_map.end())
-            {
-                send_file_obj->content_type = mime_iter->second;
-            }
-        }
-
-        if (send_file_obj->content_type.size() == 0)
-        {
-            if (send_file_obj->content_length > 204800)
-            {
-                send_file_obj->content_type = "application/octet-stream";
-            }
-            else
-            {
-                send_file_obj->content_type = "text/plain";
-            }
-        }
-
-        // etag cache
-        send_file_obj->etag = make_header_etag(send_file_obj->content_length, peer->fileinfo.st_mtime + peer->url.size());
-        if (peer->etag == send_file_obj->etag)
-        {
-            co_await http2_co_send_304(peer, send_file_obj);
-            std::unique_lock<std::mutex> lock(send_data_mutex);
-            sent_data_list.emplace_back(send_file_obj);
-            lock.unlock();
-            send_data_condition.notify_one();
-            co_return;
-        }
-
-        // HEAD：不压缩、不出 body，只回带正确 Content-Length 的响应头（RFC 9110 §9.3.2）
-        if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
-        {
-            peer->compress      = 0;
-            send_file_obj->type = 11;// 内存体；HEAD 响应由 HEADERS 上的 END_STREAM 收尾
-            send_file_obj->content.clear();
+            send_file_obj->peer           = peer;
+            send_file_obj->type           = 1;
             send_file_obj->content_length = static_cast<unsigned long long>(file_length);
-            peer->status(200);
-            peer->length(static_cast<unsigned long long>(file_length));
-            peer->type(send_file_obj->content_type);
-            send_file_obj->header        = peer->make_http2_header(0);
-            http2_head_end_stream(send_file_obj);
-            // Content-Length 头已由上面的 make_http2_header 写完；这里把发送对象的状态
-            // 也归零，别让它继续声称有正文。
-            // Content-Length header is already built above; zero the job's own state too,
-            // so it no longer claims a body.
-            send_file_obj->content_length = 0;
-            send_file_obj->fp.reset();
-            send_file_obj->is_sendheader = false;
-        }
-        else
-        {
-            // compress
-            if (peer->state.gzip || peer->state.br)
+
+            send_file_obj->file_ext = get_fileext(peer->sendfilename);
+
+            send_file_obj->content_type.clear();
+
+            if (send_file_obj->file_ext.size() > 0)
             {
-                if (send_file_obj->content_length > 0 && send_file_obj->content_length < 16877216 && send_file_obj->file_ext.size() > 0 && mime_compress.contains(send_file_obj->file_ext))
+                auto mime_iter = mime_map.find(send_file_obj->file_ext);
+
+                if (mime_iter != mime_map.end())
                 {
-                    if (send_file_obj->etag.size() > 0)
-                    {
-                        co_await http2_co_send_compress(peer, send_file_obj);
-                    }
+                    send_file_obj->content_type = mime_iter->second;
                 }
             }
 
-            co_await http2_send_sequence_header(peer, send_file_obj);
+            if (send_file_obj->content_type.size() == 0)
+            {
+                if (send_file_obj->content_length > 204800)
+                {
+                    send_file_obj->content_type = "application/octet-stream";
+                }
+                else
+                {
+                    send_file_obj->content_type = "text/plain";
+                }
+            }
+
+            // etag cache
+            send_file_obj->etag = make_header_etag(send_file_obj->content_length, peer->fileinfo.st_mtime + peer->url.size());
+            if (peer->etag == send_file_obj->etag)
+            {
+                co_await http2_co_send_304(peer, send_file_obj);
+                std::unique_lock<std::mutex> lock(send_data_mutex);
+                sent_data_list.emplace_back(std::move(send_file_obj));
+                lock.unlock();
+                send_data_condition.notify_one();
+                co_return;
+            }
+
+            // HEAD：不压缩、不出 body，只回带正确 Content-Length 的响应头（RFC 9110 §9.3.2）
+            if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
+            {
+                peer->compress      = 0;
+                send_file_obj->type = 11;// 内存体；HEAD 响应由 HEADERS 上的 END_STREAM 收尾
+                send_file_obj->content.clear();
+                send_file_obj->content_length = static_cast<unsigned long long>(file_length);
+                peer->status(200);
+                peer->length(static_cast<unsigned long long>(file_length));
+                peer->type(send_file_obj->content_type);
+                send_file_obj->header        = peer->make_http2_header(0);
+                http2_head_end_stream(send_file_obj);
+                // Content-Length 头已由上面的 make_http2_header 写完；这里把发送对象的状态
+                // 也归零，别让它继续声称有正文。
+                // Content-Length header is already built above; zero the job's own state too,
+                // so it no longer claims a body.
+                send_file_obj->content_length = 0;
+                send_file_obj->fp.reset();
+                send_file_obj->is_sendheader = false;
+            }
+            else
+            {
+                // compress
+                if (peer->state.gzip || peer->state.br)
+                {
+                    if (send_file_obj->content_length > 0 && send_file_obj->content_length < 16877216 && send_file_obj->file_ext.size() > 0 && mime_compress.contains(send_file_obj->file_ext))
+                    {
+                        if (send_file_obj->etag.size() > 0)
+                        {
+                            co_await http2_co_send_compress(peer, send_file_obj);
+                        }
+                    }
+                }
+
+                co_await http2_send_sequence_header(peer, send_file_obj);
+            }
+            // add send sequence
+            std::unique_lock<std::mutex> lock(send_data_mutex);
+            sent_data_list.emplace_back(std::move(send_file_obj));
+            lock.unlock();
+            send_data_condition.notify_one();
         }
-        // add send sequence
-        std::unique_lock<std::mutex> lock(send_data_mutex);
-        sent_data_list.emplace_back(send_file_obj);
-        lock.unlock();
-        send_data_condition.notify_one();
+        else
+        {
+            send_file_obj->type    = 11;
+            send_file_obj->content = "<h3>500 Internal Server Error</h3>";
+            send_file_obj->content.append("<hr /><p>File: " + http::html_encode(peer->urlpath) + " Access is denied!</p>");
+            // Same as above: in-memory bodies must also set content_length, otherwise the 500 payload gets dropped by the zero-length cleanup branch.
+            send_file_obj->content_length = send_file_obj->content.size();
+            peer->status(500);
+            peer->length(send_file_obj->content.size());
+            peer->type("text/html; charset=utf-8");
+            send_file_obj->header        = peer->make_http2_header(0);
+            send_file_obj->is_sendheader = false;
+            // 缺了 peer，发送线程第一道存活检查就会把作业回池，一帧都发不出去。
+            // Without peer the sender's first liveness check recycles the job — not a single frame out.
+            send_file_obj->peer = peer;
+            std::unique_lock<std::mutex> lock(send_data_mutex);
+            sent_data_list.emplace_back(std::move(send_file_obj));
+            lock.unlock();
+            send_data_condition.notify_one();
+        }
     }
-    else
+    catch (...)
     {
-        send_file_obj->type    = 11;
-        send_file_obj->content = "<h3>500 Internal Server Error</h3>";
-        send_file_obj->content.append("<hr /><p>File: " + http::html_encode(peer->urlpath) + " Access is denied!</p>");
-        // Same as above: in-memory bodies must also set content_length, otherwise the 500 payload gets dropped by the zero-length cleanup branch.
-        send_file_obj->content_length = send_file_obj->content.size();
-        peer->status(500);
-        peer->length(send_file_obj->content.size());
-        peer->type("text/html; charset=utf-8");
-        send_file_obj->header        = peer->make_http2_header(0);
-        send_file_obj->is_sendheader = false;
-        // 缺了 peer，发送线程第一道存活检查就会把作业回池，一帧都发不出去。
-        // Without peer the sender's first liveness check recycles the job — not a single frame out.
-        send_file_obj->peer = peer;
-        std::unique_lock<std::mutex> lock(send_data_mutex);
-        sent_data_list.emplace_back(send_file_obj);
-        lock.unlock();
-        send_data_condition.notify_one();
+        if (send_file_obj)
+        {
+            send_queue_obj.back_cache_ptr(send_file_obj);
+        }
+        throw;
     }
     co_return;
 }
@@ -840,41 +867,53 @@ asio::awaitable<void> httpserver::http2_send_status_content(std::shared_ptr<http
 {
     http2_send_queue &send_queue_obj = get_http2_send_queue();
     auto send_file_obj               = send_queue_obj.get_cache_ptr();
-    send_file_obj->cache_data.resize(15360);
-    send_file_obj->content.clear();
-
-    peer->compress = 0;
-    peer->status(status_code);
-    peer->length(bodycontent.size());
-    peer->type("text/html; charset=utf-8");
-    send_file_obj->header = peer->make_http2_header(0);
-
-    if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
+    // 抛出时这个槽还没交给发送线程，还回池，别让 outstanding 漂移
+    try
     {
-        // HEAD：只发 HEADERS；Content-Length 保留 GET 会发的长度
-        http2_head_end_stream(send_file_obj);
+        send_file_obj->cache_data.resize(15360);
+        send_file_obj->content.clear();
+
+        peer->compress = 0;
+        peer->status(status_code);
+        peer->length(bodycontent.size());
+        peer->type("text/html; charset=utf-8");
+        send_file_obj->header = peer->make_http2_header(0);
+
+        if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
+        {
+            // HEAD：只发 HEADERS；Content-Length 保留 GET 会发的长度
+            http2_head_end_stream(send_file_obj);
+        }
+        else
+        {
+            send_file_obj->content = bodycontent;
+        }
+
+        // content_length decides whether the sender takes the zero-length cleanup branch
+        // (content_length == 0 → only an empty DATA frame). Setting peer->length() alone
+        // (which only writes the HEADERS content-length header) is insufficient — the job's
+        // own content_length stays 0 after pool reset → body never sent, client gets
+        // content-length: N but 0 bytes.
+        send_file_obj->content_length = bodycontent.size();
+        // type must not be 1 (that's the file branch, which calls fread); use 11 to stay
+        // consistent with http2loop's in-memory body branch.
+        send_file_obj->type = 11;
+
+        send_file_obj->peer          = peer;
+        send_file_obj->is_sendheader = false;
+        std::unique_lock<std::mutex> lock(send_data_mutex);
+        sent_data_list.emplace_back(std::move(send_file_obj));
+        lock.unlock();
+        send_data_condition.notify_one();
     }
-    else
+    catch (...)
     {
-        send_file_obj->content = bodycontent;
+        if (send_file_obj)
+        {
+            send_queue_obj.back_cache_ptr(send_file_obj);
+        }
+        throw;
     }
-
-    // content_length decides whether the sender takes the zero-length cleanup branch
-    // (content_length == 0 → only an empty DATA frame). Setting peer->length() alone
-    // (which only writes the HEADERS content-length header) is insufficient — the job's
-    // own content_length stays 0 after pool reset → body never sent, client gets
-    // content-length: N but 0 bytes.
-    send_file_obj->content_length = bodycontent.size();
-    // type must not be 1 (that's the file branch, which calls fread); use 11 to stay
-    // consistent with http2loop's in-memory body branch.
-    send_file_obj->type = 11;
-
-    send_file_obj->peer          = peer;
-    send_file_obj->is_sendheader = false;
-    std::unique_lock<std::mutex> lock(send_data_mutex);
-    sent_data_list.emplace_back(send_file_obj);
-    lock.unlock();
-    send_data_condition.notify_one();
 
     co_return;
 }
@@ -1037,20 +1076,32 @@ asio::awaitable<void> httpserver::send_cors_domain(std::shared_ptr<httppeer> pee
     {
         http2_send_queue &send_queue_obj = get_http2_send_queue();
         auto send_file_obj               = send_queue_obj.get_cache_ptr();
-        send_file_obj->cache_data.resize(15360);
-        send_file_obj->content.clear();
+        // 抛出时这个槽还没交给发送线程，还回池，别让 outstanding 漂移
+        try
+        {
+            send_file_obj->cache_data.resize(15360);
+            send_file_obj->content.clear();
 
-        peer->compress                = 0;
-        send_file_obj->header         = peer->make_http2_header(0);
-        send_file_obj->content_length = 0;
-        send_file_obj->type           = 11;
-        send_file_obj->peer           = peer;
-        send_file_obj->is_sendheader  = false;
+            peer->compress                = 0;
+            send_file_obj->header         = peer->make_http2_header(0);
+            send_file_obj->content_length = 0;
+            send_file_obj->type           = 11;
+            send_file_obj->peer           = peer;
+            send_file_obj->is_sendheader  = false;
 
-        std::unique_lock<std::mutex> lock(send_data_mutex);
-        sent_data_list.emplace_back(send_file_obj);
-        lock.unlock();
-        send_data_condition.notify_one();
+            std::unique_lock<std::mutex> lock(send_data_mutex);
+            sent_data_list.emplace_back(std::move(send_file_obj));
+            lock.unlock();
+            send_data_condition.notify_one();
+        }
+        catch (...)
+        {
+            if (send_file_obj)
+            {
+                send_queue_obj.back_cache_ptr(send_file_obj);
+            }
+            throw;
+        }
     }
     else
     {
@@ -1147,53 +1198,65 @@ asio::awaitable<bool> httpserver::http2_static_file_authority(std::shared_ptr<ht
         {
             http2_send_queue &send_queue_obj = get_http2_send_queue();
             auto send_file_obj               = send_queue_obj.get_cache_ptr();
-            send_file_obj->cache_data.resize(15360);
-            send_file_obj->content.clear();
+            // 抛出时这个槽还没交给发送线程，还回池，别让 outstanding 漂移
+            try
+            {
+                send_file_obj->cache_data.resize(15360);
+                send_file_obj->content.clear();
 
-            peer->status(403);
-            if (!peer->isset_type())
-            {
-                peer->type("text/html; charset=utf-8");
-            }
-
-            // HEAD：不压缩、不出正文；Content-Length 仍是 GET 会发的长度
-            if (peer->method != static_cast<unsigned char>(HEAD_METHOD::HEAD))
-            {
-                http2_compress_output(peer, send_file_obj);
-            }
-            else
-            {
-                peer->compress                = 0;
-                send_file_obj->content_length = peer->output.size();
-                peer->length(peer->output.size());
-            }
-
-            send_file_obj->header = peer->make_http2_header(0);
-            if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
-            {
-                http2_head_end_stream(send_file_obj);
-            }
-
-            if (peer->compress == 0)
-            {
-                if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
+                peer->status(403);
+                if (!peer->isset_type())
                 {
-                    send_file_obj->content.clear();
+                    peer->type("text/html; charset=utf-8");
+                }
+
+                // HEAD：不压缩、不出正文；Content-Length 仍是 GET 会发的长度
+                if (peer->method != static_cast<unsigned char>(HEAD_METHOD::HEAD))
+                {
+                    http2_compress_output(peer, send_file_obj);
                 }
                 else
                 {
-                    send_file_obj->content = std::move(peer->output);
+                    peer->compress                = 0;
+                    send_file_obj->content_length = peer->output.size();
+                    peer->length(peer->output.size());
                 }
-            }
-            send_file_obj->peer          = peer;
-            send_file_obj->is_sendheader = false;
-            send_file_obj->type          = 11;
-            std::unique_lock<std::mutex> lock(send_data_mutex);
-            sent_data_list.emplace_back(send_file_obj);
-            lock.unlock();
-            send_data_condition.notify_one();
 
-            clear_peer_data(peer);
+                send_file_obj->header = peer->make_http2_header(0);
+                if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
+                {
+                    http2_head_end_stream(send_file_obj);
+                }
+
+                if (peer->compress == 0)
+                {
+                    if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
+                    {
+                        send_file_obj->content.clear();
+                    }
+                    else
+                    {
+                        send_file_obj->content = std::move(peer->output);
+                    }
+                }
+                send_file_obj->peer          = peer;
+                send_file_obj->is_sendheader = false;
+                send_file_obj->type          = 11;
+                std::unique_lock<std::mutex> lock(send_data_mutex);
+                sent_data_list.emplace_back(std::move(send_file_obj));
+                lock.unlock();
+                send_data_condition.notify_one();
+
+                clear_peer_data(peer);
+            }
+            catch (...)
+            {
+                if (send_file_obj)
+                {
+                    send_queue_obj.back_cache_ptr(send_file_obj);
+                }
+                throw;
+            }
 
             co_return false;
         }
@@ -1231,53 +1294,65 @@ asio::awaitable<bool> httpserver::http2_static_file_authority(std::shared_ptr<ht
                 {
                     http2_send_queue &send_queue_obj = get_http2_send_queue();
                     auto send_file_obj               = send_queue_obj.get_cache_ptr();
-                    send_file_obj->cache_data.resize(15360);
-                    send_file_obj->content.clear();
+                    // 抛出时这个槽还没交给发送线程，还回池，别让 outstanding 漂移
+                    try
+                    {
+                        send_file_obj->cache_data.resize(15360);
+                        send_file_obj->content.clear();
 
-                    peer->status(403);
-                    if (!peer->isset_type())
-                    {
-                        peer->type("text/html; charset=utf-8");
-                    }
-
-                    // HEAD：不压缩、不出正文；Content-Length 仍是 GET 会发的长度
-                    if (peer->method != static_cast<unsigned char>(HEAD_METHOD::HEAD))
-                    {
-                        http2_compress_output(peer, send_file_obj);
-                    }
-                    else
-                    {
-                        peer->compress                = 0;
-                        send_file_obj->content_length = peer->output.size();
-                        peer->length(peer->output.size());
-                    }
-
-                    send_file_obj->header = peer->make_http2_header(0);
-                    if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
-                    {
-                        http2_head_end_stream(send_file_obj);
-                    }
-
-                    if (peer->compress == 0)
-                    {
-                        if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
+                        peer->status(403);
+                        if (!peer->isset_type())
                         {
-                            send_file_obj->content.clear();
+                            peer->type("text/html; charset=utf-8");
+                        }
+
+                        // HEAD：不压缩、不出正文；Content-Length 仍是 GET 会发的长度
+                        if (peer->method != static_cast<unsigned char>(HEAD_METHOD::HEAD))
+                        {
+                            http2_compress_output(peer, send_file_obj);
                         }
                         else
                         {
-                            send_file_obj->content = std::move(peer->output);
+                            peer->compress                = 0;
+                            send_file_obj->content_length = peer->output.size();
+                            peer->length(peer->output.size());
                         }
-                    }
-                    send_file_obj->peer          = peer;
-                    send_file_obj->is_sendheader = false;
-                    send_file_obj->type          = 11;
-                    std::unique_lock<std::mutex> lock(send_data_mutex);
-                    sent_data_list.emplace_back(send_file_obj);
-                    lock.unlock();
-                    send_data_condition.notify_one();
 
-                    clear_peer_data(peer);
+                        send_file_obj->header = peer->make_http2_header(0);
+                        if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
+                        {
+                            http2_head_end_stream(send_file_obj);
+                        }
+
+                        if (peer->compress == 0)
+                        {
+                            if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
+                            {
+                                send_file_obj->content.clear();
+                            }
+                            else
+                            {
+                                send_file_obj->content = std::move(peer->output);
+                            }
+                        }
+                        send_file_obj->peer          = peer;
+                        send_file_obj->is_sendheader = false;
+                        send_file_obj->type          = 11;
+                        std::unique_lock<std::mutex> lock(send_data_mutex);
+                        sent_data_list.emplace_back(std::move(send_file_obj));
+                        lock.unlock();
+                        send_data_condition.notify_one();
+
+                        clear_peer_data(peer);
+                    }
+                    catch (...)
+                    {
+                        if (send_file_obj)
+                        {
+                            send_queue_obj.back_cache_ptr(send_file_obj);
+                        }
+                        throw;
+                    }
 
                     co_return false;
                 }
@@ -1407,73 +1482,85 @@ asio::awaitable<void> httpserver::http2_fastcgi(std::shared_ptr<httppeer> peer)
 
     http2_send_queue &send_queue_obj = get_http2_send_queue();
     auto send_file_obj               = send_queue_obj.get_cache_ptr();
-    send_file_obj->cache_data.resize(15360);
-    send_file_obj->content.clear();
-
-    peer->parse_session();
-    peer->status(200);
-    peer->content_type.clear();
-    peer->etag.clear();
-
-    co_await co_user_fastcgi_task(peer);
-
-    // HEAD：不压缩、不出正文；Content-Length 仍是 GET 会发的长度
-    if (peer->method != static_cast<unsigned char>(HEAD_METHOD::HEAD))
+    // 抛出时这个槽还没交给发送线程，还回池，别让 outstanding 漂移
+    try
     {
-        http2_compress_output(peer, send_file_obj);
-    }
-    else
-    {
-        peer->compress                = 0;
-        send_file_obj->content_length = peer->output.size();
-        peer->length(peer->output.size());
-    }
+        send_file_obj->cache_data.resize(15360);
+        send_file_obj->content.clear();
 
-    if (peer->get_status() < 100)
-    {
+        peer->parse_session();
         peer->status(200);
-    }
+        peer->content_type.clear();
+        peer->etag.clear();
 
-    DEBUG_LOG("htttp2 php out");
+        co_await co_user_fastcgi_task(peer);
 
-    if (!peer->isset_type())
-    {
-        peer->type("text/html; charset=utf-8");
-    }
-    send_file_obj->header = peer->make_http2_header(0);
-    if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
-    {
-        http2_head_end_stream(send_file_obj);
-    }
-
-    DEBUG_LOG("fastcgi send content");
-
-    if (peer->compress == 0)
-    {
-        if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
+        // HEAD：不压缩、不出正文；Content-Length 仍是 GET 会发的长度
+        if (peer->method != static_cast<unsigned char>(HEAD_METHOD::HEAD))
         {
-            send_file_obj->content.clear();
+            http2_compress_output(peer, send_file_obj);
         }
         else
         {
-            send_file_obj->content = std::move(peer->output);
+            peer->compress                = 0;
+            send_file_obj->content_length = peer->output.size();
+            peer->length(peer->output.size());
         }
-    }
-    send_file_obj->peer          = peer;
-    send_file_obj->is_sendheader = false;
-    send_file_obj->type          = 11;
-    std::unique_lock<std::mutex> lock(send_data_mutex);
-    sent_data_list.emplace_back(send_file_obj);
-    lock.unlock();
-    send_data_condition.notify_one();
 
-    clear_peer_data(peer);
+        if (peer->get_status() < 100)
+        {
+            peer->status(200);
+        }
+
+        DEBUG_LOG("htttp2 php out");
+
+        if (!peer->isset_type())
+        {
+            peer->type("text/html; charset=utf-8");
+        }
+        send_file_obj->header = peer->make_http2_header(0);
+        if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
+        {
+            http2_head_end_stream(send_file_obj);
+        }
+
+        DEBUG_LOG("fastcgi send content");
+
+        if (peer->compress == 0)
+        {
+            if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
+            {
+                send_file_obj->content.clear();
+            }
+            else
+            {
+                send_file_obj->content = std::move(peer->output);
+            }
+        }
+        send_file_obj->peer          = peer;
+        send_file_obj->is_sendheader = false;
+        send_file_obj->type          = 11;
+        std::unique_lock<std::mutex> lock(send_data_mutex);
+        sent_data_list.emplace_back(std::move(send_file_obj));
+        lock.unlock();
+        send_data_condition.notify_one();
+
+        clear_peer_data(peer);
+    }
+    catch (...)
+    {
+        if (send_file_obj)
+        {
+            send_queue_obj.back_cache_ptr(send_file_obj);
+        }
+        throw;
+    }
 
     co_return;
 }
 asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
 {
-    // 动态链的发送槽在业务执行前就取走了；抛出时把它记在这里，收尾统一归还
+    // 本协程自己借出的发送槽（目录列举、动态链两处都在这里）；抛出时靠收尾这一格统一归还
     std::shared_ptr<http2_send_data_t> dyn_send_obj;
     bool dyn_slot_handed = false;
     try
@@ -1566,6 +1653,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
 
             http2_send_queue &send_queue_obj = get_http2_send_queue();
             auto send_file_obj               = send_queue_obj.get_cache_ptr();
+            dyn_send_obj = send_file_obj;
             send_file_obj->cache_data.resize(15360);
             send_file_obj->content.clear();
             // HEAD：不做压缩（没有 body），否则 content_length 与正文对不上
@@ -1613,6 +1701,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             send_file_obj->type          = 11;
             std::unique_lock<std::mutex> lock(send_data_mutex);
             sent_data_list.emplace_back(send_file_obj);
+            dyn_slot_handed = true;
             lock.unlock();
             send_data_condition.notify_one();
 
@@ -1643,7 +1732,8 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             if (peer->ischunked)
             {
                 // chunked 的分块由 handler 自己入队，这张发送槽在本协程里一次没用过，先还给池。
-                send_queue_obj.back_cache_ptr(send_file_obj);
+                // 从登记的那格里移走再归还：登记随之清空，收尾那段就不会第二次归还同一个对象。
+                send_queue_obj.back_cache_ptr(std::move(dyn_send_obj));
                 co_return;
             }
             send_file_obj->header.clear();
@@ -1777,164 +1867,176 @@ asio::awaitable<void> httpserver::http1_send_file(std::shared_ptr<httppeer> peer
 
     http2_send_queue &send_queue_obj = get_http2_send_queue();
     auto send_file_obj               = send_queue_obj.get_cache_ptr();
-    send_file_obj->fp.reset(std::fopen(peer->sendfilename.c_str(), "rb"));
-
-    DEBUG_LOG("news http1_send_file %s", peer->sendfilename.c_str());
-
-    // 长度取路由那次 stat 的结果（etag 用的 st_mtime 也来自同一次）：能进到这里说明
-    // sendfiletype==1，而它的每条落点都 stat 过同一个 sendfilename 并确认了 S_IFREG。
-    long long file_length = static_cast<long long>(peer->fileinfo.st_size);
-    if (send_file_obj->fp.get())
+    // 抛出时这个槽还没交给发送线程，还回池，别让 outstanding 漂移
+    try
     {
-        send_file_obj->peer           = peer;
-        send_file_obj->type           = 1;
-        send_file_obj->content_length = static_cast<unsigned long long>(file_length);
+        send_file_obj->fp.reset(std::fopen(peer->sendfilename.c_str(), "rb"));
 
-        send_file_obj->file_ext = get_fileext(peer->sendfilename);
+        DEBUG_LOG("news http1_send_file %s", peer->sendfilename.c_str());
 
-        send_file_obj->content_type.clear();
-
-        if (send_file_obj->file_ext.size() > 0)
+        // 长度取路由那次 stat 的结果（etag 用的 st_mtime 也来自同一次）：能进到这里说明
+        // sendfiletype==1，而它的每条落点都 stat 过同一个 sendfilename 并确认了 S_IFREG。
+        long long file_length = static_cast<long long>(peer->fileinfo.st_size);
+        if (send_file_obj->fp.get())
         {
-            auto mime_iter = mime_map.find(send_file_obj->file_ext);
+            send_file_obj->peer           = peer;
+            send_file_obj->type           = 1;
+            send_file_obj->content_length = static_cast<unsigned long long>(file_length);
 
-            if (mime_iter != mime_map.end())
+            send_file_obj->file_ext = get_fileext(peer->sendfilename);
+
+            send_file_obj->content_type.clear();
+
+            if (send_file_obj->file_ext.size() > 0)
             {
-                send_file_obj->content_type = mime_iter->second;
+                auto mime_iter = mime_map.find(send_file_obj->file_ext);
+
+                if (mime_iter != mime_map.end())
+                {
+                    send_file_obj->content_type = mime_iter->second;
+                }
             }
-        }
 
-        if (send_file_obj->content_type.size() == 0)
-        {
-            if (send_file_obj->content_length > 204800)
+            if (send_file_obj->content_type.size() == 0)
             {
-                send_file_obj->content_type = "application/octet-stream";
+                if (send_file_obj->content_length > 204800)
+                {
+                    send_file_obj->content_type = "application/octet-stream";
+                }
+                else
+                {
+                    send_file_obj->content_type = "text/plain";
+                }
+            }
+
+            // etag cache
+            send_file_obj->etag = make_header_etag(send_file_obj->content_length, peer->fileinfo.st_mtime + peer->url.size());
+            if (peer->etag == send_file_obj->etag)
+            {
+                co_await http1_co_send_304(peer, peer_session, send_file_obj);
+                send_queue_obj.back_cache_ptr(std::move(send_file_obj));
+                co_return;
+            }
+
+            // HEAD：不压缩、不出 body，只回带正确 Content-Length 的响应头（RFC 9110 §9.3.2）
+            if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
+            {
+                // 防止沿用上次请求的压缩标记，让响应头误带 Content-Encoding
+                peer->compress = 0;
             }
             else
             {
-                send_file_obj->content_type = "text/plain";
-            }
-        }
-
-        // etag cache
-        send_file_obj->etag = make_header_etag(send_file_obj->content_length, peer->fileinfo.st_mtime + peer->url.size());
-        if (peer->etag == send_file_obj->etag)
-        {
-            co_await http1_co_send_304(peer, peer_session, send_file_obj);
-            send_queue_obj.back_cache_ptr(send_file_obj);
-            co_return;
-        }
-
-        // HEAD：不压缩、不出 body，只回带正确 Content-Length 的响应头（RFC 9110 §9.3.2）
-        if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
-        {
-            // 防止沿用上次请求的压缩标记，让响应头误带 Content-Encoding
-            peer->compress = 0;
-        }
-        else
-        {
-            // compress
-            if (peer->state.gzip || peer->state.br)
-            {
-                if (send_file_obj->content_length > 0 && send_file_obj->content_length < 16877216 && send_file_obj->file_ext.size() > 0 && mime_compress.contains(send_file_obj->file_ext))
+                // compress
+                if (peer->state.gzip || peer->state.br)
                 {
-                    if (send_file_obj->etag.size() > 0)
+                    if (send_file_obj->content_length > 0 && send_file_obj->content_length < 16877216 && send_file_obj->file_ext.size() > 0 && mime_compress.contains(send_file_obj->file_ext))
                     {
-                        co_await http2_co_send_compress(peer, send_file_obj);
+                        if (send_file_obj->etag.size() > 0)
+                        {
+                            co_await http2_co_send_compress(peer, send_file_obj);
+                        }
                     }
                 }
             }
-        }
 
-        co_await http1_send_file_header(peer, peer_session, send_file_obj);
-        // HEAD：头已带正确 Content-Length，不写 body 直接归还槽位
-        if (send_file_obj->content_length == 0 || peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
-        {
-            send_queue_obj.back_cache_ptr(send_file_obj);
-            co_return;
-        }
-
-        if (send_file_obj->type == 1)
-        {
-            try
+            co_await http1_send_file_header(peer, peer_session, send_file_obj);
+            // HEAD：头已带正确 Content-Length，不写 body 直接归还槽位
+            if (send_file_obj->content_length == 0 || peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
             {
-                unsigned long long readnum = 0;
-                unsigned int f_inc         = 1;
-                // content_length is the absolute value "range end + 1"; readnum is bytes already
-                // read this call (starts from 0). Must subtract current_num (always 0 for
-                // non-range requests). Do not use the raw absolute value as the upper bound:
-                // Range: bytes=500-599 would read 600 bytes → advertise 100 but actually send
-                // 500, violating the request range and leaking file content.
-                unsigned long long need_send_num = send_file_obj->content_length - send_file_obj->current_num;
-                while (readnum < need_send_num)
-                {
-                    // Per-read size must also cap at the remaining bytes — otherwise the
-                    // final fread reads a full 4096 and overshoots.
-                    unsigned int want_num = 4096;
-                    if ((need_send_num - readnum) < (unsigned long long)want_num)
-                    {
-                        want_num = (unsigned int)(need_send_num - readnum);
-                    }
-                    send_file_obj->content.resize(want_num);
-                    if (!send_file_obj->fp.get())
-                    {
-                        peer_session->isclose = true;
-                        peer->isclose         = true;
-                        peer->state.keepalive = false;
-                        break;
-                    }
-                    unsigned int nread = fread(&send_file_obj->content[0], 1, want_num, send_file_obj->fp.get());
-                    if (nread == 0)
-                    {
-                        ERROR_LOG("static file read failed: %s readnum=%llu need_send_num=%llu want_num=%u ferror=%d feof=%d errno=%d", peer->sendfilename.c_str(), readnum, need_send_num, want_num, ferror(send_file_obj->fp.get()), feof(send_file_obj->fp.get()), errno);
-                        peer_session->isclose = true;
-                        peer->isclose         = true;
-                        peer->state.keepalive = false;
-                        break;
-                    }
-                    send_file_obj->content.resize(nread);
-                    // peer_session->send_data(htmlcontent);
-                    co_await peer_session->async_send_writer(send_file_obj->content);
-                    readnum += nread;
-                    if (peer_session->isclose)
-                    {
-                        break;
-                    }
-                    // 每 16 块（64 KB）刷新一次。原来是每 1024 块（4 MiB）才刷一次，
-                    // 平均速度低于 4 MiB / (clean_cron_time_ago + 60) ≈ 6.2 KB/s 的下载
-                    // 会被 httpwatch 当成 idle 清掉。
-                    // Refresh every 16 blocks (64 KB). It used to be every 1024 blocks (4 MiB),
-                    // so downloads slower than 4 MiB / (clean_cron_time_ago + 60) ≈ 6.2 KB/s
-                    // were killed by httpwatch as idle mid-transfer.
-                    if (f_inc % 16 == 0)
-                    {
-                        peer_session->time_limit.store(timeid());
-                    }
-                    f_inc++;
-                }
-                send_queue_obj.back_cache_ptr(send_file_obj);
+                send_queue_obj.back_cache_ptr(std::move(send_file_obj));
                 co_return;
             }
-            catch (std::exception &e)
-            {
-                DEBUG_LOG("http1_send_file exception");
-            }
 
-            co_await http1_send_bad_server(peer, peer_session);
-            send_queue_obj.back_cache_ptr(send_file_obj);
-            co_return;
+            if (send_file_obj->type == 1)
+            {
+                try
+                {
+                    unsigned long long readnum = 0;
+                    unsigned int f_inc         = 1;
+                    // content_length is the absolute value "range end + 1"; readnum is bytes already
+                    // read this call (starts from 0). Must subtract current_num (always 0 for
+                    // non-range requests). Do not use the raw absolute value as the upper bound:
+                    // Range: bytes=500-599 would read 600 bytes → advertise 100 but actually send
+                    // 500, violating the request range and leaking file content.
+                    unsigned long long need_send_num = send_file_obj->content_length - send_file_obj->current_num;
+                    while (readnum < need_send_num)
+                    {
+                        // Per-read size must also cap at the remaining bytes — otherwise the
+                        // final fread reads a full 4096 and overshoots.
+                        unsigned int want_num = 4096;
+                        if ((need_send_num - readnum) < (unsigned long long)want_num)
+                        {
+                            want_num = (unsigned int)(need_send_num - readnum);
+                        }
+                        send_file_obj->content.resize(want_num);
+                        if (!send_file_obj->fp.get())
+                        {
+                            peer_session->isclose = true;
+                            peer->isclose         = true;
+                            peer->state.keepalive = false;
+                            break;
+                        }
+                        unsigned int nread = fread(&send_file_obj->content[0], 1, want_num, send_file_obj->fp.get());
+                        if (nread == 0)
+                        {
+                            ERROR_LOG("static file read failed: %s readnum=%llu need_send_num=%llu want_num=%u ferror=%d feof=%d errno=%d", peer->sendfilename.c_str(), readnum, need_send_num, want_num, ferror(send_file_obj->fp.get()), feof(send_file_obj->fp.get()), errno);
+                            peer_session->isclose = true;
+                            peer->isclose         = true;
+                            peer->state.keepalive = false;
+                            break;
+                        }
+                        send_file_obj->content.resize(nread);
+                        // peer_session->send_data(htmlcontent);
+                        co_await peer_session->async_send_writer(send_file_obj->content);
+                        readnum += nread;
+                        if (peer_session->isclose)
+                        {
+                            break;
+                        }
+                        // 每 16 块（64 KB）刷新一次。原来是每 1024 块（4 MiB）才刷一次，
+                        // 平均速度低于 4 MiB / (clean_cron_time_ago + 60) ≈ 6.2 KB/s 的下载
+                        // 会被 httpwatch 当成 idle 清掉。
+                        // Refresh every 16 blocks (64 KB). It used to be every 1024 blocks (4 MiB),
+                        // so downloads slower than 4 MiB / (clean_cron_time_ago + 60) ≈ 6.2 KB/s
+                        // were killed by httpwatch as idle mid-transfer.
+                        if (f_inc % 16 == 0)
+                        {
+                            peer_session->time_limit.store(timeid());
+                        }
+                        f_inc++;
+                    }
+                    send_queue_obj.back_cache_ptr(std::move(send_file_obj));
+                    co_return;
+                }
+                catch (std::exception &e)
+                {
+                    DEBUG_LOG("http1_send_file exception");
+                }
+
+                co_await http1_send_bad_server(peer, peer_session);
+                send_queue_obj.back_cache_ptr(std::move(send_file_obj));
+                co_return;
+            }
+            else
+            {
+                co_await peer_session->async_send_writer(send_file_obj->content);
+            }
         }
         else
         {
-            co_await peer_session->async_send_writer(send_file_obj->content);
+            co_await http1_send_bad_server(peer, peer_session);
         }
+        send_file_obj->content.clear();
+        send_queue_obj.back_cache_ptr(std::move(send_file_obj));
     }
-    else
+    catch (...)
     {
-        co_await http1_send_bad_server(peer, peer_session);
+        if (send_file_obj)
+        {
+            send_queue_obj.back_cache_ptr(send_file_obj);
+        }
+        throw;
     }
-    send_file_obj->content.clear();
-    send_queue_obj.back_cache_ptr(send_file_obj);
     co_return;
 }
 
@@ -1946,202 +2048,214 @@ asio::awaitable<void> httpserver::http1_send_file_range(std::shared_ptr<httppeer
     // HEAD 走 http1_send_file，按完整实体回响应头，不进入本函数。
     http2_send_queue &send_queue_obj = get_http2_send_queue();
     auto send_file_obj               = send_queue_obj.get_cache_ptr();
-    send_file_obj->fp.reset(std::fopen(peer->sendfilename.c_str(), "rb"));
-
-    DEBUG_LOG("news http1_send_file_range %s", peer->sendfilename.c_str());
-
-    // 长度取路由那次 stat 的结果（etag 用的 st_mtime 也来自同一次）：能进到这里说明
-    // sendfiletype==1，而它的每条落点都 stat 过同一个 sendfilename 并确认了 S_IFREG。
-    long long file_length = static_cast<long long>(peer->fileinfo.st_size);
-    if (send_file_obj->fp.get())
+    // 抛出时这个槽还没交给发送线程，还回池，别让 outstanding 漂移
+    try
     {
-        send_file_obj->peer           = peer;
-        send_file_obj->type           = 1;
-        send_file_obj->content_length = static_cast<unsigned long long>(file_length);
+        send_file_obj->fp.reset(std::fopen(peer->sendfilename.c_str(), "rb"));
 
-        send_file_obj->file_ext = get_fileext(peer->sendfilename);
+        DEBUG_LOG("news http1_send_file_range %s", peer->sendfilename.c_str());
 
-        send_file_obj->content_type.clear();
-
-        if (send_file_obj->file_ext.size() > 0)
+        // 长度取路由那次 stat 的结果（etag 用的 st_mtime 也来自同一次）：能进到这里说明
+        // sendfiletype==1，而它的每条落点都 stat 过同一个 sendfilename 并确认了 S_IFREG。
+        long long file_length = static_cast<long long>(peer->fileinfo.st_size);
+        if (send_file_obj->fp.get())
         {
-            auto mime_iter = mime_map.find(send_file_obj->file_ext);
+            send_file_obj->peer           = peer;
+            send_file_obj->type           = 1;
+            send_file_obj->content_length = static_cast<unsigned long long>(file_length);
 
-            if (mime_iter != mime_map.end())
+            send_file_obj->file_ext = get_fileext(peer->sendfilename);
+
+            send_file_obj->content_type.clear();
+
+            if (send_file_obj->file_ext.size() > 0)
             {
-                send_file_obj->content_type = mime_iter->second;
+                auto mime_iter = mime_map.find(send_file_obj->file_ext);
+
+                if (mime_iter != mime_map.end())
+                {
+                    send_file_obj->content_type = mime_iter->second;
+                }
             }
-        }
 
-        if (send_file_obj->content_type.size() == 0)
-        {
-            if (send_file_obj->content_length > 204800)
+            if (send_file_obj->content_type.size() == 0)
             {
-                send_file_obj->content_type = "application/octet-stream";
+                if (send_file_obj->content_length > 204800)
+                {
+                    send_file_obj->content_type = "application/octet-stream";
+                }
+                else
+                {
+                    send_file_obj->content_type = "text/plain";
+                }
+            }
+
+            unsigned long long filesize = send_file_obj->content_length;
+            // 后缀范围 bytes=-N 先归一化成绝对范围，再统一做合法性判断。
+            // 不能用 "rangebegin > 0 / rangeend > 0" 反推是否给过端点：bytes=0-0 与 bytes=-N 都会读错。
+            if (peer->state.rangebytes && peer->state.range_suffix)
+            {
+                unsigned long long suffix_len = peer->state.rangeend;
+                if (suffix_len > filesize)
+                {
+                    suffix_len = filesize;
+                }
+                peer->state.rangebegin    = filesize - suffix_len;
+                peer->state.rangeend      = (filesize > 0) ? (filesize - 1) : 0;
+                peer->state.range_has_end = true;
+            }
+
+            // 末端越界不算不可满足：RFC 9110 §14.1.2 要求按 length-1 收敛后回 206，
+            // 交给下面 range_has_end 的收敛块处理；只有起点越界和终点早于起点才回 416。
+            if (peer->state.rangebegin >= filesize ||
+                (peer->state.range_has_end && peer->state.rangeend < peer->state.rangebegin))
+            {
+                // RFC 9110 §15.5.17：不可满足的 Range 应回 416 + Content-Range: bytes */len
+                // （http1_send_bad_request 只会回 400）。
+                // 响应头是 Connection: close，这里同步关掉 keep-alive，
+                // 避免外层循环继续按长连接等待下一个请求。
+                peer->state.keepalive = false;
+                co_await http1_send_range_not_satisfiable(peer_session, filesize);
+                send_queue_obj.back_cache_ptr(std::move(send_file_obj));
+                co_return;
+            }
+
+            unsigned int statecode = 200;
+            if (peer->state.rangebytes)
+            {
+                send_file_obj->current_num = peer->state.rangebegin;
+                statecode                  = 206;
+                fseek(send_file_obj->fp.get(), (long long)send_file_obj->current_num, SEEK_SET);
+            }
+            if (peer->state.range_has_end)
+            {
+                // 末端越界按 RFC 9110 §14.1.2 收敛到最后一个字节：门槛必须含等号，
+                // 只拦 rangeend > filesize 时 rangeend == filesize 声明长度会多出 1 字节
+                if (peer->state.rangeend >= filesize)
+                {
+                    peer->state.rangeend = filesize - 1;
+                }
+                send_file_obj->content_length = peer->state.rangeend + 1;
+                statecode                     = 206;
+            }
+
+            peer->status(statecode);
+            peer->length(send_file_obj->content_length - send_file_obj->current_num);
+            peer->type(send_file_obj->content_type);
+
+            send_file_obj->etag = make_header_etag(filesize, peer->fileinfo.st_mtime + peer->url.size());
+
+            if (statecode == 206)
+            {
+                peer->set_header("content-range",
+                                 "bytes " + std::to_string(send_file_obj->current_num) + "-" + std::to_string(send_file_obj->content_length - 1) + "/" +
+                                     std::to_string(filesize));
             }
             else
             {
-                send_file_obj->content_type = "text/plain";
+                peer->set_header("accept-ranges", "bytes");
             }
-        }
+            DEBUG_LOG("start http1 send file range");
+            peer->set_header("date", get_gmttime());
+            peer->set_header("last-modified", get_gmttime(peer->fileinfo.st_mtime));
+            peer->set_header("etag", send_file_obj->etag);
+            send_file_obj->header = peer->make_http1_header();
+            send_file_obj->header.append("\r\n");
 
-        unsigned long long filesize = send_file_obj->content_length;
-        // 后缀范围 bytes=-N 先归一化成绝对范围，再统一做合法性判断。
-        // 不能用 "rangebegin > 0 / rangeend > 0" 反推是否给过端点：bytes=0-0 与 bytes=-N 都会读错。
-        if (peer->state.rangebytes && peer->state.range_suffix)
-        {
-            unsigned long long suffix_len = peer->state.rangeend;
-            if (suffix_len > filesize)
+            co_await peer_session->async_send_writer(send_file_obj->header);
+
+            // 防御：零长度区间不写正文（分派处的 416 门禁已排除该情况，保留为不变量检查）
+            if (send_file_obj->content_length == send_file_obj->current_num)
             {
-                suffix_len = filesize;
+                send_queue_obj.back_cache_ptr(std::move(send_file_obj));
+                co_return;
             }
-            peer->state.rangebegin    = filesize - suffix_len;
-            peer->state.rangeend      = (filesize > 0) ? (filesize - 1) : 0;
-            peer->state.range_has_end = true;
-        }
 
-        // 末端越界不算不可满足：RFC 9110 §14.1.2 要求按 length-1 收敛后回 206，
-        // 交给下面 range_has_end 的收敛块处理；只有起点越界和终点早于起点才回 416。
-        if (peer->state.rangebegin >= filesize ||
-            (peer->state.range_has_end && peer->state.rangeend < peer->state.rangebegin))
-        {
-            // RFC 9110 §15.5.17：不可满足的 Range 应回 416 + Content-Range: bytes */len
-            // （http1_send_bad_request 只会回 400）。
-            // 响应头是 Connection: close，这里同步关掉 keep-alive，
-            // 避免外层循环继续按长连接等待下一个请求。
-            peer->state.keepalive = false;
-            co_await http1_send_range_not_satisfiable(peer_session, filesize);
-            send_queue_obj.back_cache_ptr(send_file_obj);
-            co_return;
-        }
-
-        unsigned int statecode = 200;
-        if (peer->state.rangebytes)
-        {
-            send_file_obj->current_num = peer->state.rangebegin;
-            statecode                  = 206;
-            fseek(send_file_obj->fp.get(), (long long)send_file_obj->current_num, SEEK_SET);
-        }
-        if (peer->state.range_has_end)
-        {
-            // 末端越界按 RFC 9110 §14.1.2 收敛到最后一个字节：门槛必须含等号，
-            // 只拦 rangeend > filesize 时 rangeend == filesize 声明长度会多出 1 字节
-            if (peer->state.rangeend >= filesize)
+            if (send_file_obj->type == 1)
             {
-                peer->state.rangeend = filesize - 1;
+                try
+                {
+                    unsigned long long readnum = 0;
+                    unsigned int f_inc         = 1;
+                    // content_length is the absolute value "range end + 1"; readnum is bytes already
+                    // read this call (starts from 0). Must subtract current_num (always 0 for
+                    // non-range requests). Do not use the raw absolute value as the upper bound:
+                    // Range: bytes=500-599 would read 600 bytes → advertise 100 but actually send
+                    // 500, violating the request range and leaking file content.
+                    unsigned long long need_send_num = send_file_obj->content_length - send_file_obj->current_num;
+                    while (readnum < need_send_num)
+                    {
+                        // Per-read size must also cap at the remaining bytes — otherwise the
+                        // final fread reads a full 4096 and overshoots.
+                        unsigned int want_num = 4096;
+                        if ((need_send_num - readnum) < (unsigned long long)want_num)
+                        {
+                            want_num = (unsigned int)(need_send_num - readnum);
+                        }
+                        send_file_obj->content.resize(want_num);
+                        if (!send_file_obj->fp.get())
+                        {
+                            peer_session->isclose = true;
+                            peer->isclose         = true;
+                            peer->state.keepalive = false;
+                            break;
+                        }
+                        unsigned int nread = fread(&send_file_obj->content[0], 1, want_num, send_file_obj->fp.get());
+                        if (nread == 0)
+                        {
+                            ERROR_LOG("static file read failed: %s readnum=%llu need_send_num=%llu want_num=%u ferror=%d feof=%d errno=%d", peer->sendfilename.c_str(), readnum, need_send_num, want_num, ferror(send_file_obj->fp.get()), feof(send_file_obj->fp.get()), errno);
+                            peer_session->isclose = true;
+                            peer->isclose         = true;
+                            peer->state.keepalive = false;
+                            break;
+                        }
+                        send_file_obj->content.resize(nread);
+
+                        co_await peer_session->async_send_writer(send_file_obj->content);
+                        readnum += nread;
+                        if (peer_session->isclose)
+                        {
+                            break;
+                        }
+                        // 每 16 块（64 KB）刷新一次。原来是每 1024 块（4 MiB）才刷一次，
+                        // 平均速度低于 4 MiB / (clean_cron_time_ago + 60) ≈ 6.2 KB/s 的下载
+                        // 会被 httpwatch 当成 idle 清掉。
+                        // Refresh every 16 blocks (64 KB). It used to be every 1024 blocks (4 MiB),
+                        // so downloads slower than 4 MiB / (clean_cron_time_ago + 60) ≈ 6.2 KB/s
+                        // were killed by httpwatch as idle mid-transfer.
+                        if (f_inc % 16 == 0)
+                        {
+                            peer_session->time_limit.store(timeid());
+                        }
+                        f_inc++;
+                    }
+                    send_queue_obj.back_cache_ptr(std::move(send_file_obj));
+                    co_return;
+                }
+                catch (std::exception &e)
+                {
+                    DEBUG_LOG("http1_send_file exception");
+                }
+
+                co_await http1_send_bad_server(peer, peer_session);
+                send_queue_obj.back_cache_ptr(std::move(send_file_obj));
+                co_return;
             }
-            send_file_obj->content_length = peer->state.rangeend + 1;
-            statecode                     = 206;
-        }
-
-        peer->status(statecode);
-        peer->length(send_file_obj->content_length - send_file_obj->current_num);
-        peer->type(send_file_obj->content_type);
-
-        send_file_obj->etag = make_header_etag(filesize, peer->fileinfo.st_mtime + peer->url.size());
-
-        if (statecode == 206)
-        {
-            peer->set_header("content-range",
-                             "bytes " + std::to_string(send_file_obj->current_num) + "-" + std::to_string(send_file_obj->content_length - 1) + "/" +
-                                 std::to_string(filesize));
         }
         else
         {
-            peer->set_header("accept-ranges", "bytes");
-        }
-        DEBUG_LOG("start http1 send file range");
-        peer->set_header("date", get_gmttime());
-        peer->set_header("last-modified", get_gmttime(peer->fileinfo.st_mtime));
-        peer->set_header("etag", send_file_obj->etag);
-        send_file_obj->header = peer->make_http1_header();
-        send_file_obj->header.append("\r\n");
-
-        co_await peer_session->async_send_writer(send_file_obj->header);
-
-        // 防御：零长度区间不写正文（分派处的 416 门禁已排除该情况，保留为不变量检查）
-        if (send_file_obj->content_length == send_file_obj->current_num)
-        {
-            send_queue_obj.back_cache_ptr(send_file_obj);
-            co_return;
-        }
-
-        if (send_file_obj->type == 1)
-        {
-            try
-            {
-                unsigned long long readnum = 0;
-                unsigned int f_inc         = 1;
-                // content_length is the absolute value "range end + 1"; readnum is bytes already
-                // read this call (starts from 0). Must subtract current_num (always 0 for
-                // non-range requests). Do not use the raw absolute value as the upper bound:
-                // Range: bytes=500-599 would read 600 bytes → advertise 100 but actually send
-                // 500, violating the request range and leaking file content.
-                unsigned long long need_send_num = send_file_obj->content_length - send_file_obj->current_num;
-                while (readnum < need_send_num)
-                {
-                    // Per-read size must also cap at the remaining bytes — otherwise the
-                    // final fread reads a full 4096 and overshoots.
-                    unsigned int want_num = 4096;
-                    if ((need_send_num - readnum) < (unsigned long long)want_num)
-                    {
-                        want_num = (unsigned int)(need_send_num - readnum);
-                    }
-                    send_file_obj->content.resize(want_num);
-                    if (!send_file_obj->fp.get())
-                    {
-                        peer_session->isclose = true;
-                        peer->isclose         = true;
-                        peer->state.keepalive = false;
-                        break;
-                    }
-                    unsigned int nread = fread(&send_file_obj->content[0], 1, want_num, send_file_obj->fp.get());
-                    if (nread == 0)
-                    {
-                        ERROR_LOG("static file read failed: %s readnum=%llu need_send_num=%llu want_num=%u ferror=%d feof=%d errno=%d", peer->sendfilename.c_str(), readnum, need_send_num, want_num, ferror(send_file_obj->fp.get()), feof(send_file_obj->fp.get()), errno);
-                        peer_session->isclose = true;
-                        peer->isclose         = true;
-                        peer->state.keepalive = false;
-                        break;
-                    }
-                    send_file_obj->content.resize(nread);
-
-                    co_await peer_session->async_send_writer(send_file_obj->content);
-                    readnum += nread;
-                    if (peer_session->isclose)
-                    {
-                        break;
-                    }
-                    // 每 16 块（64 KB）刷新一次。原来是每 1024 块（4 MiB）才刷一次，
-                    // 平均速度低于 4 MiB / (clean_cron_time_ago + 60) ≈ 6.2 KB/s 的下载
-                    // 会被 httpwatch 当成 idle 清掉。
-                    // Refresh every 16 blocks (64 KB). It used to be every 1024 blocks (4 MiB),
-                    // so downloads slower than 4 MiB / (clean_cron_time_ago + 60) ≈ 6.2 KB/s
-                    // were killed by httpwatch as idle mid-transfer.
-                    if (f_inc % 16 == 0)
-                    {
-                        peer_session->time_limit.store(timeid());
-                    }
-                    f_inc++;
-                }
-                send_queue_obj.back_cache_ptr(send_file_obj);
-                co_return;
-            }
-            catch (std::exception &e)
-            {
-                DEBUG_LOG("http1_send_file exception");
-            }
-
             co_await http1_send_bad_server(peer, peer_session);
-            send_queue_obj.back_cache_ptr(send_file_obj);
-            co_return;
         }
+        send_queue_obj.back_cache_ptr(std::move(send_file_obj));
     }
-    else
+    catch (...)
     {
-        co_await http1_send_bad_server(peer, peer_session);
+        if (send_file_obj)
+        {
+            send_queue_obj.back_cache_ptr(send_file_obj);
+        }
+        throw;
     }
-    send_queue_obj.back_cache_ptr(send_file_obj);
     co_return;
 }
 
@@ -2691,9 +2805,26 @@ asio::awaitable<void> httpserver::http1_send_method_not_allowed(std::shared_ptr<
 {
     // H3 补齐：PUT/DELETE/TRACE/CONNECT 属于有意不支持的方法，统一回 405 + Connection: close，
     // 这样声明了 body 的请求不会留下「未消费的字节」被下一轮当成新请求解析。
-    std::string stfilecom = "<h3>405 Method Not Allowed</h3><hr /><p>Allow: GET, POST, QUERY, HEAD, OPTIONS</p>";
-    std::string str       = "HTTP/1.1 405 Method Not Allowed\r\nAllow: GET, POST, QUERY, HEAD, OPTIONS\r\nContent-Type: "
-                            "text/html; charset=utf-8\r\nConnection: close\r\nContent-Length: ";
+    std::string stfilecom = "<h3>405 Method Not Allowed</h3><hr /><p>Allow: ";
+    stfilecom.append(http_supported_methods_text.data(), http_supported_methods_text.size());
+    stfilecom.append("</p>");
+    std::string str = "HTTP/1.1 405 Method Not Allowed\r\nAllow: ";
+    str.append(http_supported_methods_text.data(), http_supported_methods_text.size());
+    str.append("\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\nContent-Length: ");
+    str.append(std::to_string(stfilecom.size()));
+    str.append("\r\n\r\n");
+    str.append(stfilecom);
+    co_await peer_session->async_send_writer(str);
+    co_return;
+}
+asio::awaitable<void> httpserver::http1_send_not_implemented(std::shared_ptr<client_session> peer_session)
+{
+    // 方法名不在框架认得的表里（例如 PATCH）：回 501 + Connection: close，请求不进业务。
+    // 这里必须关连接：这类方法的正文没人消费，留下的字节下一轮会被当成新请求解析。
+    // 状态行手写，不走 httppeer::make_http1_header()，所以与状态码文案表无关。
+    std::string stfilecom = "<h3>501 Not Implemented</h3>";
+    std::string str       = "HTTP/1.1 501 Not Implemented\r\n"
+                            "Content-Type: text/html; charset=utf-8\r\nConnection: close\r\nContent-Length: ";
     str.append(std::to_string(stfilecom.size()));
     str.append("\r\n\r\n");
     str.append(stfilecom);
@@ -2974,6 +3105,13 @@ asio::awaitable<unsigned int> httpserver::client_http1_loop(bool isssl, unsigned
                 // 有意不支持的方法（PUT/DELETE/TRACE/CONNECT）回 405 并关闭连接，
                 // 不再复用连接，避免未消费的 body 被当成下一个请求解析。
                 co_await http1_send_method_not_allowed(peer_session);
+                co_return 3;
+            }
+            if (http1pre->method_unknown)
+            {
+                // 方法名认不出来（例如 PATCH）：回 501，请求不进业务。和 405 一样必须关连接，
+                // 因为这类方法的正文没人消费，剩下的字节下一轮会被当成新请求解析。
+                co_await http1_send_not_implemented(peer_session);
                 co_return 3;
             }
             if (http1pre->error > 0)
@@ -3286,14 +3424,22 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                                    { co_await http2_send_status_content(sp, sp->reject_status, body); },
                                    asio::detached);
                 }
-                else if (stream_ptr->method == HEAD_METHOD::PUT || stream_ptr->method == HEAD_METHOD::DELETE ||
-                         stream_ptr->method == HEAD_METHOD::TRACE || stream_ptr->method == HEAD_METHOD::CONNECT)
+                else if (is_unsupported_method(stream_ptr->method))
                 {
                     // 与 h1 的 method_not_allowed 同一口径：这四个方法框架有意不支持，
                     // 直接回 405，不进业务控制器（h1 走 http1_send_method_not_allowed）
-                    stream_ptr->set_header("Allow", "GET, POST, QUERY, HEAD, OPTIONS");
+                    stream_ptr->set_header("Allow", std::string(http_supported_methods_text));
                     asio::co_spawn(peer_session->strand_, [this, sp = stream_ptr]() -> asio::awaitable<void>
                                    { co_await http2_send_status_content(sp, 405, "<h3>405 Method Not Allowed</h3>"); },
+                                   asio::detached);
+                }
+                else if (stream_ptr->method == static_cast<unsigned char>(HEAD_METHOD::UNKNOW))
+                {
+                    // 方法名不在框架认得的表里（例如 PATCH）：回 501，同样不进业务控制器。
+                    // h1 侧对同一个请求走 http1_send_not_implemented，并且必须关连接
+                    //（正文没人消费）；这里帧是自定界的，只作废这一条流。
+                    asio::co_spawn(peer_session->strand_, [this, sp = stream_ptr]() -> asio::awaitable<void>
+                                   { co_await http2_send_status_content(sp, 501, "<h3>501 Not Implemented</h3>"); },
                                    asio::detached);
                 }
                 else
@@ -3329,6 +3475,30 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                     access_loglist.emplace_back(log_item);
                 }
 #endif
+                // 弱引用条目不会随 shared_ptr 释放而自动从 map 里消失，流 id 又绝不复用，
+                // 所以这张表只能靠扫一遍来缩。只摘 lock() 已经拿不到对象的条目：那种 peer
+                // 响应发完、发送槽归还后就再没人引用，条目纯粹是残渣。
+                // 不能按流 id 水位删「还 lock 得到」的条目——慢客户端的流还在等窗口额度，
+                // 删掉就等于把它的 WINDOW_UPDATE 判成陌生流而静默丢弃。
+                if (http2pre->http_data_weak.size() >= CONST_HTTP2_MAX_STREAMS / 2)
+                {
+                    unsigned int sweep_removed = 0;
+                    for (auto wit = http2pre->http_data_weak.begin(); wit != http2pre->http_data_weak.end();)
+                    {
+                        if (wit->second.lock() == nullptr)
+                        {
+                            http2pre->http_data_weak.erase(wit++);
+                            sweep_removed++;
+                        }
+                        else
+                        {
+                            ++wit;
+                        }
+                    }
+                    http2pre->weak_sweep_removed += sweep_removed;
+                    DEBUG_LOG("http2 weak sweep removed %u size %u", sweep_removed,
+                              (unsigned int)http2pre->http_data_weak.size());
+                }
                 // 登记这条流的 peer 弱引用：WINDOW_UPDATE、RST 等帧到达时用它能判断流还在不在。
                 http2pre->http_data_weak.insert_or_assign(block_steamid, stream_ptr);
             }

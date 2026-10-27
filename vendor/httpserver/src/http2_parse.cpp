@@ -325,7 +325,7 @@ void http2parse::readheaders(const HTTP2_PACK_DATA_T &temp_pack_data)
     // headers_parse 已经报错时（error 非 0）不接管：错误分流得先走，不能一边断连一边回页面。
     // 没声明 Content-Length 的请求这里判不了（body 长度未知），留给正文收尾那条比对。
     if (error == 0 && steam_httppeer->ishas_content_length &&
-        (steam_httppeer->method == 2 || steam_httppeer->method == 4))
+        is_body_method(steam_httppeer->method))
     {
         unsigned int limit_status = steam_httppeer->check_upload_limit();
         if (limit_status > 0)
@@ -391,49 +391,9 @@ void http2parse::headers_parse(const HTTP2_HEADER_FRAME_T &header_block_obj, std
     // 普通请求的 ACAO 在解析到 origin 头那一刻就判定了（头名长度 6 的 'o' 分支），
     // 这里请求头虽已解完，但不再需要任何 CORS 处理
 
-    if (steam_httppeer->method == 2 || steam_httppeer->method == 4)
-    {
-        DEBUG_LOG("http2 post client: %s %ud", steam_httppeer->url.c_str(), header_stream_id);
-        // HEADERS 自带 END_STREAM：客户端这一侧已发完，流进入 half-closed(remote)，
-        // 请求体长度就是 0。必须在这里就地派发，而且**绝不能**建 http_post_data：
-        // 建了就等于对外宣布"本流还在收请求体"，随后到达的 DATA 会被当成 body 收下并
-        // 再触发一次派发，同一个流回两份响应（RFC 9113 §5.1 要求此时回
-        // RST_STREAM(STREAM_CLOSED)，h2spec 6.1.2 判失败）；只发 HEADERS(END_STREAM)
-        // 的 POST 也会一直等一个永远不会来的 DATA 而静默挂死。
-        if (header_block_obj.flags.END_STREAM)
-        {
-            steam_httppeer->isfinish = true;
-            stream_list.emplace(header_stream_id);
-            return;
-        }
-
-        // 这里不再重置/授予接收窗口：
-        //  * 新流的流级额度已由本端广告的 SETTINGS_INITIAL_WINDOW_SIZE 给出，
-        //    不需要（也不应该）再补一次；
-        //  * 每来一个 POST/PUT 就把整条连接的接收记账重置成窗口目标值、并发出
-        //    「连接级 + 流级」两个 WINDOW_UPDATE 的话：既抹掉其他流已消费的额度（并发 POST
-        //    会静默挂死），又把对端连接窗口每请求顶高 16MB（约 129 次后超 2^31-1，
-        //    对端必须按 FLOW_CONTROL_ERROR 断连）。
-        need_wakeup_send_threads = true;
-
-        auto iter = http_post_data.find(header_stream_id);
-        if (iter == http_post_data.end())
-        {
-            HTTP2_POST_DATA_T temp_p;
-            temp_p.peer      = steam_httppeer;
-            temp_p.stream_id = header_stream_id;
-            http_post_data.insert_or_assign(steam_httppeer->stream_id, std::move(temp_p));
-        }
-    }
-    else
-    {
-        DEBUG_LOG("http2 get client: %s", steam_httppeer->url.c_str());
-        steam_httppeer->isfinish = true;
-        stream_list.emplace(header_stream_id);
-    }
-
-    // ---- RFC 7540 §8.1.2.3 请求伪头跨头块校验（headertypeX 全跑完才知道）----
-    // Finalize: duplicate / missing / empty pseudo-headers.
+    // ---- RFC 7540/9113 §8.1.2.3 请求伪头跨头块校验（headertypeX 全跑完才知道）----
+    // 必须在 method 分派之前：POST/QUERY + END_STREAM 分支要在这里 return，
+    // 放在分派之后那条分支就绕过了整块校验，非法请求会先派进业务再断连接。
     // 重复伪头 → PROTOCOL_ERROR（h2spec 8.1.2.3 #5/#6/#7）
     if (steam_httppeer->h2_method_dup ||
         steam_httppeer->h2_scheme_dup ||
@@ -458,6 +418,47 @@ void http2parse::headers_parse(const HTTP2_HEADER_FRAME_T &header_block_obj, std
     {
         set_conn_error(40025, 0x1);
         return;
+    }
+
+    if (is_body_method(steam_httppeer->method))
+    {
+        DEBUG_LOG("http2 post client: %s %ud", steam_httppeer->url.c_str(), header_stream_id);
+        // HEADERS 自带 END_STREAM：客户端这一侧已发完，流进入 half-closed(remote)，
+        // 请求体长度就是 0。必须在这里就地派发，而且**绝不能**建 http_post_data：
+        // 建了就等于对外宣布"本流还在收请求体"，随后到达的 DATA 会被当成 body 收下并
+        // 再触发一次派发，同一个流回两份响应（RFC 9113 §5.1 要求此时回
+        // RST_STREAM(STREAM_CLOSED)，h2spec 6.1.2 判失败）；只发 HEADERS(END_STREAM)
+        // 的 POST 也会一直等一个永远不会来的 DATA 而静默挂死。
+        if (header_block_obj.flags.END_STREAM)
+        {
+            steam_httppeer->isfinish = true;
+            stream_list.emplace(header_stream_id);
+            return;
+        }
+
+        // 这里不再重置/授予接收窗口：
+        //  * 新流的流级额度已由本端广告的 SETTINGS_INITIAL_WINDOW_SIZE 给出，
+        //    不需要（也不应该）再补一次；
+        //  * 每来一个 POST/QUERY 就把整条连接的接收记账重置成窗口目标值、并发出
+        //    「连接级 + 流级」两个 WINDOW_UPDATE 的话：既抹掉其他流已消费的额度（并发 POST
+        //    会静默挂死），又把对端连接窗口每请求顶高 16MB（约 129 次后超 2^31-1，
+        //    对端必须按 FLOW_CONTROL_ERROR 断连）。
+        need_wakeup_send_threads = true;
+
+        auto iter = http_post_data.find(header_stream_id);
+        if (iter == http_post_data.end())
+        {
+            HTTP2_POST_DATA_T temp_p;
+            temp_p.peer      = steam_httppeer;
+            temp_p.stream_id = header_stream_id;
+            http_post_data.insert_or_assign(steam_httppeer->stream_id, std::move(temp_p));
+        }
+    }
+    else
+    {
+        DEBUG_LOG("http2 get client: %s", steam_httppeer->url.c_str());
+        steam_httppeer->isfinish = true;
+        stream_list.emplace(header_stream_id);
     }
 }
 void http2parse::cookie_process([[maybe_unused]] const std::string &header_name, const std::string &header_value, std::shared_ptr<httppeer> steam_httppeer)
@@ -1157,6 +1158,49 @@ bool http2parse::header_host_process(const std::string &header_value, std::share
     return true;
 }
 
+// :method 的取值换成方法编号。三条编码路径（静态表索引 2、索引 3、字面量头名）共用这一张表。
+// 表里没有的方法名（例如 PATCH）落 UNKNOW：请求不进业务，由派发处回 501。
+static unsigned char h2_method_from_text(std::string_view method_text)
+{
+    if (str_casecmp(method_text, "GET"))
+    {
+        return static_cast<unsigned char>(HEAD_METHOD::GET);
+    }
+    if (str_casecmp(method_text, "POST"))
+    {
+        return static_cast<unsigned char>(HEAD_METHOD::POST);
+    }
+    if (str_casecmp(method_text, "HEAD"))
+    {
+        return static_cast<unsigned char>(HEAD_METHOD::HEAD);
+    }
+    if (str_casecmp(method_text, "OPTIONS"))
+    {
+        return static_cast<unsigned char>(HEAD_METHOD::OPTIONS);
+    }
+    if (str_casecmp(method_text, "QUERY"))
+    {
+        return static_cast<unsigned char>(HEAD_METHOD::QUERY);
+    }
+    if (str_casecmp(method_text, "PUT"))
+    {
+        return static_cast<unsigned char>(HEAD_METHOD::PUT);
+    }
+    if (str_casecmp(method_text, "DELETE"))
+    {
+        return static_cast<unsigned char>(HEAD_METHOD::DELETE);
+    }
+    if (str_casecmp(method_text, "TRACE"))
+    {
+        return static_cast<unsigned char>(HEAD_METHOD::TRACE);
+    }
+    if (str_casecmp(method_text, "CONNECT"))
+    {
+        return static_cast<unsigned char>(HEAD_METHOD::CONNECT);
+    }
+    return static_cast<unsigned char>(HEAD_METHOD::UNKNOW);
+}
+
 void http2parse::header_process(std::string header_name, std::string header_value, int table_num, std::shared_ptr<httppeer> steam_httppeer)
 {
     DEBUG_LOG("header:%s:%s|%d", header_name.c_str(), header_value.c_str(), table_num);
@@ -1337,84 +1381,9 @@ void http2parse::header_process(std::string header_name, std::string header_valu
             //block_steam_httppeer->host                 = header_value;
             break;
         case 2:
-            if (str_casecmp(header_value, "OPTIONS"))
-            {
-                steam_httppeer->method = 3;
-            }
-            else if (str_casecmp(header_value, "GET"))
-            {
-                steam_httppeer->method = 1;
-            }
-            else if (str_casecmp(header_value, "POST"))
-            {
-                steam_httppeer->method = 2;
-            }
-            else if (str_casecmp(header_value, "head"))
-            {
-                steam_httppeer->method = 5;
-            }
-            else if (str_casecmp(header_value, "put"))
-            {
-                steam_httppeer->method = 6;
-            }
-            else if (str_casecmp(header_value, "delete"))
-            {
-                steam_httppeer->method = 7;
-            }
-            else if (str_casecmp(header_value, "QUERY"))
-            {
-                steam_httppeer->method = 4;
-            }
-            else if (str_casecmp(header_value, "trace"))
-            {
-                steam_httppeer->method = 8;
-            }
-            else if (str_casecmp(header_value, "connect"))
-            {
-                steam_httppeer->method = 9;
-            }
-            steam_httppeer->iscors            = (steam_httppeer->method == 3);
-            steam_httppeer->header[":method"] = header_value;
-            steam_httppeer->header["method"]  = std::move(header_value);
-            break;
         case 3:
-            if (str_casecmp(header_value, "OPTIONS"))
-            {
-                steam_httppeer->method = 3;
-            }
-            else if (str_casecmp(header_value, "GET"))
-            {
-                steam_httppeer->method = 1;
-            }
-            else if (str_casecmp(header_value, "POST"))
-            {
-                steam_httppeer->method = 2;
-            }
-            else if (str_casecmp(header_value, "head"))
-            {
-                steam_httppeer->method = 5;
-            }
-            else if (str_casecmp(header_value, "put"))
-            {
-                steam_httppeer->method = 6;
-            }
-            else if (str_casecmp(header_value, "delete"))
-            {
-                steam_httppeer->method = 7;
-            }
-            else if (str_casecmp(header_value, "QUERY"))
-            {
-                steam_httppeer->method = 4;
-            }
-            else if (str_casecmp(header_value, "trace"))
-            {
-                steam_httppeer->method = 8;
-            }
-            else if (str_casecmp(header_value, "connect"))
-            {
-                steam_httppeer->method = 9;
-            }
-            steam_httppeer->iscors            = (steam_httppeer->method == 3);
+            steam_httppeer->method = h2_method_from_text(header_value);
+            steam_httppeer->iscors = (steam_httppeer->method == static_cast<unsigned char>(HEAD_METHOD::OPTIONS));
             steam_httppeer->header[":method"] = header_value;
             steam_httppeer->header["method"]  = std::move(header_value);
             break;
@@ -1577,43 +1546,8 @@ void http2parse::header_process(std::string header_name, std::string header_valu
         case 7:
             if (str_casecmp(header_name, ":method"))
             {
-                if (str_casecmp(header_value, "OPTIONS"))
-                {
-                    steam_httppeer->method = 3;
-                }
-                else if (str_casecmp(header_value, "GET"))
-                {
-                    steam_httppeer->method = 1;
-                }
-                else if (str_casecmp(header_value, "POST"))
-                {
-                    steam_httppeer->method = 2;
-                }
-                else if (str_casecmp(header_value, "head"))
-                {
-                    steam_httppeer->method = 5;
-                }
-                else if (str_casecmp(header_value, "put"))
-                {
-                    steam_httppeer->method = 6;
-                }
-                else if (str_casecmp(header_value, "delete"))
-                {
-                    steam_httppeer->method = 7;
-                }
-                else if (str_casecmp(header_value, "QUERY"))
-                {
-                    steam_httppeer->method = 4;
-                }
-                else if (str_casecmp(header_value, "trace"))
-                {
-                    steam_httppeer->method = 8;
-                }
-                else if (str_casecmp(header_value, "connect"))
-                {
-                    steam_httppeer->method = 9;
-                }
-                steam_httppeer->iscors            = (steam_httppeer->method == 3);
+                steam_httppeer->method = h2_method_from_text(header_value);
+                steam_httppeer->iscors = (steam_httppeer->method == static_cast<unsigned char>(HEAD_METHOD::OPTIONS));
                 steam_httppeer->header["method"]  = header_value;
                 steam_httppeer->header[":method"] = std::move(header_value);
             }
@@ -2776,7 +2710,7 @@ void http2parse::readsetting(const HTTP2_PACK_DATA_T &temp_pack_data)
             {
                 // RFC 9113 §6.5.2: 超过 2^31-1 必须按 FLOW_CONTROL_ERROR 处理。
                 // 不校验的话客户端报 0xFFFFFFFF 就能把发送窗口直接顶到 4G。
-                error = 40018;
+                set_conn_error(40018, 0x3);// FLOW_CONTROL_ERROR
                 return;
             }
             setting_data.initial_window_size = ident_value;
@@ -3902,6 +3836,117 @@ static std::string take_delim_crlf_tail(std::string &field_item)
     return carry;
 }
 
+// 串比较（忽略大小写），长度由 a 决定，b 是字面量。
+static bool head_ci_equal(std::string_view a, const char *b)
+{
+    for (size_t i = 0; i < a.size(); i++)
+    {
+        if (b[i] == '\0')
+        {
+            return false;
+        }
+        char c = a[i];
+        if (c >= 'A' && c <= 'Z')
+        {
+            c = static_cast<char>(c + 32);
+        }
+        if (c != b[i])
+        {
+            return false;
+        }
+    }
+    return b[a.size()] == '\0';
+}
+
+// 判断 field_item 开头这一段是不是"声明了 filename 的 part 头"。
+// 走字节顺序必须和 post_multipart_itemcontent 的头解析一致（参数名上限 72、
+// name 值上限 512、名字与 '=' 之间不许有空格），否则判真之后正式解析会半路报错。
+// 只看传进来的这一段，超出即判否；判否什么都不做，交给正常解析。
+// 128：与 h1 (http_parse.cpp) 同名分支同宽，改动需两边同步。
+static bool head_is_file_part(std::string_view head)
+{
+    size_t i = 0;
+    while (i < head.size() && (head[i] == '\r' || head[i] == '\n' || head[i] == '-'))
+    {
+        i++;
+    }
+
+    size_t begin = i;
+    while (i < head.size() && head[i] != ':')
+    {
+        i++;
+    }
+    if (i >= head.size() || (i - begin) > 72 || !head_ci_equal(head.substr(begin, i - begin), "Content-Disposition"))
+    {
+        return false;
+    }
+
+    while (i < head.size() && head[i] != ';')
+    {
+        i++;
+    }
+    if (i >= head.size())
+    {
+        return false;
+    }
+    i++;
+    while (i < head.size() && head[i] == ' ')
+    {
+        i++;
+    }
+
+    begin = i;
+    while (i < head.size() && head[i] != '=')
+    {
+        i++;
+    }
+    if (i >= head.size() || (i - begin) > 72 || !head_ci_equal(head.substr(begin, i - begin), "name"))
+    {
+        return false;
+    }
+    i++;
+
+    while (i < head.size() && (head[i] == ' ' || head[i] == '"' || head[i] == '='))
+    {
+        i++;
+    }
+    begin = i;
+    while (i < head.size() && head[i] != '"')
+    {
+        i++;
+    }
+    if (i >= head.size() || (i - begin) > 512)
+    {
+        return false;
+    }
+    i++;
+
+    while (i < head.size() && head[i] == ' ')
+    {
+        i++;
+    }
+    if (i >= head.size() || head[i] != ';')
+    {
+        return false;
+    }
+    i++;
+    while (i < head.size() && head[i] == ' ')
+    {
+        i++;
+    }
+
+    begin = i;
+    while (i < head.size() && head[i] != '=')
+    {
+        i++;
+    }
+    if (i >= head.size() || (i - begin) > 72)
+    {
+        return false;
+    }
+    return head_ci_equal(head.substr(begin, i - begin), "filename");
+}
+
 void http2parse::post_multipart_itemcontent_append(HTTP2_POST_DATA_T &temp_post_data)
 {
     //only process upload file
@@ -4250,8 +4295,10 @@ void http2parse::post_multipart_itemcontent(HTTP2_POST_DATA_T &temp_post_data, b
             temp_post_data.fp.reset();
         }
     }
-    else
+    else if (isfilefull)
     {
+        // 只有整段读完（isfilefull）才当作文本域写入；中途探测时这一段还不完整，
+        // 写进去会截断，剩下的字节又没人接，所以这里宁可不写。
         post_form_to_postfield(temp_post_data.field_name, keyvalue_field, temp_post_data.peer);
     }
 }
@@ -4760,7 +4807,9 @@ void http2parse::post_data_process(HTTP2_POST_DATA_T &temp_post_data, unsigned c
             }
             else
             {
-                if (temp_post_data.isfile && temp_post_data.field_item.size() > 2097152)
+                // 3145728（3MB）：与 h1 (http_parse.cpp) 同名分支同值，改动需两边同步。
+                // 这个界远大于 part 头可能占的字节，所以跨过它时头部必定已经收全。
+                if (temp_post_data.isfile && temp_post_data.field_item.size() > 3145728)
                 {
                     //及时消化掉大文件中间内容，尽快保存到文件
                     if (temp_post_data.fp)
@@ -4770,19 +4819,28 @@ void http2parse::post_data_process(HTTP2_POST_DATA_T &temp_post_data, unsigned c
                         temp_post_data.field_item = std::move(carry);
                     }
                 }
-                else if (temp_post_data.field_item.size() > 2097152)
+                else if (temp_post_data.field_item.size() > 3145728)
                 {
                     if (!temp_post_data.isfile)
                     {
-
-                        std::string_view check_filename = std::string_view(temp_post_data.field_item.data(), 80);
-                        size_t pos                      = check_filename.find("filename");
-                        if (pos != std::string::npos)
+                        // 头还没被认出来就攒过了阈值：先看头部是否声明 filename，
+                        // 判真才转成文件流式落盘；判否什么都不动，等正常解析。
+                        std::string_view check_head = std::string_view(temp_post_data.field_item.data(),
+                                                                       std::min<size_t>(temp_post_data.field_item.size(), 128));
+                        if (head_is_file_part(check_head))
                         {
                             reset_uploadfile(temp_post_data);
                             std::string carry = take_delim_crlf_tail(temp_post_data.field_item);
                             post_multipart_itemcontent(temp_post_data, false);
-                            temp_post_data.field_item = std::move(carry);
+                            if (temp_post_data.isfile)
+                            {
+                                temp_post_data.field_item = std::move(carry);
+                            }
+                            else
+                            {
+                                // 正式解析没认成文件，把摘掉的尾部放回，一段字节都不丢
+                                temp_post_data.field_item.append(carry);
+                            }
                         }
                     }
                 }
@@ -4901,7 +4959,7 @@ void http2parse::readpostdata(const HTTP2_PACK_DATA_T &temp_pack_data)
     if (post_iter == http_post_data.end())
     {
         // 该流还没建过 http_post_data：
-        //  * 正常 POST/PUT（HEADERS 未带 END_STREAM，isfinish=false）：首个 body DATA 到达，
+        //  * 正常 POST/QUERY（HEADERS 未带 END_STREAM，isfinish=false）：首个 body DATA 到达，
         //    按 body 收集逻辑建 http_post_data。
         //  * 但 HEADERS 已带 END_STREAM（isfinish=true）说明请求体为空、客户端此侧已发完，
         //    流已进入 half-closed(remote)/closed。此时再来 DATA 是 RFC 9113 §5.1 规定的
@@ -5240,11 +5298,15 @@ void http2parse::read_pack_data(const unsigned char *buffer, unsigned int buffer
             pack_data.stream_id = (pack_data.stream_id << 8) | (unsigned char)buffer[j++];
         }
 
-        // 非 DATA 帧按帧头声明的 length 提前拒绝：本函数末尾那个 16K 检查是在
-        // DATA 帧不在这里卡（它由 CONST_HTTP_BODY_POST_SIZE 与 flow-control 窗口限制）。
-        if (pack_data.frame_type != 0x00 && pack_data.length > CONST_HTTP_HEADER_BODY_SIZE)
+        // 任何帧（含 DATA）按帧头声明的 length 当场拒绝，不必等 payload 逐字节灌满。
+        // 帧类型与长度不匹配属连接级 FRAME_SIZE_ERROR(0x6)，不是 PROTOCOL_ERROR——
+        // 对端按协议违例处理会重试，方向就错了。
+        // 本端从不广告 SETTINGS_MAX_FRAME_SIZE，对端合法的单帧上限就是 RFC 默认 16384；
+        // 正文总量另有 CONST_HTTP_BODY_POST_SIZE 在流控层管，与这道帧头闸门无关。
+        // 将来若广告 MAX_FRAME_SIZE，这里的界要同步换成广告值。
+        if (pack_data.length > CONST_HTTP_HEADER_BODY_SIZE)
         {
-            error      = 40001;
+            set_conn_error(40001, 0x6);
             readoffset = buffersize;
             return;
         }
@@ -5279,12 +5341,8 @@ void http2parse::read_pack_data(const unsigned char *buffer, unsigned int buffer
         readoffset = j;
     }
 
-    if (pack_data.frame_type != 0x00 && pack_data.payload.size() > CONST_HTTP_HEADER_BODY_SIZE)
-    {
-        error      = 40001;
-        readoffset = buffersize;
-        return;
-    }
+    // 帧长度已在上面按帧头声明的 length 验过一轮，这里的 payload 不可能超过它，
+    // 不再重复检查一次。
 
     if (pack_data.payload.size() >= pack_data.length)
     {

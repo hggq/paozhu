@@ -1,5 +1,5 @@
 #!/bin/bash
-# 一把跑完本轮全部臂：base + 三条解析器牙齿臂 + 一条探针判别力臂。
+# 一把跑完本轮全部臂：base + 五条解析器牙齿臂 + 一条探针判别力臂。
 # 每臂的读数落 temp/h1_consume/driver_<臂名>.log，最后一屏给红集合汇总。
 # 清理只用 find -delete：zsh/bash 的无匹配通配符会让整条 rm 不执行，旧日志会被当本轮读数。
 set -u
@@ -12,7 +12,7 @@ mkdir -p "$RUN/out"
 
 python3 "$HERE/mut.py" "$ROOT" || { echo "MUTGEN_FAILED"; exit 3; }
 
-ARMS="base mut1 mut2 mut3 mutcap"
+ARMS="base mut1 mut2 mut3 mut4 mut5 mutcap"
 for K in $ARMS; do
     case "$K" in
         base)   "$HERE/run.sh" base ;;

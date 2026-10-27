@@ -69,11 +69,13 @@ N_OUT=$(printf '%s' "$LN" | grep -c -- '-o /Users/hzq/paozhu/bin/paozhu')
 echo "ANCHORS main=$N_MAIN parse=$N_PARSE out=$N_OUT" >> "$LOG"
 if [ "$N_MAIN" != "1" ] || [ "$N_PARSE" != "1" ] || [ "$N_OUT" != "1" ]; then echo "ANCHOR_MISS $NAME"; exit 5; fi
 
-# 被测源之外，还要把工作树里改过的 httppeer.cpp/func.cpp 现编换进去：
-# build/ 那两枚 .o 是上一轮整档编译的，可能早于它们各自的源改动，
+# 被测源之外，还要把工作树里改过的 httppeer.cpp/func.cpp/server.cpp 现编换进去：
+# build/ 那几枚 .o 是上一轮整档编译的，可能早于它们各自的源改动，
 # 而解析器 .o 是现编的，会吃到新旧不一致的 peer/clear 语义。
+# server.cpp 也在这张名单里：它 include http_parse.h，httpparse 的字段一变，
+# 用 build/ 的旧布局链进来看不到问题，但读数是混着两份定义跑的。
 EXTRA_SED=""
-for REL2 in vendor/httpserver/src/func.cpp vendor/httpserver/src/httppeer.cpp; do
+for REL2 in vendor/httpserver/src/func.cpp vendor/httpserver/src/httppeer.cpp vendor/httpserver/src/server.cpp; do
     O2="$RUN/extra_$(printf '%s' "$REL2" | tr '/.' '__').o"
     if [ ! -f "$O2" ] || [ "$ROOT/$REL2" -nt "$O2" ]; then
         F2=$(python3 "$ROOT/tests/multipart_boundary/ccflags.py" "$ROOT" "$REL2")

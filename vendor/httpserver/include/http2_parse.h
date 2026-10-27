@@ -378,6 +378,9 @@ class http2parse
     // 任意流 id 发 WINDOW_UPDATE，本端没有流状态机，只能拿「本连接见过的最大客户端
     // 流 id + 该流是否还活着」近似判定；计数用来排查「窗口给了却不发」。
     unsigned int winupdate_dropped = 0;
+    // 水位清扫从弱引用表里摘掉的「对象已释放」条目数。弱条目不会随 shared_ptr 释放自动消失，
+    // 表长等于本连接派发过的流数，只能扫；计数用来看清扫有没有触发。
+    unsigned int weak_sweep_removed = 0;
     std::map<unsigned int, std::shared_ptr<httppeer>> http_data;
     std::map<unsigned int, std::weak_ptr<httppeer>> http_data_weak;
     std::map<unsigned int, HTTP2_POST_DATA_T> http_post_data;

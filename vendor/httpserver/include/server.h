@@ -282,6 +282,8 @@ class httpserver
     int checkhttp2(std::shared_ptr<client_session> peer_session);
     asio::awaitable<void> http1_send_bad_request(unsigned int, std::shared_ptr<client_session>);
     asio::awaitable<void> http1_send_method_not_allowed(std::shared_ptr<client_session>);
+    // 方法名不在框架认得的表里（例如 PATCH）→ 501 + Connection: close
+    asio::awaitable<void> http1_send_not_implemented(std::shared_ptr<client_session>);
     // RFC 9110 §15.5.17：不可满足的 Range → 416 + Content-Range: bytes */<complete-length>
     asio::awaitable<void> http1_send_range_not_satisfiable(std::shared_ptr<client_session>, unsigned long long);
     asio::awaitable<void> http1_send_bad_server(std::shared_ptr<httppeer>, std::shared_ptr<client_session>);

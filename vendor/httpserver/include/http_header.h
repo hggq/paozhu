@@ -173,6 +173,24 @@ enum HEAD_METHOD
     CONNECT,
 };
 
+// 收正文的方法只有 POST 和 QUERY（QUERY 是 GET 的带正文版本）；其余方法不建正文收集状态，
+// 后面也等不到正文收尾。存进 httppeer::method 的是枚举的数值，所以判据收 unsigned char。
+constexpr bool is_body_method(unsigned char method)
+{
+    return method == static_cast<unsigned char>(HEAD_METHOD::POST) ||
+           method == static_cast<unsigned char>(HEAD_METHOD::QUERY);
+}
+// 框架认得这四个方法名，但有意不实现：请求不进业务，直接回 405。
+constexpr bool is_unsupported_method(unsigned char method)
+{
+    return method == static_cast<unsigned char>(HEAD_METHOD::PUT) ||
+           method == static_cast<unsigned char>(HEAD_METHOD::DELETE) ||
+           method == static_cast<unsigned char>(HEAD_METHOD::TRACE) ||
+           method == static_cast<unsigned char>(HEAD_METHOD::CONNECT);
+}
+// 405 响应里 Allow 头的取值，HTTP/1 与 HTTP/2 共用这一份
+inline constexpr std::string_view http_supported_methods_text = "GET, POST, QUERY, HEAD, OPTIONS";
+
 struct httpinfo
 {
     std::string host;
