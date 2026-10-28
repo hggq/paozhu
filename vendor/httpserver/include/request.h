@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <iostream>
 #include <map>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -66,14 +67,23 @@ struct obj_val
     };
   private:
     obj_type _val_type = obj_type::NIL;
-    
+    // 标签只能由类自身或解析器写; 对外写标签可以造出「OBJECT + 空指针」这种非法状态
+    void set_type(obj_type _type) { _val_type = _type; }
+    void release_deep() noexcept;
+
     friend std::string http::to_json_internal(const obj_val &val, unsigned int level);
     friend std::string http::to_json_uncode_internal(const obj_val &val, unsigned int level);
+    friend void from_json_internal(const std::string &json_str, obj_val &val, unsigned int &offset, unsigned int level);
 
   public:
     std::string to_string() const;
     std::string_view to_string_view() const;
-    std::string to_escape();
+    // 注意: 这不是通用净化器. 只按 MySQL addslashes 风格转义 \' \" \\ \0 \n \r \Z,
+    // 不识别字符集(GBK/Big5 宽字节仍可注入), 对 PostgreSQL/SQLite 方言也不对,
+    // 不处理 % _ 与 < > &. 入库请走 ORM 参数绑定, 不要拿它拼 SQL/HTML/shell.
+    std::string to_sql_mysql_escape();
+    // 旧名, 与 to_sql_mysql_escape() 是同一个实现(仍是 MySQL 方言那一套), 保留给既有调用点
+    std::string to_escape() { return to_sql_mysql_escape(); }
     std::string to_trim();
     void trim();
     bool to_bool() const;
@@ -83,7 +93,6 @@ struct obj_val
     char to_char() const;
     obj_val &from_char(char c);
     obj_type get_type() const { return _val_type; }
-    void set_type(obj_type _type) { _val_type = _type; }
 
     float str_to_float();
     double str_to_double();
@@ -92,18 +101,27 @@ struct obj_val
     unsigned int str_to_uint();
     unsigned long long str_to_ulong();
 
+    // 返回的引用指向内部 vector 的元素: 插入/删除可能搬动元素, 需要跨操作持有时先拷贝.
+    // 数字下标对数组取位置, 对对象取十进制文本 key("1" 与 1 等价).
     obj_val &operator[](std::string_view key);
     obj_val &operator[](unsigned int index);
     const obj_val &operator[](std::string_view key) const;
     const obj_val &operator[](unsigned int index) const;
 
-    unsigned int size() const;
+    // at() 是只读语义的严格版本: 不会隐式创建成员, 缺失/越界一律抛异常
+    obj_val &at(std::string_view key);
+    obj_val &at(unsigned int index);
+    const obj_val &at(std::string_view key) const;
+    const obj_val &at(unsigned int index) const;
+
+    std::size_t size() const;
 
     void append(const std::string &v);
     void append(const char *_str, unsigned int str_length);
     std::string substr(int a, int b);
     std::string substr(int a);
-    std::string filter(std::function<char(char)> func=nullptr);
+    // 逐字节过滤: 回调返回 '\0' 丢弃该字节, 否则输出; 参数是无符号值, 可直接交给 toupper/tolower
+    std::string filter(std::function<char(unsigned char)> func=nullptr);
 
     void clear();
     obj_val();
@@ -128,7 +146,7 @@ struct obj_val
     obj_val(const obj_t &v);
     obj_val(obj_t &&v);
     obj_val(const obj_val &v);
-    obj_val(obj_val &&v);
+    obj_val(obj_val &&v) noexcept;
     obj_val(const obj_array &v);
     obj_val(obj_array &&v);
 
@@ -150,6 +168,8 @@ struct obj_val
     obj_val &operator=(const std::string &_str);
     obj_val &operator=(std::string_view str);
     obj_val &operator=(const char *str);
+    // 没有这个重载时 `x = nullptr` 会选中 operator=(const char*) 并在 strlen 上崩溃
+    obj_val &operator=(std::nullptr_t);
 
     obj_val &operator=(long long i);
     obj_val &operator=(unsigned long long i);
@@ -187,6 +207,12 @@ struct obj_val
     obj_val &push(obj_val &&v);
     obj_val &push(const std::string &key, obj_val &&v);
     obj_val &push(const std::string &key, const obj_val &v);
+
+    // 显式的追加/合并入口: operator= 是整体覆盖, 需要保留旧语义时调用.
+    // - 目标是 ARRAY: 把 v 的内容追加进来 (v 为 ARRAY 则展开每个元素, 否则作为一项追加)
+    // - 目标是 OBJECT 且 v 为 OBJECT: 逐键合并 (同名键用 v 的值覆盖)
+    // - 类型不匹配: 退回整体覆盖
+    obj_val &append(const obj_val &v);
 
     obj_val &find(const obj_val &v);
     obj_val &find(const std::string &v);
@@ -234,18 +260,16 @@ struct obj_val
     obj_val(const std::initializer_list<double> nsl);
     obj_val(const std::initializer_list<std::pair<std::string, double>> nsl);
 
-    std::vector<obj_val>::iterator begin();
-    std::vector<obj_val>::iterator end();
-    std::vector<obj_val>::const_iterator cbegin() const;
-    std::vector<obj_val>::const_iterator cend() const;
+    // 定义放在文件末尾(obj_t/obj_array 完整之后); 类型不是数组/对象时抛 std::runtime_error
+    auto begin();
+    auto end();
+    auto cbegin() const;
+    auto cend() const;
 
-    std::vector<std::pair<std::string, obj_val>>::iterator obj_begin();
-    std::vector<std::pair<std::string, obj_val>>::iterator obj_end();
-    std::vector<std::pair<std::string, obj_val>>::const_iterator obj_cbegin() const;
-    std::vector<std::pair<std::string, obj_val>>::const_iterator obj_cend() const;
-
-    std::vector<std::pair<std::string, obj_val>> get_obj();
-    std::vector<obj_val> get_array();
+    auto obj_begin();
+    auto obj_end();
+    auto obj_cbegin() const;
+    auto obj_cend() const;
 
     const char *c_str() const;
     char *str_data();
@@ -260,8 +284,8 @@ struct obj_val
     int casecmp(const std::string &str) const;
 
     void from_json(const std::string &json_str);
-    std::string to_json();
-    std::string to_json_uncode();
+    std::string to_json() const;
+    std::string to_json_uncode() const;
 
     std::vector<std::pair<std::string, obj_val>> &as_object();
     std::vector<obj_val> &as_array();
@@ -284,13 +308,64 @@ struct obj_val
 struct obj_t
 {
   public:
+    // 插入/删除可能搬动元素, operator[]/as_object() 返回的引用与迭代器随之失效
     std::vector<std::pair<std::string, obj_val>> _data;
 };
 struct obj_array
 {
   public:
+    // 插入/删除可能搬动元素, operator[]/as_array() 返回的引用与迭代器随之失效
     std::vector<obj_val> _data;
 };
+
+inline auto obj_val::begin()
+{
+    if (_val_type == obj_type::ARRAY)
+        return array_val->_data.begin();
+    throw std::runtime_error("Not an array");
+}
+inline auto obj_val::end()
+{
+    if (_val_type == obj_type::ARRAY)
+        return array_val->_data.end();
+    throw std::runtime_error("Not an array");
+}
+inline auto obj_val::cbegin() const
+{
+    if (_val_type == obj_type::ARRAY)
+        return array_val->_data.cbegin();
+    throw std::runtime_error("Not an array");
+}
+inline auto obj_val::cend() const
+{
+    if (_val_type == obj_type::ARRAY)
+        return array_val->_data.cend();
+    throw std::runtime_error("Not an array");
+}
+inline auto obj_val::obj_begin()
+{
+    if (_val_type == obj_type::OBJECT)
+        return obj->_data.begin();
+    throw std::runtime_error("Not an object");
+}
+inline auto obj_val::obj_end()
+{
+    if (_val_type == obj_type::OBJECT)
+        return obj->_data.end();
+    throw std::runtime_error("Not an object");
+}
+inline auto obj_val::obj_cbegin() const
+{
+    if (_val_type == obj_type::OBJECT)
+        return obj->_data.cbegin();
+    throw std::runtime_error("Not an object");
+}
+inline auto obj_val::obj_cend() const
+{
+    if (_val_type == obj_type::OBJECT)
+        return obj->_data.cend();
+    throw std::runtime_error("Not an object");
+}
 }// namespace http
-std::ostream &operator<<(std::ostream &, http::obj_val &);
+std::ostream &operator<<(std::ostream &, const http::obj_val &);
 #endif

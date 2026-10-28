@@ -135,6 +135,12 @@ foreach(test_src IN LISTS test_cpp_files)
     )
   endif()
 
+  # POST 表单 obj_val 探针：obj_val 实现在 request.cpp，不加这一段则所有 obj_val 符号未定义
+  # The POST-form probe needs the obj_val implementation, which lives in request.cpp.
+  if(test_name MATCHES "post_form_probe")
+    target_sources(${test_name} PRIVATE "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/request.cpp")
+  endif()
+
   # --- test_pzexcel_p2: needs pzexcel + pzzip sources and ENABLE_OFFICE + zlib ---
   if(test_name MATCHES "pzexcel_p2")
     target_compile_definitions(${test_name} PRIVATE ENABLE_OFFICE)

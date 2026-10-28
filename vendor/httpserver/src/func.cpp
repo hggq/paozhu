@@ -743,6 +743,8 @@ std::string mb_substr(std::string_view str, int begin, int length)
                 }
                 else if (c >= 0xC0 && c < 0xE0)
                 {
+                    if (pos + 1 >= str.size())
+                        break;
                     if (offsetnum >= n)
                     {
                         temp.push_back(str[pos]);
@@ -753,6 +755,8 @@ std::string mb_substr(std::string_view str, int begin, int length)
                 }
                 else if (c >= 0xE0 && c < 0xF0)
                 {
+                    if (pos + 2 >= str.size())
+                        break;
                     if (offsetnum >= n)
                     {
                         temp.push_back(str[pos]);
@@ -764,6 +768,8 @@ std::string mb_substr(std::string_view str, int begin, int length)
                 }
                 else if (c >= 0xF0 && c < 0xF8)
                 {
+                    if (pos + 3 >= str.size())
+                        break;
                     if (offsetnum >= n)
                     {
                         temp.push_back(str[pos]);
@@ -834,6 +840,8 @@ std::string mb_substr(std::string_view str, int begin, int length)
                 }
                 else if (c >= 0xC0 && c < 0xE0)
                 {
+                    if (pos + 1 >= str.size())
+                        break;
                     if (offsetnum >= n)
                     {
                         temp.push_back(str[pos]);
@@ -844,6 +852,8 @@ std::string mb_substr(std::string_view str, int begin, int length)
                 }
                 else if (c >= 0xE0 && c < 0xF0)
                 {
+                    if (pos + 2 >= str.size())
+                        break;
                     if (offsetnum >= n)
                     {
                         temp.push_back(str[pos]);
@@ -855,6 +865,8 @@ std::string mb_substr(std::string_view str, int begin, int length)
                 }
                 else if (c >= 0xF0 && c < 0xF8)
                 {
+                    if (pos + 3 >= str.size())
+                        break;
                     if (offsetnum >= n)
                     {
                         temp.push_back(str[pos]);
@@ -930,6 +942,8 @@ std::string mb_substr(std::string_view str, int begin, int length)
                 }
                 else if (c >= 0xC0 && c < 0xE0)
                 {
+                    if (pos + 1 >= str.size())
+                        break;
                     if (offsetnum >= n)
                     {
                         temp.push_back(str[pos]);
@@ -940,6 +954,8 @@ std::string mb_substr(std::string_view str, int begin, int length)
                 }
                 else if (c >= 0xE0 && c < 0xF0)
                 {
+                    if (pos + 2 >= str.size())
+                        break;
                     if (offsetnum >= n)
                     {
                         temp.push_back(str[pos]);
@@ -951,6 +967,8 @@ std::string mb_substr(std::string_view str, int begin, int length)
                 }
                 else if (c >= 0xF0 && c < 0xF8)
                 {
+                    if (pos + 3 >= str.size())
+                        break;
                     if (offsetnum >= n)
                     {
                         temp.push_back(str[pos]);
@@ -1006,6 +1024,8 @@ std::string mb_substr(std::string_view str, int begin, int length)
                 }
                 else if (c >= 0xC0 && c < 0xE0)
                 {
+                    if (pos + 1 >= str.size())
+                        break;
                     if (offsetnum >= n)
                     {
                         temp.push_back(str[pos]);
@@ -1016,6 +1036,8 @@ std::string mb_substr(std::string_view str, int begin, int length)
                 }
                 else if (c >= 0xE0 && c < 0xF0)
                 {
+                    if (pos + 2 >= str.size())
+                        break;
                     if (offsetnum >= n)
                     {
                         temp.push_back(str[pos]);
@@ -1027,6 +1049,8 @@ std::string mb_substr(std::string_view str, int begin, int length)
                 }
                 else if (c >= 0xF0 && c < 0xF8)
                 {
+                    if (pos + 3 >= str.size())
+                        break;
                     if (offsetnum >= n)
                     {
                         temp.push_back(str[pos]);
@@ -1087,6 +1111,8 @@ std::string mb_substr(std::string_view str, int begin, int length)
                 }
                 else if (c >= 0xC0 && c < 0xE0)
                 {
+                    if (pos + 1 >= str.size())
+                        break;
                     if (offsetnum >= n)
                     {
                         temp.push_back(str[pos]);
@@ -1097,6 +1123,8 @@ std::string mb_substr(std::string_view str, int begin, int length)
                 }
                 else if (c >= 0xE0 && c < 0xF0)
                 {
+                    if (pos + 2 >= str.size())
+                        break;
                     if (offsetnum >= n)
                     {
                         temp.push_back(str[pos]);
@@ -1108,6 +1136,8 @@ std::string mb_substr(std::string_view str, int begin, int length)
                 }
                 else if (c >= 0xF0 && c < 0xF8)
                 {
+                    if (pos + 3 >= str.size())
+                        break;
                     if (offsetnum >= n)
                     {
                         temp.push_back(str[pos]);
@@ -1170,6 +1200,8 @@ std::string mb_substr(std::string_view str, int begin, int length)
                 }
                 else if (c >= 0xC0 && c < 0xE0)
                 {
+                    if (pos + 1 >= str.size())
+                        break;
                     if (offsetnum >= n)
                     {
                         temp.push_back(str[pos]);
@@ -1180,6 +1212,8 @@ std::string mb_substr(std::string_view str, int begin, int length)
                 }
                 else if (c >= 0xE0 && c < 0xF0)
                 {
+                    if (pos + 2 >= str.size())
+                        break;
                     if (offsetnum >= n)
                     {
                         temp.push_back(str[pos]);
@@ -1191,6 +1225,8 @@ std::string mb_substr(std::string_view str, int begin, int length)
                 }
                 else if (c >= 0xF0 && c < 0xF8)
                 {
+                    if (pos + 3 >= str.size())
+                        break;
                     if (offsetnum >= n)
                     {
                         temp.push_back(str[pos]);

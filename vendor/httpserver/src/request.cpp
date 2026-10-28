@@ -4,6 +4,7 @@
  * date 2026-07-24
  */
 #include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <iterator>
@@ -14,6 +15,7 @@
 #include <string>
 #include <stdexcept>
 #include <string_view>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 #include <list>
@@ -26,7 +28,7 @@
 
 namespace http
 {
-std::string obj_val::filter(std::function<char(char)> func)
+std::string obj_val::filter(std::function<char(unsigned char)> func)
 {
     std::string temp;
     if (_val_type != obj_type::STRING)
@@ -35,8 +37,9 @@ std::string obj_val::filter(std::function<char(char)> func)
         return temp;
     for (char c : str_)
     {
-        char a = func(c);
-        if (a > 0)
+        // 回调收无符号值, toupper/tolower 之类不再拿到负 char(未定义行为)
+        char a = func(static_cast<unsigned char>(c));
+        if (a != '\0')
             temp.push_back(a);
     }
     return temp;
@@ -47,7 +50,7 @@ unsigned int obj_val::mb_strlen()
     if (_val_type != obj_type::STRING)
         return 0;
     unsigned int temp_length = 0;
-    unsigned int pos = 0;
+    std::size_t pos = 0;
     while (pos < str_.size())
     {
         unsigned char c = (unsigned char)str_[pos];
@@ -116,7 +119,7 @@ std::string obj_val::mb_substr(int begin_pos, int cut_size)
     
     int offsetnum = 0;
     unsigned char c;
-    for (unsigned int pos = 0; pos < str_.size() && offsetnum < j; pos++)
+    for (std::size_t pos = 0; pos < str_.size() && offsetnum < j; pos++)
     {
         c = (unsigned char)str_[pos];
         if (c < 0x80)
@@ -248,7 +251,7 @@ bool obj_val::reserve(unsigned int resize)
         str_.reserve(resize);
         return true;
     }
-    else if (_val_type == obj_type::OBJECT)
+    else if (_val_type == obj_type::OBJECT && obj != nullptr)
     {
         if (resize > obj->_data.size())
         {
@@ -256,7 +259,7 @@ bool obj_val::reserve(unsigned int resize)
             return true;
         }
     }
-    else if (_val_type == obj_type::ARRAY)
+    else if (_val_type == obj_type::ARRAY && array_val != nullptr)
     {
         if (resize > array_val->_data.size())
         {
@@ -308,6 +311,8 @@ void obj_val::append(const std::string &v)
 
 void obj_val::append(const char *_str, unsigned int str_length)
 {
+    if (_str == nullptr)
+        return;
     if (_val_type == obj_type::NIL)
         _val_type = obj_type::STRING;
     if (_val_type != obj_type::STRING)
@@ -315,7 +320,7 @@ void obj_val::append(const char *_str, unsigned int str_length)
     str_.append(_str, str_length);
 }
 
-unsigned int obj_val::size() const
+std::size_t obj_val::size() const
 {
     if (_val_type == obj_type::ARRAY)
         return array_val->_data.size();
@@ -328,26 +333,15 @@ unsigned int obj_val::size() const
 
 obj_val &obj_val::operator[](unsigned int index)
 {
+    // 数字下标只做两件事: 数组取位置, 对象取十进制文本 key; 不再有「对象按位置取」的第三语义
     if (_val_type == obj_type::ARRAY)
     {
         if (index < array_val->_data.size())
             return array_val->_data[index];
+        throw std::out_of_range("obj_val::operator[]: array index out of range");
     }
-    else if (_val_type == obj_type::OBJECT)
-    {
-        if (index < obj->_data.size())
-            return obj->_data[index].second;
-        std::string key = std::to_string(index);
-        for (auto &pair : obj->_data)
-        {
-            if (pair.first == key)
-                return pair.second;
-        }
-        obj->_data.emplace_back(key, nullptr);
-        obj->_data.back().second.set_type(obj_type::NIL);
-        return obj->_data.back().second;
-    }
-    throw std::out_of_range("obj_val::operator[]: index out of range");
+    // 其余类型(含 NIL)与 ["<n>"] 走同一路径: NIL 建 OBJECT, 标量先清空再建 OBJECT
+    return (*this)[std::to_string(index)];
 }
 
 obj_val &obj_val::operator[](std::string_view key)
@@ -380,24 +374,8 @@ obj_val &obj_val::operator[](std::string_view key)
 
 const obj_val &obj_val::operator[](unsigned int index) const
 {
-    static const obj_val nil;
-    if (_val_type == obj_type::ARRAY)
-    {
-        if (index < array_val->_data.size())
-            return array_val->_data[index];
-    }
-    else if (_val_type == obj_type::OBJECT)
-    {
-        if (index < obj->_data.size())
-            return obj->_data[index].second;
-        std::string key = std::to_string(index);
-        for (const auto &pair : obj->_data)
-        {
-            if (pair.first == key)
-                return pair.second;
-        }
-    }
-    return nil;
+    // 数组走位置、对象走十进制文本 key、NIL 返回 nil, 与 ["<n>"] 的 const 版一致
+    return (*this)[std::to_string(index)];
 }
 
 const obj_val &obj_val::operator[](std::string_view key) const
@@ -422,26 +400,124 @@ const obj_val &obj_val::operator[](std::string_view key) const
     return nil;
 }
 
-void obj_val::clear()
+const obj_val &obj_val::at(std::string_view key) const
 {
     if (_val_type == obj_type::OBJECT)
     {
-        if (obj != nullptr)
+        for (const auto &pair : obj->_data)
+        {
+            if (pair.first == key)
+                return pair.second;
+        }
+    }
+    throw std::out_of_range("obj_val::at: key not found");
+}
+
+obj_val &obj_val::at(std::string_view key)
+{
+    if (_val_type == obj_type::OBJECT)
+    {
+        for (auto &pair : obj->_data)
+        {
+            if (pair.first == key)
+                return pair.second;
+        }
+    }
+    throw std::out_of_range("obj_val::at: key not found");
+}
+
+const obj_val &obj_val::at(unsigned int index) const
+{
+    if (_val_type != obj_type::ARRAY)
+        throw std::runtime_error("obj_val::at: not an array");
+    if (index >= array_val->_data.size())
+        throw std::out_of_range("obj_val::at: array index out of range");
+    return array_val->_data[index];
+}
+
+obj_val &obj_val::at(unsigned int index)
+{
+    if (_val_type != obj_type::ARRAY)
+        throw std::runtime_error("obj_val::at: not an array");
+    if (index >= array_val->_data.size())
+        throw std::out_of_range("obj_val::at: array index out of range");
+    return array_val->_data[index];
+}
+
+void obj_val::clear()
+{
+    if (_val_type == obj_type::OBJECT || _val_type == obj_type::ARRAY)
+        release_deep();
+    str_.clear();
+    _val_type = obj_type::NIL;
+}
+
+// 迭代式释放: 逐层把子容器摘下来再统一 delete, 避免析构按嵌套层数递归;
+// 通过 push/operator[] 搭出来的深树没有深度上限, 递归会撑爆栈.
+void obj_val::release_deep() noexcept
+{
+    std::vector<obj_val *> pending;
+    std::vector<obj_t *> owned_objs;
+    std::vector<obj_array *> owned_arrays;
+
+    auto detach = [&pending, &owned_objs, &owned_arrays](obj_val *p) {
+        if (p->_val_type == obj_type::OBJECT && p->obj != nullptr)
+        {
+            obj_t *o = p->obj;
+            // 先登记再摘: push_back 抛异常时 o 仍归 p 所有, catch 分支只删登记的容器
+            owned_objs.push_back(o);
+            p->obj = nullptr;
+            p->_val_type = obj_type::NIL;
+            for (auto &kv : o->_data)
+                pending.push_back(&kv.second);
+        }
+        else if (p->_val_type == obj_type::ARRAY && p->array_val != nullptr)
+        {
+            obj_array *a = p->array_val;
+            owned_arrays.push_back(a);
+            p->array_val = nullptr;
+            p->_val_type = obj_type::NIL;
+            for (auto &e : a->_data)
+                pending.push_back(&e);
+        }
+    };
+
+    try
+    {
+        detach(this);
+        while (!pending.empty())
+        {
+            obj_val *p = pending.back();
+            pending.pop_back();
+            detach(p);
+        }
+    }
+    catch (...)
+    {
+        // 内存不足时退回递归释放(极端场景, 宁可慢也不能漏)
+        for (obj_t *o : owned_objs)
+            delete o;
+        for (obj_array *a : owned_arrays)
+            delete a;
+        if (_val_type == obj_type::OBJECT && obj != nullptr)
         {
             delete obj;
             obj = nullptr;
         }
-    }
-    else if (_val_type == obj_type::ARRAY)
-    {
-        if (array_val != nullptr)
+        else if (_val_type == obj_type::ARRAY && array_val != nullptr)
         {
             delete array_val;
             array_val = nullptr;
         }
+        _val_type = obj_type::NIL;
+        return;
     }
-    str_.clear();
-    _val_type = obj_type::NIL;
+
+    // 此时树上的每个容器节点都已是 NIL, 删除容器不会再次递归
+    for (obj_t *o : owned_objs)
+        delete o;
+    for (obj_array *a : owned_arrays)
+        delete a;
 }
 
 obj_val &obj_val::operator=(long long i)
@@ -527,7 +603,8 @@ obj_val &obj_val::operator=(double i)
 obj_val &obj_val::operator=(long double i)
 {
     clear();
-    dval = i;
+    // long double 只保留到 double: obj_val 的数值存储是 union 里的 double
+    dval = static_cast<double>(i);
     _val_type = obj_type::DOUBLE;
     return *this;
 }
@@ -551,8 +628,16 @@ obj_val &obj_val::operator=(std::string_view v)
 obj_val &obj_val::operator=(const char *v)
 {
     clear();
+    if (v == nullptr)
+        return *this;
     str_ = v;
     _val_type = obj_type::STRING;
+    return *this;
+}
+
+obj_val &obj_val::operator=(std::nullptr_t)
+{
+    clear();
     return *this;
 }
 
@@ -576,77 +661,55 @@ obj_val &obj_val::operator=(const obj_val &v)
 {
     if (this == &v)
         return *this;
-    
-    if (_val_type == obj_type::OBJECT && v.get_type() == obj_type::OBJECT)
-    {
-        for (auto &iter : v.obj->_data)
-        {
-            auto iter2 = obj->_data.begin();
-            for (; iter2 != obj->_data.end(); iter2++)
-            {
-                if (iter.first == iter2->first)
-                {
-                    iter2->second = iter.second;
-                    break;
-                }
-            }
-            if (iter2 == obj->_data.end())
-                obj->_data.push_back(iter);
-        }
-        return *this;
-    }
-    else if (_val_type == obj_type::ARRAY)
-    {
-        // copy into a temporary first: v may alias an element of this array,
-        // and push_back reallocation would leave it dangling mid-copy
-        obj_val tmp(v);
-        array_val->_data.push_back(std::move(tmp));
-        return *this;
-    }
-    
+
+    // 整体覆盖, 与拷贝构造语义一致; 需要按键合并/数组追加请显式调用 append().
+    // v 可能就在 *this 的容器里(如 o = o["f"]), 必须先拍快照: clear() 会释放 v 所在的容器.
+    obj_val tmp(v);
     clear();
-    switch (v.get_type())
+    switch (tmp.get_type())
     {
     case obj_type::INT:
-        lval = v.lval;
+        lval = tmp.lval;
         _val_type = obj_type::INT;
         break;
     case obj_type::UINT:
-        uval = v.uval;
+        uval = tmp.uval;
         _val_type = obj_type::UINT;
         break;
     case obj_type::ULONG:
-        uval = v.uval;
+        uval = tmp.uval;
         _val_type = obj_type::ULONG;
         break;
     case obj_type::LONG:
-        lval = v.lval;
+        lval = tmp.lval;
         _val_type = obj_type::LONG;
         break;
     case obj_type::BOOL:
-        lval = v.lval;
+        lval = tmp.lval;
         _val_type = obj_type::BOOL;
         break;
     case obj_type::DOUBLE:
-        dval = v.dval;
+        dval = tmp.dval;
         _val_type = obj_type::DOUBLE;
         break;
     case obj_type::NIL:
         _val_type = obj_type::NIL;
         break;
     case obj_type::STRING:
-        str_ = v.str_;
+        str_ = std::move(tmp.str_);
         _val_type = obj_type::STRING;
         break;
     case obj_type::OBJECT:
+        obj = tmp.obj;
+        tmp.obj = nullptr;
+        tmp.set_type(obj_type::NIL);
         _val_type = obj_type::OBJECT;
-        obj = new obj_t;
-        obj->_data = v.obj->_data;
         break;
     case obj_type::ARRAY:
+        array_val = tmp.array_val;
+        tmp.array_val = nullptr;
+        tmp.set_type(obj_type::NIL);
         _val_type = obj_type::ARRAY;
-        array_val = new obj_array;
-        array_val->_data = v.array_val->_data;
         break;
     default:
         _val_type = obj_type::NIL;
@@ -654,14 +717,39 @@ obj_val &obj_val::operator=(const obj_val &v)
     return *this;
 }
 
-obj_val &obj_val::operator=(obj_val &&v)
+obj_val &obj_val::append(const obj_val &v)
 {
     if (this == &v)
         return *this;
-    
-    if (_val_type == obj_type::OBJECT && v.get_type() == obj_type::OBJECT)
+
+    // 先拍快照: v 可能就是 *this 容器里的元素(如 o.append(o["f"])),
+    // 直接引用会在扩容/clear 时悬垂; 这里统一走独立副本.
+    obj_val tmp(v);
+
+    if (tmp.get_type() == obj_type::ARRAY)
     {
-        for (auto &iter : v.obj->_data)
+        // 目标确保是 ARRAY: 没有就先建空的, 再展开追加 v 的每一个元素
+        if (_val_type != obj_type::ARRAY)
+        {
+            clear();
+            array_val = new obj_array;
+            _val_type = obj_type::ARRAY;
+        }
+        for (auto &e : tmp.array_val->_data)
+            array_val->_data.push_back(std::move(e));
+        return *this;
+    }
+
+    if (tmp.get_type() == obj_type::OBJECT)
+    {
+        // 目标确保是 OBJECT: 没有就先建空的, 再逐键合并 (同名键用 v 的值覆盖)
+        if (_val_type != obj_type::OBJECT)
+        {
+            clear();
+            obj = new obj_t;
+            _val_type = obj_type::OBJECT;
+        }
+        for (auto &iter : tmp.obj->_data)
         {
             auto iter2 = obj->_data.begin();
             for (; iter2 != obj->_data.end(); iter2++)
@@ -675,60 +763,70 @@ obj_val &obj_val::operator=(obj_val &&v)
             if (iter2 == obj->_data.end())
                 obj->_data.push_back(std::move(iter));
         }
-        v.obj->_data.clear();
-        v.set_type(obj_type::NIL);
         return *this;
     }
-    else if (_val_type == obj_type::ARRAY)
+
+    // v 是标量/STRING/NIL: 目标已经是 ARRAY 就作为一项追加, 否则退回整体覆盖
+    if (_val_type == obj_type::ARRAY)
     {
-        array_val->_data.push_back(std::move(v));
+        array_val->_data.push_back(std::move(tmp));
         return *this;
     }
-    
+    return operator=(std::move(tmp));
+}
+
+obj_val &obj_val::operator=(obj_val &&v)
+{
+    if (this == &v)
+        return *this;
+
+    // 同拷贝赋值: v 可能就在 *this 的容器里(如 o = std::move(o["f"])),
+    // 先把载荷偷进局部快照, 之后的 clear() 不会碰到它.
+    obj_val tmp(std::move(v));
     clear();
-    switch (v.get_type())
+    switch (tmp.get_type())
     {
     case obj_type::INT:
-        lval = v.lval;
+        lval = tmp.lval;
         _val_type = obj_type::INT;
         break;
     case obj_type::UINT:
-        uval = v.uval;
+        uval = tmp.uval;
         _val_type = obj_type::UINT;
         break;
     case obj_type::ULONG:
-        uval = v.uval;
+        uval = tmp.uval;
         _val_type = obj_type::ULONG;
         break;
     case obj_type::LONG:
-        lval = v.lval;
+        lval = tmp.lval;
         _val_type = obj_type::LONG;
         break;
     case obj_type::BOOL:
-        lval = v.lval;
+        lval = tmp.lval;
         _val_type = obj_type::BOOL;
         break;
     case obj_type::DOUBLE:
-        dval = v.dval;
+        dval = tmp.dval;
         _val_type = obj_type::DOUBLE;
         break;
     case obj_type::NIL:
         _val_type = obj_type::NIL;
         break;
     case obj_type::STRING:
-        str_ = std::move(v.str_);
+        str_ = std::move(tmp.str_);
         _val_type = obj_type::STRING;
         break;
     case obj_type::OBJECT:
-        obj = v.obj;
-        v.obj = nullptr;
-        v.set_type(obj_type::NIL);
+        obj = tmp.obj;
+        tmp.obj = nullptr;
+        tmp.set_type(obj_type::NIL);
         _val_type = obj_type::OBJECT;
         break;
     case obj_type::ARRAY:
-        array_val = v.array_val;
-        v.array_val = nullptr;
-        v.set_type(obj_type::NIL);
+        array_val = tmp.array_val;
+        tmp.array_val = nullptr;
+        tmp.set_type(obj_type::NIL);
         _val_type = obj_type::ARRAY;
         break;
     default:
@@ -737,12 +835,34 @@ obj_val &obj_val::operator=(obj_val &&v)
     return *this;
 }
 
+namespace
+{
+// p 是否落在这段连续存储里; 用来识别 push/zip 的参数就是自己内部的元素.
+// vector 扩容会把源元素搬走, 这种自引用必须先做成值再插入.
+bool points_into_storage(const void *p, const void *begin, std::size_t bytes)
+{
+    if (bytes == 0)
+        return false;
+    const std::uintptr_t q = reinterpret_cast<std::uintptr_t>(p);
+    const std::uintptr_t b = reinterpret_cast<std::uintptr_t>(begin);
+    return q >= b && q < b + bytes;
+}
+}
+
 obj_val &obj_val::push(const obj_val &v)
 {
     if (this == &v)
         return *this;
     if (_val_type == obj_type::ARRAY)
-        array_val->_data.emplace_back(v);
+    {
+        if (points_into_storage(&v, array_val->_data.data(), array_val->_data.size() * sizeof(obj_val)))
+        {
+            obj_val tmp(v);
+            array_val->_data.push_back(std::move(tmp));
+        }
+        else
+            array_val->_data.emplace_back(v);
+    }
     else if (_val_type == obj_type::NIL)
     {
         array_val = new obj_array;
@@ -757,7 +877,15 @@ obj_val &obj_val::push(obj_val &&v)
     if (this == &v)
         return *this;
     if (_val_type == obj_type::ARRAY)
-        array_val->_data.emplace_back(std::move(v));
+    {
+        if (points_into_storage(&v, array_val->_data.data(), array_val->_data.size() * sizeof(obj_val)))
+        {
+            obj_val tmp(v);
+            array_val->_data.push_back(std::move(tmp));
+        }
+        else
+            array_val->_data.emplace_back(std::move(v));
+    }
     else if (_val_type == obj_type::NIL)
     {
         array_val = new obj_array;
@@ -772,7 +900,17 @@ obj_val &obj_val::push(const std::string &key, const obj_val &v)
     if (this == &v)
         return *this;
     if (_val_type == obj_type::OBJECT)
-        obj->_data.emplace_back(key, v);
+    {
+        const std::size_t bytes = obj->_data.size() * sizeof(std::pair<std::string, obj_val>);
+        if (points_into_storage(&v, obj->_data.data(), bytes) || points_into_storage(&key, obj->_data.data(), bytes))
+        {
+            std::string tmp_key(key);
+            obj_val tmp_val(v);
+            obj->_data.emplace_back(std::move(tmp_key), std::move(tmp_val));
+        }
+        else
+            obj->_data.emplace_back(key, v);
+    }
     else if (_val_type == obj_type::NIL)
     {
         obj = new obj_t;
@@ -787,7 +925,17 @@ obj_val &obj_val::push(const std::string &key, obj_val &&v)
     if (this == &v)
         return *this;
     if (_val_type == obj_type::OBJECT)
-        obj->_data.emplace_back(key, std::move(v));
+    {
+        const std::size_t bytes = obj->_data.size() * sizeof(std::pair<std::string, obj_val>);
+        if (points_into_storage(&v, obj->_data.data(), bytes) || points_into_storage(&key, obj->_data.data(), bytes))
+        {
+            std::string tmp_key(key);
+            obj_val tmp_val(v);
+            obj->_data.emplace_back(std::move(tmp_key), std::move(tmp_val));
+        }
+        else
+            obj->_data.emplace_back(key, std::move(v));
+    }
     else if (_val_type == obj_type::NIL)
     {
         obj = new obj_t;
@@ -847,7 +995,7 @@ obj_val::obj_val(const obj_val &v)
     }
 }
 
-obj_val::obj_val(obj_val &&v)
+obj_val::obj_val(obj_val &&v) noexcept
 {
     switch (v.get_type())
     {
@@ -956,7 +1104,7 @@ std::string obj_val::to_string() const
     }
 }
 
-std::string obj_val::to_escape()
+std::string obj_val::to_sql_mysql_escape()
 {
     if (_val_type == obj_type::STRING)
     {
@@ -1047,22 +1195,8 @@ void obj_val::trim()
 
 obj_val::~obj_val()
 {
-    if (_val_type == obj_type::OBJECT)
-    {
-        if (obj != nullptr)
-        {
-            delete obj;
-            obj = nullptr;
-        }
-    }
-    else if (_val_type == obj_type::ARRAY)
-    {
-        if (array_val != nullptr)
-        {
-            delete array_val;
-            array_val = nullptr;
-        }
-    }
+    if (_val_type == obj_type::OBJECT || _val_type == obj_type::ARRAY)
+        release_deep();
 }
 
 obj_val::obj_val() : _val_type(obj_type::NIL) {}
@@ -1079,8 +1213,9 @@ obj_val::obj_val(short i) : lval(i), _val_type(obj_type::INT) {}
 obj_val::obj_val(float i) : dval(i), _val_type(obj_type::DOUBLE) {}
 obj_val::obj_val(double i) : dval(i), _val_type(obj_type::DOUBLE) {}
 obj_val::obj_val(long double i) : dval(i), _val_type(obj_type::DOUBLE) {}
-obj_val::obj_val(const char *_str) : str_(_str), _val_type(obj_type::STRING) {}
-obj_val::obj_val(const char *_str, unsigned int str_length) : str_(_str, str_length), _val_type(obj_type::STRING) {}
+obj_val::obj_val(const char *_str) : str_(_str ? _str : ""), _val_type(_str ? obj_type::STRING : obj_type::NIL) {}
+obj_val::obj_val(const char *_str, unsigned int str_length)
+    : str_(_str ? std::string(_str, str_length) : std::string()), _val_type(_str ? obj_type::STRING : obj_type::NIL) {}
 obj_val::obj_val(std::string_view _str) : str_(_str), _val_type(obj_type::STRING) {}
 obj_val::obj_val(const std::string &_str) : str_(_str), _val_type(obj_type::STRING) {}
 obj_val::obj_val(std::string &&_str) : str_(std::move(_str)), _val_type(obj_type::STRING) {}
@@ -1157,6 +1292,12 @@ unsigned long long obj_val::str_to_ulong()
     catch (const std::exception &) { return 0; }
 }
 
+// 字符串真值: "false"/"False"/"FALSE"/"0"/空串为假; to_bool() 与 operator bool 共用同一口径
+static bool str_truthy(const std::string &s)
+{
+    return !s.empty() && s != "false" && s != "False" && s != "FALSE" && s != "0";
+}
+
 bool obj_val::to_bool() const
 {
     switch (_val_type)
@@ -1164,7 +1305,7 @@ bool obj_val::to_bool() const
     case obj_type::NIL: return false;
     case obj_type::BOOL: return lval != 0;
     case obj_type::STRING:
-        return !str_.empty() && str_ != "false" && str_ != "False" && str_ != "FALSE" && str_ != "0";
+        return str_truthy(str_);
     case obj_type::INT:
     case obj_type::LONG: return lval != 0;
     case obj_type::UINT:
@@ -1189,7 +1330,9 @@ long long obj_val::to_int() const
     case obj_type::INT:
     case obj_type::LONG: return lval;
     case obj_type::UINT:
-    case obj_type::ULONG: return static_cast<long long>(uval);
+    case obj_type::ULONG:
+        // 超出 long long 的无符号值饱和到 LLONG_MAX, 避免回绕成负数
+        return uval > static_cast<unsigned long long>(LLONG_MAX) ? LLONG_MAX : static_cast<long long>(uval);
     case obj_type::DOUBLE: return static_cast<long long>(dval);
     default: return 0;
     }
@@ -1632,7 +1775,8 @@ bool obj_val::operator==(const obj_val &v)
     case obj_type::ULONG:
         return uval == v.uval;
     case obj_type::DOUBLE:
-        return fabs(dval - v.dval) < 1e-15;
+        // 精确比较: 带误差的比较不满足传递性, 会让去重/查找结果不确定
+        return dval == v.dval;
     case obj_type::OBJECT:
         if (obj->_data.size() != v.obj->_data.size())
             return false;
@@ -1744,62 +1888,6 @@ obj_val::obj_val(const std::initializer_list<std::pair<std::string, double>> nsl
         obj->_data.emplace_back(p.first, p.second);
 }
 
-std::vector<obj_val>::iterator obj_val::begin()
-{
-    if (_val_type == obj_type::ARRAY)
-        return array_val->_data.begin();
-    throw std::runtime_error("Not an array");
-}
-
-std::vector<obj_val>::iterator obj_val::end()
-{
-    if (_val_type == obj_type::ARRAY)
-        return array_val->_data.end();
-    throw std::runtime_error("Not an array");
-}
-
-std::vector<obj_val>::const_iterator obj_val::cbegin() const
-{
-    if (_val_type == obj_type::ARRAY)
-        return array_val->_data.cbegin();
-    throw std::runtime_error("Not an array");
-}
-
-std::vector<obj_val>::const_iterator obj_val::cend() const
-{
-    if (_val_type == obj_type::ARRAY)
-        return array_val->_data.cend();
-    throw std::runtime_error("Not an array");
-}
-
-std::vector<std::pair<std::string, obj_val>>::iterator obj_val::obj_begin()
-{
-    if (_val_type == obj_type::OBJECT)
-        return obj->_data.begin();
-    throw std::runtime_error("Not an object");
-}
-
-std::vector<std::pair<std::string, obj_val>>::iterator obj_val::obj_end()
-{
-    if (_val_type == obj_type::OBJECT)
-        return obj->_data.end();
-    throw std::runtime_error("Not an object");
-}
-
-std::vector<std::pair<std::string, obj_val>>::const_iterator obj_val::obj_cbegin() const
-{
-    if (_val_type == obj_type::OBJECT)
-        return obj->_data.cbegin();
-    throw std::runtime_error("Not an object");
-}
-
-std::vector<std::pair<std::string, obj_val>>::const_iterator obj_val::obj_cend() const
-{
-    if (_val_type == obj_type::OBJECT)
-        return obj->_data.cend();
-    throw std::runtime_error("Not an object");
-}
-
 bool obj_val::isset(const std::string &key)
 {
     if (_val_type != obj_type::OBJECT)
@@ -1812,7 +1900,8 @@ bool obj_val::isset(const std::string &key)
     return false;
 }
 
-static unsigned char chartoint(char a)
+// 返回 -1 表示不是十六进制字符; 上面两处 \u 转义必须靠它区分「数字 0」和「非法字符」
+static int chartoint(char a)
 {
     if (a >= '0' && a <= '9')
         return a - '0';
@@ -1820,13 +1909,27 @@ static unsigned char chartoint(char a)
         return a - 'a' + 10;
     if (a >= 'A' && a <= 'F')
         return a - 'A' + 10;
-    return 0;
+    return -1;
+}
+
+// 从 s[pos..pos+3] 读四个十六进制位; 非法字符抛 json_parse_error, 不能当成 0 继续编码
+static unsigned int hex4(const std::string &s, unsigned int pos)
+{
+    int h[4];
+    for (int i = 0; i < 4; i++)
+    {
+        h[i] = chartoint(s[pos + i]);
+        if (h[i] < 0)
+            throw json_parse_error("Invalid \\u escape in JSON string");
+    }
+    return static_cast<unsigned int>((h[0] << 12) | (h[1] << 8) | (h[2] << 4) | h[3]);
 }
 
 static std::string JSON_STRING(const std::string &jsonstr, unsigned int &offset)
 {
     std::string result;
     unsigned int j = offset;
+    bool closed = false;
     
     if (jsonstr[j] == 0x22)
     {
@@ -1853,6 +1956,10 @@ static std::string JSON_STRING(const std::string &jsonstr, unsigned int &offset)
                 result += 0x5c;
                 j += 1;
                 break;
+            case 0x2f:
+                result += 0x2f;
+                j += 1;
+                break;
             case 0x62:
                 result += 0x08;
                 j += 1;
@@ -1875,79 +1982,48 @@ static std::string JSON_STRING(const std::string &jsonstr, unsigned int &offset)
                 break;
             case 'u':
             {
-                unsigned char c[10] = {0x00};
-                unsigned char ch;
-                unsigned int temp;
+                if ((j + 6) >= jsonstr.length())
+                    throw json_parse_error("Truncated \\u escape in JSON string");
 
-                if ((j + 12) < jsonstr.length() && jsonstr[j + 2] == 'd' && jsonstr[j + 6] == 0x5c && jsonstr[j + 7] == 'u' &&
-                    jsonstr[j + 8] == 'd')
+                unsigned int temp = hex4(jsonstr, j + 2);
+
+                // 代理对合成一个码点; 落单的代理项编不成合法 UTF-8, 写 U+FFFD 顶上
+                if (temp >= 0xD800 && temp <= 0xDBFF && (j + 12) < jsonstr.length() &&
+                    jsonstr[j + 6] == 0x5c && jsonstr[j + 7] == 'u')
                 {
-                    for (int si = 2, cj = 0; si < 12; si++)
+                    unsigned int low = hex4(jsonstr, j + 8);
+                    if (low >= 0xDC00 && low <= 0xDFFF)
                     {
-                        if (jsonstr[j + si] != 0x5c && jsonstr[j + si] != 'u')
-                        {
-                            ch    = jsonstr[j + si];
-                            c[cj] = chartoint(ch);
-                            cj++;
-                        }
+                        temp = 0x10000 + ((temp - 0xD800) << 10) + (low - 0xDC00);
+                        result += static_cast<char>(0xF0 | (temp >> 18));
+                        result += static_cast<char>(0x80 | ((temp >> 12) & 0x3F));
+                        result += static_cast<char>(0x80 | ((temp >> 6) & 0x3F));
+                        result += static_cast<char>(0x80 | (temp & 0x3F));
+                        j += 11;
+                        break;
                     }
+                }
 
-                    unsigned short ca = c[0] << 12 | c[1] << 8 | c[2] << 4 | c[3];
-                    unsigned short cb = c[4] << 12 | c[5] << 8 | c[6] << 4 | c[7];
-                    temp              = 0x10000 | ((ca - 0xD800) << 10) | (cb - 0xDC00);
-
-                    c[3] = (temp & 0x3F) | 0x80;
-                    c[2] = ((temp >> 6) & 0x3F) | 0x80;
-                    c[1] = ((temp >> 12) & 0x3F) | 0x80;
-                    c[0] = ((temp >> 18) & 0x07) | 0xF0;
-                    c[4] = '\0';
-
-                    result += c[0];
-                    result += c[1];
-                    result += c[2];
-                    result += c[3];
-                    j += 11;
+                if (temp >= 0xD800 && temp <= 0xDFFF)
+                {
+                    result += "\xEF\xBF\xBD";
+                }
+                else if (temp < 0x80)
+                {
+                    result += static_cast<char>(temp);
+                }
+                else if (temp < 0x800)
+                {
+                    result += static_cast<char>(0xC0 | (temp >> 6));
+                    result += static_cast<char>(0x80 | (temp & 0x3F));
                 }
                 else
                 {
-                    if ((j + 6) >= jsonstr.length())
-                    {
-                        offset = jsonstr.length();
-                        return "";
-                    }
-
-                    for (int si = 2, cj = 0; si < 6; si++)
-                    {
-                        ch    = jsonstr[j + si];
-                        c[cj] = chartoint(ch);
-                        cj++;
-                    }
-                    temp = c[0] << 4 | c[1];
-                    temp = temp << 8 | c[2] << 4 | c[3];
-                    c[3] = '\0';
-
-                    if (temp < 0x80)
-                    {
-                        result += static_cast<char>(temp);
-                    }
-                    else if (temp < 0x800)
-                    {
-                        c[2] = (temp & 0x3F) | 0x80;
-                        c[1] = ((temp >> 6) & 0x3F) | 0xC0;
-                        result += c[1];
-                        result += c[2];
-                    }
-                    else
-                    {
-                        c[2] = (temp & 0x3F) | 0x80;
-                        c[1] = ((temp >> 6) & 0x3F) | 0x80;
-                        c[0] = ((temp >> 12) & 0x0F) | 0xE0;
-                        result += c[0];
-                        result += c[1];
-                        result += c[2];
-                    }
-                    j += 5;
+                    result += static_cast<char>(0xE0 | (temp >> 12));
+                    result += static_cast<char>(0x80 | ((temp >> 6) & 0x3F));
+                    result += static_cast<char>(0x80 | (temp & 0x3F));
                 }
+                j += 5;
             }
             break;
             default:
@@ -1958,6 +2034,7 @@ static std::string JSON_STRING(const std::string &jsonstr, unsigned int &offset)
         }
         else if (jsonstr[j] == 0x22)
         {
+            closed = true;
             break;
         }
         else
@@ -1965,19 +2042,30 @@ static std::string JSON_STRING(const std::string &jsonstr, unsigned int &offset)
             result += jsonstr[j];
         }
     }
-    
+
+    // 字符串必须以 " 收尾, 否则后面的字节会被当成 JSON 结构继续解析
+    if (!closed)
+        throw json_parse_error("Unterminated string in JSON");
+
     offset = j + 1;
     return result;
 }
 
 static int JSON_OBJ(const std::string &json_val, obj_t &obj, unsigned int &offset, unsigned int level);
 static int JSON_ARRAY(const std::string &json_val, obj_array &obj, unsigned int &offset, unsigned int level);
-static void from_json_internal(const std::string &json_str, obj_val &val, unsigned int &offset, unsigned int level);
+void from_json_internal(const std::string &json_str, obj_val &val, unsigned int &offset, unsigned int level);
 
 static int JSON_OBJ(const std::string &json_val, obj_t &obj, unsigned int &offset, unsigned int level)
 {
     if (level > JSON_MAX_DEPTH)
         throw json_parse_error("JSON nested depth exceeded");
+    // 重复键取最后一个值(与 JS/Python/Go 一致), 成员位置停在首次出现处
+    // 键存成 std::string: 成员数组扩容会搬动元素, string_view 指向的旧缓冲会失效
+    // 查重索引等成员多了才建: 建表要一次桶分配加每键一个节点, 常见对象只有几个键,
+    // 逐个建表的分配比线性比较更贵; 到阈值后补建索引, 成员接近上限时仍是 O(1) 查重
+    constexpr std::size_t dedup_index_min = 32;
+    std::unordered_map<std::string, std::size_t> seen;
+    bool has_index = false;
     offset++;
     while (offset < json_val.size())
     {
@@ -2002,9 +2090,43 @@ static int JSON_OBJ(const std::string &json_val, obj_t &obj, unsigned int &offse
         offset++;
         obj_val val;
         from_json_internal(json_val, val, offset, level + 1);
-        if (obj._data.size() >= JSON_MAX_OBJECT_MEMBERS)
-            throw json_parse_error("JSON object has too many members");
-        obj._data.emplace_back(key, std::move(val));
+        std::size_t dup_pos = obj._data.size();
+        if (has_index)
+        {
+            auto seen_it = seen.find(key);
+            if (seen_it != seen.end())
+                dup_pos = seen_it->second;
+        }
+        else
+        {
+            for (std::size_t i = 0; i < obj._data.size(); i++)
+            {
+                if (obj._data[i].first == key)
+                {
+                    dup_pos = i;
+                    break;
+                }
+            }
+        }
+        if (dup_pos == obj._data.size())
+        {
+            if (obj._data.size() >= JSON_MAX_OBJECT_MEMBERS)
+                throw json_parse_error("JSON object has too many members");
+            obj._data.emplace_back(key, std::move(val));
+            if (has_index)
+                seen.emplace(std::move(key), obj._data.size() - 1);
+            else if (obj._data.size() == dedup_index_min)
+            {
+                // 补建索引时键只能拷贝(成员还在用); 这个代价每个大对象只付一次
+                has_index = true;
+                for (std::size_t i = 0; i < obj._data.size(); i++)
+                    seen.emplace(obj._data[i].first, i);
+            }
+        }
+        else
+        {
+            obj._data[dup_pos].second = std::move(val);
+        }
         while (offset < json_val.size() && (json_val[offset] == ' ' || json_val[offset] == '\t' || json_val[offset] == '\r' || json_val[offset] == '\n'))
             offset++;
         if (offset >= json_val.size())
@@ -2064,10 +2186,11 @@ static int JSON_ARRAY(const std::string &json_val, obj_array &obj, unsigned int 
     throw json_parse_error("Unexpected end of JSON");
 }
 
-static void from_json_internal(const std::string &json_str, obj_val &val, unsigned int &offset, unsigned int level)
+void from_json_internal(const std::string &json_str, obj_val &val, unsigned int &offset, unsigned int level)
 {
     while (offset < json_str.size() && (json_str[offset] == ' ' || json_str[offset] == '\t' || json_str[offset] == '\r' || json_str[offset] == '\n'))
         offset++;
+    // 空正文当成 NIL: 调用方(读数据库空列/空 session 文件)依赖这条既有语义
     if (offset >= json_str.size())
         return;
     
@@ -2194,12 +2317,304 @@ void obj_val::from_json(const std::string &json_str)
     from_json_internal(json_str, *this, offset, 0);
     while (offset < json_str.size() && (json_str[offset] == ' ' || json_str[offset] == '\t' || json_str[offset] == '\r' || json_str[offset] == '\n'))
         offset++;
-    
+    // 一个值之后还有内容说明输入不是单个 JSON 文档, 直接拒绝而不是静默丢掉尾巴
+    if (offset < json_str.size())
+        throw json_parse_error("Unexpected trailing characters in JSON");
 }
 
-std::string obj_val::to_json()
+std::string obj_val::to_json() const
 {
     return to_json_internal(*this, 0);
+}
+
+// 把 src 按 JSON 字符串语法写进 out(含两侧引号), 非 ASCII 的 UTF-8 序列转成 \uXXXX
+static void append_json_escaped(std::string &result, std::string_view src)
+{
+    const char *text = src.data();
+    unsigned int text_length = static_cast<unsigned int>(src.size());
+    unsigned char c, t = 0;
+    static constexpr unsigned char str_[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+
+    result.push_back(0x22);
+    for (unsigned int i = 0; i < text_length; i++)
+    {
+        c = *(text + i);
+        if (c < 0x80)
+        {
+            switch (c)
+            {
+            case 0x22:
+                result.push_back(0x5c);
+                result.push_back(0x22);
+                break;
+            case 0x60:
+                result.push_back(0x60);
+                break;
+            case 0x27:
+                result.push_back(0x27);
+                break;
+            case 0x2f:
+                result.push_back('/');
+                break;
+            case 0x08:
+                result.push_back(0x5c);
+                result.push_back('b');
+                break;
+            case 0x0c:
+                result.push_back(0x5c);
+                result.push_back('f');
+                break;
+            case 0x0a:
+                result.push_back(0x5c);
+                result.push_back('n');
+                break;
+            case 0x0d:
+                result.push_back(0x5c);
+                result.push_back('r');
+                break;
+            case 0x09:
+                result.push_back(0x5c);
+                result.push_back('t');
+                break;
+            case 0x5c:
+                result.push_back(0x5c);
+                result.push_back(0x5c);
+                break;
+            default:
+                if (c < 0x20)
+                {
+                    // JSON 字符串中 0x00-0x1F 控制字符必须转义为 \u00XX, 否则生成非法JSON
+                    result.push_back(0x5c);
+                    result.push_back(0x75);
+                    result.push_back('0');
+                    result.push_back('0');
+                    result.push_back(str_[(c >> 4) & 0x0F]);
+                    result.push_back(str_[c & 0x0F]);
+                }
+                else
+                {
+                    result.push_back(c);
+                }
+            }
+        }
+        else if (c >= 0x80 && c < 0xC0)
+        {
+            result.push_back(c);
+        }
+        else if (c >= 0xC0 && c < 0xE0)
+        {
+            unsigned char b1, b2, cp[2], temp;
+            if ((i + 1) >= text_length)
+            {
+                result.push_back(c);
+            }
+            else
+            {
+                b1 = c;
+                b2 = *(text + i + 1);
+                if ((b2 & 0xE0) != 0x80)
+                {
+                    result.push_back(c);
+                }
+                else
+                {
+                    result.push_back(0x5c);
+                    result.push_back(0x75);
+
+                    temp = (b1 >> 2) & 0x07;
+
+                    t     = temp & 0xF;
+                    cp[1] = str_[t];
+                    temp  = temp >> 4;
+                    t     = temp & 0xF;
+                    cp[0] = str_[t];
+
+                    result.push_back(cp[0]);
+                    result.push_back(cp[1]);
+
+                    temp = (b1 << 6) + (b2 & 0x3F);
+                    t     = temp & 0xF;
+                    cp[1] = str_[t];
+                    temp  = temp >> 4;
+                    t     = temp & 0xF;
+                    cp[0] = str_[t];
+
+                    result.push_back(cp[0]);
+                    result.push_back(cp[1]);
+
+                    i++;
+                }
+            }
+        }
+        else if (c >= 0xE0 && c < 0xF0)
+        {
+            unsigned char b1, b2, b3, cp[2], temp;
+            if ((i + 2) >= text_length)
+            {
+                result.push_back(c);
+            }
+            else
+            {
+                b1 = c;
+                b2 = *(text + i + 1);
+                b3 = *(text + i + 2);
+                if (((b2 & 0xC0) != 0x80) || ((b3 & 0xC0) != 0x80))
+                {
+                    result.push_back(c);
+                }
+                else
+                {
+                    result.push_back(0x5c);
+                    result.push_back(0x75);
+
+                    temp = (b1 << 4) + ((b2 >> 2) & 0x0F);
+                    t     = temp & 0xF;
+                    cp[1] = str_[t];
+                    temp  = temp >> 4;
+                    t     = temp & 0xF;
+                    cp[0] = str_[t];
+
+                    result.push_back(cp[0]);
+                    result.push_back(cp[1]);
+
+                    temp = (b2 << 6) + (b3 & 0x3F);
+                    t     = temp & 0xF;
+                    cp[1] = str_[t];
+                    temp  = temp >> 4;
+                    t     = temp & 0xF;
+                    cp[0] = str_[t];
+
+                    result.push_back(cp[0]);
+                    result.push_back(cp[1]);
+                    i += 2;
+                }
+            }
+        }
+        else if (c >= 0xF0 && c < 0xF8)
+        {
+            unsigned char b1, b2, b3, b4, cp[2], temp;
+            unsigned int out = 0, untext = 0;
+            if ((i + 3) >= text_length)
+            {
+                result.push_back(c);
+            }
+            else
+            {
+                b1 = c;
+                b2 = *(text + i + 1);
+                b3 = *(text + i + 2);
+                b4 = *(text + i + 3);
+
+                if (((b2 & 0xC0) != 0x80) || ((b3 & 0xC0) != 0x80) || ((b4 & 0xC0) != 0x80))
+                {
+                    result.push_back(c);
+                }
+                else
+                {
+                    result.push_back(0x5c);
+                    result.push_back(0x75);
+
+                    unsigned char *pOutput = (unsigned char *)&out;
+                    *pOutput       = (b3 << 6) + (b4 & 0x3F);
+                    *(pOutput + 1) = (b2 << 4) + ((b3 >> 2) & 0x0F);
+                    *(pOutput + 2) = ((b1 << 2) & 0x1C) + ((b2 >> 4) & 0x03);
+                    untext         = (((((out - 0x10000) >> 10) | 0xD800) << 16) | (((out - 0x10000) & 0x3FF) | 0xDC00));
+
+                    pOutput = (unsigned char *)&untext;
+
+                    temp = pOutput[3];
+                    t     = temp & 0xF;
+                    cp[1] = str_[t];
+                    temp  = temp >> 4;
+                    t     = temp & 0xF;
+                    cp[0] = str_[t];
+
+                    result.push_back(cp[0]);
+                    result.push_back(cp[1]);
+
+                    temp = pOutput[2];
+                    t     = temp & 0xF;
+                    cp[1] = str_[t];
+                    temp  = temp >> 4;
+                    t     = temp & 0xF;
+                    cp[0] = str_[t];
+
+                    result.push_back(cp[0]);
+                    result.push_back(cp[1]);
+
+                    result.push_back(0x5c);
+                    result.push_back(0x75);
+
+                    temp = pOutput[1];
+                    t     = temp & 0xF;
+                    cp[1] = str_[t];
+                    temp  = temp >> 4;
+                    t     = temp & 0xF;
+                    cp[0] = str_[t];
+
+                    result.push_back(cp[0]);
+                    result.push_back(cp[1]);
+
+                    temp = pOutput[0];
+                    t     = temp & 0xF;
+                    cp[1] = str_[t];
+                    temp  = temp >> 4;
+                    t     = temp & 0xF;
+                    cp[0] = str_[t];
+
+                    result.push_back(cp[0]);
+                    result.push_back(cp[1]);
+
+                    i += 3;
+                }
+            }
+        }
+        else if (c >= 0xF8 && c < 0xFC)
+        {
+            result.push_back(c);
+        }
+        else
+        {
+            result.push_back(c);
+        }
+    }
+    result.push_back(0x22);
+}
+
+// 把 src 按 JSON 字符串语法写进 out(含两侧引号), 保留 UTF-8 原文
+static void append_json_raw(std::string &result, std::string_view src)
+{
+    result.push_back(0x22);
+    for (char ch : src)
+    {
+        unsigned char c = static_cast<unsigned char>(ch);
+        switch (c)
+        {
+        case '"': result += "\\\""; break;
+        case '\\': result += "\\\\"; break;
+        case '/': result += "\\/"; break;
+        case '\b': result += "\\b"; break;
+        case '\f': result += "\\f"; break;
+        case '\n': result += "\\n"; break;
+        case '\r': result += "\\r"; break;
+        case '\t': result += "\\t"; break;
+        default:
+            if (c < 0x20)
+            {
+                // JSON 字符串中 0x00-0x1F 控制字符必须转义为 \u00XX
+                static constexpr char hex_[] = "0123456789abcdef";
+                result += "\\u00";
+                result.push_back(hex_[(c >> 4) & 0x0F]);
+                result.push_back(hex_[c & 0x0F]);
+            }
+            else
+            {
+                result.push_back(ch);
+            }
+            break;
+        }
+    }
+    result.push_back(0x22);
 }
 
 std::string to_json_internal(const obj_val &val, unsigned int level)
@@ -2215,255 +2630,8 @@ std::string to_json_internal(const obj_val &val, unsigned int level)
         return val.lval ? "true" : "false";
     case obj_type::STRING:
     {
-        std::string result = "\"";
-        const char *text = val.str_.c_str();
-        unsigned int text_length = val.str_.size();
-        unsigned char c, t = 0;
-        static constexpr unsigned char str_[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-
-        for (unsigned int i = 0; i < text_length; i++)
-        {
-            c = *(text + i);
-            if (c < 0x80)
-            {
-                switch (c)
-                {
-                case 0x22:
-                    result.push_back(0x5c);
-                    result.push_back(0x22);
-                    break;
-                case 0x60:
-                    result.push_back(0x60);
-                    break;
-                case 0x27:
-                    result.push_back(0x27);
-                    break;
-                case 0x2f:
-                    result.push_back('/');
-                    break;
-                case 0x08:
-                    result.push_back(0x5c);
-                    result.push_back('b');
-                    break;
-                case 0x0c:
-                    result.push_back(0x5c);
-                    result.push_back('f');
-                    break;
-                case 0x0a:
-                    result.push_back(0x5c);
-                    result.push_back('n');
-                    break;
-                case 0x0d:
-                    result.push_back(0x5c);
-                    result.push_back('r');
-                    break;
-                case 0x09:
-                    result.push_back(0x5c);
-                    result.push_back('t');
-                    break;
-                case 0x5c:
-                    result.push_back(0x5c);
-                    result.push_back(0x5c);
-                    break;
-                default:
-                    if (c < 0x20)
-                    {
-                        // JSON 字符串中 0x00-0x1F 控制字符必须转义为 \u00XX, 否则生成非法JSON
-                        result.push_back(0x5c);
-                        result.push_back(0x75);
-                        result.push_back('0');
-                        result.push_back('0');
-                        result.push_back(str_[(c >> 4) & 0x0F]);
-                        result.push_back(str_[c & 0x0F]);
-                    }
-                    else
-                    {
-                        result.push_back(c);
-                    }
-                }
-            }
-            else if (c >= 0x80 && c < 0xC0)
-            {
-                result.push_back(c);
-            }
-            else if (c >= 0xC0 && c < 0xE0)
-            {
-                unsigned char b1, b2, cp[2], temp;
-                if ((i + 1) >= text_length)
-                {
-                    result.push_back(c);
-                }
-                else
-                {
-                    b1 = c;
-                    b2 = *(text + i + 1);
-                    if ((b2 & 0xE0) != 0x80)
-                    {
-                        result.push_back(c);
-                    }
-                    else
-                    {
-                        result.push_back(0x5c);
-                        result.push_back(0x75);
-
-                        temp = (b1 >> 2) & 0x07;
-
-                        t     = temp & 0xF;
-                        cp[1] = str_[t];
-                        temp  = temp >> 4;
-                        t     = temp & 0xF;
-                        cp[0] = str_[t];
-
-                        result.push_back(cp[0]);
-                        result.push_back(cp[1]);
-
-                        temp = (b1 << 6) + (b2 & 0x3F);
-                        t     = temp & 0xF;
-                        cp[1] = str_[t];
-                        temp  = temp >> 4;
-                        t     = temp & 0xF;
-                        cp[0] = str_[t];
-
-                        result.push_back(cp[0]);
-                        result.push_back(cp[1]);
-
-                        i++;
-                    }
-                }
-            }
-            else if (c >= 0xE0 && c < 0xF0)
-            {
-                unsigned char b1, b2, b3, cp[2], temp;
-                if ((i + 2) >= text_length)
-                {
-                    result.push_back(c);
-                }
-                else
-                {
-                    b1 = c;
-                    b2 = *(text + i + 1);
-                    b3 = *(text + i + 2);
-                    if (((b2 & 0xC0) != 0x80) || ((b3 & 0xC0) != 0x80))
-                    {
-                        result.push_back(c);
-                    }
-                    else
-                    {
-                        result.push_back(0x5c);
-                        result.push_back(0x75);
-
-                        temp = (b1 << 4) + ((b2 >> 2) & 0x0F);
-                        t     = temp & 0xF;
-                        cp[1] = str_[t];
-                        temp  = temp >> 4;
-                        t     = temp & 0xF;
-                        cp[0] = str_[t];
-
-                        result.push_back(cp[0]);
-                        result.push_back(cp[1]);
-
-                        temp = (b2 << 6) + (b3 & 0x3F);
-                        t     = temp & 0xF;
-                        cp[1] = str_[t];
-                        temp  = temp >> 4;
-                        t     = temp & 0xF;
-                        cp[0] = str_[t];
-
-                        result.push_back(cp[0]);
-                        result.push_back(cp[1]);
-                        i += 2;
-                    }
-                }
-            }
-            else if (c >= 0xF0 && c < 0xF8)
-            {
-                unsigned char b1, b2, b3, b4, cp[2], temp;
-                unsigned int out = 0, untext = 0;
-                if ((i + 3) >= text_length)
-                {
-                    result.push_back(c);
-                }
-                else
-                {
-                    b1 = c;
-                    b2 = *(text + i + 1);
-                    b3 = *(text + i + 2);
-                    b4 = *(text + i + 3);
-
-                    if (((b2 & 0xC0) != 0x80) || ((b3 & 0xC0) != 0x80) || ((b4 & 0xC0) != 0x80))
-                    {
-                        result.push_back(c);
-                    }
-                    else
-                    {
-                        result.push_back(0x5c);
-                        result.push_back(0x75);
-
-                        unsigned char *pOutput = (unsigned char *)&out;
-                        *pOutput       = (b3 << 6) + (b4 & 0x3F);
-                        *(pOutput + 1) = (b2 << 4) + ((b3 >> 2) & 0x0F);
-                        *(pOutput + 2) = ((b1 << 2) & 0x1C) + ((b2 >> 4) & 0x03);
-                        untext         = (((((out - 0x10000) >> 10) | 0xD800) << 16) | (((out - 0x10000) & 0x3FF) | 0xDC00));
-
-                        pOutput = (unsigned char *)&untext;
-
-                        temp = pOutput[3];
-                        t     = temp & 0xF;
-                        cp[1] = str_[t];
-                        temp  = temp >> 4;
-                        t     = temp & 0xF;
-                        cp[0] = str_[t];
-
-                        result.push_back(cp[0]);
-                        result.push_back(cp[1]);
-
-                        temp = pOutput[2];
-                        t     = temp & 0xF;
-                        cp[1] = str_[t];
-                        temp  = temp >> 4;
-                        t     = temp & 0xF;
-                        cp[0] = str_[t];
-
-                        result.push_back(cp[0]);
-                        result.push_back(cp[1]);
-
-                        result.push_back(0x5c);
-                        result.push_back(0x75);
-
-                        temp = pOutput[1];
-                        t     = temp & 0xF;
-                        cp[1] = str_[t];
-                        temp  = temp >> 4;
-                        t     = temp & 0xF;
-                        cp[0] = str_[t];
-
-                        result.push_back(cp[0]);
-                        result.push_back(cp[1]);
-
-                        temp = pOutput[0];
-                        t     = temp & 0xF;
-                        cp[1] = str_[t];
-                        temp  = temp >> 4;
-                        t     = temp & 0xF;
-                        cp[0] = str_[t];
-
-                        result.push_back(cp[0]);
-                        result.push_back(cp[1]);
-
-                        i += 3;
-                    }
-                }
-            }
-            else if (c >= 0xF8 && c < 0xFC)
-            {
-                result.push_back(c);
-            }
-            else
-            {
-                result.push_back(c);
-            }
-        }
-        result += "\"";
+        std::string result;
+        append_json_escaped(result, val.str_);
         return result;
     }
     case obj_type::INT:
@@ -2476,9 +2644,12 @@ std::string to_json_internal(const obj_val &val, unsigned int level)
         return std::to_string(val.uval);
     case obj_type::DOUBLE:
     {
+        // JSON 没有 NaN/Inf 字面量, 与 NIL 一样输出 null, 避免整条响应抛异常
         if (!std::isfinite(val.dval))
-            throw json_parse_error("JSON double value is not finite");
-        std::string result = std::to_string(val.dval);
+            return "null";
+        char buffer[64];
+        auto [ptr, ec] = std::to_chars(buffer, buffer + sizeof(buffer), val.dval);
+        std::string result(buffer, ptr);
         if (result.find('.') == std::string::npos && result.find('e') == std::string::npos)
             result += ".0";
         return result;
@@ -2492,7 +2663,8 @@ std::string to_json_internal(const obj_val &val, unsigned int level)
             if (!first)
                 result += ",";
             first = false;
-            result += "\"" + pair.first + "\":";
+            append_json_escaped(result, pair.first);
+            result.push_back(':');
             result += to_json_internal(pair.second, level + 1);
         }
         result += "}";
@@ -2517,7 +2689,7 @@ std::string to_json_internal(const obj_val &val, unsigned int level)
     }
 }
 
-std::string obj_val::to_json_uncode()
+std::string obj_val::to_json_uncode() const
 {
     return to_json_uncode_internal(*this, 0);
 }
@@ -2535,37 +2707,8 @@ std::string to_json_uncode_internal(const obj_val &val, unsigned int level)
         return val.lval ? "true" : "false";
     case obj_type::STRING:
     {
-        std::string result = "\"";
-        for (char ch : val.str_)
-        {
-            unsigned char c = static_cast<unsigned char>(ch);
-            switch (c)
-            {
-            case '"': result += "\\\""; break;
-            case '\\': result += "\\\\"; break;
-            case '/': result += "\\/"; break;
-            case '\b': result += "\\b"; break;
-            case '\f': result += "\\f"; break;
-            case '\n': result += "\\n"; break;
-            case '\r': result += "\\r"; break;
-            case '\t': result += "\\t"; break;
-            default:
-                if (c < 0x20)
-                {
-                    // JSON 字符串中 0x00-0x1F 控制字符必须转义为 \u00XX
-                    static constexpr char hex_[] = "0123456789abcdef";
-                    result += "\\u00";
-                    result.push_back(hex_[(c >> 4) & 0x0F]);
-                    result.push_back(hex_[c & 0x0F]);
-                }
-                else
-                {
-                    result.push_back(ch);
-                }
-                break;
-            }
-        }
-        result += "\"";
+        std::string result;
+        append_json_raw(result, val.str_);
         return result;
     }
     case obj_type::INT:
@@ -2578,9 +2721,12 @@ std::string to_json_uncode_internal(const obj_val &val, unsigned int level)
         return std::to_string(val.uval);
     case obj_type::DOUBLE:
     {
+        // JSON 没有 NaN/Inf 字面量, 与 NIL 一样输出 null, 避免整条响应抛异常
         if (!std::isfinite(val.dval))
-            throw json_parse_error("JSON double value is not finite");
-        std::string result = std::to_string(val.dval);
+            return "null";
+        char buffer[64];
+        auto [ptr, ec] = std::to_chars(buffer, buffer + sizeof(buffer), val.dval);
+        std::string result(buffer, ptr);
         if (result.find('.') == std::string::npos && result.find('e') == std::string::npos)
             result += ".0";
         return result;
@@ -2594,7 +2740,8 @@ std::string to_json_uncode_internal(const obj_val &val, unsigned int level)
             if (!first)
                 result += ",";
             first = false;
-            result += "\"" + pair.first + "\":";
+            append_json_raw(result, pair.first);
+            result.push_back(':');
             result += to_json_uncode_internal(pair.second, level + 1);
         }
         result += "}";
@@ -2833,6 +2980,14 @@ void obj_val::zip(const std::vector<std::string> &key, const obj_val &val)
 
 void obj_val::zip(const obj_val &key, const obj_val &val)
 {
+    // this 就是 key/val 时 clear() 会先把要读的数组删掉, 先做快照
+    if (this == &key || this == &val)
+    {
+        obj_val key_copy(key);
+        obj_val val_copy(val);
+        zip(key_copy, val_copy);
+        return;
+    }
     if (key._val_type != obj_type::ARRAY || val._val_type != obj_type::ARRAY)
         return;
     clear();
@@ -2921,12 +3076,6 @@ obj_val obj_val::multi_sort(std::string_view key, unsigned char order, std::stri
     return result;
 }
 
-std::ostream &operator<<(std::ostream &os, http::obj_val &v)
-{
-    os << v.to_json();
-    return os;
-}
-
 obj_val::operator double() const
 {
     switch (_val_type)
@@ -2976,9 +3125,11 @@ obj_val::operator long long() const
         try { return std::stoll(str_); }
         catch (const std::exception &) { return 0; }
     case obj_type::INT: return lval;
-    case obj_type::UINT: return static_cast<long long>(uval);
+    case obj_type::UINT:
+        return uval > static_cast<unsigned long long>(LLONG_MAX) ? LLONG_MAX : static_cast<long long>(uval);
     case obj_type::LONG: return lval;
-    case obj_type::ULONG: return static_cast<long long>(uval);
+    case obj_type::ULONG:
+        return uval > static_cast<unsigned long long>(LLONG_MAX) ? LLONG_MAX : static_cast<long long>(uval);
     case obj_type::DOUBLE: return static_cast<long long>(dval);
     default: return 0;
     }
@@ -3019,7 +3170,7 @@ obj_val::operator bool() const
     {
     case obj_type::NIL: return false;
     case obj_type::BOOL: return lval != 0;
-    case obj_type::STRING: return !str_.empty() && str_ != "false" && str_ != "0";
+    case obj_type::STRING: return str_truthy(str_);
     case obj_type::INT: return lval != 0;
     case obj_type::UINT: return uval != 0;
     case obj_type::LONG: return lval != 0;
@@ -3047,7 +3198,7 @@ obj_val::operator std::string() const
 }
 
 // 向流输出 obj_val, 采用框架标准 JSON 序列化
-std::ostream &operator<<(std::ostream &os, http::obj_val &val)
+std::ostream &operator<<(std::ostream &os, const http::obj_val &val)
 {
     os << val.to_json();
     return os;

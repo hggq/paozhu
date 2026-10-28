@@ -3514,9 +3514,19 @@ void client::finishprocess()
     }
     if (page.isjson || parsetojson == 1)
     {
-        page.json.from_json(page.content);
-        if (parsetojson == 1)
-            page.isjson = true;
+        // 响应来自第三方服务器, 畸形/超大 JSON 会抛 json_parse_error;
+        // 就地消化, 否则异常沿调用方协程栈上抛
+        try
+        {
+            page.json.from_json(page.content);
+            if (parsetojson == 1)
+                page.isjson = true;
+        }
+        catch (const std::exception &)
+        {
+            page.json.clear();
+            page.isjson = false;
+        }
     }
 }
 bool client::process(const char *buffer, unsigned int buffersize)

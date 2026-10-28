@@ -181,7 +181,7 @@ void httpparse::procssparamter(std::string_view header_temp, std::string_view he
                             }
 
                             peer->get[objname].set_object();
-                            unsigned int iii = peer->get[objname].size();
+                            std::size_t iii = peer->get[objname].size();
                             key1name         = std::to_string(iii);
                             peer->get[objname][key1name].set_object();
 
@@ -208,7 +208,7 @@ void httpparse::procssparamter(std::string_view header_temp, std::string_view he
                             }
 
                             peer->get[objname].set_object();
-                            unsigned int iii = peer->get[objname].size();
+                            std::size_t iii = peer->get[objname].size();
                             key1name         = std::to_string(iii);
                             peer->get[objname][key1name].set_object();
 
@@ -237,7 +237,7 @@ void httpparse::procssparamter(std::string_view header_temp, std::string_view he
                             peer->get[objname].set_object();
                             peer->get[objname][key1name].set_object();
 
-                            unsigned iii = peer->get[objname][key1name].size();
+                            std::size_t iii = peer->get[objname][key1name].size();
                             key2name     = std::to_string(iii);
 
                             http::obj_val objtemp;
@@ -288,7 +288,7 @@ void httpparse::procssparamter(std::string_view header_temp, std::string_view he
                         }
 
                         peer->get[objname].set_object();
-                        unsigned int iii = peer->get[objname].size();
+                        std::size_t iii = peer->get[objname].size();
                         key1name         = std::to_string(iii);
 
                         http::obj_val objtemp;
@@ -2017,7 +2017,7 @@ void httpparse::post_form_to_postfield(std::string_view form_post_name, std::str
                             }
 
                             peer->post[objname].set_object();
-                            unsigned int iii = peer->post[objname].size();
+                            std::size_t iii = peer->post[objname].size();
                             key1name         = std::to_string(iii);
                             peer->post[objname][key1name].set_object();
 
@@ -2043,7 +2043,7 @@ void httpparse::post_form_to_postfield(std::string_view form_post_name, std::str
                             }
 
                             peer->post[objname].set_object();
-                            unsigned int iii = peer->post[objname].size();
+                            std::size_t iii = peer->post[objname].size();
                             key1name         = std::to_string(iii);
                             peer->post[objname][key1name].set_object();
 
@@ -2071,7 +2071,7 @@ void httpparse::post_form_to_postfield(std::string_view form_post_name, std::str
                             peer->post[objname].set_object();
                             peer->post[objname][key1name].set_object();
 
-                            unsigned int iii = peer->post[objname][key1name].size();
+                            std::size_t iii = peer->post[objname][key1name].size();
                             key2name         = std::to_string(iii);
 
                             http::obj_val objtemp;
@@ -2122,7 +2122,7 @@ void httpparse::post_form_to_postfield(std::string_view form_post_name, std::str
                         }
 
                         peer->post[objname].set_object();
-                        unsigned int iii = peer->post[objname].size();
+                        std::size_t iii = peer->post[objname].size();
                         key1name         = std::to_string(iii);
 
                         http::obj_val objtemp;
@@ -2392,7 +2392,7 @@ void httpparse::multipart_post_file_field()
                             }
 
                             peer->files[objname].set_object();
-                            unsigned int iii = peer->files[objname].size();
+                            std::size_t iii = peer->files[objname].size();
                             key1name         = std::to_string(iii);
                             peer->files[objname][key1name].set_object();
 
@@ -2424,7 +2424,7 @@ void httpparse::multipart_post_file_field()
                             }
 
                             peer->files[objname].set_object();
-                            unsigned int iii = peer->files[objname].size();
+                            std::size_t iii = peer->files[objname].size();
                             key1name         = std::to_string(iii);
                             peer->files[objname][key1name].set_object();
 
@@ -2458,7 +2458,7 @@ void httpparse::multipart_post_file_field()
                             peer->files[objname].set_object();
                             peer->files[objname][key1name].set_object();
 
-                            unsigned iii = peer->files[objname][key1name].size();
+                            std::size_t iii = peer->files[objname][key1name].size();
                             key2name     = std::to_string(iii);
 
                             http::obj_val objtemp;
@@ -2521,7 +2521,7 @@ void httpparse::multipart_post_file_field()
                         }
 
                         peer->files[objname].set_object();
-                        unsigned iii = peer->files[objname].size();
+                        std::size_t iii = peer->files[objname].size();
                         key1name     = std::to_string(iii);
 
                         http::obj_val objtemp;

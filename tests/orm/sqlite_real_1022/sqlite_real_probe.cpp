@@ -579,9 +579,7 @@ static void fam_B(const conn_ptr &edit, const conn_ptr &sel)
         auto sm = first_row(*sel, "SELECT ival FROM _pz_probe_t1 WHERE k='i_max'");
         CHECK_EQ(sm.empty() ? "" : sm[0].bytes, std::to_string((long long)INT64_MAX), "B4m", "INT64_MAX 原样读回");
 
-        http::obj_val big;
-        big.set_type(http::obj_type::ULONG);
-        big.uval = 18446744073709551615ULL;// > INT64_MAX
+        http::obj_val big(18446744073709551615ULL);// > INT64_MAX
         objval_vec pp2;
         pp2.push_back(big);
         pp2.push_back(http::obj_val("i_big"));
