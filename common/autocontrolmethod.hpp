@@ -19,7 +19,23 @@
 #include "admin/topics.h"
 #include "apicrudtest.h"
 #include "devcors.h"
+#include "github/github_bind.h"
+#include "github/github_callback.h"
+#include "github/github_page.h"
+#include "github/github_quickbind.h"
+#include "github/github_sync.h"
+#include "github/github_unbind.h"
 #include "imageapi.h"
+#include "oauth/oauth_authorize.h"
+#include "oauth/oauth_bearerauth.h"
+#include "oauth/oauth_client_add.h"
+#include "oauth/oauth_introspect.h"
+#include "oauth/oauth_jwks.h"
+#include "oauth/oauth_metadata.h"
+#include "oauth/oauth_purge.h"
+#include "oauth/oauth_revoke.h"
+#include "oauth/oauth_token.h"
+#include "oauth/oauth_userinfo.h"
 #include "saas.com/test_co_handle.h"
 #include "serverwatch.h"
 #include "superadmin/supermain.h"
@@ -227,8 +243,27 @@ namespace http
         reg_raw("", "/api/departments/list", nullptr, nullptr, pxapidepartmentslist, nullptr, 0); // controller/src/apicrudtest.cpp:106
         reg_raw("", "/api/departments/deletedep", nullptr, nullptr, pxapipagesdepartlist, nullptr, 0); // controller/src/apicrudtest.cpp:149
         reg_raw("", "/api/dev/hostcors", nullptr, nullptr, api_dev_hostcors, nullptr, 0); // controller/src/devcors.cpp:11
+        reg_raw("", "/github/bind", admin_islogin, nullptr, github_bind, nullptr, 0); // controller/src/github/github_bind.cpp:26
+        reg_raw("", "/github/callback", admin_islogin, nullptr, github_callback, nullptr, 0); // controller/src/github/github_callback.cpp:25
+        reg_raw("", "/github/list", admin_islogin, nullptr, github_list, nullptr, 0); // controller/src/github/github_page.cpp:21
+        reg_raw("", "/github/quickbind", admin_islogin, nullptr, github_quickbind, nullptr, 0); // controller/src/github/github_quickbind.cpp:21
+        reg_raw("", "/github/sync", nullptr, nullptr, github_sync, nullptr, 0); // controller/src/github/github_sync.cpp:31
+        reg_raw("", "/github/sync/arm", nullptr, nullptr, github_sync_arm, nullptr, 0); // controller/src/github/github_sync.cpp:208
+        reg_raw("", "/github/unbind", admin_isloginjson, nullptr, github_unbind, nullptr, 0); // controller/src/github/github_unbind.cpp:22
         reg_raw("", "/imageapi/gateway", nullptr, nullptr, imageapi_gateway, nullptr, 0); // controller/src/imageapi.cpp:10
         reg_raw("", "/imageapi/upload", nullptr, nullptr, imageapi_upload, nullptr, 0); // controller/src/imageapi.cpp:104
+        reg_raw("", "/oauth/authorize", nullptr, nullptr, oauth_authorize, nullptr, 0); // controller/src/oauth/oauth_authorize.cpp:174
+        reg_raw("", "/oauth/authorize/approve", nullptr, nullptr, oauth_authorize_approve, nullptr, 0); // controller/src/oauth/oauth_authorize.cpp:227
+        reg_raw("", "/oauth/bearerauth", nullptr, nullptr, oauth_bearerauth, nullptr, 0); // controller/src/oauth/oauth_bearerauth.cpp:35
+        reg_raw("", "/oauth/client/add", admin_isloginjson, nullptr, oauth_client_add, nullptr, 0); // controller/src/oauth/oauth_client_add.cpp:26
+        reg_raw("", "/oauth/introspect", nullptr, nullptr, oauth_introspect, nullptr, 0); // controller/src/oauth/oauth_introspect.cpp:61
+        reg_raw("", "/oauth/jwks", nullptr, nullptr, oauth_jwks, nullptr, 0); // controller/src/oauth/oauth_jwks.cpp:17
+        reg_raw("", "/oauth/metadata", nullptr, nullptr, oauth_metadata, nullptr, 0); // controller/src/oauth/oauth_metadata.cpp:21
+        reg_raw("", "/oauth/purge", nullptr, nullptr, oauth_purge, nullptr, 0); // controller/src/oauth/oauth_purge.cpp:28
+        reg_raw("", "/oauth/purge/arm", nullptr, nullptr, oauth_purge_arm, nullptr, 0); // controller/src/oauth/oauth_purge.cpp:69
+        reg_raw("", "/oauth/revoke", nullptr, nullptr, oauth_revoke, nullptr, 0); // controller/src/oauth/oauth_revoke.cpp:46
+        reg_raw("", "/oauth/token", nullptr, nullptr, oauth_token, nullptr, 0); // controller/src/oauth/oauth_token.cpp:110
+        reg_raw("", "/oauth/userinfo", oauth_bearerauth, nullptr, oauth_userinfo, nullptr, 0); // controller/src/oauth/oauth_userinfo.cpp:14
         reg_raw("", "/paozhu_status", nullptr, nullptr, paozhu_status, nullptr, 0); // controller/src/serverwatch.cpp:27
         reg_raw("", "/frametasks_timeloop", nullptr, nullptr, frametasks_timeloop, nullptr, 0); // controller/src/serverwatch.cpp:67
         reg_raw("", "/superadmin/login", nullptr, nullptr, superadmin_login, nullptr, 0); // controller/src/superadmin/supermain.cpp:13
@@ -355,18 +390,18 @@ namespace http
         reg_raw("", "/testclientgetrange", nullptr, nullptr, testhttpclient_get_range, nullptr, 0); // controller/src/testcowaitclient.cpp:218
         reg_raw("", "/downfilelist", nullptr, nullptr, testhttpclient_downfilelist, nullptr, 0); // controller/src/testcowaitclient.cpp:261
         reg_raw("", "/downfilecontent", nullptr, nullptr, testhttpclient_getdownfile, nullptr, 0); // controller/src/testcowaitclient.cpp:338
-        reg_raw("", "/cms/login", nullptr, nullptr, articlelogin, nullptr, 0); // controller/src/testcrud.cpp:26
-        reg_raw("", "/cms/islogin", nullptr, nullptr, articleislogin, nullptr, 0); // controller/src/testcrud.cpp:43
-        reg_raw("", "/cms/loginpost", nullptr, nullptr, articleloginpost, nullptr, 0); // controller/src/testcrud.cpp:57
-        reg_raw("", "/cms/list", nullptr, nullptr, articlelist, nullptr, 0); // controller/src/testcrud.cpp:115
-        reg_raw("", "/cms/show", nullptr, nullptr, articleshow, nullptr, 0); // controller/src/testcrud.cpp:167
-        reg_raw("", "/cms/edit", articleislogin, nullptr, articleedit, nullptr, 0); // controller/src/testcrud.cpp:183
-        reg_raw("", "/cms/editpost", articleislogin, nullptr, articleeditpost, nullptr, 0); // controller/src/testcrud.cpp:200
-        reg_raw("", "/cms/add", articleislogin, nullptr, articleadd, nullptr, 0); // controller/src/testcrud.cpp:244
-        reg_raw("", "/cms/addpost", articleislogin, nullptr, articleaddpost, nullptr, 0); // controller/src/testcrud.cpp:254
-        reg_raw("", "/cms/delete", articleislogin, nullptr, articledelete, nullptr, 0); // controller/src/testcrud.cpp:302
-        reg_raw("", "/cms/prepost", articleislogin, nullptr, articleprepost, nullptr, 0); // controller/src/testcrud.cpp:338
-        reg_raw("", "/cms/preselect", articleislogin, nullptr, articlepreselect, nullptr, 0); // controller/src/testcrud.cpp:387
+        reg_raw("", "/cms/login", csrf_issue, nullptr, articlelogin, nullptr, 0); // controller/src/testcrud.cpp:83
+        reg_raw("", "/cms/islogin", nullptr, nullptr, articleislogin, nullptr, 0); // controller/src/testcrud.cpp:90
+        reg_raw("", "/cms/loginpost", csrf_check, nullptr, articleloginpost, nullptr, 0); // controller/src/testcrud.cpp:104
+        reg_raw("", "/cms/list", nullptr, nullptr, articlelist, nullptr, 0); // controller/src/testcrud.cpp:148
+        reg_raw("", "/cms/show", nullptr, nullptr, articleshow, nullptr, 0); // controller/src/testcrud.cpp:200
+        reg_raw("", "/cms/edit", cms_form_guard, nullptr, articleedit, nullptr, 0); // controller/src/testcrud.cpp:216
+        reg_raw("", "/cms/editpost", cms_write_guard, nullptr, articleeditpost, nullptr, 0); // controller/src/testcrud.cpp:233
+        reg_raw("", "/cms/add", cms_form_guard, nullptr, articleadd, nullptr, 0); // controller/src/testcrud.cpp:277
+        reg_raw("", "/cms/addpost", cms_write_guard, nullptr, articleaddpost, nullptr, 0); // controller/src/testcrud.cpp:284
+        reg_raw("", "/cms/delete", cms_write_guard, nullptr, articledelete, nullptr, 0); // controller/src/testcrud.cpp:332
+        reg_raw("", "/cms/prepost", cms_write_guard, nullptr, articleprepost, nullptr, 0); // controller/src/testcrud.cpp:368
+        reg_raw("", "/cms/preselect", articleislogin, nullptr, articlepreselect, nullptr, 0); // controller/src/testcrud.cpp:417
         reg_raw("", "/dpshadow", nullptr, nullptr, testdpshadowshort, nullptr, 0); // controller/src/testdepthprobe.cpp:8
         reg_raw("", "/dpshadow/sub", nullptr, nullptr, testdpshadowexact, nullptr, 0); // controller/src/testdepthprobe.cpp:15
         reg_raw("", "/dp6/a/b/c/d/e", nullptr, nullptr, testdpprobedepth6, nullptr, 0); // controller/src/testdepthprobe.cpp:22

@@ -315,11 +315,15 @@ echo "              mqtt_client_regmethod"
 #   is globbed into the build by file(GLOB_RECURSE reflect_list ... libs/*.cpp)
 #   (CMake) and add_files("libs/**.cpp") (xmake), so leaving it in a scaffold
 #   that has no generated ORM makes the build fail on the first business model.
+#   libs/oauth/ is the OAuth 2.1 authorization-server store, same reason: its
+#   oauth_store.cpp includes "orm.h" for the three oauth_* tables of [cms].
+#   libs/github/ is the GitHub OAuth store, same reason: its github_store.cpp
+#   includes "orm.h" for the user binding tables.
 #   The other libs/ directories (img / markdown / pinyin / ipdata / types /
 #   department) are framework utilities with no ORM dependency and are kept.
 # ============================================================
 echo ""
-echo "[Step 2/${TOTAL_STEPS}] Removing demo code (redis/ mqtt/ sockets/ websockets/ libs/webpay/)..."
+echo "[Step 2/${TOTAL_STEPS}] Removing demo code (redis/ mqtt/ sockets/ websockets/ libs/webpay/ libs/oauth/ libs/github/)..."
 
 for demo_dir in redis mqtt sockets websockets; do
     rm -rf "$demo_dir"/* 2>/dev/null || true
@@ -329,7 +333,13 @@ done
 rm -rf libs/webpay/* 2>/dev/null || true
 mkdir -p libs/webpay
 
-echo "  OK redis/ mqtt/ sockets/ websockets/ libs/webpay/ emptied (directories kept)"
+rm -rf libs/oauth/* 2>/dev/null || true
+mkdir -p libs/oauth
+
+rm -rf libs/github/* 2>/dev/null || true
+mkdir -p libs/github
+
+echo "  OK redis/ mqtt/ sockets/ websockets/ libs/webpay/ libs/oauth/ libs/github/ emptied (directories kept)"
 
 # ============================================================
 # Step 3 — Remove ORM layer

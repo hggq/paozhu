@@ -116,8 +116,6 @@ struct obj_val
 
     std::size_t size() const;
 
-    void append(const std::string &v);
-    void append(const char *_str, unsigned int str_length);
     std::string substr(int a, int b);
     std::string substr(int a);
     // 逐字节过滤: 回调返回 '\0' 丢弃该字节, 否则输出; 参数是无符号值, 可直接交给 toupper/tolower
@@ -208,10 +206,12 @@ struct obj_val
     obj_val &push(const std::string &key, obj_val &&v);
     obj_val &push(const std::string &key, const obj_val &v);
 
-    // 显式的追加/合并入口: operator= 是整体覆盖, 需要保留旧语义时调用.
-    // - 目标是 ARRAY: 把 v 的内容追加进来 (v 为 ARRAY 则展开每个元素, 否则作为一项追加)
-    // - 目标是 OBJECT 且 v 为 OBJECT: 逐键合并 (同名键用 v 的值覆盖)
-    // - 类型不匹配: 退回整体覆盖
+    // 按接收者类型分流的统一追加/合并入口:
+    // - 接收者是 STRING: 把 v 转成字符串后追加字符
+    // - 接收者是 ARRAY: 把 v 作为一项 push(v 自身是 ARRAY 则展开每个元素)
+    // - 接收者是 OBJECT 且 v 是 OBJECT: 逐键合并 (同名键用 v 的值覆盖)
+    // - 接收者是 NIL: 首次写入, 类型跟随 v (v 是 ARRAY→升级 ARRAY, v 是 OBJECT→升级 OBJECT, 否则默认升级 STRING 拼接)
+    // - 其他不匹配: 整体覆盖 (operator=)
     obj_val &append(const obj_val &v);
 
     obj_val &find(const obj_val &v);

@@ -156,7 +156,7 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     // 顺序直觉：
     //   push_next(A); push_next(B);   // 执行顺序: B, A
     //   push_last(A); push_last(B);   // 执行顺序: A, B
-    // 跳转/exit 协议不变：return "" 弹栈继续；return "exit" 终止不弹；return "名字" 直接跳转。
+    // 跳转/@exit 协议：return "" 弹栈继续；return "@exit" 终止不弹；return "名字" 直接跳转。
     void push_next(const std::string &name);// 栈顶（后压先出）
     void push_last(const std::string &name);// 栈底（先压先出）
     void push_steps(std::initializer_list<const char *> names);
@@ -418,6 +418,12 @@ inline unsigned int reg_raw(
 #define REG_SYNC_CORO(site, path, pre, reg) http::reg_raw(site, path, pre, nullptr, nullptr, reg)
 #define REG_CORO_SYNC(site, path, pre, reg) http::reg_raw(site, path, nullptr, pre, reg, nullptr)
 #define REG_CORO_CORO(site, path, pre, reg) http::reg_raw(site, path, nullptr, pre, nullptr, reg)
+
+// 链上 pre/regfun 返回值的 @ 前缀控制码常量（用户侧直接 return kFlowOk 即可）
+// Frame control codes for pre/regfun return values, @-prefixed for self-document
+inline constexpr std::string_view kFlowOk       = "@ok";
+inline constexpr std::string_view kFlowExit     = "@exit";
+inline constexpr std::string_view kFlowTimeloop = "@timeloop";
 
 // 公共工具函数：判断路径是否为普通文件 — shared util: check if path is a regular file
 inline bool stat_is_regfile(const std::string &filepath)

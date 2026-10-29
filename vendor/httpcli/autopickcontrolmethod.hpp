@@ -26,6 +26,7 @@
 #include <cstring>
 #include <string_view>
 #include <limits>
+#include <set>
 namespace http
 {
 namespace fs = std::filesystem;
@@ -926,6 +927,7 @@ namespace http
             header_content.append(" { \n");
         }
 
+        std::set<std::string> declared;
         for (unsigned int i = 0; i < methodpathfile.size(); i++)
         {
             if (methodpathfile[i].func_type == "std::string")
@@ -933,12 +935,47 @@ namespace http
                 header_content.append("\tstd::string ");
                 header_content.append(methodpathfile[i].func);
                 header_content.append("(std::shared_ptr<httppeer> peer);\r\n");
+                declared.insert(methodpathfile[i].func);
             }
             else if (methodpathfile[i].func_type == "asio::awaitable<std::string>")
             {
                 header_content.append("\tasio::awaitable<std::string> ");
                 header_content.append(methodpathfile[i].func);
                 header_content.append("(std::shared_ptr<httppeer> peer);\r\n");
+                declared.insert(methodpathfile[i].func);
+            }
+        }
+
+        // 纯前置过滤器：只被 //@urlpath 的 pre 参数引用、自身不带 //@urlpath 注解的函数。
+        // 当其定义就在本文件（pre_type 已解析出来）时，必须也生成前向声明，否则 server.cpp
+        // 编译路由表（autocontrolmethod.hpp）会因 undeclared identifier 失败。
+        // 仅在本文件即定义处声明（pre_type 非空代表此文件中找到了定义，函数定义唯一故不会
+        // 跨文件重复声明），已被上面 handler 分支声明过的也不再重复。
+        for (unsigned int i = 0; i < methodpathfile.size(); i++)
+        {
+            const std::string &pre = methodpathfile[i].pre;
+            if (pre.empty() || declared.count(pre))
+            {
+                continue;
+            }
+            bool pre_null = str_case_equal(pre, "null") || str_case_equal(pre, "nullptr");
+            if (pre_null)
+            {
+                continue;
+            }
+            if (methodpathfile[i].pre_type == "std::string")
+            {
+                header_content.append("\tstd::string ");
+                header_content.append(pre);
+                header_content.append("(std::shared_ptr<httppeer> peer);\r\n");
+                declared.insert(pre);
+            }
+            else if (methodpathfile[i].pre_type == "asio::awaitable<std::string>")
+            {
+                header_content.append("\tasio::awaitable<std::string> ");
+                header_content.append(pre);
+                header_content.append("(std::shared_ptr<httppeer> peer);\r\n");
+                declared.insert(pre);
             }
         }
 

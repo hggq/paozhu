@@ -135,11 +135,12 @@ foreach(test_src IN LISTS test_cpp_files)
     )
   endif()
 
-  # POST 表单 obj_val 探针：obj_val 实现在 request.cpp，不加这一段则所有 obj_val 符号未定义
-  # The POST-form probe needs the obj_val implementation, which lives in request.cpp.
-  if(test_name MATCHES "post_form_probe")
-    target_sources(${test_name} PRIVATE "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/request.cpp")
-  endif()
+  # POST 表单 obj_val 探针：obj_val 实现就在 request.cpp，而 request.cpp 已经编进
+  # paozhu_test_orm（PGCONN_SRCS 的一部分），这里不要再重复编一次，否则会与
+  # paozhu_test_orm 里的 request.cpp.o 产生重复符号（194 个 duplicate symbols）。
+  # The POST-form probe needs obj_val, which already lives in request.cpp — and that
+  # file is already compiled into paozhu_test_orm, so adding it again here just
+  # duplicates every obj_val symbol against paozhu_test_orm's request.cpp.o.
 
   # --- test_pzexcel_p2: needs pzexcel + pzzip sources and ENABLE_OFFICE + zlib ---
   if(test_name MATCHES "pzexcel_p2")
@@ -166,3 +167,25 @@ foreach(test_src IN LISTS test_cpp_files)
     target_link_libraries(${test_name} PRIVATE ZLIB::ZLIB)
   endif()
 endforeach()
+
+# ---------------------------------------------------------------------------
+# oauth_store_1028 探针：位于 tests/orm/<子目录>，不在上面的自动发现 GLOB 内，
+# 这里单独建目标并补上它依赖的业务源（store/config/jwt/func）。
+# The oauth_store_1028 probe lives in a sub-directory outside the discovery GLOB;
+# build it here with the extra business sources it depends on.
+# ---------------------------------------------------------------------------
+add_executable(oauth_store_probe "${CMAKE_CURRENT_SOURCE_DIR}/orm/oauth_store_1028/oauth_store_probe.cpp")
+target_link_libraries(oauth_store_probe PRIVATE ${paozhu_test_common_libs})
+target_sources(oauth_store_probe PRIVATE
+  "${CMAKE_SOURCE_DIR}/libs/oauth/oauth_store.cpp"
+  "${CMAKE_SOURCE_DIR}/libs/oauth/oauth_config.cpp"
+  "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/jwt.cpp"
+  "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/func.cpp"
+  "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/datetime.cpp"
+  "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/urlcode.cpp"
+  "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/serverconfig.cpp"
+  "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/server_localvar.cpp"
+  "${CMAKE_SOURCE_DIR}/models/cms/OauthClient.cpp"
+  "${CMAKE_SOURCE_DIR}/models/cms/OauthCode.cpp"
+  "${CMAKE_SOURCE_DIR}/models/cms/OauthRefresh.cpp"
+)

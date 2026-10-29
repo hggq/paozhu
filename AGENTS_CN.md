@@ -263,9 +263,9 @@ std::string admin_islogin(std::shared_ptr<httppeer> peer)
         client.val["code"] = 0;
         client.val["msg"] = "please login";
         client.out_json();
-        return "exit";         // 返回 "exit" 阻止后续执行
+        return "@exit";         // 返回 "@exit" 阻止后续执行
     }
-    return "ok";
+    return "@ok";
 }
 
 //@urlpath(admin_islogin,admin/main)  // 使用过滤器
@@ -630,10 +630,10 @@ std::string test_mask_pre(std::shared_ptr<httppeer> peer)
     if (client.mask_code == 0)
     {
         client << "掩码为 0，pre 拦下这次请求";
-        return "exit";
+        return "@exit";
     }
     client << "掩码非 0，pre 放行";
-    return "ok";
+    return "@ok";
 }
 
 //@urlpath(test_mask_pre,maskpre):123456
@@ -1927,16 +1927,16 @@ namespace http
 
 `common/autorestfulpaths.hpp` 的两个函数仍然带注册表参数（`_initauto_control_httprestful_paths` / `_initauto_domain_httprestful_paths`），它们确实要收那个 map。
 
-### 第二步：删除常驻客户端与支付示例目录
+### 第二步：删除常驻客户端、支付与 OAuth 示例目录
 
 ```bash
 rm -rf redis/* mqtt/* sockets/* websockets/*   # 目录保留
-rm -rf libs/webpay/*                           # 目录保留
+rm -rf libs/webpay/* libs/oauth/*              # 目录保留
 ```
 
 `redis/ mqtt/ sockets/ websockets/` 是只有头文件的示例客户端（`echo_*`、`my_test_*`、`*_websockets.hpp`），唯一的消费者是第一步清空的注册文件，CMake 只把它们当 include 目录，不产出目标文件，所以内容清掉、目录留着给业务客户端。
 
-`libs/webpay/` 是订单与支付渠道层，按 `[cms]` 表写死——它是 `libs/` 下唯一用到 `orm::` 的目录，而两套构建都会无条件收 `libs/**.cpp`（CMake 的 `file(GLOB_RECURSE reflect_list ... libs/*.cpp)`、xmake 的 `add_files("libs/**.cpp")`）。在没有 ORM 生成代码的脚手架里留着它，第一句 `#include "orm.h"` 就会中断编译。`libs/` 其他目录（`img` `markdown` `pinyin` `ipdata` `types` `department`）不依赖 ORM，保留。
+`libs/webpay/` 是订单与支付渠道层，`libs/oauth/` 是 OAuth 2.1 授权服务的存取层——这两个是 `libs/` 下用到 `orm::` 的目录（都按 `[cms]` 表写死），而两套构建都会无条件收 `libs/**.cpp`（CMake 的 `file(GLOB_RECURSE reflect_list ... libs/*.cpp)`、xmake 的 `add_files("libs/**.cpp")`）。在没有 ORM 生成代码的脚手架里留着它们，第一句 `#include "orm.h"` 就会中断编译。`libs/` 其他目录（`img` `markdown` `pinyin` `ipdata` `types` `department`）不依赖 ORM，保留。
 
 ### 第三步：删除 ORM 层，但保留一个空的 `orm/orm.h`
 

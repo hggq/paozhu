@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <functional>
 #include <charconv>
+#include <system_error>
 #include "request.h"
 
 namespace http
@@ -298,26 +299,6 @@ std::string obj_val::substr(int a)
     if (a >= (int)str_.size()) return {};
     
     return str_.substr(a);
-}
-
-void obj_val::append(const std::string &v)
-{
-    if (_val_type == obj_type::NIL)
-        _val_type = obj_type::STRING;
-    if (_val_type != obj_type::STRING)
-        return;
-    str_.append(v);
-}
-
-void obj_val::append(const char *_str, unsigned int str_length)
-{
-    if (_str == nullptr)
-        return;
-    if (_val_type == obj_type::NIL)
-        _val_type = obj_type::STRING;
-    if (_val_type != obj_type::STRING)
-        return;
-    str_.append(_str, str_length);
 }
 
 std::size_t obj_val::size() const
@@ -726,29 +707,33 @@ obj_val &obj_val::append(const obj_val &v)
     // 直接引用会在扩容/clear 时悬垂; 这里统一走独立副本.
     obj_val tmp(v);
 
-    if (tmp.get_type() == obj_type::ARRAY)
+    // === 按接收者当前类型分流 ===
+
+    // STRING: 把 v 转成字符串做拼接
+    if (_val_type == obj_type::STRING)
     {
-        // 目标确保是 ARRAY: 没有就先建空的, 再展开追加 v 的每一个元素
-        if (_val_type != obj_type::ARRAY)
-        {
-            clear();
-            array_val = new obj_array;
-            _val_type = obj_type::ARRAY;
-        }
-        for (auto &e : tmp.array_val->_data)
-            array_val->_data.push_back(std::move(e));
+        str_.append(tmp.to_string());
         return *this;
     }
 
-    if (tmp.get_type() == obj_type::OBJECT)
+    // ARRAY: 把 v 追加进来 (v 自身是 ARRAY 则展开每个元素)
+    if (_val_type == obj_type::ARRAY)
     {
-        // 目标确保是 OBJECT: 没有就先建空的, 再逐键合并 (同名键用 v 的值覆盖)
-        if (_val_type != obj_type::OBJECT)
+        if (tmp.get_type() == obj_type::ARRAY)
         {
-            clear();
-            obj = new obj_t;
-            _val_type = obj_type::OBJECT;
+            for (auto &e : tmp.array_val->_data)
+                array_val->_data.push_back(std::move(e));
         }
+        else
+        {
+            array_val->_data.push_back(std::move(tmp));
+        }
+        return *this;
+    }
+
+    // OBJECT + OBJECT: 逐键合并 (同名键用 v 的值覆盖)
+    if (_val_type == obj_type::OBJECT && tmp.get_type() == obj_type::OBJECT)
+    {
         for (auto &iter : tmp.obj->_data)
         {
             auto iter2 = obj->_data.begin();
@@ -766,12 +751,40 @@ obj_val &obj_val::append(const obj_val &v)
         return *this;
     }
 
-    // v 是标量/STRING/NIL: 目标已经是 ARRAY 就作为一项追加, 否则退回整体覆盖
-    if (_val_type == obj_type::ARRAY)
+    // === NIL: 首次写入, 类型跟随 v ===
+    if (_val_type == obj_type::NIL)
     {
-        array_val->_data.push_back(std::move(tmp));
+        if (tmp.get_type() == obj_type::ARRAY)
+        {
+            _val_type = obj_type::ARRAY;
+            array_val = new obj_array;
+            for (auto &e : tmp.array_val->_data)
+                array_val->_data.push_back(std::move(e));
+        }
+        else if (tmp.get_type() == obj_type::OBJECT)
+        {
+            _val_type = obj_type::OBJECT;
+            obj = new obj_t;
+            for (auto &iter : tmp.obj->_data)
+                obj->_data.push_back(std::move(iter));
+        }
+        else
+        {
+            // STRING / NUMBER / BOOL / NIL: 默认升级为 STRING 做拼接
+            _val_type = obj_type::STRING;
+            str_.append(tmp.to_string());
+        }
         return *this;
     }
+
+    // STRING 接收者: 把 v 转成字符串后追加字符 (与注释约定的多态分流一致)
+    if (_val_type == obj_type::STRING)
+    {
+        str_.append(tmp.to_string());
+        return *this;
+    }
+
+    // === 其他不匹配 (OBJECT+非OBJECT, NUMBER/BOOL+任何): 整体覆盖 ===
     return operator=(std::move(tmp));
 }
 
@@ -2186,6 +2199,37 @@ static int JSON_ARRAY(const std::string &json_val, obj_array &obj, unsigned int 
     throw json_parse_error("Unexpected end of JSON");
 }
 
+// 前置语法特例: std::from_chars 按 C++ 字面量语法解析, 比 JSON 宽松, 有两类
+// JSON 明确拒绝的写法它不会拦, 这里补上:
+//   - 前导零整数: "01" / "-01"      (JSON 要求以 0 开头的整数只能是单独的 "0")
+//   - 尾点:       "1."             (JSON 要求小数点后至少一位数字, from_chars 会接受 "1."=1.0)
+// 其余非法("1.2.3" / "1e" / "+-5" / ".5" / "e5" / "+5")由 from_chars 的 ec 或 ptr==end 捕获.
+static bool json_number_looks_valid(std::string_view s)
+{
+    if (s.empty())
+        return false;
+    std::size_t i = 0;
+    if (s[i] == '-')
+    {
+        i++;
+        if (i >= s.size())
+            return false;
+    }
+    if (s[i] == '0')
+    {
+        // 单独的 "0"(或 "-0"): OK; 后接 '.'/'e'/'E' 也 OK(0.5 / 0e1); 其它("01"/"0x")拒绝
+        if (s.size() == i + 1)
+            return true;
+        char n = s[i + 1];
+        return n == '.' || n == 'e' || n == 'E';
+    }
+    if (s[i] < '1' || s[i] > '9')
+        return false;   // 前导 '+' / '.' / 字母
+    if (s.back() == '.')
+        return false;   // 尾点 "1."
+    return true;
+}
+
 void from_json_internal(const std::string &json_str, obj_val &val, unsigned int &offset, unsigned int level)
 {
     while (offset < json_str.size() && (json_str[offset] == ' ' || json_str[offset] == '\t' || json_str[offset] == '\r' || json_str[offset] == '\n'))
@@ -2252,26 +2296,34 @@ void from_json_internal(const std::string &json_str, obj_val &val, unsigned int 
         
         if (num_str.size() > 30)
             throw json_parse_error("JSON number too long");
-        
+
+        // 用 std::from_chars 转换并校验完整消费: 它不依赖 locale、round-trip 精确,
+        // 且返回 ptr 指向未消费位置——必须 ptr == end 才算整串消费, 否则 "1.2.3" 之类
+        // 会被部分消费而静默接受. 前导 '+' / 多处 '.' / 裸 'e' / "-0." 等由 ec 或 ptr 捕获.
+        // 唯一 from_chars 按 C++ 字面量语法放过、但 JSON 拒绝的两类("1." 尾点 / "01" 前导零)
+        // 由上面的 json_number_looks_valid 前置拦截.
+        if (!json_number_looks_valid(num_str))
+            throw json_parse_error("Invalid JSON number");
+
+        const char *nb = num_str.data();
+        const char *ne = nb + num_str.size();
         if (has_dot || has_e)
         {
-            try
-            {
-                val.dval = std::stod(num_str);
-                if (!std::isfinite(val.dval))
-                    throw json_parse_error("JSON number is not finite");
-                val.set_type(obj_type::DOUBLE);
-            }
-            catch (const std::exception &)
-            {
+            double d;
+            auto r = std::from_chars(nb, ne, d);
+            if (r.ec != std::errc{} || r.ptr != ne)
                 throw json_parse_error("Invalid JSON number");
-            }
+            if (!std::isfinite(d))
+                throw json_parse_error("JSON number is not finite");
+            val.dval = d;
+            val.set_type(obj_type::DOUBLE);
         }
         else
         {
-            try
+            long long l;
+            auto r = std::from_chars(nb, ne, l);
+            if (r.ec == std::errc{} && r.ptr == ne)
             {
-                long long l = std::stoll(num_str);
                 if (l >= INT_MIN && l <= INT_MAX)
                 {
                     val.lval = l;
@@ -2283,26 +2335,27 @@ void from_json_internal(const std::string &json_str, obj_val &val, unsigned int 
                     val.set_type(obj_type::LONG);
                 }
             }
-            catch (const std::exception &)
+            else if (r.ec == std::errc::result_out_of_range)
             {
-                try
-                {
-                    unsigned long long u = std::stoull(num_str);
-                    if (u <= UINT_MAX)
-                    {
-                        val.uval = u;
-                        val.set_type(obj_type::UINT);
-                    }
-                    else
-                    {
-                        val.uval = u;
-                        val.set_type(obj_type::ULONG);
-                    }
-                }
-                catch (const std::exception &)
-                {
+                // 可能是无符号大整数, 再试 unsigned long long
+                unsigned long long u;
+                auto ru = std::from_chars(nb, ne, u);
+                if (ru.ec != std::errc{} || ru.ptr != ne)
                     throw json_parse_error("Invalid JSON number");
+                if (u <= UINT_MAX)
+                {
+                    val.uval = u;
+                    val.set_type(obj_type::UINT);
                 }
+                else
+                {
+                    val.uval = u;
+                    val.set_type(obj_type::ULONG);
+                }
+            }
+            else
+            {
+                throw json_parse_error("Invalid JSON number");
             }
         }
     }

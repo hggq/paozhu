@@ -2,7 +2,7 @@
 #define ORM_CMS_LOGININFOBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 22 Oct 2026 11:07:18 GMT
+*本文件为自动生成 Thu, 29 Oct 2026 12:02:54 GMT
 ***/
 #include <iostream>
 #include <charconv>

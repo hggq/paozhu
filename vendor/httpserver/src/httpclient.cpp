@@ -320,6 +320,22 @@ client &client::post_json(std::string_view url, http::obj_val param)
     return *this;
 }
 
+client &client::del(std::string_view url)
+{
+    // 3 = DELETE；>0 这一族由 send() 决定要不要 buildcontent()，正文与 POST 同一条路。
+    requesttype = 3;
+    if (url.length() > 0)
+    {
+        _url = url;
+        parse();
+    }
+    else if (_url.length() > 0)
+    {
+        parse();
+    }
+    return *this;
+}
+
 client &client::send()
 {
 
@@ -1920,21 +1936,42 @@ void client::readheaderline(const char *buffer, unsigned int buffersize)
 
     if (contentline.size() > 0)
     {
-        if (i < buffersize)
+        // contentline 有残留: 上一次 readheaderline() 时 buffer 耗尽,
+        // 截断在某 header 行中间, 或刚读到 \r 没读到 \n.
+        // 这里继续 push 直到凑齐完整的 CRLF, 覆盖所有跨包场景.
+        bool line_done = false;
+        for (; i < buffersize; i++)
         {
-            if (buffer[i] != '\n')
+            if (buffer[i] == '\r')
             {
-                iserror    = 1;
+                unsigned int j = i;
+                j++;
+                if (j < buffersize)
+                {
+                    if (buffer[j] == '\n')
+                    {
+                        line_done  = true;
+                        readoffset = j + 1;
+                        i          = j;
+                        break;
+                    }
+                    iserror    = 1;
+                    readoffset = buffersize;
+                    return;
+                }
                 readoffset = buffersize;
                 return;
             }
-            readoffset++;
-            i++;
+            contentline.push_back(buffer[i]);
+        }
+        if (!line_done)
+        {
+            readoffset = i;
+            return;
         }
 
         if (contentline.size() == 0)
         {
-            //这样不用+1，因为上面已经加了
             headerfinish = 1;
             return;
         }
@@ -1947,6 +1984,8 @@ void client::readheaderline(const char *buffer, unsigned int buffersize)
             return;
         }
         contentline.clear();
+        // 关键: 更新 i 为 readoffset 当前值, 否则下面 for 循环从旧 i 重扫
+        i = readoffset;
     }
 
     for (; i < buffersize; i++)
@@ -3978,7 +4017,11 @@ void client::buildheader()
     }
     else
     {
-        if (requesttype > 1)
+        if (requesttype == 3)
+        {
+            request.append("DELETE ");
+        }
+        else if (requesttype > 1)
         {
             request.append("QUERY ");
         }

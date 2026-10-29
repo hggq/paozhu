@@ -83,7 +83,7 @@ static void twx_cert_guard_deny(httppeer &client)
 std::string testwxpaycert_islogin(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
-    if (twx_cert_guard_ok(client)) return "ok";
+    if (twx_cert_guard_ok(client)) return "@ok";
     twx_cert_guard_deny(client);
     return "";
 }
@@ -92,7 +92,7 @@ std::string testwxpaycert_islogin(std::shared_ptr<httppeer> peer)
 asio::awaitable<std::string> testwxpaycert_islogin_co(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
-    if (twx_cert_guard_ok(client)) co_return "ok";
+    if (twx_cert_guard_ok(client)) co_return "@ok";
     twx_cert_guard_deny(client);
     co_return "";
 }

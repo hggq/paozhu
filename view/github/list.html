@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>GitHub bindings</title>
+    <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+  <body>
+    <div class="container py-4">
+      <h2>GitHub bindings</h2>
+
+      <%c if(obj["key_ok"].to_int()==0){ %>
+      <div class="alert alert-danger">
+        No AES master key is configured. Put a 64-hex-character <code>crypto_key</code> in
+        <code>conf/github.conf</code> before binding an account: without it the
+        <code>client_secret</code> cannot be encrypted, and this page will refuse to start a binding.
+      </div>
+      <%c } %>
+
+      <div class="card mb-4">
+        <div class="card-header">Add a binding</div>
+        <div class="card-body">
+          <form action="/github/bind" method="post">
+            <div class="mb-3 row">
+              <label class="col-sm-3 col-form-label" for="client_id">OAuth App client_id</label>
+              <div class="col-sm-9">
+                <input class="form-control" id="client_id" name="client_id" maxlength="64" required>
+              </div>
+            </div>
+            <div class="mb-3 row">
+              <label class="col-sm-3 col-form-label" for="client_secret">client_secret</label>
+              <div class="col-sm-9">
+                <input class="form-control" id="client_secret" name="client_secret" type="password" maxlength="128" required>
+                <div class="form-text">Encrypted with AES-256-GCM before it is stored, and never shown again.</div>
+              </div>
+            </div>
+            <div class="mb-3 row">
+              <label class="col-sm-3 col-form-label" for="redirect_uri">redirect_uri</label>
+              <div class="col-sm-9">
+                <input class="form-control" id="redirect_uri" name="redirect_uri" maxlength="255" required>
+                <div class="form-text">
+                  Must be byte-identical to the URL registered in the OAuth App. Register this callback path:
+                  <code>/github/callback</code>. Requested scope:
+                  <code><%c echo<<obj["scopes"].to_string(); %></code>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-primary" type="submit">Authorize on GitHub</button>
+            <%c if(obj["quickbind_ok"].to_int()==1){ %>
+            <a class="btn btn-outline-primary ms-2" href="/github/quickbind">Quick bind (default OAuth App)</a>
+            <%c } %>
+            <div class="form-text mt-2">
+              Nothing is written to the database until GitHub returns a code and the token exchange succeeds.
+              Re-authorizing an existing App replaces its secret and its tokens.
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-header">Bound accounts</div>
+        <div class="card-body">
+          <%c if(obj["accounts"].as_array().empty()){ %>
+          <p class="text-muted">No accounts bound for this tenant yet.</p>
+          <%c } else { %>
+          <table class="table table-striped align-middle">
+            <thead>
+              <tr>
+                <th>GitHub</th>
+                <th>client_id</th>
+                <th>Token</th>
+                <th>Scope</th>
+                <th>Last sync</th>
+                <th>Next sync</th>
+                <th>Fails</th>
+                <th>repos</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <%c for(auto &a:obj["accounts"].as_array()){ %>
+              <tr>
+                <td>
+                  <%c if(a["gh_login"].to_string()!=""){ %><%c echo<<a["gh_login"].to_string(); %><%c } else { %><span class="text-muted">not fetched</span><%c } %>
+                </td>
+                <td><code><%c echo<<a["client_id"].to_string(); %></code></td>
+                <td>
+                  <%c unsigned int st=(unsigned int)a["token_state"].to_int(); %>
+                  <%c if(st==0){ %><span class="badge bg-secondary">exchanging token</span>
+                  <%c }else if(st==1){ %><span class="badge bg-success">usable</span>
+                  <%c }else if(st==2){ %><span class="badge bg-warning text-dark">near expiry</span>
+                  <%c }else if(st==3){ %><span class="badge bg-danger">revoked or expired</span>
+                  <%c }else if(st==4){ %><span class="badge bg-dark">unbinding or failed</span>
+                  <%c }else{ %><%c echo<<a["token_state"].to_string(); %><%c } %>
+                  <%c if(a["access_expires_at"].to_int()==0){ %><div class="form-text">never expires</div><%c } %>
+                </td>
+                <td><small><%c echo<<a["scopes"].to_string(); %></small></td>
+                <td>
+                  <%c if(a["last_sync_ok"].to_int()==1){ %><span class="text-success">ok</span><%c }else{ %><span class="text-muted">-</span><%c } %>
+                  <div class="form-text"><%c echo<<a["last_sync_text"].to_string(); %></div>
+                  <%c if(a["last_error"].to_string()!=""){ %><div class="form-text text-danger"><%c echo<<a["last_error"].to_string(); %></div><%c } %>
+                </td>
+                <td><small><%c echo<<a["next_sync_text"].to_string(); %></small></td>
+                <td><%c echo<<a["sync_fails"].to_string(); %></td>
+                <td><a class="btn btn-sm btn-outline-secondary" href="/github/list?id=<%c echo<<a["id"].to_string(); %>">repos</a></td>
+                <td>
+                  <button class="btn btn-sm btn-outline-danger" type="button"
+                          onclick="ghUnbind(<%c echo<<a["id"].to_string(); %>, this)">Unbind</button>
+                </td>
+              </tr>
+              <%c } %>
+            </tbody>
+          </table>
+          <%c } %>
+        </div>
+      </div>
+
+      <%c if(obj["picked_id"].to_int()>0){ %>
+      <div class="card">
+        <div class="card-header">
+          Repositories of account #<%c echo<<obj["picked_id"].to_string(); %>
+          <a class="btn btn-sm btn-outline-secondary float-end"
+             href="/github/list?id=<%c echo<<obj["picked_id"].to_string(); %>&show_deleted=<%c if(obj["show_deleted"].to_int()==1){ %>0<%c }else{ %>1<%c } %>">
+            <%c if(obj["show_deleted"].to_int()==1){ %>hide deleted<%c }else{ %>show deleted<%c } %>
+          </a>
+        </div>
+        <div class="card-body">
+          <%c if(obj["repos"].as_array().empty()){ %>
+          <p class="text-muted">Nothing stored yet. The sync task writes this list; the page never calls GitHub.</p>
+          <%c } else { %>
+          <table class="table table-sm align-middle">
+            <thead>
+              <tr>
+                <th>Repository</th>
+                <th>Language</th>
+                <th>Stars</th>
+                <th>Pushed</th>
+                <th>State</th>
+              </tr>
+            </thead>
+            <tbody>
+              <%c for(auto &r:obj["repos"].as_array()){ %>
+              <tr>
+                <td>
+                  <%c echo<<r["full_name"].to_string(); %>
+                  <%c if(r["is_private"].to_int()==1){ %><span class="badge bg-secondary">private</span><%c } %>
+                  <div class="form-text"><%c echo<<r["description"].to_string(); %></div>
+                </td>
+                <td><%c echo<<r["primary_language"].to_string(); %></td>
+                <td><%c echo<<r["stars"].to_string(); %></td>
+                <td><%c echo<<r["pushed_text"].to_string(); %></td>
+                <td>
+                  <%c if(r["is_deleted"].to_int()==1){ %><span class="badge bg-dark">deleted upstream</span>
+                  <%c }else{ %><span class="badge bg-success">present</span><%c } %>
+                </td>
+              </tr>
+              <%c } %>
+            </tbody>
+          </table>
+          <%c } %>
+        </div>
+      </div>
+      <%c } %>
+    </div>
+    <script>
+      function ghUnbind(id, btn) {
+        if (!confirm("Revoke this token at GitHub and delete the local binding?")) return;
+        btn.disabled = true;
+        var body = new FormData();
+        body.append("id", id);
+        fetch("/github/unbind", { method: "POST", body: body })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            if (j.code === 1) { window.location.reload(); return; }
+            alert(j.msg);
+            btn.disabled = false;
+          })
+          .catch(function () { alert("unbind request failed"); btn.disabled = false; });
+      }
+    </script>
+  </body>
+</html>

@@ -46,6 +46,9 @@ class client : public std::enable_shared_from_this<client>
     client &get_json(std::string_view url);
     client &post_json(std::string_view url, http::obj_val parmter);
     client &post_json(std::string_view url);
+    // DELETE 动词。请求体照常走 set_body()/add_post()，与 post() 同一套 buildcontent()。
+    // The DELETE verb; the body is built exactly as post() builds it.
+    client &del(std::string_view url);
 
     client &set_cookie(std::string, std::string);
     client &set_header(std::string, std::string);

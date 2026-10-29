@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- 主机： localhost
--- 生成日期： 2026-10-17 08:40:17
+-- 生成日期： 2026-10-29 12:38:16
 -- 服务器版本： 8.4.4
 -- PHP 版本： 8.5.7
 
@@ -148,6 +148,59 @@ CREATE TABLE `department` (
 -- --------------------------------------------------------
 
 --
+-- 表的结构 `github_account`
+--
+
+CREATE TABLE `github_account` (
+  `id` int UNSIGNED NOT NULL,
+  `adminid` int UNSIGNED NOT NULL DEFAULT '0' COMMENT '本站 sysuser.adminid',
+  `companyid` int UNSIGNED NOT NULL DEFAULT '0' COMMENT '租户，照 sysuser.companyid 抄一份；页面按租户过滤时不再回查主表',
+  `client_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT 'admin 在 GitHub 注册的 OAuth App 的 client_id（明文，不算秘密）',
+  `client_secret` varbinary(255) DEFAULT NULL COMMENT 'AES-256-GCM 加密后的密文；IV(12)+tag(16)+ciphertext 拼接；NULL=绑定中断未完成换令牌',
+  `redirect_uri` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT 'OAuth App 注册时填的回调 URL；换令牌时必须逐字节相同',
+  `gh_user_id` bigint UNSIGNED NOT NULL DEFAULT '0' COMMENT 'GitHub 的数字 id，login 会变它不变；0=还没换令牌成功',
+  `gh_login` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT '展示用；空=还没换令牌成功',
+  `gh_avatar` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '展示用；空=还没换令牌成功',
+  `access_token` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT 'GitHub 令牌原文；NULL=换令牌失败或解绑',
+  `refresh_token` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '仅开启令牌过期时才有；NULL=这一枚令牌不能刷新',
+  `scopes` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT 'GitHub 实际授予的，空格分隔（与我们申请的可能不同）',
+  `access_expires_at` int UNSIGNED NOT NULL DEFAULT '0' COMMENT '0=永不过期（协议第一态），不是未知',
+  `refresh_expires_at` int UNSIGNED NOT NULL DEFAULT '0' COMMENT '0=无 refresh',
+  `token_state` tinyint NOT NULL DEFAULT '0' COMMENT '0=换令牌中 1=可用 2=即将/已过期且有 refresh 可续命 3=已撤销/401 死票/过期无 refresh 4=用户解绑或换令牌失败',
+  `isopen` tinyint NOT NULL DEFAULT '1' COMMENT '0=停用：同步任务跳过，但不删行',
+  `next_sync_time` int UNSIGNED NOT NULL DEFAULT '0' COMMENT '到期就该同步；0=立刻',
+  `last_sync_time` int UNSIGNED NOT NULL DEFAULT '0',
+  `last_sync_ok` tinyint NOT NULL DEFAULT '0' COMMENT '1=最后一次成功',
+  `sync_fails` smallint UNSIGNED NOT NULL DEFAULT '0' COMMENT '连续失败次数，用来推后 next_sync_time',
+  `last_error` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '只放状态码与 GitHub 的 error 文本，绝不放令牌或 client_secret',
+  `addtime` int UNSIGNED NOT NULL DEFAULT '0',
+  `updatetime` int UNSIGNED NOT NULL DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- 表的结构 `github_repo`
+--
+
+CREATE TABLE `github_repo` (
+  `id` int UNSIGNED NOT NULL,
+  `account_id` int UNSIGNED NOT NULL DEFAULT '0' COMMENT 'github_account.id',
+  `gh_repo_id` bigint UNSIGNED NOT NULL DEFAULT '0' COMMENT 'GitHub 的 repo id',
+  `full_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT 'owner/repo',
+  `is_private` tinyint NOT NULL DEFAULT '0',
+  `description` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+  `primary_language` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT '',
+  `stars` int UNSIGNED NOT NULL DEFAULT '0',
+  `pushed_at` int UNSIGNED NOT NULL DEFAULT '0' COMMENT 'GitHub 报的最后推送时间',
+  `synced_at` int UNSIGNED NOT NULL DEFAULT '0' COMMENT '这一行是哪一轮写进来的',
+  `is_deleted` tinyint NOT NULL DEFAULT '0' COMMENT '1=本轮同步没拉到（GitHub 侧删除或改私有超出 scope）；软删，下次拉到自动翻回 0',
+  `deleted_at` int UNSIGNED NOT NULL DEFAULT '0' COMMENT '标记 is_deleted=1 的时间；0=未删过'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- 表的结构 `homeblock`
 --
 
@@ -191,6 +244,67 @@ CREATE TABLE `logininfo` (
   `agent` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `urlpath` varchar(120) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='登录记录';
+
+--
+-- 转存表中的数据 `logininfo`
+--
+
+INSERT INTO `logininfo` (`lgid`, `userid`, `logtype`, `username`, `addtime`, `addip`, `addregion`, `loginstate`, `agent`, `urlpath`) VALUES
+(1, 0, 0, 'admin', '2026-10-20 09:43:59', '127.0.0.1', '', '失败', '', '');
+
+-- --------------------------------------------------------
+
+--
+-- 表的结构 `oauth_client`
+--
+
+CREATE TABLE `oauth_client` (
+  `id` int UNSIGNED NOT NULL,
+  `client_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '客户端标识，协议层唯一键',
+  `client_secret` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL COMMENT '保密客户端的 SHA-256(口令) 小写hex；公开客户端为 NULL',
+  `redirect_uris` text CHARACTER SET utf8mb4 COLLATE utf8mb4_bin COMMENT '逗号分隔的回调地址白名单，逐字节精确匹配',
+  `name` varchar(128) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '同意页展示名',
+  `is_confidential` tinyint NOT NULL DEFAULT '1' COMMENT '1=保密客户端需要口令 0=公开客户端只靠 PKCE',
+  `isopen` tinyint NOT NULL DEFAULT '1' COMMENT '0=停用：授权与令牌端点一律当没有这个客户端（比删行安全，refresh 行还在）',
+  `allowed_scopes` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT '空格分隔的 scope 白名单；空串=不设上限',
+  `grant_types` varchar(127) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL DEFAULT '' COMMENT '逗号分隔：authorization_code,refresh_token,client_credentials；空串=三种全开'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- 表的结构 `oauth_code`
+--
+
+CREATE TABLE `oauth_code` (
+  `id` int UNSIGNED NOT NULL,
+  `code_hash` char(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'SHA-256(授权码) 小写hex，明文码不落库',
+  `client_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '签发目标客户端',
+  `user_id` bigint NOT NULL COMMENT '授权人=sysuser.adminid（不是 companyid）',
+  `redirect_uri` varchar(512) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '授权时登记的回调地址，换码时逐字节比对',
+  `scope` varchar(256) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '授权范围，空格分隔',
+  `code_challenge` varchar(128) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'PKCE S256 挑战值，只支持 S256',
+  `expires_at` bigint NOT NULL COMMENT '过期 Unix 秒',
+  `used` tinyint NOT NULL DEFAULT '0' COMMENT '0=未消费 1=已消费，一次性',
+  `family_id` int UNSIGNED NOT NULL DEFAULT '0' COMMENT '换码成功时回填的 refresh 族根 id；0=还没换过码或回填失败'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- 表的结构 `oauth_refresh`
+--
+
+CREATE TABLE `oauth_refresh` (
+  `id` int UNSIGNED NOT NULL,
+  `family_id` int UNSIGNED NOT NULL DEFAULT '0' COMMENT '轮换族根：首次签发那一行的 id，重放时按族整批作废',
+  `token_hash` char(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'SHA-256(refresh token) 小写hex，明文只发一次',
+  `client_id` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT '所属客户端',
+  `user_id` bigint NOT NULL COMMENT '授权人=sysuser.adminid（不是 companyid）',
+  `scope` varchar(256) COLLATE utf8mb4_general_ci NOT NULL DEFAULT '' COMMENT '轮换时保持不变，禁止收缩',
+  `expires_at` bigint NOT NULL COMMENT '过期 Unix 秒',
+  `revoked` tinyint NOT NULL DEFAULT '0' COMMENT '0=有效 1=已撤销'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -753,6 +867,21 @@ ALTER TABLE `department`
   ADD PRIMARY KEY (`dpid`);
 
 --
+-- 表的索引 `github_account`
+--
+ALTER TABLE `github_account`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_admin_client` (`adminid`,`client_id`),
+  ADD KEY `ix_sync_due` (`token_state`,`isopen`,`next_sync_time`);
+
+--
+-- 表的索引 `github_repo`
+--
+ALTER TABLE `github_repo`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_account_repo` (`account_id`,`gh_repo_id`);
+
+--
 -- 表的索引 `homeblock`
 --
 ALTER TABLE `homeblock`
@@ -763,6 +892,32 @@ ALTER TABLE `homeblock`
 --
 ALTER TABLE `logininfo`
   ADD PRIMARY KEY (`lgid`);
+
+--
+-- 表的索引 `oauth_client`
+--
+ALTER TABLE `oauth_client`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_client_id` (`client_id`);
+
+--
+-- 表的索引 `oauth_code`
+--
+ALTER TABLE `oauth_code`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_code_hash` (`code_hash`),
+  ADD KEY `idx_client` (`client_id`),
+  ADD KEY `idx_expires` (`expires_at`);
+
+--
+-- 表的索引 `oauth_refresh`
+--
+ALTER TABLE `oauth_refresh`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_token_hash` (`token_hash`),
+  ADD KEY `idx_family` (`family_id`),
+  ADD KEY `idx_user` (`client_id`,`user_id`),
+  ADD KEY `idx_expires` (`expires_at`);
 
 --
 -- 表的索引 `orderlist`
@@ -916,6 +1071,18 @@ ALTER TABLE `department`
   MODIFY `dpid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=55;
 
 --
+-- 使用表AUTO_INCREMENT `github_account`
+--
+ALTER TABLE `github_account`
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
+-- 使用表AUTO_INCREMENT `github_repo`
+--
+ALTER TABLE `github_repo`
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT;
+
+--
 -- 使用表AUTO_INCREMENT `homeblock`
 --
 ALTER TABLE `homeblock`
@@ -925,7 +1092,25 @@ ALTER TABLE `homeblock`
 -- 使用表AUTO_INCREMENT `logininfo`
 --
 ALTER TABLE `logininfo`
-  MODIFY `lgid` int UNSIGNED NOT NULL AUTO_INCREMENT;
+  MODIFY `lgid` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- 使用表AUTO_INCREMENT `oauth_client`
+--
+ALTER TABLE `oauth_client`
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+
+--
+-- 使用表AUTO_INCREMENT `oauth_code`
+--
+ALTER TABLE `oauth_code`
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+
+--
+-- 使用表AUTO_INCREMENT `oauth_refresh`
+--
+ALTER TABLE `oauth_refresh`
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- 使用表AUTO_INCREMENT `orderlist`
@@ -991,7 +1176,7 @@ ALTER TABLE `sysuser`
 -- 使用表AUTO_INCREMENT `testa`
 --
 ALTER TABLE `testa`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=35;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=39;
 
 --
 -- 使用表AUTO_INCREMENT `testb`

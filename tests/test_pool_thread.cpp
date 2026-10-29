@@ -87,7 +87,7 @@ asio::awaitable<void> case_single_step()
         fn_tid = std::this_thread::get_id();
         CHECK_TRUE(p.get() == peer.get(), "peer is the same object end to end");
         std::this_thread::sleep_for(2ms);
-        return "ok";
+        return "@ok";
     };
 
     auto r = co_await http::co_pool_run_step(fn, peer, asio::use_awaitable);
@@ -118,7 +118,7 @@ asio::awaitable<void> case_two_step_chain()
         fn1_order = ++order;
         fn1_tid   = std::this_thread::get_id();
         std::this_thread::sleep_for(2ms);
-        return "ok";// classify_step: "ok" => 继续执行 regfun
+        return "@ok";// classify_step: "@ok" => 继续执行 regfun
     };
     std::function<std::string(std::shared_ptr<http::httppeer> &)> reg =
         [&](std::shared_ptr<http::httppeer> &) -> std::string

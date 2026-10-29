@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Thu, 22 Oct 2026 11:07:17 GMT
+ *  Creation time Thu, 29 Oct 2026 12:02:54 GMT
  */
 #include <iostream>
 #include <mutex>

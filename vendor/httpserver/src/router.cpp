@@ -39,15 +39,19 @@ enum class chain_act : unsigned char
 
 // 链上一步（pre / regfun）返回值到动作的映射，全项目唯一的解释点。
 // 语义：
-//   pre    返回 ""        = 拒绝，主 handler 不执行
-//   pre    返回 "ok"      = 放行
-//   pre    返回当前路由名 = 放行（自跳转保护）
-//   pre    返回其它名字   = 跳转
-//   regfun 返回 "" / "exit" = 结束
-//   regfun 返回 "T"        = 执行 frametasks_timeloop 后结束
-//   regfun 返回其它名字    = 跳转
-// 「pre 返回自己那条名字」= 放行。名字带不带开头的 '/' 指的是同一条路由，所以这里两种写法都要认得：
-// 只比字符串的话，pre 返回裸名会被当成跳转、跳回自己，一路跑到 32 步上限才停
+//   返回 ""                  = 链终止（pre 拒绝 / regfun 结束）
+//   返回 "@ok"               = pre 放行，继续执行主 handler
+//   返回 "@exit"             = 链终止（pre 或 regfun 皆可）
+//   返回 "@timeloop"         = regfun 要求进入间隔任务
+//   返回当前路由名           = pre 放行（自跳转保护）
+//   返回其它字符串           = 当作路由名跳转
+// 两段式结构：先判 @ 前缀（框架指令命名空间），再判路由名（路由表命名空间）。
+// 未知 @ 指令 → stop + 日志，响亮失败；路由名撞不存在 → resolve 显式 404。
+// 旧的裸控制码 "ok"/"exit"/"T" 一律不再识别，走路由名分支。
+//
+// 「pre 返回自己那条名字」= 放行。名字带不带开头的 '/' 指的是同一条路由，
+// 所以这里两种写法都要认得；只比字符串的话，pre 返回裸名会被当成跳转、
+// 跳回自己，一路跑到 32 步上限才停。
 bool same_route_name(const std::string &ret, const std::string &cur_path)
 {
     std::string_view a = ret;
@@ -61,24 +65,30 @@ bool same_route_name(const std::string &ret, const std::string &cur_path)
 
 chain_act classify_step(const std::string &ret, bool is_pre, const std::string &cur_path)
 {
-    if (is_pre)
-    {
-        if (ret.empty())
-            return chain_act::stop;
-        if (ret.size() == 2 && str_casecmp(ret, "ok"))
-            return chain_act::run_regfun;
-        if (same_route_name(ret, cur_path))
-            return chain_act::run_regfun;
-        if (ret.size() == 4 && str_casecmp(ret, "exit"))
-            return chain_act::stop;
-        return chain_act::jump;
-    }
     if (ret.empty())
         return chain_act::stop;
-    if (ret.size() == 4 && str_casecmp(ret, "exit"))
+
+    // @ 前缀 = 框架指令（路由名不可能含 @，天然隔离）
+    if (ret.front() == '@')
+    {
+        if (is_pre)
+        {
+            if (str_casecmp(ret, kFlowOk))   return chain_act::run_regfun;
+            if (str_casecmp(ret, kFlowExit)) return chain_act::stop;
+        }
+        else
+        {
+            if (str_casecmp(ret, kFlowExit))     return chain_act::stop;
+            if (str_casecmp(ret, kFlowTimeloop)) return chain_act::run_timeloop;
+        }
+        // 未知 @ 指令：响亮失败，别静默当路由名
+        DEBUG_LOG("classify_step: unknown @%s, stop chain", ret.c_str());
         return chain_act::stop;
-    if (ret.size() == 1 && ret[0] == 'T')
-        return chain_act::run_timeloop;
+    }
+
+    // 非 @ = 路由名
+    if (is_pre && same_route_name(ret, cur_path))
+        return chain_act::run_regfun;
     return chain_act::jump;
 }
 
@@ -431,19 +441,19 @@ asio::awaitable<std::string> router::co_call_regfun(std::shared_ptr<httppeer> &p
 // — 站点钩子（method_pre / method_after）：只跑 regfun，不跑钩子自身的 pre —
 // 钩子层语义 = 一串串行 pre，第一个拒了就停，没拒才跑下一个。
 // 钩子层没有 handler 要放行、不支持 jump，所以放行条件只有空串一种。
-// 非空一律视为拒绝——无论是 "exit"、call_sync_regfun 的 "coro-refused" 哨兵，
+// 非空一律视为拒绝——无论是 "@exit"、call_sync_regfun 的 "coro-refused" 哨兵，
 // 还是业务 pre 直接返回的鉴权失败原因串，统统拒掉。
-// 原来只认 "exit" 会让 "coro-refused" 哨兵和鉴权失败原因串被放过（审计问题 #4）。
+// 原来只认 "@exit" 会让 "coro-refused" 哨兵和鉴权失败原因串被放过（审计问题 #4）。
 //
-// "ok" / 同名注册名放行 / "exit" 终止 / jump 跳转 这些语义属于 classify_step()，
+// "@ok" / 同名注册名放行 / "@exit" 终止 / jump 跳转 这些语义属于 classify_step()，
 // 消费的是 handler 自己的 pre 返回值（resolve/co_resolve 主链），和钩子层无关。
 //
 // 超限时截断到前 site_hook_limit 条继续执行，避免整条丢弃导致鉴权静默失效（审计问题 #2）。
 //
 // site hooks: run only regfun, skip hook's own pre.
 // Semantics = serial pre chain: first reject stops, empty ret is the only pass signal.
-// "ok"/same-name/exit/jump are classify_step() semantics for handler's own pre — NOT here.
-// Any non-empty ret = reject, covering "exit", "coro-refused" sentinel, and auth-fail strings.
+// "@ok"/same-name/"@exit"/jump are classify_step() semantics for handler's own pre — NOT here.
+// Any non-empty ret = reject, covering "@exit", "coro-refused" sentinel, and auth-fail strings.
 // Overflow trimmed to first N hooks instead of dropping all.
 bool router::run_site_hooks(std::shared_ptr<httppeer> &peer,
                             std::vector<std::string> const &lists,

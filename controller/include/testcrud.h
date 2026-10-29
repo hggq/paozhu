@@ -18,4 +18,8 @@ namespace http
 	std::string articledelete(std::shared_ptr<httppeer> peer);
 	std::string articleprepost(std::shared_ptr<httppeer> peer);
 	std::string articlepreselect(std::shared_ptr<httppeer> peer);
+	std::string csrf_issue(std::shared_ptr<httppeer> peer);
+	std::string csrf_check(std::shared_ptr<httppeer> peer);
+	std::string cms_form_guard(std::shared_ptr<httppeer> peer);
+	std::string cms_write_guard(std::shared_ptr<httppeer> peer);
 }

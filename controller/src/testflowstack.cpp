@@ -19,7 +19,7 @@
 //   push_last(...)       → 排到最后执行（栈底，先压先出）：顺序拆解默认推荐
 //   push_steps({..})     → 批量 push_last，声明顺序即执行顺序
 //   return ""            → 正常结束，继续弹栈
-//   return "exit"        → 显式终止，不弹栈
+//   return "@exit"        → 显式终止，不弹栈
 //   return "别的名字"     → 直接跳到那个注册名（不经过栈）
 //
 //   顺序拆解（推荐，最易读）：push_last(A); push_last(B); 执行顺序 A→B
@@ -74,7 +74,7 @@ std::string testfxpreonly(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
     client << "PRESEEN;";// 标记 pre 被执行
-    return "ok";         // 放行
+    return "@ok";         // 放行
 }
 
 // @urlpath(testfxpreonly,fx/guarded)
@@ -188,14 +188,14 @@ std::string testfxgone(std::shared_ptr<httppeer> peer)
 }
 
 // @urlpath(null,fx/exit)
-// demo: return "exit" = explicit stop, do NOT drain the flow stack
+// demo: return "@exit" = explicit stop, do NOT drain the flow stack
 // 演示：显式终止 vs 正常 return 空串的区别——栈里可能还有东西但就是不弹
 std::string testfxexit(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
     client.push_next("fx/b");// 压了但不会弹
     client << "EXIT;";
-    return "exit";// 显式终止
+    return "@exit";// 显式终止
 }
 
 // @urlpath(null,fx/depa)
@@ -290,7 +290,7 @@ asio::awaitable<std::string> testfxcoroc(std::shared_ptr<httppeer> peer)
 // 演示：coro pre 放行/拒绝语义跟 sync pre 一样——空串 = 拒绝
 asio::awaitable<std::string> testfxcoropre(std::shared_ptr<httppeer> peer)
 {
-    co_return "ok";
+    co_return "@ok";
 }
 
 // @urlpath(testfxcoropre,fx/coro_pre_sync)
@@ -419,7 +419,7 @@ asio::awaitable<std::string> testfxexc_coro_unknown(std::shared_ptr<httppeer> pe
 asio::awaitable<std::string> testfxexc_reject503_pre(std::shared_ptr<httppeer> peer)
 {
     force_pool_reject_once();// next add_sync_task fails; atomic exchange auto-resets
-    co_return "ok";
+    co_return "@ok";
 }
 
 // @urlpath(testfxexc_reject503_pre,fx/exc/reject503)
@@ -671,7 +671,7 @@ std::string testfxloopslow(std::shared_ptr<httppeer> peer)
     client.val["ms"]   = ms;
     client.val["beat"] = beat;
     client.out_json();
-    return "T";
+    return "@timeloop";
 }
 
 // @urlpath(null,fxlooptick)

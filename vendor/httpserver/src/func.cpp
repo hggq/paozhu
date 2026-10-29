@@ -1549,7 +1549,7 @@ std::string_view str_trim_view(std::string_view str)
     return str.substr(i, tlen);
 }
 
-std::string html_encode(std::string_view str)
+std::string html_escape(std::string_view str)
 {
     std::string temp;
     for (size_t i = 0; i < str.size(); i++)
@@ -1589,6 +1589,11 @@ std::string html_encode(std::string_view str)
         }
     }
     return temp;
+}
+// 旧名字，转发性实现；输出与 html_escape 逐字节相同。
+std::string html_encode(std::string_view str)
+{
+    return html_escape(str);
 }
 unsigned long long str2uint(std::string_view source)
 {

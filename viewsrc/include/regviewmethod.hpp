@@ -68,8 +68,10 @@ namespace http
 	_viewmetholdreg.emplace("cms/edit",http::view::cms::edit);
 	_viewmetholdreg.emplace("cms/list",http::view::cms::list);
 	_viewmetholdreg.emplace("cms/show",http::view::cms::show);
+	_viewmetholdreg.emplace("github/list",http::view::github::list);
 	_viewmetholdreg.emplace("home/header",http::view::home::header);
 	_viewmetholdreg.emplace("login/login",http::view::login::login);
+	_viewmetholdreg.emplace("oauth/consent",http::view::oauth::consent);
 	_viewmetholdreg.emplace("superadmin/addsiteinfo",http::view::superadmin::addsiteinfo);
 	_viewmetholdreg.emplace("superadmin/adduser",http::view::superadmin::adduser);
 	_viewmetholdreg.emplace("superadmin/deletesiteinfo",http::view::superadmin::deletesiteinfo);

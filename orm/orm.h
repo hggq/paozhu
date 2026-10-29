@@ -1,4 +1,4 @@
-/*build this file time Thu, 22 Oct 2026 11:07:21 GMT*/
+/*build this file time Thu, 29 Oct 2026 12:02:54 GMT*/
 #include "models/include/FkChild.h"
 #include "models/include/FkParent.h"
 #include "models/include/Fortune.h"
@@ -37,3 +37,8 @@
 #include "models/pg/include/FkParent.h"
 #include "models/pg/include/Fortune.h"
 #include "models/pg/include/World.h"
+#include "models/cms/include/OauthClient.h"
+#include "models/cms/include/OauthCode.h"
+#include "models/cms/include/OauthRefresh.h"
+#include "models/cms/include/GithubAccount.h"
+#include "models/cms/include/GithubRepo.h"

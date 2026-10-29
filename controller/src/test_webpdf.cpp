@@ -298,6 +298,14 @@ std::string test_table_linebreak(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
 #ifdef ENABLE_PDF
+    server_loaclvar &static_server_var = get_server_global_var();
+
+    if (static_server_var.temp_path.empty())
+    {
+        client << "<p> static_server_var.temp_path empty </p>";
+        return "";
+    }
+
     try
     {
         std::string html_content = R"(
@@ -324,11 +332,10 @@ td { border: 1px solid #000; padding: 5mm; font-size: 10pt; }
         pdf->SetFont("Helvetica", "", 12);
         pdf->WriteHTML(html_content);
 
-        std::string output_path = "/Users/hzq/paozhu/temp/table_test.pdf";
+        std::string output_path = static_server_var.temp_path + "table_test.pdf";
         pdf->Output("F", output_path);
 
         client << "<p>PDF generated: " << output_path << "</p>";
-        client << "<p><a href=\"/temp/table_test.pdf\" target=\"_blank\">Download PDF</a></p>";
     }
     catch (const std::exception &e)
     {

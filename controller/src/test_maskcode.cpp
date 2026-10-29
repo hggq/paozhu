@@ -13,10 +13,10 @@ std::string test_mask_pre(std::shared_ptr<httppeer> peer)
     if (client.mask_code == 0)
     {
         client << "掩码为 0，pre 拦下这次请求";
-        return "exit";
+        return "@exit";
     }
     client << "掩码非 0，pre 放行";
-    return "ok";
+    return "@ok";
 }
 
 //@urlpath(test_mask_pre,maskpre):123456

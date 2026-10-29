@@ -12,7 +12,7 @@ std::string testaddclienttaskpre(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
     client << " testaddclienttaskpre <br/> ";
-    return "ok";
+    return "@ok";
 }
 // testaddclienttask must has pre method
 //@urlpath(testaddclienttaskpre,testaddclienttask)
@@ -27,7 +27,7 @@ std::string testaddclienttask(std::shared_ptr<httppeer> peer)
     if (ip_is_local(client.client_ip))
     {
         peer->add_timeloop_task("executeclienttask", 5);//(regfunc,second)
-        return "T";
+        return "@timeloop";
     }
     client << "<br/> interval task not registered (local-only) <br/> ";
     return "";

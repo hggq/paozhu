@@ -301,4 +301,164 @@ constexpr bool http2_wu_stream_id_ok(unsigned long long sid, unsigned long long 
 // on every clear means a fresh allocation each time. Only buffers whose capacity grew past this
 // are returned to the allocator.
 #define CONST_PEER_BUFFER_SHRINK_SIZE 131072
+
+// OAuth 2.1 授权服务器（libs/oauth + controller/src/oauth）的编译期常量。下面每一块自带单位。
+// 授权码 5 分钟、access token 15 分钟；refresh 的这个值是配置文件里没写 refresh_ttl 时的兜底值。
+// refresh 每次轮换都按"现在 + 有效期"重算到期时间，所以它是闲置期而不是绝对上限：
+// 一直轮换就一直在续，要做绝对上限得让族根自己携带到期时间。
+// OAuth 2.1 authorization server constants; each block below states its own unit.
+// Code 5 min, access token 15 min; this refresh value is the fallback when conf/oauth.conf
+// leaves refresh_ttl unset. Rotation recomputes "now + ttl", so it is an idle window, not a cap.
+#define CONST_OAUTH_CODE_TTL 300
+#define CONST_OAUTH_ACCESS_TTL 900
+#define CONST_OAUTH_REFRESH_TTL 2592000
+
+// 过期行清理：节拍每小时一拍，删除门槛是"这一行自己的 expires_at 早于 now - 保留期"。
+// 保留期必须大于 refresh 的有效期：revoked 的 refresh 行是重放检测的依据，
+// 按"已撤销就立刻删"会让轮换过的旧 token 再拿到时查无此据。
+// 配置文件里的 refresh_ttl 也受这条约束，读的时候就不让写进不小于保留期的值。
+// Expired-row purge: hourly tick, deletes rows whose own expires_at is older than now - keep.
+// Keep must exceed the refresh TTL: revoked refresh rows are the replay evidence for rotation.
+#define CONST_OAUTH_PURGE_INTERVAL 3600
+#define CONST_OAUTH_PURGE_KEEP 7776000
+// 每一拍最多删多少行。DELETE ... LIMIT 是给 InnoDB 的 undo 与主从延迟封顶用的：
+// 表里攒了几百万行过期码时，宁可几十拍打回去，不要一拍锁住整张表。
+// Rows deleted per tick; a few ticks is better than one statement that locks the whole table.
+#define CONST_OAUTH_PURGE_BATCH 1000
+// 一拍里最多连着删几轮，每张表各这么多轮。某轮删不满 CONST_OAUTH_PURGE_BATCH 就收手，
+// 所以空闲的一拍只有两条语句；这个上限只在"积压真的来了"时才起作用。
+// Rounds per tick, per table; a short round ends the loop, so an idle tick costs two statements.
+#define CONST_OAUTH_PURGE_MAX_ROUNDS 20
+
+// RS256 密钥对的文件名，conf/oauth.conf 没写 private_key_file / public_key_file 时用它兜底。
+// 口径与 server.conf 的 certificate_chain_file 相同：相对 server.conf 所在目录，绝对路径原样用。
+// 私钥只用于签发，公钥同时用于 Bearer 验签和 /oauth/jwks 输出，必须是
+// PEM_read_bio_PUBKEY 读得出的 "PUBLIC KEY" 格式（jwt.cpp 的 verify 只认这种）。
+// 两个文件缺任何一个时，token / revoke / bearerauth 一律 500 server_error，
+// 不降级到对称算法。
+// Default RS256 key file names, used when conf/oauth.conf leaves the entry blank. Resolved
+// against the directory that holds server.conf, same as certificate_chain_file.
+// Missing either file makes token/revoke/bearerauth answer 500 server_error; there is no
+// fallback to a symmetric alg.
+#define CONST_OAUTH_PRIVKEY_FILE "oauth_rsa_private.pem"
+#define CONST_OAUTH_PUBKEY_FILE "oauth_rsa_public.pem"
+// 密钥文件的读取上限（字节）。每次请求现读这两个文件，路径又来自配置，所以先把尺寸钳住：
+// 有人把 private_key_file 写成一个日志文件时，代价是"这一单签失败"，不是把整份日志读进内存。
+// Per-request key files are capped at this size; an oversized file is a signing failure,
+// not a memory spike.
+#define CONST_OAUTH_PEM_MAX_SIZE 65536
+// JWT 头里的 kid，也是 /oauth/jwks 里那一枚密钥的 kid。轮换密钥时要一起改。
+// Fixed kid, also emitted in /oauth/jwks. Change it together with a key rotation.
+#define CONST_OAUTH_KID "oauth-rs256-1"
+// kid 的最大长度。它要原样拼进 JWT 头，所以先按"配置里的短标识"钳住长度，字符集另判。
+// Max kid length: the value is spliced straight into the JWT header, so it is bounded first.
+#define CONST_OAUTH_KID_MAX_LEN 64
+// verify 的时钟容差：签发方与校验方同一台，留 30 秒只兜 NTP 抖动。
+// Clock skew tolerance for jwt::verify (issuer and verifier are the same process).
+#define CONST_OAUTH_JWT_LEEWAY 30
+// introspect 的 token 参数长度上限。自己签的 JWT 连签名不到 1 KB（2048 位模数与签名各 342 个
+// base64url 字符），opaque 令牌恒 43 字符；4096 是给"将来换更长的密钥或更多 claim"留的余量。
+// 超长的提交在做任何验签或查库之前就回 active:false——那一格的答案与"查无此令牌"同形，
+// 所以这个闸不泄露"你猜的长度对不对"。
+// Cap on the introspect token parameter; over-length input is answered before any crypto or
+// query, with the same body as "no such token".
+#define CONST_OAUTH_TOKEN_MAX_LEN 4096
+// 客户端注册的列宽上界，跟 oauth_client 的列声明一致（client_id varchar(64)、name varchar(128)）。
+// 超长的提交在这里拒掉；MySQL 非严格模式只会静默截断，截断后的 client_id 就没人认识了。
+// Registration input bounds, matching oauth_client's column widths. Over-length input is refused
+// rather than silently truncated by MySQL's non-strict mode.
+#define CONST_OAUTH_CLIENT_ID_MAX_LEN 64
+#define CONST_OAUTH_CLIENT_NAME_MAX_LEN 128
+// 两列策略串的列宽上界（allowed_scopes varchar(255)、grant_types varchar(127)）。
+// 超长同样是入口拒、不靠库的静默截断：截断后的白名单会少几项，表现为"合法 scope 换不到令牌"。
+// Policy-string bounds matching the two column widths; over-length input is refused at the
+// registration endpoint instead of being silently truncated.
+#define CONST_OAUTH_CLIENT_SCOPES_MAX_LEN 255
+#define CONST_OAUTH_CLIENT_GRANTS_MAX_LEN 127
+
+// GitHub OAuth 客户端这一侧（libs/github + controller/src/github）的编译期常量。
+// 与上一段的授权服务器是两套东西：这里的凭据跟着每个 admin 的绑定落在 github_account 行里，
+// conf/github.conf 只存一把 master key 和通用参数，不存任何 client 凭据。
+// OAuth-client-side constants. Client credentials live per binding in github_account;
+// conf/github.conf holds only the master key and shared parameters.
+// AES-256-GCM 的密钥长度（字节）。配置文件里写成 64 个 hex 字符，读出来必须是这 32 字节，
+// 短了就补零、长了就截断都会让同一把"配错的密钥"照样能加解密，换回来的是一堆解不开的密文。
+// AES-256 key length in bytes; a hex string of the wrong length is rejected, not padded or cut.
+#define CONST_GH_CRYPTO_KEY_LEN 32
+// client_secret 的**明文**长度闸。GitHub 现发的 secret 是 40 字符 hex，128 留了三倍余量；
+// 这一格必须比列宽小，因为落库存的是密文（明文 + 12 IV + 16 tag）。
+// Plaintext bound for client_secret; the column stores ciphertext, so this gate is 28 bytes
+// below the column width.
+#define CONST_GH_SECRET_MAX_LEN 128
+// 密文落库前的列宽闸（varbinary(255)）。越界宁可拒写也不要交给 MySQL 截断——
+// 截掉的 tag 会让这一行永远解不开，且没有任何报错指向截断。
+// Ciphertext bound matching the varbinary(255) column; over-length is refused rather than
+// truncated by the server.
+#define CONST_GH_CIPHER_MAX_LEN 255
+// 令牌与 client_id 的列宽闸（varchar(255) / varchar(64)），与 github_account 的声明一致。
+// Token and client_id bounds, matching the github_account column widths.
+#define CONST_GH_TOKEN_MAX_LEN 255
+#define CONST_GH_CLIENT_ID_MAX_LEN 64
+// redirect_uri 的列宽闸（varchar(255)）。它是绑定表单里唯一由 admin 整段粘进来的 URL，
+// 也是换令牌时"必须逐字节相同"的那一项——超限交给 MySQL 截断，下一次换令牌就会以
+// 一个看不出原因的 error 失败。
+// Bound for the redirect_uri column; letting the server truncate it would make every later
+// token exchange fail with a reason that points nowhere.
+#define CONST_GH_REDIRECT_MAX_LEN 255
+// state 票据的有效期（秒）。GitHub 那枚 code 是 10 分钟过期，这一格必须严格大于它，
+// 否则票据先于 code 失效，用户授权完了我们却不认。
+// state lifetime in seconds; strictly greater than GitHub's 10-minute code expiry.
+#define CONST_GH_STATE_TTL 900
+// code_verifier 的字符集长度下限（RFC 7636 是 43..128）。
+// PKCE code_verifier bounds (RFC 7636 allows 43..128 characters).
+#define CONST_GH_PKCE_VERIFIER_MIN 43
+#define CONST_GH_PKCE_VERIFIER_MAX 128
+// 同步节拍（秒）与每一拍的账号数上限。间隔 900 秒 + 每账号每轮最多 1+3 次请求，
+// 折合约 16 次/小时，对 5000 次/小时/令牌的额度留了两个数量级以上的余量。
+// Sync tick in seconds and accounts per tick; about 16 requests/hour per account.
+#define CONST_GH_SYNC_INTERVAL 900
+#define CONST_GH_SYNC_BATCH 5
+// 每账号每轮最多翻多少页仓库。这是额度闸，不是"翻页翻到爽"的开关：
+// 上限乘每页条数就是这一轮能看见的仓库数，超过的部分由"没拉到"推断，所以软删对比
+// 必须先确认这一轮真的翻完了。
+// Pages per account per round; bounds how many repos one round can see, which is what the
+// soft-delete comparison has to check before it marks anything.
+#define CONST_GH_SYNC_MAX_PAGES 3
+// 仓库列表一页多少条，GitHub 的上限就是 100。
+// Repos per page; GitHub's own ceiling.
+#define CONST_GH_REPO_PER_PAGE 100
+// 连续失败后 next_sync_time 的指数退避封顶（秒）。
+// Ceiling for the exponential backoff applied to next_sync_time after consecutive failures.
+#define CONST_GH_SYNC_BACKOFF_MAX 3600
+// 出站 HTTP 超时（秒）。框架内部把 exptime 钳在 90，写更大的值不会生效。
+// Outbound HTTP timeout in seconds; the client clamps it to 90 internally.
+#define CONST_GH_HTTP_TIMEOUT 8
+// 两个端点的默认值，conf/github.conf 里留空时用它。必须是 https：client_secret 和令牌
+// 都从这两条口出去，写成 http 就是明文上网。
+// Default endpoints, used when conf/github.conf leaves the key blank. Must be https:
+// the client_secret and the tokens go out over these two.
+#define CONST_GH_API_BASE "https://api.github.com"
+#define CONST_GH_AUTH_BASE "https://github.com"
+// 默认 scope。逗号是配置文件的写法，发授权请求前要换成空格再整体 url_encode。
+// read:user 是强制附加项：没有它 GET /user 回 403，绑定行上的身份三列永远填不上。
+// Default scopes, stored comma-separated in conf and converted to space-separated at
+// request time. read:user is appended unconditionally; without it GET /user is a 403.
+#define CONST_GH_DEFAULT_SCOPES "repo,read:user"
+// last_error 里要落库的文本长度闸（列宽 255）。落库前还要过一遍敏感片段过滤，
+// 这一格限的是过滤之后再截断的长度。
+// Bound for the last_error text, applied after the secret-scrubbing pass.
+#define CONST_GH_ERROR_MAX_LEN 255
+// github_repo.description 的列宽（varchar(512)）。GitHub 侧的 description 没有长度上限，
+// 所以这一刀必须在写库前下：非严格模式下的静默截断会把句子腰斩，严格模式下直接报错丢一整页。
+// Column width for the cached repo description; GitHub puts no bound on it, so the cut
+// happens before the write instead of inside MySQL's silent truncation.
+#define CONST_GH_REPO_DESC_MAX_LEN 512
+// gh_avatar 的列宽（varchar(255)）。头像 URL 由 GitHub 给，长度不可预期，同上一条口径。
+// Column width for the avatar URL; GitHub decides its length, so it is bounded here too.
+#define CONST_GH_AVATAR_MAX_LEN 255
+// sync_fails 那一列是 smallint unsigned，写入前先钳住：这个数只用来算退避的档位，
+// 满了就停在界里，不让一次溢出把"往后推得越久"变成"回到最小间隔重试"。
+// sync_fails is smallint unsigned; clamp before writing so an overflow cannot reset the
+// backoff ladder to its lowest rung.
+#define CONST_GH_SYNC_FAILS_MAX 65535
 #endif

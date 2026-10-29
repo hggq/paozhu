@@ -93,7 +93,7 @@ std::string superadmin_islogin(std::shared_ptr<httppeer> peer)
     {
         return "superadmin/login";
     }
-    return "ok";
+    return "@ok";
 }
 //@urlpath(null,superadmin/isloginjson)
 std::string superadmin_isloginjson(std::shared_ptr<httppeer> peer)
@@ -105,9 +105,9 @@ std::string superadmin_isloginjson(std::shared_ptr<httppeer> peer)
         client.val["code"] = 0;
         client.val["msg"]  = "please login";
         client.out_json();
-        return "exit";
+        return "@exit";
     }
-    return "ok";
+    return "@ok";
 }
 //@urlpath(superadmin_islogin,superadmin/main)
 std::string superadmin_main(std::shared_ptr<httppeer> peer)

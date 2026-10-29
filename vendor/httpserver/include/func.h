@@ -33,6 +33,8 @@ void get_filename(const std::string &filename, std::string &filename_name, std::
 std::string get_filename(const std::string &filename);
 std::string get_fileext(const std::string &filename);
 std::vector<std::string> mb_split(std::string_view, std::string_view);
+std::string html_escape(std::string_view);
+// html_encode 是 html_escape 的旧名字，输出逐字节相同，保留给既有调用点。
 std::string html_encode(std::string_view);
 std::string strip_html(std::string_view);
 std::string strip_annot(std::string_view);

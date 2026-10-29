@@ -23,19 +23,66 @@ struct ArticleRow : orm::Base<ArticleRow>
 namespace http
 {
 
-//@urlpath(null,cms/login)
-std::string articlelogin(std::shared_ptr<httppeer> peer)
+// ----- CSRF primitives -----
+
+// 表单页 CSRF 分发：每次签发新 token，写入 session 和模板变量
+// CSRF issue for form pages: fresh token into session and template var per view
+std::string csrf_issue(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client              = peer->get_peer();
+    std::string token             = get_rand_32char();
+    client.session["csrf_token"]  = token;
+    client.val["csrf_token"]      = token;
+    client.save_session();
+    return "@ok";
+}
+
+// 写接口 CSRF 校验 + 作废：比对 session 与提交的 token，通过后立刻作废
+// CSRF verify + invalidate for write endpoints; redirect on mismatch/empty
+std::string csrf_check(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client           = peer->get_peer();
+    std::string session_token  = client.session["csrf_token"].to_string();
+    std::string post_token     = client.post["csrf_token"].to_string();
+    if (session_token.empty() || post_token != session_token)
+    {
+        client.goto_url("/cms/login", 3, "CSRF check failed, please reopen the form!");
+        return "";
+    }
+    // 一次一用：比对通过后立刻作废，同一份表单重复提交会被拒
+    // Single use: clear after pass so replays are rejected
+    client.session["csrf_token"] = "";
+    client.save_session();
+    return "@ok";
+}
+
+// ----- Composite guards (login + CSRF) -----
+
+// 表单页守卫：登录检查 → 签发 CSRF
+// Form page guard: login check then CSRF issue
+std::string cms_form_guard(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
-    // step1  show login page
-    // 显示登录页面
-    // 每次打开登录页签发一个新的 CSRF token，存进 session，同时交给表单隐藏域
-    // Issue a fresh CSRF token per login page view; keep it in session and in the form field
-    // token 必须来自密码学安全随机源，rand_string() 每秒重播种，同一秒内可预测，不能用
-    std::string csrf_token         = get_rand_32char();
-    client.session["csrf_token"] = csrf_token;
-    client.val["csrf_token"]     = csrf_token;
-    client.save_session();
+    if (client.session["userid"].to_int() == 0)
+        return "cms/login";
+    return csrf_issue(peer);
+}
+
+// 写接口守卫：登录检查 → CSRF 校验作废
+// Write endpoint guard: login check then CSRF verify & invalidate
+std::string cms_write_guard(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+    if (client.session["userid"].to_int() == 0)
+        return "cms/login";
+    return csrf_check(peer);
+}
+
+// ----- Handlers -----
+
+//@urlpath(csrf_issue,cms/login)
+std::string articlelogin(std::shared_ptr<httppeer> peer)
+{
     peer->view("login/login");
     return "";
 }
@@ -51,28 +98,14 @@ std::string articleislogin(std::shared_ptr<httppeer> peer)
     {
         return "cms/login";
     }
-    return "ok";
+    return "@ok";
 }
 
-//@urlpath(null,cms/loginpost)
+//@urlpath(csrf_check,cms/loginpost)
 std::string articleloginpost(std::shared_ptr<httppeer> peer)
 {
     // step2
     httppeer &client = peer->get_peer();
-
-    // CSRF 校验：session 里没有 token（没经过 /cms/login）或与表单提交的不一致，直接拒
-    // Reject when session has no token, or it differs from the submitted one
-    std::string session_token = client.session["csrf_token"].to_string();
-    std::string post_token    = client.post["csrf_token"].to_string();
-    if (session_token.empty() || post_token != session_token)
-    {
-        client.goto_url("/cms/login", 3, "CSRF 校验失败，请重新打开登录页！");
-        return "";
-    }
-    // 一次一用：比对通过后立刻作废，同一份表单重复提交会被拒
-    // Single use: clear the token so the same form cannot be submitted twice
-    client.session["csrf_token"] = "";
-    client.save_session();
 
     //注意必须处理用户输入的字符串，预防攻击
     //Be sure to handle user-input strings to prevent attacks
@@ -180,7 +213,7 @@ std::string articleshow(std::shared_ptr<httppeer> peer)
     peer->view("cms/show");
     return "";
 }
-//@urlpath(articleislogin,cms/edit)
+//@urlpath(cms_form_guard,cms/edit)
 std::string articleedit(std::shared_ptr<httppeer> peer)
 {
     // same the show content
@@ -197,7 +230,7 @@ std::string articleedit(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(articleislogin,cms/editpost)
+//@urlpath(cms_write_guard,cms/editpost)
 std::string articleeditpost(std::shared_ptr<httppeer> peer)
 {
     httppeer &client    = peer->get_peer();
@@ -241,17 +274,14 @@ std::string articleeditpost(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(articleislogin,cms/add)
+//@urlpath(cms_form_guard,cms/add)
 std::string articleadd(std::shared_ptr<httppeer> peer)
 {
-    // 添加一个 articleislogin 登录拦截
-    // Add an articleislogin login interceptor
-    //httppeer &client = peer->get_peer();
     peer->view("cms/add");
     return "";
 }
 
-//@urlpath(articleislogin,cms/addpost)
+//@urlpath(cms_write_guard,cms/addpost)
 std::string articleaddpost(std::shared_ptr<httppeer> peer)
 {
     httppeer &client    = peer->get_peer();
@@ -299,7 +329,7 @@ std::string articleaddpost(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(articleislogin,cms/delete)
+//@urlpath(cms_write_guard,cms/delete)
 std::string articledelete(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
@@ -335,7 +365,7 @@ std::string articledelete(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(articleislogin,cms/prepost)
+//@urlpath(cms_write_guard,cms/prepost)
 std::string articleprepost(std::shared_ptr<httppeer> peer)
 {
     httppeer &client    = peer->get_peer();

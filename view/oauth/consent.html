@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Authorize access</title>
+    <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+  <body class="text-center">
+    <div class="container text-center">
+      <div class="row">
+        <div class="col-3"></div>
+        <div class="col-6">
+          <h2 id="oauth-consent-title">Authorize <%c echo<<obj["client_name"].as_string(); %></h2>
+          <form action="<%c echo<<obj["submit"].as_string(); %>" method="post">
+            <input type="hidden" name="response_type" value="code">
+            <input type="hidden" name="csrf_token" value="<%c echo<<obj["csrf_token"].as_string(); %>">
+            <input type="hidden" name="client_id" value="<%c echo<<obj["client_id"].as_string(); %>">
+            <input type="hidden" name="redirect_uri" value="<%c echo<<obj["redirect_uri"].as_string(); %>">
+            <input type="hidden" name="scope" value="<%c echo<<obj["scope"].as_string(); %>">
+            <input type="hidden" name="state" value="<%c echo<<obj["state"].as_string(); %>">
+            <input type="hidden" name="code_challenge" value="<%c echo<<obj["code_challenge"].as_string(); %>">
+            <input type="hidden" name="code_challenge_method" value="<%c echo<<obj["code_challenge_method"].as_string(); %>">
+            <div class="row mb-3">
+              <label class="col-sm-4 col-form-label">Application</label>
+              <div class="col-sm-8 text-start">
+                <span class="form-text"><%c echo<<obj["client_name"].as_string(); %></span>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <label class="col-sm-4 col-form-label">Callback</label>
+              <div class="col-sm-8 text-start">
+                <span class="form-text"><%c echo<<obj["redirect_uri"].as_string(); %></span>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <label class="col-sm-4 col-form-label">Requested scope</label>
+              <div class="col-sm-8 text-start">
+                <span class="form-text"><%c echo<<obj["scope"].as_string(); %></span>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Allow access</button>
+          </form>
+          <p class="text-muted mt-3">
+            To refuse, close this page. No code is issued and the callback address receives nothing.
+          </p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

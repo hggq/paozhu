@@ -111,8 +111,8 @@ int main()
         group_result("pre_hook_reject: \"403 Forbidden\" = reject (was: PASS, bug)",
                      pre_hook_reject("403 Forbidden"));
 
-        group_result("pre_hook_reject: \"ok\" = reject (was: PASS, legacy ok 语义已在 classify_step 里消费，到这里应该已经过了)",
-                     pre_hook_reject("ok"));
+        group_result("pre_hook_reject: \"@ok\" = reject (hook 层只看空/非空，不经过 classify_step)",
+                     pre_hook_reject("@ok"));
 
         group_result("pre_hook_reject: \"\" only passes",
                      !pre_hook_reject("any-non-empty-string") == false);

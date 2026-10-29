@@ -33,6 +33,8 @@ bin/*
 .vscode
 .qoder
 .qoder/
+.codebuddy
+.codebuddy/
 
 # 运行时生成 / Runtime-generated
 www/default/upload

@@ -72,6 +72,11 @@ namespace  cms{
 	std::string show(const struct view_param &vinfo,http::obj_val &obj);
 }
 
+namespace  github{ 
+
+	std::string list(const struct view_param &vinfo,http::obj_val &obj);
+}
+
 namespace  home{ 
 
 	std::string header(const struct view_param &vinfo,http::obj_val &obj);
@@ -80,6 +85,11 @@ namespace  home{
 namespace  login{ 
 
 	std::string login(const struct view_param &vinfo,http::obj_val &obj);
+}
+
+namespace  oauth{ 
+
+	std::string consent(const struct view_param &vinfo,http::obj_val &obj);
 }
 
 namespace  superadmin{ 

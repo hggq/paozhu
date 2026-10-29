@@ -265,9 +265,9 @@ std::string admin_islogin(std::shared_ptr<httppeer> peer)
         client.val["code"] = 0;
         client.val["msg"] = "please login";
         client.out_json();
-        return "exit";         // Returning "exit" stops further execution
+        return "@exit";         // Returning "@exit" stops further execution
     }
-    return "ok";
+    return "@ok";
 }
 
 //@urlpath(admin_islogin,admin/main)  // Use the filter
@@ -634,10 +634,10 @@ std::string test_mask_pre(std::shared_ptr<httppeer> peer)
     if (client.mask_code == 0)
     {
         client << "mask is 0, pre stops this request";
-        return "exit";
+        return "@exit";
     }
     client << "mask is not 0, pre lets it through";
-    return "ok";
+    return "@ok";
 }
 
 //@urlpath(test_mask_pre,maskpre):123456
@@ -2005,16 +2005,16 @@ namespace http
 
 `common/autorestfulpaths.hpp` keeps its two map-taking functions (`_initauto_control_httprestful_paths` / `_initauto_domain_httprestful_paths`) — those really do take the registration maps.
 
-### Step 2 — Remove the resident-client and payment demo directories
+### Step 2 — Remove the resident-client, payment and OAuth demo directories
 
 ```bash
 rm -rf redis/* mqtt/* sockets/* websockets/*      # directories stay
-rm -rf libs/webpay/*                              # the directory stays
+rm -rf libs/webpay/* libs/oauth/*                 # the directories stay
 ```
 
 `redis/ mqtt/ sockets/ websockets/` are header-only demo clients (`echo_*`, `my_test_*`, `*_websockets.hpp`); their only consumers are the registration files emptied in Step 1, and CMake adds them as include directories only, so nothing is compiled out of them.
 
-`libs/webpay/` is the order and pay-channel layer written against the `[cms]` tables — it is the only directory under `libs/` that uses `orm::`, and both build systems collect `libs/**.cpp` unconditionally (`CMakeLists.txt` `file(GLOB_RECURSE reflect_list ... libs/*.cpp)`, `xmake.lua` `add_files("libs/**.cpp")`). Left in a tree with no generated ORM, its `#include "orm.h"` fails before anything else is compiled. The other `libs/` directories (`img` `markdown` `pinyin` `ipdata` `types` `department`) are framework utilities with no ORM dependency and are kept.
+`libs/webpay/` is the order and pay-channel layer, `libs/oauth/` the OAuth 2.1 authorization-server store — the two directories under `libs/` that use `orm::` (both against the `[cms]` tables), and both build systems collect `libs/**.cpp` unconditionally (`CMakeLists.txt` `file(GLOB_RECURSE reflect_list ... libs/*.cpp)`, `xmake.lua` `add_files("libs/**.cpp")`). Left in a tree with no generated ORM, their `#include "orm.h"` fails before anything else is compiled. The other `libs/` directories (`img` `markdown` `pinyin` `ipdata` `types` `department`) are framework utilities with no ORM dependency and are kept.
 
 ### Step 3 — Remove the ORM layer, keep an empty `orm/orm.h`
 

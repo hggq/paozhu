@@ -19,7 +19,7 @@ std::string testlogin(std::shared_ptr<httppeer> peer)
         client << "<p><a href=\"" << client.get_hosturl() << "/showlogin\">show</a></p>";
         return "showlogin";
     }
-    return "ok";
+    return "@ok";
 }
 std::string testshowlogin(std::shared_ptr<httppeer> peer)
 {
