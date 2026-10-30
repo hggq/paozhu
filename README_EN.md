@@ -776,7 +776,8 @@ sh mini_project.sh --benchmark
 
 ### 10. Documentation
 
-- [Paozhu Documentation](https://hggq.github.io/paozhudocs/)
+- [Paozhu Documentation](https://hggq.github.io/paozhudocs/)  
+- [ORM Guide](https://hggq.github.io/paozhudocs/orm_guide.html)  
 - [OAuth & JWT Guide](https://hggq.github.io/paozhudocs/docs/oauth_guide.html)
 
 

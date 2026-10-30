@@ -781,8 +781,9 @@ sh mini_project.sh --benchmark
 
 ### 10.相关教程
 
-[Paozhu快速入门](https://hggq.github.io/paozhudocs/)  
-[OAuth & JWT 授权指南](https://hggq.github.io/paozhudocs/docs/oauth_guide.html)
+- [Paozhu快速入门](https://hggq.github.io/paozhudocs/)  
+- [ORM 介绍](https://hggq.github.io/paozhudocs/orm_guide.html)  
+- [OAuth & JWT 授权指南](https://hggq.github.io/paozhudocs/oauth_guide.html)
 
  
 ### 11.贡献👏👋
