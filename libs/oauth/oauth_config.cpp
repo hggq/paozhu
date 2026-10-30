@@ -5,6 +5,7 @@
 
 #include <filesystem>
 #include <iostream>
+#include <mutex>
 
 #include "cost_define.h"
 #include "func.h"
@@ -39,20 +40,20 @@ std::string conf_dir()
 std::string resolve_key_path(const std::string &confdir, const std::string &value)
 {
     std::error_code ec;
-    fs::path        p(value);
+    fs::path p(value);
     if (!p.is_absolute())
     {
         p = fs::path(confdir) / p;
     }
     return p.lexically_normal().string();
 }
-} // namespace
+}// namespace
 
 oauth_settings read_oauth_settings(const std::string &conffile)
 {
     oauth_settings out;
 
-    std::string path   = conffile.empty() ? conf_dir() + "oauth.conf" : conffile;
+    std::string path    = conffile.empty() ? conf_dir() + "oauth.conf" : conffile;
     std::string confdir = fs::path(path).parent_path().string();
     if (!confdir.empty() && confdir.back() != '/')
     {
@@ -60,10 +61,10 @@ oauth_settings read_oauth_settings(const std::string &conffile)
     }
 
     // 先把默认值填上：文件缺失时这几个就是最终读数，调用方不用各自再兜一次。
-    out.kid           = CONST_OAUTH_KID;
-    out.privkey_file  = resolve_key_path(confdir, CONST_OAUTH_PRIVKEY_FILE);
-    out.pubkey_file   = resolve_key_path(confdir, CONST_OAUTH_PUBKEY_FILE);
-    out.refresh_ttl   = CONST_OAUTH_REFRESH_TTL;
+    out.kid          = CONST_OAUTH_KID;
+    out.privkey_file = resolve_key_path(confdir, CONST_OAUTH_PRIVKEY_FILE);
+    out.pubkey_file  = resolve_key_path(confdir, CONST_OAUTH_PUBKEY_FILE);
+    out.refresh_ttl  = CONST_OAUTH_REFRESH_TTL;
 
     std::error_code ec;
     if (!fs::exists(path, ec) || !fs::is_regular_file(path, ec))
@@ -141,5 +142,27 @@ oauth_settings read_oauth_settings(const std::string &conffile)
     return out;
 }
 
-} // namespace oauth
-} // namespace http
+oauth_settings oauth_settings_cached()
+{
+    static std::mutex     guard;
+    static oauth_settings cached;
+    static bool           ready = false;
+
+    std::lock_guard<std::mutex> lk(guard);
+    if (ready)
+    {
+        return cached;
+    }
+    oauth_settings fresh = read_oauth_settings("");
+    if (fresh.loaded && !fresh.issuer.empty())
+    {
+        cached = fresh;
+        ready  = true;
+    }
+    // 没读成（文件缺失、段不在、issuer 还空着）就把这一次的回落读数交出去，但不落缓存：
+    // 配置文件晚到一步时要能在下一次调用里自动跟上。
+    return fresh;
+}
+
+}// namespace oauth
+}// namespace http

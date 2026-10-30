@@ -44,7 +44,7 @@ std::string github_bind(std::shared_ptr<httppeer> peer)
 
     unsigned long long adminid = (unsigned long long)client.session["adminid"].to_int();
 
-    std::string client_id   = str_trim(client.post["client_id"].to_string());
+    std::string client_id    = str_trim(client.post["client_id"].to_string());
     std::string plain_secret = client.post["client_secret"].to_string();
     std::string redirect_uri = str_trim(client.post["redirect_uri"].to_string());
 
@@ -127,4 +127,4 @@ std::string github_bind(std::shared_ptr<httppeer> peer)
     client.set_header("Location", url);
     return "";
 }
-} // namespace http
+}// namespace http

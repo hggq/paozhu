@@ -10,6 +10,7 @@
 #include "httppeer.h"
 #include "oauth/oauth_store.h"
 #include "oauth_revoke.h"
+#include "debug_log.h"
 
 namespace http
 {
@@ -86,8 +87,46 @@ std::string oauth_revoke(std::shared_ptr<httppeer> peer)
     {
         oauth::consume_code(token);
     }
-    // access_token 是自包含 JWT，没有表可撤——只能等它自己过期（900 秒窗口）。
-    // 按 RFC 7009 的口径，这种情况也回 200，不告诉调用方"这个撤不掉"。
+    // access_token 是自包含 JWT，库里没有对应行，只能记进撤销名单（见 blacklist_access_jti）。
+    // 形状判定用 looks_like_jwt，不看 token_type_hint——那是调用方可控的字符串；
+    // 本站发的 opaque 令牌是 43 个 base64url 字符、不含 '.'，两种形状互斥且穷尽。
+    // 名单写不进去（本构建没编 Redis、段名不存在、连接没建成）时这枚令牌照旧活到过期：
+    // 响应形状不变（RFC 7009 不回"撤不掉"），但把这件事记进日志，免得运维以为撤销生效了。
+    if (oauth::looks_like_jwt(token))
+    {
+        oauth::signing_material keys = oauth::signing_material_cached();
+        std::string             payload_json;
+        std::string             why;
+        // 只用公钥验签，私钥那一格是 signing_material 的形态要求（两个文件一起读，任一读不出
+        // 都不算就绪）；jwks 与 introspect 也是同一个形状。私钥不可读会让撤销静默无效，
+        // 那条日志就是这件事唯一的可见处。
+        if (keys.ready &&
+            oauth::verify_access_token(keys.pubkey_pem, token, CONST_OAUTH_JWT_LEEWAY, payload_json, why))
+        {
+            obj_val claims;
+            try
+            {
+                claims.from_json(payload_json);
+            }
+            catch (const std::exception &)
+            {
+                claims.clear();
+            }
+            if (claims.get_type() == obj_type::OBJECT)
+            {
+                std::string jti = claims["jti"].to_string();
+                // 只撤属于这个已认证客户端的令牌，和上面撤 refresh 那条 WHERE client_id 同口径：
+                // 少了它，A 客户端能拿 B 的 jti 去占名单。
+                // exp 是数字 claim，只能按 64 位整数读（json_util::get_string 读不到带引号以外的
+                // 值，int 版又是 32 位），名单键的 TTL 就是它剩下的有效期。
+                if (!jti.empty() && claims["aud"].to_string() == authed_id &&
+                    !oauth::blacklist_access_jti(jti, claims["exp"].to_int()))
+                {
+                    LOG_ERROR << "[oauth] revoke: access token not recorded in the revocation list" << LOG_END;
+                }
+            }
+        }
+    }
     client.status(200);
     return "";
 }

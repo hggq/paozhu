@@ -32,12 +32,12 @@ namespace oauth_client
 // ---------------------------------------------------------------------------
 struct oauth_endpoints
 {
-    std::string authorize_url;   // 例如 https://www.hggq.com/oauth/authorize
-    std::string token_url;       // 例如 https://www.hggq.com/oauth/token
-    std::string introspect_url;  // 例如 https://www.hggq.com/oauth/introspect
-    std::string revoke_url;      // 例如 https://www.hggq.com/oauth/revoke
-    int         timeout_seconds = 10;
-    bool        prefer_basic_auth = true;  // true=Authorization: Basic（RFC 6749 §2.3.1 推荐）；false=client_id/secret 放 POST body（GitHub 要求）
+    std::string authorize_url; // 例如 https://www.hggq.com/oauth/authorize
+    std::string token_url;     // 例如 https://www.hggq.com/oauth/token
+    std::string introspect_url;// 例如 https://www.hggq.com/oauth/introspect
+    std::string revoke_url;    // 例如 https://www.hggq.com/oauth/revoke
+    int timeout_seconds    = 10;
+    bool prefer_basic_auth = true;// true=Authorization: Basic（RFC 6749 §2.3.1 推荐）；false=client_id/secret 放 POST body（GitHub 要求）
 };
 
 // ---------------------------------------------------------------------------
@@ -52,12 +52,12 @@ std::string pkce_challenge(const std::string &code_verifier);
 // 返回 false 时 url_out 被清空。
 // ---------------------------------------------------------------------------
 bool build_authorize_url(const oauth_endpoints &ep,
-                         const std::string     &client_id,
-                         const std::string     &redirect_uri,
-                         const std::string     &scope_space_separated,
-                         const std::string     &state,
-                         const std::string     &code_challenge,   // 空串＝不带 PKCE（仅授权请求）
-                         std::string           &url_out);
+                         const std::string &client_id,
+                         const std::string &redirect_uri,
+                         const std::string &scope_space_separated,
+                         const std::string &state,
+                         const std::string &code_challenge,// 空串＝不带 PKCE（仅授权请求）
+                         std::string &url_out);
 
 // ---------------------------------------------------------------------------
 // token 端点响应。http_status 独立出来方便调用方区分"传输成功但业务拒绝"
@@ -65,15 +65,15 @@ bool build_authorize_url(const oauth_endpoints &ep,
 // ---------------------------------------------------------------------------
 struct token_answer
 {
-    bool        ok               = false;
-    unsigned int http_status     = 0;
+    bool ok                  = false;
+    unsigned int http_status = 0;
     std::string access_token;
-    std::string refresh_token;   // 空 = 这一轮响应没给 refresh（client_credentials）
+    std::string refresh_token;// 空 = 这一轮响应没给 refresh（client_credentials）
     std::string scope;
-    long long   access_expires_in  = 0;  // 0 = 无过期
-    long long   refresh_expires_in = 0;  // 0 = 响应里没给
-    std::string token_type;              // Bearer 或 MAC（绝大多数字段忽略后者）
-    std::string error;                   // 失败原因，永远不含密钥
+    long long access_expires_in  = 0;// 0 = 无过期
+    long long refresh_expires_in = 0;// 0 = 响应里没给
+    std::string token_type;          // Bearer 或 MAC（绝大多数字段忽略后者）
+    std::string error;               // 失败原因，永远不含密钥
 };
 
 // ---------------------------------------------------------------------------
@@ -81,67 +81,67 @@ struct token_answer
 // client_secret 只在本函数栈帧存活，绝不写日志、绝不塞进结构体。
 // ---------------------------------------------------------------------------
 bool exchange_code(const oauth_endpoints &ep,
-                   const std::string     &client_id,
-                   const std::string     &client_secret_plain,
-                   const std::string     &code,
-                   const std::string     &redirect_uri,
-                   const std::string     &code_verifier,
-                   token_answer          &out);
+                   const std::string &client_id,
+                   const std::string &client_secret_plain,
+                   const std::string &code,
+                   const std::string &redirect_uri,
+                   const std::string &code_verifier,
+                   token_answer &out);
 
 bool refresh_access(const oauth_endpoints &ep,
-                    const std::string     &client_id,
-                    const std::string     &client_secret_plain,
-                    const std::string     &refresh_token_in,
-                    token_answer          &out);
+                    const std::string &client_id,
+                    const std::string &client_secret_plain,
+                    const std::string &refresh_token_in,
+                    token_answer &out);
 
 bool client_credentials(const oauth_endpoints &ep,
-                        const std::string     &client_id,
-                        const std::string     &client_secret_plain,
-                        const std::string     &scope,
-                        token_answer          &out);
+                        const std::string &client_id,
+                        const std::string &client_secret_plain,
+                        const std::string &scope,
+                        token_answer &out);
 
 // ---------------------------------------------------------------------------
 // introspect / revoke
 // ---------------------------------------------------------------------------
 struct introspect_answer
 {
-    bool         ok            = false;
-    bool         active        = false;
-    unsigned int http_status   = 0;
-    std::string  error;
+    bool ok                  = false;
+    bool active              = false;
+    unsigned int http_status = 0;
+    std::string error;
 
     // RFC 7662 §2.2：只在 active=true 时服务端才可能回，缺的格不写。
-    std::string  token_type;
-    std::string  client_id;
-    std::string  iss;
-    std::string  sub;
-    std::string  aud;
-    std::string  scope;
-    std::string  jti;
-    long long    exp = 0;
-    long long    iat = 0;
+    std::string token_type;
+    std::string client_id;
+    std::string iss;
+    std::string sub;
+    std::string aud;
+    std::string scope;
+    std::string jti;
+    long long exp = 0;
+    long long iat = 0;
 };
 bool do_introspect(const oauth_endpoints &ep,
-                   const std::string     &client_id,
-                   const std::string     &client_secret_plain,
-                   const std::string     &token,
-                   const std::string     &token_type_hint,
-                   introspect_answer     &out);
+                   const std::string &client_id,
+                   const std::string &client_secret_plain,
+                   const std::string &token,
+                   const std::string &token_type_hint,
+                   introspect_answer &out);
 
 enum class revoke_result
 {
-    ok,           // 200 / 202 / 204：服务端已经把这枚令牌撤掉了（或本来就没有）
-    auth_failed,  // 401：客户端认证失败，这条请求根本没进 revoke 逻辑
-    transport     // 网络错 / 超时 / 端点未配置
+    ok,         // 200 / 202 / 204：服务端已经把这枚令牌撤掉了（或本来就没有）
+    auth_failed,// 401：客户端认证失败，这条请求根本没进 revoke 逻辑
+    transport   // 网络错 / 超时 / 端点未配置
 };
 revoke_result do_revoke(const oauth_endpoints &ep,
-                        const std::string     &client_id,
-                        const std::string     &client_secret_plain,
-                        const std::string     &token,
-                        const std::string     &token_type_hint,
-                        unsigned int          &http_status_out);
+                        const std::string &client_id,
+                        const std::string &client_secret_plain,
+                        const std::string &token,
+                        const std::string &token_type_hint,
+                        unsigned int &http_status_out);
 
-} // namespace oauth_client
-} // namespace http
+}// namespace oauth_client
+}// namespace http
 
 #endif

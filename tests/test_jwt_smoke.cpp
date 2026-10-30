@@ -1,11 +1,17 @@
 /**
  * jwt_smoke.cpp — minimal functional verification for http::jwt
- * Compile: g++ -std=c++20 -I./vendor/httpserver/include jwt_smoke.cpp vendor/httpserver/src/jwt.cpp -lcrypto -lssl -o jwt_smoke
+ * Compile: g++ -std=c++20 -I. -I./vendor/httpserver/include tests/test_jwt_smoke.cpp vendor/httpserver/src/jwt.cpp vendor/httpserver/src/request.cpp -lcrypto -lssl -o jwt_smoke
+ *          (request.cpp carries obj_val::from_json, which jwt.cpp asks for to confirm section syntax;
+ *           -I. is for common/cost_define.h, which holds the token length cap)
  * Run:     ./jwt_smoke
  */
 
 #include "jwt.h"
+#include "common/cost_define.h"
+#include <openssl/bio.h>
+#include <openssl/ec.h>
 #include <openssl/evp.h>
+#include <openssl/pem.h>
 #include <iostream>
 #include <cassert>
 #include <cstring>
@@ -508,9 +514,9 @@ int main()
     }
 
     // ============================================================
-    // 26) verify side: RSA pubkey used as ES256 key -> signature_mismatch
+    // 26) verify side: RSA pubkey used as ES256 key -> key_mismatch
     // ============================================================
-    std::cout << "[26] verify: RSA pubkey as ES256 key -> signature_mismatch\n";
+    std::cout << "[26] verify: RSA pubkey as ES256 key -> key_mismatch\n";
     {
         // Generate EC key pair: priv for ES256 sign, pub for later test
         http::EVP_PKEY_ptr ec_kp = http::ec_crypto::generate_p256();
@@ -522,11 +528,11 @@ int main()
         std::string ec_token = jwt::encode(
             R"({"alg":"ES256"})", R"({"sub":"x"})", ec_priv, algorithm::ES256);
 
-        // RSA pubkey in ES256 verify: the r||s segment is 256 bytes, so es256_verify
-        // refuses at the 64-byte clamp -> signature_mismatch
+        // An RSA key is not on any curve, so the ES256 branch reports it as the key error it
+        // is; before the curve was asked, this same pair only ever produced signature_mismatch.
         auto vr = jwt::verify(ec_token, rsa_pub, algorithm::ES256);
         check("RSA pubkey rejected for ES256 verify",
-              vr.err == verify_error::signature_mismatch);
+              vr.err == verify_error::key_mismatch);
     }
 
     // ============================================================
@@ -879,6 +885,215 @@ int main()
         std::string only_tail_b64 = b64url::encode("{\"note\":\"unclosed");
         auto dv_only = jwt::decode_without_verify(hdr_b64 + "." + only_tail_b64 + ".abc");
         check("decode reports 0 when only the tail was scanned", dv_only.exp == 0);
+    }
+
+    // ============================================================
+    // 37) typ injection when the header object is padded with whitespace
+    // ============================================================
+    std::cout << "[37] typ injection with whitespace in the header\n";
+    {
+        const std::string key = "my-32-byte-secret-key---XXXXXX";
+        std::string token = jwt::encode(
+            R"({ "alg":"HS256" })",
+            R"({"sub":"ws-header"})",
+            key,
+            algorithm::HS256);
+        auto vr = jwt::verify(token, key, algorithm::HS256);
+        check("whitespace-padded header verifies", vr.err == verify_error::ok);
+        const size_t first_typ = vr.header_json.find("\"typ\"");
+        check("whitespace-padded header got exactly one typ",
+              first_typ != std::string::npos &&
+              vr.header_json.find("\"typ\"", first_typ + 1) == std::string::npos);
+        check("typ appended as a member, never as an empty-list comma",
+              vr.header_json.find("{ ,") == std::string::npos &&
+              vr.header_json.find(",\"typ\"") != std::string::npos);
+
+        // 空白填满的空对象没有任何成员，也就没声明 alg：encode() 在写 typ 之前就先拒了
+        bool caught = false;
+        try
+        {
+            jwt::encode(R"({ })", R"({"sub":"x"})", key, algorithm::HS256);
+        }
+        catch (const std::exception &)
+        {
+            caught = true;
+        }
+        check("empty-after-trim header never reaches typ injection", caught);
+    }
+
+    // ============================================================
+    // 38) three gates: section syntax, signature alphabet, error-path payload
+    // ============================================================
+    std::cout << "[38] syntax gate, signature alphabet, error path keeps no text\n";
+    {
+        const std::string key = "my-32-byte-secret-key---XXXXXX";
+        const time_t      future = std::time(nullptr) + 3600;
+        const std::string s_future = std::to_string(static_cast<long long>(future));
+
+        // A member with no colon is not one JSON document: the section used to pass the
+        // brace-balance shape check, the scanner found no exp in it, and the token only
+        // failed at the signature.
+        std::string hdr_b64      = http::b64url::encode(R"({"alg":"HS256"})");
+        std::string nocolon_b64  = http::b64url::encode(R"({"exp" "x"})");
+        auto vr_nocolon = jwt::verify(hdr_b64 + "." + nocolon_b64 + ".abc", key, algorithm::HS256);
+        check("a member without a colon is refused as malformed json",
+              vr_nocolon.err == verify_error::malformed_json);
+        check("a section refused on syntax is not handed back as text",
+              vr_nocolon.header_json.empty() && vr_nocolon.payload_json.empty());
+
+        // The signature does not cover the tampered payload, so the verdict is reported and
+        // the bytes the caller has not authenticated are not.
+        std::string live = jwt::encode(R"({"alg":"HS256"})",
+                                      "{\"exp\":" + s_future + ",\"sub\":\"alice\"}",
+                                      key,
+                                      algorithm::HS256);
+        const size_t last_dot = live.rfind('.');
+        std::string tampered  = live.substr(0, last_dot + 1) +
+                                http::b64url::encode("{\"exp\":" + s_future + ",\"sub\":\"bob\"}");
+        auto vr_tamper = jwt::verify(tampered, key, algorithm::HS256);
+        check("tampered payload still reports a signature mismatch",
+              vr_tamper.err == verify_error::signature_mismatch);
+        check("an error result carries no section text",
+              vr_tamper.header_json.empty() && vr_tamper.payload_json.empty());
+        check("an error result keeps the diagnostics",
+              vr_tamper.alg == "HS256" && static_cast<time_t>(vr_tamper.exp) == future);
+
+        // Completing the padding of the signature segment folded back into the very same
+        // signature bytes and used to verify. How many characters do that depends on the
+        // segment length, so the fixture computes it instead of hard-coding one '='.
+        const std::string sig_b64 = live.substr(last_dot + 1);
+        const size_t      pad     = (4 - sig_b64.size() % 4) % 4;
+        check("this algorithm leaves a padding fixture to fold with", pad > 0);
+        if (pad > 0)
+        {
+            auto vr_pad = jwt::verify(live + std::string(pad, '='), key, algorithm::HS256);
+            check("a padded signature segment is refused as invalid base64",
+                  vr_pad.err == verify_error::invalid_base64);
+        }
+        check("the same token with no padding still verifies",
+              jwt::verify(live, key, algorithm::HS256).err == verify_error::ok);
+    }
+
+    std::cout << "[39] token length cap, ES256 curve, escaped member names\n";
+    {
+        const std::string key = "my-32-byte-secret-key---XXXXXX";
+        const time_t      past   = std::time(nullptr) - 3600;
+        const time_t      future = std::time(nullptr) + 3600;
+        const std::string s_past   = std::to_string(static_cast<long long>(past));
+        const std::string s_future = std::to_string(static_cast<long long>(future));
+
+        // ---- the whole token is bounded before any segment is decoded ----
+        // 界上的令牌必须照常可用，所以这里把填充调到 token.size() 恰好等于界，再+1 去看它被拒。
+        // The cap has to leave a real token alone, so the fixture is sized to land exactly on it
+        // and then one byte past it.
+        auto token_of_size = [&](size_t want) -> std::string
+        {
+            size_t pad = want;
+            std::string tok;
+            for (int guard = 0; guard < 64; ++guard)
+            {
+                const std::string payload =
+                    std::string("{\"s\":\"") + std::string(pad, 'a') + "\"}";
+                tok = jwt::encode(R"({"alg":"HS256"})", payload, key, algorithm::HS256);
+                const long long diff = static_cast<long long>(want)
+                                     - static_cast<long long>(tok.size());
+                if (diff == 0)
+                    return tok;
+                if (static_cast<long long>(pad) + diff < 0)
+                    break;
+                pad = static_cast<size_t>(static_cast<long long>(pad) + diff);
+            }
+            return "";
+        };
+        const std::string at_cap   = token_of_size(CONST_JWT_TOKEN_MAX_LEN);
+        const std::string over_cap = token_of_size(CONST_JWT_TOKEN_MAX_LEN + 1);
+        check("a fixture can be sized to the cap exactly",
+              at_cap.size() == CONST_JWT_TOKEN_MAX_LEN);
+        check("a token at the cap still verifies",
+              jwt::verify(at_cap, key, algorithm::HS256).err == verify_error::ok);
+        check("one byte over the cap is refused before any segment is decoded",
+              over_cap.size() == CONST_JWT_TOKEN_MAX_LEN + 1 &&
+              jwt::verify(over_cap, key, algorithm::HS256).err == verify_error::token_too_long);
+
+        // ---- ES256 names its curve ----
+        auto ec_pub_pem = [](int nid) -> std::string
+        {
+            std::string pem;
+            EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, nullptr);
+            EVP_PKEY *k = nullptr;
+            if (ctx)
+            {
+                EVP_PKEY_keygen_init(ctx);
+                EVP_PKEY_CTX_set_ec_paramgen_curve_nid(ctx, nid);
+                EVP_PKEY_keygen(ctx, &k);
+                EVP_PKEY_CTX_free(ctx);
+            }
+            if (k)
+            {
+                BIO *mem = BIO_new(BIO_s_mem());
+                PEM_write_bio_PUBKEY(mem, k);
+                char *data = nullptr;
+                const long len = BIO_get_mem_data(mem, &data);
+                pem.assign(data, static_cast<size_t>(len));
+                BIO_free(mem);
+                EVP_PKEY_free(k);
+            }
+            return pem;
+        };
+        http::EVP_PKEY_ptr signer = http::ec_crypto::generate_p256();
+        std::string signer_pub;
+        {
+            BIO_ptr mem(BIO_new(BIO_s_mem()));
+            PEM_write_bio_PUBKEY(mem.get(), signer.get());
+            char *data = nullptr;
+            const long len = BIO_get_mem_data(mem.get(), &data);
+            signer_pub.assign(data, static_cast<size_t>(len));
+        }
+        const std::string es_token = jwt::encode(
+            R"({"alg":"ES256"})", R"({"sub":"x"})",
+            http::ec_crypto::export_pem(signer.get()), algorithm::ES256);
+        check("ES256 refuses a P-384 public key as a key problem",
+              jwt::verify(es_token, ec_pub_pem(NID_secp384r1), algorithm::ES256).err
+                  == verify_error::key_mismatch);
+        // secp256k1 与 P-256 同宽 256 位：认曲线而不是认位数，这一条就是两者的分界。
+        // Same field width as P-256, different curve — this is why the check is a name, not a bit count.
+        check("ES256 refuses secp256k1, the other 256-bit curve",
+              jwt::verify(es_token, ec_pub_pem(NID_secp256k1), algorithm::ES256).err
+                  == verify_error::key_mismatch);
+        check("ES256 keeps reporting a different P-256 key as a signature mismatch",
+              jwt::verify(es_token, ec_pub_pem(NID_X9_62_prime256v1), algorithm::ES256).err
+                  == verify_error::signature_mismatch);
+
+        // ---- a member name is read as JSON spells it ----
+        // {"\u0065xp":...} 的键名就是 exp：改前扫描器看不见它，签名一过就当"永不过期"收下了。
+        // The name of {"\u0065xp":...} is exp; the literal scanner used to miss it, so a passed
+        // signature plus "no exp" made an expired token live.
+        check("an escaped exp name is still the exp claim",
+              jwt::verify(jwt::encode(R"({"alg":"HS256"})",
+                                      "{\"\\u0065xp\":" + s_past + "}", key, algorithm::HS256),
+                          key, algorithm::HS256).err == verify_error::token_expired);
+        check("every escape in the name still lands on exp",
+              jwt::verify(jwt::encode(R"({"alg":"HS256"})",
+                                      "{\"\\u0065\\u0078\\u0070\":" + s_past + "}",
+                                      key, algorithm::HS256),
+                          key, algorithm::HS256).err == verify_error::token_expired);
+        // \u0045 是大写 E：解码后是另一个成员，不该被当成 exp。
+        // \u0045 is a capital E: decoded it names a different member, which must not read as exp.
+        check("a name that decodes to something else names no claim",
+              jwt::verify(jwt::encode(R"({"alg":"HS256"})",
+                                      "{\"\\u0045xp\":" + s_past + "}", key, algorithm::HS256),
+                          key, algorithm::HS256).err == verify_error::ok);
+        check("an escaped name and its literal twin count as one repeated claim",
+              jwt::verify(jwt::encode(R"({"alg":"HS256"})",
+                                      "{\"exp\":" + s_future + ",\"\\u0065xp\":" + s_future + "}",
+                                      key, algorithm::HS256),
+                          key, algorithm::HS256).err == verify_error::invalid_claims);
+        const std::string esc_typ_header = R"({"alg":"HS256","\u0074yp":"JWT"})";
+        const std::string esc_typ_token =
+            jwt::encode(esc_typ_header, "{\"exp\":" + s_future + "}", key, algorithm::HS256);
+        check("an escaped typ name is already a typ, so encode adds no second one",
+              http::b64url::decode(esc_typ_token.substr(0, esc_typ_token.find('.')))
+                  == esc_typ_header);
     }
 
     std::cout << "\n========================================\n"

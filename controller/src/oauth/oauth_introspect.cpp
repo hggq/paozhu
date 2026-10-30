@@ -45,7 +45,7 @@ void introspect_denied(httppeer &client)
 bool peer_auth_client(httppeer &client, oauth::client_record &rec, std::string &out_id)
 {
     std::string auth_header;
-    auto        hit = client.header.find("authorization");
+    auto hit = client.header.find("authorization");
     if (hit != client.header.end())
     {
         auth_header = hit->second;
@@ -56,7 +56,7 @@ bool peer_auth_client(httppeer &client, oauth::client_record &rec, std::string &
                                       rec,
                                       out_id);
 }
-} // namespace
+}// namespace
 
 //@urlpath(null,oauth/introspect)
 std::string oauth_introspect(std::shared_ptr<httppeer> peer)
@@ -71,7 +71,7 @@ std::string oauth_introspect(std::shared_ptr<httppeer> peer)
         return "";
     }
     oauth::client_record rec;
-    std::string          authed_id;
+    std::string authed_id;
     if (!peer_auth_client(client, rec, authed_id))
     {
         introspect_denied(client);
@@ -100,10 +100,9 @@ std::string oauth_introspect(std::shared_ptr<httppeer> peer)
         return "";
     }
 
-    oauth::oauth_settings settings = oauth::read_oauth_settings("");
-    std::string           privkey_pem;
-    std::string           pubkey_pem;
-    if (!oauth::load_signing_keys(settings, privkey_pem, pubkey_pem))
+    oauth::oauth_settings   settings = oauth::oauth_settings_cached();
+    oauth::signing_material keys     = oauth::signing_material_cached();
+    if (!keys.ready)
     {
         // 公钥读不出来是"判不了"，不是"令牌不活"：回 500，别让运维把它当成客户端问题，
         // 也别让调用方拿一个 active:false 去撤一个其实有效的令牌。
@@ -119,7 +118,7 @@ std::string oauth_introspect(std::shared_ptr<httppeer> peer)
     }
 
     oauth::introspect_record ir;
-    if (!oauth::introspect_token(authed_id, pubkey_pem, settings.issuer, CONST_OAUTH_JWT_LEEWAY, token, ir))
+    if (!oauth::introspect_token(authed_id, keys.pubkey_pem, settings.issuer, CONST_OAUTH_JWT_LEEWAY, token, ir))
     {
         DEBUG_LOG("[oauth] introspect: cannot judge token (store returned false)");
         introspect_error(client, 500, "server_error", "");
@@ -167,4 +166,4 @@ std::string oauth_introspect(std::shared_ptr<httppeer> peer)
     client.out_json();
     return "";
 }
-} // namespace http
+}// namespace http

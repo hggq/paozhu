@@ -52,7 +52,7 @@ std::string take_https_base(const std::string &name, const std::string &value, c
     }
     return out;
 }
-} // namespace
+}// namespace
 
 bool outbound_base_ok(const std::string &base)
 {
@@ -68,24 +68,24 @@ github_settings read_github_settings(const std::string &conffile)
 {
     github_settings out;
 
-    std::string    path = conffile.empty() ? conf_dir() + "github.conf" : conffile;
-    std::string    confdir = fs::path(path).parent_path().string();
+    std::string path    = conffile.empty() ? conf_dir() + "github.conf" : conffile;
+    std::string confdir = fs::path(path).parent_path().string();
     if (!confdir.empty() && confdir.back() != '/')
     {
         confdir.push_back('/');
     }
 
     // 先把默认值填上：文件缺失时这几个就是最终读数，调用方不用各自再兜一次。
-    out.api_base        = CONST_GH_API_BASE;
-    out.auth_base       = CONST_GH_AUTH_BASE;
-    out.sync_interval   = CONST_GH_SYNC_INTERVAL;
-    out.sync_batch      = CONST_GH_SYNC_BATCH;
-    out.sync_max_pages  = CONST_GH_SYNC_MAX_PAGES;
+    out.api_base         = CONST_GH_API_BASE;
+    out.auth_base        = CONST_GH_AUTH_BASE;
+    out.sync_interval    = CONST_GH_SYNC_INTERVAL;
+    out.sync_batch       = CONST_GH_SYNC_BATCH;
+    out.sync_max_pages   = CONST_GH_SYNC_MAX_PAGES;
     out.sync_backoff_max = CONST_GH_SYNC_BACKOFF_MAX;
-    out.http_timeout    = CONST_GH_HTTP_TIMEOUT;
-    out.secret_max_len  = CONST_GH_SECRET_MAX_LEN;
-    out.default_scopes  = CONST_GH_DEFAULT_SCOPES;
-    out.state_ttl       = CONST_GH_STATE_TTL;
+    out.http_timeout     = CONST_GH_HTTP_TIMEOUT;
+    out.secret_max_len   = CONST_GH_SECRET_MAX_LEN;
+    out.default_scopes   = CONST_GH_DEFAULT_SCOPES;
+    out.state_ttl        = CONST_GH_STATE_TTL;
 
     std::error_code ec;
     if (!fs::exists(path, ec) || !fs::is_regular_file(path, ec))
@@ -180,11 +180,8 @@ github_settings read_github_settings(const std::string &conffile)
 
 bool default_app_ready(const github_settings &cfg)
 {
-    return cfg.key_ok
-        && !cfg.default_client_id.empty()
-        && !cfg.default_client_secret.empty()
-        && !cfg.default_redirect_uri.empty();
+    return cfg.key_ok && !cfg.default_client_id.empty() && !cfg.default_client_secret.empty() && !cfg.default_redirect_uri.empty();
 }
 
-} // namespace github
-} // namespace http
+}// namespace github
+}// namespace http

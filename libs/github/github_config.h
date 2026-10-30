@@ -61,6 +61,6 @@ github_settings read_github_settings(const std::string &conffile = "");
 // 换令牌、刷新、吊销、读仓库四处都要过它；不过就一律不发，让调用方回错误。
 bool outbound_base_ok(const std::string &base);
 
-} // namespace github
-} // namespace http
+}// namespace github
+}// namespace http
 #endif

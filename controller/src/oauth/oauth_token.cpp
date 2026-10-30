@@ -34,7 +34,7 @@ void token_error(httppeer &client, unsigned int status, const std::string &error
 bool peer_auth_client(httppeer &client, oauth::client_record &rec, std::string &out_id)
 {
     std::string auth_header;
-    auto        hit = client.header.find("authorization");
+    auto hit = client.header.find("authorization");
     if (hit != client.header.end())
     {
         auth_header = hit->second;
@@ -67,17 +67,22 @@ bool grant_allowed(httppeer &client, const oauth::client_record &rec, const std:
     return false;
 }
 
-// 读 conf/oauth.conf 并取出私钥。任一步读不出来回空串——签发端点据此报 500，
+// 取常驻的 conf 读数与私钥正文。任一步拿不到回 false——签发端点据此报 500，
 // 不降级到对称算法，也不签半个 token 出去。
 bool signing_ready(oauth::oauth_settings &settings, std::string &privkey_pem)
 {
-    std::string pubkey_pem;
-    settings = oauth::read_oauth_settings("");
+    settings = oauth::oauth_settings_cached();
     if (settings.issuer.empty())
     {
         return false;
     }
-    return oauth::load_signing_keys(settings, privkey_pem, pubkey_pem);
+    oauth::signing_material keys = oauth::signing_material_cached();
+    if (!keys.ready)
+    {
+        return false;
+    }
+    privkey_pem = keys.privkey_pem;
+    return true;
 }
 
 // 签一枚 access_token。sub 用 JSON 字符串（RFC 7519 §4.1.2 的 sub 是 StringOrURI），
@@ -94,7 +99,7 @@ std::string make_access_token(const oauth::oauth_settings &settings,
         return "";
     }
     long long now = (long long)timeid();
-    obj_val   payload;
+    obj_val payload;
     payload.set_object();
     payload["iss"]   = settings.issuer;
     payload["sub"]   = sub;
@@ -105,7 +110,7 @@ std::string make_access_token(const oauth::oauth_settings &settings,
     payload["jti"]   = jti;
     return oauth::sign_access_token(privkey_pem, payload.to_json(), settings.kid);
 }
-} // namespace
+}// namespace
 
 //@urlpath(null,oauth/token)
 std::string oauth_token(std::shared_ptr<httppeer> peer)
@@ -129,7 +134,7 @@ std::string oauth_token(std::shared_ptr<httppeer> peer)
     if (grant_type == "authorization_code")
     {
         oauth::client_record rec;
-        std::string          authed_id;
+        std::string authed_id;
         if (!peer_auth_client(client, rec, authed_id))
         {
             client_auth_failed(client);
@@ -139,8 +144,8 @@ std::string oauth_token(std::shared_ptr<httppeer> peer)
         {
             return "";
         }
-        std::string           code = client.post["code"].to_string();
-        oauth::code_record    cr;
+        std::string code = client.post["code"].to_string();
+        oauth::code_record cr;
         if (code.empty() || !oauth::find_code(code, cr) || !cr.found)
         {
             token_error(client, 400, "invalid_grant", "unknown authorization code");
@@ -168,9 +173,10 @@ std::string oauth_token(std::shared_ptr<httppeer> peer)
             token_error(client, 400, "invalid_grant", "authorization code issued to another client");
             return "";
         }
-        // body 不带 redirect_uri 时按登记值走，带了就必须逐字节相等
+        // RFC 6749 §4.1.3：换码必须带回与授权时逐字节一致的回调地址。授权侧 match_redirect_uri
+        // 必过，写进码行的那一格恒为非空，所以缺失与不匹配同形拒绝，不留"不带参数就放行"的分支。
         std::string submitted_redirect = client.post["redirect_uri"].to_string();
-        if (!submitted_redirect.empty() && submitted_redirect != cr.redirect_uri)
+        if (submitted_redirect.empty() || submitted_redirect != cr.redirect_uri)
         {
             token_error(client, 400, "invalid_grant", "redirect_uri mismatch");
             return "";
@@ -192,7 +198,7 @@ std::string oauth_token(std::shared_ptr<httppeer> peer)
         }
 
         oauth::oauth_settings settings;
-        std::string           privkey_pem;
+        std::string privkey_pem;
         if (!signing_ready(settings, privkey_pem))
         {
             token_error(client, 500, "server_error", "signing key not available");
@@ -207,9 +213,8 @@ std::string oauth_token(std::shared_ptr<httppeer> peer)
         }
         // 本次授权的第一行 refresh：family_id 传 0，由 store 回填成它自己的 id
         unsigned int refresh_row_id = 0;
-        std::string  refresh =
-            oauth::issue_refresh(0, authed_id, cr.user_id, cr.scope,
-                                 (long long)(timeid() + settings.refresh_ttl), refresh_row_id);
+        std::string refresh =
+            oauth::issue_refresh(0, authed_id, cr.user_id, cr.scope, (long long)(timeid() + settings.refresh_ttl), refresh_row_id);
         if (refresh.empty())
         {
             token_error(client, 500, "server_error", "refresh token issuing failed");
@@ -234,7 +239,7 @@ std::string oauth_token(std::shared_ptr<httppeer> peer)
     if (grant_type == "refresh_token")
     {
         oauth::client_record rec;
-        std::string          authed_id;
+        std::string authed_id;
         if (!peer_auth_client(client, rec, authed_id))
         {
             client_auth_failed(client);
@@ -244,7 +249,7 @@ std::string oauth_token(std::shared_ptr<httppeer> peer)
         {
             return "";
         }
-        std::string        rt = client.post["refresh_token"].to_string();
+        std::string rt = client.post["refresh_token"].to_string();
         oauth::refresh_record rr;
         if (rt.empty() || !oauth::find_refresh(rt, rr) || !rr.found)
         {
@@ -274,7 +279,7 @@ std::string oauth_token(std::shared_ptr<httppeer> peer)
         // 而不是把用户的 refresh 消费掉之后回一个 500。
         // refresh 的有效期也从这里拿（conf/oauth.conf 的 refresh_ttl）。
         oauth::oauth_settings settings;
-        std::string           privkey_pem;
+        std::string privkey_pem;
         if (!signing_ready(settings, privkey_pem))
         {
             token_error(client, 500, "server_error", "signing key not available");
@@ -292,9 +297,7 @@ std::string oauth_token(std::shared_ptr<httppeer> peer)
         std::string new_refresh;
         {
             unsigned int ignore_row_id = 0;
-            new_refresh = oauth::issue_refresh(family, authed_id, rr.user_id, rr.scope,
-                                               (long long)(timeid() + settings.refresh_ttl),
-                                               ignore_row_id);
+            new_refresh                = oauth::issue_refresh(family, authed_id, rr.user_id, rr.scope, (long long)(timeid() + settings.refresh_ttl), ignore_row_id);
         }
         if (new_refresh.empty())
         {
@@ -324,7 +327,7 @@ std::string oauth_token(std::shared_ptr<httppeer> peer)
     if (grant_type == "client_credentials")
     {
         oauth::client_record rec;
-        std::string          authed_id;
+        std::string authed_id;
         if (!peer_auth_client(client, rec, authed_id))
         {
             client_auth_failed(client);
@@ -348,7 +351,7 @@ std::string oauth_token(std::shared_ptr<httppeer> peer)
             return "";
         }
         oauth::oauth_settings settings;
-        std::string           privkey_pem;
+        std::string privkey_pem;
         if (!signing_ready(settings, privkey_pem))
         {
             token_error(client, 500, "server_error", "signing key not available");
@@ -373,4 +376,4 @@ std::string oauth_token(std::shared_ptr<httppeer> peer)
     token_error(client, 400, "unsupported_grant_type", "grant_type must be authorization_code, refresh_token or client_credentials");
     return "";
 }
-} // namespace http
+}// namespace http

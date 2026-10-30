@@ -19,17 +19,17 @@ namespace github
 // 用得上的几列摆成稳定的类型，读写的语句留在本文件里。
 struct gh_account
 {
-    unsigned long long id = 0;
-    unsigned long long adminid    = 0;
-    unsigned long long companyid  = 0;
-    std::string        client_id;
+    unsigned long long id        = 0;
+    unsigned long long adminid   = 0;
+    unsigned long long companyid = 0;
+    std::string client_id;
     // AES-256-GCM 的密文原文（IV+tag+正文）。它只在栈上停留，绝不写日志、绝不回显。
     std::string client_secret;
     std::string redirect_uri;
 
     unsigned long long gh_user_id = 0;
-    std::string        gh_login;
-    std::string        gh_avatar;
+    std::string gh_login;
+    std::string gh_avatar;
 
     std::string access_token;
     std::string refresh_token;
@@ -44,16 +44,16 @@ struct gh_account
 
     unsigned long long next_sync_time = 0;
     unsigned long long last_sync_time = 0;
-    unsigned char      last_sync_ok   = 0;
+    unsigned char last_sync_ok        = 0;
     unsigned long long sync_fails     = 0;
-    std::string        last_error;
+    std::string last_error;
 };
 
 // github_repo 的一行给页面看的形状：软删旗要跟数据一起走，否则"显示已删除"开关没法渲染。
 struct gh_repo_row
 {
     gh_repo_item item;
-    bool         is_deleted = false;
+    bool is_deleted = false;
 };
 
 // ---------------------------------------------------------------------------
@@ -65,14 +65,14 @@ struct gh_repo_row
 // 出 156 字节的密文，列装得下；但有人把列改成更短或把明文闸调大时，只有密文闸拦得住截断。
 // cfg.key_ok 为 false 时直接失败——不落一条"加密失败但存了空串"的行。
 bool encrypt_secret_for_store(const github_settings &cfg,
-                             const std::string     &plain,
-                             std::string           &cipher_out,
-                             std::string           &error);
+                              const std::string &plain,
+                              std::string &cipher_out,
+                              std::string &error);
 
 bool decrypt_secret_of(const github_settings &cfg,
-                       const gh_account      &row,
-                       std::string           &plain_out,
-                       std::string           &error);
+                       const gh_account &row,
+                       std::string &plain_out,
+                       std::string &error);
 
 // ---------------------------------------------------------------------------
 // 账号表
@@ -89,11 +89,11 @@ bool list_accounts(unsigned long long companyid, std::vector<gh_account> &out);
 // 为什么先插再换：换令牌成功但落库崩了，那枚令牌就永远没人知道它存在；
 // 反过来先留一条"令牌中"的痕迹，失败了它还在，排查有东西可看。
 unsigned long long insert_account(const std::string &client_id,
-                                 const std::string &cipher,
-                                 const std::string &redirect_uri,
-                                 unsigned long long adminid,
-                                 unsigned long long companyid,
-                                 unsigned long long now);
+                                  const std::string &cipher,
+                                  const std::string &redirect_uri,
+                                  unsigned long long adminid,
+                                  unsigned long long companyid,
+                                  unsigned long long now);
 
 // 只改状态与 last_error；换令牌失败与"用户拒绝"两条出口用它。
 bool set_state(unsigned long long id, unsigned char state, const std::string &error);
@@ -103,11 +103,11 @@ bool set_cipher(unsigned long long id, const std::string &cipher);
 
 // 6g 的最终态：令牌、scope、两枚到期时间、state=1，并把 next_sync_time 记为 now
 // （下一拍就同步一次）。cipher 传空串＝不覆盖这一列（重绑失败恢复时用它保旧密文）。
-bool save_bound(unsigned long long     id,
-                const std::string      &cipher,
-                const gh_user_info     &who,
-                const token_answer     &tk,
-                unsigned long long      now);
+bool save_bound(unsigned long long id,
+                const std::string &cipher,
+                const gh_user_info &who,
+                const token_answer &tk,
+                unsigned long long now);
 
 // 定时那一拍刷新成功后的写回：新的 access、两枚到期时间、scope，state 归 1。
 // 响应没带回 refresh 时（GitHub 会轮换，但没带回归档也要能跑）保留库里那一枚——
@@ -119,8 +119,8 @@ bool save_refreshed(unsigned long long id, const token_answer &tk, unsigned long
 // near_expiry = access_expires_at 的非 0 上界（now + 间隔）。两个计数出参给日志用。
 void presweep_expiring(unsigned long long now,
                        unsigned long long near_expiry,
-                       unsigned int      &flipped_to_refresh,
-                       unsigned int      &flipped_dead);
+                       unsigned int &flipped_to_refresh,
+                       unsigned int &flipped_dead);
 
 // 到期批：token_state IN (1,2) AND isopen=1 AND next_sync_time<=now，按 next_sync_time 升序，
 // 最多 limit_n 行（一轮最多 N 个账号串着跑）。
@@ -143,7 +143,7 @@ bool record_fail(unsigned long long id, const github_settings &cfg, unsigned lon
 // 它也算 sync_fails+1——限流不是错误但它是"这一轮没干完"，退避同一个数不会有害。
 bool record_rate_limited(unsigned long long id,
                          unsigned long long now,
-                         long long          reset_at,
+                         long long reset_at,
                          const github_settings &cfg);
 
 // 401：这枚票在 GitHub 侧已经没了，定时任务再打一百次也不会自己活。
@@ -162,10 +162,10 @@ bool delete_account(unsigned long long id);
 // 逐条 UPDATE ... WHERE account_id AND gh_repo_id；改动为 0 行才 INSERT。
 // 不先读一遍表：那要多一次查询，而"改不动就插"这一条已经把 upsert 覆盖完了。
 // 更新的列里带 is_deleted=0、deleted_at=0——用户在 GitHub 上把仓库改回可见，这一行要跟着回来。
-bool upsert_repos(unsigned long long            account_id,
+bool upsert_repos(unsigned long long account_id,
                   const std::vector<gh_repo_item> &items,
-                  unsigned long long             now,
-                  unsigned int                  &written);
+                  unsigned long long now,
+                  unsigned int &written);
 
 // 把"表里有、本轮没拉到"的行标成已删除。present_ids 为本轮拉到的 gh_repo_id 全集。
 // 调用方必须先确认这一轮自然翻完了（最后一页条数 < per_page）——被页数上界截断的一轮
@@ -173,10 +173,10 @@ bool upsert_repos(unsigned long long            account_id,
 bool soft_delete_missing(unsigned long long account_id,
                          const std::vector<unsigned long long> &present_ids,
                          unsigned long long now,
-                         unsigned int      &marked);
+                         unsigned int &marked);
 
 bool list_repos(unsigned long long account_id, bool show_deleted, std::vector<gh_repo_row> &out);
 
-} // namespace github
-} // namespace http
+}// namespace github
+}// namespace http
 #endif

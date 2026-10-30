@@ -8,10 +8,9 @@ namespace http
 namespace oauth
 {
 
-// conf/oauth.conf 的 [oauth] 段读数。
-// 每次请求现读，不缓存：本仓库已经踩过"启动读一次把正文留在内存里、换同一路径的密钥要重启"
-// 的坑（vendor/webpay/src/alipay.cpp 的密钥正文缓存），而这枚 ini 只有五行键值，
-// 比 RS256 签一次便宜三个数量级。
+// conf/oauth.conf 的 [oauth] 段读数。五行键值，进程里只读一次并留在内存，
+// 取值走 oauth_settings_cached()。read_oauth_settings() 本身保持"调用一次读一次盘"，
+// 探针和测试要能指着一个文件强读。
 struct oauth_settings
 {
     // 读到文件、且 [oauth] 段在，才是 true。段里没有的键回落到编译期默认，不算失败。
@@ -38,6 +37,12 @@ struct oauth_settings
 // 私钥路径读不出来的那一步由 load_signing_keys() 判。
 oauth_settings read_oauth_settings(const std::string &conffile = "");
 
-} // namespace oauth
-} // namespace http
+// 取常驻的那份读数：第一次调用现读盘，读到了（[oauth] 段在且 issuer 非空）就留在进程里，
+// 之后每次只回一份拷贝。issuer 为空是"还没配好"，不钉死——下一次调用再读盘，
+// 免得启动时序里 conf 晚到一步就把默认值用一辈子。
+// 反过来说：改过同一路径下的 oauth.conf 不会被看见，要重启进程才生效。
+oauth_settings oauth_settings_cached();
+
+}// namespace oauth
+}// namespace http
 #endif

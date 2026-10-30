@@ -28,6 +28,6 @@ std::string gcm_decrypt(const std::string &cipher, const std::string &key);
 // GitHub 的 error_description 会把你提交的东西原样带回来，所以这一刀必须在写库之前。
 std::string scrub_error_text(const std::string &in);
 
-} // namespace github
-} // namespace http
+}// namespace github
+}// namespace http
 #endif

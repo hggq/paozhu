@@ -77,13 +77,13 @@ long long days_from_civil(long long y, long long m, long long d)
 {
     y -= m <= 2;
     long long era = (y >= 0 ? y : y - 399) / 400;
-    long long yoe = y - era * 400;            // [0, 399]
-    long long m0  = m > 2 ? m - 3 : m + 9;    // 3 月是这一年第 0 个月
+    long long yoe = y - era * 400;        // [0, 399]
+    long long m0  = m > 2 ? m - 3 : m + 9;// 3 月是这一年第 0 个月
     long long doy = (153 * m0 + 2) / 5 + d - 1;
     long long doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
     return era * 146097 + doe - 719468;
 }
-} // namespace
+}// namespace
 
 unsigned int iso8601_to_unix(const std::string &iso)
 {
@@ -119,8 +119,8 @@ unsigned int iso8601_to_unix(const std::string &iso)
     }
     else if (month == 2)
     {
-        bool leap     = (year % 4 == 0 && year % 100 != 0) || year % 400 == 0;
-        last_day      = leap ? 29 : 28;
+        bool leap = (year % 4 == 0 && year % 100 != 0) || year % 400 == 0;
+        last_day  = leap ? 29 : 28;
     }
     if (day > last_day)
     {
@@ -318,7 +318,7 @@ bool fetch_user(const github_settings &cfg, const std::string &access_token, gh_
 gh_page_result fetch_repos_page(const github_settings &cfg, const std::string &access_token, unsigned int page_no)
 {
     gh_page_result out;
-    std::string    url = repos_page_url(cfg, page_no);
+    std::string url = repos_page_url(cfg, page_no);
     if (url.empty())
     {
         out.error = cfg.api_base.empty() ? "api_base missing" : "api_base is not https";
@@ -359,5 +359,5 @@ gh_page_result fetch_repos_page(const github_settings &cfg, const std::string &a
     return out;
 }
 
-} // namespace github
-} // namespace http
+}// namespace github
+}// namespace http

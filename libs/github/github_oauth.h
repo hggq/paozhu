@@ -36,7 +36,7 @@ bool build_authorize_url(const std::string &auth_base,
                          const std::string &scopes_comma,
                          const std::string &state,
                          const std::string &code_challenge,
-                         std::string       &url_out);
+                         std::string &url_out);
 
 // 三段 [adminid, client_id, rand32] 各自 base64url 后用 '.' 连接。
 // 原始随机字节绝不能直接和分隔符拼（32 字节里出现 0x7C 的概率约 12%，一旦命中就破坏分段）；
@@ -58,7 +58,7 @@ std::string pkce_challenge(const std::string &code_verifier);
 // 所以这一格为 false 时必须走失败分支，不能当"取不到 expires_in"处理。
 struct token_answer
 {
-    bool        ok = false;
+    bool ok = false;
     std::string access_token;
     // 空 = 这一枚令牌不能刷新（第一态），不是"没解析出来"。
     std::string refresh_token;
@@ -80,35 +80,35 @@ token_answer parse_token_body(const std::string &body, bool is_json);
 // code_verifier 传空串＝这一趟不带 PKCE（现场核 P-1 判定不支持时的退路）。
 // client_secret_plain 只存活于这一次调用的栈帧：绝不写日志、绝不塞进结构体。
 bool exchange_code(const github_settings &cfg,
-                   const std::string     &client_id,
-                   const std::string     &client_secret_plain,
-                   const std::string     &code,
-                   const std::string     &redirect_uri,
-                   const std::string     &code_verifier,
-                   token_answer          &out);
+                   const std::string &client_id,
+                   const std::string &client_secret_plain,
+                   const std::string &code,
+                   const std::string &redirect_uri,
+                   const std::string &code_verifier,
+                   token_answer &out);
 
 // 用 refresh_token 续命。成功时 out.refresh_token 可能带回新的一枚（GitHub 会轮换），
 // 空串表示响应没带回、旧的仍然可用——调用方据此决定要不要一起写两列。
 bool refresh_access(const github_settings &cfg,
-                    const std::string     &client_id,
-                    const std::string     &client_secret_plain,
-                    const std::string     &refresh_token,
-                    token_answer          &out);
+                    const std::string &client_id,
+                    const std::string &client_secret_plain,
+                    const std::string &refresh_token,
+                    token_answer &out);
 
 // 吊销 GitHub 侧的令牌。GitHub 的 revoke 端点只吃 DELETE + HTTP Basic，所以这一条
 // 依赖框架 client 的 del() 动词。
 enum class revoke_outcome
 {
-    revoked,      // 204/200：GitHub 侧已经没有这枚令牌了
-    already_gone, // 404/422：本来就没有（用户自己在后台撤过、或 secret 已换）——重试永远失败
-    failed        // 5xx/超时/网络错：本地行必须保留，等重试
+    revoked,     // 204/200：GitHub 侧已经没有这枚令牌了
+    already_gone,// 404/422：本来就没有（用户自己在后台撤过、或 secret 已换）——重试永远失败
+    failed       // 5xx/超时/网络错：本地行必须保留，等重试
 };
 revoke_outcome revoke_token(const github_settings &cfg,
-                            const std::string     &client_id,
-                            const std::string     &client_secret_plain,
-                            const std::string     &access_token,
-                            unsigned int          &status_out);
+                            const std::string &client_id,
+                            const std::string &client_secret_plain,
+                            const std::string &access_token,
+                            unsigned int &status_out);
 
-} // namespace github
-} // namespace http
+}// namespace github
+}// namespace http
 #endif

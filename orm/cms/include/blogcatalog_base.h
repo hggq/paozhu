@@ -2,7 +2,7 @@
 #define ORM_CMS_BLOGCATALOGBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Thu, 29 Oct 2026 12:02:54 GMT
+*本文件为自动生成 Fri, 30 Oct 2026 07:29:13 GMT
 ***/
 #include <iostream>
 #include <charconv>

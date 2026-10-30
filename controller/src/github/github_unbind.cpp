@@ -62,7 +62,7 @@ std::string github_unbind(std::shared_ptr<httppeer> peer)
     // 手上就没有令牌（占位行、换令牌失败的行）：GitHub 侧无可吊销的东西，删本地行不会泄漏什么。
     if (row.access_token.empty())
     {
-        bool removed = github::delete_account(id);
+        bool removed       = github::delete_account(id);
         client.val["code"] = removed ? 1 : 0;
         client.val["msg"]  = removed ? "unbound" : "cannot delete local row";
         client.out_json();
@@ -85,7 +85,7 @@ std::string github_unbind(std::shared_ptr<httppeer> peer)
     }
 
     unsigned int status = 0;
-    auto outcome = github::revoke_token(cfg, row.client_id, plain_secret, row.access_token, status);
+    auto outcome        = github::revoke_token(cfg, row.client_id, plain_secret, row.access_token, status);
     plain_secret.clear();
 
     if (outcome == github::revoke_outcome::failed)
@@ -119,4 +119,4 @@ std::string github_unbind(std::shared_ptr<httppeer> peer)
     client.out_json();
     return "";
 }
-} // namespace http
+}// namespace http

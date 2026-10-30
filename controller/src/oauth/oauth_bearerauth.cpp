@@ -57,10 +57,9 @@ std::string oauth_bearerauth(std::shared_ptr<httppeer> peer)
     }
     std::string token = found->second.substr(7);
 
-    oauth::oauth_settings settings = oauth::read_oauth_settings("");
-    std::string           privkey_pem;
-    std::string           pubkey_pem;
-    if (!oauth::load_signing_keys(settings, privkey_pem, pubkey_pem))
+    oauth::oauth_settings   settings = oauth::oauth_settings_cached();
+    oauth::signing_material keys     = oauth::signing_material_cached();
+    if (!keys.ready)
     {
         // 公钥读不出来就没法验签。这不是"令牌无效"，回 500 免得运维把它当成客户端问题
         DEBUG_LOG("[oauth] bearer: public key not loaded (conf/oauth.conf)");
@@ -80,7 +79,7 @@ std::string oauth_bearerauth(std::shared_ptr<httppeer> peer)
 
     std::string payload;
     std::string why;
-    if (!oauth::verify_access_token(pubkey_pem, token, CONST_OAUTH_JWT_LEEWAY, payload, why))
+    if (!oauth::verify_access_token(keys.pubkey_pem, token, CONST_OAUTH_JWT_LEEWAY, payload, why))
     {
         bearer_denied(client, why);
         return "@exit";
@@ -89,6 +88,14 @@ std::string oauth_bearerauth(std::shared_ptr<httppeer> peer)
     if (json_util::get_string(payload, "iss") != settings.issuer)
     {
         bearer_denied(client, "issuer mismatch");
+        return "@exit";
+    }
+    // 撤销名单放在签发方判定之后：只有本站签出来的令牌才值一次 Redis 往返，
+    // 别人域的串先按 issuer mismatch 掉。名单读不到时按未撤销放行（口径见
+    // is_access_jti_revoked 的声明注释），否则 Redis 一挂这里就变成全站 401 的单点故障。
+    if (oauth::is_access_jti_revoked(json_util::get_string(payload, "jti")))
+    {
+        bearer_denied(client, "access token revoked");
         return "@exit";
     }
     std::string sub       = json_util::get_string(payload, "sub");

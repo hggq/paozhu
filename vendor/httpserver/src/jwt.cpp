@@ -7,9 +7,14 @@
 
 #include "jwt.h"
 
+#include "request.h"
+#include "common/cost_define.h"// CONST_JWT_TOKEN_MAX_LEN
+
 #include <openssl/bn.h>
+#include <openssl/ec.h>
 #include <openssl/ecdsa.h>
 #include <openssl/evp.h>
+#include <openssl/objects.h>
 #include <openssl/rsa.h>
 
 #include <algorithm>
@@ -99,9 +104,9 @@ inline bool is_b64url_segment(const std::string &s)
 // quoted or null exp look exactly like a missing one. JWT needs the three apart.
 enum class claim_state
 {
-    absent,  // no such top-level member
-    present, // member read as a number
-    invalid  // member is there, but not a number this class can use
+    absent, // no such top-level member
+    present,// member read as a number
+    invalid // member is there, but not a number this class can use
 };
 
 inline bool is_json_space(char c)
@@ -172,13 +177,114 @@ inline size_t value_end(const std::string &s, size_t start)
 // Scanning does not stop at the first hit: with hits != nullptr the caller gets the total
 // and decides what a duplicate means. Which of two "exp" members wins is reader-defined,
 // and this class must not quietly pick one while the caller's parser picks the other.
-inline bool find_top_member(const std::string &json, const std::string &key, std::string &out,
-                            size_t *hits = nullptr)
+// ---- what a member is called ----
+// 键名按 JSON 的写法认，不是按引号之间的字节认：{"\u0065xp":1} 的键名就是 "exp"。只比字面节的扫描
+// 报"没有 exp"，而签名通过之后的"没有 exp"就是"永不过期"——一枚已经过期的令牌于是被判有效。
+// 值不在这次解码里：读到的仍是原始字节，NumericDate 的严格判定、交回调用方的段文本都不动。
+// A JSON name is what the member is called, not the bytes between its quotes: {"\u0065xp":1}
+// names "exp". A scanner comparing literal text reports no exp, and no exp after a signature that
+// checked out means never expires, so an expired token reads as live. Values are not decoded:
+// they stay raw bytes, so NumericDate strictness and the section text handed back are untouched.
+inline void append_json_utf8(std::string &out, unsigned int cp)
+{
+    if (cp < 0x80)
+        out.push_back(static_cast<char>(cp));
+    else if (cp < 0x800)
+    {
+        out.push_back(static_cast<char>(0xC0 | (cp >> 6)));
+        out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+    }
+    else
+    {
+        out.push_back(static_cast<char>(0xE0 | (cp >> 12)));
+        out.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
+        out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+    }
+}
+
+// false 是"这串键名读不出来"（未知转义符、\u 后面不足四位十六进制），不是"这个键不存在"。
+// 读到半路的代理位按替换字符收：它和它想配的那个码点都匹不上任何一个本类要查的 ASCII 键名。
+// false means the escape text cannot be read (unknown escape letter, fewer than four hex digits
+// after \u) — that is not the same answer as "this member is absent". A surrogate half becomes
+// the replacement character: neither it nor the code point it wanted to form equals any of the
+// ASCII names this class looks up.
+inline bool decode_json_name(const std::string &raw, std::string &out)
+{
+    out.clear();
+    for (size_t i = 0; i < raw.size(); ++i)
+    {
+        if (raw[i] != '\\')
+        {
+            out.push_back(raw[i]);
+            continue;
+        }
+        if (++i >= raw.size())
+            return false;
+        switch (raw[i])
+        {
+        case '"': out.push_back('"'); break;
+        case '\\': out.push_back('\\'); break;
+        case '/': out.push_back('/'); break;
+        case 'b': out.push_back('\b'); break;
+        case 'f': out.push_back('\f'); break;
+        case 'n': out.push_back('\n'); break;
+        case 'r': out.push_back('\r'); break;
+        case 't': out.push_back('\t'); break;
+        case 'u':
+        {
+            if (i + 4 >= raw.size())
+                return false;
+            unsigned int cp = 0;
+            for (int k = 1; k <= 4; ++k)
+            {
+                const char h = raw[i + k];
+                unsigned int v = 0;
+                if (h >= '0' && h <= '9')
+                    v = static_cast<unsigned int>(h - '0');
+                else if (h >= 'a' && h <= 'f')
+                    v = static_cast<unsigned int>(h - 'a' + 10);
+                else if (h >= 'A' && h <= 'F')
+                    v = static_cast<unsigned int>(h - 'A' + 10);
+                else
+                    return false;
+                cp = cp * 16 + v;
+            }
+            i += 4;
+            if (cp >= 0xD800 && cp <= 0xDFFF)
+                out.append("\xEF\xBF\xBD");
+            else
+                append_json_utf8(out, cp);
+            break;
+        }
+        default:
+            return false;
+        }
+    }
+    return true;
+}
+
+// 字面比没中、且这一串里确实有反斜杠时，才付一次解码的代价：绝大多数键名走不到这里。
+// The literal compare only pays for a decode when this string actually holds a backslash, which
+// most member names do not.
+inline bool escaped_name_is(const std::string &json, size_t open, size_t close,
+                            const std::string &key)
+{
+    const size_t begin = open + 1;
+    const size_t bs    = json.find('\\', begin);
+    if (bs == std::string::npos || bs >= close)
+        return false;
+    std::string name;
+    if (!decode_json_name(json.substr(begin, close - begin), name))
+        return false;
+    return name == key;
+}
+
+inline bool find_top_member(const std::string &json, const std::string &key, std::string &out, size_t *hits = nullptr)
 {
     const std::string quoted = "\"" + key + "\"";
-    size_t hit_count = 0;
-    bool   filled    = false;
-    int depth = 0;
+    size_t hit_count         = 0;
+    bool filled              = false;
+    int depth                = 0;
     for (size_t i = 0; i < json.size(); ++i)
     {
         const char c = json[i];
@@ -192,8 +298,11 @@ inline bool find_top_member(const std::string &json, const std::string &key, std
         }
         const size_t close = skip_string(json, i);
         if (close == std::string::npos)
-            break; // 尾部有字符串没闭合，只是不能再往下扫；已经读到的值和命中数照旧交出
-        const bool hit = (depth == 1) && (json.compare(i, close - i + 1, quoted) == 0);
+            break;// 尾部有字符串没闭合，只是不能再往下扫；已经读到的值和命中数照旧交出
+        bool hit = false;
+        if (depth == 1)
+            hit = (json.compare(i, close - i + 1, quoted) == 0) ||
+                  escaped_name_is(json, i, close, key);
         i = close;
         if (!hit)
             continue;
@@ -202,16 +311,16 @@ inline bool find_top_member(const std::string &json, const std::string &key, std
         while (p < json.size() && is_json_space(json[p]))
             ++p;
         if (p >= json.size() || json[p] != ':')
-            continue; // this string was a value, not a key
+            continue;// this string was a value, not a key
         ++p;
         while (p < json.size() && is_json_space(json[p]))
             ++p;
         ++hit_count;
         if (filled)
-            continue; // 值已取到，继续走只为把重复次数数完
+            continue;// 值已取到，继续走只为把重复次数数完
         const size_t end = value_end(json, p);
-        out = trim_json_text(json.substr(p, end - p));
-        filled = true;
+        out              = trim_json_text(json.substr(p, end - p));
+        filled           = true;
     }
     if (hits)
         *hits = hit_count;
@@ -219,8 +328,7 @@ inline bool find_top_member(const std::string &json, const std::string &key, std
 }
 
 // The member has to be a quoted string: {"alg":null} and {"alg":256} name no algorithm.
-inline bool find_top_string(const std::string &json, const std::string &key, std::string &out,
-                            size_t *hits = nullptr)
+inline bool find_top_string(const std::string &json, const std::string &key, std::string &out, size_t *hits = nullptr)
 {
     std::string raw;
     if (!find_top_member(json, key, raw, hits))
@@ -233,33 +341,27 @@ inline bool find_top_string(const std::string &json, const std::string &key, std
 
 // A JWT section is a JSON object. Without this gate encode() happily signs a stray string
 // or a cut-off statement and hands back a token whose signature is perfectly valid.
-// Braces inside a quoted value do not count, so {"note":"a{b}"} stays signable.
+// The syntax answer comes from the project JSON reader; it only reports whether the whole
+// text is one JSON object, so a member missing its colon or a key that is not a string is
+// refused here instead of reaching the signature check. The section text itself is never
+// rewritten: the top-level scanner still reads the original bytes, so duplicate members,
+// NumericDate strictness and the reads below stay exactly as they were.
+// This gate is stricter than brace balancing but not the whole of RFC 8259: a trailing
+// comma ({"a":1,}) is still accepted, and so is an escape no parser is allowed to read in a
+// member name ({"\q":1}) — that one names no member either scanner can use. A name spelled
+// with a readable escape is no longer invisible: the scanner decodes it before comparing.
 inline bool is_json_object(const std::string &json)
 {
-    const std::string trimmed = trim_json_text(json);
-    if (trimmed.size() < 2 || trimmed.front() != '{' || trimmed.back() != '}')
-        return false;
-    int depth = 0;
-    for (size_t i = 0; i < trimmed.size(); ++i)
+    try
     {
-        const char c = trimmed[i];
-        if (c == '"')
-        {
-            const size_t close = skip_string(trimmed, i);
-            if (close == std::string::npos)
-                return false; // string never closes, so the object cannot be complete
-            i = close;
-        }
-        else if (c == '{')
-            ++depth;
-        else if (c == '}')
-        {
-            --depth;
-            if (depth < 0)
-                return false;
-        }
+        http::obj_val probe;
+        probe.from_json(json);
+        return probe.is_object();
     }
-    return depth == 0;
+    catch (const http::json_parse_error &)
+    {
+        return false;
+    }
 }
 
 // RFC 7519 NumericDate: plain decimal seconds, optional '-' and an optional fraction that
@@ -270,7 +372,7 @@ inline claim_state parse_date(const std::string &v, long long &out)
     if (v.empty())
         return claim_state::invalid;
 
-    size_t i = 0;
+    size_t i            = 0;
     const bool negative = (v[0] == '-');
     if (negative)
         i = 1;
@@ -281,12 +383,12 @@ inline claim_state parse_date(const std::string &v, long long &out)
         return claim_state::invalid;
 
     const long long limit = static_cast<long long>(std::numeric_limits<time_t>::max());
-    long long value = 0;
+    long long value       = 0;
     for (size_t k = first; k < i; ++k)
     {
         const long long digit = v[k] - '0';
         if (value > (limit - digit) / 10)
-            return claim_state::invalid; // no longer representable as a time_t
+            return claim_state::invalid;// no longer representable as a time_t
         value = value * 10 + digit;
     }
 
@@ -297,7 +399,7 @@ inline claim_state parse_date(const std::string &v, long long &out)
         while (i < v.size() && v[i] >= '0' && v[i] <= '9')
             ++i;
         if (i == frac)
-            return claim_state::invalid; // "5." carries no fraction digits
+            return claim_state::invalid;// "5." carries no fraction digits
     }
     if (i != v.size())
         return claim_state::invalid;
@@ -309,11 +411,11 @@ inline claim_state parse_date(const std::string &v, long long &out)
 inline claim_state read_date_claim(const std::string &json, const std::string &key, long long &out)
 {
     std::string raw;
-    size_t      hits = 0;
+    size_t hits = 0;
     if (!find_top_member(json, key, raw, &hits))
         return claim_state::absent;
     if (hits > 1)
-        return claim_state::invalid; // 同名成员重复: 谁生效没有定论，判非法而不是挑一个
+        return claim_state::invalid;// 同名成员重复: 谁生效没有定论，判非法而不是挑一个
     return parse_date(raw, out);
 }
 
@@ -323,9 +425,9 @@ struct claim_times
     claim_state exp_state = claim_state::absent;
     claim_state iat_state = claim_state::absent;
     claim_state nbf_state = claim_state::absent;
-    long long   exp = 0;
-    long long   iat = 0;
-    long long   nbf = 0;
+    long long exp         = 0;
+    long long iat         = 0;
+    long long nbf         = 0;
 
     bool has_invalid() const
     {
@@ -369,6 +471,27 @@ inline EVP_PKEY_ptr import_pub_pem(const std::string &pem)
     return EVP_PKEY_ptr(raw);
 }
 
+// ---- is this key on the curve ES256 names? ----
+// 只问曲线，不比位数：secp256k1 也是 256 位，但它不是 ES256 那条曲线。
+// EVP_PKEY_get_group_name 给的是短名（prime256v1），NIST 写法（P-256）另有一条换算表；两个名字
+// 都认一遍，认不出就当不是。非 EC 的钥（RSA 的 PEM 也在这里加载得动）这条问话直接失败，同样算不是。
+// The curve is compared by name, not by bit length: secp256k1 is 256 bits too, and it is not the
+// curve ES256 names. The group name comes back as the short name (prime256v1) while the NIST
+// spelling (P-256) lives in another table, so both are looked up and an unreadable name is not it.
+// A key that is not an EC one fails the question outright, and is not it either.
+inline bool ec_key_is_p256(const EVP_PKEY *pub_key)
+{
+    char group[64] = {0};
+    size_t group_len = 0;
+    if (EVP_PKEY_get_group_name(const_cast<EVP_PKEY *>(pub_key),
+                                 group, sizeof(group), &group_len) != 1)
+        return false;
+    int nid = OBJ_txt2nid(group);
+    if (nid == NID_undef)
+        nid = EC_curve_nist2nid(group);
+    return nid == NID_X9_62_prime256v1;
+}
+
 // ---- inject "typ":"JWT" into header JSON if missing ----
 // Inserts right before the closing '}', handles both empty {} and existing fields
 inline std::string inject_typ(const std::string &header_json)
@@ -380,12 +503,15 @@ inline std::string inject_typ(const std::string &header_json)
 
     size_t rbrace = header_json.rfind('}');
     if (rbrace == std::string::npos || header_json.size() < 2)
-        return header_json; // Malformed, leave as-is
+        return header_json;// Malformed, leave as-is
 
-    // Empty object "{}" -> becomes {"typ":"JWT"}
-    if (header_json[1] == '}')
+    // Empty object "{}" (and any whitespace inside it, "{ }") -> becomes {"typ":"JWT"}
+    // 判形状要用 trim 后的文本：按位置看 header_json[1] 会把带空白的空对象当成非空，
+    // 插出 "{ ,"typ":"JWT"}" 这种自己验不过的 header
+    const std::string trimmed = trim_json_text(header_json);
+    if (trimmed == "{}")
     {
-        return header_json.substr(0, 1) + "\"typ\":\"JWT\"" + header_json.substr(1);
+        return std::string("{\"typ\":\"JWT\"}");
     }
     // Non-empty object -> insert ",\"typ\":\"JWT\"" before '}'
     return header_json.substr(0, rbrace) + ",\"typ\":\"JWT\"" + header_json.substr(rbrace);
@@ -395,14 +521,14 @@ inline std::string inject_typ(const std::string &header_json)
 // Core: decode JWS "r||s" (64 bytes) into BIGNUMs, build ECDSA_SIG, DER-encode, then verify
 // Returns false on any failure (length mismatch, DER build fail, verify fail)
 bool es256_verify(
-    const std::string &data,          // signed payload ("h.b64.p.b64")
-    const std::string &sig_b64,       // JWT signature segment (base64url)
-    const EVP_PKEY *pub_key)          // loaded EC public key (from PEM)
+    const std::string &data,   // signed payload ("h.b64.p.b64")
+    const std::string &sig_b64,// JWT signature segment (base64url)
+    const EVP_PKEY *pub_key)   // loaded EC public key (from PEM)
 {
     // Step 1: b64url decode → raw bytes
     std::string rs_bytes = b64url::decode(sig_b64);
     if (rs_bytes.size() != 64)
-        return false; // ES256 signature MUST be 64 bytes (32+32)
+        return false;// ES256 signature MUST be 64 bytes (32+32)
 
     // Step 2: split 32B r + 32B s
     const unsigned char *r_ptr = reinterpret_cast<const unsigned char *>(rs_bytes.data());
@@ -435,7 +561,7 @@ bool es256_verify(
 
     // Step 5: ECDSA_SIG → DER encoding
     unsigned char *der_ptr = nullptr;
-    int der_len = i2d_ECDSA_SIG(sig.get(), &der_ptr);
+    int der_len            = i2d_ECDSA_SIG(sig.get(), &der_ptr);
     if (der_len <= 0 || !der_ptr)
         return false;
     std::vector<unsigned char> der_sig(der_ptr, der_ptr + der_len);
@@ -446,8 +572,7 @@ bool es256_verify(
     if (!md_ctx)
         return false;
 
-    if (EVP_DigestVerifyInit(md_ctx.get(), nullptr, EVP_sha256(), nullptr,
-                             const_cast<EVP_PKEY *>(pub_key)) != 1)
+    if (EVP_DigestVerifyInit(md_ctx.get(), nullptr, EVP_sha256(), nullptr, const_cast<EVP_PKEY *>(pub_key)) != 1)
         return false;
     if (EVP_DigestVerifyUpdate(md_ctx.get(), data.data(), data.size()) != 1)
         return false;
@@ -471,8 +596,7 @@ std::string rsa_sign(
         throw std::runtime_error("EVP_MD_CTX_new failed (rsa_sign)");
 
     EVP_PKEY_CTX *pctx = nullptr;
-    if (EVP_DigestSignInit(md_ctx.get(), &pctx, EVP_sha256(), nullptr,
-                           const_cast<EVP_PKEY *>(priv_key)) != 1)
+    if (EVP_DigestSignInit(md_ctx.get(), &pctx, EVP_sha256(), nullptr, const_cast<EVP_PKEY *>(priv_key)) != 1)
         throw std::runtime_error("EVP_DigestSignInit failed (rsa_sign)");
 
     if (pctx)
@@ -520,8 +644,7 @@ bool rsa_verify(
         return false;
 
     EVP_PKEY_CTX *pctx = nullptr;
-    if (EVP_DigestVerifyInit(md_ctx.get(), &pctx, EVP_sha256(), nullptr,
-                             const_cast<EVP_PKEY *>(pub_key)) != 1)
+    if (EVP_DigestVerifyInit(md_ctx.get(), &pctx, EVP_sha256(), nullptr, const_cast<EVP_PKEY *>(pub_key)) != 1)
         return false;
 
     if (pctx)
@@ -545,7 +668,7 @@ bool rsa_verify(
     return (rc == 1);
 }
 
-} // anonymous namespace
+}// anonymous namespace
 
 // ============================================================
 //  encode —— build signed "h.p.s"
@@ -589,7 +712,7 @@ std::string encode(
     case algorithm::HS256:
     {
         std::string mac_bytes = hmac_sha256::sign(key, sign_input);
-        signature = b64url::encode(
+        signature             = b64url::encode(
             reinterpret_cast<const unsigned char *>(mac_bytes.data()),
             mac_bytes.size());
         break;
@@ -613,14 +736,14 @@ std::string encode(
         EVP_PKEY_ptr priv_key;
         try
         {
-            priv_key = ec_crypto::import_pem(key); // PEM_read_bio_PrivateKey auto-detects RSA
+            priv_key = ec_crypto::import_pem(key);// PEM_read_bio_PrivateKey auto-detects RSA
         }
         catch (...)
         {
             throw std::invalid_argument("jwt encode: failed to load RSA private key from PEM");
         }
         std::string sig_raw = rsa_sign(sign_input, priv_key.get(), RSA_PKCS1_PADDING);
-        signature = b64url::encode(
+        signature           = b64url::encode(
             reinterpret_cast<const unsigned char *>(sig_raw.data()),
             sig_raw.size());
         break;
@@ -637,7 +760,7 @@ std::string encode(
             throw std::invalid_argument("jwt encode: failed to load RSA private key from PEM");
         }
         std::string sig_raw = rsa_sign(sign_input, priv_key.get(), RSA_PKCS1_PSS_PADDING);
-        signature = b64url::encode(
+        signature           = b64url::encode(
             reinterpret_cast<const unsigned char *>(sig_raw.data()),
             sig_raw.size());
         break;
@@ -677,8 +800,8 @@ verify_result decode_without_verify(const std::string &token)
     // 3. extract alg + standard claims for caller convenience
     // This function parses and does not judge, so an unreadable claim reports 0.
     const claim_times claims = read_claims(payload_json);
-    result.header_json  = header_json;
-    result.payload_json = payload_json;
+    result.header_json       = header_json;
+    result.payload_json      = payload_json;
     find_top_string(header_json, "alg", result.alg);
     result.exp = claims.exp_as_time();
     result.iat = claims.iat_as_time();
@@ -703,6 +826,21 @@ verify_result verify(
 {
     verify_result result;
 
+    // ---- Step 0: whole-token length bound ----
+    // 三段全解出来才判形状、扫 claim、验签，所以这一界要先落在解字节之前：它挡的是"这一层自己
+    // 愿意干多少活"，不是"允许多长的令牌"——令牌从 Authorization 头进来，入站解析已经按同一个数
+    // 钳过单枚头部行，走 http 的调用点不会在这里被削掉。
+    // All three segments are decoded, shape-checked and scanned before the signature is looked
+    // at, so the bound is taken first: what it caps is the work this class will do for one
+    // argument, not the tokens that are allowed to exist. A token arrives in the Authorization
+    // header, whose single line the inbound parser already bounds by the same value, so callers
+    // reached over HTTP cannot be shortened here.
+    if (token.size() > CONST_JWT_TOKEN_MAX_LEN)
+    {
+        result.err = verify_error::token_too_long;
+        return result;
+    }
+
     // ---- Step 1: split token (signature may be empty for alg:none) ----
     auto parts = split_token(token);
     if (parts.size() != 3 ||
@@ -713,10 +851,15 @@ verify_result verify(
     }
     const std::string &header_b64  = parts[0];
     const std::string &payload_b64 = parts[1];
-    const std::string &sig_b64    = parts[2];
+    const std::string &sig_b64     = parts[2];
 
     // ---- Step 2: base64url decode ----
-    if (!is_b64url_segment(header_b64) || !is_b64url_segment(payload_b64))
+    // The signature segment is checked too: the decoder silently stops at a byte it cannot
+    // read and drops the tail, so a padding character appended to a valid token used to fold
+    // back into the exact same signature bytes and still verify.
+    if (!is_b64url_segment(header_b64) ||
+        !is_b64url_segment(payload_b64) ||
+        !is_b64url_segment(sig_b64))
     {
         result.err = verify_error::invalid_base64;
         return result;
@@ -742,9 +885,9 @@ verify_result verify(
 
     // ---- Step 3: alg whitelist check ----
     std::string alg;
-    size_t      alg_hits = 0;
+    size_t alg_hits = 0;
     find_top_string(header_json, "alg", alg, &alg_hits);
-    if (alg.empty() || alg_hits > 1) // 两个 alg 同样是"谁生效没定论"，一并拒掉
+    if (alg.empty() || alg_hits > 1)// 两个 alg 同样是"谁生效没定论"，一并拒掉
     {
         result.err = verify_error::alg_mismatch;
         return result;
@@ -781,7 +924,7 @@ verify_result verify(
 
     // ---- Step 5: signature verification ----
     std::string sign_input = header_b64 + "." + payload_b64;
-    bool sig_ok = false;
+    bool sig_ok            = false;
 
     switch (expected_alg)
     {
@@ -796,7 +939,7 @@ verify_result verify(
         // HS256: recompute HMAC, constant-time compare
         std::string recompute = hmac_sha256::sign(key, sign_input);
         std::string expected  = b64url::decode(sig_b64);
-        sig_ok = constant_time_memcmp(recompute, expected);
+        sig_ok                = constant_time_memcmp(recompute, expected);
         break;
     }
     case algorithm::ES256:
@@ -812,6 +955,18 @@ verify_result verify(
             result.err = verify_error::key_mismatch;
             return result;
         }
+        // ES256 是 P-256 + SHA-256（RFC 7518 §3.1），曲线写在算法名里，不在密钥里。配错曲线的
+        // PEM 也能加载成功，验签只会回"签名不对"——运维读到的是"这枚令牌被动过"，实际是"这把钥
+        // 用错了"。所以在验签之前问一次钥自己在哪条曲线上。
+        // ES256 is P-256 with SHA-256 (RFC 7518 §3.1): the curve is named by the algorithm, not
+        // carried by the key. A key on another curve loads fine and then only reports a signature
+        // mismatch, so the operator reads "this token was tampered with" where the truth is "this
+        // key was misconfigured". Ask the key which curve it is on, before verifying.
+        if (!ec_key_is_p256(pub_key.get()))
+        {
+            result.err = verify_error::key_mismatch;
+            return result;
+        }
         sig_ok = es256_verify(sign_input, sig_b64, pub_key.get());
         break;
     }
@@ -821,7 +976,7 @@ verify_result verify(
         EVP_PKEY_ptr pub_key;
         try
         {
-            pub_key = import_pub_pem(key); // PEM_read_bio_PUBKEY auto-detects RSA
+            pub_key = import_pub_pem(key);// PEM_read_bio_PUBKEY auto-detects RSA
         }
         catch (...)
         {
@@ -854,13 +1009,20 @@ verify_result verify(
         return result;
     }
 
-    // Every path past this point reports the same diagnostics
+    // The two section texts are handed out only when the signature was checked and passed —
+    // those are the bytes the caller may trust. On an error path the caller gets the verdict
+    // plus the diagnostics it needs to explain it (alg names which header was read, the three
+    // times feed the expiry message), and the unverified text stays empty so a caller that
+    // forgets to read err cannot pick up a claim it never authenticated.
     auto fill = [&](verify_error err) -> verify_result
     {
-        result.err          = err;
-        result.header_json  = header_json;
-        result.payload_json = payload_json;
-        result.alg          = alg;
+        result.err = err;
+        result.alg = alg;
+        if (err == verify_error::ok)
+        {
+            result.header_json  = header_json;
+            result.payload_json = payload_json;
+        }
         result.exp = claims.exp_as_time();
         result.iat = claims.iat_as_time();
         result.nbf = claims.nbf_as_time();
@@ -873,6 +1035,8 @@ verify_result verify(
     // ---- Step 6: claim time validation ----
     // A claim that is there but unreadable is refused, not treated as "no limit" — otherwise
     // a quoted or null exp silently drops the expiry check.
+    // iat 只在这里被读进结果，不参与比较：它的值没有"还没到"或"已过期"两种含义。
+    // iat is read for the result but compared nowhere: the value has no expiry semantics.
     if (claims.has_invalid())
         return fill(verify_error::invalid_claims);
 
@@ -901,5 +1065,5 @@ verify_result verify(
     return fill(verify_error::ok);
 }
 
-} // namespace jwt
-} // namespace http
+}// namespace jwt
+}// namespace http

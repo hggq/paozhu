@@ -21,7 +21,7 @@ void add_client_fail(httppeer &client, const std::string &msg)
     client.val["msg"]  = msg;
     client.out_json();
 }
-} // namespace
+}// namespace
 
 //@urlpath(admin_isloginjson,oauth/client/add)
 std::string oauth_client_add(std::shared_ptr<httppeer> peer)
@@ -37,9 +37,9 @@ std::string oauth_client_add(std::shared_ptr<httppeer> peer)
         return "";
     }
 
-    std::string client_id      = str_trim(client.post["client_id"].to_string());
-    std::string name           = str_trim(client.post["name"].to_string());
-    std::string redirect_uris  = str_trim(client.post["redirect_uris"].to_string());
+    std::string client_id     = str_trim(client.post["client_id"].to_string());
+    std::string name          = str_trim(client.post["name"].to_string());
+    std::string redirect_uris = str_trim(client.post["redirect_uris"].to_string());
     // 两列策略串：空格分隔的 scope 白名单、逗号分隔的 grant 白名单，空串都表示不设上限
     std::string allowed_scopes = str_trim(client.post["allowed_scopes"].to_string());
     std::string grant_types    = str_trim(client.post["grant_types"].to_string());
@@ -99,8 +99,7 @@ std::string oauth_client_add(std::shared_ptr<httppeer> peer)
     bool isopen = client.post["isopen"].to_string() != "0";
 
     std::string secret;
-    if (!oauth::add_client(client_id, name, redirect_uris, confidential,
-                           allowed_scopes, grant_types, isopen, secret))
+    if (!oauth::add_client(client_id, name, redirect_uris, confidential, allowed_scopes, grant_types, isopen, secret))
     {
         // 长度和空值上面都查过了，走到这里只剩两种可能：
         // client_id 已被占用，或者语句本身没写进去（库连不上、唯一键冲突之外的报错）
@@ -118,4 +117,4 @@ std::string oauth_client_add(std::shared_ptr<httppeer> peer)
     client.out_json();
     return "";
 }
-} // namespace http
+}// namespace http

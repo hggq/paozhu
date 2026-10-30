@@ -26,9 +26,9 @@ namespace github
 namespace
 {
 // 这一段参与拼接的字符集：GitHub 的 verifier 允许 RFC 7636 的 unreserved 字符。
-const char VERIFIER_CHARS[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+const char VERIFIER_CHARS[]               = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 constexpr unsigned int VERIFIER_CHARS_LEN = 64;
-constexpr unsigned int VERIFIER_LEN = 64;
+constexpr unsigned int VERIFIER_LEN       = 64;
 
 bool is_client_id_char(char c)
 {
@@ -37,7 +37,7 @@ bool is_client_id_char(char c)
     // 少了这一划，每一条合法的绑定都会在回调这一步被判成伪造票据。
     return std::isalnum(u) != 0 || c == '-' || c == '_' || c == '.';
 }
-} // namespace
+}// namespace
 
 std::string normalize_scopes(const std::string &scopes_comma)
 {
@@ -104,7 +104,7 @@ std::string make_state(unsigned long long adminid, const std::string &client_id)
 
 bool state_shape_ok(const std::string &state, unsigned long long &adminid_out, std::string &client_id_out)
 {
-    adminid_out   = 0;
+    adminid_out = 0;
     client_id_out.clear();
     auto parts = mb_split(".", state);
     if (parts.size() != 3)
@@ -245,10 +245,10 @@ namespace
 {
 // 令牌端点的公共发送部分：换令牌与刷新只差在表单里带哪几个字段。
 bool post_token_request(const github_settings &cfg,
-                        const std::string     &client_id,
-                        const std::string     &client_secret_plain,
+                        const std::string &client_id,
+                        const std::string &client_secret_plain,
                         const std::vector<std::pair<std::string, std::string>> &fields,
-                        token_answer          &out)
+                        token_answer &out)
 {
     out = token_answer();
     if (!outbound_base_ok(cfg.auth_base))
@@ -289,15 +289,15 @@ bool post_token_request(const github_settings &cfg,
     }
     return out.ok;
 }
-} // namespace
+}// namespace
 
 bool exchange_code(const github_settings &cfg,
-                   const std::string     &client_id,
-                   const std::string     &client_secret_plain,
-                   const std::string     &code,
-                   const std::string     &redirect_uri,
-                   const std::string     &code_verifier,
-                   token_answer          &out)
+                   const std::string &client_id,
+                   const std::string &client_secret_plain,
+                   const std::string &code,
+                   const std::string &redirect_uri,
+                   const std::string &code_verifier,
+                   token_answer &out)
 {
     std::vector<std::pair<std::string, std::string>> fields;
     fields.emplace_back("grant_type", "authorization_code");
@@ -311,10 +311,10 @@ bool exchange_code(const github_settings &cfg,
 }
 
 bool refresh_access(const github_settings &cfg,
-                    const std::string     &client_id,
-                    const std::string     &client_secret_plain,
-                    const std::string     &refresh_token,
-                    token_answer          &out)
+                    const std::string &client_id,
+                    const std::string &client_secret_plain,
+                    const std::string &refresh_token,
+                    token_answer &out)
 {
     std::vector<std::pair<std::string, std::string>> fields;
     fields.emplace_back("grant_type", "refresh_token");
@@ -328,7 +328,7 @@ bool build_authorize_url(const std::string &auth_base,
                          const std::string &scopes_comma,
                          const std::string &state,
                          const std::string &code_challenge,
-                         std::string       &url_out)
+                         std::string &url_out)
 {
     url_out.clear();
     if (!outbound_base_ok(auth_base))
@@ -361,10 +361,10 @@ bool build_authorize_url(const std::string &auth_base,
 }
 
 revoke_outcome revoke_token(const github_settings &cfg,
-                            const std::string     &client_id,
-                            const std::string     &client_secret_plain,
-                            const std::string     &access_token,
-                            unsigned int          &status_out)
+                            const std::string &client_id,
+                            const std::string &client_secret_plain,
+                            const std::string &access_token,
+                            unsigned int &status_out)
 {
     status_out = 0;
     if (!outbound_base_ok(cfg.api_base))
@@ -380,13 +380,13 @@ revoke_outcome revoke_token(const github_settings &cfg,
     body["access_token"] = access_token;
 
     // HTTP Basic：标准字母表的 base64（框架已有 http::base64_encode，第三参 0＝非 URL 安全变体）。
-    std::string pair = client_id + ":" + client_secret_plain;
+    std::string pair  = client_id + ":" + client_secret_plain;
     std::string basic = "Basic " + http::base64_encode(pair.data(), (unsigned int)pair.size(), 0);
     pair.clear();
 
     std::shared_ptr<http::client> a = std::make_shared<http::client>();
     a->del(cfg.api_base + "/applications/" + url_encode(client_id.data(), (int)client_id.size()) +
-          "/token");
+           "/token");
     a->set_header("Accept", "application/json");
     a->set_header("Content-Type", "application/json");
     a->set_header("Authorization", basic);
@@ -412,5 +412,5 @@ revoke_outcome revoke_token(const github_settings &cfg,
     return revoke_outcome::failed;
 }
 
-} // namespace github
-} // namespace http
+}// namespace github
+}// namespace http

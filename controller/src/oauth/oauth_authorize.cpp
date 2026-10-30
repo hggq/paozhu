@@ -132,6 +132,15 @@ authorize_fail check_authorize(httppeer &client,
     return authorize_fail::none;
 }
 
+// 同意票据在 session 里的键名：由这次授权请求的三项决定——客户端、白名单里命中的那条回调、
+// 申请的 scope。两头的用处来自同一个式子：
+//   同一浏览器并发开两张不同的同意页时两格键互不相同，后开的那张不作废前一张；
+//   票据也只在签发它的那组参数下有效——换了这三项的提交落在另一格键上，读到空串等于没有票据。
+std::string csrf_session_key(const authorize_request &req, const std::string &matched)
+{
+    return "oauth_csrf_" + oauth::lowerhex_sha256(req.client_id + "\n" + matched + "\n" + req.scope);
+}
+
 // 校验阶段的错误一律不回跳（RFC 6749 §4.1.2.1：client 未认证前不得向它的回调地址发东西），
 // 只在本站回一个带状态码的 JSON。请求带来的值一个都不回显。
 void authorize_error(httppeer &client, authorize_fail fail)
@@ -215,10 +224,10 @@ std::string oauth_authorize(std::shared_ptr<httppeer> peer)
     // 票据必须跨请求存活，所以这一对路由是全仓唯一调 save_session() 的 OAuth 端点，
     // 写进去的只有这张票据，没有任何身份信息。随机源失败会抛，路由层转成 500——
     // 宁可不渲染同意页，也不发一张比对不了的页面。
-    std::string csrf_token       = get_rand_32char();
-    client.session["oauth_csrf"] = csrf_token;
+    std::string csrf_token = get_rand_32char();
+    client.session[csrf_session_key(req, matched)] = csrf_token;
     client.save_session();
-    client.val["csrf_token"]     = csrf_token;
+    client.val["csrf_token"] = csrf_token;
 
     client.view("oauth/consent");
     return "";
@@ -249,11 +258,14 @@ std::string oauth_authorize_approve(std::shared_ptr<httppeer> peer)
         return "";
     }
 
-    // CSRF 票据：session 里没有（没经过本端点的同意页）或与表单不一致，就是伪造的提交。
-    // 放在整条授权链之后、发码之前：登录态那一步的跳转要先照旧，伪造请求也换不到更细的报错。
+    // CSRF 票据：session 里没有（没经过本端点的同意页，或这组参数下没签过）或与表单不一致，
+    // 就是伪造的提交。放在整条授权链之后、发码之前：登录态那一步的跳转要先照旧，
+    // 伪造请求也换不到更细的报错。键名要用 check_authorize 之后重算——白名单里命中的那条
+    // 回调（matched）不是请求原文，两侧必须用同一个派生式，否则签发票据和比对票据查的不是同一格。
     // 比对失败不动 session 里那份——否则一个跨站 POST 就能把用户正开着的同意页作废。
     {
-        std::string session_token = client.session["oauth_csrf"].to_string();
+        std::string csrf_key      = csrf_session_key(req, matched);
+        std::string session_token = client.session[csrf_key].to_string();
         std::string post_token    = client.post["csrf_token"].to_string();
         if (session_token.empty() || post_token != session_token)
         {
@@ -263,8 +275,9 @@ std::string oauth_authorize_approve(std::shared_ptr<httppeer> peer)
             client.out_json();
             return "";
         }
-        // 一次一用：比对通过立刻作废，同一份表单重复提交会被这一步拒掉
-        client.session["oauth_csrf"] = "";
+        // 一次一用：比对通过立刻作废这一格，同一份表单重复提交会被这一步拒掉；
+        // 别的同意页各占自己那格，不受这次提交影响
+        client.session[csrf_key] = "";
         client.save_session();
     }
 

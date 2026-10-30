@@ -31,10 +31,10 @@ std::string github_quickbind(std::shared_ptr<httppeer> peer)
         return "";
     }
 
-    unsigned long long adminid = (unsigned long long)client.session["adminid"].to_int();
-    const std::string &client_id     = cfg.default_client_id;
-    const std::string &plain_secret  = cfg.default_client_secret;
-    const std::string &redirect_uri  = cfg.default_redirect_uri;
+    unsigned long long adminid      = (unsigned long long)client.session["adminid"].to_int();
+    const std::string &client_id    = cfg.default_client_id;
+    const std::string &plain_secret = cfg.default_client_secret;
+    const std::string &redirect_uri = cfg.default_redirect_uri;
 
     std::string cipher;
     std::string error;
@@ -88,4 +88,4 @@ std::string github_quickbind(std::shared_ptr<httppeer> peer)
     client.set_header("Location", url);
     return "";
 }
-} // namespace http
+}// namespace http

@@ -73,13 +73,17 @@ chain_act classify_step(const std::string &ret, bool is_pre, const std::string &
     {
         if (is_pre)
         {
-            if (str_casecmp(ret, kFlowOk))   return chain_act::run_regfun;
-            if (str_casecmp(ret, kFlowExit)) return chain_act::stop;
+            if (str_casecmp(ret, kFlowOk))
+                return chain_act::run_regfun;
+            if (str_casecmp(ret, kFlowExit))
+                return chain_act::stop;
         }
         else
         {
-            if (str_casecmp(ret, kFlowExit))     return chain_act::stop;
-            if (str_casecmp(ret, kFlowTimeloop)) return chain_act::run_timeloop;
+            if (str_casecmp(ret, kFlowExit))
+                return chain_act::stop;
+            if (str_casecmp(ret, kFlowTimeloop))
+                return chain_act::run_timeloop;
         }
         // 未知 @ 指令：响亮失败，别静默当路由名
         DEBUG_LOG("classify_step: unknown @%s, stop chain", ret.c_str());
@@ -979,13 +983,11 @@ void router::validate_site_hooks()
         // overflow at runtime is trimmed, startup warns that truncation happens
         if (site.action_pre_lists.size() > site_hook_limit)
         {
-            fprintf(stderr, "[ROUTE-WARN] site %s method_pre has %zu hooks, trimmed to %zu\n",
-                    site.mainhost.c_str(), site.action_pre_lists.size(), site_hook_limit);
+            fprintf(stderr, "[ROUTE-WARN] site %s method_pre has %zu hooks, trimmed to %zu\n", site.mainhost.c_str(), site.action_pre_lists.size(), site_hook_limit);
         }
         if (site.action_after_lists.size() > site_hook_limit)
         {
-            fprintf(stderr, "[ROUTE-WARN] site %s method_after has %zu hooks, trimmed to %zu\n",
-                    site.mainhost.c_str(), site.action_after_lists.size(), site_hook_limit);
+            fprintf(stderr, "[ROUTE-WARN] site %s method_after has %zu hooks, trimmed to %zu\n", site.mainhost.c_str(), site.action_after_lists.size(), site_hook_limit);
         }
     }
 }

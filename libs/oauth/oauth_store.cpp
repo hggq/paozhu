@@ -7,6 +7,7 @@
 #include <exception>
 #include <filesystem>
 #include <fstream>
+#include <mutex>
 #include <sstream>
 
 #include "acme_crypto.hpp"
@@ -17,6 +18,10 @@
 #include "orm.h"
 #include "request.h"
 #include "urlcode.h"
+
+#ifdef ENABLE_REDIS
+#include "redis_client.h"
+#endif
 
 namespace http
 {
@@ -37,7 +42,8 @@ std::string lowerhex_sha256(const std::string &text)
 {
     std::string digest = sha256::hash(text);
     return char2hex(reinterpret_cast<const unsigned char *>(digest.data()),
-                    (unsigned int)digest.size(), 0);
+                    (unsigned int)digest.size(),
+                    0);
 }
 
 bool pkce_s256_ok(const std::string &code_verifier, const std::string &code_challenge)
@@ -51,8 +57,8 @@ bool pkce_s256_ok(const std::string &code_verifier, const std::string &code_chal
     {
         return false;
     }
-    std::string digest    = sha256::hash(code_verifier);
-    std::string computed  = b64url::encode(reinterpret_cast<const unsigned char *>(digest.data()),
+    std::string digest   = sha256::hash(code_verifier);
+    std::string computed = b64url::encode(reinterpret_cast<const unsigned char *>(digest.data()),
                                           digest.size());
     if (computed.size() != code_challenge.size())
     {
@@ -186,7 +192,7 @@ bool prefix_ci(const std::string &text, const char *prefix, std::size_t len)
     }
     return true;
 }
-} // namespace
+}// namespace
 
 bool load_client(const std::string &client_id, client_record &out)
 {
@@ -201,9 +207,9 @@ bool load_client(const std::string &client_id, client_record &out)
     {
         return false;
     }
-    out.found          = true;
-    out.client_id      = model.data.client_id;
-    out.secret_hash    = model.data.client_secret;
+    out.found       = true;
+    out.client_id   = model.data.client_id;
+    out.secret_hash = model.data.client_secret;
     // 公开客户端是真 NULL，不是 ''：读侧的位图由 fetch 填，两者在库里分得开
     out.secret_is_null = model.isNullClientSecret();
     out.redirect_uris  = model.data.redirect_uris;
@@ -337,6 +343,16 @@ bool grant_within(const std::string &allowed, const std::string &grant)
 
 bool redirect_uri_scheme_ok(const std::string &uri)
 {
+    // 白名单里不收控制字符与裸空格：0x00-0x20 与 0x7F 在 URI 里本来就必须百分号编码，
+    // 原样存进来只会坏在下游（库里那一列是 TEXT、日志、以及任何把它写进 HTTP 头的路径）
+    for (char c : uri)
+    {
+        unsigned char raw = (unsigned char)c;
+        if (raw <= 0x20 || raw == 0x7F)
+        {
+            return false;
+        }
+    }
     // https:// 后面至少要有一个字符，且不能直接是路径/查询/片段：空主机名匹配不上任何回调
     if (prefix_ci(uri, "https://", 8))
     {
@@ -403,7 +419,7 @@ bool add_client(const std::string &client_id,
             return false;
         }
     }
-    auto model = orm::cms::OauthClient();
+    auto model                 = orm::cms::OauthClient();
     model.data.client_id       = client_id;
     model.data.name            = name;
     model.data.redirect_uris   = redirect_uris;
@@ -454,7 +470,7 @@ std::string issue_code(const std::string &client_id,
     {
         return "";
     }
-    auto model = orm::cms::OauthCode();
+    auto model                = orm::cms::OauthCode();
     model.data.code_hash      = code_hash;
     model.data.client_id      = client_id;
     model.data.user_id        = user_id;
@@ -506,7 +522,7 @@ bool consume_code(const std::string &code_plain)
     {
         return false;
     }
-    auto model = orm::cms::OauthCode();
+    auto model      = orm::cms::OauthCode();
     model.data.used = 1;
     model.where("code_hash", code_hash).where("used", 0);
     return model.update("used") == 1;
@@ -524,7 +540,7 @@ bool bind_code_family(const std::string &code_plain, unsigned int family_id)
     {
         return false;
     }
-    auto model = orm::cms::OauthCode();
+    auto model           = orm::cms::OauthCode();
     model.data.family_id = family_id;
     // 只给已消费的码绑族：没换过码的行绑上了也没有族可撤，绑错了还会让重放撤掉别人的族
     model.where("code_hash", code_hash).where("used", 1);
@@ -563,7 +579,7 @@ std::string issue_refresh(unsigned int family_id,
                           long long expires_at,
                           unsigned int &out_row_id)
 {
-    out_row_id = 0;
+    out_row_id        = 0;
     std::string token = random_token();
     if (token.empty())
     {
@@ -574,7 +590,7 @@ std::string issue_refresh(unsigned int family_id,
     {
         return "";
     }
-    auto model = orm::cms::OauthRefresh();
+    auto model            = orm::cms::OauthRefresh();
     model.data.family_id  = family_id;
     model.data.token_hash = token_hash;
     model.data.client_id  = client_id;
@@ -609,7 +625,7 @@ bool revoke_refresh_row(unsigned long long row_id)
     {
         return false;
     }
-    auto model = orm::cms::OauthRefresh();
+    auto model         = orm::cms::OauthRefresh();
     model.data.revoked = 1;
     model.where("id", (long long)row_id).where("revoked", 0);
     return model.update("revoked") == 1;
@@ -622,7 +638,7 @@ unsigned int revoke_refresh_family(unsigned int family_id)
     {
         return 0;
     }
-    auto model = orm::cms::OauthRefresh();
+    auto model         = orm::cms::OauthRefresh();
     model.data.revoked = 1;
     model.where("family_id", family_id).where("revoked", 0);
     int effect = model.update("revoked");
@@ -640,7 +656,7 @@ bool revoke_refresh_by_token(const std::string &token_plain, const std::string &
     {
         return false;
     }
-    auto model = orm::cms::OauthRefresh();
+    auto model         = orm::cms::OauthRefresh();
     model.data.revoked = 1;
     model.where("token_hash", token_hash).where("client_id", client_id).where("revoked", 0);
     return model.update("revoked") == 1;
@@ -712,8 +728,8 @@ bool kid_usable(const std::string &kid)
     for (char raw : kid)
     {
         unsigned char c = (unsigned char)raw;
-        bool        ok  = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
-                   c == '-' || c == '.' || c == '_' || c == ':';
+        bool ok         = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
+                  c == '-' || c == '.' || c == '_' || c == ':';
         if (!ok)
         {
             return false;
@@ -742,6 +758,7 @@ const char *jwt_error_name(jwt::verify_error err)
     case jwt::verify_error::malformed_json: return "malformed_json";
     case jwt::verify_error::unsupported_critical: return "unsupported_critical";
     case jwt::verify_error::parsed_but_unverified: return "parsed_but_unverified";
+    case jwt::verify_error::token_too_long: return "token_too_long";
     }
     return "unknown";
 }
@@ -771,7 +788,7 @@ std::string bn_to_b64url(BIGNUM *bn)
     return b64url::encode(reinterpret_cast<const unsigned char *>(bytes.data()) + first,
                           bytes.size() - first);
 }
-} // namespace
+}// namespace
 
 bool load_signing_keys(const oauth_settings &settings,
                        std::string &privkey_pem,
@@ -789,6 +806,28 @@ bool load_signing_keys(const oauth_settings &settings,
         return false;
     }
     return true;
+}
+
+signing_material signing_material_cached()
+{
+    static std::mutex guard;
+    static signing_material cached;
+    static bool ready = false;
+
+    std::lock_guard<std::mutex> lk(guard);
+    if (ready)
+    {
+        return cached;
+    }
+    signing_material fresh;
+    if (load_signing_keys(oauth_settings_cached(), fresh.privkey_pem, fresh.pubkey_pem))
+    {
+        fresh.ready = true;
+        cached      = fresh;
+        ready       = true;
+    }
+    // 任一文件读不出就交回空正文、不落缓存，让下一次调用再试一遍。
+    return fresh;
 }
 
 std::string sign_access_token(const std::string &privkey_pem,
@@ -865,6 +904,62 @@ bool looks_like_jwt(const std::string &token)
     return dots == 2 && seg > 0;
 }
 
+#ifdef ENABLE_REDIS
+namespace
+{
+// blat = blacklist access token。写的是业务裸键名，段配置里的 prefix 由连接层叠在它前面。
+// 段名固定用 conf/redis.conf 的 [default]：撤销名单是全站一份，不属于任何一个客户端。
+constexpr const char *blat_key_prefix    = "oauth:blat:";
+constexpr const char *blat_redis_section = "default";
+
+std::string blat_key(const std::string &jti)
+{
+    return std::string(blat_key_prefix) + jti;
+}
+}// namespace
+
+bool blacklist_access_jti(const std::string &jti, long long exp_ts)
+{
+    if (jti.empty() || exp_ts <= 0)
+    {
+        return false;
+    }
+    long long ttl = exp_ts - (long long)timeid();
+    if (ttl <= 0)
+    {
+        // 已经过期的令牌没有可撤销的窗口：它自己就先失效了，写进名单只是占格子
+        return false;
+    }
+    pz::redis::redis_client rc(blat_redis_section);
+    // SET key 1 EX <ttl> 在同一条命令里原子完成"写值 + 设期限"：拆成两条发，中间断一次
+    // 就留下一条永不过期的名单（redis_client.h 里锁的口径是同一条命令）
+    obj_val setted = rc.str_set(blat_key(jti), "1", {"EX", std::to_string(ttl)});
+    return setted.to_string() == "OK";
+}
+
+bool is_access_jti_revoked(const std::string &jti)
+{
+    if (jti.empty())
+    {
+        return false;
+    }
+    pz::redis::redis_client rc(blat_redis_section);
+    return rc.key_exists(blat_key(jti));
+}
+#else
+// 没编进 pzredis 的构建：撤销名单整块不存在，但两个函数还在（写不进、也永远查不到），
+// 于是验签路径的行为与这份代码合入之前完全一致。代价记在撤销端点那条日志里。
+bool blacklist_access_jti(const std::string &, long long)
+{
+    return false;
+}
+
+bool is_access_jti_revoked(const std::string &)
+{
+    return false;
+}
+#endif
+
 bool introspect_token(const std::string &authed_client_id,
                       const std::string &pubkey_pem,
                       const std::string &issuer,
@@ -916,6 +1011,13 @@ bool introspect_token(const std::string &authed_client_id,
         std::string iss = claims["iss"].to_string();
         std::string aud = claims["aud"].to_string();
         if (iss != issuer || aud != authed_client_id)
+        {
+            return true;
+        }
+        // 撤销名单：验签通过只说明"这枚令牌是本站签的、还没过期"，不说明它还算数。
+        // 命中名单就回 active:false，与"根本没有这枚令牌"同形——回"被撤过"就是告诉提问方
+        // "这枚 jti 是真的"，那是这个端点一路都在避免的枚举口。
+        if (is_access_jti_revoked(claims["jti"].to_string()))
         {
             return true;
         }
@@ -1000,5 +1102,5 @@ std::string jwks_json(const std::string &pubkey_pem, const std::string &kid)
            "\",\"n\":\"" + n_b64 + "\",\"e\":\"" + e_b64 + "\"}]}";
 }
 
-} // namespace oauth
-} // namespace http
+}// namespace oauth
+}// namespace http

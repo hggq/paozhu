@@ -3,12 +3,12 @@
 // 全部用 C++ httpclient 串成一组自包含的端点。依赖方默认填本地 paozhu oauth 服务器
 // （https://www.hggq.com），client_id / client_secret / scope 走表单输入，方便换别的 OAuth 2.1 服务器直接复用。
 /*
-*  更换相应的ouath2地址 
-*    ep.authorize_url  = "https://www.hggq.com/oauth/authorize";
-*    ep.token_url      = "https://www.hggq.com/oauth/token";
-*    ep.introspect_url = "https://www.hggq.com/oauth/introspect";
-*    ep.revoke_url     = "https://www.hggq.com/oauth/revoke";
-*/
+ *  更换相应的ouath2地址
+ *    ep.authorize_url  = "https://www.hggq.com/oauth/authorize";
+ *    ep.token_url      = "https://www.hggq.com/oauth/token";
+ *    ep.introspect_url = "https://www.hggq.com/oauth/introspect";
+ *    ep.revoke_url     = "https://www.hggq.com/oauth/revoke";
+ */
 #include <string>
 
 #include "func.h"
@@ -29,11 +29,11 @@ namespace
 oauth_client::oauth_endpoints default_endpoints()
 {
     oauth_client::oauth_endpoints ep;
-    ep.authorize_url  = "https://www.hggq.com/oauth/authorize";
-    ep.token_url      = "https://www.hggq.com/oauth/token";
-    ep.introspect_url = "https://www.hggq.com/oauth/introspect";
-    ep.revoke_url     = "https://www.hggq.com/oauth/revoke";
-    ep.timeout_seconds = 10;
+    ep.authorize_url     = "https://www.hggq.com/oauth/authorize";
+    ep.token_url         = "https://www.hggq.com/oauth/token";
+    ep.introspect_url    = "https://www.hggq.com/oauth/introspect";
+    ep.revoke_url        = "https://www.hggq.com/oauth/revoke";
+    ep.timeout_seconds   = 10;
     ep.prefer_basic_auth = true;
     return ep;
 }
@@ -47,16 +47,16 @@ constexpr const char *DEFAULT_CLIENT_SECRET = "test-secret-abc123-xyz789";
 // 把 token_answer / introspect_answer 编成通用 JSON 输出。
 void emit_token_json(httppeer &client, const oauth_client::token_answer &t, const char *grant_label)
 {
-    client.val["grant"]          = grant_label;
-    client.val["ok"]             = t.ok ? 1 : 0;
-    client.val["http_status"]    = t.http_status;
-    client.val["access_token"]   = t.access_token;
-    client.val["refresh_token"]  = t.refresh_token;
-    client.val["scope"]          = t.scope;
-    client.val["token_type"]     = t.token_type;
+    client.val["grant"]              = grant_label;
+    client.val["ok"]                 = t.ok ? 1 : 0;
+    client.val["http_status"]        = t.http_status;
+    client.val["access_token"]       = t.access_token;
+    client.val["refresh_token"]      = t.refresh_token;
+    client.val["scope"]              = t.scope;
+    client.val["token_type"]         = t.token_type;
     client.val["access_expires_in"]  = t.access_expires_in;
     client.val["refresh_expires_in"] = t.refresh_expires_in;
-    client.val["error"]          = t.error;
+    client.val["error"]              = t.error;
 }
 
 void emit_introspect_json(httppeer &client, const oauth_client::introspect_answer &r)
@@ -86,14 +86,14 @@ void emit_revoke_json(httppeer &client, oauth_client::revoke_result r, unsigned 
     const char *label = "unknown";
     switch (r)
     {
-    case oauth_client::revoke_result::ok:          label = "ok"; break;
+    case oauth_client::revoke_result::ok: label = "ok"; break;
     case oauth_client::revoke_result::auth_failed: label = "auth_failed"; break;
-    case oauth_client::revoke_result::transport:    label = "transport"; break;
+    case oauth_client::revoke_result::transport: label = "transport"; break;
     }
-    client.val["result"]    = label;
+    client.val["result"]      = label;
     client.val["http_status"] = status;
 }
-} // namespace
+}// namespace
 
 // ---------------------------------------------------------------------------
 // GET /oauth_client/page
@@ -103,15 +103,15 @@ void emit_revoke_json(httppeer &client, oauth_client::revoke_result r, unsigned 
 //@urlpath(null,oauth_client/page)
 std::string oauth_client_page(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->get_peer();
-    auto ep = default_endpoints();
-    client.val["authorize_url"] = ep.authorize_url;
-    client.val["token_url"]     = ep.token_url;
-    client.val["introspect_url"]= ep.introspect_url;
-    client.val["revoke_url"]    = ep.revoke_url;
-    client.val["client_id"]     = DEFAULT_CLIENT_ID;
-    client.val["client_secret"] = DEFAULT_CLIENT_SECRET;
-    client.val["scope"]         = "repo user";
+    httppeer &client             = peer->get_peer();
+    auto ep                      = default_endpoints();
+    client.val["authorize_url"]  = ep.authorize_url;
+    client.val["token_url"]      = ep.token_url;
+    client.val["introspect_url"] = ep.introspect_url;
+    client.val["revoke_url"]     = ep.revoke_url;
+    client.val["client_id"]      = DEFAULT_CLIENT_ID;
+    client.val["client_secret"]  = DEFAULT_CLIENT_SECRET;
+    client.val["scope"]          = "repo user";
     client.view("oauth_client/page");
     return "";
 }
@@ -124,10 +124,12 @@ std::string oauth_client_page(std::shared_ptr<httppeer> peer)
 std::string oauth_client_cc(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
-    auto ep = default_endpoints();
+    auto ep          = default_endpoints();
     // 表单可以覆盖 endpoints（debug 不同服务器时用）
-    if (client.post.isset("token_url"))      ep.token_url      = client.post["token_url"].to_string();
-    if (client.post.isset("introspect_url")) ep.introspect_url = client.post["introspect_url"].to_string();
+    if (client.post.isset("token_url"))
+        ep.token_url = client.post["token_url"].to_string();
+    if (client.post.isset("introspect_url"))
+        ep.introspect_url = client.post["introspect_url"].to_string();
 
     std::string client_id     = client.post["client_id"].to_string();
     std::string client_secret = client.post["client_secret"].to_string();
@@ -150,16 +152,17 @@ std::string oauth_client_cc(std::shared_ptr<httppeer> peer)
 std::string oauth_client_build_auth(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
-    auto ep = default_endpoints();
-    if (client.post.isset("authorize_url")) ep.authorize_url = client.post["authorize_url"].to_string();
+    auto ep          = default_endpoints();
+    if (client.post.isset("authorize_url"))
+        ep.authorize_url = client.post["authorize_url"].to_string();
 
-    std::string client_id     = client.post["client_id"].to_string();
-    std::string redirect_uri  = client.post["redirect_uri"].to_string();
-    std::string scope         = client.post["scope"].to_string();
+    std::string client_id    = client.post["client_id"].to_string();
+    std::string redirect_uri = client.post["redirect_uri"].to_string();
+    std::string scope        = client.post["scope"].to_string();
 
-    std::string verifier   = oauth_client::make_code_verifier();
-    std::string challenge  = oauth_client::pkce_challenge(verifier);
-    std::string state      = get_rand_32char();
+    std::string verifier  = oauth_client::make_code_verifier();
+    std::string challenge = oauth_client::pkce_challenge(verifier);
+    std::string state     = get_rand_32char();
 
     std::string url;
     bool ok = oauth_client::build_authorize_url(ep, client_id, redirect_uri, scope, state, challenge, url);
@@ -172,13 +175,13 @@ std::string oauth_client_build_auth(std::shared_ptr<httppeer> peer)
         client.save_session();
     }
 
-    client.val["ok"]               = ok ? 1 : 0;
-    client.val["authorize_url"]    = ep.authorize_url;
-    client.val["url"]              = url;
-    client.val["state"]            = state;
-    client.val["code_challenge"]   = challenge;
-    client.val["code_verifier"]    = verifier;  // 方便 demo 复制粘贴，实际生产别回显
-    client.val["error"]            = ok ? "" : "missing required fields (client_id/redirect_uri/scope)";
+    client.val["ok"]             = ok ? 1 : 0;
+    client.val["authorize_url"]  = ep.authorize_url;
+    client.val["url"]            = url;
+    client.val["state"]          = state;
+    client.val["code_challenge"] = challenge;
+    client.val["code_verifier"]  = verifier;// 方便 demo 复制粘贴，实际生产别回显
+    client.val["error"]          = ok ? "" : "missing required fields (client_id/redirect_uri/scope)";
     client.status(200);
     client.out_json();
     return "";
@@ -192,14 +195,15 @@ std::string oauth_client_build_auth(std::shared_ptr<httppeer> peer)
 std::string oauth_client_exchange(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
-    auto ep = default_endpoints();
-    if (client.post.isset("token_url")) ep.token_url = client.post["token_url"].to_string();
+    auto ep          = default_endpoints();
+    if (client.post.isset("token_url"))
+        ep.token_url = client.post["token_url"].to_string();
 
     std::string client_id     = client.post["client_id"].to_string();
     std::string client_secret = client.post["client_secret"].to_string();
     std::string code          = client.post["code"].to_string();
     std::string redirect_uri  = client.post["redirect_uri"].to_string();
-    std::string verifier      = client.post["code_verifier"].to_string();  // 生产应该从 session 取
+    std::string verifier      = client.post["code_verifier"].to_string();// 生产应该从 session 取
 
     oauth_client::token_answer out;
     oauth_client::exchange_code(ep, client_id, client_secret, code, redirect_uri, verifier, out);
@@ -216,8 +220,9 @@ std::string oauth_client_exchange(std::shared_ptr<httppeer> peer)
 std::string oauth_client_refresh(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
-    auto ep = default_endpoints();
-    if (client.post.isset("token_url")) ep.token_url = client.post["token_url"].to_string();
+    auto ep          = default_endpoints();
+    if (client.post.isset("token_url"))
+        ep.token_url = client.post["token_url"].to_string();
 
     std::string client_id     = client.post["client_id"].to_string();
     std::string client_secret = client.post["client_secret"].to_string();
@@ -238,8 +243,9 @@ std::string oauth_client_refresh(std::shared_ptr<httppeer> peer)
 std::string oauth_client_introspect(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
-    auto ep = default_endpoints();
-    if (client.post.isset("introspect_url")) ep.introspect_url = client.post["introspect_url"].to_string();
+    auto ep          = default_endpoints();
+    if (client.post.isset("introspect_url"))
+        ep.introspect_url = client.post["introspect_url"].to_string();
 
     std::string client_id       = client.post["client_id"].to_string();
     std::string client_secret   = client.post["client_secret"].to_string();
@@ -261,8 +267,9 @@ std::string oauth_client_introspect(std::shared_ptr<httppeer> peer)
 std::string oauth_client_revoke(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
-    auto ep = default_endpoints();
-    if (client.post.isset("revoke_url")) ep.revoke_url = client.post["revoke_url"].to_string();
+    auto ep          = default_endpoints();
+    if (client.post.isset("revoke_url"))
+        ep.revoke_url = client.post["revoke_url"].to_string();
 
     std::string client_id       = client.post["client_id"].to_string();
     std::string client_secret   = client.post["client_secret"].to_string();
@@ -270,11 +277,11 @@ std::string oauth_client_revoke(std::shared_ptr<httppeer> peer)
     std::string token_type_hint = client.post["token_type_hint"].to_string();
 
     unsigned int status = 0;
-    auto r = oauth_client::do_revoke(ep, client_id, client_secret, token, token_type_hint, status);
+    auto r              = oauth_client::do_revoke(ep, client_id, client_secret, token, token_type_hint, status);
     client.status(200);
     emit_revoke_json(client, r, status);
     client.out_json();
     return "";
 }
 
-} // namespace http
+}// namespace http

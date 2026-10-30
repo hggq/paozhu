@@ -5,6 +5,9 @@
  * Public namespace: http::jwt
  *
  * verify() checks the signature, the algorithm whitelist and the exp / nbf timings.
+ * iat is read into verify_result.iat and reported, never compared: a token carrying a future
+ * iat still verifies. Age and "issued after <time>" rules belong to the caller, made after
+ * verify() returned ok.
  * iss and aud are not checked — the accepted issuer / audience lists belong to the
  * caller, which reads them out of payload_json.
  *
@@ -56,7 +59,8 @@ enum class verify_error
     invalid_claims,       // exp/iat/nbf 在 payload 里但不是数字 | claim present, not a number
     malformed_json,       // 解出来的段不是 JSON object | decoded section is not a JSON object
     unsupported_critical, // header 带 crit 扩展 | header carries a crit extension
-    parsed_but_unverified // 只解析、未验签 | decoded, deliberately not verified
+    parsed_but_unverified, // 只解析、未验签 | decoded, deliberately not verified
+    token_too_long        // 整枚令牌超过 CONST_JWT_TOKEN_MAX_LEN | token over the length cap
 };
 
 // ============================================================
@@ -65,8 +69,8 @@ enum class verify_error
 struct verify_result
 {
     verify_error err        = verify_error::ok;
-    std::string  header_json;  // raw JSON (NOT base64)
-    std::string  payload_json; // raw JSON (NOT base64)
+    std::string  header_json;  // raw JSON (NOT base64); verify() fills it only when err==ok
+    std::string  payload_json; // raw JSON (NOT base64); verify() fills it only when err==ok
     std::string  alg;          // alg string read from header ("HS256"/"ES256"/"RS256"/"PS256")
     time_t       exp = 0;      // extracted claim (0 when absent or unreadable)
     time_t       iat = 0;
@@ -113,7 +117,20 @@ std::string encode(
  * @return verify_result (err==ok means success)
  *
  * Only the signature and the exp / nbf timings are checked. iss and aud are left to the
- * caller — it owns the accepted issuer and audience lists.
+ * caller — it owns the accepted issuer and audience lists. iat is the one timing read but
+ * never compared: a numeric iat in the future (or in 1970) verifies, and only a non-numeric
+ * iat is refused with invalid_claims. verify_result.iat carries the value so the caller can
+ * judge age itself.
+ *
+ * All three segments must be base64url text, including the signature: a segment that is not
+ * is refused with invalid_base64 rather than silently decoded to whatever the reader stops at.
+ * On a refused token the err is reported and header_json / payload_json stay empty, so an
+ * unauthenticated section never reaches the caller as text.
+ *
+ * The whole token is bounded by CONST_JWT_TOKEN_MAX_LEN (common/cost_define.h) before any
+ * segment is decoded; over it the err is token_too_long. For ES256 the public key must be on
+ * P-256 — another curve, or a key that is not an EC one at all, is reported as key_mismatch
+ * instead of the signature_mismatch a wrong-curve verification would otherwise produce.
  */
 verify_result verify(
     const std::string &token,
@@ -134,6 +151,10 @@ verify_result verify(
  * 绝不能用它替代 verify()：签名、alg、exp/nbf 一个都没查。
  * err==parsed_but_unverified means "the segments parsed", NOT "the token is authentic".
  * Never use it in place of verify(): no signature, alg or claim is checked.
+ *
+ * The two section texts are the decoded bytes exactly as the token carried them — this
+ * reader does not confirm they are valid JSON, and a claim may come from the tail of a
+ * payload that stops mid-string.
  */
 verify_result decode_without_verify(const std::string &token);
 

@@ -19,20 +19,19 @@ std::string oauth_jwks(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
 
-    oauth::oauth_settings settings = oauth::read_oauth_settings("");
-    std::string           privkey_pem;
-    std::string           pubkey_pem;
-    // load_signing_keys() 是两个文件一起读的：任一读不出就两头都给空串，所以这里私钥也在读。
-    // 私钥文件缺位时这一页也回 500，尽管公钥本身是好的。
-    // 那种部署本来就是配错的（token 端点同样签不出东西），不为了它再开一个只读公钥的口子。
-    if (!oauth::load_signing_keys(settings, privkey_pem, pubkey_pem))
+    oauth::oauth_settings   settings = oauth::oauth_settings_cached();
+    oauth::signing_material keys     = oauth::signing_material_cached();
+    // 私钥这一格跟着一起读：两枚文件任一读不出都不算就绪，所以私钥缺位时这一页也回 500，
+    // 尽管公钥本身是好的。那种部署本来就是配错的（token 端点同样签不出东西），
+    // 不为了它再开一个只读公钥的口子。
+    if (!keys.ready)
     {
         client.status(500);
         client.val["error"] = "server_error";
         client.out_json();
         return "";
     }
-    std::string body = oauth::jwks_json(pubkey_pem, settings.kid);
+    std::string body = oauth::jwks_json(keys.pubkey_pem, settings.kid);
     if (body.empty())
     {
         // 公钥正文读得出但不是 RSA（或 kid 形状不合格），拼不出和签发头对得上的集合 ⇒ 宁不发
@@ -45,4 +44,4 @@ std::string oauth_jwks(std::shared_ptr<httppeer> peer)
     client.output = body;
     return "";
 }
-} // namespace http
+}// namespace http

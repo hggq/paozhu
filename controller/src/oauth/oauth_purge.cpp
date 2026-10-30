@@ -31,7 +31,7 @@ std::string oauth_purge(std::shared_ptr<httppeer> peer)
     // 保留期比 refresh 的 TTL 长，所以这一刀永远碰不到"还在重放检测窗口里"的行。
     long long cutoff = (long long)timeid() - (long long)CONST_OAUTH_PURGE_KEEP;
 
-    unsigned int codes_deleted    = 0;
+    unsigned int codes_deleted     = 0;
     unsigned int refreshes_deleted = 0;
     for (unsigned int round = 0; round < CONST_OAUTH_PURGE_MAX_ROUNDS; ++round)
     {
@@ -80,4 +80,4 @@ std::string oauth_purge_arm(std::shared_ptr<httppeer> peer)
     client << "oauth purge task registered, every " << CONST_OAUTH_PURGE_INTERVAL << "s";
     return "@timeloop";
 }
-} // namespace http
+}// namespace http

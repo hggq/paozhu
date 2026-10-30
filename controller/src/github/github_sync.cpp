@@ -82,7 +82,7 @@ std::string github_sync(std::shared_ptr<httppeer> peer)
         github::push_next_sync(row.id, now + interval);
 
         std::string token = row.access_token;
-        bool        stale = (row.access_expires_at != 0 && row.access_expires_at <= now);
+        bool stale        = (row.access_expires_at != 0 && row.access_expires_at <= now);
         if (stale)
         {
             if (row.refresh_token.empty())
@@ -123,12 +123,12 @@ std::string github_sync(std::shared_ptr<httppeer> peer)
         }
 
         std::vector<github::gh_repo_item> items;
-        bool                              natural_end = false;
-        bool                              aborted     = false;
+        bool natural_end = false;
+        bool aborted     = false;
         for (unsigned int page = 1; page <= max_pages; page++)
         {
             github::gh_page_result pr = github::fetch_repos_page(cfg, token, page);
-            github::gh_api_state   st = pr.state();
+            github::gh_api_state st   = pr.state();
             if (st == github::gh_api_state::ok)
             {
                 items.insert(items.end(), pr.items.begin(), pr.items.end());
@@ -182,7 +182,7 @@ std::string github_sync(std::shared_ptr<httppeer> peer)
         }
         else
         {
-            // 被页数上界截断的这一轮跳过软删，改在 last_error 留一句"清单可能不完整"（C-11 甲）。
+            // 被页数上界截断的这一轮跳过软删，改在 last_error 留一句"清单可能不完整"。
             note = "repo list truncated at " + std::to_string(max_pages) + " pages";
         }
         github::record_success(row.id, now, now + interval, note);
@@ -215,10 +215,10 @@ std::string github_sync_arm(std::shared_ptr<httppeer> peer)
         client << "github sync task not registered (local-only)";
         return "";
     }
-    auto         cfg      = github::read_github_settings();
+    auto cfg              = github::read_github_settings();
     unsigned int interval = cfg.sync_interval > 0 ? cfg.sync_interval : CONST_GH_SYNC_INTERVAL;
     peer->add_timeloop_task("github/sync", interval);
     client << "github sync task registered, every " << interval << "s";
     return "@timeloop";
 }
-} // namespace http
+}// namespace http

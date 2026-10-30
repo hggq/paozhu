@@ -79,7 +79,7 @@ std::string github_callback(std::shared_ptr<httppeer> peer)
     }
 
     unsigned long long state_adminid = 0;
-    std::string        client_id;
+    std::string client_id;
     if (!github::state_shape_ok(state, state_adminid, client_id) || state_adminid != adminid)
     {
         client.goto_url("/github/list", 3, "state shape invalid");
@@ -104,9 +104,9 @@ std::string github_callback(std::shared_ptr<httppeer> peer)
     // 这一行是不是已经绑过，决定失败分支往哪儿收：新插的占位行留 state=4 当痕迹，
     // 既有绑定要回到改前状态——"重新授权"这个动作本身不该有能力杀死一条正常同步的绑定。
     github::gh_account row;
-    bool               existed = github::load_account_by_key(adminid, client_id, row);
-    unsigned long long id      = 0;
-    unsigned char      prior_state = 0;
+    bool existed              = github::load_account_by_key(adminid, client_id, row);
+    unsigned long long id     = 0;
+    unsigned char prior_state = 0;
 
     if (existed)
     {
@@ -150,7 +150,7 @@ std::string github_callback(std::shared_ptr<httppeer> peer)
     // 换令牌用的 redirect_uri 必须是刚才发 authorize 时那一枚（GitHub 要逐字节相同），
     // 也就是 session 里这份；库里旧行的那一份可能已经跟着 app 设置改过。
     github::token_answer tk;
-    bool                 exchanged = github::exchange_code(cfg, client_id, plain_secret, code, redirect_uri, verifier, tk);
+    bool exchanged = github::exchange_code(cfg, client_id, plain_secret, code, redirect_uri, verifier, tk);
     plain_secret.clear();
     if (!exchanged || !tk.ok || tk.access_token.empty())
     {
@@ -170,7 +170,7 @@ std::string github_callback(std::shared_ptr<httppeer> peer)
 
     // 身份三列：拿不到也不阻断绑定（scope 被用户改小时 /user 会 403），留空并记一句。
     github::gh_user_info who;
-    bool                 who_ok = false;
+    bool who_ok = false;
     {
         std::string user_error;
         who_ok = github::fetch_user(cfg, tk.access_token, who, user_error);
@@ -209,4 +209,4 @@ std::string github_callback(std::shared_ptr<httppeer> peer)
     client.goto_url("/github/list", 3, "bound");
     return "";
 }
-} // namespace http
+}// namespace http

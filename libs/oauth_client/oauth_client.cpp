@@ -24,8 +24,9 @@ namespace
 // RFC 7636 PKCE verifier 字符集（unreserved）。
 // 这份 VERIFIER_CHARS / VERIFIER_LEN / make_code_verifier / pkce_challenge
 // 跟 libs/github/github_oauth.cpp 那份形状完全一样，因为 PKCE 的标准就是一份。
-const char   VERIFIER_CHARS[]    = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
-constexpr unsigned int VERIFIER_LEN = 64;
+const char VERIFIER_CHARS[]               = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+constexpr unsigned int VERIFIER_CHARS_LEN = 64;// 不含末尾 NUL；sizeof(VERIFIER_CHARS) 是 65
+constexpr unsigned int VERIFIER_LEN       = 64;
 
 bool base_ok(const std::string &url, std::string &err_out)
 {
@@ -94,12 +95,14 @@ void parse_token_body(const std::string &body, bool is_json, token_answer &out)
     if (root.isset("expires_in"))
     {
         long long v = root["expires_in"].to_int();
-        if (v > 0) out.access_expires_in = v;
+        if (v > 0)
+            out.access_expires_in = v;
     }
     if (root.isset("refresh_token_expires_in"))
     {
         long long v = root["refresh_token_expires_in"].to_int();
-        if (v > 0) out.refresh_expires_in = v;
+        if (v > 0)
+            out.refresh_expires_in = v;
     }
     out.ok = true;
 }
@@ -116,11 +119,11 @@ std::string make_basic(const std::string &client_id, const std::string &secret)
 // use_basic=false → client_id/client_secret 放 POST body（GitHub 只认这个）。
 // 注意两种是互斥的，不是"两种都塞进去让服务端挑"——那样反而会触发某些服务端的安全拒绝。
 bool post_token(const oauth_endpoints &ep,
-                const std::string     &client_id,
-                const std::string     &client_secret_plain,
-                bool                   use_basic,
+                const std::string &client_id,
+                const std::string &client_secret_plain,
+                bool use_basic,
                 const std::vector<std::pair<std::string, std::string>> &fields,
-                token_answer          &out)
+                token_answer &out)
 {
     out = token_answer();
     std::string err;
@@ -154,7 +157,7 @@ bool post_token(const oauth_endpoints &ep,
     if (c->iserror > 0 || status == 0)
     {
         out.http_status = status;
-        out.error = "transport error";
+        out.error       = "transport error";
         return false;
     }
     parse_token_body(c->page.content, c->page.isjson, out);
@@ -165,7 +168,7 @@ bool post_token(const oauth_endpoints &ep,
     }
     return out.ok;
 }
-} // namespace
+}// namespace
 
 // ---------------------------------------------------------------------------
 // PKCE
@@ -181,7 +184,7 @@ std::string make_code_verifier()
     out.reserve(VERIFIER_LEN);
     for (unsigned int i = 0; i < VERIFIER_LEN; i++)
     {
-        out.push_back(VERIFIER_CHARS[rand[i] % sizeof(VERIFIER_CHARS)]);
+        out.push_back(VERIFIER_CHARS[rand[i] % VERIFIER_CHARS_LEN]);
     }
     return out;
 }
@@ -207,12 +210,12 @@ std::string pkce_challenge(const std::string &code_verifier)
 // authorize URL
 // ---------------------------------------------------------------------------
 bool build_authorize_url(const oauth_endpoints &ep,
-                         const std::string     &client_id,
-                         const std::string     &redirect_uri,
-                         const std::string     &scope_space_separated,
-                         const std::string     &state,
-                         const std::string     &code_challenge,
-                         std::string           &url_out)
+                         const std::string &client_id,
+                         const std::string &redirect_uri,
+                         const std::string &scope_space_separated,
+                         const std::string &state,
+                         const std::string &code_challenge,
+                         std::string &url_out)
 {
     url_out.clear();
     std::string err;
@@ -226,12 +229,12 @@ bool build_authorize_url(const oauth_endpoints &ep,
     }
     url_out = ep.authorize_url;
     url_out += "?response_type=code";
-    url_out += "&client_id="     + url_encode(client_id.data(), (int)client_id.size());
-    url_out += "&redirect_uri="  + url_encode(redirect_uri.data(), (int)redirect_uri.size());
-    url_out += "&state="         + url_encode(state.data(), (int)state.size());
+    url_out += "&client_id=" + url_encode(client_id.data(), (int)client_id.size());
+    url_out += "&redirect_uri=" + url_encode(redirect_uri.data(), (int)redirect_uri.size());
+    url_out += "&state=" + url_encode(state.data(), (int)state.size());
     if (!scope_space_separated.empty())
     {
-        url_out += "&scope="      + url_encode(scope_space_separated.data(), (int)scope_space_separated.size());
+        url_out += "&scope=" + url_encode(scope_space_separated.data(), (int)scope_space_separated.size());
     }
     if (!code_challenge.empty())
     {
@@ -245,12 +248,12 @@ bool build_authorize_url(const oauth_endpoints &ep,
 // 三个 grant
 // ---------------------------------------------------------------------------
 bool exchange_code(const oauth_endpoints &ep,
-                   const std::string     &client_id,
-                   const std::string     &client_secret_plain,
-                   const std::string     &code,
-                   const std::string     &redirect_uri,
-                   const std::string     &code_verifier,
-                   token_answer          &out)
+                   const std::string &client_id,
+                   const std::string &client_secret_plain,
+                   const std::string &code,
+                   const std::string &redirect_uri,
+                   const std::string &code_verifier,
+                   token_answer &out)
 {
     std::vector<std::pair<std::string, std::string>> fields;
     fields.emplace_back("grant_type", "authorization_code");
@@ -264,10 +267,10 @@ bool exchange_code(const oauth_endpoints &ep,
 }
 
 bool refresh_access(const oauth_endpoints &ep,
-                    const std::string     &client_id,
-                    const std::string     &client_secret_plain,
-                    const std::string     &refresh_token_in,
-                    token_answer          &out)
+                    const std::string &client_id,
+                    const std::string &client_secret_plain,
+                    const std::string &refresh_token_in,
+                    token_answer &out)
 {
     std::vector<std::pair<std::string, std::string>> fields;
     fields.emplace_back("grant_type", "refresh_token");
@@ -276,10 +279,10 @@ bool refresh_access(const oauth_endpoints &ep,
 }
 
 bool client_credentials(const oauth_endpoints &ep,
-                        const std::string     &client_id,
-                        const std::string     &client_secret_plain,
-                        const std::string     &scope,
-                        token_answer          &out)
+                        const std::string &client_id,
+                        const std::string &client_secret_plain,
+                        const std::string &scope,
+                        token_answer &out)
 {
     std::vector<std::pair<std::string, std::string>> fields;
     fields.emplace_back("grant_type", "client_credentials");
@@ -294,11 +297,11 @@ bool client_credentials(const oauth_endpoints &ep,
 // introspect
 // ---------------------------------------------------------------------------
 bool do_introspect(const oauth_endpoints &ep,
-                   const std::string     &client_id,
-                   const std::string     &client_secret_plain,
-                   const std::string     &token,
-                   const std::string     &token_type_hint,
-                   introspect_answer     &out)
+                   const std::string &client_id,
+                   const std::string &client_secret_plain,
+                   const std::string &token,
+                   const std::string &token_type_hint,
+                   introspect_answer &out)
 {
     out = introspect_answer();
     std::string err;
@@ -348,7 +351,10 @@ bool do_introspect(const oauth_endpoints &ep,
         return false;
     }
     obj_val root;
-    try { root.from_json(c->page.content); }
+    try
+    {
+        root.from_json(c->page.content);
+    }
     catch (const std::exception &)
     {
         out.error = "bad json body";
@@ -360,15 +366,24 @@ bool do_introspect(const oauth_endpoints &ep,
     {
         return true;
     }
-    if (root.isset("token_type")) out.token_type = root["token_type"].to_string();
-    if (root.isset("client_id"))  out.client_id  = root["client_id"].to_string();
-    if (root.isset("iss"))        out.iss        = root["iss"].to_string();
-    if (root.isset("sub"))        out.sub        = root["sub"].to_string();
-    if (root.isset("aud"))        out.aud        = root["aud"].to_string();
-    if (root.isset("scope"))      out.scope      = root["scope"].to_string();
-    if (root.isset("jti"))        out.jti        = root["jti"].to_string();
-    if (root.isset("exp"))        out.exp        = root["exp"].to_int();
-    if (root.isset("iat"))        out.iat        = root["iat"].to_int();
+    if (root.isset("token_type"))
+        out.token_type = root["token_type"].to_string();
+    if (root.isset("client_id"))
+        out.client_id = root["client_id"].to_string();
+    if (root.isset("iss"))
+        out.iss = root["iss"].to_string();
+    if (root.isset("sub"))
+        out.sub = root["sub"].to_string();
+    if (root.isset("aud"))
+        out.aud = root["aud"].to_string();
+    if (root.isset("scope"))
+        out.scope = root["scope"].to_string();
+    if (root.isset("jti"))
+        out.jti = root["jti"].to_string();
+    if (root.isset("exp"))
+        out.exp = root["exp"].to_int();
+    if (root.isset("iat"))
+        out.iat = root["iat"].to_int();
     return true;
 }
 
@@ -376,11 +391,11 @@ bool do_introspect(const oauth_endpoints &ep,
 // revoke
 // ---------------------------------------------------------------------------
 revoke_result do_revoke(const oauth_endpoints &ep,
-                        const std::string     &client_id,
-                        const std::string     &client_secret_plain,
-                        const std::string     &token,
-                        const std::string     &token_type_hint,
-                        unsigned int          &http_status_out)
+                        const std::string &client_id,
+                        const std::string &client_secret_plain,
+                        const std::string &token,
+                        const std::string &token_type_hint,
+                        unsigned int &http_status_out)
 {
     http_status_out = 0;
     std::string err;
@@ -422,5 +437,5 @@ revoke_result do_revoke(const oauth_endpoints &ep,
     return revoke_result::ok;
 }
 
-} // namespace oauth_client
-} // namespace http
+}// namespace oauth_client
+}// namespace http

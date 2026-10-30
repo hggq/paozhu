@@ -356,6 +356,13 @@ constexpr bool http2_wu_stream_id_ok(unsigned long long sid, unsigned long long 
 // verify 的时钟容差：签发方与校验方同一台，留 30 秒只兜 NTP 抖动。
 // Clock skew tolerance for jwt::verify (issuer and verifier are the same process).
 #define CONST_OAUTH_JWT_LEEWAY 30
+// jwt::verify() 入口对整枚令牌的长度界。三段全部解出来才判形状、扫 claim、验签，这一界是先拒
+// 再干活。取"单枚头部行"的同一个数：令牌从 Authorization 头进来，入站已经按它钳过一遍，所以框架
+// 能收到的令牌一定在界内；直接喂网络字节的调用点（不走 http 的）才有真正的作用。
+// Cap on the whole token at the verify() entry, checked before any segment is decoded. It is
+// the per-header-line ceiling: a token arrives in the Authorization header, which the inbound
+// parser already bounds by the same value, so nothing the transport can deliver is refused.
+#define CONST_JWT_TOKEN_MAX_LEN CONST_HTTP_HEADER_BODY_SIZE
 // introspect 的 token 参数长度上限。自己签的 JWT 连签名不到 1 KB（2048 位模数与签名各 342 个
 // base64url 字符），opaque 令牌恒 43 字符；4096 是给"将来换更长的密钥或更多 claim"留的余量。
 // 超长的提交在做任何验签或查库之前就回 active:false——那一格的答案与"查无此令牌"同形，

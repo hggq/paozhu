@@ -50,16 +50,16 @@ bool verify_client_secret(const std::string &auth_header,
 
 struct client_record
 {
-    bool        found           = false;
-    bool        isopen          = true;   // isopen != 0；0 ⇒ 端点当"没有这个客户端"
+    bool found  = false;
+    bool isopen = true;// isopen != 0；0 ⇒ 端点当"没有这个客户端"
     std::string client_id;
     std::string secret_hash;    // oauth_client.client_secret，lowerhex(SHA-256(口令))
-    bool        secret_is_null  = false;  // 真 NULL（公开客户端）；它和 '' 在库里是两回事
+    bool secret_is_null = false;// 真 NULL（公开客户端）；它和 '' 在库里是两回事
     std::string redirect_uris;  // TEXT 原文，逗号分隔
     std::string name;
-    bool        confidential    = true;   // is_confidential != 0
-    std::string allowed_scopes; // 空格分隔原文；空串=不设上限
-    std::string grant_types;    // 逗号分隔原文；空串=三种 grant 全开
+    bool confidential = true;  // is_confidential != 0
+    std::string allowed_scopes;// 空格分隔原文；空串=不设上限
+    std::string grant_types;   // 逗号分隔原文；空串=三种 grant 全开
 };
 
 // 按 client_id 取一行（走唯一键 uq_client_id）。查不到返回 false，out 保持全默认值。
@@ -115,17 +115,17 @@ bool add_client(const std::string &client_id,
 
 struct code_record
 {
-    bool        found          = false;
+    bool found = false;
     std::string client_id;
-    long long   user_id        = 0;
+    long long user_id = 0;
     std::string redirect_uri;
     std::string scope;
     std::string code_challenge;
-    long long   expires_at     = 0;
-    bool        used           = false;
+    long long expires_at = 0;
+    bool used            = false;
     // 换码成功时由 bind_code_family() 回填的 refresh 族根 id；0＝还没换过码，或那次回填没成。
     // 重放要不要撤族就看这一格：它是 code 到 family 唯一的连线。
-    unsigned int family_id     = 0;
+    unsigned int family_id = 0;
 };
 
 // 落一行授权码，返回它的明文（43 字符 base64url，库里只存 hex(SHA-256)）。
@@ -152,14 +152,14 @@ bool bind_code_family(const std::string &code_plain, unsigned int family_id);
 
 struct refresh_record
 {
-    bool        found           = false;
-    unsigned long long row_id   = 0;  // 轮换时 CAS 的键
-    unsigned int family_id      = 0;  // 0＝这一行就是族根（见 issue_refresh）
+    bool found                = false;
+    unsigned long long row_id = 0;// 轮换时 CAS 的键
+    unsigned int family_id    = 0;// 0＝这一行就是族根（见 issue_refresh）
     std::string client_id;
-    long long   user_id         = 0;
+    long long user_id = 0;
     std::string scope;
-    long long   expires_at      = 0;
-    bool        revoked         = false;
+    long long expires_at = 0;
+    bool revoked         = false;
 };
 
 // 按 refresh token 明文取那一行。不判 revoked，也不判过期。
@@ -197,12 +197,27 @@ unsigned int purge_refreshes_before(long long cutoff, unsigned int max_rows);
 // 密钥路径、iss、kid 都来自 conf/oauth.conf，见 libs/oauth/oauth_config.h。
 // ---------------------------------------------------------------------------
 
-// 按 settings 算好的两个路径把 PEM 正文读进来。每次请求现读：文件只有 1~2 KB，
-// 而且换过同一路径下的密钥不需要重启进程。超过 CONST_OAUTH_PEM_MAX_SIZE 的文件不当密钥读。
+// 按 settings 算好的两个路径把 PEM 正文读进来。超过 CONST_OAUTH_PEM_MAX_SIZE 的文件不当密钥读。
 // 任一个读不出返回 false 且两个出参都是空串——签发/验签端点据此回 500，不降级算法。
+// 请求路径别直接调这个：用下面的 signing_material_cached()，它只读盘一次。
 bool load_signing_keys(const oauth_settings &settings,
                        std::string &privkey_pem,
                        std::string &pubkey_pem);
+
+// 两枚密钥正文。私钥这一格是 load_signing_keys 的形态要求（两个文件一起读，任一读不出都算失败）；
+// 只用公钥的端点（jwks / introspect / revoke / bearer）也因此和签发端点共用同一份就绪判定。
+struct signing_material
+{
+    std::string privkey_pem;
+    std::string pubkey_pem;
+    // 两枚正文都读到了才是 true。
+    bool ready = false;
+};
+
+// 取常驻的密钥正文：第一次调用读盘，读成就留在进程里，之后每次只回一份拷贝。
+// 读不成不钉死——下一次调用再读，所以密钥文件晚到一步能自己跟上。
+// 反过来说：换过同一路径下的密钥文件不会被看见，要重启进程才生效。
+signing_material signing_material_cached();
 
 // access_token 签发。payload_json 由调用方拼好（iss/sub/aud/scope/exp/iat/jti），
 // 这里只负责 header（alg/typ/kid）与 RS256 签名；失败返回空串——jwt::encode 会抛，
@@ -226,21 +241,41 @@ bool verify_access_token(const std::string &pubkey_pem,
 // ——introspect 据此分流，不看调用方给的 token_type_hint（那是调用方可控的字符串）。
 bool looks_like_jwt(const std::string &token);
 
+// ---------------------------------------------------------------------------
+// access_token 撤销名单
+// access_token 是自包含 JWT，库里没有对应行，撤销只能靠"记住被撤过的那一枚"。
+// 名单是拒绝型的：Redis 里有 oauth:blat:<jti> ⇒ 已撤销，没有 ⇒ 未撤销。所以签发路径一次都不
+// 碰 Redis（签的时候就写，等于把刚发出去的令牌撤销了），只有撤销端点收到 access_token 时写一条，
+// key 的 TTL 就是这枚令牌自己的剩余有效期，到点由 Redis 清掉，不需要任何 purge 任务。
+// 两个函数在任何构建配置下都声明、都可调：没开 ENABLE_REDIS 时它们是回 false 的桩，
+// 调用点因此不必各自带条件编译（三份调用点各写一遍 #ifdef 迟早漂开）。
+// ---------------------------------------------------------------------------
+
+// 把一枚 access_token 的 jti 记进撤销名单。true＝确实写进 Redis 了；
+// false＝什么都没写（jti 为空、exp 无效或已过、Redis 不可用、本构建没编进 Redis）。
+// 调用方据此记一条日志——别让"撤销"静默变成空操作。不抛异常。
+bool blacklist_access_jti(const std::string &jti, long long exp_ts);
+
+// 这枚 jti 是不是已经被撤销。true＝名单里有这一条。
+// false 里含"名单读不到"这一档（没编 Redis、段名不存在、连接没建成，与"键不存在"同形不可分）：
+// 黑名单是拒绝型闸门，读不到时按未撤销放行，否则 Redis 一挂就是全站 401 的单点故障。
+bool is_access_jti_revoked(const std::string &jti);
+
 // introspect 的结果（RFC 7662 §2.2）。active=false 时其余各格一律是空串/0：
 // 端点只回 {"active":false}，不区分"不存在""过期""不是你的"——那三种分开回就是枚举口。
 // 库里没有对应列的格（opaque 分支的 iss/aud/jti/iat）留空，端点不发这几格，不编一个值出来。
 struct introspect_record
 {
-    bool        active     = false;
-    std::string token_type;   // "Bearer"（access token）或 "refresh_token"
-    std::string client_id;    // 令牌的主人；active=true 时恒等于认证进来的那个客户端
+    bool active = false;
+    std::string token_type;// "Bearer"（access token）或 "refresh_token"
+    std::string client_id; // 令牌的主人；active=true 时恒等于认证进来的那个客户端
     std::string iss;
     std::string sub;
     std::string aud;
     std::string scope;
     std::string jti;
-    long long   exp        = 0;
-    long long   iat        = 0;
+    long long exp = 0;
+    long long iat = 0;
 };
 
 // 判"这枚令牌对认证进来的这个客户端而言还活着吗"，并把要公布的元数据填进 out。
@@ -261,6 +296,6 @@ bool introspect_token(const std::string &authed_client_id,
 // 去前导零后转无填充 base64url。公钥读不出来返回空串。
 std::string jwks_json(const std::string &pubkey_pem, const std::string &kid);
 
-} // namespace oauth
-} // namespace http
+}// namespace oauth
+}// namespace http
 #endif

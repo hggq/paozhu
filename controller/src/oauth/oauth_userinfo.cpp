@@ -45,4 +45,4 @@ std::string oauth_userinfo(std::shared_ptr<httppeer> peer)
     client.out_json();
     return "";
 }
-} // namespace http
+}// namespace http

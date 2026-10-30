@@ -63,7 +63,7 @@ size_t eat_value(const std::string &in, size_t pos)
     }
     return pos;
 }
-} // namespace
+}// namespace
 
 bool crypto_key_from_hex(const std::string &hex, std::string &key_out)
 {
@@ -132,14 +132,11 @@ std::string gcm_encrypt(const std::string &plaintext, const std::string &key)
     {
         throw std::runtime_error("github gcm: SET_IVLEN failed");
     }
-    if (EVP_EncryptInit_ex(ctx.get(), nullptr, nullptr,
-                           reinterpret_cast<const unsigned char *>(key.data()), iv) != 1)
+    if (EVP_EncryptInit_ex(ctx.get(), nullptr, nullptr, reinterpret_cast<const unsigned char *>(key.data()), iv) != 1)
     {
         throw std::runtime_error("github gcm: key/iv init failed");
     }
-    if (EVP_EncryptUpdate(ctx.get(), outp, &outlen,
-                          reinterpret_cast<const unsigned char *>(plaintext.data()),
-                          (int)plaintext.size()) != 1)
+    if (EVP_EncryptUpdate(ctx.get(), outp, &outlen, reinterpret_cast<const unsigned char *>(plaintext.data()), (int)plaintext.size()) != 1)
     {
         throw std::runtime_error("github gcm: EncryptUpdate failed");
     }
@@ -167,7 +164,7 @@ std::string gcm_decrypt(const std::string &cipher, const std::string &key)
         throw std::runtime_error("github gcm: stored blob shorter than IV+tag");
     }
     const unsigned char *base = reinterpret_cast<const unsigned char *>(cipher.data());
-    size_t               clen = cipher.size() - (size_t)GH_GCM_IV_LEN - (size_t)GH_GCM_TAG_LEN;
+    size_t clen               = cipher.size() - (size_t)GH_GCM_IV_LEN - (size_t)GH_GCM_TAG_LEN;
 
     std::string out(clen + 1, '\0');
     unsigned char *outp = reinterpret_cast<unsigned char *>(out.data());
@@ -187,18 +184,15 @@ std::string gcm_decrypt(const std::string &cipher, const std::string &key)
     {
         throw std::runtime_error("github gcm: SET_IVLEN failed");
     }
-    if (EVP_DecryptInit_ex(ctx.get(), nullptr, nullptr,
-                           reinterpret_cast<const unsigned char *>(key.data()), base) != 1)
+    if (EVP_DecryptInit_ex(ctx.get(), nullptr, nullptr, reinterpret_cast<const unsigned char *>(key.data()), base) != 1)
     {
         throw std::runtime_error("github gcm: key/iv init failed");
     }
-    if (EVP_DecryptUpdate(ctx.get(), outp, &outlen, base + GH_GCM_IV_LEN + GH_GCM_TAG_LEN,
-                          (int)clen) != 1)
+    if (EVP_DecryptUpdate(ctx.get(), outp, &outlen, base + GH_GCM_IV_LEN + GH_GCM_TAG_LEN, (int)clen) != 1)
     {
         throw std::runtime_error("github gcm: DecryptUpdate failed");
     }
-    if (EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_GCM_SET_TAG, GH_GCM_TAG_LEN,
-                            (void *)(base + GH_GCM_IV_LEN)) != 1)
+    if (EVP_CIPHER_CTX_ctrl(ctx.get(), EVP_CTRL_GCM_SET_TAG, GH_GCM_TAG_LEN, (void *)(base + GH_GCM_IV_LEN)) != 1)
     {
         throw std::runtime_error("github gcm: SET_TAG failed");
     }
@@ -226,7 +220,7 @@ std::string scrub_error_text(const std::string &in)
             {
                 out.append(m);
                 out.append("[redacted]");
-                i = eat_value(in, i + mlen);
+                i   = eat_value(in, i + mlen);
                 hit = true;
                 break;
             }
@@ -241,7 +235,7 @@ std::string scrub_error_text(const std::string &in)
             if (in.compare(i, mlen, m) == 0)
             {
                 out.append("[redacted]");
-                i = eat_value(in, i + mlen);
+                i   = eat_value(in, i + mlen);
                 hit = true;
                 break;
             }
@@ -260,5 +254,5 @@ std::string scrub_error_text(const std::string &in)
     return out;
 }
 
-} // namespace github
-} // namespace http
+}// namespace github
+}// namespace http

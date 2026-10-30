@@ -23,7 +23,7 @@ std::string oauth_metadata(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
 
-    oauth::oauth_settings settings = oauth::read_oauth_settings("");
+    oauth::oauth_settings settings = oauth::oauth_settings_cached();
     if (settings.issuer.empty())
     {
         // 拼不出 endpoint 的元数据比不发布更糟：客户端会照着一份 issuer 为空的文档配。
@@ -34,12 +34,12 @@ std::string oauth_metadata(std::shared_ptr<httppeer> peer)
     }
     const std::string base = settings.issuer;
 
-    client.val["issuer"]                  = base;
-    client.val["authorization_endpoint"]  = base + "/oauth/authorize";
-    client.val["token_endpoint"]          = base + "/oauth/token";
-    client.val["revocation_endpoint"]     = base + "/oauth/revoke";
-    client.val["introspection_endpoint"]  = base + "/oauth/introspect";
-    client.val["jwks_uri"]                = base + "/oauth/jwks";
+    client.val["issuer"]                   = base;
+    client.val["authorization_endpoint"]   = base + "/oauth/authorize";
+    client.val["token_endpoint"]           = base + "/oauth/token";
+    client.val["revocation_endpoint"]      = base + "/oauth/revoke";
+    client.val["introspection_endpoint"]   = base + "/oauth/introspect";
+    client.val["jwks_uri"]                 = base + "/oauth/jwks";
     client.val["response_types_supported"] = std::vector<std::string>{"code"};
     client.val["grant_types_supported"] =
         std::vector<std::string>{"authorization_code", "refresh_token", "client_credentials"};
@@ -55,4 +55,4 @@ std::string oauth_metadata(std::shared_ptr<httppeer> peer)
     client.out_json();
     return "";
 }
-} // namespace http
+}// namespace http
