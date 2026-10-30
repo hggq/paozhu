@@ -42,7 +42,7 @@ QQ群：668296235
 ✅28. 简单的Excel（xlsx）读写支持， 简单Word（docx）转HTML，HTML转docx  
 ✅29. 内置图片生成和处理，支持jpg png两个类  
 ✅30. 内置HTML生成pdf模块webpdf（本项目子项目）  
-✅31. 一键项目瘦身脚本 `mini_project.sh`，保留核心框架 + testhello 最小骨架，去掉 admin/github/oauth 等演示代码，秒级产出干净项目  
+✅31. 支持OAuth2.1和JWT认证  
 
 ### 2.运行环境
 

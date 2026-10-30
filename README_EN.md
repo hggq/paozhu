@@ -43,7 +43,7 @@ Join community developers to discuss the joy of C++ web development.
 ✅ 28. Excel (`.xlsx`) read/write, and Word (`.docx`) ↔ HTML conversion  
 ✅ 29. Built-in image generation and processing (JPG, PNG)  
 ✅ 30. Built-in HTML-to-PDF module (`webpdf`)  
-✅ 31. One-click project trimming via `mini_project.sh` — strips out admin/github/oauth demos leaving only framework core + `testhello` minimal scaffold, ready to compile and ship
+✅ 31. OAuth2.1 and JWT support
 
 
 ### 2. Runtime environment
