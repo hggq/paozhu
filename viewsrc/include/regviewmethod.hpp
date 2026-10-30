@@ -72,6 +72,7 @@ namespace http
 	_viewmetholdreg.emplace("home/header",http::view::home::header);
 	_viewmetholdreg.emplace("login/login",http::view::login::login);
 	_viewmetholdreg.emplace("oauth/consent",http::view::oauth::consent);
+	_viewmetholdreg.emplace("oauth_client/page",http::view::oauth_client::page);
 	_viewmetholdreg.emplace("superadmin/addsiteinfo",http::view::superadmin::addsiteinfo);
 	_viewmetholdreg.emplace("superadmin/adduser",http::view::superadmin::adduser);
 	_viewmetholdreg.emplace("superadmin/deletesiteinfo",http::view::superadmin::deletesiteinfo);

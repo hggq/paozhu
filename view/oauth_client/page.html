@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>OAuth Client Demo</title>
+    <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
+  </head>
+  <body>
+    <div class="container py-4">
+      <h2>OAuth 2.1 Client Demo</h2>
+      <p class="text-muted">流程 client_credentials → authorize → exchange → refresh → introspect → revoke
+        全部用 C++ httpclient 串起来，默认端点指向本项目自己的 OAuth 服务器。</p>
+
+      <div class="card mb-3">
+        <div class="card-header">OAuth Server Endpoints</div>
+        <div class="card-body">
+          <div class="row g-2">
+            <div class="col-md-6"><input class="form-control" id="authorize_url" placeholder="authorize URL" value="<%c echo<<obj["authorize_url"].as_string(); %>"></div>
+            <div class="col-md-6"><input class="form-control" id="token_url"      placeholder="token URL"      value="<%c echo<<obj["token_url"].as_string(); %>"></div>
+            <div class="col-md-6"><input class="form-control" id="introspect_url" placeholder="introspect URL" value="<%c echo<<obj["introspect_url"].as_string(); %>"></div>
+            <div class="col-md-6"><input class="form-control" id="revoke_url"     placeholder="revoke URL"     value="<%c echo<<obj["revoke_url"].as_string(); %>"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header">Client Credentials</div>
+        <div class="card-body">
+          <div class="row g-2">
+            <div class="col-md-4"><input class="form-control" id="client_id"     placeholder="client_id"     value="<%c echo<<obj["client_id"].as_string(); %>"></div>
+            <div class="col-md-4"><input class="form-control" id="client_secret" placeholder="client_secret" value="<%c echo<<obj["client_secret"].as_string(); %>"></div>
+            <div class="col-md-4"><input class="form-control" id="scope"          placeholder="scope (space)" value="<%c echo<<obj["scope"].as_string(); %>"></div>
+          </div>
+          <div class="mt-2">
+            <button class="btn btn-primary" onclick="stepCc()">1. client_credentials</button>
+            <button class="btn btn-primary" onclick="stepBuild()">2. build authorize URL</button>
+            <button class="btn btn-primary" onclick="stepExchange()">3. exchange code</button>
+            <button class="btn btn-primary" onclick="stepRefresh()">4. refresh</button>
+            <button class="btn btn-primary" onclick="stepIntrospect()">5. introspect</button>
+            <button class="btn btn-primary" onclick="stepRevoke()">6. revoke</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header">Run Output</div>
+        <div class="card-body">
+          <pre id="out" class="bg-dark text-light p-3" style="max-height:400px;overflow:auto"></pre>
+        </div>
+      </div>
+    </div>
+
+<script>
+function g(id){return document.getElementById(id).value;}
+async function post(path, extra) {
+  const fd = new URLSearchParams();
+  fd.set('client_id',     g('client_id'));
+  fd.set('client_secret', g('client_secret'));
+  fd.set('authorize_url', g('authorize_url'));
+  fd.set('token_url',     g('token_url'));
+  fd.set('introspect_url',g('introspect_url'));
+  fd.set('revoke_url',    g('revoke_url'));
+  fd.set('scope',         g('scope'));
+  Object.entries(extra||{}).forEach(([k,v])=>fd.set(k,v));
+  const r = await fetch(path, {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:fd.toString()});
+  const j = await r.json().catch(()=>({text: await r.text()}));
+  document.getElementById('out').textContent = JSON.stringify({status:r.status, ...j}, null, 2);
+  return j;
+}
+function stepCc(){ post('/oauth_client/client_credentials'); }
+function stepBuild(){ post('/oauth_client/build_authorize',{redirect_uri:'https://example.com/callback'}); }
+function stepExchange(){
+  const code = prompt('Paste auth code from authorize callback:');
+  const verifier = prompt('Paste code_verifier from step 2 output:');
+  post('/oauth_client/exchange_code',{code:code, code_verifier:verifier, redirect_uri:'https://example.com/callback'});
+}
+function stepRefresh(){
+  const rt = prompt('Paste refresh_token:');
+  post('/oauth_client/refresh',{refresh_token:rt});
+}
+function stepIntrospect(){
+  const t = prompt('Paste token:');
+  const hint = prompt('token_type_hint (access_token / refresh_token / empty):','');
+  post('/oauth_client/introspect',{token:t, token_type_hint:hint});
+}
+function stepRevoke(){
+  const t = prompt('Paste token:');
+  const hint = prompt('token_type_hint (access_token / refresh_token / empty):','');
+  post('/oauth_client/revoke',{token:t, token_type_hint:hint});
+}
+</script>
+  </body>
+</html>

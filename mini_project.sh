@@ -319,6 +319,8 @@ echo "              mqtt_client_regmethod"
 #   oauth_store.cpp includes "orm.h" for the three oauth_* tables of [cms].
 #   libs/github/ is the GitHub OAuth store, same reason: its github_store.cpp
 #   includes "orm.h" for the user binding tables.
+#   libs/oauth_client/ is the generic OAuth 2.x client library——no ORM
+#   dependency (only httpclient + SHA-256 + base64url), kept in scaffolds.
 #   The other libs/ directories (img / markdown / pinyin / ipdata / types /
 #   department) are framework utilities with no ORM dependency and are kept.
 # ============================================================

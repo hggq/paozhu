@@ -13,6 +13,13 @@ namespace github
 
 // ---------------------------------------------------------------------------
 // 纯函数部分：URL 拼装、票据形状、响应解析。这几块是离线判据台真正测的东西。
+//
+// 跟 libs/oauth_client/oauth_client.h 的关系：
+//   - oauth_client 是通用版（四端点配置、prefer_basic_auth 开关），
+//     这里那份是 GitHub 专用——state 三段 [adminid.client_id.rand32]、
+//     revoke 走 DELETE+HTTP Basic、scope 强制追加 read:user；
+//   - PKCE 形状（make_code_verifier / pkce_challenge）两份完全一致，
+//     因为 RFC 7636 就一份标准。
 // ---------------------------------------------------------------------------
 
 // conf 里的 default_scopes 用逗号存，GitHub 的授权请求要空格分隔（响应体里那个

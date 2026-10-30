@@ -92,6 +92,11 @@ namespace  oauth{
 	std::string consent(const struct view_param &vinfo,http::obj_val &obj);
 }
 
+namespace  oauth_client{ 
+
+	std::string page(const struct view_param &vinfo,http::obj_val &obj);
+}
+
 namespace  superadmin{ 
 
 	std::string addsiteinfo(const struct view_param &vinfo,http::obj_val &obj);
