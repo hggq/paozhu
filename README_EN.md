@@ -42,7 +42,8 @@ Join community developers to discuss the joy of C++ web development.
 ✅ 27. Integrated ZIP archive packaging and extraction  
 ✅ 28. Excel (`.xlsx`) read/write, and Word (`.docx`) ↔ HTML conversion  
 ✅ 29. Built-in image generation and processing (JPG, PNG)  
-✅ 30. Built-in HTML-to-PDF module (`webpdf`)
+✅ 30. Built-in HTML-to-PDF module (`webpdf`)  
+✅ 31. One-click project trimming via `mini_project.sh` — strips out admin/github/oauth demos leaving only framework core + `testhello` minimal scaffold, ready to compile and ship
 
 
 ### 2. Runtime environment
@@ -755,16 +756,35 @@ asio::awaitable<std::string> test_socket_client(std::shared_ptr<httppeer> peer)
 
 
 
-### 9. Documentation
+### 9. Clean Project Scaffold 🔧
+
+The full repository ships with admin backend, GitHub integration, OAuth authorization server, and other demo code. To start a fresh project from zero, run `mini_project.sh` — it removes every demo module in one shot and leaves only the framework core + a minimal `testhello` that compiles and runs straight away:
+
+```bash
+git clone https://github.com/hggq/paozhu.git myproject
+cd myproject
+sh mini_project.sh
+```
+
+The script automatically strips `controller/src/admin`, `controller/src/github`, `controller/src/oauth`, `controller/src/oauth_client`, `libs/github`, `libs/oauth`, `view/admin` and other demo directories — producing a clean project you can immediately `cmake && make`. The framework core (ORM, HTTP server, WebSocket, httpclient, coroutine pool, annotation routing), `libs/oauth_client` (generic OAuth client library, no DB dependency), and `libs/websocket` are preserved.
+
+For TechEmpower benchmark mode, pass `--benchmark`:
+
+```bash
+sh mini_project.sh --benchmark
+```
+
+### 10. Documentation
 
 - [Paozhu Documentation](https://hggq.github.io/paozhudocs/)
+- [OAuth & JWT Guide](https://hggq.github.io/paozhudocs/docs/oauth_guide.html)
 
 
-### 10. Contributing 👏👋
+### 11. Contributing 👏👋
 
 Feel free to open issues for discussions, and pull requests are always welcome!
 
 
-### 11. License
+### 12. License
 
 Paozhu is licensed under the [MIT License](LICENSE).

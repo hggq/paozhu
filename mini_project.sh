@@ -31,6 +31,21 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
+# ---- Safety: refuse to run from .bak or on an already-trimmed tree ----
+# Guards against someone accidentally re-running the script on a real project.
+SCRIPT_NAME="$(basename "${BASH_SOURCE[0]}")"
+if [[ "$SCRIPT_NAME" == *.bak ]]; then
+    echo "ERROR: Refusing to run — this is the backup copy ($SCRIPT_NAME)."
+    echo "Restore it as mini_project.sh if you really need to re-run."
+    exit 1
+fi
+if [ ! -d "controller/src/admin" ] && [ ! -d "controller/src/github" ] && [ ! -d "controller/src/oauth" ]; then
+    echo "ERROR: This project tree looks already trimmed (no admin/github/oauth demos found)."
+    echo "Refusing to run again to avoid wiping your real project."
+    echo "If you know what you're doing, delete mini_project.sh.bak manually."
+    exit 1
+fi
+
 # Benchmark source directory
 BENCHMARK_SRC="$SCRIPT_DIR/Benchmark/paozhu_benchmark"
 
@@ -566,3 +581,9 @@ else
     echo "  emplace it in the matching common/*_regmethod.hpp skeleton."
 fi
 echo ""
+
+# ---- Self-cleanup: rename to .bak so the trimmed scaffold is clean ----
+if [ -f "mini_project.sh" ]; then
+    mv -f mini_project.sh mini_project.sh.bak
+    echo "[Self] mini_project.sh renamed → mini_project.sh.bak"
+fi

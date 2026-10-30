@@ -42,6 +42,7 @@ QQ群：668296235
 ✅28. 简单的Excel（xlsx）读写支持， 简单Word（docx）转HTML，HTML转docx  
 ✅29. 内置图片生成和处理，支持jpg png两个类  
 ✅30. 内置HTML生成pdf模块webpdf（本项目子项目）  
+✅31. 一键项目瘦身脚本 `mini_project.sh`，保留核心框架 + testhello 最小骨架，去掉 admin/github/oauth 等演示代码，秒级产出干净项目  
 
 ### 2.运行环境
 
@@ -760,15 +761,34 @@ asio::awaitable<std::string> test_socket_client(std::shared_ptr<httppeer> peer)
 ```  
 
 
-### 9.相关教程
+### 9. 干净项目脚手架 🔧
 
-[Paozhu快速入门](https://hggq.github.io/paozhudocs/)
+完整仓库包含 admin 后台、GitHub 绑定、OAuth 授权服务器等演示代码。如果你想从零开始一个新项目，运行 `mini_project.sh` 一键清除所有演示模块，只保留框架核心 + `testhello` 最小可编译骨架：
+
+```bash
+git clone https://github.com/hggq/paozhu.git myproject
+cd myproject
+sh mini_project.sh
+```
+
+脚本会自动移除 `controller/src/admin`、`controller/src/github`、`controller/src/oauth`、`controller/src/oauth_client`、`libs/github`、`libs/oauth`、`view/admin` 等演示目录，生成一个可以直接 `cmake && make` 编译、直接启动的干净项目。框架核心（ORM、HTTP 服务器、WebSocket、httpclient、协程池、注解路由）、`libs/oauth_client`（通用 OAuth 客户端库，无 DB 依赖）、`libs/websocket` 等都会保留。
+
+如果需要 TechEmpower Benchmark 模式，加 `--benchmark` 参数：
+
+```bash
+sh mini_project.sh --benchmark
+```
+
+### 10.相关教程
+
+[Paozhu快速入门](https://hggq.github.io/paozhudocs/)  
+[OAuth & JWT 授权指南](https://hggq.github.io/paozhudocs/docs/oauth_guide.html)
 
  
-### 10.贡献👏👋
+### 11.贡献👏👋
 
 欢迎提issue互相交流，当然也欢迎大家踊跃PR
 
-### 11.LICENSE
+### 12.LICENSE
 
 Paozhu遵循[MIT 开源协议](LICENSE)
