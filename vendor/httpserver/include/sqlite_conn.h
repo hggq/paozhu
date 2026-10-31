@@ -24,6 +24,7 @@
 #include <functional>
 #include <atomic>
 #include <chrono>
+#include <ctime>
 #include <optional>
 #include <coroutine>
 #include <type_traits>
@@ -192,7 +193,9 @@ class sqlite_conn_base
 
     /**
      * @brief 获取本连接最近一次 INSERT 产生的自增主键 (rowid)
-     * @return rowid，未连接或无插入时返回 0
+     * @return rowid；未连接或无插入时返回 0
+     * @note 只有任务体自身抛异常（分配失败级）才会由提交通路兜底返回 -1；
+     *       ORM 取插入 id 用的是 exec_dml_*_with_rowid，那条通路兜底值是 (0,0) 而非 -1
      */
     long long last_insert_rowid();
 
@@ -337,7 +340,7 @@ class sqlite_conn_base
     std::string error_msg;
     bool isclose            = true;// 与 isclose_ 同步，兼容 pg/mysql 的 isclose 成员变量
     bool isdebug            = false;
-    unsigned int time_start = 0;
+    time_t time_start = 0;
     unsigned int query_num  = 0;
     std::chrono::time_point<std::chrono::steady_clock> time_begin;
     std::chrono::time_point<std::chrono::steady_clock> time_finish;
@@ -406,7 +409,6 @@ class sqlite_conn_base
 
     std::string worker_key_;
     std::atomic<bool> worker_running_{false};
-    std::atomic<bool> shutdown_error_{false};
     asio::io_context *io_ctx_ = nullptr;
     std::shared_ptr<sqlite_worker_t> cached_worker_;
 
@@ -469,11 +471,6 @@ inline T sqlite_conn_base::submit_sync(std::function<T()> fn)
             return sqlite_shutdown_error_value<T>();
         }
     }
-    if (shutdown_error_.load())
-    {
-        this->set_error("sqlite_conn is shutting down");
-        return sqlite_shutdown_error_value<T>();
-    }
 
     auto promise = std::make_shared<std::promise<T>>();
     auto future  = promise->get_future();
@@ -497,11 +494,21 @@ inline asio::awaitable<T> sqlite_conn_base::run_on_worker(std::function<T()> fn)
 {
     // 同 submit_sync：无 worker 时在协程所在线程直接执行，同一连接要求单线程调用
     if (!worker_running_.load())
-        co_return fn();
-    if (shutdown_error_.load())
     {
-        this->set_error("sqlite_conn is shutting down");
-        co_return sqlite_shutdown_error_value<T>();
+        try
+        {
+            co_return fn();
+        }
+        catch (const std::exception &e)
+        {
+            this->set_error(std::string("exception in sqlite task: ") + e.what());
+            co_return sqlite_shutdown_error_value<T>();
+        }
+        catch (...)
+        {
+            this->set_error("unknown exception in sqlite task");
+            co_return sqlite_shutdown_error_value<T>();
+        }
     }
 
     auto caller_executor = co_await asio::this_coro::executor;
@@ -639,7 +646,9 @@ class sqlite_conn_base
 
     /**
      * @brief 获取本连接最近一次 INSERT 产生的自增主键 (rowid)
-     * @return rowid，未连接或无插入时返回 0
+     * @return rowid；未连接或无插入时返回 0
+     * @note 只有任务体自身抛异常（分配失败级）才会由提交通路兜底返回 -1；
+     *       ORM 取插入 id 用的是 exec_dml_*_with_rowid，那条通路兜底值是 (0,0) 而非 -1
      */
     long long last_insert_rowid();
 
@@ -777,7 +786,7 @@ class sqlite_conn_base
     std::string error_msg;
     bool isclose            = true;// 存根永不成功连接，恒为已关闭；与 ON 模式同名成员对齐
     bool isdebug            = false;
-    unsigned int time_start = 0;
+    time_t time_start = 0;
     unsigned int query_num  = 0;
     std::chrono::time_point<std::chrono::steady_clock> time_begin;
     std::chrono::time_point<std::chrono::steady_clock> time_finish;

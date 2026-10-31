@@ -241,12 +241,20 @@ class mysql_conn_base
     // sha256_password（MySQL 9 已移除旧插件，MariaDB 12.3+ 支持 caching_sha2_password）。
     // 密码为空返回空串（协议要求零长度应答）；不支持的插件返回空串并置 error_msg。
     std::string compute_auth_response(const std::string &plugin, const std::string &salt, const std::string &password);
+    // 本驱动的连接与读写全程不设超时：它只负责把语句发出去、把响应读回来，等多久由框架上层决定。
+    // 连不上时上层会另取新连接，或等数据库恢复。
     bool connect(const orm_conn_t &conn_config);
     asio::awaitable<bool> async_connect(const orm_conn_t &conn_config);
 
     void mysqlnd_xor_string(char *dst, const size_t dst_len, const char *xor_str, const size_t xor_str_len);
-    unsigned int read_pack(unsigned char *data, unsigned int offset);
+    // 逐包解析入口（与 read_field_pack 配对），total_num 是本次可读的字节上界，越界即停。
+    // 框架内部取数走 fetch_directly_impl，不经过这里；当前仓内无调用点，作为 public 接口保留。
+    unsigned int read_pack(unsigned char *data, unsigned int offset, unsigned int total_num);
     void read_field_pack(unsigned char *data, unsigned int total_num, unsigned int &offset, pack_info_t &pack_info);
+    // pack_eof_check / read_col_info 只服务 vendor/httpcli（paozhu_cli 的 orm / dbdump-schema /
+    // dbdump-all / dbconvert 走逐包解析）；服务端与 ORM 取数走 fetch_directly_impl 的
+    // _parse_definition_names / _parse_definition_type，不经过这两个函数。
+    // 因此在 httpserver 内查不到调用点，但并非死代码，删除会让 CLI 无法编译。
     bool pack_eof_check(const pack_info_t &temp_pack_data);
     void read_col_info(const std::string &pack_info, field_info_t &temp_field_data);
     unsigned long long pack_real_num(const unsigned char *data, unsigned int data_len, unsigned int &offset);
@@ -385,7 +393,7 @@ class mysql_conn_base
     unsigned short error_code    = 0;
     unsigned int last_insert_id_ = 0;
     unsigned int client_flags    = 0;
-    unsigned int time_start      = 0;
+    time_t time_start            = 0;
     unsigned int query_num       = 0;
     std::chrono::time_point<std::chrono::steady_clock> time_begin;
     std::chrono::time_point<std::chrono::steady_clock> time_finish;
@@ -403,8 +411,6 @@ class mysql_conn_base
     // asio::io_context *io_ctx = nullptr;
     std::unique_ptr<orm_conn_link_t> conn_link;
     mysql_server_hello_data_t server_hello;
-    // 本次认证中服务器下发的 RSA 公钥 PEM（TOFU：首次连接后可取出固化为可信公钥）
-    std::string server_pubkey_pem;
 
   private:
     // ===== per-connection stmt_id LRU 缓存 =====

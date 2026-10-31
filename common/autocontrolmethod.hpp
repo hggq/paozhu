@@ -265,13 +265,13 @@ namespace http
         reg_raw("", "/oauth/revoke", nullptr, nullptr, oauth_revoke, nullptr, 0); // controller/src/oauth/oauth_revoke.cpp:31
         reg_raw("", "/oauth/token", nullptr, nullptr, oauth_token, nullptr, 0); // controller/src/oauth/oauth_token.cpp:103
         reg_raw("", "/oauth/userinfo", oauth_bearerauth, nullptr, oauth_userinfo, nullptr, 0); // controller/src/oauth/oauth_userinfo.cpp:15
-        reg_raw("", "/oauth_client/page", nullptr, nullptr, oauth_client_page, nullptr, 0); // controller/src/oauth_client/oauth_client_demo.cpp:103
-        reg_raw("", "/oauth_client/client_credentials", nullptr, nullptr, oauth_client_cc, nullptr, 0); // controller/src/oauth_client/oauth_client_demo.cpp:123
-        reg_raw("", "/oauth_client/build_authorize", nullptr, nullptr, oauth_client_build_auth, nullptr, 0); // controller/src/oauth_client/oauth_client_demo.cpp:151
-        reg_raw("", "/oauth_client/exchange_code", nullptr, nullptr, oauth_client_exchange, nullptr, 0); // controller/src/oauth_client/oauth_client_demo.cpp:194
-        reg_raw("", "/oauth_client/refresh", nullptr, nullptr, oauth_client_refresh, nullptr, 0); // controller/src/oauth_client/oauth_client_demo.cpp:219
-        reg_raw("", "/oauth_client/introspect", nullptr, nullptr, oauth_client_introspect, nullptr, 0); // controller/src/oauth_client/oauth_client_demo.cpp:242
-        reg_raw("", "/oauth_client/revoke", nullptr, nullptr, oauth_client_revoke, nullptr, 0); // controller/src/oauth_client/oauth_client_demo.cpp:266
+        reg_raw("", "/oauth_client/page", nullptr, nullptr, oauth_client_page, nullptr, 0); // controller/src/oauth_client/oauth_client_demo.cpp:104
+        reg_raw("", "/oauth_client/client_credentials", nullptr, nullptr, oauth_client_cc, nullptr, 0); // controller/src/oauth_client/oauth_client_demo.cpp:124
+        reg_raw("", "/oauth_client/build_authorize", nullptr, nullptr, oauth_client_build_auth, nullptr, 0); // controller/src/oauth_client/oauth_client_demo.cpp:152
+        reg_raw("", "/oauth_client/exchange_code", nullptr, nullptr, oauth_client_exchange, nullptr, 0); // controller/src/oauth_client/oauth_client_demo.cpp:195
+        reg_raw("", "/oauth_client/refresh", nullptr, nullptr, oauth_client_refresh, nullptr, 0); // controller/src/oauth_client/oauth_client_demo.cpp:220
+        reg_raw("", "/oauth_client/introspect", nullptr, nullptr, oauth_client_introspect, nullptr, 0); // controller/src/oauth_client/oauth_client_demo.cpp:243
+        reg_raw("", "/oauth_client/revoke", nullptr, nullptr, oauth_client_revoke, nullptr, 0); // controller/src/oauth_client/oauth_client_demo.cpp:267
         reg_raw("", "/paozhu_status", nullptr, nullptr, paozhu_status, nullptr, 0); // controller/src/serverwatch.cpp:27
         reg_raw("", "/frametasks_timeloop", nullptr, nullptr, frametasks_timeloop, nullptr, 0); // controller/src/serverwatch.cpp:67
         reg_raw("", "/superadmin/login", nullptr, nullptr, superadmin_login, nullptr, 0); // controller/src/superadmin/supermain.cpp:13

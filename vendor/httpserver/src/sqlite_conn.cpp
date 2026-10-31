@@ -10,6 +10,7 @@
 #include <climits>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <exception>
 #include <set>
 #include <stdexcept>
@@ -31,11 +32,18 @@ class sqlite_worker_t
         std::thread([this]()
                     { this->main_loop(); })
             .swap(thread_);
+        // 建线程当场快照 tid：join() 之后 thread_.get_id() 会变成默认 id，
+        // 届时 is_caller_thread() 将恒为 false，防自死锁的守卫静默失效
+        worker_tid_ = thread_.get_id();
     }
 
     ~sqlite_worker_t()
     {
         this->stop_and_drain();
+        // 与 stop_and_drain() 用同一把锁：本对象可能以"败方"身份进入这里
+        // （stop_ 早已被别处置位、线程现由胜方 join），无锁则会与胜方的 join()
+        // 并发读改 thread_
+        std::lock_guard<std::mutex> lock(join_mutex_);
         if (thread_.joinable())
         {
             thread_.join();
@@ -59,15 +67,14 @@ class sqlite_worker_t
         bool expected = false;
         if (!stop_.compare_exchange_strong(expected, true))
         {
-            if (thread_.joinable())
-            {
-                thread_.join();
-            }
+            // 败方不 join：避免对同一 std::thread 并发 join（UB）。
+            // 线程最终由胜方（或析构函数）join，见下方说明。
             return;
         }
 
         queue_cv_.notify_all();
 
+        std::lock_guard<std::mutex> lock(join_mutex_);
         if (thread_.joinable())
         {
             thread_.join();
@@ -77,10 +84,17 @@ class sqlite_worker_t
     bool is_stopped() const { return stop_.load(); }
     bool is_running() const { return !stop_.load(); }
 
+    // 调用线程是否正是 worker 线程（用于 drain_worker_tasks 防自死锁）
+    // 只读构造期快照的 worker_tid_：不触碰 thread_，故与并发 join() 无数据竞争
+    bool is_caller_thread() const
+    {
+        return std::this_thread::get_id() == worker_tid_;
+    }
+
   private:
     void main_loop()
     {
-        while (!stop_.load())
+        while (true)
         {
             std::function<void()> task;
             {
@@ -88,14 +102,12 @@ class sqlite_worker_t
                 queue_cv_.wait(lock, [this]()
                                { return !queue_.empty() || stop_.load(); });
 
-                if (stop_.load() && queue_.empty())
-                {
-                    break;
-                }
-
+                // stop_ 置位但队列非空时继续取出执行，确保排队任务
+                // （含 submit_sync 的 promise->set_value）全部跑完，避免调用方挂死。
+                // 仅在队列真正排空后才退出。
                 if (queue_.empty())
                 {
-                    continue;
+                    break;
                 }
 
                 task = std::move(queue_.front());
@@ -110,9 +122,11 @@ class sqlite_worker_t
     }
 
     std::thread thread_;
+    std::thread::id worker_tid_;// 构造期快照，之后只读
     std::queue<std::function<void()>> queue_;
     std::mutex queue_mutex_;
     std::condition_variable queue_cv_;
+    std::mutex join_mutex_;          // 保护 thread_.join()，杜绝并发双 join（UB）
     std::atomic<bool> stop_{false};
 };
 
@@ -133,18 +147,16 @@ std::atomic<bool> g_initialized{false};
 
 bool sqlite_worker_submit(const std::string &db_path, std::function<void()> task)
 {
-    // 关闭守卫：已进入全局关闭流程后，不再按旧路径重新创建 worker——
-    // 否则 sqlite_shutdown 之后迟到的 submit 会拉出无人 join 的常驻线程，
-    // 进程退出阶段出现僵尸线程。此时直接返回 false，由
-    // submit_to_worker_cached 回退到当前线程兜底执行。
-    if (g_shutdown_started.load(std::memory_order_acquire))
-    {
-        return false;
-    }
-
     std::shared_ptr<sqlite_worker_t> worker;
     {
         std::lock_guard<std::mutex> lock(sqlite_worker_map_mutex);
+        // 关闭守卫必须与 emplace 在同一临界区：否则 shutdown_all 在锁内拷贝并
+        // clear() map 后，本线程才 emplace 出新 worker 逃出关停快照，导致它永不
+        // 被 stop_and_drain。sqlite_init 重新初始化会清空 g_shutdown_started。
+        if (g_shutdown_started.load(std::memory_order_acquire))
+        {
+            return false;
+        }
         auto &workers = sqlite_worker_map();
         auto iter     = workers.find(db_path);
         if (iter == workers.end())
@@ -224,8 +236,10 @@ int close_db_handle(sqlite3 *&db)
 }
 
 // 新打开连接的存活探测：sqlite3_open 不读取文件头，对非 SQLite 文件/
-// 已损坏文件会"假成功"；只有执行首条语句时才暴露 SQLITE_NOTADB /
-// SQLITE_CORRUPT / SQLITE_IOERR 等致命错误。探测失败返回 false 并填出错误。
+// 已损坏文件会"假成功"。SELECT 1 是常数表达式、不读取任何数据库页，对垃圾
+// 文件照样返回 SQLITE_ROW，探测无效；必须触碰真实页才能暴露 SQLITE_NOTADB /
+// SQLITE_CORRUPT / SQLITE_IOERR。这里用 PRAGMA schema_version（读页 1 头中的
+// schema cookie），非库/损坏文件在此暴露致命错误。探测失败返回 false 并填出错误。
 bool probe_db_liveness(sqlite3 *db, std::string &out_err)
 {
     if (!db)
@@ -234,7 +248,8 @@ bool probe_db_liveness(sqlite3 *db, std::string &out_err)
         return false;
     }
     sqlite3_stmt *stmt = nullptr;
-    int rc             = sqlite3_prepare_v2(db, "SELECT 1", -1, &stmt, nullptr);
+    // 触页探测：PRAGMA schema_version 读取页 1 头中的 schema cookie
+    int rc             = sqlite3_prepare_v2(db, "PRAGMA schema_version", -1, &stmt, nullptr);
     if (rc == SQLITE_OK && stmt)
     {
         rc = sqlite3_step(stmt);
@@ -282,7 +297,9 @@ void sqlite_conn_base::clear_error()
 
 namespace
 {
-// 每次打开连接都必须设置的 PRAGMA（WAL 是文件级持久设置，由 connect_impl 去重处理）
+// 每次打开连接都必须设置的 PRAGMA。WAL 是文件级持久设置，不在这里做，
+// 但它必须在 connect_impl 里 WAL 切换之前调用——busy_timeout 要先生效，
+// 才能挡住切换时可能撞上的 SQLITE_BUSY
 void apply_conn_pragmas(sqlite3 *db)
 {
     sqlite3_exec(db, "PRAGMA synchronous=NORMAL", nullptr, nullptr, nullptr);
@@ -349,7 +366,8 @@ bool sql_has_no_statement(const std::string &sql)
 
 // ---- 参数绑定工具：前向声明（定义见本文件后部，供 exec_bound_impl 提前调用） ----
 static int _bind_params(sqlite3_stmt *stmt, const std::vector<sqlite_bind_param> &params);
-static std::string _bind_error_msg(int rc, size_t given_count, size_t placeholder_count);
+static std::string _bind_error_msg(sqlite3_stmt *stmt, int rc, size_t given_count, size_t placeholder_count);
+static bool sqlite_sql_has_second_statement(sqlite3 *db, const std::string &sql);
 
 bool sqlite_conn_base::connect_impl(const orm_conn_t &conn_config)
 {
@@ -398,45 +416,44 @@ bool sqlite_conn_base::connect_impl(const orm_conn_t &conn_config)
         }
     }
 
-    // PRAGMA 去重（journal_mode=WAL 为文件级持久设置，进程内每条路径只设一次）
-    {
-        static std::mutex init_mutex;
-        static std::set<std::string> initialized_dbs;
-        std::lock_guard<std::mutex> lock(init_mutex);
+    // 连接级 PRAGMA 必须先于 WAL 切换落地：其中 sqlite3_busy_timeout(5000) 是唯一
+    // 能挡住 SQLITE_BUSY 的手段，而去掉 initialized_dbs 去重后，现在每条新连接都要
+    // 执行一次 PRAGMA journal_mode=WAL——此刻若有别的连接/进程正持写锁，未设超时的
+    // 话它会立即返回 BUSY，把整条连接判成建不起来。
+    apply_conn_pragmas(db_);
 
-        if (initialized_dbs.find(path) == initialized_dbs.end())
+    // WAL 为文件级持久设置；PRAGMA journal_mode=WAL 在已为 WAL 时是幂等 no-op，
+    // 故无需 initialized_dbs 这类"只增不减"的进程级标记——该标记会在文件删除
+    // 重建为 rollback-journal 库后误判为已初始化而跳过设置。直接设置并回读校验
+    // 实际模式即可，任何非 wal 的回退（delete/truncate/persist/memory/off）都拦截。
+    {
+        char *errmsg = nullptr;
+        int exec_rc  = sqlite3_exec(db_, "PRAGMA journal_mode=WAL", nullptr, nullptr, &errmsg);
+        if (exec_rc != SQLITE_OK)
         {
-            char *errmsg = nullptr;
-            int exec_rc  = sqlite3_exec(db_, "PRAGMA journal_mode=WAL", nullptr, nullptr, &errmsg);
-            if (exec_rc != SQLITE_OK)
-            {
-                std::string err = errmsg ? errmsg : sqlite3_errmsg(db_);
-                sqlite3_free(errmsg);
-                // WAL 切换失败视为连接失败：journal 模式差异会带来完全不同的
-                // 锁/恢复语义，不允许带着半初始化状态继续对外提供服务
-                this->set_error("set WAL journal mode failed: " + err);
-                close_db_handle(db_);
-                isclose_.store(true);
-                isclose = true;
-                return false;
-            }
-            // 极少数文件系统不支持 WAL 时引擎可能不报错但回退为 delete 模式，
-            // 回读确认模式真实生效，避免静默降级
-            std::string mode;
-            sqlite3_exec(db_, "PRAGMA journal_mode", capture_pragma_text_cb, &mode, nullptr);
-            if (mode == "delete")
-            {
-                this->set_error("WAL journal mode unsupported on this database file (silently fell back to delete)");
-                close_db_handle(db_);
-                isclose_.store(true);
-                isclose = true;
-                return false;
-            }
-            initialized_dbs.insert(path);
+            std::string err = errmsg ? errmsg : sqlite3_errmsg(db_);
+            sqlite3_free(errmsg);
+            // WAL 切换失败视为连接失败：journal 模式差异会带来完全不同的
+            // 锁/恢复语义，不允许带着半初始化状态继续对外提供服务
+            this->set_error("set WAL journal mode failed: " + err);
+            close_db_handle(db_);
+            isclose_.store(true);
+            isclose = true;
+            return false;
+        }
+        // 极少数文件系统不支持 WAL 时引擎可能不报错但回退为其它模式，
+        // 回读确认模式真实生效，避免静默降级
+        std::string mode;
+        sqlite3_exec(db_, "PRAGMA journal_mode", capture_pragma_text_cb, &mode, nullptr);
+        if (mode != "wal")
+        {
+            this->set_error("WAL journal mode unsupported on this database file (fell back to " + mode + ")");
+            close_db_handle(db_);
+            isclose_.store(true);
+            isclose = true;
+            return false;
         }
     }
-
-    apply_conn_pragmas(db_);
 
     isclose_.store(false);
     isclose = false;
@@ -762,7 +779,7 @@ bool sqlite_conn_base::query_fetch_impl(const std::string &sql, sqlite_query_res
         return false;
     }
 
-    result.affected_rows = sqlite3_changes(db_);
+    result.affected_rows = 0;
     // 成功路径统一归零：保证 consecutive_errors_ 严格表达"连续错误"语义，
     // 避免零散瞬态错误在查询型负载下（从不归零）累积触发误恢复
     consecutive_errors_.store(0);
@@ -812,14 +829,16 @@ bool sqlite_conn_base::exec_bound_impl(const std::string &sql, const std::vector
         sqlite3_stmt *stmt = stmt_cache_.get_or_create(db_, sql);
         if (!stmt)
         {
+            int sqlite_err_code = sqlite3_errcode(db_);
             this->set_error(sqlite3_errmsg(db_));
+            this->check_and_attempt_recovery(sqlite_err_code);
             return false;
         }
 
         int bind_rc = _bind_params(stmt, params);
         if (bind_rc != SQLITE_OK)
         {
-            this->set_error(_bind_error_msg(bind_rc, params.size(), static_cast<size_t>(sqlite3_bind_parameter_count(stmt))));
+            this->set_error(_bind_error_msg(stmt, bind_rc, params.size(), static_cast<size_t>(sqlite3_bind_parameter_count(stmt))));
             return false;
         }
 
@@ -1603,7 +1622,7 @@ std::vector<std::string> sqlite_conn_base::get_index_list(const std::string &tab
         std::string quoted;
         quoted.reserve(table.size() + 2);
         quoted.push_back('"');
-        for (char c : table) { if (c == '"') quoted += """"; else quoted += c; }
+        for (char c : table) { if (c == '"') quoted += "\"\""; else quoted += c; }
         quoted.push_back('"');
 
         sqlite_query_result qr;
@@ -1636,7 +1655,7 @@ std::vector<std::string> sqlite_conn_base::get_index_info(const std::string &ind
         std::string quoted;
         quoted.reserve(index_name.size() + 2);
         quoted.push_back('"');
-        for (char c : index_name) { if (c == '"') quoted += """"; else quoted += c; }
+        for (char c : index_name) { if (c == '"') quoted += "\"\""; else quoted += c; }
         quoted.push_back('"');
 
         sqlite_query_result qr;
@@ -1762,6 +1781,9 @@ void sqlite_conn_base::start_worker_thread(asio::io_context &ioc, const std::str
     worker_running_.store(true);
 }
 
+// 只停本连接的提交通路，不停线程：worker 按 db_path 共享，
+// 其生命周期由 sqlite_worker_shutdown()/sqlite_worker_shutdown_all()
+// （经 sqlite_shutdown() 接线）管理，连接析构无权停它。
 void sqlite_conn_base::stop_worker_thread()
 {
     if (!worker_running_.load())
@@ -1778,15 +1800,27 @@ void sqlite_conn_base::stop_worker_thread()
 
 void sqlite_conn_base::submit_to_worker_cached(std::function<void()> task)
 {
-    if (cached_worker_ && !cached_worker_->is_stopped())
+    if (cached_worker_)
     {
-        if (cached_worker_->submit(std::move(task)))
+        // 这里不能 std::move(task)：submit() 返回 false 时调用方的 task 已被搬空，
+        // 继续把它交给 sqlite_worker_submit 会投一枚空函数——worker 照样受理、
+        // main_loop 的 if(task) 直接跳过，任务静默消失，而 submit_sync 的
+        // promise->set_value 或 run_on_worker 的续体正包在里面，调用方永久挂起。
+        // 传左值即拷贝，失败后 task 仍完整可用。
+        //
+        // 也不必先 is_stopped()：submit() 在 queue_mutex_ 内原子判停，返回 false
+        // 就是已停服。此时不得回落 sqlite_worker_submit——那可能为同一 db_path
+        // 新建 worker，与仍在排空的旧 worker 并发访问 db_，破坏"同 db_path 串行"
+        // 不变式。直接在调用线程执行；本回退路径无串行保证，需单线程调用。
+        if (cached_worker_->submit(task))
         {
             return;
         }
+        task();
+        return;
     }
 
-    // 缓存失效或提交失败, 回退到全局 map
+    // 无缓存（首投）：回落全局 map 获取或创建 worker
     if (!sqlite_worker_submit(worker_key_, task))
     {
         // worker 已停止（程序关闭/停服）：直接在调用线程执行任务，
@@ -1798,6 +1832,13 @@ void sqlite_conn_base::submit_to_worker_cached(std::function<void()> task)
 
 void sqlite_conn_base::drain_worker_tasks()
 {
+    // 若在 worker 线程内调用（例如在 worker 任务里析构连接触发 stop），投递的
+    // marker 会排在"当前任务"之后，而当前任务正卡在 done_fut.get() 等它 —— 死锁。
+    // 直接返回不等待，依赖"禁止在 worker 任务内停服/析构连接"的契约。
+    if (cached_worker_ && cached_worker_->is_caller_thread())
+    {
+        return;
+    }
     auto done     = std::make_shared<std::promise<void>>();
     auto done_fut = done->get_future();
     this->submit_to_worker_cached([done]()
@@ -1941,14 +1982,42 @@ static std::vector<sqlite_bind_param> _obj_vals_to_bind_params(const std::vector
     return out;
 }
 
+// 私有绑定错误码：SQLite 的 rc 均为非负，负值不会与引擎返回码相撞；
+// bind_rc 的全部去向只有 _bind_error_msg，不会流入引擎错误处理
+static constexpr int BIND_ERR_NAMED = -1;
+
+// 语句里第一个命名占位符（:name/@name/$name）的名字，没有命名占位符时返回 nullptr。
+// 只有裸 ? 的 bind_parameter_name 返回 NULL：?NNN 返回 "?NNN"，它是匿名占位符的编号
+// 写法、与按位绑定语义一致，必须放行，所以按前缀判断而不是按"名字非空"判断。
+// _bind_params 的拒绝与 _bind_error_msg 的复述共用这一处判断，两处谓词不会漂移。
+static const char *_first_named_placeholder(sqlite3_stmt *stmt)
+{
+    int max_param = sqlite3_bind_parameter_count(stmt);
+    for (int i = 1; i <= max_param; ++i)
+    {
+        const char *pname = sqlite3_bind_parameter_name(stmt, i);
+        if (pname != nullptr && pname[0] != '?')
+        {
+            return pname;
+        }
+    }
+    return nullptr;
+}
+
 // 给 stmt 绑定 sqlite_bind_param。
 // 返回：
-//   SQLITE_OK      全部绑定成功
-//   SQLITE_RANGE   参数个数与 SQL 占位符数不一致（多绑定/少绑定都会漏绑成 NULL）
+//   SQLITE_OK       全部绑定成功
+//   SQLITE_RANGE    参数个数与 SQL 占位符数不一致（多绑定/少绑定都会漏绑成 NULL）
 //   SQLITE_MISMATCH 数值文本非法或超出可表示范围（如 UINT/ULONG > INT64_MAX）
+//   BIND_ERR_NAMED  SQL 使用了命名占位符（:name/@name/$name），按位置绑定会绑错
 //   其它            绑定接口返回的错误码
 static int _bind_params(sqlite3_stmt *stmt, const std::vector<sqlite_bind_param> &params)
 {
+    // 命名占位符按位置绑定会错位且无任何检测，当前接口不支持，直接拒绝而非静默绑错
+    if (_first_named_placeholder(stmt) != nullptr)
+    {
+        return BIND_ERR_NAMED;
+    }
     int max_param = sqlite3_bind_parameter_count(stmt);
     if (params.size() != static_cast<size_t>(max_param))
     {
@@ -2018,7 +2087,7 @@ static int _bind_params(sqlite3_stmt *stmt, const std::vector<sqlite_bind_param>
 }
 
 // 将绑定失败 rc 转换为可读的错误文本
-static std::string _bind_error_msg(int rc, size_t given_count, size_t placeholder_count)
+static std::string _bind_error_msg(sqlite3_stmt *stmt, int rc, size_t given_count, size_t placeholder_count)
 {
     if (rc == SQLITE_RANGE)
     {
@@ -2032,6 +2101,14 @@ static std::string _bind_error_msg(int rc, size_t given_count, size_t placeholde
     if (rc == SQLITE_TOOBIG)
     {
         return "bind parameter too large (length exceeds INT_MAX/2^31-1 bytes)";
+    }
+    if (rc == BIND_ERR_NAMED)
+    {
+        // 复述调用方实际写的那个占位符名；stmt 就是 _bind_params 扫过的那条，
+        // 判据又同源于 _first_named_placeholder，所以 BIND_ERR_NAMED 必然对应一个非空名字。
+        const char *pname = _first_named_placeholder(stmt);
+        return std::string("named placeholder '") + (pname != nullptr ? pname : "") +
+               "' (:name/@name/$name) is not supported by positional bind, use ? or ?NNN";
     }
     return "sqlite bind error rc=" + std::to_string(rc);
 }
@@ -2057,13 +2134,23 @@ unsigned int sqlite_conn_base::fetch_prepared_impl(
 
     auto bind_params = _obj_vals_to_bind_params(params);
 
+    // 与 exec_dml_prepared_impl 保持一致：预编译通路只执行第一条语句，
+    // 多语句必须显式拒绝，不能静默少执行（"SELECT ...; DELETE FROM t" 会丢 DELETE）
+    if (sql.find(';') != std::string::npos && sqlite_sql_has_second_statement(db_, sql))
+    {
+        this->set_error("prepared statement must contain a single statement");
+        return 0;
+    }
+
     // 最多两轮：命中 SQLITE_SCHEMA 则驱逐缓存重试
     for (int attempt = 0; attempt < 2; attempt++)
     {
         sqlite3_stmt *stmt = stmt_cache_.get_or_create(db_, sql);
         if (!stmt)
         {
+            int sqlite_err_code = sqlite3_errcode(db_);
             this->set_error(sqlite3_errmsg(db_));
+            this->check_and_attempt_recovery(sqlite_err_code);
             return 0;
         }
 
@@ -2074,7 +2161,7 @@ unsigned int sqlite_conn_base::fetch_prepared_impl(
         int bind_rc = _bind_params(stmt, bind_params);
         if (bind_rc != SQLITE_OK)
         {
-            this->set_error(_bind_error_msg(bind_rc, bind_params.size(), static_cast<size_t>(sqlite3_bind_parameter_count(stmt))));
+            this->set_error(_bind_error_msg(stmt, bind_rc, bind_params.size(), static_cast<size_t>(sqlite3_bind_parameter_count(stmt))));
             return 0;
         }
 
@@ -2148,7 +2235,9 @@ unsigned int sqlite_conn_base::fetch_prepared_impl(
         }
         if (rc != SQLITE_DONE && rc != SQLITE_ROW)
         {
+            int sqlite_err_code = sqlite3_errcode(db_);
             this->set_error(sqlite3_errmsg(db_));
+            this->check_and_attempt_recovery(sqlite_err_code);
             this->reconcile_transaction_state_after_error();
             return row_num;
         }
@@ -2156,6 +2245,9 @@ unsigned int sqlite_conn_base::fetch_prepared_impl(
         consecutive_errors_.store(0);
         return row_num;
     }
+    // 两轮均命中 SQLITE_SCHEMA：schema 在重试窗口内被外部 DDL 持续变更，无法安全
+    // 完成；显式报错而非静默返回 0 行（否则调用方无法与真实空结果区分）。
+    this->set_error("sqlite schema changed during prepare, retry exhausted");
     return 0;
 }
 
@@ -2183,12 +2275,22 @@ unsigned int sqlite_conn_base::fetch_prepared_impl_binary(
 
     auto bind_params = _obj_vals_to_bind_params(params);
 
+    // 与 exec_dml_prepared_impl 保持一致：预编译通路只执行第一条语句，
+    // 多语句必须显式拒绝，不能静默少执行（"SELECT ...; DELETE FROM t" 会丢 DELETE）
+    if (sql.find(';') != std::string::npos && sqlite_sql_has_second_statement(db_, sql))
+    {
+        this->set_error("prepared statement must contain a single statement");
+        return 0;
+    }
+
     for (int attempt = 0; attempt < 2; attempt++)
     {
         sqlite3_stmt *stmt = stmt_cache_.get_or_create(db_, sql);
         if (!stmt)
         {
+            int sqlite_err_code = sqlite3_errcode(db_);
             this->set_error(sqlite3_errmsg(db_));
+            this->check_and_attempt_recovery(sqlite_err_code);
             return 0;
         }
 
@@ -2198,7 +2300,7 @@ unsigned int sqlite_conn_base::fetch_prepared_impl_binary(
         int bind_rc = _bind_params(stmt, bind_params);
         if (bind_rc != SQLITE_OK)
         {
-            this->set_error(_bind_error_msg(bind_rc, bind_params.size(), static_cast<size_t>(sqlite3_bind_parameter_count(stmt))));
+            this->set_error(_bind_error_msg(stmt, bind_rc, bind_params.size(), static_cast<size_t>(sqlite3_bind_parameter_count(stmt))));
             return 0;
         }
 
@@ -2273,13 +2375,18 @@ unsigned int sqlite_conn_base::fetch_prepared_impl_binary(
         }
         if (rc != SQLITE_DONE && rc != SQLITE_ROW)
         {
+            int sqlite_err_code = sqlite3_errcode(db_);
             this->set_error(sqlite3_errmsg(db_));
+            this->check_and_attempt_recovery(sqlite_err_code);
             this->reconcile_transaction_state_after_error();
             return row_num;
         }
         consecutive_errors_.store(0);
         return row_num;
     }
+    // 两轮均命中 SQLITE_SCHEMA：schema 在重试窗口内被外部 DDL 持续变更，无法安全
+    // 完成；显式报错而非静默返回 0 行（否则调用方无法与真实空结果区分）。
+    this->set_error("sqlite schema changed during prepare, retry exhausted");
     return 0;
 }
 
@@ -2307,6 +2414,27 @@ static bool sqlite_sql_has_second_statement(sqlite3 *db, const std::string &sql)
         if (std::isspace(ch) || ch == ';')
         {
             tail++;
+            continue;
+        }
+        // 尾串里的注释不构成语句，必须跳过后继续看后面还有没有文本。
+        // 只有 '-' 或 '/' 开头才可能是注释，其余任何字符（包括引号）都已是语句文本；
+        // 尾串以 '\0' 收尾时 tail[1] 读到的就是终止符，不会越界。
+        if (ch == '-' && (unsigned char)tail[1] == '-')
+        {
+            while (*tail && *tail != '\n')
+            {
+                tail++;
+            }
+            continue;
+        }
+        if (ch == '/' && (unsigned char)tail[1] == '*')
+        {
+            const char *end = std::strstr(tail + 2, "*/");
+            if (!end)
+            {
+                return false;// 注释未闭合：交给 prepare 报语法错，这里不判成多语句
+            }
+            tail = end + 2;
             continue;
         }
         return true;
@@ -2346,7 +2474,9 @@ unsigned int sqlite_conn_base::exec_dml_prepared_impl(
         sqlite3_stmt *stmt = stmt_cache_.get_or_create(db_, sql);
         if (!stmt)
         {
+            int sqlite_err_code = sqlite3_errcode(db_);
             this->set_error(sqlite3_errmsg(db_));
+            this->check_and_attempt_recovery(sqlite_err_code);
             return (unsigned int)-1;
         }
 
@@ -2355,7 +2485,7 @@ unsigned int sqlite_conn_base::exec_dml_prepared_impl(
         int bind_rc = _bind_params(stmt, bind_params);
         if (bind_rc != SQLITE_OK)
         {
-            this->set_error(_bind_error_msg(bind_rc, bind_params.size(), static_cast<size_t>(sqlite3_bind_parameter_count(stmt))));
+            this->set_error(_bind_error_msg(stmt, bind_rc, bind_params.size(), static_cast<size_t>(sqlite3_bind_parameter_count(stmt))));
             return (unsigned int)-1;
         }
 
@@ -2393,6 +2523,9 @@ unsigned int sqlite_conn_base::exec_dml_prepared_impl(
         }
         return 0;
     }
+    // 两轮均命中 SQLITE_SCHEMA：schema 在重试窗口内被外部 DDL 持续变更，无法安全
+    // 完成；显式报错（含 -1 哨兵）而非静默返回，否则调用方无法区分失败与成功。
+    this->set_error("sqlite schema changed during prepare, retry exhausted");
     return (unsigned int)-1;
 }
 

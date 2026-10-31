@@ -15,7 +15,7 @@ import sys
 # 源码在 tests/orm/，生成物落 temp/；ROOT 由脚本位置往上三层推出，换机器不用改
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
-BUILD = os.path.join(ROOT, "build")
+BUILD = os.path.join(ROOT, os.environ.get("PROBE_BUILD_DIR", "build"))
 OUT = os.path.join(ROOT, "temp/mysql_real_1022")
 VARIANT = (sys.argv[1] if len(sys.argv) > 1 else "fix").lower()
 assert VARIANT in ("fix", "mut", "mut2", "base"), VARIANT

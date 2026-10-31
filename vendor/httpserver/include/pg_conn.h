@@ -122,6 +122,8 @@ class pg_conn_base
     ~pg_conn_base();
 
     // Connection methods
+    // 本驱动的连接与读写全程不设超时：它只负责把语句发出去、把响应读回来，等多久由框架上层决定。
+    // 连不上时上层会另取新连接，或等数据库恢复。
     bool connect(const orm_conn_t &conn_config);
     asio::awaitable<bool> async_connect(const orm_conn_t &conn_config);
 
@@ -285,7 +287,7 @@ class pg_conn_base
     bool read_full_sync(unsigned char *buf, size_t len);
     bool read_message_sync(unsigned char &msg_type, std::string &payload);
     bool send_message_sync(unsigned char type, const std::string &payload);
-    void parse_error(const std::string &payload);
+    void parse_error_and_close(const std::string &payload);
     bool handle_auth(const std::string &payload, const orm_conn_t &conn_config);
     bool sasl_scram_sha256_sync(const std::string &mechanisms, const orm_conn_t &conn_config);
     bool process_server_messages_until_ready_sync(const orm_conn_t &conn_config);
@@ -449,7 +451,7 @@ class pg_conn_base
     bool pooled_ = false;
     //unsigned char sock_type = 0;  // 0: none, 1: tcp, 2: ssl
     unsigned short error_code = 0;
-    unsigned int time_start   = 0;
+    time_t time_start         = 0;
     unsigned int query_num    = 0;
 
     std::chrono::time_point<std::chrono::steady_clock> time_begin;

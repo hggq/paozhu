@@ -33,6 +33,10 @@ class session_buf
     {
         if (v.capacity() == 0)
             return;
+        // 容量超界的缓冲不入库：一次巨行/巨包把容量顶到 MB 级以后，
+        // 留在池里就是永久占用（归还时不缩容，借出时也只补不削）。
+        if (v.capacity() > MAX_KEEP_CAPACITY)
+            return;
         std::lock_guard<std::mutex> lk(mtx_);
         if (pool_.size() >= MAX_POOL_SIZE)
             return;// 池满, 让 v 析构
@@ -57,8 +61,12 @@ class session_buf
     }
 
   private:
-    // 池上限: 防止空闲连接释放后池无限增长 (4096 个空闲 vector, 每个 ≤16KB = 64MB 上限)
+    // 池上限: 防止空闲连接释放后池无限增长 (4096 个空闲 vector = 64MB 上限)
     static constexpr size_t MAX_POOL_SIZE = 4096;
+    // 单个缓冲的入库容量上限: 超过说明这笔请求把缓冲顶到了 MB 级（巨行/巨包），
+    // 这种容量不值得为下一次同样的巨行而留着，让它析构。
+    // 界值取 1MB: 正常结果集在解析循环里有 256KB 的滚动清理水位，稳态容量远到不了这里。
+    static constexpr size_t MAX_KEEP_CAPACITY = 1024 * 1024;
     mutable std::mutex mtx_;
     std::list<std::vector<uint8_t>> pool_;
 };

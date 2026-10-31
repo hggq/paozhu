@@ -366,7 +366,7 @@ bool pg_conn_base::send_message_sync(unsigned char type, const std::string &payl
     return true;
 }
 
-void pg_conn_base::parse_error(const std::string &payload)
+void pg_conn_base::parse_error_and_close(const std::string &payload)
 {
     size_t pos = 0;
     while (pos < payload.size())
@@ -517,7 +517,7 @@ bool pg_conn_base::sasl_scram_sha256_sync(const std::string &mechanisms, const o
         return false;
     if (msg_type == 'E')
     {
-        parse_error(payload);
+        parse_error_and_close(payload);
         return false;
     }
     if (msg_type != 'R')
@@ -616,7 +616,7 @@ bool pg_conn_base::sasl_scram_sha256_sync(const std::string &mechanisms, const o
         return false;
     if (msg_type == 'E')
     {
-        parse_error(payload);
+        parse_error_and_close(payload);
         return false;
     }
     if (msg_type != 'R')
@@ -763,7 +763,7 @@ bool pg_conn_base::process_server_messages_until_ready_sync(const orm_conn_t &co
             in_transaction_.store(false);
             return true;
         case 'E':
-            parse_error(payload);
+            parse_error_and_close(payload);
             return false;
         case 'N':
         {
@@ -1060,18 +1060,28 @@ asio::awaitable<bool> pg_conn_base::async_connect(const orm_conn_t &conn_config)
     else
     {
         asio::ip::tcp::resolver resolver(*conn_link->io_ctx);
-        auto endpoints = co_await resolver.async_resolve(conn_config.host, conn_config.port, asio::use_awaitable);
-        for (auto iter = endpoints.cbegin(); iter != endpoints.cend();)
+        try
         {
-            std::tie(conn_link->ec) = co_await conn_link->socket->async_connect(*iter, tuple_awaitable);
-            if (!conn_link->ec)
-                break;
-            ++iter;
-        }
+            auto endpoints = co_await resolver.async_resolve(conn_config.host, conn_config.port, asio::use_awaitable);
+            for (auto iter = endpoints.cbegin(); iter != endpoints.cend();)
+            {
+                std::tie(conn_link->ec) = co_await conn_link->socket->async_connect(*iter, tuple_awaitable);
+                if (!conn_link->ec)
+                    break;
+                ++iter;
+            }
 
-        if (conn_link->ec)
+            if (conn_link->ec)
+            {
+                error_msg  = "resolve/connect error: " + conn_link->ec.message();
+                error_code = 1;
+                isclose    = true;
+                co_return false;
+            }
+        }
+        catch (const std::exception &e)
         {
-            error_msg  = "resolve/connect error: " + conn_link->ec.message();
+            error_msg  = "resolve/connect error: " + std::string(e.what());
             error_code = 1;
             isclose    = true;
             co_return false;
@@ -1395,7 +1405,6 @@ asio::awaitable<bool> pg_conn_base::async_connect(const orm_conn_t &conn_config)
                     isclose    = true;
                     co_return false;
                 }
-                std::string server_first_msg(tmp2.data(), data_len);
 
                 if (msg_type == 'E')
                 {
@@ -1412,6 +1421,15 @@ asio::awaitable<bool> pg_conn_base::async_connect(const orm_conn_t &conn_config)
                     isclose    = true;
                     co_return false;
                 }
+                // 前 4 字节是 int32 auth code(应为 11=SASLContinue)，跳过再解析 key=value 对
+                if (data_len < 4 || buf_to_int32(reinterpret_cast<const unsigned char *>(tmp2.data())) != 11)
+                {
+                    error_msg  = "expected SASL continue";
+                    error_code = 16;
+                    isclose    = true;
+                    co_return false;
+                }
+                std::string server_first_msg(tmp2.data() + 4, data_len - 4);
 
                 std::string server_nonce, salt_b64;
                 int iteration = 0;
@@ -1725,7 +1743,7 @@ asio::awaitable<bool> pg_conn_base::async_connect(const orm_conn_t &conn_config)
             co_return true;
         case 'E':
         {
-            parse_error(payload);
+            parse_error_and_close(payload);
             co_return false;
         }
         case 'N':
@@ -2006,193 +2024,49 @@ bool pg_conn_base::ping()
             return false;
         }
 
-        // 'Q' 消息：长度字段含自身 4 字节，须为 4 + 8 + 1 = 13。
-        // 曾误按 10 字节查询串算成 14，服务端会多等 1 字节导致 ping 双向死锁。
-        std::string ping_msg;
-        ping_msg.push_back('Q');
-        const char ping_sql[] = "SELECT 1";
-        int32_t len           = 4 + static_cast<int32_t>(sizeof(ping_sql) - 1) + 1;
-        unsigned char header[4];
-        int32_to_buf(len, header);
-        ping_msg.append(reinterpret_cast<char *>(header), 4);
-        ping_msg.append(ping_sql, sizeof(ping_sql) - 1);
-        ping_msg.push_back('\0');
+        // 长度由 send_message_sync 按载荷长度算出，不再手工算 4+8+1（曾算成 14 导致服务端多等 1 字节死锁）
+        if (!send_message_sync('Q', std::string("SELECT 1") + '\0'))
+            return false;
 
-        if (conn_link->sock_type == 1)
+        // 首帧与后续帧走同一条判定：旧实现把首帧的读取单独抄了一份，'E' 检查只落在排干循环里，
+        // 首帧就是 ErrorResponse 时 ping 会一路读到 'Z' 并报"连接健康"。
+        int max_messages = 100;
+        while (max_messages-- > 0)
         {
-            asio::write(*conn_link->socket, asio::buffer(ping_msg), conn_link->ec);
-            if (conn_link->ec)
+            unsigned char msg_type = 0;
+            std::string payload;
+            if (!read_message_sync(msg_type, payload))
                 return false;
-
-            unsigned char msg_type;
-            unsigned char len_buf[4];
-            int32_t msg_len;
-
-            asio::read(*conn_link->socket, asio::buffer(&msg_type, 1), conn_link->ec);
-            if (conn_link->ec)
-                return false;
-            asio::read(*conn_link->socket, asio::buffer(len_buf, 4), conn_link->ec);
-            if (conn_link->ec)
-                return false;
-
-            msg_len = buf_to_int32(len_buf);
-            if (msg_len < 4 || msg_len > 64 * 1024 * 1024)
-                return false;
-            int32_t data_len = msg_len - 4;
-            if (data_len > 0)
+            if (msg_type == 'Z')
             {
-                std::vector<char> tmp(data_len);
-                asio::read(*conn_link->socket, asio::buffer(tmp), conn_link->ec);
-                if (conn_link->ec)
-                    return false;
+                in_transaction_.store(!payload.empty() && (payload[0] == 'T' || payload[0] == 'E'));
+                return true;
             }
-
-            // 添加最大重试次数防止无限循环
-            int max_retries = 100;
-            while (msg_type != 'Z' && max_retries-- > 0)
+            if (msg_type == 'E')
             {
-                asio::read(*conn_link->socket, asio::buffer(&msg_type, 1), conn_link->ec);
-                if (conn_link->ec)
-                    return false;
-                asio::read(*conn_link->socket, asio::buffer(len_buf, 4), conn_link->ec);
-                if (conn_link->ec)
-                    return false;
-                msg_len = buf_to_int32(len_buf);
-                if (msg_len < 4 || msg_len > 64 * 1024 * 1024)
-                    return false;
-                data_len = msg_len - 4;
-                if (data_len > 0)
+                parse_error_from_payload(reinterpret_cast<const unsigned char *>(payload.data()),
+                                         static_cast<unsigned int>(payload.size()));
+                error_code = 21;
+                // 简单查询的 ErrorResponse 后面必定还有一条 ReadyForQuery（aborted 事务里 SELECT 1 收 25P02 就是这种形状）。
+                // 不读掉它，残帧会落到下一条语句的响应上，例如紧接着的 ROLLBACK 会先吃到这条 'Z'。
+                while (max_messages-- > 0)
                 {
-                    std::vector<char> tmp(data_len);
-                    asio::read(*conn_link->socket, asio::buffer(tmp), conn_link->ec);
-                    if (conn_link->ec)
+                    unsigned char drain_type = 0;
+                    std::string drain_payload;
+                    if (!read_message_sync(drain_type, drain_payload))
                         return false;
+                    if (drain_type == 'Z')
+                    {
+                        in_transaction_.store(!drain_payload.empty() && (drain_payload[0] == 'T' || drain_payload[0] == 'E'));
+                        break;
+                    }
                 }
-            }
-            if (max_retries <= 0)
-            {
-                error_msg  = "ping: too many messages without ReadyForQuery";
-                error_code = 3;
                 return false;
             }
         }
-        else if (conn_link->sock_type == 2)
-        {
-            asio::write(*conn_link->sslsocket, asio::buffer(ping_msg), conn_link->ec);
-            if (conn_link->ec)
-                return false;
-
-            unsigned char msg_type;
-            unsigned char len_buf[4];
-            int32_t msg_len;
-
-            asio::read(*conn_link->sslsocket, asio::buffer(&msg_type, 1), conn_link->ec);
-            if (conn_link->ec)
-                return false;
-            asio::read(*conn_link->sslsocket, asio::buffer(len_buf, 4), conn_link->ec);
-            if (conn_link->ec)
-                return false;
-
-            msg_len = buf_to_int32(len_buf);
-            if (msg_len < 4 || msg_len > 64 * 1024 * 1024)
-                return false;
-            int32_t data_len = msg_len - 4;
-            if (data_len > 0)
-            {
-                std::vector<char> tmp(data_len);
-                asio::read(*conn_link->sslsocket, asio::buffer(tmp), conn_link->ec);
-                if (conn_link->ec)
-                    return false;
-            }
-
-            // 添加最大重试次数防止无限循环
-            int max_retries = 100;
-            while (msg_type != 'Z' && max_retries-- > 0)
-            {
-                asio::read(*conn_link->sslsocket, asio::buffer(&msg_type, 1), conn_link->ec);
-                if (conn_link->ec)
-                    return false;
-                asio::read(*conn_link->sslsocket, asio::buffer(len_buf, 4), conn_link->ec);
-                if (conn_link->ec)
-                    return false;
-                msg_len = buf_to_int32(len_buf);
-                if (msg_len < 4 || msg_len > 64 * 1024 * 1024)
-                    return false;
-                data_len = msg_len - 4;
-                if (data_len > 0)
-                {
-                    std::vector<char> tmp(data_len);
-                    asio::read(*conn_link->sslsocket, asio::buffer(tmp), conn_link->ec);
-                    if (conn_link->ec)
-                        return false;
-                }
-            }
-            if (max_retries <= 0)
-            {
-                error_msg  = "ping: too many messages without ReadyForQuery";
-                error_code = 3;
-                return false;
-            }
-        }
-        else if (conn_link->sock_type == 3)
-        {
-            asio::write(*conn_link->localsocket, asio::buffer(ping_msg), conn_link->ec);
-            if (conn_link->ec)
-                return false;
-
-            unsigned char msg_type;
-            unsigned char len_buf[4];
-            int32_t msg_len;
-
-            asio::read(*conn_link->localsocket, asio::buffer(&msg_type, 1), conn_link->ec);
-            if (conn_link->ec)
-                return false;
-            asio::read(*conn_link->localsocket, asio::buffer(len_buf, 4), conn_link->ec);
-            if (conn_link->ec)
-                return false;
-
-            msg_len = buf_to_int32(len_buf);
-            if (msg_len < 4 || msg_len > 64 * 1024 * 1024)
-                return false;
-            int32_t data_len = msg_len - 4;
-            if (data_len > 0)
-            {
-                std::vector<char> tmp(data_len);
-                asio::read(*conn_link->localsocket, asio::buffer(tmp), conn_link->ec);
-                if (conn_link->ec)
-                    return false;
-            }
-
-            int max_retries = 100;
-            while (msg_type != 'Z' && max_retries-- > 0)
-            {
-                asio::read(*conn_link->localsocket, asio::buffer(&msg_type, 1), conn_link->ec);
-                if (conn_link->ec)
-                    return false;
-                asio::read(*conn_link->localsocket, asio::buffer(len_buf, 4), conn_link->ec);
-                if (conn_link->ec)
-                    return false;
-                msg_len = buf_to_int32(len_buf);
-                if (msg_len < 4 || msg_len > 64 * 1024 * 1024)
-                    return false;
-                data_len = msg_len - 4;
-                if (data_len > 0)
-                {
-                    std::vector<char> tmp(data_len);
-                    asio::read(*conn_link->localsocket, asio::buffer(tmp), conn_link->ec);
-                    if (conn_link->ec)
-                        return false;
-                }
-            }
-            if (max_retries <= 0)
-            {
-                error_msg  = "ping: too many messages without ReadyForQuery";
-                error_code = 3;
-                return false;
-            }
-        }
-
-        return true;
+        error_msg  = "ping: too many messages without ReadyForQuery";
+        error_code = 3;
+        return false;
     }
     catch (const std::exception &e)
     {
@@ -2412,8 +2286,8 @@ unsigned char pg_oid_to_mysql_type(unsigned int type_oid)
         return 0x02;// MYSQL_TYPE_SHORT
     case 23:        // int4
         return 0x03;// MYSQL_TYPE_LONG
-    case 25:        // text
-        return 0xFC;// MySQL text 对应 BLOB 类型码
+    case 25:        // text（PG 内建文本类型，与 bpchar/varchar 同族）
+        return 0xFD;// MYSQL_TYPE_VAR_STRING
     case 26:        // oid
         return 0x08;// MYSQL_TYPE_LONGLONG
     case 114:       // json
@@ -2671,6 +2545,7 @@ unsigned int pg_conn_base::execute_and_fetch(
     rows_out.clear();
     affected_rows_out = 0;
     this->clear_error();// 入口清陈旧错误状态，避免上次失败残留 error_code=10 污染本次结果判定
+    notices_.clear();// B6: 每次查询清空，避免跨查询无限累积
 
     unsigned int n = write_sql(sql);
     if (n == 0)
@@ -2690,7 +2565,10 @@ unsigned int pg_conn_base::execute_and_fetch(
         n = read_loop();
         if (n == 0)
         {
-            error_msg = "read error during query";
+            // 连接已成功通信（已发出查询、开始收响应），不满足"首次通信失败才重连"的框架原则，
+            // 必须立即失败交由上层（连接池丢弃本连接 / 调用方取新连接重试），不可静默重连重发。
+            error_msg  = "execute_and_fetch: read error";
+            error_code = 21;
             return 1;
         }
         if (!_pg_feed(accum_buf, fs, reinterpret_cast<const char *>(_cache_data), static_cast<size_t>(n), k_max_result_bytes, k_pg_compact_at))
@@ -2770,7 +2648,10 @@ unsigned int pg_conn_base::execute_and_fetch(
                 break;
             case 'G':// CopyInResponse(COPY ... FROM STDIN) — 服务端等待客户端持续供数据，
                      // 本客户端不支持；后端不会自行回 Z，报错并断连避免假死
-                error_msg  = "COPY FROM STDIN is not supported by this client";
+            case 'H':// CopyOutResponse(COPY ... TO STDOUT) — 服务端把结果推给客户端，本客户端不支持
+            case 'd':// CopyData（COPY TO STDOUT 服务端推来的数据帧）
+            case 'c':// CopyDone（COPY TO STDOUT 结束）
+                error_msg  = "COPY TO/FROM STDOUT is not supported by this client";
                 error_code = 8;
                 isclose    = true;
                 return 1;
@@ -2796,6 +2677,7 @@ asio::awaitable<unsigned int> pg_conn_base::async_execute_and_fetch(
     rows_out.clear();
     affected_rows_out = 0;
     this->clear_error();// 入口清陈旧错误状态，避免上次失败残留 error_code=10 污染本次结果判定
+    notices_.clear();// B6: 每次查询清空，避免跨查询无限累积
 
     unsigned int n = co_await async_write_sql(sql);
     if (n == 0)
@@ -2885,8 +2767,11 @@ asio::awaitable<unsigned int> pg_conn_base::async_execute_and_fetch(
             }
             case 'I':
                 break;
-            case 'G':// CopyInResponse(COPY ... FROM STDIN) — 不支持，报错断连避免假死
-                error_msg  = "COPY FROM STDIN is not supported by this client";
+            case 'G':// CopyInResponse — 本客户端不支持
+            case 'H':// CopyOutResponse — 本客户端不支持
+            case 'd':// CopyData — 本客户端不支持
+            case 'c':// CopyDone — 本客户端不支持
+                error_msg  = "COPY TO/FROM STDOUT is not supported by this client";
                 error_code = 8;
                 isclose    = true;
                 co_return 1;
@@ -2957,12 +2842,14 @@ RETRY_LABEL:
 
     error_msg.clear();
     error_code = 0;
+    notices_.clear();// B6: 每次查询清空，避免跨查询无限累积
 
     unsigned int n = write_sql(sql);
     if (n == 0)
     {
-        // write 失败 = SQL 还没发出去, 幂等安全, 可以重连
-        if (is_last_error_reconnectable() && retry < kMaxReconnect && try_reconnect())
+        // 写失败可能只发出半截语句，服务端已回滚隐式事务；但显式事务内重连会换新会话，
+        // 后续语句落在 autocommit 上，等于逃逸快照——与读路径同一道闸
+        if (!in_transaction_.load() && is_last_error_reconnectable() && retry < kMaxReconnect && try_reconnect())
         {
             retry++;
             error_msg.clear();
@@ -2986,14 +2873,7 @@ RETRY_LABEL:
         n = read_loop();
         if (n == 0)
         {
-            // 对端被杀/断连 → 读立即失败. 自动提交下 PG 断连回滚隐式事务, DML 未落库, 可安全重连重发;
-            // 显式事务内不可重发(重复执行风险)
-            if (!in_transaction_.load() && retry < kMaxReconnect && is_last_error_reconnectable() && try_reconnect())
-            {
-                retry++;
-                error_msg.clear();
-                goto RETRY_LABEL;
-            }
+            // 写已上 wire 后读失败：语句可能已提交，重发会二次执行；连接判死交回池丢弃
             isclose = true;
             if (error_msg.empty())
                 error_msg = "exec_dml: read error";
@@ -3032,8 +2912,11 @@ RETRY_LABEL:
                 parse_error_from_payload(payload_start, payload_len);
                 has_error = true;// 不直接返回：继续消费到 'Z'，保持连接可用
                 break;
-            case 'G':// CopyInResponse(COPY ... FROM STDIN) — 不支持，报错断连避免假死
-                error_msg  = "COPY FROM STDIN is not supported by this client";
+            case 'G':// CopyInResponse — 本客户端不支持
+            case 'H':// CopyOutResponse — 本客户端不支持
+            case 'd':// CopyData — 本客户端不支持
+            case 'c':// CopyDone — 本客户端不支持
+                error_msg  = "COPY TO/FROM STDOUT is not supported by this client";
                 error_code = 8;
                 isclose    = true;
                 return (unsigned int)-1;
@@ -3063,12 +2946,14 @@ RETRY_LABEL:
 
     error_msg.clear();
     error_code = 0;
+    notices_.clear();// B6: 每次查询清空，避免跨查询无限累积
 
     unsigned int n = co_await async_write_sql(sql);
     if (n == 0)
     {
-        // write 失败 = SQL 还没发出去, 幂等安全, 可以重连
-        if (is_last_error_reconnectable() && retry < kMaxReconnect && co_await async_try_reconnect())
+        // 写失败可能只发出半截语句，服务端已回滚隐式事务；但显式事务内重连会换新会话，
+        // 后续语句落在 autocommit 上，等于逃逸快照——与读路径同一道闸
+        if (!in_transaction_.load() && is_last_error_reconnectable() && retry < kMaxReconnect && co_await async_try_reconnect())
         {
             retry++;
             error_msg.clear();
@@ -3092,13 +2977,7 @@ RETRY_LABEL:
         n = co_await async_read_loop();
         if (n == 0)
         {
-            // 对端被杀/断连 → 读立即失败. 自动提交下 PG 断连回滚隐式事务, DML 未落库, 可安全重连重发
-            if (!in_transaction_.load() && retry < kMaxReconnect && is_last_error_reconnectable() && co_await async_try_reconnect())
-            {
-                retry++;
-                error_msg.clear();
-                goto RETRY_LABEL;
-            }
+            // 写已上 wire 后读失败：语句可能已提交，重发会二次执行；连接判死交回池丢弃
             isclose = true;
             if (error_msg.empty())
                 error_msg = "async_exec_dml: read error";
@@ -3135,8 +3014,11 @@ RETRY_LABEL:
                 parse_error_from_payload(payload_start, payload_len);
                 has_error = true;
                 break;
-            case 'G':// CopyInResponse(COPY ... FROM STDIN) — 不支持，报错断连避免假死
-                error_msg  = "COPY FROM STDIN is not supported by this client";
+            case 'G':// CopyInResponse — 本客户端不支持
+            case 'H':// CopyOutResponse — 本客户端不支持
+            case 'd':// CopyData — 本客户端不支持
+            case 'c':// CopyDone — 本客户端不支持
+                error_msg  = "COPY TO/FROM STDOUT is not supported by this client";
                 error_code = 8;
                 isclose    = true;
                 co_return (unsigned int) - 1;
@@ -3168,11 +3050,13 @@ RETRY_LABEL:
 
     error_msg.clear();
     error_code = 0;
+    notices_.clear();// B6: 每次查询清空，避免跨查询无限累积
 
     unsigned int n = write_sql(sql);
     if (n == 0)
     {
-        if (is_last_error_reconnectable() && retry < kMaxReconnect && try_reconnect())
+        // SELECT 幂等，但事务中重连会逃逸快照
+        if (!in_transaction_.load() && is_last_error_reconnectable() && retry < kMaxReconnect && try_reconnect())
         {
             retry++;
             error_msg.clear();
@@ -3205,15 +3089,11 @@ RETRY_LABEL:
         n = read_loop();
         if (n == 0)
         {
-            // 对端被杀/断连 → 读立即失败(CLOSE_WAIT 假写成功). SELECT 幂等, 可安全重连重发
-            if (retry < kMaxReconnect && is_last_error_reconnectable() && try_reconnect())
-            {
-                retry++;
-                error_msg.clear();
-                goto RETRY_LABEL;
-            }
+            // 读失败=回执丢失，结果不可知；换会话重发会掩掉错误并丢掉会话状态
+            isclose = true;// 读失败后连接已不可用，交回池时必须丢弃而不是复用
             if (error_msg.empty())
                 error_msg = "fetch_directly: read error";
+            error_code = 21;// 让调用方能区分"成功返回 N 行"与"断连半截"（Bug 1）
             return row_num;
         }
         // 流式路径不设累计上限（改前也没有）：handler 逐行消费 ⇒ 压缩把缓冲峰值钉在
@@ -3306,8 +3186,11 @@ RETRY_LABEL:
                 parse_error_from_payload(payload_start, payload_len);
                 handler_aborted = true;// 同样排干到 'Z'，保持连接可用
                 break;
-            case 'G':// CopyInResponse(COPY ... FROM STDIN) — 不支持，报错断连避免假死
-                error_msg  = "COPY FROM STDIN is not supported by this client";
+            case 'G':// CopyInResponse — 本客户端不支持
+            case 'H':// CopyOutResponse — 本客户端不支持
+            case 'd':// CopyData — 本客户端不支持
+            case 'c':// CopyDone — 本客户端不支持
+                error_msg  = "COPY TO/FROM STDOUT is not supported by this client";
                 error_code = 8;
                 isclose    = true;
                 return row_num;
@@ -3335,11 +3218,13 @@ RETRY_LABEL:
 
     error_msg.clear();
     error_code = 0;
+    notices_.clear();// B6: 每次查询清空，避免跨查询无限累积
 
     unsigned int n = co_await async_write_sql(sql);
     if (n == 0)
     {
-        if (is_last_error_reconnectable() && retry < kMaxReconnect && co_await async_try_reconnect())
+        // SELECT 幂等，但事务中重连会逃逸快照
+        if (!in_transaction_.load() && is_last_error_reconnectable() && retry < kMaxReconnect && co_await async_try_reconnect())
         {
             retry++;
             error_msg.clear();
@@ -3371,15 +3256,11 @@ RETRY_LABEL:
         n = co_await async_read_loop();
         if (n == 0)
         {
-            // 对端被杀/断连 → 读立即失败(CLOSE_WAIT 假写成功). SELECT 幂等, 可安全重连重发
-            if (retry < kMaxReconnect && is_last_error_reconnectable() && co_await async_try_reconnect())
-            {
-                retry++;
-                error_msg.clear();
-                goto RETRY_LABEL;
-            }
+            // 读失败=回执丢失，结果不可知；换会话重发会掩掉错误并丢掉会话状态
+            isclose = true;// 读失败后连接已不可用，交回池时必须丢弃而不是复用
             if (error_msg.empty())
                 error_msg = "async_fetch_directly: read error";
+            error_code = 21;// 让调用方能区分"成功返回 N 行"与"断连半截"（Bug 1）
             co_return row_num;
         }
         // 与 sync 孪生同：流式路径靠压缩定峰值，不设累计字节上限。
@@ -3469,8 +3350,11 @@ RETRY_LABEL:
                 parse_error_from_payload(payload_start, payload_len);
                 handler_aborted = true;
                 break;
-            case 'G':// CopyInResponse(COPY ... FROM STDIN) — 不支持，报错断连避免假死
-                error_msg  = "COPY FROM STDIN is not supported by this client";
+            case 'G':// CopyInResponse — 本客户端不支持
+            case 'H':// CopyOutResponse — 本客户端不支持
+            case 'd':// CopyData — 本客户端不支持
+            case 'c':// CopyDone — 本客户端不支持
+                error_msg  = "COPY TO/FROM STDOUT is not supported by this client";
                 error_code = 8;
                 isclose    = true;
                 co_return row_num;
@@ -3605,7 +3489,7 @@ void _append_str(std::string &out, const std::string &s)
 // 发送完整 buffer 到 socket（复用 write_sql 的 asio::write 模式）
 bool _pg_write_buf(pg_conn_base *self, const std::string &buf)
 {
-    if (self->isclose)
+    if (self->isclose || !self->conn_link)
         return false;
     try
     {
@@ -3641,7 +3525,7 @@ bool _pg_write_buf(pg_conn_base *self, const std::string &buf)
 // Extended Query / prepared statement 异步写辅助
 asio::awaitable<bool> _pg_async_write_buf(pg_conn_base *self, const std::string &buf)
 {
-    if (self->isclose)
+    if (self->isclose || !self->conn_link)
         co_return false;
     try
     {
@@ -3661,8 +3545,9 @@ asio::awaitable<bool> _pg_async_write_buf(pg_conn_base *self, const std::string 
         }
         if (ec)
         {
-            self->error_code = 20;
-            self->error_msg  = ec.message();
+            self->conn_link->ec = ec;   // 回写，使 is_last_error_reconnectable() 读到正确值
+            self->error_code    = 20;
+            self->error_msg     = ec.message();
             co_return false;
         }
     }
@@ -3690,7 +3575,7 @@ static void _append_bind_named(std::string &out,
     _append_str(p, "");
     _append_str(p, stmt_name);
     _append_i16(p, 0);
-    _append_i16(p, (int16_t)params.size());
+    _append_i16(p, (int16_t)(params.size() & 0xFFFF));   // PG 协议用 uint16，截断防溢出
     for (size_t i = 0; i < params.size(); ++i)
     {
         if (params[i].get_type() == http::obj_type::NIL)
@@ -4204,7 +4089,7 @@ static bool _decode_pg_binary_row(
         }
         case 1083:// time(no tz)
         case 1266:
-        {// timetz
+        {// timetz — PG binary: 8 字节 usec + 4 字节 tz_offset_sec
             if (vlen != (oid == 1266 ? 12 : 8))
                 return false;
             int64_t usec      = be_i64(pos);
@@ -4212,12 +4097,32 @@ static bool _decode_pg_binary_row(
             int h             = (int)(total_sec / 3600);
             int m             = (int)((total_sec % 3600) / 60);
             int s             = (int)(total_sec % 60);
-            int frac          = (int)(usec % 1000000);
-            char buf[32];
+            int frac      = (int)(usec % 1000000);
+            // PG 的 zone 字段是"西为正"的 UTC 偏移秒数，与显示符号相反，必须取反；
+            // 文本协议（EncodeTimezone）按整点 +08、含分 +05:30、含秒 +00:19:32 三段格式输出，这里逐字对齐，
+            // 两种协议读出的值才相等。符号作用于整个偏移，-00:30 不能因为小时位为 0 就打成 +00:30
+            const bool has_tz = (oid == 1266);
+            char tzbuf[12]    = {0};
+            if (has_tz)
+            {
+                int iso_tz_sec = -(int)be_i32(pos + 8);
+                int tz_abs     = std::abs(iso_tz_sec);
+                int tz_h       = tz_abs / 3600;
+                int tz_m       = (tz_abs % 3600) / 60;
+                int tz_s       = tz_abs % 60;
+                char sign      = (iso_tz_sec < 0) ? '-' : '+';
+                if (tz_s != 0)
+                    snprintf(tzbuf, sizeof(tzbuf), "%c%02d:%02d:%02d", sign, tz_h, tz_m, tz_s);
+                else if (tz_m != 0)
+                    snprintf(tzbuf, sizeof(tzbuf), "%c%02d:%02d", sign, tz_h, tz_m);
+                else
+                    snprintf(tzbuf, sizeof(tzbuf), "%c%02d", sign, tz_h);
+            }
+            char buf[40];
             if (frac > 0)
-                snprintf(buf, sizeof(buf), "%02d:%02d:%02d.%06d", h, m, s, frac);
+                snprintf(buf, sizeof(buf), "%02d:%02d:%02d.%06d%s", h, m, s, frac, tzbuf);
             else
-                snprintf(buf, sizeof(buf), "%02d:%02d:%02d", h, m, s);
+                snprintf(buf, sizeof(buf), "%02d:%02d:%02d%s", h, m, s, tzbuf);
             date_backing.push_back(buf);
             out_variants.push_back(orm::col_value_variant{std::string_view{date_backing.back()}});
             break;
@@ -4288,6 +4193,7 @@ unsigned int pg_conn_base::fetch_prepared_impl(
     unsigned int reconnect_attempt = 0;
 RETRY_RECONNECT:
     this->clear_error();
+    notices_.clear();// B6: 每次查询清空，避免跨查询无限累积
     unsigned int rows                = 0;
     constexpr size_t k_max_rows_text = 16u * 1024u * 1024u;
     std::vector<std::string> col_names;
@@ -4298,6 +4204,7 @@ RETRY_RECONNECT:
     {
         error_msg.clear();
         error_code = 0;
+        bool cold_wont_help = false;// E 帧给出的语义/约束类错误：冷路径重发同一语句不会改变结果
         col_names.clear();
         name_ptrs_cache.clear();
 
@@ -4347,9 +4254,8 @@ RETRY_RECONNECT:
         {
             error_msg  = "Extended Query write failed";
             error_code = 20;
-            if (warm)
-                prepared_meta_.erase(sql);
-            if (reconnect_attempt < kMaxReconnect && is_last_error_reconnectable() && try_reconnect())
+            prepared_meta_.erase(sql);   // 无论 warm/cold 都清理缓存（冷路径 upsert 的槽服务端从未 Parse）
+            if (!in_transaction_.load() && reconnect_attempt < kMaxReconnect && is_last_error_reconnectable() && try_reconnect())
             {
                 reconnect_attempt++;
                 goto RETRY_RECONNECT;
@@ -4358,9 +4264,10 @@ RETRY_RECONNECT:
             return rows;
         }
 
-        rows           = 0;
-        bool abandon   = false;
-        bool got_ready = false;
+        rows              = 0;
+        bool abandon      = false;
+        bool got_ready    = false;
+        bool got_row_desc = false;// 本轮是否拿到结果形状（'T' 或 'n'）：冷轮失败时据此决定槽位要不要重解析
 
         pooled_accum_buf accum_holder;
         std::vector<uint8_t> &accum_buf = accum_holder.buf;
@@ -4384,12 +4291,7 @@ RETRY_RECONNECT:
                 {
                     error_msg  = "read failed";
                     error_code = 21;
-                    // 对端被杀/断连 → 读立即失败(CLOSE_WAIT 假写成功). SELECT 幂等, 可安全重连重发
-                    if (reconnect_attempt < kMaxReconnect && is_last_error_reconnectable() && try_reconnect())
-                    {
-                        reconnect_attempt++;
-                        goto RETRY_RECONNECT;
-                    }
+                    // 读失败=回执丢失，结果不可知；换会话重发会掩掉错误并丢掉会话状态
                     isclose = true;
                     break;
                 }
@@ -4412,7 +4314,7 @@ RETRY_RECONNECT:
             {
             case '1': break;
             case '2': break;
-            case 'n': break;
+            case 'n': got_row_desc = true; break;// NoData：结果形状已知（无列）
             case 'C': break;
 
             case 'T':
@@ -4425,45 +4327,54 @@ RETRY_RECONNECT:
                 }
                 int16_t fc = static_cast<int16_t>(
                     (static_cast<unsigned char>(payload[0]) << 8) | static_cast<unsigned char>(payload[1]));
-                size_t pos = 2;
+                // 字段定长块的偏移表只维护一份：整段交给 _parse_row_description 解析出
+                // （列名, 类型 OID, 格式码）。text 轮同样要存 col_oids，否则同一 SQL 先走 text
+                // 再走 binary 时 warm 轮的 req_fmts 全空，只能靠 cold 重发一次。
+                std::vector<uint16_t> col_fmts_from_t;// text 路径按文本解码，格式码用不上
+                std::vector<std::string> parsed_names;
+                std::vector<uint32_t> parsed_oids;
+                _parse_row_description(reinterpret_cast<const unsigned char *>(payload.data()),
+                                       payload.size(),
+                                       parsed_names,
+                                       parsed_oids,
+                                       col_fmts_from_t);
                 col_names.clear();
-                for (int16_t i = 0; i < fc; ++i)
+                std::vector<uint32_t> col_oids_for_result;
+                if (fc < 0 || parsed_names.size() != static_cast<size_t>(fc))
                 {
-                    if (pos >= payload.size())
-                    {
-                        abandon = true;
-                        col_names.clear();
-                        break;
-                    }
-                    size_t start = pos;
-                    while (pos < payload.size() && payload[pos] != 0)
-                        pos++;
-                    col_names.emplace_back(payload.substr(start, pos - start));
-                    pos++;
-                    if (pos + 18 > payload.size())
-                    {
-                        abandon = true;
-                        col_names.clear();
-                        break;
-                    }
-                    pos += 18;
+                    // 解析器在任一字段定长块不完整时整段停止，列数对不上即载荷损坏
+                    abandon = true;
+                    break;
                 }
-                if (!abandon)
-                {
-                    auto &slot         = prepared_meta_.upsert(sql);
-                    slot.col_names     = col_names;
-                    slot.needs_reparse = false;
-                    name_ptrs_cache.clear();
-                    for (auto &n : col_names)
-                        name_ptrs_cache.push_back(n.data());
-                }
+                col_names           = std::move(parsed_names);
+                col_oids_for_result = std::move(parsed_oids);
+
+                auto &slot         = prepared_meta_.upsert(sql);
+                slot.col_names     = col_names;
+                slot.col_oids      = col_oids_for_result;
+                slot.needs_reparse = false;
+                got_row_desc       = true;
+                name_ptrs_cache.clear();
+                for (auto &n : col_names)
+                    name_ptrs_cache.push_back(n.data());
                 break;
             }
 
             case 'D':
             {
                 if (col_names.empty())
+                {
+                    // 热轮不带 Describe ⇒ 没有本轮 'T'。槽里若没有列信息（冷轮在 Describe 前失败过），
+                    // 这一行无从解释；静默跳过就成了「0 行 + 无错误」，所以置错让 need_cold
+                    // 摘掉槽位、用冷包重发一次。
+                    if (warm)
+                    {
+                        error_msg  = "fetch_prepared: DataRow without row description";
+                        error_code = 24;
+                        abandon    = true;
+                    }
                     break;
+                }
                 if (payload.size() < 2)
                 {
                     abandon = true;
@@ -4570,12 +4481,17 @@ RETRY_RECONNECT:
                     prepared_meta_.mark_needs_reparse(sql);
                 else if (_pg_sqlstate_is_transient(sqlstate))
                     prepared_meta_.erase(sql, &dropped);
+                else if (!sqlstate.empty())
+                    cold_wont_help = true;   // 语义/约束类错误（23505、22012…），重发同一语句没有意义
                 abandon = true;
                 break;
             }
             case 'G':
+            case 'H':
+            case 'd':
+            case 'c':
             {
-                error_msg  = "COPY FROM STDIN is not supported by this client";
+                error_msg  = "COPY TO/FROM STDOUT is not supported by this client";
                 error_code = 8;
                 isclose    = true;
                 got_ready  = true;
@@ -4609,10 +4525,17 @@ RETRY_RECONNECT:
         }
 
         const bool need_cold =
-            warm && !isclose && error_code != 21 &&
+            warm && rows == 0 && !cold_wont_help && !isclose && error_code != 21 &&
             error_code != 0;
         if (!need_cold)
+        {
+            // 冷轮在拿到结果形状之前就失败（Bind 参数转换错等）：语句已 Parse 成功，槽位里却
+            // 只有语句名、没有列信息。热轮没有 'T'，会按空元数据执行并把每一行静默丢掉。
+            // 标成待重解析：下一次调用重新走冷路径，旧语句名随冷包的 Close 释放。
+            if (!warm && !isclose && error_code != 0 && !got_row_desc)
+                prepared_meta_.mark_needs_reparse(sql);
             break;
+        }
         prepared_meta_.erase(sql, &dropped);
     }
     return rows;
@@ -4626,6 +4549,7 @@ unsigned int pg_conn_base::exec_dml_prepared_impl(
     unsigned int reconnect_attempt = 0;
 RETRY_RECONNECT:
     this->clear_error();
+    notices_.clear();// B6: 每次查询清空，避免跨查询无限累积
     unsigned int affected = (unsigned int)-1;
 
     pg_stmt_meta_t dropped;// PG-5: warm 轮摘掉的旧语句名，随下一轮冷包一起 DEALLOCATE
@@ -4633,6 +4557,8 @@ RETRY_RECONNECT:
     {
         error_msg.clear();
         error_code = 0;
+        bool cold_wont_help = false;// E 帧给出的语义/约束类错误：冷路径重发同一语句不会改变结果
+        notices_.clear();// B6: 每次查询清空，避免跨查询无限累积
 
         const pg_stmt_meta_t *m = (warm_attempt == 0) ? prepared_meta_.find(sql) : nullptr;
         const bool warm         = (m != nullptr && !m->needs_reparse);
@@ -4675,9 +4601,8 @@ RETRY_RECONNECT:
         {
             error_msg  = "Extended Query write failed";
             error_code = 20;
-            if (warm)
-                prepared_meta_.erase(sql);
-            if (reconnect_attempt < kMaxReconnect && is_last_error_reconnectable() && try_reconnect())
+            prepared_meta_.erase(sql);   // 无论 warm/cold 都清理缓存（冷路径 upsert 的槽服务端从未 Parse）
+            if (!in_transaction_.load() && reconnect_attempt < kMaxReconnect && is_last_error_reconnectable() && try_reconnect())
             {
                 reconnect_attempt++;
                 goto RETRY_RECONNECT;
@@ -4711,12 +4636,7 @@ RETRY_RECONNECT:
                 {
                     error_msg  = "read failed";
                     error_code = 21;
-                    // 对端被杀/断连 → 读立即失败. 自动提交下 PG 断连回滚隐式事务, DML 未落库, 可安全重连重发
-                    if (!in_transaction_.load() && reconnect_attempt < kMaxReconnect && is_last_error_reconnectable() && try_reconnect())
-                    {
-                        reconnect_attempt++;
-                        goto RETRY_RECONNECT;
-                    }
+                    // 写已上 wire 后读失败：语句可能已提交，重发会二次执行；连接判死交回池丢弃
                     isclose = true;
                     break;
                 }
@@ -4791,11 +4711,16 @@ RETRY_RECONNECT:
                     prepared_meta_.mark_needs_reparse(sql);
                 else if (_pg_sqlstate_is_transient(sqlstate))
                     prepared_meta_.erase(sql, &dropped);
+                else if (!sqlstate.empty())
+                    cold_wont_help = true;   // 语义/约束类错误（23505、22012…），重发同一语句没有意义
                 break;
             }
             case 'G':
+            case 'H':
+            case 'd':
+            case 'c':
             {
-                error_msg  = "COPY FROM STDIN is not supported by this client";
+                error_msg  = "COPY TO/FROM STDOUT is not supported by this client";
                 error_code = 8;
                 isclose    = true;
                 got_ready  = true;
@@ -4827,7 +4752,7 @@ RETRY_RECONNECT:
         }
 
         const bool need_cold =
-            warm && !isclose && error_code != 21 &&
+            warm && !cold_wont_help && !isclose && error_code != 21 &&
             error_code != 0;
         if (!need_cold)
             break;
@@ -4846,6 +4771,7 @@ RETRY_RECONNECT:
         co_return (unsigned int) - 1;
 
     this->clear_error();
+    notices_.clear();// B6: 每次查询清空，避免跨查询无限累积
     unsigned int affected = (unsigned int)-1;
 
     pg_stmt_meta_t dropped;// PG-5: warm 轮摘掉的旧语句名，随下一轮冷包一起 DEALLOCATE
@@ -4853,6 +4779,8 @@ RETRY_RECONNECT:
     {
         error_msg.clear();
         error_code = 0;
+        bool cold_wont_help = false;// E 帧给出的语义/约束类错误：冷路径重发同一语句不会改变结果
+        notices_.clear();// B6: 每次查询清空，避免跨查询无限累积
 
         const pg_stmt_meta_t *m = (warm_attempt == 0) ? prepared_meta_.find(sql) : nullptr;
         const bool warm         = (m != nullptr && !m->needs_reparse);
@@ -4895,9 +4823,8 @@ RETRY_RECONNECT:
         {
             error_msg  = "Extended Query async write failed";
             error_code = 20;
-            if (warm)
-                prepared_meta_.erase(sql);
-            if (reconnect_attempt < kMaxReconnect && is_last_error_reconnectable() && co_await async_try_reconnect())
+            prepared_meta_.erase(sql);   // 无论 warm/cold 都清理缓存（冷路径 upsert 的槽服务端从未 Parse）
+            if (!in_transaction_.load() && reconnect_attempt < kMaxReconnect && is_last_error_reconnectable() && co_await async_try_reconnect())
             {
                 reconnect_attempt++;
                 goto RETRY_RECONNECT;
@@ -4931,12 +4858,7 @@ RETRY_RECONNECT:
                 {
                     error_msg  = "async read failed";
                     error_code = 21;
-                    // 对端被杀/断连 → 读立即失败. 自动提交下 PG 断连回滚隐式事务, DML 未落库, 可安全重连重发
-                    if (!in_transaction_.load() && reconnect_attempt < kMaxReconnect && is_last_error_reconnectable() && co_await async_try_reconnect())
-                    {
-                        reconnect_attempt++;
-                        goto RETRY_RECONNECT;
-                    }
+                    // 写已上 wire 后读失败：语句可能已提交，重发会二次执行；连接判死交回池丢弃
                     isclose = true;
                     break;
                 }
@@ -5010,11 +4932,16 @@ RETRY_RECONNECT:
                     prepared_meta_.mark_needs_reparse(sql);
                 else if (_pg_sqlstate_is_transient(sqlstate))
                     prepared_meta_.erase(sql, &dropped);
+                else if (!sqlstate.empty())
+                    cold_wont_help = true;   // 语义/约束类错误（23505、22012…），重发同一语句没有意义
                 break;
             }
             case 'G':
+            case 'H':
+            case 'd':
+            case 'c':
             {
-                error_msg  = "COPY FROM STDIN is not supported by this client";
+                error_msg  = "COPY TO/FROM STDOUT is not supported by this client";
                 error_code = 8;
                 isclose    = true;
                 got_ready  = true;
@@ -5046,7 +4973,7 @@ RETRY_RECONNECT:
         }
 
         const bool need_cold =
-            warm && !isclose && error_code != 21 && error_code != 0;
+            warm && !cold_wont_help && !isclose && error_code != 21 && error_code != 0;
         if (!need_cold)
             break;
         prepared_meta_.erase(sql, &dropped);
@@ -5129,6 +5056,7 @@ RETRY_RECONNECT:
         co_return 0;
 
     this->clear_error();
+    notices_.clear();// B6: 每次查询清空，避免跨查询无限累积
     unsigned int rows = 0;
     std::vector<std::string> col_names;
     std::vector<char *> name_ptrs_cache;
@@ -5138,6 +5066,7 @@ RETRY_RECONNECT:
     {
         error_msg.clear();
         error_code = 0;
+        bool cold_wont_help = false;// E 帧给出的语义/约束类错误：冷路径重发同一语句不会改变结果
         col_names.clear();
         name_ptrs_cache.clear();
 
@@ -5186,9 +5115,8 @@ RETRY_RECONNECT:
         {
             error_msg  = "Extended Query async write failed";
             error_code = 20;
-            if (warm)
-                prepared_meta_.erase(sql);
-            if (reconnect_attempt < kMaxReconnect && is_last_error_reconnectable() && co_await async_try_reconnect())
+            prepared_meta_.erase(sql);   // 无论 warm/cold 都清理缓存（冷路径 upsert 的槽服务端从未 Parse）
+            if (!in_transaction_.load() && reconnect_attempt < kMaxReconnect && is_last_error_reconnectable() && co_await async_try_reconnect())
             {
                 reconnect_attempt++;
                 goto RETRY_RECONNECT;
@@ -5197,9 +5125,10 @@ RETRY_RECONNECT:
             co_return 0;
         }
 
-        rows           = 0;
-        bool got_ready = false;
-        bool abandon   = false;
+        rows              = 0;
+        bool got_ready    = false;
+        bool abandon      = false;
+        bool got_row_desc = false;// 本轮是否拿到结果形状（'T' 或 'n'）：冷轮失败时据此决定槽位要不要重解析
 
         pooled_accum_buf accum_holder;
         std::vector<uint8_t> &accum_buf = accum_holder.buf;
@@ -5212,12 +5141,7 @@ RETRY_RECONNECT:
             {
                 error_msg  = "async read failed";
                 error_code = 21;
-                // 对端被杀/断连 → 读立即失败(CLOSE_WAIT 假写成功). SELECT 幂等, 可安全重连重发
-                if (reconnect_attempt < kMaxReconnect && is_last_error_reconnectable() && co_await async_try_reconnect())
-                {
-                    reconnect_attempt++;
-                    goto RETRY_RECONNECT;
-                }
+                // 读失败=回执丢失，结果不可知；换会话重发会掩掉错误并丢掉会话状态
                 isclose = true;
                 break;
             }
@@ -5249,7 +5173,7 @@ RETRY_RECONNECT:
                 {
                 case '1': break;
                 case '2': break;
-                case 'n': break;
+                case 'n': got_row_desc = true; break;// NoData：结果形状已知（无列）
                 case 'C': break;
 
                 case 'T':
@@ -5261,45 +5185,54 @@ RETRY_RECONNECT:
                     }
                     int16_t fc = static_cast<int16_t>(
                         (static_cast<unsigned char>(payload[0]) << 8) | static_cast<unsigned char>(payload[1]));
-                    size_t pos = 2;
+                    // 字段定长块的偏移表只维护一份：整段交给 _parse_row_description 解析出
+                    // （列名, 类型 OID, 格式码）。text 轮同样要存 col_oids，否则同一 SQL 先走 text
+                    // 再走 binary 时 warm 轮的 req_fmts 全空，只能靠 cold 重发一次。
+                    std::vector<uint16_t> col_fmts_from_t;// text 路径按文本解码，格式码用不上
+                    std::vector<std::string> parsed_names;
+                    std::vector<uint32_t> parsed_oids;
+                    _parse_row_description(reinterpret_cast<const unsigned char *>(payload.data()),
+                                           payload.size(),
+                                           parsed_names,
+                                           parsed_oids,
+                                           col_fmts_from_t);
                     col_names.clear();
-                    for (int16_t i = 0; i < fc; ++i)
+                    std::vector<uint32_t> col_oids_for_result;
+                    if (fc < 0 || parsed_names.size() != static_cast<size_t>(fc))
                     {
-                        if (pos >= payload.size())
-                        {
-                            abandon = true;
-                            col_names.clear();
-                            break;
-                        }
-                        size_t start = pos;
-                        while (pos < payload.size() && payload[pos] != 0)
-                            pos++;
-                        col_names.emplace_back(payload.substr(start, pos - start));
-                        pos++;
-                        if (pos + 18 > payload.size())
-                        {
-                            abandon = true;
-                            col_names.clear();
-                            break;
-                        }
-                        pos += 18;
+                        // 解析器在任一字段定长块不完整时整段停止，列数对不上即载荷损坏
+                        abandon = true;
+                        break;
                     }
-                    if (!abandon)
-                    {
-                        auto &slot         = prepared_meta_.upsert(sql);
-                        slot.col_names     = col_names;
-                        slot.needs_reparse = false;
-                        name_ptrs_cache.clear();
-                        for (auto &cn : col_names)
-                            name_ptrs_cache.push_back(cn.data());
-                    }
+                    col_names           = std::move(parsed_names);
+                    col_oids_for_result = std::move(parsed_oids);
+
+                    auto &slot         = prepared_meta_.upsert(sql);
+                    slot.col_names     = col_names;
+                    slot.col_oids      = col_oids_for_result;
+                    slot.needs_reparse = false;
+                    got_row_desc       = true;
+                    name_ptrs_cache.clear();
+                    for (auto &cn : col_names)
+                        name_ptrs_cache.push_back(cn.data());
                     break;
                 }
 
                 case 'D':
                 {
                     if (col_names.empty())
+                    {
+                        // 热轮不带 Describe ⇒ 没有本轮 'T'。槽里若没有列信息（冷轮在 Describe 前失败过），
+                        // 这一行无从解释；静默跳过就成了「0 行 + 无错误」，所以置错让 need_cold
+                        // 摘掉槽位、用冷包重发一次。
+                        if (warm)
+                        {
+                            error_msg  = "async_fetch_prepared: DataRow without row description";
+                            error_code = 24;
+                            abandon    = true;
+                        }
                         break;
+                    }
                     if (payload.size() < 2)
                     {
                         abandon = true;
@@ -5382,6 +5315,7 @@ RETRY_RECONNECT:
                 {
                     parse_error_from_payload((const unsigned char *)payload.data(),
                                              static_cast<unsigned int>(payload.size()));
+                    error_code = 22;// 与 sync 预编译 / exec_dml 统一错误码口径
                     std::string sqlstate = _extract_sqlstate(
                         (const unsigned char *)payload.data(),
                         payload.size());
@@ -5389,12 +5323,17 @@ RETRY_RECONNECT:
                         prepared_meta_.mark_needs_reparse(sql);
                     else if (_pg_sqlstate_is_transient(sqlstate))
                         prepared_meta_.erase(sql, &dropped);
+                    else if (!sqlstate.empty())
+                        cold_wont_help = true;   // 语义/约束类错误（23505、22012…），重发同一语句没有意义
                     abandon = true;
                     break;
                 }
                 case 'G':
+                case 'H':
+                case 'd':
+                case 'c':
                 {
-                    error_msg  = "COPY FROM STDIN is not supported by this client";
+                    error_msg  = "COPY TO/FROM STDOUT is not supported by this client";
                     error_code = 8;
                     isclose    = true;
                     got_ready  = true;
@@ -5429,10 +5368,17 @@ RETRY_RECONNECT:
         }
 
         const bool need_cold =
-            warm && !isclose && error_code != 21 &&
+            warm && rows == 0 && !cold_wont_help && !isclose && error_code != 21 &&
             error_code != 0;
         if (!need_cold)
+        {
+            // 冷轮在拿到结果形状之前就失败（Bind 参数转换错等）：语句已 Parse 成功，槽位里却
+            // 只有语句名、没有列信息。热轮没有 'T'，会按空元数据执行并把每一行静默丢掉。
+            // 标成待重解析：下一次调用重新走冷路径，旧语句名随冷包的 Close 释放。
+            if (!warm && !isclose && error_code != 0 && !got_row_desc)
+                prepared_meta_.mark_needs_reparse(sql);
             break;
+        }
         prepared_meta_.erase(sql, &dropped);
     }
     co_return rows;
@@ -5518,8 +5464,12 @@ std::string pg_conn_base::pg_stmt_meta_cache::next_stmt_name()
 
 // ===== PG Extended Query SELECT BINARY (sync) =====
 // 冷/热分派 + warm 失败轮内重发一次（§17.2 / W2-5）。
-// 不变式（Wave 2 全部正确性论证都压在它上面）：
-//   缓存只用来决定「这次向服务端要什么格式」；解码永远只用本轮 'T' 实际给出的 (OID, format)。
+// 热包不带 Describe ⇒ 热轮没有本轮 'T'，列名/OID/格式码只能取自冷轮写入的槽位。
+// 正确性依赖：
+//   a) 本轮 req_fmts 与解码用的 col_oids/col_formats 同源自同一个槽位，格式始终自洽；
+//   b) 语句的结果类型若在服务端变了，Bind 阶段就会失败（0A000 结果类型变更 /
+//      08P01 列格式计数不符），不会出现按旧宽度解码新行。列名单独变更服务器不报错，
+//      但缓存 key 是 SQL 原文、生成的是显式列名表，同一条 SQL 换不出别的列名。
 unsigned int pg_conn_base::fetch_prepared_impl_binary(
     const std::string &sql,
     const std::vector<http::obj_val> &params,
@@ -5541,6 +5491,8 @@ RETRY_RECONNECT:
     {
         error_msg.clear();
         error_code = 0;
+        bool cold_wont_help = false;// E 帧给出的语义/约束类错误：冷路径重发同一语句不会改变结果
+        notices_.clear();// B6: 每次查询清空，避免跨查询无限累积
 
         const pg_stmt_meta_t *m = (warm_attempt == 0) ? prepared_meta_.find(sql) : nullptr;
         const bool warm         = (m != nullptr && !m->needs_reparse);
@@ -5595,9 +5547,8 @@ RETRY_RECONNECT:
         {
             error_msg  = "Extended Query write failed";
             error_code = 20;
-            if (warm)
-                prepared_meta_.erase(sql);
-            if (reconnect_attempt < kMaxReconnect && is_last_error_reconnectable() && try_reconnect())
+            prepared_meta_.erase(sql);   // 无论 warm/cold 都清理缓存（冷路径 upsert 的槽服务端从未 Parse）
+            if (!in_transaction_.load() && reconnect_attempt < kMaxReconnect && is_last_error_reconnectable() && try_reconnect())
             {
                 reconnect_attempt++;
                 goto RETRY_RECONNECT;
@@ -5606,8 +5557,9 @@ RETRY_RECONNECT:
             return rows;
         }
 
-        bool abandon   = false;
-        bool got_ready = false;
+        bool abandon      = false;
+        bool got_ready    = false;
+        bool got_row_desc = false;// 本轮是否拿到结果形状（'T' 或 'n'）：冷轮失败时据此决定槽位要不要重解析
         if (!warm)
         {
             col_names.clear();
@@ -5637,12 +5589,7 @@ RETRY_RECONNECT:
                 {
                     error_msg  = "read failed";
                     error_code = 21;
-                    // 对端被杀/断连 → 读立即失败(CLOSE_WAIT 假写成功). SELECT 幂等, 可安全重连重发
-                    if (reconnect_attempt < kMaxReconnect && is_last_error_reconnectable() && try_reconnect())
-                    {
-                        reconnect_attempt++;
-                        goto RETRY_RECONNECT;
-                    }
+                    // 读失败=回执丢失，结果不可知；换会话重发会掩掉错误并丢掉会话状态
                     isclose = true;
                     break;
                 }
@@ -5665,6 +5612,7 @@ RETRY_RECONNECT:
             {
             case '1': break;
             case '3': break;
+            case 'n': got_row_desc = true; break;// NoData：结果形状已知（无列）
 
             case 'T':
             {
@@ -5678,6 +5626,7 @@ RETRY_RECONNECT:
                 slot.col_fmt       = col_formats;
                 slot.col_names     = col_names;
                 slot.needs_reparse = false;
+                got_row_desc       = true;
                 row_variants.reserve(col_oids_for_result.size());
                 name_ptrs_cache.clear();
                 name_ptrs_cache.reserve(col_names.size());
@@ -5689,7 +5638,18 @@ RETRY_RECONNECT:
             case 'D':
             {
                 if (col_names.empty())
+                {
+                    // 热轮不带 Describe ⇒ 没有本轮 'T'。槽里若没有列信息（冷轮在 Describe 前失败过），
+                    // 这一行无从解释；静默跳过就成了「0 行 + 无错误」，所以置错让 need_cold
+                    // 摘掉槽位、用冷包重发一次。
+                    if (warm)
+                    {
+                        error_msg  = "fetch_prepared_binary: DataRow without row description";
+                        error_code = 24;
+                        abandon    = true;
+                    }
                     break;
+                }
                 if (payload.size() < 2)
                 {
                     abandon = true;
@@ -5759,11 +5719,16 @@ RETRY_RECONNECT:
                     prepared_meta_.mark_needs_reparse(sql);
                 else if (_pg_sqlstate_is_transient(sqlstate))
                     prepared_meta_.erase(sql, &dropped);
+                else if (!sqlstate.empty())
+                    cold_wont_help = true;   // 语义/约束类错误（23505、22012…），重发同一语句没有意义
                 break;
             }
             case 'G':
+            case 'H':
+            case 'd':
+            case 'c':
             {
-                error_msg  = "COPY FROM STDIN is not supported by this client";
+                error_msg  = "COPY TO/FROM STDOUT is not supported by this client";
                 error_code = 8;
                 isclose    = true;
                 got_ready  = true;
@@ -5796,10 +5761,17 @@ RETRY_RECONNECT:
         }
 
         const bool need_cold =
-            warm && rows == 0 && !isclose && error_code != 21 &&
+            warm && rows == 0 && !cold_wont_help && !isclose && error_code != 21 &&
             error_code != 0;
         if (!need_cold)
+        {
+            // 冷轮在拿到结果形状之前就失败（Bind 参数转换错等）：语句已 Parse 成功，槽位里却
+            // 只有语句名、没有列信息。热轮没有 'T'，会按空元数据执行并把每一行静默丢掉。
+            // 标成待重解析：下一次调用重新走冷路径，旧语句名随冷包的 Close 释放。
+            if (!warm && !isclose && error_code != 0 && !got_row_desc)
+                prepared_meta_.mark_needs_reparse(sql);
             break;
+        }
         prepared_meta_.erase(sql, &dropped);
     }
     return rows;
@@ -5827,6 +5799,8 @@ RETRY_RECONNECT:
     {
         error_msg.clear();
         error_code = 0;
+        bool cold_wont_help = false;// E 帧给出的语义/约束类错误：冷路径重发同一语句不会改变结果
+        notices_.clear();// B6: 每次查询清空，避免跨查询无限累积
 
         const pg_stmt_meta_t *m = (warm_attempt == 0) ? prepared_meta_.find(sql) : nullptr;
         const bool warm         = (m != nullptr && !m->needs_reparse);
@@ -5881,9 +5855,8 @@ RETRY_RECONNECT:
         {
             error_msg  = "Extended Query async write failed";
             error_code = 20;
-            if (warm)
-                prepared_meta_.erase(sql);
-            if (reconnect_attempt < kMaxReconnect && is_last_error_reconnectable() && co_await async_try_reconnect())
+            prepared_meta_.erase(sql);   // 无论 warm/cold 都清理缓存（冷路径 upsert 的槽服务端从未 Parse）
+            if (!in_transaction_.load() && reconnect_attempt < kMaxReconnect && is_last_error_reconnectable() && co_await async_try_reconnect())
             {
                 reconnect_attempt++;
                 goto RETRY_RECONNECT;
@@ -5892,8 +5865,9 @@ RETRY_RECONNECT:
             co_return rows;
         }
 
-        bool got_ready = false;
-        bool abandon   = false;
+        bool got_ready    = false;
+        bool abandon      = false;
+        bool got_row_desc = false;// 本轮是否拿到结果形状（'T' 或 'n'）：冷轮失败时据此决定槽位要不要重解析
         if (!warm)
         {
             col_names.clear();
@@ -5911,12 +5885,7 @@ RETRY_RECONNECT:
             {
                 error_msg  = "async read failed";
                 error_code = 21;
-                // 对端被杀/断连 → 读立即失败(CLOSE_WAIT 假写成功). SELECT 幂等, 可安全重连重发
-                if (reconnect_attempt < kMaxReconnect && is_last_error_reconnectable() && co_await async_try_reconnect())
-                {
-                    reconnect_attempt++;
-                    goto RETRY_RECONNECT;
-                }
+                // 读失败=回执丢失，结果不可知；换会话重发会掩掉错误并丢掉会话状态
                 isclose = true;
                 break;
             }
@@ -5947,6 +5916,7 @@ RETRY_RECONNECT:
                 {
                 case '1': break;
                 case '3': break;
+                case 'n': got_row_desc = true; break;// NoData：结果形状已知（无列）
 
                 case 'T':
                 {
@@ -5960,6 +5930,7 @@ RETRY_RECONNECT:
                     slot.col_fmt       = col_formats;
                     slot.col_names     = col_names;
                     slot.needs_reparse = false;
+                    got_row_desc       = true;
                     row_variants.reserve(col_oids_for_result.size());
                     name_ptrs_cache.clear();
                     name_ptrs_cache.reserve(col_names.size());
@@ -5971,7 +5942,18 @@ RETRY_RECONNECT:
                 case 'D':
                 {
                     if (col_names.empty())
+                    {
+                        // 热轮不带 Describe ⇒ 没有本轮 'T'。槽里若没有列信息（冷轮在 Describe 前失败过），
+                        // 这一行无从解释；静默跳过就成了「0 行 + 无错误」，所以置错让 need_cold
+                        // 摘掉槽位、用冷包重发一次。
+                        if (warm)
+                        {
+                            error_msg  = "async_fetch_prepared_binary: DataRow without row description";
+                            error_code = 24;
+                            abandon    = true;
+                        }
                         break;
+                    }
                     if (payload.size() < 2)
                     {
                         abandon = true;
@@ -6018,6 +6000,7 @@ RETRY_RECONNECT:
                 {
                     parse_error_from_payload((const unsigned char *)payload.data(),
                                              static_cast<unsigned int>(payload.size()));
+                    error_code = 22;// 与 sync 预编译 / exec_dml 统一错误码口径
                     std::string sqlstate = _extract_sqlstate(
                         (const unsigned char *)payload.data(),
                         payload.size());
@@ -6025,11 +6008,16 @@ RETRY_RECONNECT:
                         prepared_meta_.mark_needs_reparse(sql);
                     else if (_pg_sqlstate_is_transient(sqlstate))
                         prepared_meta_.erase(sql, &dropped);
+                    else if (!sqlstate.empty())
+                        cold_wont_help = true;   // 语义/约束类错误（23505、22012…），重发同一语句没有意义
                     break;
                 }
                 case 'G':
+                case 'H':
+                case 'd':
+                case 'c':
                 {
-                    error_msg  = "COPY FROM STDIN is not supported by this client";
+                    error_msg  = "COPY TO/FROM STDOUT is not supported by this client";
                     error_code = 8;
                     isclose    = true;
                     got_ready  = true;
@@ -6063,10 +6051,17 @@ RETRY_RECONNECT:
         }
 
         const bool need_cold =
-            warm && rows == 0 && !isclose && error_code != 21 &&
+            warm && rows == 0 && !cold_wont_help && !isclose && error_code != 21 &&
             error_code != 0;
         if (!need_cold)
+        {
+            // 冷轮在拿到结果形状之前就失败（Bind 参数转换错等）：语句已 Parse 成功，槽位里却
+            // 只有语句名、没有列信息。热轮没有 'T'，会按空元数据执行并把每一行静默丢掉。
+            // 标成待重解析：下一次调用重新走冷路径，旧语句名随冷包的 Close 释放。
+            if (!warm && !isclose && error_code != 0 && !got_row_desc)
+                prepared_meta_.mark_needs_reparse(sql);
             break;
+        }
         prepared_meta_.erase(sql, &dropped);
     }
     co_return rows;

@@ -1,5 +1,6 @@
 // 真实 PG 连接层操作方式探针：预编译 SELECT / binary / 参数类型 / 事务 /
-// 断线重连 / ping / 错误恢复 / 异步 / 多线程预编译。
+// 断线重连 / ping / 错误恢复 / 异步 / 多线程预编译，以及中止事务 ping、
+// 事务中断连的读失败、warm 轮撞唯一约束不重发。
 #include <asio.hpp>
 
 #include <atomic>
@@ -98,6 +99,20 @@ struct bin_capture
         return true;
     }
 };
+
+static long long scalar_ll(conn_t &c, const std::string &sql)
+{
+    long long v = -1;
+    c->fetch_directly(sql,
+                      [&v](int, char **, auto get) -> bool
+                      {
+                          auto [p, l] = get(0);
+                          if (p)
+                              v = std::stoll(std::string(reinterpret_cast<char *>(p), l));
+                          return true;
+                      });
+    return v;
+}
 
 static std::string hex_of(const std::string &s)
 {
@@ -358,6 +373,46 @@ int main(int argc, char **argv)
         pool->back_pg_select_conn(std::move(sel));
     }
 
+    // ---- warm 轮撞唯一约束：不许冷重发 ----
+    {
+        auto c = pool->get_pg_edit_conn();
+        c->clear_error();
+        c->exec_dml("DROP TABLE IF EXISTS _pgprobe_dup");
+        c->exec_dml("DROP SEQUENCE IF EXISTS _pgprobe_dup_seq");
+        c->exec_dml("CREATE SEQUENCE _pgprobe_dup_seq START 1");
+        c->exec_dml("CREATE TABLE _pgprobe_dup (id INT PRIMARY KEY, s TEXT)");
+        expect(c->error_msg.empty(), "dup_setup", c->error_msg);
+
+        // nextval 不随语句回滚：冷重发一次就多前进一格，把"重发了几次"变成可读数
+        const std::string dup_sql =
+            "INSERT INTO _pgprobe_dup (id, s) VALUES (1, nextval('_pgprobe_dup_seq')::text) -- 23505 probe";
+        std::vector<http::obj_val> no_params;
+        unsigned int first = c->exec_dml_prepared(dup_sql, no_params);
+        expect(first == 1, "dup_insert_first", "n=" + std::to_string(first) + " err=" + c->error_msg);
+
+        long long seq_before = scalar_ll(c, "SELECT last_value FROM _pgprobe_dup_seq");
+        c->prepared_reset_stats();
+        unsigned int second = c->exec_dml_prepared(dup_sql, no_params);
+        std::string serr    = c->error_msg;
+        uint64_t smiss      = c->prepared_misses();
+        uint64_t shit       = c->prepared_hits();
+        long long seq_after = scalar_ll(c, "SELECT last_value FROM _pgprobe_dup_seq");
+        reading("warm_23505_error", serr);
+        reading("warm_23505_seq_before", std::to_string(seq_before));
+        reading("warm_23505_seq_after", std::to_string(seq_after));
+        reading("warm_23505_misses", std::to_string(smiss));
+        reading("warm_23505_hits", std::to_string(shit));
+        expect(second == static_cast<unsigned int>(-1) && !serr.empty(), "warm_23505_rejected", serr);
+        expect(seq_before > 0 && seq_after == seq_before + 1, "warm_23505_no_cold_resend",
+               "before=" + std::to_string(seq_before) + " after=" + std::to_string(seq_after));
+        expect(smiss == 0 && shit >= 1, "warm_23505_stays_warm",
+               "hits=" + std::to_string(shit) + " misses=" + std::to_string(smiss));
+
+        c->exec_dml("DROP TABLE _pgprobe_dup");
+        c->exec_dml("DROP SEQUENCE _pgprobe_dup_seq");
+        pool->back_pg_edit_conn(std::move(c));
+    }
+
     // ---- 大行：1MB 文本跨 DataRow 报文组装 ----
     {
         std::string big(1024 * 1024, 'x');
@@ -438,6 +493,27 @@ int main(int argc, char **argv)
         pool->back_pg_edit_conn(std::move(c));
     }
 
+    // ---- 中止事务上的 ping：必须报错，且不留残帧 ----
+    {
+        auto c = pool->get_pg_edit_conn();
+        c->exec_dml("BEGIN");
+        // 让事务进入 aborted 态：随后的 SELECT 1 会收到 25P02 ErrorResponse
+        c->exec_dml("SELECT * FROM no_such_table_ping");
+        expect(c->in_transaction(), "ping_aborted_arm", c->error_msg);
+
+        bool alive       = c->ping();
+        std::string perr = c->error_msg;
+        reading("ping_aborted_error", perr);
+        reading("ping_aborted_code", std::to_string(c->error_code));
+        expect(!alive && !perr.empty() && c->error_code == 21, "ping_aborted_txn_false", perr);
+
+        // ping 的 ErrorResponse 后面还有一条 ReadyForQuery；没读掉的话这里会先吃到它
+        c->exec_dml("ROLLBACK");
+        expect(!c->in_transaction(), "ping_aborted_rollback_ok", c->error_msg);
+        expect(c->ping(), "ping_after_rollback", c->error_msg);
+        pool->back_pg_edit_conn(std::move(c));
+    }
+
     // ---- 错误恢复：SQL 错误后连接仍可用 ----
     {
         auto c = pool->get_pg_edit_conn();
@@ -481,7 +557,53 @@ int main(int argc, char **argv)
         pool->back_pg_edit_conn(std::move(c));
     }
 
-    // ---- 自动提交语义下杀后端：透明重连 ----
+    // ---- 事务中杀后端：SELECT 读路径同样不许重连重发 ----
+    {
+        auto killer = pool->get_pg_edit_conn();
+        // 两条受害者先取到手，避免断连的旧连接经池的 FIFO 被下一段拿走
+        auto v1 = pool->get_pg_edit_conn();
+        auto v2 = pool->get_pg_edit_conn();
+        std::vector<http::obj_val> pp = {http::obj_val(42)};
+
+        // (a) 文本路径：重连重发会连到新会话并返回 1 行
+        long long pid1 = backend_pid(v1);
+        v1->exec_dml("BEGIN");
+        expect(v1->in_transaction(), "txn_kill_read_direct_arm", v1->error_msg);
+        row_capture k1;
+        killer->fetch_directly("SELECT pg_terminate_backend(" + std::to_string(pid1) + ")", std::ref(k1));
+        row_capture r1;
+        unsigned int n1 = v1->fetch_directly("SELECT 1", std::ref(r1));
+        std::string e1  = v1->error_msg;
+        reading("txn_kill_read_direct_rows", std::to_string(n1));
+        reading("txn_kill_read_direct_error", e1);
+        reading("txn_kill_read_direct_is_closed", v1->is_closed() ? "1" : "0");
+        reading("txn_kill_read_direct_isclose", v1->isclose ? "1" : "0");
+        // 读失败必须把自己标记为不可用，否则池会把死连接再交出去
+        expect(n1 == 0 && !e1.empty() && v1->isclose, "txn_kill_read_direct_fails", e1);
+        pool->back_pg_edit_conn(std::move(v1));
+
+        // (b) 预编译路径：warm 命中后被断连，冷重发同样会凭空返回 1 行
+        long long pid2 = backend_pid(v2);
+        row_capture warmup;
+        v2->fetch_prepared("SELECT s FROM _pgprobe_real WHERE i = $1", pp, std::ref(warmup));
+        v2->exec_dml("BEGIN");
+        expect(v2->in_transaction(), "txn_kill_read_prepared_arm", v2->error_msg);
+        row_capture k2;
+        killer->fetch_directly("SELECT pg_terminate_backend(" + std::to_string(pid2) + ")", std::ref(k2));
+        row_capture r2;
+        unsigned int n2 = v2->fetch_prepared("SELECT s FROM _pgprobe_real WHERE i = $1", pp, std::ref(r2));
+        std::string e2  = v2->error_msg;
+        reading("txn_kill_read_prepared_rows", std::to_string(n2));
+        reading("txn_kill_read_prepared_error", e2);
+        reading("txn_kill_read_prepared_isclose", v2->isclose ? "1" : "0");
+        expect(n2 == 0 && !e2.empty() && v2->isclose, "txn_kill_read_prepared_fails", e2);
+        pool->back_pg_edit_conn(std::move(v2));
+
+        expect(killer->ping(), "pool_healthy_after_txn_read_kill", killer->error_msg);
+        pool->back_pg_edit_conn(std::move(killer));
+    }
+
+    // ---- 自动提交语义下杀后端：读失败必须报错并判死，不重连重发 ----
     {
         auto victim = pool->get_pg_edit_conn();
         long long pid1 = backend_pid(victim);
@@ -490,20 +612,45 @@ int main(int argc, char **argv)
         other->fetch_directly("SELECT pg_terminate_backend(" + std::to_string(pid1) + ")", std::ref(kcap));
         pool->back_pg_edit_conn(std::move(other));
 
+        // 写已上 wire、回执丢失 ⇒ 结果不可知：报错并把连接判死
         row_capture cap;
         unsigned int rows = victim->fetch_directly("SELECT pg_backend_pid()", std::ref(cap));
-        long long pid2 = (rows == 1 && cap.vals.size() == 1) ? std::stoll(cap.vals[0][0]) : -1;
+        std::string e1    = victim->error_msg;
         reading("autocommit_pid_before", std::to_string(pid1));
-        reading("autocommit_pid_after", std::to_string(pid2));
-        expect(rows == 1 && pid2 > 0 && pid2 != pid1, "autocommit_reconnect");
+        reading("autocommit_rows_after_kill", std::to_string(rows));
+        reading("autocommit_error_code", std::to_string(victim->error_code));
+        reading("autocommit_error", e1);
+        reading("autocommit_isclose", victim->isclose ? "1" : "0");
+        expect(rows == 0 && !e1.empty() && victim->isclose, "autocommit_read_fails", e1);
 
-        // 重连后同一对象立即走 prepared：hard_close 已清空元数据缓存，必须重新 Parse
+        // 同一对象不得凭空复活
+        unsigned int again = victim->fetch_directly("SELECT 1", std::ref(cap));
+        reading("autocommit_second_rows", std::to_string(again));
+        expect(again == 0 && victim->isclose, "autocommit_no_reconnect_same_object");
+
+        // 交回池必须被丢弃：池里不得出现判死的连接
+        pool->back_pg_edit_conn(std::move(victim));
+        bool any_dead = false;
+        for (auto &c : pool->pg_edit_pool)
+            if (c->isclose || c->is_closed())
+                any_dead = true;
+        reading("autocommit_dead_conn_pooled", any_dead ? "1" : "0");
+        expect(!any_dead, "pool_drops_dead_conn");
+
+        // 池里剩下的连接都可用；prepared 在新会话上重新 Parse
+        auto fresh    = pool->get_pg_edit_conn();
+        row_capture fcap;
+        unsigned int frows = fresh->fetch_directly("SELECT pg_backend_pid()", std::ref(fcap));
+        long long pid2 = (frows == 1 && fcap.vals.size() == 1) ? std::stoll(fcap.vals[0][0]) : -1;
+        reading("autocommit_pid_after", std::to_string(pid2));
+        expect(frows == 1 && pid2 > 0 && pid2 != pid1, "pool_healthy_after_read_kill", fresh->error_msg);
+
         row_capture pcap;
         std::vector<http::obj_val> pp = {http::obj_val(42)};
-        unsigned int prows = victim->fetch_prepared("SELECT s FROM _pgprobe_real WHERE i = $1", pp, std::ref(pcap));
+        unsigned int prows = fresh->fetch_prepared("SELECT s FROM _pgprobe_real WHERE i = $1", pp, std::ref(pcap));
         expect(prows == 1 && pcap.vals.size() == 1 && pcap.vals[0][0] == "quote'd; drop",
-               "prepared_after_reconnect", "rows=" + std::to_string(prows) + " err=" + victim->error_msg);
-        pool->back_pg_edit_conn(std::move(victim));
+               "prepared_on_fresh_conn", "rows=" + std::to_string(prows) + " err=" + fresh->error_msg);
+        pool->back_pg_edit_conn(std::move(fresh));
     }
 
     // ---- 异步入口 ----
@@ -560,6 +707,110 @@ int main(int argc, char **argv)
         expect(out.bin_rows2 == 1 && out.bin_types2 == "1" && out.bin_i_hex2 == "3432",
                "async_binary_warm", "hex=" + out.bin_i_hex2 + " type=" + out.bin_types2);
         pool->back_pg_edit_conn(std::move(aedit));
+        pool->back_pg_select_conn(std::move(asel));
+    }
+
+    // ---- 冷轮在 Describe 之前失败（Bind 参数转换错）：槽位不得带空列信息进热轮 ----
+    {
+        auto sel = pool->get_pg_select_conn();
+        std::vector<http::obj_val> bad  = {http::obj_val("abc")};
+        std::vector<http::obj_val> good = {http::obj_val(42)};
+
+        // 文本路径：第一次冷包 Parse 成功、Bind 失败 ⇒ 槽位只有语句名；
+        // 第二次同 SQL 用合法参数必须取回那一行（旧实现在热轮按空列信息静默丢行，返回 0 行且无错误）。
+        const std::string tsql = "SELECT i FROM _pgprobe_real WHERE i = $1 -- bind_err probe";
+        row_capture tc1;
+        unsigned int tr1  = sel->fetch_prepared(tsql, bad, std::ref(tc1));
+        std::string terr1 = sel->error_msg;
+        row_capture tc2;
+        unsigned int tr2  = sel->fetch_prepared(tsql, good, std::ref(tc2));
+        std::string terr2 = sel->error_msg;
+        sel->prepared_reset_stats();
+        row_capture tc3;
+        unsigned int tr3 = sel->fetch_prepared(tsql, good, std::ref(tc3));
+        reading("bind_err_text_first_rows", std::to_string(tr1));
+        reading("bind_err_text_first_error", terr1);
+        reading("bind_err_text_second_rows", std::to_string(tr2));
+        reading("bind_err_text_second_error", terr2);
+        reading("bind_err_text_third_rows", std::to_string(tr3));
+        reading("bind_err_text_hits", std::to_string(sel->prepared_hits()));
+        expect(tr1 == 0 && !terr1.empty(), "bind_err_text_reports", terr1);
+        expect(tr2 == 1 && tc2.vals.size() == 1 && tc2.vals[0][0] == "42" && terr2.empty(),
+               "bind_err_text_then_valid", "rows=" + std::to_string(tr2) + " err=" + terr2);
+        expect(tr3 == 1 && tc3.vals.size() == 1 && tc3.vals[0][0] == "42" && sel->prepared_hits() >= 1,
+               "bind_err_text_warm_after", "rows=" + std::to_string(tr3) +
+                                               " hits=" + std::to_string(sel->prepared_hits()));
+
+        // binary 路径同源孪生
+        const std::string bsql = "SELECT i FROM _pgprobe_real WHERE i = $1 -- bind_err bin probe";
+        bin_capture bc1;
+        unsigned int br1  = sel->fetch_prepared_binary(bsql, bad, std::ref(bc1));
+        std::string berr1 = sel->error_msg;
+        bin_capture bc2;
+        unsigned int br2  = sel->fetch_prepared_binary(bsql, good, std::ref(bc2));
+        std::string berr2 = sel->error_msg;
+        sel->prepared_reset_stats();
+        bin_capture bc3;
+        unsigned int br3 = sel->fetch_prepared_binary(bsql, good, std::ref(bc3));
+        reading("bind_err_bin_first_rows", std::to_string(br1));
+        reading("bind_err_bin_first_error", berr1);
+        reading("bind_err_bin_second_rows", std::to_string(br2));
+        reading("bind_err_bin_second_error", berr2);
+        reading("bind_err_bin_third_rows", std::to_string(br3));
+        reading("bind_err_bin_hits", std::to_string(sel->prepared_hits()));
+        expect(br1 == 0 && !berr1.empty(), "bind_err_bin_reports", berr1);
+        expect(br2 == 1 && bc2.rows == 1 && bc2.texts.size() == 1 && bc2.texts[0] == "42" && berr2.empty(),
+               "bind_err_bin_then_valid", "rows=" + std::to_string(br2) + " err=" + berr2);
+        expect(br3 == 1 && bc3.rows == 1 && sel->prepared_hits() >= 1, "bind_err_bin_warm_after",
+               "rows=" + std::to_string(br3) + " hits=" + std::to_string(sel->prepared_hits()));
+        pool->back_pg_select_conn(std::move(sel));
+    }
+
+    // ---- 异步孪生：同一条自愈路径 ----
+    {
+        auto asel = pool->get_pg_select_conn();
+        struct bind_err_async_out
+        {
+            unsigned int t1 = 0, t2 = 0, b1 = 0, b2 = 0;
+            std::string e1, e2, be1, be2, tval, bval;
+        } ao;
+        ioc.restart();// 上一个 run() 无活可干返回后 ioc 处于 stopped，不重启则 co_spawn 的启动帧不会被派发
+        asio::co_spawn(
+            ioc,
+            [&]() -> asio::awaitable<void>
+            {
+                std::vector<http::obj_val> bad  = {http::obj_val("abc")};
+                std::vector<http::obj_val> good = {http::obj_val(42)};
+                row_capture c1;
+                ao.t1 = co_await asel->async_fetch_prepared(
+                    "SELECT i FROM _pgprobe_real WHERE i = $1 -- bind_err async probe", bad, std::ref(c1));
+                ao.e1 = asel->error_msg;
+                row_capture c2;
+                ao.t2   = co_await asel->async_fetch_prepared(
+                    "SELECT i FROM _pgprobe_real WHERE i = $1 -- bind_err async probe", good, std::ref(c2));
+                ao.e2   = asel->error_msg;
+                ao.tval = c2.vals.empty() ? std::string() : c2.vals[0][0];
+                bin_capture d1;
+                ao.b1 = co_await asel->async_fetch_prepared_binary(
+                    "SELECT i FROM _pgprobe_real WHERE i = $1 -- bind_err async bin probe", bad, std::ref(d1));
+                ao.be1 = asel->error_msg;
+                bin_capture d2;
+                ao.b2   = co_await asel->async_fetch_prepared_binary(
+                    "SELECT i FROM _pgprobe_real WHERE i = $1 -- bind_err async bin probe", good, std::ref(d2));
+                ao.be2  = asel->error_msg;
+                ao.bval = d2.texts.empty() ? std::string() : d2.texts[0];
+                co_return;
+            },
+            asio::detached);
+        ioc.run();
+        reading("bind_err_async_text", std::to_string(ao.t1) + "/" + std::to_string(ao.t2) + " v=" + ao.tval);
+        reading("bind_err_async_text_error", ao.e1);
+        reading("bind_err_async_bin", std::to_string(ao.b1) + "/" + std::to_string(ao.b2) + " v=" + ao.bval);
+        reading("bind_err_async_bin_error", ao.be1);
+        expect(ao.t1 == 0 && !ao.e1.empty() && ao.t2 == 1 && ao.tval == "42" && ao.e2.empty(),
+               "bind_err_async_text_selfheal");
+        expect(ao.b1 == 0 && !ao.be1.empty() && ao.b2 == 1 && ao.bval == "42" && ao.be2.empty(),
+               "bind_err_async_bin_selfheal");
         pool->back_pg_select_conn(std::move(asel));
     }
 

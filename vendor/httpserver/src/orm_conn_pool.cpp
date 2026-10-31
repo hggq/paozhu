@@ -1190,7 +1190,10 @@ std::shared_ptr<sqlite_conn_base> orm_conn_pool::get_sqlite_select_conn()
 
 asio::awaitable<bool> orm_conn_pool::clear_select_conn_2hour()
 {
-    unsigned int nowtimeid = time((time_t *)NULL);
+    // 注意：这里的 2 小时判的是**连接年龄**（time_start 只在构造时写一次，归还时不刷新），
+    // 不是空闲时长——一直在用的连接到期也会被换掉一条，属意的轮转。
+    // 每拍每个池最多弹一条，另一条并列判据是 query_num 用量上限。
+    time_t nowtimeid = time((time_t *)NULL);
     if (nowtimeid > CONST_ORM_CLEAR_TIME)
     {
         nowtimeid = nowtimeid - CONST_ORM_CLEAR_TIME;
@@ -1258,7 +1261,8 @@ asio::awaitable<bool> orm_conn_pool::clear_select_conn_2hour()
 
 asio::awaitable<bool> orm_conn_pool::clear_edit_conn_2hour()
 {
-    unsigned int nowtimeid = time((time_t *)NULL);
+    // 判据与上面 clear_select_conn_2hour 同：连接年龄，不是空闲时长
+    time_t nowtimeid = time((time_t *)NULL);
     if (nowtimeid > CONST_ORM_CLEAR_TIME)
     {
         nowtimeid = nowtimeid - CONST_ORM_CLEAR_TIME;

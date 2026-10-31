@@ -7,7 +7,7 @@ import sys
 # ROOT 由本脚本位置往上三层推出（tests/orm/<探针目录>/<脚本>.py），换机器不用改
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(HERE)))
-BUILD = os.path.join(ROOT, "build")
+BUILD = os.path.join(ROOT, os.environ.get("PROBE_BUILD_DIR", "build"))
 # 源码留在 tests/orm/，产物（.o、可执行、驱动副本、读数日志）一律落 temp/
 OUT = os.path.join(ROOT, "temp/sqlite_real_1022")
 SRC = os.path.join(HERE, "sqlite_real_probe.cpp")

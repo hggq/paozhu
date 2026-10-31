@@ -152,20 +152,27 @@ void mysql_conn_base::mysqlnd_xor_string(char *dst, const size_t dst_len, const 
         dst[i] ^= xor_str[i % xor_str_len];
     }
 }
-unsigned int mysql_conn_base::read_pack(unsigned char *data, unsigned int offset)
+// Read MySQL packet header (4 bytes), return next packet's start offset.
+// Returns total_num on header/payload overflow so callers can stop parsing.
+unsigned int mysql_conn_base::read_pack(unsigned char *data, unsigned int offset, unsigned int total_num)
 {
-    unsigned int pack_length = 0;
+    // Header (payload_len[3] + seq[1]) boundary
+    if (offset + 4 > total_num)
+    {
+        return total_num;
+    }
 
-    // NOTE: 此函数为遗留/死代码（未被调用），缺少 total_num 参数无法做边界检查。
-    // 如需启用，请改用带长度参数的 read_field_pack。
-    pack_length = (data[offset + 2] & 0xFF);
-    pack_length = pack_length << 8 | (data[offset + 1] & 0xFF);
+    unsigned int pack_length = (data[offset + 2] & 0xFF);
+    pack_length              = pack_length << 8 | (data[offset + 1] & 0xFF);
+    pack_length              = pack_length << 8 | (data[offset] & 0xFF);
 
-    pack_length = pack_length << 8 | (data[offset] & 0xFF);
+    // Payload boundary
+    if (offset + 4 + pack_length > total_num)
+    {
+        return total_num;
+    }
 
-    offset = offset + 4;
-    offset = offset + pack_length;
-    return offset;
+    return offset + 4 + pack_length;
 }
 
 void mysql_conn_base::read_server_hello(unsigned int offset, unsigned int length)
@@ -329,7 +336,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
     server_enable_ssl = false;
     in_transaction_.store(false);
     seq_next_id       = 0;
-    std::memset(static_cast<void *>(&server_hello), 0, sizeof(server_hello));
+    server_hello      = mysql_server_hello_data_t{};
 
     // 保存配置用于断线自动重连（仅在首次或配置变化时存储）
     if (!has_conn_config_ || !(last_conn_config_ == conn_config))
@@ -368,7 +375,15 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
     else
     {
         asio::ip::tcp::resolver resolver(*conn_link->io_ctx);
-        auto endpoints = resolver.resolve(conn_config.host, conn_config.port);
+        asio::error_code resolve_ec;
+        auto endpoints = resolver.resolve(conn_config.host, conn_config.port, resolve_ec);
+        if (resolve_ec)
+        {
+            error_msg  = "dns resolve failed: " + resolve_ec.message();
+            error_code = 1;
+            isclose    = true;
+            return false;
+        }
         asio::connect(*conn_link->socket, endpoints, conn_link->ec);
 
         // asio::ip::tcp::resolver::query checkquery(conn_config.host, conn_config.port);
@@ -409,20 +424,19 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
     {
         n = conn_link->socket->read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), conn_link->ec);
     }
-    if (n < 70)
+    if (conn_link->ec)
     {
-        error_msg.append("mysql server back data error! ");
-        error_code = 255;
+        error_msg.append("connect read_some error! ");
+        error_msg.append(conn_link->ec.message());
+        error_code = 1;
         isclose    = true;
         return false;
     }
 
-    if (conn_link->ec)
+    if (n < 70)
     {
-
-        error_msg.append("connect read_some error! ");
-        error_msg.append(conn_link->ec.message());
-        error_code = 1;
+        error_msg.append("mysql server back data error! ");
+        error_code = 255;
         isclose    = true;
         return false;
     }
@@ -432,6 +446,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
     if (server_hello.auth_plugin_salt_data.size() < 20)
     {
         error_msg = "auth plugin salt too short";
+        isclose   = true;
         return false;
     }
 
@@ -641,6 +656,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
                 if (n < 5)
                 {
                     error_msg = "response too short";
+                    isclose   = true;
                     return false;
                 }
 
@@ -896,6 +912,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
                         if (n < 5)
                         {
                             error_msg = "response too short";
+                            isclose   = true;
                             return false;
                         }
 
@@ -959,6 +976,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
         if (n < 5)
         {
             error_msg = "response too short";
+            isclose   = true;
             return false;
         }
 
@@ -994,7 +1012,11 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
             {
                 n = conn_link->socket->read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), conn_link->ec);
             }
-            if (n < 255 || n > 2048)
+            // 下界 5 = 4 字节包头 + 1 字节类型，与 async_connect 同一口径；
+            // 用 255 会把紧随其后的 Error / EOF / OK 分支全部挡成不可达。
+            // 上界取本次读取的缓冲 CACHE_DATA_LENGTH，与 pg 侧同一口径；
+            // 真正钳住写入的是 server_public_key_encrypt 里写 _cache_data 之前那道按模数长度的闸。
+            if (n < 5 || n > CACHE_DATA_LENGTH)
             {
                 error_msg.append(" get server_public_key return size: ");
                 error_msg.append(std::to_string(n));
@@ -1085,6 +1107,7 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
             if (n < 5)
             {
                 error_msg = "response too short";
+                isclose   = true;
                 return false;
             }
 
@@ -1390,11 +1413,9 @@ EVP_PKEY *load_trusted_pubkey(const std::string &trusted)
 // 用私钥解出凭据（CVE-2015-3152/BACKRONYM 的成因）。
 // 这里按配置做钉住校验：conn_config.server_public_key 指定本地可信公钥（PEM 路径
 // 或内联 PEM）时，与下发公钥做 EVP_PKEY_eq 比对，不一致立即中止认证；未配置时
-// 保持原有行为（不阻断非 SSL 连接），并把下发公钥留在 server_pubkey_pem 供 TOFU 固化。
+// 保持原有行为（不阻断非 SSL 连接）。
 bool mysql_conn_base::check_server_public_key(const orm_conn_t &conn_config, const unsigned char *data, unsigned int length)
 {
-    server_pubkey_pem.assign(reinterpret_cast<const char *>(data), length);
-
     BIO *bio             = BIO_new_mem_buf(data, static_cast<int>(length));
     EVP_PKEY *server_key = (bio == nullptr) ? nullptr : PEM_read_bio_PUBKEY(bio, nullptr, nullptr, nullptr);
     BIO_free(bio);
@@ -1441,6 +1462,7 @@ bool mysql_conn_base::server_public_key_encrypt(const std::string &password, uns
     if (server_hello.auth_plugin_salt_data.size() < 20)
     {
         error_msg = "auth plugin salt too short";
+        isclose   = true;
         return false;
     }
 
@@ -1458,14 +1480,18 @@ bool mysql_conn_base::server_public_key_encrypt(const std::string &password, uns
 
     std::size_t server_public_key_len = EVP_PKEY_get_size(public_key);
 
-    if (256 < CACHE_DATA_LENGTH)
+    // 密文长度 = 公钥模数长度，会直接写进 _cache_data，所以写之前按输出核一次界值；
+    // 入参侧的包长守卫与本次读取缓冲同宽，不会单独拒掉任何现实长度，钳制由本闸承担。
+    if (server_public_key_len == 0 || server_public_key_len > CACHE_DATA_LENGTH)
     {
-        std::memset(_cache_data, 0x00, 256);
+        EVP_PKEY_free(public_key);
+        error_msg.append(" server public key size out of range: ");
+        error_msg.append(std::to_string(server_public_key_len));
+        error_code = 4;
+        return false;
     }
-    else
-    {
-        std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
-    }
+
+    std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
 
     // see sql-common/client_authenthication.cc line 144 or 968 php-src ext/mysqlnd/mysqlnd_auth.c
     EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(public_key, NULL);
@@ -1524,7 +1550,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
     server_enable_ssl = false;
     in_transaction_.store(false);
     seq_next_id       = 0;
-    std::memset(static_cast<void *>(&server_hello), 0, sizeof(server_hello));
+    server_hello      = mysql_server_hello_data_t{};
 
     // 保存配置用于断线自动重连（仅在首次或配置变化时存储）
     if (!has_conn_config_ || !(last_conn_config_ == conn_config))
@@ -1629,6 +1655,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
     if (server_hello.auth_plugin_salt_data.size() < 20)
     {
         error_msg = "auth plugin salt too short";
+        isclose   = true;
         co_return false;
     }
 
@@ -1839,6 +1866,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
                 if (n < 5)
                 {
                     error_msg = "response too short";
+                    isclose   = true;
                     co_return false;
                 }
 
@@ -2051,6 +2079,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
         if (n < 5)
         {
             error_msg = "response too short";
+            isclose   = true;
             co_return false;
         }
 
@@ -2104,6 +2133,9 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
                 isclose = true;
                 co_return false;
             }
+            // 界值与同步版 connect() 同一口径：下界 5 = 4 字节包头 + 1 字节类型，
+            // 上界取本次读取的缓冲 CACHE_DATA_LENGTH，与 pg 侧同一口径；
+            // 钳住密文写入的是 server_public_key_encrypt 里那道按模数长度的闸（同步异步共用）。
             if (n < 5 || n > CACHE_DATA_LENGTH)
             {
                 error_msg.append(" get server_public_key return size: ");
@@ -2189,6 +2221,7 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
             if (n < 5)
             {
                 error_msg = "response too short";
+                isclose   = true;
                 co_return false;
             }
 
@@ -3339,10 +3372,14 @@ bool mysql_conn_base::pack_eof_check(const pack_info_t &temp_pack_data)
 
     if ((unsigned char)temp_pack_data.data[0] == 0xFF)
     {
-        if (temp_pack_data.data.size() > 3)
-        {
-            error_msg = temp_pack_data.data.substr(3);
-        }
+        // temp_pack_data.data 是 payload（不含包头），构造 4 字节伪包头喂给 parse_error_packet
+        std::vector<unsigned char> fake_pkt(4 + temp_pack_data.data.size());
+        fake_pkt[0] = static_cast<unsigned char>(temp_pack_data.data.size() & 0xFF);
+        fake_pkt[1] = static_cast<unsigned char>((temp_pack_data.data.size() >> 8) & 0xFF);
+        fake_pkt[2] = static_cast<unsigned char>((temp_pack_data.data.size() >> 16) & 0xFF);
+        fake_pkt[3] = 0; // seq_id 不重要
+        std::memcpy(fake_pkt.data() + 4, temp_pack_data.data.data(), temp_pack_data.data.size());
+        parse_error_packet(fake_pkt.data(), static_cast<unsigned int>(fake_pkt.size()));
         return true;
     }
     if ((unsigned char)temp_pack_data.data[0] == 0xFE && temp_pack_data.data.size() >= 2)
@@ -4263,9 +4300,11 @@ RETRY_LABEL:
     }
 }
 
-// MySQL 无 PG ReadyForQuery 那样的协议级事务状态字节，只能按 SQL 关键字跟踪：
-// 首词 BEGIN / START TRANSACTION 视为开启，COMMIT / ROLLBACK / END 视为结束。
-// 仅用于连接池归还路径判断是否需要自动 ROLLBACK 清理，跟踪不完美不影响安全性（多滚一次是幂等清理）。
+// MySQL 无 PG ReadyForQuery 那样的协议级事务状态字节，只能按 SQL 首词跟踪：
+// BEGIN / START TRANSACTION 视为开启，COMMIT / ROLLBACK / END 视为结束。
+// 该标志只喂重连门禁（try_reconnect / async_try_reconnect 在事务在途时拒绝重连）；
+// 连接池不读它，也不据此自动 ROLLBACK。SET autocommit=0 与 XA 系列不在跟踪之列：那是
+// 服务端会话状态，不是语句文本。事务边界请用 orm::db_conn 的 begin_commit()/commit()。
 namespace
 {
 enum class txn_keyword : unsigned char
@@ -7779,7 +7818,6 @@ RETRY_ASYNC_DML:
             goto RETRY_ASYNC_DML;
         }
         co_return result;
-        co_return result;
     }
 }
 
@@ -8328,6 +8366,8 @@ bool mysql_conn_base::try_reconnect()
     // 缓存在 hard_close() 内部统一清理（那里 socket 状态确定），不重复清
     hard_close();
 
+    // 退避一拍再重连，避免数据库刚重启时对同一 host:port 打成密集重试风暴。
+    // 同步版只能占住调用线程等这 50ms；协程版用 steady_timer 挂起，不占线程。
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     return connect(last_conn_config_);
