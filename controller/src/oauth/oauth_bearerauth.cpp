@@ -1,6 +1,7 @@
 // OAuth 2.1 Bearer 校验过滤器：挂在需要 access_token 的路由前置（admin_islogin 的 JWT 版）。
-// 除了验签，它还把令牌主体换成租户号：按 sub 查 sysuser 行，把 companyid 写进本次请求内存里的
-// session["userid"]、adminid 写进 session["adminid"]，下游那批 where("userid", ...) 就直接能用。
+// 除了验签，它还把令牌主体换成租户号：只在令牌的 gty 声明这是人用时才按 sub 查 sysuser 行，
+// 把 companyid 写进本次请求内存里的 session["userid"]、adminid 写进 session["adminid"]，
+// 下游那批 where("userid", ...) 就直接能用；gty 不是 "user" 的令牌什么都注不进 session。
 // 链上语义（router.cpp 的 classify_step，本项目唯一解释点）：返回 "@ok" 放行，返回 "@exit" 拒绝。
 // iss 与 aud 由这一层判——jwt::verify 明确不查这两项，接受的签发方是手里那份 conf/oauth.conf。
 
@@ -10,11 +11,11 @@
 #include "cost_define.h"
 #include "func.h"
 #include "httppeer.h"
+#include "oauth/oauth_audit.h"
 #include "oauth/oauth_config.h"
 #include "oauth/oauth_store.h"
 #include "oauth_bearerauth.h"
 #include "orm.h"
-#include "terminal_color.h"
 
 namespace http
 {
@@ -24,7 +25,7 @@ namespace
 // 细节只进日志，回显出去的永远是固定的 invalid_token。
 void bearer_denied(httppeer &client, const std::string &why)
 {
-    DEBUG_LOG("[oauth] bearer denied: %s", why.c_str());
+    OAUTH_AUDIT("bearer denied: " + why);
     client.status(401);
     client.set_header("WWW-Authenticate", "Bearer error=\"invalid_token\"");
     client.val["error"] = "invalid_token";
@@ -62,7 +63,7 @@ std::string oauth_bearerauth(std::shared_ptr<httppeer> peer)
     if (!keys.ready)
     {
         // 公钥读不出来就没法验签。这不是"令牌无效"，回 500 免得运维把它当成客户端问题
-        DEBUG_LOG("[oauth] bearer: public key not loaded (conf/oauth.conf)");
+        OAUTH_AUDIT("bearer: public key not loaded (conf/oauth.conf)");
         client.status(500);
         client.val["error"] = "server_error";
         client.out_json();
@@ -70,7 +71,7 @@ std::string oauth_bearerauth(std::shared_ptr<httppeer> peer)
     }
     if (settings.issuer.empty())
     {
-        DEBUG_LOG("[oauth] bearer: issuer empty in conf/oauth.conf");
+        OAUTH_AUDIT("bearer: issuer empty in conf/oauth.conf");
         client.status(500);
         client.val["error"] = "server_error";
         client.out_json();
@@ -101,6 +102,7 @@ std::string oauth_bearerauth(std::shared_ptr<httppeer> peer)
     std::string sub       = json_util::get_string(payload, "sub");
     std::string client_id = json_util::get_string(payload, "aud");
     std::string scope     = json_util::get_string(payload, "scope");
+    std::string gty       = json_util::get_string(payload, "gty");
     if (sub.empty() || client_id.empty())
     {
         bearer_denied(client, "token has no sub or aud");
@@ -114,17 +116,23 @@ std::string oauth_bearerauth(std::shared_ptr<httppeer> peer)
     client.session["oauth_sub"]       = sub;
     client.session["oauth_client_id"] = client_id;
     client.session["oauth_scope"]     = scope;
+    client.session["oauth_gty"]       = gty;
 
-    // 租户号从 sysuser 行拿：sub 就是 sysuser.adminid，
-    // 而后台那批 where("userid", client.session["userid"].to_int()) 认的是企业 id，
-    // 那一列就写在同一行上（sysuser 没有 userid 列，session["userid"]＝sysuser.companyid）。
-    // client_credentials 的令牌里 sub 等于 aud（都是 client_id 本身），那一种既没有人也没有租户：
-    // 整段跳过，不查库、不注入。这一条不是省一次查询，是把两个号段隔开——
-    // 注册口的 client_id 由注册方自己指定，管理员写成"42"这种纯数字时，
-    // 机器令牌的 sub 就正好落在 adminid=42 那个人身上，白拿他的企业身份。
-    unsigned long long sub_adminid = 0;
-    if (sub != client_id && str2uint64_strict(sub, sub_adminid) && sub_adminid > 0)
+    // 身份注入只有这一个判定点，认的是令牌里那格 gty，不是 sub 长什么形状：
+    // "user" 是授权码/refresh 两条签发路径写的（sub = sysuser.adminid），
+    // "client" 是 client_credentials 写的（sub = aud = client_id 本身，那一种既没有人也没有租户）。
+    // sub 的形状不作推断：注册口允许 client_id 写成纯数字，机器令牌的 sub 会和某个人的
+    // adminid 取到同一个数，只有签发时写下的 gty 说得出这一枚是替谁签的。
+    if (gty == "user")
     {
+        unsigned long long sub_adminid = 0;
+        if (!str2uint64_strict(sub, sub_adminid) || sub_adminid == 0)
+        {
+            // 本站私钥签出来的人用令牌 sub 恒为数字，走到这一格说明这枚不是这条链签的。
+            // 不静默跳过：跳过的话下游只能拿 session["userid"]==0 去猜"是机器令牌还是查无此人"。
+            bearer_denied(client, "user token has a non-numeric subject");
+            return "@exit";
+        }
         auto users = orm::cms::Sysuser();
         // 列写死：这行只要主体和租户两格，sysuser 里还有 password/mobile/email
         users.select("adminid,companyid");

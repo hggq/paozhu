@@ -1,7 +1,8 @@
 // 用户信息端点：GET /oauth/userinfo，凭证是 Bearer access_token（前置过滤器 oauth_bearerauth）。
-// token 里的 sub 就是 sysuser.adminid（授权时从 session["adminid"] 取），按它查一行、只回白名单列。
+// 主体从过滤器注入的 session["adminid"] 拿，不在这里解析令牌里的 sub：
+// sub 是不是人由 gty 那一格说，判定只留在过滤器一处（签发端改形状时这里不用跟着改）。
 // sysuser 里有 password/textword/mobile/email，fetch_one() 不带 select() 会把整行拉进 data，
-// 所以列必须写全；sub 不是数字（client_credentials 那种）查不到行，落到 invalid_subject。
+// 所以列必须写全。
 
 #include <string>
 
@@ -18,7 +19,22 @@ std::string oauth_userinfo(std::shared_ptr<httppeer> peer)
     client.set_header("Cache-Control", "no-store");
     client.set_header("X-Frame-Options", "DENY");
 
-    long long adminid = client.session["oauth_sub"].to_int();
+    // 机器令牌（client_credentials 签的那一种）没有授权人：报在主体上，不去查库猜号段。
+    if (client.session["oauth_gty"].to_string() != "user")
+    {
+        client.status(400);
+        client.val["error"] = "invalid_subject";
+        client.out_json();
+        return "";
+    }
+    long long adminid = client.session["adminid"].to_int();
+    if (adminid <= 0)
+    {
+        client.status(400);
+        client.val["error"] = "invalid_subject";
+        client.out_json();
+        return "";
+    }
 
     auto model = orm::cms::Sysuser();
     model.select("adminid,name,nickname,realname,avatar,companyid");

@@ -1,5 +1,6 @@
 // OAuth 2.1 token 端点：POST /oauth/token，按 grant_type 分发三个分支。
-// 闸门顺序：客户端认证 → 令牌查表 → PKCE → CAS 消费 → 签发。
+// 闸门顺序：客户端认证 → 令牌查表 → PKCE → 取签发材料 → CAS 消费 → 签发。
+// 取签发材料排在消费之前：两个分支都一样，签发材料拿不到时要原样退回，不许把码或旧 refresh 烧掉。
 // 三张表的读写全部走 libs/oauth/oauth_store.h，控制器不碰 orm。
 
 #include <string>
@@ -27,23 +28,6 @@ void token_error(httppeer &client, unsigned int status, const std::string &error
         client.val["error_description"] = detail;
     }
     client.out_json();
-}
-
-// 从请求里取出认证需要的三个字符串。判定整套在 store 里（token 与 revoke 共用，
-// 两边各写一遍迟早漂开——漂开的那一处就是一个能用弱形状过的端点）。
-bool peer_auth_client(httppeer &client, oauth::client_record &rec, std::string &out_id)
-{
-    std::string auth_header;
-    auto hit = client.header.find("authorization");
-    if (hit != client.header.end())
-    {
-        auth_header = hit->second;
-    }
-    return oauth::authenticate_client(auth_header,
-                                      client.post["client_id"].to_string(),
-                                      client.post["client_secret"].to_string(),
-                                      rec,
-                                      out_id);
 }
 
 // 认证失败的固定形状：401 + WWW-Authenticate（RFC 6749 §2.3.1 的客户端认证失败）。
@@ -87,11 +71,14 @@ bool signing_ready(oauth::oauth_settings &settings, std::string &privkey_pem)
 
 // 签一枚 access_token。sub 用 JSON 字符串（RFC 7519 §4.1.2 的 sub 是 StringOrURI），
 // aud 是 client_id 字符串——签发与 Bearer 校验两头用的是同一个形状。
+// gty 写清这一枚是替谁签的："user"＝sub 是 sysuser.adminid，"client"＝sub 就是 client_id 本身。
+// 下游靠这一格决定能不能把 sub 当人用，不靠"两个号段看起来不会撞上"。
 std::string make_access_token(const oauth::oauth_settings &settings,
                               const std::string &privkey_pem,
                               const std::string &aud,
                               const std::string &sub,
-                              const std::string &scope)
+                              const std::string &scope,
+                              const std::string &gty)
 {
     std::string jti = oauth::random_token();
     if (jti.empty())
@@ -104,6 +91,7 @@ std::string make_access_token(const oauth::oauth_settings &settings,
     payload["iss"]   = settings.issuer;
     payload["sub"]   = sub;
     payload["aud"]   = aud;
+    payload["gty"]   = gty;
     payload["scope"] = scope;
     payload["exp"]   = now + (long long)CONST_OAUTH_ACCESS_TTL;
     payload["iat"]   = now;
@@ -135,7 +123,7 @@ std::string oauth_token(std::shared_ptr<httppeer> peer)
     {
         oauth::client_record rec;
         std::string authed_id;
-        if (!peer_auth_client(client, rec, authed_id))
+        if (!oauth::authenticate_client(client, rec, authed_id))
         {
             client_auth_failed(client);
             return "";
@@ -146,9 +134,13 @@ std::string oauth_token(std::shared_ptr<httppeer> peer)
         }
         std::string code = client.post["code"].to_string();
         oauth::code_record cr;
+        // 归属判定（下面 cr.client_id != authed_id）之前的这一串合成一句"invalid authorization code"：
+        // 走到这里的调用方只证明了"我是个已认证的客户端"，还没证明这条码是发给它的，
+        // 分开报就变成一台"这个码存不存在、现在是什么状态"的查询机。
+        // 判定之后的 redirect_uri 与 PKCE 两处保留原句——那两句只有码的持有者本人收得到，是可用信息。
         if (code.empty() || !oauth::find_code(code, cr) || !cr.found)
         {
-            token_error(client, 400, "invalid_grant", "unknown authorization code");
+            token_error(client, 400, "invalid_grant", "invalid authorization code");
             return "";
         }
         // used 已经是 1：这一条就是重放 ⇒ 认定码泄露，把这一族 refresh 整族撤掉。
@@ -160,17 +152,17 @@ std::string oauth_token(std::shared_ptr<httppeer> peer)
             {
                 oauth::revoke_refresh_family(cr.family_id);
             }
-            token_error(client, 400, "invalid_grant", "authorization code already used");
+            token_error(client, 400, "invalid_grant", "invalid authorization code");
             return "";
         }
         if (cr.expires_at <= (long long)timeid())
         {
-            token_error(client, 400, "invalid_grant", "authorization code expired");
+            token_error(client, 400, "invalid_grant", "invalid authorization code");
             return "";
         }
         if (cr.client_id != authed_id)
         {
-            token_error(client, 400, "invalid_grant", "authorization code issued to another client");
+            token_error(client, 400, "invalid_grant", "invalid authorization code");
             return "";
         }
         // RFC 6749 §4.1.3：换码必须带回与授权时逐字节一致的回调地址。授权侧 match_redirect_uri
@@ -187,16 +179,8 @@ std::string oauth_token(std::shared_ptr<httppeer> peer)
             token_error(client, 400, "invalid_grant", "PKCE verification failed");
             return "";
         }
-        // CAS：UPDATE ... WHERE code_hash=? AND used=0，抢不到说明并发重放。
-        // 这一支不撤族，且不是漏写：走到这里说明上面那次 find_code 读到的是 used=0，
-        // 而族根只在 used=1 之后才绑得上（bind_code_family 的 WHERE 带 used=1），
-        // 所以同一次读数里 cr.family_id 必然是 0——真正撤到族的是上面那条重放分支。
-        if (!oauth::consume_code(code))
-        {
-            token_error(client, 400, "invalid_grant", "authorization code already used");
-            return "";
-        }
-
+        // 签发材料放在消费之前取：私钥或 issuer 读不出来时这条码要原样留着，
+        // 客户端下次拿同一个 code 还能换出去。与 refresh 支同一个极性（那边先取再烧）。
         oauth::oauth_settings settings;
         std::string privkey_pem;
         if (!signing_ready(settings, privkey_pem))
@@ -204,8 +188,17 @@ std::string oauth_token(std::shared_ptr<httppeer> peer)
             token_error(client, 500, "server_error", "signing key not available");
             return "";
         }
+        // CAS：UPDATE ... WHERE code_hash=? AND used=0，抢不到说明并发重放。
+        // 这一支不撤族，且不是漏写：走到这里说明上面那次 find_code 读到的是 used=0，
+        // 而族根只在 used=1 之后才绑得上（bind_code_family 的 WHERE 带 used=1），
+        // 所以同一次读数里 cr.family_id 必然是 0——真正撤到族的是上面那条重放分支。
+        if (!oauth::consume_code(code))
+        {
+            token_error(client, 400, "invalid_grant", "invalid authorization code");
+            return "";
+        }
         std::string access =
-            make_access_token(settings, privkey_pem, authed_id, std::to_string(cr.user_id), cr.scope);
+            make_access_token(settings, privkey_pem, authed_id, std::to_string(cr.user_id), cr.scope, "user");
         if (access.empty())
         {
             token_error(client, 500, "server_error", "token signing failed");
@@ -240,7 +233,7 @@ std::string oauth_token(std::shared_ptr<httppeer> peer)
     {
         oauth::client_record rec;
         std::string authed_id;
-        if (!peer_auth_client(client, rec, authed_id))
+        if (!oauth::authenticate_client(client, rec, authed_id))
         {
             client_auth_failed(client);
             return "";
@@ -251,14 +244,16 @@ std::string oauth_token(std::shared_ptr<httppeer> peer)
         }
         std::string rt = client.post["refresh_token"].to_string();
         oauth::refresh_record rr;
+        // 与授权码支同一个口径：rr.client_id != authed_id 之前不区分"没有这行"和"这行不是你的"，
+        // 否则这一格就成了别的客户端的枚举器。之后的 revoked/expired/replayed 三句留给持有者本人。
         if (rt.empty() || !oauth::find_refresh(rt, rr) || !rr.found)
         {
-            token_error(client, 400, "invalid_grant", "unknown refresh token");
+            token_error(client, 400, "invalid_grant", "invalid refresh token");
             return "";
         }
         if (rr.client_id != authed_id)
         {
-            token_error(client, 400, "invalid_grant", "refresh token issued to another client");
+            token_error(client, 400, "invalid_grant", "invalid refresh token");
             return "";
         }
         // revoked 判在过期判之前：轮换出去的旧行即使已经过期，它那一族的后续行还是活的，
@@ -305,7 +300,7 @@ std::string oauth_token(std::shared_ptr<httppeer> peer)
             return "";
         }
         std::string access =
-            make_access_token(settings, privkey_pem, authed_id, std::to_string(rr.user_id), rr.scope);
+            make_access_token(settings, privkey_pem, authed_id, std::to_string(rr.user_id), rr.scope, "user");
         if (access.empty())
         {
             token_error(client, 500, "server_error", "token signing failed");
@@ -328,7 +323,7 @@ std::string oauth_token(std::shared_ptr<httppeer> peer)
     {
         oauth::client_record rec;
         std::string authed_id;
-        if (!peer_auth_client(client, rec, authed_id))
+        if (!oauth::authenticate_client(client, rec, authed_id))
         {
             client_auth_failed(client);
             return "";
@@ -357,7 +352,9 @@ std::string oauth_token(std::shared_ptr<httppeer> peer)
             token_error(client, 500, "server_error", "signing key not available");
             return "";
         }
-        std::string access = make_access_token(settings, privkey_pem, authed_id, authed_id, scope);
+        // sub 与 aud 同为 client_id：这一枚没有授权人，gty 明写成 "client"，
+        // 下游拿它而不是拿形状去判断"这个 sub 不是人"。
+        std::string access = make_access_token(settings, privkey_pem, authed_id, authed_id, scope, "client");
         if (access.empty())
         {
             token_error(client, 500, "server_error", "token signing failed");

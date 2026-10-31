@@ -14,6 +14,7 @@
 #include "cost_define.h"
 #include "func.h"
 #include "httppeer.h"
+#include "oauth/oauth_audit.h"
 #include "oauth/oauth_config.h"
 #include "oauth/oauth_store.h"
 #include "oauth_introspect.h"
@@ -40,22 +41,6 @@ void introspect_denied(httppeer &client)
     client.val["error"] = "invalid_client";
     client.out_json();
 }
-
-// 认证判定整套在 store 里，和 token / revoke 两个端点共用；这里只把请求里的字符串交出去。
-bool peer_auth_client(httppeer &client, oauth::client_record &rec, std::string &out_id)
-{
-    std::string auth_header;
-    auto hit = client.header.find("authorization");
-    if (hit != client.header.end())
-    {
-        auth_header = hit->second;
-    }
-    return oauth::authenticate_client(auth_header,
-                                      client.post["client_id"].to_string(),
-                                      client.post["client_secret"].to_string(),
-                                      rec,
-                                      out_id);
-}
 }// namespace
 
 //@urlpath(null,oauth/introspect)
@@ -72,7 +57,7 @@ std::string oauth_introspect(std::shared_ptr<httppeer> peer)
     }
     oauth::client_record rec;
     std::string authed_id;
-    if (!peer_auth_client(client, rec, authed_id))
+    if (!oauth::authenticate_client(client, rec, authed_id))
     {
         introspect_denied(client);
         return "";
@@ -106,13 +91,13 @@ std::string oauth_introspect(std::shared_ptr<httppeer> peer)
     {
         // 公钥读不出来是"判不了"，不是"令牌不活"：回 500，别让运维把它当成客户端问题，
         // 也别让调用方拿一个 active:false 去撤一个其实有效的令牌。
-        DEBUG_LOG("[oauth] introspect: public key not loaded (conf/oauth.conf)");
+        OAUTH_AUDIT("introspect: public key not loaded (conf/oauth.conf)");
         introspect_error(client, 500, "server_error", "");
         return "";
     }
     if (settings.issuer.empty())
     {
-        DEBUG_LOG("[oauth] introspect: issuer empty in conf/oauth.conf");
+        OAUTH_AUDIT("introspect: issuer empty in conf/oauth.conf");
         introspect_error(client, 500, "server_error", "");
         return "";
     }
@@ -120,7 +105,7 @@ std::string oauth_introspect(std::shared_ptr<httppeer> peer)
     oauth::introspect_record ir;
     if (!oauth::introspect_token(authed_id, keys.pubkey_pem, settings.issuer, CONST_OAUTH_JWT_LEEWAY, token, ir))
     {
-        DEBUG_LOG("[oauth] introspect: cannot judge token (store returned false)");
+        OAUTH_AUDIT("introspect: cannot judge token (store returned false)");
         introspect_error(client, 500, "server_error", "");
         return "";
     }

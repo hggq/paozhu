@@ -255,16 +255,16 @@ namespace http
         reg_raw("", "/imageapi/upload", nullptr, nullptr, imageapi_upload, nullptr, 0); // controller/src/imageapi.cpp:104
         reg_raw("", "/oauth/authorize", nullptr, nullptr, oauth_authorize, nullptr, 0); // controller/src/oauth/oauth_authorize.cpp:183
         reg_raw("", "/oauth/authorize/approve", nullptr, nullptr, oauth_authorize_approve, nullptr, 0); // controller/src/oauth/oauth_authorize.cpp:236
-        reg_raw("", "/oauth/bearerauth", nullptr, nullptr, oauth_bearerauth, nullptr, 0); // controller/src/oauth/oauth_bearerauth.cpp:35
+        reg_raw("", "/oauth/bearerauth", nullptr, nullptr, oauth_bearerauth, nullptr, 0); // controller/src/oauth/oauth_bearerauth.cpp:36
         reg_raw("", "/oauth/client/add", admin_isloginjson, nullptr, oauth_client_add, nullptr, 0); // controller/src/oauth/oauth_client_add.cpp:26
-        reg_raw("", "/oauth/introspect", nullptr, nullptr, oauth_introspect, nullptr, 0); // controller/src/oauth/oauth_introspect.cpp:61
+        reg_raw("", "/oauth/introspect", nullptr, nullptr, oauth_introspect, nullptr, 0); // controller/src/oauth/oauth_introspect.cpp:46
         reg_raw("", "/oauth/jwks", nullptr, nullptr, oauth_jwks, nullptr, 0); // controller/src/oauth/oauth_jwks.cpp:17
         reg_raw("", "/oauth/metadata", nullptr, nullptr, oauth_metadata, nullptr, 0); // controller/src/oauth/oauth_metadata.cpp:21
         reg_raw("", "/oauth/purge", nullptr, nullptr, oauth_purge, nullptr, 0); // controller/src/oauth/oauth_purge.cpp:28
-        reg_raw("", "/oauth/purge/arm", nullptr, nullptr, oauth_purge_arm, nullptr, 0); // controller/src/oauth/oauth_purge.cpp:69
-        reg_raw("", "/oauth/revoke", nullptr, nullptr, oauth_revoke, nullptr, 0); // controller/src/oauth/oauth_revoke.cpp:47
-        reg_raw("", "/oauth/token", nullptr, nullptr, oauth_token, nullptr, 0); // controller/src/oauth/oauth_token.cpp:115
-        reg_raw("", "/oauth/userinfo", oauth_bearerauth, nullptr, oauth_userinfo, nullptr, 0); // controller/src/oauth/oauth_userinfo.cpp:14
+        reg_raw("", "/oauth/purge/arm", nullptr, nullptr, oauth_purge_arm, nullptr, 0); // controller/src/oauth/oauth_purge.cpp:67
+        reg_raw("", "/oauth/revoke", nullptr, nullptr, oauth_revoke, nullptr, 0); // controller/src/oauth/oauth_revoke.cpp:31
+        reg_raw("", "/oauth/token", nullptr, nullptr, oauth_token, nullptr, 0); // controller/src/oauth/oauth_token.cpp:103
+        reg_raw("", "/oauth/userinfo", oauth_bearerauth, nullptr, oauth_userinfo, nullptr, 0); // controller/src/oauth/oauth_userinfo.cpp:15
         reg_raw("", "/oauth_client/page", nullptr, nullptr, oauth_client_page, nullptr, 0); // controller/src/oauth_client/oauth_client_demo.cpp:103
         reg_raw("", "/oauth_client/client_credentials", nullptr, nullptr, oauth_client_cc, nullptr, 0); // controller/src/oauth_client/oauth_client_demo.cpp:123
         reg_raw("", "/oauth_client/build_authorize", nullptr, nullptr, oauth_client_build_auth, nullptr, 0); // controller/src/oauth_client/oauth_client_demo.cpp:151

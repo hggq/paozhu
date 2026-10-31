@@ -7,6 +7,10 @@
 
 namespace http
 {
+// 下面那个重载只在实现里取字段，前向声明足够把这份头带给任何一个 include 它的文件，
+// 不用先 include vendor 的请求类型。
+class httppeer;
+
 namespace oauth
 {
 
@@ -18,7 +22,8 @@ std::string random_token();
 std::string lowerhex_sha256(const std::string &text);
 
 // PKCE 验算：b64url(SHA-256(code_verifier)) 是否等于授权时登记的 code_challenge。
-// verifier 长度先按 RFC 7636 §4.1 限在 43..128，两边定长比较。
+// verifier 按 RFC 7636 §4.1 限在两处：长度 43..128，且只允许 unreserved 字符 [A-Za-z0-9-._~]；
+// 挑战值是两边定长比较。
 bool pkce_s256_ok(const std::string &code_verifier, const std::string &code_challenge);
 
 // 解析 Authorization: Basic base64(client_id:client_secret)。
@@ -78,6 +83,13 @@ bool authenticate_client(const std::string &auth_header,
                          client_record &out_rec,
                          std::string &out_client_id);
 
+// 同一套判定，从请求里取那三个字符串的重载。取字段的形状（读哪个头、body 键叫什么）
+// 只留这一份：token / revoke / introspect 三个端点各写一遍，漂开的那一处就是一个
+// 能用弱形状过的端点。判定仍然在上面那条里，这条不掺任何策略。
+bool authenticate_client(httppeer &client,
+                         client_record &out_rec,
+                         std::string &out_client_id);
+
 // 回调白名单逐字节匹配，逗号分隔。命中时 out_matched 是**白名单里的那一条**，
 // 不是提交值原文——授权时要落库的就是它，否则未规范化的值进了库，换码时的比对就跟着请求走。
 // 提交值为空一律不命中（白名单里的空项不算匹配）。这一列是 TEXT，不进 WHERE。
@@ -101,8 +113,11 @@ bool redirect_uri_scheme_ok(const std::string &uri);
 // 保密客户端现生成口令，明文只从 out_secret_plain 回传这一次，库里落 hex(SHA-256(明文))；
 // 公开客户端不生成口令、out_secret_plain 留空，那一列写真 NULL——空串会和"散列过的空串"
 // 在库里长得一样，而只有文本路径的 insert 才发得出 NULL。
-// redirect_uris 是逗号分隔的原文：每一项要非空且过 redirect_uri_scheme_ok()，其余形状不校验
-// （注册方是已登录的后台用户）。allowed_scopes / grant_types 同样只搬字节，空串＝不设上限／全开；
+// redirect_uris 是逗号分隔的原文：整串限长 CONST_OAUTH_REDIRECT_URIS_MAX_LEN（那一格是 TEXT，
+// 钳它是为了不走静默截断，不是列宽），每一项要非空且过 redirect_uri_scheme_ok()，其余形状不校验
+// （注册方是已登录的后台用户）。client_id 的形状不校验——纯数字的 client_id 已经碰不到用户身份，
+// 令牌的 gty 声明把人和机分开了，见 authenticate_client(httppeer&) 与 oauth_bearerauth。
+// allowed_scopes / grant_types 同样只搬字节，空串＝不设上限／全开；
 // isopen=false 表示注册即停用。
 bool add_client(const std::string &client_id,
                 const std::string &name,

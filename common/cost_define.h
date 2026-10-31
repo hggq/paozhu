@@ -382,6 +382,14 @@ constexpr bool http2_wu_stream_id_ok(unsigned long long sid, unsigned long long 
 // registration endpoint instead of being silently truncated.
 #define CONST_OAUTH_CLIENT_SCOPES_MAX_LEN 255
 #define CONST_OAUTH_CLIENT_GRANTS_MAX_LEN 127
+// redirect_uris 那一格是 TEXT（列宽 65535），所以下面这个数不是列宽，是策略界：它钳的是逗号分隔的
+// 整串。8192 按"一个客户端挂几条回调地址"给量（一条 URL 约 120 字符，放得下几十条），同时只有列宽
+// 的八分之一，离静默截断还有余量——截短的白名单少几项，表现成"合法回调换不到码"，
+// 和上面那两列同一个道理，一样在入口拒。
+// Policy bound (not a column width) on the whole comma-separated redirect_uris string. The column
+// is TEXT, so this only has to stay clear of silent truncation while leaving room for many
+// redirect URIs per client.
+#define CONST_OAUTH_REDIRECT_URIS_MAX_LEN 8192
 
 // GitHub OAuth 客户端这一侧（libs/github + controller/src/github）的编译期常量。
 // 与上一段的授权服务器是两套东西：这里的凭据跟着每个 admin 的绑定落在 github_account 行里，

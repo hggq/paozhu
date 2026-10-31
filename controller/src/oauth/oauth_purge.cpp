@@ -17,9 +17,9 @@
 #include "datetime.h"
 #include "func.h"
 #include "httppeer.h"
+#include "oauth/oauth_audit.h"
 #include "oauth/oauth_store.h"
 #include "oauth_purge.h"
-#include "terminal_color.h"
 
 namespace http
 {
@@ -54,10 +54,8 @@ std::string oauth_purge(std::shared_ptr<httppeer> peer)
     // 只进日志：这条既可能是间隔任务的一拍，也可能是有人直接 GET 了一下这页，两种都要留数。
     if (codes_deleted > 0 || refreshes_deleted > 0)
     {
-        DEBUG_LOG("[oauth] purge cutoff:%lld codes:%u refreshes:%u",
-                  cutoff,
-                  codes_deleted,
-                  refreshes_deleted);
+        OAUTH_AUDIT("purge cutoff:" + std::to_string(cutoff) + " codes:" + std::to_string(codes_deleted) +
+                    " refreshes:" + std::to_string(refreshes_deleted));
     }
     return "";
 }

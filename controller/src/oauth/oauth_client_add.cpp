@@ -74,6 +74,12 @@ std::string oauth_client_add(std::shared_ptr<httppeer> peer)
         add_client_fail(client, "redirect_uris is required");
         return "";
     }
+    // 与上面几列同一个口径：整串钳住，超长在入口拒，不靠 TEXT 列宽去静默截断
+    if (redirect_uris.size() > CONST_OAUTH_REDIRECT_URIS_MAX_LEN)
+    {
+        add_client_fail(client, "redirect_uris too long");
+        return "";
+    }
     // 空项存进去永远不会被 match_redirect_uri 命中，白名单里留着它只是噪音
     for (const std::string &one : mb_split(",", redirect_uris))
     {

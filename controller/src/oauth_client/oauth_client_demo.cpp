@@ -39,7 +39,8 @@ oauth_client::oauth_endpoints default_endpoints()
 }
 
 // paozhu OAuth server 测试客户端。
-// 想测 GitHub OAuth App 把下面两行换成 Ov23li98gp47ujnemKCA / 32b1581c8a6ff1c70fe1ca76fd75fabb4c4b369e
+// 想测 GitHub OAuth App 把下面两行换成自己那台 App 的 client_id / client_secret（值不写进源码，
+// conf/github.conf 的 default_client_id / default_client_secret 是一处放它们的地方）
 // 同时把 authorize_url/token_url 改成 github.com/login/oauth/{authorize,access_token}、prefer_basic_auth=false。
 constexpr const char *DEFAULT_CLIENT_ID     = "test_client";
 constexpr const char *DEFAULT_CLIENT_SECRET = "test-secret-abc123-xyz789";

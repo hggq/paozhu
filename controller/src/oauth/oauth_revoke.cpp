@@ -8,9 +8,9 @@
 #include "datetime.h"
 #include "func.h"
 #include "httppeer.h"
+#include "oauth/oauth_audit.h"
 #include "oauth/oauth_store.h"
 #include "oauth_revoke.h"
-#include "debug_log.h"
 
 namespace http
 {
@@ -25,22 +25,6 @@ void revoke_error(httppeer &client, unsigned int status, const std::string &erro
         client.val["error_description"] = detail;
     }
     client.out_json();
-}
-
-// 认证判定整套在 store 里，和 token 端点共用；这里只负责把请求里的字符串交出去。
-bool peer_auth_client(httppeer &client, oauth::client_record &rec, std::string &out_id)
-{
-    std::string auth_header;
-    auto        hit = client.header.find("authorization");
-    if (hit != client.header.end())
-    {
-        auth_header = hit->second;
-    }
-    return oauth::authenticate_client(auth_header,
-                                      client.post["client_id"].to_string(),
-                                      client.post["client_secret"].to_string(),
-                                      rec,
-                                      out_id);
 }
 } // namespace
 
@@ -58,7 +42,7 @@ std::string oauth_revoke(std::shared_ptr<httppeer> peer)
     }
     oauth::client_record rec;
     std::string          authed_id;
-    if (!peer_auth_client(client, rec, authed_id))
+    if (!oauth::authenticate_client(client, rec, authed_id))
     {
         client.status(401);
         client.set_header("WWW-Authenticate", "Basic realm=\"oauth\"");
@@ -122,7 +106,7 @@ std::string oauth_revoke(std::shared_ptr<httppeer> peer)
                 if (!jti.empty() && claims["aud"].to_string() == authed_id &&
                     !oauth::blacklist_access_jti(jti, claims["exp"].to_int()))
                 {
-                    LOG_ERROR << "[oauth] revoke: access token not recorded in the revocation list" << LOG_END;
+                    OAUTH_AUDIT("revoke: access token not recorded in the revocation list");
                 }
             }
         }

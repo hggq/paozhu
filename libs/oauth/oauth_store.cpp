@@ -14,6 +14,7 @@
 #include "cost_define.h"
 #include "datetime.h"
 #include "func.h"
+#include "httppeer.h"
 #include "jwt.h"
 #include "orm.h"
 #include "request.h"
@@ -51,6 +52,20 @@ bool pkce_s256_ok(const std::string &code_verifier, const std::string &code_chal
     if (code_verifier.size() < 43 || code_verifier.size() > 128)
     {
         return false;
+    }
+    // RFC 7636 §4.1：verifier 只允许 unreserved 字符 [A-Za-z0-9-._~]。
+    // SHA-256 不挑输入，这一条不影响能不能算得通，管的是"别家严格客户端能用、这里不能用"
+    // 之外的差别：带 '+' '/' '=' 的 base64 串按规范不该被这个 AS 接受。
+    for (char raw : code_verifier)
+    {
+        unsigned char c = (unsigned char)raw;
+        bool            allowed =
+            (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
+            c == '-' || c == '.' || c == '_' || c == '~';
+        if (!allowed)
+        {
+            return false;
+        }
     }
     // 32 字节摘要的无填充 base64url 恒为 43 字符，先按长度否掉非 S256 的登记值
     if (code_challenge.size() != 43)
@@ -265,6 +280,21 @@ bool authenticate_client(const std::string &auth_header,
     return true;
 }
 
+bool authenticate_client(httppeer &client, client_record &out_rec, std::string &out_client_id)
+{
+    std::string auth_header;
+    auto        hit = client.header.find("authorization");
+    if (hit != client.header.end())
+    {
+        auth_header = hit->second;
+    }
+    return authenticate_client(auth_header,
+                               client.post["client_id"].to_string(),
+                               client.post["client_secret"].to_string(),
+                               out_rec,
+                               out_client_id);
+}
+
 bool match_redirect_uri(const std::string &whitelist,
                         const std::string &submitted,
                         std::string &out_matched)
@@ -401,7 +431,8 @@ bool add_client(const std::string &client_id,
     {
         return false;
     }
-    if (name.size() > CONST_OAUTH_CLIENT_NAME_MAX_LEN || redirect_uris.empty())
+    if (name.size() > CONST_OAUTH_CLIENT_NAME_MAX_LEN || redirect_uris.empty() ||
+        redirect_uris.size() > CONST_OAUTH_REDIRECT_URIS_MAX_LEN)
     {
         return false;
     }
