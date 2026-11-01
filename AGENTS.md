@@ -1364,7 +1364,15 @@ Nothing else is cached: `fetch_to()` / `fetch_one_to()` / `fetch_obj()`, `count(
 `exec_one_to()` / `exec_one_append()` template readers, and every write.
 
 **Arming a read-through.** `use_cache(int cache_time = 0)` is chainable and arms the next
-read; `cache_time` is a TTL in seconds, `0` meaning *never expires*.
+read. The framework owns expiry, the caller only asks for less of it: a non-positive
+`cache_time` (including the default) stores `ORM_CACHE_DEFAULT_TTL` seconds (120), a positive one
+is honoured but clamped to `ORM_CACHE_MAX_TTL` (3600). Both are `-D`-overridable macros in
+`orm_cache.hpp`, next to `ORM_CACHE_SCAN_INTERVAL`, and the deadline is computed in one function
+(`orm_cache_deadline()`), so changing the policy touches that file only.
+`ORM_CACHE_SCAN_INTERVAL` (30) is a different knob and never changes correctness: it is how long
+the sweeper thread sleeps between `remove_exptime()` passes, so it only bounds how much later a
+lapsed entry leaves memory. Expiry itself is judged on every read — `try_get()` compares the
+stored deadline and erases the entry as it misses — so a lapsed row is never served.
 
 ```cpp
 auto articles = orm::cms::Article();
@@ -1378,7 +1386,7 @@ a real read it writes back and disarms, under these guards:
 
 | Read | Store | Write-back guard | Caches an empty result? |
 |------|-------|------------------|-------------------------|
-| `fetch()` / `fetch_append()` (+ `async_`) | `record` | `iscache` | yes |
+| `fetch()` / `fetch_append()` (+ `async_`) | `record` | `iscache && read_is_clean` | yes, but only for a read that came back clean |
 | `exec_fetch()` (+ `async_exec_fetch()`) | `record` | `iscache && !iserror` | yes, but never after a read that reported an error |
 | `fetch_one()` / `get_one()` (+ `async_`) | `meta` | `iscache && effect_num > 0` | no |
 | `exec_one()` (+ `async_exec_one()`) | `meta` | `iscache && !iserror && effect_num > 0` | no |
@@ -1386,11 +1394,21 @@ a real read it writes back and disarms, under these guards:
 The single-row store cannot tell "no such row" from "one row that happens to be all zeros", so it
 stores only a row that was actually read. Three consequences worth stating:
 
-- `use_cache()` with the default TTL stores a **permanent** entry (`0` = never expires). The
-  sweeper never collects it; only `remove_cache()` / `clear_cache()` drops it.
-- An error does not block a text write-back: `fetch()` that failed still stores the empty `record`.
-  The `exec_fetch()` form adds `!iserror`, so one connection hiccup cannot be pinned as a permanent
-  empty result set.
+- There is no permanent entry: every stored key carries a real deadline, so the sweeper can and
+  will collect it. `update_cache(name)` with no TTL re-arms `ORM_CACHE_DEFAULT_TTL` rather than
+  pinning the entry forever — it can no longer lengthen a row set beyond `ORM_CACHE_MAX_TTL`
+  either. `remove_cache()` / `clear_cache()` stay the way to drop an entry before its deadline.
+- A text row-set write-back is gated on the read itself. Before the connection is returned to the
+  pool the model snapshots `read_is_clean = select_conn->error_msg.empty() && !select_conn->isclose`
+  and writes back only when that holds, so a read that broke part-way (rows already handed to the
+  callback, then the stream died) or a driver exit that sets `isclose` without writing any error
+  text no longer pins an empty or truncated row set; the slot stays armed, so the next run of the
+  same statement goes to the database. A clean read that legitimately matched 0 rows is still
+  cached — an empty result is itself an answer. The guard uses those two fields and not `iserror`
+  because the driver can fail without setting the model flag, and not `error_code` because SQLite's
+  connection has no such member while this block must stay byte-identical across the three dialect
+  templates. The `exec_fetch()` form keeps its own `!iserror` guard, so a prepared read that broke
+  part-way without latching `iserror` still stores the truncated row set.
 - Nothing else disarms the slot. `clear()` and `clearWhere()` reset `iscache` (and `effect_num`), but
   leave `exptime` behind; `set_cache_state(bool)` sets the flag alone.
 
@@ -1410,11 +1428,11 @@ and `record` respectively). The three stores `fetch_row()` uses are keyed by gen
 types, so every model shares them; nothing on a model clears them and they age out by TTL
 alone.
 
-**A miss is silent.** `get_data_cache()` and `get_record_cache()` swallow the
-`std::runtime_error` thrown by `model_meta_cache::get()`, then reset `data` / `record` and
-return `false`. They set neither `error_msg` nor `iserror` and never call `unlock_conn()`, so
-a cold read inside a `lock_conn()` batch keeps its connection. The lookup that missed also
-erases the entry when it was present but expired.
+**A miss is silent.** `get_data_cache()` and `get_record_cache()` read through
+`model_meta_cache::try_get()`, so a cold read never throws; on a miss they reset `data` /
+`record` and return `false`. They set neither `error_msg` nor `iserror` and never call
+`unlock_conn()`, so a cold read inside a `lock_conn()` batch keeps its connection. The
+lookup that missed also erases the entry when it was present but expired.
 
 **Named keys.** The manual API takes a caller-chosen `std::string` and hashes it itself,
 which is how you cache anything whose SQL the DSL builds differently. The accessors that
@@ -1468,7 +1486,9 @@ answers that question, and it is set by the `record` / `meta` read-throughs but 
 only when all three succeed **and** the stored row set is non-empty, which is why the returned
 tuple never carries rows with an empty column-name list. The write-back mirrors that: it runs
 only when the query returned at least one row, and it stores the rows under `exptime` while the
-two name stores get `exptime + 1`, so the rows always lapse first. An empty result therefore
+two name stores get `exptime + 1` — that offset only exists when the caller passed a positive TTL,
+so with the framework default all three lapse on the same deadline. Either way a hit needs all
+three stores, so a set that lapsed unevenly just costs one real query. An empty result therefore
 writes nothing and leaves the slot armed, and a hit disarms without zeroing `exptime`.
 `fetch_obj()` touches the cache in neither direction: it reads from the database every time and
 writes nothing back, so it cannot empty out the `record` store that `fetch()` reads through.
@@ -1729,8 +1749,8 @@ holds one row (`data`), `vector` holds a row set (`record`).
 | `get_data_cache(key)` / `get_record_cache(key)` | `meta` / `vector` | fill `data` / `record`, return `bool`; a miss resets them and returns `false` without touching `error_msg`, `iserror` or the connection |
 | `get_cache(name)` / `get_vector_cache(name)` | `meta` / `vector` | return the stored value; **throw** `std::runtime_error` on a miss |
 | `try_get_cache(name)` / `try_get_vector_cache(name)` | `meta` / `vector` | the non-throwing twins: `std::optional`, empty on a miss |
-| `check_cache(key)` | `meta` | `-1` absent, `0` permanent, else seconds remaining |
-| `update_cache(ttl = 0)` / `update_cache(key, ttl)` | `vector` | TTL only; `-1` absent, `0` when the stored entry was permanent, else `1` |
+| `check_cache(key)` | `meta` | `-1` absent, else seconds remaining (negative once the deadline passed but the sweeper has not run yet) |
+| `update_cache(ttl = 0)` / `update_cache(key, ttl)` | `vector` | re-arms the deadline under the same framework policy; `-1` absent, `1` refreshed |
 | `remove_cache()` / `remove_cache(key)` | `meta` + `record` | the no-arg form keys off `hash(sqlstring)` and cannot reach a prepared entry; `true` when either store held the key |
 | `clear_cache()` / `remove_exptime_cache()` | `meta` + `record` | whole stores / entries whose TTL lapsed |
 | `last_exec_cache_hash` | — | public `std::size_t`: the key the last armed `exec_*` read used, for `remove_cache()`; `0` when none |

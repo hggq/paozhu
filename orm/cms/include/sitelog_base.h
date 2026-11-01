@@ -2,7 +2,7 @@
 #define ORM_CMS_SITELOGBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 30 Oct 2026 07:29:13 GMT
+*本文件为自动生成 Sun, 01 Nov 2026 02:10:33 GMT
 ***/
 #include <iostream>
 #include <charconv>

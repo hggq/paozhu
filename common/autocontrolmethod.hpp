@@ -475,6 +475,7 @@ namespace http
         reg_urlpath("", "/testormcache_d_invalidate", {"", "aid"}); // controller/src/testormcache.cpp:185
         reg_raw("", "/testormcache_e", nullptr, nullptr, testormcache_e, nullptr, 0); // controller/src/testormcache.cpp:220
         reg_urlpath("", "/testormcache_e", {"", "aid"}); // controller/src/testormcache.cpp:220
+        reg_raw("", "/testormcache_f", nullptr, nullptr, testormcache_f, nullptr, 0); // controller/src/testormcache.cpp:297
         reg_raw("", "/testormclient", nullptr, nullptr, testormclient, nullptr, 0); // controller/src/testormclient.cpp:10
         reg_raw("", "/testpinyin", nullptr, nullptr, testpinyin, nullptr, 0); // controller/src/testpinyin.cpp:8
         reg_raw("", "/testpinyin_loaded", nullptr, nullptr, testpinyin_loaded, nullptr, 0); // controller/src/testpinyin.cpp:29

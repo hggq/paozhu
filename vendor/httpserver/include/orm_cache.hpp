@@ -44,6 +44,29 @@ std::map<std::size_t, BASE_T> &get_static_model_cache()
 #define ORM_CACHE_SCAN_INTERVAL 30   // 秒，可编译期 -D 覆盖
 #endif
 
+#ifndef ORM_CACHE_DEFAULT_TTL
+#define ORM_CACHE_DEFAULT_TTL 120    // 秒，可编译期 -D 覆盖
+#endif
+
+#ifndef ORM_CACHE_MAX_TTL
+#define ORM_CACHE_MAX_TTL 3600       // 秒，可编译期 -D 覆盖
+#endif
+
+// 到期时刻只在这一处算：过期归框架决定，业务传的秒数只是"想短一点"的请求，
+// 不给档走默认档、给了档钳到上界，所以不再有任何条目是清不掉的永久条目。
+inline unsigned int orm_cache_deadline(int expnum)
+{
+    if (expnum <= 0)
+    {
+        return orm_timeid() + ORM_CACHE_DEFAULT_TTL;
+    }
+    if (expnum > ORM_CACHE_MAX_TTL)
+    {
+        expnum = ORM_CACHE_MAX_TTL;
+    }
+    return orm_timeid() + static_cast<unsigned int>(expnum);
+}
+
 // 类型擦除的 registry：每个 model_meta_cache<T> 注册一个 lambda 进去
 // 下面这几个守护线程会用到的单例同样不析构，理由同 get_static_model_cache()
 inline std::vector<std::function<void()>> &orm_cache_registry()
@@ -138,15 +161,8 @@ class model_meta_cache
     {
         std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
         struct data_cache_t temp;
-        temp.data = data_list;
-        if (expnum != 0)
-        {
-            temp.exptime = orm_timeid() + expnum;
-        }
-        else
-        {
-            temp.exptime = 0;
-        }
+        temp.data    = data_list;
+        temp.exptime = orm_cache_deadline(expnum);
         std::unique_lock<std::mutex> lock(editlock);
         auto [_, success] = obj.insert({hashid, temp});
         if (!success)
@@ -166,15 +182,8 @@ class model_meta_cache
     {
         std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
         struct data_cache_t temp;
-        temp.data = std::move(data_list);
-        if (expnum != 0)
-        {
-            temp.exptime = orm_timeid() + expnum;
-        }
-        else
-        {
-            temp.exptime = 0;
-        }
+        temp.data    = std::move(data_list);
+        temp.exptime = orm_cache_deadline(expnum);
         std::unique_lock<std::mutex> lock(editlock);
         auto iter = obj.find(hashid);
         if (iter == obj.end())
@@ -204,7 +213,7 @@ class model_meta_cache
         return false;
     }
 
-    // 清所有 exptime != 0 且 < nowtime 的键；exptime==0（永久）保留
+    // 清所有已过期的键；到期时刻一律出自 orm_cache_deadline()，没有豁免的条目
     void remove_exptime()
     {
         std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
@@ -212,7 +221,7 @@ class model_meta_cache
         std::unique_lock<std::mutex> lock(editlock);
         for (auto iter = obj.begin(); iter != obj.end();)
         {
-            if (iter->second.exptime != 0 && iter->second.exptime < nowtime)
+            if (iter->second.exptime < nowtime)
             {
                 iter = obj.erase(iter);
             }
@@ -230,6 +239,8 @@ class model_meta_cache
         obj.clear();
     }
 
+    // 剩余秒数；-1 = 键不存在。到期时刻只可能来自 orm_cache_deadline()，
+    // 已过期但还没被扫走的键会给出负数，调用方按 miss 处理即可。
     int check(std::size_t hashid)
     {
         std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
@@ -238,32 +249,20 @@ class model_meta_cache
         auto iter = obj.find(hashid);
         if (iter != obj.end())
         {
-            if (iter->second.exptime == 0)
-            {
-                return 0;
-            }
             return ((int)(iter->second.exptime - nowtime));
         }
         return -1;
     }
 
+    // 给已存在的键换一次到期时刻；-1 = 键不存在，1 = 已刷新
     int update(std::size_t hashid, int exptime = 0)
     {
         std::map<std::size_t, data_cache_t> &obj = get_static_model_cache<data_cache_t>();
-        unsigned int nowtime                     = orm_timeid() + exptime;
-        if (exptime == 0)
-        {
-            nowtime = 0;
-        }
+        unsigned int nowtime                     = orm_cache_deadline(exptime);
         std::unique_lock<std::mutex> lock(editlock);
         auto iter = obj.find(hashid);
         if (iter != obj.end())
         {
-            if (iter->second.exptime == 0)
-            {
-                iter->second.exptime = nowtime;
-                return 0;
-            }
             iter->second.exptime = nowtime;
             return 1;
         }
@@ -279,7 +278,7 @@ class model_meta_cache
         auto iter = obj.find(hashid);
         if (iter != obj.end())
         {
-            if (iter->second.exptime == 0 || iter->second.exptime >= nowtime)
+            if (iter->second.exptime >= nowtime)
             {
                 return iter->second.data;
             }

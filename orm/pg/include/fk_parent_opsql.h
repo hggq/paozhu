@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM PostgreSQL intermediate connection layer, sourced from MySQL, PostgreSQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Thu, 22 Oct 2026 11:07:11 GMT
+ *  Creation time Sun, 01 Nov 2026 02:10:35 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -3878,12 +3878,16 @@ M_MODEL& ornotnullName()
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
 
+                // 写回只认"这次读干净"：error_msg 与 isclose 是三个驱动共有的凭证，
+                // error_code 只有 mysql 和 pg 有，这段三个模板要逐字节一致所以不用它；
+                // 三个驱动都在语句入口清零 error_msg，所以不会残留成永不写回。
+                bool read_is_clean = select_conn->error_msg.empty() && !select_conn->isclose;
                 if (!islock_conn)
                 {
                     conn_obj->back_pg_select_conn(std::move(select_conn));
                 }
 
-                if (iscache)
+                if (iscache && read_is_clean)
                 {
                     save_cache(exptime);
                     exptime = 0;
@@ -4027,11 +4031,15 @@ M_MODEL& ornotnullName()
                     long long du_time = select_conn->count_time();
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
+                // 写回只认"这次读干净"：error_msg 与 isclose 是三个驱动共有的凭证，
+                // error_code 只有 mysql 和 pg 有，这段三个模板要逐字节一致所以不用它；
+                // 三个驱动都在语句入口清零 error_msg，所以不会残留成永不写回。
+                bool read_is_clean = select_conn->error_msg.empty() && !select_conn->isclose;
                 if (!islock_conn)
                 {
                     conn_obj->back_pg_select_conn(std::move(select_conn));
                 }
-                if (iscache)
+                if (iscache && read_is_clean)
                 {
                     save_cache(exptime);
                     exptime = 0;
@@ -4175,12 +4183,16 @@ M_MODEL& ornotnullName()
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
 
+                // 写回只认"这次读干净"：error_msg 与 isclose 是三个驱动共有的凭证，
+                // error_code 只有 mysql 和 pg 有，这段三个模板要逐字节一致所以不用它；
+                // 三个驱动都在语句入口清零 error_msg，所以不会残留成永不写回。
+                bool read_is_clean = select_conn->error_msg.empty() && !select_conn->isclose;
                 if (!islock_conn)
                 {
                     conn_obj->back_pg_select_conn(std::move(select_conn));
                 }
 
-                if (iscache)
+                if (iscache && read_is_clean)
                 {
                     save_cache(exptime);
                     exptime = 0;
@@ -4325,11 +4337,15 @@ M_MODEL& ornotnullName()
                     long long du_time = select_conn->count_time();
                     conn_mar.push_log(sqlstring, std::to_string(du_time));
                 }
+                // 写回只认"这次读干净"：error_msg 与 isclose 是三个驱动共有的凭证，
+                // error_code 只有 mysql 和 pg 有，这段三个模板要逐字节一致所以不用它；
+                // 三个驱动都在语句入口清零 error_msg，所以不会残留成永不写回。
+                bool read_is_clean = select_conn->error_msg.empty() && !select_conn->isclose;
                 if (!islock_conn)
                 {
                     conn_obj->back_pg_select_conn(std::move(select_conn));
                 }
-                if (iscache)
+                if (iscache && read_is_clean)
                 {
                     save_cache(exptime);
                     exptime = 0;
@@ -5205,18 +5221,15 @@ M_MODEL& ornotnullName()
 
         bool get_data_cache(std::size_t cache_key_name)
         {
-            try
+            model_meta_cache<fk_parent_info::meta> &temp_cache = model_meta_cache<fk_parent_info::meta>::getinstance();
+            auto hit                                                = temp_cache.try_get(cache_key_name);
+            if (!hit)
             {
-                model_meta_cache<fk_parent_info::meta> &temp_cache = model_meta_cache<fk_parent_info::meta>::getinstance();
-                B_BASE::data                                        = temp_cache.get(cache_key_name);
-                return true;
+                B_BASE::data_reset();
+                return false;
             }
-            catch (const std::exception &e)
-            {
-            }
-
-            B_BASE::data_reset();
-            return false;
+            B_BASE::data = std::move(*hit);
+            return true;
         }
         int update_cache(int exp_time = 0)
         {
@@ -5330,18 +5343,15 @@ M_MODEL& ornotnullName()
 
         bool get_record_cache(std::size_t cache_key_name)
         {
-            try
+            model_meta_cache<std::vector<fk_parent_info::meta>> &temp_cache = model_meta_cache<std::vector<fk_parent_info::meta>>::getinstance();
+            auto hit                                                             = temp_cache.try_get(cache_key_name);
+            if (!hit)
             {
-                model_meta_cache<std::vector<fk_parent_info::meta>> &temp_cache = model_meta_cache<std::vector<fk_parent_info::meta>>::getinstance();
-                B_BASE::record                                                   = temp_cache.get(cache_key_name);
-                return true;
+                B_BASE::record.clear();
+                return false;
             }
-            catch (const std::exception &e)
-            {
-            }
-
-            B_BASE::record.clear();
-            return false;
+            B_BASE::record = std::move(*hit);
+            return true;
         }
         http::obj_val fetch_json()
         {

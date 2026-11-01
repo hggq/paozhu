@@ -2,7 +2,7 @@
 #define ORM_CMS_GITHUB_ACCOUNTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 30 Oct 2026 07:29:13 GMT
+*本文件为自动生成 Sun, 01 Nov 2026 02:10:33 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -768,7 +768,7 @@ namespace github_account_info
 	static constexpr std::array<unsigned int,23> col_length={0,0,0,64,255,255,0,64,255,255,255,255,0,0,0,0,0,0,0,0,255,0,0};
 	static constexpr std::array<unsigned char,23> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	static constexpr std::array<bool,23> col_null={false,false,false,false,true,false,false,false,false,true,true,false,false,false,false,false,false,false,false,false,false,false,false};
-	static constexpr std::array<bool,23> col_indexed={true,true,false,false,false,false,false,false,false,false,false,false,false,false,true,false,false,false,false,false,false,false,false};
+	static constexpr std::array<bool,23> col_indexed={true,true,false,true,false,false,false,false,false,false,false,false,false,false,true,true,true,false,false,false,false,false,false};
 	static constexpr std::string_view auto_pk_name ="id";
 	static constexpr int auto_pk_index = 0;
 

@@ -2,7 +2,7 @@
 #define ORM_CMS_OAUTH_REFRESHBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Fri, 30 Oct 2026 07:29:13 GMT
+*本文件为自动生成 Sun, 01 Nov 2026 02:10:33 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -637,7 +637,7 @@ namespace oauth_refresh_info
 	static constexpr std::array<unsigned int,8> col_length={0,0,64,64,0,256,0,0};
 	static constexpr std::array<unsigned char,8> col_decimals={0,0,0,0,0,0,0,0};
 	static constexpr std::array<bool,8> col_null={false,false,false,false,false,false,false,false};
-	static constexpr std::array<bool,8> col_indexed={true,true,true,true,false,false,true,false};
+	static constexpr std::array<bool,8> col_indexed={true,true,true,true,true,false,true,false};
 	static constexpr std::string_view auto_pk_name ="id";
 	static constexpr int auto_pk_index = 0;
 

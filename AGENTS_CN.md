@@ -1314,8 +1314,15 @@ asio::awaitable<void> handle_request()
 `page()` / `exec_page()`、`exec_fetch_append()`、`exec_fetch_to()` / `exec_one_to()` /
 `exec_one_append()` 这些模板读取器，以及所有写操作。
 
-**装填一次读穿。** `use_cache(int cache_time = 0)` 可链式调用，为下一次读取装填；
-`cache_time` 是以秒为单位的 TTL，`0` 表示 *永不过期*。
+**装填一次读穿。** `use_cache(int cache_time = 0)` 可链式调用，为下一次读取装填。过期由框架
+决定，调用方只能要求更短：非正的 `cache_time`（含默认值）存 `ORM_CACHE_DEFAULT_TTL` 秒（120），
+正数照办但钳到 `ORM_CACHE_MAX_TTL`（3600）。两个旋钮都是 `orm_cache.hpp` 里可用 `-D` 覆盖的宏，
+就排在 `ORM_CACHE_SCAN_INTERVAL` 旁边，到期时刻只在一个函数里算（`orm_cache_deadline()`），
+所以改策略只需动那个文件。
+`ORM_CACHE_SCAN_INTERVAL`（30）是另一枚旋钮，且它从不影响正确性：它只是清理线程两次
+`remove_exptime()` 之间睡多久，因此只决定已过期的条目**最晚**多久才从内存里消失。过期判定发生在
+每一次读取上——`try_get()` 现场比较存着的到期时刻，未命中时顺手把键删掉——所以过期的行不会被
+端出去。
 
 ```cpp
 auto articles = orm::cms::Article();
@@ -1329,7 +1336,7 @@ articles.where("isopen", 1).where("topicid", 3).use_cache(60).fetch();  // recor
 
 | 读取 | 存储 | 回写门禁 | 会缓存空结果吗？ |
 |------|------|----------|------------------|
-| `fetch()` / `fetch_append()`（含 `async_`） | `record` | `iscache` | 会 |
+| `fetch()` / `fetch_append()`（含 `async_`） | `record` | `iscache && read_is_clean` | 会，但只缓存"这次读干净"的行集 |
 | `exec_fetch()`（含 `async_exec_fetch()`） | `record` | `iscache && !iserror` | 会，但一次报了错的读取不会 |
 | `fetch_one()` / `get_one()`（含 `async_`） | `meta` | `iscache && effect_num > 0` | 不会 |
 | `exec_one()`（含 `async_exec_one()`） | `meta` | `iscache && !iserror && effect_num > 0` | 不会 |
@@ -1337,10 +1344,18 @@ articles.where("isopen", 1).where("topicid", 3).use_cache(60).fetch();  // recor
 单行存储分不清“没有这一行”和“有一行但全是零值”，所以只在真的读到行时才存。由此有三条值得
 讲明的结论：
 
-- 用默认 TTL 的 `use_cache()` 存的是**永久**条目（`0` = 永不过期）。清理线程永远不会收走它，
-  只有 `remove_cache()` / `clear_cache()` 能丢掉。
-- 文本路径的回写不看错误：`fetch()` 即使失败也会把空的 `record` 存进去。`exec_fetch()` 多了
-  一条 `!iserror`，于是一次连接抖动不会被钉成永久的空结果集。
+- 不再有永久条目：每个存进去的键都带一个真实的到期时刻，清理线程能收走、也一定会收走。
+  `update_cache(name)` 不带 TTL 时是重新装填 `ORM_CACHE_DEFAULT_TTL`，而不是把条目钉死——
+  它也不再能把一个结果集的寿命拉过 `ORM_CACHE_MAX_TTL`。想在到期前丢掉条目，仍然用
+  `remove_cache()` / `clear_cache()`。
+- 文本行集的回写要看这一次读本身。模型在把连接归还池子之前先取一次快照
+  `read_is_clean = select_conn->error_msg.empty() && !select_conn->isclose`，只有它成立才回写。
+  于是"前面几行已经交给回调、之后才断流"的截断读，以及只把 `isclose` 置真却不写错误文案的驱动
+  出口，都不再把空行集或半截行集钉进缓存；装填仍留在槽上，同一条语句下一次照旧走真库。反过来，
+  一次干净的读即使合法地只匹配到 0 行，照样缓存——空结果本身也是一种答案。这条判据取这两个字段
+  而不是 `iserror`，因为驱动可以在不点亮模型旗位的情况下失败；也不取 `error_code`，因为 sqlite 的
+  连接没有同名成员，而这段代码在三个模板里必须逐字节一致。`exec_fetch()` 保留它自己的 `!iserror`，
+  所以一次预备语句读到一半、又没点亮 `iserror` 时，仍会把截断的行集存进去。
 - 没有别的东西会解除装填。`clear()` 和 `clearWhere()` 重置 `iscache`（以及 `effect_num`），
   但把 `exptime` 留在原处；`set_cache_state(bool)` 只设置这个标志。
 
@@ -1358,8 +1373,8 @@ articles.where("isopen", 1).where("topicid", 3).use_cache(60).fetch();  // recor
 `fetch_row()` 用的三个存储以通用值类型为键，所有模型共用，模型上没有清理它们的入口，只能
 靠 TTL 到期。
 
-**未命中是静默的。** `get_data_cache()` 与 `get_record_cache()` 吞掉 `model_meta_cache::get()`
-抛出的 `std::runtime_error`，然后重置 `data` / `record` 并返回 `false`。它们既不写 `error_msg`
+**未命中是静默的。** `get_data_cache()` 与 `get_record_cache()` 走的是 `model_meta_cache::try_get()`，
+冷读取全程不抛异常；未命中时重置 `data` / `record` 并返回 `false`。它们既不写 `error_msg`
 也不置 `iserror`，更不调用 `unlock_conn()`，所以在 `lock_conn()` 批次里做一次冷读取，连接仍然
 留在手上。那次没命中的查找如果碰到“条目还在但已过期”，会顺手把它删掉。
 
@@ -1409,8 +1424,9 @@ articles.remove_cache(articles.last_exec_cache_hash);   // 0 = 没装填过，�
 `model_meta_cache::get()` 在未命中或条目已过期时会抛，所以这三个 `get()` 现在写在 `try`
 里：未命中、或者三个存储过期得不一致，都会落到真正的查询上。只有三者全部成功、且存着的行集
 非空，才算命中，因此返回的元组不会带着行数据却配一个空的列名列表。回写与这个判据对齐：只有
-查询真的返回了至少一行才写，并且行数据用 `exptime` 存、两个名字存储用 `exptime + 1` 存，所以
-行一定先到期。于是空结果什么都不写、并把装填留在槽上；命中则解除装填但不清 `exptime`。
+查询真的返回了至少一行才写，并且行数据用 `exptime` 存、两个名字存储用 `exptime + 1` 存——
+这个偏移只在调用方传了正数 TTL 时才存在，所以走框架默认档时三者落在同一个到期时刻。无论哪种，
+命中都要求三个存储全部到位，因此过期得不一致只会多花一次真正的查询。于是空结果什么都不写、并把装填留在槽上；命中则解除装填但不清 `exptime`。
 `fetch_obj()` 两个方向都不碰缓存：每次都从数据库读，也不回写，所以它不可能把 `fetch()` 读穿的
 那个 `record` 存储掏空。上面那组具名键访问器仍然按设计抛异常。
 
@@ -1667,8 +1683,8 @@ client.val["list"].push(item);
 | `get_data_cache(key)` / `get_record_cache(key)` | `meta` / `vector` | 填充 `data` / `record`，返回 `bool`；未命中会重置它们并返回 `false`，不碰 `error_msg`、`iserror`，也不碰连接 |
 | `get_cache(name)` / `get_vector_cache(name)` | `meta` / `vector` | 返回存储的值；未命中**抛** `std::runtime_error` |
 | `try_get_cache(name)` / `try_get_vector_cache(name)` | `meta` / `vector` | 不抛异常的一对：返回 `std::optional`，未命中为空 |
-| `check_cache(key)` | `meta` | `-1` 不存在，`0` 永不过期，其余为剩余秒数 |
-| `update_cache(ttl = 0)` / `update_cache(key, ttl)` | `vector` | 只改 TTL；键不存在 `-1`，原条目本是永久的返回 `0`，其余 `1` |
+| `check_cache(key)` | `meta` | `-1` 不存在，其余为剩余秒数（到期时刻已过、清理线程还没扫走时为负数） |
+| `update_cache(ttl = 0)` / `update_cache(key, ttl)` | `vector` | 按同一套框架策略重新装填到期时刻；键不存在 `-1`，已刷新 `1` |
 | `remove_cache()` / `remove_cache(key)` | `meta` + `record` | 无参版本以 `hash(sqlstring)` 为键，够不到预编译条目；任一存储里有这个键就返回 `true` |
 | `clear_cache()` / `remove_exptime_cache()` | `meta` + `record` | 整个存储 / TTL 已到期的条目 |
 | `last_exec_cache_hash` | — | 公开成员 `std::size_t`：上一次挂挡的 `exec_*` 读取真正使用的键，交给 `remove_cache()`；`0` 表示没跑过 |
