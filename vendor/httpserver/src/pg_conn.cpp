@@ -4102,14 +4102,18 @@ static bool _decode_pg_binary_row(
             // 文本协议（EncodeTimezone）按整点 +08、含分 +05:30、含秒 +00:19:32 三段格式输出，这里逐字对齐，
             // 两种协议读出的值才相等。符号作用于整个偏移，-00:30 不能因为小时位为 0 就打成 +00:30
             const bool has_tz = (oid == 1266);
-            char tzbuf[12]    = {0};
+            char tzbuf[16]    = {0};
             if (has_tz)
             {
+                // 截断到 PG 二进制协议时区偏移的有效范围（±23:59:59 = ±86399 秒），
+                // 让编译器能推断出 tz_h/tz_m/tz_s 的上界，消除 -Wformat-truncation 误报
+                // Clamp to PG binary tz offset range (±23:59:59 = ±86399s) so the
+                // compiler can infer upper bounds and silence -Wformat-truncation
                 int iso_tz_sec = -(int)be_i32(pos + 8);
-                int tz_abs     = std::abs(iso_tz_sec);
-                int tz_h       = tz_abs / 3600;
-                int tz_m       = (tz_abs % 3600) / 60;
-                int tz_s       = tz_abs % 60;
+                int tz_abs     = std::min(std::abs(iso_tz_sec), 86399);
+                int tz_h       = std::min(tz_abs / 3600, 23);
+                int tz_m       = std::min((tz_abs % 3600) / 60, 59);
+                int tz_s       = std::min(tz_abs % 60, 59);
                 char sign      = (iso_tz_sec < 0) ? '-' : '+';
                 if (tz_s != 0)
                     snprintf(tzbuf, sizeof(tzbuf), "%c%02d:%02d:%02d", sign, tz_h, tz_m, tz_s);

@@ -272,8 +272,8 @@ namespace http
         reg_raw("", "/oauth_client/refresh", nullptr, nullptr, oauth_client_refresh, nullptr, 0); // controller/src/oauth_client/oauth_client_demo.cpp:220
         reg_raw("", "/oauth_client/introspect", nullptr, nullptr, oauth_client_introspect, nullptr, 0); // controller/src/oauth_client/oauth_client_demo.cpp:243
         reg_raw("", "/oauth_client/revoke", nullptr, nullptr, oauth_client_revoke, nullptr, 0); // controller/src/oauth_client/oauth_client_demo.cpp:267
-        reg_raw("", "/paozhu_status", nullptr, nullptr, paozhu_status, nullptr, 0); // controller/src/serverwatch.cpp:27
-        reg_raw("", "/frametasks_timeloop", nullptr, nullptr, frametasks_timeloop, nullptr, 0); // controller/src/serverwatch.cpp:67
+        reg_raw("", "/metrics", nullptr, nullptr, paozhu_metrics, nullptr, 0); // controller/src/serverwatch.cpp:102
+        reg_raw("", "/frametasks_timeloop", nullptr, nullptr, frametasks_timeloop, nullptr, 0); // controller/src/serverwatch.cpp:398
         reg_raw("", "/superadmin/login", nullptr, nullptr, superadmin_login, nullptr, 0); // controller/src/superadmin/supermain.cpp:13
         reg_raw("", "/superadmin/loginpost", nullptr, nullptr, superadmin_loginpost, nullptr, 0); // controller/src/superadmin/supermain.cpp:21
         reg_raw("", "/superadmin/logout", nullptr, nullptr, superadmin_logout, nullptr, 0); // controller/src/superadmin/supermain.cpp:76
