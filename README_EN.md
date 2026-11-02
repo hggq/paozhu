@@ -5,7 +5,7 @@ English | [简体中文](README_CN.md)
 
 **Paozhu** (炮竹 🧨) —— a full-stack framework born for rapid C++ web development, with an integrated C++ ORM, scripting-language development speed, and the productivity to ship 1,000 lines of business code per day effortlessly. The framework employs a dual-pool architecture — I/O coroutine pool + user-code thread pool — with Go-style HTTP scheduling; `//@urlpath` annotation auto-extraction for zero-overhead URL registration; an ORM freely switchable between coroutine and synchronous modes; and hand-rolled native parsers for HTTP/1.1, HTTP/2, WebSocket, JSON — no third-party dependencies.
 
-Founded in 2022, Paozhu has been battle-tested in production environments over the years.
+Founded in 2022, Paozhu has been battle-tested in production environments over the years, powering 20+ real-world projects spanning WeChat Mini Programs, foreign-trade websites, multi-tenant SaaS, enterprise applications, and IoT smart devices.
 
 **QQ Group:** 668296235
 

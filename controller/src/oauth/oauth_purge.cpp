@@ -26,7 +26,7 @@ namespace http
 // 一拍里把两张表各扫一遍，每张最多 CONST_OAUTH_PURGE_MAX_ROUNDS 轮。
 // 一轮删不满 CONST_OAUTH_PURGE_BATCH 就收手，所以没有积压的一拍只发两条各删 0 行的 DELETE。
 //@urlpath(null,oauth/purge)
-std::string oauth_purge(std::shared_ptr<httppeer> peer)
+std::string oauth_purge(std::shared_ptr<httppeer> /*peer*/)
 {
     // 保留期比 refresh 的 TTL 长，所以这一刀永远碰不到"还在重放检测窗口里"的行。
     long long cutoff = (long long)timeid() - (long long)CONST_OAUTH_PURGE_KEEP;
