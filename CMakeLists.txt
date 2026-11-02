@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.21)
 
 # ---- Policies ----
 cmake_policy(SET CMP0048 NEW)
@@ -775,5 +775,7 @@ endif()
 # ---- Tests (cmake -DENABLE_TESTS=ON) ----
 # 放在依赖处理之后：tests 目标要复用 asio / OpenSSL / Threads / SQLite 等依赖目标
 if(ENABLE_TESTS)
+  include(CTest)
+  enable_testing()
   add_subdirectory(tests)
 endif()

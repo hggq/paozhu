@@ -111,6 +111,57 @@ foreach(test_src IN LISTS test_cpp_files)
 
   add_executable(${test_name} ${test_src})
   target_link_libraries(${test_name} PRIVATE ${paozhu_test_common_libs})
+  add_test(NAME ${test_name} COMMAND ${test_name})
+
+  # —— 工作目录统一为项目根（stress 依赖 conf/ 和 docx/ 相对路径） ——
+  # Run from project root so relative paths like conf/ and docx/ resolve correctly.
+  set_tests_properties(${test_name} PROPERTIES
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    TIMEOUT 120)                       # 默认 2min；stress 单独覆盖
+
+  # —— 自动打标签：按测试名匹配，便于 ctest -L / -LE 分组运行 ——
+  # Auto-tag by test name for ctest -L / -LE grouped runs.
+  set(_labels "unit")                 # 所有自带 unit 标签
+  if(test_name MATCHES "stress")
+    list(APPEND _labels "stress")
+  endif()
+  if(test_name MATCHES "mysql")
+    list(APPEND _labels "mysql")
+  endif()
+  if(test_name MATCHES "pg_stress")
+    list(APPEND _labels "pg")
+  endif()
+  if(test_name MATCHES "sqlite")
+    list(APPEND _labels "sqlite")
+  endif()
+  if(test_name MATCHES "jwt")
+    list(APPEND _labels "jwt")
+  endif()
+  if(test_name MATCHES "http2")
+    list(APPEND _labels "http2")
+  endif()
+  if(test_name MATCHES "filename")
+    list(APPEND _labels "func")
+  endif()
+  if(test_name MATCHES "router")
+    list(APPEND _labels "router")
+  endif()
+  if(test_name MATCHES "post_form")
+    list(APPEND _labels "post")
+  endif()
+  if(test_name MATCHES "pzexcel")
+    list(APPEND _labels "office")
+  endif()
+  if(test_name MATCHES "pzzip")
+    list(APPEND _labels "zip")
+  endif()
+  set_tests_properties(${test_name} PROPERTIES LABELS "${_labels}")
+
+  # stress 测试需要更长超时（MySQL/PG 多线程 16 线程模式较久）
+  # Stress tests need a longer timeout (MySQL/PG multi-thread 16-thread mode takes time).
+  if(_labels MATCHES "stress")
+    set_tests_properties(${test_name} PROPERTIES TIMEOUT 600)
+  endif()
 
   # http2_ring 用例把发送环实现直接编进测试目标（server.cpp 不参与测试构建）
   # http2_ring tests compile the ring implementation in directly (server.cpp stays out).
@@ -189,3 +240,8 @@ target_sources(oauth_store_probe PRIVATE
   "${CMAKE_SOURCE_DIR}/models/cms/OauthCode.cpp"
   "${CMAKE_SOURCE_DIR}/models/cms/OauthRefresh.cpp"
 )
+add_test(NAME oauth_store_probe COMMAND oauth_store_probe)
+set_tests_properties(oauth_store_probe PROPERTIES
+  LABELS "unit;oauth"
+  WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+  TIMEOUT 120)

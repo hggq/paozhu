@@ -91,12 +91,13 @@ static void test_str2safefile()
 {
     std::cout << "\n=== str2safefile ===" << std::endl;
 
-    // 路径穿越：/ \ . 都不在白名单（. 在白名单但会被 basename 方案处理；这里 str2safefile 是纯白名单）
-    group_result("path traversal ../../etc/passwd → etcpasswd",
-                 str2safefile("../../etc/passwd", 17) == "etcpasswd");
+    // 路径穿越：/ \ 不在白名单，自动被过滤；. 在白名单（保留扩展名），所以 ../.. 的点也会被保留
+    // Path traversal: / \ filtered out (not whitelisted); . kept (preserves extensions), so ../.. dots stay too.
+    group_result("path traversal ../../etc/passwd → ....etcpasswd",
+                 str2safefile("../../etc/passwd", 17) == "....etcpasswd");
 
-    group_result("path traversal backslash → etcpasswd",
-                 str2safefile("..\\..\\etc\\passwd", 17) == "etcpasswd");
+    group_result("path traversal backslash → ....etcpasswd",
+                 str2safefile("..\\..\\etc\\passwd", 17) == "....etcpasswd");
 
     // 正常文件名
     std::string t_normal = "avatar.png";
@@ -108,10 +109,11 @@ static void test_str2safefile()
     group_result("multi-ext foo.tar.gz → foo.tar.gz",
                  str2safefile(t_multi.c_str(), t_multi.size()) == "foo.tar.gz");
 
-    // 空字节防御
+    // 空字节防御：空字节跳过，白名单字符原样保留（.png 的 . 也在白名单里）
+    // NUL byte defense: NUL skipped, whitelist chars kept as-is (. of .png is whitelisted too).
     std::string with_nul = std::string("foo.png") + '\0' + "bar";
-    group_result("nul byte → 被跳过",
-                 str2safefile(with_nul.c_str(), with_nul.size()) == "foobar");
+    group_result("nul byte → foo.pngbar",
+                 str2safefile(with_nul.c_str(), with_nul.size()) == "foo.pngbar");
 
     // 中文：白名单里没有 UTF-8 字节，全清（这是 str2safefile 和 safe_filename 的设计差异）
     std::string t_unicode = "中文密码.png";   // 中×3 + .png = 12 + 4 = 16 bytes

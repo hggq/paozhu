@@ -1875,14 +1875,16 @@ std::string safe_filename(std::string_view raw)
     s.reserve(raw.size());
     for (unsigned char c : raw)
     {
-        if (c == 0) continue;            // 去掉空字节
-        if (c == '\\') s.push_back('/');  // Windows 分隔符统一成正斜杠，随后一起按 '/' 取 basename
+        // 空字节：攻击者伪造扩展名的手段，当作路径分隔符让后面的 basename 自然取出来
+        // NUL bytes are extension-forging tricks; treat as path separator so basename covers them.
+        if (c == 0) s.push_back('/');
+        else if (c == '\\') s.push_back('/');  // Windows 分隔符统一成正斜杠
         else s.push_back(c);
     }
-    auto pos = s.find_last_of('/');        // 只取最后一段 basename，吃掉所有上半部分
+    auto pos = s.find_last_of('/');              // 只取最后一段 basename，吃掉所有上半部分
     if (pos != std::string::npos)
         s = s.substr(pos + 1);
-    return s;                              // 不含 '/' 或 '\'，扩展名保留
+    return s;                                    // 不含 '/' 或 '\'，扩展名保留
 }
 std::string str2safemethold(const char *source, unsigned int str_length)
 {

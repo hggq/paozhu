@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- 主机： localhost
--- 生成日期： 2026-10-29 12:38:16
+-- 生成日期： 2026-11-02 01:45:43
 -- 服务器版本： 8.4.4
 -- PHP 版本： 8.5.7
 
@@ -1098,7 +1098,7 @@ ALTER TABLE `logininfo`
 -- 使用表AUTO_INCREMENT `oauth_client`
 --
 ALTER TABLE `oauth_client`
-  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- 使用表AUTO_INCREMENT `oauth_code`
