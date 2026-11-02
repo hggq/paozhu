@@ -608,7 +608,16 @@ else()
     )
   endif()
 
-  # ASIO
+  # ASIO —— 如果 asio/ 目录缺失但 asio.zip 在，自动解压
+  # Auto-extract asio.zip if the asio/ directory is missing.
+  if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/asio/asio.hpp"
+     AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/asio.zip")
+    message(STATUS "asio/ not found, extracting asio.zip ...")
+    file(ARCHIVE_EXTRACT
+      INPUT      "${CMAKE_CURRENT_SOURCE_DIR}/asio.zip"
+      DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}")
+  endif()
+
   add_library(asio INTERFACE)
   target_compile_definitions(asio INTERFACE ASIO_STANDALONE)
   if(APPLE)
