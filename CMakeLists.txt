@@ -774,9 +774,21 @@ set(PAOZHU_CONF_DIR "/usr/local/etc/paozhu" CACHE PATH "Target dir for conf duri
 
 if(ENABLE_CONF_INSTALL AND UNIX)
   install(CODE "
-    file(MAKE_DIRECTORY [=[${PAOZHU_CONF_DIR}]=])
-    file(COPY [=[${CMAKE_CURRENT_SOURCE_DIR}/conf/]=] DESTINATION [=[${PAOZHU_CONF_DIR}]=])
-    message(STATUS [=[paozhu: conf/ copied to ${PAOZHU_CONF_DIR}]=])
+    # —— 先尝试创建目录，失败（无权限）则跳过 conf 拷贝 ——
+    # Try mkdir first; skip conf copy if permission denied.
+    set(_paozhu_confdir [=[${PAOZHU_CONF_DIR}]=])
+    set(_paozhu_confsrc [=[${CMAKE_CURRENT_SOURCE_DIR}/conf/]=])
+
+    if(NOT IS_DIRECTORY \"\${_paozhu_confdir}\")
+      file(MAKE_DIRECTORY \"\${_paozhu_confdir}\")
+    endif()
+    if(IS_DIRECTORY \"\${_paozhu_confdir}\")
+      file(COPY \"\${_paozhu_confsrc}\" DESTINATION \"\${_paozhu_confdir}\")
+      message(STATUS \"paozhu: conf/ copied to \${_paozhu_confdir}\")
+    else()
+      get_filename_component(_paozhu_parent \"\${_paozhu_confdir}\" DIRECTORY)
+      message(WARNING \"paozhu: no write permission to \${_paozhu_parent}, skipped conf/ install\")
+    endif()
   ")
   message(STATUS "paozhu: 'make install' will copy conf/ to ${PAOZHU_CONF_DIR}")
 endif()
