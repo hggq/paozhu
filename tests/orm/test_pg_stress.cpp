@@ -130,7 +130,7 @@ int main(int argc, char **argv) {
     int iters = (argc > 1) ? std::atoi(argv[1]) : 3000;
     std::printf("=== PostgreSQL Stress Test — %d iterations per bench ===\n\n", iters);
 
-    asio::io_context ioc;
+    auto ioc = std::make_shared<asio::io_context>();
     orm::init_orm_conn_pool(ioc, "conf/orm.conf");
     auto pool = orm::get_orm_conn_pool_obj()["pg"];
 
@@ -225,7 +225,6 @@ int main(int argc, char **argv) {
     for (auto &s : stats) { print_stat(s); total_errors += s.errors; }
 
     write_outputs(stats, "pg");
-    orm::init_orm_conn_pool_release();
     std::printf("[TOTAL] errors=%lld / %lld ops\n", total_errors, (long long)stats.size() * iters);
     return total_errors == 0 ? 0 : 1;
 }

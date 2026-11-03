@@ -192,7 +192,7 @@ int main(int argc, char **argv) {
     for (int t : thread_counts) std::printf(" %d", t);
     std::printf("\n\n");
 
-    asio::io_context ioc;
+    auto ioc = std::make_shared<asio::io_context>();
     orm::init_orm_conn_pool(ioc, "conf/orm.conf");
     auto pool = orm::get_orm_conn_pool_obj()["lite"];
 
@@ -265,7 +265,6 @@ int main(int argc, char **argv) {
     long long total_errors = 0, total_ops = 0;
     for (auto &s : stats) { total_errors += s.total_errors; total_ops += s.total_ops; }
     write_outputs(stats, "sqlite");
-    orm::init_orm_conn_pool_release();
     std::printf("[TOTAL] errors=%lld / %lld ops\n", total_errors, total_ops);
     return total_errors == 0 ? 0 : 1;
 }

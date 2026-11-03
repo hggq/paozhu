@@ -595,6 +595,11 @@ asio::awaitable<bool> client_session::co_send_switch101()
 
 asio::awaitable<void> client_session::co_send_setting()
 {
+    // 本端发给对端的 SETTINGS：MAX_CONCURRENT_STREAMS(0x03)=100，
+    // INITIAL_WINDOW_SIZE(0x04)=0xFFFFFF。
+    // 100 是对外的承诺，入站另有本端自己的资源兜底 CONST_HTTP2_MAX_STREAMS=512
+    // （readheaders() 里那条 http_data.size() 判定）：守承诺的对端最多开到 100，
+    // 无视承诺的直接被 512 拦住，所以承诺值不需要跟兜底值同源。
     unsigned char _recvack[] = {0x00, 0x00, 0x0C, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x64, 0x00, 0x04, 0x00, 0xFF, 0xFF, 0xFF};
     if (!http2_ring_queue->push(_recvack, 21))
     {

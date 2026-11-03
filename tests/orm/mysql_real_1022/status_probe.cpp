@@ -244,7 +244,7 @@ int main()
             std::exit(99);
         });
     watchdog.detach();
-    asio::io_context ioc;
+    auto ioc = std::make_shared<asio::io_context>();
     orm::init_orm_conn_pool(ioc, "conf/orm.conf");
     pool_t pool = orm::get_orm_conn_pool_obj()["cms"];
     if (!pool)
@@ -255,8 +255,8 @@ int main()
     std::thread io_thread(
         [&ioc]()
         {
-            auto guard = asio::make_work_guard(ioc);
-            ioc.run();
+            auto guard = asio::make_work_guard(*ioc);
+            ioc->run();
         });
 
     // 建一张自己的表，避免与主探针夹具耦合
@@ -409,8 +409,7 @@ int main()
 
     std::printf("SUMMARY pass=%d fail=%d\n", g_pass, g_fail);
     pool.reset();
-    ioc.stop();
+    ioc->stop();
     io_thread.join();
-    orm::init_orm_conn_pool_release();
     return g_fail == 0 ? 0 : 1;
 }

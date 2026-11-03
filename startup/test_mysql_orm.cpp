@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
 
     try
     {
-        asio::io_context io_context{0};
+        auto io_context = std::make_shared<asio::io_context>(0);
         std::string configpath = "./conf/orm.conf";
 
         std::string init_log = orm::init_orm_conn_pool(io_context, configpath);
@@ -141,9 +141,6 @@ int main(int argc, char *argv[])
         test_cms_sysuser_fetch();
         test_cms_sysuser_fetch_one();
         test_cms_sysuser_insert_update_remove();
-
-        // 释放连接池
-        orm::init_orm_conn_pool_release();
     }
     catch (std::exception &e)
     {

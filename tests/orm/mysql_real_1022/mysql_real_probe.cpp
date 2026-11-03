@@ -274,7 +274,7 @@ static asio::awaitable<void> async_arm(pool_t pool)
 int main()
 {
     setvbuf(stdout, nullptr, _IONBF, 0);
-    asio::io_context ioc;
+    auto ioc = std::make_shared<asio::io_context>();
     orm::init_orm_conn_pool(ioc, "conf/orm.conf");
     pool_t pool = orm::get_orm_conn_pool_obj()["cms"];
     if (!pool)
@@ -285,8 +285,8 @@ int main()
     std::thread io_thread(
         [&ioc]()
         {
-            auto guard = asio::make_work_guard(ioc);
-            ioc.run();
+            auto guard = asio::make_work_guard(*ioc);
+            ioc->run();
         });
 
     auto maint = pool->get_mysql_edit_conn();
@@ -791,7 +791,7 @@ int main()
 
     // ---------- 异步 ----------
     {
-        auto fut = asio::co_spawn(ioc, async_arm(pool), asio::use_future);
+        auto fut = asio::co_spawn(*ioc, async_arm(pool), asio::use_future);
         fut.get();
     }
 
@@ -1096,9 +1096,8 @@ int main()
     pool->back_mysql_edit_conn(std::move(maint));
     pool->back_mysql_select_conn(std::move(maint_sel));
 
-    ioc.stop();
+    ioc->stop();
     io_thread.join();
-    orm::init_orm_conn_pool_release();
 
     std::printf("SUMMARY PASS=%d FAIL=%d\n", g_pass, g_fail);
     return g_fail == 0 ? 0 : 1;

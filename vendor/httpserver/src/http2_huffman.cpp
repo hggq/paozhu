@@ -91,8 +91,16 @@ namespace http
             cur_char_length = temp.nbits;
             if (pre_char_length > 0)
             {
+                // pre_char_length 不是码长，是上一条码发完后未对齐到字节边界的剩余位数
+                // （码长 <8 时等于码长，≥8 时等于码长 mod 8，取值 1-7）。
+                // 表里最短码 5 位，也存在 10 位码（! " ( ) ?），发满 1 字节剩 2 位，
+                // 接一条 5 位码就是 2+5<8 —— 这条分支会命中，不是 dead code。
                 if ((pre_char_length + cur_char_length) < 8)
                 {
+                    // 剩余位数 + 当前码长凑不满一个字节，当前码一个字节都发不出去，
+                    // 只能继续攒进 new_char。码字左对齐在 32 位高位，接到已攒的
+                    // pre_char_length 位之后要【右移】pre 位；改成左移会让每个走
+                    // 这条分支的头名/头值都编码出错。
                     new_char = subchar_int >> pre_char_length | new_char;
                     pre_char_length = pre_char_length + cur_char_length;
                     continue;
@@ -116,6 +124,10 @@ namespace http
                 }
                 temp_char = temp_char | a;
                 outstr.push_back(temp_char);
+                // 能走到这里说明 pre + cur >= 8（凑不满的情况已在上面 continue），
+                // 所以这次减法不会下溢。上面那个 <8 的分支不能删：删掉后 cur 在
+                // cur < 8-pre 时下溢成接近 255 的 unsigned char，紧接着按 8 递减
+                // 的发送循环会多跑 30 多轮，输出成倍变长且字节全错。
                 cur_char_length -= subchar_length;
             }
 

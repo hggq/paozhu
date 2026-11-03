@@ -170,7 +170,7 @@ static bool is_ssl_session(conn_t &c)
 int main(int argc, char **argv)
 {
     std::string conf = argc > 1 ? argv[1] : "conf/orm.conf";
-    asio::io_context ioc;
+    auto ioc = std::make_shared<asio::io_context>();
     orm::init_orm_conn_pool(ioc, conf);
     auto pool = orm::get_orm_conn_pool_obj()["pg"];
     if (!pool)
@@ -183,7 +183,6 @@ int main(int argc, char **argv)
     if (!edit || edit->is_closed())
     {
         std::printf("SETUP_FAIL cannot connect to pg\n");
-        orm::init_orm_conn_pool_release();
         return 2;
     }
     reading("ssl_session", is_ssl_session(edit) ? "1" : "0");
@@ -665,7 +664,7 @@ int main(int argc, char **argv)
         } out;
 
         asio::co_spawn(
-            ioc,
+            *ioc,
             [&]() -> asio::awaitable<void>
             {
                 out.ins = co_await aedit->async_exec_dml(
@@ -694,7 +693,7 @@ int main(int argc, char **argv)
                 co_return;
             },
             asio::detached);
-        ioc.run();
+        ioc->run();
 
         expect(out.ins == 1 && out.upd == 1 && out.del == 1, "async_dml",
                "ins=" + std::to_string(out.ins) + " upd=" + std::to_string(out.upd) +
@@ -774,9 +773,9 @@ int main(int argc, char **argv)
             unsigned int t1 = 0, t2 = 0, b1 = 0, b2 = 0;
             std::string e1, e2, be1, be2, tval, bval;
         } ao;
-        ioc.restart();// 上一个 run() 无活可干返回后 ioc 处于 stopped，不重启则 co_spawn 的启动帧不会被派发
+        ioc->restart();// 上一个 run() 无活可干返回后 ioc 处于 stopped，不重启则 co_spawn 的启动帧不会被派发
         asio::co_spawn(
-            ioc,
+            *ioc,
             [&]() -> asio::awaitable<void>
             {
                 std::vector<http::obj_val> bad  = {http::obj_val("abc")};
@@ -802,7 +801,7 @@ int main(int argc, char **argv)
                 co_return;
             },
             asio::detached);
-        ioc.run();
+        ioc->run();
         reading("bind_err_async_text", std::to_string(ao.t1) + "/" + std::to_string(ao.t2) + " v=" + ao.tval);
         reading("bind_err_async_text_error", ao.e1);
         reading("bind_err_async_bin", std::to_string(ao.b1) + "/" + std::to_string(ao.b2) + " v=" + ao.bval);
@@ -852,7 +851,6 @@ int main(int argc, char **argv)
         pool->back_pg_edit_conn(std::move(c));
     }
 
-    orm::init_orm_conn_pool_release();
     std::printf("SUMMARY PASS=%d FAIL=%d\n", g_pass, g_fail);
     return g_fail == 0 ? 0 : 1;
 }

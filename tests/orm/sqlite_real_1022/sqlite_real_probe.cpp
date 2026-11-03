@@ -2224,7 +2224,7 @@ int main(int argc, char **argv)
             g_families.insert(f);
     }
 
-    asio::io_context ioc;
+    auto ioc = std::make_shared<asio::io_context>();
     // 夹具目录先建好：D/G 族往里写独立库文件，目录不存在时 connect 会直接失败
     std::error_code mk_ec;
     std::filesystem::create_directories(kTmpDir, mk_ec);
@@ -2246,8 +2246,8 @@ int main(int argc, char **argv)
     std::thread io_thread(
         [&ioc]()
         {
-            auto guard = asio::make_work_guard(ioc);
-            ioc.run();
+            auto guard = asio::make_work_guard(*ioc);
+            ioc->run();
         });
 
     auto edit = pool->get_sqlite_edit_conn();
@@ -2298,9 +2298,8 @@ int main(int argc, char **argv)
         std::printf("FATAL 夹具表建立失败，本轮读数全部作废(同一时刻只允许一个探针进程)\n");
         pool->back_sqlite_edit_conn(std::move(edit));
         pool->back_sqlite_select_conn(std::move(sel));
-        ioc.stop();
+        ioc->stop();
         io_thread.join();
-        orm::init_orm_conn_pool_release();
         return 3;
     }
 
@@ -2309,9 +2308,9 @@ int main(int argc, char **argv)
     fam_C(edit, sel);
     fam_E(edit, sel);
     fam_R(edit, sel);
-    fam_F(ioc, edit, sel);
+    fam_F(*ioc, edit, sel);
     fam_D(edit, sel);
-    fam_G(ioc);
+    fam_G(*ioc);
 
     edit->exec_dml("DELETE FROM _pz_probe_t1");
     edit->exec_dml("DELETE FROM _pz_probe_u");
@@ -2326,9 +2325,8 @@ int main(int argc, char **argv)
 
     pool->back_sqlite_edit_conn(std::move(edit));
     pool->back_sqlite_select_conn(std::move(sel));
-    ioc.stop();
+    ioc->stop();
     io_thread.join();
-    orm::init_orm_conn_pool_release();
 
     std::printf("\nSUMMARY pass=%d fail=%d\n", g_pass, g_fail);
     return g_fail == 0 ? 0 : 1;

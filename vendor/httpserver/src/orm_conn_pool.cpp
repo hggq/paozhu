@@ -276,8 +276,14 @@ std::string init_orm_conn_pool_release()
 
     return "";
 }
-std::string init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_config_file)
+std::string init_orm_conn_pool(std::shared_ptr<asio::io_context> ioc,
+                               const std::string &orm_config_file)
 {
+    if (!ioc)
+    {
+        return "init_orm_conn_pool failed: io_context is null\n";
+    }
+    asio::io_context &ioc_ref = *ioc;
 
     std::map<std::string, std::shared_ptr<orm_conn_pool>> &int_pool = get_orm_conn_pool_obj();
     std::vector<orm_conn_t> myconfig                                = get_orm_config_file(orm_config_file);
@@ -296,6 +302,10 @@ std::string init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_con
             }
             if (iter != int_pool.end())
             {
+                // 已存在的 pool 也要刷新 io_context 所有权：外部可能先用引用重载建池，
+                // 之后再补一次 shared_ptr 调用，不刷新就还是非拥有别名。
+                iter->second->io_context        = &ioc_ref;
+                iter->second->io_context_holder = ioc;
                 iter->second->conf_data[0] = item;
                 unsigned int n             = 0;
                 try
@@ -327,7 +337,8 @@ std::string init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_con
             else
             {
                 std::shared_ptr<orm_conn_pool> conn = std::make_shared<orm_conn_pool>();
-                conn->io_context                    = &ioc;
+                conn->io_context                    = &ioc_ref;
+                conn->io_context_holder             = ioc;
                 conn->conf_data[0]                  = item;
                 unsigned int n                      = 0;
                 try
@@ -366,6 +377,9 @@ std::string init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_con
             }
             if (iter != int_pool.end())
             {
+                // 同上：复用已有 pool 时同步刷新 io_context 所有权
+                iter->second->io_context        = &ioc_ref;
+                iter->second->io_context_holder = ioc;
                 iter->second->conf_data[1] = item;
                 unsigned int n             = 0;
                 try
@@ -397,7 +411,8 @@ std::string init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_con
             else
             {
                 std::shared_ptr<orm_conn_pool> conn = std::make_shared<orm_conn_pool>();
-                conn->io_context                    = &ioc;
+                conn->io_context                    = &ioc_ref;
+                conn->io_context_holder             = ioc;
                 conn->conf_data[1]                  = item;
                 unsigned int n                      = 0;
                 try
@@ -430,6 +445,15 @@ std::string init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_con
     }
     error_log.append("\n-- end init_orm_conn_pool -- \n");
     return error_log;
+}
+
+std::string init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_config_file)
+{
+    // 非拥别名（deleter 空操作）：pool 不因此延长 ioc 的寿命，退出期关闭 socket
+    // 前调用方必须自己把连接关完。
+    return init_orm_conn_pool(std::shared_ptr<asio::io_context>(&ioc,
+                                                                [](asio::io_context *) {}),
+                              orm_config_file);
 }
 
 asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_add_mysql_edit_connect()

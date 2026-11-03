@@ -208,19 +208,30 @@ static bool probe_prefix_left()
 int main()
 {
     setvbuf(stdout, nullptr, _IONBF, 0);
-    asio::io_context ioc;
-    orm::init_orm_conn_pool(ioc, "conf/orm.conf");
+    auto ioc = std::make_shared<asio::io_context>();
+    std::string init_err = orm::init_orm_conn_pool(ioc, "conf/orm.conf");
     auto pool = orm::get_orm_conn_pool_obj()["cms"];
     if (!pool)
     {
         std::printf("FAIL pool_cms no [cms] section in conf/orm.conf\n");
         return 1;
     }
+    // MySQL may be down: init_orm_conn_pool still creates the pool entry but
+    // mysql_edit_pool stays empty and error_msg carries the failure reason.
+    if (pool->mysql_edit_pool.empty())
+    {
+        std::printf(
+            "FAIL pool_cms no usable MySQL connection -- check if localhost:3306 is running\n"
+            "orm.conf error_msg: %s\n"
+            "probe exited cleanly (no SIGSEGV)\n",
+            pool->error_msg.empty() ? "(empty)" : pool->error_msg.c_str());
+        return 1;
+    }
     std::thread io_thread(
         [&ioc]()
         {
-            auto guard = asio::make_work_guard(ioc);
-            ioc.run();
+            auto guard = asio::make_work_guard(*ioc);
+            ioc->run();
         });
 
     // ---- 前置：没有上一轮的残留才继续
@@ -827,7 +838,7 @@ int main()
     snapshot("after_cleanup");
 
     std::printf("Results: %d PASS %d FAIL\n", g_pass, g_fail);
-    ioc.stop();
+    ioc->stop();
     io_thread.join();
     return g_fail == 0 ? 0 : 1;
 }

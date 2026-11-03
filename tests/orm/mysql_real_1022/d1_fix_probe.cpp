@@ -234,7 +234,7 @@ int main()
             std::_Exit(99);
         });
 
-    asio::io_context ioc;
+    auto ioc = std::make_shared<asio::io_context>();
     orm::init_orm_conn_pool(ioc, "conf/orm.conf");
     pool_t pool = orm::get_orm_conn_pool_obj()["cms"];
     if (!pool)
@@ -245,8 +245,8 @@ int main()
     std::thread io_thread(
         [&ioc]()
         {
-            auto guard = asio::make_work_guard(ioc);
-            ioc.run();
+            auto guard = asio::make_work_guard(*ioc);
+            ioc->run();
         });
 
     auto maint = pool->get_mysql_edit_conn();
@@ -405,7 +405,7 @@ int main()
     {
     for (size_t n : {size_t(16777210), size_t(16777216), size_t(17000000)})
     {
-        auto fut = asio::co_spawn(ioc, async_big_row_arm(pool, n), asio::use_future);
+        auto fut = asio::co_spawn(*ioc, async_big_row_arm(pool, n), asio::use_future);
         fut.get();
     }
 
@@ -413,7 +413,7 @@ int main()
     {
         g_arm = "async_prepared_17mb_param";
         auto fut = asio::co_spawn(
-            ioc,
+            *ioc,
             [pool]() -> asio::awaitable<void>
             {
                 conn_t c = co_await pool->async_get_mysql_edit_conn();
@@ -439,9 +439,8 @@ int main()
     pool->back_mysql_select_conn(std::move(maint_sel));
 
     pool.reset();
-    ioc.stop();
+    ioc->stop();
     io_thread.join();
-    orm::init_orm_conn_pool_release();
 
     done.store(true);
     wd.join();

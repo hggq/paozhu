@@ -41,7 +41,7 @@
 
 namespace http
 {
-client_context &get_client_context_obj(asio::io_context *io_context)
+client_context &get_client_context_obj(std::shared_ptr<asio::io_context> io_context)
 {
     static client_context instance(io_context);
     return instance;

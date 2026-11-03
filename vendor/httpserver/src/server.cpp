@@ -2404,7 +2404,7 @@ asio::awaitable<size_t> httpserver::co_user_fastcgi_task(std::shared_ptr<httppee
         fcgi->host                          = sysconfigpath.sitehostinfos[in_peer->host_index].fastcgi_host;// "127.0.0.1";
         fcgi->port                          = sysconfigpath.sitehostinfos[in_peer->host_index].fastcgi_port;// 9000
         fcgi->add_error_msg                 = std::bind(&httpserver::add_error_lists, self, std::placeholders::_1);
-        fcgi->server_ioc                    = &self->io_context;
+        fcgi->server_ioc                    = self->io_context.get();
         client_context &fcgi_content        = get_client_context_obj();
 
         fcgi_content.add_fastcgi_task(fcgi);
@@ -5418,7 +5418,7 @@ asio::awaitable<unsigned int> httpserver::client_mqtt_loop(unsigned int readnum,
             {
                 // 不挂在这条连接的 strand 上：peer_session 的会话协程已经要退出了，
                 // 定时器只需要 io_context 活着，遗嘱是全局广播，与这条 TCP 无关。
-                asio::co_spawn(this->io_context,
+                asio::co_spawn(*this->io_context,
                                mqtt_publish_delayed_will(sess->client_id(), wi, delay),
                                asio::detached);
             }
@@ -7250,7 +7250,7 @@ void httpserver::websocket_loop(int fps)
             // 协程自己排空/灌不动退出前置回 true，最坏 1 拍（1s）后接手。
             if (mqtt_sender_need_spawn.exchange(false))
             {
-                asio::co_spawn(this->io_context, mqtt_send_loop(), asio::detached);
+                asio::co_spawn(*this->io_context, mqtt_send_loop(), asio::detached);
             }
 
             // 锁内摘快照、剔死项，锁外唤醒/执行业务钩子——持锁调 run_loop /
@@ -7367,7 +7367,7 @@ void httpserver::websocket_loop(int fps)
                     // redis 这一路只有 is_coroutine_ 一个旗。
                     if (peer->is_coroutine_)
                     {
-                        asio::co_spawn(this->io_context, [peer]() -> asio::awaitable<void>
+                        asio::co_spawn(*this->io_context, [peer]() -> asio::awaitable<void>
                                        {
                                 try
                                 {
@@ -7449,7 +7449,7 @@ void httpserver::websocket_loop(int fps)
                 {
                     if (peer->is_loop_co_)
                     {
-                        asio::co_spawn(this->io_context, [peer]() -> asio::awaitable<void>
+                        asio::co_spawn(*this->io_context, [peer]() -> asio::awaitable<void>
                                        {
                                 try
                                 {
@@ -7529,7 +7529,7 @@ void httpserver::websocket_loop(int fps)
                 {
                     if (peer->is_loop_co_)
                     {
-                        asio::co_spawn(this->io_context, [peer]() -> asio::awaitable<void>
+                        asio::co_spawn(*this->io_context, [peer]() -> asio::awaitable<void>
                                        {
                                 try
                                 {
@@ -7609,7 +7609,7 @@ void httpserver::websocket_loop(int fps)
                 {
                     if (peer->is_loop_co_)
                     {
-                        asio::co_spawn(this->io_context, [peer]() -> asio::awaitable<void>
+                        asio::co_spawn(*this->io_context, [peer]() -> asio::awaitable<void>
                                        {
                                 try
                                 {
@@ -7776,7 +7776,7 @@ void httpserver::websocket_loop(int fps)
             //                 socket_session_wait_clear.pop_front();
             //                 lk.unlock();
             //                 //p_sock_session->stop();
-            //                 asio::co_spawn(this->io_context, clientpeerstop(p_sock_session), asio::detached);
+            //                 asio::co_spawn(*this->io_context, clientpeerstop(p_sock_session), asio::detached);
             //             }
             //             else
             //             {
@@ -7909,7 +7909,7 @@ httpserver::sslhandshake(std::shared_ptr<client_session> peer_session)
 asio::awaitable<void> httpserver::async_redis_subpub_loop(
     std::shared_ptr<pz::redis::redis_subpub_client> client)
 {
-    auto &io_ctx = this->io_context;
+    auto &io_ctx = *this->io_context;
     // 指数退避重连：3s → 6s → 9s → 12s（封顶），连接成功后重置 3s
     int retry_sec = 3;
     auto backoff  = [&retry_sec]() -> std::chrono::seconds
@@ -8111,7 +8111,7 @@ asio::awaitable<void> httpserver::async_redis_subpub_loop(
 asio::awaitable<void> httpserver::async_ws_subpub_loop(
     std::shared_ptr<http::ws_subpub_client> client)
 {
-    auto &io_ctx  = this->io_context;
+    auto &io_ctx  = *this->io_context;
     int retry_sec = 3;
     auto backoff  = [&retry_sec]() -> std::chrono::seconds
     {
@@ -8271,7 +8271,7 @@ asio::awaitable<void> httpserver::async_ws_subpub_loop(
 asio::awaitable<void> httpserver::async_sock_subpub_loop(
     std::shared_ptr<http::sock_subpub_client> client)
 {
-    auto &io_ctx  = this->io_context;
+    auto &io_ctx  = *this->io_context;
     int retry_sec = 3;
     auto backoff  = [&retry_sec]() -> std::chrono::seconds
     {
@@ -8412,7 +8412,7 @@ asio::awaitable<void> httpserver::async_sock_subpub_loop(
 asio::awaitable<void> httpserver::async_mqtt_subpub_loop(
     std::shared_ptr<http::mqtt_subpub_client> client)
 {
-    auto &io_ctx  = this->io_context;
+    auto &io_ctx  = *this->io_context;
     int retry_sec = 3;
     auto backoff  = [&retry_sec]() -> std::chrono::seconds
     {
@@ -8830,7 +8830,7 @@ void httpserver::listeners()
     // 只缓存 fd 不行——close 之后那个号会被别的线程立刻复用，二次 close 打到新 socket；
     // 而 Windows 下 closesocket 也唤醒不了挂在 accept() 上的线程（asio 的 close 就是 closesocket）。
     // 本函数内仍按普通对象用。
-    auto acceptor_ptr                 = std::make_shared<asio::ip::tcp::acceptor>(this->io_context);
+    auto acceptor_ptr                 = std::make_shared<asio::ip::tcp::acceptor>(*this->io_context);
     asio::ip::tcp::acceptor &acceptor = *acceptor_ptr;
     asio::ip::tcp::endpoint endpoint;
     if (server_ip6_listen)
@@ -8936,7 +8936,7 @@ void httpserver::listeners()
         {
             for (;;)
             {
-                std::shared_ptr<client_session> peer_session = std::make_shared<client_session>(this->io_context);
+                std::shared_ptr<client_session> peer_session = std::make_shared<client_session>(*this->io_context);
                 asio::ip::tcp::socket socket(peer_session->strand_);
                 peer_session->sslsocket = std::make_unique<asio::ssl::stream<asio::ip::tcp::socket>>(std::move(socket), context_);
                 peer_session->isssl     = true;
@@ -9065,7 +9065,7 @@ void httpserver::listener()
     unsigned short portnum = sysconfigpath.get_port();
 
     // 同 listeners()：acceptor 由 shared_ptr 持有，stop() 在别的线程上拿同一个对象唤醒并关闭
-    auto acceptor_ptr                 = std::make_shared<asio::ip::tcp::acceptor>(this->io_context);
+    auto acceptor_ptr                 = std::make_shared<asio::ip::tcp::acceptor>(*this->io_context);
     asio::ip::tcp::acceptor &acceptor = *acceptor_ptr;
     asio::ip::tcp::endpoint endpoint;
     if (server_ip6_listen)
@@ -9119,7 +9119,7 @@ void httpserver::listener()
         {
             for (;;)
             {
-                std::shared_ptr<client_session> peer_session = std::make_shared<client_session>(this->io_context);
+                std::shared_ptr<client_session> peer_session = std::make_shared<client_session>(*this->io_context);
                 peer_session->socket                         = std::make_unique<asio::ip::tcp::socket>(peer_session->strand_);
                 peer_session->isssl                          = false;
                 peer_session->time_limit.store(timeid() + 16);
@@ -9247,7 +9247,7 @@ void httpserver::add_runsocketthread()
             self->error_loglist.emplace_back(" add socket thread ");
             lock.unlock();
 
-            self->io_context.run();
+            self->io_context->run();
         });
 }
 
@@ -10091,7 +10091,7 @@ void httpserver::httpwatch_clear_timeout_sessions(unsigned int clean_cron_min, u
     std::map<std::string, std::shared_ptr<orm::orm_conn_pool>> &mysqldbpoolglobal = orm::get_orm_conn_pool_obj();
     for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
     {
-        asio::co_spawn(this->io_context, orm_connect_clear(iter->second), asio::detached);
+        asio::co_spawn(*this->io_context, orm_connect_clear(iter->second), asio::detached);
         DEBUG_LOG("mysql connect clear 1024q or 2hour ");
     }
 }
@@ -11368,7 +11368,7 @@ void httpserver::run(const std::string &sysconfpath)
         // 这里必须传自己的 io_context，不能顺手 get_client_context_obj()：那个单例由"第一个
         // 调用的人"定型（参数默认 nullptr），在下面 9024 行带着真 ioc 构造之前先调一次，
         // 就等于把 ioc 永久钉成 nullptr——之后 http::client 的构造（make_strand(*ioc)）就是空指针。
-        if (!pz::redis::load_redis_config(io_context, sysconfigpath.configfile))
+        if (!pz::redis::load_redis_config(*io_context, sysconfigpath.configfile))
         {
             std::cerr << "[redis] redis.conf load failed or missing, redis disabled" << std::endl;
         }
@@ -11444,7 +11444,7 @@ void httpserver::run(const std::string &sysconfpath)
             total_count = 8;
         }
 
-        asio::executor_work_guard<asio::io_context::executor_type> worker(io_context.get_executor());
+        asio::executor_work_guard<asio::io_context::executor_type> worker(io_context->get_executor());
 
         for (std::size_t i = 0; i < total_count; ++i)
         {
@@ -11461,7 +11461,7 @@ void httpserver::run(const std::string &sysconfpath)
                     {
                         try
                         {
-                            this->io_context.run();
+                            this->io_context->run();
                         }
                         catch (...)
                         {
@@ -11474,7 +11474,7 @@ void httpserver::run(const std::string &sysconfpath)
         pz::redis::get_redis_pool().set_worker_count(static_cast<unsigned int>(runthreads.size()));
 #endif
         total_count              = 0;
-        clientrunpool.io_context = &io_context;
+        clientrunpool.io_context = io_context.get();
         std::thread httpwatch(std::bind(&httpserver::httpwatch, this));
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         std::thread https(std::bind(&httpserver::listeners, this));
@@ -11494,7 +11494,7 @@ void httpserver::run(const std::string &sysconfpath)
 #endif
 
         {
-            client_context &client_context = get_client_context_obj(&io_context);
+            client_context &client_context = get_client_context_obj(io_context);
             client_context.run();
         }
 
@@ -11519,7 +11519,7 @@ void httpserver::run(const std::string &sysconfpath)
                 continue;
             if (!resident_client_enabled("redis_subpub", _name, client->section_name(), pz::redis::get_redis_config().raw_field(client->section_name(), "enable")))
                 continue;
-            asio::co_spawn(this->io_context,
+            asio::co_spawn(*this->io_context,
                            this->async_redis_subpub_loop(client),
                            asio::detached);
 
@@ -11539,7 +11539,7 @@ void httpserver::run(const std::string &sysconfpath)
                 continue;
             if (!resident_client_enabled("ws_subpub", _name, client->section_name(), http::get_websockets_config().raw_field(client->section_name(), "enable")))
                 continue;
-            asio::co_spawn(this->io_context,
+            asio::co_spawn(*this->io_context,
                            this->async_ws_subpub_loop(client),
                            asio::detached);
             {
@@ -11559,7 +11559,7 @@ void httpserver::run(const std::string &sysconfpath)
             if (!resident_client_enabled("sock_subpub", _name, client->section_name(), http::get_sockets_config().raw_field(client->section_name(), "enable")))
                 continue;
             fprintf(stderr, "[sock_subpub] spawning loop for '%s' sec=%s\n", _name.c_str(), client->section_name().c_str());
-            asio::co_spawn(this->io_context,
+            asio::co_spawn(*this->io_context,
                            this->async_sock_subpub_loop(client),
                            asio::detached);
             {
@@ -11579,7 +11579,7 @@ void httpserver::run(const std::string &sysconfpath)
             if (!resident_client_enabled("mqtt_subpub", _name, client->section_name(), http::get_mqtt_config().raw_field(client->section_name(), "enable")))
                 continue;
             fprintf(stderr, "[mqtt_subpub] spawning loop for '%s' sec=%s\n", _name.c_str(), client->section_name().c_str());
-            asio::co_spawn(this->io_context,
+            asio::co_spawn(*this->io_context,
                            this->async_mqtt_subpub_loop(client),
                            asio::detached);
             {
@@ -11638,7 +11638,7 @@ void httpserver::run(const std::string &sysconfpath)
 }
 asio::io_context &httpserver::get_ctx()
 {
-    return io_context;
+    return *io_context;
 }
 void httpserver::stop()
 {
@@ -11679,7 +11679,7 @@ void httpserver::stop()
 #ifdef ENABLE_REDIS
     // 现在共用框架 io_context，进程退出时 io_context.stop() 自然收掉所有协程，无需单独 stop redis pool
 #endif
-    io_context.stop();
+    io_context->stop();
     DEBUG_LOG("httpserver stop!");
 }
 

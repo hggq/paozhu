@@ -357,7 +357,7 @@ class httpserver
         // and vector destructor then calls std::terminate.
         send_data_condition.notify_all();
         websocketcondition.notify_all();
-        io_context.stop();
+        io_context->stop();
 
         for (unsigned int i = 0; i < runthreads.size(); ++i)
         {
@@ -378,7 +378,9 @@ class httpserver
   public:
     // httpheader begin
     unsigned char runhands_num = 4;
-    asio::io_context io_context{0};
+    // io_context 由 shared_ptr 持有：ORM pool、client_context 这些活到退出期的对象
+    // 还要拿它关连接，谁需要就各自持一份所有权。0 是 asio concurrency_hint 的默认值。
+    std::shared_ptr<asio::io_context> io_context = std::make_shared<asio::io_context>(0);
     std::vector<std::thread> runthreads;
     std::vector<std::thread> websocketthreads;
     std::vector<std::thread> http2_send_data_threads;

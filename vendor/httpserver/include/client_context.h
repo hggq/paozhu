@@ -38,7 +38,7 @@ class async_send_email;
 class client_context
 {
   public:
-    client_context(asio::io_context *io_context) : ioc(io_context), time_out_loop_th(std::bind(&client_context::time_out_loop, this)) {}
+    client_context(std::shared_ptr<asio::io_context> io_context) : ioc(io_context), time_out_loop_th(std::bind(&client_context::time_out_loop, this)) {}
     void run();
     void time_out_loop();
     void taskloop();
@@ -91,7 +91,8 @@ class client_context
   public:
     unsigned int thread_size      = 3;
     unsigned int thread_task_size = 1;
-    asio::io_context *ioc         = nullptr;
+    // 持所有权：析构里还要 ioc->stop()，注入方先退也不能让它悬空。
+    std::shared_ptr<asio::io_context> ioc;
 
     // std::unique_ptr<asio::io_context::work> worker;
     std::vector<std::thread> threads;
@@ -117,7 +118,7 @@ class client_context
     std::list<std::weak_ptr<send_email>> smtp_timeout_lists;
     std::list<std::weak_ptr<async_send_email>> async_smtp_timeout_lists;
 };
-client_context &get_client_context_obj(asio::io_context *io_context = nullptr);
+client_context &get_client_context_obj(std::shared_ptr<asio::io_context> io_context = nullptr);
 
 }// namespace http
 #endif

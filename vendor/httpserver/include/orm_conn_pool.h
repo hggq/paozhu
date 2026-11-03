@@ -83,9 +83,19 @@ class orm_conn_pool
 
     ~orm_conn_pool()
     {
+        // 析构体先于任何成员析构运行：在这里关连接，关闭时机就不依赖下面
+        // io_context_holder 与三个连接表的声明顺序。close() 要往 socket 发包，
+        // 此刻 io_context 必须还活着——由 holder 担保。走的是
+        // init_orm_conn_pool_release() 已有的同一条路径。
+        clear_select_conn();
+        clear_edit_conn();
     }
 
   public:
+    // 连接关闭时 io_context 必须还活着：pool 持一份所有权，ioc 就活到最后一次
+    // close 之后。成员按声明逆序析构，所以 holder 必须在三个连接表之前，
+    // 才能比它们后死。
+    std::shared_ptr<asio::io_context> io_context_holder;
     // MySQL pools
     std::list<std::shared_ptr<mysql_conn_base>> mysql_edit_pool;
     std::list<std::shared_ptr<mysql_conn_base>> mysql_select_pool;
@@ -106,6 +116,13 @@ class orm_conn_pool
 std::vector<orm_conn_t> get_orm_config_file(const std::string &filename);
 std::map<std::string, std::shared_ptr<orm_conn_pool>> &get_orm_conn_pool_obj();
 
+// pool 接管 io_context 的生命周期：io_context 活到最后一个 pool 析构完毕。
+std::string init_orm_conn_pool(std::shared_ptr<asio::io_context> ioc,
+                               const std::string &orm_config_file);
+// pool 不接管生命周期，只记录地址：调用方必须让自己的 ioc 活得比全局 pool 久，
+// 也就是在自己的 ioc 析构前调 init_orm_conn_pool_release() 把连接关完。
+// 保留只为兼容外部代码；新代码一律传 shared_ptr，否则退出期仍可能踩析构顺序。
+[[deprecated("pass shared_ptr<asio::io_context> so the pool ties its lifetime")]]
 std::string init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_config_file);
 std::string init_orm_conn_pool_release();
 }// namespace orm

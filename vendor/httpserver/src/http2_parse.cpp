@@ -2693,6 +2693,11 @@ void http2parse::readsetting(const HTTP2_PACK_DATA_T &temp_pack_data)
         switch (ident_type)
         {
         case HTTP2_SETTINGS_HEADER_TABLE_SIZE:
+            // 记账，不参与本端解码：本端 HPACK 动态表上限是固定常量
+            // CONST_HTTP2_DYNAMIC_TABLE_MAX_SIZE，对端想在头块里发 Dynamic Table Size
+            // Update 抬高也会被拒（见 dynamic_table_size_update）。
+            // RFC 9113 §6.5.2 给这项留了任意 32 位取值，没有 MUST-error 区间，
+            // 所以哪怕广告 4GB 也是合法 SETTINGS，不报错也不放宽本端上限。
             setting_data.header_table_size = ident_value;
             break;
 
@@ -2703,10 +2708,17 @@ void http2parse::readsetting(const HTTP2_PACK_DATA_T &temp_pack_data)
                 error = 40037;
                 return;
             }
+            // 本端不发起 PUSH_PROMISE，所以这个开关只记录不生效；
+            // 将来接 push 时要先读它，否则会对禁止 push 的对端发出违例帧。
             setting_data.enable_push = ident_value;
             break;
 
         case HTTP2_SETTINGS_MAX_CONCURRENT_STREAM:
+            // 这是对端「愿意同时接多少条流」，约束的是本端主动开流；本端作为服务端
+            // 不发起流，所以只记录不生效。入站并发流另有本端自己的闸门
+            // CONST_HTTP2_MAX_STREAMS（readheaders() 开头那条 http_data.size() 判定），
+            // 与本值无关。RFC 9113 §6.5.2 明文：0 值 SHOULD NOT be treated as special，
+            // 这项也没有任何 MUST-error 取值，把 0 判成协议错误属于互操作回退。
             setting_data.max_concurrent_streams = ident_value;
             break;
 
@@ -2775,10 +2787,15 @@ void http2parse::readsetting(const HTTP2_PACK_DATA_T &temp_pack_data)
             break;
 
         case HTTP2_SETTINGS_MAX_HEADER_LIST_SIZE:
+            // RFC 9113 §6.5.2 写明这是 advisory：只告知，取值任意，没有 MUST-error。
+            // 它描述的是对端的接收限额，约束本端主动发的请求；本端不发起流，所以没有
+            // 作用面。入站头块用的是本端自己那两道 CONST_HTTP_HEADER_BODY_SIZE 上限
+            // （单帧长度 + 累积头块长度），不受这个广告值放宽或收紧。
             setting_data.max_heaer_list_size = ident_value;
             break;
 
         default:
+            // RFC 9113 §6.5.2: 未知标识 MUST 忽略，不能当成协议错误
             break;
         }
     }
