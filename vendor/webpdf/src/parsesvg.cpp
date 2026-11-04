@@ -154,10 +154,82 @@ void SVGRenderer::render(const std::shared_ptr<HTMLNode>& svg_node, double x, do
     if (vb_w <= 0) vb_w = w_num > 0 ? w_num : 1.0;
     if (vb_h <= 0) vb_h = h_num > 0 ? h_num : 1.0;
 
+    // Per-axis scale used when preserveAspectRatio = none, or as the
+    // unscaled reference for meet/slice.
     double scale_x = (pdf->k * w_mm) / vb_w;
     double scale_y = (pdf->k * h_mm) / vb_h;
-    ctm_scale_x = scale_x;
-    ctm_scale_y = scale_y;
+
+    // Parse preserveAspectRatio (defaults to "xMidYMid meet" per SVG spec).
+    // Layout: align-xAlign, then meet|slice|none, each optional.
+    std::string aspect = "xmidymid meet";
+    auto it_aspect = svg_node->attrs.find("preserveaspectratio");
+    if (it_aspect != svg_node->attrs.end() && !it_aspect->second.empty()) {
+        aspect = str_tolower(str_trim(it_aspect->second));
+    }
+    std::string meet_slice = "meet";
+    std::string x_align = "mid", y_align = "mid";
+    if (aspect.find("none") != std::string::npos) {
+        meet_slice = "none";
+    } else {
+        auto space = aspect.find(' ');
+        std::string align_part = (space == std::string::npos) ? aspect : aspect.substr(0, space);
+        if (space != std::string::npos) {
+            std::string ms_part = str_trim(aspect.substr(space + 1));
+            if (ms_part == "slice" || ms_part == "meet") meet_slice = ms_part;
+        }
+        // Align token: e.g. "xmidymid", "xminymax", "xnoneynone".
+        if (align_part.size() >= 8 && align_part.substr(0, 4) == "xnon" &&
+            align_part.substr(4, 4) == "ynon") {
+            x_align = "none"; y_align = "none";
+            meet_slice = "none";
+        } else {
+            if (align_part.size() >= 5) x_align = align_part.substr(1, 3); // "min"/"mid"/"max"
+            if (align_part.size() >= 9) y_align = align_part.substr(5, 3);
+        }
+    }
+
+    // Compute unified aspect scale + alignment offsets.
+    double aspect_scale = 0;
+    double x_off = 0, y_off = 0;
+    if (meet_slice == "none") {
+        aspect_scale = scale_x; // will be applied uniformly but X offset unused;
+        // keep independent scales; caller uses scale_x/scale_y directly below
+        aspect_scale = 0; // sentinel: fall back to independent scales
+    } else {
+        double s_meet = std::min(scale_x, scale_y);
+        double s_slice = std::max(scale_x, scale_y);
+        aspect_scale = (meet_slice == "slice") ? s_slice : s_meet;
+
+        // PDF-space gap in each axis before alignment.
+        double dx = scale_x * vb_w - aspect_scale * vb_w;
+        double dy = scale_y * vb_h - aspect_scale * vb_h;
+        if (x_align == "min")      x_off = 0;
+        else if (x_align == "mid") x_off = dx / 2.0;
+        else                       x_off = dx;
+        // Y is flipped in PDF space: offset shrinks f' so the image drifts up
+        // (negative f' addition moves the image's top edge closer to the page top).
+        if (y_align == "min")      y_off = 0;
+        else if (y_align == "mid") y_off = -dy / 2.0;
+        else                       y_off = -dy;
+    }
+
+    // Build the CM: if we have an aspect scale use it uniformly, otherwise
+    // keep the existing independent axes (preserveAspectRatio="none").
+    double final_sx, final_sy;
+    if (meet_slice == "none") {
+        final_sx = scale_x;
+        final_sy = scale_y;
+    } else {
+        final_sx = aspect_scale;
+        final_sy = aspect_scale;
+    }
+
+    // When there is a real aspect scale (meet/slice), alignment offsets apply.
+    double e = pdf->k * origin_x - final_sx * vb_x + (meet_slice == "none" ? 0 : x_off);
+    double f = pdf->k * (pdf->h - origin_y) + final_sy * vb_y + (meet_slice == "none" ? 0 : y_off);
+
+    ctm_scale_x = final_sx;
+    ctm_scale_y = final_sy;
 
     svg_width = vb_w;
     svg_height = vb_h;
@@ -167,9 +239,19 @@ void SVGRenderer::render(const std::shared_ptr<HTMLNode>& svg_node, double x, do
     double saved_lw = pdf->LineWidth;
 
     pdf->_out("q");
-    double e = pdf->k * origin_x - scale_x * vb_x;
-    double f = pdf->k * (pdf->h - origin_y) + scale_y * vb_y;
-    pdf->_out(fmt(scale_x) + " 0 0 " + fmt(-scale_y) + " " + fmt(e) + " " + fmt(f) + " cm");
+    pdf->_out(fmt(final_sx) + " 0 0 " + fmt(-final_sy) + " " + fmt(e) + " " + fmt(f) + " cm");
+
+    // Clip to the SVG's viewBox in user (SVG) coordinates.  This mirrors
+    // SVG's default overflow="hidden" on the root <svg> and prevents primitives
+    // that extend beyond viewBox (or width/height) from leaking out.
+    std::string overflow_val = "hidden";
+    auto it_overflow = svg_node->attrs.find("overflow");
+    if (it_overflow != svg_node->attrs.end()) {
+        overflow_val = str_tolower(str_trim(it_overflow->second));
+    }
+    if (overflow_val != "visible") {
+        pdf->_out(fmt(vb_x) + " " + fmt(vb_y) + " " + fmt(vb_w) + " " + fmt(vb_h) + " re W n");
+    }
 
     gradients.clear();
     collect_defs(svg_node->children);

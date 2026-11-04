@@ -91,6 +91,7 @@ private:
     std::string toc_title; // title from cataloguecontent div's title attribute
     int toc_page_no = 0;   // page number where TOC is rendered
     unsigned char no_header_footer = 0; // bit0=1: no header, bit1=2: no footer, 3: no both
+    bool pass1_measure_ = false; // header/footer first pass: measure only, no PDF emit
 
     std::string extract_style_tag(const std::string& html);
     std::vector<std::shared_ptr<HTMLNode>> parse_html(const std::string& html);
@@ -104,7 +105,10 @@ private:
     void apply_style(const CSSStyle& style);
     void write_flow_text(const std::string& text, const CSSStyle& style, const std::string& href);
     double get_line_height_mm(const CSSStyle& style);
-    void flush_line_buffer(bool new_line_after = true);
+    // When dry_run=true the call only updates the line-width bookkeeping and
+    // advances the cursor; no PDF content is emitted.  Used for the first pass
+    // of pageheader/pagefooter so width measurement does not double-draw.
+    void flush_line_buffer(bool new_line_after = true, bool dry_run = false);
     void render_pagefull_image(const std::string& src);
     std::vector<LineBufferSeg> line_buf_;
     double line_buf_width_ = 0;

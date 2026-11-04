@@ -402,7 +402,7 @@ void HTMLRenderer::apply_style(const CSSStyle& style) {
     }
 }
 
-void HTMLRenderer::flush_line_buffer(bool new_line_after) {
+void HTMLRenderer::flush_line_buffer(bool new_line_after, bool dry_run) {
     if (line_buf_.empty()) return;
 
     if (pdf->AutoPageBreak && !pdf->InHeader && !pdf->InFooter) {
@@ -426,58 +426,60 @@ void HTMLRenderer::flush_line_buffer(bool new_line_after) {
 
     double cur_x = x;
     for (auto& seg : line_buf_) {
-        if (seg.type == LineBufferSegType::TEXT) {
-            apply_style(seg.style);
-            double seg_y = y_base + 0.5 * line_buf_lh_ + 0.3 * (seg.style.font_size > 0 ? seg.style.font_size * 0.352778 : pdf->FontSizePt * 0.352778);
-            double tx = cur_x + seg.img_pad_left;
-            pdf->Text(tx, seg_y, seg.text);
-            if (!seg.href.empty()) {
-                double link_h = line_buf_lh_;
-                double link_y = y_base;
-                pdf->Link(tx, link_y, seg.width, link_h, seg.href);
-            }
-        } else if (seg.type == LineBufferSegType::IMAGE) {
-            double img_y = y_base + (line_buf_lh_ - seg.height) / 2.0 + seg.img_pad_top - seg.img_pad_bottom;
-            if (img_y < y_base) img_y = y_base;
-            double img_x = cur_x + seg.img_pad_left;
-            double img_w = seg.width - seg.img_pad_left - seg.img_pad_right;
-            double img_h = seg.height - seg.img_pad_top - seg.img_pad_bottom;
-            bool is_svg = (seg.img_src.size() > 4 && str_tolower(seg.img_src.substr(seg.img_src.size() - 4)) == ".svg");
-            if (is_svg) {
-                std::ifstream svg_file(pdf->_resolve_image_path(seg.img_src));
-                if (svg_file.is_open()) {
-                    std::stringstream ss;
-                    ss << svg_file.rdbuf();
-                    std::string svg_content = ss.str();
-                    auto svg_nodes = parse_html(svg_content);
-                    for (auto& n : svg_nodes) {
-                        if (n->type == HTMLNodeType::ELEMENT && n->tag == "svg") {
-                            double svg_w = 0, svg_h = 0;
-                            auto sw_it = n->attrs.find("width");
-                            if (sw_it != n->attrs.end()) { try { svg_w = std::stod(sw_it->second); } catch(...) {} }
-                            auto sh_it = n->attrs.find("height");
-                            if (sh_it != n->attrs.end()) { try { svg_h = std::stod(sh_it->second); } catch(...) {} }
-                            double px2mm = 0.75 / pdf->k;
-                            double orig_w = svg_w * px2mm;
-                            double orig_h = svg_h * px2mm;
-                            double scale = 1.0;
-                            if (orig_w > 0 && orig_h > 0) {
-                                double scale_w = img_w / orig_w;
-                                double scale_h = img_h / orig_h;
-                                scale = std::min(scale_w, scale_h);
+        if (!dry_run) {
+            if (seg.type == LineBufferSegType::TEXT) {
+                apply_style(seg.style);
+                double seg_y = y_base + 0.5 * line_buf_lh_ + 0.3 * (seg.style.font_size > 0 ? seg.style.font_size * 0.352778 : pdf->FontSizePt * 0.352778);
+                double tx = cur_x + seg.img_pad_left;
+                pdf->Text(tx, seg_y, seg.text);
+                if (!seg.href.empty()) {
+                    double link_h = line_buf_lh_;
+                    double link_y = y_base;
+                    pdf->Link(tx, link_y, seg.width, link_h, seg.href);
+                }
+            } else if (seg.type == LineBufferSegType::IMAGE) {
+                double img_y = y_base + (line_buf_lh_ - seg.height) / 2.0 + seg.img_pad_top - seg.img_pad_bottom;
+                if (img_y < y_base) img_y = y_base;
+                double img_x = cur_x + seg.img_pad_left;
+                double img_w = seg.width - seg.img_pad_left - seg.img_pad_right;
+                double img_h = seg.height - seg.img_pad_top - seg.img_pad_bottom;
+                bool is_svg = (seg.img_src.size() > 4 && str_tolower(seg.img_src.substr(seg.img_src.size() - 4)) == ".svg");
+                if (is_svg) {
+                    std::ifstream svg_file(pdf->_resolve_image_path(seg.img_src));
+                    if (svg_file.is_open()) {
+                        std::stringstream ss;
+                        ss << svg_file.rdbuf();
+                        std::string svg_content = ss.str();
+                        auto svg_nodes = parse_html(svg_content);
+                        for (auto& n : svg_nodes) {
+                            if (n->type == HTMLNodeType::ELEMENT && n->tag == "svg") {
+                                double svg_w = 0, svg_h = 0;
+                                auto sw_it = n->attrs.find("width");
+                                if (sw_it != n->attrs.end()) { try { svg_w = std::stod(sw_it->second); } catch(...) {} }
+                                auto sh_it = n->attrs.find("height");
+                                if (sh_it != n->attrs.end()) { try { svg_h = std::stod(sh_it->second); } catch(...) {} }
+                                double px2mm = 0.75 / pdf->k;
+                                double orig_w = svg_w * px2mm;
+                                double orig_h = svg_h * px2mm;
+                                double scale = 1.0;
+                                if (orig_w > 0 && orig_h > 0) {
+                                    double scale_w = img_w / orig_w;
+                                    double scale_h = img_h / orig_h;
+                                    scale = std::min(scale_w, scale_h);
+                                }
+                                double draw_w = orig_w * scale;
+                                double draw_h = orig_h * scale;
+                                double draw_x = img_x + (img_w - draw_w) / 2.0;
+                                double draw_y = img_y + (img_h - draw_h) / 2.0;
+                                SVGRenderer svg_renderer(pdf);
+                                svg_renderer.render(n, draw_x, draw_y, draw_w, draw_h);
+                                break;
                             }
-                            double draw_w = orig_w * scale;
-                            double draw_h = orig_h * scale;
-                            double draw_x = img_x + (img_w - draw_w) / 2.0;
-                            double draw_y = img_y + (img_h - draw_h) / 2.0;
-                            SVGRenderer svg_renderer(pdf);
-                            svg_renderer.render(n, draw_x, draw_y, draw_w, draw_h);
-                            break;
                         }
                     }
+                } else {
+                    pdf->Image(seg.img_src, img_x, img_y, img_w, img_h);
                 }
-            } else {
-                pdf->Image(seg.img_src, img_x, img_y, img_w, img_h);
             }
         }
         cur_x += seg.width;
@@ -496,7 +498,7 @@ void HTMLRenderer::flush_line_buffer(bool new_line_after) {
 void HTMLRenderer::render_pagefull_image(const std::string& src) {
     if (src.empty()) return;
 
-    flush_line_buffer(true);
+    flush_line_buffer(true, pass1_measure_);
     line_buf_lh_ = 0;
     line_buf_fs_mm_ = 0;
     line_buf_align_.clear();
@@ -644,7 +646,7 @@ void HTMLRenderer::write_flow_text(const std::string& text, const CSSStyle& styl
             line_buf_.push_back(seg);
             line_buf_width_ += line_w;
         }
-        flush_line_buffer(true);
+        flush_line_buffer(true, pass1_measure_);
         line_buf_lh_ = lh;
         line_buf_fs_mm_ = fs_mm;
         line_buf_align_ = style.text_align;
@@ -2407,7 +2409,7 @@ void HTMLRenderer::render_nodes(const std::vector<std::shared_ptr<HTMLNode>>& no
             }
             write_flow_text(node->text, current_style, href);
         } else if (node->type == HTMLNodeType::BR) {
-            flush_line_buffer(true);
+            flush_line_buffer(true, pass1_measure_);
             line_buf_lh_ = 0;
             line_buf_fs_mm_ = 0;
             line_buf_align_.clear();
@@ -2642,7 +2644,7 @@ void HTMLRenderer::render_nodes(const std::vector<std::shared_ptr<HTMLNode>>& no
                             css_parser.merge_style(child_new_style, cd->style);
                             apply_style(child_new_style);
                             render_nodes(cd->children, child_new_style, href, child_w);
-                            flush_line_buffer(false);
+                            flush_line_buffer(false, pass1_measure_);
                             
                             double child_y = pdf->GetY();
                             if (child_y > max_y) max_y = child_y;
@@ -2788,7 +2790,7 @@ void HTMLRenderer::render_nodes(const std::vector<std::shared_ptr<HTMLNode>>& no
                 before_space = cur_lh * 0.3;
                 after_space = cur_lh * 0.3;
             } else if (tag == "hr") {
-                flush_line_buffer(true);
+                flush_line_buffer(true, pass1_measure_);
                 line_buf_lh_ = 0;
                 line_buf_fs_mm_ = 0;
                 line_buf_align_.clear();
@@ -2905,9 +2907,9 @@ void HTMLRenderer::render_nodes(const std::vector<std::shared_ptr<HTMLNode>>& no
                         // dimension keeps the intrinsic aspect ratio.
                         double spec_w = 0, spec_h = 0;
                         auto aw_it = node->attrs.find("width");
-                        if (aw_it != node->attrs.end()) { try { spec_w = std::stod(aw_it->second) / pdf->k; } catch(...) {} }
+                        if (aw_it != node->attrs.end()) { try { spec_w = std::stod(aw_it->second) * 0.75 / pdf->k; } catch(...) {} }
                         auto ah_it = node->attrs.find("height");
-                        if (ah_it != node->attrs.end()) { try { spec_h = std::stod(ah_it->second) / pdf->k; } catch(...) {} }
+                        if (ah_it != node->attrs.end()) { try { spec_h = std::stod(ah_it->second) * 0.75 / pdf->k; } catch(...) {} }
                         if (new_style.width > 0) spec_w = new_style.width / pdf->k;
                         if (new_style.height > 0) spec_h = new_style.height / pdf->k;
 
@@ -2926,12 +2928,10 @@ void HTMLRenderer::render_nodes(const std::vector<std::shared_ptr<HTMLNode>>& no
                     } else {
                         auto w_it = node->attrs.find("width");
                         if (w_it != node->attrs.end())
-                            try { img_w = std::stod(w_it->second); } catch(...) {}
+                            try { img_w = std::stod(w_it->second) * 0.75 / pdf->k; } catch(...) {}
                         auto h_it = node->attrs.find("height");
                         if (h_it != node->attrs.end())
-                            try { img_h = std::stod(h_it->second); } catch(...) {}
-                        if (img_w > 0) img_w /= pdf->k;
-                        if (img_h > 0) img_h /= pdf->k;
+                            try { img_h = std::stod(h_it->second) * 0.75 / pdf->k; } catch(...) {}
                         
                         double real_w = 0, real_h = 0;
                         if (pdf->GetImageSize(src, real_w, real_h)) {
@@ -2967,7 +2967,7 @@ void HTMLRenderer::render_nodes(const std::vector<std::shared_ptr<HTMLNode>>& no
                             avail_w = content_w - line_buf_width_;
                         }
                         if (total_w > avail_w + 0.001 && !line_buf_.empty()) {
-                            flush_line_buffer(true);
+                            flush_line_buffer(true, pass1_measure_);
                             line_buf_lh_ = img_cur_lh;
                             line_buf_fs_mm_ = (current_style.font_size > 0 ? current_style.font_size : pdf->FontSizePt) * 0.352778;
                             line_buf_align_ = current_style.text_align;
@@ -2987,7 +2987,7 @@ void HTMLRenderer::render_nodes(const std::vector<std::shared_ptr<HTMLNode>>& no
                         if (line_buf_lh_ < total_h) line_buf_lh_ = total_h;
                         if (line_buf_align_.empty()) line_buf_align_ = current_style.text_align;
                     } else {
-                        flush_line_buffer(true);
+                        flush_line_buffer(true, pass1_measure_);
                         line_buf_lh_ = 0;
                         line_buf_fs_mm_ = 0;
                         line_buf_align_.clear();
@@ -3143,7 +3143,7 @@ void HTMLRenderer::render_nodes(const std::vector<std::shared_ptr<HTMLNode>>& no
 
                 double old_lm = pdf->lMargin;
                 double old_rm = pdf->rMargin;
-                flush_line_buffer(true);
+                flush_line_buffer(true, pass1_measure_);
                 line_buf_lh_ = 0;
                 line_buf_fs_mm_ = 0;
                 line_buf_align_.clear();
@@ -3284,7 +3284,7 @@ void HTMLRenderer::render_nodes(const std::vector<std::shared_ptr<HTMLNode>>& no
                         pdf->BeginDryRun();
                         double child_pw = pdf->GetPageWidth() - pdf->lMargin - pdf->rMargin;
                         render_nodes(node->children, new_style, href, child_pw);
-                        flush_line_buffer(true);
+                        flush_line_buffer(true, pass1_measure_);
                         line_buf_lh_ = 0;
                         line_buf_fs_mm_ = 0;
                         line_buf_align_.clear();
@@ -3294,7 +3294,7 @@ void HTMLRenderer::render_nodes(const std::vector<std::shared_ptr<HTMLNode>>& no
                         // No box needed, render directly
                         double child_pw = pdf->GetPageWidth() - pdf->lMargin - pdf->rMargin;
                         render_nodes(node->children, new_style, href, child_pw);
-                        flush_line_buffer(true);
+                        flush_line_buffer(true, pass1_measure_);
                         line_buf_lh_ = 0;
                         line_buf_fs_mm_ = 0;
                         line_buf_align_.clear();
@@ -3970,8 +3970,9 @@ void HTMLRenderer::render_page_header() {
     replace_placeholders_in_nodes(header_nodes, display_page, total_pages);
 
     pdf->SetXY(pdf->lMargin, header_y);
+    pass1_measure_ = true;
     render_nodes(header_clone->children, page_header_style, "");
-    flush_line_buffer(false);
+    flush_line_buffer(false, true); // dry-run: measure width without emitting PDF ops
 
     double final_x = pdf->GetX();
     double actual_width = final_x - pdf->lMargin;
@@ -4010,6 +4011,7 @@ void HTMLRenderer::render_page_header() {
     pdf->TextColor = saved_text_color;
     
     pdf->SetXY(start_x, header_y);
+    pass1_measure_ = false;
     render_nodes(header_clone2->children, page_header_style, "");
     flush_line_buffer(false);
 
@@ -4075,8 +4077,9 @@ void HTMLRenderer::render_page_footer() {
     replace_placeholders_in_nodes(footer_nodes, display_page, total_pages);
 
     pdf->SetXY(pdf->lMargin, footer_y);
+    pass1_measure_ = true;
     render_nodes(footer_clone->children, page_footer_style, "");
-    flush_line_buffer(false);
+    flush_line_buffer(false, true); // dry-run: measure width without emitting PDF ops
 
     double final_x = pdf->GetX();
     double actual_width = final_x - pdf->lMargin;
@@ -4114,6 +4117,7 @@ void HTMLRenderer::render_page_footer() {
     pdf->TextColor = saved_text_color;
     
     pdf->SetXY(start_x, footer_y);
+    pass1_measure_ = false;
     render_nodes(footer_clone2->children, page_footer_style, "");
     flush_line_buffer(false);
 
