@@ -6,9 +6,12 @@
 // 登记，只留一条 "frametasks_timeloop not registered" 日志。
 
 #include <chrono>
+#include <cstdint>
 #include <cstdio>
 #include <functional>
+#include <iomanip>
 #include <memory>
+#include <set>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -97,10 +100,304 @@ void collect_orm_rows(std::string &html_rows, std::string &json_items)
                       ",\"err\":\"" + j_err + "\"}";
     }
 }
+// Prometheus 文本格式（与 0.0.4 兼容，不显式声明版本）序列化器：只负责声明、转义和数值格式。
+// Serializer for Prometheus text exposition compatible with 0.0.4, without declaring the version.
+class prometheus_writer
+{
+  public:
+    void emit_uint(const std::string &name, const char *type, const std::string &help,
+                   const std::string &labels, std::uint64_t value)
+    {
+        declare(name, type, help);
+        write_sample(name, labels, std::to_string(value));
+    }
+
+    void emit_double(const std::string &name, const char *type, const std::string &help,
+                     const std::string &labels, double value)
+    {
+        declare(name, type, help);
+        std::ostringstream number;
+        number << std::fixed << std::setprecision(6) << value;
+        write_sample(name, labels, number.str());
+    }
+
+    static std::string label(const std::string &key, const std::string &value)
+    {
+        return key + "=\"" + escape_label(value) + "\"";
+    }
+
+    std::string str() const
+    {
+        return out_.str();
+    }
+
+  private:
+    // 每个指标族只声明一次，重复 emit 只追加样本行。
+    // Declare each metric family once; repeated emits only append sample lines.
+    void declare(const std::string &name, const char *type, const std::string &help)
+    {
+        if (!declared_.insert(name).second)
+        {
+            return;
+        }
+        out_ << "# HELP " << name << ' ' << escape_help(help) << '\n';
+        out_ << "# TYPE " << name << ' ' << type << '\n';
+    }
+
+    void write_sample(const std::string &name, const std::string &labels, const std::string &value)
+    {
+        out_ << name;
+        if (!labels.empty())
+        {
+            out_ << '{' << labels << '}';
+        }
+        out_ << ' ' << value << '\n';
+    }
+
+    // HELP 文本只转义反斜杠和换行
+    // HELP text escapes only backslashes and newlines
+    static std::string escape_help(const std::string &value)
+    {
+        std::string out;
+        out.reserve(value.size());
+        for (char ch : value)
+        {
+            if (ch == '\\')
+                out += "\\\\";
+            else if (ch == '\n')
+                out += "\\n";
+            else
+                out.push_back(ch);
+        }
+        return out;
+    }
+
+    // 标签值转义反斜杠、双引号和换行
+    // Label values escape backslashes, double quotes and newlines
+    static std::string escape_label(const std::string &value)
+    {
+        std::string out;
+        out.reserve(value.size());
+        for (char ch : value)
+        {
+            if (ch == '\\')
+                out += "\\\\";
+            else if (ch == '"')
+                out += "\\\"";
+            else if (ch == '\n')
+                out += "\\n";
+            else
+                out.push_back(ch);
+        }
+        return out;
+    }
+
+    std::ostringstream   out_;
+    std::set<std::string> declared_;
+};
+
+// 采集运行时数据并生成完整的 Prometheus 文本响应。
+// Collect runtime values and render the full Prometheus text response.
+std::string write_prometheus_metrics(httpserver &app, const server_loaclvar &gvar)
+{
+    prometheus_writer writer;
+
+    writer.emit_uint("paozhu_build_version", "gauge", "Build version marker; the value is always 1.",
+                     prometheus_writer::label("version",
+                                              std::to_string(PAOZHU_VERSION / 100000) + "." +
+                                                  std::to_string(PAOZHU_VERSION / 100 % 1000) + "." +
+                                                  std::to_string(PAOZHU_VERSION % 100)),
+                     1);
+
+    // 内存，统一换算成字节
+    // Memory, normalized to bytes
+    std::uint64_t rss_kb   = get_rss_kb();
+    std::uint64_t total_kb = get_total_memory_kb();
+    writer.emit_uint("paozhu_process_resident_memory_bytes", "gauge",
+                     "Resident set size of the paozhu process.", "", rss_kb * 1024);
+    writer.emit_uint("paozhu_system_memory_total_bytes", "gauge",
+                     "Total physical memory reported by the operating system.", "", total_kb * 1024);
+    writer.emit_double("paozhu_process_memory_usage_ratio", "gauge",
+                       "Process RSS divided by total physical memory; 0 when total memory is unknown.",
+                       "", total_kb ? (double)rss_kb / (double)total_kb : 0.0);
+
+    // 连接
+    // Connections
+    writer.emit_uint("paozhu_connections_accepted_total", "counter",
+                     "Connections accepted since process start.", "", app.total_count.load());
+    writer.emit_uint("paozhu_connections_live", "gauge", "Connections currently open.", "",
+                     app.live_link_count.load());
+    writer.emit_uint("paozhu_connections_pending_http1", "gauge",
+                     "Plain connections accepted but not yet picked up by the HTTP/1 handler.", "",
+                     app.total_http1_count.load());
+    writer.emit_uint("paozhu_connections_pending_http2", "gauge",
+                     "TLS connections accepted but not yet picked up by the TLS/HTTP/2 handler.", "",
+                     app.total_http2_count.load());
+    writer.emit_uint("paozhu_connections_accepted_last_60s", "gauge",
+                     "Connections accepted during the latest 60 second window, across all protocols.", "",
+                     app.http2_minute_count.load());
+
+    std::uint64_t mqtt_online = 0;
+    {
+        std::lock_guard<std::mutex> lk(app.mqtt_sessions_mutex);
+        mqtt_online = app.mqtt_sessions.size();
+    }
+    writer.emit_uint("paozhu_mqtt_sessions_online", "gauge", "MQTT sessions in the server registry.", "",
+                     mqtt_online);
+
+    std::uint64_t sessions_online = 0;
+    {
+        std::lock_guard<std::mutex> lk(app.socket_session_lists_mutex);
+        for (auto &weak_session : app.socket_session_lists)
+        {
+            if (!weak_session.expired())
+            {
+                ++sessions_online;
+            }
+        }
+    }
+    writer.emit_uint("paozhu_client_sessions_online", "gauge",
+                     "Live client sessions tracked by the server.", "", sessions_online);
+
+    // 限流
+    // Rate limiting
+    writer.emit_uint("paozhu_rate_limit_enabled", "gauge",
+                     "1 when the connection rate limiter is enabled, otherwise 0.", "",
+                     app.rate_limit_status.load() ? 1 : 0);
+    writer.emit_uint("paozhu_rate_limit_queue_length", "gauge",
+                     "Connections currently waiting in the rate-limit queue.", "",
+                     app.rate_queue_count.load());
+    writer.emit_uint("paozhu_rate_limited_total", "counter",
+                     "Connections queued by the rate limiter since process start.", "",
+                     app.rate_limited_count.load());
+    writer.emit_uint("paozhu_rate_limit_expired_total", "counter",
+                     "Queued connections whose 16 second acceptance lease expired since process start.", "",
+                     app.rate_expired_count.load());
+    writer.emit_uint("paozhu_rate_limit_admit_per_second", "gauge",
+                     "Current admission rate in connections per second.", "",
+                     app.rate_limit_second_time_num.load());
+
+    // 线程与队列
+    // Threads and queues
+    writer.emit_uint("paozhu_threadpool_workers_busy", "gauge",
+                     "Thread pool workers currently executing a task.", "",
+                     app.clientrunpool.getlivenum());
+    writer.emit_uint("paozhu_threadpool_legacy_queue_length", "gauge",
+                     "Tasks waiting in the legacy synchronous client queue.", "",
+                     app.clientrunpool.gettasknum());
+    writer.emit_uint("paozhu_threadpool_threads", "gauge", "Threads created for the client thread pool.",
+                     "", app.clientrunpool.getpoolthreadnum());
+    writer.emit_uint("paozhu_acceptor_threads", "gauge", "Accept and run threads.", "",
+                     (std::uint64_t)app.runthreads.size());
+    writer.emit_uint("paozhu_websocket_threads", "gauge", "WebSocket dispatch threads.", "",
+                     (std::uint64_t)app.websocketthreads.size());
+    writer.emit_uint("paozhu_http2_send_threads", "gauge", "HTTP/2 send threads.", "",
+                     (std::uint64_t)app.http2_send_data_threads.size());
+
+    // 间隔任务
+    // Timeloop
+    writer.emit_uint("paozhu_timeloop_ticks_total", "counter",
+                     "One-second timeloop scans since process start.", "",
+                     app.clientloop_ticks.load());
+    writer.emit_uint("paozhu_timeloop_skipped_total", "counter",
+                     "Timeloop ticks skipped because the previous run of the same task was still in flight.",
+                     "", app.clientloop_skipped.load());
+
+    std::uint64_t timeloop_tasks = 0;
+    {
+        std::lock_guard<std::mutex> lk(app.clientlooptasks_mutex);
+        timeloop_tasks = app.clientlooptasks.size();
+    }
+    writer.emit_uint("paozhu_timeloop_tasks", "gauge", "Timeloop tasks currently registered.", "",
+                     timeloop_tasks);
+
+    // ORM 连接池：标签只带 tag/type/role，避免把 host、库名等易变值带进时间序列
+    // ORM pools: labels carry only tag/type/role to keep host and database names out of series keys
+    struct orm_pool_sample
+    {
+        std::string tag;
+        std::string type;
+        std::uint64_t edit_count;
+        std::uint64_t select_count;
+        std::uint64_t up;
+    };
+    std::vector<orm_pool_sample> orm_samples;
+    std::map<std::string, std::shared_ptr<orm::orm_conn_pool>> &ormpools = orm::get_orm_conn_pool_obj();
+    for (auto &kv : ormpools)
+    {
+        auto &pool = kv.second;
+        orm::orm_conn_t *cfg = &pool->conf_data[0];
+        if (cfg->host.empty() && !pool->conf_data[1].host.empty())
+        {
+            cfg = &pool->conf_data[1];
+        }
+        std::string dbtype = cfg->dbtype.empty() ? "unknown" : cfg->dbtype;
+
+        std::uint64_t edit_n = 0, select_n = 0;
+        {
+            std::lock_guard<std::mutex> lk(pool->conn_edit_mutex);
+            edit_n = pool->mysql_edit_pool.size() + pool->pg_edit_pool.size() +
+                     (pool->sqlite_edit_conn ? 1 : 0);
+        }
+        {
+            std::lock_guard<std::mutex> lk(pool->conn_select_mutex);
+            select_n = pool->mysql_select_pool.size() + pool->pg_select_pool.size() +
+                       (pool->sqlite_select_conn ? 1 : 0);
+        }
+        orm_samples.push_back({kv.first, dbtype, edit_n, select_n,
+                               pool->error_msg.empty() ? std::uint64_t{1} : std::uint64_t{0}});
+    }
+    for (auto &sample : orm_samples)
+    {
+        std::string labels = prometheus_writer::label("tag", sample.tag) + "," +
+                             prometheus_writer::label("type", sample.type);
+        writer.emit_uint("paozhu_orm_pool_connections", "gauge",
+                         "Connections currently held by an ORM pool, by pool tag, database type and role.",
+                         labels + "," + prometheus_writer::label("role", "edit"), sample.edit_count);
+        writer.emit_uint("paozhu_orm_pool_connections", "gauge",
+                         "Connections currently held by an ORM pool, by pool tag, database type and role.",
+                         labels + "," + prometheus_writer::label("role", "select"),
+                         sample.select_count);
+    }
+    for (auto &sample : orm_samples)
+    {
+        writer.emit_uint("paozhu_orm_pool_up", "gauge",
+                         "1 when the ORM pool has no recorded connection error, otherwise 0.",
+                         prometheus_writer::label("tag", sample.tag) + "," +
+                             prometheus_writer::label("type", sample.type),
+                         sample.up);
+    }
+
+    // 全局开关
+    // Global flags
+    writer.emit_uint("paozhu_http2_enabled", "gauge",
+                     "1 when HTTP/2 support is enabled, otherwise 0.", "", gvar.http2_enable ? 1 : 0);
+    writer.emit_uint("paozhu_debug_enabled", "gauge",
+                     "1 when debug logging is enabled, otherwise 0.", "", gvar.debug_enable ? 1 : 0);
+    writer.emit_uint("paozhu_daemon_enabled", "gauge",
+                     "1 when daemon mode is enabled, otherwise 0.", "", gvar.deamon_enable ? 1 : 0);
+    writer.emit_uint("paozhu_session_type", "gauge",
+                     "Configured session storage type as an enum value.", "", gvar.session_type);
+
+    return writer.str();
+}
 }// namespace
 
 //@urlpath(null,metrics)
 std::string paozhu_metrics(std::shared_ptr<httppeer> peer)
+{
+    httpserver &app  = get_server_app();
+    httppeer &client = peer->get_peer();
+
+    client.type("text/plain; charset=utf-8");
+    client << write_prometheus_metrics(app, get_server_global_var());
+    return "";
+}
+
+// 旧的自定义仪表盘输出，原样保留在 /paozhu_status
+// Legacy custom dashboard output, kept as-is at /paozhu_status.
+//@urlpath(null,paozhu_status)
+std::string paozhu_metrics_legacy(std::shared_ptr<httppeer> peer)
 {
     httpserver &app  = get_server_app();
     httppeer &client = peer->get_peer();
