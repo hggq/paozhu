@@ -7,7 +7,7 @@ English | [简体中文](README_CN.md)
 
 Founded in 2022, Paozhu has been battle-tested in production environments over the years, powering 20+ real-world projects spanning WeChat Mini Programs, foreign-trade websites, multi-tenant SaaS, enterprise applications, and IoT smart devices.
 
-Featuring a fully home-grown HTTP/2 protocol stack, Paozhu is one of the very few C++ web frameworks with a native HTTP/2 implementation in production.
+Featuring a fully home-grown HTTP/2, MySQL and PostgreSQL protocol stack, Paozhu is one of the very few C++ web frameworks with a native HTTP/2 implementation in production.
 
 ### 1. Features 🔥🔥🔥🔥🔥
 
