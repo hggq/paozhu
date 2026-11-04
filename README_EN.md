@@ -14,7 +14,7 @@ Featuring a fully home-grown HTTP/2 protocol stack, Paozhu is one of the very fe
 ✅ 1. JSON encoding/decoding with zero third-party dependencies, fully compliant with JSON standards  
 ✅ 2. Multi-domain website support, with SaaS tenancy and theme customization  
 ✅ 3. Multi-domain SSL server  
-✅ 4. HTTP/1.1 and HTTP/2 protocol support  
+✅ 4. HTTP/1.1 and HTTP/2(include h2c) protocol support  
 ✅ 5. WebSocket server and client with full-duplex communication  
 ✅ 6. Built-in WebSocket push, supporting periodic pushes to connected clients  
 ✅ 7. HTTP client GET/POST requests in both synchronous and asynchronous modes  
