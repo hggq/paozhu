@@ -73,7 +73,9 @@ struct HTTP2_HEADER_FRAME_T
 
     } flags;
     unsigned int stream_id         = 0;
-    unsigned char padded_length    = 0;
+    // 本块是某条已在收请求体的流上的第二个头块，即 trailers（RFC 9113 §8.1）。
+    // 它只解 HPACK（动态表必须跟着对端走）并给请求体收尾，不建请求对象。
+    bool is_trailers             = false;
     unsigned int stream_dependency = 0;
     unsigned char priority_weight  = 0;
     std::string content;
@@ -262,6 +264,10 @@ class http2parse
     void headertype3(unsigned char c, std::string_view buffer, unsigned int &begin, std::shared_ptr<httppeer>);
     void headertype4(unsigned char c, std::string_view buffer, unsigned int &begin, std::shared_ptr<httppeer>);
     void dynamic_table_size_update(unsigned char c, std::string_view buffer, unsigned int &begin, std::shared_ptr<httppeer>);
+    // 逐条解完一个头块（RFC 7541 §6.1~6.3 的 5 种表示），推进动态表并把每个字段交给
+    // header_process。请求头块与 trailers 块共用这一条循环：跳过它等于让本端解码表
+    // 和对端编码器失步，下一个头块就会从错位处开始解。
+    void hpack_block_process(std::string_view header_data, std::shared_ptr<httppeer>);
     // RFC 7541 §4.1：按字节逐出动态表尾部条目，直至 dynamic_table_size <= dynamic_table_max_size。
     // 每次增量插入（headertype2）和显式 Size Update（dynamic_table_size_update）都要调。
     void evict_dynamic_table();
@@ -324,6 +330,10 @@ class http2parse
     // 用于 RFC 9113 §6.10：进行中收到非 CONTINUATION 帧即连接级 PROTOCOL_ERROR。
     // 单标志位：正常分发路径仅一条 bool 比较，零开销；罕见的多流交错 pending 时可能提前断连。
     bool header_block_pending = false;
+
+    // 正在解的头块是 trailers（RFC 9113 §8.1）：header_process 据此拒绝伪头字段并把字段值丢弃。
+    // 只在 readheaders 解某一块期间为真，不跨帧、不跨连接。
+    bool h2_trailer_block = false;
 
     unsigned int steam_count = 0;
     unsigned int isfinsish   = 0;

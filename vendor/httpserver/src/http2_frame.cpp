@@ -138,6 +138,75 @@ bool set_http2_headers_flag(std::string &hh_data, unsigned char flag)
     hh_data[4] = flag;
     return true;
 }
+// 与 set_http2_headers_flag() 的赋值语义相对：只把指定位并进首帧 flags，其余位保持原样。
+// 头块切成 HEADERS + CONTINUATION 后，首帧不再带 END_HEADERS，用赋值补 END_STREAM 会把
+// 「头块未结束」这个状态抹掉。
+bool or_http2_headers_flag(std::string &hh_data, unsigned char flag)
+{
+    if (hh_data.size() < 9)
+    {
+        return false;
+    }
+    hh_data[4] = (unsigned char)(((unsigned char)hh_data[4]) | flag);
+    return true;
+}
+// 把一个已成型的首帧（9 字节帧头 + 完整 HPACK 块）原地切成 HEADERS + CONTINUATION 链。
+// 头块长度不超过 cap 时原样返回 false（单帧，最常见的响应走这条）。
+// 切出来的链里：每片写自己的 24 位长度；END_HEADERS 只落末片；END_STREAM 只落首片
+// （CONTINUATION 的合法 flag 只有 END_HEADERS）；中间片 flags 为 0。
+bool http2_split_headers(std::string &hh_data, unsigned int cap)
+{
+    if (hh_data.size() < 9 || cap == 0)
+    {
+        return false;
+    }
+    unsigned int block_size = (unsigned int)hh_data.size() - 9;
+    if (block_size <= cap)
+    {
+        return false;
+    }
+    if (cap > 0xFFFFFF)
+    {
+        cap = 0xFFFFFF;
+    }
+    unsigned char first_flags = (unsigned char)(((unsigned char)hh_data[4]) & (unsigned char)(~HTTP2_HEADER_END_HEADERS));
+    unsigned char id_bytes[4];
+    for (int i = 0; i < 4; i++)
+    {
+        id_bytes[i] = (unsigned char)hh_data[5 + i];
+    }
+    std::string block = hh_data.substr(9);
+    hh_data.clear();
+    hh_data.reserve(block_size + ((block_size / cap) + 2) * 9);
+    bool first = true;
+    for (unsigned int off = 0; off < block_size; off += cap)
+    {
+        unsigned int n = block_size - off;
+        if (n > cap)
+        {
+            n = cap;
+        }
+        bool last = (off + n >= block_size);
+        unsigned char flags = last ? HTTP2_HEADER_END_HEADERS : 0;
+        if (first)
+        {
+            flags = (unsigned char)(flags | first_flags);
+        }
+        hh_data.push_back((char)((n >> 16) & 0xFF));
+        hh_data.push_back((char)((n >> 8) & 0xFF));
+        hh_data.push_back((char)(n & 0xFF));
+        // 0x01 HEADERS / 0x09 CONTINUATION
+        hh_data.push_back(first ? 0x01 : 0x09);
+        hh_data.push_back((char)flags);
+        for (int i = 0; i < 4; i++)
+        {
+            hh_data.push_back((char)id_bytes[i]);
+        }
+        hh_data.append(block, off, n);
+        first = false;
+    }
+    return true;
+}
 bool set_http2_headers_static(unsigned char *hh_data, unsigned char hh_code)
 {
     *hh_data = hh_code | 0x80;

@@ -1629,6 +1629,15 @@ std::string httppeer::make_http2_header(unsigned char flag_code)
     }
 
     set_http2_headers_size(http2header, (unsigned int)http2header.size() - 9);
+    // 头块长度受对端 SETTINGS_MAX_FRAME_SIZE 约束（RFC 9113 §4.2/§6.5.2）：超了就必须切成
+    // HEADERS + CONTINUATION 链，否则对端按 FRAME_SIZE_ERROR 断连。没收到 SETTINGS 时
+    // 用该设置项的默认值 16384。
+    unsigned int max_frame_size = 16384;
+    if (socket_session)
+    {
+        max_frame_size = socket_session->remote_max_frame_size.load();
+    }
+    http2_split_headers(http2header, max_frame_size);
     DEBUG_LOG("make_http2_header end");
     return http2header;
 }

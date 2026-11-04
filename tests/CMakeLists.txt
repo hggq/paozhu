@@ -169,6 +169,17 @@ foreach(test_src IN LISTS test_cpp_files)
     target_sources(${test_name} PRIVATE "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/http2_ring_queue.cpp")
   endif()
 
+  # http2 HEADERS 切片用例：帧构造/切片实现编进测试目标。http2_frame.cpp 对框架内唯一的
+  # 外部符号是 http_huffman_encode（其余全是 libc++），所以只需再带上 http2_huffman.cpp。
+  # The header-split test compiles the frame builders in; http2_frame.cpp's only in-repo
+  # undefined symbol is http_huffman_encode, so http2_huffman.cpp completes the link.
+  if(test_name MATCHES "http2_headers_split")
+    target_sources(${test_name} PRIVATE
+      "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/http2_frame.cpp"
+      "${CMAKE_SOURCE_DIR}/vendor/httpserver/src/http2_huffman.cpp"
+    )
+  endif()
+
   # jwt 用例把 http::jwt 实现编进测试目标：jwt.cpp 不在 paozhu_test_orm 的源集里，
   # 不加这一段则 encode/verify/decode_without_verify 三个符号找不到
   # jwt tests compile the http::jwt implementation in; without it the three jwt symbols stay undefined.

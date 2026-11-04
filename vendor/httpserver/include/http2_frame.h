@@ -293,5 +293,7 @@ bool make_http2_headers_item4(std::string &hh_data, unsigned char, unsigned long
 bool set_http2_frame_streamid(std::string &hh_data, unsigned int streamid);
 bool set_http2_headers_size(std::string &hh_data, unsigned int sizenum);
 bool set_http2_headers_flag(std::string &hh_data, unsigned char flag);
+bool or_http2_headers_flag(std::string &hh_data, unsigned char flag);
+bool http2_split_headers(std::string &hh_data, unsigned int cap);
 }// namespace http
 #endif

@@ -129,15 +129,13 @@ httpserver &get_server_app()
 // HEAD 响应在 HEADERS 上直接结束流：没有正文，发送线程不会也不应该再补 DATA/END_STREAM。
 // Head responses end the stream on HEADERS: there is no body, and the sender thread must not
 // (and cannot) append DATA/END_STREAM afterwards.
-// 注意 set_http2_headers_flag() 是赋值语义（http2_frame.cpp:138 的 hh_data[4] = flag），
-// 只传 END_STREAM 会把 make_http2_header() 已写入的 END_HEADERS 抹掉，必须一起带上。
-// Note set_http2_headers_flag() assigns (hh_data[4] = flag, http2_frame.cpp:138), so passing
-// END_STREAM alone would erase the END_HEADERS that make_http2_header() already wrote.
+// END_STREAM 只落首帧（HEADERS）：头块切成 HEADERS + CONTINUATION 链时，续帧的合法 flag
+// 只有 END_HEADERS。用 or_http2_headers_flag() 而不是 set_http2_headers_flag()，后者是赋值
+// 语义，会把「首帧不带 END_HEADERS」这个状态覆盖掉。
 static void http2_head_end_stream(const std::shared_ptr<http2_send_data_t> &send_file_obj)
 {
     send_file_obj->only_send_header = true;
-    set_http2_headers_flag(send_file_obj->header,
-                           HTTP2_HEADER_END_STREAM | HTTP2_HEADER_END_HEADERS);
+    or_http2_headers_flag(send_file_obj->header, HTTP2_HEADER_END_STREAM);
 }
 
 asio::awaitable<void> httpserver::http2_send_file_range(std::shared_ptr<httppeer> peer)
@@ -318,7 +316,7 @@ asio::awaitable<void> httpserver::http2_co_send_304(std::shared_ptr<httppeer> pe
     peer->set_header("etag", send_file_obj->etag);
     peer->type(send_file_obj->content_type);
     send_file_obj->header = peer->make_http2_header(0);
-    set_http2_headers_flag(send_file_obj->header, HTTP2_HEADER_END_STREAM | HTTP2_HEADER_END_HEADERS);
+    or_http2_headers_flag(send_file_obj->header, HTTP2_HEADER_END_STREAM);
 
     // body size 0 enddata
     send_file_obj->content.clear();

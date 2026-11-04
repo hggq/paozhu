@@ -189,10 +189,13 @@ void http2parse::readheaders(const HTTP2_PACK_DATA_T &temp_pack_data)
         return;
     }
 
-    // ---- 流合法性校验（RFC 9113 §5.1.1 / §6.10）----
+    // ---- 流合法性校验（RFC 9113 §5.1.1 / §6.10 / §8.1）----
     // 必须校验流 id：不校验时客户端可以用偶数 id、0、以及已用过的 id 反复开新流，
     // 只要只发 HEADERS 不结束 body，就不会计入 server.cpp 的 steam_count，
     // http_data / http_post_data / http2_header_recvs 会被无上限撑大。
+    // 但「id 不比最大值大」不等于重复开流：同一条还在收请求体的流上再来一枚
+    // HEADERS 是合法的 trailers（§8.1），按新流判就是拿连接级 GOAWAY 杀合法请求。
+    bool is_trailer_block = false;
     if (iter == http2_header_recvs.end())
     {
         if (temp_pack_data.frame_type != 0x01)
@@ -207,19 +210,37 @@ void http2parse::readheaders(const HTTP2_PACK_DATA_T &temp_pack_data)
             error = 40006;
             return;
         }
-        if (temp_pack_data.stream_id <= max_client_stream_id)
+        auto live_iter = http_data.find(temp_pack_data.stream_id);
+        if (live_iter != http_data.end() && !live_iter->second->isfinish)
         {
-            // 新流的 id 必须严格递增，重复或倒退的 id 属于协议错误
-            error = 40006;
-            return;
+            // 这条流的本端状态是 open（头块已解完、请求体未收尾）——本帧是 trailers。
+            // §8.1 要求承载 trailers 的 HEADERS 置 END_STREAM：本端正是靠它给请求体收尾，
+            // 没置等于这一侧永远说不完，但违例只涉及这条流，按 §5.4.2 走流级。
+            if ((temp_pack_data.flags & HTTP2_HEADER_END_STREAM) == 0)
+            {
+                set_stream_error(40223, temp_pack_data.stream_id, 0x1);// 0x1 = PROTOCOL_ERROR
+                return;
+            }
+            is_trailer_block = true;
         }
-        if (http_data.size() >= CONST_HTTP2_MAX_STREAMS || http2_header_recvs.size() >= CONST_HTTP2_MAX_STREAMS)
+        if (!is_trailer_block)
         {
-            // 「body 未结束的流」和「头部块未结束的流」都必须计数
-            error = 40010;
-            return;
+            if (temp_pack_data.stream_id <= max_client_stream_id)
+            {
+                // 新流的 id 必须严格递增，重复或倒退的 id 属于协议错误
+                error = 40006;
+                return;
+            }
+            if (http_data.size() >= CONST_HTTP2_MAX_STREAMS || http2_header_recvs.size() >= CONST_HTTP2_MAX_STREAMS)
+            {
+                // 「body 未结束的流」和「头部块未结束的流」都必须计数
+                error = 40010;
+                return;
+            }
+            max_client_stream_id = temp_pack_data.stream_id;
         }
-        max_client_stream_id = temp_pack_data.stream_id;
+        // trailers 不占新流额度，也不推进 max_client_stream_id：这条流已在 http_data 里
+        // 计过一次，每条已开流最多挂一个未完成的块，撑大的量由上面那条 http_data 判定兜住。
     }
 
     if (iter == http2_header_recvs.end())
@@ -228,13 +249,48 @@ void http2parse::readheaders(const HTTP2_PACK_DATA_T &temp_pack_data)
         temp.length     = temp_pack_data.length;
         temp.frame_type = temp_pack_data.frame_type;
 
-        temp.flags.END_STREAM  = temp_pack_data.flags & HTTP2_HEADER_END_STREAM;
-        temp.flags.END_HEADERS = temp_pack_data.flags & HTTP2_HEADER_END_HEADERS;
-        temp.flags.PADDED      = temp_pack_data.flags & HTTP2_HEADER_PADDED;
-        temp.flags.PRIORITY    = temp_pack_data.flags & HTTP2_HEADER_PRIORITY;
+        // 1 位位域装不下 0x04/0x08/0x20 这种掩码原值（截进去就剩 0），必须归一化成 0/1。
+        // CONTINUATION 不带 END_STREAM/PADDED/PRIORITY，只有 END_HEADERS，所以下面追加
+        // 续帧时只覆盖 END_HEADERS 这一个位。
+        temp.flags.END_STREAM  = (temp_pack_data.flags & HTTP2_HEADER_END_STREAM) ? 1 : 0;
+        temp.flags.END_HEADERS = (temp_pack_data.flags & HTTP2_HEADER_END_HEADERS) ? 1 : 0;
+        temp.flags.PADDED      = (temp_pack_data.flags & HTTP2_HEADER_PADDED) ? 1 : 0;
+        temp.flags.PRIORITY    = (temp_pack_data.flags & HTTP2_HEADER_PRIORITY) ? 1 : 0;
 
-        temp.stream_id = temp_pack_data.stream_id;
-        temp.content   = temp_pack_data.payload;
+        temp.stream_id   = temp_pack_data.stream_id;
+        temp.is_trailers = is_trailer_block;
+
+        // RFC 9113 §4.1 + §6.2：Pad Length 与 Padding 只属于起始 HEADERS 帧，
+        // CONTINUATION 的 payload 全部是压缩头块片段。所以必须在「手里还是完整一帧」时
+        // 把首帧前缀（Pad Length、Priority）和这一帧尾部的填充切掉，content 里只留 HPACK。
+        // 等合并完再按尾部偏移切除，切掉的是最后一枚 CONTINUATION 的正文，而首帧的填充
+        // 字节被留在块中间当成 HPACK——整块错位，本端自己报 COMPRESSION_ERROR 断连。
+        unsigned int first_off = 0;
+        unsigned int first_pad = 0;
+        if (temp.flags.PADDED)
+        {
+            if (temp_pack_data.payload.size() == 0)
+            {
+                error = 40013;
+                return;
+            }
+            first_pad = static_cast<unsigned char>(temp_pack_data.payload[0]);
+            first_off = 1;
+        }
+        if (temp.flags.PRIORITY)
+        {
+            first_off += 5;
+        }
+        // 参照系是本帧自身长度（不是合并块）：有前缀时 header block fragment 至少留 1 字节，
+        // 填充超过本帧即畸形帧。无前缀（未带 PADDED/PRIORITY）时不判，空 payload 交给
+        // 后面的伪头校验按缺 :method 处理，与改动前一致。
+        if (first_off > 0 && first_off + first_pad >= temp_pack_data.payload.size())
+        {
+            error = 40019;
+            return;
+        }
+        temp.content.assign(temp_pack_data.payload.data() + first_off,
+                            temp_pack_data.payload.size() - first_off - first_pad);
 
         http2_header_recvs.insert_or_assign(temp_pack_data.stream_id, std::move(temp));
         iter = http2_header_recvs.find(temp_pack_data.stream_id);
@@ -256,16 +312,7 @@ void http2parse::readheaders(const HTTP2_PACK_DATA_T &temp_pack_data)
         return;
     }
 
-    // HEADERS 帧才带 END_STREAM / PADDED / PRIORITY，CONTINUATION 只带 END_HEADERS。
-    // 这些位只能在 HEADERS 帧上取；用「当前帧」的 flags 无条件覆盖全部标志时，
-    // HEADERS(PADDED|END_STREAM) + CONTINUATION 会把 PADDED/END_STREAM 抹掉，
-    // padding 字节被当成头部块正文解析，整块 HPACK 错位。
-    if (temp_pack_data.frame_type == 0x01)
-    {
-        iter->second.flags.END_STREAM = (temp_pack_data.flags & HTTP2_HEADER_END_STREAM) ? 1 : 0;
-        iter->second.flags.PRIORITY   = (temp_pack_data.flags & HTTP2_HEADER_PRIORITY) ? 1 : 0;
-        iter->second.flags.PADDED     = (temp_pack_data.flags & HTTP2_HEADER_PADDED) ? 1 : 0;
-    }
+    // 只有 END_HEADERS 会随当前帧变化：首帧没结束、续帧结束。
     iter->second.flags.END_HEADERS = (temp_pack_data.flags & HTTP2_HEADER_END_HEADERS) ? 1 : 0;
 
     if (iter->second.flags.END_HEADERS == 0)
@@ -275,35 +322,70 @@ void http2parse::readheaders(const HTTP2_PACK_DATA_T &temp_pack_data)
         return;
     }
 
-    unsigned header_offset = 0;
-    if (iter->second.flags.PADDED)
+    // 首帧的 Pad Length / Priority / Padding 已在存入时切掉，这里拿到的就是完整 HPACK 块。
+
+    if (iter->second.is_trailers)
     {
-        if (iter->second.content.size() == 0)
+        unsigned int trailer_sid = iter->second.stream_id;
+        std::string trailer_block;
+        trailer_block.swap(iter->second.content);
+        http2_header_recvs.erase(iter);
+        header_block_pending = false;
+
+        // 本端不消费 trailer 字段值，但不能跳过解码：动态表必须跟着对端的编码器走。
+        // 名值落进一个用完即弃的 peer 里丢掉（header_process 见 h2_trailer_block 即返回，
+        // 不碰这条流真正的请求对象，业务看到的头表和改前一样）。
+        auto trailer_peer = std::make_shared<httppeer>();
+        trailer_peer->stream_id = trailer_sid;
+        trailer_peer->httpv     = 2;
+        h2_trailer_block = true;
+        hpack_block_process(trailer_block, trailer_peer);
+        h2_trailer_block = false;
+
+        if (error != 0)
         {
-            error = 40013;
+            // 连接级由调用方 GOAWAY，流级由调用方 RST + cleanup_stream；
+            // 半截 trailer 不会再有后续帧能补完，块条目上面已回收。
             return;
         }
-        iter->second.padded_length = iter->second.content[header_offset];
-        header_offset++;
-    }
 
-    if (iter->second.flags.PRIORITY)
-    {
-        header_offset += 5;
-    }
-
-    unsigned int new_size_num = header_offset + iter->second.padded_length;
-
-    if (new_size_num > 0)
-    {
-        if (new_size_num >= iter->second.content.size())
+        // §8.1：本帧带 END_STREAM，客户端这一侧到此说完。收尾口径逐条对齐
+        // DATA(END_STREAM) 那条路径（readpostdata 末尾）：content-length 比对、
+        // 正文收集状态与窗口记账回收、置 isfinish、进派发队列。
+        // 少了这一段，只靠 trailers 结束的请求（gRPC 一类）永远不派发。
+        auto live_iter = http_data.find(trailer_sid);
+        if (live_iter != http_data.end())
         {
-            error = 40019;
-            return;
+            auto post_iter = http_post_data.find(trailer_sid);
+            if (post_iter != http_post_data.end())
+            {
+                // 正文收集器还欠一次「最后一包」：urlencoded 只在 islast_pack 时才把攒下的
+                // 名值对切进 post，json 才 from_json，multipart 才 reset_uploadfile。
+                // 收尾既已在 trailers 上发生，就要在这里补这一刀，否则只靠 trailers 结束的
+                // 请求业务读到的 post/json 是空的。
+                // content 是上一枚 DATA 的窗口视图，必须先清空——case 1/3/4 会把它再 append
+                // 一次进 rawcontent，不清空就把最后一个正文分片重复一遍。
+                post_iter->second.content = std::string_view();
+                post_data_process(post_iter->second, 1);
+                if (error != 0)
+                {
+                    return;
+                }
+                if (live_iter->second->ishas_content_length &&
+                    post_iter->second.exp_length != live_iter->second->content_length)
+                {
+                    error = 40202;
+                    return;
+                }
+                http_post_data.erase(post_iter);
+            }
+            // 流已结束，释放该流的窗口记账，避免 map 随请求数无限增长
+            stream_recv_window.erase(trailer_sid);
+            peer_session->stream_grant_pending.erase(trailer_sid);
+            live_iter->second->isfinish = true;
+            stream_list.emplace(trailer_sid);
         }
-        new_size_num         = iter->second.content.size() - new_size_num;
-        std::string temp_str = iter->second.content.substr(header_offset, new_size_num);
-        iter->second.content = temp_str;
+        return;
     }
 
     auto steam_httppeer = std::make_shared<httppeer>();
@@ -352,34 +434,33 @@ void http2parse::readheaders(const HTTP2_PACK_DATA_T &temp_pack_data)
     http2_header_recvs.erase(iter);
     header_block_pending = false;
 }
-void http2parse::headers_parse(const HTTP2_HEADER_FRAME_T &header_block_obj, std::shared_ptr<httppeer> steam_httppeer)
+void http2parse::hpack_block_process(std::string_view header_data, std::shared_ptr<httppeer> steam_httppeer)
 {
-    unsigned int header_stream_id = steam_httppeer->stream_id;
-    for (unsigned int h_begin = 0; h_begin < (unsigned int)header_block_obj.content.size(); h_begin++)
+    for (unsigned int h_begin = 0; h_begin < (unsigned int)header_data.size(); h_begin++)
     {
-        unsigned char c = header_block_obj.content[h_begin];
+        unsigned char c = header_data[h_begin];
 
         if (c & 0x80)
         {
-            headertype1(c, header_block_obj.content, h_begin, steam_httppeer);
+            headertype1(c, header_data, h_begin, steam_httppeer);
         }
         else if ((c & 0xC0) == 0x40)
         {
-            headertype2(c, header_block_obj.content, h_begin, steam_httppeer);
+            headertype2(c, header_data, h_begin, steam_httppeer);
         }
         else if ((c & 0xF0) == 0x10)
         {
-            headertype3(c, header_block_obj.content, h_begin, steam_httppeer);
+            headertype3(c, header_data, h_begin, steam_httppeer);
         }
         else if ((c & 0xF0) == 0)
         {
-            headertype4(c, header_block_obj.content, h_begin, steam_httppeer);
+            headertype4(c, header_data, h_begin, steam_httppeer);
         }
         else if ((c & 0xE0) == 0x20)
         {
             // 001xxxxx : Dynamic Table Size Update (RFC 7541 §6.3)
             // 这是独立于 4 种 header 表示的控制指令，不是第 5 种 header 类型
-            dynamic_table_size_update(c, header_block_obj.content, h_begin, steam_httppeer);
+            dynamic_table_size_update(c, header_data, h_begin, steam_httppeer);
         }
         else
         {
@@ -391,6 +472,15 @@ void http2parse::headers_parse(const HTTP2_HEADER_FRAME_T &header_block_obj, std
         {
             return;
         }
+    }
+}
+void http2parse::headers_parse(const HTTP2_HEADER_FRAME_T &header_block_obj, std::shared_ptr<httppeer> steam_httppeer)
+{
+    unsigned int header_stream_id = steam_httppeer->stream_id;
+    hpack_block_process(header_block_obj.content, steam_httppeer);
+    if (error > 0)
+    {
+        return;
     }
 
     // CORS：OPTIONS 预检的 ACAO 由 send_cors_domain() 按白名单判定输出，
@@ -1274,6 +1364,14 @@ void http2parse::header_process(std::string header_name, std::string header_valu
         set_conn_error(40164, 0x1);// 头名过长
         return;
     }
+    // ①e trailers 块里不得出现任何伪头字段（RFC 9113 §8.1）。放在 ② 之前：
+    // ② 只认得「请求伪头」白名单，让 :method 混过去、却把 :status 报成连接级 40025，
+    // 同一个违例（trailer 带伪头）会因名字选没选进白名单而分成两档错误。
+    if (h2_trailer_block && header_name[0] == ':')
+    {
+        set_stream_error(40222, steam_httppeer->stream_id, 0x1);// 0x1 = PROTOCOL_ERROR
+        return;
+    }
     // ② 响应伪头（:status）出现在请求里、未知伪头 → PROTOCOL_ERROR（h2spec 8.1.2.1 #1/#2）
     // Pseudo-headers are request-only (:method/:scheme/:path/:authority / response-only :status).
     if (!header_name.empty() && header_name[0] == ':')
@@ -1321,6 +1419,16 @@ void http2parse::header_process(std::string header_name, std::string header_valu
             set_conn_error(40025, 0x1);// PROTOCOL_ERROR
             return;
         }
+    }
+
+    // ---- trailers 字段：只校验，不落地 ----
+    // 上面 ⓪~③ 的单字段合规校验（空名/小写/控制字符/token 名/名长/伪头白名单/连接层头）
+    // 对 trailer 字段同样成立，所以照常跑完；到这里本端要的信息已经拿完了。
+    // trailer 值不进任何请求对象（本框架不消费 trailer，业务看到的头表与改造前一致），
+    // 动态表由调用方 headertype2/3/4 推进，与本处返回无关。
+    if (h2_trailer_block)
+    {
+        return;
     }
 
     // ---- RFC 7540 §8.1.2 跨状态计数（单元素校验已过，这里只计状态）----
@@ -2208,7 +2316,13 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
 
         if (ishuffman_value)
         {
-            http_huffman_decode(&field_state, (unsigned char *)&header_data[begin], item_length, name_key, 1);
+            // 解码失败按压缩错误处理；尾部 0xFF 填充合法。
+            // A decode failure is a compression error; trailing 0xFF padding is valid.
+            if (http_huffman_decode(&field_state, (unsigned char *)&header_data[begin], item_length, name_key, 1) != HUFFMAN_OK)
+            {
+                hpack_fail(40224);
+                return;
+            }
         }
         else
         {
@@ -2243,7 +2357,13 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
         if (ishuffman_value)
         {
             field_state = 0;
-            http_huffman_decode(&field_state, (unsigned char *)&header_data[begin], item_length, value, 1);
+            // 解码失败按压缩错误处理；尾部 0xFF 填充合法。
+            // A decode failure is a compression error; trailing 0xFF padding is valid.
+            if (http_huffman_decode(&field_state, (unsigned char *)&header_data[begin], item_length, value, 1) != HUFFMAN_OK)
+            {
+                hpack_fail(40224);
+                return;
+            }
         }
         else
         {
@@ -2320,7 +2440,13 @@ void http2parse::headertype2(unsigned char c, std::string_view header_data, unsi
         if (ishuffman_value)
         {
             field_state = 0;
-            http_huffman_decode(&field_state, (unsigned char *)&header_data[begin], item_length, value, 1);
+            // 解码失败按压缩错误处理；尾部 0xFF 填充合法。
+            // A decode failure is a compression error; trailing 0xFF padding is valid.
+            if (http_huffman_decode(&field_state, (unsigned char *)&header_data[begin], item_length, value, 1) != HUFFMAN_OK)
+            {
+                hpack_fail(40224);
+                return;
+            }
         }
         else
         {
@@ -2373,7 +2499,13 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
         }
         if (ishuffman_value)
         {
-            http_huffman_decode(&field_state, (unsigned char *)&header_data[begin], item_length, name_key, 1);
+            // 解码失败按压缩错误处理；尾部 0xFF 填充合法。
+            // A decode failure is a compression error; trailing 0xFF padding is valid.
+            if (http_huffman_decode(&field_state, (unsigned char *)&header_data[begin], item_length, name_key, 1) != HUFFMAN_OK)
+            {
+                hpack_fail(40224);
+                return;
+            }
         }
         else
         {
@@ -2407,7 +2539,13 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
         if (ishuffman_value)
         {
             field_state = 0;
-            http_huffman_decode(&field_state, (unsigned char *)&header_data[begin], item_length, value, 1);
+            // 解码失败按压缩错误处理；尾部 0xFF 填充合法。
+            // A decode failure is a compression error; trailing 0xFF padding is valid.
+            if (http_huffman_decode(&field_state, (unsigned char *)&header_data[begin], item_length, value, 1) != HUFFMAN_OK)
+            {
+                hpack_fail(40224);
+                return;
+            }
         }
         else
         {
@@ -2476,7 +2614,13 @@ void http2parse::headertype3(unsigned char c, std::string_view header_data, unsi
         if (ishuffman_value)
         {
             field_state = 0;
-            http_huffman_decode(&field_state, (unsigned char *)&header_data[begin], item_length, value, 1);
+            // 解码失败按压缩错误处理；尾部 0xFF 填充合法。
+            // A decode failure is a compression error; trailing 0xFF padding is valid.
+            if (http_huffman_decode(&field_state, (unsigned char *)&header_data[begin], item_length, value, 1) != HUFFMAN_OK)
+            {
+                hpack_fail(40224);
+                return;
+            }
         }
         else
         {
@@ -2526,7 +2670,13 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
 
         if (ishuffman_value)
         {
-            http_huffman_decode(&field_state, (unsigned char *)&header_data[begin], item_length, name_key, 1);
+            // 解码失败按压缩错误处理；尾部 0xFF 填充合法。
+            // A decode failure is a compression error; trailing 0xFF padding is valid.
+            if (http_huffman_decode(&field_state, (unsigned char *)&header_data[begin], item_length, name_key, 1) != HUFFMAN_OK)
+            {
+                hpack_fail(40224);
+                return;
+            }
         }
         else
         {
@@ -2560,7 +2710,13 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
         if (ishuffman_value)
         {
             field_state = 0;
-            http_huffman_decode(&field_state, (unsigned char *)&header_data[begin], item_length, value, 1);
+            // 解码失败按压缩错误处理；尾部 0xFF 填充合法。
+            // A decode failure is a compression error; trailing 0xFF padding is valid.
+            if (http_huffman_decode(&field_state, (unsigned char *)&header_data[begin], item_length, value, 1) != HUFFMAN_OK)
+            {
+                hpack_fail(40224);
+                return;
+            }
         }
         else
         {
@@ -2634,7 +2790,13 @@ void http2parse::headertype4(unsigned char c, std::string_view header_data, unsi
         if (ishuffman_value)
         {
             field_state = 0;
-            http_huffman_decode(&field_state, (unsigned char *)&header_data[begin], item_length, value, 1);
+            // 解码失败按压缩错误处理；尾部 0xFF 填充合法。
+            // A decode failure is a compression error; trailing 0xFF padding is valid.
+            if (http_huffman_decode(&field_state, (unsigned char *)&header_data[begin], item_length, value, 1) != HUFFMAN_OK)
+            {
+                hpack_fail(40224);
+                return;
+            }
         }
         else
         {
@@ -2831,6 +2993,13 @@ void http2parse::readgoaway(const HTTP2_PACK_DATA_T &temp_pack_data)
     if (temp_pack_data.stream_id != 0)
     {
         error = 40044;
+        return;
+    }
+    // GOAWAY 载荷至少 8 字节（last_stream_id + error_code）；不足按帧长错误断连。
+    // A GOAWAY payload must be at least 8 bytes; shorter is a frame size error.
+    if (temp_pack_data.payload.size() < 8)
+    {
+        set_conn_error(40225, 0x6);// 0x6 = FRAME_SIZE_ERROR
         return;
     }
     if (temp_pack_data.flags != 0)
@@ -5275,7 +5444,9 @@ void http2parse::read_pack_data(const unsigned char *buffer, unsigned int buffer
             pack_data.frame_type = pack_data.subpad[j++];
             pack_data.flags      = pack_data.subpad[j++];
 
-            if ((pack_data.subpad[j] & 0x7F) > 0)
+            // 最高位是保留位，必须为 0；其余 31 位是流 id。
+            // The MSB is the reserved bit and must be 0; the remaining 31 bits are the stream id.
+            if ((pack_data.subpad[j] & 0x80) != 0)
             {
                 error = 40002;
                 return;
@@ -5303,7 +5474,9 @@ void http2parse::read_pack_data(const unsigned char *buffer, unsigned int buffer
             pack_data.frame_type = buffer[j++];
             pack_data.flags      = buffer[j++];
 
-            if (j < buffersize && (buffer[j] & 0x7F) > 0)
+            // 最高位是保留位，必须为 0；其余 31 位是流 id。
+            // The MSB is the reserved bit and must be 0; the remaining 31 bits are the stream id.
+            if (j < buffersize && (buffer[j] & 0x80) != 0)
             {
                 error = 40208;
                 return;
