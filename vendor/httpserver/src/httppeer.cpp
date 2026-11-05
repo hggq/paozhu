@@ -44,8 +44,7 @@
 #include "http2_huffman.h"
 #include "terminal_color.h"
 
-#ifdef ENABLE_BOOST
-#include "loadmodule.h"
+#ifdef ENABLE_VIEWSO
 #include "loadviewso.h"
 #include "http_so_common_api.h"
 #endif
@@ -1787,7 +1786,7 @@ void httppeer::view(const std::string &a)
             return;
         }
     }
-#ifdef ENABLE_BOOST
+#ifdef ENABLE_VIEWSO
     serverconfig &sysconfigpath = getserversysconfig();
     if (sysconfigpath.map_value.find(host) != sysconfigpath.map_value.end())
     {
@@ -1865,7 +1864,7 @@ void httppeer::view(const std::string &a, obj_val &b)
             return;
         }
     }
-#ifdef ENABLE_BOOST
+#ifdef ENABLE_VIEWSO
     serverconfig &sysconfigpath = getserversysconfig();
     if (sysconfigpath.map_value.find(host) != sysconfigpath.map_value.end())
     {
@@ -1941,7 +1940,7 @@ std::string httppeer::fetchview(const std::string &a)
             return "";
         }
     }
-#ifdef ENABLE_BOOST
+#ifdef ENABLE_VIEWSO
     serverconfig &sysconfigpath = getserversysconfig();
     if (sysconfigpath.map_value.find(host) != sysconfigpath.map_value.end())
     {
@@ -2019,7 +2018,7 @@ std::string httppeer::fetchview(const std::string &a, obj_val &b)
             return "";
         }
     }
-#ifdef ENABLE_BOOST
+#ifdef ENABLE_VIEWSO
     serverconfig &sysconfigpath = getserversysconfig();
     if (sysconfigpath.map_value.find(host) != sysconfigpath.map_value.end())
     {

@@ -384,9 +384,7 @@ class viewtemplate
 #include <cstdio>
 #include <string>
 #include <sstream>
-#include <boost/dll/alias.hpp>
-#include <boost/function.hpp>
-#include <boost/dll/import.hpp>
+#include "pz_dll.h"
 
 
 #include <map> 
@@ -418,7 +416,7 @@ class viewtemplate
         headtxt.append(savefilename);
         headtxt.append(" -o ");
         headtxt.append(sofilename);
-        headtxt.append(" -shared -fPIC -std=c++20 -Ivendor/httpserver/include vendor/httpserver/src/request.cpp   -lssl -lcrypto -ldl -I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib -lboost_filesystem\n");
+        headtxt.append("  -shared -fPIC -DENABLE_VIEWSO -std=c++20 -Ivendor/httpserver/include vendor/httpserver/src/request.cpp vendor/httpserver/src/loadviewso.cpp  vendor/httpserver/src/unicode.cpp vendor/httpserver/src/urlcode.cpp vendor/httpserver/src/http_so_common_api.cpp vendor/httpserver/src/cookie.cpp vendor/httpserver/src/gzip.cpp vendor/httpserver/src/mime.cpp  vendor/httpserver/src/datetime.cpp  -lz -lssl -lcrypto -ldl -I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib -Imodels -Iorm\n");
         fwrite(&headtxt[0], 1, headtxt.size(), f);
         headtxt            = R"(
   namespace http {
@@ -431,8 +429,8 @@ class viewtemplate
             return echo.str();
         }
 
-            BOOST_DLL_ALIAS(http::view, view)
-           // BOOST_DLL_ALIAS(http::clientapi::setclientapi, _setclientapi)
+            PZ_DLL_ALIAS(http::view, view)
+           // PZ_DLL_ALIAS(http::clientapi::setclientapi, _setclientapi)
         }
     )";
         fwrite(&headtxt[0], 1, headtxt.size(), f);
@@ -566,7 +564,7 @@ class viewtemplate
         }
         else
         {
-            compiler.append(" -shared -fPIC -std=c++20 -Ivendor/httpserver/include vendor/httpserver/src/request.cpp   -lssl -lcrypto -ldl -I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib -lboost_filesystem vendor/httpserver/src/httpsocommonapi.cpp -lmysqlcppconn8 ");
+            compiler.append("  -shared -fPIC -DENABLE_VIEWSO -std=c++20 -Ivendor/httpserver/include vendor/httpserver/src/request.cpp vendor/httpserver/src/loadviewso.cpp  vendor/httpserver/src/unicode.cpp vendor/httpserver/src/urlcode.cpp vendor/httpserver/src/http_so_common_api.cpp vendor/httpserver/src/cookie.cpp vendor/httpserver/src/gzip.cpp vendor/httpserver/src/mime.cpp  vendor/httpserver/src/datetime.cpp  -lz -lssl -lcrypto -ldl -I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib -Imodels -Iorm");
         }
 
         int ir = system(compiler.c_str());

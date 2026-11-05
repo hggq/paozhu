@@ -16,10 +16,6 @@ jobs:
         run: |
           ls ${{ github.workspace }}
       - run: echo "🍏 This job's status is ${{ job.status }}."
-        # sudo apt-get install mysql-server
-        # sudo apt-get install mysql-common
-        # sudo apt-get install mysql-client
-        # sudo apt-get install libmysqlclient-dev
       - name: Install dependencies
         run: |
           sudo apt install cmake

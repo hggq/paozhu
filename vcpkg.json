@@ -17,15 +17,6 @@
         "sqlite3"
     ],
     "features": {
-        "boost": {
-            "description": "enable boost",
-            "dependencies": [
-                "boost",
-                "boost-coroutine",
-                "boost-dll",
-                "boost-filesystem"
-            ]
-        },
         "gd": {
             "description": "enable libgd",
             "dependencies": [

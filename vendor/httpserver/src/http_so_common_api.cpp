@@ -1,4 +1,4 @@
-
+#if defined(ENABLE_VIEWSO) || defined(ENABLE_MODELSO)
 #include <string>
 #include <string_view>
 #include <memory>
@@ -7,8 +7,7 @@
 #include "http_so_common_api.h"
 namespace http
 {
-#ifdef ENABLE_BOOST
 clientapi *clientapi::singleton = clientapi::instance();
-#endif
 
 }// namespace http
+#endif

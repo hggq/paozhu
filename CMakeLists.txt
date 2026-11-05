@@ -25,7 +25,8 @@ endif()
 
 # ---- Options ----
 option(ENABLE_VCPKG "Use vcpkg toolchain" OFF)
-option(ENABLE_BOOST "Enable Boost support" OFF)
+option(ENABLE_VIEWSO "Enable view-template .so loading (dlopen/LoadLibrary)" OFF)
+option(ENABLE_MODELSO "Enable controller .so loading (dlopen/LoadLibrary)" OFF)
 option(ENABLE_GD "Enable GD graphics and QR" OFF)
 option(ENABLE_BENCHMARK "Enable benchmarks" OFF)
 option(ENABLE_OFFICE "Enable pzexcel pzword support" OFF)
@@ -46,6 +47,7 @@ option(ENABLE_WEBSOCKETS_CLIENT "Enable framework WebSocket long-connect client 
 option(ENABLE_SOCKETS_CLIENT "Enable framework bare TCP Socket long-connect client support" ON)
 option(ENABLE_MQTT_CLIENT "Enable framework MQTT broker long-connect client support" ON)
 option(ENABLE_TESTS "Build test executables in tests/" OFF)
+
 
 # Sanitizer switches. ASan is enabled automatically for Debug builds (see target_compile_options below), so:
 #   ENABLE_TSAN  cannot be combined with ASan => requires a non-Debug CMAKE_BUILD_TYPE (e.g. RelWithDebInfo)
@@ -97,7 +99,6 @@ if(ENABLE_VCPKG)
   endmacro()
 
   auto_enable_vcpkg_feature(ENABLE_GD "gd")
-  auto_enable_vcpkg_feature(ENABLE_BOOST "boost")
   auto_enable_vcpkg_feature(ENABLE_OFFICE "pzexcel pzword")
   auto_enable_vcpkg_feature(ENABLE_IMAGE "image")
   auto_enable_vcpkg_feature(ENABLE_PDF "webpdf")
@@ -556,13 +557,6 @@ if(ENABLE_VCPKG)
   find_package(unofficial-brotli CONFIG REQUIRED)
   target_link_libraries(paozhu PRIVATE unofficial::brotli::brotlidec unofficial::brotli::brotlienc)
 
-  if(ENABLE_BOOST)
-    target_compile_definitions(paozhu PRIVATE ENABLE_BOOST)
-    set(Boost_NO_WARN_NEW_VERSIONS ON)
-    find_package(Boost REQUIRED COMPONENTS filesystem coroutine)
-    target_link_libraries(paozhu PRIVATE Boost::boost Boost::filesystem Boost::coroutine)
-  endif()
-
   if(ENABLE_GD)
     find_package(PkgConfig)
     pkg_check_modules(LIBGD REQUIRED IMPORTED_TARGET gdlib)
@@ -646,12 +640,7 @@ else()
   find_package(ZLIB REQUIRED)
   target_link_libraries(paozhu PRIVATE ZLIB::ZLIB)
 
-  # Boost
-  if(ENABLE_BOOST)
-    target_compile_definitions(paozhu PRIVATE ENABLE_BOOST)
-    find_package(Boost REQUIRED COMPONENTS system filesystem)
-    target_link_libraries(paozhu PRIVATE Boost::boost Boost::system Boost::filesystem)
-  endif()
+  # Module loading (.so/.dylib/.dll) uses pz_dll (dlopen/LoadLibrary).
 
   # GD, qrencode, PNG, Freetype
   if(ENABLE_GD)
@@ -751,6 +740,20 @@ else()
       target_include_directories(paozhu_cli PRIVATE ${SQLITE3_INCLUDE_DIR})
     endif()
   endif()
+endif()
+
+# ---- Module .so loading (dlopen/LoadLibrary) ----
+if(ENABLE_VIEWSO)
+  target_compile_definitions(paozhu PRIVATE ENABLE_VIEWSO)
+endif()
+if(ENABLE_MODELSO)
+  target_compile_definitions(paozhu PRIVATE ENABLE_MODELSO)
+endif()
+
+if(ENABLE_VIEWSO OR ENABLE_MODELSO)
+  target_link_libraries(paozhu PRIVATE ${CMAKE_DL_LIBS})
+  # 模块 .so 自带框架源码副本，唯一带不进去的 http::get_server_app() 由宿主解析，故宿主需导出符号
+  set_target_properties(paozhu PROPERTIES ENABLE_EXPORTS ON)
 endif()
 
 # ---- Final common libraries ----

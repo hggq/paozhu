@@ -2213,7 +2213,6 @@ SSL_CTX *serverconfig::getctx(std::string filename)
         g_ctxMap[filename] = SSL_CTX_new(SSLv23_server_method());
         ctx                = g_ctxMap[filename];
         // filename.append(".pem");
-        // boost::asio::error_code ec;
         std::string filepathurl;
 
         if (filepath.back() != '/')
@@ -2231,16 +2230,11 @@ SSL_CTX *serverconfig::getctx(std::string filename)
         {
             if (::SSL_CTX_use_certificate_chain_file(ctx, filepath.c_str()) != 1)
             {
-                // ec = boost::asio::error_code(
-                //     static_cast<int>(::ERR_get_error()),
-                //     boost::asio::error::get_ssl_category());
                 filepath = filepathurl;
                 filepath.append(&filename[4], filename.size() - 4);
                 filepath.append(".pem");
                 if (::SSL_CTX_use_certificate_chain_file(ctx, filepath.c_str()) != 1)
                 {
-                    // return ctx;
-                    // isdomainsave=false;
                 }
             }
         }
@@ -2249,10 +2243,6 @@ SSL_CTX *serverconfig::getctx(std::string filename)
 
             if (::SSL_CTX_use_certificate_chain_file(ctx, filepath.c_str()) != 1)
             {
-                // ec = boost::asio::error_code(
-                //     static_cast<int>(::ERR_get_error()),
-                //     boost::asio::error::get_ssl_category());
-
                 filepathurl.append("www.");
                 filepathurl.append(filename);
                 filepath = filepathurl;
@@ -2267,23 +2257,15 @@ SSL_CTX *serverconfig::getctx(std::string filename)
         filepath.append(".key");
         if (::SSL_CTX_use_PrivateKey_file(ctx, filepath.c_str(), SSL_FILETYPE_PEM) != 1)
         {
-            // ec = boost::asio::error_code(
-            //     static_cast<int>(::ERR_get_error()),
-            //     boost::asio::error::get_ssl_category());
         }
         filepath.erase(filepath.end() - 4, filepath.end());
         filepath.append(".crt");
         if (::SSL_CTX_use_certificate_file(ctx, filepath.c_str(), SSL_FILETYPE_PEM) != 1)
         {
-            //ec = translate_error(::ERR_get_error());
-            //ASIO_SYNC_OP_VOID_RETURN(ec);
         }
 
         if (!SSL_CTX_check_private_key(ctx))
         {
-            //  ec = boost::asio::error_code(
-            //     static_cast<int>(::ERR_get_error()),
-            //     boost::asio::error::get_ssl_category());
         }
 
         // 在 per-domain SSL_CTX 上注册最小化 OCSP Stapling 回调

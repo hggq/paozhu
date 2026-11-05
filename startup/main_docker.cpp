@@ -2,6 +2,9 @@
 #include <iostream>
 #include <filesystem>
 #include <csignal>
+#include <atomic>
+#include <chrono>
+#include <thread>
 #include "server.h"
 
 namespace fs = std::filesystem;
@@ -11,11 +14,16 @@ namespace fs = std::filesystem;
 // - 捕获 SIGTERM/SIGINT 优雅关闭 (关闭 acceptor → listener 线程退出 → join 完成)
 // - 崩溃重启由 compose 的 restart: unless-stopped 负责
 
+// 信号处理器只置标志位：stop() 会取互斥锁、join 线程，在信号上下文里调用属于未定义行为。
+// Signal handler only sets a flag: stop() takes mutexes and joins threads, which is
+// undefined behaviour inside a signal context.
+static volatile sig_atomic_t g_stop_requested = 0;
+static std::atomic<bool>    g_run_finished{false};
+
 static void signal_handler(int signo)
 {
-    // 收到停止信号时调用 server.stop(), 关闭 acceptor 唤醒阻塞的 accept()
-    http::httpserver &srv = http::get_server_app();
-    srv.stop();
+    (void)signo;
+    g_stop_requested = 1;
 }
 
 int main(int argc, char *argv[])
@@ -76,14 +84,38 @@ int main(int argc, char *argv[])
     std::signal(SIGINT, signal_handler);
 #endif
 
+    // 轮询线程负责真正调用 stop()：信号处理器只置位，由普通线程上下文完成
+    // 关 acceptor、唤醒 listener、join 这一整套动作。
+    // The poller performs the real stop() from a normal thread context.
+    std::thread stopper;
     try
     {
         http::httpserver &httpmy = http::get_server_app();
+        stopper = std::thread(
+            [&httpmy]()
+            {
+                while (!g_run_finished.load())
+                {
+                    if (g_stop_requested != 0)
+                    {
+                        httpmy.stop();
+                        return;
+                    }
+                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                }
+            });
+
         httpmy.run(argv_str);
     }
     catch (std::exception &e)
     {
         std::printf("Exception: %s\n", e.what());
+    }
+    // 无论 run() 正常返回还是异常退出，都要让轮询线程收尾，避免 joinable 线程析构
+    g_run_finished.store(true);
+    if (stopper.joinable())
+    {
+        stopper.join();
     }
     return 0;
 }

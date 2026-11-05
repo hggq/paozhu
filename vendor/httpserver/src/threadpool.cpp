@@ -31,10 +31,6 @@
 #include <asio/detached.hpp>
 #include <asio/io_context.hpp>
 
-#ifdef ENABLE_BOOST
-#include <boost/dll/import.hpp>
-#include <boost/function.hpp>
-#endif
 // #include "threadlocalvariable.h"
 
 #include "threadpool.h"
@@ -52,10 +48,6 @@
 #include "directory_fun.h"
 #include "https_brotli.h"
 #include "gzip.h"
-
-#ifdef ENABLE_BOOST
-#include "loadmodule.h"
-#endif
 
 #include "debug_log.h"
 #include "server_localvar.h"

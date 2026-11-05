@@ -83,12 +83,6 @@
 #endif
 #include "pz_fileio.h"
 
-#ifdef ENABLE_BOOST
-#include "loadviewso.h"
-#include "loadmodule.h"
-#include "http_so_common_api.h"
-#endif
-
 #include <openssl/ssl.h>
 #include "server_localvar.h"
 #include "debug_log.h"

@@ -1,11 +1,8 @@
-
+#ifdef ENABLE_VIEWSO
 #include <iostream>
+#include <memory>
+#include <mutex>
 #include <string>
-
-#ifdef ENABLE_BOOST
-#include <boost/dll/alias.hpp>
-#include <boost/function.hpp>
-#include <boost/dll/import.hpp>
 #include <sys/stat.h>
 #ifndef WIN32
 #include <unistd.h>
@@ -16,13 +13,14 @@
 #endif
 #include "request.h"
 #include "cookie.h"
+#include "pz_dll.h"
 #include "loadviewso.h"
 #include "viewso_param.h"
 #include "http_so_common_api.h"
 namespace http
 {
 std::mutex loadviewsomtx;
-std::string httpempty([[maybe_unused]] struct view_param, [[maybe_unused]] OBJ_VALUE &a) { return "<p>--.so image not found--</p>"; }
+std::string httpempty([[maybe_unused]] struct view_param, [[maybe_unused]] obj_val &a) { return "<p>--.so image not found--</p>"; }
 
 view_so_cachepath_t &get_viewsharedpathchache()
 {
@@ -36,25 +34,21 @@ std::string &get_hostsopath()
 }
 view_method_callback_t viewsomodulecreate(std::string module, std::string name)
 {
-    boost::dll::fs::path shared_library_path = module;
     try
     {
-        if (boost::dll::fs::exists(shared_library_path))
+        auto lib = std::make_shared<pz::dll::library>(module);
+        if (lib->has("_setclientapi"))
         {
-
-            boost::dll::shared_library lib(shared_library_path);
-            if (lib.has("_setclientapi"))
-            {
-                boost::function<http::clientapi *(http::clientapi *)> setclientapicall =
-                    boost::dll::import_alias<http::clientapi *(http::clientapi *)>(shared_library_path,
-                                                                                   "_setclientapi");
-                http::clientapi *pn = http::clientapi::instance();
-                setclientapicall(pn);
-            }
-            if (lib.has(name))
-            {
-                return boost::dll::import_alias<std::string(struct view_param, OBJ_VALUE &)>(shared_library_path, name);
-            }
+            auto setclientapicall = lib->get_alias<http::clientapi *(*)(http::clientapi *)>("_setclientapi");
+            http::clientapi *pn  = http::clientapi::instance();
+            setclientapicall(pn);
+        }
+        if (lib->has(name))
+        {
+            auto viewcall = lib->get_alias<std::string (*)(struct view_param, obj_val &)>(name);
+            // Keep the library alive as long as the callback is cached: the function pointer is
+            // invalid after dlclose.
+            return [lib, viewcall](struct view_param vinfo, obj_val &obj) { return viewcall(vinfo, obj); };
         }
     }
     catch (std::exception &e)

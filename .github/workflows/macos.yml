@@ -27,8 +27,6 @@ jobs:
           brew install asio
           brew install zlib
           brew install brotli
-          brew install gd
-          brew install qrencode
           unzip asio.zip
       - name: Build
         run: |

@@ -1,5 +1,5 @@
-#ifndef BOOST_DLL_MY_WEBSOCKET_API_HPP
-#define BOOST_DLL_MY_WEBSOCKET_API_HPP
+#ifndef PZ_MY_WEBSOCKET_API_HPP
+#define PZ_MY_WEBSOCKET_API_HPP
 
 //[plugapi
 #include <string>

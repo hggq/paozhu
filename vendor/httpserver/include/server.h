@@ -366,6 +366,16 @@ class httpserver
                 runthreads[i].join();
             }
         }
+        // run() 正常收尾时已经 join 过 websocket 线程，这里 joinable 为 false 会直接跳过；
+        // 但 run() 中途抛异常被 catch 吞掉、或 stop() 没走完时，这些线程仍是 joinable，
+        // 不 join 就等到 vector 析构，std::thread 析构对 joinable 线程会 std::terminate。
+        for (unsigned int i = 0; i < websocketthreads.size(); ++i)
+        {
+            if (websocketthreads[i].joinable())
+            {
+                websocketthreads[i].join();
+            }
+        }
         for (unsigned int i = 0; i < http2_send_data_threads.size(); ++i)
         {
             if (http2_send_data_threads[i].joinable())

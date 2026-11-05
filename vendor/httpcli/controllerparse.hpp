@@ -422,7 +422,7 @@ class controllerparse
         }
         else
         {
-            compiler.append(" -shared -fPIC -std=c++20 -Iinclude/httpserver src/httpserver/request.cpp src/httpserver/unicode.cpp  -lssl -lcrypto -ldl -lz -I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib -lboost_filesystem -lmysqlcppconn8 -Imodels -Imodels/include ");
+            compiler.append(" -shared -fPIC -DCREATE_SO=on -DENABLE_MODELSO -std=c++20 -Ivendor/httpserver/include -Icommon -lssl -lcrypto -ldl -lz -I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib -Imodels -Iorm  vendor/httpserver/src/http_so_common_api.cpp vendor/httpserver/src/loadviewso.cpp vendor/httpserver/src/httppeer.cpp vendor/httpserver/src/request.cpp vendor/httpserver/src/http2_frame.cpp vendor/httpserver/src/http2_huffman.cpp vendor/httpserver/src/loadmodule.cpp vendor/httpserver/src/datetime.cpp vendor/httpserver/src/cookie.cpp vendor/httpserver/src/urlcode.cpp vendor/httpserver/src/md5.cpp vendor/httpserver/src/http_header.cpp vendor/httpserver/src/unicode.cpp vendor/httpserver/src/client_session.cpp vendor/httpserver/src/serverconfig.cpp vendor/httpserver/src/viewmethold_reg.cpp vendor/httpserver/src/func.cpp vendor/httpserver/src/router.cpp vendor/httpserver/src/base64.cpp vendor/httpserver/src/session_id.cpp vendor/httpserver/src/clientdatacache.cpp vendor/httpserver/src/http2_send_queue.cpp vendor/httpserver/src/http2_ring_queue.cpp vendor/httpserver/src/pool_step.cpp vendor/httpserver/src/threadpool.cpp");
         }
 
         compiler.append(compilercontent);

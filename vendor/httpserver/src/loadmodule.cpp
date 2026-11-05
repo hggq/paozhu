@@ -1,63 +1,44 @@
-
 #include <iostream>
+#include <memory>
+#include <mutex>
 #include <string>
-
-#ifdef ENABLE_BOOST
-#include <boost/dll/alias.hpp>
-#include <boost/function.hpp>
-#include <boost/dll/import.hpp>
+#include <sys/stat.h>
 
 #include "request.h"
 #include "serverconfig.h"
+#include "pz_dll.h"
 #include "loadmodule.h"
 #include "httppeer.h"
+#if defined(ENABLE_VIEWSO) || defined(ENABLE_MODELSO)
 #include "http_so_common_api.h"
+#endif
 namespace http
 {
-std::mutex loadcontrolmtx, loadviewmtx, moudulecachemethod;
-std::string httpempty([[maybe_unused]] OBJ_VALUE &a) { return "<p>--.so image not found--</p>"; }
-std::string httpso(std::shared_ptr<httppeer> peer)
-{
-    httppeer &client = peer->get_peer();
-    client << "<p>-- controller not found--</p>";
-    return "";
-}
+#ifdef ENABLE_VIEWSO
+std::mutex loadviewmtx;
+std::string httpempty([[maybe_unused]] obj_val &a) { return "<p>--.so image not found--</p>"; }
 so_cachepath_t &get_sharedpathchache()
 {
     static so_cachepath_t instance;
     return instance;
 }
-std::map<std::size_t, www_method_call> &get_controlpathchache()
-{
-    static std::map<std::size_t, www_method_call> instance;
-    return instance;
-}
-std::map<std::size_t, std::vector<std::string>> &get_sharedmethodchache()
-{
-    static std::map<std::size_t, std::vector<std::string>> instance;
-    return instance;
-}
 method_callback_t viewmodulecreate(std::string module, std::string name)
 {
-    boost::dll::fs::path shared_library_path = module;
     try
     {
-        if (boost::dll::fs::exists(shared_library_path))
+        auto lib = std::make_shared<pz::dll::library>(module);
+        if (lib->has("_setclientapi"))
         {
-
-            boost::dll::shared_library lib(shared_library_path);
-            if (lib.has("_setclientapi"))
-            {
-                boost::function<http::clientapi *(http::clientapi *)> setclientapicall =
-                    boost::dll::import_alias<http::clientapi *(http::clientapi *)>(shared_library_path,
-                                                                                   "_setclientapi");
-                http::clientapi *pn = http::clientapi::instance();
-                setclientapicall(pn);
-            }
-            if (lib.has(name))
-            {
-                return boost::dll::import_alias<std::string(OBJ_VALUE &)>(shared_library_path, name);
-            }
+            auto setclientapicall = lib->get_alias<http::clientapi *(*)(http::clientapi *)>("_setclientapi");
+            http::clientapi *pn  = http::clientapi::instance();
+            setclientapicall(pn);
+        }
+        if (lib->has(name))
+        {
+            auto viewcall = lib->get_alias<std::string (*)(obj_val &)>(name);
+            // Keep the library alive as long as the callback is cached: the function pointer is
+            // invalid after dlclose.
+            return [lib, viewcall](obj_val &obj) { return viewcall(obj); };
         }
     }
     catch (std::exception &e)
@@ -136,85 +117,6 @@ method_callback_t loadview(std::string modulemethod)
     }
     return sharedpathchache[t];
 }
-www_method_call controlmodulecreate(std::string module, std::string name, size_t tt)
-{
-    auto sharedmethodchache                  = get_sharedmethodchache();
-    auto controlpathchache                   = get_controlpathchache();
-    boost::dll::fs::path shared_library_path = module;
-    size_t t                                 = std::hash<std::string>{}(module);
-    auto iter                                = sharedmethodchache.find(t);
-    bool hasmethod                           = true;
-    if (iter != sharedmethodchache.end())
-    {
-        for (size_t i = 0; i < iter->second.size(); i++)
-        {
-            if (iter->second[i] == name)
-            {
-                hasmethod = false;
-                break;
-            }
-        }
-    }
-    if (hasmethod)
-    {
-        sharedmethodchache[t].emplace_back(name);
-    }
-
-    try
-    {
-
-        if (boost::dll::fs::exists(shared_library_path))
-        {
-            boost::dll::shared_library lib(shared_library_path);
-            if (lib.has("_setclientapi"))
-            {
-                boost::function<http::clientapi *(http::clientapi *)> setclientapicall =
-                    boost::dll::import_alias<http::clientapi *(http::clientapi *)>(shared_library_path,
-                                                                                   "_setclientapi");
-                http::clientapi *pn = http::clientapi::instance();
-                setclientapicall(pn);
-            }
-
-            if (lib.has(name))
-            {
-                controlpathchache[tt] =
-                    boost::dll::import_alias<std::string(std::shared_ptr<http::httppeer> peer)>(shared_library_path,
-                                                                                                name);
-                return controlpathchache[tt];
-            }
-            else if (lib.has("_init404"))
-            {
-                controlpathchache[tt] =
-                    boost::dll::import_alias<std::string(std::shared_ptr<http::httppeer> peer)>(shared_library_path,
-                                                                                                "_init404");
-                return controlpathchache[tt];
-            }
-        }
-    }
-    catch (std::exception &e)
-    {
-        // error log 捕获
-        std::cout << e.what() << std::endl;
-    }
-    return httpso;
-}
-www_method_call loadcontrol(const std::string &modulemethod, const std::string &hashname)
-{
-
-    size_t t = std::hash<std::string>{}(modulemethod);
-
-    auto controlpathchache = get_controlpathchache();
-    if (controlpathchache.find(t) == controlpathchache.end())
-    {
-        std::unique_lock<std::mutex> lock(loadcontrolmtx);
-        if (controlpathchache.find(t) == controlpathchache.end())
-        {
-            controlpathchache[t] = controlmodulecreate(modulemethod, hashname, t);
-        }
-    }
-
-    return controlpathchache[t];
-}
 
 void viewmoduleclear(std::string module, std::string method)
 {
@@ -243,7 +145,7 @@ void viewmoduleclear(std::string module, std::string method)
     {
         try
         {
-            citer->second.clear();
+            citer->second = nullptr;
             std::unique_lock<std::mutex> lock(loadviewmtx);
             sharedpathchache.erase(citer);
         }
@@ -253,6 +155,101 @@ void viewmoduleclear(std::string module, std::string method)
             std::cout << e.what() << std::endl;
         }
     }
+}
+#endif // ENABLE_VIEWSO
+
+#ifdef ENABLE_MODELSO
+std::mutex loadcontrolmtx, moudulecachemethod;
+std::string httpso(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+    client << "<p>-- controller not found--</p>";
+    return "";
+}
+std::map<std::size_t, www_method_call> &get_controlpathchache()
+{
+    static std::map<std::size_t, www_method_call> instance;
+    return instance;
+}
+std::map<std::size_t, std::vector<std::string>> &get_sharedmethodchache()
+{
+    static std::map<std::size_t, std::vector<std::string>> instance;
+    return instance;
+}
+www_method_call controlmodulecreate(std::string module, std::string name, size_t tt)
+{
+    auto sharedmethodchache = get_sharedmethodchache();
+    auto controlpathchache = get_controlpathchache();
+    size_t t                = std::hash<std::string>{}(module);
+    auto iter               = sharedmethodchache.find(t);
+    bool hasmethod          = true;
+    if (iter != sharedmethodchache.end())
+    {
+        for (size_t i = 0; i < iter->second.size(); i++)
+        {
+            if (iter->second[i] == name)
+            {
+                hasmethod = false;
+                break;
+            }
+        }
+    }
+    if (hasmethod)
+    {
+        sharedmethodchache[t].emplace_back(name);
+    }
+
+    try
+    {
+        auto lib = std::make_shared<pz::dll::library>(module);
+        if (lib->has("_setclientapi"))
+        {
+            auto setclientapicall = lib->get_alias<http::clientapi *(*)(http::clientapi *)>("_setclientapi");
+            http::clientapi *pn  = http::clientapi::instance();
+            setclientapicall(pn);
+        }
+
+        if (lib->has(name))
+        {
+            auto methodcall = lib->get_alias<std::string (*)(std::shared_ptr<http::httppeer>)>(name);
+            // Keep the library alive as long as the callback is cached.
+            controlpathchache[tt] = [lib, methodcall](std::shared_ptr<http::httppeer> peer) {
+                return methodcall(peer);
+            };
+            return controlpathchache[tt];
+        }
+        else if (lib->has("_init404"))
+        {
+            auto init404 = lib->get_alias<std::string (*)(std::shared_ptr<http::httppeer>)>("_init404");
+            controlpathchache[tt] = [lib, init404](std::shared_ptr<http::httppeer> peer) {
+                return init404(peer);
+            };
+            return controlpathchache[tt];
+        }
+    }
+    catch (std::exception &e)
+    {
+        // error log 捕获
+        std::cout << e.what() << std::endl;
+    }
+    return httpso;
+}
+www_method_call loadcontrol(const std::string &modulemethod, const std::string &hashname)
+{
+
+    size_t t = std::hash<std::string>{}(modulemethod);
+
+    auto controlpathchache = get_controlpathchache();
+    if (controlpathchache.find(t) == controlpathchache.end())
+    {
+        std::unique_lock<std::mutex> lock(loadcontrolmtx);
+        if (controlpathchache.find(t) == controlpathchache.end())
+        {
+            controlpathchache[t] = controlmodulecreate(modulemethod, hashname, t);
+        }
+    }
+
+    return controlpathchache[t];
 }
 
 void controlmoduleclear(std::string module, std::string method)
@@ -289,11 +286,11 @@ void controlmoduleclear(std::string module, std::string method)
                 hash.append(iter->second[i]);
 
                 hash.append(path);
-                size_t t   = std::hash<std::string>{}(hash);
-                auto citer = controlpathchache.find(t);
+                size_t hash_t = std::hash<std::string>{}(hash);
+                auto citer    = controlpathchache.find(hash_t);
                 if (citer != controlpathchache.end())
                 {
-                    citer->second.clear();
+                    citer->second = nullptr;
                     std::unique_lock<std::mutex> lock(loadcontrolmtx);
                     controlpathchache.erase(citer);
                 }
@@ -328,7 +325,7 @@ void controlmoduleclear(std::string module, std::string method)
     {
         try
         {
-            citer->second.clear();
+            citer->second = nullptr;
             std::unique_lock<std::mutex> lock(loadcontrolmtx);
             controlpathchache.erase(citer);
         }
@@ -339,7 +336,6 @@ void controlmoduleclear(std::string module, std::string method)
         }
     }
 }
+#endif // ENABLE_MODELSO
 
 }// namespace http
-
-#endif
