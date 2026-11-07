@@ -109,7 +109,7 @@ std::string articleloginpost(std::shared_ptr<httppeer> peer)
 
     //注意必须处理用户输入的字符串，预防攻击
     //Be sure to handle user-input strings to prevent attacks
-    std::string username = client.post["username"].to_escape();
+    std::string username = client.post["username"].to_trim();
     std::string password = client.post["password"].to_string();
 
     auto users = orm::cms::Sysuser();
@@ -118,7 +118,7 @@ std::string articleloginpost(std::shared_ptr<httppeer> peer)
     try
     {
         md5string = md5(password);
-        users.where("name", username).whereAnd("password", md5string).fetch_one();
+        users.where("name", username).whereAnd("password", md5string).whereAnd("isopen", 1).exec_one();
         // view orm create sql
         // client<<"<p>"<<users.sqlstring<<"</p>";
         if (users.getAdminid() > 0)
@@ -132,7 +132,7 @@ std::string articleloginpost(std::shared_ptr<httppeer> peer)
         }
         else
         {
-            client.goto_url("/cms/login", 3, "用户名或密码错误！" + users.error_msg);
+            client.goto_url("/cms/login", 3, "用户名或密码错误，或账号未开放！" + users.error_msg);
             return "";
         }
     }

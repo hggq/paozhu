@@ -16,7 +16,7 @@
 #include "viewso_param.h"
 #include "http_so_common_api.h"
 #include "viewsrc.h"
-//This file create by paozhu Thu, 07 Aug 2025 02:38:24 GMT
+//This file create by paozhu
 namespace http {
 
 namespace view {

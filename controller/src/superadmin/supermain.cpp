@@ -22,7 +22,7 @@ std::string superadmin_login(std::shared_ptr<httppeer> peer)
 std::string superadmin_loginpost(std::shared_ptr<httppeer> peer)
 {
     httppeer &client     = peer->get_peer();
-    std::string username = client.post["username"].to_escape();
+    std::string username = client.post["username"].to_trim();
     std::string password = client.post["password"].to_string();
     if (username.size() < 4 || username.size() > 20 || password.size() > 20 || password.size() < 4)
     {
@@ -36,7 +36,7 @@ std::string superadmin_loginpost(std::shared_ptr<httppeer> peer)
     {
         md5string           = md5(password);
         unsigned int userid = 0;
-        users.where("name", username).whereAnd("password", md5string).fetch_one();
+        users.where("name", username).whereAnd("password", md5string).exec_one();
         // view orm create sql
         // client<<"<p>"<<users.sqlstring<<"</p>";
         auto loginfo = orm::cms::Logininfo();
@@ -54,14 +54,14 @@ std::string superadmin_loginpost(std::shared_ptr<httppeer> peer)
 
             client.save_session();
             loginfo.setLoginstate("super成功");
-            loginfo.save();
+            loginfo.exec_insert();
             client.goto_url("/superadmin/main");
             return "";
         }
         else
         {
             loginfo.setLoginstate("super失败");
-            loginfo.save();
+            loginfo.exec_insert();
             client.goto_url("/superadmin/login", 3, "用户名或密码错误！");
             return "";
         }

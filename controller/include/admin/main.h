@@ -27,4 +27,6 @@ namespace http
 	std::string admin_editpwdpost(std::shared_ptr<httppeer> peer);
 	std::string admin_favicon(std::shared_ptr<httppeer> peer);
 	std::string admin_faviconpost(std::shared_ptr<httppeer> peer);
+	std::string admin_csrf_issue(std::shared_ptr<httppeer> peer);
+	std::string admin_csrf_check(std::shared_ptr<httppeer> peer);
 }

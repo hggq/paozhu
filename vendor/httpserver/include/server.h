@@ -308,6 +308,9 @@ class httpserver
     void httpwatch();
 
     // httpwatch sub-methods
+    // 启动期关键路径：必须先建 ORM 连接池，再安装 RBAC guard 并预热，最后才允许 accept。
+    // Throws std::runtime_error on DB / warmup failure so the process exits non-zero.
+    void startup_orm_init(std::string &orm_log_file);
     void httpwatch_init_paths(std::string &currentpath, std::string &error_path, std::string &traffic_switch_file, std::string &restart_file, std::string &restart_ssl_file, std::string &orm_log_file);
     void httpwatch_parse_reboot_cron(unsigned char &cron_type, unsigned char &cron_day, unsigned char &cron_hour);
     void httpwatch_parse_clean_cron(unsigned int &clean_cron_min, unsigned int &clean_cron_time_ago);

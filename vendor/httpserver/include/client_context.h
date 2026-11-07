@@ -38,7 +38,13 @@ class async_send_email;
 class client_context
 {
   public:
-    client_context(std::shared_ptr<asio::io_context> io_context) : ioc(io_context), time_out_loop_th(std::bind(&client_context::time_out_loop, this)) {}
+    // 线程在构造函数体里起，不在初始化列表里：成员按声明顺序构造，
+    // time_out_loop 要锁的 timeout_mutex / timeout_condition 声明在本线程成员之后，
+    // 放进初始化列表会让 worker 锁到还没构造的 mutex。
+    client_context(std::shared_ptr<asio::io_context> io_context) : ioc(io_context)
+    {
+        time_out_loop_th = std::thread(std::bind(&client_context::time_out_loop, this));
+    }
     void run();
     void time_out_loop();
     void taskloop();

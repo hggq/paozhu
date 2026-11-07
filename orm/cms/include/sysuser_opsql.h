@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sun, 01 Nov 2026 02:10:33 GMT
+ *  Creation time Sat, 07 Nov 2026 09:30:37 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -1475,6 +1475,22 @@ namespace cms
             break;
                 case 5:
              {
+               data_temp.isadmin = 0;
+            
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.isadmin);
+                        if (result.ec == std::errc()) {
+
+                        }
+                        else{
+                            data_temp.isadmin = 0;
+                        }
+            }
+            break;
+                case 6:
+             {
                data_temp.level = 0;
             
                     auto result = std::from_chars(
@@ -1489,7 +1505,7 @@ namespace cms
                         }
             }
             break;
-                case 6:
+                case 7:
              {
                data_temp.companyid = 0;
             
@@ -1505,7 +1521,7 @@ namespace cms
                         }
             }
             break;
-                case 7:
+                case 8:
              {
                data_temp.dpid = 0;
             
@@ -1521,7 +1537,7 @@ namespace cms
                         }
             }
             break;
-                case 8:
+                case 9:
              {
                data_temp.jobid = 0;
             
@@ -1537,7 +1553,7 @@ namespace cms
                         }
             }
             break;
-                case 9:
+                case 10:
              {
                data_temp.roleid = 0;
             
@@ -1553,7 +1569,7 @@ namespace cms
                         }
             }
             break;
-                case 10:
+                case 11:
              {
                data_temp.postid = 0;
             
@@ -1569,7 +1585,7 @@ namespace cms
                         }
             }
             break;
-                case 11:
+                case 12:
              {
                data_temp.created_at = 0;
             
@@ -1585,7 +1601,7 @@ namespace cms
                         }
             }
             break;
-                case 12:
+                case 13:
              {
                data_temp.enddate = 0;
             
@@ -1601,7 +1617,7 @@ namespace cms
                         }
             }
             break;
-                case 13:
+                case 14:
              {
                data_temp.qrtemp = 0;
             
@@ -1617,7 +1633,7 @@ namespace cms
                         }
             }
             break;
-                case 14:
+                case 15:
              {
                data_temp.gender = 0;
             
@@ -1633,23 +1649,32 @@ namespace cms
                         }
             }
             break;
-                case 15:
+                case 16:
             data_temp.nickname.assign(reinterpret_cast<const char*>(result_temp_data), value_size);
             break;
-                case 16:
+                case 17:
             data_temp.realname.assign(reinterpret_cast<const char*>(result_temp_data), value_size);
             break;
-                case 17:
+                case 18:
             data_temp.avatar.assign(reinterpret_cast<const char*>(result_temp_data), value_size);
             break;
-                case 18:
+                case 19:
             data_temp.mobile.assign(reinterpret_cast<const char*>(result_temp_data), value_size);
             break;
-                case 19:
+                case 20:
             data_temp.email.assign(reinterpret_cast<const char*>(result_temp_data), value_size);
             break;
-                case 20:
+                case 21:
             data_temp.wxuuid.assign(reinterpret_cast<const char*>(result_temp_data), value_size);
+            break;
+                case 22:
+            data_temp.expname.assign(reinterpret_cast<const char*>(result_temp_data), value_size);
+            break;
+                case 23:
+            data_temp.expmobile.assign(reinterpret_cast<const char*>(result_temp_data), value_size);
+            break;
+                case 24:
+            data_temp.expaddress.assign(reinterpret_cast<const char*>(result_temp_data), value_size);
             break;
                 
         }
@@ -1739,16 +1764,16 @@ namespace cms
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
                     {
-                        data_temp.level = 0;
+                        data_temp.isadmin = 0;
                     }
                     else if constexpr (std::is_same_v<T, int64_t>)
-                        data_temp.level = static_cast<decltype(data_temp.level )>(v);
+                        data_temp.isadmin = static_cast<decltype(data_temp.isadmin )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
-                        data_temp.level = static_cast<decltype(data_temp.level )>(v);
+                        data_temp.isadmin = static_cast<decltype(data_temp.isadmin )>(v);
                     else if constexpr (std::is_same_v<T, double>)
-                        data_temp.level = static_cast<decltype(data_temp.level )>(v);
+                        data_temp.isadmin = static_cast<decltype(data_temp.isadmin )>(v);
                     else
-                        data_temp.level = 0;
+                        data_temp.isadmin = 0;
                 }, val);
             } break;
             case 6: {
@@ -1756,16 +1781,16 @@ namespace cms
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
                     {
-                        data_temp.companyid = 0;
+                        data_temp.level = 0;
                     }
                     else if constexpr (std::is_same_v<T, int64_t>)
-                        data_temp.companyid = static_cast<decltype(data_temp.companyid )>(v);
+                        data_temp.level = static_cast<decltype(data_temp.level )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
-                        data_temp.companyid = static_cast<decltype(data_temp.companyid )>(v);
+                        data_temp.level = static_cast<decltype(data_temp.level )>(v);
                     else if constexpr (std::is_same_v<T, double>)
-                        data_temp.companyid = static_cast<decltype(data_temp.companyid )>(v);
+                        data_temp.level = static_cast<decltype(data_temp.level )>(v);
                     else
-                        data_temp.companyid = 0;
+                        data_temp.level = 0;
                 }, val);
             } break;
             case 7: {
@@ -1773,16 +1798,16 @@ namespace cms
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
                     {
-                        data_temp.dpid = 0;
+                        data_temp.companyid = 0;
                     }
                     else if constexpr (std::is_same_v<T, int64_t>)
-                        data_temp.dpid = static_cast<decltype(data_temp.dpid )>(v);
+                        data_temp.companyid = static_cast<decltype(data_temp.companyid )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
-                        data_temp.dpid = static_cast<decltype(data_temp.dpid )>(v);
+                        data_temp.companyid = static_cast<decltype(data_temp.companyid )>(v);
                     else if constexpr (std::is_same_v<T, double>)
-                        data_temp.dpid = static_cast<decltype(data_temp.dpid )>(v);
+                        data_temp.companyid = static_cast<decltype(data_temp.companyid )>(v);
                     else
-                        data_temp.dpid = 0;
+                        data_temp.companyid = 0;
                 }, val);
             } break;
             case 8: {
@@ -1790,16 +1815,16 @@ namespace cms
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
                     {
-                        data_temp.jobid = 0;
+                        data_temp.dpid = 0;
                     }
                     else if constexpr (std::is_same_v<T, int64_t>)
-                        data_temp.jobid = static_cast<decltype(data_temp.jobid )>(v);
+                        data_temp.dpid = static_cast<decltype(data_temp.dpid )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
-                        data_temp.jobid = static_cast<decltype(data_temp.jobid )>(v);
+                        data_temp.dpid = static_cast<decltype(data_temp.dpid )>(v);
                     else if constexpr (std::is_same_v<T, double>)
-                        data_temp.jobid = static_cast<decltype(data_temp.jobid )>(v);
+                        data_temp.dpid = static_cast<decltype(data_temp.dpid )>(v);
                     else
-                        data_temp.jobid = 0;
+                        data_temp.dpid = 0;
                 }, val);
             } break;
             case 9: {
@@ -1807,16 +1832,16 @@ namespace cms
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
                     {
-                        data_temp.roleid = 0;
+                        data_temp.jobid = 0;
                     }
                     else if constexpr (std::is_same_v<T, int64_t>)
-                        data_temp.roleid = static_cast<decltype(data_temp.roleid )>(v);
+                        data_temp.jobid = static_cast<decltype(data_temp.jobid )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
-                        data_temp.roleid = static_cast<decltype(data_temp.roleid )>(v);
+                        data_temp.jobid = static_cast<decltype(data_temp.jobid )>(v);
                     else if constexpr (std::is_same_v<T, double>)
-                        data_temp.roleid = static_cast<decltype(data_temp.roleid )>(v);
+                        data_temp.jobid = static_cast<decltype(data_temp.jobid )>(v);
                     else
-                        data_temp.roleid = 0;
+                        data_temp.jobid = 0;
                 }, val);
             } break;
             case 10: {
@@ -1824,16 +1849,16 @@ namespace cms
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
                     {
-                        data_temp.postid = 0;
+                        data_temp.roleid = 0;
                     }
                     else if constexpr (std::is_same_v<T, int64_t>)
-                        data_temp.postid = static_cast<decltype(data_temp.postid )>(v);
+                        data_temp.roleid = static_cast<decltype(data_temp.roleid )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
-                        data_temp.postid = static_cast<decltype(data_temp.postid )>(v);
+                        data_temp.roleid = static_cast<decltype(data_temp.roleid )>(v);
                     else if constexpr (std::is_same_v<T, double>)
-                        data_temp.postid = static_cast<decltype(data_temp.postid )>(v);
+                        data_temp.roleid = static_cast<decltype(data_temp.roleid )>(v);
                     else
-                        data_temp.postid = 0;
+                        data_temp.roleid = 0;
                 }, val);
             } break;
             case 11: {
@@ -1841,16 +1866,16 @@ namespace cms
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
                     {
-                        data_temp.created_at = 0;
+                        data_temp.postid = 0;
                     }
                     else if constexpr (std::is_same_v<T, int64_t>)
-                        data_temp.created_at = static_cast<decltype(data_temp.created_at )>(v);
+                        data_temp.postid = static_cast<decltype(data_temp.postid )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
-                        data_temp.created_at = static_cast<decltype(data_temp.created_at )>(v);
+                        data_temp.postid = static_cast<decltype(data_temp.postid )>(v);
                     else if constexpr (std::is_same_v<T, double>)
-                        data_temp.created_at = static_cast<decltype(data_temp.created_at )>(v);
+                        data_temp.postid = static_cast<decltype(data_temp.postid )>(v);
                     else
-                        data_temp.created_at = 0;
+                        data_temp.postid = 0;
                 }, val);
             } break;
             case 12: {
@@ -1858,16 +1883,16 @@ namespace cms
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
                     {
-                        data_temp.enddate = 0;
+                        data_temp.created_at = 0;
                     }
                     else if constexpr (std::is_same_v<T, int64_t>)
-                        data_temp.enddate = static_cast<decltype(data_temp.enddate )>(v);
+                        data_temp.created_at = static_cast<decltype(data_temp.created_at )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
-                        data_temp.enddate = static_cast<decltype(data_temp.enddate )>(v);
+                        data_temp.created_at = static_cast<decltype(data_temp.created_at )>(v);
                     else if constexpr (std::is_same_v<T, double>)
-                        data_temp.enddate = static_cast<decltype(data_temp.enddate )>(v);
+                        data_temp.created_at = static_cast<decltype(data_temp.created_at )>(v);
                     else
-                        data_temp.enddate = 0;
+                        data_temp.created_at = 0;
                 }, val);
             } break;
             case 13: {
@@ -1875,6 +1900,23 @@ namespace cms
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
                     {
+                        data_temp.enddate = 0;
+                    }
+                    else if constexpr (std::is_same_v<T, int64_t>)
+                        data_temp.enddate = static_cast<decltype(data_temp.enddate )>(v);
+                    else if constexpr (std::is_same_v<T, uint64_t>)
+                        data_temp.enddate = static_cast<decltype(data_temp.enddate )>(v);
+                    else if constexpr (std::is_same_v<T, double>)
+                        data_temp.enddate = static_cast<decltype(data_temp.enddate )>(v);
+                    else
+                        data_temp.enddate = 0;
+                }, val);
+            } break;
+            case 14: {
+                std::visit([&](auto&& v){
+                    using T = std::decay_t<decltype(v)>;
+                    if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.qrtemp = 0;
                     }
                     else if constexpr (std::is_same_v<T, int64_t>)
@@ -1887,7 +1929,7 @@ namespace cms
                         data_temp.qrtemp = 0;
                 }, val);
             } break;
-            case 14: {
+            case 15: {
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
@@ -1904,7 +1946,7 @@ namespace cms
                         data_temp.gender = 0;
                 }, val);
             } break;
-            case 15: {
+            case 16: {
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
@@ -1917,7 +1959,7 @@ namespace cms
                         data_temp.nickname.clear();
                 }, val);
             } break;
-            case 16: {
+            case 17: {
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
@@ -1930,7 +1972,7 @@ namespace cms
                         data_temp.realname.clear();
                 }, val);
             } break;
-            case 17: {
+            case 18: {
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
@@ -1943,7 +1985,7 @@ namespace cms
                         data_temp.avatar.clear();
                 }, val);
             } break;
-            case 18: {
+            case 19: {
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
@@ -1956,7 +1998,7 @@ namespace cms
                         data_temp.mobile.clear();
                 }, val);
             } break;
-            case 19: {
+            case 20: {
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
@@ -1969,7 +2011,7 @@ namespace cms
                         data_temp.email.clear();
                 }, val);
             } break;
-            case 20: {
+            case 21: {
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
@@ -1980,6 +2022,45 @@ namespace cms
                         data_temp.wxuuid.assign(v.data(), v.size());
                     else
                         data_temp.wxuuid.clear();
+                }, val);
+            } break;
+            case 22: {
+                std::visit([&](auto&& v){
+                    using T = std::decay_t<decltype(v)>;
+                    if constexpr (std::is_same_v<T, std::monostate>)
+                    {
+                        data_temp.expname.clear();
+                    }
+                    else if constexpr (std::is_same_v<T, std::string_view>)
+                        data_temp.expname.assign(v.data(), v.size());
+                    else
+                        data_temp.expname.clear();
+                }, val);
+            } break;
+            case 23: {
+                std::visit([&](auto&& v){
+                    using T = std::decay_t<decltype(v)>;
+                    if constexpr (std::is_same_v<T, std::monostate>)
+                    {
+                        data_temp.expmobile.clear();
+                    }
+                    else if constexpr (std::is_same_v<T, std::string_view>)
+                        data_temp.expmobile.assign(v.data(), v.size());
+                    else
+                        data_temp.expmobile.clear();
+                }, val);
+            } break;
+            case 24: {
+                std::visit([&](auto&& v){
+                    using T = std::decay_t<decltype(v)>;
+                    if constexpr (std::is_same_v<T, std::monostate>)
+                    {
+                        data_temp.expaddress.clear();
+                    }
+                    else if constexpr (std::is_same_v<T, std::string_view>)
+                        data_temp.expaddress.assign(v.data(), v.size());
+                    else
+                        data_temp.expaddress.clear();
                 }, val);
             } break;
         }
@@ -2005,52 +2086,64 @@ namespace cms
                 return http::obj_val(static_cast<long long>(data_temp.isopen));
                 break;
             case 5:
-                return http::obj_val(static_cast<long long>(data_temp.level));
+                return http::obj_val(static_cast<long long>(data_temp.isadmin));
                 break;
             case 6:
-                return http::obj_val(static_cast<long long>(data_temp.companyid));
+                return http::obj_val(static_cast<long long>(data_temp.level));
                 break;
             case 7:
-                return http::obj_val(static_cast<long long>(data_temp.dpid));
+                return http::obj_val(static_cast<long long>(data_temp.companyid));
                 break;
             case 8:
-                return http::obj_val(static_cast<long long>(data_temp.jobid));
+                return http::obj_val(static_cast<long long>(data_temp.dpid));
                 break;
             case 9:
-                return http::obj_val(static_cast<long long>(data_temp.roleid));
+                return http::obj_val(static_cast<long long>(data_temp.jobid));
                 break;
             case 10:
-                return http::obj_val(static_cast<long long>(data_temp.postid));
+                return http::obj_val(static_cast<long long>(data_temp.roleid));
                 break;
             case 11:
-                return http::obj_val(static_cast<long long>(data_temp.created_at));
+                return http::obj_val(static_cast<long long>(data_temp.postid));
                 break;
             case 12:
-                return http::obj_val(static_cast<long long>(data_temp.enddate));
+                return http::obj_val(static_cast<long long>(data_temp.created_at));
                 break;
             case 13:
-                return http::obj_val(static_cast<long long>(data_temp.qrtemp));
+                return http::obj_val(static_cast<long long>(data_temp.enddate));
                 break;
             case 14:
-                return http::obj_val(static_cast<long long>(data_temp.gender));
+                return http::obj_val(static_cast<long long>(data_temp.qrtemp));
                 break;
             case 15:
-                return http::obj_val(std::string(data_temp.nickname));
+                return http::obj_val(static_cast<long long>(data_temp.gender));
                 break;
             case 16:
-                return http::obj_val(std::string(data_temp.realname));
+                return http::obj_val(std::string(data_temp.nickname));
                 break;
             case 17:
-                return http::obj_val(std::string(data_temp.avatar));
+                return http::obj_val(std::string(data_temp.realname));
                 break;
             case 18:
-                return http::obj_val(std::string(data_temp.mobile));
+                return http::obj_val(std::string(data_temp.avatar));
                 break;
             case 19:
-                return http::obj_val(std::string(data_temp.email));
+                return http::obj_val(std::string(data_temp.mobile));
                 break;
             case 20:
+                return http::obj_val(std::string(data_temp.email));
+                break;
+            case 21:
                 return http::obj_val(std::string(data_temp.wxuuid));
+                break;
+            case 22:
+                return http::obj_val(std::string(data_temp.expname));
+                break;
+            case 23:
+                return http::obj_val(std::string(data_temp.expmobile));
+                break;
+            case 24:
+                return http::obj_val(std::string(data_temp.expaddress));
                 break;
             default:
                 return http::obj_val(nullptr);
@@ -2552,6 +2645,142 @@ M_MODEL& ornullIsopen()
 
 M_MODEL& ornotnullIsopen()
 	{return whereOrNotNull(B_BASE::cols::isopen);
+	}
+
+M_MODEL& eqIsadmin(const std::string &val)
+	{return where(B_BASE::cols::isadmin, orm::wq::eq, val);
+	}
+
+M_MODEL& nqIsadmin(const std::string &val)
+	{return where(B_BASE::cols::isadmin, orm::wq::nq, val);
+	}
+
+M_MODEL& btIsadmin(const std::string &val)
+	{return where(B_BASE::cols::isadmin, orm::wq::bt, val);
+	}
+
+M_MODEL& beIsadmin(const std::string &val)
+	{return where(B_BASE::cols::isadmin, orm::wq::be, val);
+	}
+
+M_MODEL& ltIsadmin(const std::string &val)
+	{return where(B_BASE::cols::isadmin, orm::wq::lt, val);
+	}
+
+M_MODEL& leIsadmin(const std::string &val)
+	{return where(B_BASE::cols::isadmin, orm::wq::le, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& eqIsadmin(T val)
+	{return where(B_BASE::cols::isadmin, orm::wq::eq, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& nqIsadmin(T val)
+	{return where(B_BASE::cols::isadmin, orm::wq::nq, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& btIsadmin(T val)
+	{return where(B_BASE::cols::isadmin, orm::wq::bt, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& beIsadmin(T val)
+	{return where(B_BASE::cols::isadmin, orm::wq::be, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& ltIsadmin(T val)
+	{return where(B_BASE::cols::isadmin, orm::wq::lt, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& leIsadmin(T val)
+	{return where(B_BASE::cols::isadmin, orm::wq::le, val);
+	}
+
+M_MODEL& nullIsadmin()
+	{return whereNull(B_BASE::cols::isadmin);
+	}
+
+M_MODEL& notnullIsadmin()
+	{return whereNotNull(B_BASE::cols::isadmin);
+	}
+
+M_MODEL& oreqIsadmin(const std::string &val)
+	{return whereOr(B_BASE::cols::isadmin, orm::wq::eq, val);
+	}
+
+M_MODEL& ornqIsadmin(const std::string &val)
+	{return whereOr(B_BASE::cols::isadmin, orm::wq::nq, val);
+	}
+
+M_MODEL& orbtIsadmin(const std::string &val)
+	{return whereOr(B_BASE::cols::isadmin, orm::wq::bt, val);
+	}
+
+M_MODEL& orbeIsadmin(const std::string &val)
+	{return whereOr(B_BASE::cols::isadmin, orm::wq::be, val);
+	}
+
+M_MODEL& orltIsadmin(const std::string &val)
+	{return whereOr(B_BASE::cols::isadmin, orm::wq::lt, val);
+	}
+
+M_MODEL& orleIsadmin(const std::string &val)
+	{return whereOr(B_BASE::cols::isadmin, orm::wq::le, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& oreqIsadmin(T val)
+	{return whereOr(B_BASE::cols::isadmin, orm::wq::eq, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& ornqIsadmin(T val)
+	{return whereOr(B_BASE::cols::isadmin, orm::wq::nq, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& orbtIsadmin(T val)
+	{return whereOr(B_BASE::cols::isadmin, orm::wq::bt, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& orbeIsadmin(T val)
+	{return whereOr(B_BASE::cols::isadmin, orm::wq::be, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& orltIsadmin(T val)
+	{return whereOr(B_BASE::cols::isadmin, orm::wq::lt, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& orleIsadmin(T val)
+	{return whereOr(B_BASE::cols::isadmin, orm::wq::le, val);
+	}
+
+M_MODEL& ornullIsadmin()
+	{return whereOrNull(B_BASE::cols::isadmin);
+	}
+
+M_MODEL& ornotnullIsadmin()
+	{return whereOrNotNull(B_BASE::cols::isadmin);
 	}
 
 M_MODEL& eqLevel(const std::string &val)
@@ -4346,6 +4575,222 @@ M_MODEL& ornotnullWxuuid()
 	{return whereOrNotNull(B_BASE::cols::wxuuid);
 	}
 
+M_MODEL& eqExpname(const std::string &val)
+	{return where(B_BASE::cols::expname, orm::wq::eq, val);
+	}
+
+M_MODEL& nqExpname(const std::string &val)
+	{return where(B_BASE::cols::expname, orm::wq::nq, val);
+	}
+
+M_MODEL& btExpname(const std::string &val)
+	{return where(B_BASE::cols::expname, orm::wq::bt, val);
+	}
+
+M_MODEL& beExpname(const std::string &val)
+	{return where(B_BASE::cols::expname, orm::wq::be, val);
+	}
+
+M_MODEL& ltExpname(const std::string &val)
+	{return where(B_BASE::cols::expname, orm::wq::lt, val);
+	}
+
+M_MODEL& leExpname(const std::string &val)
+	{return where(B_BASE::cols::expname, orm::wq::le, val);
+	}
+
+M_MODEL& likeExpname(const std::string &val)
+	{return where(B_BASE::cols::expname, orm::wq::like, val);
+	}
+
+M_MODEL& nullExpname()
+	{return whereNull(B_BASE::cols::expname);
+	}
+
+M_MODEL& notnullExpname()
+	{return whereNotNull(B_BASE::cols::expname);
+	}
+
+M_MODEL& oreqExpname(const std::string &val)
+	{return whereOr(B_BASE::cols::expname, orm::wq::eq, val);
+	}
+
+M_MODEL& ornqExpname(const std::string &val)
+	{return whereOr(B_BASE::cols::expname, orm::wq::nq, val);
+	}
+
+M_MODEL& orbtExpname(const std::string &val)
+	{return whereOr(B_BASE::cols::expname, orm::wq::bt, val);
+	}
+
+M_MODEL& orbeExpname(const std::string &val)
+	{return whereOr(B_BASE::cols::expname, orm::wq::be, val);
+	}
+
+M_MODEL& orltExpname(const std::string &val)
+	{return whereOr(B_BASE::cols::expname, orm::wq::lt, val);
+	}
+
+M_MODEL& orleExpname(const std::string &val)
+	{return whereOr(B_BASE::cols::expname, orm::wq::le, val);
+	}
+
+M_MODEL& orlikeExpname(const std::string &val)
+	{return whereOr(B_BASE::cols::expname, orm::wq::like, val);
+	}
+
+M_MODEL& ornullExpname()
+	{return whereOrNull(B_BASE::cols::expname);
+	}
+
+M_MODEL& ornotnullExpname()
+	{return whereOrNotNull(B_BASE::cols::expname);
+	}
+
+M_MODEL& eqExpmobile(const std::string &val)
+	{return where(B_BASE::cols::expmobile, orm::wq::eq, val);
+	}
+
+M_MODEL& nqExpmobile(const std::string &val)
+	{return where(B_BASE::cols::expmobile, orm::wq::nq, val);
+	}
+
+M_MODEL& btExpmobile(const std::string &val)
+	{return where(B_BASE::cols::expmobile, orm::wq::bt, val);
+	}
+
+M_MODEL& beExpmobile(const std::string &val)
+	{return where(B_BASE::cols::expmobile, orm::wq::be, val);
+	}
+
+M_MODEL& ltExpmobile(const std::string &val)
+	{return where(B_BASE::cols::expmobile, orm::wq::lt, val);
+	}
+
+M_MODEL& leExpmobile(const std::string &val)
+	{return where(B_BASE::cols::expmobile, orm::wq::le, val);
+	}
+
+M_MODEL& likeExpmobile(const std::string &val)
+	{return where(B_BASE::cols::expmobile, orm::wq::like, val);
+	}
+
+M_MODEL& nullExpmobile()
+	{return whereNull(B_BASE::cols::expmobile);
+	}
+
+M_MODEL& notnullExpmobile()
+	{return whereNotNull(B_BASE::cols::expmobile);
+	}
+
+M_MODEL& oreqExpmobile(const std::string &val)
+	{return whereOr(B_BASE::cols::expmobile, orm::wq::eq, val);
+	}
+
+M_MODEL& ornqExpmobile(const std::string &val)
+	{return whereOr(B_BASE::cols::expmobile, orm::wq::nq, val);
+	}
+
+M_MODEL& orbtExpmobile(const std::string &val)
+	{return whereOr(B_BASE::cols::expmobile, orm::wq::bt, val);
+	}
+
+M_MODEL& orbeExpmobile(const std::string &val)
+	{return whereOr(B_BASE::cols::expmobile, orm::wq::be, val);
+	}
+
+M_MODEL& orltExpmobile(const std::string &val)
+	{return whereOr(B_BASE::cols::expmobile, orm::wq::lt, val);
+	}
+
+M_MODEL& orleExpmobile(const std::string &val)
+	{return whereOr(B_BASE::cols::expmobile, orm::wq::le, val);
+	}
+
+M_MODEL& orlikeExpmobile(const std::string &val)
+	{return whereOr(B_BASE::cols::expmobile, orm::wq::like, val);
+	}
+
+M_MODEL& ornullExpmobile()
+	{return whereOrNull(B_BASE::cols::expmobile);
+	}
+
+M_MODEL& ornotnullExpmobile()
+	{return whereOrNotNull(B_BASE::cols::expmobile);
+	}
+
+M_MODEL& eqExpaddress(const std::string &val)
+	{return where(B_BASE::cols::expaddress, orm::wq::eq, val);
+	}
+
+M_MODEL& nqExpaddress(const std::string &val)
+	{return where(B_BASE::cols::expaddress, orm::wq::nq, val);
+	}
+
+M_MODEL& btExpaddress(const std::string &val)
+	{return where(B_BASE::cols::expaddress, orm::wq::bt, val);
+	}
+
+M_MODEL& beExpaddress(const std::string &val)
+	{return where(B_BASE::cols::expaddress, orm::wq::be, val);
+	}
+
+M_MODEL& ltExpaddress(const std::string &val)
+	{return where(B_BASE::cols::expaddress, orm::wq::lt, val);
+	}
+
+M_MODEL& leExpaddress(const std::string &val)
+	{return where(B_BASE::cols::expaddress, orm::wq::le, val);
+	}
+
+M_MODEL& likeExpaddress(const std::string &val)
+	{return where(B_BASE::cols::expaddress, orm::wq::like, val);
+	}
+
+M_MODEL& nullExpaddress()
+	{return whereNull(B_BASE::cols::expaddress);
+	}
+
+M_MODEL& notnullExpaddress()
+	{return whereNotNull(B_BASE::cols::expaddress);
+	}
+
+M_MODEL& oreqExpaddress(const std::string &val)
+	{return whereOr(B_BASE::cols::expaddress, orm::wq::eq, val);
+	}
+
+M_MODEL& ornqExpaddress(const std::string &val)
+	{return whereOr(B_BASE::cols::expaddress, orm::wq::nq, val);
+	}
+
+M_MODEL& orbtExpaddress(const std::string &val)
+	{return whereOr(B_BASE::cols::expaddress, orm::wq::bt, val);
+	}
+
+M_MODEL& orbeExpaddress(const std::string &val)
+	{return whereOr(B_BASE::cols::expaddress, orm::wq::be, val);
+	}
+
+M_MODEL& orltExpaddress(const std::string &val)
+	{return whereOr(B_BASE::cols::expaddress, orm::wq::lt, val);
+	}
+
+M_MODEL& orleExpaddress(const std::string &val)
+	{return whereOr(B_BASE::cols::expaddress, orm::wq::le, val);
+	}
+
+M_MODEL& orlikeExpaddress(const std::string &val)
+	{return whereOr(B_BASE::cols::expaddress, orm::wq::like, val);
+	}
+
+M_MODEL& ornullExpaddress()
+	{return whereOrNull(B_BASE::cols::expaddress);
+	}
+
+M_MODEL& ornotnullExpaddress()
+	{return whereOrNotNull(B_BASE::cols::expaddress);
+	}
+
         ORM_SELECT_FIELDS(M_MODEL, B_BASE, &sysuser_info::col_names)
 
         // === 兼容旧版 char/string 操作符 ===
@@ -5393,6 +5838,9 @@ M_MODEL& ornotnullWxuuid()
 			case sysuser_info::cols::isopen:
 				ordersql.append("isopen");
 				break;
+			case sysuser_info::cols::isadmin:
+				ordersql.append("isadmin");
+				break;
 			case sysuser_info::cols::level:
 				ordersql.append("level");
 				break;
@@ -5440,6 +5888,15 @@ M_MODEL& ornotnullWxuuid()
 				break;
 			case sysuser_info::cols::wxuuid:
 				ordersql.append("wxuuid");
+				break;
+			case sysuser_info::cols::expname:
+				ordersql.append("expname");
+				break;
+			case sysuser_info::cols::expmobile:
+				ordersql.append("expmobile");
+				break;
+			case sysuser_info::cols::expaddress:
+				ordersql.append("expaddress");
 				break;
             default:
                 return *mod;
@@ -5470,6 +5927,9 @@ M_MODEL& ornotnullWxuuid()
 			case sysuser_info::cols::isopen:
 				ordersql.append("isopen");
 				break;
+			case sysuser_info::cols::isadmin:
+				ordersql.append("isadmin");
+				break;
 			case sysuser_info::cols::level:
 				ordersql.append("level");
 				break;
@@ -5517,6 +5977,15 @@ M_MODEL& ornotnullWxuuid()
 				break;
 			case sysuser_info::cols::wxuuid:
 				ordersql.append("wxuuid");
+				break;
+			case sysuser_info::cols::expname:
+				ordersql.append("expname");
+				break;
+			case sysuser_info::cols::expmobile:
+				ordersql.append("expmobile");
+				break;
+			case sysuser_info::cols::expaddress:
+				ordersql.append("expaddress");
 				break;
             default:
                 return *mod;
@@ -5556,6 +6025,9 @@ M_MODEL& ornotnullWxuuid()
 			case sysuser_info::cols::isopen:
 				ordersql.append("isopen");
 				break;
+			case sysuser_info::cols::isadmin:
+				ordersql.append("isadmin");
+				break;
 			case sysuser_info::cols::level:
 				ordersql.append("level");
 				break;
@@ -5603,6 +6075,15 @@ M_MODEL& ornotnullWxuuid()
 				break;
 			case sysuser_info::cols::wxuuid:
 				ordersql.append("wxuuid");
+				break;
+			case sysuser_info::cols::expname:
+				ordersql.append("expname");
+				break;
+			case sysuser_info::cols::expmobile:
+				ordersql.append("expmobile");
+				break;
+			case sysuser_info::cols::expaddress:
+				ordersql.append("expaddress");
 				break;
             default:
                 return *mod;
@@ -5627,6 +6108,9 @@ M_MODEL& ornotnullWxuuid()
 			case sysuser_info::cols::isopen:
 				ordersql.append("isopen");
 				break;
+			case sysuser_info::cols::isadmin:
+				ordersql.append("isadmin");
+				break;
 			case sysuser_info::cols::level:
 				ordersql.append("level");
 				break;
@@ -5674,6 +6158,15 @@ M_MODEL& ornotnullWxuuid()
 				break;
 			case sysuser_info::cols::wxuuid:
 				ordersql.append("wxuuid");
+				break;
+			case sysuser_info::cols::expname:
+				ordersql.append("expname");
+				break;
+			case sysuser_info::cols::expmobile:
+				ordersql.append("expmobile");
+				break;
+			case sysuser_info::cols::expaddress:
+				ordersql.append("expaddress");
 				break;
             default:
                 return *mod;
@@ -5718,6 +6211,9 @@ M_MODEL& ornotnullWxuuid()
 			case sysuser_info::cols::isopen:
 				ordersql.append("isopen");
 				break;
+			case sysuser_info::cols::isadmin:
+				ordersql.append("isadmin");
+				break;
 			case sysuser_info::cols::level:
 				ordersql.append("level");
 				break;
@@ -5765,6 +6261,15 @@ M_MODEL& ornotnullWxuuid()
 				break;
 			case sysuser_info::cols::wxuuid:
 				ordersql.append("wxuuid");
+				break;
+			case sysuser_info::cols::expname:
+				ordersql.append("expname");
+				break;
+			case sysuser_info::cols::expmobile:
+				ordersql.append("expmobile");
+				break;
+			case sysuser_info::cols::expaddress:
+				ordersql.append("expaddress");
 				break;
             default:
                 return *mod;
@@ -5795,6 +6300,9 @@ M_MODEL& ornotnullWxuuid()
 			case sysuser_info::cols::isopen:
 				ordersql.append("isopen");
 				break;
+			case sysuser_info::cols::isadmin:
+				ordersql.append("isadmin");
+				break;
 			case sysuser_info::cols::level:
 				ordersql.append("level");
 				break;
@@ -5842,6 +6350,15 @@ M_MODEL& ornotnullWxuuid()
 				break;
 			case sysuser_info::cols::wxuuid:
 				ordersql.append("wxuuid");
+				break;
+			case sysuser_info::cols::expname:
+				ordersql.append("expname");
+				break;
+			case sysuser_info::cols::expmobile:
+				ordersql.append("expmobile");
+				break;
+			case sysuser_info::cols::expaddress:
+				ordersql.append("expaddress");
 				break;
             default:
                 return *mod;
@@ -5866,6 +6383,9 @@ M_MODEL& ornotnullWxuuid()
 			case sysuser_info::cols::isopen:
 				ordersql.append("isopen");
 				break;
+			case sysuser_info::cols::isadmin:
+				ordersql.append("isadmin");
+				break;
 			case sysuser_info::cols::level:
 				ordersql.append("level");
 				break;
@@ -5913,6 +6433,15 @@ M_MODEL& ornotnullWxuuid()
 				break;
 			case sysuser_info::cols::wxuuid:
 				ordersql.append("wxuuid");
+				break;
+			case sysuser_info::cols::expname:
+				ordersql.append("expname");
+				break;
+			case sysuser_info::cols::expmobile:
+				ordersql.append("expmobile");
+				break;
+			case sysuser_info::cols::expaddress:
+				ordersql.append("expaddress");
 				break;
             default:
                 return *mod;
@@ -5985,6 +6514,9 @@ M_MODEL& ornotnullWxuuid()
 			case sysuser_info::cols::isopen:
 				groupsql.append("isopen");
 				break;
+			case sysuser_info::cols::isadmin:
+				groupsql.append("isadmin");
+				break;
 			case sysuser_info::cols::level:
 				groupsql.append("level");
 				break;
@@ -6032,6 +6564,15 @@ M_MODEL& ornotnullWxuuid()
 				break;
 			case sysuser_info::cols::wxuuid:
 				groupsql.append("wxuuid");
+				break;
+			case sysuser_info::cols::expname:
+				groupsql.append("expname");
+				break;
+			case sysuser_info::cols::expmobile:
+				groupsql.append("expmobile");
+				break;
+			case sysuser_info::cols::expaddress:
+				groupsql.append("expaddress");
 				break;
             default:
                 return *mod;
@@ -6061,6 +6602,9 @@ M_MODEL& ornotnullWxuuid()
 			case sysuser_info::cols::isopen:
 				groupsql.append("isopen");
 				break;
+			case sysuser_info::cols::isadmin:
+				groupsql.append("isadmin");
+				break;
 			case sysuser_info::cols::level:
 				groupsql.append("level");
 				break;
@@ -6108,6 +6652,15 @@ M_MODEL& ornotnullWxuuid()
 				break;
 			case sysuser_info::cols::wxuuid:
 				groupsql.append("wxuuid");
+				break;
+			case sysuser_info::cols::expname:
+				groupsql.append("expname");
+				break;
+			case sysuser_info::cols::expmobile:
+				groupsql.append("expmobile");
+				break;
+			case sysuser_info::cols::expaddress:
+				groupsql.append("expaddress");
 				break;
             default:
                 return *mod;

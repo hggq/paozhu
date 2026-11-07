@@ -160,6 +160,29 @@
                 </li>
               </ul>
             </li>
+            <%c if(obj["isadmin"].to_int()==1){ %>
+            <li>
+              <a href="javascript:" class="has-children open">
+                <i class="bi bi-shield-lock"></i>权限管理
+              </a>
+              <ul>
+                <li>
+                  <a href="/admin/rbac/role">角色管理</a>
+                </li>
+                <li>
+                  <a href="/admin/rbac/roleperm">角色权限</a>
+                </li>
+                <li>
+                  <a href="/admin/rbac/userrole">用户角色</a>
+                </li>
+              </ul>
+            </li>
+            <li>
+              <a href="/admin/rbac/sysuser">
+                <i class="bi bi-person-plus"></i>添加管理员
+              </a>
+            </li>
+            <%c } %>
           </ul>
         </div>
       </nav>

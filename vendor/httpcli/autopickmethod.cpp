@@ -4,6 +4,7 @@
  *  @dest controller method pick file
  */
 #include <cstdio>
+#include <cstdlib>
 #include <string>
 #include <sstream>
 #include <algorithm>
@@ -17,7 +18,12 @@
 #include <sys/stat.h>
 
 #ifdef WIN32
+#include <io.h>
 #define stat _stat
+#define isatty _isatty
+#define fileno _fileno
+#else
+#include <unistd.h>
 #endif
 
 #include "autopickcontrolmethod.hpp"
@@ -232,8 +238,12 @@ int main(int argc, char *argv[])
                 // 只把 sync 改成 coro（注解文本一字不动）时，漏了它 .h 就不会重建，
                 // 于是 .h 还声明着 std::string，而生成表已经把它放进 co 槽位 —— 编译期才炸。
                 md5hash.append(method_item[j].func_type);
-                // mask_code 进 hash：只改冒号后的数字也得重建 .h
+                // mask_code / rate_time / rate_num 进 hash：只改后缀里的数字也得重建 .h
                 md5hash.append(std::to_string(method_item[j].mask_code));
+                md5hash.append(std::to_string(method_item[j].rate_time));
+                md5hash.append(std::to_string(method_item[j].rate_num));
+                // title 不进 .h，和上面三个后缀字段一起进 hash，保持"后缀改了缓存就过期"这条口径
+                md5hash.append(method_item[j].title);
                 // 第一遍：把本文件注解函数的返回类型登记进全仓索引。
                 // pre 常常定义在别的文件里（admin_islogin 这类共用前置），只在本文件里嗅探
                 // 签名会漏，漏了就默认按 sync 处理。先全扫一遍，第二遍再按这个索引定夺。
@@ -447,7 +457,7 @@ int main(int argc, char *argv[])
 
     automethod_content.append(
 "\n    void _initauto_all_httputils()\n    {\n"
-"        // reg_raw(site, path, pre_sync, co_pre, reg_sync, co_reg, mask_code)\n"
+"        // reg_raw(site, path, pre_sync, co_pre, reg_sync, co_reg, mask_code, rate_time, rate_num, title)\n"
 "        // reg_raw 参数说明 / parameter order:\n"
 "        //   1. site       : 域名字符串（空串 '' 表示全局 slot，等价于 mainhost）\n"
 "        //   2. path       : 注册的 URL 路径，:param 段已被剥掉（实际注册的是固定段前缀）\n"
@@ -455,7 +465,10 @@ int main(int argc, char *argv[])
 "        //   4. co_pre     : 协程 pre 函数（asio::awaitable<std::string> 返回），无则 nullptr\n"
 "        //   5. reg_sync   : 同步 handler（std::string 返回），另一个 handler 槽置 nullptr\n"
 "        //   6. co_reg     : 协程 handler（asio::awaitable<std::string> 返回），另一个槽置 nullptr\n"
-"        //   7. mask_code  : 注解 //@urlpath(pre,handler):数字 里的数字，无冒号默认为 0\n"
+"        //   7. mask_code  : 注解 //@urlpath(pre,handler):maskcode(n) 里的 n，无则默认为 0\n"
+"        //   8. rate_time  : 注解 //@urlpath(...):ratelimit(time,num) 的第一个参数，无则默认为 0\n"
+"        //   9. rate_num   : 注解 //@urlpath(...):ratelimit(time,num) 的第二个参数，无则默认为 0\n"
+"        //   10. title     : 注解 //@urlpath(...):title(名称) 里的名称，引号写法可选，无则默认为空串\n"
 "        //\n"
 "        // reg_urlpath(site, path, {param_names...})\n"
 "        //   当 URL 含 :param 段时，紧随 reg_raw 之后注册参数名表；无参数则不生成\n"
@@ -463,6 +476,33 @@ int main(int argc, char *argv[])
 
     // 本轮生成出来的注册名，用来和手写注册表（common/reghttpmethod*.hpp）比对撞名
     std::set<std::string> generated_paths;
+
+    // mask_code 判重收集：只收非零 mask，生成完成后按 (站点, mask) 分组
+    struct mask_route_t
+    {
+        std::string site;
+        unsigned int mask_code;
+        std::string path;
+    };
+    std::vector<mask_route_t> mask_routes;
+
+    // title 是自由文本，落进字符串字面量前先按 C++ 转义
+    auto cpp_text = [](const std::string &text) -> std::string {
+        std::string out;
+        for (char c : text)
+        {
+            switch (c)
+            {
+            case '\\': out += "\\\\"; break;
+            case '"':  out += "\\\""; break;
+            case '\t': out += "\\t"; break;
+            case '\r': out += "\\r"; break;
+            case '\n': out += "\\n"; break;
+            default: out.push_back(c); break;
+            }
+        }
+        return out;
+    };
 
     auto gen_item = [&](const std::string &site, const http::reg_autoitem &item) {
         std::string parsed_path;
@@ -530,6 +570,11 @@ int main(int argc, char *argv[])
 
         generated_paths.insert(parsed_path);
 
+        if (item.mask_code != 0)
+        {
+            mask_routes.push_back({site, item.mask_code, parsed_path});
+        }
+
         // 生成行尾注释的相对路径：剥掉 src_path + "/" 前缀得到 plist[i] + ".cpp"
         // relative path for trailing comment in generated reg_raw line
         std::string rel_src = item.filename;
@@ -544,7 +589,10 @@ int main(int argc, char *argv[])
         automethod_content += "        reg_raw(\"" + site + "\", \"" + parsed_path + "\", "
                             + pre_sync + ", " + co_pre + ", "
                             + reg_sync + ", " + co_reg + ", "
-                            + std::to_string(item.mask_code) + ");"
+                            + std::to_string(item.mask_code) + ", "
+                            + std::to_string(item.rate_time) + ", "
+                            + std::to_string(item.rate_num) + ", \""
+                            + cpp_text(item.title) + "\");"
                             + " // " + comment_src + ":" + std::to_string(item.line_no)
                             + "\r\n";
 
@@ -565,6 +613,59 @@ int main(int argc, char *argv[])
     for (auto const &item : co_reg_method_lists)    gen_item("", item);
     for (auto const &item : domain_method_lists)    gen_item(item.domain, item);
     for (auto const &item : co_domain_method_lists) gen_item(item.domain, item);
+
+    // — mask_code 重复提示 —
+    // 口径：按 (站点, mask_code) 分组，只有同一站点内的相同非零 mask 才算冲突。
+    // 路由表按站点 slot 隔离，跨站点的 mask 不会命中同一条路由；但 sysperms 是按 urlpath
+    // 登记的，同名 urlpath 跨站点共用权限行，一处授权就可能放行多处，跨站点同名仍需人工确认。
+    {
+        auto use_color = []() -> bool {
+            const char *no_color = std::getenv("NO_COLOR");
+            if (no_color != nullptr && no_color[0] != '\0')
+            {
+                return false;
+            }
+            return isatty(fileno(stderr)) != 0;
+        };
+        std::map<std::pair<std::string, unsigned int>, std::vector<std::string>> groups;
+        for (auto const &r : mask_routes)
+        {
+            std::string shown;
+            if (!r.site.empty())
+            {
+                shown = "/" + r.site;
+            }
+            shown += r.path;
+            groups[{r.site, r.mask_code}].push_back(shown);
+        }
+        bool color = use_color();
+        for (auto const &g : groups)
+        {
+            if (g.second.size() < 2)
+            {
+                continue;
+            }
+            std::string site = g.first.first.empty() ? "*" : g.first.first;
+            std::string msg  = "mask_code " + std::to_string(g.first.second)
+                              + " duplicated in site " + site + ": ";
+            for (std::size_t i = 0; i < g.second.size(); ++i)
+            {
+                if (i)
+                {
+                    msg += ", ";
+                }
+                msg += g.second[i];
+            }
+            if (color)
+            {
+                std::fprintf(stderr, "\033[1m\033[31m[ROUTE-WARN] %s\033[0m\n", msg.c_str());
+            }
+            else
+            {
+                std::fprintf(stderr, "[ROUTE-WARN] %s\n", msg.c_str());
+            }
+        }
+    }
 
     // — 手写注册表撞名提示 —
     // common/reghttpmethod.hpp / _pre.hpp 里的手写注册跑在 _initauto_all_httputils() 之后

@@ -5,11 +5,44 @@
 #include "func.h"
 #include "main.h"
 #include "md5.h"
+#include "session_id.h"
 #include <filesystem>
 namespace http
 {
 namespace fs = std::filesystem;
-//@urlpath(null,admin/login)
+
+// 登录页 CSRF 签发：每次打开登录页换新 token，写进 session 和模板变量
+// CSRF issue for the login page: fresh token into session and template var per view
+std::string admin_csrf_issue(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client             = peer->get_peer();
+    std::string token            = get_rand_32char();
+    client.session["csrf_token"] = token;
+    client.val["csrf_token"]     = token;
+    client.save_session();
+    return "@ok";
+}
+
+// 登录提交 CSRF 校验 + 作废：比对 session 与表单 token，通过后立刻作废
+// CSRF verify + invalidate for login post; redirect back to the form on mismatch/empty
+std::string admin_csrf_check(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client          = peer->get_peer();
+    std::string session_token = client.session["csrf_token"].to_string();
+    std::string post_token    = client.post["csrf_token"].to_string();
+    if (session_token.empty() || post_token != session_token)
+    {
+        client.goto_url("/admin/login", 3, "CSRF check failed, please reopen the form!");
+        return "";
+    }
+    // 一次一用：比对通过后立刻作废，同一份表单重复提交会被拒
+    // Single use: clear after pass so replays are rejected
+    client.session["csrf_token"] = "";
+    client.save_session();
+    return "@ok";
+}
+
+//@urlpath(admin_csrf_issue,admin/login)
 std::string admin_login(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
@@ -17,11 +50,11 @@ std::string admin_login(std::shared_ptr<httppeer> peer)
     client.view("admin/login");
     return "";
 }
-//@urlpath(null,admin/loginpost)
+//@urlpath(admin_csrf_check,admin/loginpost):ratelimit(60,5)
 std::string admin_loginpost(std::shared_ptr<httppeer> peer)
 {
     httppeer &client     = peer->get_peer();
-    std::string username = client.post["username"].to_escape();
+    std::string username = client.post["username"].to_trim();
     std::string password = client.post["password"].to_string();
     if (username.size() < 4 || username.size() > 20 || password.size() > 20 || password.size() < 4)
     {
@@ -36,7 +69,7 @@ std::string admin_loginpost(std::shared_ptr<httppeer> peer)
         md5string            = md5(password);
         unsigned int userid  = 0;
         unsigned int adminid = 0;
-        users.where("name", username).whereAnd("password", md5string).fetch_one();
+        users.where("name", username).whereAnd("password", md5string).whereAnd("isopen", 1).exec_one();
         // view orm create sql
         // client<<"<p>"<<users.sqlstring<<"</p>";
         auto loginfo = orm::cms::Logininfo();
@@ -105,19 +138,20 @@ std::string admin_loginpost(std::shared_ptr<httppeer> peer)
             }
             client.session["adminid"]  = adminid;
             client.session["userid"]   = userid;
+            client.session["isadmin"]  = users.getIsadmin();
             client.session["hosturl"]  = hosturl;
             client.session["sitepath"] = superinfo.data.basesitepath;
             client.save_session();
             loginfo.setLoginstate("成功" + stinfo.getSitepath());
-            loginfo.save();
+            loginfo.exec_insert();
             client.goto_url("/admin/main");
             return "";
         }
         else
         {
             loginfo.setLoginstate("失败");
-            loginfo.save();
-            client.goto_url("/admin/login", 3, "用户名或密码错误！");
+            loginfo.exec_insert();
+            client.goto_url("/admin/login", 3, "用户名或密码错误，或账号未开放！");
             return "";
         }
     }
@@ -174,6 +208,7 @@ std::string admin_main(std::shared_ptr<httppeer> peer)
         client.goto_url("/admin/login");
         return "";
     }
+    client.val["isadmin"] = client.session["isadmin"].to_int();
     client.view("admin/main");
     return "";
 }
@@ -247,7 +282,7 @@ std::string admin_siteinfopost(std::shared_ptr<httppeer> peer)
         if (sid > 0)
         {
             //stinfo.setPK(sid);
-            stinfo.where("userid", client.session["userid"].to_int()).whereAnd("sid",sid);
+            stinfo.where("userid", client.session["userid"].to_int()).whereAnd("sid", sid);
 
             int result_status = stinfo.update("sitename,metakeys,metadesc");
             if (result_status > 0)
@@ -323,7 +358,7 @@ std::string admin_footscriptpost(std::shared_ptr<httppeer> peer)
         if (sid > 0)
         {
             //stinfo.setPK(sid);
-            stinfo.where("userid", client.session["userid"].to_int()).whereAnd("sid",sid);
+            stinfo.where("userid", client.session["userid"].to_int()).whereAnd("sid", sid);
 
             int result_status = stinfo.update("footscript");
             if (result_status > 0)
@@ -387,7 +422,7 @@ std::string admin_copyrightpost(std::shared_ptr<httppeer> peer)
         if (sid > 0)
         {
             //stinfo.setPK(sid);
-            stinfo.where("userid", client.session["userid"].to_int()).whereAnd("sid",sid);
+            stinfo.where("userid", client.session["userid"].to_int()).whereAnd("sid", sid);
 
             int result_status = stinfo.update("copyright");
             if (result_status > 0)
@@ -423,10 +458,9 @@ std::string admin_sitelogo(std::shared_ptr<httppeer> peer)
         stinfo.where("userid", client.session["userid"].to_int()).fetch_one();
         client.val["info"].set_object();
 
-        client.val["info"]["sid"]      = stinfo.getSid();
-        client.val["info"]["sitelogo"] = html_encode(stinfo.data.sitelogo);//stinfo.getCopyright();
+        client.val["info"]["sid"]        = stinfo.getSid();
+        client.val["info"]["sitelogo"]   = html_encode(stinfo.data.sitelogo);//stinfo.getCopyright();
         client.val["info"]["sitebanner"] = html_encode(stinfo.data.sitebanner);
-
     }
     catch (...)
     {
@@ -453,7 +487,7 @@ std::string admin_sitelogopost(std::shared_ptr<httppeer> peer)
         if (sid > 0)
         {
             //stinfo.setPK(sid);
-            stinfo.where("userid", client.session["userid"].to_int()).whereAnd("sid",sid);
+            stinfo.where("userid", client.session["userid"].to_int()).whereAnd("sid", sid);
 
             int result_status = stinfo.update("sitelogo");
             if (result_status > 0)
@@ -639,7 +673,7 @@ std::string admin_sitebannerpost(std::shared_ptr<httppeer> peer)
         if (sid > 0)
         {
             //stinfo.setPK(sid);
-            stinfo.where("userid", client.session["userid"].to_int()).whereAnd("sid",sid);
+            stinfo.where("userid", client.session["userid"].to_int()).whereAnd("sid", sid);
 
             int result_status = stinfo.update("sitebanner");
             if (result_status > 0)
@@ -929,11 +963,10 @@ std::string admin_editpwdpost(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-
 //@urlpath(admin_islogin,admin/favicon)
 std::string admin_favicon(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->get_peer(); 
+    httppeer &client = peer->get_peer();
     client.view("admin/favicon");
     return "";
 }
@@ -941,12 +974,13 @@ std::string admin_favicon(std::shared_ptr<httppeer> peer)
 //@urlpath(admin_islogin,admin/faviconpost)
 std::string admin_faviconpost(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client = peer->get_peer(); 
-    
+    httppeer &client = peer->get_peer();
+
     std::string sitepath = client.get_sitepath();
 
     // 确保目标目录存在
-    if (!std::filesystem::exists(sitepath)) {
+    if (!std::filesystem::exists(sitepath))
+    {
         client.goto_url("/admin/favicon", 3, "不存在WWW目录");
         return "";
     }
@@ -966,13 +1000,11 @@ std::string admin_faviconpost(std::shared_ptr<httppeer> peer)
         if (msg[extfilesize - 1] == 'o' && msg[extfilesize - 2] == 'c' &&
             msg[extfilesize - 3] == 'i' && msg[extfilesize - 4] == '.')
         {
-           
-             
         }
         else
         {
             client.goto_url("/admin/favicon", 3, "不是.ioc文件");
-            return "";    
+            return "";
         }
     }
     else
@@ -991,8 +1023,7 @@ std::string admin_faviconpost(std::shared_ptr<httppeer> peer)
     std::error_code ec;
     fs::rename(client.files["upfile"]["tempfile"].to_string(), sitepath, ec);
 
-    
-    if (ec) 
+    if (ec)
     {
         try
         {
@@ -1013,7 +1044,7 @@ std::string admin_faviconpost(std::shared_ptr<httppeer> peer)
     {
         msg = "上传成功！";
     }
-    
+
     client.goto_url("/admin/favicon", 3, msg);
     return "";
 }

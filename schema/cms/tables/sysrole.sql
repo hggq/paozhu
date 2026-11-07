@@ -7,4 +7,4 @@ CREATE TABLE `sysrole` (
   `sortid` int NOT NULL,
   `rolevalue` int unsigned NOT NULL,
   PRIMARY KEY (`roleid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='角色表'
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='角色表'

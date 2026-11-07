@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSUSERBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sun, 01 Nov 2026 02:10:33 GMT
+*本文件为自动生成 Sat, 07 Nov 2026 09:30:37 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -31,7 +31,7 @@ namespace orm {
 namespace sysuser_info
 {
  
-    static constexpr std::size_t col_count = 21;
+    static constexpr std::size_t col_count = 25;
     enum class cols : unsigned char 
     {
 		adminid = 0,
@@ -39,22 +39,26 @@ namespace sysuser_info
 		password = 2,
 		textword = 3,
 		isopen = 4,
-		level = 5,
-		companyid = 6,
-		dpid = 7,
-		jobid = 8,
-		roleid = 9,
-		postid = 10,
-		created_at = 11,
-		enddate = 12,
-		qrtemp = 13,
-		gender = 14,
-		nickname = 15,
-		realname = 16,
-		avatar = 17,
-		mobile = 18,
-		email = 19,
-		wxuuid = 20,
+		isadmin = 5,
+		level = 6,
+		companyid = 7,
+		dpid = 8,
+		jobid = 9,
+		roleid = 10,
+		postid = 11,
+		created_at = 12,
+		enddate = 13,
+		qrtemp = 14,
+		gender = 15,
+		nickname = 16,
+		realname = 17,
+		avatar = 18,
+		mobile = 19,
+		email = 20,
+		wxuuid = 21,
+		expname = 22,
+		expmobile = 23,
+		expaddress = 24,
 
     };
 
@@ -65,6 +69,7 @@ namespace sysuser_info
 		 std::string  password = ""; ///**/
 		 std::string  textword = ""; ///**/
 		 char  isopen = 0; ///**/
+		 unsigned  char  isadmin = 0; ///*1saas级管理员*/
 		 int  level = 0; ///**/
 		 unsigned  int  companyid = 0; ///*所属企业*/
 		 unsigned  int  dpid = 0; ///**/
@@ -81,6 +86,9 @@ namespace sysuser_info
 		 std::string  mobile = ""; ///**/
 		 std::string  email = ""; ///**/
 		 std::string  wxuuid = ""; ///**/
+		 std::string  expname = ""; ///**/
+		 std::string  expmobile = ""; ///**/
+		 std::string  expaddress = ""; ///**/
 	};
   
     struct meta_tree
@@ -90,6 +98,7 @@ namespace sysuser_info
 		 std::string  password = ""; ///**/
 		 std::string  textword = ""; ///**/
 		 char  isopen = 0; ///**/
+		 unsigned  char  isadmin = 0; ///*1saas级管理员*/
 		 int  level = 0; ///**/
 		 unsigned  int  companyid = 0; ///*所属企业*/
 		 unsigned  int  dpid = 0; ///**/
@@ -106,6 +115,9 @@ namespace sysuser_info
 		 std::string  mobile = ""; ///**/
 		 std::string  email = ""; ///**/
 		 std::string  wxuuid = ""; ///**/
+		 std::string  expname = ""; ///**/
+		 std::string  expmobile = ""; ///**/
+		 std::string  expaddress = ""; ///**/
 
 	 std::vector<meta_tree> children;
  };
@@ -117,6 +129,7 @@ namespace sysuser_info
 		 std::string  password = ""; ///**/
 		 std::string  textword = ""; ///**/
 		 char  isopen = 0; ///**/
+		 unsigned  char  isadmin = 0; ///*1saas级管理员*/
 		 int  level = 0; ///**/
 		 unsigned  int  companyid = 0; ///*所属企业*/
 		 unsigned  int  dpid = 0; ///**/
@@ -133,6 +146,9 @@ namespace sysuser_info
 		 std::string  mobile = ""; ///**/
 		 std::string  email = ""; ///**/
 		 std::string  wxuuid = ""; ///**/
+		 std::string  expname = ""; ///**/
+		 std::string  expmobile = ""; ///**/
+		 std::string  expaddress = ""; ///**/
 
 	 std::vector<std::unique_ptr<meta_tree>> children;
  };
@@ -150,6 +166,8 @@ namespace sysuser_info
 		 return m.textword;
 		} else if constexpr (Col == cols::isopen) { 
 		 return m.isopen;
+		} else if constexpr (Col == cols::isadmin) { 
+		 return m.isadmin;
 		} else if constexpr (Col == cols::level) { 
 		 return m.level;
 		} else if constexpr (Col == cols::companyid) { 
@@ -182,6 +200,12 @@ namespace sysuser_info
 		 return m.email;
 		} else if constexpr (Col == cols::wxuuid) { 
 		 return m.wxuuid;
+		} else if constexpr (Col == cols::expname) { 
+		 return m.expname;
+		} else if constexpr (Col == cols::expmobile) { 
+		 return m.expmobile;
+		} else if constexpr (Col == cols::expaddress) { 
+		 return m.expaddress;
 		
         } else {
             //static_assert(false, "Unsupported column type");
@@ -194,6 +218,7 @@ namespace sysuser_info
 		using password =  std::string ;
 		using textword =  std::string ;
 		using isopen =  char ;
+		using isadmin =  unsigned  char ;
 		using level =  int ;
 		using companyid =  unsigned  int ;
 		using dpid =  unsigned  int ;
@@ -210,6 +235,9 @@ namespace sysuser_info
 		using mobile =  std::string ;
 		using email =  std::string ;
 		using wxuuid =  std::string ;
+		using expname =  std::string ;
+		using expmobile =  std::string ;
+		using expaddress =  std::string ;
 
     }
 
@@ -723,12 +751,12 @@ namespace sysuser_info
                 return oss.str(); }\
        }
         
-    inline constexpr std::array<std::string_view,21> col_names={"adminid","name","password","textword","isopen","level","companyid","dpid","jobid","roleid","postid","created_at","enddate","qrtemp","gender","nickname","realname","avatar","mobile","email","wxuuid"};
-	static constexpr std::array<unsigned char,21> col_types={3,253,253,253,1,3,3,3,3,3,3,3,3,3,1,253,253,253,253,253,253};
-	static constexpr std::array<unsigned int,21> col_length={0,40,40,40,1,0,0,0,0,0,0,0,0,0,0,60,40,256,40,60,40};
-	static constexpr std::array<unsigned char,21> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-	static constexpr std::array<bool,21> col_null={false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
-	static constexpr std::array<bool,21> col_indexed={true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
+    inline constexpr std::array<std::string_view,25> col_names={"adminid","name","password","textword","isopen","isadmin","level","companyid","dpid","jobid","roleid","postid","created_at","enddate","qrtemp","gender","nickname","realname","avatar","mobile","email","wxuuid","expname","expmobile","expaddress"};
+	static constexpr std::array<unsigned char,25> col_types={3,253,253,253,1,1,3,3,3,3,3,3,3,3,3,1,253,253,253,253,253,253,253,253,253};
+	static constexpr std::array<unsigned int,25> col_length={0,40,40,40,1,0,0,0,0,0,0,0,0,0,0,0,60,40,256,40,60,40,60,60,160};
+	static constexpr std::array<unsigned char,25> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	static constexpr std::array<bool,25> col_null={false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::array<bool,25> col_indexed={true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
 	static constexpr std::string_view auto_pk_name ="adminid";
 	static constexpr int auto_pk_index = 0;
 
@@ -747,15 +775,15 @@ std::vector<sysuser_info::meta>::const_iterator end() const{     return record.e
 std::string tablename="sysuser";
 static constexpr std::string_view org_tablename="sysuser";
 static constexpr std::string_view modelname="Sysuser";
-	static constexpr std::array<bool,21> col_need_quote={false,true,true,true,false,false,false,false,false,false,false,false,false,false,false,true,true,true,true,true,true};
+	static constexpr std::array<bool,25> col_need_quote={false,true,true,true,false,false,false,false,false,false,false,false,false,false,false,false,true,true,true,true,true,true,true,true,true};
 
-            std::bitset<21> dirty_bits;
+            std::bitset<25> dirty_bits;
             void clear_dirty() noexcept {
                 dirty_bits.reset();
             }
 
             void set_dirty(std::size_t idx) noexcept {
-                if(idx < 21)
+                if(idx < 25)
                 dirty_bits.set(idx);
             }
 
@@ -825,7 +853,7 @@ static constexpr std::string_view modelname="Sysuser";
          case 'a':
  switch(coln.size()){  
 case 6:
-   	 return 17;
+   	 return 18;
 break;
 case 7:
    	 return 0;
@@ -835,40 +863,54 @@ break;
 case 'c':
  switch(coln.size()){  
 case 9:
-   	 return 6;
-break;
-case 10:
-   	 return 11;
-break;
- }
- break;
-case 'd':
    	 return 7;
 break;
-case 'e':
- switch(coln.size()){  
-case 5:
-   	 return 19;
-break;
-case 7:
+case 10:
    	 return 12;
 break;
  }
  break;
-case 'g':
-   	 return 14;
-break;
-case 'i':
-   	 return 4;
-break;
-case 'j':
+case 'd':
    	 return 8;
 break;
-case 'l':
+case 'e':
+ switch(coln.size()){  
+case 5:
+   	 return 20;
+break;
+case 7:
+ if(coln.size()>1&&(coln[1]=='n'||coln[1]=='N')){ return 13; }
+ if(coln.size()>1&&(coln[1]=='x'||coln[1]=='X')){ return 22; }
+   	 break;
+case 9:
+   	 return 23;
+break;
+case 10:
+   	 return 24;
+break;
+ }
+ break;
+case 'g':
+   	 return 15;
+break;
+case 'i':
+ switch(coln.size()){  
+case 6:
+   	 return 4;
+break;
+case 7:
    	 return 5;
 break;
+ }
+ break;
+case 'j':
+   	 return 9;
+break;
+case 'l':
+   	 return 6;
+break;
 case 'm':
-   	 return 18;
+   	 return 19;
 break;
 case 'n':
  switch(coln.size()){  
@@ -876,14 +918,14 @@ case 4:
    	 return 1;
 break;
 case 8:
-   	 return 15;
+   	 return 16;
 break;
  }
  break;
 case 'p':
  switch(coln.size()){  
 case 6:
-   	 return 10;
+   	 return 11;
 break;
 case 8:
    	 return 2;
@@ -891,15 +933,15 @@ break;
  }
  break;
 case 'q':
-   	 return 13;
+   	 return 14;
 break;
 case 'r':
  switch(coln.size()){  
 case 6:
-   	 return 9;
+   	 return 10;
 break;
 case 8:
-   	 return 16;
+   	 return 17;
 break;
  }
  break;
@@ -907,7 +949,7 @@ case 't':
    	 return 3;
 break;
 case 'w':
-   	 return 20;
+   	 return 21;
 break;
 
              }
@@ -1003,6 +1045,11 @@ if(data.isopen==0){
  }else{ 
 	tempsql<<","<<std::to_string(data.isopen);
 }
+if(data.isadmin==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.isadmin);
+}
 if(data.level==0){
 	tempsql<<",0";
  }else{ 
@@ -1059,6 +1106,9 @@ tempsql<<",'"<<stringaddslash(data.avatar)<<"'";
 tempsql<<",'"<<stringaddslash(data.mobile)<<"'";
 tempsql<<",'"<<stringaddslash(data.email)<<"'";
 tempsql<<",'"<<stringaddslash(data.wxuuid)<<"'";
+tempsql<<",'"<<stringaddslash(data.expname)<<"'";
+tempsql<<",'"<<stringaddslash(data.expmobile)<<"'";
+tempsql<<",'"<<stringaddslash(data.expaddress)<<"'";
 tempsql<<")";
 
      
@@ -1096,6 +1146,11 @@ if(insert_data.isopen==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(insert_data.isopen);
+}
+if(insert_data.isadmin==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.isadmin);
 }
 if(insert_data.level==0){
 	tempsql<<",0";
@@ -1153,6 +1208,9 @@ tempsql<<",'"<<stringaddslash(insert_data.avatar)<<"'";
 tempsql<<",'"<<stringaddslash(insert_data.mobile)<<"'";
 tempsql<<",'"<<stringaddslash(insert_data.email)<<"'";
 tempsql<<",'"<<stringaddslash(insert_data.wxuuid)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.expname)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.expmobile)<<"'";
+tempsql<<",'"<<stringaddslash(insert_data.expaddress)<<"'";
 tempsql<<")";
 
      
@@ -1198,6 +1256,11 @@ tempsql<<")";
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(insert_data[i].isopen);
+	}
+	if(insert_data[i].isadmin==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].isadmin);
 	}
 	if(insert_data[i].level==0){
 	tempsql<<",0";
@@ -1255,6 +1318,9 @@ tempsql<<")";
 		tempsql<<",'"<<stringaddslash(insert_data[i].mobile)<<"'";
 		tempsql<<",'"<<stringaddslash(insert_data[i].email)<<"'";
 		tempsql<<",'"<<stringaddslash(insert_data[i].wxuuid)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].expname)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].expmobile)<<"'";
+		tempsql<<",'"<<stringaddslash(insert_data[i].expaddress)<<"'";
 		tempsql<<")";
 	 } 
 
@@ -1286,6 +1352,11 @@ if(data.isopen==0){
 	tempsql<<",isopen=0";
  }else{ 
 	tempsql<<",isopen="<<std::to_string(data.isopen);
+}
+if(data.isadmin==0){
+	tempsql<<",isadmin=0";
+ }else{ 
+	tempsql<<",isadmin="<<std::to_string(data.isadmin);
 }
 if(data.level==0){
 	tempsql<<",level=0";
@@ -1343,6 +1414,9 @@ tempsql<<",avatar='"<<stringaddslash(data.avatar)<<"'";
 tempsql<<",mobile='"<<stringaddslash(data.mobile)<<"'";
 tempsql<<",email='"<<stringaddslash(data.email)<<"'";
 tempsql<<",wxuuid='"<<stringaddslash(data.wxuuid)<<"'";
+tempsql<<",expname='"<<stringaddslash(data.expname)<<"'";
+tempsql<<",expmobile='"<<stringaddslash(data.expmobile)<<"'";
+tempsql<<",expaddress='"<<stringaddslash(data.expaddress)<<"'";
  }else{ 
 
      
@@ -1417,13 +1491,21 @@ if(data.isopen==0){
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
+if(data.isadmin==0){
+	tempsql<<"isadmin=0";
+ }else{ 
+	tempsql<<"isadmin="<<std::to_string(data.isadmin);
+}
+ break;
+ case 6:
+ if(jj>0){ tempsql<<","; } 
 if(data.level==0){
 	tempsql<<"level=0";
  }else{ 
 	tempsql<<"level="<<std::to_string(data.level);
 }
  break;
- case 6:
+ case 7:
  if(jj>0){ tempsql<<","; } 
 if(data.companyid==0){
 	tempsql<<"companyid=0";
@@ -1431,7 +1513,7 @@ if(data.companyid==0){
 	tempsql<<"companyid="<<std::to_string(data.companyid);
 }
  break;
- case 7:
+ case 8:
  if(jj>0){ tempsql<<","; } 
 if(data.dpid==0){
 	tempsql<<"dpid=0";
@@ -1439,7 +1521,7 @@ if(data.dpid==0){
 	tempsql<<"dpid="<<std::to_string(data.dpid);
 }
  break;
- case 8:
+ case 9:
  if(jj>0){ tempsql<<","; } 
 if(data.jobid==0){
 	tempsql<<"jobid=0";
@@ -1447,7 +1529,7 @@ if(data.jobid==0){
 	tempsql<<"jobid="<<std::to_string(data.jobid);
 }
  break;
- case 9:
+ case 10:
  if(jj>0){ tempsql<<","; } 
 if(data.roleid==0){
 	tempsql<<"roleid=0";
@@ -1455,7 +1537,7 @@ if(data.roleid==0){
 	tempsql<<"roleid="<<std::to_string(data.roleid);
 }
  break;
- case 10:
+ case 11:
  if(jj>0){ tempsql<<","; } 
 if(data.postid==0){
 	tempsql<<"postid=0";
@@ -1463,7 +1545,7 @@ if(data.postid==0){
 	tempsql<<"postid="<<std::to_string(data.postid);
 }
  break;
- case 11:
+ case 12:
  if(jj>0){ tempsql<<","; } 
 if(data.created_at==0){
 	tempsql<<"created_at=0";
@@ -1471,7 +1553,7 @@ if(data.created_at==0){
 	tempsql<<"created_at="<<std::to_string(data.created_at);
 }
  break;
- case 12:
+ case 13:
  if(jj>0){ tempsql<<","; } 
 if(data.enddate==0){
 	tempsql<<"enddate=0";
@@ -1479,7 +1561,7 @@ if(data.enddate==0){
 	tempsql<<"enddate="<<std::to_string(data.enddate);
 }
  break;
- case 13:
+ case 14:
  if(jj>0){ tempsql<<","; } 
 if(data.qrtemp==0){
 	tempsql<<"qrtemp=0";
@@ -1487,7 +1569,7 @@ if(data.qrtemp==0){
 	tempsql<<"qrtemp="<<std::to_string(data.qrtemp);
 }
  break;
- case 14:
+ case 15:
  if(jj>0){ tempsql<<","; } 
 if(data.gender==0){
 	tempsql<<"gender=0";
@@ -1495,29 +1577,41 @@ if(data.gender==0){
 	tempsql<<"gender="<<std::to_string(data.gender);
 }
  break;
- case 15:
+ case 16:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"nickname='"<<stringaddslash(data.nickname)<<"'";
  break;
- case 16:
+ case 17:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"realname='"<<stringaddslash(data.realname)<<"'";
  break;
- case 17:
+ case 18:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"avatar='"<<stringaddslash(data.avatar)<<"'";
  break;
- case 18:
+ case 19:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"mobile='"<<stringaddslash(data.mobile)<<"'";
  break;
- case 19:
+ case 20:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"email='"<<stringaddslash(data.email)<<"'";
  break;
- case 20:
+ case 21:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"wxuuid='"<<stringaddslash(data.wxuuid)<<"'";
+ break;
+ case 22:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"expname='"<<stringaddslash(data.expname)<<"'";
+ break;
+ case 23:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"expmobile='"<<stringaddslash(data.expmobile)<<"'";
+ break;
+ case 24:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"expaddress='"<<stringaddslash(data.expaddress)<<"'";
  break;
 
      
@@ -1568,92 +1662,108 @@ tempsql<<"wxuuid='"<<stringaddslash(data.wxuuid)<<"'";
                         }
                         break;
                     case 5:
+                        if(data.isadmin==0){
+                            tempsql<<"isadmin=0";
+                        }else{ 
+                            tempsql<<"isadmin="<<std::to_string(data.isadmin);
+                        }
+                        break;
+                    case 6:
                         if(data.level==0){
                             tempsql<<"level=0";
                         }else{ 
                             tempsql<<"level="<<std::to_string(data.level);
                         }
                         break;
-                    case 6:
+                    case 7:
                         if(data.companyid==0){
                             tempsql<<"companyid=0";
                         }else{ 
                             tempsql<<"companyid="<<std::to_string(data.companyid);
                         }
                         break;
-                    case 7:
+                    case 8:
                         if(data.dpid==0){
                             tempsql<<"dpid=0";
                         }else{ 
                             tempsql<<"dpid="<<std::to_string(data.dpid);
                         }
                         break;
-                    case 8:
+                    case 9:
                         if(data.jobid==0){
                             tempsql<<"jobid=0";
                         }else{ 
                             tempsql<<"jobid="<<std::to_string(data.jobid);
                         }
                         break;
-                    case 9:
+                    case 10:
                         if(data.roleid==0){
                             tempsql<<"roleid=0";
                         }else{ 
                             tempsql<<"roleid="<<std::to_string(data.roleid);
                         }
                         break;
-                    case 10:
+                    case 11:
                         if(data.postid==0){
                             tempsql<<"postid=0";
                         }else{ 
                             tempsql<<"postid="<<std::to_string(data.postid);
                         }
                         break;
-                    case 11:
+                    case 12:
                         if(data.created_at==0){
                             tempsql<<"created_at=0";
                         }else{ 
                             tempsql<<"created_at="<<std::to_string(data.created_at);
                         }
                         break;
-                    case 12:
+                    case 13:
                         if(data.enddate==0){
                             tempsql<<"enddate=0";
                         }else{ 
                             tempsql<<"enddate="<<std::to_string(data.enddate);
                         }
                         break;
-                    case 13:
+                    case 14:
                         if(data.qrtemp==0){
                             tempsql<<"qrtemp=0";
                         }else{ 
                             tempsql<<"qrtemp="<<std::to_string(data.qrtemp);
                         }
                         break;
-                    case 14:
+                    case 15:
                         if(data.gender==0){
                             tempsql<<"gender=0";
                         }else{ 
                             tempsql<<"gender="<<std::to_string(data.gender);
                         }
                         break;
-                    case 15:
+                    case 16:
                         tempsql<<"nickname='"<<stringaddslash(data.nickname)<<"'";
                         break;
-                    case 16:
+                    case 17:
                         tempsql<<"realname='"<<stringaddslash(data.realname)<<"'";
                         break;
-                    case 17:
+                    case 18:
                         tempsql<<"avatar='"<<stringaddslash(data.avatar)<<"'";
                         break;
-                    case 18:
+                    case 19:
                         tempsql<<"mobile='"<<stringaddslash(data.mobile)<<"'";
                         break;
-                    case 19:
+                    case 20:
                         tempsql<<"email='"<<stringaddslash(data.email)<<"'";
                         break;
-                    case 20:
+                    case 21:
                         tempsql<<"wxuuid='"<<stringaddslash(data.wxuuid)<<"'";
+                        break;
+                    case 22:
+                        tempsql<<"expname='"<<stringaddslash(data.expname)<<"'";
+                        break;
+                    case 23:
+                        tempsql<<"expmobile='"<<stringaddslash(data.expmobile)<<"'";
+                        break;
+                    case 24:
+                        tempsql<<"expaddress='"<<stringaddslash(data.expaddress)<<"'";
                         break;
                 }
                 first = false;
@@ -1709,6 +1819,11 @@ tempsql<<"wxuuid='"<<stringaddslash(data.wxuuid)<<"'";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].isopen);
 	}
+	if(record[i].isadmin==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].isadmin);
+	}
 	if(record[i].level==0){
 	tempsql<<",0";
 	 }else{ 
@@ -1765,6 +1880,9 @@ tempsql<<"wxuuid='"<<stringaddslash(data.wxuuid)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].mobile)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].email)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].wxuuid)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].expname)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].expmobile)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].expaddress)<<"'";
 	tempsql<<")";
   }
  
@@ -1816,6 +1934,11 @@ tempsql<<"wxuuid='"<<stringaddslash(data.wxuuid)<<"'";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].isopen);
 	}
+	if(record[i].isadmin==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].isadmin);
+	}
 	if(record[i].level==0){
 	tempsql<<",0";
 	 }else{ 
@@ -1872,6 +1995,9 @@ tempsql<<"wxuuid='"<<stringaddslash(data.wxuuid)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].mobile)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].email)<<"'";
 	tempsql<<",'"<<stringaddslash(record[i].wxuuid)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].expname)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].expmobile)<<"'";
+	tempsql<<",'"<<stringaddslash(record[i].expaddress)<<"'";
 	tempsql<<")";
 	 }
 	 tempsql<<" as new ON DUPLICATE KEY UPDATE ";
@@ -1981,92 +2107,108 @@ if(data.isopen==0){
 }
  break;
  case 5:
+if(data.isadmin==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.isadmin));
+}
+ break;
+ case 6:
 if(data.level==0){
 	temparray.push_back("0");
  }else{ 
 	temparray.push_back(std::to_string(data.level));
 }
  break;
- case 6:
+ case 7:
 if(data.companyid==0){
 	temparray.push_back("0");
  }else{ 
 	temparray.push_back(std::to_string(data.companyid));
 }
  break;
- case 7:
+ case 8:
 if(data.dpid==0){
 	temparray.push_back("0");
  }else{ 
 	temparray.push_back(std::to_string(data.dpid));
 }
  break;
- case 8:
+ case 9:
 if(data.jobid==0){
 	temparray.push_back("0");
  }else{ 
 	temparray.push_back(std::to_string(data.jobid));
 }
  break;
- case 9:
+ case 10:
 if(data.roleid==0){
 	temparray.push_back("0");
  }else{ 
 	temparray.push_back(std::to_string(data.roleid));
 }
  break;
- case 10:
+ case 11:
 if(data.postid==0){
 	temparray.push_back("0");
  }else{ 
 	temparray.push_back(std::to_string(data.postid));
 }
  break;
- case 11:
+ case 12:
 if(data.created_at==0){
 	temparray.push_back("0");
  }else{ 
 	temparray.push_back(std::to_string(data.created_at));
 }
  break;
- case 12:
+ case 13:
 if(data.enddate==0){
 	temparray.push_back("0");
  }else{ 
 	temparray.push_back(std::to_string(data.enddate));
 }
  break;
- case 13:
+ case 14:
 if(data.qrtemp==0){
 	temparray.push_back("0");
  }else{ 
 	temparray.push_back(std::to_string(data.qrtemp));
 }
  break;
- case 14:
+ case 15:
 if(data.gender==0){
 	temparray.push_back("0");
  }else{ 
 	temparray.push_back(std::to_string(data.gender));
 }
  break;
- case 15:
+ case 16:
 	temparray.push_back(data.nickname);
  break;
- case 16:
+ case 17:
 	temparray.push_back(data.realname);
  break;
- case 17:
+ case 18:
 	temparray.push_back(data.avatar);
  break;
- case 18:
+ case 19:
 	temparray.push_back(data.mobile);
  break;
- case 19:
+ case 20:
 	temparray.push_back(data.email);
  break;
- case 20:
+ case 21:
 	temparray.push_back(data.wxuuid);
+ break;
+ case 22:
+	temparray.push_back(data.expname);
+ break;
+ case 23:
+	temparray.push_back(data.expmobile);
+ break;
+ case 24:
+	temparray.push_back(data.expaddress);
  break;
 
                              default:
@@ -2138,92 +2280,108 @@ if(data.isopen==0){
 }
  break;
  case 5:
+if(data.isadmin==0){
+	tempsql.insert({"isadmin","0"});
+ }else{ 
+	tempsql.insert({"isadmin",std::to_string(data.isadmin)});
+}
+ break;
+ case 6:
 if(data.level==0){
 	tempsql.insert({"level","0"});
  }else{ 
 	tempsql.insert({"level",std::to_string(data.level)});
 }
  break;
- case 6:
+ case 7:
 if(data.companyid==0){
 	tempsql.insert({"companyid","0"});
  }else{ 
 	tempsql.insert({"companyid",std::to_string(data.companyid)});
 }
  break;
- case 7:
+ case 8:
 if(data.dpid==0){
 	tempsql.insert({"dpid","0"});
  }else{ 
 	tempsql.insert({"dpid",std::to_string(data.dpid)});
 }
  break;
- case 8:
+ case 9:
 if(data.jobid==0){
 	tempsql.insert({"jobid","0"});
  }else{ 
 	tempsql.insert({"jobid",std::to_string(data.jobid)});
 }
  break;
- case 9:
+ case 10:
 if(data.roleid==0){
 	tempsql.insert({"roleid","0"});
  }else{ 
 	tempsql.insert({"roleid",std::to_string(data.roleid)});
 }
  break;
- case 10:
+ case 11:
 if(data.postid==0){
 	tempsql.insert({"postid","0"});
  }else{ 
 	tempsql.insert({"postid",std::to_string(data.postid)});
 }
  break;
- case 11:
+ case 12:
 if(data.created_at==0){
 	tempsql.insert({"created_at","0"});
  }else{ 
 	tempsql.insert({"created_at",std::to_string(data.created_at)});
 }
  break;
- case 12:
+ case 13:
 if(data.enddate==0){
 	tempsql.insert({"enddate","0"});
  }else{ 
 	tempsql.insert({"enddate",std::to_string(data.enddate)});
 }
  break;
- case 13:
+ case 14:
 if(data.qrtemp==0){
 	tempsql.insert({"qrtemp","0"});
  }else{ 
 	tempsql.insert({"qrtemp",std::to_string(data.qrtemp)});
 }
  break;
- case 14:
+ case 15:
 if(data.gender==0){
 	tempsql.insert({"gender","0"});
  }else{ 
 	tempsql.insert({"gender",std::to_string(data.gender)});
 }
  break;
- case 15:
+ case 16:
 	tempsql.insert({"nickname",data.nickname});
  break;
- case 16:
+ case 17:
 	tempsql.insert({"realname",data.realname});
  break;
- case 17:
+ case 18:
 	tempsql.insert({"avatar",data.avatar});
  break;
- case 18:
+ case 19:
 	tempsql.insert({"mobile",data.mobile});
  break;
- case 19:
+ case 20:
 	tempsql.insert({"email",data.email});
  break;
- case 20:
+ case 21:
 	tempsql.insert({"wxuuid",data.wxuuid});
+ break;
+ case 22:
+	tempsql.insert({"expname",data.expname});
+ break;
+ case 23:
+	tempsql.insert({"expmobile",data.expmobile});
+ break;
+ case 24:
+	tempsql.insert({"expaddress",data.expaddress});
  break;
 
                              default:
@@ -2253,6 +2411,11 @@ if(data.isopen==0){
 	tempsql<<",\"isopen\":0";
  }else{ 
 	tempsql<<",\"isopen\":"<<std::to_string(data.isopen);
+}
+if(data.isadmin==0){
+	tempsql<<",\"isadmin\":0";
+ }else{ 
+	tempsql<<",\"isadmin\":"<<std::to_string(data.isadmin);
 }
 if(data.level==0){
 	tempsql<<",\"level\":0";
@@ -2315,6 +2478,12 @@ tempsql<<"\"";
 tempsql<<",\"email\":\""<<http::utf8_to_jsonstring(data.email);
 tempsql<<"\"";
 tempsql<<",\"wxuuid\":\""<<http::utf8_to_jsonstring(data.wxuuid);
+tempsql<<"\"";
+tempsql<<",\"expname\":\""<<http::utf8_to_jsonstring(data.expname);
+tempsql<<"\"";
+tempsql<<",\"expmobile\":\""<<http::utf8_to_jsonstring(data.expmobile);
+tempsql<<"\"";
+tempsql<<",\"expaddress\":\""<<http::utf8_to_jsonstring(data.expaddress);
 tempsql<<"\"";
 tempsql<<"}";
 
@@ -2389,13 +2558,21 @@ if(data.isopen==0){
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
+if(data.isadmin==0){
+	tempsql<<"\"isadmin\":0";
+ }else{ 
+	tempsql<<"\"isadmin\":"<<std::to_string(data.isadmin);
+}
+ break;
+ case 6:
+ if(jj>0){ tempsql<<","; } 
 if(data.level==0){
 	tempsql<<"\"level\":0";
  }else{ 
 	tempsql<<"\"level\":"<<std::to_string(data.level);
 }
  break;
- case 6:
+ case 7:
  if(jj>0){ tempsql<<","; } 
 if(data.companyid==0){
 	tempsql<<"\"companyid\":0";
@@ -2403,7 +2580,7 @@ if(data.companyid==0){
 	tempsql<<"\"companyid\":"<<std::to_string(data.companyid);
 }
  break;
- case 7:
+ case 8:
  if(jj>0){ tempsql<<","; } 
 if(data.dpid==0){
 	tempsql<<"\"dpid\":0";
@@ -2411,7 +2588,7 @@ if(data.dpid==0){
 	tempsql<<"\"dpid\":"<<std::to_string(data.dpid);
 }
  break;
- case 8:
+ case 9:
  if(jj>0){ tempsql<<","; } 
 if(data.jobid==0){
 	tempsql<<"\"jobid\":0";
@@ -2419,7 +2596,7 @@ if(data.jobid==0){
 	tempsql<<"\"jobid\":"<<std::to_string(data.jobid);
 }
  break;
- case 9:
+ case 10:
  if(jj>0){ tempsql<<","; } 
 if(data.roleid==0){
 	tempsql<<"\"roleid\":0";
@@ -2427,7 +2604,7 @@ if(data.roleid==0){
 	tempsql<<"\"roleid\":"<<std::to_string(data.roleid);
 }
  break;
- case 10:
+ case 11:
  if(jj>0){ tempsql<<","; } 
 if(data.postid==0){
 	tempsql<<"\"postid\":0";
@@ -2435,7 +2612,7 @@ if(data.postid==0){
 	tempsql<<"\"postid\":"<<std::to_string(data.postid);
 }
  break;
- case 11:
+ case 12:
  if(jj>0){ tempsql<<","; } 
 if(data.created_at==0){
 	tempsql<<"\"created_at\":0";
@@ -2443,7 +2620,7 @@ if(data.created_at==0){
 	tempsql<<"\"created_at\":"<<std::to_string(data.created_at);
 }
  break;
- case 12:
+ case 13:
  if(jj>0){ tempsql<<","; } 
 if(data.enddate==0){
 	tempsql<<"\"enddate\":0";
@@ -2451,7 +2628,7 @@ if(data.enddate==0){
 	tempsql<<"\"enddate\":"<<std::to_string(data.enddate);
 }
  break;
- case 13:
+ case 14:
  if(jj>0){ tempsql<<","; } 
 if(data.qrtemp==0){
 	tempsql<<"\"qrtemp\":0";
@@ -2459,7 +2636,7 @@ if(data.qrtemp==0){
 	tempsql<<"\"qrtemp\":"<<std::to_string(data.qrtemp);
 }
  break;
- case 14:
+ case 15:
  if(jj>0){ tempsql<<","; } 
 if(data.gender==0){
 	tempsql<<"\"gender\":0";
@@ -2467,29 +2644,41 @@ if(data.gender==0){
 	tempsql<<"\"gender\":"<<std::to_string(data.gender);
 }
  break;
- case 15:
+ case 16:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"nickname\":\""<<http::utf8_to_jsonstring(data.nickname)<<"\"";
  break;
- case 16:
+ case 17:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"realname\":\""<<http::utf8_to_jsonstring(data.realname)<<"\"";
  break;
- case 17:
+ case 18:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"avatar\":\""<<http::utf8_to_jsonstring(data.avatar)<<"\"";
  break;
- case 18:
+ case 19:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"mobile\":\""<<http::utf8_to_jsonstring(data.mobile)<<"\"";
  break;
- case 19:
+ case 20:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"email\":\""<<http::utf8_to_jsonstring(data.email)<<"\"";
  break;
- case 20:
+ case 21:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(data.wxuuid)<<"\"";
+ break;
+ case 22:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"expname\":\""<<http::utf8_to_jsonstring(data.expname)<<"\"";
+ break;
+ case 23:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"expmobile\":\""<<http::utf8_to_jsonstring(data.expmobile)<<"\"";
+ break;
+ case 24:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"expaddress\":\""<<http::utf8_to_jsonstring(data.expaddress)<<"\"";
  break;
 
                              default:
@@ -2768,67 +2957,83 @@ tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(data.wxuuid)<<"\"";
 		 break;
 		
 		case 5:
-		  http::json_set_val(data.level,set_value_name);
+		  http::json_set_val(data.isadmin,set_value_name);
 		 break;
 		
 		case 6:
-		  http::json_set_val(data.companyid,set_value_name);
+		  http::json_set_val(data.level,set_value_name);
 		 break;
 		
 		case 7:
-		  http::json_set_val(data.dpid,set_value_name);
+		  http::json_set_val(data.companyid,set_value_name);
 		 break;
 		
 		case 8:
-		  http::json_set_val(data.jobid,set_value_name);
+		  http::json_set_val(data.dpid,set_value_name);
 		 break;
 		
 		case 9:
-		  http::json_set_val(data.roleid,set_value_name);
+		  http::json_set_val(data.jobid,set_value_name);
 		 break;
 		
 		case 10:
-		  http::json_set_val(data.postid,set_value_name);
+		  http::json_set_val(data.roleid,set_value_name);
 		 break;
 		
 		case 11:
-		  http::json_set_val(data.created_at,set_value_name);
+		  http::json_set_val(data.postid,set_value_name);
 		 break;
 		
 		case 12:
-		  http::json_set_val(data.enddate,set_value_name);
+		  http::json_set_val(data.created_at,set_value_name);
 		 break;
 		
 		case 13:
-		  http::json_set_val(data.qrtemp,set_value_name);
+		  http::json_set_val(data.enddate,set_value_name);
 		 break;
 		
 		case 14:
-		  http::json_set_val(data.gender,set_value_name);
+		  http::json_set_val(data.qrtemp,set_value_name);
 		 break;
 		
 		case 15:
-		  http::json_set_val(data.nickname,set_value_name);
+		  http::json_set_val(data.gender,set_value_name);
 		 break;
 		
 		case 16:
-		  http::json_set_val(data.realname,set_value_name);
+		  http::json_set_val(data.nickname,set_value_name);
 		 break;
 		
 		case 17:
-		  http::json_set_val(data.avatar,set_value_name);
+		  http::json_set_val(data.realname,set_value_name);
 		 break;
 		
 		case 18:
-		  http::json_set_val(data.mobile,set_value_name);
+		  http::json_set_val(data.avatar,set_value_name);
 		 break;
 		
 		case 19:
-		  http::json_set_val(data.email,set_value_name);
+		  http::json_set_val(data.mobile,set_value_name);
 		 break;
 		
 		case 20:
+		  http::json_set_val(data.email,set_value_name);
+		 break;
+		
+		case 21:
 		  http::json_set_val(data.wxuuid,set_value_name);
+		 break;
+		
+		case 22:
+		  http::json_set_val(data.expname,set_value_name);
+		 break;
+		
+		case 23:
+		  http::json_set_val(data.expmobile,set_value_name);
+		 break;
+		
+		case 24:
+		  http::json_set_val(data.expaddress,set_value_name);
 		 break;
 		
 		default:
@@ -2913,13 +3118,21 @@ if(record[n].isopen==0){
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
+if(record[n].isadmin==0){
+	tempsql<<"\"isadmin\":0";
+ }else{ 
+	tempsql<<"\"isadmin\":"<<std::to_string(record[n].isadmin);
+}
+ break;
+ case 6:
+ if(jj>0){ tempsql<<","; } 
 if(record[n].level==0){
 	tempsql<<"\"level\":0";
  }else{ 
 	tempsql<<"\"level\":"<<std::to_string(record[n].level);
 }
  break;
- case 6:
+ case 7:
  if(jj>0){ tempsql<<","; } 
 if(record[n].companyid==0){
 	tempsql<<"\"companyid\":0";
@@ -2927,7 +3140,7 @@ if(record[n].companyid==0){
 	tempsql<<"\"companyid\":"<<std::to_string(record[n].companyid);
 }
  break;
- case 7:
+ case 8:
  if(jj>0){ tempsql<<","; } 
 if(record[n].dpid==0){
 	tempsql<<"\"dpid\":0";
@@ -2935,7 +3148,7 @@ if(record[n].dpid==0){
 	tempsql<<"\"dpid\":"<<std::to_string(record[n].dpid);
 }
  break;
- case 8:
+ case 9:
  if(jj>0){ tempsql<<","; } 
 if(record[n].jobid==0){
 	tempsql<<"\"jobid\":0";
@@ -2943,7 +3156,7 @@ if(record[n].jobid==0){
 	tempsql<<"\"jobid\":"<<std::to_string(record[n].jobid);
 }
  break;
- case 9:
+ case 10:
  if(jj>0){ tempsql<<","; } 
 if(record[n].roleid==0){
 	tempsql<<"\"roleid\":0";
@@ -2951,7 +3164,7 @@ if(record[n].roleid==0){
 	tempsql<<"\"roleid\":"<<std::to_string(record[n].roleid);
 }
  break;
- case 10:
+ case 11:
  if(jj>0){ tempsql<<","; } 
 if(record[n].postid==0){
 	tempsql<<"\"postid\":0";
@@ -2959,7 +3172,7 @@ if(record[n].postid==0){
 	tempsql<<"\"postid\":"<<std::to_string(record[n].postid);
 }
  break;
- case 11:
+ case 12:
  if(jj>0){ tempsql<<","; } 
 if(record[n].created_at==0){
 	tempsql<<"\"created_at\":0";
@@ -2967,7 +3180,7 @@ if(record[n].created_at==0){
 	tempsql<<"\"created_at\":"<<std::to_string(record[n].created_at);
 }
  break;
- case 12:
+ case 13:
  if(jj>0){ tempsql<<","; } 
 if(record[n].enddate==0){
 	tempsql<<"\"enddate\":0";
@@ -2975,7 +3188,7 @@ if(record[n].enddate==0){
 	tempsql<<"\"enddate\":"<<std::to_string(record[n].enddate);
 }
  break;
- case 13:
+ case 14:
  if(jj>0){ tempsql<<","; } 
 if(record[n].qrtemp==0){
 	tempsql<<"\"qrtemp\":0";
@@ -2983,7 +3196,7 @@ if(record[n].qrtemp==0){
 	tempsql<<"\"qrtemp\":"<<std::to_string(record[n].qrtemp);
 }
  break;
- case 14:
+ case 15:
  if(jj>0){ tempsql<<","; } 
 if(record[n].gender==0){
 	tempsql<<"\"gender\":0";
@@ -2991,29 +3204,41 @@ if(record[n].gender==0){
 	tempsql<<"\"gender\":"<<std::to_string(record[n].gender);
 }
  break;
- case 15:
+ case 16:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"nickname\":\""<<http::utf8_to_jsonstring(record[n].nickname)<<"\"";
  break;
- case 16:
+ case 17:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"realname\":\""<<http::utf8_to_jsonstring(record[n].realname)<<"\"";
  break;
- case 17:
+ case 18:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"avatar\":\""<<http::utf8_to_jsonstring(record[n].avatar)<<"\"";
  break;
- case 18:
+ case 19:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"mobile\":\""<<http::utf8_to_jsonstring(record[n].mobile)<<"\"";
  break;
- case 19:
+ case 20:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"email\":\""<<http::utf8_to_jsonstring(record[n].email)<<"\"";
  break;
- case 20:
+ case 21:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(record[n].wxuuid)<<"\"";
+ break;
+ case 22:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"expname\":\""<<http::utf8_to_jsonstring(record[n].expname)<<"\"";
+ break;
+ case 23:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"expmobile\":\""<<http::utf8_to_jsonstring(record[n].expmobile)<<"\"";
+ break;
+ case 24:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"expaddress\":\""<<http::utf8_to_jsonstring(record[n].expaddress)<<"\"";
  break;
 
                              default:
@@ -3107,13 +3332,21 @@ if(record[n].isopen==0){
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
+if(record[n].isadmin==0){
+	tempsql<<"\"isadmin\":0";
+ }else{ 
+	tempsql<<"\"isadmin\":"<<std::to_string(record[n].isadmin);
+}
+ break;
+ case 6:
+ if(jj>0){ tempsql<<","; } 
 if(record[n].level==0){
 	tempsql<<"\"level\":0";
  }else{ 
 	tempsql<<"\"level\":"<<std::to_string(record[n].level);
 }
  break;
- case 6:
+ case 7:
  if(jj>0){ tempsql<<","; } 
 if(record[n].companyid==0){
 	tempsql<<"\"companyid\":0";
@@ -3121,7 +3354,7 @@ if(record[n].companyid==0){
 	tempsql<<"\"companyid\":"<<std::to_string(record[n].companyid);
 }
  break;
- case 7:
+ case 8:
  if(jj>0){ tempsql<<","; } 
 if(record[n].dpid==0){
 	tempsql<<"\"dpid\":0";
@@ -3129,7 +3362,7 @@ if(record[n].dpid==0){
 	tempsql<<"\"dpid\":"<<std::to_string(record[n].dpid);
 }
  break;
- case 8:
+ case 9:
  if(jj>0){ tempsql<<","; } 
 if(record[n].jobid==0){
 	tempsql<<"\"jobid\":0";
@@ -3137,7 +3370,7 @@ if(record[n].jobid==0){
 	tempsql<<"\"jobid\":"<<std::to_string(record[n].jobid);
 }
  break;
- case 9:
+ case 10:
  if(jj>0){ tempsql<<","; } 
 if(record[n].roleid==0){
 	tempsql<<"\"roleid\":0";
@@ -3145,7 +3378,7 @@ if(record[n].roleid==0){
 	tempsql<<"\"roleid\":"<<std::to_string(record[n].roleid);
 }
  break;
- case 10:
+ case 11:
  if(jj>0){ tempsql<<","; } 
 if(record[n].postid==0){
 	tempsql<<"\"postid\":0";
@@ -3153,7 +3386,7 @@ if(record[n].postid==0){
 	tempsql<<"\"postid\":"<<std::to_string(record[n].postid);
 }
  break;
- case 11:
+ case 12:
  if(jj>0){ tempsql<<","; } 
 if(record[n].created_at==0){
 	tempsql<<"\"created_at\":0";
@@ -3161,7 +3394,7 @@ if(record[n].created_at==0){
 	tempsql<<"\"created_at\":"<<std::to_string(record[n].created_at);
 }
  break;
- case 12:
+ case 13:
  if(jj>0){ tempsql<<","; } 
 if(record[n].enddate==0){
 	tempsql<<"\"enddate\":0";
@@ -3169,7 +3402,7 @@ if(record[n].enddate==0){
 	tempsql<<"\"enddate\":"<<std::to_string(record[n].enddate);
 }
  break;
- case 13:
+ case 14:
  if(jj>0){ tempsql<<","; } 
 if(record[n].qrtemp==0){
 	tempsql<<"\"qrtemp\":0";
@@ -3177,7 +3410,7 @@ if(record[n].qrtemp==0){
 	tempsql<<"\"qrtemp\":"<<std::to_string(record[n].qrtemp);
 }
  break;
- case 14:
+ case 15:
  if(jj>0){ tempsql<<","; } 
 if(record[n].gender==0){
 	tempsql<<"\"gender\":0";
@@ -3185,29 +3418,41 @@ if(record[n].gender==0){
 	tempsql<<"\"gender\":"<<std::to_string(record[n].gender);
 }
  break;
- case 15:
+ case 16:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"nickname\":\""<<http::utf8_to_jsonstring(record[n].nickname)<<"\"";
  break;
- case 16:
+ case 17:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"realname\":\""<<http::utf8_to_jsonstring(record[n].realname)<<"\"";
  break;
- case 17:
+ case 18:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"avatar\":\""<<http::utf8_to_jsonstring(record[n].avatar)<<"\"";
  break;
- case 18:
+ case 19:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"mobile\":\""<<http::utf8_to_jsonstring(record[n].mobile)<<"\"";
  break;
- case 19:
+ case 20:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"email\":\""<<http::utf8_to_jsonstring(record[n].email)<<"\"";
  break;
- case 20:
+ case 21:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(record[n].wxuuid)<<"\"";
+ break;
+ case 22:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"expname\":\""<<http::utf8_to_jsonstring(record[n].expname)<<"\"";
+ break;
+ case 23:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"expmobile\":\""<<http::utf8_to_jsonstring(record[n].expmobile)<<"\"";
+ break;
+ case 24:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"expaddress\":\""<<http::utf8_to_jsonstring(record[n].expaddress)<<"\"";
  break;
 
                              default:
@@ -3249,87 +3494,112 @@ tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(record[n].wxuuid)<<"\"";
  void setIsopen( char  val){  data.isopen=val;
 		 set_dirty(4);  }
 
+ unsigned  char  getIsadmin(){  return data.isadmin; } 
+ void setIsadmin( unsigned  char  val){  data.isadmin=val;
+		 set_dirty(5);  }
+
  int  getLevel(){  return data.level; } 
  void setLevel( int  val){  data.level=val;
-		 set_dirty(5);  }
+		 set_dirty(6);  }
 
  unsigned  int  getCompanyid(){  return data.companyid; } 
  void setCompanyid( unsigned  int  val){  data.companyid=val;
-		 set_dirty(6);  }
+		 set_dirty(7);  }
 
  unsigned  int  getDpid(){  return data.dpid; } 
  void setDpid( unsigned  int  val){  data.dpid=val;
-		 set_dirty(7);  }
+		 set_dirty(8);  }
 
  unsigned  int  getJobid(){  return data.jobid; } 
  void setJobid( unsigned  int  val){  data.jobid=val;
-		 set_dirty(8);  }
+		 set_dirty(9);  }
 
  unsigned  int  getRoleid(){  return data.roleid; } 
  void setRoleid( unsigned  int  val){  data.roleid=val;
-		 set_dirty(9);  }
+		 set_dirty(10);  }
 
  unsigned  int  getPostid(){  return data.postid; } 
  void setPostid( unsigned  int  val){  data.postid=val;
-		 set_dirty(10);  }
+		 set_dirty(11);  }
 
  unsigned  int  getCreatedAt(){  return data.created_at; } 
  void setCreatedAt( unsigned  int  val){  data.created_at=val;
-		 set_dirty(11);  }
+		 set_dirty(12);  }
 
  unsigned  int  getEnddate(){  return data.enddate; } 
  void setEnddate( unsigned  int  val){  data.enddate=val;
-		 set_dirty(12);  }
+		 set_dirty(13);  }
 
  unsigned  int  getQrtemp(){  return data.qrtemp; } 
  void setQrtemp( unsigned  int  val){  data.qrtemp=val;
-		 set_dirty(13);  }
+		 set_dirty(14);  }
 
  unsigned  char  getGender(){  return data.gender; } 
  void setGender( unsigned  char  val){  data.gender=val;
-		 set_dirty(14);  }
+		 set_dirty(15);  }
 
  std::string  getNickname(){  return data.nickname; } 
  std::string & getRefNickname(){  return std::ref(data.nickname); } 
  void setNickname( std::string  &val){  data.nickname=val;
-		 set_dirty(15);  }
+		 set_dirty(16);  }
  void setNickname(std::string_view val){  data.nickname=val;
-		 set_dirty(15);  }
+		 set_dirty(16);  }
 
  std::string  getRealname(){  return data.realname; } 
  std::string & getRefRealname(){  return std::ref(data.realname); } 
  void setRealname( std::string  &val){  data.realname=val;
-		 set_dirty(16);  }
+		 set_dirty(17);  }
  void setRealname(std::string_view val){  data.realname=val;
-		 set_dirty(16);  }
+		 set_dirty(17);  }
 
  std::string  getAvatar(){  return data.avatar; } 
  std::string & getRefAvatar(){  return std::ref(data.avatar); } 
  void setAvatar( std::string  &val){  data.avatar=val;
-		 set_dirty(17);  }
+		 set_dirty(18);  }
  void setAvatar(std::string_view val){  data.avatar=val;
-		 set_dirty(17);  }
+		 set_dirty(18);  }
 
  std::string  getMobile(){  return data.mobile; } 
  std::string & getRefMobile(){  return std::ref(data.mobile); } 
  void setMobile( std::string  &val){  data.mobile=val;
-		 set_dirty(18);  }
+		 set_dirty(19);  }
  void setMobile(std::string_view val){  data.mobile=val;
-		 set_dirty(18);  }
+		 set_dirty(19);  }
 
  std::string  getEmail(){  return data.email; } 
  std::string & getRefEmail(){  return std::ref(data.email); } 
  void setEmail( std::string  &val){  data.email=val;
-		 set_dirty(19);  }
+		 set_dirty(20);  }
  void setEmail(std::string_view val){  data.email=val;
-		 set_dirty(19);  }
+		 set_dirty(20);  }
 
  std::string  getWxuuid(){  return data.wxuuid; } 
  std::string & getRefWxuuid(){  return std::ref(data.wxuuid); } 
  void setWxuuid( std::string  &val){  data.wxuuid=val;
-		 set_dirty(20);  }
+		 set_dirty(21);  }
  void setWxuuid(std::string_view val){  data.wxuuid=val;
-		 set_dirty(20);  }
+		 set_dirty(21);  }
+
+ std::string  getExpname(){  return data.expname; } 
+ std::string & getRefExpname(){  return std::ref(data.expname); } 
+ void setExpname( std::string  &val){  data.expname=val;
+		 set_dirty(22);  }
+ void setExpname(std::string_view val){  data.expname=val;
+		 set_dirty(22);  }
+
+ std::string  getExpmobile(){  return data.expmobile; } 
+ std::string & getRefExpmobile(){  return std::ref(data.expmobile); } 
+ void setExpmobile( std::string  &val){  data.expmobile=val;
+		 set_dirty(23);  }
+ void setExpmobile(std::string_view val){  data.expmobile=val;
+		 set_dirty(23);  }
+
+ std::string  getExpaddress(){  return data.expaddress; } 
+ std::string & getRefExpaddress(){  return std::ref(data.expaddress); } 
+ void setExpaddress( std::string  &val){  data.expaddress=val;
+		 set_dirty(24);  }
+ void setExpaddress(std::string_view val){  data.expaddress=val;
+		 set_dirty(24);  }
 
 sysuser_info::meta getnewData(){
  	 struct sysuser_info::meta newdata;
@@ -3416,13 +3686,21 @@ if(tree_data[n].isopen==0){
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
+if(tree_data[n].isadmin==0){
+	tempsql<<"\"isadmin\":0";
+ }else{ 
+	tempsql<<"\"isadmin\":"<<std::to_string(tree_data[n].isadmin);
+}
+ break;
+ case 6:
+ if(jj>0){ tempsql<<","; } 
 if(tree_data[n].level==0){
 	tempsql<<"\"level\":0";
  }else{ 
 	tempsql<<"\"level\":"<<std::to_string(tree_data[n].level);
 }
  break;
- case 6:
+ case 7:
  if(jj>0){ tempsql<<","; } 
 if(tree_data[n].companyid==0){
 	tempsql<<"\"companyid\":0";
@@ -3430,7 +3708,7 @@ if(tree_data[n].companyid==0){
 	tempsql<<"\"companyid\":"<<std::to_string(tree_data[n].companyid);
 }
  break;
- case 7:
+ case 8:
  if(jj>0){ tempsql<<","; } 
 if(tree_data[n].dpid==0){
 	tempsql<<"\"dpid\":0";
@@ -3438,7 +3716,7 @@ if(tree_data[n].dpid==0){
 	tempsql<<"\"dpid\":"<<std::to_string(tree_data[n].dpid);
 }
  break;
- case 8:
+ case 9:
  if(jj>0){ tempsql<<","; } 
 if(tree_data[n].jobid==0){
 	tempsql<<"\"jobid\":0";
@@ -3446,7 +3724,7 @@ if(tree_data[n].jobid==0){
 	tempsql<<"\"jobid\":"<<std::to_string(tree_data[n].jobid);
 }
  break;
- case 9:
+ case 10:
  if(jj>0){ tempsql<<","; } 
 if(tree_data[n].roleid==0){
 	tempsql<<"\"roleid\":0";
@@ -3454,7 +3732,7 @@ if(tree_data[n].roleid==0){
 	tempsql<<"\"roleid\":"<<std::to_string(tree_data[n].roleid);
 }
  break;
- case 10:
+ case 11:
  if(jj>0){ tempsql<<","; } 
 if(tree_data[n].postid==0){
 	tempsql<<"\"postid\":0";
@@ -3462,7 +3740,7 @@ if(tree_data[n].postid==0){
 	tempsql<<"\"postid\":"<<std::to_string(tree_data[n].postid);
 }
  break;
- case 11:
+ case 12:
  if(jj>0){ tempsql<<","; } 
 if(tree_data[n].created_at==0){
 	tempsql<<"\"created_at\":0";
@@ -3470,7 +3748,7 @@ if(tree_data[n].created_at==0){
 	tempsql<<"\"created_at\":"<<std::to_string(tree_data[n].created_at);
 }
  break;
- case 12:
+ case 13:
  if(jj>0){ tempsql<<","; } 
 if(tree_data[n].enddate==0){
 	tempsql<<"\"enddate\":0";
@@ -3478,7 +3756,7 @@ if(tree_data[n].enddate==0){
 	tempsql<<"\"enddate\":"<<std::to_string(tree_data[n].enddate);
 }
  break;
- case 13:
+ case 14:
  if(jj>0){ tempsql<<","; } 
 if(tree_data[n].qrtemp==0){
 	tempsql<<"\"qrtemp\":0";
@@ -3486,7 +3764,7 @@ if(tree_data[n].qrtemp==0){
 	tempsql<<"\"qrtemp\":"<<std::to_string(tree_data[n].qrtemp);
 }
  break;
- case 14:
+ case 15:
  if(jj>0){ tempsql<<","; } 
 if(tree_data[n].gender==0){
 	tempsql<<"\"gender\":0";
@@ -3494,29 +3772,41 @@ if(tree_data[n].gender==0){
 	tempsql<<"\"gender\":"<<std::to_string(tree_data[n].gender);
 }
  break;
- case 15:
+ case 16:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"nickname\":\""<<http::utf8_to_jsonstring(tree_data[n].nickname)<<"\"";
  break;
- case 16:
+ case 17:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"realname\":\""<<http::utf8_to_jsonstring(tree_data[n].realname)<<"\"";
  break;
- case 17:
+ case 18:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"avatar\":\""<<http::utf8_to_jsonstring(tree_data[n].avatar)<<"\"";
  break;
- case 18:
+ case 19:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"mobile\":\""<<http::utf8_to_jsonstring(tree_data[n].mobile)<<"\"";
  break;
- case 19:
+ case 20:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"email\":\""<<http::utf8_to_jsonstring(tree_data[n].email)<<"\"";
  break;
- case 20:
+ case 21:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(tree_data[n].wxuuid)<<"\"";
+ break;
+ case 22:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"expname\":\""<<http::utf8_to_jsonstring(tree_data[n].expname)<<"\"";
+ break;
+ case 23:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"expmobile\":\""<<http::utf8_to_jsonstring(tree_data[n].expmobile)<<"\"";
+ break;
+ case 24:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"expaddress\":\""<<http::utf8_to_jsonstring(tree_data[n].expaddress)<<"\"";
  break;
 
                              default:
@@ -3613,13 +3903,21 @@ if(tree_data[n].isopen==0){
  break;
  case 5:
  if(jj>0){ tempsql<<","; } 
+if(tree_data[n].isadmin==0){
+	tempsql<<"\"isadmin\":0";
+ }else{ 
+	tempsql<<"\"isadmin\":"<<std::to_string(tree_data[n].isadmin);
+}
+ break;
+ case 6:
+ if(jj>0){ tempsql<<","; } 
 if(tree_data[n].level==0){
 	tempsql<<"\"level\":0";
  }else{ 
 	tempsql<<"\"level\":"<<std::to_string(tree_data[n].level);
 }
  break;
- case 6:
+ case 7:
  if(jj>0){ tempsql<<","; } 
 if(tree_data[n].companyid==0){
 	tempsql<<"\"companyid\":0";
@@ -3627,7 +3925,7 @@ if(tree_data[n].companyid==0){
 	tempsql<<"\"companyid\":"<<std::to_string(tree_data[n].companyid);
 }
  break;
- case 7:
+ case 8:
  if(jj>0){ tempsql<<","; } 
 if(tree_data[n].dpid==0){
 	tempsql<<"\"dpid\":0";
@@ -3635,7 +3933,7 @@ if(tree_data[n].dpid==0){
 	tempsql<<"\"dpid\":"<<std::to_string(tree_data[n].dpid);
 }
  break;
- case 8:
+ case 9:
  if(jj>0){ tempsql<<","; } 
 if(tree_data[n].jobid==0){
 	tempsql<<"\"jobid\":0";
@@ -3643,7 +3941,7 @@ if(tree_data[n].jobid==0){
 	tempsql<<"\"jobid\":"<<std::to_string(tree_data[n].jobid);
 }
  break;
- case 9:
+ case 10:
  if(jj>0){ tempsql<<","; } 
 if(tree_data[n].roleid==0){
 	tempsql<<"\"roleid\":0";
@@ -3651,7 +3949,7 @@ if(tree_data[n].roleid==0){
 	tempsql<<"\"roleid\":"<<std::to_string(tree_data[n].roleid);
 }
  break;
- case 10:
+ case 11:
  if(jj>0){ tempsql<<","; } 
 if(tree_data[n].postid==0){
 	tempsql<<"\"postid\":0";
@@ -3659,7 +3957,7 @@ if(tree_data[n].postid==0){
 	tempsql<<"\"postid\":"<<std::to_string(tree_data[n].postid);
 }
  break;
- case 11:
+ case 12:
  if(jj>0){ tempsql<<","; } 
 if(tree_data[n].created_at==0){
 	tempsql<<"\"created_at\":0";
@@ -3667,7 +3965,7 @@ if(tree_data[n].created_at==0){
 	tempsql<<"\"created_at\":"<<std::to_string(tree_data[n].created_at);
 }
  break;
- case 12:
+ case 13:
  if(jj>0){ tempsql<<","; } 
 if(tree_data[n].enddate==0){
 	tempsql<<"\"enddate\":0";
@@ -3675,7 +3973,7 @@ if(tree_data[n].enddate==0){
 	tempsql<<"\"enddate\":"<<std::to_string(tree_data[n].enddate);
 }
  break;
- case 13:
+ case 14:
  if(jj>0){ tempsql<<","; } 
 if(tree_data[n].qrtemp==0){
 	tempsql<<"\"qrtemp\":0";
@@ -3683,7 +3981,7 @@ if(tree_data[n].qrtemp==0){
 	tempsql<<"\"qrtemp\":"<<std::to_string(tree_data[n].qrtemp);
 }
  break;
- case 14:
+ case 15:
  if(jj>0){ tempsql<<","; } 
 if(tree_data[n].gender==0){
 	tempsql<<"\"gender\":0";
@@ -3691,29 +3989,41 @@ if(tree_data[n].gender==0){
 	tempsql<<"\"gender\":"<<std::to_string(tree_data[n].gender);
 }
  break;
- case 15:
+ case 16:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"nickname\":\""<<http::utf8_to_jsonstring(tree_data[n].nickname)<<"\"";
  break;
- case 16:
+ case 17:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"realname\":\""<<http::utf8_to_jsonstring(tree_data[n].realname)<<"\"";
  break;
- case 17:
+ case 18:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"avatar\":\""<<http::utf8_to_jsonstring(tree_data[n].avatar)<<"\"";
  break;
- case 18:
+ case 19:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"mobile\":\""<<http::utf8_to_jsonstring(tree_data[n].mobile)<<"\"";
  break;
- case 19:
+ case 20:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"email\":\""<<http::utf8_to_jsonstring(tree_data[n].email)<<"\"";
  break;
- case 20:
+ case 21:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"wxuuid\":\""<<http::utf8_to_jsonstring(tree_data[n].wxuuid)<<"\"";
+ break;
+ case 22:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"expname\":\""<<http::utf8_to_jsonstring(tree_data[n].expname)<<"\"";
+ break;
+ case 23:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"expmobile\":\""<<http::utf8_to_jsonstring(tree_data[n].expmobile)<<"\"";
+ break;
+ case 24:
+ if(jj>0){ tempsql<<","; } 
+tempsql<<"\"expaddress\":\""<<http::utf8_to_jsonstring(tree_data[n].expaddress)<<"\"";
  break;
 
                              default:

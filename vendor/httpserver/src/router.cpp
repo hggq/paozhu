@@ -13,6 +13,7 @@
 #include "pool_step.h"
 #include "func.h"
 #include "debug_log.h"
+#include "ipratelimit.h"
 
 namespace http
 {
@@ -28,6 +29,8 @@ router &get_router()
 
 namespace
 {
+
+route_auth_fn g_route_auth_hook;
 
 enum class chain_act : unsigned char
 {
@@ -112,6 +115,32 @@ void fail_503(std::shared_ptr<httppeer> &peer)
     peer->output = "server busy";
 }
 
+void fail_429(std::shared_ptr<httppeer> &peer)
+{
+    DEBUG_LOG("request blocked by route rate limit");
+    peer->status(429);
+    peer->output = "Too Many Requests";
+}
+
+// RBAC 拒绝响应。状态码由判定钩子给（未登录 401 / 无权 403），路由只照写，
+// 不认识任何业务会话键，也不参与判定；正文带命中的注册名和钩子给的原因。
+void fail_deny(std::shared_ptr<httppeer> &peer,
+               const std::string &path,
+               unsigned int status,
+               const std::string &reason)
+{
+    DEBUG_LOG("rbac: deny %u %s (%s)", status, path.c_str(), reason.c_str());
+    peer->status(status);
+    peer->output = "Access denied <hr />";
+    peer->output.append(path);
+    if (!reason.empty())
+    {
+        peer->output.append(" (");
+        peer->output.append(reason);
+        peer->output.append(")");
+    }
+}
+
 int checked_idx(unsigned int idx)
 {
     if (idx >= _handlers.size())
@@ -120,6 +149,16 @@ int checked_idx(unsigned int idx)
 }
 
 }// namespace
+
+void set_route_auth_hook(route_auth_fn fn)
+{
+    g_route_auth_hook = std::move(fn);
+}
+
+bool route_auth_hook_ready()
+{
+    return static_cast<bool>(g_route_auth_hook);
+}
 
 // — 兜底 walk 的前缀表：由短到长，最多 6 段；超过 6 段的深路径靠 lookup_exact 原样命中，
 //    更深的前缀参数请改用 query（?aa=222&bb=444） —
@@ -567,6 +606,47 @@ std::string router::resolve(std::shared_ptr<httppeer> peer)
         // 写在循环顶部，所以跳转或编排栈弹出的下一步会用自己那条的掩码覆盖。
         peer->mask_code = h.mask_code;
 
+        // 限流先于 pre 和 handler：超限直接 429 结束本条请求，不再往下走。
+        // Rate limit runs before pre/handler: over the quota we write 429 and stop this request.
+        if (h.rate_num > 0
+            && !get_ip_rate_limiter().allow((unsigned int)idx, peer->client_ip, h.rate_time, h.rate_num))
+        {
+            fail_429(peer);
+            return "";
+        }
+
+        // 分流开关是注解里的 maskcode：mask_code != 0 的路由才调判定钩子，
+        // == 0 在这一行直接跳过，保持原有 pre/登录逻辑与零额外开销。
+        // 读会话、给状态码都由判定方（libs/rbac）做，路由不碰任何业务会话键。
+        if (h.mask_code != 0)
+        {
+            if (!route_auth_hook_ready())
+            {
+                fail_deny(peer, cur_path, 403, "auth hook not installed");
+                return "";
+            }
+            unsigned int deny_code = 0;
+            try
+            {
+                deny_code = g_route_auth_hook(peer->get_peer(), cur_path, h.mask_code);
+            }
+            catch (std::exception const &e)
+            {
+                fail_500(peer, e.what());
+                return "";
+            }
+            catch (...)
+            {
+                fail_500(peer, "unknown exception in rbac hook");
+                return "";
+            }
+            if (deny_code != 0)
+            {
+                fail_deny(peer, cur_path, deny_code, "rbac denied");
+                return "";
+            }
+        }
+
         if (h.pre_kind == fn_kind::sync && h.pre)
         {
             try
@@ -729,6 +809,48 @@ asio::awaitable<std::string> router::co_resolve(std::shared_ptr<httppeer> peer, 
         auto const &h = _handlers[idx];
 
         peer->mask_code = h.mask_code;// 与同步链同形：pre 先于 handler 看到本条的掩码
+
+        // 限流先于 pre 和 handler：超限直接 429 结束本条请求，不再往下走。
+        // Rate limit runs before pre/handler: over the quota we write 429 and stop this request.
+        if (h.rate_num > 0
+            && !get_ip_rate_limiter().allow((unsigned int)idx, peer->client_ip, h.rate_time, h.rate_num))
+        {
+            fail_429(peer);
+            co_return "";
+        }
+
+        // 分流开关是注解里的 maskcode：mask_code != 0 的路由才调判定钩子，== 0 完全不参与。
+        // 判定要查库，交给业务线程池跑，事件循环不等同步查询；
+        // 读会话与给状态码都由判定方（libs/rbac）做，路由不碰任何业务会话键。
+        if (h.mask_code != 0)
+        {
+            if (!route_auth_hook_ready())
+            {
+                fail_deny(peer, cur_path, 403, "auth hook not installed");
+                co_return "";
+            }
+            auto step = co_await co_pool_run_code(
+                [path = cur_path, mask = h.mask_code](std::shared_ptr<httppeer> &p) -> unsigned int
+                {
+                    return g_route_auth_hook(p->get_peer(), path, mask);
+                },
+                peer, asio::use_awaitable);
+            if (step.eptr)
+            {
+                fail_500(peer, exception_text(step.eptr));
+                co_return "";
+            }
+            if (step.rejected)
+            {
+                fail_503(peer);
+                co_return "";
+            }
+            if (step.value != 0)
+            {
+                fail_deny(peer, cur_path, step.value, "rbac denied");
+                co_return "";
+            }
+        }
 
         bool has_pre = false;
         if (h.pre_kind == fn_kind::sync && h.pre)

@@ -41,9 +41,19 @@ struct reg_autoitem
     std::string filename;
     bool is_co = false;      // handler 是否协程（兼容旧逻辑）
     bool pre_is_co = false;  // pre 是否协程
-    // 注解可选 mask_code：//@urlpath(pre,handler):123456 里的 123456，没写默认为 0
-    // extracted from optional //@urlpath(...):digits suffix; default 0 when absent
+    // 注解可选 mask_code：//@urlpath(pre,handler):maskcode(123456) 里的 123456，没写默认为 0
+    // also accepts the legacy //@urlpath(...):123456 form; default 0 when absent
     unsigned int mask_code = 0;
+    // 注解可选 ratelimit：//@urlpath(pre,handler):ratelimit(20,5) 里的两个参数，
+    // 第一个写进 rate_time，第二个写进 rate_num，没写默认为 0
+    // ratelimit(time,num) suffix: first arg -> rate_time, second -> rate_num; default 0 when absent
+    unsigned char rate_time = 0;
+    unsigned char rate_num  = 0;
+    // 注解可选 title：//@urlpath(pre,handler):title(名称) 或 :title("名称")
+    // 包裹的一对双引号会被去掉，里面的空格和逗号原样保留；没写这个后缀就是空串
+    // optional route title; a wrapping pair of double quotes is stripped, inner spaces and
+    // commas kept as written; empty when the suffix is absent
+    std::string title;
     // 注解在源文件里的行号，用于 autocontrolmethod.hpp 生成行尾注释 // @source.cpp:line
     // line number of the annotation in source; emitted as trailing comment in the generated reg_raw line
     unsigned int line_no = 0;
@@ -560,43 +570,212 @@ class pickcontrol
                                  prename.c_str(), tempname.c_str());
                 }
 
-                // j now points to ')' or '\n' —— optionally extract ":digits" mask_code after ')'
-                unsigned int mask_code = 0;
+                // j now points to ')' or '\n' —— 解析 ')' 之后的 :name(args) 后缀链
+                // parse the optional :name(args) suffix chain after the urlpath ')'
+                // 支持 //@urlpath(pre,urlpath):maskcode(123456):ratelimit(20,5):title(名称)
+                // 旧写法 //@urlpath(pre,urlpath):123456 仍然按 mask_code 处理
+                // legacy //@urlpath(pre,urlpath):digits is still read as mask_code
+                unsigned int mask_code  = 0;
+                unsigned char rate_time = 0;
+                unsigned char rate_num  = 0;
+                std::string title;
                 if (j < filecontent.size() && filecontent[j] == ')')
                 {
-                    unsigned int mpos = j + 1;
-                    // skip spaces/tabs after ')'
-                    while (mpos < filecontent.size() && (filecontent[mpos] == ' ' || filecontent[mpos] == '\t'))
-                        mpos++;
-                    if (mpos < filecontent.size() && filecontent[mpos] == ':')
-                    {
-                        mpos++; // skip ':'
-                        unsigned int mstart = mpos;
-                        while (mpos < filecontent.size() && filecontent[mpos] >= '0' && filecontent[mpos] <= '9')
-                            mpos++;
-                        if (mpos > mstart)
+                    // 饱和取数：超出上限就定格在上限，不抛异常（这里没有 try，生成器不能因此终止）
+                    // saturating decimal parse: clamp at maxv instead of throwing
+                    auto parse_dec = [](const std::string &text, unsigned long long maxv) -> unsigned long long {
+                        unsigned long long v = 0;
+                        for (char c : text)
                         {
-                            // 饱和累加：越过 UINT_MAX 就定格在 UINT_MAX，后面的位数不再参与取值。
-                            // 不用 std::stoul —— unsigned long 只有 32 位的平台（Windows/LLP64）上
-                            // 它对 >UINT_MAX 的字符串抛 std::out_of_range，而这里没有 try，生成器会直接终止。
-                            unsigned long long v = 0;
-                            for (unsigned int d = mstart; d < mpos; d++)
+                            if (c < '0' || c > '9')
                             {
-                                v = v * 10 + (unsigned long long)(filecontent[d] - '0');
-                                if (v > (unsigned long long)std::numeric_limits<unsigned int>::max())
-                                {
-                                    v = (unsigned long long)std::numeric_limits<unsigned int>::max();
-                                    break;
-                                }
+                                return maxv;  // 非纯数字：交给调用方按非法处理
                             }
-                            mask_code = (unsigned int)v;
+                            v = v * 10 + (unsigned long long)(c - '0');
+                            if (v > maxv)
+                            {
+                                return maxv;
+                            }
                         }
-                        else if (mpos < filecontent.size() && filecontent[mpos] != 0x0A)
+                        return v;
+                    };
+                    auto is_digits = [](const std::string &text) -> bool {
+                        if (text.empty()) return false;
+                        for (char c : text)
                         {
-                            // ':' followed by non-digits — warn and ignore
+                            if (c < '0' || c > '9') return false;
+                        }
+                        return true;
+                    };
+                    auto suffix_line_no = [&filecontent, &i]() -> unsigned int {
+                        unsigned int n = 1;
+                        for (unsigned int k = 0; k < i; k++)
+                        {
+                            if (filecontent[k] == 0x0A) n++;
+                        }
+                        return n;
+                    };
+
+                    unsigned int spos = j + 1;
+                    for (;;)
+                    {
+                        // 跳到下一个 ':' 之前只允许空白，遇到别的字符说明后缀链结束
+                        while (spos < filecontent.size()
+                               && (filecontent[spos] == ' ' || filecontent[spos] == '\t'))
+                        {
+                            spos++;
+                        }
+                        if (spos >= filecontent.size() || filecontent[spos] != ':')
+                        {
+                            break;
+                        }
+                        spos++;  // skip ':'
+
+                        // 后缀名：字母/数字/下划线
+                        unsigned int nstart = spos;
+                        while (spos < filecontent.size())
+                        {
+                            char c = filecontent[spos];
+                            if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')
+                                || c == '_')
+                            {
+                                spos++;
+                            }
+                            else
+                            {
+                                break;
+                            }
+                        }
+                        std::string suffix_name = filecontent.substr(nstart, spos - nstart);
+
+                        // 参数列表：只有紧跟 '(' 才有；否则这个后缀名本身就是旧写法里的数字
+                        // argtext 是括号里的原文（未切分），title 需要它保留空格和逗号
+                        std::vector<std::string> suffix_args;
+                        std::string argtext;
+                        if (spos < filecontent.size() && filecontent[spos] == '(')
+                        {
+                            spos++;  // skip '('
+                            unsigned int astart = spos;
+                            while (spos < filecontent.size() && filecontent[spos] != ')'
+                                   && filecontent[spos] != 0x0A)
+                            {
+                                spos++;
+                            }
+                            argtext = filecontent.substr(astart, spos - astart);
+                            if (spos < filecontent.size() && filecontent[spos] == ')')
+                            {
+                                spos++;  // skip ')'
+                            }
+                            // 按逗号切参数并去掉空白；空段也保留，交给下面按"缺参数"处理
+                            std::string one;
+                            for (char c : argtext)
+                            {
+                                if (c == ',')
+                                {
+                                    suffix_args.push_back(one);
+                                    one.clear();
+                                    continue;
+                                }
+                                if (c == ' ' || c == '\t' || c == 0x0D) continue;
+                                one.push_back(c);
+                            }
+                            suffix_args.push_back(one);
+                        }
+
+                        if (suffix_name == "maskcode")
+                        {
+                            // maskcode(n)：n 写进 mask_code；缺参数或非数字保持 0
+                            if (!suffix_args.empty() && is_digits(suffix_args[0]))
+                            {
+                                mask_code = (unsigned int)parse_dec(suffix_args[0],
+                                                                    (unsigned long long)std::numeric_limits<unsigned int>::max());
+                            }
+                            else if (suffix_args.empty() || suffix_args[0].empty())
+                            {
+                                // maskcode 没带参数：按 0 处理，不喊
+                            }
+                            else
+                            {
+                                std::fprintf(stderr,
+                                             "\033[1m\033[31m[ROUTE-WARN] %s:%u: invalid maskcode '%s', expected digits; "
+                                             "mask_code stays 0\033[0m\n",
+                                             methodpathfile.c_str(), suffix_line_no(), suffix_args[0].c_str());
+                            }
+                        }
+                        else if (suffix_name == "ratelimit")
+                        {
+                            // ratelimit(time,num)：第一个参数 -> rate_time，第二个 -> rate_num
+                            // 参数不足两个时缺的那个保持 0，不报错也不改变路由
+                            // fewer than two args keep the missing one at 0; never fails the route
+                            bool rt_ok = true;
+                            if (suffix_args.size() > 0 && is_digits(suffix_args[0]))
+                            {
+                                rate_time = (unsigned char)parse_dec(suffix_args[0],
+                                                                     (unsigned long long)std::numeric_limits<unsigned char>::max());
+                            }
+                            else
+                            {
+                                rt_ok = false;
+                            }
+                            if (suffix_args.size() > 1 && is_digits(suffix_args[1]))
+                            {
+                                rate_num = (unsigned char)parse_dec(suffix_args[1],
+                                                                    (unsigned long long)std::numeric_limits<unsigned char>::max());
+                            }
+                            else
+                            {
+                                rt_ok = false;
+                            }
+                            if (!rt_ok)
+                            {
+                                std::fprintf(stderr,
+                                             "\033[1m\033[31m[ROUTE-WARN] %s:%u: invalid ratelimit, expected "
+                                             "ratelimit(time,num); missing/invalid args stay 0\033[0m\n",
+                                             methodpathfile.c_str(), suffix_line_no());
+                            }
+                        }
+                        else if (suffix_name == "title")
+                        {
+                            // title 里的空格和逗号都是名称的一部分，所以读 argtext，不读切分后的参数
+                            // spaces and commas belong to a title, so read the raw arg text, not the split args
+                            // 注意右括号仍然结束参数：title 里不能出现 ')'
+                            std::string text = argtext;
+                            while (!text.empty()
+                                   && (text.front() == ' ' || text.front() == '\t' || text.front() == 0x0D))
+                            {
+                                text.erase(text.begin());
+                            }
+                            while (!text.empty()
+                                   && (text.back() == ' ' || text.back() == '\t' || text.back() == 0x0D))
+                            {
+                                text.pop_back();
+                            }
+                            if (text.size() > 1 && text.front() == '"' && text.back() == '"')
+                            {
+                                // 首尾成对的双引号只当包裹用，去掉
+                                text = text.substr(1, text.size() - 2);
+                            }
+                            else if (!text.empty() && (text.front() == '"' || text.back() == '"'))
+                            {
+                                // 只有一侧引号：按原文收下，不猜它想表达什么
+                                std::fprintf(stderr,
+                                             "\033[1m\033[31m[ROUTE-WARN] %s:%u: title has an unpaired double "
+                                             "quote, used as written\033[0m\n",
+                                             methodpathfile.c_str(), suffix_line_no());
+                            }
+                            title = text;
+                        }
+                        else if (suffix_args.empty() && is_digits(suffix_name))
+                        {
+                            // 旧写法 :123456 —— 直接当 mask_code
+                            mask_code = (unsigned int)parse_dec(suffix_name,
+                                                                (unsigned long long)std::numeric_limits<unsigned int>::max());
+                        }
+                        else
+                        {
                             std::fprintf(stderr,
-                                         "\033[1m\033[31m[ROUTE-WARN] invalid mask_code after ':', expected digits in %s\033[0m\n",
-                                         methodpathfile.c_str());
+                                         "\033[1m\033[31m[ROUTE-WARN] %s:%u: unknown route suffix ':%s', ignored\033[0m\n",
+                                         methodpathfile.c_str(), suffix_line_no(), suffix_name.c_str());
                         }
                     }
                 }
@@ -780,7 +959,10 @@ class pickcontrol
                 struct reg_autoitem reg_temp;
                 reg_temp.pre     = prename;
                 reg_temp.urlpath = tempname;
-                reg_temp.mask_code = mask_code;  // extracted from //@urlpath(...):digits
+                reg_temp.mask_code = mask_code;  // //@urlpath(...):maskcode(n) 或旧写法 :n
+                reg_temp.rate_time = rate_time;  // //@urlpath(...):ratelimit(time,num) 的第一个参数
+                reg_temp.rate_num  = rate_num;   // //@urlpath(...):ratelimit(time,num) 的第二个参数
+                reg_temp.title     = title;      // //@urlpath(...):title(名称)，两种引号写法都去掉包裹
                 // 规范化：确保非空 urlpath 以 '/' 开头 — normalize: ensure non-empty urlpath starts with '/'
                 if (!reg_temp.urlpath.empty() && reg_temp.urlpath.front() != '/')
                 {

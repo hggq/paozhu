@@ -11,7 +11,7 @@
 #include "directory_fun.h"
 namespace http
 {
-//@urlpath(admin_islogin,admin/addproduct)
+//@urlpath(admin_islogin,admin/addproduct):maskcode(64):title(新增产品表单)
 std::string admin_addproduct(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
@@ -76,7 +76,7 @@ std::string admin_addproduct(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(admin_islogin,admin/addproductpost)
+//@urlpath(admin_islogin,admin/addproductpost):maskcode(128):title(新增产品保存)
 std::string admin_addproductpost(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
@@ -95,21 +95,21 @@ std::string admin_addproductpost(std::shared_ptr<httppeer> peer)
 
     //objtemp = client.post["header_urlpath"].to_json();
     urltemp_array.set_array();
-    if(client.post["header_urlpath"].is_array())
+    if (client.post["header_urlpath"].is_array())
     {
-        for(auto &a:client.post["header_urlpath"].as_array())
+        for (auto &a : client.post["header_urlpath"].as_array())
         {
-            if(a.size()>0)
+            if (a.size() > 0)
             {
                 urltemp_array.push(a);
             }
         }
     }
-    else if(client.post["header_urlpath"].is_object())
+    else if (client.post["header_urlpath"].is_object())
     {
-        for(auto &a:client.post["header_urlpath"].as_object())
+        for (auto &a : client.post["header_urlpath"].as_object())
         {
-            if(a.second.size()>0)
+            if (a.second.size() > 0)
             {
                 urltemp_array.push(a.second);
             }
@@ -121,7 +121,7 @@ std::string admin_addproductpost(std::shared_ptr<httppeer> peer)
     pro.data.samepro     = client.post["relatecontent"].to_string();
     pro.data.adddate     = get_date("%Y-%m-%d %X");
     pro.data.showtype    = 0;
-    
+
     objtemp.clear();
     urltemp_array.clear();
     urltemp_array.set_array();
@@ -134,12 +134,12 @@ std::string admin_addproductpost(std::shared_ptr<httppeer> peer)
         {
             objtemp["url"]  = "";
             objtemp["name"] = "";
-            objtemp["url"] = tempurls[j];
+            objtemp["url"]  = tempurls[j];
             // if (tempurls.isset(j))
             // {
             //     objtemp["url"] = tempurls[j];
             // }
-            if (j< client.post["attach_name"].size())
+            if (j < client.post["attach_name"].size())
             {
                 objtemp["name"] = client.post["attach_name"][j];
             }
@@ -151,11 +151,11 @@ std::string admin_addproductpost(std::shared_ptr<httppeer> peer)
         // auto tempurls = client.post["attach_urlpath"].as_object();
 
         // unsigned int nu = tempurls.size();
-        for (auto &a:client.post["attach_urlpath"].as_object())
+        for (auto &a : client.post["attach_urlpath"].as_object())
         {
             objtemp["url"]  = "";
             objtemp["name"] = "";
-            objtemp["url"] = a.second.to_string();
+            objtemp["url"]  = a.second.to_string();
             objtemp["name"] = client.post["attach_name"][a.first].to_string();
             urltemp_array.push(objtemp);
         }
@@ -177,11 +177,11 @@ std::string admin_addproductpost(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(admin_islogin,admin/editproductpost)
+//@urlpath(admin_islogin,admin/editproductpost):maskcode(256):title(修改产品保存)
 std::string admin_editproductpost(std::shared_ptr<httppeer> peer)
 {
-    httppeer &client   = peer->get_peer();
-    unsigned int pid   = client.post["pid"].to_int();
+    httppeer &client = peer->get_peer();
+    unsigned int pid = client.post["pid"].to_int();
     obj_val urltemp_array;
     obj_val objtemp;
 
@@ -197,25 +197,23 @@ std::string admin_editproductpost(std::shared_ptr<httppeer> peer)
     pro.data.smallid  = client.post["smallid"].to_int();
     pro.data.showtype = client.post["showtype"].to_int();
 
-    
-
     //objtemp = client.post["header_urlpath"].to_json();
     urltemp_array.set_array();
-    if(client.post["header_urlpath"].is_array())
+    if (client.post["header_urlpath"].is_array())
     {
-        for(auto &a:client.post["header_urlpath"].as_array())
+        for (auto &a : client.post["header_urlpath"].as_array())
         {
-            if(a.size()>0)
+            if (a.size() > 0)
             {
                 urltemp_array.push(a);
             }
         }
     }
-    else if(client.post["header_urlpath"].is_object())
+    else if (client.post["header_urlpath"].is_object())
     {
-        for(auto &a:client.post["header_urlpath"].as_object())
+        for (auto &a : client.post["header_urlpath"].as_object())
         {
-            if(a.second.size()>0)
+            if (a.second.size() > 0)
             {
                 urltemp_array.push(a.second);
             }
@@ -239,12 +237,12 @@ std::string admin_editproductpost(std::shared_ptr<httppeer> peer)
         {
             objtemp["url"]  = "";
             objtemp["name"] = "";
-            objtemp["url"] = tempurls[j];
+            objtemp["url"]  = tempurls[j];
             // if (tempurls.isset(j))
             // {
             //     objtemp["url"] = tempurls[j];
             // }
-            if (j<client.post["attach_name"].size())
+            if (j < client.post["attach_name"].size())
             {
                 objtemp["name"] = client.post["attach_name"][j];
             }
@@ -256,11 +254,11 @@ std::string admin_editproductpost(std::shared_ptr<httppeer> peer)
         // auto tempurls = client.post["attach_urlpath"].as_object();
 
         // unsigned int nu = tempurls.size();
-        for (auto &a:client.post["attach_urlpath"].as_object())
+        for (auto &a : client.post["attach_urlpath"].as_object())
         {
             objtemp["url"]  = "";
             objtemp["name"] = "";
-            objtemp["url"] = a.second.to_string();
+            objtemp["url"]  = a.second.to_string();
             objtemp["name"] = client.post["attach_name"][a.first].to_string();
             urltemp_array.push(objtemp);
         }
@@ -279,7 +277,7 @@ std::string admin_editproductpost(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(admin_islogin,admin/getcategorytopproduct)
+//@urlpath(admin_islogin,admin/getcategorytopproduct):title(取同级分类)
 std::string admin_getcategorytopproduct(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
@@ -341,7 +339,7 @@ std::string admin_getcategorytopproduct(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(admin_islogin,admin/editproduct)
+//@urlpath(admin_islogin,admin/editproduct):maskcode(512):title(修改产品表单)
 std::string admin_editproduct(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
@@ -430,7 +428,7 @@ std::string admin_editproduct(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(admin_islogin,admin/listproduct)
+//@urlpath(admin_islogin,admin/listproduct):title(产品列表)
 std::string admin_listproduct(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
@@ -510,7 +508,7 @@ std::string admin_listproduct(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(admin_islogin,admin/marproductattach)
+//@urlpath(admin_islogin,admin/marproductattach):title(产品附件查看)
 std::string admin_marproductattach(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
@@ -588,7 +586,7 @@ std::string admin_marproductattach(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(admin_islogin,admin/deleteproduct)
+//@urlpath(admin_islogin,admin/deleteproduct):title(删除产品跳转)
 std::string admin_deleteproduct(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
@@ -606,7 +604,7 @@ std::string admin_deleteproduct(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(admin_islogin,admin/deleteproductajax)
+//@urlpath(admin_islogin,admin/deleteproductajax):title(删除产品AJAX)
 std::string admin_deleteproductajax(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
@@ -625,7 +623,7 @@ std::string admin_deleteproductajax(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(admin_islogin,admin/updateproducthome)
+//@urlpath(admin_islogin,admin/updateproducthome):title(产品首页开关)
 std::string admin_updateproducthome(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
@@ -646,7 +644,7 @@ std::string admin_updateproducthome(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(admin_islogin,admin/updateproductstore)
+//@urlpath(admin_islogin,admin/updateproductstore):title(产品精品开关)
 std::string admin_updateproductstore(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
@@ -666,7 +664,7 @@ std::string admin_updateproductstore(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(admin_islogin,admin/updateproductview)
+//@urlpath(admin_islogin,admin/updateproductview):title(产品展示开关)
 std::string admin_updateproductview(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
@@ -686,7 +684,7 @@ std::string admin_updateproductview(std::shared_ptr<httppeer> peer)
     return "";
 }
 
-//@urlpath(admin_islogin,admin/updateproductsort)
+//@urlpath(admin_islogin,admin/updateproductsort):title(产品排序值)
 std::string admin_updateproductsort(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();

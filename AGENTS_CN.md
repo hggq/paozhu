@@ -86,6 +86,7 @@ paozhu/
 │   ├── markdown/                  # Markdown 转 HTML
 │   ├── pinyin/                    # 汉字转拼音
 │   ├── ipdata/                    # IP 地理位置查询
+│   ├── rbac/                      # RBAC 运行期：权限装载 + 授权快照缓存 + 路由判定钩子
 │   └── types/                     # 通用类型定义
 │
 ├── common/                        # 公共定义
@@ -249,7 +250,8 @@ std::string testhello(std::shared_ptr<httppeer> peer)
 
 - 第一个参数: 前置过滤器函数名（`null` 表示无过滤器）
 - 第二个参数: URL 路径
-- 括号后面可选的 `:数字` 给这条注册挂一个路由掩码；路由在调用前置过滤器之前把它写进 `client.mask_code`（见 §4.8）
+- 括号后面可选的 `:maskcode(数字)` / `:ratelimit(秒,次数)` 后缀，请用这个写法，不要写成裸 `:数字`。掩码非 0 就是把这条路由交给 RBAC；路由同时把它写进 `client.mask_code`，位置在这条注册的 pre 之前（见 §4.8）
+- 括号后面可选的 `:title(名称)` 后缀：这条路由的显示名，`:title(测试名称)` 和 `:title("测试名称")` 两种写法都认。它不进请求，只落到 `reg_methold_mid_t::title`，登记权限项时写进 `sysperms.name`（见 §4.8）
 
 ### 4.3 前置过滤器
 
@@ -613,13 +615,20 @@ asio::awaitable<std::string> techempowerupdates(std::shared_ptr<httppeer> peer)
 
 **注意**: 同步控制器（返回 `std::string`）和协程控制器（返回 `asio::awaitable<std::string>`）可以在同一项目中混用。框架会根据函数签名自动选择正确的执行路径。
 
-### 4.8 路由掩码（`mask_code`）
+### 4.8 路由掩码（`mask_code`）——RBAC 的分流开关
 
-每条注册条目可以带一个 `unsigned int`，框架只**搬运**它：路由在调用这条注册的前置过滤器之前
-把它写进请求，自己从不读取也不解释。可以用它存放权限位、租户 id，或任何前置过滤器和 handler
-需要一致同意、又不必重新解析 URL 的信息。
+每条注册条目可以带一个 `unsigned int`，它决定两件事：
 
-**写法** —— 括号外面、冒号后面的数字：
+1. **分流**：`mask_code != 0` 表示这条路由归 RBAC 管，路由在调用这条注册的 pre 之前先走判定钩子；
+   `mask_code == 0` 表示这条路由完全不参与 RBAC —— 钩子一次都不调，零额外查询，照旧只由
+   pre 和登录逻辑决定放不放行。
+2. **搬运**：路由同时把它写进请求（`client.mask_code`），位置也在这条注册的 pre 之前，
+   所以 pre 和 handler 读到的是同一个值。
+
+这个值**不是随便填的**：它要和登记这个 urlpath 的 `sysperms.maskcode` 列对得上（见下文），
+否则这条路由的每个请求都会被拒。
+
+**写法** —— 括号后面的 `:名字(参数)` 后缀链：
 
 ```cpp
 //@urlpath(null,maskpre/check)
@@ -636,48 +645,135 @@ std::string test_mask_pre(std::shared_ptr<httppeer> peer)
     return "@ok";
 }
 
-//@urlpath(test_mask_pre,maskpre):123456
+//@urlpath(test_mask_pre,maskpre):ratelimit(20,5)   // 掩码 0 → RBAC 不参与
 std::string test_maskcode(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
-    client << "handler 读到 mask_code=" << client.mask_code;
+    client << "test_maskcode 读到 mask_code=" << client.mask_code;
     return "";
+}
+
+//@urlpath(test_mask_pre,maskprehas):maskcode(1234):ratelimit(20,5)  // 归 RBAC 管
+std::string test_maskcodehas(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+    client << "test_maskcodehas 读到 mask_code=" << client.mask_code;
+    return "";
+}
+
+// 协程控制器一样带掩码：只有签名不同，后缀写法不变
+//@urlpath(test_mask_pre,comaskprehas):maskcode(1235):ratelimit(20,5):title("测试名称")
+asio::awaitable<std::string> test_comaskprehas(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+    client << "test_comaskprehas 读到 mask_code=" << client.mask_code;
+    co_return "";
 }
 ```
 
-**解析规则** —— 由 `vendor/httpcli/autopickcontrolmethod.hpp` 提取，写法不合理时它会在控制台喊一声：
+**解析规则** —— 由 `vendor/httpcli/autopickcontrolmethod.hpp` 提取，后缀不合理时它会在控制台喊一声：
 
 | 注解尾部 | 条目上存的掩码 |
 |----------|----------------|
 | 没有冒号 —— `//@urlpath(null,foo)` | `0` |
-| `//@urlpath(null,foo):123456` | `123456` |
-| `)` 与 `:` 之间有空格或制表符 | `123456` |
-| `:99999999999`（超过 `UINT_MAX`） | `UINT_MAX`，钳位 |
-| `:12abc` | `12` —— 数字读到第一个非数字为止，不告警 |
-| `:abc` | `0`，并打印 `[ROUTE-WARN] invalid mask_code after ':'` |
+| `//@urlpath(null,foo):maskcode(1234)` | `1234` |
+| `//@urlpath(null,foo):maskcode(1234):ratelimit(20,5)` | `1234`，另外 `rate_time=20`、`rate_num=5` |
+| `//@urlpath(null,foo):123456`（旧写法，纯数字） | `123456` —— 仍然解析，但本仓已经没有路由用它了，请改写 `:maskcode(123456)` |
+| 每个 `:` 前面有空格或制表符（后缀之间也可以） | 当作没有，照常解析 |
+| `:maskcode()` / `:maskcode` | `0`，不告警 |
+| `:maskcode(99999999999)`（超过 `UINT_MAX`） | `UINT_MAX`，钳位 |
+| `:maskcode(12abc)` | `0`，并打印 `[ROUTE-WARN] invalid maskcode ...` |
+| `:unknown(...)` | 忽略，并打印 `[ROUTE-WARN] unknown route suffix` |
+
+**`:title(...)`** —— 同一条后缀链，但里面的文本原样保留：
+
+| 注解尾部 | 条目上存的 title |
+|----------|------------------|
+| `//@urlpath(null,foo):title(测试名称)` | `测试名称` |
+| `//@urlpath(null,foo):title("测试名称")` | `测试名称` —— 去掉首尾成对的那一对双引号 |
+| `:title("名称 带 空格,逗号")` | 原样保留；中间的空格和逗号都在，因为 title 读的是括号里的原文，不是 `maskcode`/`ratelimit` 那套按逗号切开的参数 |
+| 文本首尾的空格或制表符 | 去掉 |
+| `:title(名称")` / `:title("名称)` | 按原文收下，并打印 `[ROUTE-WARN] title has an unpaired double quote` |
+| `:title()` / `:title` | 空串，不告警 |
+| 同一条注解写两个 `:title(...)` | 后一个生效，和 `:maskcode(...)` 一样 |
+| `:title(名称(带括号)):maskcode(1234)` —— 名称里带 `)` | title 在**第一个** `)` 处结束（留下 `名称(带括号`），后缀链在剩下的文本上停住，`:maskcode(1234)` 被丢掉且不告警 —— 见下 |
+
+右括号仍然结束参数（和后缀链其他成员同一条规则），所以 title 里不能出现 `)`，而且它在**第一个** `)`
+就结束。那个 `)` 后面必须紧跟下一个 `:名字(参数)` 后缀；上面那种写法里，解析器在该看到 `:` 的位置
+看到了普通文本，后缀链就此停住 —— 写在 title 后面的部分全部静默丢弃，没有 `[ROUTE-WARN]`。丢掉的不是
+无关紧要的东西：丢掉 `:maskcode(1234)`，这条路由就按掩码 `0` 注册，等于完全不在 RBAC 里（见上面的
+派发开关）；丢掉 `:ratelimit(20,5)`，这条路由的流量限制也没了。所以别在 title 里写 `)`。
+
+生成注册表时按 C++ 字符串字面量转义，名称里带引号或反斜杠都不会写坏生成文件：
+`:title(他说"好"啊)` 和 `:title(带反斜杠 \ 的名称)` 都原样落到 `reg_raw()` 的实参里，只要文本不以
+`"` 开头或结尾就不告警。转义是单向的：`:title("他说\"好\"")` 只去掉包裹的那一对引号，名称里的反斜杠
+照旧留着。
+
+**作为 RBAC 的一个功能**：`:title(...)` 就是受保护路由给权限目录起的名字，让授权列表里显示
+「新增产品保存」而不是 `/admin/addproductpost`。带引号和不带引号是同一个功能 —— 包裹的那对引号在
+生成器里就已经去掉了，下游不需要知道注解当初写的是哪种。
+
+**title 去了哪里**：`bin/paozhu_pre` 把它作为 `reg_raw()` 的第 10 个实参写进
+`common/autocontrolmethod.hpp` → 存进 `reg_methold_mid_t::title`
+（`vendor/httpserver/include/httppeer.h`）→ `rbac::route_entry::title`
+（`libs/rbac/route_catalog.cpp`）→ `/superadmin/registerfunc` 列出来，并且**只在第一次插入
+`sysperms` 行时**把它写进 `sysperms.name`（这条路由没写 title 就回落成 urlpath）。它只用于展示：
+派发和 RBAC 判定都不读它，`urlname` 仍然是 urlpath，已经存在的行也不会被它改名 —— 名称要改就去
+`/superadmin/rbac/perm`。手写注册拿到的是 `""`：那是 `reg_raw()` 的默认参数，`REG_*` 便捷宏不传这一位。
 
 **它怎么落到请求上**：注解 → `bin/paozhu_pre` 把它作为
-`reg_raw(site, path, pre_sync, co_pre, reg_sync, co_reg, mask_code)` 的最后一个参数写进
-`common/autocontrolmethod.hpp` → 存进 `reg_methold_mid_t::mask_code`
+`reg_raw(site, path, pre_sync, co_pre, reg_sync, co_reg, mask_code, rate_time, rate_num, title)` 的
+尾部参数写进 `common/autocontrolmethod.hpp` → 存进 `reg_methold_mid_t::mask_code`
 （`vendor/httpserver/include/httppeer.h`）→ `router::resolve()` / `router::co_resolve()` 在
-派发循环的每一步顶部执行 `peer->mask_code = h.mask_code;`，位置在这条注册的 pre 之前。手写注册
-拿到的是 `0`：那是 `reg_raw()` 的默认参数，`REG_*` 便捷宏也不传这一位。
+派发循环的每一步顶部执行 `peer->mask_code = h.mask_code;`，然后**只在这个值非 0 时**调判定钩子。
+手写注册拿到的是 `0`：那是 `reg_raw()` 的默认参数，`REG_*` 便捷宏也不传这一位。
+
+**钩子是应用入口装的，不是框架自带的。** `vendor/httpserver/include/router.h` 只声明契约 ——
+`using route_auth_fn = std::function<unsigned int(httppeer &, const std::string &urlpath,
+unsigned int mask_code)>`，加 `set_route_auth_hook()` / `route_auth_hook_ready()` —— 它不认识
+会话、角色和数据库：返回值就是要写的状态码（`0` 放行、`401` 没登录、`403` 没权限），路由层从不
+读会话键。实现在 `libs/rbac/route_guard.*`，由 `startup/main_dev.cpp`、`startup/main_daemon.cpp`
+在 `run()` 之前装好（夹在 `// paozhu-rbac:begin` / `// paozhu-rbac:end` 之间）。
+钩子没装时带掩码的路由直接 403 —— fail-closed，绝不静默放行。
+
+**两种拒绝要分开。** `libs/rbac/route_guard.cpp` 里：会话没有 `adminid`（没登录）回 `401`；
+有 `adminid` 但租户 id —— `session["userid"]`，登录时写的是 `sysuser.companyid` —— 是 `0` 回 `403`。
+`0` 不是可以复用的全局层，所以这种账号该找管理员把它挂到企业上，而不是重新登录一次；
+`route_cache::allow()` 对同样的入参（`adminid == 0 || companyid == 0 || urlpath.empty()`）也先拒，
+既不累加 miss，也不跑那 6 条装载查询。
+
+**掩码要拿 `sysperms.maskcode` 来比。** `libs/rbac/rbac.cpp::load_user_grants()` 把用户生效的权限
+装成 `urlpath → 该路径每条权限行各自的 maskcode`，逐条保留、不再按位合并；放行条件是这条 urlpath
+在这张表里，**且**路由条目的掩码与其中某一条精确相等。所以注解里的掩码和目录授予的值对不上，
+就是 403，原因写 `maskcode drift`。位包含已经撤掉：目录行只要改宽，掩码是它子集的路由就会静默放行。
+`/superadmin/registerfunc` 页会把这种行标成「掩码漂移」，勾选项后按注册表里的
+值改写库里的 `maskcode`。
 
 **它是「每条」而不是「每请求」。** 赋值发生在链的每一步上，所以跳转（`return "/other/path"`）
 和从编排栈里弹出的下一步都会用**自己那条**的掩码覆盖，不继承上一步。`httppeer::clear()` 把这个
 字段归零，keep-alive 的每个请求都会走它；HTTP/2 每个流各有一个 `httppeer`。
 
-**拦入口请写在路由自己的 pre 上。** 有两个配置级的钩子跑在"选出路由条目"**之前** —— 站点的
-`action_pre`（`run_site_hooks` / `co_run_site_hooks`）和 `static_pre`（`call_sync_regfun` /
-`co_call_regfun`）—— 它们不是注册条目，所以读到的恒为 `0`。相对地，派发链的第一步在调用它的
-pre 之前就已经拿到本条的掩码，按掩码做拦截就该拦在那里。
+**配置级钩子不是路由条目。** 站点的 `action_pre`（`run_site_hooks` / `co_run_site_hooks`）和
+`static_pre`（`call_sync_regfun` / `co_call_regfun`）跑在「选出路由条目」**之前**，读到的恒为 `0`，
+也不会被 RBAC 拦。相对地，派发链的第一步在调用它的 pre 之前就已经拿到本条的掩码。
 
-**掩码进代码生成的缓存键**，和前置函数名、函数名、urlpath、返回类型一起 —— 只改冒号后面那几个
-数字，下一次构建就会重建 `controller/include/<name>.h` 和注册表。
+**掩码进代码生成的缓存键**，和前置函数名、函数名、urlpath、返回类型、title 一起
+（`vendor/httpcli/autopickmethod.cpp:234-246`）—— 只改冒号后面那几个数字，下一次构建就会重建
+`controller/include/<name>.h` 和注册表。缓存里还记着生成头自己的 mtime，所以动那个 `.h` 同样算变更。
 
-**现成演示**：`controller/src/test_maskcode.cpp` 注册的就是这一对。`/maskpre` 带 `123456`，
-所以 pre 打印 `123456`、返回 `"ok"`，handler 再打印一次 `123456`。`/maskpre/check` 是同一个 pre
-函数单独注册的路由，注解里没有冒号，所以它读到 `0` 就地拦下。
+**一个站点里一个掩码值只给一组路由。** 生成完注册表后 `bin/paozhu_pre` 按 `(站点, mask_code)` 给
+所有非零掩码的路由分组，同站点两条路由共用一个值就打印
+`[ROUTE-WARN] mask_code 1234 duplicated in site *: /a, /b`。这只是提示，不是错误：两条路由照常注册，
+RBAC 也照常按 urlpath 分别判定 —— 但共用一个值通常意味着权限目录里本来想分开授权，
+所以每条路由各取一个数字更省事。
+
+**现成演示**：`controller/src/test_maskcode.cpp` 注册的就是上面这三条。`/maskpre` 没写 maskcode，
+RBAC 完全不介入，pre 读到 `0` 就地拦下；给它补上 `:maskcode(1234)`，同一个请求就要先过 RBAC。
+`/maskprehas` 带 `1234`、`/comaskprehas` 带 `1235`（后者是协程版，同一个 pre，同一条规则）：
+库里各需要一条 `urlpath` 对应、`maskcode` 与路由值精确相等的 `sysperms`（1234 和 1235 只差一位，
+改精确后一条目录行只能喂一条路由），并且授权给某个角色、
+该角色绑在当前登录用户上，之后 pre 打印掩码、handler 再打印一次。
+`/testcohandle`（`controller/src/test_co_handle.cpp`）已经不带掩码了，它只演示协程派发。
 
 ---
 
@@ -1766,6 +1862,24 @@ client.val["list"].push(item);
 - 这类对象必须由 `std::shared_ptr` 持有（注册表存的是 `weak_ptr`），并暴露扫描模板要读的契约：`timeout_end`、`iserror`、`iswait_exit`、`get_timeout()`、`set_timeout()`、`close_connect()`。
 - 循环按整秒判定、4 秒一拍，超时可能晚几秒才落地；这是共享一条线程换来的代价。
 
+### 9.6 登录凭证的取值处理（用户名 / 密码）
+- 两个值都不允许原样使用，也都不由控制器转义：登录名用 `client.post["username"].to_trim()` 取，
+  密码用 `client.post["password"].to_string()` 取 —— 密码只是 `md5()` 的输入、根本不进语句，
+  改动它就会和库里要匹配的摘要对不上。
+- 凭证的两端都走参数绑定（见 5.8）：查询是 `where("name", username) ... exec_one()`，落库那行用
+  `exec_insert()`，这样登录名里任何字符都改不了语句结构。`admin/loginpost`、`superadmin/loginpost`
+  和建号页（`admin/rbac/sysuser/add`）都是这个写法 —— 写名字的页必须和登录查询在同样的字节上达成一致，
+  否则刚建出来的账号自己登不进去。
+- 转义只属于一层，而交给 ORM 的值那一层就是 ORM。它的文本路径由方言模板里的 `escape_text_value`
+  加引号，但 MySQL 那一份只把 `'` 翻倍、不处理 `\`，所以已经过 `to_escape()` 的值两层拼不出安全
+  字面量：控制器插入的反斜杠会把翻倍出来的引号吞掉半个，剩下那半个提前结束字面量。`to_escape()`
+  只留给自己代码拼语句的场合（`orm::db_conn::query()` / `edit_query()`）。
+- `obj_val::to_escape()`（声明在 `vendor/httpserver/include/request.h`，实现是
+  `vendor/httpserver/src/request.cpp` 里的 `to_sql_mysql_escape()`）不是通用净化器：它只按 MySQL
+  `addslashes` 风格转义 `' " \ \0 \n \r \x1a`，会顺带裁掉首尾的空格/制表/CR/LF，在 PostgreSQL 和
+  SQLite 方言下是错的（它加进去的反斜杠会留在值里），不处理 `LIKE` 用的 `%` / `_`，不做 HTML 转义，
+  也不看连接字符集；非字符串的 `obj_val` 直接走普通文本转换，转义循环整个跳过。
+
 ---
 
 ## 十、开发工作流
@@ -1852,7 +1966,7 @@ make -j$(nproc)
 `controller/include/<name>.h`，并把 `reg_raw()` 注册写进 `common/autocontrolmethod.hpp`，所以
 这两个文件手写了也没用 —— 下一次构建就覆盖。在自己的 `.cpp` 里 include 那个生成头是可选的。两点要记：
 **没有 `//@urlpath` 注解的函数不会进生成头**，多个控制器共用的辅助函数要放 `common/` 或 `libs/`
-（见 §4.1）；代码生成的缓存看的是注解文本、函数返回类型、路由掩码（见 §4.8）以及生成头自身的
+（见 §4.1）；代码生成的缓存看的是注解文本、函数返回类型、路由掩码和 title（见 §4.8）以及生成头自身的
 mtime（`cache/method_notes.data`），所以把控制器在 `std::string` 和
 `asio::awaitable<std::string>` 之间来回改，只需重新构建即可 —— 别为了让签名对上而去手改生成头，
 改它只会让下一次构建把它重新覆盖掉。
@@ -1943,16 +2057,19 @@ namespace http
 
 `common/autorestfulpaths.hpp` 的两个函数仍然带注册表参数（`_initauto_control_httprestful_paths` / `_initauto_domain_httprestful_paths`），它们确实要收那个 map。
 
-### 第二步：删除常驻客户端、支付与 OAuth 示例目录
+### 第二步：删除常驻客户端、支付、OAuth 与 RBAC 示例目录
 
 ```bash
 rm -rf redis/* mqtt/* sockets/* websockets/*   # 目录保留
 rm -rf libs/webpay/* libs/oauth/*              # 目录保留
+rm -rf libs/github/* libs/rbac/*               # 目录保留
 ```
 
 `redis/ mqtt/ sockets/ websockets/` 是只有头文件的示例客户端（`echo_*`、`my_test_*`、`*_websockets.hpp`），唯一的消费者是第一步清空的注册文件，CMake 只把它们当 include 目录，不产出目标文件，所以内容清掉、目录留着给业务客户端。
 
-`libs/webpay/` 是订单与支付渠道层，`libs/oauth/` 是 OAuth 2.1 授权服务的存取层——这两个是 `libs/` 下用到 `orm::` 的目录（都按 `[cms]` 表写死），而两套构建都会无条件收 `libs/**.cpp`（CMake 的 `file(GLOB_RECURSE reflect_list ... libs/*.cpp)`、xmake 的 `add_files("libs/**.cpp")`）。在没有 ORM 生成代码的脚手架里留着它们，第一句 `#include "orm.h"` 就会中断编译。`libs/` 其他目录（`img` `markdown` `pinyin` `ipdata` `types` `department`）不依赖 ORM，保留。
+`libs/webpay/` 是订单与支付渠道层，`libs/oauth/` 是 OAuth 2.1 授权服务的存取层，`libs/github/` 是 GitHub OAuth 存取层，`libs/rbac/` 是 RBAC 运行期（`[cms]` 的 `sysrole` / `sysperms` / `sysuserrole`）——这四个是 `libs/` 下用到 `orm::` 的目录，而两套构建都会无条件收 `libs/**.cpp`（CMake 的 `file(GLOB_RECURSE reflect_list ... libs/*.cpp)`、xmake 的 `add_files("libs/**.cpp")`）。在没有 ORM 生成代码的脚手架里留着它们，第一句 `#include "orm.h"` 就会中断编译。`libs/` 其他目录（`img` `markdown` `pinyin` `ipdata` `types` `department` `oauth_client`）不依赖 ORM，保留。
+
+`libs/rbac/` 一起清空后，脚本还会删掉 `startup/main_dev.cpp` 和 `startup/main_daemon.cpp` 里那两段 `// paozhu-rbac:begin` / `// paozhu-rbac:end`——它们是剩下的唯一 `install_route_guard()` 引用。框架本体不带 RBAC 依赖：`vendor/` 只声明钩子契约（§4.8），所以钩子没装时，注册掩码非 0 的路由一律 403，掩码为 0 的路由和改动前一模一样。
 
 ### 第三步：删除 ORM 层，但保留一个空的 `orm/orm.h`
 

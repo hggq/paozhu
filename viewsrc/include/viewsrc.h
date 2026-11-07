@@ -57,6 +57,10 @@ namespace  admin{
 	std::string martopic(const struct view_param &vinfo,http::obj_val &obj);
 	std::string martopicside(const struct view_param &vinfo,http::obj_val &obj);
 	std::string menu(const struct view_param &vinfo,http::obj_val &obj);
+	std::string rbacrolelist(const struct view_param &vinfo,http::obj_val &obj);
+	std::string rbacroleperm(const struct view_param &vinfo,http::obj_val &obj);
+	std::string rbacsysuserlist(const struct view_param &vinfo,http::obj_val &obj);
+	std::string rbacuserrole(const struct view_param &vinfo,http::obj_val &obj);
 	std::string siteinfo(const struct view_param &vinfo,http::obj_val &obj);
 	std::string sitelogo(const struct view_param &vinfo,http::obj_val &obj);
 	std::string userinfo(const struct view_param &vinfo,http::obj_val &obj);
@@ -108,6 +112,14 @@ namespace  superadmin{
 	std::string listuser(const struct view_param &vinfo,http::obj_val &obj);
 	std::string login(const struct view_param &vinfo,http::obj_val &obj);
 	std::string main(const struct view_param &vinfo,http::obj_val &obj);
+	std::string rbaccompanyperm(const struct view_param &vinfo,http::obj_val &obj);
+	std::string rbacpermplist(const struct view_param &vinfo,http::obj_val &obj);
+	std::string rbacrolelist(const struct view_param &vinfo,http::obj_val &obj);
+	std::string rbacroleperm(const struct view_param &vinfo,http::obj_val &obj);
+	std::string rbacuserform(const struct view_param &vinfo,http::obj_val &obj);
+	std::string rbacuserlist(const struct view_param &vinfo,http::obj_val &obj);
+	std::string rbacuserrole(const struct view_param &vinfo,http::obj_val &obj);
+	std::string registerfunc(const struct view_param &vinfo,http::obj_val &obj);
 	std::string siteinfo(const struct view_param &vinfo,http::obj_val &obj);
 	std::string userinfo(const struct view_param &vinfo,http::obj_val &obj);
 	std::string userlist(const struct view_param &vinfo,http::obj_val &obj);

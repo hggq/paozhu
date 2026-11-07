@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>权限管理</title>
+  <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/icons/font/bootstrap-icons.css">
+  <link href="/css/dashboard.css" rel="stylesheet">
+</head>
+
+<body>
+  <div class="container-fluid p-3">
+    <h5 class="mt-2">权限管理</h5>
+    <div class="alert alert-info py-2">
+      对应数据表 <code>sysperms</code>，权限项由「注册函数列表」按路由自动登记。
+      <code>urlpath</code> 与 <code>maskcode</code> 来自路由注册结果，本页不可修改；
+      如需变更请到注册函数页重新登记。只有超级管理员可以编辑本表。<br>
+      本页只管权限目录；某企业能否用到其中一条，还要在「企业权限分配」页分配给它。
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-body py-2">
+        <form class="row g-2 align-items-end" method="get" action="/superadmin/rbac/perm">
+          <div class="col-md-4">
+            <label class="form-label mb-1" for="query-userid">归属用户ID <code>userid</code></label>
+            <input class="form-control form-control-sm" id="query-userid" name="userid" type="number" min="0"
+              placeholder="留空或 0=全部；填公司 ID 只看该公司权限"
+              value="<% echo<<obj["query_userid"].to_string(); %>">
+            <div class="form-text">留空或 0 表示不过滤（列出全部），大于 0 表示只看该公司专属权限。</div>
+          </div>
+          <div class="col-md-5">
+            <button class="btn btn-outline-secondary btn-sm" type="submit">筛选</button>
+            <a class="btn btn-link btn-sm" href="/superadmin/rbac/perm">重置</a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="result" class="mb-2"></div>
+
+    <table class="table table-sm table-bordered align-middle">
+      <thead class="table-light">
+        <tr>
+          <th style="width:80px">权限ID<br><small class="text-muted fw-normal">permsid</small></th>
+          <th style="width:90px">归属用户ID<br><small class="text-muted fw-normal">userid</small></th>
+          <th style="width:90px">父级ID<br><small class="text-muted fw-normal">parentid</small></th>
+          <th>权限路径<br><small class="text-muted fw-normal">urlpath</small></th>
+          <th>路径别名<br><small class="text-muted fw-normal">urlname</small></th>
+          <th>权限名称<br><small class="text-muted fw-normal">name</small></th>
+          <th style="width:80px">状态<br><small class="text-muted fw-normal">status</small></th>
+          <th style="width:90px">权限码<br><small class="text-muted fw-normal">permscode</small></th>
+          <th style="width:90px">掩码<br><small class="text-muted fw-normal">maskcode</small></th>
+          <th style="width:70px">只读<br><small class="text-muted fw-normal">readonly</small></th>
+          <th style="width:150px">创建时间<br><small class="text-muted fw-normal">created_time</small></th>
+          <th style="width:150px">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <%c for(auto &a:obj["infos"].as_array()){ %>
+        <tr>
+          <td><%c echo<<a["permsid"].to_string(); %></td>
+          <td>
+            <%c echo<<a["userid"].to_string(); %>
+            <%c if(a["userid"].to_int()==0){ %><span class="badge bg-info text-dark">全局</span><%c } %>
+          </td>
+          <td><%c echo<<a["parentid"].to_string(); %></td>
+          <td><%c echo<<a["urlpath"].to_string(); %></td>
+          <td><%c echo<<a["urlname"].to_string(); %></td>
+          <td><%c echo<<a["name"].to_string(); %></td>
+          <td>
+            <%c if(a["status"].to_int()==1){ %>
+            <span class="badge bg-success">启用</span>
+            <%c }else{ %>
+            <span class="badge bg-secondary">关闭</span>
+            <%c } %>
+          </td>
+          <td><%c echo<<a["permscode"].to_string(); %></td>
+          <td><%c echo<<a["maskcode"].to_string(); %></td>
+          <td><%c if(a["readonly"].to_int()==1){ %>是（1）<%c }else{ %>否（0）<%c } %></td>
+          <td><%c echo<<a["created_time"].to_string(); %></td>
+          <td>
+            <button type="button" class="btn btn-outline-primary btn-sm edit-btn"
+              data-permsid="<%c echo<<a["permsid"].to_string(); %>"
+              data-userid="<%c echo<<a["userid"].to_string(); %>"
+              data-urlpath="<%c echo<<a["urlpath"].to_string(); %>"
+              data-urlname="<%c echo<<a["urlname"].to_string(); %>"
+              data-name="<%c echo<<a["name"].to_string(); %>"
+              data-parentid="<%c echo<<a["parentid"].to_string(); %>"
+              data-status="<%c echo<<a["status"].to_string(); %>"
+              data-permscode="<%c echo<<a["permscode"].to_string(); %>"
+              data-maskcode="<%c echo<<a["maskcode"].to_string(); %>"
+              data-readonly="<%c echo<<a["readonly"].to_string(); %>">编辑</button>
+            <button type="button" class="btn btn-outline-warning btn-sm toggle-btn"
+              data-permsid="<%c echo<<a["permsid"].to_string(); %>"
+              data-name="<%c echo<<a["name"].to_string(); %>"
+              data-status="<%c echo<<a["status"].to_string(); %>">启停</button>
+          </td>
+        </tr>
+        <%c } %>
+      </tbody>
+    </table>
+
+  </div>
+
+  <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editModalLabel">编辑权限</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+        </div>
+        <form id="editform" action="/superadmin/rbac/perm/editpost" method="post">
+          <div class="modal-body">
+            <input type="hidden" name="csrf_token" value="<% echo<<obj["csrf_token"].to_string(); %>">
+            <input type="hidden" name="permsid" id="edit-permsid">
+
+            <div class="mb-3">
+              <label class="form-label" for="edit-permsid-view">
+                权限ID <code>permsid</code> <span class="text-muted">自动生成，不可修改</span>
+              </label>
+              <input class="form-control" id="edit-permsid-view" readonly disabled>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="edit-userid-view">
+                归属用户ID <code>userid</code> <span class="text-muted">不可修改</span>
+              </label>
+              <input class="form-control" id="edit-userid-view" readonly disabled>
+              <div class="form-text">该权限项归属的公司 ID；0 是历史遗留的无效归属，待清理。如需变更请重新登记。</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="edit-urlpath-view">
+                权限路径 <code>urlpath</code> <span class="text-muted">只读</span>
+              </label>
+              <input class="form-control" id="edit-urlpath-view" readonly disabled>
+              <div class="form-text">来自路由注册键，本页不可修改。</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="edit-maskcode-view">
+                掩码 <code>maskcode</code> <span class="text-muted">只读</span>
+              </label>
+              <input class="form-control" id="edit-maskcode-view" readonly disabled>
+              <div class="form-text">与路由注册的 mask_code 对应，0 表示不参与 RBAC 分流。</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="edit-parentid">
+                父级权限ID <code>parentid</code> <span class="text-muted">留空=0（顶级）</span>
+              </label>
+              <input class="form-control" id="edit-parentid" name="parentid" type="number" min="0" placeholder="0">
+              <div class="form-text">用于权限树分组，0 表示顶级节点。</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="edit-urlname">
+                路径别名 <code>urlname</code> <span class="text-muted">留空=urlpath</span>
+              </label>
+              <input class="form-control" id="edit-urlname" name="urlname" maxlength="60"
+                placeholder="例如：订单列表-管理员">
+              <div class="form-text">展示用别名，留空则自动使用 urlpath。</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="edit-name">
+                权限名称 <code>name</code> <span class="text-muted">留空=urlpath</span>
+              </label>
+              <input class="form-control" id="edit-name" name="name" maxlength="60" placeholder="例如：订单管理">
+              <div class="form-text">给管理员看的名称，留空则自动使用 urlpath。</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="edit-status">状态 <code>status</code></label>
+              <select class="form-select" id="edit-status" name="status">
+                <option value="1">启用（1）：可被角色勾选授权</option>
+                <option value="0">关闭（0）：不参与授权</option>
+              </select>
+              <div class="form-text">关闭后不会出现在角色权限勾选列表。</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="edit-permscode">
+                权限码 <code>permscode</code> <span class="text-muted">留空=0</span>
+              </label>
+              <input class="form-control" id="edit-permscode" name="permscode" type="number" min="0" placeholder="0">
+              <div class="form-text">业务自定义数字，0=未设置。</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="edit-readonly">只读 <code>readonly</code></label>
+              <select class="form-select" id="edit-readonly" name="readonly">
+                <option value="0">否（0）：允许编辑</option>
+                <option value="1">是（1）：内置只读，不建议修改</option>
+              </select>
+              <div class="form-text">标记内置权限，防止误改。</div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+            <button type="submit" class="btn btn-primary">保存</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="/assets/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function showResult(type, text) {
+      document.getElementById('result').innerHTML =
+        '<div class="alert alert-' + type + ' py-2 mb-0">' + text + '</div>';
+    }
+
+    var editModal = new bootstrap.Modal(document.getElementById('editModal'));
+
+    document.querySelectorAll('.edit-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.getElementById('edit-permsid').value = this.dataset.permsid;
+        document.getElementById('edit-permsid-view').value = this.dataset.permsid;
+        document.getElementById('edit-userid-view').value = this.dataset.userid;
+        document.getElementById('edit-urlpath-view').value = this.dataset.urlpath;
+        document.getElementById('edit-maskcode-view').value = this.dataset.maskcode;
+        document.getElementById('edit-parentid').value = this.dataset.parentid;
+        document.getElementById('edit-urlname').value = this.dataset.urlname;
+        document.getElementById('edit-name').value = this.dataset.name;
+        document.getElementById('edit-status').value = this.dataset.status;
+        document.getElementById('edit-permscode').value = this.dataset.permscode;
+        document.getElementById('edit-readonly').value = this.dataset.readonly;
+        editModal.show();
+      });
+    });
+
+    document.getElementById('editform').addEventListener('submit', function (e) {
+      e.preventDefault();
+      fetch(this.action, { method: 'POST', body: new FormData(this), credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j.code === 0) {
+            showResult('success', (j.msg || '权限保存成功') + '，下次带 maskcode 的请求立即生效');
+            setTimeout(function () { location.reload(); }, 800);
+          } else {
+            showResult('danger', '保存失败：' + (j.msg || ('HTTP ' + r.status)));
+          }
+        })
+        .catch(function (e) {
+          showResult('danger', '请求失败：' + e);
+        });
+    });
+
+    document.querySelectorAll('.toggle-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var nextStatus = this.dataset.status === '1' ? '0' : '1';
+        var label = nextStatus === '1' ? '启用' : '关闭';
+        if (!confirm('确定' + label + '权限「' + this.dataset.name + '」？')) {
+          return;
+        }
+        var fd = new FormData();
+        fd.append('csrf_token', '<% echo<<obj["csrf_token"].to_string(); %>');
+        fd.append('permsid', this.dataset.permsid);
+        fd.append('status', nextStatus);
+        fetch('/superadmin/rbac/perm/toggle', { method: 'POST', body: fd, credentials: 'same-origin' })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            if (j.code === 0) {
+              showResult('success', '权限「' + this.dataset.name + '」已' + label +
+                '（status=' + j.status + '）');
+              setTimeout(function () { location.reload(); }, 800);
+            } else {
+              showResult('danger', '操作失败：' + (j.msg || ('HTTP ' + r.status)));
+            }
+          }.bind(this))
+          .catch(function (e) {
+            showResult('danger', '请求失败：' + e);
+          });
+      });
+    });
+  </script>
+</body>
+
+</html>

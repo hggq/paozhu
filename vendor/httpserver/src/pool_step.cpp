@@ -123,6 +123,8 @@ asio::awaitable<Outcome> run_one_step_with_peer(FN fn, std::shared_ptr<httppeer>
                 {
                     if constexpr (std::is_same_v<Outcome, pool_bool>)
                         out.value = fn(peer);
+                    else if constexpr (std::is_same_v<Outcome, pool_code>)
+                        out.value = fn(peer);
                     else if constexpr (std::is_same_v<Outcome, pool_text>)
                         out.ret = fn(peer);
                     else
@@ -166,9 +168,25 @@ asio::awaitable<pool_bool> co_pool_run_bool(std::function<bool()> fn, asio::use_
     return run_one_step_on_pool<pool_bool>(std::move(fn), h);
 }
 
+// peer 版：RBAC 判定这类「拿 peer + 查库」的步骤走这里，peer 的生命周期由池任务与唤醒 op 共同持有。
+asio::awaitable<pool_bool> co_pool_run_bool(std::function<bool(std::shared_ptr<httppeer> &)> fn,
+                                            std::shared_ptr<httppeer> peer,
+                                            asio::use_awaitable_t<> h)
+{
+    return run_one_step_with_peer<pool_bool>(std::move(fn), std::move(peer), h);
+}
+
 asio::awaitable<pool_fail> co_pool_run_void(std::function<void()> fn, asio::use_awaitable_t<> h)
 {
     return run_one_step_on_pool<pool_fail>(std::move(fn), h);
+}
+
+// 路由 RBAC 分流：判定函数返回 0（放行）或要写的状态码，peer 的持有关系同上面那条。
+asio::awaitable<pool_code> co_pool_run_code(std::function<unsigned int(std::shared_ptr<httppeer> &)> fn,
+                                           std::shared_ptr<httppeer> peer,
+                                           asio::use_awaitable_t<> h)
+{
+    return run_one_step_with_peer<pool_code>(std::move(fn), std::move(peer), h);
 }
 
 bool post_conn_step(const char *tag, std::function<void()> fn)

@@ -2,7 +2,7 @@
 #define ORM_CMS_ARTICLEBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sun, 01 Nov 2026 02:10:33 GMT
+*本文件为自动生成 Sat, 07 Nov 2026 09:30:36 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -791,7 +791,7 @@ namespace article_info
         
     inline constexpr std::array<std::string_view,27> col_names={"aid","topicid","classtype","userid","sortid","topicname","title","keywords","fromsource","author","addip","createtime","addtime","readnum","review","icoimg","content","mdcontent","isopen","ishome","iscomment","showtype","fromlocal","texturl","summary","editauthor","relatecontent"};
 	static constexpr std::array<unsigned char,27> col_types={3,3,3,3,3,253,253,253,253,253,253,253,8,3,3,253,252,252,1,1,1,1,253,253,253,253,253};
-	static constexpr std::array<unsigned int,27> col_length={0,0,0,0,0,140,128,128,60,40,20,20,0,0,0,255,0,0,0,0,0,0,60,255,255,40,256};
+	static constexpr std::array<unsigned int,27> col_length={0,0,0,0,0,140,256,256,60,40,20,20,0,0,0,255,0,0,0,0,0,0,60,255,255,40,256};
 	static constexpr std::array<unsigned char,27> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	static constexpr std::array<bool,27> col_null={false,false,false,false,false,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
 	static constexpr std::array<bool,27> col_indexed={true,false,false,true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};

@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>注册函数列表</title>
+  <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/icons/font/bootstrap-icons.css">
+  <link href="/css/dashboard.css" rel="stylesheet">
+</head>
+
+<body>
+  <div class="container-fluid p-3">
+    <h5 class="mt-2">注册函数列表</h5>
+    <div class="text-muted mb-2">
+      当前站点：<% echo<<obj["current_site"].to_string(); %>；
+      命名空间内路由：<% echo<<obj["total"].to_string(); %> 条；
+      可登记（maskcode 非 0）：<% echo<<obj["candidate_count"].to_string(); %> 条；
+      本企业已登记：<% echo<<obj["registered_count"].to_string(); %>；
+      掩码漂移：<% echo<<obj["drift_count"].to_string(); %>；
+      当前列表：<% echo<<obj["list_total"].to_string(); %> 条
+    </div>
+    <div class="alert alert-info py-2">
+      列表默认展示「全局命名空间 + 当前域名命名空间」内全部路由（<code>maskcode=0</code> 的行只读、不可勾选），
+      每页 100 条；点「只看可登记」可只保留带 <code>maskcode</code> 的候选。翻页会重新载入列表，已勾选状态不跨页保留。<br>
+      同 <code>urlpath</code>
+      已存在且 <code>maskcode</code> 一致则跳过，不一致则以路由注册值改写（库里的值漂移了，运行期判定会一直 403）。<br>
+      登记后写入 <code>sysperms</code>：userid=<b>所选企业的 sid</b>（即 <code>sysuser.companyid</code>）、urlpath=路由路径、
+      urlname=路由路径、name=注解 <code>:title(名称)</code> 里的名称（没写 title 时=name=urlpath）、status=1、maskcode=路由掩码；同批再写一条 <code>syscompanyperms</code>（登记即分配，
+      该企业立刻可以把这条权限授给角色）。权限按企业隔离，租户管理员只能分配平台已分配给本企业的项。
+      登记只是生成权限项，是否放行还要到角色页给角色授权。
+    </div>
+    <%c if(obj["company_count"].to_int()==0){ %>
+    <div class="alert alert-warning py-2">当前账号名下还没有站点，无法按企业登记权限；请先在网站管理里新增站点。</div>
+    <%c } %>
+
+    <div class="row mb-2 g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label mb-1" for="companyid">登记给企业（sysperms.userid）</label>
+        <select id="companyid" class="form-select">
+          <%c for(auto &c:obj["companies"].as_array()){ %>
+          <option value="<%c echo<<c["sid"].to_string(); %>" <%c if(c["sid"].to_int()==obj["companyid"].to_int()){ %>selected<%c } %>>sid <%c echo<<c["sid"].to_string(); %> · <%c echo<<c["sitename"].to_string(); %></option>
+          <%c } %>
+        </select>
+        <div class="form-text">切换企业会重新载入该企业的登记状态。</div>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label mb-1" for="filter">筛选路由</label>
+        <input id="filter" class="form-control" placeholder="输入 urlpath 或站点名，例如：/orders 或 saas.com">
+        <div class="form-text">仅在前端过滤当前表格，不会修改数据。</div>
+      </div>
+      <div class="col-md-4 text-end">
+        <%c if(obj["candidate_only"].to_int()==1){ %>
+        <a class="btn btn-outline-secondary btn-sm" href="<%c echo<<obj["url_candidate"].to_string(); %>">显示全部路由</a>
+        <%c }else{ %>
+        <a class="btn btn-outline-secondary btn-sm" href="<%c echo<<obj["url_candidate"].to_string(); %>">只看可登记</a>
+        <%c } %>
+        <%c if(obj["showall"].to_int()==1){ %>
+        <a class="btn btn-outline-secondary btn-sm" href="<%c echo<<obj["url_showall"].to_string(); %>">只看本站</a>
+        <%c }else{ %>
+        <a class="btn btn-outline-secondary btn-sm" href="<%c echo<<obj["url_showall"].to_string(); %>">全部站点（只读）</a>
+        <%c } %>
+        <button class="btn btn-primary btn-sm" id="savebtn">登记选中项</button>
+      </div>
+    </div>
+
+    <div id="result" class="mb-2"></div>
+
+    <table class="table table-sm table-bordered align-middle" id="routeTable">
+      <thead class="table-light">
+        <tr>
+          <th style="width:70px">
+            <input type="checkbox" id="checkall" class="form-check-input me-1" title="全选当前列表">选择
+            <br><small class="text-muted fw-normal">勾选=登记</small>
+          </th>
+          <th style="width:150px">站点<br><small class="text-muted fw-normal">site</small></th>
+          <th>路由路径<br><small class="text-muted fw-normal">urlpath</small></th>
+          <th style="width:150px">名称<br><small class="text-muted fw-normal">title</small></th>
+          <th style="width:100px">掩码<br><small class="text-muted fw-normal">mask_code</small></th>
+          <th style="width:110px">限流（秒/次）<br><small class="text-muted fw-normal">rate_time / rate_num</small></th>
+          <th style="width:90px">前置校验<br><small class="text-muted fw-normal">pre_kind</small></th>
+          <th style="width:90px">注册类型<br><small class="text-muted fw-normal">reg_kind</small></th>
+          <th style="width:130px">状态<br><small class="text-muted fw-normal">registered / drift</small></th>
+        </tr>
+      </thead>
+      <tbody>
+        <%c for(auto &a:obj["infos"].as_array()){ %>
+        <tr data-text="<%c echo<<a["site"].to_string(); %> <%c echo<<a["urlpath"].to_string(); %>">
+          <td>
+            <%c if(a["candidate"].to_int()==1 && (a["registered"].to_int()==0 || a["drift"].to_int()==1)){ %>
+            <input class="form-check-input rowcheck" type="checkbox" value="<%c echo<<a["urlpath"].to_string(); %>">
+            <%c } %>
+          </td>
+          <td>
+            <%c echo<<a["site"].to_string(); %>
+            <%c if(a["site"].to_string()=="*"){ %><span class="badge bg-info text-dark">全局</span><%c } %>
+          </td>
+          <td><%c echo<<a["urlpath"].to_string(); %></td>
+          <td><%c echo<<a["title"].to_string(); %></td>
+          <td><%c echo<<a["mask_code"].to_string(); %></td>
+          <td><%c echo<<a["rate_time"].to_string(); %> 秒 / <%c echo<<a["rate_num"].to_string(); %> 次</td>
+          <td><%c echo<<a["pre_kind"].to_string(); %></td>
+          <td><%c echo<<a["reg_kind"].to_string(); %></td>
+          <td>
+            <%c if(a["candidate"].to_int()==0){ %>
+            <span class="badge bg-secondary">mask=0，不参与</span>
+            <%c }else if(a["drift"].to_int()==1){ %>
+            <span class="badge bg-danger">掩码漂移</span><br><small class="text-muted">库 <%c echo<<a["stored_mask"].to_string(); %> / 路由 <%c echo<<a["mask_code"].to_string(); %></small>
+            <%c }else if(a["registered"].to_int()==1){ %>
+            <span class="badge bg-success">已登记</span>
+            <%c }else{ %>
+            <span class="badge bg-warning text-dark">可登记</span>
+            <%c } %>
+          </td>
+        </tr>
+        <%c } %>
+      </tbody>
+    </table>
+
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+      <div class="text-muted small">
+        第 <b><%c echo<<obj["page"].to_string(); %></b> / <%c echo<<obj["total_pages"].to_string(); %> 页，
+        共 <b><%c echo<<obj["list_total"].to_string(); %></b> 条；
+        本页显示第 <%c echo<<obj["page_start"].to_string(); %>–<%c echo<<obj["page_end"].to_string(); %> 条（每页 <%c echo<<obj["page_size"].to_string(); %> 条）
+      </div>
+      <nav class="btn-group btn-group-sm" aria-label="分页">
+        <%c if(obj["url_prev"].to_string().empty()){ %>
+        <button class="btn btn-outline-secondary" disabled>上一页</button>
+        <%c }else{ %>
+        <a class="btn btn-outline-secondary" href="<%c echo<<obj["url_prev"].to_string(); %>">上一页</a>
+        <%c } %>
+        <%c if(obj["url_next"].to_string().empty()){ %>
+        <button class="btn btn-outline-secondary" disabled>下一页</button>
+        <%c }else{ %>
+        <a class="btn btn-outline-secondary" href="<%c echo<<obj["url_next"].to_string(); %>">下一页</a>
+        <%c } %>
+      </nav>
+    </div>
+
+    <div class="text-muted small mb-2">
+      字段说明：<code>mask_code</code>=路由注册时声明的掩码，非 0 才参与 RBAC（0 的行只展示、不可登记）；
+      <code>title</code>=注解 <code>:title(名称)</code> 里的名称，登记时写进 <code>sysperms.name</code>（空则用 urlpath）；
+      <code>rate_time</code>=限流时间窗口（秒），<code>rate_num</code>=窗口内允许请求次数；
+      <code>pre_kind</code>/<code>reg_kind</code>：0=无，1=sync，2=coro；
+      <code>site</code> 为 <code>*</code> 表示全局命名空间。
+    </div>
+
+  </div>
+
+  <script src="/assets/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.getElementById('filter').addEventListener('input', function () {
+      var q = this.value.trim().toLowerCase();
+      document.querySelectorAll('#routeTable tbody tr').forEach(function (tr) {
+        tr.style.display = q === '' || tr.dataset.text.toLowerCase().indexOf(q) >= 0 ? '' : 'none';
+      });
+    });
+    document.getElementById('checkall') && document.getElementById('checkall').addEventListener('change', function () {
+      document.querySelectorAll('.rowcheck').forEach(function (cb) { cb.checked = this.checked; }, this);
+    });
+    document.getElementById('companyid').addEventListener('change', function () {
+      var tail = <%c if(obj["showall"].to_int()==1){ %>'&showall=1'<%c }else{ %>''<%c } %>;
+      var tail2 = <%c if(obj["candidate_only"].to_int()==1){ %>'&candidate=1'<%c }else{ %>''<%c } %>;
+      location.href = '/superadmin/registerfunc?companyid=' + this.value + tail + tail2;
+    });
+    document.getElementById('savebtn').addEventListener('click', function () {
+      var picked = [];
+      document.querySelectorAll('.rowcheck:checked').forEach(function (cb) { picked.push(cb.value); });
+      var box = document.getElementById('result');
+      if (picked.length === 0) {
+        box.innerHTML = '<div class="alert alert-warning py-2 mb-0">请先勾选要登记的 urlpath（只有「可登记」和「掩码漂移」状态的行可勾选）</div>';
+        return;
+      }
+      var fd = new FormData();
+      fd.append('csrf_token', '<% echo<<obj["csrf_token"].to_string(); %>');
+      fd.append('companyid', '<% echo<<obj["companyid"].to_string(); %>');
+      fd.append('urlpaths', picked.join('\n'));
+      fetch('/superadmin/registerfunc/save', { method: 'POST', body: fd, credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j.code === 0) {
+            box.innerHTML = '<div class="alert alert-success py-2 mb-0">' +
+              (j.msg || '登记完成') + '（企业 sid ' + j.companyid + '）：提交 ' + j.total + ' 项，新增 ' + j.inserted +
+              '，改写掩码 ' + j.synced + '，跳过 ' + j.skipped + '（已登记且掩码一致），拒绝 ' + j.rejected +
+              '（不在当前站点候选范围或写入失败）</div>';
+            setTimeout(function () { location.reload(); }, 900);
+          } else {
+            box.innerHTML = '<div class="alert alert-danger py-2 mb-0">登记失败：' +
+              (j.msg || ('HTTP ' + r.status)) + '</div>';
+          }
+        })
+        .catch(function (e) {
+          box.innerHTML = '<div class="alert alert-danger py-2 mb-0">请求失败：' + e + '</div>';
+        });
+    });
+  </script>
+</body>
+
+</html>

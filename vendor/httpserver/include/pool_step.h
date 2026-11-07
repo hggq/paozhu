@@ -25,6 +25,11 @@ struct pool_bool : pool_fail
 {
     bool value = false;
 };
+// 携带一个 unsigned int 结果的池步骤：RBAC 判定用它把「放行 / 要写的状态码」带回来。
+struct pool_code : pool_fail
+{
+    unsigned int value = 0;
+};
 struct pool_text : pool_fail
 {
     std::string ret;
@@ -53,6 +58,14 @@ asio::awaitable<pool_fail> co_pool_run_void(std::function<void()> fn,
 asio::awaitable<pool_text> co_pool_run_step(std::function<std::string(std::shared_ptr<httppeer> &)> fn,
                                             std::shared_ptr<httppeer> peer,
                                             asio::use_awaitable_t<> h = {});
+asio::awaitable<pool_bool> co_pool_run_bool(std::function<bool(std::shared_ptr<httppeer> &)> fn,
+                                            std::shared_ptr<httppeer> peer,
+                                            asio::use_awaitable_t<> h = {});
+// 只有 peer 版：跑一条「拿 peer + 查库」的判定，把无符号结果（0/状态码）带回协程。
+// 没有零参版——唯一的调用点是路由的 RBAC 分流，它必须携带 peer。
+asio::awaitable<pool_code> co_pool_run_code(std::function<unsigned int(std::shared_ptr<httppeer> &)> fn,
+                                           std::shared_ptr<httppeer> peer,
+                                           asio::use_awaitable_t<> h = {});
 
 // eptr 的文本形态；空指针返回空串
 std::string exception_text(const std::exception_ptr &eptr);

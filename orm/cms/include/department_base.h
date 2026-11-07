@@ -2,7 +2,7 @@
 #define ORM_CMS_DEPARTMENTBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sun, 01 Nov 2026 02:10:33 GMT
+*本文件为自动生成 Sat, 07 Nov 2026 09:30:36 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -31,7 +31,7 @@ namespace orm {
 namespace department_info
 {
  
-    static constexpr std::size_t col_count = 16;
+    static constexpr std::size_t col_count = 17;
     enum class cols : unsigned char 
     {
 		dpid = 0,
@@ -50,6 +50,7 @@ namespace department_info
 		updated_user = 13,
 		isvirtual = 14,
 		linkdpid = 15,
+		versionid = 16,
 
     };
 
@@ -71,6 +72,7 @@ namespace department_info
 		 unsigned  int  updated_user = 0; ///**/
 		 char  isvirtual = 0; ///*是否虚拟部门*/
 		 std::string  linkdpid = ""; ///*关联部门*/
+		 unsigned  int  versionid = 0; ///*版本*/
 	};
   
     struct meta_tree
@@ -91,6 +93,7 @@ namespace department_info
 		 unsigned  int  updated_user = 0; ///**/
 		 char  isvirtual = 0; ///*是否虚拟部门*/
 		 std::string  linkdpid = ""; ///*关联部门*/
+		 unsigned  int  versionid = 0; ///*版本*/
 
 	 std::vector<meta_tree> children;
  };
@@ -113,6 +116,7 @@ namespace department_info
 		 unsigned  int  updated_user = 0; ///**/
 		 char  isvirtual = 0; ///*是否虚拟部门*/
 		 std::string  linkdpid = ""; ///*关联部门*/
+		 unsigned  int  versionid = 0; ///*版本*/
 
 	 std::vector<std::unique_ptr<meta_tree>> children;
  };
@@ -152,6 +156,8 @@ namespace department_info
 		 return m.isvirtual;
 		} else if constexpr (Col == cols::linkdpid) { 
 		 return m.linkdpid;
+		} else if constexpr (Col == cols::versionid) { 
+		 return m.versionid;
 		
         } else {
             //static_assert(false, "Unsupported column type");
@@ -175,6 +181,7 @@ namespace department_info
 		using updated_user =  unsigned  int ;
 		using isvirtual =  char ;
 		using linkdpid =  std::string ;
+		using versionid =  unsigned  int ;
 
     }
 
@@ -688,12 +695,12 @@ namespace department_info
                 return oss.str(); }\
        }
         
-    inline constexpr std::array<std::string_view,16> col_names={"dpid","userid","parentid","name","depart_code","bianzhi_num","real_num","quan_weight","isopen","memo","created_time","created_user","updated_time","updated_user","isvirtual","linkdpid"};
-	static constexpr std::array<unsigned char,16> col_types={3,3,3,253,253,3,3,3,1,252,3,3,3,3,1,253};
-	static constexpr std::array<unsigned int,16> col_length={0,0,0,40,20,0,0,0,0,0,0,0,0,0,0,256};
-	static constexpr std::array<unsigned char,16> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
-	static constexpr std::array<bool,16> col_null={false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
-	static constexpr std::array<bool,16> col_indexed={true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
+    inline constexpr std::array<std::string_view,17> col_names={"dpid","userid","parentid","name","depart_code","bianzhi_num","real_num","quan_weight","isopen","memo","created_time","created_user","updated_time","updated_user","isvirtual","linkdpid","versionid"};
+	static constexpr std::array<unsigned char,17> col_types={3,3,3,253,253,3,3,3,1,252,3,3,3,3,1,253,3};
+	static constexpr std::array<unsigned int,17> col_length={0,0,0,40,20,0,0,0,0,0,0,0,0,0,0,256,0};
+	static constexpr std::array<unsigned char,17> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	static constexpr std::array<bool,17> col_null={false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::array<bool,17> col_indexed={true,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false,false};
 	static constexpr std::string_view auto_pk_name ="dpid";
 	static constexpr int auto_pk_index = 0;
 
@@ -712,15 +719,15 @@ std::vector<department_info::meta>::const_iterator end() const{     return recor
 std::string tablename="department";
 static constexpr std::string_view org_tablename="department";
 static constexpr std::string_view modelname="Department";
-	static constexpr std::array<bool,16> col_need_quote={false,false,false,true,true,false,false,false,false,true,false,false,false,false,false,true};
+	static constexpr std::array<bool,17> col_need_quote={false,false,false,true,true,false,false,false,false,true,false,false,false,false,false,true,false};
 
-            std::bitset<16> dirty_bits;
+            std::bitset<17> dirty_bits;
             void clear_dirty() noexcept {
                 dirty_bits.reset();
             }
 
             void set_dirty(std::size_t idx) noexcept {
-                if(idx < 16)
+                if(idx < 17)
                 dirty_bits.set(idx);
             }
 
@@ -851,6 +858,9 @@ case 12:
    	 break;
  }
  break;
+case 'v':
+   	 return 16;
+break;
 
              }
              return 255;
@@ -996,6 +1006,11 @@ if(data.isvirtual==0){
 	tempsql<<","<<std::to_string(data.isvirtual);
 }
 tempsql<<",'"<<stringaddslash(data.linkdpid)<<"'";
+if(data.versionid==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.versionid);
+}
 tempsql<<")";
 
      
@@ -1085,6 +1100,11 @@ if(insert_data.isvirtual==0){
 	tempsql<<","<<std::to_string(insert_data.isvirtual);
 }
 tempsql<<",'"<<stringaddslash(insert_data.linkdpid)<<"'";
+if(insert_data.versionid==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.versionid);
+}
 tempsql<<")";
 
      
@@ -1182,6 +1202,11 @@ tempsql<<")";
 	tempsql<<","<<std::to_string(insert_data[i].isvirtual);
 	}
 		tempsql<<",'"<<stringaddslash(insert_data[i].linkdpid)<<"'";
+	if(insert_data[i].versionid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].versionid);
+	}
 		tempsql<<")";
 	 } 
 
@@ -1265,6 +1290,11 @@ if(data.isvirtual==0){
 	tempsql<<",isvirtual="<<std::to_string(data.isvirtual);
 }
 tempsql<<",linkdpid='"<<stringaddslash(data.linkdpid)<<"'";
+if(data.versionid==0){
+	tempsql<<",versionid=0";
+ }else{ 
+	tempsql<<",versionid="<<std::to_string(data.versionid);
+}
  }else{ 
 
      
@@ -1421,6 +1451,14 @@ if(data.isvirtual==0){
  if(jj>0){ tempsql<<","; } 
 tempsql<<"linkdpid='"<<stringaddslash(data.linkdpid)<<"'";
  break;
+ case 16:
+ if(jj>0){ tempsql<<","; } 
+if(data.versionid==0){
+	tempsql<<"versionid=0";
+ }else{ 
+	tempsql<<"versionid="<<std::to_string(data.versionid);
+}
+ break;
 
      
                   default:
@@ -1542,6 +1580,13 @@ tempsql<<"linkdpid='"<<stringaddslash(data.linkdpid)<<"'";
                     case 15:
                         tempsql<<"linkdpid='"<<stringaddslash(data.linkdpid)<<"'";
                         break;
+                    case 16:
+                        if(data.versionid==0){
+                            tempsql<<"versionid=0";
+                        }else{ 
+                            tempsql<<"versionid="<<std::to_string(data.versionid);
+                        }
+                        break;
                 }
                 first = false;
             }
@@ -1647,6 +1692,11 @@ tempsql<<"linkdpid='"<<stringaddslash(data.linkdpid)<<"'";
 	tempsql<<","<<std::to_string(record[i].isvirtual);
 	}
 	tempsql<<",'"<<stringaddslash(record[i].linkdpid)<<"'";
+	if(record[i].versionid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].versionid);
+	}
 	tempsql<<")";
   }
  
@@ -1749,6 +1799,11 @@ tempsql<<"linkdpid='"<<stringaddslash(data.linkdpid)<<"'";
 	tempsql<<","<<std::to_string(record[i].isvirtual);
 	}
 	tempsql<<",'"<<stringaddslash(record[i].linkdpid)<<"'";
+	if(record[i].versionid==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].versionid);
+	}
 	tempsql<<")";
 	 }
 	 tempsql<<" as new ON DUPLICATE KEY UPDATE ";
@@ -1930,6 +1985,13 @@ if(data.isvirtual==0){
  case 15:
 	temparray.push_back(data.linkdpid);
  break;
+ case 16:
+if(data.versionid==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.versionid));
+}
+ break;
 
                              default:
                                 ;
@@ -2072,6 +2134,13 @@ if(data.isvirtual==0){
  case 15:
 	tempsql.insert({"linkdpid",data.linkdpid});
  break;
+ case 16:
+if(data.versionid==0){
+	tempsql.insert({"versionid","0"});
+ }else{ 
+	tempsql.insert({"versionid",std::to_string(data.versionid)});
+}
+ break;
 
                              default:
                                 ;
@@ -2153,6 +2222,11 @@ if(data.isvirtual==0){
 }
 tempsql<<",\"linkdpid\":\""<<http::utf8_to_jsonstring(data.linkdpid);
 tempsql<<"\"";
+if(data.versionid==0){
+	tempsql<<",\"versionid\":0";
+ }else{ 
+	tempsql<<",\"versionid\":"<<std::to_string(data.versionid);
+}
 tempsql<<"}";
 
      
@@ -2307,6 +2381,14 @@ if(data.isvirtual==0){
  case 15:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(data.linkdpid)<<"\"";
+ break;
+ case 16:
+ if(jj>0){ tempsql<<","; } 
+if(data.versionid==0){
+	tempsql<<"\"versionid\":0";
+ }else{ 
+	tempsql<<"\"versionid\":"<<std::to_string(data.versionid);
+}
  break;
 
                              default:
@@ -2628,6 +2710,10 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(data.linkdpid)<<"\"";
 		  http::json_set_val(data.linkdpid,set_value_name);
 		 break;
 		
+		case 16:
+		  http::json_set_val(data.versionid,set_value_name);
+		 break;
+		
 		default:
 		 { }
 			
@@ -2791,6 +2877,14 @@ if(record[n].isvirtual==0){
  case 15:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(record[n].linkdpid)<<"\"";
+ break;
+ case 16:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].versionid==0){
+	tempsql<<"\"versionid\":0";
+ }else{ 
+	tempsql<<"\"versionid\":"<<std::to_string(record[n].versionid);
+}
  break;
 
                              default:
@@ -2966,6 +3060,14 @@ if(record[n].isvirtual==0){
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(record[n].linkdpid)<<"\"";
  break;
+ case 16:
+ if(jj>0){ tempsql<<","; } 
+if(record[n].versionid==0){
+	tempsql<<"\"versionid\":0";
+ }else{ 
+	tempsql<<"\"versionid\":"<<std::to_string(record[n].versionid);
+}
+ break;
 
                              default:
                                 ;
@@ -3052,6 +3154,10 @@ tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(record[n].linkdpid)<<"\"";
 		 set_dirty(15);  }
  void setLinkdpid(std::string_view val){  data.linkdpid=val;
 		 set_dirty(15);  }
+
+ unsigned  int  getVersionid(){  return data.versionid; } 
+ void setVersionid( unsigned  int  val){  data.versionid=val;
+		 set_dirty(16);  }
 
 department_info::meta getnewData(){
  	 struct department_info::meta newdata;
@@ -3219,6 +3325,14 @@ if(tree_data[n].isvirtual==0){
  case 15:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"";
+ break;
+ case 16:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].versionid==0){
+	tempsql<<"\"versionid\":0";
+ }else{ 
+	tempsql<<"\"versionid\":"<<std::to_string(tree_data[n].versionid);
+}
  break;
 
                              default:
@@ -3396,6 +3510,14 @@ if(tree_data[n].isvirtual==0){
  case 15:
  if(jj>0){ tempsql<<","; } 
 tempsql<<"\"linkdpid\":\""<<http::utf8_to_jsonstring(tree_data[n].linkdpid)<<"\"";
+ break;
+ case 16:
+ if(jj>0){ tempsql<<","; } 
+if(tree_data[n].versionid==0){
+	tempsql<<"\"versionid\":0";
+ }else{ 
+	tempsql<<"\"versionid\":"<<std::to_string(tree_data[n].versionid);
+}
  break;
 
                              default:

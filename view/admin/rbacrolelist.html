@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>角色管理</title>
+  <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/icons/font/bootstrap-icons.css">
+  <link href="/css/dashboard.css" rel="stylesheet">
+</head>
+
+<body>
+  <div class="container-fluid p-3">
+    <h5 class="mt-2">角色管理</h5>
+    <div class="text-muted mb-2">
+      本企业（companyid）：<% echo<<obj["companyid"].to_string(); %>；
+      角色数：<% echo<<obj["role_count"].to_string(); %>；
+      可分配权限项：<% echo<<obj["assignable_total"].to_string(); %>
+    </div>
+
+    <%c if(obj["assignable_total"].to_int()==0){ %>
+    <div class="alert alert-warning py-2">
+      平台还没有把任何权限登记给本企业，角色建出来也分配不了权限。请联系平台管理员在
+      「注册函数列表」页按本企业登记路由权限，并在「企业权限分配」页把权限分配给本企业。
+    </div>
+    <%c } else{ %>
+    <div class="alert alert-info py-2">
+      角色是「一组权限的容器」，只能从平台登记给本企业的权限项里挑。<br>
+      建好角色后到「角色权限」页勾选权限，再到「用户角色」页把角色分配给本企业账户。
+    </div>
+    <%c } %>
+
+    <div class="row g-2 mb-3">
+      <div class="col-md-3">
+        <label class="form-label mb-1" for="name">角色名称</label>
+        <input id="name" class="form-control" maxlength="60" placeholder="例如：内容编辑">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label mb-1" for="sortid">排序</label>
+        <input id="sortid" class="form-control" type="number" value="0">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label mb-1" for="status">状态</label>
+        <select id="status" class="form-select">
+          <option value="1">启用</option>
+          <option value="0">停用</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label mb-1" for="rolecode">角色码</label>
+        <input id="rolecode" class="form-control" type="number" value="0">
+      </div>
+      <div class="col-md-3 d-flex align-items-end gap-2">
+        <button class="btn btn-primary btn-sm" id="addbtn">新建角色</button>
+        <button class="btn btn-outline-secondary btn-sm" id="resetbtn">清空</button>
+      </div>
+    </div>
+    <input type="hidden" id="roleid" value="0">
+
+    <div id="result" class="mb-2"></div>
+
+    <table class="table table-sm table-bordered align-middle">
+      <thead class="table-light">
+        <tr>
+          <th style="width:90px">roleid</th>
+          <th>名称</th>
+          <th style="width:90px">状态</th>
+          <th style="width:110px">权限数</th>
+          <th style="width:110px">绑定账户数</th>
+          <th style="width:230px">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <%c for(auto &a:obj["infos"].as_array()){ %>
+        <tr>
+          <td><%c echo<<a["roleid"].to_string(); %></td>
+          <td>
+            <%c echo<<a["name"].to_string(); %>
+            <div class="text-muted small">排序 <%c echo<<a["sortid"].to_string(); %> · 角色码 <%c echo<<a["rolecode"].to_string(); %></div>
+          </td>
+          <td>
+            <%c if(a["status"].to_int()==1){ %>
+            <span class="badge bg-success">启用</span>
+            <%c }else{ %>
+            <span class="badge bg-secondary">停用</span>
+            <%c } %>
+          </td>
+          <td><%c echo<<a["perm_count"].to_string(); %></td>
+          <td><%c echo<<a["user_count"].to_string(); %></td>
+          <td>
+            <a class="btn btn-outline-primary btn-sm" href="/admin/rbac/roleperm?roleid=<%c echo<<a["roleid"].to_string(); %>">配权限</a>
+            <button class="btn btn-outline-secondary btn-sm editbtn"
+              data-roleid="<%c echo<<a["roleid"].to_string(); %>"
+              data-name="<%c echo<<a["name"].to_string(); %>"
+              data-status="<%c echo<<a["status"].to_string(); %>"
+              data-sortid="<%c echo<<a["sortid"].to_string(); %>"
+              data-rolecode="<%c echo<<a["rolecode"].to_string(); %>">编辑</button>
+            <button class="btn btn-outline-danger btn-sm delbtn" data-roleid="<%c echo<<a["roleid"].to_string(); %>">删除</button>
+          </td>
+        </tr>
+        <%c } %>
+        <%c if(obj["role_count"].to_int()==0){ %>
+        <tr>
+          <td colspan="6" class="text-center text-muted">还没有角色，先在上方新建一个。</td>
+        </tr>
+        <%c } %>
+      </tbody>
+    </table>
+
+    <div class="text-muted small mb-2">
+      删除角色会一起清掉它的权限配置和本企业账户的绑定；被绑定的账户下一次请求即失去这些权限。
+    </div>
+
+    <a href="/admin/rbac/userrole" class="btn btn-link">用户角色</a>
+  </div>
+
+  <script src="/assets/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    var CSRF = '<% echo<<obj["csrf_token"].to_string(); %>';
+    function show(msg, ok) {
+      document.getElementById('result').innerHTML =
+        '<div class="alert alert-' + (ok ? 'success' : 'danger') + ' py-2 mb-0">' + msg + '</div>';
+    }
+    function post(url, data) {
+      var fd = new FormData();
+      fd.append('csrf_token', CSRF);
+      for (var k in data) { fd.append(k, data[k]); }
+      return fetch(url, { method: 'POST', body: fd, credentials: 'same-origin' })
+        .then(function (r) { return r.json(); });
+    }
+    document.getElementById('addbtn').addEventListener('click', function () {
+      var roleid = document.getElementById('roleid').value;
+      var name = document.getElementById('name').value.trim();
+      if (name === '') { show('角色名称不能为空', false); return; }
+      var body = {
+        name: name,
+        status: document.getElementById('status').value,
+        sortid: document.getElementById('sortid').value,
+        rolecode: document.getElementById('rolecode').value
+      };
+      var url = '/admin/rbac/role/add';
+      if (roleid !== '0') { body.roleid = roleid; url = '/admin/rbac/role/edit'; }
+      post(url, body).then(function (j) {
+        if (j.code === 0) { show((roleid === '0' ? '已新建角色 ' : '已保存角色 ') + (j.roleid || roleid), true); setTimeout(function () { location.reload(); }, 700); }
+        else { show(j.msg || '保存失败', false); }
+      });
+    });
+    document.getElementById('resetbtn').addEventListener('click', function () {
+      document.getElementById('roleid').value = '0';
+      document.getElementById('name').value = '';
+      document.getElementById('status').value = '1';
+      document.getElementById('sortid').value = '0';
+      document.getElementById('rolecode').value = '0';
+    });
+    document.querySelectorAll('.editbtn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.getElementById('roleid').value = btn.dataset.roleid;
+        document.getElementById('name').value = btn.dataset.name;
+        document.getElementById('status').value = btn.dataset.status;
+        document.getElementById('sortid').value = btn.dataset.sortid;
+        document.getElementById('rolecode').value = btn.dataset.rolecode;
+        show('正在编辑角色 ' + btn.dataset.roleid + '，改完点「新建角色」按钮保存（按钮此时是保存）。', true);
+      });
+    });
+    document.querySelectorAll('.delbtn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (!confirm('删除角色 ' + btn.dataset.roleid + '？它的权限配置和账户绑定会一起清除。')) { return; }
+        post('/admin/rbac/role/delete', { roleid: btn.dataset.roleid }).then(function (j) {
+          if (j.code === 0) { show('已删除角色 ' + btn.dataset.roleid, true); setTimeout(function () { location.reload(); }, 700); }
+          else { show(j.msg || '删除失败', false); }
+        });
+      });
+    });
+  </script>
+</body>
+
+</html>

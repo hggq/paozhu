@@ -2,6 +2,7 @@
 #define HTTP_ROUTER_H
 
 #include <algorithm>
+#include <functional>
 #include <map>
 #include <memory>
 #include <string>
@@ -123,6 +124,17 @@ class router
 };
 
 router &get_router();
+
+// — 运行期 RBAC 分流钩子 —
+// 分流开关是注解里的 maskcode：注册条目 mask_code != 0 的路由才调用它，
+// mask_code == 0 完全不碰钩子，保持原有 pre/登录逻辑与零额外开销。
+// 实现由应用入口注入（libs/rbac/route_guard.*）。
+// 返回值：0 = 放行；非 0 = 这条请求要写的状态码（未登录 401、无权 403）。
+// 判定与状态码都由实现决定——路由不读 session，也不认识任何业务会话键。
+// 钩子未安装按 403 处理（fail-closed），绝不静默放行。
+using route_auth_fn = std::function<unsigned int(httppeer &, const std::string &urlpath, unsigned int mask_code)>;
+void set_route_auth_hook(route_auth_fn fn);
+bool route_auth_hook_ready();
 
 // 测试钩子：让 clientrunpool 下次 add_sync_task 被拒绝（触发 fail_503）。
 // 一次性消费，自动复位，不影响后续请求。

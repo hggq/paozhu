@@ -7,10 +7,12 @@ CREATE TABLE `sysperms` (
   `name` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `status` tinyint unsigned NOT NULL,
   `permscode` int unsigned NOT NULL,
+  `maskcode` int unsigned NOT NULL COMMENT '和urlpath对上',
   `readonly` tinyint unsigned NOT NULL,
   `created_time` int unsigned NOT NULL,
   `updated_time` int unsigned NOT NULL,
   `created_user` int unsigned NOT NULL,
   `updated_user` int unsigned NOT NULL,
-  PRIMARY KEY (`permsid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='权限表'
+  PRIMARY KEY (`permsid`),
+  UNIQUE KEY `uk_userid_urlpath` (`userid`,`urlpath`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='权限表'

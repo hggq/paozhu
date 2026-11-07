@@ -86,6 +86,7 @@ paozhu/
 │   ├── markdown/                  # Markdown to HTML conversion
 │   ├── pinyin/                    # Chinese to Pinyin conversion
 │   ├── ipdata/                    # IP geolocation lookup
+│   ├── rbac/                      # RBAC runtime: catalog load + grant cache + route hook
 │   └── types/                     # Common type definitions
 │
 ├── common/                        # Common definitions
@@ -247,11 +248,12 @@ std::string testhello(std::shared_ptr<httppeer> peer)
 }
 ```
 
-**Route format**: `//@urlpath(前置过滤器,URL路径)`
+**Route format**: `//@urlpath(Pre-filter, URL-path)`
 
 - First argument: pre‑filter function name (`null` means no filter)
 - Second argument: URL path
-- Optional `:digits` after the closing parenthesis attaches a route mask to this entry; the router copies it to `client.mask_code` before the pre filter runs (see §4.8)
+- Optional `:maskcode(n)` / `:ratelimit(seconds,count)` suffixes after the closing parenthesis; use that spelling, not the bare `:digits` form. A non-zero `maskcode` is what puts this route under RBAC; the router also copies it to `client.mask_code` before the pre filter runs (see §4.8)
+- Optional `:title(name)` suffix: a display name for the route, accepted both quoted (`:title("test name")`) and bare (`:title(test name)`). It never reaches the request — it lands in `reg_methold_mid_t::title` and is what the register page writes into `sysperms.name` (see §4.8)
 
 ### 4.3 Pre‑filters
 
@@ -616,14 +618,21 @@ Prepared path (values bound as parameters, see §5.8) — every `exec_` method g
 
 **Note**: Synchronous controllers (returning `std::string`) and coroutine controllers (returning `asio::awaitable<std::string>`) can coexist in the same project. The framework automatically selects the correct execution path based on the function signature.
 
-### 4.8 Route Mask Code (`mask_code`)
+### 4.8 Route Mask Code (`mask_code`) — the RBAC dispatch switch
 
-A registration entry can carry one `unsigned int` that the framework only **delivers**: the
-router writes it onto the request before calling that entry's pre filter, and never reads or
-interprets it. Use it for permission bits, a tenant id, or anything a pre filter and its
-handler need to agree on without re-parsing the URL.
+A registration entry can carry one `unsigned int`. Two things depend on it:
 
-**Spelling** — the digits after the colon, outside the parentheses:
+1. **Dispatch**: `mask_code != 0` means this route is protected by RBAC, and the router runs the
+   authorization hook before that entry's pre filter. `mask_code == 0` means the route is not
+   part of RBAC at all — the hook is never called, no extra query, and the old
+   pre-filter/session behaviour stands on its own.
+2. **Delivery**: the router also writes it onto the request (`client.mask_code`) before the pre
+   filter runs, so the pre filter and its handler can read the same value.
+
+The value is **not free-form**: it must match the `maskcode` column of the `sysperms` row that
+registers this urlpath (see below), otherwise every request to that route is denied.
+
+**Spelling** — the `:name(args)` chain after the closing parenthesis:
 
 ```cpp
 //@urlpath(null,maskpre/check)
@@ -640,54 +649,156 @@ std::string test_mask_pre(std::shared_ptr<httppeer> peer)
     return "@ok";
 }
 
-//@urlpath(test_mask_pre,maskpre):123456
+//@urlpath(test_mask_pre,maskpre):ratelimit(20,5)          // mask 0 → RBAC not involved
 std::string test_maskcode(std::shared_ptr<httppeer> peer)
 {
     httppeer &client = peer->get_peer();
     client << "handler reads mask_code=" << client.mask_code;
     return "";
 }
+
+//@urlpath(test_mask_pre,maskprehas):maskcode(1234):ratelimit(20,5)  // RBAC-gated
+std::string test_maskcodehas(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+    client << "handler reads mask_code=" << client.mask_code;
+    return "";
+}
+
+// A coroutine controller carries the mask the same way: only the signature differs, the suffix spelling does not.
+//@urlpath(test_mask_pre,comaskprehas):maskcode(1235):ratelimit(20,5):title("test name")
+asio::awaitable<std::string> test_comaskprehas(std::shared_ptr<httppeer> peer)
+{
+    httppeer &client = peer->get_peer();
+    client << "handler reads mask_code=" << client.mask_code;
+    co_return "";
+}
 ```
 
 **Parsing rules** — extracted by `vendor/httpcli/autopickcontrolmethod.hpp`, which also prints a
-warning when the tail makes no sense:
+warning when a suffix makes no sense:
 
 | Annotation tail | mask stored on the entry |
 |-----------------|--------------------------|
 | no colon — `//@urlpath(null,foo)` | `0` |
-| `//@urlpath(null,foo):123456` | `123456` |
-| spaces or tabs between `)` and `:` | `123456` |
-| `:99999999999` (past `UINT_MAX`) | `UINT_MAX`, clamped |
-| `:12abc` | `12` — digits stop at the first non-digit, no warning |
-| `:abc` | `0`, plus `[ROUTE-WARN] invalid mask_code after ':'` |
+| `//@urlpath(null,foo):maskcode(1234)` | `1234` |
+| `//@urlpath(null,foo):maskcode(1234):ratelimit(20,5)` | `1234`, plus `rate_time=20`, `rate_num=5` |
+| `//@urlpath(null,foo):123456` (legacy digits only) | `123456` — still parsed, but no route in this repo uses it any more; write `:maskcode(123456)` |
+| spaces or tabs before each `:` (including between suffixes) | parsed as if they were absent |
+| `:maskcode()` / `:maskcode` | `0`, no warning |
+| `:maskcode(99999999999)` (past `UINT_MAX`) | `UINT_MAX`, clamped |
+| `:maskcode(12abc)` | `0`, plus `[ROUTE-WARN] invalid maskcode ...` |
+| `:unknown(...)` | ignored, plus `[ROUTE-WARN] unknown route suffix` |
 
-**How it reaches the request**: the annotation → `bin/paozhu_pre` emits it as the last argument
-of `reg_raw(site, path, pre_sync, co_pre, reg_sync, co_reg, mask_code)` in
-`common/autocontrolmethod.hpp` → `reg_methold_mid_t::mask_code`
+**`:title(...)`** — the same chain, but the text is kept verbatim:
+
+| Annotation tail | `title` stored on the entry |
+|-----------------|-----------------------------|
+| `//@urlpath(null,foo):title(test name)` | `test name` |
+| `//@urlpath(null,foo):title("test name")` | `test name` — one wrapping pair of double quotes is stripped |
+| `:title("name with spaces,and commas")` | kept as written; inner spaces and commas survive, because the title is read from the raw argument text, not from the comma-split args `maskcode`/`ratelimit` use |
+| leading/trailing spaces or tabs around the text | trimmed |
+| `:title(name")` / `:title("name)` | kept as written, plus `[ROUTE-WARN] title has an unpaired double quote` |
+| `:title()` / `:title` | empty, no warning |
+| two `:title(...)` suffixes | the last one wins, like `:maskcode(...)` |
+| `:title(name (with a paren)):maskcode(1234)` — a `)` inside the text | title stops at the **first** `)` (leaving `name (with a paren`), the chain stops on the leftover text, and `:maskcode(1234)` is dropped with no warning — see below |
+
+A `)` always ends the argument (same rule as the other suffixes), so a title cannot contain a
+closing parenthesis — and it ends at the **first** one. Whatever follows that `)` must read as the
+next `:name(args)` suffix; in the shape above the parser finds text where a `:` was expected, so
+the suffix chain simply stops. Everything written after the title is then dropped silently, with no
+`[ROUTE-WARN]` — and that tail is not harmless: a dropped `:maskcode(1234)` registers the route with
+mask `0`, which means the route is not part of RBAC at all (see the dispatch switch above), and a
+dropped `:ratelimit(20,5)` removes the traffic limit. Keep `)` out of a title.
+
+The text is escaped into a C++ string literal when the table is written, so a quote or a backslash
+inside a title is safe: `:title(he said "yes" twice)` and `:title(a name with a backslash \ in it)`
+land in `reg_raw()` verbatim, with no warning as long as the text does not *start* or *end* with
+`"`. Escaping is one-way: `:title("he said \"yes\"")` strips only the wrapping pair, so the
+backslashes stay in the name.
+
+**As an RBAC feature**: `:title(...)` is how a protected route names itself for the permission
+directory, so the granted item reads the name written on the annotation instead of the raw path
+`/admin/addproductpost`. The quote
+form and the bare form are the same feature — the wrapper is gone before the value leaves the
+generator, so nothing downstream has to know which spelling was written.
+
+**Where the title goes**: `bin/paozhu_pre` emits it as the 10th argument of `reg_raw()` →
+`reg_methold_mid_t::title` (`vendor/httpserver/include/httppeer.h`) →
+`rbac::route_entry::title` (`libs/rbac/route_catalog.cpp`) → `/superadmin/registerfunc` shows it and,
+when it first inserts a `sysperms` row, writes it into `sysperms.name` (falling back to the urlpath
+when the route has no title). It is display-only: nothing in the router or the RBAC judgement reads
+it, `urlname` stays the urlpath, and a row that already exists keeps the name an administrator set
+on `/superadmin/rbac/perm`. Hand-written registrations get `""` — it is the default argument of
+`reg_raw()`, and the `REG_*` macros do not pass one.
+
+**How it reaches the request**: the annotation → `bin/paozhu_pre` emits it as the trailing
+arguments of `reg_raw(site, path, pre_sync, co_pre, reg_sync, co_reg, mask_code, rate_time,
+rate_num, title)` in `common/autocontrolmethod.hpp` → `reg_methold_mid_t::mask_code`
 (`vendor/httpserver/include/httppeer.h`) → `router::resolve()` / `router::co_resolve()` assign
-`peer->mask_code = h.mask_code;` at the top of every dispatch step, before that entry's pre
-filter runs. Hand-written registrations get `0`: it is the default argument of `reg_raw()`, and
-the `REG_*` convenience macros do not pass one.
+`peer->mask_code = h.mask_code;` at the top of every dispatch step, then — only when that value
+is non-zero — call the hook. Hand-written registrations get `0`: it is the default argument of
+`reg_raw()`, and the `REG_*` convenience macros do not pass one.
+
+**The hook is injected by the application, not by the framework.** `vendor/httpserver/include/router.h`
+declares only the contract — `using route_auth_fn = std::function<unsigned int(httppeer &, const
+std::string &urlpath, unsigned int mask_code)>` plus `set_route_auth_hook()` /
+`route_auth_hook_ready()` — and knows nothing about sessions, roles or databases: the return
+value is the status code to write (`0` = allow, `401` = not logged in, `403` = no permission),
+and the route layer never reads a session key. The implementation lives in `libs/rbac/route_guard.*`
+and is installed by the entry points (`startup/main_dev.cpp`, `startup/main_daemon.cpp`, between
+the `// paozhu-rbac:begin` / `// paozhu-rbac:end` sentinels) before `run()`. A masked route with
+no hook installed is refused with 403 — fail-closed, never a silent allow.
+
+**Two different refusals.** `libs/rbac/route_guard.cpp` answers `401` when the session has no
+`adminid` (not logged in) and `403` when it has one but its tenant id — `session["userid"]`,
+which login sets from `sysuser.companyid` — is `0`. `0` is not a reusable global layer, so such
+an account is told to ask an administrator to bind it to a company rather than to log in again;
+`route_cache::allow()` refuses the same shape before it counts a miss or runs the six load
+queries.
+
+**The mask is checked against `sysperms.maskcode`.** `libs/rbac/rbac.cpp::load_user_grants()`
+loads the user's effective permissions as `urlpath → the maskcode of every granted row on that
+path`, one value per row rather than an OR-merged mask; the request passes only when the urlpath
+is in that set **and** one of those values equals the route mask exactly. So a route whose
+annotation mask differs from every catalog value the user holds is a 403 with reason
+`maskcode drift`. Bit containment was dropped on purpose: widening one catalog row would have
+quietly granted routes whose mask is a subset of it. The `/superadmin/registerfunc` page lists
+those rows (the maskcode-drift badge) and rewrites the catalog value from the registration table when you
+tick them.
 
 **It is per entry, not per request.** The assignment happens once per step of the chain, so a
 jump (`return "/other/path"`) and a step popped off the flow stack re-read the mask of *their*
 entry; nothing carries over from the previous step. `httppeer::clear()` zeroes the field and
 runs for every keep-alive request, and each HTTP/2 stream has its own `httppeer`.
 
-**Gate the entrance in a route's own pre filter.** Two configuration-level hooks run *before* a
-route entry is even chosen — the site `action_pre` (`run_site_hooks` / `co_run_site_hooks`) and
-`static_pre` (`call_sync_regfun` / `co_call_regfun`) — and they are not registration entries, so
-they always read `0`. The first step of the dispatch chain, by contrast, is assigned before its
-pre filter is called, which is where a mask-based gate belongs.
+**Configuration-level hooks are not routes.** The site `action_pre` (`run_site_hooks` /
+`co_run_site_hooks`) and `static_pre` (`call_sync_regfun` / `co_call_regfun`) run *before* a
+route entry is chosen, so they always read `0` and are never gated by RBAC. The first step of the
+dispatch chain, by contrast, is assigned before its pre filter is called.
 
 **The mask is part of the codegen cache key**, together with the pre name, the function name,
-the urlpath and the return type — editing only the digits is enough to make the next build
-regenerate `controller/include/<name>.h` and the registration table.
+the urlpath, the return type and the title (`vendor/httpcli/autopickmethod.cpp:234-246`) — editing
+only the digits is enough to make the next build regenerate `controller/include/<name>.h` and the
+registration table. The cache also stores the generated header's own mtime, so touching the `.h`
+counts as a change too.
 
-**Live demo**: `controller/src/test_maskcode.cpp` registers exactly this pair (its output text
-is in Chinese). `/maskpre` carries `123456`, so the pre prints `123456`, returns `"ok"` and the
-handler prints `123456` again. `/maskpre/check` is the same pre function registered on its own
-route with no colon, so it reads `0` and stops there.
+**One mask value per site, per urlpath group.** After generating the table, `bin/paozhu_pre`
+groups every non-zero-mask route by `(site, mask_code)` and prints
+`[ROUTE-WARN] mask_code 1234 duplicated in site *: /a, /b` when two routes in the same site share
+one value. It is a warning, not an error: the routes still register, and RBAC still judges each
+urlpath separately — but a shared value usually means the catalog rows were meant to be separable,
+so pick distinct digits per route.
+
+**Live demo**: `controller/src/test_maskcode.cpp` registers the three routes above (its output text,
+and the `:title(...)` written on `/comaskprehas`, are Chinese strings — rendered in English in the
+snippet above). `/maskpre` carries no maskcode, so RBAC never touches it and the pre prints
+`mask_code=0` and stops there; add `:maskcode(1234)` to it and the same request first goes
+through RBAC. `/maskprehas` carries `1234` and `/comaskprehas` carries `1235` (the coroutine
+variant, same pre, same rule): each needs a `sysperms` row for its own urlpath whose `maskcode`
+equals the route value, granted to a role bound to the logged-in user — after that the pre prints
+the mask and the handler prints it again. `/testcohandle` (`controller/src/test_co_handle.cpp`)
+carries no maskcode any more; it only demos coroutine dispatch.
 
 ---
 
@@ -1836,6 +1947,31 @@ every other method, leaves a latched `iserror` alone. After a **failed** `switch
 - Such objects are held by `std::shared_ptr` (the registry keeps a `weak_ptr`) and expose the contract the scan loop reads: `timeout_end`, `iserror`, `iswait_exit`, `get_timeout()`, `set_timeout()`, `close_connect()`.
 - The loop judges expiry in whole seconds on a 4-second tick, so a timeout can land several seconds late; that is the accepted trade for sharing one thread.
 
+### 9.6 Credential input handling (login username / password)
+- Neither value may be used raw, and neither is escaped by the controller: read the login name with
+  `client.post["username"].to_trim()` and the password with `client.post["password"].to_string()` —
+  the password is only an `md5()` input and never reaches a statement, so transforming it would
+  change the digest it has to match.
+- Both ends of the credential go through the bound-parameter path (§5.8): the lookup is
+  `where("name", username) ... exec_one()` and the row that stores the name is an `exec_insert()`,
+  so no character in a login name can change the statement shape. `admin/loginpost`,
+  `superadmin/loginpost` and the create-account page (`admin/rbac/sysuser/add`) all use that
+  spelling — a page that *writes* a name has to agree with the login query on the same bytes, or
+  the account it created cannot log in.
+- Escaping belongs to one layer, and for a value handed to the ORM that layer is the ORM. Its text
+  path quotes values in `escape_text_value` (dialect templates), but the MySQL form only doubles
+  `'` and leaves `\` alone, so a value already run through `to_escape()` does not compose into a
+  safe literal: the backslash the controller inserted swallows half of the doubled quote and the
+  other half ends the literal early. Keep `to_escape()` for text your own code splices into a
+  statement (`orm::db_conn::query()` / `edit_query()`).
+- `obj_val::to_escape()` (`vendor/httpserver/include/request.h`, implemented as
+  `to_sql_mysql_escape()` in `vendor/httpserver/src/request.cpp`) is not a general sanitiser. It
+  escapes exactly `' " \ \0 \n \r \x1a` in MySQL `addslashes` style, silently trims leading and
+  trailing space/tab/CR/LF, is wrong for the PostgreSQL and SQLite dialects (the backslashes it
+  inserts stay in the value there), does not escape `%` / `_` for a `LIKE` pattern, does not
+  HTML-escape, and does not look at the connection charset. A non-string `obj_val` skips the
+  escape loop entirely and goes through the plain text conversion.
+
 ---
 
 ## X. Development Workflow
@@ -1932,7 +2068,7 @@ codegen step (`paozhu_codegen`, running `bin/paozhu_pre`) writes the matching
 they are overwritten on the next build. Including the generated header in your `.cpp` is optional.
 Two things to remember: a function with no `//@urlpath` never reaches the generated header, so
 shared helpers go to `common/` or `libs/` (see §4.1); and the codegen cache keys on the annotation
-text, the function's return type, the route mask (see §4.8) and the generated header's own mtime
+text, the function's return type, the route mask and title (see §4.8) and the generated header's own mtime
 (`cache/method_notes.data`), so switching a controller between `std::string` and
 `asio::awaitable<std::string>` needs nothing but a rebuild — never edit the generated header by
 hand to "fix" a signature, its mtime only makes the next build overwrite it.
@@ -2025,16 +2161,19 @@ namespace http
 
 `common/autorestfulpaths.hpp` keeps its two map-taking functions (`_initauto_control_httprestful_paths` / `_initauto_domain_httprestful_paths`) — those really do take the registration maps.
 
-### Step 2 — Remove the resident-client, payment and OAuth demo directories
+### Step 2 — Remove the resident-client, payment, OAuth and RBAC demo directories
 
 ```bash
 rm -rf redis/* mqtt/* sockets/* websockets/*      # directories stay
 rm -rf libs/webpay/* libs/oauth/*                 # the directories stay
+rm -rf libs/github/* libs/rbac/*                  # the directories stay
 ```
 
 `redis/ mqtt/ sockets/ websockets/` are header-only demo clients (`echo_*`, `my_test_*`, `*_websockets.hpp`); their only consumers are the registration files emptied in Step 1, and CMake adds them as include directories only, so nothing is compiled out of them.
 
-`libs/webpay/` is the order and pay-channel layer, `libs/oauth/` the OAuth 2.1 authorization-server store — the two directories under `libs/` that use `orm::` (both against the `[cms]` tables), and both build systems collect `libs/**.cpp` unconditionally (`CMakeLists.txt` `file(GLOB_RECURSE reflect_list ... libs/*.cpp)`, `xmake.lua` `add_files("libs/**.cpp")`). Left in a tree with no generated ORM, their `#include "orm.h"` fails before anything else is compiled. The other `libs/` directories (`img` `markdown` `pinyin` `ipdata` `types` `department`) are framework utilities with no ORM dependency and are kept.
+`libs/webpay/` is the order and pay-channel layer, `libs/oauth/` the OAuth 2.1 authorization-server store, `libs/github/` the GitHub OAuth store, `libs/rbac/` the RBAC runtime (`sysrole` / `sysperms` / `sysuserrole` of `[cms]`) — the four directories under `libs/` that use `orm::`, and both build systems collect `libs/**.cpp` unconditionally (`CMakeLists.txt` `file(GLOB_RECURSE reflect_list ... libs/*.cpp)`, `xmake.lua` `add_files("libs/**.cpp")`). Left in a tree with no generated ORM, their `#include "orm.h"` fails before anything else is compiled. The other `libs/` directories (`img` `markdown` `pinyin` `ipdata` `types` `department` `oauth_client`) are framework utilities with no ORM dependency and are kept.
+
+Because `libs/rbac/` is emptied with them, the script also removes the two `// paozhu-rbac:begin` / `// paozhu-rbac:end` blocks in `startup/main_dev.cpp` and `startup/main_daemon.cpp` — the only remaining references to `install_route_guard()`. The framework keeps no RBAC dependency: `vendor/` only declares the hook contract (§4.8), so with the hook uninstalled every route registered with a non-zero `maskcode` answers 403, and every `maskcode == 0` route behaves exactly as before.
 
 ### Step 3 — Remove the ORM layer, keep an empty `orm/orm.h`
 
@@ -2049,7 +2188,7 @@ cat > orm/orm.h << 'EOF'
 EOF
 ```
 
-These three directories hold database models and generated ORM code — they are not needed for a clean scaffold. **But `orm/orm.h` has to stay** — as a placeholder with no `#include` in it, just the comment saying how to refill it. It is the ORM unified entry that business code writes `#include "orm.h"` against, and `orm/` is on the include path only because it exists, so deleting the file breaks every current and future consumer with `orm.h: 没有那个文件或目录` rather than failing where a model is actually used. Write it *after* the `rm -rf orm/*`, or that `rm` deletes it again.
+These three directories hold database models and generated ORM code — they are not needed for a clean scaffold. **But `orm/orm.h` has to stay** — as a placeholder with no `#include` in it, just the comment saying how to refill it. It is the ORM unified entry that business code writes `#include "orm.h"` against, and `orm/` is on the include path only because it exists, so deleting the file breaks every current and future consumer with `orm.h: No such file or directory` rather than failing where a model is actually used. Write it *after* the `rm -rf orm/*`, or that `rm` deletes it again.
 
 Regenerate later with `bin/paozhu_cli orm <tag>` (see §5.1) when you enable a database; that command rewrites `orm/orm.h` with one `#include` per generated model of every tag.
 

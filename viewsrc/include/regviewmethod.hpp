@@ -59,6 +59,10 @@ namespace http
 	_viewmetholdreg.emplace("admin/martopic",http::view::admin::martopic);
 	_viewmetholdreg.emplace("admin/martopicside",http::view::admin::martopicside);
 	_viewmetholdreg.emplace("admin/menu",http::view::admin::menu);
+	_viewmetholdreg.emplace("admin/rbacrolelist",http::view::admin::rbacrolelist);
+	_viewmetholdreg.emplace("admin/rbacroleperm",http::view::admin::rbacroleperm);
+	_viewmetholdreg.emplace("admin/rbacsysuserlist",http::view::admin::rbacsysuserlist);
+	_viewmetholdreg.emplace("admin/rbacuserrole",http::view::admin::rbacuserrole);
 	_viewmetholdreg.emplace("admin/siteinfo",http::view::admin::siteinfo);
 	_viewmetholdreg.emplace("admin/sitelogo",http::view::admin::sitelogo);
 	_viewmetholdreg.emplace("admin/userinfo",http::view::admin::userinfo);
@@ -82,6 +86,14 @@ namespace http
 	_viewmetholdreg.emplace("superadmin/listuser",http::view::superadmin::listuser);
 	_viewmetholdreg.emplace("superadmin/login",http::view::superadmin::login);
 	_viewmetholdreg.emplace("superadmin/main",http::view::superadmin::main);
+	_viewmetholdreg.emplace("superadmin/rbaccompanyperm",http::view::superadmin::rbaccompanyperm);
+	_viewmetholdreg.emplace("superadmin/rbacpermplist",http::view::superadmin::rbacpermplist);
+	_viewmetholdreg.emplace("superadmin/rbacrolelist",http::view::superadmin::rbacrolelist);
+	_viewmetholdreg.emplace("superadmin/rbacroleperm",http::view::superadmin::rbacroleperm);
+	_viewmetholdreg.emplace("superadmin/rbacuserform",http::view::superadmin::rbacuserform);
+	_viewmetholdreg.emplace("superadmin/rbacuserlist",http::view::superadmin::rbacuserlist);
+	_viewmetholdreg.emplace("superadmin/rbacuserrole",http::view::superadmin::rbacuserrole);
+	_viewmetholdreg.emplace("superadmin/registerfunc",http::view::superadmin::registerfunc);
 	_viewmetholdreg.emplace("superadmin/siteinfo",http::view::superadmin::siteinfo);
 	_viewmetholdreg.emplace("superadmin/userinfo",http::view::superadmin::userinfo);
 	_viewmetholdreg.emplace("superadmin/userlist",http::view::superadmin::userlist);

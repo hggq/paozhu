@@ -3055,6 +3055,12 @@ void httpparse::post_multipart_itemcontent(bool isfilefull)
                 return;
             }
         }
+        else
+        {
+            // 落不了盘就没有这个文件；报错退出，别让下面把 size=0 和不存在的路径写进 files。
+            error = 40226;
+            return;
+        }
         if (isfilefull)
         {
             multipart_post_file_field();

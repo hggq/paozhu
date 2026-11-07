@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>添加管理员</title>
+  <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/icons/font/bootstrap-icons.css">
+  <link href="/css/dashboard.css" rel="stylesheet">
+</head>
+
+<body>
+  <div class="container-fluid p-3">
+    <h5 class="mt-2">添加管理员</h5>
+    <div class="text-muted mb-2">
+      本企业（companyid）：<% echo<<obj["companyid"].to_string(); %>；
+      账户数：<% echo<<obj["user_total"].to_string(); %>；
+      本页可管理的子管理员：<% echo<<obj["subadmin_count"].to_string(); %>
+    </div>
+
+    <div class="alert alert-info py-2">
+      这里建的账户写进 <code>sysuser</code>：<code>companyid</code>=本企业、<code>isadmin</code>=0（不是租户超级管理员）、
+      密码 MD5 后存 <code>password</code>。登录名全站唯一（登录只按登录名查），4–26 字符；密码 6–20 字符。<br>
+      建好只是「能登录」，能看到哪些页面还要到「用户角色」页给它绑角色，角色权限来自「角色权限」页。<br>
+      添加和删除只有 <code>isadmin=1</code> 的租户管理员能操作；租户超级管理员自己和本公司的平台侧账户不在本页管理范围，
+      删除只会删 <code>isadmin=0</code> 的本企业账户，并一起清掉它的角色绑定。
+    </div>
+
+    <div class="row g-2 mb-3">
+      <div class="col-md-3">
+        <label class="form-label mb-1" for="name">登录名</label>
+        <input id="name" class="form-control" maxlength="26" placeholder="4-26 字符，全站唯一">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label mb-1" for="password">密码</label>
+        <input id="password" class="form-control" type="password" maxlength="20" placeholder="6-20 字符">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label mb-1" for="nickname">显示名称</label>
+        <input id="nickname" class="form-control" maxlength="60" placeholder="例如：内容编辑小王">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label mb-1" for="isopen">状态</label>
+        <select id="isopen" class="form-select">
+          <option value="1">启用</option>
+          <option value="0">停用</option>
+        </select>
+      </div>
+      <div class="col-md-2 d-flex align-items-end gap-2">
+        <button class="btn btn-primary btn-sm" id="addbtn">添加管理员</button>
+        <button class="btn btn-outline-secondary btn-sm" id="resetbtn">清空</button>
+      </div>
+    </div>
+
+    <div id="result" class="mb-2"></div>
+
+    <table class="table table-sm table-bordered align-middle">
+      <thead class="table-light">
+        <tr>
+          <th style="width:90px">adminid</th>
+          <th>登录名 / 显示名称</th>
+          <th style="width:130px">身份</th>
+          <th style="width:90px">状态</th>
+          <th style="width:110px">绑定角色数</th>
+          <th style="width:160px">创建时间</th>
+          <th style="width:130px">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <%c for(auto &a:obj["infos"].as_array()){ %>
+        <tr>
+          <td><%c echo<<a["adminid"].to_string(); %></td>
+          <td>
+            <%c echo<<a["name"].to_string(); %>
+            <div class="text-muted small"><%c echo<<a["nickname"].to_string(); %></div>
+          </td>
+          <td>
+            <%c if(a["isadmin"].to_int()==1){ %>
+            <span class="badge bg-dark">租户超级管理员</span>
+            <%c }else if(a["self"].to_int()==1){ %>
+            <span class="badge bg-secondary">本人</span>
+            <%c }else{ %>
+            <span class="badge bg-info text-dark">子管理员</span>
+            <%c } %>
+          </td>
+          <td>
+            <%c if(a["isopen"].to_int()==1){ %>
+            <span class="badge bg-success">启用</span>
+            <%c }else{ %>
+            <span class="badge bg-secondary">停用</span>
+            <%c } %>
+          </td>
+          <td><%c echo<<a["role_count"].to_string(); %></td>
+          <td><%c echo<<a["created_date"].to_string(); %></td>
+          <td>
+            <%c if(a["isadmin"].to_int()==0){ %>
+            <button class="btn btn-outline-danger btn-sm delbtn" data-adminid="<%c echo<<a["adminid"].to_string(); %>"
+              data-name="<%c echo<<a["name"].to_string(); %>">删除</button>
+            <%c } %>
+            <a class="btn btn-outline-secondary btn-sm" href="/admin/rbac/userrole?userid=<%c echo<<a["adminid"].to_string(); %>">配角色</a>
+          </td>
+        </tr>
+        <%c } %>
+        <%c if(obj["user_total"].to_int()==0){ %>
+        <tr>
+          <td colspan="7" class="text-center text-muted">本企业还没有账户。</td>
+        </tr>
+        <%c } %>
+      </tbody>
+    </table>
+
+    <div class="text-muted small mb-2">
+      「租户超级管理员」是登录时写进会话 <code>isadmin</code> 的那一个账户，本页只读不删；
+      停用改的是 <code>sysuser.isopen</code>：登录要求这一列为 1，所以停用后不能重新登录；本页这类租户管理页每次请求都回查该列，
+      挂权限掩码的接口在装载授权时同样要求这一列为 1，所以已登录的会话也会立刻失效。超管侧「用户」页的启停按钮还会即时清掉该账户的授权快照（本页无启停，只在添加时选状态）。
+      唯一残留：未挂权限掩码的旧后台页面只看会话是否登录，那类页面在旧会话登出或过期前仍可用，要彻底封住请删除账户或解除角色绑定。
+    </div>
+
+    <a href="/admin/rbac/userrole" class="btn btn-link">用户角色</a>
+    <a href="/admin/rbac/role" class="btn btn-link">角色管理</a>
+  </div>
+
+  <script src="/assets/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    var CSRF = '<% echo<<obj["csrf_token"].to_string(); %>';
+    function show(msg, ok) {
+      document.getElementById('result').innerHTML =
+        '<div class="alert alert-' + (ok ? 'success' : 'danger') + ' py-2 mb-0">' + msg + '</div>';
+    }
+    function post(url, data) {
+      var fd = new FormData();
+      fd.append('csrf_token', CSRF);
+      for (var k in data) { fd.append(k, data[k]); }
+      return fetch(url, { method: 'POST', body: fd, credentials: 'same-origin' })
+        .then(function (r) { return r.json(); });
+    }
+    document.getElementById('addbtn').addEventListener('click', function () {
+      var body = {
+        name: document.getElementById('name').value.trim(),
+        password: document.getElementById('password').value,
+        nickname: document.getElementById('nickname').value.trim(),
+        isopen: document.getElementById('isopen').value
+      };
+      if (body.name === '') { show('登录名不能为空', false); return; }
+      if (body.password === '') { show('密码不能为空', false); return; }
+      post('/admin/rbac/sysuser/add', body).then(function (j) {
+        if (j.code === 0) {
+          show('已添加管理员（adminid ' + (j.adminid || '?') + '），记得去「用户角色」页给它绑角色。', true);
+          setTimeout(function () { location.reload(); }, 900);
+        } else { show(j.msg || '添加失败', false); }
+      });
+    });
+    document.getElementById('resetbtn').addEventListener('click', function () {
+      document.getElementById('name').value = '';
+      document.getElementById('password').value = '';
+      document.getElementById('nickname').value = '';
+      document.getElementById('isopen').value = '1';
+    });
+    document.querySelectorAll('.delbtn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (!confirm('删除账户 ' + btn.dataset.name + '？它的角色绑定会一起清除，下一次请求即失去全部权限。')) { return; }
+        post('/admin/rbac/sysuser/delete', { userid: btn.dataset.adminid }).then(function (j) {
+          if (j.code === 0) { show('已删除账户 ' + btn.dataset.name, true); setTimeout(function () { location.reload(); }, 900); }
+          else { show(j.msg || '删除失败', false); }
+        });
+      });
+    });
+  </script>
+</body>
+
+</html>

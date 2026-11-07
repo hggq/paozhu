@@ -336,11 +336,15 @@ echo "              mqtt_client_regmethod"
 #   includes "orm.h" for the user binding tables.
 #   libs/oauth_client/ is the generic OAuth 2.x client library——no ORM
 #   dependency (only httpclient + SHA-256 + base64url), kept in scaffolds.
+#   libs/rbac/ is the RBAC runtime (sysrole / sysperms / sysuserrole of [cms]),
+#   same reason as webpay/oauth/github; the route hook it installs is guarded by
+#   the // paozhu-rbac sentinels in startup/main_dev.cpp and startup/main_daemon.cpp
+#   and those blocks are removed together with it.
 #   The other libs/ directories (img / markdown / pinyin / ipdata / types /
 #   department) are framework utilities with no ORM dependency and are kept.
 # ============================================================
 echo ""
-echo "[Step 2/${TOTAL_STEPS}] Removing demo code (redis/ mqtt/ sockets/ websockets/ libs/webpay/ libs/oauth/ libs/github/)..."
+echo "[Step 2/${TOTAL_STEPS}] Removing demo code (redis/ mqtt/ sockets/ websockets/ libs/webpay/ libs/oauth/ libs/github/ libs/rbac/)..."
 
 for demo_dir in redis mqtt sockets websockets; do
     rm -rf "$demo_dir"/* 2>/dev/null || true
@@ -356,7 +360,35 @@ mkdir -p libs/oauth
 rm -rf libs/github/* 2>/dev/null || true
 mkdir -p libs/github
 
-echo "  OK redis/ mqtt/ sockets/ websockets/ libs/webpay/ libs/oauth/ libs/github/ emptied (directories kept)"
+#   libs/rbac/ is the RBAC runtime (rbac.cpp / route_cache.cpp / route_guard.cpp):
+#   it includes "orm.h" for the sysrole / sysperms / sysuserrole tables of [cms],
+#   so it is globbed into the build like the three directories above and must go.
+rm -rf libs/rbac/* 2>/dev/null || true
+mkdir -p libs/rbac
+
+#   The RBAC route hook is installed by the app entry points, between the
+#   // paozhu-rbac:begin / // paozhu-rbac:end sentinels. With libs/rbac emptied,
+#   those two blocks are the only references left, so cut them out; the router
+#   then never calls a hook and mask-code routes would 403 by themselves.
+#   NB: the print rule is `skip == 0`, not `!skip` — a `!` inside the program
+#   text is escaped by some shells and awk then refuses to parse the program.
+rbac_strip_awk='
+/^[[:space:]]*\/\/ paozhu-rbac:begin[[:space:]]*$/ { skip = 1 }
+/^[[:space:]]*\/\/ paozhu-rbac:end[[:space:]]*$/   { skip = 0; next }
+skip == 0
+'
+for entry_file in startup/main_dev.cpp startup/main_daemon.cpp; do
+    if [ -f "$entry_file" ]; then
+        before_lines=$(grep -c "" "$entry_file")
+        awk "$rbac_strip_awk" "$entry_file" > "$entry_file.tmp" && mv "$entry_file.tmp" "$entry_file"
+        left=$(grep -c "paozhu-rbac\|install_route_guard" "$entry_file")
+        after_lines=$(grep -c "" "$entry_file")
+        echo "  OK $entry_file: $before_lines → $after_lines lines, rbac references left: $left"
+    fi
+done
+
+echo "  OK redis/ mqtt/ sockets/ websockets/ libs/webpay/ libs/oauth/ libs/github/ libs/rbac/ emptied (directories kept)"
+echo "  OK startup/main_dev.cpp + startup/main_daemon.cpp: paozhu-rbac blocks removed"
 
 # ============================================================
 # Step 3 — Remove ORM layer
@@ -579,6 +611,11 @@ else
     echo "  so startup prints \"[ws_subpub] init: registered 0 clients\" and the like."
     echo "  To add one: put the subclass in redis/ mqtt/ sockets/ websockets/ and"
     echo "  emplace it in the matching common/*_regmethod.hpp skeleton."
+    echo ""
+    echo "RBAC route hook: not installed (libs/rbac/ emptied, // paozhu-rbac blocks"
+    echo "  removed from the two entry points). mask_code == 0 routes — which is every"
+    echo "  route left here — never consult it, so /hello and /paozhu_status behave as"
+    echo "  before. A route registered with a non-zero maskcode would answer 403."
 fi
 echo ""
 

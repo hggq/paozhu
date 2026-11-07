@@ -253,6 +253,8 @@ class httppeer : public std::enable_shared_from_this<httppeer>
 
     unsigned char posttype   = 0;
     unsigned char compress   = 0;
+    unsigned char rate_time  = 0;
+    unsigned char rate_num  = 0;  
     unsigned int host_index  = 0;
     unsigned int stream_id   = 0;
     unsigned int status_code = 0;
@@ -344,10 +346,15 @@ struct reg_methold_mid_t
     fn_kind reg_kind = fn_kind::none;
     std::function<std::string(std::shared_ptr<httppeer>)> regfun;
     std::function<asio::awaitable<std::string>(std::shared_ptr<httppeer>)> co_regfun;
+    // 路由的显示名称，来自注解 //@urlpath(pre,handler):title(名称)；没写为空串
+    // route display name from the :title() annotation suffix; empty when the suffix is absent
+    std::string title;
     // 注册条目自带的业务掩码：派发时按条目写进 httppeer::mask_code，pre 和 handler 都能读
     // 注解格式 //@urlpath(pre,handler):数字 提取，无冒号默认 0
     // business mask code; the router copies it to httppeer::mask_code before calling pre/regfun
-    unsigned int mask_code = 0;
+    unsigned int  mask_code = 0;
+    unsigned char rate_time = 0; //0 默认不限，1到255秒
+    unsigned char rate_num  = 0; //0 表示不限，1到255，rate_time的单位，ratelimit(20,5) 20秒每ip 5次 登陆
 };
 
 struct SiteSlot
@@ -377,9 +384,14 @@ void make_404_content(std::shared_ptr<httppeer> peer);
 // v6 注册：唯一底层函数 reg_raw，pre/reg 各自独立指定 fn_kind
 // 同步函数传 pre_sync / reg_sync（另一个传 nullptr）；协程函数传 co_pre / co_reg（另一个传 nullptr）
 // autopickmethod 根据注解类型自动组合；手写注册也直接调这个
-// mask_code 默认 0；注解 //@urlpath(...):数字 由 autopickmethod 生成器填充
+// mask_code 默认 0；注解 //@urlpath(...):maskcode(n) 由 autopickmethod 生成器填充
+// ratelimit(time,num) 注解的两个参数分别写进 rate_time / rate_num
+// title 取注解 //@urlpath(...):title(名称) 里的名称，写注册表时第 10 个实参传进来；手写注册可省略
+// mask_code defaults to 0; annotation //@urlpath(...):maskcode(n) is filled in by autopickmethod
+// the two ratelimit(time,num) args land in rate_time / rate_num
+// the :title(name) suffix lands in title as the 10th arg; hand-written registrations may omit it
 inline unsigned int reg_raw(
-    const std::string &site, const std::string &path, std::function<std::string(std::shared_ptr<httppeer>)> pre_sync, std::function<asio::awaitable<std::string>(std::shared_ptr<httppeer>)> co_pre, std::function<std::string(std::shared_ptr<httppeer>)> reg_sync, std::function<asio::awaitable<std::string>(std::shared_ptr<httppeer>)> co_reg, unsigned int mask_code = 0)
+    const std::string &site, const std::string &path, std::function<std::string(std::shared_ptr<httppeer>)> pre_sync, std::function<asio::awaitable<std::string>(std::shared_ptr<httppeer>)> co_pre, std::function<std::string(std::shared_ptr<httppeer>)> reg_sync, std::function<asio::awaitable<std::string>(std::shared_ptr<httppeer>)> co_reg, unsigned int mask_code = 0, unsigned char rate_time = 0, unsigned char rate_num = 0, const std::string &title = "")
 {
     reg_methold_mid_t e;
     if (pre_sync)
@@ -409,6 +421,9 @@ inline unsigned int reg_raw(
     }
 
     e.mask_code = mask_code;
+    e.rate_time = rate_time;
+    e.rate_num  = rate_num;
+    e.title     = title;
 
     return reg_add(site, path, std::move(e));
 }

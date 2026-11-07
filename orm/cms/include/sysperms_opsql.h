@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sun, 01 Nov 2026 02:10:33 GMT
+ *  Creation time Sat, 07 Nov 2026 09:30:37 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -1523,6 +1523,22 @@ namespace cms
             break;
                 case 8:
              {
+               data_temp.maskcode = 0;
+            
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.maskcode);
+                        if (result.ec == std::errc()) {
+
+                        }
+                        else{
+                            data_temp.maskcode = 0;
+                        }
+            }
+            break;
+                case 9:
+             {
                data_temp.readonly = 0;
             
                     auto result = std::from_chars(
@@ -1537,7 +1553,7 @@ namespace cms
                         }
             }
             break;
-                case 9:
+                case 10:
              {
                data_temp.created_time = 0;
             
@@ -1553,7 +1569,7 @@ namespace cms
                         }
             }
             break;
-                case 10:
+                case 11:
              {
                data_temp.updated_time = 0;
             
@@ -1569,7 +1585,7 @@ namespace cms
                         }
             }
             break;
-                case 11:
+                case 12:
              {
                data_temp.created_user = 0;
             
@@ -1585,7 +1601,7 @@ namespace cms
                         }
             }
             break;
-                case 12:
+                case 13:
              {
                data_temp.updated_user = 0;
             
@@ -1740,16 +1756,16 @@ namespace cms
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
                     {
-                        data_temp.readonly = 0;
+                        data_temp.maskcode = 0;
                     }
                     else if constexpr (std::is_same_v<T, int64_t>)
-                        data_temp.readonly = static_cast<decltype(data_temp.readonly )>(v);
+                        data_temp.maskcode = static_cast<decltype(data_temp.maskcode )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
-                        data_temp.readonly = static_cast<decltype(data_temp.readonly )>(v);
+                        data_temp.maskcode = static_cast<decltype(data_temp.maskcode )>(v);
                     else if constexpr (std::is_same_v<T, double>)
-                        data_temp.readonly = static_cast<decltype(data_temp.readonly )>(v);
+                        data_temp.maskcode = static_cast<decltype(data_temp.maskcode )>(v);
                     else
-                        data_temp.readonly = 0;
+                        data_temp.maskcode = 0;
                 }, val);
             } break;
             case 9: {
@@ -1757,16 +1773,16 @@ namespace cms
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
                     {
-                        data_temp.created_time = 0;
+                        data_temp.readonly = 0;
                     }
                     else if constexpr (std::is_same_v<T, int64_t>)
-                        data_temp.created_time = static_cast<decltype(data_temp.created_time )>(v);
+                        data_temp.readonly = static_cast<decltype(data_temp.readonly )>(v);
                     else if constexpr (std::is_same_v<T, uint64_t>)
-                        data_temp.created_time = static_cast<decltype(data_temp.created_time )>(v);
+                        data_temp.readonly = static_cast<decltype(data_temp.readonly )>(v);
                     else if constexpr (std::is_same_v<T, double>)
-                        data_temp.created_time = static_cast<decltype(data_temp.created_time )>(v);
+                        data_temp.readonly = static_cast<decltype(data_temp.readonly )>(v);
                     else
-                        data_temp.created_time = 0;
+                        data_temp.readonly = 0;
                 }, val);
             } break;
             case 10: {
@@ -1774,6 +1790,23 @@ namespace cms
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
                     {
+                        data_temp.created_time = 0;
+                    }
+                    else if constexpr (std::is_same_v<T, int64_t>)
+                        data_temp.created_time = static_cast<decltype(data_temp.created_time )>(v);
+                    else if constexpr (std::is_same_v<T, uint64_t>)
+                        data_temp.created_time = static_cast<decltype(data_temp.created_time )>(v);
+                    else if constexpr (std::is_same_v<T, double>)
+                        data_temp.created_time = static_cast<decltype(data_temp.created_time )>(v);
+                    else
+                        data_temp.created_time = 0;
+                }, val);
+            } break;
+            case 11: {
+                std::visit([&](auto&& v){
+                    using T = std::decay_t<decltype(v)>;
+                    if constexpr (std::is_same_v<T, std::monostate>)
+                    {
                         data_temp.updated_time = 0;
                     }
                     else if constexpr (std::is_same_v<T, int64_t>)
@@ -1786,7 +1819,7 @@ namespace cms
                         data_temp.updated_time = 0;
                 }, val);
             } break;
-            case 11: {
+            case 12: {
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
@@ -1803,7 +1836,7 @@ namespace cms
                         data_temp.created_user = 0;
                 }, val);
             } break;
-            case 12: {
+            case 13: {
                 std::visit([&](auto&& v){
                     using T = std::decay_t<decltype(v)>;
                     if constexpr (std::is_same_v<T, std::monostate>)
@@ -1852,18 +1885,21 @@ namespace cms
                 return http::obj_val(static_cast<long long>(data_temp.permscode));
                 break;
             case 8:
-                return http::obj_val(static_cast<long long>(data_temp.readonly));
+                return http::obj_val(static_cast<long long>(data_temp.maskcode));
                 break;
             case 9:
-                return http::obj_val(static_cast<long long>(data_temp.created_time));
+                return http::obj_val(static_cast<long long>(data_temp.readonly));
                 break;
             case 10:
-                return http::obj_val(static_cast<long long>(data_temp.updated_time));
+                return http::obj_val(static_cast<long long>(data_temp.created_time));
                 break;
             case 11:
-                return http::obj_val(static_cast<long long>(data_temp.created_user));
+                return http::obj_val(static_cast<long long>(data_temp.updated_time));
                 break;
             case 12:
+                return http::obj_val(static_cast<long long>(data_temp.created_user));
+                break;
+            case 13:
                 return http::obj_val(static_cast<long long>(data_temp.updated_user));
                 break;
             default:
@@ -2774,6 +2810,142 @@ M_MODEL& ornullPermscode()
 
 M_MODEL& ornotnullPermscode()
 	{return whereOrNotNull(B_BASE::cols::permscode);
+	}
+
+M_MODEL& eqMaskcode(const std::string &val)
+	{return where(B_BASE::cols::maskcode, orm::wq::eq, val);
+	}
+
+M_MODEL& nqMaskcode(const std::string &val)
+	{return where(B_BASE::cols::maskcode, orm::wq::nq, val);
+	}
+
+M_MODEL& btMaskcode(const std::string &val)
+	{return where(B_BASE::cols::maskcode, orm::wq::bt, val);
+	}
+
+M_MODEL& beMaskcode(const std::string &val)
+	{return where(B_BASE::cols::maskcode, orm::wq::be, val);
+	}
+
+M_MODEL& ltMaskcode(const std::string &val)
+	{return where(B_BASE::cols::maskcode, orm::wq::lt, val);
+	}
+
+M_MODEL& leMaskcode(const std::string &val)
+	{return where(B_BASE::cols::maskcode, orm::wq::le, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& eqMaskcode(T val)
+	{return where(B_BASE::cols::maskcode, orm::wq::eq, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& nqMaskcode(T val)
+	{return where(B_BASE::cols::maskcode, orm::wq::nq, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& btMaskcode(T val)
+	{return where(B_BASE::cols::maskcode, orm::wq::bt, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& beMaskcode(T val)
+	{return where(B_BASE::cols::maskcode, orm::wq::be, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& ltMaskcode(T val)
+	{return where(B_BASE::cols::maskcode, orm::wq::lt, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& leMaskcode(T val)
+	{return where(B_BASE::cols::maskcode, orm::wq::le, val);
+	}
+
+M_MODEL& nullMaskcode()
+	{return whereNull(B_BASE::cols::maskcode);
+	}
+
+M_MODEL& notnullMaskcode()
+	{return whereNotNull(B_BASE::cols::maskcode);
+	}
+
+M_MODEL& oreqMaskcode(const std::string &val)
+	{return whereOr(B_BASE::cols::maskcode, orm::wq::eq, val);
+	}
+
+M_MODEL& ornqMaskcode(const std::string &val)
+	{return whereOr(B_BASE::cols::maskcode, orm::wq::nq, val);
+	}
+
+M_MODEL& orbtMaskcode(const std::string &val)
+	{return whereOr(B_BASE::cols::maskcode, orm::wq::bt, val);
+	}
+
+M_MODEL& orbeMaskcode(const std::string &val)
+	{return whereOr(B_BASE::cols::maskcode, orm::wq::be, val);
+	}
+
+M_MODEL& orltMaskcode(const std::string &val)
+	{return whereOr(B_BASE::cols::maskcode, orm::wq::lt, val);
+	}
+
+M_MODEL& orleMaskcode(const std::string &val)
+	{return whereOr(B_BASE::cols::maskcode, orm::wq::le, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& oreqMaskcode(T val)
+	{return whereOr(B_BASE::cols::maskcode, orm::wq::eq, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& ornqMaskcode(T val)
+	{return whereOr(B_BASE::cols::maskcode, orm::wq::nq, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& orbtMaskcode(T val)
+	{return whereOr(B_BASE::cols::maskcode, orm::wq::bt, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& orbeMaskcode(T val)
+	{return whereOr(B_BASE::cols::maskcode, orm::wq::be, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& orltMaskcode(T val)
+	{return whereOr(B_BASE::cols::maskcode, orm::wq::lt, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& orleMaskcode(T val)
+	{return whereOr(B_BASE::cols::maskcode, orm::wq::le, val);
+	}
+
+M_MODEL& ornullMaskcode()
+	{return whereOrNull(B_BASE::cols::maskcode);
+	}
+
+M_MODEL& ornotnullMaskcode()
+	{return whereOrNotNull(B_BASE::cols::maskcode);
 	}
 
 M_MODEL& eqReadonly(const std::string &val)
@@ -4512,6 +4684,9 @@ M_MODEL& ornotnullUpdatedUser()
 			case sysperms_info::cols::permscode:
 				ordersql.append("permscode");
 				break;
+			case sysperms_info::cols::maskcode:
+				ordersql.append("maskcode");
+				break;
 			case sysperms_info::cols::readonly:
 				ordersql.append("readonly");
 				break;
@@ -4564,6 +4739,9 @@ M_MODEL& ornotnullUpdatedUser()
 				break;
 			case sysperms_info::cols::permscode:
 				ordersql.append("permscode");
+				break;
+			case sysperms_info::cols::maskcode:
+				ordersql.append("maskcode");
 				break;
 			case sysperms_info::cols::readonly:
 				ordersql.append("readonly");
@@ -4627,6 +4805,9 @@ M_MODEL& ornotnullUpdatedUser()
 			case sysperms_info::cols::permscode:
 				ordersql.append("permscode");
 				break;
+			case sysperms_info::cols::maskcode:
+				ordersql.append("maskcode");
+				break;
 			case sysperms_info::cols::readonly:
 				ordersql.append("readonly");
 				break;
@@ -4673,6 +4854,9 @@ M_MODEL& ornotnullUpdatedUser()
 				break;
 			case sysperms_info::cols::permscode:
 				ordersql.append("permscode");
+				break;
+			case sysperms_info::cols::maskcode:
+				ordersql.append("maskcode");
 				break;
 			case sysperms_info::cols::readonly:
 				ordersql.append("readonly");
@@ -4741,6 +4925,9 @@ M_MODEL& ornotnullUpdatedUser()
 			case sysperms_info::cols::permscode:
 				ordersql.append("permscode");
 				break;
+			case sysperms_info::cols::maskcode:
+				ordersql.append("maskcode");
+				break;
 			case sysperms_info::cols::readonly:
 				ordersql.append("readonly");
 				break;
@@ -4794,6 +4981,9 @@ M_MODEL& ornotnullUpdatedUser()
 			case sysperms_info::cols::permscode:
 				ordersql.append("permscode");
 				break;
+			case sysperms_info::cols::maskcode:
+				ordersql.append("maskcode");
+				break;
 			case sysperms_info::cols::readonly:
 				ordersql.append("readonly");
 				break;
@@ -4840,6 +5030,9 @@ M_MODEL& ornotnullUpdatedUser()
 				break;
 			case sysperms_info::cols::permscode:
 				ordersql.append("permscode");
+				break;
+			case sysperms_info::cols::maskcode:
+				ordersql.append("maskcode");
 				break;
 			case sysperms_info::cols::readonly:
 				ordersql.append("readonly");
@@ -4936,6 +5129,9 @@ M_MODEL& ornotnullUpdatedUser()
 			case sysperms_info::cols::permscode:
 				groupsql.append("permscode");
 				break;
+			case sysperms_info::cols::maskcode:
+				groupsql.append("maskcode");
+				break;
 			case sysperms_info::cols::readonly:
 				groupsql.append("readonly");
 				break;
@@ -4987,6 +5183,9 @@ M_MODEL& ornotnullUpdatedUser()
 				break;
 			case sysperms_info::cols::permscode:
 				groupsql.append("permscode");
+				break;
+			case sysperms_info::cols::maskcode:
+				groupsql.append("maskcode");
 				break;
 			case sysperms_info::cols::readonly:
 				groupsql.append("readonly");

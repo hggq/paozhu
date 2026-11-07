@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>角色管理</title>
+  <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/icons/font/bootstrap-icons.css">
+  <link href="/css/dashboard.css" rel="stylesheet">
+</head>
+
+<body>
+  <div class="container-fluid p-3">
+    <h5 class="mt-2">角色管理</h5>
+    <div class="alert alert-info py-2">
+      对应数据表 <code>sysrole</code>。角色本身只是「一组权限的容器」，需要到「权限」页给角色绑定
+      <code>sysperms</code>，再在用户角色页把角色分配给用户。<br>
+      <code>userid</code> 是该角色归属的公司/租户 id，必须填真实企业 id；没有全局角色，0 会被拒绝。
+    </div>
+
+    <div id="result" class="mb-2"></div>
+
+    <div class="card mb-3">
+      <div class="card-header py-2">新增角色</div>
+      <div class="card-body">
+        <form id="addform" class="row g-3" action="/superadmin/rbac/role/addpost" method="post">
+          <input type="hidden" name="csrf_token" value="<% echo<<obj["csrf_token"].to_string(); %>">
+
+          <div class="col-md-3">
+            <label class="form-label" for="add-name">
+              角色名称 <code>name</code> <span class="text-danger">*必填</span>
+            </label>
+            <input class="form-control form-control-sm" id="add-name" name="name" placeholder="例如：订单管理员" required
+              minlength="2" maxlength="60">
+            <div class="form-text">2-60 个字符，用于展示和分配，例如「订单管理员」。</div>
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label" for="add-userid">
+              归属用户ID <code>userid</code> <span class="text-danger">*必填</span>
+            </label>
+            <input class="form-control form-control-sm" id="add-userid" name="userid" type="number" min="1" value=""
+              required>
+            <div class="form-text">填公司 ID（如 1）= 该租户专属角色；不能为 0。</div>
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label" for="add-status">
+              状态 <code>status</code> <span class="text-danger">*必填</span>
+            </label>
+            <select class="form-select form-select-sm" id="add-status" name="status">
+              <option value="1" selected>启用（1）</option>
+              <option value="0">关闭（0）</option>
+            </select>
+            <div class="form-text">1=启用，可被分配权限与用户；0=关闭，暂不参与授权。</div>
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label" for="add-rolecode">
+              角色编码 <code>rolecode</code> <span class="text-muted">选填</span>
+            </label>
+            <input class="form-control form-control-sm" id="add-rolecode" name="rolecode" type="number" min="0"
+              placeholder="留空=0，例如 1001">
+            <div class="form-text">业务自定义数字标识，留空按 0 保存。</div>
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label" for="add-sortid">
+              排序 <code>sortid</code> <span class="text-muted">选填</span>
+            </label>
+            <input class="form-control form-control-sm" id="add-sortid" name="sortid" type="number" value="0">
+            <div class="form-text">数字越小越靠前，留空默认 0。</div>
+          </div>
+
+          <div class="col-md-1">
+            <label class="form-label" for="add-rolevalue">
+              角色值 <code>rolevalue</code>
+            </label>
+            <input class="form-control form-control-sm" id="add-rolevalue" name="rolevalue" type="number" min="0"
+              value="0">
+            <div class="form-text">业务数值，留空默认 0。</div>
+          </div>
+
+          <div class="col-md-2">
+            <label class="form-label" for="add-roleid">
+              角色ID <code>roleid</code> <span class="text-muted">自动</span>
+            </label>
+            <input class="form-control form-control-sm" id="add-roleid" value="保存后自动生成" readonly disabled>
+            <div class="form-text">自增主键，无需填写。</div>
+          </div>
+
+          <div class="col-12">
+            <button class="btn btn-primary btn-sm" type="submit">添加角色</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <table class="table table-sm table-bordered align-middle">
+      <thead class="table-light">
+        <tr>
+          <th style="width:90px">角色ID<br><small class="text-muted fw-normal">roleid</small></th>
+          <th style="width:100px">归属用户ID<br><small class="text-muted fw-normal">userid</small></th>
+          <th>角色名称<br><small class="text-muted fw-normal">name</small></th>
+          <th style="width:90px">状态<br><small class="text-muted fw-normal">status</small></th>
+          <th style="width:110px">角色编码<br><small class="text-muted fw-normal">rolecode</small></th>
+          <th style="width:80px">排序<br><small class="text-muted fw-normal">sortid</small></th>
+          <th style="width:100px">角色值<br><small class="text-muted fw-normal">rolevalue</small></th>
+          <th style="width:210px">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <%c for(auto &a:obj["infos"].as_array()){ %>
+        <tr>
+          <td><%c echo<<a["roleid"].to_string(); %></td>
+          <td>
+            <%c echo<<a["userid"].to_string(); %>
+            <%c if(a["userid"].to_int()==0){ %><span class="badge bg-info text-dark">全局</span><%c } %>
+          </td>
+          <td><%c echo<<a["name"].to_string(); %></td>
+          <td>
+            <%c if(a["status"].to_int()==1){ %>
+            <span class="badge bg-success">启用</span>
+            <%c }else{ %>
+            <span class="badge bg-secondary">关闭</span>
+            <%c } %>
+          </td>
+          <td><%c echo<<a["rolecode"].to_string(); %></td>
+          <td><%c echo<<a["sortid"].to_string(); %></td>
+          <td><%c echo<<a["rolevalue"].to_string(); %></td>
+          <td>
+            <button type="button" class="btn btn-outline-primary btn-sm edit-btn"
+              data-roleid="<%c echo<<a["roleid"].to_string(); %>"
+              data-userid="<%c echo<<a["userid"].to_string(); %>"
+              data-name="<%c echo<<a["name"].to_string(); %>"
+              data-status="<%c echo<<a["status"].to_string(); %>"
+              data-rolecode="<%c echo<<a["rolecode"].to_string(); %>"
+              data-sortid="<%c echo<<a["sortid"].to_string(); %>"
+              data-rolevalue="<%c echo<<a["rolevalue"].to_string(); %>">编辑</button>
+            <a class="btn btn-outline-secondary btn-sm" href="/superadmin/rbac/roleperm?roleid=<%c echo<<a["roleid"].to_string(); %>">权限</a>
+            <button type="button" class="btn btn-outline-danger btn-sm delete-btn"
+              data-roleid="<%c echo<<a["roleid"].to_string(); %>"
+              data-name="<%c echo<<a["name"].to_string(); %>">删除</button>
+          </td>
+        </tr>
+        <%c } %>
+      </tbody>
+    </table>
+
+  </div>
+
+  <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editModalLabel">编辑角色</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="关闭"></button>
+        </div>
+        <form id="editform" action="/superadmin/rbac/role/editpost" method="post">
+          <div class="modal-body">
+            <input type="hidden" name="csrf_token" value="<% echo<<obj["csrf_token"].to_string(); %>">
+            <input type="hidden" name="roleid" id="edit-roleid">
+
+            <div class="mb-3">
+              <label class="form-label" for="edit-roleid-view">
+                角色ID <code>roleid</code> <span class="text-muted">自动生成，不可修改</span>
+              </label>
+              <input class="form-control" id="edit-roleid-view" readonly disabled>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="edit-userid-view">
+                归属用户ID <code>userid</code> <span class="text-muted">不可修改</span>
+              </label>
+              <input class="form-control" id="edit-userid-view" readonly disabled>
+              <div class="form-text">该角色归属的公司 ID。如需变更归属，请删除后重新创建。</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="edit-name">
+                角色名称 <code>name</code> <span class="text-danger">*必填</span>
+              </label>
+              <input class="form-control" id="edit-name" name="name" placeholder="例如：订单管理员" required minlength="2"
+                maxlength="60">
+              <div class="form-text">2-60 个字符。</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="edit-status">状态 <code>status</code></label>
+              <select class="form-select" id="edit-status" name="status">
+                <option value="1">启用（1）：可被分配权限与用户</option>
+                <option value="0">关闭（0）：暂不参与授权</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="edit-rolecode">
+                角色编码 <code>rolecode</code> <span class="text-muted">选填</span>
+              </label>
+              <input class="form-control" id="edit-rolecode" name="rolecode" type="number" min="0" placeholder="留空=0">
+              <div class="form-text">业务自定义数字标识，留空按 0 保存。</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="edit-sortid">
+                排序 <code>sortid</code> <span class="text-muted">选填</span>
+              </label>
+              <input class="form-control" id="edit-sortid" name="sortid" type="number" placeholder="留空=0">
+              <div class="form-text">数字越小越靠前。</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="edit-rolevalue">
+                角色值 <code>rolevalue</code> <span class="text-muted">选填</span>
+              </label>
+              <input class="form-control" id="edit-rolevalue" name="rolevalue" type="number" min="0" placeholder="留空=0">
+              <div class="form-text">业务数值，留空按 0 保存。</div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+            <button type="submit" class="btn btn-primary">保存</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="/assets/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function showResult(type, text) {
+      document.getElementById('result').innerHTML =
+        '<div class="alert alert-' + type + ' py-2 mb-0">' + text + '</div>';
+    }
+
+    document.getElementById('addform').addEventListener('submit', function (e) {
+      e.preventDefault();
+      fetch(this.action, { method: 'POST', body: new FormData(this), credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j.code === 0) {
+            showResult('success', (j.msg || '角色创建成功') + '（roleid=' + j.roleid + '）');
+            setTimeout(function () { location.reload(); }, 800);
+          } else {
+            showResult('danger', '新增失败：' + (j.msg || ('HTTP ' + r.status)) +
+              '（角色名称 2-60 字符，userid 填 0 或公司 ID）');
+          }
+        })
+        .catch(function (e) {
+          showResult('danger', '请求失败：' + e);
+        });
+    });
+
+    var editModal = new bootstrap.Modal(document.getElementById('editModal'));
+
+    document.querySelectorAll('.edit-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.getElementById('edit-roleid').value = this.dataset.roleid;
+        document.getElementById('edit-roleid-view').value = this.dataset.roleid;
+        document.getElementById('edit-userid-view').value = this.dataset.userid;
+        document.getElementById('edit-name').value = this.dataset.name;
+        document.getElementById('edit-status').value = this.dataset.status;
+        document.getElementById('edit-rolecode').value = this.dataset.rolecode;
+        document.getElementById('edit-sortid').value = this.dataset.sortid;
+        document.getElementById('edit-rolevalue').value = this.dataset.rolevalue;
+        editModal.show();
+      });
+    });
+
+    document.getElementById('editform').addEventListener('submit', function (e) {
+      e.preventDefault();
+      fetch(this.action, { method: 'POST', body: new FormData(this), credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j.code === 0) {
+            showResult('success', j.msg || '角色保存成功');
+            setTimeout(function () { location.reload(); }, 800);
+          } else {
+            showResult('danger', '保存失败：' + (j.msg || ('HTTP ' + r.status)));
+          }
+        })
+        .catch(function (e) {
+          showResult('danger', '请求失败：' + e);
+        });
+    });
+
+    document.querySelectorAll('.delete-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (!confirm('确定删除角色「' + this.dataset.name + '」？关联的用户绑定与角色授权也会被删除。')) {
+          return;
+        }
+        var fd = new FormData();
+        fd.append('csrf_token', '<% echo<<obj["csrf_token"].to_string(); %>');
+        fd.append('roleid', this.dataset.roleid);
+        fetch('/superadmin/rbac/role/delete', { method: 'POST', body: fd, credentials: 'same-origin' })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            if (j.code === 0) {
+              showResult('success', (j.msg || '角色已删除') +
+                '（解除用户绑定 ' + j.userrole_count + ' 条，删除授权 ' + j.perms_count +
+                ' 条，角色记录 ' + j.role_count + ' 条）');
+              setTimeout(function () { location.reload(); }, 1200);
+            } else {
+              showResult('danger', '删除失败：' + (j.msg || ('HTTP ' + r.status)));
+            }
+          })
+          .catch(function (e) {
+            showResult('danger', '请求失败：' + e);
+          });
+      });
+    });
+  </script>
+</body>
+
+</html>

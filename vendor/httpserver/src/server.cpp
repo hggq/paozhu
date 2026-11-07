@@ -36,6 +36,7 @@
 #include "func.h"
 
 #include <cerrno>
+#include <stdexcept>
 
 #include "orm_conn_pool.h"
 #include "orm_connect_mar.h"
@@ -9245,29 +9246,48 @@ void httpserver::add_runsocketthread()
 
 // ==================== httpwatch sub-methods ====================
 
+// 启动顺序（DB → accept）：在起任何工作/监听线程之前同步执行。
+// 失败直接抛出，由 run() 重新抛给 main，进程以非零码退出，不带病进入 accept。
+// RBAC 判定钩子不在这里装：vendor 不引用应用侧的 libs/rbac，
+// 装钩子是业务入口的活（startup/main_dev.cpp、startup/main_daemon.cpp）。
+void httpserver::startup_orm_init(std::string &orm_log_file)
+{
+    serverconfig &sysconfigpath = getserversysconfig();
+    std::string ormconf        = sysconfigpath.configpath;
+    if (!ormconf.empty() && ormconf.back() != '/')
+    {
+        ormconf.push_back('/');
+    }
+    ormconf.append("orm.conf");
+
+    try
+    {
+        orm_log_file = orm::init_orm_conn_pool(io_context, ormconf);
+    }
+    catch (const char *e)
+    {
+        throw std::runtime_error(std::string("orm init failed: ") + e);
+    }
+    catch (const std::exception &e)
+    {
+        throw std::runtime_error(std::string("orm init failed: ") + e.what());
+    }
+
+    {
+        std::unique_lock<std::mutex> lock(log_mutex);
+        if (!orm_log_file.empty())
+        {
+            error_loglist.emplace_back(orm_log_file);
+        }
+    }
+    orm_log_file.clear();
+}
+
 void httpserver::httpwatch_init_paths(std::string &currentpath, std::string &error_path, std::string &traffic_switch_file, std::string &restart_file, std::string &restart_ssl_file, std::string &orm_log_file)
 {
     serverconfig &sysconfigpath = getserversysconfig();
 
-    // ORM init
-    try
-    {
-        currentpath = sysconfigpath.configpath;
-        if (currentpath.size() > 0 && currentpath.back() != '/')
-        {
-            currentpath.push_back('/');
-        }
-        currentpath.append("orm.conf");
-        orm_log_file = orm::init_orm_conn_pool(io_context, currentpath);
-        error_loglist.emplace_back(orm_log_file);
-        orm_log_file.clear();
-    }
-    catch (const char *e)
-    {
-        std::string errorstr(e);
-        errorstr.push_back('\n');
-        error_loglist.emplace_back(errorstr);
-    }
+    // ORM init 已前移到 run() 的 startup_orm_init()，这里不再重复初始化。
 
     server_loaclvar &static_server_var = get_server_global_var();
     currentpath                        = static_server_var.log_path;
@@ -11322,6 +11342,7 @@ void httpserver::set_thread_priority(std::thread &thread, int priority)
 
 void httpserver::run(const std::string &sysconfpath)
 {
+    bool startup_ready = false;
     try
     {
         isstop = false;
@@ -11435,6 +11456,14 @@ void httpserver::run(const std::string &sysconfpath)
         {
             total_count = 8;
         }
+
+        // DB 初始化在起任何工作/监听线程之前完成，失败则拒绝启动。
+        // RBAC 判定钩子由业务入口在 run() 之前装好，这里不涉及。
+        {
+            std::string startup_orm_log;
+            startup_orm_init(startup_orm_log);
+        }
+        startup_ready = true;
 
         asio::executor_work_guard<asio::io_context::executor_type> worker(io_context->get_executor());
 
@@ -11625,6 +11654,11 @@ void httpserver::run(const std::string &sysconfpath)
     catch (std::exception &e)
     {
         LOG_ERROR << " httpserver Exception " << e.what() << LOG_END;
+        if (!startup_ready)
+        {
+            std::cerr << "paozhu startup failed: " << e.what() << std::endl;
+            throw;
+        }
     }
     DEBUG_LOG("httpserver exit!");
 }

@@ -5,6 +5,9 @@
 #include <filesystem>
 #include "server.h"
 #include "init_daemon.hpp"
+// paozhu-rbac:begin
+#include "rbac/route_guard.h"
+// paozhu-rbac:end
 
 static sigjmp_buf env_startacs;
 static void sig_child(int signo);
@@ -101,11 +104,16 @@ int main(int argc, char *argv[])
     try
     {
       http::httpserver &httpmy=http::get_server_app();
+      // paozhu-rbac:begin
+      // 只装钩子，不查库：带 maskcode 的路由在第一个请求上就会 fail-closed，不必拦启动。
+      http::rbac::install_route_guard();
+      // paozhu-rbac:end
       httpmy.run(argv_str);
     }
     catch (std::exception &e)
     {
       std::printf("Exception: %s\n", e.what());
+      exit(1);
     }
      exit(0);
   }

@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>企业权限分配</title>
+  <link href="/assets/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/icons/font/bootstrap-icons.css">
+  <link href="/css/dashboard.css" rel="stylesheet">
+</head>
+
+<body>
+  <div class="container-fluid p-3">
+    <h5 class="mt-2">企业权限分配</h5>
+    <div class="alert alert-info py-2">
+      列表来自 <code>sysperms</code>（权限目录，<code>userid</code>=企业ID），勾选结果写入
+      <code>syscompanyperms</code>（企业权限分配表）。<br>
+      <strong>这一层只有平台能改</strong>：租户后台的可分配权限来自且仅来自这里勾选过的行，
+      租户管理员看不到也删不掉未分配给它的权限项。<br>
+      撤销一条分配后，该企业所有角色立刻失去对应权限，<code>sysroleperms</code> 的行不用动。
+      一项都不勾并保存＝撤销本企业全部分配（与角色权限页的「整体替换」同语义）。<br>
+      停用的权限项（<code>status=0</code>）可以保留分配，但在启用之前不会给任何用户访问权。
+    </div>
+
+    <div class="row g-2 mb-3">
+      <div class="col-md-5">
+        <label class="form-label mb-1" for="company">企业</label>
+        <select id="company" class="form-select form-select-sm">
+          <%c for(auto &c:obj["companies"].as_array()){ %>
+          <option value="<%c echo<<c["sid"].to_string(); %>" <%c if(c["sid"].to_int()==obj["companyid"].to_int()){ %>selected<%c } %>>sid <%c echo<<c["sid"].to_string(); %> · <%c echo<<c["sitename"].to_string(); %></option>
+          <%c } %>
+        </select>
+        <div class="form-text">切换企业会重新载入该企业的分配状态。</div>
+      </div>
+      <div class="col-md-7 d-flex align-items-end flex-wrap gap-2">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="checkall">
+          <label class="form-check-label" for="checkall">全选当前列表</label>
+        </div>
+        <button class="btn btn-primary btn-sm" id="savebtn">保存分配</button>
+        <input id="filter" class="form-control form-control-sm" style="max-width:260px"
+          placeholder="前端过滤：urlpath 或名称">
+      </div>
+    </div>
+
+    <div class="mb-2">
+      <span class="badge bg-secondary">目录 <% echo<<obj["catalog_count"].to_string(); %> 项</span>
+      <span class="badge bg-success">启用 <% echo<<obj["enabled_count"].to_string(); %> 项</span>
+      <span class="badge bg-warning text-dark">停用 <% echo<<obj["disabled_count"].to_string(); %> 项</span>
+      <span class="badge bg-primary">已分配 <% echo<<obj["allocated_count"].to_string(); %> 项</span>
+      <%c if(obj["orphan_count"].to_int()>0){ %><span class="badge bg-danger">分配残留 <% echo<<obj["orphan_count"].to_string(); %> 条</span><%c } %>
+    </div>
+
+    <div id="result" class="mb-2"></div>
+
+    <table class="table table-sm table-bordered align-middle" id="permtable">
+      <thead class="table-light">
+        <tr>
+          <th style="width:60px">选择<br><small class="text-muted fw-normal">勾选=分配给该企业</small></th>
+          <th style="width:90px">权限ID<br><small class="text-muted fw-normal">permsid</small></th>
+          <th>权限路径<br><small class="text-muted fw-normal">urlpath</small></th>
+          <th>权限名称<br><small class="text-muted fw-normal">name</small></th>
+          <th style="width:80px">状态<br><small class="text-muted fw-normal">status</small></th>
+          <th style="width:100px">权限码<br><small class="text-muted fw-normal">permscode</small></th>
+          <th style="width:100px">掩码<br><small class="text-muted fw-normal">maskcode</small></th>
+        </tr>
+      </thead>
+      <tbody>
+        <%c for(auto &a:obj["infos"].as_array()){ %>
+        <tr>
+          <td>
+            <input class="form-check-input rowcheck" type="checkbox" value="<%c echo<<a["permsid"].to_string(); %>"
+              <%c if(a["checked"].to_int()==1){ %>checked<%c } %>>
+          </td>
+          <td><%c echo<<a["permsid"].to_string(); %></td>
+          <td class="pathcell"><%c echo<<a["urlpath"].to_string(); %></td>
+          <td><%c echo<<a["name"].to_string(); %></td>
+          <td>
+            <%c if(a["status"].to_int()==1){ %><span class="badge bg-success">启用</span><%c }else{ %><span class="badge bg-warning text-dark">停用</span><%c } %>
+          </td>
+          <td><%c echo<<a["permscode"].to_string(); %></td>
+          <td><%c echo<<a["maskcode"].to_string(); %></td>
+        </tr>
+        <%c } %>
+      </tbody>
+    </table>
+
+  </div>
+
+  <script src="/assets/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    document.getElementById('company').addEventListener('change', function () {
+      location.href = '/superadmin/rbac/companyperm?companyid=' + this.value;
+    });
+
+    document.getElementById('checkall').addEventListener('change', function () {
+      document.querySelectorAll('#permtable tbody tr').forEach(function (tr) {
+        var cb = tr.querySelector('.rowcheck');
+        if (cb && tr.style.display !== 'none') { cb.checked = document.getElementById('checkall').checked; }
+      });
+    });
+
+    document.getElementById('filter').addEventListener('input', function () {
+      var kw = this.value.trim().toLowerCase();
+      document.querySelectorAll('#permtable tbody tr').forEach(function (tr) {
+        var cell = tr.querySelector('.pathcell');
+        var text = (cell ? cell.textContent : tr.textContent).toLowerCase();
+        tr.style.display = (kw === '' || text.indexOf(kw) >= 0) ? '' : 'none';
+      });
+    });
+
+    document.getElementById('savebtn').addEventListener('click', function () {
+      var box = document.getElementById('result');
+      var picked = [];
+      document.querySelectorAll('.rowcheck:checked').forEach(function (cb) { picked.push(cb.value); });
+      var fd = new FormData();
+      fd.append('csrf_token', '<% echo<<obj["csrf_token"].to_string(); %>');
+      fd.append('companyid', '<% echo<<obj["companyid"].to_string(); %>');
+      fd.append('permsids', picked.join(','));
+      fetch('/superadmin/rbac/companyperm/save', { method: 'POST', body: fd, credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j.code === 0) {
+            box.innerHTML = '<div class="alert alert-success py-2 mb-0">' +
+              (j.msg || '企业权限分配已保存') + '：当前共 ' + j.count + ' 项（已整体替换）</div>';
+          } else {
+            box.innerHTML = '<div class="alert alert-danger py-2 mb-0">保存失败：' +
+              (j.msg || '请求未成功') + '</div>';
+          }
+        })
+        .catch(function (e) {
+          box.innerHTML = '<div class="alert alert-danger py-2 mb-0">请求失败：' + e + '</div>';
+        });
+    });
+  </script>
+</body>
+
+</html>

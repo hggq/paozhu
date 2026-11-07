@@ -1,4 +1,4 @@
-/*build this file time Sun, 01 Nov 2026 02:10:35 GMT*/
+/*build this file time Sat, 07 Nov 2026 09:30:37 GMT*/
 #include "models/include/FkChild.h"
 #include "models/include/FkParent.h"
 #include "models/include/Fortune.h"
@@ -42,3 +42,5 @@
 #include "models/cms/include/OauthRefresh.h"
 #include "models/cms/include/GithubAccount.h"
 #include "models/cms/include/GithubRepo.h"
+#include "models/cms/include/Sysuserrole.h"
+#include "models/cms/include/Syscompanyperms.h"

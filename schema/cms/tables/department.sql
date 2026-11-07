@@ -15,5 +15,6 @@ CREATE TABLE `department` (
   `updated_user` int unsigned NOT NULL,
   `isvirtual` tinyint NOT NULL COMMENT '是否虚拟部门',
   `linkdpid` varchar(256) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '关联部门',
+  `versionid` int unsigned NOT NULL COMMENT '版本',
   PRIMARY KEY (`dpid`)
 ) ENGINE=InnoDB AUTO_INCREMENT=55 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='部门'

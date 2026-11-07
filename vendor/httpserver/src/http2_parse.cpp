@@ -4477,6 +4477,13 @@ void http2parse::post_multipart_itemcontent(HTTP2_POST_DATA_T &temp_post_data, b
                 return;
             }
         }
+        else
+        {
+            // 同 h1 的 40226：落不了盘就没有这个文件，别让下面把 size=0 和不存在的路径写进 files。
+            // 临时目录不可写是本机部署问题，不是这条流的协议违例，只作废这一条流，不 GOAWAY。
+            set_stream_error(40226, temp_post_data.stream_id, 0x2);// 0x2 = INTERNAL_ERROR
+            return;
+        }
         if (isfilefull)
         {
             multipart_post_file_field(temp_post_data);

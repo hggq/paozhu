@@ -32,6 +32,7 @@ body {
   <div class="container-fluid">
 <main class="form-signin w-100 m-auto">
   <form action="/admin/loginpost" method="post">
+    <input type="hidden" name="csrf_token" value="<%c echo<<obj["csrf_token"].as_string(); %>">
     <h1 class="h3 mb-3 fw-normal">Please sign in</h1>
     <div class="form-floating">
       <input type="text" class="form-control" id="username" name="username" value="admin" placeholder="admin or name@example.com">

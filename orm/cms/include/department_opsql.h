@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sun, 01 Nov 2026 02:10:33 GMT
+ *  Creation time Sat, 07 Nov 2026 09:30:36 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -1636,6 +1636,22 @@ namespace cms
                 case 15:
             data_temp.linkdpid.assign(reinterpret_cast<const char*>(result_temp_data), value_size);
             break;
+                case 16:
+             {
+               data_temp.versionid = 0;
+            
+                    auto result = std::from_chars(
+                            reinterpret_cast<const char*>(result_temp_data),
+                            reinterpret_cast<const char*>(result_temp_data) + value_size,
+                            data_temp.versionid);
+                        if (result.ec == std::errc()) {
+
+                        }
+                        else{
+                            data_temp.versionid = 0;
+                        }
+            }
+            break;
                 
         }
     }
@@ -1902,6 +1918,23 @@ namespace cms
                         data_temp.linkdpid.clear();
                 }, val);
             } break;
+            case 16: {
+                std::visit([&](auto&& v){
+                    using T = std::decay_t<decltype(v)>;
+                    if constexpr (std::is_same_v<T, std::monostate>)
+                    {
+                        data_temp.versionid = 0;
+                    }
+                    else if constexpr (std::is_same_v<T, int64_t>)
+                        data_temp.versionid = static_cast<decltype(data_temp.versionid )>(v);
+                    else if constexpr (std::is_same_v<T, uint64_t>)
+                        data_temp.versionid = static_cast<decltype(data_temp.versionid )>(v);
+                    else if constexpr (std::is_same_v<T, double>)
+                        data_temp.versionid = static_cast<decltype(data_temp.versionid )>(v);
+                    else
+                        data_temp.versionid = 0;
+                }, val);
+            } break;
         }
     }
     
@@ -1956,6 +1989,9 @@ namespace cms
                 break;
             case 15:
                 return http::obj_val(std::string(data_temp.linkdpid));
+                break;
+            case 16:
+                return http::obj_val(static_cast<long long>(data_temp.versionid));
                 break;
             default:
                 return http::obj_val(nullptr);
@@ -3891,6 +3927,142 @@ M_MODEL& ornotnullLinkdpid()
 	{return whereOrNotNull(B_BASE::cols::linkdpid);
 	}
 
+M_MODEL& eqVersionid(const std::string &val)
+	{return where(B_BASE::cols::versionid, orm::wq::eq, val);
+	}
+
+M_MODEL& nqVersionid(const std::string &val)
+	{return where(B_BASE::cols::versionid, orm::wq::nq, val);
+	}
+
+M_MODEL& btVersionid(const std::string &val)
+	{return where(B_BASE::cols::versionid, orm::wq::bt, val);
+	}
+
+M_MODEL& beVersionid(const std::string &val)
+	{return where(B_BASE::cols::versionid, orm::wq::be, val);
+	}
+
+M_MODEL& ltVersionid(const std::string &val)
+	{return where(B_BASE::cols::versionid, orm::wq::lt, val);
+	}
+
+M_MODEL& leVersionid(const std::string &val)
+	{return where(B_BASE::cols::versionid, orm::wq::le, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& eqVersionid(T val)
+	{return where(B_BASE::cols::versionid, orm::wq::eq, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& nqVersionid(T val)
+	{return where(B_BASE::cols::versionid, orm::wq::nq, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& btVersionid(T val)
+	{return where(B_BASE::cols::versionid, orm::wq::bt, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& beVersionid(T val)
+	{return where(B_BASE::cols::versionid, orm::wq::be, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& ltVersionid(T val)
+	{return where(B_BASE::cols::versionid, orm::wq::lt, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& leVersionid(T val)
+	{return where(B_BASE::cols::versionid, orm::wq::le, val);
+	}
+
+M_MODEL& nullVersionid()
+	{return whereNull(B_BASE::cols::versionid);
+	}
+
+M_MODEL& notnullVersionid()
+	{return whereNotNull(B_BASE::cols::versionid);
+	}
+
+M_MODEL& oreqVersionid(const std::string &val)
+	{return whereOr(B_BASE::cols::versionid, orm::wq::eq, val);
+	}
+
+M_MODEL& ornqVersionid(const std::string &val)
+	{return whereOr(B_BASE::cols::versionid, orm::wq::nq, val);
+	}
+
+M_MODEL& orbtVersionid(const std::string &val)
+	{return whereOr(B_BASE::cols::versionid, orm::wq::bt, val);
+	}
+
+M_MODEL& orbeVersionid(const std::string &val)
+	{return whereOr(B_BASE::cols::versionid, orm::wq::be, val);
+	}
+
+M_MODEL& orltVersionid(const std::string &val)
+	{return whereOr(B_BASE::cols::versionid, orm::wq::lt, val);
+	}
+
+M_MODEL& orleVersionid(const std::string &val)
+	{return whereOr(B_BASE::cols::versionid, orm::wq::le, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& oreqVersionid(T val)
+	{return whereOr(B_BASE::cols::versionid, orm::wq::eq, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& ornqVersionid(T val)
+	{return whereOr(B_BASE::cols::versionid, orm::wq::nq, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& orbtVersionid(T val)
+	{return whereOr(B_BASE::cols::versionid, orm::wq::bt, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& orbeVersionid(T val)
+	{return whereOr(B_BASE::cols::versionid, orm::wq::be, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& orltVersionid(T val)
+	{return whereOr(B_BASE::cols::versionid, orm::wq::lt, val);
+	}
+
+template <typename T>
+	requires std::is_integral_v<T>
+M_MODEL& orleVersionid(T val)
+	{return whereOr(B_BASE::cols::versionid, orm::wq::le, val);
+	}
+
+M_MODEL& ornullVersionid()
+	{return whereOrNull(B_BASE::cols::versionid);
+	}
+
+M_MODEL& ornotnullVersionid()
+	{return whereOrNotNull(B_BASE::cols::versionid);
+	}
+
         ORM_SELECT_FIELDS(M_MODEL, B_BASE, &department_info::col_names)
 
         // === 兼容旧版 char/string 操作符 ===
@@ -4971,6 +5143,9 @@ M_MODEL& ornotnullLinkdpid()
 			case department_info::cols::linkdpid:
 				ordersql.append("linkdpid");
 				break;
+			case department_info::cols::versionid:
+				ordersql.append("versionid");
+				break;
             default:
                 return *mod;
                 break;
@@ -5032,6 +5207,9 @@ M_MODEL& ornotnullLinkdpid()
 				break;
 			case department_info::cols::linkdpid:
 				ordersql.append("linkdpid");
+				break;
+			case department_info::cols::versionid:
+				ordersql.append("versionid");
 				break;
             default:
                 return *mod;
@@ -5104,6 +5282,9 @@ M_MODEL& ornotnullLinkdpid()
 			case department_info::cols::linkdpid:
 				ordersql.append("linkdpid");
 				break;
+			case department_info::cols::versionid:
+				ordersql.append("versionid");
+				break;
             default:
                 return *mod;
                 break;
@@ -5159,6 +5340,9 @@ M_MODEL& ornotnullLinkdpid()
 				break;
 			case department_info::cols::linkdpid:
 				ordersql.append("linkdpid");
+				break;
+			case department_info::cols::versionid:
+				ordersql.append("versionid");
 				break;
             default:
                 return *mod;
@@ -5236,6 +5420,9 @@ M_MODEL& ornotnullLinkdpid()
 			case department_info::cols::linkdpid:
 				ordersql.append("linkdpid");
 				break;
+			case department_info::cols::versionid:
+				ordersql.append("versionid");
+				break;
             default:
                 return *mod;
                 break;
@@ -5298,6 +5485,9 @@ M_MODEL& ornotnullLinkdpid()
 			case department_info::cols::linkdpid:
 				ordersql.append("linkdpid");
 				break;
+			case department_info::cols::versionid:
+				ordersql.append("versionid");
+				break;
             default:
                 return *mod;
                 break;
@@ -5353,6 +5543,9 @@ M_MODEL& ornotnullLinkdpid()
 				break;
 			case department_info::cols::linkdpid:
 				ordersql.append("linkdpid");
+				break;
+			case department_info::cols::versionid:
+				ordersql.append("versionid");
 				break;
             default:
                 return *mod;
@@ -5458,6 +5651,9 @@ M_MODEL& ornotnullLinkdpid()
 			case department_info::cols::linkdpid:
 				groupsql.append("linkdpid");
 				break;
+			case department_info::cols::versionid:
+				groupsql.append("versionid");
+				break;
             default:
                 return *mod;
                 break;
@@ -5518,6 +5714,9 @@ M_MODEL& ornotnullLinkdpid()
 				break;
 			case department_info::cols::linkdpid:
 				groupsql.append("linkdpid");
+				break;
+			case department_info::cols::versionid:
+				groupsql.append("versionid");
 				break;
             default:
                 return *mod;

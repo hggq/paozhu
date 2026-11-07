@@ -4,6 +4,7 @@ CREATE TABLE `sysuser` (
   `password` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `textword` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `isopen` tinyint(1) NOT NULL,
+  `isadmin` tinyint unsigned NOT NULL COMMENT '1saas级管理员',
   `level` int NOT NULL,
   `companyid` int unsigned NOT NULL COMMENT '所属企业',
   `dpid` int unsigned NOT NULL,
@@ -20,5 +21,8 @@ CREATE TABLE `sysuser` (
   `mobile` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `email` varchar(60) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `wxuuid` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `expname` varchar(60) COLLATE utf8mb4_general_ci NOT NULL,
+  `expmobile` varchar(60) COLLATE utf8mb4_general_ci NOT NULL,
+  `expaddress` varchar(160) COLLATE utf8mb4_general_ci NOT NULL,
   PRIMARY KEY (`adminid`)
-) ENGINE=InnoDB AUTO_INCREMENT=10101 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+) ENGINE=InnoDB AUTO_INCREMENT=10183 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci

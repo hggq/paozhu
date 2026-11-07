@@ -4,5 +4,6 @@ CREATE TABLE `sysroleperms` (
   `roleid` int unsigned NOT NULL,
   `permsid` int unsigned NOT NULL,
   `sortid` int unsigned NOT NULL,
-  PRIMARY KEY (`rolepermsid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+  PRIMARY KEY (`rolepermsid`),
+  UNIQUE KEY `uk_userid_roleid_permsid` (`userid`,`roleid`,`permsid`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci

@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSPERMSBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sun, 01 Nov 2026 02:10:33 GMT
+*本文件为自动生成 Sat, 07 Nov 2026 09:30:37 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -31,7 +31,7 @@ namespace orm {
 namespace sysperms_info
 {
  
-    static constexpr std::size_t col_count = 13;
+    static constexpr std::size_t col_count = 14;
     enum class cols : unsigned char 
     {
 		permsid = 0,
@@ -42,11 +42,12 @@ namespace sysperms_info
 		name = 5,
 		status = 6,
 		permscode = 7,
-		readonly = 8,
-		created_time = 9,
-		updated_time = 10,
-		created_user = 11,
-		updated_user = 12,
+		maskcode = 8,
+		readonly = 9,
+		created_time = 10,
+		updated_time = 11,
+		created_user = 12,
+		updated_user = 13,
 
     };
 
@@ -60,6 +61,7 @@ namespace sysperms_info
 		 std::string  name = ""; ///**/
 		 unsigned  char  status = 0; ///**/
 		 unsigned  int  permscode = 0; ///**/
+		 unsigned  int  maskcode = 0; ///*和urlpath对上*/
 		 unsigned  char  readonly = 0; ///**/
 		 unsigned  int  created_time = 0; ///**/
 		 unsigned  int  updated_time = 0; ///**/
@@ -77,6 +79,7 @@ namespace sysperms_info
 		 std::string  name = ""; ///**/
 		 unsigned  char  status = 0; ///**/
 		 unsigned  int  permscode = 0; ///**/
+		 unsigned  int  maskcode = 0; ///*和urlpath对上*/
 		 unsigned  char  readonly = 0; ///**/
 		 unsigned  int  created_time = 0; ///**/
 		 unsigned  int  updated_time = 0; ///**/
@@ -96,6 +99,7 @@ namespace sysperms_info
 		 std::string  name = ""; ///**/
 		 unsigned  char  status = 0; ///**/
 		 unsigned  int  permscode = 0; ///**/
+		 unsigned  int  maskcode = 0; ///*和urlpath对上*/
 		 unsigned  char  readonly = 0; ///**/
 		 unsigned  int  created_time = 0; ///**/
 		 unsigned  int  updated_time = 0; ///**/
@@ -124,6 +128,8 @@ namespace sysperms_info
 		 return m.status;
 		} else if constexpr (Col == cols::permscode) { 
 		 return m.permscode;
+		} else if constexpr (Col == cols::maskcode) { 
+		 return m.maskcode;
 		} else if constexpr (Col == cols::readonly) { 
 		 return m.readonly;
 		} else if constexpr (Col == cols::created_time) { 
@@ -149,6 +155,7 @@ namespace sysperms_info
 		using name =  std::string ;
 		using status =  unsigned  char ;
 		using permscode =  unsigned  int ;
+		using maskcode =  unsigned  int ;
 		using readonly =  unsigned  char ;
 		using created_time =  unsigned  int ;
 		using updated_time =  unsigned  int ;
@@ -667,12 +674,12 @@ namespace sysperms_info
                 return oss.str(); }\
        }
         
-    inline constexpr std::array<std::string_view,13> col_names={"permsid","parentid","userid","urlpath","urlname","name","status","permscode","readonly","created_time","updated_time","created_user","updated_user"};
-	static constexpr std::array<unsigned char,13> col_types={3,3,3,253,253,253,1,3,1,3,3,3,3};
-	static constexpr std::array<unsigned int,13> col_length={0,0,0,120,60,60,0,0,0,0,0,0,0};
-	static constexpr std::array<unsigned char,13> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0};
-	static constexpr std::array<bool,13> col_null={false,false,false,false,false,false,false,false,false,false,false,false,false};
-	static constexpr std::array<bool,13> col_indexed={true,false,false,false,false,false,false,false,false,false,false,false,false};
+    inline constexpr std::array<std::string_view,14> col_names={"permsid","parentid","userid","urlpath","urlname","name","status","permscode","maskcode","readonly","created_time","updated_time","created_user","updated_user"};
+	static constexpr std::array<unsigned char,14> col_types={3,3,3,253,253,253,1,3,3,1,3,3,3,3};
+	static constexpr std::array<unsigned int,14> col_length={0,0,0,120,60,60,0,0,0,0,0,0,0,0};
+	static constexpr std::array<unsigned char,14> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	static constexpr std::array<bool,14> col_null={false,false,false,false,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::array<bool,14> col_indexed={true,false,true,false,false,false,false,false,false,false,false,false,false,false};
 	static constexpr std::string_view auto_pk_name ="permsid";
 	static constexpr int auto_pk_index = 0;
 
@@ -691,15 +698,15 @@ std::vector<sysperms_info::meta>::const_iterator end() const{     return record.
 std::string tablename="sysperms";
 static constexpr std::string_view org_tablename="sysperms";
 static constexpr std::string_view modelname="Sysperms";
-	static constexpr std::array<bool,13> col_need_quote={false,false,false,true,true,true,false,false,false,false,false,false,false};
+	static constexpr std::array<bool,14> col_need_quote={false,false,false,true,true,true,false,false,false,false,false,false,false,false};
 
-            std::bitset<13> dirty_bits;
+            std::bitset<14> dirty_bits;
             void clear_dirty() noexcept {
                 dirty_bits.reset();
             }
 
             void set_dirty(std::size_t idx) noexcept {
-                if(idx < 13)
+                if(idx < 14)
                 dirty_bits.set(idx);
             }
 
@@ -771,11 +778,14 @@ static constexpr std::string_view modelname="Sysperms";
 case 12:
   colpospppc=coln.back();
     if(colpospppc<91){ colpospppc+=32; }
- if(colpospppc=='e'){ return 9; }
- if(colpospppc=='r'){ return 11; }
+ if(colpospppc=='e'){ return 10; }
+ if(colpospppc=='r'){ return 12; }
    	 break;
  }
  break;
+case 'm':
+   	 return 8;
+break;
 case 'n':
    	 return 5;
 break;
@@ -793,7 +803,7 @@ break;
  }
  break;
 case 'r':
-   	 return 8;
+   	 return 9;
 break;
 case 's':
    	 return 6;
@@ -812,8 +822,8 @@ case 7:
 case 12:
   colpospppc=coln.back();
     if(colpospppc<91){ colpospppc+=32; }
- if(colpospppc=='e'){ return 10; }
- if(colpospppc=='r'){ return 12; }
+ if(colpospppc=='e'){ return 11; }
+ if(colpospppc=='r'){ return 13; }
    	 break;
  }
  break;
@@ -926,6 +936,11 @@ if(data.permscode==0){
  }else{ 
 	tempsql<<","<<std::to_string(data.permscode);
 }
+if(data.maskcode==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(data.maskcode);
+}
 if(data.readonly==0){
 	tempsql<<",0";
  }else{ 
@@ -1003,6 +1018,11 @@ if(insert_data.permscode==0){
 	tempsql<<",0";
  }else{ 
 	tempsql<<","<<std::to_string(insert_data.permscode);
+}
+if(insert_data.maskcode==0){
+	tempsql<<",0";
+ }else{ 
+	tempsql<<","<<std::to_string(insert_data.maskcode);
 }
 if(insert_data.readonly==0){
 	tempsql<<",0";
@@ -1090,6 +1110,11 @@ tempsql<<")";
 	 }else{ 
 	tempsql<<","<<std::to_string(insert_data[i].permscode);
 	}
+	if(insert_data[i].maskcode==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(insert_data[i].maskcode);
+	}
 	if(insert_data[i].readonly==0){
 	tempsql<<",0";
 	 }else{ 
@@ -1161,6 +1186,11 @@ if(data.permscode==0){
 	tempsql<<",permscode=0";
  }else{ 
 	tempsql<<",permscode="<<std::to_string(data.permscode);
+}
+if(data.maskcode==0){
+	tempsql<<",maskcode=0";
+ }else{ 
+	tempsql<<",maskcode="<<std::to_string(data.maskcode);
 }
 if(data.readonly==0){
 	tempsql<<",readonly=0";
@@ -1285,13 +1315,21 @@ if(data.permscode==0){
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
+if(data.maskcode==0){
+	tempsql<<"maskcode=0";
+ }else{ 
+	tempsql<<"maskcode="<<std::to_string(data.maskcode);
+}
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
 if(data.readonly==0){
 	tempsql<<"readonly=0";
  }else{ 
 	tempsql<<"readonly="<<std::to_string(data.readonly);
 }
  break;
- case 9:
+ case 10:
  if(jj>0){ tempsql<<","; } 
 if(data.created_time==0){
 	tempsql<<"created_time=0";
@@ -1299,7 +1337,7 @@ if(data.created_time==0){
 	tempsql<<"created_time="<<std::to_string(data.created_time);
 }
  break;
- case 10:
+ case 11:
  if(jj>0){ tempsql<<","; } 
 if(data.updated_time==0){
 	tempsql<<"updated_time=0";
@@ -1307,7 +1345,7 @@ if(data.updated_time==0){
 	tempsql<<"updated_time="<<std::to_string(data.updated_time);
 }
  break;
- case 11:
+ case 12:
  if(jj>0){ tempsql<<","; } 
 if(data.created_user==0){
 	tempsql<<"created_user=0";
@@ -1315,7 +1353,7 @@ if(data.created_user==0){
 	tempsql<<"created_user="<<std::to_string(data.created_user);
 }
  break;
- case 12:
+ case 13:
  if(jj>0){ tempsql<<","; } 
 if(data.updated_user==0){
 	tempsql<<"updated_user=0";
@@ -1393,34 +1431,41 @@ if(data.updated_user==0){
                         }
                         break;
                     case 8:
+                        if(data.maskcode==0){
+                            tempsql<<"maskcode=0";
+                        }else{ 
+                            tempsql<<"maskcode="<<std::to_string(data.maskcode);
+                        }
+                        break;
+                    case 9:
                         if(data.readonly==0){
                             tempsql<<"readonly=0";
                         }else{ 
                             tempsql<<"readonly="<<std::to_string(data.readonly);
                         }
                         break;
-                    case 9:
+                    case 10:
                         if(data.created_time==0){
                             tempsql<<"created_time=0";
                         }else{ 
                             tempsql<<"created_time="<<std::to_string(data.created_time);
                         }
                         break;
-                    case 10:
+                    case 11:
                         if(data.updated_time==0){
                             tempsql<<"updated_time=0";
                         }else{ 
                             tempsql<<"updated_time="<<std::to_string(data.updated_time);
                         }
                         break;
-                    case 11:
+                    case 12:
                         if(data.created_user==0){
                             tempsql<<"created_user=0";
                         }else{ 
                             tempsql<<"created_user="<<std::to_string(data.created_user);
                         }
                         break;
-                    case 12:
+                    case 13:
                         if(data.updated_user==0){
                             tempsql<<"updated_user=0";
                         }else{ 
@@ -1495,6 +1540,11 @@ if(data.updated_user==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].permscode);
+	}
+	if(record[i].maskcode==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].maskcode);
 	}
 	if(record[i].readonly==0){
 	tempsql<<",0";
@@ -1586,6 +1636,11 @@ if(data.updated_user==0){
 	tempsql<<",0";
 	 }else{ 
 	tempsql<<","<<std::to_string(record[i].permscode);
+	}
+	if(record[i].maskcode==0){
+	tempsql<<",0";
+	 }else{ 
+	tempsql<<","<<std::to_string(record[i].maskcode);
 	}
 	if(record[i].readonly==0){
 	tempsql<<",0";
@@ -1742,34 +1797,41 @@ if(data.permscode==0){
 }
  break;
  case 8:
+if(data.maskcode==0){
+	temparray.push_back("0");
+ }else{ 
+	temparray.push_back(std::to_string(data.maskcode));
+}
+ break;
+ case 9:
 if(data.readonly==0){
 	temparray.push_back("0");
  }else{ 
 	temparray.push_back(std::to_string(data.readonly));
 }
  break;
- case 9:
+ case 10:
 if(data.created_time==0){
 	temparray.push_back("0");
  }else{ 
 	temparray.push_back(std::to_string(data.created_time));
 }
  break;
- case 10:
+ case 11:
 if(data.updated_time==0){
 	temparray.push_back("0");
  }else{ 
 	temparray.push_back(std::to_string(data.updated_time));
 }
  break;
- case 11:
+ case 12:
 if(data.created_user==0){
 	temparray.push_back("0");
  }else{ 
 	temparray.push_back(std::to_string(data.created_user));
 }
  break;
- case 12:
+ case 13:
 if(data.updated_user==0){
 	temparray.push_back("0");
  }else{ 
@@ -1867,34 +1929,41 @@ if(data.permscode==0){
 }
  break;
  case 8:
+if(data.maskcode==0){
+	tempsql.insert({"maskcode","0"});
+ }else{ 
+	tempsql.insert({"maskcode",std::to_string(data.maskcode)});
+}
+ break;
+ case 9:
 if(data.readonly==0){
 	tempsql.insert({"readonly","0"});
  }else{ 
 	tempsql.insert({"readonly",std::to_string(data.readonly)});
 }
  break;
- case 9:
+ case 10:
 if(data.created_time==0){
 	tempsql.insert({"created_time","0"});
  }else{ 
 	tempsql.insert({"created_time",std::to_string(data.created_time)});
 }
  break;
- case 10:
+ case 11:
 if(data.updated_time==0){
 	tempsql.insert({"updated_time","0"});
  }else{ 
 	tempsql.insert({"updated_time",std::to_string(data.updated_time)});
 }
  break;
- case 11:
+ case 12:
 if(data.created_user==0){
 	tempsql.insert({"created_user","0"});
  }else{ 
 	tempsql.insert({"created_user",std::to_string(data.created_user)});
 }
  break;
- case 12:
+ case 13:
 if(data.updated_user==0){
 	tempsql.insert({"updated_user","0"});
  }else{ 
@@ -1944,6 +2013,11 @@ if(data.permscode==0){
 	tempsql<<",\"permscode\":0";
  }else{ 
 	tempsql<<",\"permscode\":"<<std::to_string(data.permscode);
+}
+if(data.maskcode==0){
+	tempsql<<",\"maskcode\":0";
+ }else{ 
+	tempsql<<",\"maskcode\":"<<std::to_string(data.maskcode);
 }
 if(data.readonly==0){
 	tempsql<<",\"readonly\":0";
@@ -2067,13 +2141,21 @@ if(data.permscode==0){
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
+if(data.maskcode==0){
+	tempsql<<"\"maskcode\":0";
+ }else{ 
+	tempsql<<"\"maskcode\":"<<std::to_string(data.maskcode);
+}
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
 if(data.readonly==0){
 	tempsql<<"\"readonly\":0";
  }else{ 
 	tempsql<<"\"readonly\":"<<std::to_string(data.readonly);
 }
  break;
- case 9:
+ case 10:
  if(jj>0){ tempsql<<","; } 
 if(data.created_time==0){
 	tempsql<<"\"created_time\":0";
@@ -2081,7 +2163,7 @@ if(data.created_time==0){
 	tempsql<<"\"created_time\":"<<std::to_string(data.created_time);
 }
  break;
- case 10:
+ case 11:
  if(jj>0){ tempsql<<","; } 
 if(data.updated_time==0){
 	tempsql<<"\"updated_time\":0";
@@ -2089,7 +2171,7 @@ if(data.updated_time==0){
 	tempsql<<"\"updated_time\":"<<std::to_string(data.updated_time);
 }
  break;
- case 11:
+ case 12:
  if(jj>0){ tempsql<<","; } 
 if(data.created_user==0){
 	tempsql<<"\"created_user\":0";
@@ -2097,7 +2179,7 @@ if(data.created_user==0){
 	tempsql<<"\"created_user\":"<<std::to_string(data.created_user);
 }
  break;
- case 12:
+ case 13:
  if(jj>0){ tempsql<<","; } 
 if(data.updated_user==0){
 	tempsql<<"\"updated_user\":0";
@@ -2394,22 +2476,26 @@ if(data.updated_user==0){
 		 break;
 		
 		case 8:
-		  http::json_set_val(data.readonly,set_value_name);
+		  http::json_set_val(data.maskcode,set_value_name);
 		 break;
 		
 		case 9:
-		  http::json_set_val(data.created_time,set_value_name);
+		  http::json_set_val(data.readonly,set_value_name);
 		 break;
 		
 		case 10:
-		  http::json_set_val(data.updated_time,set_value_name);
+		  http::json_set_val(data.created_time,set_value_name);
 		 break;
 		
 		case 11:
-		  http::json_set_val(data.created_user,set_value_name);
+		  http::json_set_val(data.updated_time,set_value_name);
 		 break;
 		
 		case 12:
+		  http::json_set_val(data.created_user,set_value_name);
+		 break;
+		
+		case 13:
 		  http::json_set_val(data.updated_user,set_value_name);
 		 break;
 		
@@ -2519,13 +2605,21 @@ if(record[n].permscode==0){
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
+if(record[n].maskcode==0){
+	tempsql<<"\"maskcode\":0";
+ }else{ 
+	tempsql<<"\"maskcode\":"<<std::to_string(record[n].maskcode);
+}
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
 if(record[n].readonly==0){
 	tempsql<<"\"readonly\":0";
  }else{ 
 	tempsql<<"\"readonly\":"<<std::to_string(record[n].readonly);
 }
  break;
- case 9:
+ case 10:
  if(jj>0){ tempsql<<","; } 
 if(record[n].created_time==0){
 	tempsql<<"\"created_time\":0";
@@ -2533,7 +2627,7 @@ if(record[n].created_time==0){
 	tempsql<<"\"created_time\":"<<std::to_string(record[n].created_time);
 }
  break;
- case 10:
+ case 11:
  if(jj>0){ tempsql<<","; } 
 if(record[n].updated_time==0){
 	tempsql<<"\"updated_time\":0";
@@ -2541,7 +2635,7 @@ if(record[n].updated_time==0){
 	tempsql<<"\"updated_time\":"<<std::to_string(record[n].updated_time);
 }
  break;
- case 11:
+ case 12:
  if(jj>0){ tempsql<<","; } 
 if(record[n].created_user==0){
 	tempsql<<"\"created_user\":0";
@@ -2549,7 +2643,7 @@ if(record[n].created_user==0){
 	tempsql<<"\"created_user\":"<<std::to_string(record[n].created_user);
 }
  break;
- case 12:
+ case 13:
  if(jj>0){ tempsql<<","; } 
 if(record[n].updated_user==0){
 	tempsql<<"\"updated_user\":0";
@@ -2673,13 +2767,21 @@ if(record[n].permscode==0){
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
+if(record[n].maskcode==0){
+	tempsql<<"\"maskcode\":0";
+ }else{ 
+	tempsql<<"\"maskcode\":"<<std::to_string(record[n].maskcode);
+}
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
 if(record[n].readonly==0){
 	tempsql<<"\"readonly\":0";
  }else{ 
 	tempsql<<"\"readonly\":"<<std::to_string(record[n].readonly);
 }
  break;
- case 9:
+ case 10:
  if(jj>0){ tempsql<<","; } 
 if(record[n].created_time==0){
 	tempsql<<"\"created_time\":0";
@@ -2687,7 +2789,7 @@ if(record[n].created_time==0){
 	tempsql<<"\"created_time\":"<<std::to_string(record[n].created_time);
 }
  break;
- case 10:
+ case 11:
  if(jj>0){ tempsql<<","; } 
 if(record[n].updated_time==0){
 	tempsql<<"\"updated_time\":0";
@@ -2695,7 +2797,7 @@ if(record[n].updated_time==0){
 	tempsql<<"\"updated_time\":"<<std::to_string(record[n].updated_time);
 }
  break;
- case 11:
+ case 12:
  if(jj>0){ tempsql<<","; } 
 if(record[n].created_user==0){
 	tempsql<<"\"created_user\":0";
@@ -2703,7 +2805,7 @@ if(record[n].created_user==0){
 	tempsql<<"\"created_user\":"<<std::to_string(record[n].created_user);
 }
  break;
- case 12:
+ case 13:
  if(jj>0){ tempsql<<","; } 
 if(record[n].updated_user==0){
 	tempsql<<"\"updated_user\":0";
@@ -2763,25 +2865,29 @@ if(record[n].updated_user==0){
  void setPermscode( unsigned  int  val){  data.permscode=val;
 		 set_dirty(7);  }
 
+ unsigned  int  getMaskcode(){  return data.maskcode; } 
+ void setMaskcode( unsigned  int  val){  data.maskcode=val;
+		 set_dirty(8);  }
+
  unsigned  char  getReadonly(){  return data.readonly; } 
  void setReadonly( unsigned  char  val){  data.readonly=val;
-		 set_dirty(8);  }
+		 set_dirty(9);  }
 
  unsigned  int  getCreatedTime(){  return data.created_time; } 
  void setCreatedTime( unsigned  int  val){  data.created_time=val;
-		 set_dirty(9);  }
+		 set_dirty(10);  }
 
  unsigned  int  getUpdatedTime(){  return data.updated_time; } 
  void setUpdatedTime( unsigned  int  val){  data.updated_time=val;
-		 set_dirty(10);  }
+		 set_dirty(11);  }
 
  unsigned  int  getCreatedUser(){  return data.created_user; } 
  void setCreatedUser( unsigned  int  val){  data.created_user=val;
-		 set_dirty(11);  }
+		 set_dirty(12);  }
 
  unsigned  int  getUpdatedUser(){  return data.updated_user; } 
  void setUpdatedUser( unsigned  int  val){  data.updated_user=val;
-		 set_dirty(12);  }
+		 set_dirty(13);  }
 
 sysperms_info::meta getnewData(){
  	 struct sysperms_info::meta newdata;
@@ -2892,13 +2998,21 @@ if(tree_data[n].permscode==0){
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
+if(tree_data[n].maskcode==0){
+	tempsql<<"\"maskcode\":0";
+ }else{ 
+	tempsql<<"\"maskcode\":"<<std::to_string(tree_data[n].maskcode);
+}
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
 if(tree_data[n].readonly==0){
 	tempsql<<"\"readonly\":0";
  }else{ 
 	tempsql<<"\"readonly\":"<<std::to_string(tree_data[n].readonly);
 }
  break;
- case 9:
+ case 10:
  if(jj>0){ tempsql<<","; } 
 if(tree_data[n].created_time==0){
 	tempsql<<"\"created_time\":0";
@@ -2906,7 +3020,7 @@ if(tree_data[n].created_time==0){
 	tempsql<<"\"created_time\":"<<std::to_string(tree_data[n].created_time);
 }
  break;
- case 10:
+ case 11:
  if(jj>0){ tempsql<<","; } 
 if(tree_data[n].updated_time==0){
 	tempsql<<"\"updated_time\":0";
@@ -2914,7 +3028,7 @@ if(tree_data[n].updated_time==0){
 	tempsql<<"\"updated_time\":"<<std::to_string(tree_data[n].updated_time);
 }
  break;
- case 11:
+ case 12:
  if(jj>0){ tempsql<<","; } 
 if(tree_data[n].created_user==0){
 	tempsql<<"\"created_user\":0";
@@ -2922,7 +3036,7 @@ if(tree_data[n].created_user==0){
 	tempsql<<"\"created_user\":"<<std::to_string(tree_data[n].created_user);
 }
  break;
- case 12:
+ case 13:
  if(jj>0){ tempsql<<","; } 
 if(tree_data[n].updated_user==0){
 	tempsql<<"\"updated_user\":0";
@@ -3049,13 +3163,21 @@ if(tree_data[n].permscode==0){
  break;
  case 8:
  if(jj>0){ tempsql<<","; } 
+if(tree_data[n].maskcode==0){
+	tempsql<<"\"maskcode\":0";
+ }else{ 
+	tempsql<<"\"maskcode\":"<<std::to_string(tree_data[n].maskcode);
+}
+ break;
+ case 9:
+ if(jj>0){ tempsql<<","; } 
 if(tree_data[n].readonly==0){
 	tempsql<<"\"readonly\":0";
  }else{ 
 	tempsql<<"\"readonly\":"<<std::to_string(tree_data[n].readonly);
 }
  break;
- case 9:
+ case 10:
  if(jj>0){ tempsql<<","; } 
 if(tree_data[n].created_time==0){
 	tempsql<<"\"created_time\":0";
@@ -3063,7 +3185,7 @@ if(tree_data[n].created_time==0){
 	tempsql<<"\"created_time\":"<<std::to_string(tree_data[n].created_time);
 }
  break;
- case 10:
+ case 11:
  if(jj>0){ tempsql<<","; } 
 if(tree_data[n].updated_time==0){
 	tempsql<<"\"updated_time\":0";
@@ -3071,7 +3193,7 @@ if(tree_data[n].updated_time==0){
 	tempsql<<"\"updated_time\":"<<std::to_string(tree_data[n].updated_time);
 }
  break;
- case 11:
+ case 12:
  if(jj>0){ tempsql<<","; } 
 if(tree_data[n].created_user==0){
 	tempsql<<"\"created_user\":0";
@@ -3079,7 +3201,7 @@ if(tree_data[n].created_user==0){
 	tempsql<<"\"created_user\":"<<std::to_string(tree_data[n].created_user);
 }
  break;
- case 12:
+ case 13:
  if(jj>0){ tempsql<<","; } 
 if(tree_data[n].updated_user==0){
 	tempsql<<"\"updated_user\":0";
