@@ -44,9 +44,26 @@ bool bind_user_role(unsigned int userid, unsigned int roleid, unsigned int compa
 // Unbind one user from one role.
 bool unbind_user_role(unsigned int userid, unsigned int roleid, unsigned int companyid, std::string &error);
 
-// 用给定权限集合替换角色的全部权限
-// Replace all permissions of a role with the given set.
-bool replace_role_perms(unsigned int roleid, unsigned int companyid, const std::vector<unsigned int> &permsids, unsigned int operid, std::string &error);
+// replace_role_perms 的三种结果，调用方据此区分提示与后续动作。
+// - success:     事务已提交，库里是完整的新集合
+// - rejected:    参数/归属/可分配集校验不通过，一条语句都没执行
+// - rolled_back: 写入途中失败或提交失败，事务已回滚，旧集合原样保留
+// Three outcomes of replace_role_perms:
+// - success:     the transaction committed and the new set is fully stored
+// - rejected:    validation failed before any statement ran
+// - rolled_back: a write or the commit failed, the transaction was rolled back and the old set
+//                is untouched
+enum class replace_role_perms_result
+{
+    success,
+    rejected,
+    rolled_back
+};
+
+// 用给定权限集合替换角色的全部权限（校验先行，写入在单个事务内完成）
+// Replace all permissions of a role with the given set: validate first, then write in one
+// transaction.
+replace_role_perms_result replace_role_perms(unsigned int roleid, unsigned int companyid, const std::vector<unsigned int> &permsids, unsigned int operid, std::string &error);
 
 // 判断角色是否属于该租户（严格 userid == companyid，companyid 为 0 一律拒绝）
 // Check whether a role belongs to the tenant; userid must equal companyid, and 0 is refused.

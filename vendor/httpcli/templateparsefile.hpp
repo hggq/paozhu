@@ -24,6 +24,8 @@
 #include <sstream>
 #include <string>
 
+#include "utility.hpp"
+
 namespace http
 {
 
@@ -33,42 +35,6 @@ class viewtemplatefile
   public:
     viewtemplatefile(std::string filename_) : filename(std::move(filename_)) {}
     viewtemplatefile() {}
-    // make 只看 mtime：无条件重写会把依赖这个头的所有编译单元一起拖脏，所以内容没变就不落盘。
-    // 不剥旧时间戳注释再比 —— 改动后第一次运行必然重写一次，把存量的戳行清掉，之后才稳定。
-    static bool write_file_if_changed(const std::string &path, const std::string &content)
-    {
-        std::string oldcontent;
-        FILE *rf = fopen(path.c_str(), "rb");
-        if (rf)
-        {
-            fseek(rf, 0, SEEK_END);
-            long n = ftell(rf);
-            fseek(rf, 0, SEEK_SET);
-            if (n > 0)
-            {
-                oldcontent.resize(n);
-                auto nread = fread(&oldcontent[0], 1, n, rf);
-                oldcontent.resize(nread);
-            }
-            fclose(rf);
-            if (oldcontent == content)
-            {
-                return false;
-            }
-        }
-        FILE *wf = fopen(path.c_str(), "wb");
-        if (wf == nullptr)
-        {
-            std::cout << " [!] cannot write file: " << path << std::endl;
-            return false;
-        }
-        if (!content.empty())
-        {
-            fwrite(&content[0], 1, content.size(), wf);
-        }
-        fclose(wf);
-        return true;
-    }
     std::map<std::string, time_t> contrasttime(std::string tagetpath)
     {
         std::map<std::string, time_t> temp;
@@ -862,7 +828,7 @@ namespace http
         filecontent.append(parsefile);
         filecontent.append(endtxt);
 
-        if (write_file_if_changed(savefilename, filecontent))
+        if (write_file_if_changed(savefilename, filecontent, filename))
         {
             fs::permissions(savefilename,
                             fs::perms::owner_all | fs::perms::group_all |

@@ -316,9 +316,15 @@ std::string superadmin_rbac_roleperm_save(std::shared_ptr<httppeer> peer)
 
     std::vector<unsigned int> permsids = rbacapi::uint_list(client.post["permsids"].to_string());
     std::string error;
-    if (!rbac::replace_role_perms(roleid, role.data.userid, permsids, 0, error))
+    auto replace_result = rbac::replace_role_perms(roleid, role.data.userid, permsids, 0, error);
+    if (replace_result == rbac::replace_role_perms_result::rejected)
     {
-        superadmin_rbac::json_fail(client, error);
+        superadmin_rbac::json_fail(client, error.empty() ? "Role permissions were not saved: the permission set was rejected." : error);
+        return "";
+    }
+    if (replace_result == rbac::replace_role_perms_result::rolled_back)
+    {
+        superadmin_rbac::json_fail(client, error.empty() ? "Role permissions were not saved; the whole set was rolled back." : error);
         return "";
     }
     // 角色与权限的绑定变了，所有用户的 urlpath 集合都可能变，整表失效。

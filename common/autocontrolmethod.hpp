@@ -298,7 +298,7 @@ namespace http
         reg_raw("", "/admin/rbac/role/delete", admin_isloginjson, nullptr, rbac_role_delete, nullptr, 0, 0, 0, ""); // controller/src/rbac/role.cpp:188
         reg_raw("", "/admin/rbac/roleperm/list", admin_isloginjson, nullptr, rbac_roleperm_list, nullptr, 0, 0, 0, ""); // controller/src/rbac/role.cpp:230
         reg_raw("", "/admin/rbac/roleperm/bind", admin_isloginjson, nullptr, rbac_roleperm_bind, nullptr, 0, 0, 0, ""); // controller/src/rbac/role.cpp:266
-        reg_raw("", "/admin/rbac/roleperm/unbind", admin_isloginjson, nullptr, rbac_roleperm_unbind, nullptr, 0, 0, 0, ""); // controller/src/rbac/role.cpp:346
+        reg_raw("", "/admin/rbac/roleperm/unbind", admin_isloginjson, nullptr, rbac_roleperm_unbind, nullptr, 0, 0, 0, ""); // controller/src/rbac/role.cpp:352
         reg_raw("", "/admin/rbac/sysuser", admin_islogin, nullptr, rbac_sysuser_page, nullptr, 0, 0, 0, ""); // controller/src/rbac/sysuser.cpp:27
         reg_raw("", "/admin/rbac/sysuser/add", admin_isloginjson, nullptr, rbac_sysuser_add, nullptr, 0, 0, 0, ""); // controller/src/rbac/sysuser.cpp:85
         reg_raw("", "/admin/rbac/sysuser/delete", admin_isloginjson, nullptr, rbac_sysuser_delete, nullptr, 0, 0, 0, ""); // controller/src/rbac/sysuser.cpp:150

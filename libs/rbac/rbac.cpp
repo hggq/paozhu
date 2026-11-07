@@ -7,6 +7,7 @@
 
 #include "datetime.h"
 #include "orm.h"
+#include "orm_query.h"
 
 namespace http
 {
@@ -480,18 +481,18 @@ bool unbind_user_role(unsigned int userid, unsigned int roleid, unsigned int com
     return true;
 }
 
-bool replace_role_perms(unsigned int roleid, unsigned int companyid, const std::vector<unsigned int> &permsids, unsigned int operid, std::string &error)
+replace_role_perms_result replace_role_perms(unsigned int roleid, unsigned int companyid, const std::vector<unsigned int> &permsids, unsigned int operid, std::string &error)
 {
     error.clear();
     if (companyid == 0)
     {
         error = "companyid is required";
-        return false;
+        return replace_role_perms_result::rejected;
     }
     if (!role_in_company(roleid, companyid))
     {
         error = "role not found in this company";
-        return false;
+        return replace_role_perms_result::rejected;
     }
 
     std::vector<unsigned int> uniqueperms;
@@ -507,13 +508,21 @@ bool replace_role_perms(unsigned int roleid, unsigned int companyid, const std::
         if (!perms_assignable(uniqueperms[i], companyid))
         {
             error = "permission not assignable in this company";
-            return false;
+            return replace_role_perms_result::rejected;
         }
     }
 
-    orm::cms::Sysroleperms roleperms;
-    roleperms.where("roleid", roleid).whereAnd("userid", companyid).remove();
+    // 先把语句全部拼成 SQL 字符串（DELETE 旧集合 + 每条 INSERT），再放进同一个事务执行；
+    // 任何一条失败或提交失败都整体回滚，库里保持调用前的旧集合。
+    // Build every statement first (DELETE the old set, then one INSERT per permission), then run
+    // them on a single transaction connection. Any failed write or commit rolls the whole thing
+    // back, so the previous set stays intact.
+    orm::cms::Sysroleperms del;
+    del.where("roleid", roleid).whereAnd("userid", companyid);
+    std::string deletesql = del.commit_remove();
 
+    std::vector<std::string> insertsql;
+    insertsql.reserve(uniqueperms.size());
     for (unsigned int i = 0; i < uniqueperms.size(); i++)
     {
         orm::cms::Sysroleperms row;
@@ -521,17 +530,60 @@ bool replace_role_perms(unsigned int roleid, unsigned int companyid, const std::
         row.data.roleid  = roleid;
         row.data.permsid = uniqueperms[i];
         row.data.sortid  = (int)i;
-        auto result      = row.save();
-        if (std::get<0>(result) == 0)
+        insertsql.push_back(row.commit_insert());
+    }
+
+    auto ulink = std::make_unique<orm::db_conn>("cms");
+    if (!ulink->begin_commit())
+    {
+        error = "failed to start a transaction; nothing was written: " + ulink->error_msg;
+        return replace_role_perms_result::rolled_back;
+    }
+
+    bool write_failed = false;
+    std::string dbmsg;
+    try
+    {
+        ulink->edit_query(deletesql);
+        if (ulink->iserror)
         {
-            error = row.error_msg.empty() ? "save role permission failed" : row.error_msg;
-            return false;
+            write_failed = true;
+            dbmsg       = ulink->error_msg;
+        }
+        for (unsigned int i = 0; !write_failed && i < insertsql.size(); i++)
+        {
+            ulink->edit_query(insertsql[i]);
+            if (ulink->iserror)
+            {
+                write_failed = true;
+                dbmsg       = ulink->error_msg;
+            }
         }
     }
+    catch (const std::exception &e)
+    {
+        write_failed = true;
+        dbmsg        = e.what();
+    }
+
+    if (write_failed)
+    {
+        ulink->rollback();
+        error = "role permission write failed, the whole set was rolled back: " + (dbmsg.empty() ? "unknown error" : dbmsg);
+        return replace_role_perms_result::rolled_back;
+    }
+    if (!ulink->commit())
+    {
+        std::string commitmsg = ulink->error_msg;
+        ulink->rollback();
+        error = "commit failed, the whole set was rolled back: " + (commitmsg.empty() ? "unknown error" : commitmsg);
+        return replace_role_perms_result::rolled_back;
+    }
+
     // 记录本次操作的执行人，便于后续审计扩展
     // Keep the operator id for future audit extension.
     (void)operid;
-    return true;
+    return replace_role_perms_result::success;
 }
 }// namespace rbac
 }// namespace http

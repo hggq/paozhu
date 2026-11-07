@@ -328,9 +328,15 @@ std::string rbac_roleperm_bind(std::shared_ptr<httppeer> peer)
     std::string error;
     // 该接口用给定集合整体替换角色权限，重复调用结果一致
     // This endpoint replaces the whole permission set, so repeated calls are idempotent.
-    if (!rbac::replace_role_perms(roleid, user_companyid, permsids, operid, error))
+    auto replace_result = rbac::replace_role_perms(roleid, user_companyid, permsids, operid, error);
+    if (replace_result == rbac::replace_role_perms_result::rejected)
     {
         rbacapi::fail(client, error.empty() ? "bind role permissions failed" : error);
+        return "";
+    }
+    if (replace_result == rbac::replace_role_perms_result::rolled_back)
+    {
+        rbacapi::fail(client, error.empty() ? "Role permissions were rolled back; nothing was changed." : error);
         return "";
     }
     // 角色与权限的绑定变了，绑了该角色的账户生效集合都变了；整表失效，不漏人

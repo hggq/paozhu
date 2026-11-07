@@ -24,6 +24,8 @@
 #include <map>
 #include <cstring>
 
+#include "utility.hpp"
+
 namespace http
 {
 namespace fs = std::filesystem;
@@ -378,9 +380,7 @@ class viewtemplate
                         fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read,
                         fs::perm_options::add);
 
-        FILE *f = fopen(savefilename.c_str(), "wb");
-
-        std::string headtxt = R"(#include<iostream>
+        std::string filecontent = R"(#include<iostream>
 #include <cstdio>
 #include <string>
 #include <sstream>
@@ -400,11 +400,11 @@ class viewtemplate
 #include "viewso_param.h"
 #include "http_so_common_api.h"
 )";
-        fwrite(&headtxt[0], 1, headtxt.size(), f);
+        std::string headtxt;
 
         if (custrominclude.size() > 0)
         {
-            fwrite(&custrominclude[0], 1, custrominclude.size(), f);
+            filecontent.append(custrominclude);
         }
         value.clear();
         value.append("module/");
@@ -417,7 +417,7 @@ class viewtemplate
         headtxt.append(" -o ");
         headtxt.append(sofilename);
         headtxt.append("  -shared -fPIC -DENABLE_VIEWSO -std=c++20 -Ivendor/httpserver/include vendor/httpserver/src/request.cpp vendor/httpserver/src/loadviewso.cpp  vendor/httpserver/src/unicode.cpp vendor/httpserver/src/urlcode.cpp vendor/httpserver/src/http_so_common_api.cpp vendor/httpserver/src/cookie.cpp vendor/httpserver/src/gzip.cpp vendor/httpserver/src/mime.cpp  vendor/httpserver/src/datetime.cpp  -lz -lssl -lcrypto -ldl -I/usr/local/opt/openssl/include -L/usr/local/opt/openssl/lib -Imodels -Iorm\n");
-        fwrite(&headtxt[0], 1, headtxt.size(), f);
+        filecontent.append(headtxt);
         headtxt            = R"(
   namespace http {
        
@@ -433,14 +433,16 @@ class viewtemplate
            // PZ_DLL_ALIAS(http::clientapi::setclientapi, _setclientapi)
         }
     )";
-        fwrite(&headtxt[0], 1, headtxt.size(), f);
-        fwrite(&parsefile[0], 1, parsefile.size(), f);
-        fwrite(&endtxt[0], 1, endtxt.size(), f);
-        fclose(f);
+        filecontent.append(headtxt);
+        filecontent.append(parsefile);
+        filecontent.append(endtxt);
 
-        fs::permissions(savefilename,
-                        fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read | fs::perms::others_write,
-                        fs::perm_options::add);
+        if (write_file_if_changed(savefilename, filecontent, filename))
+        {
+            fs::permissions(savefilename,
+                            fs::perms::owner_all | fs::perms::group_all | fs::perms::others_read | fs::perms::others_write,
+                            fs::perm_options::add);
+        }
 
         paths = value;
         mulu  = paths.remove_filename();
