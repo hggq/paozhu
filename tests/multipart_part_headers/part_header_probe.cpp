@@ -122,6 +122,7 @@ struct Result
 {
     unsigned int error         = 0;
     bool         error_is_conn = true;
+    unsigned int h2_code       = 0;
     std::string  field_name;
     std::string  filename;
     std::string  mimetype;
@@ -196,6 +197,7 @@ Result run_h2(const std::string &part_item, bool is_file)
     Result r;
     r.error         = parser.error;
     r.error_is_conn = parser.error_is_conn;
+    r.h2_code       = parser.h2_error_code;
     r.field_name    = pd.field_name;
     r.filename      = pd.filename;
     r.mimetype      = pd.mimetype;
@@ -228,6 +230,10 @@ Result run_h2(const std::string &part_item, bool is_file)
 std::string actual_desc(const Result &r, bool show_conn)
 {
     std::string out = error_desc(r.error, r.error_is_conn, show_conn);
+    if (show_conn)
+    {
+        out += " h2_code=0x" + std::to_string(r.h2_code);
+    }
     out += " name=\"" + r.field_name + "\"";
     out += " filename=\"" + r.filename + "\"";
     out += " mimetype=\"" + r.mimetype + "\"";
@@ -259,7 +265,6 @@ const char *CTE     = "Content-Transfer-Encoding: binary";
 
 void run_side(const std::string &side, const std::string &outdir)
 {
-    (void)outdir;
     const bool show_conn = (side == "h2");
     auto run             = [&](const std::string &part, bool is_file) {
         return (side == "h1") ? run_h1(part, is_file) : run_h2(part, is_file);
@@ -320,7 +325,7 @@ void run_side(const std::string &side, const std::string &outdir)
                "error=0 mimetype=\"\" body=\"HELLO\"", actual_desc(r, show_conn));
     }
 
-    // 决策 1：头区超限（17 个额外头）→ 明确拒绝 40059；h2 必须流级，不得连接级 GOAWAY
+    // 决策 1：头区超限（17 个额外头，含 CD 共 18 行）→ 40059；h2 流级且码为 0x1
     {
         std::vector<std::string> headers;
         headers.push_back(CD_FILE);
@@ -330,20 +335,53 @@ void run_side(const std::string &side, const std::string &outdir)
         }
         std::string part = make_part(headers, "HELLO");
         Result r         = run(part, true);
-        bool ok          = (r.error == 40059 && (!show_conn || !r.error_is_conn));
+        bool code_ok     = (!show_conn || (r.h2_code == 0x1 && !r.error_is_conn));
+        bool ok          = (r.error == 40059 && code_ok);
         report(side, "LIMIT_17_headers_40059", ok,
-               std::string("error=40059") + (show_conn ? " error_is_conn=0" : ""),
+               std::string("error=40059") + (show_conn ? " error_is_conn=0 h2_code=0x1" : ""),
                actual_desc(r, show_conn));
     }
 
-    // 决策 1：超大单头（>128 字节）→ 同样 40059、h2 流级
+    // 决策 1：超大单头（>128 字节）→ 同样 40059、h2 流级且码为 0x1
     {
         std::string long_header = "X-Long: " + std::string(200, 'a');
         std::string part        = make_part({CD_FILE, long_header}, "HELLO");
         Result r                = run(part, true);
-        bool ok                 = (r.error == 40059 && (!show_conn || !r.error_is_conn));
+        bool code_ok            = (!show_conn || (r.h2_code == 0x1 && !r.error_is_conn));
+        bool ok                 = (r.error == 40059 && code_ok);
         report(side, "LIMIT_oversized_header_40059", ok,
-               std::string("error=40059") + (show_conn ? " error_is_conn=0" : ""),
+               std::string("error=40059") + (show_conn ? " error_is_conn=0 h2_code=0x1" : ""),
+               actual_desc(r, show_conn));
+    }
+
+    // 决策 2：CD 并入头预算后容量仍是「CD + 16 个额外头」→ 必须 200（error=0）
+    {
+        std::vector<std::string> headers;
+        headers.push_back(CD_FILE);
+        for (int i = 0; i < 16; ++i)
+        {
+            headers.push_back("X-H" + std::to_string(i) + ": v");
+        }
+        std::string part = make_part(headers, "HELLO");
+        Result r         = run(part, true);
+        bool ok          = (r.error == 0 && r.body == "HELLO");
+        report(side, "CAP_CD_plus_16_headers_ok", ok,
+               "error=0 body=\"HELLO\" (5 bytes)", actual_desc(r, show_conn));
+    }
+
+    // 决策 3：40226 是服务端落盘失败（内部问题）→ h2 保持 0x2，不得改成 0x1
+    {
+        http::server_loaclvar &lv = http::get_server_global_var();
+        std::string saved         = lv.temp_path;
+        std::string blocker       = outdir + "/not_a_dir";
+        std::ofstream(blocker) << "x";
+        lv.temp_path = blocker + "/";
+        Result r     = run(make_part({CD_FILE, CT}, "HELLO"), true);
+        lv.temp_path = saved;
+        std::remove(blocker.c_str());
+        bool ok = (r.error == 40226 && (!show_conn || (!r.error_is_conn && r.h2_code == 0x2)));
+        report(side, "KEEP_40226_internal_0x2", ok,
+               std::string("error=40226") + (show_conn ? " error_is_conn=0 h2_code=0x2" : ""),
                actual_desc(r, show_conn));
     }
 

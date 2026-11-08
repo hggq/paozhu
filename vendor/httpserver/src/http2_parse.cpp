@@ -4168,16 +4168,50 @@ static bool head_is_file_part(std::string_view head)
         i++;
     }
 
-    size_t begin = i;
-    while (i < head.size() && head[i] != ':')
+    // Content-Disposition 允许不在第一行：逐行扫到头区结束（空行），
+    // 找到后把 head 收窄到该行，后续参数解析的边界就只到行尾，不会跨头。
+    bool found = false;
+    while (i < head.size())
     {
-        i++;
+        size_t line_begin = i;
+        while (i < head.size() && head[i] != '\r' && head[i] != '\n')
+        {
+            i++;
+        }
+        size_t line_end = i;
+        if (line_end == line_begin)
+        {
+            break;
+        }
+
+        size_t colon = line_begin;
+        while (colon < line_end && head[colon] != ':')
+        {
+            colon++;
+        }
+        if (colon < line_end && (colon - line_begin) <= 72
+            && head_ci_equal(head.substr(line_begin, colon - line_begin), "Content-Disposition"))
+        {
+            head  = head.substr(line_begin, line_end - line_begin);
+            i     = colon - line_begin + 1;
+            found = true;
+            break;
+        }
+        if (i < head.size() && head[i] == '\r')
+        {
+            i++;
+        }
+        if (i < head.size() && head[i] == '\n')
+        {
+            i++;
+        }
     }
-    if (i >= head.size() || (i - begin) > 72 || !head_ci_equal(head.substr(begin, i - begin), "Content-Disposition"))
+    if (!found)
     {
         return false;
     }
 
+    size_t begin = i;
     while (i < head.size() && head[i] != ';')
     {
         i++;
@@ -4286,41 +4320,118 @@ void http2parse::post_multipart_itemcontent(HTTP2_POST_DATA_T &temp_post_data, b
         }
         break;
     }
-    //Content-Disposition
+    // part 头区一次扫完：定位 Content-Disposition（允许不在第一行），只认 Content-Type
+    // 收 mimetype，其余头行整行丢弃（RFC 7578 §4.8）。上限：单行 128 字节、
+    // CD + 16 个额外头、头区总计 1 KB；超限报 40059，走流级 RST_STREAM。
     std::string keyname_field;
-    for (; pos_m < temp_post_data.field_item.size(); pos_m++)
+    unsigned int cd_value_pos = 0;// CD 值起点（':' 之后），供下面参数解析复用
+    unsigned int cd_line_end   = 0;// CD 行尾（'\r' 的位置），参数解析不得越界
+    bool         cd_found      = false;
+
     {
-        if (temp_post_data.field_item[pos_m] == ':')
+        unsigned int header_count = 0;
+        unsigned int header_bytes = 0;
+        for (;;)
         {
-            break;
-        }
-        keyname_field.push_back(temp_post_data.field_item[pos_m]);
-        // 72：与 h1 (http_parse.cpp) 同名分支同值，改动需两边同步
-        if (keyname_field.size() > 72)
-        {
-            error = 40045;
-            return;
+            keyname_field.clear();
+            bool is_closed        = false;
+            unsigned int line_end = pos_m;
+            while (pos_m < temp_post_data.field_item.size())
+            {
+                if (temp_post_data.field_item[pos_m] == '\r')
+                {
+                    line_end = pos_m;
+                    pos_m++;
+                    if (pos_m < temp_post_data.field_item.size() && temp_post_data.field_item[pos_m] == '\n')
+                    {
+                        pos_m++;
+                    }
+                    is_closed = true;
+                    break;
+                }
+                keyname_field.push_back(temp_post_data.field_item[pos_m]);
+                pos_m++;
+                if (keyname_field.size() > 128)
+                {
+                    set_stream_error(40059, temp_post_data.stream_id, 0x1);// 0x1 = PROTOCOL_ERROR
+                    return;
+                }
+            }
+            // 空行 = part 头结束；越界未闭合则按当前位置进正文（与旧行为一致）
+            if (keyname_field.empty() || !is_closed)
+            {
+                break;
+            }
+            header_bytes += static_cast<unsigned int>(keyname_field.size()) + 2;
+            if (header_bytes > 1024 || ++header_count > 17)
+            {
+                set_stream_error(40059, temp_post_data.stream_id, 0x1);
+                return;
+            }
+            unsigned int name_end = 0;
+            for (; name_end < keyname_field.size(); name_end++)
+            {
+                if (keyname_field[name_end] == ':')
+                {
+                    break;
+                }
+            }
+            if (name_end < keyname_field.size())
+            {
+                std::string_view name(keyname_field.data(), name_end);
+                if (str_casecmp(name, "Content-Disposition"))
+                {
+                    if (name_end > 72)
+                    {
+                        error = 40045;
+                        return;
+                    }
+                    if (!cd_found)
+                    {
+                        cd_line_end  = line_end;
+                        cd_value_pos = line_end - static_cast<unsigned int>(keyname_field.size()) + name_end + 1;
+                        cd_found     = true;
+                    }
+                }
+                else if (str_casecmp(name, "Content-Type"))
+                {
+                    unsigned int i = name_end + 1;
+                    for (; i < keyname_field.size(); i++)
+                    {
+                        if (keyname_field[i] != ' ')
+                        {
+                            break;
+                        }
+                    }
+                    for (; i < keyname_field.size(); i++)
+                    {
+                        temp_post_data.mimetype.push_back(keyname_field[i]);
+                    }
+                }
+            }
         }
     }
 
-    if (pos_m >= temp_post_data.field_item.size())
+    unsigned int body_pos = pos_m;
+    if (!cd_found)
     {
+        set_stream_error(40026, temp_post_data.stream_id, 0x1);
         return;
     }
+    pos_m = cd_value_pos;
 
-    if (!str_casecmp(keyname_field, "Content-Disposition"))
-    {
-        error = 40026;
-        return;
-    }
-
-    for (; pos_m < temp_post_data.field_item.size(); pos_m++)
+    for (; pos_m < cd_line_end; pos_m++)
     {
         if (temp_post_data.field_item[pos_m] == ';')
         {
             pos_m++;
             break;
         }
+    }
+    if (pos_m >= cd_line_end)
+    {
+        error = 40204;
+        return;
     }
 
     for (; pos_m < temp_post_data.field_item.size(); pos_m++)
@@ -4495,75 +4606,7 @@ void http2parse::post_multipart_itemcontent(HTTP2_POST_DATA_T &temp_post_data, b
             }
         }
     }
-    // part 头循环：读到空行为止（RFC 7578 §4.8 要求接收端忽略额外头）。
-    // 只认 Content-Type 收 mimetype，其余头行（含 Content-Transfer-Encoding）整行丢弃，
-    // 不做任何解码。位置不再按固定偏移，避免多头/缺 Content-Type 时把正文头当空行。
-    // 兜底：单行 128 字节、额外头最多 16 行、头区总计 1 KB，超限统一报 40059；
-    // 这是请求体语义问题，只作废本条流（RST_STREAM），不 GOAWAY。
-    {
-        unsigned int header_count = 0;
-        unsigned int header_bytes = 0;
-        for (;;)
-        {
-            keyname_field.clear();
-            bool is_closed = false;
-            while (pos_m < temp_post_data.field_item.size())
-            {
-                if (temp_post_data.field_item[pos_m] == '\r')
-                {
-                    pos_m++;
-                    if (pos_m < temp_post_data.field_item.size() && temp_post_data.field_item[pos_m] == '\n')
-                    {
-                        pos_m++;
-                    }
-                    is_closed = true;
-                    break;
-                }
-                keyname_field.push_back(temp_post_data.field_item[pos_m]);
-                pos_m++;
-                if (keyname_field.size() > 128)
-                {
-                    set_stream_error(40059, temp_post_data.stream_id, 0x2);// 0x2 = INTERNAL_ERROR
-                    return;
-                }
-            }
-            // 空行 = part 头结束；越界未闭合则按当前位置进正文（与旧行为一致）
-            if (keyname_field.empty() || !is_closed)
-            {
-                break;
-            }
-            header_bytes += static_cast<unsigned int>(keyname_field.size()) + 2;
-            if (header_bytes > 1024 || ++header_count > 16)
-            {
-                set_stream_error(40059, temp_post_data.stream_id, 0x2);
-                return;
-            }
-            unsigned int name_end = 0;
-            for (; name_end < keyname_field.size(); name_end++)
-            {
-                if (keyname_field[name_end] == ':')
-                {
-                    break;
-                }
-            }
-            if (name_end < keyname_field.size()
-                && str_casecmp(std::string_view(keyname_field.data(), name_end), "Content-Type"))
-            {
-                unsigned int i = name_end + 1;
-                for (; i < keyname_field.size(); i++)
-                {
-                    if (keyname_field[i] != ' ')
-                    {
-                        break;
-                    }
-                }
-                for (; i < keyname_field.size(); i++)
-                {
-                    temp_post_data.mimetype.push_back(keyname_field[i]);
-                }
-            }
-        }
-    }
+    pos_m = body_pos;
 
     std::string_view keyvalue_field(&temp_post_data.field_item[pos_m], temp_post_data.field_item.size() - pos_m);
     if (temp_post_data.isfile)
@@ -5184,8 +5227,8 @@ void http2parse::post_data_process(HTTP2_POST_DATA_T &temp_post_data, unsigned c
                     // 复用 40170（HTTP/2 侧 JSON 体积错误）作为解析失败的统一出口。
                     // 出口只到这一条流：正文是不是合法 JSON 是这条流自己的事，
                     // 不是连接级协议违例，不能 GOAWAY 带走同连接上其它在途流。
-                    // RST 用 INTERNAL_ERROR(0x2)，对端据此判断是这一条流没被服务。
-                    set_stream_error(40170, temp_post_data.stream_id, 0x2);
+                    // RST 用 PROTOCOL_ERROR(0x1)：正文不是合法 JSON 属于这条流的报文错误。
+                    set_stream_error(40170, temp_post_data.stream_id, 0x1);
                     return;
                 }
             }
