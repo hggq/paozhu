@@ -292,13 +292,13 @@ namespace http
         reg_raw("", "/admin/rbac/role", admin_islogin, nullptr, rbac_page_role, nullptr, 0, 0, 0, ""); // controller/src/rbac/rbacpage.cpp:16
         reg_raw("", "/admin/rbac/roleperm", admin_islogin, nullptr, rbac_page_roleperm, nullptr, 0, 0, 0, ""); // controller/src/rbac/rbacpage.cpp:87
         reg_raw("", "/admin/rbac/userrole", admin_islogin, nullptr, rbac_page_userrole, nullptr, 0, 0, 0, ""); // controller/src/rbac/rbacpage.cpp:188
-        reg_raw("", "/admin/rbac/role/list", admin_isloginjson, nullptr, rbac_role_list, nullptr, 0, 0, 0, ""); // controller/src/rbac/role.cpp:39
-        reg_raw("", "/admin/rbac/role/add", admin_isloginjson, nullptr, rbac_role_add, nullptr, 0, 0, 0, ""); // controller/src/rbac/role.cpp:72
-        reg_raw("", "/admin/rbac/role/edit", admin_isloginjson, nullptr, rbac_role_edit, nullptr, 0, 0, 0, ""); // controller/src/rbac/role.cpp:125
-        reg_raw("", "/admin/rbac/role/delete", admin_isloginjson, nullptr, rbac_role_delete, nullptr, 0, 0, 0, ""); // controller/src/rbac/role.cpp:188
-        reg_raw("", "/admin/rbac/roleperm/list", admin_isloginjson, nullptr, rbac_roleperm_list, nullptr, 0, 0, 0, ""); // controller/src/rbac/role.cpp:230
-        reg_raw("", "/admin/rbac/roleperm/bind", admin_isloginjson, nullptr, rbac_roleperm_bind, nullptr, 0, 0, 0, ""); // controller/src/rbac/role.cpp:266
-        reg_raw("", "/admin/rbac/roleperm/unbind", admin_isloginjson, nullptr, rbac_roleperm_unbind, nullptr, 0, 0, 0, ""); // controller/src/rbac/role.cpp:352
+        reg_raw("", "/admin/rbac/role/list", admin_isloginjson, nullptr, rbac_role_list, nullptr, 0, 0, 0, ""); // controller/src/rbac/role.cpp:41
+        reg_raw("", "/admin/rbac/role/add", admin_isloginjson, nullptr, rbac_role_add, nullptr, 0, 0, 0, ""); // controller/src/rbac/role.cpp:74
+        reg_raw("", "/admin/rbac/role/edit", admin_isloginjson, nullptr, rbac_role_edit, nullptr, 0, 0, 0, ""); // controller/src/rbac/role.cpp:127
+        reg_raw("", "/admin/rbac/role/delete", admin_isloginjson, nullptr, rbac_role_delete, nullptr, 0, 0, 0, ""); // controller/src/rbac/role.cpp:198
+        reg_raw("", "/admin/rbac/roleperm/list", admin_isloginjson, nullptr, rbac_roleperm_list, nullptr, 0, 0, 0, ""); // controller/src/rbac/role.cpp:298
+        reg_raw("", "/admin/rbac/roleperm/bind", admin_isloginjson, nullptr, rbac_roleperm_bind, nullptr, 0, 0, 0, ""); // controller/src/rbac/role.cpp:334
+        reg_raw("", "/admin/rbac/roleperm/unbind", admin_isloginjson, nullptr, rbac_roleperm_unbind, nullptr, 0, 0, 0, ""); // controller/src/rbac/role.cpp:420
         reg_raw("", "/admin/rbac/sysuser", admin_islogin, nullptr, rbac_sysuser_page, nullptr, 0, 0, 0, ""); // controller/src/rbac/sysuser.cpp:27
         reg_raw("", "/admin/rbac/sysuser/add", admin_isloginjson, nullptr, rbac_sysuser_add, nullptr, 0, 0, 0, ""); // controller/src/rbac/sysuser.cpp:85
         reg_raw("", "/admin/rbac/sysuser/delete", admin_isloginjson, nullptr, rbac_sysuser_delete, nullptr, 0, 0, 0, ""); // controller/src/rbac/sysuser.cpp:150
@@ -312,12 +312,12 @@ namespace http
         reg_raw("", "/superadmin/rbac/perm", superadmin_islogin, nullptr, superadmin_rbac_perm_list, nullptr, 0, 0, 0, ""); // controller/src/superadmin/rbac/rbacperm.cpp:14
         reg_raw("", "/superadmin/rbac/perm/editpost", superadmin_isloginjson, nullptr, superadmin_rbac_perm_editpost, nullptr, 0, 0, 0, ""); // controller/src/superadmin/rbac/rbacperm.cpp:70
         reg_raw("", "/superadmin/rbac/perm/toggle", superadmin_isloginjson, nullptr, superadmin_rbac_perm_toggle, nullptr, 0, 0, 0, ""); // controller/src/superadmin/rbac/rbacperm.cpp:127
-        reg_raw("", "/superadmin/rbac/role", superadmin_islogin, nullptr, superadmin_rbac_role_list, nullptr, 0, 0, 0, ""); // controller/src/superadmin/rbac/rbacrole.cpp:39
-        reg_raw("", "/superadmin/rbac/role/addpost", superadmin_isloginjson, nullptr, superadmin_rbac_role_addpost, nullptr, 0, 0, 0, ""); // controller/src/superadmin/rbac/rbacrole.cpp:69
-        reg_raw("", "/superadmin/rbac/role/editpost", superadmin_isloginjson, nullptr, superadmin_rbac_role_editpost, nullptr, 0, 0, 0, ""); // controller/src/superadmin/rbac/rbacrole.cpp:117
-        reg_raw("", "/superadmin/rbac/role/delete", superadmin_isloginjson, nullptr, superadmin_rbac_role_delete, nullptr, 0, 0, 0, ""); // controller/src/superadmin/rbac/rbacrole.cpp:166
-        reg_raw("", "/superadmin/rbac/roleperm", superadmin_islogin, nullptr, superadmin_rbac_roleperm, nullptr, 0, 0, 0, ""); // controller/src/superadmin/rbac/rbacrole.cpp:217
-        reg_raw("", "/superadmin/rbac/roleperm/save", superadmin_isloginjson, nullptr, superadmin_rbac_roleperm_save, nullptr, 0, 0, 0, ""); // controller/src/superadmin/rbac/rbacrole.cpp:294
+        reg_raw("", "/superadmin/rbac/role", superadmin_islogin, nullptr, superadmin_rbac_role_list, nullptr, 0, 0, 0, ""); // controller/src/superadmin/rbac/rbacrole.cpp:41
+        reg_raw("", "/superadmin/rbac/role/addpost", superadmin_isloginjson, nullptr, superadmin_rbac_role_addpost, nullptr, 0, 0, 0, ""); // controller/src/superadmin/rbac/rbacrole.cpp:71
+        reg_raw("", "/superadmin/rbac/role/editpost", superadmin_isloginjson, nullptr, superadmin_rbac_role_editpost, nullptr, 0, 0, 0, ""); // controller/src/superadmin/rbac/rbacrole.cpp:119
+        reg_raw("", "/superadmin/rbac/role/delete", superadmin_isloginjson, nullptr, superadmin_rbac_role_delete, nullptr, 0, 0, 0, ""); // controller/src/superadmin/rbac/rbacrole.cpp:168
+        reg_raw("", "/superadmin/rbac/roleperm", superadmin_islogin, nullptr, superadmin_rbac_roleperm, nullptr, 0, 0, 0, ""); // controller/src/superadmin/rbac/rbacrole.cpp:278
+        reg_raw("", "/superadmin/rbac/roleperm/save", superadmin_isloginjson, nullptr, superadmin_rbac_roleperm_save, nullptr, 0, 0, 0, ""); // controller/src/superadmin/rbac/rbacrole.cpp:355
         reg_raw("", "/superadmin/rbac/user", superadmin_islogin, nullptr, superadmin_rbac_user_list, nullptr, 0, 0, 0, ""); // controller/src/superadmin/rbac/rbacuser.cpp:69
         reg_raw("", "/superadmin/rbac/user/add", superadmin_islogin, nullptr, superadmin_rbac_user_add, nullptr, 0, 0, 0, ""); // controller/src/superadmin/rbac/rbacuser.cpp:136
         reg_raw("", "/superadmin/rbac/user/addpost", superadmin_isloginjson, nullptr, superadmin_rbac_user_addpost, nullptr, 0, 0, 0, ""); // controller/src/superadmin/rbac/rbacuser.cpp:149

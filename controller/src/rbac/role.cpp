@@ -1,12 +1,14 @@
 #include "orm.h"
 
 #include <algorithm>
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "datetime.h"
 #include "func.h"
 #include "httppeer.h"
+#include "orm_query.h"
 #include "rbac/rbacapi.h"
 #include "rbac/rbac.h"
 #include "rbac/role.h"
@@ -176,6 +178,14 @@ std::string rbac_role_edit(std::shared_ptr<httppeer> peer)
     }
 
     role.update("name,status,rolecode,sortid,rolevalue");
+    // update() 返回 0 混了语句失败、抛异常、值确实没变三种，所以只判旗标：
+    // 把 0 行当失败会否掉今天能成功的原样提交。
+    // update() answers 0 for a failure, a throw or unchanged values, so judge on the flags only.
+    if (role.iserror || !role.error_msg.empty())
+    {
+        rbacapi::fail(client, "save role failed: " + (role.error_msg.empty() ? "unknown error" : role.error_msg));
+        return "";
+    }
     // 改名/停用都会改变生效集合，整表失效
     // Renaming or disabling changes what the snapshots mean, so drop them all.
     rbac::get_route_cache().invalidate_all();
@@ -208,14 +218,72 @@ std::string rbac_role_delete(std::shared_ptr<httppeer> peer)
         return "";
     }
 
-    orm::cms::Sysuserrole binding;
-    binding.where("role_id", roleid).whereAnd("company_id", user_companyid).remove();
+    // 三条 DELETE 一条事务：分开跑时后面失败、前面的删除已经生效，页面照样报 ok；
+    // 残留在已删角色上的授权行还会被判定链按 sysuserrole 的 roleid 读到，继续放行。
+    // The three deletes need one transaction: run separately, a later failure leaves earlier deletes
+    // committed — and grants left behind a deleted role are still read by the decision chain.
+    auto ulink = std::make_unique<orm::db_conn>("cms");
+    if (!ulink->begin_commit())
+    {
+        rbacapi::fail(client, "failed to start a transaction; nothing was deleted: " + ulink->error_msg);
+        return "";
+    }
 
-    orm::cms::Sysroleperms roleperms;
-    roleperms.where("roleid", roleid).whereAnd("userid", user_companyid).remove();
-
-    orm::cms::Sysrole role;
-    role.where("roleid", roleid).whereAnd("userid", user_companyid).remove();
+    bool write_failed = false;
+    std::string dbmsg;
+    {
+        // 0 行被删是合法结果（角色可以本来就没有绑定或授权），而 remove() 的 catch 只写 error_msg
+        // 不置 iserror，所以两个旗标都得看。
+        // 0 rows deleted is legitimate, and remove()'s catch sets error_msg without iserror, so check both flags.
+        orm::cms::Sysuserrole binding;
+        binding.lock_conn(ulink->mysql_edit_conn);
+        binding.where("role_id", roleid).whereAnd("company_id", user_companyid).remove();
+        binding.unlock_conn();
+        if (binding.iserror || !binding.error_msg.empty())
+        {
+            write_failed = true;
+            dbmsg        = binding.error_msg;
+        }
+    }
+    if (!write_failed)
+    {
+        orm::cms::Sysroleperms roleperms;
+        roleperms.lock_conn(ulink->mysql_edit_conn);
+        roleperms.where("roleid", roleid).whereAnd("userid", user_companyid).remove();
+        roleperms.unlock_conn();
+        if (roleperms.iserror || !roleperms.error_msg.empty())
+        {
+            write_failed = true;
+            dbmsg        = roleperms.error_msg;
+        }
+    }
+    if (!write_failed)
+    {
+        // 角色行上面 role_owned() 确认过存在，所以 0 行被删就是没删掉，与失败同等处理。
+        // role_owned() confirmed this row exists, so 0 rows deleted means the delete did not take.
+        orm::cms::Sysrole role;
+        role.lock_conn(ulink->mysql_edit_conn);
+        int role_count = role.where("roleid", roleid).whereAnd("userid", user_companyid).remove();
+        role.unlock_conn();
+        if (role_count == 0 || role.iserror || !role.error_msg.empty())
+        {
+            write_failed = true;
+            dbmsg        = role.error_msg.empty() ? "the role row was not deleted (0 rows affected)" : role.error_msg;
+        }
+    }
+    if (write_failed)
+    {
+        ulink->rollback();
+        rbacapi::fail(client, "role delete failed, the whole cleanup was rolled back: " + (dbmsg.empty() ? "unknown error" : dbmsg));
+        return "";
+    }
+    if (!ulink->commit())
+    {
+        std::string commitmsg = ulink->error_msg;
+        ulink->rollback();
+        rbacapi::fail(client, "commit failed, the whole cleanup was rolled back: " + (commitmsg.empty() ? "unknown error" : commitmsg));
+        return "";
+    }
 
     // 角色连同它的绑定与授权一起消失，整表失效
     // The role, its bindings and its grants all disappear, so drop every snapshot.
@@ -373,8 +441,19 @@ std::string rbac_roleperm_unbind(std::shared_ptr<httppeer> peer)
         return "";
     }
 
+    // 单条 DELETE 自带原子性，不用事务，但失败得认出来：无条件报 ok 时授权行还在，
+    // 缓存整表失效后下次判定按旧集合装载，看不出任何异常。
+    // One DELETE is atomic, so no transaction — but a silent "ok" leaves the grant row in place
+    // while the cache reload re-reads the set that was supposed to lose it.
     orm::cms::Sysroleperms roleperms;
     roleperms.where("roleid", roleid).whereAnd("permsid", permsid).whereAnd("userid", user_companyid).remove();
+    // 0 行被删是合法结果（这条授权可能早已解绑），失败只由 iserror / error_msg 报。
+    // Zero rows deleted is legitimate here (the grant may already be gone); only the flags fail.
+    if (roleperms.iserror || !roleperms.error_msg.empty())
+    {
+        rbacapi::fail(client, "unbind role permission failed: " + (roleperms.error_msg.empty() ? "unknown error" : roleperms.error_msg));
+        return "";
+    }
 
     // 少了一条授权，绑了该角色的账户下次判定就该拒绝；整表失效，不漏人
     // One grant disappeared, so every account holding this role must re-read.

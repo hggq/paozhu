@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <iterator>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -512,27 +513,10 @@ replace_role_perms_result replace_role_perms(unsigned int roleid, unsigned int c
         }
     }
 
-    // 先把语句全部拼成 SQL 字符串（DELETE 旧集合 + 每条 INSERT），再放进同一个事务执行；
-    // 任何一条失败或提交失败都整体回滚，库里保持调用前的旧集合。
-    // Build every statement first (DELETE the old set, then one INSERT per permission), then run
-    // them on a single transaction connection. Any failed write or commit rolls the whole thing
-    // back, so the previous set stays intact.
-    orm::cms::Sysroleperms del;
-    del.where("roleid", roleid).whereAnd("userid", companyid);
-    std::string deletesql = del.commit_remove();
-
-    std::vector<std::string> insertsql;
-    insertsql.reserve(uniqueperms.size());
-    for (unsigned int i = 0; i < uniqueperms.size(); i++)
-    {
-        orm::cms::Sysroleperms row;
-        row.data.userid  = companyid;
-        row.data.roleid  = roleid;
-        row.data.permsid = uniqueperms[i];
-        row.data.sortid  = (int)i;
-        insertsql.push_back(row.commit_insert());
-    }
-
+    // 整体替换必须在一条事务里：删掉旧集合后若某条 INSERT 失败，判定链会按半套集合放行或拒绝。
+    // 写入走模型对象 + lock_conn 借用事务连接，与企业权限分配页同一形状。
+    // The full replace needs one transaction: a failed INSERT after the DELETE leaves the decision
+    // chain reading half a set. Writes go through the model borrowing the transaction connection.
     auto ulink = std::make_unique<orm::db_conn>("cms");
     if (!ulink->begin_commit())
     {
@@ -544,19 +528,35 @@ replace_role_perms_result replace_role_perms(unsigned int roleid, unsigned int c
     std::string dbmsg;
     try
     {
-        ulink->edit_query(deletesql);
-        if (ulink->iserror)
         {
-            write_failed = true;
-            dbmsg       = ulink->error_msg;
-        }
-        for (unsigned int i = 0; !write_failed && i < insertsql.size(); i++)
-        {
-            ulink->edit_query(insertsql[i]);
-            if (ulink->iserror)
+            orm::cms::Sysroleperms del;
+            del.lock_conn(ulink->mysql_edit_conn);
+            del.where("roleid", roleid).whereAnd("userid", companyid).remove();
+            del.unlock_conn();
+            // remove() 的 catch 分支只写 error_msg 不置 iserror，而 0 行被删又是合法结果，
+            // 所以只能用 error_msg 兜；del 每条语句新建，error_msg 不会跨语句残留。
+            // remove()'s catch sets error_msg without iserror and 0 rows deleted is legitimate, so
+            // error_msg is the signal; del is new per statement, so its text cannot be left over.
+            if (del.iserror || !del.error_msg.empty())
             {
                 write_failed = true;
-                dbmsg       = ulink->error_msg;
+                dbmsg        = del.error_msg;
+            }
+        }
+        for (unsigned int i = 0; !write_failed && i < uniqueperms.size(); i++)
+        {
+            orm::cms::Sysroleperms row;
+            row.lock_conn(ulink->mysql_edit_conn);
+            row.data.userid  = companyid;
+            row.data.roleid  = roleid;
+            row.data.permsid = uniqueperms[i];
+            row.data.sortid  = (int)i;
+            auto result      = row.insert();
+            row.unlock_conn();
+            if (std::get<0>(result) == 0 || row.iserror)
+            {
+                write_failed = true;
+                dbmsg        = row.error_msg;
             }
         }
     }

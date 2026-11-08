@@ -1,9 +1,11 @@
+#include <memory>
 #include <string>
 #include <vector>
 
 #include "func.h"
 #include "httppeer.h"
 #include "orm.h"
+#include "orm_query.h"
 #include "rbac/rbacapi.h"
 #include "rbac/rbac.h"
 #include "rbac/route_cache.h"
@@ -187,19 +189,78 @@ std::string superadmin_rbac_role_delete(std::shared_ptr<httppeer> peer)
     }
     unsigned int companyid = role.data.userid;
 
-    // Delete order: bindings, grants, then the role itself. There is no transaction, so a partial
-    // failure can leave the role partially cleaned up.
-    orm::cms::Sysuserrole userrole;
-    userrole.where("role_id", roleid).whereAnd("company_id", companyid);
-    int userrole_count = userrole.remove();
+    // 三条 DELETE 一条事务：分开跑时后面失败、前面的删除已经生效，页面照样报成功；
+    // 残留在已删角色上的授权行还会被判定链按 sysuserrole 的 roleid 读到，继续放行。
+    // The three deletes need one transaction: run separately, a later failure leaves earlier deletes
+    // committed — and grants left behind a deleted role are still read by the decision chain.
+    auto ulink = std::make_unique<orm::db_conn>("cms");
+    if (!ulink->begin_commit())
+    {
+        superadmin_rbac::json_fail(client, "Failed to start a transaction; nothing was deleted: " + ulink->error_msg);
+        return "";
+    }
 
-    orm::cms::Sysroleperms roleperms;
-    roleperms.where("roleid", roleid).whereAnd("userid", companyid);
-    int perms_count = roleperms.remove();
-
-    orm::cms::Sysrole remove_role;
-    remove_role.where("roleid", roleid);
-    int role_count = remove_role.remove();
+    int userrole_count = 0;
+    int perms_count    = 0;
+    int role_count     = 0;
+    bool write_failed  = false;
+    std::string dbmsg;
+    {
+        // 0 行被删是合法结果（角色可以没有绑定或授权），而 remove() 的 catch 只写 error_msg
+        // 不置 iserror，所以两个旗标都得看。
+        // 0 rows deleted is legitimate, and remove()'s catch sets error_msg without iserror, so check both flags.
+        orm::cms::Sysuserrole userrole;
+        userrole.lock_conn(ulink->mysql_edit_conn);
+        userrole.where("role_id", roleid).whereAnd("company_id", companyid);
+        userrole_count = userrole.remove();
+        userrole.unlock_conn();
+        if (userrole.iserror || !userrole.error_msg.empty())
+        {
+            write_failed = true;
+            dbmsg        = userrole.error_msg;
+        }
+    }
+    if (!write_failed)
+    {
+        orm::cms::Sysroleperms roleperms;
+        roleperms.lock_conn(ulink->mysql_edit_conn);
+        roleperms.where("roleid", roleid).whereAnd("userid", companyid);
+        perms_count = roleperms.remove();
+        roleperms.unlock_conn();
+        if (roleperms.iserror || !roleperms.error_msg.empty())
+        {
+            write_failed = true;
+            dbmsg        = roleperms.error_msg;
+        }
+    }
+    if (!write_failed)
+    {
+        // 角色行在上面 fetch_one() 里确认过存在，所以 0 行被删就是没删掉，与失败同等处理。
+        // fetch_one() confirmed this row exists, so 0 rows deleted means the delete did not take.
+        orm::cms::Sysrole remove_role;
+        remove_role.lock_conn(ulink->mysql_edit_conn);
+        remove_role.where("roleid", roleid);
+        role_count = remove_role.remove();
+        remove_role.unlock_conn();
+        if (role_count == 0 || remove_role.iserror || !remove_role.error_msg.empty())
+        {
+            write_failed = true;
+            dbmsg        = remove_role.error_msg.empty() ? "the role row was not deleted (0 rows affected)" : remove_role.error_msg;
+        }
+    }
+    if (write_failed)
+    {
+        ulink->rollback();
+        superadmin_rbac::json_fail(client, "Role delete failed, the whole cleanup was rolled back: " + (dbmsg.empty() ? "unknown error" : dbmsg));
+        return "";
+    }
+    if (!ulink->commit())
+    {
+        std::string commitmsg = ulink->error_msg;
+        ulink->rollback();
+        superadmin_rbac::json_fail(client, "Failed to commit the delete, the whole cleanup was rolled back: " + (commitmsg.empty() ? "unknown error" : commitmsg));
+        return "";
+    }
 
     // 删角色同时清掉 sysuserrole / sysroleperms，受影响用户的快照全部作废。
     // Deleting a role also removes its sysuserrole and sysroleperms rows, so every affected

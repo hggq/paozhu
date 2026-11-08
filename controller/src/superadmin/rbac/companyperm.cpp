@@ -222,9 +222,13 @@ std::string superadmin_rbac_companyperm_save(std::shared_ptr<httppeer> peer)
         del.lock_conn(ulink->mysql_edit_conn);
         del.where("company_id", companyid).remove();
         del.unlock_conn();
-        if (del.iserror)
+        // 两个旗标各缺一角，都得看：catch 只写 error_msg 不置 iserror，驱动侧反过来只置旗标不写文案。
+        // err 是下面循环的"继续"信号，失败时它必须非空，否则新旧分配会 commit 成并集还报成功。
+        // Both flags are needed: the catch sets error_msg without iserror, the driver the other way round.
+        // An empty err means "keep going", so a blank failure would commit old and new as one union.
+        if (del.iserror || !del.error_msg.empty())
         {
-            err = del.error_msg;
+            err = del.error_msg.empty() ? "delete of the old allocations did not take effect" : del.error_msg;
         }
     }
     for (unsigned int i = 0; err.empty() && i < wanted.size(); ++i)
