@@ -91,6 +91,8 @@ class httpparse
     void reset_uploadfile();
     void post_multipart_formdata();
     void read_http_post_block(const unsigned char *buffer, unsigned int buffersize);
+    void read_http_chunked_block(const unsigned char *buffer, unsigned int buffersize);
+    void append_post_body(const unsigned char *data, unsigned int len, bool is_final);
 
     void process(const unsigned char *buffer, unsigned int buffersize);
     bool getfinish();
@@ -115,12 +117,35 @@ class httpparse
 
     unsigned long long http_content_length = 0;
 
+    // 请求体使用 Transfer-Encoding: chunked；与响应侧的 peer->ischunked 无关，不能复用。
+    // Request body uses Transfer-Encoding: chunked; unrelated to response-side peer->ischunked.
+    bool request_chunked = false;
+    // Expect: 100-continue 已见 / 已回过 100，避免重复发送
+    // Expect: 100-continue seen / already answered, so 100 is never sent twice
+    bool expect_continue = false;
+    bool continue_sent   = false;
+    // chunked 解码状态：0=chunk-size 行 1=size 行的 LF 2=数据 3=数据的 CR 4=trailer 5=完成
+    // 6=数据的 LF 7=trailer 行的 LF
+    // chunked decode state: 0=chunk-size line 1=LF after size 2=data 3=CR after data
+    // 4=trailer 5=done 6=LF after data 7=LF after trailer
+    unsigned char chunk_state            = 0;
+    unsigned long long chunk_remaining   = 0;
+    unsigned long long chunk_total       = 0;
+    unsigned long long chunk_size_tmp    = 0;
+    unsigned int chunk_line_bytes        = 0;
+    unsigned int chunk_trailer_bytes     = 0;
+    unsigned int chunk_trailer_line      = 0;
+    bool chunk_in_ext                    = false;
+    bool chunk_size_has_digit            = false;
+    bool chunked_payload_closed          = false;
+
     std::unique_ptr<std::FILE, int (*)(FILE *)> uprawfile;
     std::shared_ptr<httppeer> peer;
     std::unique_ptr<websocket_t> websocket{nullptr};
     std::unique_ptr<HTTP_POST_DATA_T> temp_post_data{nullptr};
     std::string header_line;
     std::string pre_http_header;
+    std::string chunk_trailer_current;
 };
 }// namespace http
 #endif

@@ -374,7 +374,7 @@ void http2parse::readheaders(const HTTP2_PACK_DATA_T &temp_pack_data)
                 if (live_iter->second->ishas_content_length &&
                     post_iter->second.exp_length != live_iter->second->content_length)
                 {
-                    error = 40202;
+                    set_stream_error(40202, trailer_sid, 0x1);// 0x1 = PROTOCOL_ERROR
                     return;
                 }
                 http_post_data.erase(post_iter);
@@ -513,6 +513,19 @@ void http2parse::headers_parse(const HTTP2_HEADER_FRAME_T &header_block_obj, std
     if (steam_httppeer->urlpath.empty())
     {
         set_conn_error(40025, 0x1);
+        return;
+    }
+
+    // END_STREAM 已到但声明了非零 content-length、且一帧 DATA 都没有：长度不符，
+    // 不能把空 body 当完整请求派发。不区分方法：GET/PUT/HEAD 等非 body 方法同样适用。
+    // 流级错误，同连接上其它在途流不受影响。
+    // END_STREAM arrived with a declared non-zero content-length and no DATA frame:
+    // a length mismatch, never dispatch an empty body. Method-agnostic: GET/PUT/HEAD
+    // and other non-body methods are covered too. Stream-scoped.
+    if (header_block_obj.flags.END_STREAM && steam_httppeer->ishas_content_length &&
+        steam_httppeer->content_length != 0)
+    {
+        set_stream_error(40227, header_stream_id, 0x1);// 0x1 = PROTOCOL_ERROR
         return;
     }
 
@@ -1538,6 +1551,15 @@ void http2parse::header_process(std::string header_name, std::string header_valu
                 error = 40187;
                 return;
             }
+            // 重复 content-length 必须一致：不一致按协议错误拒绝，不能用后值覆盖前值；
+            // 值相同视为幂等，放行。
+            // Duplicate content-length must agree; a mismatch is a protocol error, never
+            // last-value-wins. An identical repeat is idempotent and accepted.
+            if (steam_httppeer->ishas_content_length && steam_httppeer->content_length != temp_cl)
+            {
+                set_stream_error(40228, steam_httppeer->stream_id, 0x1);// 0x1 = PROTOCOL_ERROR
+                return;
+            }
             steam_httppeer->content_length           = temp_cl;
             steam_httppeer->ishas_content_length     = true;
             steam_httppeer->header["content-length"] = std::move(header_value);
@@ -1730,6 +1752,15 @@ void http2parse::header_process(std::string header_name, std::string header_valu
                 if (!str2uint64_strict(header_value, temp_cl) || temp_cl > CONST_HTTP_BODY_POST_SIZE)
                 {
                     error = 40187;
+                    return;
+                }
+                // 重复 content-length 必须一致：不一致按协议错误拒绝，不能用后值覆盖前值；
+                // 值相同视为幂等，放行。
+                // Duplicate content-length must agree; a mismatch is a protocol error, never
+                // last-value-wins. An identical repeat is idempotent and accepted.
+                if (steam_httppeer->ishas_content_length && steam_httppeer->content_length != temp_cl)
+                {
+                    set_stream_error(40228, steam_httppeer->stream_id, 0x1);// 0x1 = PROTOCOL_ERROR
                     return;
                 }
                 steam_httppeer->content_length           = temp_cl;
@@ -5229,6 +5260,18 @@ void http2parse::readpostdata(const HTTP2_PACK_DATA_T &temp_pack_data)
         return;
     }
 
+    // 未声明 Content-Length 的 body 按 DATA 累计量判站点限额；声明过的已在头块阶段判过。
+    if (!iter->second->ishas_content_length && is_body_method(iter->second->method))
+    {
+        unsigned int site_rc = iter->second->check_upload_limit_size(post_iter->second.exp_length);
+        if (site_rc > 0)
+        {
+            consume_conn_window(fc_bytes);
+            set_stream_error(site_rc, temp_pack_data.stream_id, CONST_HTTP2_STREAM_ERROR_ENHANCE_YOUR_CALM);
+            return;
+        }
+    }
+
     // RFC 9113 §6.1（DATA）："The entire DATA frame payload is included in flow control,
     // including the Pad Length and Padding fields if present." temp_pack_data.length 正是这个口径。
     // 连接级与流级必须各自独立扣减、各自独立补量，
@@ -5278,7 +5321,7 @@ void http2parse::readpostdata(const HTTP2_PACK_DATA_T &temp_pack_data)
     {
         if (iter->second->ishas_content_length && post_iter->second.exp_length != iter->second->content_length)
         {
-            error = 40202;
+            set_stream_error(40202, temp_pack_data.stream_id, 0x1);// 0x1 = PROTOCOL_ERROR
             return;
         }
 

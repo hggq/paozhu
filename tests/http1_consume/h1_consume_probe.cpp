@@ -460,7 +460,7 @@ int main()
                          rds("closed", L.closed()));
     }
 
-    // ===== 组 9：入站 chunked 在头部阶段就被拒，chunk 流不会被当成下一条请求解 =====
+    // ===== 组 9：入站 chunked 消费完整分块帧，残留 GET 不被当成错误请求 =====
     {
         const std::string s = "POST /te HTTP/1.1\r\nHost: 127.0.0.1\r\nTransfer-Encoding: chunked\r\n\r\n"
                               "5\r\nhello\r\n0\r\n\r\n" +
@@ -469,8 +469,9 @@ int main()
         L.push(s);
         L.run();
         const std::vector<Rec> &v = L.recs();
-        bool ok = v.size() == 1 && v[0].error == 40098 && L.closed() == "bad_request";
-        group_result("g9_transfer_encoding_refused_at_header_stage",
+        bool ok = v.size() == 2 && v[0].error == 0 && v[0].finished && v[0].content_length == 5 &&
+                  v[1].error == 0 && v[1].finished && L.closed() == "idle";
+        group_result("g9_transfer_encoding_chunked_consumes_exact_framing",
                      ok,
                      rd("recs", v.size()) + " " + rd("error", v.size() > 0 ? v[0].error : 0) + " " +
                          rdb("finish", v.size() > 0 ? v[0].finished : false) + " " + rds("closed", L.closed()));

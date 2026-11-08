@@ -984,6 +984,15 @@ void httpparse::process_header_line(std::string_view line_str)
         return;
     }
 
+    auto trim_ows = [](std::string_view value)
+    {
+        while (!value.empty() && (value.front() == ' ' || value.front() == '\t'))
+            value.remove_prefix(1);
+        while (!value.empty() && (value.back() == ' ' || value.back() == '\t'))
+            value.remove_suffix(1);
+        return value;
+    };
+
     std::string key;
     key.resize(header_key.size());
     std::transform(header_key.begin(), header_key.end(), key.begin(), [](unsigned char c)
@@ -1044,7 +1053,28 @@ void httpparse::process_header_line(std::string_view line_str)
         case 'T':
             if (str_casecmp(header_key, "Transfer-Encoding"))
             {
-                error = 40098;
+                // 只接受单一 chunked；gzip、identity、多值编码一律拒绝。
+                // 与 Content-Length 并存按 RFC 9112 §6.1 拒绝，避免 TE/CL 口径分叉。
+                // Accept a single chunked coding only; gzip, identity and lists are rejected.
+                // Reject when Content-Length is also present (RFC 9112 §6.1), no TE/CL divergence.
+                if (has_content_length || request_chunked)
+                {
+                    error = 40233;
+                    return;
+                }
+                if (!str_casecmp(trim_ows(header_value), "chunked"))
+                {
+                    error = 40098;
+                    return;
+                }
+                // Transfer-Encoding 只在 HTTP/1.1 定义，1.0 请求一律拒绝
+                // Transfer-Encoding is defined for HTTP/1.1 only: reject 1.0 chunked
+                if (peer->state.version != 0x11)
+                {
+                    error = 40098;
+                    return;
+                }
+                request_chunked = true;
             }
             break;
         default:;
@@ -1087,6 +1117,14 @@ void httpparse::process_header_line(std::string_view line_str)
             if (has_content_length)
             {
                 error = 40096;
+                return;
+            }
+            // chunked 请求的 body 边界由分块定义，再出现 Content-Length 属两套口径并存，拒绝。
+            // A chunked request's body boundary comes from the chunking; a Content-Length here
+            // would be a second, conflicting boundary, so reject.
+            if (request_chunked)
+            {
+                error = 40233;
                 return;
             }
             has_content_length         = true;
@@ -1176,6 +1214,19 @@ void httpparse::process_header_line(std::string_view line_str)
                 // 跨域请求才会走到这里，Origin 值就在手边：Host 已解析完（绝大多数情况）
                 // 就直接判定，请求期不再有任何 CORS 判断，也不用回 header 里查 origin
                 peer->cors_origin_process(header_value);
+            }
+            break;
+        case 'e':
+        case 'E':
+            if (str_casecmp(header_key, "Expect"))
+            {
+                // 只认 100-continue；是否真的发 100 由 server 按版本与 body 情况决定
+                // Only 100-continue is recognized; whether to send 100 is decided by server
+                // from the protocol version and body presence
+                if (str_casecmp(trim_ows(header_value), "100-continue"))
+                {
+                    expect_continue = true;
+                }
             }
             break;
         }
@@ -2297,13 +2348,6 @@ void httpparse::read_rawfile_formdata(std::string_view raw_http_post_data)
             uprawfile.reset();
             error = 40094;
         }
-    }
-
-    if (http_content_length >= peer->content_length)
-    {
-        uprawfile.reset();
-        peer->files["rawcontent"]["size"] = http_content_length;
-        peer->isfinish                    = true;
     }
 }
 
@@ -3496,6 +3540,13 @@ void httpparse::post_multipart_formdata()
 
 void httpparse::read_http_post_block(const unsigned char *buffer, unsigned int buffersize)
 {
+    if (request_chunked)
+    {
+        // chunked 的 body 边界来自分块本身，不走 Content-Length 计数
+        // A chunked body's boundary comes from the chunking, not from a Content-Length count
+        read_http_chunked_block(buffer, buffersize);
+        return;
+    }
     // 只取 body 还缺的字节，不把读包剩余部分整块 append 进 body。
     unsigned int avail = (readoffset < buffersize) ? (buffersize - readoffset) : 0;
     if (peer->content_length > 0)
@@ -3547,201 +3598,481 @@ void httpparse::read_http_post_block(const unsigned char *buffer, unsigned int b
 #endif
     {
         http_content_length += avail;
-
-        if (posttype == 0)
+        bool is_final = http_content_length >= peer->content_length;
+        append_post_body(&buffer[readoffset], avail, is_final);
+        readoffset += avail;
+        if (error > 0)
         {
-            if (readoffset < buffersize)
-            {
-                char first = buffer[readoffset];
-                if (first == '-')
-                {
-                    // 走到这里说明请求没带 Content-Type，头里也就没有 boundary 可用。
-                    // 没有 boundary 还按 multipart 解，正文里每个 "--" 都会被当成分隔符；
-                    // 退回原始正文分支，body 原样落盘给业务自己读。
-                    if (temp_post_data != nullptr && !temp_post_data->boundary.empty())
-                    {
-                        posttype = 2;// multipart
-                    }
-                    else
-                    {
-                        posttype = 5;// fallback: raw
-                    }
-                }
-                else if (first == '{' || first == '[')
-                {
-                    posttype = 3;// json
-                }
-                else if (first == '<')
-                {
-                    posttype = 4;// xml
-                }
-                else
-                {
-                    posttype = 5;// fallback: raw
-                }
-            }
+            return;
         }
-
-        switch (posttype)
-        {
-        case 1:
-            // x-www-form-urlencoded
-            peer->rawcontent.append((char *)&buffer[readoffset], avail);
-            readoffset += avail;
-            if (peer->rawcontent.size() >= peer->content_length)
-            {
-                post_www_form_urlencoded(peer->rawcontent);
-                peer->isfinish = true;
-            }
-
-            if (error > 0)
-            {
-                return;
-            }
-            break;
-        case 2:
-            // multipart/form-data
-            if (temp_post_data == nullptr)
-            {
-                temp_post_data = std::make_unique<HTTP_POST_DATA_T>();
-            }
-            // 无 boundary：匹配循环会把任意 '--' 当成分隔符，必须显式报错。
-            if (temp_post_data->boundary.empty())
-            {
-                error = 40099;
-                return;
-            }
-
-            temp_post_data->content = std::string_view((const char *)&buffer[readoffset], avail);
-            readoffset += avail;
-            temp_post_data->field_offset = 0;
-            for (; temp_post_data->field_offset < temp_post_data->content.size();)
-            {
-                post_multipart_formdata();
-            }
-
-            // 3145728（3MB）：与 h2 (http2_parse.cpp) 同名分支同值，改动需两边同步。
-            if (temp_post_data->isfile && temp_post_data->field_item.size() > 3145728)
-            {
-                //及时消化掉大文件中间内容，尽快保存到文件
-                if (temp_post_data->fp)
-                {
-                    std::string carry = take_delim_crlf_tail(temp_post_data->field_item);
-                    post_multipart_itemcontent_append();
-                    temp_post_data->field_item = std::move(carry);
-                }
-            }
-            else if (temp_post_data->field_item.size() > 3145728)
-            {
-                if (!temp_post_data->isfile)
-                {
-                    // 头还没被认出来就攒过了阈值：先看头部是否声明 filename，
-                    // 判真才转成文件流式落盘；判否什么都不动，等正常解析。
-                    std::string_view check_head = std::string_view(temp_post_data->field_item.data(),
-                                                                   std::min<size_t>(temp_post_data->field_item.size(), 128));
-                    if (head_is_file_part(check_head))
-                    {
-                        reset_uploadfile();
-                        std::string carry = take_delim_crlf_tail(temp_post_data->field_item);
-                        post_multipart_itemcontent(false);
-                        if (temp_post_data->isfile)
-                        {
-                            temp_post_data->field_item = std::move(carry);
-                        }
-                        else
-                        {
-                            // 正式解析没认成文件，把摘掉的尾部放回，一段字节都不丢
-                            temp_post_data->field_item.append(carry);
-                        }
-                    }
-                }
-            }
-
-            // 边界文本正好断在包尾时，它后面那两条横线 "-" "-" 分在两个包里，结束标记认不出来，
-            // 请求就会一直等下去。声明的 body 字节已经全部读完，不会再有属于本次请求的字节了，这里收尾。
-            // 到这里还没认到闭合分隔符，说明 body 被截断：最后一段的头部没解析过，整段丢掉，
-            // 不送进解析器——送进去要么把这个请求判成坏请求，要么交出一个值末尾多两字节的字段。
-            if (!peer->isfinish && error == 0 && http_content_length >= peer->content_length)
-            {
-                peer->isfinish = true;
-            }
-
-            if (peer->isfinish)
-            {
-                reset_uploadfile();
-            }
-
-            if (error > 0)
-            {
-                return;
-            }
-            break;
-        case 3:
-            // json
-            peer->rawcontent.append((char *)&buffer[readoffset], avail);
-            readoffset += avail;
-            if (peer->rawcontent.size() >= peer->content_length)
-            {
-                try
-                {
-                    peer->json.from_json(peer->rawcontent);
-                }
-                catch (...)
-                {
-                    // 畸形 / 超长 JSON 会抛 json_parse_error；必须就地消化，
-                    // 否则异常沿协程栈上抛会丢弃甚至崩溃该连接处理协程（DoS 向量）。
-                    // 复用 40081（JSON 体积错误）作为解析失败的统一出口，已由
-                    // server 侧 http1_send_bad_request 映射为 400 响应。
-                    error = 40081;
-                    return;
-                }
-                peer->isfinish = true;
-            }
-
-            if (error > 0)
-            {
-                return;
-            }
-
-            if (peer->rawcontent.size() > CONST_HTTP_JSON_POST_SIZE)
-            {
-                error = 40081;
-                return;
-            }
-            break;
-        case 4:
-            // xml
-            peer->rawcontent.append((char *)&buffer[readoffset], avail);
-            readoffset += avail;
-            if (error > 0)
-            {
-                return;
-            }
-            if (peer->rawcontent.size() >= peer->content_length)
-            {
-                peer->isfinish = true;
-            }
-            if (peer->rawcontent.size() > CONST_HTTP_JSON_POST_SIZE)
-            {
-                error = 40082;
-                return;
-            }
-            break;
-        case 5:
-            // octet-stream
-            read_rawfile_formdata(std::string_view((const char *)&buffer[readoffset], avail));
-            readoffset += avail;
-            if (http_content_length >= peer->content_length)
-            {
-                peer->isfinish = true;
-            }
-            break;
-        }
-
         if (http_content_length > CONST_HTTP_BODY_POST_SIZE)
         {
             error = 40089;
             return;
+        }
+    }
+}
+
+// 把一段已确认属于本次请求的正文喂给 posttype 解析。
+// is_final 表示这是本次请求的最后一段：urlencoded/json/xml/raw 只在这时才整体解析，
+// 否则会把半截正文当完整正文交给业务。
+// Feeds a confirmed slice of this request's body to the posttype parsers.
+// is_final means the last slice: urlencoded/json/xml/raw only parse as a whole on it,
+// otherwise a half body would be handed to business code as if complete.
+void httpparse::append_post_body(const unsigned char *data, unsigned int len, bool is_final)
+{
+    if (posttype == 0 && len > 0)
+    {
+        char first = (char)data[0];
+        if (first == '-')
+        {
+            // 走到这里说明请求没带 Content-Type，头里也就没有 boundary 可用。
+            // 没有 boundary 还按 multipart 解，正文里每个 "--" 都会被当成分隔符；
+            // 退回原始正文分支，body 原样落盘给业务自己读。
+            if (temp_post_data != nullptr && !temp_post_data->boundary.empty())
+            {
+                posttype = 2;// multipart
+            }
+            else
+            {
+                posttype = 5;// fallback: raw
+            }
+        }
+        else if (first == '{' || first == '[')
+        {
+            posttype = 3;// json
+        }
+        else if (first == '<')
+        {
+            posttype = 4;// xml
+        }
+        else
+        {
+            posttype = 5;// fallback: raw
+        }
+    }
+
+    switch (posttype)
+    {
+    case 1:
+        // x-www-form-urlencoded
+        peer->rawcontent.append((char *)data, len);
+        if (is_final)
+        {
+            post_www_form_urlencoded(peer->rawcontent);
+            peer->isfinish = true;
+        }
+        break;
+    case 2:
+        // multipart/form-data
+        if (temp_post_data == nullptr)
+        {
+            temp_post_data = std::make_unique<HTTP_POST_DATA_T>();
+        }
+        // 无 boundary：匹配循环会把任意 '--' 当成分隔符，必须显式报错。
+        if (temp_post_data->boundary.empty())
+        {
+            error = 40099;
+            return;
+        }
+
+        if (request_chunked && chunked_payload_closed)
+        {
+            if (is_final)
+            {
+                reset_uploadfile();
+            }
+            break;
+        }
+
+        temp_post_data->content       = std::string_view((const char *)data, len);
+        temp_post_data->field_offset  = 0;
+        for (; temp_post_data->field_offset < temp_post_data->content.size();)
+        {
+            post_multipart_formdata();
+            if (error > 0)
+            {
+                break;
+            }
+            if (request_chunked && peer->isfinish)
+            {
+                peer->isfinish               = false;
+                chunked_payload_closed       = true;
+                temp_post_data->field_offset = temp_post_data->content.size();
+                reset_uploadfile();
+                break;
+            }
+        }
+
+        // 3145728（3MB）：与 h2 (http2_parse.cpp) 同名分支同值，改动需两边同步。
+        if (temp_post_data->isfile && temp_post_data->field_item.size() > 3145728)
+        {
+            //及时消化掉大文件中间内容，尽快保存到文件
+            if (temp_post_data->fp)
+            {
+                std::string carry = take_delim_crlf_tail(temp_post_data->field_item);
+                post_multipart_itemcontent_append();
+                temp_post_data->field_item = std::move(carry);
+            }
+        }
+        else if (temp_post_data->field_item.size() > 3145728)
+        {
+            if (!temp_post_data->isfile)
+            {
+                // 头还没被认出来就攒过了阈值：先看头部是否声明 filename，
+                // 判真才转成文件流式落盘；判否什么都不动，等正常解析。
+                std::string_view check_head = std::string_view(temp_post_data->field_item.data(),
+                                                               std::min<size_t>(temp_post_data->field_item.size(), 128));
+                if (head_is_file_part(check_head))
+                {
+                    reset_uploadfile();
+                    std::string carry = take_delim_crlf_tail(temp_post_data->field_item);
+                    post_multipart_itemcontent(false);
+                    if (temp_post_data->isfile)
+                    {
+                        temp_post_data->field_item = std::move(carry);
+                    }
+                    else
+                    {
+                        // 正式解析没认成文件，把摘掉的尾部放回，一段字节都不丢
+                        temp_post_data->field_item.append(carry);
+                    }
+                }
+            }
+        }
+
+        // 边界文本正好断在包尾时，它后面那两条横线 "-" "-" 分在两个包里，结束标记认不出来，
+        // 请求就会一直等下去。声明的 body 字节已经全部读完，不会再有属于本次请求的字节了，这里收尾。
+        // 到这里还没认到闭合分隔符，说明 body 被截断：最后一段的头部没解析过，整段丢掉，
+        // 不送进解析器——送进去要么把这个请求判成坏请求，要么交出一个值末尾多两字节的字段。
+        if (!peer->isfinish && error == 0 && is_final && !request_chunked)
+        {
+            peer->isfinish = true;
+        }
+
+        if (peer->isfinish || (request_chunked && is_final))
+        {
+            reset_uploadfile();
+        }
+
+        if (error > 0)
+        {
+            return;
+        }
+        break;
+    case 3:
+        // json
+        peer->rawcontent.append((char *)data, len);
+        if (is_final)
+        {
+            try
+            {
+                peer->json.from_json(peer->rawcontent);
+            }
+            catch (...)
+            {
+                // 畸形 / 超长 JSON 会抛 json_parse_error；必须就地消化，
+                // 否则异常沿协程栈上抛会丢弃甚至崩溃该连接处理协程（DoS 向量）。
+                // 复用 40081（JSON 体积错误）作为解析失败的统一出口，已由
+                // server 侧 http1_send_bad_request 映射为 400 响应。
+                error = 40081;
+                return;
+            }
+            peer->isfinish = true;
+        }
+
+        if (peer->rawcontent.size() > CONST_HTTP_JSON_POST_SIZE)
+        {
+            error = 40081;
+            return;
+        }
+        break;
+    case 4:
+        // xml
+        peer->rawcontent.append((char *)data, len);
+        if (is_final)
+        {
+            peer->isfinish = true;
+        }
+        if (peer->rawcontent.size() > CONST_HTTP_JSON_POST_SIZE)
+        {
+            error = 40082;
+            return;
+        }
+        break;
+    case 5:
+        // octet-stream
+        if (len > 0)
+        {
+            read_rawfile_formdata(std::string_view((const char *)data, len));
+            if (error > 0)
+            {
+                return;
+            }
+        }
+        if (is_final)
+        {
+            // 收尾由这里统一做：chunked 没有 Content-Length，只能在终止块到达时判完整
+            // Finalization happens here: chunked has no Content-Length, so completeness is
+            // only known when the terminal chunk arrives
+            if (uprawfile)
+            {
+                uprawfile.reset();
+            }
+            peer->files["rawcontent"]["size"] = request_chunked ? chunk_total : http_content_length;
+            peer->isfinish                    = true;
+        }
+        break;
+    }
+}
+
+// Transfer-Encoding: chunked 的请求体解码。
+// 只有终止块与 trailer 段都结束才置 isfinish；失败按 error 走既有 400 + 关连接路径。
+// Decodes a Transfer-Encoding: chunked request body.
+// Only a terminal chunk followed by the trailer section sets isfinish; failures use the
+// existing error -> 400 + connection close path.
+void httpparse::read_http_chunked_block(const unsigned char *buffer, unsigned int buffersize)
+{
+    unsigned int p = readoffset;
+    while (p < buffersize && error == 0 && chunk_state != 5)
+    {
+        unsigned char c = buffer[p];
+        switch (chunk_state)
+        {
+        case 0:// chunk-size 行，可带 ;ext
+            if (c == '\r')
+            {
+                if (!chunk_size_has_digit)
+                {
+                    error = 40229;
+                    break;
+                }
+                ++p;
+                chunk_state = 1;
+                break;
+            }
+            if (c == '\n')
+            {
+                // 行尾必须有 CR，裸 LF 视为畸形
+                error = 40231;
+                break;
+            }
+            if (chunk_line_bytes >= 1024)
+            {
+                error = 40229;
+                break;
+            }
+            ++chunk_line_bytes;
+            if (c == ';')
+            {
+                // chunk-ext 整体忽略，只保留对 CR 的定位
+                chunk_in_ext = true;
+                ++p;
+                break;
+            }
+            if (chunk_in_ext)
+            {
+                ++p;
+                break;
+            }
+            if (!((c >= '0' && c <= '9') || ((c | 0x20) >= 'a' && (c | 0x20) <= 'f')))
+            {
+                error = 40229;
+                break;
+            }
+            {
+                unsigned int v = (c <= '9') ? (unsigned int)(c - '0') : (unsigned int)((c | 0x20) - 'a' + 10);
+                chunk_size_has_digit = true;
+                chunk_size_tmp       = chunk_size_tmp * 16 + v;
+                if (chunk_size_tmp > CONST_HTTP_BODY_POST_SIZE)
+                {
+                    error = 40089;
+                    break;
+                }
+            }
+            ++p;
+            break;
+        case 1:// chunk-size 行后的 LF
+            if (c != '\n')
+            {
+                error = 40231;
+                break;
+            }
+            ++p;
+            chunk_line_bytes = 0;
+            chunk_in_ext     = false;
+            if (chunk_size_tmp == 0)
+            {
+                chunk_remaining = 0;
+                chunk_state     = 4;// 终止块，转 trailer 段
+            }
+            else
+            {
+                chunk_remaining = chunk_size_tmp;
+                chunk_state     = 2;
+            }
+            break;
+        case 2:// chunk 数据
+        {
+            unsigned int n = buffersize - p;
+            if ((unsigned long long)n > chunk_remaining)
+            {
+                n = static_cast<unsigned int>(chunk_remaining);
+            }
+            if (n > 0)
+            {
+                if (!chunked_payload_closed)
+                {
+#ifdef ENABLE_FASTCGI
+                    if (peer->compress == 10)
+                    {
+                        // .php 走 FastCGI：正文进 peer->output，CONTENT_LENGTH 取它的 size
+                        // .php goes through FastCGI: body into peer->output, CONTENT_LENGTH is its size
+                        if (peer->output.size() + n > CONST_PHP_BODY_POST_SIZE)
+                        {
+                            error = 40005;
+                            break;
+                        }
+                        peer->output.append((char *)&buffer[p], n);
+                    }
+                    else
+#endif
+                    {
+                        append_post_body(buffer + p, n, false);
+                    }
+                    if (error > 0)
+                    {
+                        break;
+                    }
+                }
+                p += n;
+                chunk_remaining -= n;
+                chunk_total += n;
+                // 解码后的累计正文是上限的唯一依据：没有 Content-Length 可参考
+                if (chunk_total > CONST_HTTP_BODY_POST_SIZE)
+                {
+                    error = 40089;
+                    break;
+                }
+                unsigned int site_rc = peer->check_upload_limit_size(chunk_total);
+                if (site_rc > 0)
+                {
+                    error = site_rc;
+                    break;
+                }
+            }
+            if (chunk_remaining == 0)
+            {
+                chunk_state = 3;
+            }
+        }
+        break;
+        case 3:// chunk 数据后的 CR
+            if (c != '\r')
+            {
+                error = 40230;
+                break;
+            }
+            ++p;
+            chunk_state = 6;
+            break;
+        case 6:// chunk 数据后的 LF
+            if (c != '\n')
+            {
+                error = 40230;
+                break;
+            }
+            ++p;
+            chunk_size_tmp       = 0;
+            chunk_size_has_digit = false;
+            chunk_line_bytes     = 0;
+            chunk_in_ext         = false;
+            chunk_state          = 0;
+            break;
+        case 4:// trailer 行
+            if (c == '\r')
+            {
+                ++p;
+                chunk_state = 7;
+                break;
+            }
+            if (c == '\n')
+            {
+                error = 40232;
+                break;
+            }
+            if (c < 0x20 && c != '\t')
+            {
+                error = 40232;
+                break;
+            }
+            ++chunk_trailer_bytes;
+            ++chunk_trailer_line;
+            if (chunk_trailer_bytes > 16384)
+            {
+                error = 40232;
+                break;
+            }
+            chunk_trailer_current.push_back(static_cast<char>(c));
+            ++p;
+            break;
+        case 7:// trailer 行的 LF
+            if (c != '\n')
+            {
+                error = 40232;
+                break;
+            }
+            ++p;
+            if (chunk_trailer_line == 0)
+            {
+                chunk_state = 5;// 空行：trailer 段结束
+                break;
+            }
+            // trailer 字段校验后丢弃，不并入 peer->header，避免覆盖同名请求头
+            {
+                std::string_view line(chunk_trailer_current);
+                std::size_t colon = line.find(':');
+                if (colon == std::string_view::npos || colon == 0 || colon > http::field_name_max_length ||
+                    !http::is_valid_field_name(line.substr(0, colon)))
+                {
+                    error = 40232;
+                    break;
+                }
+            }
+            chunk_trailer_current.clear();
+            chunk_trailer_line = 0;
+            chunk_state        = 4;
+            break;
+        case 5:// 已完成：不能继续吞字节，同包里后续字节属于下一条请求
+            break;
+        default:
+            break;
+        }
+        if (chunk_state == 5 || error > 0)
+        {
+            break;
+        }
+    }
+    readoffset = p;
+    if (error > 0)
+    {
+        return;
+    }
+    if (chunk_state == 5)
+    {
+        // 终止块与 trailer 都在，此时累计正文才算完整
+        peer->content_length       = chunk_total;
+        peer->ishas_content_length = true;
+#ifdef ENABLE_FASTCGI
+        if (peer->compress != 10)
+#endif
+        {
+            unsigned char dummy = 0;
+            append_post_body(&dummy, 0, true);
+        }
+        if (error == 0)
+        {
+            peer->isfinish = true;
         }
     }
 }
@@ -3781,14 +4112,19 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
                 peer->keepalive = peer->state.keepalive;
                 if (method == HEAD_METHOD::POST || method == HEAD_METHOD::QUERY)
                 {
-                    error = peer->check_upload_limit();
-                    if (error > 0)
+                    if (!request_chunked)
                     {
-                        return;
-                    }
-                    if (peer->content_length == 0)
-                    {
-                        peer->isfinish = true;
+                        // chunked 没有 Content-Length，头阶段无法判限额，改由解码累计量判。
+                        // chunked has no Content-Length, so the limit is judged by decoded total later.
+                        error = peer->check_upload_limit();
+                        if (error > 0)
+                        {
+                            return;
+                        }
+                        if (peer->content_length == 0)
+                        {
+                            peer->isfinish = true;
+                        }
                     }
                 }
                 else if (method == HEAD_METHOD::PUT || method == HEAD_METHOD::DELETE ||
@@ -3802,10 +4138,12 @@ void httpparse::process(const unsigned char *buffer, unsigned int buffersize)
                 else
                 {
                     peer->isfinish = true;
-                    if (peer->content_length > 0)
+                    if (peer->content_length > 0 || request_chunked)
                     {
-                        // GET/HEAD/OPTIONS 等声明了 body：框架不消费它。
+                        // GET/HEAD/OPTIONS 等声明了 body（或用了 chunked）：框架不消费它。
                         // 关闭连接而不是复用，避免剩余字节在下一轮被当成新请求解析。
+                        // A GET/HEAD/OPTIONS with a body (or chunked): the framework does not
+                        // consume it, so close instead of reusing to avoid request smuggling.
                         peer->state.keepalive = false;
                         peer->keepalive       = false;
                     }
@@ -3844,6 +4182,22 @@ void httpparse::clear()
     port              = 0;
 
     http_content_length = 0;
+    // chunked 解码状态必须逐请求清零，否则上一条请求的分块进度会串到下一条
+    // Reset chunked decode state per request, otherwise progress leaks into the next one
+    request_chunked       = false;
+    expect_continue       = false;
+    continue_sent         = false;
+    chunk_state           = 0;
+    chunk_remaining       = 0;
+    chunk_total           = 0;
+    chunk_size_tmp        = 0;
+    chunk_line_bytes      = 0;
+    chunk_trailer_bytes   = 0;
+    chunk_trailer_line    = 0;
+    chunk_in_ext          = false;
+    chunk_size_has_digit  = false;
+    chunked_payload_closed = false;
+    chunk_trailer_current.clear();
     header_line.clear();
     pre_http_header.clear();
 

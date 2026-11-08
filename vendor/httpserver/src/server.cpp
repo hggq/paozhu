@@ -2765,12 +2765,12 @@ asio::awaitable<void> httpserver::http1_send_bad_server(std::shared_ptr<httppeer
 }
 asio::awaitable<void> httpserver::http1_send_bad_request(unsigned int error_code, std::shared_ptr<client_session> peer_session)
 {
-    // error_code 是解析器内部的诊断码（形如 40095），不是 HTTP 状态码，
-    // 状态行固定 400 Bad Request，内部码只在正文里提示。
-    std::string stfilecom = "<h3>400 Bad Request</h3>";
+    // error_code 通常是解析器内部诊断码（形如 40095）；站点上传限额返回的 403 本身就是 HTTP 状态码。
+    std::string status_text = (error_code == 403) ? "403 Forbidden" : "400 Bad Request";
+    std::string stfilecom   = "<h3>" + status_text + "</h3>";
     stfilecom.append("<hr /><p>Error Code: " + std::to_string(error_code) + "</p>");
-    std::string str = "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html; charset=utf-8\r\nConnection: "
-                      "close\r\nContent-Length: ";
+    std::string str = "HTTP/1.1 " + status_text +
+                      "\r\nContent-Type: text/html; charset=utf-8\r\nConnection: close\r\nContent-Length: ";
     str.append(std::to_string(stfilecom.size()));
     str.append("\r\n\r\n");
     str.append(stfilecom);
@@ -3111,6 +3111,18 @@ asio::awaitable<unsigned int> httpserver::client_http1_loop(bool isssl, unsigned
             {
                 co_await http1_send_bad_request(http1pre->error, peer_session);
                 co_return 3;
+            }
+            if (http1pre->isfinish_header && http1pre->expect_continue && !http1pre->continue_sent &&
+                peer->state.version == 0x11 && !http1pre->getfinish() &&
+                (peer->content_length > 0 || http1pre->request_chunked))
+            {
+                // 头块已通过校验、正文尚未到齐：先回 100，客户端才会开始发 body。
+                // 只回一次；校验失败的请求在上面已经 return，不会收到 100。
+                // Headers passed validation but the body is not complete yet: reply 100 first
+                // so the client starts sending. Sent once; rejected requests never get it.
+                http1pre->continue_sent = true;
+                std::string cont        = "HTTP/1.1 100 Continue\r\n\r\n";
+                co_await peer_session->async_send_writer(cont);
             }
             if (readnum == 0)
             {

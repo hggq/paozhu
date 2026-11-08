@@ -787,15 +787,21 @@ std::string httppeer::get_hosturl()
 // site upload limit check; host_index guard aligns with other site accessors
 unsigned int httppeer::check_upload_limit()
 {
+    return check_upload_limit_size(content_length);
+}
+// 按累计已收正文判站点上传限额；chunked 请求没有 Content-Length，只能按解码总量判
+// Site upload limit by accumulated body size; chunked requests have no Content-Length
+unsigned int httppeer::check_upload_limit_size(unsigned long long size)
+{
     serverconfig &sysconfigpath = getserversysconfig();
     if (host_index >= sysconfigpath.sitehostinfos.size())
     {
         return 0;
     }
     auto const &site = sysconfigpath.sitehostinfos[host_index];
-    if (site.is_limit_upload && content_length > site.upload_max_size)
+    if (site.is_limit_upload && size > site.upload_max_size)
     {
-        DEBUG_LOG("upload file size limit %lld", content_length);
+        DEBUG_LOG("upload file size limit %lld", size);
         return 403;
     }
     return 0;
@@ -2257,8 +2263,13 @@ void httppeer::clear()
     }
     request_time = 0;
     //unsigned int time_limit             = 0;
-    content_length   = 0;
-    sessionfile_time = 0;
+    content_length = 0;
+    // chunked 请求会回填 content_length 并置位，这里必须一起复位，
+    // 否则 keep-alive 的下一条请求会继承"有 Content-Length"的旧状态。
+    // Chunked requests backfill content_length and set this flag; reset it here or the
+    // next keep-alive request inherits a stale "has Content-Length" state.
+    ishas_content_length = false;
+    sessionfile_time     = 0;
     upload_length    = 0;
     mask_code        = 0;
 

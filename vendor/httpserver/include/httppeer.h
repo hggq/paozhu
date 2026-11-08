@@ -178,6 +178,9 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     // 只由 cors_origin_process() 和 h1 的挂起补判调用。
     void cors_origin_allow(std::string_view request_origin);
     unsigned int check_upload_limit();
+    // 按累计已收正文判站点上传限额；chunked 没有 Content-Length 可用
+    // Site upload limit by accumulated body size; chunked has no Content-Length
+    unsigned int check_upload_limit_size(unsigned long long size);
 
     // 常规发送（Content-Length）：先发 header，再发 body，最后 end 结束
     // 使用前须先调 peer->length(file_size) 设置 Content-Length
