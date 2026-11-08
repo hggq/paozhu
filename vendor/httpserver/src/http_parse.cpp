@@ -71,6 +71,11 @@ unsigned long long httpparse::header_valuetoint(std::string_view header_value)
 void httpparse::procssparamter(std::string_view header_temp, std::string_view header_input)
 {
     bool isgroup = true;
+    if (header_temp.empty())
+    {
+        // 空 key 存进 get 以后谁也取不到（?=b、a=1& 都会走到这里），直接丢弃
+        return;
+    }
     if (header_temp.length() > 72)
     {
         error = 40009;
@@ -710,7 +715,16 @@ void httpparse::methodprocess(std::string_view contentline)
                         break;
                     }
                 }
-                header_temp = http::url_decode(header_value.data(), header_value.length());
+                // 同上：partype 为 0/2 时这条 token 没见过 '='，它是裸 key、值为空。
+                if (partype == 1)
+                {
+                    header_temp = http::url_decode(header_value.data(), header_value.length());
+                }
+                else
+                {
+                    url_keyname = http::url_decode(header_value.data(), header_value.length());
+                    header_temp.clear();
+                }
 
                 if (url_keyname.size() > 72)
                 {
@@ -852,6 +866,10 @@ void httpparse::getcontenttype(std::string_view header_value)
     linesize       = header_value.size();
     std::string buffer_value;
     unsigned char statetemp = 0;
+    // media type 只允许识别一次：第一个分号之前，或整段没有分号时的末尾。
+    // 与 HTTP/2 的 getcontenttype 同口径：charset / boundary 之外的后续参数段
+    // 必须跳过，否则会二次调用 callposttype 把已判定的 posttype 覆盖掉。
+    bool media_type_done = false;
 
     if (temp_post_data == nullptr)
     {
@@ -866,7 +884,14 @@ void httpparse::getcontenttype(std::string_view header_value)
 
             if (statetemp == 0)
             {
-                callposttype(buffer_value);
+                // RFC 9110 §8.3.1：media type 之后可跟任意参数，框架只认 charset / boundary。
+                // 未知参数段不能当新的 media type 再喂给 callposttype：它的 default 分支
+                // 会把 posttype / peer->posttype 覆盖成 5（raw 落盘），multipart 表单就此失效。
+                if (!media_type_done)
+                {
+                    callposttype(buffer_value);
+                    media_type_done = true;
+                }
             }
             else if (statetemp == 1)
             {
@@ -922,8 +947,10 @@ void httpparse::getcontenttype(std::string_view header_value)
         {
             peer->chartset = buffer_value;
         }
-        else
+        else if (!media_type_done)
         {
+            // 整段没有分号（如 "application/json"）时才在这里识别 media type；
+            // 已经识别过的尾部是未知参数段，直接忽略。
             callposttype(buffer_value);
         }
     }
@@ -2238,6 +2265,12 @@ void httpparse::post_www_form_urlencoded(std::string_view raw_post_urlencode_con
     {
         if (raw_post_urlencode_content[j] == 0x3D)
         {
+            if (partype == 1)
+            {
+                // 值里的 '=' 按普通字符保留：再切一次会把 a=b=c 存成 post["b"]="c"、丢掉前半个 key
+                temp_value.push_back(raw_post_urlencode_content[j]);
+                continue;
+            }
             buffer_key = http::url_decode(temp_value.data(), temp_value.length());
             temp_value.clear();
             partype = 1;
@@ -2246,13 +2279,26 @@ void httpparse::post_www_form_urlencoded(std::string_view raw_post_urlencode_con
         }
         else if (raw_post_urlencode_content[j] == 0x26)
         {
-            field_value = http::url_decode(temp_value.data(), temp_value.length());
+            // partype 决定 temp_value 的身份：1 时它是 '=' 之后的值，key 早在 buffer_key 里；
+            // 0 或 2 时这条 token 没见过 '='，它是裸 key、值为空——与函数尾部同一口径。
+            if (partype == 1)
+            {
+                field_value = http::url_decode(temp_value.data(), temp_value.length());
+            }
+            else
+            {
+                buffer_key    = http::url_decode(temp_value.data(), temp_value.length());
+                field_value.clear();
+            }
             if (buffer_key.size() > 72)
             {
                 error = 40083;
                 return;
             }
-            post_form_to_postfield(buffer_key, field_value);
+            if (!buffer_key.empty())
+            {
+                post_form_to_postfield(buffer_key, field_value);
+            }
             temp_value.clear();
             field_value.clear();
             partype = 2;
@@ -2280,7 +2326,10 @@ void httpparse::post_www_form_urlencoded(std::string_view raw_post_urlencode_con
             error = 40085;
             return;
         }
-        post_form_to_postfield(buffer_key, field_value);
+        if (!buffer_key.empty())
+        {
+            post_form_to_postfield(buffer_key, field_value);
+        }
     }
     else if (partype == 2)
     {
@@ -2291,7 +2340,10 @@ void httpparse::post_www_form_urlencoded(std::string_view raw_post_urlencode_con
             error = 40086;
             return;
         }
-        post_form_to_postfield(buffer_key, field_value);
+        if (!buffer_key.empty())
+        {
+            post_form_to_postfield(buffer_key, field_value);
+        }
     }
     else if (temp_value.size() > 0)
     {
@@ -2302,7 +2354,10 @@ void httpparse::post_www_form_urlencoded(std::string_view raw_post_urlencode_con
             error = 40087;
             return;
         }
-        post_form_to_postfield(buffer_key, field_value);
+        if (!buffer_key.empty())
+        {
+            post_form_to_postfield(buffer_key, field_value);
+        }
     }
 }
 
@@ -2997,51 +3052,6 @@ void httpparse::post_multipart_itemcontent(bool isfilefull)
                 break;
             }
         }
-        keyname_field.clear();
-        for (; pos_m < temp_post_data->field_item.size(); pos_m++)
-        {
-            if (temp_post_data->field_item[pos_m] == '\r')
-            {
-                pos_m++;
-                if (pos_m < temp_post_data->field_item.size())
-                {
-                    if (temp_post_data->field_item[pos_m] == '\n')
-                    {
-                        pos_m++;
-                    }
-                }
-                break;
-            }
-            keyname_field.push_back(temp_post_data->field_item[pos_m]);
-            if (keyname_field.size() > 128)
-            {
-                error = 40035;
-                return;
-            }
-        }
-        if (!keyname_field.empty())
-        {
-            unsigned int i = 0;
-            for (; i < keyname_field.size(); i++)
-            {
-                if (keyname_field[i] == ':')
-                {
-                    i++;
-                    for (; i < keyname_field.size(); i++)
-                    {
-                        if (keyname_field[i] != ' ')
-                        {
-                            break;
-                        }
-                    }
-                    break;
-                }
-            }
-            for (; i < keyname_field.size(); i++)
-            {
-                temp_post_data->mimetype.push_back(keyname_field[i]);
-            }
-        }
     }
     else
     {
@@ -3057,20 +3067,72 @@ void httpparse::post_multipart_itemcontent(bool isfilefull)
             }
         }
     }
-    keyname_field.clear();
-    for (; pos_m < temp_post_data->field_item.size(); pos_m++)
+    // part 头循环：读到空行为止（RFC 7578 §4.8 要求接收端忽略额外头）。
+    // 只认 Content-Type 收 mimetype，其余头行（含 Content-Transfer-Encoding）整行丢弃，
+    // 不做任何解码。位置不再按固定偏移，避免多头/缺 Content-Type 时把正文头当空行。
+    // 兜底：单行 128 字节、额外头最多 16 行、头区总计 1 KB，超限统一报 40059。
     {
-        if (temp_post_data->field_item[pos_m] == '\r')
+        unsigned int header_count = 0;
+        unsigned int header_bytes = 0;
+        for (;;)
         {
-            pos_m++;
-            if (pos_m < temp_post_data->field_item.size())
+            keyname_field.clear();
+            bool is_closed = false;
+            while (pos_m < temp_post_data->field_item.size())
             {
-                if (temp_post_data->field_item[pos_m] == '\n')
+                if (temp_post_data->field_item[pos_m] == '\r')
                 {
                     pos_m++;
+                    if (pos_m < temp_post_data->field_item.size() && temp_post_data->field_item[pos_m] == '\n')
+                    {
+                        pos_m++;
+                    }
+                    is_closed = true;
+                    break;
+                }
+                keyname_field.push_back(temp_post_data->field_item[pos_m]);
+                pos_m++;
+                if (keyname_field.size() > 128)
+                {
+                    error = 40059;
+                    return;
                 }
             }
-            break;
+            // 空行 = part 头结束；越界未闭合则按当前位置进正文（与旧行为一致）
+            if (keyname_field.empty() || !is_closed)
+            {
+                break;
+            }
+            header_bytes += static_cast<unsigned int>(keyname_field.size()) + 2;
+            if (header_bytes > 1024 || ++header_count > 16)
+            {
+                error = 40059;
+                return;
+            }
+            unsigned int name_end = 0;
+            for (; name_end < keyname_field.size(); name_end++)
+            {
+                if (keyname_field[name_end] == ':')
+                {
+                    break;
+                }
+            }
+            if (name_end < keyname_field.size()
+                && str_casecmp(std::string_view(keyname_field.data(), name_end), "Content-Type"))
+            {
+                unsigned int i = name_end + 1;
+                for (; i < keyname_field.size(); i++)
+                {
+                    if (keyname_field[i] != ' ')
+                    {
+                        break;
+                    }
+                }
+                for (; i < keyname_field.size(); i++)
+                {
+                    temp_post_data->mimetype.push_back(keyname_field[i]);
+                }
+            }
         }
     }
 
@@ -3750,6 +3812,16 @@ void httpparse::append_post_body(const unsigned char *data, unsigned int len, bo
             peer->isfinish = true;
         }
 
+        // chunked multipart 走到终止块仍没见到闭合 boundary：尾段按上面的既有口径丢弃，
+        // 但不改状态码，只留诊断标志，避免业务拿到“部分字段”却毫无感知。
+        // fastcgi 的 .php 请求不走本函数（正文原样交给 PHP），因此不会置位。
+        // Chunked multipart ended with a terminal chunk but no closing boundary: the trailing
+        // part is dropped as before; only a diagnostic flag is set (no status-code change).
+        if (error == 0 && is_final && request_chunked && !chunked_payload_closed)
+        {
+            peer->multipart_truncated = true;
+        }
+
         if (peer->isfinish || (request_chunked && is_final))
         {
             reset_uploadfile();
@@ -3948,6 +4020,14 @@ void httpparse::read_http_chunked_block(const unsigned char *buffer, unsigned in
                 p += n;
                 chunk_remaining -= n;
                 chunk_total += n;
+                // chunk_total 统计的是 HTTP 消息体字节数（含闭合 boundary 之后的 epilogue）。
+                // 与 Content-Length 路径“按声明 body 长度判限额”的口径一致（头阶段判定见头解析里的
+                // check_upload_limit）；它不是表单有效载荷长度。若改成只按有效载荷计，同一条超限报文
+                // 会出现“chunked 放行、CL 拒绝”的绕过面，因此这里维持 body 字节口径。
+                // chunk_total counts HTTP message-body octets, including bytes after the closing
+                // multipart boundary (epilogue). This matches the Content-Length path, which judges
+                // the limit by declared body length; it is NOT the form payload length. Counting only
+                // the payload would let an over-limit body pass via chunked while CL still rejects it.
                 // 解码后的累计正文是上限的唯一依据：没有 Content-Length 可参考
                 if (chunk_total > CONST_HTTP_BODY_POST_SIZE)
                 {

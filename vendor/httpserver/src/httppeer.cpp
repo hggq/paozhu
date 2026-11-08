@@ -2269,6 +2269,9 @@ void httppeer::clear()
     // Chunked requests backfill content_length and set this flag; reset it here or the
     // next keep-alive request inherits a stale "has Content-Length" state.
     ishas_content_length = false;
+    // chunked multipart 截断标志同样逐请求清零，否则 keep-alive 下一条请求会继承上一条的诊断状态。
+    // Reset the truncation flag per request too, or the next keep-alive request inherits it.
+    multipart_truncated = false;
     sessionfile_time     = 0;
     upload_length    = 0;
     mask_code        = 0;

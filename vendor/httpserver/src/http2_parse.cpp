@@ -785,6 +785,12 @@ void http2parse::path_process([[maybe_unused]] const std::string &header_name, c
         {
             if (header_value[ioffset] == 0x3D)
             {
+                if (headerstep == 1)
+                {
+                    // 值里的 '=' 按普通字符保留：再切一次会把 ?a=b=c 存成 get["b"]="c"、丢掉前半个 key
+                    buffer_value.push_back(header_value[ioffset]);
+                    continue;
+                }
                 for (; ioffset < linesize; ioffset++)
                 {
                     if (header_value[ioffset] == 0x3D)
@@ -819,9 +825,18 @@ void http2parse::path_process([[maybe_unused]] const std::string &header_name, c
                     }
                 }
 
-                buffer_value =
-                    http::url_decode(buffer_value.data(),
-                                     buffer_value.length());
+                // 同上：headerstep 为 0/2 时这条 token 没见过 '='，它是裸 key、值为空。
+                if (headerstep == 1)
+                {
+                    buffer_value = http::url_decode(buffer_value.data(),
+                                                    buffer_value.length());
+                }
+                else
+                {
+                    buffer_key   = http::url_decode(buffer_value.data(),
+                                                    buffer_value.length());
+                    buffer_value.clear();
+                }
                 if (buffer_key.size() > 48)
                 {
                     error = 40173;
@@ -891,6 +906,11 @@ void http2parse::path_process([[maybe_unused]] const std::string &header_name, c
 void http2parse::procssparamter(std::string_view buffer_key, std::string_view buffer_value, std::shared_ptr<httppeer> steam_httppeer)
 {
     bool isgroup = true;
+    if (buffer_key.empty())
+    {
+        // 空 key 存进 get 以后谁也取不到（?=b、?a=1& 都会走到这里），直接丢弃
+        return;
+    }
     if (buffer_key.length() > 72)
     {
         error = 40011;
@@ -1973,6 +1993,15 @@ void http2parse::callposttype(const std::string &buffer_value, std::shared_ptr<h
             return;
         }
         break;
+    case 20:
+        if (str_casecmp(buffer_value, "application/xslt+xml"))
+        {
+            steam_httppeer->content_type = "application/xslt+xml";
+            pd.posttype                  = 4;
+            steam_httppeer->posttype     = 4;
+            return;
+        }
+        break;
     case 16:
         if (str_casecmp(buffer_value, "application/json"))
         {
@@ -2004,19 +2033,22 @@ void http2parse::callposttype(const std::string &buffer_value, std::shared_ptr<h
         if (str_casecmp(buffer_value, "binary"))
         {
             steam_httppeer->content_type = "binary";
-            pd.posttype                  = 6;
+            // 与 h1 一致：binary 归入 raw（posttype 5），不再产生 6
+            pd.posttype                  = 5;
             steam_httppeer->posttype     = 5;
             return;
         }
         break;
     default:
+        // 与 h1 的 default 对齐：未识别 media type 归入 raw（posttype 5）
         steam_httppeer->content_type = "raw";
-        pd.posttype                  = 7;
+        pd.posttype                  = 5;
         steam_httppeer->posttype     = 5;
         return;
     }
+    // 长度命中某个 case 但字符串不等：同样归入 raw（posttype 5）
     steam_httppeer->content_type = "raw";
-    pd.posttype                  = 7;
+    pd.posttype                  = 5;
     steam_httppeer->posttype     = 5;
     return;
 }
@@ -2027,7 +2059,11 @@ void http2parse::getcontenttype([[maybe_unused]] const std::string &header_name,
     steam_httppeer->header["content-type"] = header_value;
     std::string buffer_value;
     unsigned char statetemp = 0;
-    auto iter               = http_post_data.find(steam_httppeer->stream_id);
+    // media type 只允许识别一次：第一个分号之前，或整段没有分号时的末尾。
+    // charset / boundary 之外的后续参数段必须跳过，否则会二次调用 callposttype，
+    // 把已判定的 multipart/json 覆盖成 raw。
+    bool media_type_done = false;
+    auto iter            = http_post_data.find(steam_httppeer->stream_id);
     if (iter == http_post_data.end())
     {
         HTTP2_POST_DATA_T temp_p;
@@ -2048,7 +2084,15 @@ void http2parse::getcontenttype([[maybe_unused]] const std::string &header_name,
 
             if (statetemp == 0)
             {
-                callposttype(buffer_value, steam_httppeer, iter->second);
+                // RFC 9110 §8.3.1：media type 之后可以跟任意参数，框架只认 charset / boundary。
+                // 未知参数段不能当新的 media type 再喂给 callposttype：它的 default 分支
+                // 会把 content_type 写成 "raw"、pd.posttype 写成 5、peer->posttype 写成 5；
+                // post_data_process 的 case 5/default 走 raw 落盘路径，正文不会被丢掉。
+                if (!media_type_done)
+                {
+                    callposttype(buffer_value, steam_httppeer, iter->second);
+                    media_type_done = true;
+                }
             }
             else if (statetemp == 1)
             {
@@ -2104,8 +2148,10 @@ void http2parse::getcontenttype([[maybe_unused]] const std::string &header_name,
         {
             iter->second.chartset = buffer_value;
         }
-        else
+        else if (!media_type_done)
         {
+            // 整段没有分号（如 "application/json"）时才在这里识别 media type；
+            // 已经识别过的尾部是未知参数段，直接忽略。
             callposttype(buffer_value, steam_httppeer, iter->second);
         }
     }
@@ -3976,6 +4022,12 @@ void http2parse::post_www_form_urlencoded(HTTP2_POST_DATA_T &temp_post_data)
     {
         if (temp_post_data.peer->rawcontent[j] == 0x3D)
         {
+            if (partype == 1)
+            {
+                // 值里的 '=' 按普通字符保留：再切一次会把 a=b=c 存成 post["b"]="c"、丢掉前半个 key
+                temp_value.push_back(temp_post_data.peer->rawcontent[j]);
+                continue;
+            }
             buffer_key = http::url_decode(temp_value.data(), temp_value.length());
             temp_value.clear();
             partype = 1;
@@ -3984,13 +4036,26 @@ void http2parse::post_www_form_urlencoded(HTTP2_POST_DATA_T &temp_post_data)
         }
         else if (temp_post_data.peer->rawcontent[j] == 0x26)
         {
-            field_value = http::url_decode(temp_value.data(), temp_value.length());
+            // partype 决定 temp_value 的身份：1 时它是 '=' 之后的值，key 早在 buffer_key 里；
+            // 0 或 2 时这条 token 没见过 '='，它是裸 key、值为空——与函数尾部同一口径。
+            if (partype == 1)
+            {
+                field_value = http::url_decode(temp_value.data(), temp_value.length());
+            }
+            else
+            {
+                buffer_key    = http::url_decode(temp_value.data(), temp_value.length());
+                field_value.clear();
+            }
             if (buffer_key.size() > 72)
             {
                 error = 40196;
                 return;
             }
-            post_form_to_postfield(buffer_key, field_value, temp_post_data.peer);
+            if (!buffer_key.empty())
+            {
+                post_form_to_postfield(buffer_key, field_value, temp_post_data.peer);
+            }
             temp_value.clear();
             field_value.clear();
             partype = 2;
@@ -4018,7 +4083,10 @@ void http2parse::post_www_form_urlencoded(HTTP2_POST_DATA_T &temp_post_data)
             error = 40198;
             return;
         }
-        post_form_to_postfield(buffer_key, field_value, temp_post_data.peer);
+        if (!buffer_key.empty())
+        {
+            post_form_to_postfield(buffer_key, field_value, temp_post_data.peer);
+        }
     }
     else if (partype == 2)
     {
@@ -4029,7 +4097,10 @@ void http2parse::post_www_form_urlencoded(HTTP2_POST_DATA_T &temp_post_data)
             error = 40199;
             return;
         }
-        post_form_to_postfield(buffer_key, field_value, temp_post_data.peer);
+        if (!buffer_key.empty())
+        {
+            post_form_to_postfield(buffer_key, field_value, temp_post_data.peer);
+        }
     }
     else if (temp_value.size() > 0)
     {
@@ -4040,7 +4111,10 @@ void http2parse::post_www_form_urlencoded(HTTP2_POST_DATA_T &temp_post_data)
             error = 40200;
             return;
         }
-        post_form_to_postfield(buffer_key, field_value, temp_post_data.peer);
+        if (!buffer_key.empty())
+        {
+            post_form_to_postfield(buffer_key, field_value, temp_post_data.peer);
+        }
     }
 }
 
@@ -4406,51 +4480,6 @@ void http2parse::post_multipart_itemcontent(HTTP2_POST_DATA_T &temp_post_data, b
                 break;
             }
         }
-        keyname_field.clear();
-        for (; pos_m < temp_post_data.field_item.size(); pos_m++)
-        {
-            if (temp_post_data.field_item[pos_m] == '\r')
-            {
-                pos_m++;
-                if (pos_m < temp_post_data.field_item.size())
-                {
-                    if (temp_post_data.field_item[pos_m] == '\n')
-                    {
-                        pos_m++;
-                    }
-                }
-                break;
-            }
-            keyname_field.push_back(temp_post_data.field_item[pos_m]);
-            if (keyname_field.size() > 128)
-            {
-                error = 40035;
-                return;
-            }
-        }
-        if (!keyname_field.empty())
-        {
-            unsigned int i = 0;
-            for (; i < keyname_field.size(); i++)
-            {
-                if (keyname_field[i] == ':')
-                {
-                    i++;
-                    for (; i < keyname_field.size(); i++)
-                    {
-                        if (keyname_field[i] != ' ')
-                        {
-                            break;
-                        }
-                    }
-                    break;
-                }
-            }
-            for (; i < keyname_field.size(); i++)
-            {
-                temp_post_data.mimetype.push_back(keyname_field[i]);
-            }
-        }
     }
     else
     {
@@ -4466,20 +4495,73 @@ void http2parse::post_multipart_itemcontent(HTTP2_POST_DATA_T &temp_post_data, b
             }
         }
     }
-    keyname_field.clear();
-    for (; pos_m < temp_post_data.field_item.size(); pos_m++)
+    // part 头循环：读到空行为止（RFC 7578 §4.8 要求接收端忽略额外头）。
+    // 只认 Content-Type 收 mimetype，其余头行（含 Content-Transfer-Encoding）整行丢弃，
+    // 不做任何解码。位置不再按固定偏移，避免多头/缺 Content-Type 时把正文头当空行。
+    // 兜底：单行 128 字节、额外头最多 16 行、头区总计 1 KB，超限统一报 40059；
+    // 这是请求体语义问题，只作废本条流（RST_STREAM），不 GOAWAY。
     {
-        if (temp_post_data.field_item[pos_m] == '\r')
+        unsigned int header_count = 0;
+        unsigned int header_bytes = 0;
+        for (;;)
         {
-            pos_m++;
-            if (pos_m < temp_post_data.field_item.size())
+            keyname_field.clear();
+            bool is_closed = false;
+            while (pos_m < temp_post_data.field_item.size())
             {
-                if (temp_post_data.field_item[pos_m] == '\n')
+                if (temp_post_data.field_item[pos_m] == '\r')
                 {
                     pos_m++;
+                    if (pos_m < temp_post_data.field_item.size() && temp_post_data.field_item[pos_m] == '\n')
+                    {
+                        pos_m++;
+                    }
+                    is_closed = true;
+                    break;
+                }
+                keyname_field.push_back(temp_post_data.field_item[pos_m]);
+                pos_m++;
+                if (keyname_field.size() > 128)
+                {
+                    set_stream_error(40059, temp_post_data.stream_id, 0x2);// 0x2 = INTERNAL_ERROR
+                    return;
                 }
             }
-            break;
+            // 空行 = part 头结束；越界未闭合则按当前位置进正文（与旧行为一致）
+            if (keyname_field.empty() || !is_closed)
+            {
+                break;
+            }
+            header_bytes += static_cast<unsigned int>(keyname_field.size()) + 2;
+            if (header_bytes > 1024 || ++header_count > 16)
+            {
+                set_stream_error(40059, temp_post_data.stream_id, 0x2);
+                return;
+            }
+            unsigned int name_end = 0;
+            for (; name_end < keyname_field.size(); name_end++)
+            {
+                if (keyname_field[name_end] == ':')
+                {
+                    break;
+                }
+            }
+            if (name_end < keyname_field.size()
+                && str_casecmp(std::string_view(keyname_field.data(), name_end), "Content-Type"))
+            {
+                unsigned int i = name_end + 1;
+                for (; i < keyname_field.size(); i++)
+                {
+                    if (keyname_field[i] != ' ')
+                    {
+                        break;
+                    }
+                }
+                for (; i < keyname_field.size(); i++)
+                {
+                    temp_post_data.mimetype.push_back(keyname_field[i]);
+                }
+            }
         }
     }
 
@@ -5118,7 +5200,10 @@ void http2parse::post_data_process(HTTP2_POST_DATA_T &temp_post_data, unsigned c
             }
             break;
         case 5:
-            // octet-stream
+        case 6:// 防御：映射表已不再产生 6，保留以防旧值/外部赋值
+        case 7:// 防御：映射表已不再产生 7，保留以防旧值/外部赋值
+        default:// 未来新增 media type 漏配时的兜底：走 raw，避免正文静默丢弃
+            // octet-stream / binary / 未识别 media type
             readrawfileformdata(temp_post_data, islast_pack);
             break;
         }
@@ -5277,27 +5362,36 @@ void http2parse::readpostdata(const HTTP2_PACK_DATA_T &temp_pack_data)
     // 连接级与流级必须各自独立扣减、各自独立补量，
     // 不能用「全局计数越线」去决定该补给哪一条流。
 
-    // RFC 9113 §6.9："A receiver MAY respond with a stream error (Section 5.4.2) or
-    // connection error (Section 5.4.1) of type FLOW_CONTROL_ERROR if it is unable to
-    // accept a frame." 两级都合法，这里取**流级**那一支：流控的存在理由（§5.2.2）就是
-    // 「这条流收不下还要能继续收别的流」，为一枚超窗 DATA 帧发 GOAWAY 会把整条连接上
-    // 所有在途流一起带走。
-    // 窗口不够时不能截断继续——对端可以发一个超大 PADDED 帧一次穿透本端背压（窗口被砍到 0 再补回，但正文已被正常处理）。
-    // Guard both windows before accepting; overflow ⇒ RST_STREAM(FLOW_CONTROL_ERROR)
-    // and drop the frame + all subsequent on this stream.
+    // RFC 9113 §6.9 / §6.9.1：两级窗口被穿透的错误归属不同，必须分开判、分开报。
+    //  * 连接级窗口是整条连接共享的额度，超界是连接级 FLOW_CONTROL_ERROR，
+    //    MUST 走 GOAWAY（§5.4.1）；只 RST 一条流等于放过了对整条连接的违规，
+    //    h2spec 6.9.1 的连接级判定只认 GOAWAY / 断连。
+    //  * 单条流的窗口超界才是流级错误（§5.4.2），RST_STREAM(FLOW_CONTROL_ERROR)
+    //    作废这一条流，同连接其它在途流继续复用。
+    // 窗口不够时不能截断继续——对端可以发一个超大 PADDED 帧一次穿透本端背压
+    // （窗口被砍到 0 再补回，但正文已被正常处理）。
+    // 先判连接级：GOAWAY 后连接立刻拆除，不必为这条流新建窗口记账条目；
+    // 也不要再 consume_conn_window() 补量——刚判定对端流控违规就给它抬连接窗口，
+    // 语义相反，GOAWAY 之前多发的这帧 WINDOW_UPDATE 也毫无用处。
+    if (fc_bytes > conn_recv_window_num)
+    {
+        set_conn_error(40234, 0x3);// 0x3 = FLOW_CONTROL_ERROR（连接级 → GOAWAY）
+        return;
+    }
+
     auto s_win_iter = stream_recv_window.find(temp_pack_data.stream_id);
     if (s_win_iter == stream_recv_window.end())
     {
         s_win_iter = stream_recv_window.emplace(temp_pack_data.stream_id, CONST_HTTP2_LOCAL_INITIAL_WINDOW).first;
     }
-    if (fc_bytes > conn_recv_window_num || fc_bytes > s_win_iter->second)
+    if (fc_bytes > s_win_iter->second)
     {
         // 流级 RST_STREAM 后这条流后续 DATA 都走 http_data 已派发/已结束分支
         // （isfinish 置 true），不会再被当成 body 收下。
-        // 字节已经落在手里，连接窗口按实记满（饱和扣减后补量正好恢复到水位）：
-        // 不记的话本端账会一直偏大，同连接其它流迟早撞到同一个停摆。
+        // 连接还要继续复用，字节已经落在手里，连接窗口按实记满（饱和扣减后补量
+        // 正好恢复到水位）：不记的话本端账会一直偏大，同连接其它流迟早撞到同一个停摆。
         consume_conn_window(fc_bytes);
-        set_stream_error(40210, temp_pack_data.stream_id, 0x3);// 0x3 = FLOW_CONTROL_ERROR
+        set_stream_error(40210, temp_pack_data.stream_id, 0x3);// 0x3 = FLOW_CONTROL_ERROR（流级 → RST_STREAM）
         return;
     }
 
@@ -5316,6 +5410,16 @@ void http2parse::readpostdata(const HTTP2_PACK_DATA_T &temp_pack_data)
     bool is_last_pack = last_pack;
 
     post_data_process(post_iter->second, is_last_pack);
+
+    // post_data_process 内部会置 error：JSON 体积超限、from_json 抛异常（流级 RST）、
+    // multipart / urlencoded 解析失败等。无论连接级还是流级，出错的流都不能再进
+    // 派发队列：主循环先处理 error（GOAWAY 或 RST + cleanup_stream），这里若继续
+    // isfinish=true + stream_list.emplace，等于把同一条流同时交给 RST 和业务派发，
+    // 两条错误路径的收尾口径也不一致。
+    if (error > 0)
+    {
+        return;
+    }
 
     if (is_last_pack)
     {

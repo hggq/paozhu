@@ -253,6 +253,11 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     // 等 getheaderhost() 解析出 Host、host_index 定下后补判，避免每请求都查一次 header
     bool cors_origin_pending  = false;
     bool ishas_content_length = false;
+    // 仅 HTTP/1 chunked multipart：终止块到了但没见到闭合 boundary，尾段按既有口径丢弃。
+    // 这里只做诊断标记，不改状态码；业务可据此自行决定是否拒收。
+    // HTTP/1 chunked multipart only: terminal chunk reached without a closing boundary, so the
+    // trailing part was dropped. Diagnostic flag only (no status change); handlers may reject.
+    bool multipart_truncated = false;
 
     unsigned char posttype   = 0;
     unsigned char compress   = 0;
