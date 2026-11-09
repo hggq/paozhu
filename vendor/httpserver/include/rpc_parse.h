@@ -11,9 +11,9 @@ namespace http
 // 解析完成（isfinish）后交给路由分发，再由 build_header 生成响应。
 //
 // 线格式：'rpc ' 前缀 + 请求行（路径，可带 ?k=v&… 查询，0x0A 结束）
-// + KV 段（每行 "key 0x20 2字节大端值长 值 [0x0A]"；HOST/cookie/size
-// 是保留字，其余 key 原样进 peer->post）+ 空行 + body（二进制，长度由
-// size 声明；超长 body 落 temp_path 临时文件）。
+// + KV 段（每行 "key 0x20 2字节大端值长 值 0x0A"，行尾 0x0A 必带；
+// HOST/cookie/size 是保留字，其余 key 原样进 peer->post）+ 空行 + body
+// （二进制，长度由 size 声明；超长 body 落 temp_path 临时文件）。
 class rpc_parse : public std::enable_shared_from_this<rpc_parse>
 {
   public:

@@ -13,9 +13,64 @@
 #include "rpc_parse.h"
 #include "func.h"
 #include "cost_define.h"
+#include <cstdio>
 
 namespace http
 {
+
+namespace
+{
+// KV 行以 0x0A 分隔：键或值里带 CR/LF 就是在响应帧里多写一行头
+bool is_one_line(const std::string &s)
+{
+    for (unsigned char c : s)
+    {
+        if (c == 0x0A || c == 0x0D)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+// 请求行/查询串不允许 NUL 与控制字符（日志、SQL、文件路径注入面）。
+// 不做 %XX 解码：保住现有 RPC 客户端把 %XX 原样传参的语义。
+bool is_clean_kv(const std::string &s)
+{
+    for (unsigned char c : s)
+    {
+        if (c < 0x20 || c == 0x7f)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+// 临时观测（N4-b 评估用）：只认「% + 两位合法 hex」，不把 100% / %zz 算进去。
+// 确认业务流量里有没有真正的 percent-encoding 之后，连同调用处的日志一起删除。
+int hexval(unsigned char c)
+{
+    if (c >= '0' && c <= '9') return c - '0';
+    if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+    if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+    return -1;
+}
+
+bool is_pct_encoded(const std::string &s)
+{
+    for (size_t i = 0; i + 2 < s.size(); ++i)
+    {
+        if (s[i] == '%' &&
+            hexval(static_cast<unsigned char>(s[i + 1])) >= 0 &&
+            hexval(static_cast<unsigned char>(s[i + 2])) >= 0)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+}// namespace
 
 rpc_parse::rpc_parse() : uprawfile(nullptr, std::fclose) { iserror = false; }
 void rpc_parse::set_chunk(bool c)
@@ -39,11 +94,19 @@ void rpc_parse::reset()
     kv_bytes         = 0;
     has_host         = false;
     has_size         = false;
+    ischunked        = false;
+    is_send          = false;
 
     read_key.clear();//read temp var in the header
     read_value.clear();
     read_temp_file.clear();
-    send_content.shrink_to_fit();
+    status_msg.clear();
+    send_content.clear();
+    // 保留容量给 keep-alive 的下一次响应；只在超大响应后按阈值回收
+    if (send_content.capacity() > CONST_PEER_BUFFER_SHRINK_SIZE)
+    {
+        send_content.shrink_to_fit();
+    }
     uprawfile = nullptr;
 }
 void rpc_parse::process_headkv()
@@ -114,7 +177,7 @@ void rpc_parse::process_headkv()
             return;
         }
 
-        if (read_value[i] == '=')
+        if (i < read_value.size() && read_value[i] == '=')
         {
             i++;
             if (i < read_value.size())
@@ -150,7 +213,7 @@ void rpc_parse::process_headkv()
         }
         if (v > 68719476735ULL)
         {
-            //to long long(>15G)
+            // 上限 64GiB-1，再大就超出 long long 累加的安全范围
             iserror = true;
             return;
         }
@@ -165,6 +228,12 @@ void rpc_parse::process_headkv()
 }
 void rpc_parse::process_value(const unsigned char *buffer, unsigned int readnum)
 {
+    if (val_size == 0)
+    {
+        // 空值：不消费净荷字节，直接去读行尾 0x0A
+        cur_process_type = 11;
+        return;
+    }
     for (; offsetnum < readnum; offsetnum++)
     {
         read_value.push_back(buffer[offsetnum]);
@@ -278,8 +347,8 @@ void rpc_parse::process_parameter(const unsigned char *buffer, unsigned int read
             }
             else
             {
-                // not finished
-                iserror = true;
+                // 本段只送到值长的高字节：留作 1 态，下一段续低字节
+                cur_process_type = 1;
                 return;
             }
         }
@@ -296,16 +365,16 @@ void rpc_parse::process_parameter(const unsigned char *buffer, unsigned int read
     }
     else if (cur_process_type == 12)
     {
-        //值还没有读到空格 The value has not yet reached the space
-        if (buffer[offsetnum] == 0x0A)
+        if (offsetnum >= readnum)
         {
-            offsetnum++;
+            return;// 空段：保持 12 态等下一段，不越界、不误断连
         }
-        else
+        if (buffer[offsetnum] != 0x0A)
         {
             iserror = true;
             return;
         }
+        offsetnum++;
         cur_process_type = 0;
         //重新开始kv read kv
     }
@@ -314,10 +383,13 @@ void rpc_parse::process_parameter(const unsigned char *buffer, unsigned int read
     {
         if (offsetnum < readnum)
         {
-            if (buffer[offsetnum] == 0x0A)
+            // 行尾 0x0A 必须存在：跨段与否不改变一条 KV 的合法性判定
+            if (buffer[offsetnum] != 0x0A)
             {
-                offsetnum++;
+                iserror = true;
+                return;
             }
+            offsetnum++;
 
             process_headkv();
             cur_process_type = 0;
@@ -337,6 +409,11 @@ void rpc_parse::process_parameter(const unsigned char *buffer, unsigned int read
             iserror = true;
             return;
         }
+    }
+
+    if (iserror)
+    {
+        return;
     }
 
     if (offsetnum < readnum)
@@ -374,6 +451,9 @@ void rpc_parse::process(const unsigned char *buffer, unsigned int readnum)
     }
 
     peer->url.clear();
+    peer->urlpath.clear();
+    peer->querystring.clear();
+    peer->header.erase("urlpath");
     peer->pathinfos.clear();
     peer->sendfilename.clear();
     read_key.clear();
@@ -399,26 +479,68 @@ void rpc_parse::process_line(const unsigned char *buffer, unsigned int readnum)
 
         if (c == 0x0A)
         {
-            if (cur_process_type == 22 && read_key.size() > 0)
+            if (cur_process_type == 22 && !read_key.empty())
             {
                 // "?x=" 空值也是合法参数（RFC 3986 §3.4），与 '&' 分隔处的落法一致
+                if (!is_clean_kv(read_key) || !is_clean_kv(read_value))
+                {
+                    iserror = true;
+                    return;
+                }
                 peer->get[read_key] = read_value;
                 read_key.clear();
             }
-            else if (cur_process_type == 20 && read_key.size() > 0)
+            else if (cur_process_type == 20 && !read_key.empty())
             {
-                // 20 态行尾 = 路径最后一段（"rpc /api" 这种不带查询的请求），必须入表；
-                // 段内 '/' 与 '?' 已经 flush 过前面的段，这里漏掉就只剩空 pathinfos。
-                peer->pathinfos.push_back(read_key);
+                // 20 态行尾 = 路径最后一段；与 h1/h2 同口径，交给统一归一化
+                if (!url_segments_normalize(peer->pathinfos, read_key))
+                {
+                    iserror = true;
+                    return;
+                }
                 read_key.clear();
             }
-            else if (read_key.size() > 0)
+            else if (!read_key.empty())
             {
                 // 21 态行尾悬空 key（"?x" 无 '=' 形态）：keyless 字段，直接丢弃；
                 // 不再落进 pathinfos，避免污染 sendfilename 与路由前缀匹配
                 read_key.clear();
             }
             read_value.clear();
+
+            // 与 h1/h2 同口径：由归一化后的段表组装路由键
+            peer->urlpath.clear();
+            if (peer->pathinfos.empty())
+            {
+                peer->urlpath = "/";
+            }
+            else
+            {
+                for (const auto &seg : peer->pathinfos)
+                {
+                    peer->urlpath.push_back('/');
+                    peer->urlpath.append(seg);
+                }
+            }
+            peer->header["urlpath"] = peer->urlpath;
+            peer->url               = peer->urlpath;
+            if (!peer->querystring.empty())
+            {
+                peer->url.push_back('?');
+                peer->url.append(peer->querystring);
+            }
+            peer->isfile = !peer->pathinfos.empty() &&
+                           peer->pathinfos.back().find('.') != std::string::npos;
+
+            // 临时观测：统计业务流量里是否出现合法 %XX，确认完删除。
+            // 会打印原始 query，仅用于测试环境（含敏感参数时注意脱敏）。
+            if (is_pct_encoded(peer->querystring))
+            {
+                std::fprintf(stderr, "rpc pct query: %s?%.*s\n",
+                             peer->urlpath.c_str(),
+                             (int)peer->querystring.size(), peer->querystring.data());
+            }
+
             offsetnum++;
             cur_process_type = 0;
             after_line(buffer, readnum);
@@ -435,16 +557,23 @@ void rpc_parse::process_line(const unsigned char *buffer, unsigned int readnum)
         {
             if (c == '&')
             {
-                if (read_key.size() > 0)
+                if (!read_key.empty())
                 {
+                    if (!is_clean_kv(read_key) || !is_clean_kv(read_value))
+                    {
+                        iserror = true;
+                        return;
+                    }
                     peer->get[read_key] = read_value;
                 }
                 read_value.clear();
                 read_key.clear();
+                peer->querystring.push_back('&');
                 cur_process_type = 21;
                 continue;
             }
             read_value.push_back(c);
+            peer->querystring.push_back(c);
             continue;
         }
 
@@ -452,9 +581,10 @@ void rpc_parse::process_line(const unsigned char *buffer, unsigned int readnum)
         {
             if (c == '?')
             {
-                if (read_key.size() > 0)
+                if (!read_key.empty() && !url_segments_normalize(peer->pathinfos, read_key))
                 {
-                    peer->pathinfos.push_back(read_key);
+                    iserror = true;
+                    return;
                 }
                 read_key.clear();
                 cur_process_type = 21;
@@ -462,16 +592,15 @@ void rpc_parse::process_line(const unsigned char *buffer, unsigned int readnum)
             }
             if (c == '/')
             {
-                if (read_key.size() > 0)
+                if (!read_key.empty() && !url_segments_normalize(peer->pathinfos, read_key))
                 {
-                    peer->pathinfos.push_back(read_key);
+                    iserror = true;
+                    return;
                 }
                 read_key.clear();
-                peer->url.push_back(c);
-                continue;
+                continue;// 不再逐字节 push peer->url，行尾统一组装
             }
             read_key.push_back(c);
-            peer->url.push_back(c);
             continue;
         }
 
@@ -480,15 +609,18 @@ void rpc_parse::process_line(const unsigned char *buffer, unsigned int readnum)
         if (c == '&')
         {
             read_key.clear();
+            peer->querystring.push_back('&');
             continue;
         }
         if (c == '=')
         {
             read_value.clear();
+            peer->querystring.push_back('=');
             cur_process_type = 22;
             continue;
         }
         read_key.push_back(c);
+        peer->querystring.push_back(c);
     }
     // 段耗尽：直接返回，状态保留
 }
@@ -603,7 +735,6 @@ void rpc_parse::process_body(const unsigned char *buffer, unsigned int readnum)
         if (uprawfile == nullptr)
         {
             server_loaclvar &localvar = get_server_global_var();
-            read_key                  = std::to_string(timeid()) + std::to_string(std::hash<std::string>{}(peer->url)) + std::to_string(rand_range(1000, 9999));
 
             // 落盘名统一由 make_http_temp_raw_name() 生成：文件名带 pzraw_ 前缀，
             // 该前缀是 httpwatch 周期清理时识别「框架自己的临时文件」的唯一依据，
@@ -630,7 +761,12 @@ void rpc_parse::process_body(const unsigned char *buffer, unsigned int readnum)
         }
         if (take > 0)
         {
-            fwrite(&buffer[offsetnum], take, 1, uprawfile.get());
+            if (fwrite(&buffer[offsetnum], take, 1, uprawfile.get()) != 1)
+            {
+                // 磁盘满/写失败：落盘文件已截断，不能按已收完继续分发
+                iserror = true;
+                return;
+            }
             offsetnum += take;
         }
         body_sub -= take;
@@ -656,22 +792,21 @@ void rpc_parse::process_body(const unsigned char *buffer, unsigned int readnum)
         }
     }
 
-    if (isfinish && offsetnum < readnum)
-    {
-        // 声明长度之后还有多余字节：本协议无流水线语义，显式按错误处理
-        iserror = true;
-    }
+    // isfinish 之后本段剩余字节不在此判错：由 client_rpc_loop 前移缓冲头，
+    // 下一轮作为下一条请求继续解析（同段/跨段的流水线行为一致）。
+    // offsetnum 保留为本次消费到的位置，loop 在 reset() 之前读取它。
 }
 
 void rpc_parse::async_send_error()
 {
     send_content.clear();
     send_content.append("rpc");
+    send_content.push_back(0x20);
     send_content.append("000");
     send_content.push_back(0x20);
-    send_content.append(status_msg);
+    // 错误帧状态文本固定为空：不拼 status_msg，恒空字段将来被赋值也不会成为注入口
     send_content.push_back(0x0A);
-    send_content.append("type");
+    send_content.append("type ");
     send_content.push_back(0x00);
     send_content.push_back(0x09);
     send_content.append("text/html");
@@ -688,6 +823,11 @@ void rpc_parse::async_send_error()
 void rpc_parse::build_header()
 {
     send_content.clear();
+    if (!is_one_line(status_msg))
+    {
+        iserror = true;
+        return;
+    }
     send_content.append("rpc");
     send_content.push_back(0x20);
 
@@ -797,6 +937,12 @@ void rpc_parse::build_header()
     send_content.push_back(0x0A);
     send_content.append("type ");
 
+    if (!is_one_line(peer->content_type))
+    {
+        iserror = true;
+        return;
+    }
+
     if (peer->content_type.size() == 0)
     {
         send_content.push_back(0x00);
@@ -827,6 +973,13 @@ void rpc_parse::build_header()
     std::string temp_h;
     for (const auto &[map_k, map_value] : peer->send_header)
     {
+        if (map_value.size() > 0xFFFF || !is_one_line(map_k) || !is_one_line(map_value))
+        {
+            // 长度前缀只有 2 字节，超出会声明长度与实写字节不一致；CR/LF 会注入 KV 行
+            iserror = true;
+            return;
+        }
+
         temp_h = map_k;
 
         for (unsigned int i = 0; i < temp_h.size(); i++)

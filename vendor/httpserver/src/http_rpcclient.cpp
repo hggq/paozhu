@@ -758,7 +758,7 @@ void rpc_client::process_headkv()
             return;
         }
 
-        if (read_value[i] == '=')
+        if (i < read_value.size() && read_value[i] == '=')
         {
             i++;
             rpc_parameter_t a;
@@ -878,10 +878,22 @@ void rpc_client::process_append(const unsigned char *buffer, unsigned int readnu
         {
             process_body(buffer, readnum);
         }
+        return;
     }
-    else
+
+    process_parameter(buffer, readnum);
+    // 对齐 process()：本段里读到空行进入 body 阶段后，剩余字节同属 body，
+    // 不在此续喂就会连同本段尾部一起丢掉（下一段从 offsetnum=0 重新当 body 读）。
+    if (!iserror && isbody)
     {
-        process_parameter(buffer, readnum);
+        if (page.ischunked)
+        {
+            process_body_chunk(buffer, readnum);
+        }
+        else
+        {
+            process_body(buffer, readnum);
+        }
     }
 }
 
@@ -914,6 +926,8 @@ void rpc_client::process(const unsigned char *buffer, unsigned int readnum)
         offsetnum = 7;
         if (offsetnum < readnum && buffer[offsetnum] == 0x20)
         {
+            // 分隔空格不属于 status_msg
+            offsetnum++;
             for (; offsetnum < readnum; offsetnum++)
             {
                 if (buffer[offsetnum] == 0x0A)
@@ -963,6 +977,13 @@ void rpc_client::process_parameter(const unsigned char *buffer, unsigned int rea
 {
     if (cur_process_type == 0)
     {
+        if (read_key.empty() && offsetnum < readnum && buffer[offsetnum] == 0x0A)
+        {
+            // 空行（头部段结束）作为新段首字节：直接进 body，对齐 rpc_parse.cpp
+            offsetnum++;
+            isbody = true;
+            return;
+        }
         for (unsigned int i = 0; offsetnum < readnum; offsetnum++)
         {
             if (buffer[offsetnum] == 0x20)
@@ -1051,8 +1072,8 @@ void rpc_client::process_parameter(const unsigned char *buffer, unsigned int rea
             }
             else
             {
-                // not finished
-                iserror = true;
+                // 本段只送到值长的高字节：留作 1 态，下一段续低字节
+                cur_process_type = 1;
                 return;
             }
         }
@@ -1070,16 +1091,16 @@ void rpc_client::process_parameter(const unsigned char *buffer, unsigned int rea
     }
     else if (cur_process_type == 12)
     {
-        //值还没有读到空格 The value has not yet reached the space
-        if (offsetnum < readnum && buffer[offsetnum] == 0x0A)
+        if (offsetnum >= readnum)
         {
-            offsetnum++;
+            return;// 空段：保持 12 态等下一段，不越界、不误断连
         }
-        else
+        if (buffer[offsetnum] != 0x0A)
         {
             iserror = true;
             return;
         }
+        offsetnum++;
         cur_process_type = 0;
         //重新开始kv read kv
     }
@@ -1088,10 +1109,14 @@ void rpc_client::process_parameter(const unsigned char *buffer, unsigned int rea
     {
         if (offsetnum < readnum)
         {
-            if (buffer[offsetnum] == 0x0A)
+            // 行尾 0x0A 必须存在：跨段与否不改变一条 KV 的合法性判定
+            if (buffer[offsetnum] != 0x0A)
             {
-                offsetnum++;
+                iserror = true;
+                return;
             }
+            offsetnum++;
+
             process_headkv();
             cur_process_type = 0;
             read_key.clear();
@@ -1110,6 +1135,11 @@ void rpc_client::process_parameter(const unsigned char *buffer, unsigned int rea
             iserror = true;
             return;
         }
+    }
+
+    if (iserror)
+    {
+        return;
     }
 
     if (offsetnum < readnum)
@@ -1285,7 +1315,6 @@ void rpc_client::process_body(const unsigned char *buffer, unsigned int readnum)
         if (uprawfile == nullptr)
         {
             server_loaclvar &localvar = get_server_global_var();
-            read_key                  = std::to_string(timeid()) + std::to_string(std::hash<std::string>{}(url)) + std::to_string(rand_range(1000, 9999));
 
             // 落盘名统一由 make_http_temp_raw_name() 生成：文件名带 pzraw_ 前缀，
             // 该前缀是 httpwatch 周期清理时识别「框架自己的临时文件」的唯一依据，

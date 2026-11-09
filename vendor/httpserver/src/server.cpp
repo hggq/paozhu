@@ -4332,6 +4332,9 @@ asio::awaitable<unsigned int> httpserver::client_rpc_loop(unsigned int readnum, 
                 peer->parse_session();
                 peer->status(200);
                 peer->content_type.clear();
+                // clear_peer_data() 不清 send_header，httppeer::clear() 又不在 RPC 链路上，
+                // 不在此清掉则上一个请求的自定响应头会跟着同连接的后续所有请求
+                peer->send_header.clear();
                 peer->etag.clear();
                 peer->output.clear();
 
@@ -4368,7 +4371,30 @@ asio::awaitable<unsigned int> httpserver::client_rpc_loop(unsigned int readnum, 
 
                 // 请求间清理 peer 数据，准备下一个请求
                 clear_peer_data(peer);
+                const unsigned int used = rpc->offsetnum;// reset() 会清 offsetnum，必须先取
                 rpc->reset();
+
+                // 同一 TCP 段里还带着下一条请求（流水线）：未消费字节前移到缓冲头，
+                // 下一轮 readnum != 0 会跳过 read_some，直接 process() 解析它。
+                // _cache_data 是 CACHE_DATA_LENGTH(4096) 的池缓冲，left <= 4096 一定放得下。
+                if (used < readnum)
+                {
+                    unsigned int left = readnum - used;
+                    std::memmove(peer_session->_cache_data,
+                                 peer_session->_cache_data + used, left);
+                    readnum = left;
+                    if (readnum < 4)
+                    {
+                        // process() 要求首包至少 4 字节 "rpc "；不足就补读，别误杀合法流水线
+                        bool bad = co_await peer_session->read_at_least(4, readnum, CACHE_DATA_LENGTH);
+                        if (bad)
+                        {
+                            peer_session->stop();
+                            co_return 3;
+                        }
+                    }
+                    continue;// 跳过末尾的 readnum = 0
+                }
             }
 
             readnum = 0;
