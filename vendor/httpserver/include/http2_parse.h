@@ -216,6 +216,12 @@ struct HTTP2_POST_DATA_T
     std::unique_ptr<std::FILE, int (*)(FILE *)> fp;
     std::shared_ptr<httppeer> peer;
 
+    // 终止 boundary 的 "boundary--" 两个 '-' 跨帧时，挂起闭合判定（同 h1 HTTP_POST_DATA_T）。
+    bool boundary_hit_waiting_closing = false;
+    unsigned char closing_dashes_seen  = 0;
+    // multipart 已完整闭合（与 peer->isfinish 解耦，后者仍由 END_STREAM 置位）。
+    bool multipart_closed             = false;
+
     HTTP2_POST_DATA_T() : fp(nullptr, std::fclose) {};
 };
 

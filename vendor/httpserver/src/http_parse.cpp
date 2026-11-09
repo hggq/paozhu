@@ -2987,6 +2987,9 @@ void httpparse::post_multipart_itemcontent(bool isfilefull)
     unsigned int body_pos = pos_m;
     if (!cd_found)
     {
+        // 有意严格策略：不含 Content-Disposition 的 part 直接 40026 拒绝。
+        // 首个 boundary 之前若带 preamble，也会走到这里被拒绝；RFC 2046 §5.1.1
+        // 要求忽略 preamble，此偏差已知且为有意保留（不为此放宽）。
         error = 40026;
         return;
     }
@@ -3339,28 +3342,36 @@ void httpparse::post_multipart_formdata()
                 reset_uploadfile();
                 post_multipart_itemcontent(true);
                 temp_post_data->field_item.clear();
+
+                // 挂起状态清理：pre_content 路径命中 boundary 文本后，闭合判定从头开始
+                temp_post_data->boundary_hit_waiting_closing = false;
+                temp_post_data->closing_dashes_seen = 0;
+
                 if ((pos_m + 1) < temp_post_data->content.size())
                 {
-                    if (temp_post_data->content[pos_m] == '-')
+                    if (temp_post_data->content[pos_m] == '-' && temp_post_data->content[pos_m + 1] == '-')
                     {
-                        if (temp_post_data->content[pos_m + 1] == '-')
-                        {
-                            peer->isfinish = true;
-                            //post body end
-                            pos_m = pos_m + 1;
-                            //next char
-                            temp_post_data->field_offset = pos_m + 1;
-                        }
+                        // 终止 boundary：boundary-- 完整落在同一缓冲
+                        temp_post_data->field_offset = pos_m + 2;
+                        temp_post_data->multipart_closed = true;
                     }
-                    else if (temp_post_data->content[pos_m] == '\r')
+                    else if (temp_post_data->content[pos_m] == '\r' && temp_post_data->content[pos_m + 1] == '\n')
                     {
-                        if (temp_post_data->content[pos_m + 1] == '\n')
-                        {
-                            pos_m = pos_m + 1;
-                            //next char
-                            temp_post_data->field_offset = pos_m + 1;
-                        }
+                        // 普通 part 结束
+                        temp_post_data->field_offset = pos_m + 2;
                     }
+                }
+                else if (pos_m < temp_post_data->content.size())
+                {
+                    temp_post_data->boundary_hit_waiting_closing = true;
+                    temp_post_data->closing_dashes_seen = (temp_post_data->content[pos_m] == '-') ? 1 : 0;
+                    temp_post_data->field_offset = pos_m + 1;
+                }
+                else
+                {
+                    temp_post_data->boundary_hit_waiting_closing = true;
+                    temp_post_data->closing_dashes_seen = 0;
+                    temp_post_data->field_offset = pos_m;
                 }
                 return;
             }
@@ -3423,28 +3434,35 @@ void httpparse::post_multipart_formdata()
                 reset_uploadfile();
                 post_multipart_itemcontent(true);
                 temp_post_data->field_item.clear();
+
+                // 挂起状态清理：pre_content 路径命中 boundary 文本后，闭合判定从头开始
+                temp_post_data->boundary_hit_waiting_closing = false;
+                temp_post_data->closing_dashes_seen = 0;
+
                 if ((pos_m + 1) < temp_post_data->content.size())
                 {
-                    if (temp_post_data->content[pos_m] == '-')
+                    if (temp_post_data->content[pos_m] == '-' && temp_post_data->content[pos_m + 1] == '-')
                     {
-                        if (temp_post_data->content[pos_m + 1] == '-')
-                        {
-                            peer->isfinish = true;
-                            //post body end
-                            pos_m = pos_m + 1;
-                            //next char
-                            temp_post_data->field_offset = pos_m + 1;
-                        }
+                        // 终止 boundary：boundary-- 完整落在同一缓冲
+                        temp_post_data->field_offset = pos_m + 2;
+                        temp_post_data->multipart_closed = true;
                     }
-                    else if (temp_post_data->content[pos_m] == '\r')
+                    else if (temp_post_data->content[pos_m] == '\r' && temp_post_data->content[pos_m + 1] == '\n')
                     {
-                        if (temp_post_data->content[pos_m + 1] == '\n')
-                        {
-                            pos_m = pos_m + 1;
-                            //next char
-                            temp_post_data->field_offset = pos_m + 1;
-                        }
+                        temp_post_data->field_offset = pos_m + 2;
                     }
+                }
+                else if (pos_m < temp_post_data->content.size())
+                {
+                    temp_post_data->boundary_hit_waiting_closing = true;
+                    temp_post_data->closing_dashes_seen = (temp_post_data->content[pos_m] == '-') ? 1 : 0;
+                    temp_post_data->field_offset = pos_m + 1;
+                }
+                else
+                {
+                    temp_post_data->boundary_hit_waiting_closing = true;
+                    temp_post_data->closing_dashes_seen = 0;
+                    temp_post_data->field_offset = pos_m;
                 }
                 return;
             }
@@ -3511,28 +3529,39 @@ void httpparse::post_multipart_formdata()
                 reset_uploadfile();
                 post_multipart_itemcontent(true);
                 temp_post_data->field_item.clear();
+
+                // 挂起状态清理：pre_content 路径命中 boundary 文本后，闭合判定从头开始
+                temp_post_data->boundary_hit_waiting_closing = false;
+                temp_post_data->closing_dashes_seen = 0;
+
                 if ((pos_m + 1) < temp_post_data->content.size())
                 {
-                    if (temp_post_data->content[pos_m] == '-')
+                    if (temp_post_data->content[pos_m] == '-' && temp_post_data->content[pos_m + 1] == '-')
                     {
-                        if (temp_post_data->content[pos_m + 1] == '-')
-                        {
-                            peer->isfinish = true;
-                            //post body end
-                            pos_m = pos_m + 1;
-                            //next char
-                            temp_post_data->field_offset = pos_m + 1;
-                        }
+                        // 终止 boundary：boundary-- 完整落在同一缓冲
+                        temp_post_data->field_offset = pos_m + 2;
+                        temp_post_data->multipart_closed = true;
                     }
-                    else if (temp_post_data->content[pos_m] == '\r')
+                    else if (temp_post_data->content[pos_m] == '\r' && temp_post_data->content[pos_m + 1] == '\n')
                     {
-                        if (temp_post_data->content[pos_m + 1] == '\n')
-                        {
-                            pos_m = pos_m + 1;
-                            //next char
-                            temp_post_data->field_offset = pos_m + 1;
-                        }
+                        // 普通 part 结束：与新路径口径一致
+                        temp_post_data->field_offset = pos_m + 2;
                     }
+                    // 缓冲够判定闭合但既不是 '--' 也不是 CRLF：无动作，下一轮自然扫描
+                }
+                else if (pos_m < temp_post_data->content.size())
+                {
+                    // 缓冲只剩 1 字节，可能是闭合的第一个 '-'
+                    temp_post_data->boundary_hit_waiting_closing = true;
+                    temp_post_data->closing_dashes_seen = (temp_post_data->content[pos_m] == '-') ? 1 : 0;
+                    temp_post_data->field_offset = pos_m + 1;
+                }
+                // else: pos_m == content.size()，缓冲用完，挂起闭合判定等下一包
+                else
+                {
+                    temp_post_data->boundary_hit_waiting_closing = true;
+                    temp_post_data->closing_dashes_seen = 0;
+                    temp_post_data->field_offset = pos_m;
                 }
                 return;
             }
@@ -3540,6 +3569,40 @@ void httpparse::post_multipart_formdata()
     }
 
     temp_post_data->pre_content.clear();
+    // 新缓冲到来，若上一包挂起了闭合判定，先检查跨包续上
+    pos_m = temp_post_data->field_offset; // 应为 0（外层循环重置），这里防御
+    if (temp_post_data->boundary_hit_waiting_closing)
+    {
+        for (; pos_m < temp_post_data->content.size() && temp_post_data->closing_dashes_seen < 2; pos_m++)
+        {
+            if (temp_post_data->content[pos_m] != '-')
+            {
+                // 不是 '-'：挂起状态失效，这是普通数据。恢复扫描并清挂起。
+                temp_post_data->boundary_hit_waiting_closing = false;
+                temp_post_data->closing_dashes_seen = 0;
+                // pos_m 停在非 '-' 字节处，让外层 for 循环从这里继续正常扫描
+                break;
+            }
+            temp_post_data->closing_dashes_seen++;
+        }
+        if (temp_post_data->closing_dashes_seen >= 2)
+        {
+            // 两个 '-' 收齐：终止 boundary 跨包闭合
+            temp_post_data->multipart_closed = true;
+            temp_post_data->field_offset = pos_m; // pos_m 已指向第二个 '-' 的下一个字节
+            temp_post_data->boundary_hit_waiting_closing = false;
+            temp_post_data->closing_dashes_seen = 0;
+            return;
+        }
+        if (temp_post_data->boundary_hit_waiting_closing && pos_m >= temp_post_data->content.size())
+        {
+            // 本缓冲用完还没凑够两个 '-'：继续挂起
+            temp_post_data->field_offset = pos_m; // = content.size()
+            return;
+        }
+        // 挂起失效（遇到了非 '-'），fall through 到主扫描循环
+    }
+
     for (; pos_m < temp_post_data->content.size(); pos_m++)
     {
         if (temp_post_data->content[pos_m] == '-')
@@ -3599,14 +3662,30 @@ void httpparse::post_multipart_formdata()
                             {
                                 if (temp_post_data->content[j] == '-' && temp_post_data->content[j + 1] == '-')
                                 {
-                                    // 跳过结束标记的两个 '-'：j 指向第一个 '-', j+1 指向第二个 '-'
-                                    temp_post_data->field_offset = j + 2;
-                                    peer->isfinish               = true;
+                                    // 终止 boundary：boundary-- 完整落在同一缓冲
+                                    temp_post_data->field_offset  = j + 2;
+                                    temp_post_data->multipart_closed = true;
                                 }
                                 else if (temp_post_data->content[j] == '\r' && temp_post_data->content[j + 1] == '\n')
                                 {
-                                    temp_post_data->field_offset = j + 1;
+                                    // 普通 part 结束：与 pre_content 路径口径一致
+                                    temp_post_data->field_offset = j + 2;
                                 }
+                                // 缓冲够判定闭合但不是 '-' 也不是 CRLF：无动作，下一轮自然扫描
+                            }
+                            else if (j < temp_post_data->content.size())
+                            {
+                                // 缓冲只剩 1 字节，可能是闭合的第一个 '-'
+                                temp_post_data->boundary_hit_waiting_closing = true;
+                                temp_post_data->closing_dashes_seen = (temp_post_data->content[j] == '-') ? 1 : 0;
+                                temp_post_data->field_offset = j + 1;
+                            }
+                            // else: j == content.size()，缓冲用完，挂起闭合判定等下一包
+                            else
+                            {
+                                temp_post_data->boundary_hit_waiting_closing = true;
+                                temp_post_data->closing_dashes_seen = 0;
+                                temp_post_data->field_offset = j;
                             }
 
                             return;
@@ -3791,22 +3870,32 @@ void httpparse::append_post_body(const unsigned char *data, unsigned int len, bo
             break;
         }
 
-        temp_post_data->content       = std::string_view((const char *)data, len);
-        temp_post_data->field_offset  = 0;
-        for (; temp_post_data->field_offset < temp_post_data->content.size();)
+        // multipart 已闭合：终止 boundary 之后的字节都是 epilogue（RFC 2046 §5.1.1），不进入扫描器，
+        // 防止 epilogue 里的伪造 "--boundary" 注入额外 part。本包仍要走下方收尾：
+        // 声明长度读完时置 isfinish，否则连接会一直等不会再来的字节。
+        if (!temp_post_data->multipart_closed)
         {
-            post_multipart_formdata();
-            if (error > 0)
+            temp_post_data->content      = std::string_view((const char *)data, len);
+            temp_post_data->field_offset = 0;
+            for (; temp_post_data->field_offset < temp_post_data->content.size();)
             {
-                break;
-            }
-            if (request_chunked && peer->isfinish)
-            {
-                peer->isfinish               = false;
-                chunked_payload_closed       = true;
-                temp_post_data->field_offset = temp_post_data->content.size();
-                reset_uploadfile();
-                break;
+                post_multipart_formdata();
+                if (error > 0)
+                {
+                    break;
+                }
+                if (temp_post_data->multipart_closed)
+                {
+                    if (request_chunked)
+                    {
+                        // chunked 路径的完成信号是 chunk_state==5，multipart_closed 独立于 chunk 结束，
+                        // 这里只标记 chunked payload 闭合，不碰 peer->isfinish（由 chunk_state==5 或 CL 决定）。
+                        chunked_payload_closed = true;
+                        reset_uploadfile();
+                    }
+                    temp_post_data->field_offset = temp_post_data->content.size();
+                    break;
+                }
             }
         }
 
@@ -4356,6 +4445,11 @@ void httpparse::clear()
         temp_post_data->field_item.clear();
         temp_post_data->temp_filename.clear();
         temp_post_data->fp.reset();
+        // 闭合判定状态必须逐请求清零：temp_post_data 跨 keep-alive 请求存活，
+        // 留着上一条的 multipart_closed 会把下一条的正文整段当 epilogue 丢掉。
+        temp_post_data->boundary_hit_waiting_closing = false;
+        temp_post_data->closing_dashes_seen          = 0;
+        temp_post_data->multipart_closed             = false;
     }
 }
 

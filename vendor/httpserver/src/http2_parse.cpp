@@ -4415,6 +4415,9 @@ void http2parse::post_multipart_itemcontent(HTTP2_POST_DATA_T &temp_post_data, b
     unsigned int body_pos = pos_m;
     if (!cd_found)
     {
+        // 有意严格策略：不含 Content-Disposition 的 part 直接 40026 拒绝。
+        // 首个 boundary 之前若带 preamble，也会走到这里被拒绝；RFC 2046 §5.1.1
+        // 要求忽略 preamble，此偏差已知且为有意保留（不为此放宽）。
         set_stream_error(40026, temp_post_data.stream_id, 0x1);
         return;
     }
@@ -4767,28 +4770,38 @@ void http2parse::post_multipart_formdata(HTTP2_POST_DATA_T &temp_post_data, [[ma
                 reset_uploadfile(temp_post_data);
                 post_multipart_itemcontent(temp_post_data, true);
                 temp_post_data.field_item.clear();
+
+                // 挂起状态清理：pre_content 路径命中 boundary 文本后，闭合判定从头开始
+                temp_post_data.boundary_hit_waiting_closing = false;
+                temp_post_data.closing_dashes_seen = 0;
+
                 if ((pos_m + 1) < temp_post_data.content.size())
                 {
-                    if (temp_post_data.content[pos_m] == '-')
+                    if (temp_post_data.content[pos_m] == '-' && temp_post_data.content[pos_m + 1] == '-')
                     {
-                        if (temp_post_data.content[pos_m + 1] == '-')
-                        {
-                            temp_post_data.peer->isfinish = true;
-                            //post body end
-                            pos_m = pos_m + 1;
-                            //next char
-                            temp_post_data.field_offset = pos_m + 1;
-                        }
+                        // 终止 boundary：boundary-- 完整落在同一帧
+                        temp_post_data.field_offset = pos_m + 2;
+                        temp_post_data.multipart_closed = true;
                     }
-                    else if (temp_post_data.content[pos_m] == '\r')
+                    else if (temp_post_data.content[pos_m] == '\r' && temp_post_data.content[pos_m + 1] == '\n')
                     {
-                        if (temp_post_data.content[pos_m + 1] == '\n')
-                        {
-                            pos_m = pos_m + 1;
-                            //next char
-                            temp_post_data.field_offset = pos_m + 1;
-                        }
+                        // 普通 part 结束：与新路径口径一致
+                        temp_post_data.field_offset = pos_m + 2;
                     }
+                    // 缓冲够判定闭合但既不是 '--' 也不是 CRLF：无动作，下一轮自然扫描
+                }
+                else if (pos_m < temp_post_data.content.size())
+                {
+                    // 缓冲只剩 1 字节，可能是闭合的第一个 '-'
+                    temp_post_data.boundary_hit_waiting_closing = true;
+                    temp_post_data.closing_dashes_seen = (temp_post_data.content[pos_m] == '-') ? 1 : 0;
+                    temp_post_data.field_offset = pos_m + 1;
+                }
+                else
+                {
+                    temp_post_data.boundary_hit_waiting_closing = true;
+                    temp_post_data.closing_dashes_seen = 0;
+                    temp_post_data.field_offset = pos_m;
                 }
                 return;
             }
@@ -4850,28 +4863,36 @@ void http2parse::post_multipart_formdata(HTTP2_POST_DATA_T &temp_post_data, [[ma
                 reset_uploadfile(temp_post_data);
                 post_multipart_itemcontent(temp_post_data, true);
                 temp_post_data.field_item.clear();
+
+                // 挂起状态清理：pre_content 路径命中 boundary 文本后，闭合判定从头开始
+                temp_post_data.boundary_hit_waiting_closing = false;
+                temp_post_data.closing_dashes_seen = 0;
+
                 if ((pos_m + 1) < temp_post_data.content.size())
                 {
-                    if (temp_post_data.content[pos_m] == '-')
+                    if (temp_post_data.content[pos_m] == '-' && temp_post_data.content[pos_m + 1] == '-')
                     {
-                        if (temp_post_data.content[pos_m + 1] == '-')
-                        {
-                            temp_post_data.peer->isfinish = true;
-                            //post body end
-                            pos_m = pos_m + 1;
-                            //next char
-                            temp_post_data.field_offset = pos_m + 1;
-                        }
+                        // 终止 boundary：boundary-- 完整落在同一帧
+                        temp_post_data.field_offset = pos_m + 2;
+                        temp_post_data.multipart_closed = true;
                     }
-                    else if (temp_post_data.content[pos_m] == '\r')
+                    else if (temp_post_data.content[pos_m] == '\r' && temp_post_data.content[pos_m + 1] == '\n')
                     {
-                        if (temp_post_data.content[pos_m + 1] == '\n')
-                        {
-                            pos_m = pos_m + 1;
-                            //next char
-                            temp_post_data.field_offset = pos_m + 1;
-                        }
+                        // 普通 part 结束：与新路径口径一致
+                        temp_post_data.field_offset = pos_m + 2;
                     }
+                }
+                else if (pos_m < temp_post_data.content.size())
+                {
+                    temp_post_data.boundary_hit_waiting_closing = true;
+                    temp_post_data.closing_dashes_seen = (temp_post_data.content[pos_m] == '-') ? 1 : 0;
+                    temp_post_data.field_offset = pos_m + 1;
+                }
+                else
+                {
+                    temp_post_data.boundary_hit_waiting_closing = true;
+                    temp_post_data.closing_dashes_seen = 0;
+                    temp_post_data.field_offset = pos_m;
                 }
                 return;
             }
@@ -4937,28 +4958,36 @@ void http2parse::post_multipart_formdata(HTTP2_POST_DATA_T &temp_post_data, [[ma
                 reset_uploadfile(temp_post_data);
                 post_multipart_itemcontent(temp_post_data, true);
                 temp_post_data.field_item.clear();
+
+                // 挂起状态清理：pre_content 路径命中 boundary 文本后，闭合判定从头开始
+                temp_post_data.boundary_hit_waiting_closing = false;
+                temp_post_data.closing_dashes_seen = 0;
+
                 if ((pos_m + 1) < temp_post_data.content.size())
                 {
-                    if (temp_post_data.content[pos_m] == '-')
+                    if (temp_post_data.content[pos_m] == '-' && temp_post_data.content[pos_m + 1] == '-')
                     {
-                        if (temp_post_data.content[pos_m + 1] == '-')
-                        {
-                            temp_post_data.peer->isfinish = true;
-                            //post body end
-                            pos_m = pos_m + 1;
-                            //next char
-                            temp_post_data.field_offset = pos_m + 1;
-                        }
+                        // 终止 boundary：boundary-- 完整落在同一帧
+                        temp_post_data.field_offset = pos_m + 2;
+                        temp_post_data.multipart_closed = true;
                     }
-                    else if (temp_post_data.content[pos_m] == '\r')
+                    else if (temp_post_data.content[pos_m] == '\r' && temp_post_data.content[pos_m + 1] == '\n')
                     {
-                        if (temp_post_data.content[pos_m + 1] == '\n')
-                        {
-                            pos_m = pos_m + 1;
-                            //next char
-                            temp_post_data.field_offset = pos_m + 1;
-                        }
+                        // 普通 part 结束：与新路径口径一致
+                        temp_post_data.field_offset = pos_m + 2;
                     }
+                }
+                else if (pos_m < temp_post_data.content.size())
+                {
+                    temp_post_data.boundary_hit_waiting_closing = true;
+                    temp_post_data.closing_dashes_seen = (temp_post_data.content[pos_m] == '-') ? 1 : 0;
+                    temp_post_data.field_offset = pos_m + 1;
+                }
+                else
+                {
+                    temp_post_data.boundary_hit_waiting_closing = true;
+                    temp_post_data.closing_dashes_seen = 0;
+                    temp_post_data.field_offset = pos_m;
                 }
                 return;
             }
@@ -4966,6 +4995,36 @@ void http2parse::post_multipart_formdata(HTTP2_POST_DATA_T &temp_post_data, [[ma
     }
 
     temp_post_data.pre_content.clear();
+    // 新帧到来，若上一帧挂起了闭合判定，先检查跨帧续上
+    if (temp_post_data.boundary_hit_waiting_closing)
+    {
+        for (; pos_m < temp_post_data.content.size() && temp_post_data.closing_dashes_seen < 2; pos_m++)
+        {
+            if (temp_post_data.content[pos_m] != '-')
+            {
+                // 不是 '-'：挂起状态失效，恢复正常扫描
+                temp_post_data.boundary_hit_waiting_closing = false;
+                temp_post_data.closing_dashes_seen = 0;
+                break;
+            }
+            temp_post_data.closing_dashes_seen++;
+        }
+        if (temp_post_data.closing_dashes_seen >= 2)
+        {
+            temp_post_data.multipart_closed = true;
+            temp_post_data.field_offset = pos_m;
+            temp_post_data.boundary_hit_waiting_closing = false;
+            temp_post_data.closing_dashes_seen = 0;
+            return;
+        }
+        if (temp_post_data.boundary_hit_waiting_closing && pos_m >= temp_post_data.content.size())
+        {
+            temp_post_data.field_offset = pos_m; // = content.size()
+            return;
+        }
+        // 挂起失效，fall through 到主扫描循环
+    }
+
     for (; pos_m < temp_post_data.content.size(); pos_m++)
     {
         if (temp_post_data.content[pos_m] == '-')
@@ -5019,18 +5078,36 @@ void http2parse::post_multipart_formdata(HTTP2_POST_DATA_T &temp_post_data, [[ma
                             temp_post_data.field_offset = j;
                             temp_post_data.field_item.clear();
 
+                            // 挂起状态清理：新路径命中 boundary 文本后，闭合判定从头开始
+                            temp_post_data.boundary_hit_waiting_closing = false;
+                            temp_post_data.closing_dashes_seen = 0;
+
                             if (j + 1 < temp_post_data.content.size())
                             {
                                 if (temp_post_data.content[j] == '-' && temp_post_data.content[j + 1] == '-')
                                 {
-                                    // 跳过结束标记的两个 '-'：j 指向第一个 '-', j+1 指向第二个 '-'
-                                    temp_post_data.field_offset   = j + 2;
-                                    temp_post_data.peer->isfinish = true;
+                                    // 终止 boundary：boundary-- 完整落在同一帧
+                                    temp_post_data.field_offset = j + 2;
+                                    temp_post_data.multipart_closed = true;
                                 }
                                 else if (temp_post_data.content[j] == '\r' && temp_post_data.content[j + 1] == '\n')
                                 {
-                                    temp_post_data.field_offset = j + 1;
+                                    // 普通 part 结束：与 pre_content 路径口径一致
+                                    temp_post_data.field_offset = j + 2;
                                 }
+                            }
+                            else if (j < temp_post_data.content.size())
+                            {
+                                // 缓冲只剩 1 字节，可能是闭合的第一个 '-'
+                                temp_post_data.boundary_hit_waiting_closing = true;
+                                temp_post_data.closing_dashes_seen = (temp_post_data.content[j] == '-') ? 1 : 0;
+                                temp_post_data.field_offset = j + 1;
+                            }
+                            else
+                            {
+                                temp_post_data.boundary_hit_waiting_closing = true;
+                                temp_post_data.closing_dashes_seen = 0;
+                                temp_post_data.field_offset = j;
                             }
 
                             return;
@@ -5150,10 +5227,27 @@ void http2parse::post_data_process(HTTP2_POST_DATA_T &temp_post_data, unsigned c
                 error = 40099;
                 return;
             }
+            // multipart 已闭合：终止 boundary 之后的字节都是 epilogue（RFC 2046 §5.1.1）。
+            // 每帧进入本函数都会把 field_offset 重置为 0，必须在入口拦住，否则下一帧会被当成新 part 重扫。
+            if (temp_post_data.multipart_closed)
+            {
+                temp_post_data.field_offset = temp_post_data.content.size();
+                break;
+            }
             temp_post_data.field_offset = 0;
             for (; temp_post_data.field_offset < temp_post_data.content.size();)
             {
                 post_multipart_formdata(temp_post_data, islast_pack);
+                if (error > 0)
+                {
+                    break;
+                }
+                if (temp_post_data.multipart_closed)
+                {
+                    // 终止 boundary 之后的字节是 epilogue，RFC 2046 §5.1.1 要求忽略
+                    temp_post_data.field_offset = temp_post_data.content.size();
+                    break;
+                }
             }
 
             if (islast_pack)

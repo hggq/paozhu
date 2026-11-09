@@ -55,6 +55,14 @@ struct HTTP_POST_DATA_T
     std::string field_item;//post value
     std::string temp_filename;
     std::unique_ptr<std::FILE, int (*)(FILE *)> fp;
+    // 终止 boundary 的 "boundary--" 两个 '-' 跨缓冲/帧时，挂起闭合判定：
+    // boundary_hit_waiting_closing=true 表示已命中 boundary 文本、但闭合判定因缓冲不够未完成，
+    // closing_dashes_seen 记录挂起状态下已见到的 '-' 数（0 或 1）。
+    bool boundary_hit_waiting_closing = false;
+    unsigned char closing_dashes_seen  = 0;
+    // multipart 已完整闭合（命中终止 boundary "boundary--"）。与 peer->isfinish 解耦：
+    // isfinish 仍由 Content-Length 消费完 / chunked END 决定，这里只表示 multipart 层面的闭合。
+    bool multipart_closed = false;
     HTTP_POST_DATA_T() : fp(nullptr, std::fclose) {};
 };
 class httpparse
