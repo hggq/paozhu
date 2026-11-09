@@ -30,7 +30,7 @@ Featuring a fully home-grown HTTP/2, MySQL and PostgreSQL protocol stack, Paozhu
 ✅ 17. Cache module support; ORM query results can be stored in cache  
 ✅ 18. Annotations in controller `.cpp` files are automatically extracted for URL mapping  
 ✅ 19. Struct/class annotation for JSON serialization via `json_encode` / `json_decode`  
-✅ 20. Complete admin backend demo available at `/admin/main`  
+✅ 20. Complete admin backend demo with SaaS RBAC, available at `/admin/main`  
 ✅ 21. PHP-FPM FastCGI support, replacing Apache to help PHP developers transition to C++  
 ✅ 22. Built-in WeChat Mini Program payment  
 ✅ 23. Supports Socket, MQTT includes both server and client, supports SSL connections, IoT development  
