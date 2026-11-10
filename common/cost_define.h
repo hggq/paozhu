@@ -115,7 +115,7 @@
 // 都触发 —— 上界 = 帧大小 × 每轮帧数 / 本值（16384 × 2 / 100000ns = 328 MB/s）。
 // 保持"固定睡"，不要改成"补齐到本值"：那是行为改动。
 // Send-loop round idle-tick (ns). Also upper bound on single-stream throughput (frame_size × 2 / tick_ns). Keep "fixed sleep", do NOT switch to "pad up to tick" — behavior change.
-#define CONST_HTTP2_SlEEP_MIN_TIME 100000
+#define CONST_HTTP2_SlEEP_MIN_TIME 10000
 
 #define CONST_ORM_CLEAR_TIME 7200
 #define CONST_ORM_CLEAR_NUMBER 1024

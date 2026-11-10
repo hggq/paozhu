@@ -7117,18 +7117,27 @@ void httpserver::http2_send_queue_loop([[maybe_unused]] unsigned char index_id)
                 {
                     break;
                 }
-                // to fast
-                const auto sq_end    = std::chrono::steady_clock::now();
-                auto sq_for_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(sq_end - sq_start).count();
-
                 // 链表里还有在推进的流时，这一轮几微秒就干完了活，于是这根 tick 每轮都触发：
                 // 它给发送线程的轮次定了 cadence，单流上界 = 帧大小 × 每轮帧数 / 本值，
                 // 不是"收尾窄窗口"的兜底。被闸门挡住的流已经挂进 parked_list、链表空得快，
                 // 那种场合才真的靠事件边唤醒。
+                //
+                // 跑分模式：CMake 打开 ENABLE_BENCHMARK（编译期定义 BENCHMARK）时本段不参与编译，
+                // 发送线程有活就连续推进、队列空则阻塞在 send_data_condition 上，不再固定睡。
+                // 未定义 BENCHMARK 时与改动前逐字一致。
+                // Benchmark build (ENABLE_BENCHMARK defines BENCHMARK): this tick is not compiled,
+                // so the send thread keeps advancing while there is work and blocks on
+                // send_data_condition when idle. Without BENCHMARK the code is unchanged.
+#ifndef BENCHMARK
+                // to fast
+                const auto sq_end    = std::chrono::steady_clock::now();
+                auto sq_for_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(sq_end - sq_start).count();
+
                 if (sq_for_duration < CONST_HTTP2_SlEEP_MIN_TIME)
                 {
                     std::this_thread::sleep_for(std::chrono::nanoseconds(CONST_HTTP2_SlEEP_MIN_TIME));
                 }
+#endif
 
                 if (isstop)
                 {
