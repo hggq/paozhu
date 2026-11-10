@@ -848,6 +848,8 @@ bool pg_conn_base::connect(const orm_conn_t &conn_config)
             isclose    = true;
             return false;
         }
+        // 查询与应答都是小包，关 Nagle，否则会被对端延迟确认量化成几十毫秒（libpq 默认亦如此）
+        conn_link->socket->set_option(asio::ip::tcp::no_delay(true));
         conn_link->sock_type = 1;
     }
 
@@ -1086,6 +1088,8 @@ asio::awaitable<bool> pg_conn_base::async_connect(const orm_conn_t &conn_config)
             isclose    = true;
             co_return false;
         }
+        // 查询与应答都是小包，关 Nagle，否则会被对端延迟确认量化成几十毫秒（libpq 默认亦如此）
+        conn_link->socket->set_option(asio::ip::tcp::no_delay(true));
         conn_link->sock_type = 1;
     }
 

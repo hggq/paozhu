@@ -3437,6 +3437,21 @@ void http2parse::readrawfileformdata(HTTP2_POST_DATA_T &temp_post_data, unsigned
         temp_post_data.peer->files["rawcontent"]["type"]     = temp_post_data.mimetype;
         temp_post_data.peer->files["rawcontent"]["size"]     = temp_post_data.cur_length;
         temp_post_data.peer->files["rawcontent"]["error"]    = 0;
+
+        // 内存快路径已累积的前缀先刷盘，spill 后业务统一从 tempfile 读
+        if (!temp_post_data.peer->rawcontent.empty())
+        {
+            size_t pn = fwrite(temp_post_data.peer->rawcontent.data(), 1,
+                               temp_post_data.peer->rawcontent.size(), temp_post_data.fp.get());
+            if (pn != temp_post_data.peer->rawcontent.size())
+            {
+                temp_post_data.fp.reset();
+                error = 40168;
+                return;
+            }
+            temp_post_data.peer->rawcontent.clear();
+        }
+        temp_post_data.raw_spilled = true;
     }
 
     if (temp_post_data.fp == nullptr)
@@ -5340,8 +5355,22 @@ void http2parse::post_data_process(HTTP2_POST_DATA_T &temp_post_data, unsigned c
         case 6:// 防御：映射表已不再产生 6，保留以防旧值/外部赋值
         case 7:// 防御：映射表已不再产生 7，保留以防旧值/外部赋值
         default:// 未来新增 media type 漏配时的兜底：走 raw，避免正文静默丢弃
-            // octet-stream / binary / 未识别 media type
-            readrawfileformdata(temp_post_data, islast_pack);
+            // octet-stream / binary / 未识别 media type：小 body 留内存，超阈值 spill
+            if (!temp_post_data.raw_spilled &&
+                temp_post_data.peer->rawcontent.size() + temp_post_data.content.size() <= CONST_HTTP_RAW_POST_SIZE)
+            {
+                temp_post_data.peer->rawcontent.append(temp_post_data.content);
+                temp_post_data.cur_length += temp_post_data.content.size();
+                if (islast_pack)
+                {
+                    temp_post_data.peer->files["rawcontent"].set_object();
+                    temp_post_data.peer->files["rawcontent"]["size"] = temp_post_data.peer->rawcontent.size();
+                }
+            }
+            else
+            {
+                readrawfileformdata(temp_post_data, islast_pack);
+            }
             break;
         }
     }

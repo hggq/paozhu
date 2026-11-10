@@ -8,6 +8,7 @@
 
 #define CONST_HTTP_BODY_POST_SIZE 33554432
 #define CONST_HTTP_JSON_POST_SIZE 2097152
+#define CONST_HTTP_RAW_POST_SIZE 2097152   // raw POST 内存快路径上限，超出 spill 到磁盘
 #define CONST_MQTT_SESSION_BODY_SIZE 2097152
 
 // MQTT 5 Will 延迟发布（will_delay_interval，MQTT 5 §3.2.2.26.3）的两道界。

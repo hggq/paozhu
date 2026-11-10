@@ -2389,6 +2389,20 @@ void httpparse::read_rawfile_formdata(std::string_view raw_http_post_data)
         peer->files["rawcontent"]["type"]     = "";
         peer->files["rawcontent"]["size"]     = 0;
         peer->files["rawcontent"]["error"]    = 0;
+
+        // 内存快路径已累积的前缀先刷盘，spill 后业务统一从 tempfile 读
+        if (!peer->rawcontent.empty())
+        {
+            size_t pn = fwrite(peer->rawcontent.data(), 1, peer->rawcontent.size(), uprawfile.get());
+            if (pn != peer->rawcontent.size())
+            {
+                uprawfile.reset();
+                error = 40094;
+                return;
+            }
+            peer->rawcontent.clear();
+        }
+        raw_spilled = true;
     }
 
     if (uprawfile == nullptr)
@@ -4006,13 +4020,20 @@ void httpparse::append_post_body(const unsigned char *data, unsigned int len, bo
         }
         break;
     case 5:
-        // octet-stream
+        // octet-stream / 无 Content-Type 回落：小 body 留内存，超阈值 spill 到磁盘
         if (len > 0)
         {
-            read_rawfile_formdata(std::string_view((const char *)data, len));
-            if (error > 0)
+            if (!raw_spilled && peer->rawcontent.size() + len <= CONST_HTTP_RAW_POST_SIZE)
             {
-                return;
+                peer->rawcontent.append((char *)data, len);
+            }
+            else
+            {
+                read_rawfile_formdata(std::string_view((const char *)data, len));
+                if (error > 0)
+                {
+                    return;
+                }
             }
         }
         if (is_final)
@@ -4024,8 +4045,11 @@ void httpparse::append_post_body(const unsigned char *data, unsigned int len, bo
             {
                 uprawfile.reset();
             }
-            peer->files["rawcontent"]["size"] = request_chunked ? chunk_total : http_content_length;
-            peer->isfinish                    = true;
+            peer->files["rawcontent"].set_object();
+            peer->files["rawcontent"]["size"] =
+                raw_spilled ? (request_chunked ? chunk_total : http_content_length)
+                            : peer->rawcontent.size();
+            peer->isfinish = true;
         }
         break;
     }
@@ -4416,6 +4440,7 @@ void httpparse::clear()
 
     readoffset = 0;
     uprawfile.reset(nullptr);
+    raw_spilled = false;
     error  = 0;
     method = HEAD_METHOD::UNKNOW;
 

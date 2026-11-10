@@ -1,5 +1,4 @@
 #include <thread>
-#include <sstream>
 #include "orm.h"
 #include "httppeer.h"
 #include "server.h"
@@ -53,6 +52,8 @@ asio::awaitable<std::string> test_ioc_affinity(std::shared_ptr<httppeer> peer)
     std::string err = model.error_msg;
     model.unlock_conn();
 
+    // 指针/布尔先转成非模板重载吃得下的类型：httppeer 的模板 operator<< 定义只在
+    // httppeer.cpp、无显式实例化，跨 TU 调 void*/bool 的版本会变成未定义引用。
     client << (ok ? "PASS" : "FAIL") << " ioc_idx=" << ioc_idx << " conn_slot=" << conn_slot
            << " ctx=" << reinterpret_cast<unsigned long long>(&ctx)
            << " sess=" << reinterpret_cast<unsigned long long>(&sess_ctx)

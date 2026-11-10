@@ -221,6 +221,8 @@ struct HTTP2_POST_DATA_T
     unsigned char closing_dashes_seen  = 0;
     // multipart 已完整闭合（与 peer->isfinish 解耦，后者仍由 END_STREAM 置位）。
     bool multipart_closed             = false;
+    // posttype 5 是否已 spill 到磁盘（小 body 留 peer->rawcontent）
+    bool raw_spilled                  = false;
 
     HTTP2_POST_DATA_T() : fp(nullptr, std::fclose) {};
 };

@@ -413,6 +413,8 @@ bool mysql_conn_base::connect(const orm_conn_t &conn_config)
             isclose    = true;
             return false;
         }
+        // 握手与查询都是小包，关 Nagle，否则会被对端延迟确认量化成几十毫秒（与 TLS 分支同口径）
+        conn_link->socket->set_option(asio::ip::tcp::no_delay(true));
     }// end else (TCP)
     std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
     std::size_t n = 0;
@@ -1621,6 +1623,8 @@ asio::awaitable<bool> mysql_conn_base::async_connect(const orm_conn_t &conn_conf
             isclose    = true;
             co_return false;
         }
+        // 握手与查询都是小包，关 Nagle，否则会被对端延迟确认量化成几十毫秒（与 TLS 分支同口径）
+        conn_link->socket->set_option(asio::ip::tcp::no_delay(true));
     }// end else (TCP)
     std::size_t n = 0;
     try

@@ -148,6 +148,7 @@ class httpparse
     bool chunked_payload_closed          = false;
 
     std::unique_ptr<std::FILE, int (*)(FILE *)> uprawfile;
+    bool raw_spilled = false;   // posttype 5 是否已 spill 到磁盘
     std::shared_ptr<httppeer> peer;
     std::unique_ptr<websocket_t> websocket{nullptr};
     std::unique_ptr<HTTP_POST_DATA_T> temp_post_data{nullptr};
