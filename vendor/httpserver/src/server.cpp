@@ -8956,6 +8956,9 @@ void httpserver::listeners()
     // 才会发送 OCSP response。实际 OCSP 响应由 SNI 回调设置。
     sysconfigpath.enable_ocsp_stapling(context_.native_handle());
 
+    // 轮流游标这条线程私有，普通计数即可：另一条监听线程各数各的，最坏是两条同一拍落到
+    // 同一个 ioc，落点重复不影响正确性。
+    unsigned short session_ioc_cursor   = 0;
     unsigned int error_count            = 0;
     unsigned int clear_error_count_time = 0;
 
@@ -8967,7 +8970,12 @@ void httpserver::listeners()
         {
             for (;;)
             {
-                std::shared_ptr<client_session> peer_session = std::make_shared<client_session>(*this->io_context);
+                // accept 轮流落点：会话的 strand、socket 与后续协程都在这个 ioc 上跑，
+                // acceptor 自己仍在 io_contexts[0]——asio 的 accept() 是把新 fd assign 给
+                // peer socket，注册进 peer 自己的 io_context，不要求两者同上下文。
+                // io_contexts 在起这条线程前就建好了，个数至少 8；游标到顶回绕是有定义行为。
+                asio::io_context &session_ioc = *io_contexts[session_ioc_cursor++ % io_contexts.size()];
+                std::shared_ptr<client_session> peer_session = std::make_shared<client_session>(session_ioc);
                 asio::ip::tcp::socket socket(peer_session->strand_);
                 peer_session->sslsocket = std::make_unique<asio::ssl::stream<asio::ip::tcp::socket>>(std::move(socket), context_);
                 peer_session->isssl     = true;
@@ -9139,6 +9147,8 @@ void httpserver::listener()
     }
 
     DEBUG_LOG("http accept");
+    // 轮流游标这条线程私有，普通计数即可。
+    unsigned short session_ioc_cursor   = 0;
     unsigned int error_count            = 0;
     unsigned int clear_error_count_time = 0;
 
@@ -9150,7 +9160,9 @@ void httpserver::listener()
         {
             for (;;)
             {
-                std::shared_ptr<client_session> peer_session = std::make_shared<client_session>(*this->io_context);
+                // accept 轮流落点，同 https 那一支：socket assign 到 peer 自己的 io_context。
+                asio::io_context &session_ioc = *io_contexts[session_ioc_cursor++ % io_contexts.size()];
+                std::shared_ptr<client_session> peer_session = std::make_shared<client_session>(session_ioc);
                 peer_session->socket                         = std::make_unique<asio::ip::tcp::socket>(peer_session->strand_);
                 peer_session->isssl                          = false;
                 peer_session->time_limit.store(timeid() + 16);
@@ -9300,7 +9312,7 @@ void httpserver::startup_orm_init(std::string &orm_log_file)
 
     try
     {
-        orm_log_file = orm::init_orm_conn_pool(io_context, ormconf);
+        orm_log_file = orm::init_orm_conn_pool(io_contexts, ioc_index, ormconf);
     }
     catch (const char *e)
     {
@@ -10139,10 +10151,16 @@ void httpserver::httpwatch_clear_timeout_sessions(unsigned int clean_cron_min, u
 
     //clear mysql connect
     std::map<std::string, std::shared_ptr<orm::orm_conn_pool>> &mysqldbpoolglobal = orm::get_orm_conn_pool_obj();
-    for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
+    // 框架自己的周期任务固定落在 io_contexts[0]，不参与 accept 轮流。
+    std::shared_ptr<asio::io_context> clear_ioc = io_context;
+    if (clear_ioc)
     {
-        asio::co_spawn(*this->io_context, orm_connect_clear(iter->second), asio::detached);
-        DEBUG_LOG("mysql connect clear 1024q or 2hour ");
+        for (auto iter = mysqldbpoolglobal.begin(); iter != mysqldbpoolglobal.end(); iter++)
+        {
+            // clear_*_2hour 内部逐槽 co_spawn 到各槽自己的 ioc，这里只需按池投递一次。
+            asio::co_spawn(*clear_ioc, orm_connect_clear(iter->second), asio::detached);
+            DEBUG_LOG("mysql connect clear 1024q or 2hour ");
+        }
     }
 }
 
@@ -11497,18 +11515,43 @@ void httpserver::run(const std::string &sysconfpath)
 
         // DB 初始化在起任何工作/监听线程之前完成，失败则拒绝启动。
         // RBAC 判定钩子由业务入口在 run() 之前装好，这里不涉及。
+        //
+        // 先定 io_contexts 与反查表，再让 ORM 池按下标建槽：一个 ioc 一条 run 线程，
+        // 个数就是上面的线程数。表建好后只读，异步取连接时无锁并发 find。
+        io_contexts.clear();
+        io_contexts.emplace_back(io_context);
+        for (std::size_t i = 1; i < total_count; ++i)
+        {
+            io_contexts.emplace_back(std::make_shared<asio::io_context>(0));
+        }
+        {
+            auto index = std::make_shared<std::unordered_map<const asio::execution_context *, unsigned int>>();
+            for (std::size_t i = 0; i < io_contexts.size(); ++i)
+            {
+                index->emplace(static_cast<const asio::execution_context *>(io_contexts[i].get()),
+                               static_cast<unsigned int>(i));
+            }
+            ioc_index = std::move(index);
+        }
         {
             std::string startup_orm_log;
             startup_orm_init(startup_orm_log);
         }
         startup_ready = true;
 
-        asio::executor_work_guard<asio::io_context::executor_type> worker(io_context->get_executor());
+        // 每个 ioc 一份 work_guard：少了它该 ioc 的 run() 立刻返回，
+        // 落在该槽上的建连、门闩退避定时器与清理协程都不会再推进。
+        std::vector<asio::executor_work_guard<asio::io_context::executor_type>> workers;
+        workers.reserve(io_contexts.size());
+        for (auto &one_ioc : io_contexts)
+        {
+            workers.emplace_back(one_ioc->get_executor());
+        }
 
-        for (std::size_t i = 0; i < total_count; ++i)
+        for (std::size_t i = 0; i < io_contexts.size(); ++i)
         {
             runthreads.emplace_back(
-                [this]()
+                [ioc = io_contexts[i], this]()
                 {
 #ifdef DEBUG
                     std::ostringstream oss;
@@ -11520,7 +11563,7 @@ void httpserver::run(const std::string &sysconfpath)
                     {
                         try
                         {
-                            this->io_context->run();
+                            ioc->run();
                         }
                         catch (...)
                         {
@@ -11743,6 +11786,11 @@ void httpserver::stop()
 #ifdef ENABLE_REDIS
     // 现在共用框架 io_context，进程退出时 io_context.stop() 自然收掉所有协程，无需单独 stop redis pool
 #endif
+    // 每个 ioc 都要停：工作线程的 run() 靠这个返回，漏一个那条槽上的协程就不散场。
+    for (auto &one_ioc : io_contexts)
+    {
+        one_ioc->stop();
+    }
     io_context->stop();
     DEBUG_LOG("httpserver stop!");
 }

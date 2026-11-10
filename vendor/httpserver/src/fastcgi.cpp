@@ -658,14 +658,17 @@ asio::awaitable<void> fastcgi::async_send()
 }
 asio::awaitable<void> fastcgi::send_exit(std::shared_ptr<httppeer> peer)
 {
-    //auto ex = asio::get_associated_executor(peer->user_code_handler_call.front());
+    // 与 httppeer::clsoesend 对齐：把协程续体唤醒投回该连接自己的 session strand，
+    // 而不是全局 server_ioc。投到全局 ioc 会让续体在 strand 之外恢复，
+    // 与同连接的其它 strand 上任务并发执行（实测 resume_on_strand=0 overlapped=1）。
+    // socket_session 在此必已绑定：http1loop/http2loop 入口均会先绑定再调用 http1_fastcgi/http2_fastcgi。
     std::unique_lock<std::mutex> lock(peer->pop_user_handleer_mutex);
-    if (peer->user_code_handler_call.size() > 0)
+    if (peer->user_code_handler_call.size() > 0 && peer->socket_session != nullptr)
     {
         auto handle = std::move(peer->user_code_handler_call.front());
         peer->user_code_handler_call.pop_front();
         lock.unlock();
-        asio::dispatch(*server_ioc,
+        asio::dispatch(peer->socket_session->strand_,
                        [handler = std::move(handle)]() mutable -> void
                        {
                            /////////////

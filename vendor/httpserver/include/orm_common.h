@@ -3,6 +3,7 @@
 
 #include <asio.hpp>
 #include <asio/ssl.hpp>
+#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <ostream>
@@ -869,9 +870,32 @@ struct orm_conn_link_t
     unsigned int begin_time  = 0;
     DB_TYPE db_type          = DB_TYPE::MYSQL;
     unsigned char sock_type  = 0;// 0=none, 1=tcp, 2=ssl, 3=local socket
+    // 连接占用的池名额计数（归属哪个槽的哪个角色由池在建连成功时绑定）。
+    // 计数是共享的：槽被重建或销毁后，这条连接关闭时名额照样还得回去。
+    std::shared_ptr<std::atomic<unsigned int>> slot_total;
+
     // factory: create a conn_link from the config
     static std::unique_ptr<orm_conn_link_t> create(asio::io_context &ioc,
                                                    DB_TYPE type);
+
+    // 绑定名额并报数：只在第一次绑定时计数，重连复用同一个 link 不重复占名额。
+    void bind_slot_total(std::shared_ptr<std::atomic<unsigned int>> counter)
+    {
+        if (!counter || slot_total)
+        {
+            return;
+        }
+        slot_total = std::move(counter);
+        slot_total->fetch_add(1, std::memory_order_relaxed);
+    }
+
+    ~orm_conn_link_t()
+    {
+        if (slot_total)
+        {
+            slot_total->fetch_sub(1, std::memory_order_relaxed);
+        }
+    }
 
     // close the connection
     void close();

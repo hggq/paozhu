@@ -304,9 +304,9 @@ namespace http
         reg_raw("", "/admin/rbac/sysuser/delete", admin_isloginjson, nullptr, rbac_sysuser_delete, nullptr, 0, 0, 0, ""); // controller/src/rbac/sysuser.cpp:150
         reg_raw("", "/admin/rbac/userrole/list", admin_isloginjson, nullptr, rbac_userrole_list, nullptr, 0, 0, 0, ""); // controller/src/rbac/userrole.cpp:55
         reg_raw("", "/admin/rbac/userrole/save", admin_isloginjson, nullptr, rbac_userrole_save, nullptr, 0, 0, 0, ""); // controller/src/rbac/userrole.cpp:90
-        reg_raw("", "/metrics", nullptr, nullptr, paozhu_metrics, nullptr, 0, 0, 0, ""); // controller/src/serverwatch.cpp:386
-        reg_raw("", "/paozhu_status", nullptr, nullptr, paozhu_metrics_legacy, nullptr, 0, 0, 0, ""); // controller/src/serverwatch.cpp:399
-        reg_raw("", "/frametasks_timeloop", nullptr, nullptr, frametasks_timeloop, nullptr, 0, 0, 0, ""); // controller/src/serverwatch.cpp:695
+        reg_raw("", "/metrics", nullptr, nullptr, paozhu_metrics, nullptr, 0, 0, 0, ""); // controller/src/serverwatch.cpp:400
+        reg_raw("", "/paozhu_status", nullptr, nullptr, paozhu_metrics_legacy, nullptr, 0, 0, 0, ""); // controller/src/serverwatch.cpp:413
+        reg_raw("", "/frametasks_timeloop", nullptr, nullptr, frametasks_timeloop, nullptr, 0, 0, 0, ""); // controller/src/serverwatch.cpp:709
         reg_raw("", "/superadmin/rbac/companyperm", superadmin_islogin, nullptr, superadmin_rbac_companyperm, nullptr, 0, 0, 0, ""); // controller/src/superadmin/rbac/companyperm.cpp:26
         reg_raw("", "/superadmin/rbac/companyperm/save", superadmin_isloginjson, nullptr, superadmin_rbac_companyperm_save, nullptr, 0, 0, 0, ""); // controller/src/superadmin/rbac/companyperm.cpp:148
         reg_raw("", "/superadmin/rbac/perm", superadmin_islogin, nullptr, superadmin_rbac_perm_list, nullptr, 0, 0, 0, ""); // controller/src/superadmin/rbac/rbacperm.cpp:14

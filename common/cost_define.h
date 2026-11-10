@@ -120,6 +120,10 @@
 #define CONST_ORM_CLEAR_NUMBER 1024
 #define CONST_ORM_QUERY_CONNECT_TIMEOUT 30
 #define CONST_ORM_QUERY_LOG_TIME 30
+// 异步取连接时，本槽该角色的名额（maxpool）已满后的最长等待（毫秒）。到点抛异常，
+// 由 ORM 的 catch 写成 error_msg；不等下去的请求会一直占着协程。
+// Max wait (ms) for a free slot quota in async_get_*_conn before giving up and throwing.
+#define CONST_ORM_CONN_WAIT_MS 5000
 
 #define CONST_ERROR_COUNT_TIME 28800
 #define CONST_HARD_KILL_TIME 28800

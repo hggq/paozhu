@@ -49,13 +49,21 @@ void collect_orm_rows(std::string &html_rows, std::string &json_items)
             cfg = &p->conf_data[1];
 
         std::size_t edit_n = 0, select_n = 0;
+        for (auto &slot : p->slots)
         {
-            std::lock_guard<std::mutex> lk(p->conn_edit_mutex);
-            edit_n = p->mysql_edit_pool.size() + p->pg_edit_pool.size() + (p->sqlite_edit_conn ? 1 : 0);
+            if (!slot)
+                continue;
+            std::lock_guard<std::mutex> lk(slot->edit_mutex);
+            edit_n += slot->mysql_edit_pool.size() + slot->pg_edit_pool.size() +
+                      (slot->sqlite_edit_conn ? 1 : 0);
         }
+        for (auto &slot : p->slots)
         {
-            std::lock_guard<std::mutex> lk(p->conn_select_mutex);
-            select_n = p->mysql_select_pool.size() + p->pg_select_pool.size() + (p->sqlite_select_conn ? 1 : 0);
+            if (!slot)
+                continue;
+            std::lock_guard<std::mutex> lk(slot->select_mutex);
+            select_n += slot->mysql_select_pool.size() + slot->pg_select_pool.size() +
+                        (slot->sqlite_select_conn ? 1 : 0);
         }
 
         std::string tag    = kv.first;
@@ -334,15 +342,21 @@ std::string write_prometheus_metrics(httpserver &app, const server_loaclvar &gva
         std::string dbtype = cfg->dbtype.empty() ? "unknown" : cfg->dbtype;
 
         std::uint64_t edit_n = 0, select_n = 0;
+        for (auto &slot : pool->slots)
         {
-            std::lock_guard<std::mutex> lk(pool->conn_edit_mutex);
-            edit_n = pool->mysql_edit_pool.size() + pool->pg_edit_pool.size() +
-                     (pool->sqlite_edit_conn ? 1 : 0);
+            if (!slot)
+                continue;
+            std::lock_guard<std::mutex> lk(slot->edit_mutex);
+            edit_n += slot->mysql_edit_pool.size() + slot->pg_edit_pool.size() +
+                      (slot->sqlite_edit_conn ? 1 : 0);
         }
+        for (auto &slot : pool->slots)
         {
-            std::lock_guard<std::mutex> lk(pool->conn_select_mutex);
-            select_n = pool->mysql_select_pool.size() + pool->pg_select_pool.size() +
-                       (pool->sqlite_select_conn ? 1 : 0);
+            if (!slot)
+                continue;
+            std::lock_guard<std::mutex> lk(slot->select_mutex);
+            select_n += slot->mysql_select_pool.size() + slot->pg_select_pool.size() +
+                        (slot->sqlite_select_conn ? 1 : 0);
         }
         orm_samples.push_back({kv.first, dbtype, edit_n, select_n,
                                pool->error_msg.empty() ? std::uint64_t{1} : std::uint64_t{0}});
