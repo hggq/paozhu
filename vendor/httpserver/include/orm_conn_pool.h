@@ -133,6 +133,12 @@ class orm_conn_pool
     // 按 io_context 下标对齐的槽数组；init 时定长创建，之后不再 resize。
     std::vector<std::unique_ptr<orm_slot>> slots;
 
+    // 全局预算按槽切分后的实际配额：max_pool / min_pool 除以槽数，余数给下标小的槽。
+    // N == 1 时逐值等于 max_pool / min_pool（单 ioc 兼容路径）。link_type 0=edit，1=select。
+    // init 预建、异步取连接的门闩、启动自检都用这两个值，公开只为便于自检与测试打印。
+    unsigned int slot_max_of(unsigned int link_type, unsigned int slot_index) const;
+    unsigned int slot_min_of(unsigned int link_type, unsigned int slot_index) const;
+
     // 兼容视图：老代码与 tests 直接读 pool->mysql_edit_pool 等，语义是"槽 0 的队列"。
     // 分槽后队列搬进了 orm_slot，这里保留同名入口，避免改那些独立二进制。
     template <typename ListT>
@@ -165,7 +171,8 @@ class orm_conn_pool
     std::shared_ptr<const std::unordered_map<const asio::execution_context *, unsigned int>> ioc_index;
 
     // tag 级配置：host/port/dbname/user/password/ssl/charset/pretable/db_type，
-    // 以及每槽的上限/预建策略 max_pool / min_pool。槽只读，不持有副本。
+    // 以及上限/预建预算 max_pool / min_pool。这两个值是**全局预算**（单个池的语义），
+    // init 时按槽数切分成每槽配额，见 slot_max_of / slot_min_of；槽只读，不持有副本。
     std::array<orm_conn_t, 2> conf_data;
     std::string error_msg;
     // 兼容成员：槽 0 的 ioc 裸指针。httpcli 代码生成器与旧调用点直接写它，

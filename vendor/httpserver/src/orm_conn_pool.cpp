@@ -342,6 +342,39 @@ unsigned int orm_conn_pool::max_pool_of(unsigned int link_type) const
     return m == 0 ? 1u : m;
 }
 
+unsigned int orm_conn_pool::slot_max_of(unsigned int link_type, unsigned int slot_index) const
+{
+    const unsigned int budget = max_pool_of(link_type);
+    const unsigned int n      = static_cast<unsigned int>(slots.size());
+    // 单槽（单 ioc 兼容路径）：全局预算就是本槽配额，与改造前逐值相等。
+    if (n <= 1)
+    {
+        return budget;
+    }
+    const unsigned int base = budget / n;
+    const unsigned int rem  = budget % n;
+    // 余数给下标小的槽，保证每次启动、每台机器的分配一致，便于对比读数。
+    const unsigned int m = base + (slot_index < rem ? 1u : 0u);
+    // budget < N 时按 1 保底，避免某些槽永久拿不到连接（init 会为此打告警）。
+    return m == 0 ? 1u : m;
+}
+
+unsigned int orm_conn_pool::slot_min_of(unsigned int link_type, unsigned int slot_index) const
+{
+    const unsigned int role_min = conf_data[link_type & 1u].min_pool;
+    const unsigned int n        = static_cast<unsigned int>(slots.size());
+    // 单槽：预建量就是 min_pool 原值（不夹上限），与改造前逐值相等。
+    if (n <= 1)
+    {
+        return role_min;
+    }
+    const unsigned int mbase = role_min / n;
+    const unsigned int mrem  = role_min % n;
+    const unsigned int m     = mbase + (slot_index < mrem ? 1u : 0u);
+    // 预建不能超过本槽上限
+    return std::min(m, slot_max_of(link_type, slot_index));
+}
+
 std::string init_orm_conn_pool_release()
 {
     std::map<std::string, std::shared_ptr<orm_conn_pool>> &int_pool = get_orm_conn_pool_obj();
@@ -413,13 +446,50 @@ std::string init_orm_conn_pool(
         conn->io_context = conn->slots[0]->io_context;
         conn->conf_data[item.link_type] = item;
 
+        // 预算切分自检：打印每槽实际生效的上限/预建。min_pool / max_pool 是全局预算，
+        // 这里按槽数切分；N == 1 时应逐值等于 orm.conf 里的原值。
+        // SQLite 是单连接模式（只认槽 0、忽略条数），不打印，避免误读。
+        if (item.db_type != DB_TYPE::SQLITE)
+        {
+            std::string quota_log = "-- orm pool tag=" + item.tag +
+                                    " role=" + (item.link_type == 0 ? "edit" : "select") +
+                                    " io_contexts=" + std::to_string(conn->slots.size()) +
+                                    " slot_max=";
+            std::string min_log  = " slot_min=";
+            unsigned int min_sum = 0;
+            for (unsigned int si = 0; si < conn->slots.size(); ++si)
+            {
+                if (si > 0)
+                {
+                    quota_log += ",";
+                    min_log += ",";
+                }
+                quota_log += std::to_string(conn->slot_max_of(item.link_type, si));
+                min_log += std::to_string(conn->slot_min_of(item.link_type, si));
+                min_sum += conn->slot_min_of(item.link_type, si);
+            }
+            error_log.append(quota_log + min_log + " prebuild=" + std::to_string(min_sum) + "\n");
+
+            // 每槽保底 1 会让 Σslot_max 超过 max_pool：提示把预算配到不小于槽数。
+            const unsigned int budget = item.max_pool == 0 ? 1u : item.max_pool;
+            if (conn->slots.size() > 1 && budget < conn->slots.size())
+            {
+                error_log.append("[ORM-WARN] tag=" + item.tag +
+                                 " role=" + (item.link_type == 0 ? "edit" : "select") +
+                                 " max_pool=" + std::to_string(budget) +
+                                 " < io_contexts=" + std::to_string(conn->slots.size()) +
+                                 ", per-slot quota floored to 1\n");
+            }
+        }
+
         unsigned int n = 0;
         try
         {
-            // 槽 0 预建 min_pool，其余槽懒建（0 条）；SQLite 单连接只用槽 0。
+            // min_pool 是全局预建预算，按槽切分后每槽预建各自的 slot_min，其余按需懒建。
+            // 预建总量与原单池一致，只是从槽 0 摊到各槽。
             for (unsigned int si = 0; si < conn->slots.size(); ++si)
             {
-                unsigned char prebuild = (si == 0) ? item.min_pool : 0;
+                unsigned char prebuild = static_cast<unsigned char>(conn->slot_min_of(item.link_type, si));
                 if (item.db_type == DB_TYPE::POSTGRESQL)
                 {
                     n += (item.link_type == 0)
@@ -700,9 +770,10 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql
     // any_io_executor 不支持 query(execution::context)，用通用的 context_as 查询取底层 context。
     const asio::execution_context &ctx =
         asio::query(ex, asio::execution::context_as_t<asio::execution_context &>());
-    orm_slot &slot                     = slot_ref(slot_of(ctx));
+    const unsigned int slot_index       = slot_of(ctx);
+    orm_slot &slot                      = slot_ref(slot_index);
 
-    const unsigned int maxn = max_pool_of(LINK_EDIT);
+    const unsigned int maxn = slot_max_of(LINK_EDIT, slot_index);
     asio::steady_timer timer(ex);
     std::chrono::milliseconds backoff(1);
     // 本槽该角色名额已满后的最长等待；到点抛异常退出，请求不会一直占着协程。
@@ -799,9 +870,10 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql
     // any_io_executor 不支持 query(execution::context)，用通用的 context_as 查询取底层 context。
     const asio::execution_context &ctx =
         asio::query(ex, asio::execution::context_as_t<asio::execution_context &>());
-    orm_slot &slot                     = slot_ref(slot_of(ctx));
+    const unsigned int slot_index       = slot_of(ctx);
+    orm_slot &slot                      = slot_ref(slot_index);
 
-    const unsigned int maxn = max_pool_of(LINK_SELECT);
+    const unsigned int maxn = slot_max_of(LINK_SELECT, slot_index);
     asio::steady_timer timer(ex);
     std::chrono::milliseconds backoff(1);
     // 本槽该角色名额已满后的最长等待；到点抛异常退出，请求不会一直占着协程。
@@ -1101,9 +1173,10 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_edit_
     // any_io_executor 不支持 query(execution::context)，用通用的 context_as 查询取底层 context。
     const asio::execution_context &ctx =
         asio::query(ex, asio::execution::context_as_t<asio::execution_context &>());
-    orm_slot &slot                     = slot_ref(slot_of(ctx));
+    const unsigned int slot_index       = slot_of(ctx);
+    orm_slot &slot                      = slot_ref(slot_index);
 
-    const unsigned int maxn = max_pool_of(LINK_EDIT);
+    const unsigned int maxn = slot_max_of(LINK_EDIT, slot_index);
     asio::steady_timer timer(ex);
     std::chrono::milliseconds backoff(1);
     // 本槽该角色名额已满后的最长等待；到点抛异常退出，请求不会一直占着协程。
@@ -1195,9 +1268,10 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_selec
     // any_io_executor 不支持 query(execution::context)，用通用的 context_as 查询取底层 context。
     const asio::execution_context &ctx =
         asio::query(ex, asio::execution::context_as_t<asio::execution_context &>());
-    orm_slot &slot                     = slot_ref(slot_of(ctx));
+    const unsigned int slot_index       = slot_of(ctx);
+    orm_slot &slot                      = slot_ref(slot_index);
 
-    const unsigned int maxn = max_pool_of(LINK_SELECT);
+    const unsigned int maxn = slot_max_of(LINK_SELECT, slot_index);
     asio::steady_timer timer(ex);
     std::chrono::milliseconds backoff(1);
     // 本槽该角色名额已满后的最长等待；到点抛异常退出，请求不会一直占着协程。
