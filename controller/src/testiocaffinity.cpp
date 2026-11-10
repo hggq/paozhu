@@ -1,4 +1,5 @@
 #include <thread>
+#include <sstream>
 #include "orm.h"
 #include "httppeer.h"
 #include "server.h"
@@ -53,9 +54,10 @@ asio::awaitable<std::string> test_ioc_affinity(std::shared_ptr<httppeer> peer)
     model.unlock_conn();
 
     client << (ok ? "PASS" : "FAIL") << " ioc_idx=" << ioc_idx << " conn_slot=" << conn_slot
-           << " ctx=" << static_cast<void *>(&ctx) << " sess=" << static_cast<void *>(&sess_ctx)
-           << " conn=" << static_cast<void *>(conn_ioc) << " tid_same=" << (tid_before == tid_after)
-           << " err=" << err;
+           << " ctx=" << reinterpret_cast<unsigned long long>(&ctx)
+           << " sess=" << reinterpret_cast<unsigned long long>(&sess_ctx)
+           << " conn=" << reinterpret_cast<unsigned long long>(conn_ioc)
+           << " tid_same=" << ((tid_before == tid_after) ? 1 : 0) << " err=" << err;
     co_return "";
 }
 }// namespace http

@@ -11517,13 +11517,22 @@ void httpserver::run(const std::string &sysconfpath)
         // RBAC 判定钩子由业务入口在 run() 之前装好，这里不涉及。
         //
         // 先定 io_contexts 与反查表，再让 ORM 池按下标建槽：一个 ioc 一条 run 线程，
-        // 个数就是上面的线程数。表建好后只读，异步取连接时无锁并发 find。
+        // 个数由 io_context_num 决定（配 0 时取上面的线程数公式）。表建好后只读，异步取连接时无锁并发 find。
         io_contexts.clear();
         io_contexts.emplace_back(io_context);
-        for (std::size_t i = 1; i < total_count; ++i)
+
         {
-            io_contexts.emplace_back(std::make_shared<asio::io_context>(0));
+            unsigned int io_context_num = sysconfigpath.io_context_num;
+            if (io_context_num == 0)
+            {
+                io_context_num = total_count;
+            }
+            for (std::size_t i = 1; i < io_context_num; ++i)
+            {
+                io_contexts.emplace_back(std::make_shared<asio::io_context>(0));
+            }
         }
+
         {
             auto index = std::make_shared<std::unordered_map<const asio::execution_context *, unsigned int>>();
             for (std::size_t i = 0; i < io_contexts.size(); ++i)

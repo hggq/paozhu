@@ -1428,6 +1428,29 @@ bool serverconfig::loadserverglobalconfig()
         ip6_enable = false;
     }
 
+    if (map_value["default"]["io_context_num"].size() > 0)
+    {
+        io_context_num = 0;
+        for (size_t i = 0; i < map_value["default"]["io_context_num"].size(); i++)
+        {
+            if (map_value["default"]["io_context_num"][i] >= '0' && map_value["default"]["io_context_num"][i] <= '9')
+            {
+                io_context_num = io_context_num * 10 + (map_value["default"]["io_context_num"][i] - '0');
+                continue;
+            }
+            break;
+        }
+
+        if (io_context_num > 512)
+        {
+            io_context_num = 512;
+        }
+    }
+    else
+    {
+        io_context_num = 0;
+    }
+
     // 常驻出站客户端停机自检路由 /resident_stop 的开关，默认关；要诊断页才写 1。
     // 只在启动期起作用：路由注册发生在 run() 开头，运行中改这个值不会增删路由。
     if (map_value["default"]["resident_client_show"].size() > 0 && map_value["default"]["resident_client_show"][0] == '1')

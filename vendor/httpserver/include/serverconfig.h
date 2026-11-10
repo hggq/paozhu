@@ -168,6 +168,7 @@ class serverconfig
 
     unsigned int acme_every_day_time = 7;
     unsigned int acme_every_num      = 5;
+    unsigned int io_context_num      = 0;
 
     unsigned int ocsp_interval_time = 14400;
 
