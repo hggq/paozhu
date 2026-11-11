@@ -11514,8 +11514,19 @@ void httpserver::run(const std::string &sysconfpath)
         total_count = sysconfigpath.get_co_thread_num();
         if (total_count < std::thread::hardware_concurrency())
         {
-            total_count = std::thread::hardware_concurrency();
-            total_count += 4;
+            if(sysconfigpath.io_context_num > 16)
+            {
+                total_count = sysconfigpath.io_context_num;
+            }
+            else
+            {
+                total_count = std::thread::hardware_concurrency();
+            }
+
+            if(total_count < 16 )
+            {
+                total_count += 4;
+            }
         }
         if (total_count < 8)
         {
@@ -11530,16 +11541,9 @@ void httpserver::run(const std::string &sysconfpath)
         io_contexts.clear();
         io_contexts.emplace_back(io_context);
 
+        for (std::size_t i = 1; i < total_count; ++i)
         {
-            unsigned int io_context_num = sysconfigpath.io_context_num;
-            if (io_context_num == 0)
-            {
-                io_context_num = total_count;
-            }
-            for (std::size_t i = 1; i < io_context_num; ++i)
-            {
-                io_contexts.emplace_back(std::make_shared<asio::io_context>(0));
-            }
+            io_contexts.emplace_back(std::make_shared<asio::io_context>(0));
         }
 
         {
