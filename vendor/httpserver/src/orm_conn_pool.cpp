@@ -124,7 +124,7 @@ static unsigned char clamp_stoi(const std::string &s, unsigned char def)
     {
         int v = std::stoi(s);
         if (v < 0)
-            return 1;
+            return 0;
         if (v > 255)
             return 255;
         return (unsigned char)v;
@@ -175,7 +175,7 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
             c.db_type     = DB_TYPE::MYSQL;// 默认
             c.link_type   = 0;
             c.max_pool    = 4;
-            c.min_pool    = 1;
+            c.min_pool    = 0;
             c.issock      = false;
             c.islocal     = false;
             c.isssl       = false;
@@ -209,7 +209,16 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
                 else if (k == "maxpool")
                     c.max_pool = clamp_stoi(v, 64);
                 else if (k == "minpool")
-                    c.min_pool = clamp_stoi(v, 2);
+                {
+                    if(v.size()==0)
+                    {
+                        c.min_pool = 0;
+                    }
+                    else
+                    {
+                        c.min_pool = clamp_stoi(v, 1);
+                    }
+                }
                 else if (k == "ssl")
                     c.isssl = parse_bool(v);
                 else if (k == "sslverify")
@@ -362,6 +371,11 @@ unsigned int orm_conn_pool::slot_max_of(unsigned int link_type, unsigned int slo
 unsigned int orm_conn_pool::slot_min_of(unsigned int link_type, unsigned int slot_index) const
 {
     const unsigned int role_min = conf_data[link_type & 1u].min_pool;
+    // min_pool 为 0：不预建任何连接，全部按需懒建
+    if (role_min == 0)
+    {
+        return 0;
+    }
     const unsigned int n        = static_cast<unsigned int>(slots.size());
     // 单槽：预建量就是 min_pool 原值（不夹上限），与改造前逐值相等。
     if (n <= 1)
@@ -411,10 +425,6 @@ std::string init_orm_conn_pool(
         if (item.link_type > 1)
         {
             continue;
-        }
-        if (item.min_pool < 1)
-        {
-            item.min_pool = 1;
         }
 
         auto iter = int_pool.find(item.tag);
