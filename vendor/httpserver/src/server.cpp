@@ -11512,25 +11512,19 @@ void httpserver::run(const std::string &sysconfpath)
         }
 
         total_count = sysconfigpath.get_co_thread_num();
-        if (total_count < std::thread::hardware_concurrency())
+        if (total_count > std::thread::hardware_concurrency())
         {
-            if(sysconfigpath.io_context_num > 16)
-            {
-                total_count = sysconfigpath.io_context_num;
-            }
-            else
-            {
-                total_count = std::thread::hardware_concurrency();
-            }
-
-            if(total_count < 16 )
-            {
-                total_count += 4;
-            }
+            total_count = std::thread::hardware_concurrency(); 
         }
-        if (total_count < 8)
+
+        if(total_count > 64)
         {
-            total_count = 8;
+            total_count = 64;
+        }
+
+        if (total_count < 4)
+        {
+            total_count = 4;
         }
 
         // DB 初始化在起任何工作/监听线程之前完成，失败则拒绝启动。
@@ -11572,26 +11566,35 @@ void httpserver::run(const std::string &sysconfpath)
 
         for (std::size_t i = 0; i < io_contexts.size(); ++i)
         {
-            runthreads.emplace_back(
-                [ioc = io_contexts[i], this]()
-                {
-#ifdef DEBUG
-                    std::ostringstream oss;
-                    oss << std::this_thread::get_id();
-                    std::string tempthread = oss.str();
-                    DEBUG_LOG("frame thread:%s", tempthread.c_str());
-#endif
-                    do
+            unsigned int per_ioc_num = sysconfigpath.per_ioc_thread_num;
+
+            if(per_ioc_num < 1)
+            {
+                per_ioc_num = 1;
+            }
+            for (std::size_t j = 0; j < per_ioc_num; ++j)
+            {
+                runthreads.emplace_back(
+                    [ioc = io_contexts[i], this]()
                     {
-                        try
+#ifdef DEBUG
+                        std::ostringstream oss;
+                        oss << std::this_thread::get_id();
+                        std::string tempthread = oss.str();
+                        DEBUG_LOG("frame thread:%s", tempthread.c_str());
+#endif
+                        do
                         {
-                            ioc->run();
-                        }
-                        catch (...)
-                        {
-                        }
-                    } while (!isstop);
-                });
+                            try
+                            {
+                                ioc->run();
+                            }
+                            catch (...)
+                            {
+                            }
+                        } while (!isstop);
+                    });
+            }
         }
 #ifdef ENABLE_REDIS
         // 这批线程就是 redis 协程路跑在上面的人手，池的线程数统计照它来（跑在线程上，不由池自己管）。

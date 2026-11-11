@@ -508,7 +508,7 @@ class httpserver
     std::list<std::string> error_loglist;
     std::mutex log_mutex;
 
-    ThreadPool clientrunpool{std::thread::hardware_concurrency() * 2 + 2};
+    ThreadPool clientrunpool{std::thread::hardware_concurrency() + 2};
 
     // std::mutex http2_task_mutex;
     // std::list<struct http2sendblock_t> http2send_tasks;

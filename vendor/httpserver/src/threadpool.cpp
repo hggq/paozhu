@@ -295,7 +295,7 @@ ThreadPool::ThreadPool(size_t threads) : isstop(false)
 {
     isclose_add = true;
     cpu_threads = std::thread::hardware_concurrency();
-    cpu_threads = cpu_threads * 2 + 2;
+    cpu_threads = cpu_threads + 2;
     mixthreads.store(cpu_threads);
     cpu_threads = cpu_threads * 2;
     livethreadcount.store(0);

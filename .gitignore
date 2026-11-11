@@ -35,6 +35,8 @@ bin/*
 .qoder/
 .codebuddy
 .codebuddy/
+.trae
+.trae/
 
 # 运行时生成 / Runtime-generated
 www/default/upload

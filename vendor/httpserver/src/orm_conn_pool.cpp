@@ -124,7 +124,7 @@ static unsigned char clamp_stoi(const std::string &s, unsigned char def)
     {
         int v = std::stoi(s);
         if (v < 0)
-            return 0;
+            return 1;
         if (v > 255)
             return 255;
         return (unsigned char)v;
@@ -174,8 +174,8 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
             c.tag         = tag;
             c.db_type     = DB_TYPE::MYSQL;// 默认
             c.link_type   = 0;
-            c.max_pool    = 0;
-            c.min_pool    = 0;
+            c.max_pool    = 4;
+            c.min_pool    = 1;
             c.issock      = false;
             c.islocal     = false;
             c.isssl       = false;
@@ -207,7 +207,7 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
                 else if (k == "pretable")
                     c.pretable = v;
                 else if (k == "maxpool")
-                    c.max_pool = clamp_stoi(v, 2);
+                    c.max_pool = clamp_stoi(v, 64);
                 else if (k == "minpool")
                     c.min_pool = clamp_stoi(v, 2);
                 else if (k == "ssl")
@@ -371,8 +371,9 @@ unsigned int orm_conn_pool::slot_min_of(unsigned int link_type, unsigned int slo
     const unsigned int mbase = role_min / n;
     const unsigned int mrem  = role_min % n;
     const unsigned int m     = mbase + (slot_index < mrem ? 1u : 0u);
-    // 预建不能超过本槽上限
-    return std::min(m, slot_max_of(link_type, slot_index));
+    // 预建不能超过本槽上限；每槽保底 1 条，冷槽首请求不用等建连
+    const unsigned int capped = std::min(m, slot_max_of(link_type, slot_index));
+    return capped == 0 ? 1u : capped;
 }
 
 std::string init_orm_conn_pool_release()
