@@ -134,7 +134,8 @@ class orm_conn_pool
     std::vector<std::unique_ptr<orm_slot>> slots;
 
     // 全局预算按槽切分后的实际配额：max_pool / min_pool 除以槽数，余数给下标小的槽。
-    // N == 1 时逐值等于 max_pool / min_pool（单 ioc 兼容路径）。link_type 0=edit，1=select。
+    // 每槽上限与预建都保底 1 条。N == 1 时逐值等于 max_pool / min_pool（单 ioc 兼容路径）。
+    // link_type 0=edit，1=select。
     // init 预建、异步取连接的门闩、启动自检都用这两个值，公开只为便于自检与测试打印。
     unsigned int slot_max_of(unsigned int link_type, unsigned int slot_index) const;
     unsigned int slot_min_of(unsigned int link_type, unsigned int slot_index) const;
