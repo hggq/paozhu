@@ -208,7 +208,7 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
                 else if (k == "pretable")
                     c.pretable = v;
                 else if (k == "maxpool")
-                    c.max_pool = clamp_stoi(v, 64);
+                    c.max_pool = clamp_stoi(v, 128);
                 else if (k == "minpool")
                 {
                     if(v.size()==0)
@@ -590,6 +590,14 @@ std::string init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_con
 
 std::string init_orm_conn_pool(const std::string &orm_config_file, unsigned int orm_ioc_num)
 {
+    // orm.conf 不存在或为空：不起 host（ioc/guard/thread），直接返回空日志
+    // 进程里没有任何 ORM tag 时，host 线程白跑一圈没有意义
+    std::vector<orm_conn_t> myconfig = get_orm_config_file(orm_config_file);
+    if (myconfig.empty())
+    {
+        return "";
+    }
+
     orm_io_host_t &host = orm_io_host();
     std::string host_log;
     if (!host.started)

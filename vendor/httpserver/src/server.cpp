@@ -37,6 +37,7 @@
 
 #include <cerrno>
 #include <stdexcept>
+#include <filesystem>
 
 #include "orm_conn_pool.h"
 #include "orm_connect_mar.h"
@@ -9318,6 +9319,15 @@ void httpserver::startup_orm_init(std::string &orm_log_file)
         ormconf.push_back('/');
     }
     ormconf.append("orm.conf");
+
+    // orm.conf 不存在：跳过 ORM 初始化，server 照常启动
+    if (!std::filesystem::exists(ormconf))
+    {
+        std::string skip_log = "-- orm.conf not found, skip orm init\n";
+        std::unique_lock<std::mutex> lock(log_mutex);
+        error_loglist.emplace_back(std::move(skip_log));
+        return;
+    }
 
     try
     {
