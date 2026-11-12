@@ -160,6 +160,17 @@ class httpserver
     void http2_compress_output(std::shared_ptr<httppeer> &peer, std::shared_ptr<http2_send_data_t> &send_file_obj);
     void clear_peer_data(std::shared_ptr<httppeer> &peer);
 
+    // 取一个可跨连接复用的 httppeer。最后一个引用放开时走 reset_for_reuse() 回池，
+    // 池满则在锁外销毁。连接级循环（http1 / http2 / rpc）各取一个，HTTP/2 的流级 peer 不走这里。
+    static std::shared_ptr<httppeer> acquire_peer();
+#ifdef BENCHMARK
+    static constexpr std::size_t PEER_POOL_MAX = 4096;
+#else
+    static constexpr std::size_t PEER_POOL_MAX = 512;
+#endif
+    static std::mutex peer_pool_mutex;
+    static std::vector<std::unique_ptr<httppeer>> peer_pool;
+
     bool http2_send_file(std::shared_ptr<httppeer>);
     asio::awaitable<void> http2_send_file_range(std::shared_ptr<httppeer> peer);
 
@@ -388,6 +399,14 @@ class httpserver
                 http2_send_data_threads[i].join();
             }
         }
+        // 池里的 peer 在线程都 join 完之后、其它成员析构之前放掉。
+        // 先 swap 出来再销毁：~httppeer 可能再释放一个 peer，攥着同一把非递归 mutex 会死锁。
+        std::vector<std::unique_ptr<httppeer>> pool_drain;
+        {
+            std::lock_guard<std::mutex> lock(peer_pool_mutex);
+            pool_drain.swap(peer_pool);
+        }
+        pool_drain.clear();
     }
 
   public:

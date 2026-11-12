@@ -2223,7 +2223,6 @@ void httppeer::clear()
 
     chartset.clear();
     rawcontent.clear();
-    rawcontent.shrink_to_fit();
     header.clear();
     get.clear();
     post.clear();
@@ -2303,7 +2302,6 @@ void httppeer::clear()
     http2_send_header.clear();
 
     output.clear();
-    output.shrink_to_fit();
     sitepath.clear();
     sendfilename.clear();
 
@@ -2329,6 +2327,55 @@ void httppeer::clear()
 
     user_code_handler_call.clear();
     flow_method.reset();
+}
+
+void httppeer::reset_for_reuse()
+{
+    clear();
+
+    // 池里驻留的对象不属于任何一条连接，容量不该跟着上一条请求的大正文一直留着。
+    // 阈值与 clear_peer_data() 同一把；keep-alive 内的 clear() 不收缩。
+    if (output.capacity() > CONST_PEER_BUFFER_SHRINK_SIZE)
+    {
+        output.shrink_to_fit();
+    }
+    if (rawcontent.capacity() > CONST_PEER_BUFFER_SHRINK_SIZE)
+    {
+        rawcontent.shrink_to_fit();
+    }
+
+    // 这七个标记在头解析里只被写 true，原先靠每条流新建对象的值初始化拿到 false。
+    h2_method_seen  = false;
+    h2_method_dup   = false;
+    h2_scheme_seen  = false;
+    h2_scheme_dup   = false;
+    h2_path_seen    = false;
+    h2_path_dup     = false;
+    h2_regular_seen = false;
+
+    state.h2c               = false;
+    state.accept_json       = false;
+    state.accept_xml        = false;
+    state.accept_html       = false;
+    state.ifunmodifiedsince = 0;
+
+    accept_type.clear();
+    isssl         = false;
+    reject_status = 0;
+
+    client_ip.clear();
+    server_ip.clear();
+    client_port = 0;
+    server_port = 0;
+
+    // 间隔任务表里那条 shared_ptr 已经放开，调度字段不该跟着对象进下一条连接。
+    timeloop_num.store(0);
+    timecount_num.store(0);
+    timeloop_inflight.store(false);
+    timeloop_taskname.clear();
+    linktype = 0;
+
+    socket_session = nullptr;
 }
 
 range_parse_t parse_range_header(std::string_view header_value, headstate_t &state)

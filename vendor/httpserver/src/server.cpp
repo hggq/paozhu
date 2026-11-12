@@ -1153,6 +1153,40 @@ void httpserver::http2_compress_output(std::shared_ptr<httppeer> &peer, std::sha
         peer->length(peer->output.size());
     }
 }
+std::mutex httpserver::peer_pool_mutex;
+std::vector<std::unique_ptr<httppeer>> httpserver::peer_pool;
+
+std::shared_ptr<httppeer> httpserver::acquire_peer()
+{
+    httppeer *raw = nullptr;
+    {
+        std::lock_guard<std::mutex> lock(peer_pool_mutex);
+        if (!peer_pool.empty())
+        {
+            raw = peer_pool.back().release();
+            peer_pool.pop_back();
+        }
+    }
+    if (raw == nullptr)
+    {
+        raw = new httppeer();
+    }
+    return std::shared_ptr<httppeer>(raw, [](httppeer *p)
+    {
+        // hold 先接管所有权，且声明在锁的外层：复位和销毁都可能析构协程帧、
+        // 帧里再释放一个 peer，攥着同一把非递归 mutex 会死锁。
+        std::unique_ptr<httppeer> hold(p);
+        hold->reset_for_reuse();
+        {
+            std::lock_guard<std::mutex> lock(peer_pool_mutex);
+            if (peer_pool.size() < PEER_POOL_MAX)
+            {
+                peer_pool.push_back(std::move(hold));
+            }
+        }
+        // 走到这里 hold 还非空就是池满（或 push_back 抛了），在锁外销毁。
+    });
+}
 void httpserver::clear_peer_data(std::shared_ptr<httppeer> &peer)
 {
     peer->output.clear();
@@ -3053,7 +3087,7 @@ asio::awaitable<unsigned int> httpserver::client_http1_loop(bool isssl, unsigned
 {
     try
     {
-        std::shared_ptr<httppeer> peer = std::make_shared<httppeer>();
+        std::shared_ptr<httppeer> peer = acquire_peer();
         peer_session->time_limit.store(timeid());
         // 提前绑定 socket_session：CORS 预检分支（send_cors_domain）在 http1loop 之前
         // 就会用 peer->socket_session 写回响应，而该成员原先只在 http1loop 内部赋值，
@@ -3062,6 +3096,11 @@ asio::awaitable<unsigned int> httpserver::client_http1_loop(bool isssl, unsigned
         // httppeer::clear() 也不重置该成员，所以绑定一次即可。
         peer->socket_session                = peer_session->get_ptr();
         peer->client_ip                     = peer_session->getremoteip();
+        // 四个端点字段在连接入口绑一次。getlocalip()/getlocalport() 要查 socket，
+        // 不能放进每请求的分支；池化复用后也不能靠「server_port 还是 0」来判断该不该绑。
+        peer->server_ip                     = peer_session->getlocalip();
+        peer->client_port                   = peer_session->getremoteport();
+        peer->server_port                   = peer_session->getlocalport();
         std::unique_ptr<httpparse> http1pre = std::make_unique<httpparse>();
 
         std::string log_item;
@@ -3133,13 +3172,6 @@ asio::awaitable<unsigned int> httpserver::client_http1_loop(bool isssl, unsigned
             if (http1pre->getfinish())
             {
                 peer->isssl = isssl ? true : false;
-                if (peer->server_port == 0)
-                {
-                    peer->server_ip   = peer_session->getlocalip();
-                    peer->client_ip   = peer_session->getremoteip();
-                    peer->client_port = peer_session->getremoteport();
-                    peer->server_port = peer_session->getlocalport();
-                }
 
                 if (peer->state.h2c)
                 {
@@ -3303,7 +3335,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
         DEBUG_LOG("client_http2_loop");
         std::shared_ptr<http2parse> http2pre = std::make_shared<http2parse>();
         http2pre->setsession(peer_session);
-        std::shared_ptr<httppeer> peer = std::make_shared<httppeer>();
+        std::shared_ptr<httppeer> peer = acquire_peer();
         peer_session->time_limit.store(timeid());
         peer->client_ip = peer_session->getremoteip();
         // 这个 peer 只用于连接级错误时的提示响应。必须绑定 socket_session：
@@ -4277,7 +4309,7 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
 
 asio::awaitable<unsigned int> httpserver::client_rpc_loop(unsigned int readnum, std::shared_ptr<client_session> peer_session)
 {
-    std::shared_ptr<httppeer> peer = std::make_shared<httppeer>();
+    std::shared_ptr<httppeer> peer = acquire_peer();
     std::shared_ptr<rpc_parse> rpc = std::make_shared<rpc_parse>();
 
     peer->socket_session = peer_session->shared_from_this();

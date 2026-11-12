@@ -167,6 +167,9 @@ class httppeer : public std::enable_shared_from_this<httppeer>
     void add_timeloop_count(unsigned int a = 1);
     void clsoesend();
     void clear();
+    // 跨连接复用前的复位。clear() 是同一连接内的逐请求复位，刻意留下间隔任务的调度字段；
+    // 换一条连接时这些残留、以及只被写 true 的伪头校验标记都必须一起清掉。
+    void reset_for_reuse();
     bool find_host_index();
     // 解析到 Origin 请求头时立即调用（http_parse / http2_parse 头名长度 6 的首字符分支）：
     // 按本站点 cors_domain 白名单判断该 Origin 是否放行，命中就把 Access-Control-Allow-Origin
@@ -261,8 +264,6 @@ class httppeer : public std::enable_shared_from_this<httppeer>
 
     unsigned char posttype   = 0;
     unsigned char compress   = 0;
-    unsigned char rate_time  = 0;
-    unsigned char rate_num  = 0;  
     unsigned int host_index  = 0;
     unsigned int stream_id   = 0;
     unsigned int status_code = 0;
