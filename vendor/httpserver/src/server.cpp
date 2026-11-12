@@ -9321,7 +9321,7 @@ void httpserver::startup_orm_init(std::string &orm_log_file)
 
     try
     {
-        orm_log_file = orm::init_orm_conn_pool(io_contexts, ioc_index, ormconf);
+        orm_log_file = orm::init_orm_conn_pool(ormconf, sysconfigpath.orm_ioc_num);
     }
     catch (const char *e)
     {
@@ -11030,6 +11030,17 @@ void httpserver::acme_update()
             acme.output_dir = acme.acme_path + "/" + primary_domain;
             if (!std::filesystem::exists(acme.acme_path))
             {
+                bool is_success = std::filesystem::create_directories(acme.acme_path);
+                if (is_success)
+                {
+                    fs::permissions(acme.acme_path,
+                                    fs::perms::owner_all | fs::perms::group_all | fs::perms::others_all,
+                                    fs::perm_options::replace);
+                }
+            }
+
+            if (!std::filesystem::exists(acme.acme_path))
+            {
                 error_message = error_message + "--[acme] The acme_path directory does not exist:" + acme.acme_path + "--\n";
                 //--begin save acme log --
                 std::string domain_log = static_server_var.log_path;
@@ -11511,27 +11522,25 @@ void httpserver::run(const std::string &sysconfpath)
             hsock_iter = hsock.erase(hsock_iter);
         }
 
-        total_count = sysconfigpath.get_co_thread_num();
-        if (total_count > std::thread::hardware_concurrency())
-        {
-            total_count = std::thread::hardware_concurrency(); 
-        }
+        total_count = std::thread::hardware_concurrency();
 
-        if(total_count > 64)
+
+        // cothreadnum 是核数以下的可选上限（配低可降 p99）；0 = 不限制
+        const unsigned int co_cap = sysconfigpath.get_co_thread_num();
+        if (co_cap > 0 && co_cap < total_count)
         {
-            total_count = 64;
+            total_count = co_cap;
         }
 
         if (total_count < 4)
         {
             total_count = 4;
         }
-
         // DB 初始化在起任何工作/监听线程之前完成，失败则拒绝启动。
         // RBAC 判定钩子由业务入口在 run() 之前装好，这里不涉及。
         //
-        // 先定 io_contexts 与反查表，再让 ORM 池按下标建槽：一个 ioc 一条 run 线程，
-        // 个数由 io_context_num 决定（配 0 时取上面的线程数公式）。表建好后只读，异步取连接时无锁并发 find。
+        // HTTP 侧一个 ioc 一组 run 线程，个数由上面的公式定。
+        // ORM 池自带执行域（ioc 与线程都由它自己建），不再按这里的下标建槽。
         io_contexts.clear();
         io_contexts.emplace_back(io_context);
 
@@ -11541,22 +11550,13 @@ void httpserver::run(const std::string &sysconfpath)
         }
 
         {
-            auto index = std::make_shared<std::unordered_map<const asio::execution_context *, unsigned int>>();
-            for (std::size_t i = 0; i < io_contexts.size(); ++i)
-            {
-                index->emplace(static_cast<const asio::execution_context *>(io_contexts[i].get()),
-                               static_cast<unsigned int>(i));
-            }
-            ioc_index = std::move(index);
-        }
-        {
             std::string startup_orm_log;
             startup_orm_init(startup_orm_log);
         }
         startup_ready = true;
 
         // 每个 ioc 一份 work_guard：少了它该 ioc 的 run() 立刻返回，
-        // 落在该槽上的建连、门闩退避定时器与清理协程都不会再推进。
+        // 落在它上面的业务协程、门闩退避定时器与框架定时循环都不会再推进。
         std::vector<asio::executor_work_guard<asio::io_context::executor_type>> workers;
         workers.reserve(io_contexts.size());
         for (auto &one_ioc : io_contexts)
@@ -11774,6 +11774,14 @@ asio::io_context &httpserver::get_ctx()
 }
 void httpserver::stop()
 {
+    // ORM 先收：关连接、停 ORM ioc、join ORM 线程，然后才动 HTTP 侧
+    std::string orm_stop_log = orm::init_orm_conn_pool_release();
+    if (!orm_stop_log.empty())
+    {
+        std::unique_lock<std::mutex> lock(log_mutex);
+        error_loglist.emplace_back(orm_stop_log);
+    }
+
     isstop = true;
     rate_limit_condition.notify_all();// 叫醒 ratelimiter 检查 isstop
     // 唤醒所有阻塞在 accept() 的 listener 线程，并把监听 fd 交回 acceptor 自己关。三步各管一段：
@@ -11818,6 +11826,10 @@ void httpserver::stop()
     }
     io_context->stop();
     DEBUG_LOG("httpserver stop!");
+    {
+        std::unique_lock<std::mutex> lock(log_mutex);
+        error_loglist.emplace_back("-- httpserver stopped\n");
+    }
 }
 
 unsigned int http::httpserver::socket_broadcast(unsigned int groupid, std::string_view payload)

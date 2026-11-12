@@ -867,6 +867,7 @@ struct orm_conn_link_t
     std::shared_ptr<asio::ssl::context> ssl_context;
     asio::error_code ec;
     asio::io_context *io_ctx = nullptr;
+    unsigned int slot_index  = 0;// 这条连接属于哪个槽，归还时直接用
     unsigned int begin_time  = 0;
     DB_TYPE db_type          = DB_TYPE::MYSQL;
     unsigned char sock_type  = 0;// 0=none, 1=tcp, 2=ssl, 3=local socket

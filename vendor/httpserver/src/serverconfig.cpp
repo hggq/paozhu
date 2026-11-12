@@ -1455,6 +1455,29 @@ bool serverconfig::loadserverglobalconfig()
         per_ioc_thread_num = 1;
     }
 
+    if (map_value["default"]["orm_ioc_num"].size() > 0)
+    {
+        orm_ioc_num = 0;
+        for (size_t i = 0; i < map_value["default"]["orm_ioc_num"].size(); i++)
+        {
+            if (map_value["default"]["orm_ioc_num"][i] >= '0' && map_value["default"]["orm_ioc_num"][i] <= '9')
+            {
+                orm_ioc_num = orm_ioc_num * 10 + (map_value["default"]["orm_ioc_num"][i] - '0');
+                continue;
+            }
+            break;
+        }
+    }
+    else
+    {
+        orm_ioc_num = 4;
+    }
+
+    if (orm_ioc_num < 1)
+    {
+        orm_ioc_num = 1;
+    }
+
     // 常驻出站客户端停机自检路由 /resident_stop 的开关，默认关；要诊断页才写 1。
     // 只在启动期起作用：路由注册发生在 run() 开头，运行中改这个值不会增删路由。
     if (map_value["default"]["resident_client_show"].size() > 0 && map_value["default"]["resident_client_show"][0] == '1')
@@ -2146,9 +2169,9 @@ std::string serverconfig::ssl_chain_crt_file()
 {
     return configpath + map_value["default"]["chain_crt_file"];
 }
-unsigned char serverconfig::get_co_thread_num()
+unsigned int serverconfig::get_co_thread_num()
 {
-    unsigned char tempnum = 0;
+    unsigned int tempnum = 0;
 
     for (size_t i = 0; i < map_value["default"]["cothreadnum"].size(); i++)
     {
@@ -2158,13 +2181,7 @@ unsigned char serverconfig::get_co_thread_num()
         }
     }
 
-    if(tempnum < 4)
-    {
-        tempnum = 4;
-    }
-
     return tempnum;
- 
 }
 
 unsigned int serverconfig::get_ssl_port()

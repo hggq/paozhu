@@ -32,6 +32,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <cctype>
+#include <thread>
 
 namespace orm
 {
@@ -297,6 +298,49 @@ bool pool_slots_match(const orm_conn_pool &pool,
     }
     return true;
 }
+
+// 进程级一套 ORM 执行域：所有 tag 共用，不属于任何单个池。
+struct orm_io_host_t
+{
+    std::vector<std::shared_ptr<asio::io_context>> iocs;
+    std::vector<asio::executor_work_guard<asio::io_context::executor_type>> guards;
+    std::vector<std::thread> threads;
+    std::shared_ptr<const std::unordered_map<const asio::execution_context *, unsigned int>> index;
+    bool started = false;
+
+    // 兜底：不调 stop() 的入口（dev / daemon）与启动失败路径都靠它收摊
+    ~orm_io_host_t()
+    {
+        stop();
+    }
+
+    // 幂等：三个 vector 清空后再调是空操作，外部 ioc 模式（从未 started）调它也是空操作
+    void stop()
+    {
+        guards.clear();
+        for (auto &ioc : iocs)
+        {
+            ioc->stop();
+        }
+        for (auto &t : threads)
+        {
+            if (t.joinable())
+            {
+                t.join();
+            }
+        }
+        threads.clear();
+        iocs.clear();
+        index.reset();
+        started = false;
+    }
+};
+
+orm_io_host_t &orm_io_host()
+{
+    static orm_io_host_t host;
+    return host;
+}
 }// namespace
 
 orm_slot &orm_conn_pool::slot_ref(unsigned int slot_index)
@@ -319,29 +363,6 @@ orm_slot &orm_conn_pool::slot_ref(unsigned int slot_index)
         slot.io_context = io_context;
     }
     return slot;
-}
-
-unsigned int orm_conn_pool::slot_of(const asio::execution_context &ctx) const
-{
-    if (ioc_index)
-    {
-        auto iter = ioc_index->find(&ctx);
-        if (iter != ioc_index->end() && iter->second < slots.size())
-        {
-            return iter->second;
-        }
-    }
-    // 未注册的 context / 越界一律回退槽 0
-    return 0;
-}
-
-unsigned int orm_conn_pool::slot_of(const asio::io_context *ioc) const
-{
-    if (!ioc)
-    {
-        return 0;
-    }
-    return slot_of(static_cast<const asio::execution_context &>(*ioc));
 }
 
 unsigned int orm_conn_pool::max_pool_of(unsigned int link_type) const
@@ -401,7 +422,10 @@ std::string init_orm_conn_pool_release()
         iter->second->clear_edit_conn();
     }
 
-    return "";
+    // 连接关完再撤执行域
+    orm_io_host().stop();
+
+    return "-- orm host stopped\n";
 }
 
 std::string init_orm_conn_pool(
@@ -450,6 +474,7 @@ std::string init_orm_conn_pool(
                 auto slot               = std::make_unique<orm_slot>();
                 slot->io_context_holder = ioc;
                 slot->io_context        = ioc.get();
+                slot->index             = static_cast<unsigned int>(conn->slots.size());
                 conn->slots.emplace_back(std::move(slot));
             }
         }
@@ -563,6 +588,77 @@ std::string init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_con
                               orm_config_file);
 }
 
+std::string init_orm_conn_pool(const std::string &orm_config_file, unsigned int orm_ioc_num)
+{
+    orm_io_host_t &host = orm_io_host();
+    std::string host_log;
+    if (!host.started)
+    {
+        unsigned int hw = std::thread::hardware_concurrency();
+        if (hw == 0)
+        {
+            hw = 1;// 标准允许返回 0（拿不到核数）
+        }
+        unsigned int n = orm_ioc_num < 1 ? 1u : orm_ioc_num;
+        if (n > hw)
+        {
+            n = hw;// 每个 ioc 至少一条线程，否则那槽的建连与查询 I/O 永不推进
+        }
+
+        for (unsigned int i = 0; i < n; ++i)
+        {
+            host.iocs.emplace_back(std::make_shared<asio::io_context>(0));
+        }
+
+        auto index = std::make_shared<std::unordered_map<const asio::execution_context *, unsigned int>>();
+        for (unsigned int i = 0; i < n; ++i)
+        {
+            index->emplace(static_cast<const asio::execution_context *>(host.iocs[i].get()), i);
+            host.guards.emplace_back(host.iocs[i]->get_executor());
+        }
+        host.index = std::move(index);
+
+        // 线程总数固定 = 核数，按 ioc 数均分，余数给下标小的 ioc
+        const unsigned int base = hw / n;
+        const unsigned int rem  = hw % n;
+        for (unsigned int i = 0; i < n; ++i)
+        {
+            const unsigned int per = base + (i < rem ? 1u : 0u);
+            for (unsigned int j = 0; j < per; ++j)
+            {
+                host.threads.emplace_back(
+                    [ioc = host.iocs[i]]()
+                    {
+                        do
+                        {
+                            try
+                            {
+                                ioc->run();
+                            }
+                            catch (...)
+                            {
+                            }
+                        } while (!ioc->stopped());
+                    });
+            }
+        }
+        host.started = true;
+
+        host_log = "-- orm host ioc=" + std::to_string(n) +
+                   " threads=" + std::to_string(hw) + " per_ioc=";
+        for (unsigned int i = 0; i < n; ++i)
+        {
+            if (i > 0)
+            {
+                host_log += ",";
+            }
+            host_log += std::to_string(base + (i < rem ? 1u : 0u));
+        }
+        host_log += "\n";
+    }
+    return host_log + init_orm_conn_pool(host.iocs, host.index, orm_config_file);
+}
+
 // ======================== MySQL connections ========================
 
 asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_add_mysql_edit_connect(orm_slot &slot)
@@ -577,6 +673,7 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_add_mysql
             conn->isdebug = true;
         }
         conn->conn_link->bind_slot_total(slot.total_count[LINK_EDIT]);
+        conn->conn_link->slot_index = slot.index;
         co_return conn;
     }
     throw std::runtime_error(" add_mysql_edit_connect failed for tag " + conn->error_msg);
@@ -600,6 +697,7 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::add_mysql_edit_connect(orm_slot 
         }
         conn->issynch = true;
         conn->conn_link->bind_slot_total(slot.total_count[LINK_EDIT]);
+        conn->conn_link->slot_index = slot.index;
         return conn;
     }
     throw std::runtime_error(" add_mysql_edit_connect failed for tag " + conn->error_msg);
@@ -618,8 +716,8 @@ void orm_conn_pool::back_mysql_edit_conn(std::shared_ptr<mysql_conn_base> conn)
     {
         return;
     }
-    // 归还按连接自己的 ioc 定位槽，不按归还时的 executor：连接可能跨槽借出。
-    orm_slot &slot = slot_ref(slot_of(conn->conn_link ? conn->conn_link->io_ctx : nullptr));
+    // 归还按建连时记下的槽下标定位，不按归还时的 executor：连接可能跨槽借出。
+    orm_slot &slot = slot_ref(conn->conn_link ? conn->conn_link->slot_index : 0);
     if (conn->isclose)
     {
         // 连接已断开：丢弃这条对象，名额随它的析构归还
@@ -658,6 +756,7 @@ unsigned int orm_conn_pool::init_mysql_edit_conn(unsigned char n, unsigned int s
                 std::unique_lock<std::mutex> lock(slot.edit_mutex);
                 slot.mysql_edit_pool.emplace_back(conn);
                 conn->conn_link->bind_slot_total(slot.total_count[LINK_EDIT]);
+                conn->conn_link->slot_index = slot.index;
                 lock.unlock();
                 continue;
             }
@@ -685,6 +784,7 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::add_mysql_select_connect(orm_slo
         }
         conn->issynch = true;
         conn->conn_link->bind_slot_total(slot.total_count[LINK_SELECT]);
+        conn->conn_link->slot_index = slot.index;
         return conn;
     }
     throw std::runtime_error(" add_mysql_select_connect failed for tag ");
@@ -707,6 +807,7 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_add_mysql
             conn->isdebug = true;
         }
         conn->conn_link->bind_slot_total(slot.total_count[LINK_SELECT]);
+        conn->conn_link->slot_index = slot.index;
         co_return conn;
     }
     throw std::runtime_error(" add_mysql_select_connect failed for tag ");
@@ -737,6 +838,7 @@ unsigned int orm_conn_pool::init_mysql_select_conn(unsigned char n, unsigned int
                 std::unique_lock<std::mutex> lock(slot.select_mutex);
                 slot.mysql_select_pool.emplace_back(conn);
                 conn->conn_link->bind_slot_total(slot.total_count[LINK_SELECT]);
+                conn->conn_link->slot_index = slot.index;
                 lock.unlock();
                 continue;
             }
@@ -757,7 +859,7 @@ void orm_conn_pool::back_mysql_select_conn(std::shared_ptr<mysql_conn_base> conn
     {
         return;
     }
-    orm_slot &slot = slot_ref(slot_of(conn->conn_link ? conn->conn_link->io_ctx : nullptr));
+    orm_slot &slot = slot_ref(conn->conn_link ? conn->conn_link->slot_index : 0);
     if (conn->isclose)
     {
         return;
@@ -777,12 +879,10 @@ void orm_conn_pool::back_mysql_select_conn(std::shared_ptr<mysql_conn_base> conn
 
 asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql_edit_conn()
 {
-    auto ex                            = co_await asio::this_coro::executor;
-    // any_io_executor 不支持 query(execution::context)，用通用的 context_as 查询取底层 context。
-    const asio::execution_context &ctx =
-        asio::query(ex, asio::execution::context_as_t<asio::execution_context &>());
-    const unsigned int slot_index       = slot_of(ctx);
-    orm_slot &slot                      = slot_ref(slot_index);
+    auto ex                       = co_await asio::this_coro::executor;// 门闩定时器仍挂调用方 ioc
+    const unsigned int n          = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
+    const unsigned int slot_index = rr_counter.fetch_add(1, std::memory_order_relaxed) % n;
+    orm_slot &slot                = slot_ref(slot_index);
 
     const unsigned int maxn = slot_max_of(LINK_EDIT, slot_index);
     asio::steady_timer timer(ex);
@@ -855,9 +955,9 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql
 
 std::shared_ptr<mysql_conn_base> orm_conn_pool::get_mysql_edit_conn()
 {
-    // 同步路径固定槽 0。业务线程池没有 executor，阻塞等门闩会拖死工作线程，
-    // 因此保持旧语义：无空闲就直接建。
-    orm_slot &slot = slot_ref(0);
+    // 同步路径不等门闩：业务线程池没有 executor，阻塞等会拖死工作线程，无空闲就直接建。
+    const unsigned int n = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
+    orm_slot &slot       = slot_ref(rr_counter.fetch_add(1, std::memory_order_relaxed) % n);
     std::unique_lock<std::mutex> lock(slot.edit_mutex);
     while (!slot.mysql_edit_pool.empty())
     {
@@ -877,12 +977,10 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::get_mysql_edit_conn()
 
 asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql_select_conn()
 {
-    auto ex                            = co_await asio::this_coro::executor;
-    // any_io_executor 不支持 query(execution::context)，用通用的 context_as 查询取底层 context。
-    const asio::execution_context &ctx =
-        asio::query(ex, asio::execution::context_as_t<asio::execution_context &>());
-    const unsigned int slot_index       = slot_of(ctx);
-    orm_slot &slot                      = slot_ref(slot_index);
+    auto ex                       = co_await asio::this_coro::executor;// 门闩定时器仍挂调用方 ioc
+    const unsigned int n          = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
+    const unsigned int slot_index = rr_counter.fetch_add(1, std::memory_order_relaxed) % n;
+    orm_slot &slot                = slot_ref(slot_index);
 
     const unsigned int maxn = slot_max_of(LINK_SELECT, slot_index);
     asio::steady_timer timer(ex);
@@ -952,7 +1050,8 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql
 
 std::shared_ptr<mysql_conn_base> orm_conn_pool::get_mysql_select_conn()
 {
-    orm_slot &slot = slot_ref(0);
+    const unsigned int n = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
+    orm_slot &slot       = slot_ref(rr_counter.fetch_add(1, std::memory_order_relaxed) % n);
     std::unique_lock<std::mutex> lock(slot.select_mutex);
     while (!slot.mysql_select_pool.empty())
     {
@@ -984,6 +1083,7 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_add_pg_edit_
             conn->isdebug = true;
         }
         conn->conn_link->bind_slot_total(slot.total_count[LINK_EDIT]);
+        conn->conn_link->slot_index = slot.index;
         co_return conn;
     }
     throw std::runtime_error(" add_pg_edit_connect failed for tag ");
@@ -1007,6 +1107,7 @@ std::shared_ptr<pg_conn_base> orm_conn_pool::add_pg_edit_connect(orm_slot &slot)
         }
         conn->issynch = true;
         conn->conn_link->bind_slot_total(slot.total_count[LINK_EDIT]);
+        conn->conn_link->slot_index = slot.index;
         return conn;
     }
     throw std::runtime_error(" add_pg_edit_connect failed for tag ");
@@ -1023,7 +1124,7 @@ void orm_conn_pool::back_pg_edit_conn(std::shared_ptr<pg_conn_base> conn)
     {
         return;
     }
-    orm_slot &slot = slot_ref(slot_of(conn->conn_link ? conn->conn_link->io_ctx : nullptr));
+    orm_slot &slot = slot_ref(conn->conn_link ? conn->conn_link->slot_index : 0);
     if (conn->isclose)
     {
         return;
@@ -1061,6 +1162,7 @@ unsigned int orm_conn_pool::init_pg_edit_conn(unsigned char n, unsigned int slot
                 std::unique_lock<std::mutex> lock(slot.edit_mutex);
                 slot.pg_edit_pool.emplace_back(conn);
                 conn->conn_link->bind_slot_total(slot.total_count[LINK_EDIT]);
+                conn->conn_link->slot_index = slot.index;
                 lock.unlock();
                 continue;
             }
@@ -1088,6 +1190,7 @@ std::shared_ptr<pg_conn_base> orm_conn_pool::add_pg_select_connect(orm_slot &slo
         }
         conn->issynch = true;
         conn->conn_link->bind_slot_total(slot.total_count[LINK_SELECT]);
+        conn->conn_link->slot_index = slot.index;
         return conn;
     }
     throw std::runtime_error(" add_pg_select_connect failed for tag ");
@@ -1110,6 +1213,7 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_add_pg_selec
             conn->isdebug = true;
         }
         conn->conn_link->bind_slot_total(slot.total_count[LINK_SELECT]);
+        conn->conn_link->slot_index = slot.index;
         co_return conn;
     }
     throw std::runtime_error(" add_pg_select_connect failed for tag ");
@@ -1140,6 +1244,7 @@ unsigned int orm_conn_pool::init_pg_select_conn(unsigned char n, unsigned int sl
                 std::unique_lock<std::mutex> lock(slot.select_mutex);
                 slot.pg_select_pool.emplace_back(conn);
                 conn->conn_link->bind_slot_total(slot.total_count[LINK_SELECT]);
+                conn->conn_link->slot_index = slot.index;
                 lock.unlock();
                 continue;
             }
@@ -1160,7 +1265,7 @@ void orm_conn_pool::back_pg_select_conn(std::shared_ptr<pg_conn_base> conn)
     {
         return;
     }
-    orm_slot &slot = slot_ref(slot_of(conn->conn_link ? conn->conn_link->io_ctx : nullptr));
+    orm_slot &slot = slot_ref(conn->conn_link ? conn->conn_link->slot_index : 0);
     if (conn->isclose)
     {
         return;
@@ -1180,12 +1285,10 @@ void orm_conn_pool::back_pg_select_conn(std::shared_ptr<pg_conn_base> conn)
 
 asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_edit_conn()
 {
-    auto ex                            = co_await asio::this_coro::executor;
-    // any_io_executor 不支持 query(execution::context)，用通用的 context_as 查询取底层 context。
-    const asio::execution_context &ctx =
-        asio::query(ex, asio::execution::context_as_t<asio::execution_context &>());
-    const unsigned int slot_index       = slot_of(ctx);
-    orm_slot &slot                      = slot_ref(slot_index);
+    auto ex                       = co_await asio::this_coro::executor;// 门闩定时器仍挂调用方 ioc
+    const unsigned int n          = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
+    const unsigned int slot_index = rr_counter.fetch_add(1, std::memory_order_relaxed) % n;
+    orm_slot &slot                = slot_ref(slot_index);
 
     const unsigned int maxn = slot_max_of(LINK_EDIT, slot_index);
     asio::steady_timer timer(ex);
@@ -1255,7 +1358,8 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_edit_
 
 std::shared_ptr<pg_conn_base> orm_conn_pool::get_pg_edit_conn()
 {
-    orm_slot &slot = slot_ref(0);
+    const unsigned int n = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
+    orm_slot &slot       = slot_ref(rr_counter.fetch_add(1, std::memory_order_relaxed) % n);
     std::unique_lock<std::mutex> lock(slot.edit_mutex);
     while (!slot.pg_edit_pool.empty())
     {
@@ -1275,12 +1379,10 @@ std::shared_ptr<pg_conn_base> orm_conn_pool::get_pg_edit_conn()
 
 asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_select_conn()
 {
-    auto ex                            = co_await asio::this_coro::executor;
-    // any_io_executor 不支持 query(execution::context)，用通用的 context_as 查询取底层 context。
-    const asio::execution_context &ctx =
-        asio::query(ex, asio::execution::context_as_t<asio::execution_context &>());
-    const unsigned int slot_index       = slot_of(ctx);
-    orm_slot &slot                      = slot_ref(slot_index);
+    auto ex                       = co_await asio::this_coro::executor;// 门闩定时器仍挂调用方 ioc
+    const unsigned int n          = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
+    const unsigned int slot_index = rr_counter.fetch_add(1, std::memory_order_relaxed) % n;
+    orm_slot &slot                = slot_ref(slot_index);
 
     const unsigned int maxn = slot_max_of(LINK_SELECT, slot_index);
     asio::steady_timer timer(ex);
@@ -1350,7 +1452,8 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_selec
 
 std::shared_ptr<pg_conn_base> orm_conn_pool::get_pg_select_conn()
 {
-    orm_slot &slot = slot_ref(0);
+    const unsigned int n = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
+    orm_slot &slot       = slot_ref(rr_counter.fetch_add(1, std::memory_order_relaxed) % n);
     std::unique_lock<std::mutex> lock(slot.select_mutex);
     while (!slot.pg_select_pool.empty())
     {

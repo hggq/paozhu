@@ -36,6 +36,7 @@ struct orm_slot
     // 保证连接 close() 时 socket 所属 io_context 仍然活着。
     std::shared_ptr<asio::io_context> io_context_holder;
     asio::io_context *io_context = nullptr;
+    unsigned int index           = 0;// 本槽在 slots 里的下标，建连时写进 conn_link
 
     std::list<std::shared_ptr<mysql_conn_base>> mysql_edit_pool;
     std::list<std::shared_ptr<mysql_conn_base>> mysql_select_pool;
@@ -132,6 +133,8 @@ class orm_conn_pool
   public:
     // 按 io_context 下标对齐的槽数组；init 时定长创建，之后不再 resize。
     std::vector<std::unique_ptr<orm_slot>> slots;
+    // 取连接的轮转游标：自托管后调用方 ioc 不在池的执行域里，按 executor 定位会全落槽 0。
+    std::atomic<unsigned int> rr_counter{0};
 
     // 全局预算按槽切分后的实际配额：max_pool / min_pool 除以槽数，余数给下标小的槽。
     // 每槽上限与预建都保底 1 条。N == 1 时逐值等于 max_pool / min_pool（单 ioc 兼容路径）。
@@ -167,8 +170,9 @@ class orm_conn_pool
     slot0_list_view<std::list<std::shared_ptr<mysql_conn_base>>> mysql_select_pool{this, &orm_slot::mysql_select_pool};
     slot0_list_view<std::list<std::shared_ptr<pg_conn_base>>> pg_edit_pool{this, &orm_slot::pg_edit_pool};
     slot0_list_view<std::list<std::shared_ptr<pg_conn_base>>> pg_select_pool{this, &orm_slot::pg_select_pool};
-    // execution_context -> 槽下标 的只读反查表。pool 与 server 共持一份 shared_ptr，
-    // 保证 pool 析构前表仍然有效；查不到/越界一律回退槽 0。
+    // execution_context -> 槽下标 的只读反查表，由 init 传入并持有。
+    // 选槽改轮转、归还改 conn_link->slot_index 之后不再有人读它，保留是因为它是
+    // init(vector, index, conf) 签名的一部分，外部 ioc 模式的调用点在传。
     std::shared_ptr<const std::unordered_map<const asio::execution_context *, unsigned int>> ioc_index;
 
     // tag 级配置：host/port/dbname/user/password/ssl/charset/pretable/db_type，
@@ -183,8 +187,6 @@ class orm_conn_pool
   private:
     // ---- 槽定位与门闩 ----
     orm_slot &slot_ref(unsigned int slot_index);
-    unsigned int slot_of(const asio::execution_context &ctx) const;
-    unsigned int slot_of(const asio::io_context *ioc) const;
     // 每槽上限：max_pool 未配置（0）按 1；link_type 0=edit，1=select。
     unsigned int max_pool_of(unsigned int link_type) const;
 
@@ -218,6 +220,9 @@ std::string init_orm_conn_pool(std::shared_ptr<asio::io_context> ioc,
 // 保留只为兼容外部代码；新代码一律传 shared_ptr，否则退出期仍可能踩析构顺序。
 [[deprecated("pass shared_ptr<asio::io_context> so the pool ties its lifetime")]]
 std::string init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_config_file);
+// 自托管：ORM 自己建 ioc 与 run 线程，进程级一套，所有 tag 共用。
+// orm_ioc_num 是 ioc 个数（下限 1、上限核数）；线程总数固定 = 核数，按 ioc 数均分。
+std::string init_orm_conn_pool(const std::string &orm_config_file, unsigned int orm_ioc_num);
 std::string init_orm_conn_pool_release();
 }// namespace orm
 #endif

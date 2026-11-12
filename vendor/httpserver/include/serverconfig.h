@@ -106,7 +106,7 @@ class serverconfig
 #endif
     bool checkmaindomain(const char *);
     void init_path();
-    unsigned char get_co_thread_num();
+    unsigned int get_co_thread_num();
     unsigned int get_ssl_port();
     unsigned int get_port();
     std::string ssl_chain_file();
@@ -169,6 +169,7 @@ class serverconfig
     unsigned int acme_every_day_time = 7;
     unsigned int acme_every_num      = 5;
     unsigned int per_ioc_thread_num  = 1;
+    unsigned int orm_ioc_num         = 4;// ORM 自托管 io_context 个数，下限 1，上限核数
 
     unsigned int ocsp_interval_time = 14400;
 
