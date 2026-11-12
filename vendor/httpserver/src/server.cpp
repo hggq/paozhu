@@ -9331,7 +9331,7 @@ void httpserver::startup_orm_init(std::string &orm_log_file)
 
     try
     {
-        orm_log_file = orm::init_orm_conn_pool(ormconf, sysconfigpath.orm_ioc_num);
+        orm_log_file = orm::init_orm_conn_pool(ormconf, sysconfigpath.orm_ioc_num, sysconfigpath.orm_thread_pool_num);
     }
     catch (const char *e)
     {

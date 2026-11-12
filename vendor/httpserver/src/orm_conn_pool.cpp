@@ -588,7 +588,7 @@ std::string init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_con
                               orm_config_file);
 }
 
-std::string init_orm_conn_pool(const std::string &orm_config_file, unsigned int orm_ioc_num)
+std::string init_orm_conn_pool(const std::string &orm_config_file, unsigned int orm_ioc_num, unsigned int orm_thread_pool_num)
 {
     // orm.conf 不存在或为空：不起 host（ioc/guard/thread），直接返回空日志
     // 进程里没有任何 ORM tag 时，host 线程白跑一圈没有意义
@@ -602,15 +602,21 @@ std::string init_orm_conn_pool(const std::string &orm_config_file, unsigned int 
     std::string host_log;
     if (!host.started)
     {
-        unsigned int hw = std::thread::hardware_concurrency();
-        if (hw == 0)
+        // 线程池总数：0 表示用 hardware_concurrency()，保底 1
+        unsigned int total_threads = orm_thread_pool_num;
+        if (total_threads == 0)
         {
-            hw = 1;// 标准允许返回 0（拿不到核数）
+            total_threads = std::thread::hardware_concurrency();
+            if (total_threads == 0)
+            {
+                total_threads = 1;// 标准允许返回 0（拿不到核数）
+            }
         }
+        // ioc 个数：下限 1，上限不超过总线程数（每个 ioc 至少一条线程）
         unsigned int n = orm_ioc_num < 1 ? 1u : orm_ioc_num;
-        if (n > hw)
+        if (n > total_threads)
         {
-            n = hw;// 每个 ioc 至少一条线程，否则那槽的建连与查询 I/O 永不推进
+            n = total_threads;
         }
 
         for (unsigned int i = 0; i < n; ++i)
@@ -626,9 +632,9 @@ std::string init_orm_conn_pool(const std::string &orm_config_file, unsigned int 
         }
         host.index = std::move(index);
 
-        // 线程总数固定 = 核数，按 ioc 数均分，余数给下标小的 ioc
-        const unsigned int base = hw / n;
-        const unsigned int rem  = hw % n;
+        // 线程总数按 ioc 数均分，余数给下标小的 ioc
+        const unsigned int base = total_threads / n;
+        const unsigned int rem  = total_threads % n;
         for (unsigned int i = 0; i < n; ++i)
         {
             const unsigned int per = base + (i < rem ? 1u : 0u);
@@ -653,7 +659,7 @@ std::string init_orm_conn_pool(const std::string &orm_config_file, unsigned int 
         host.started = true;
 
         host_log = "-- orm host ioc=" + std::to_string(n) +
-                   " threads=" + std::to_string(hw) + " per_ioc=";
+                   " threads=" + std::to_string(total_threads) + " per_ioc=";
         for (unsigned int i = 0; i < n; ++i)
         {
             if (i > 0)

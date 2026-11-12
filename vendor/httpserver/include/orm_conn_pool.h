@@ -221,8 +221,9 @@ std::string init_orm_conn_pool(std::shared_ptr<asio::io_context> ioc,
 [[deprecated("pass shared_ptr<asio::io_context> so the pool ties its lifetime")]]
 std::string init_orm_conn_pool(asio::io_context &ioc, const std::string &orm_config_file);
 // 自托管：ORM 自己建 ioc 与 run 线程，进程级一套，所有 tag 共用。
-// orm_ioc_num 是 ioc 个数（下限 1、上限核数）；线程总数固定 = 核数，按 ioc 数均分。
-std::string init_orm_conn_pool(const std::string &orm_config_file, unsigned int orm_ioc_num);
+// orm_ioc_num 是 ioc 个数（下限 1、上限 orm_thread_pool_num）。
+// orm_thread_pool_num 是线程池总线程数；0 表示用 hardware_concurrency()。
+std::string init_orm_conn_pool(const std::string &orm_config_file, unsigned int orm_ioc_num, unsigned int orm_thread_pool_num = 0);
 std::string init_orm_conn_pool_release();
 }// namespace orm
 #endif

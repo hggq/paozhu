@@ -2450,7 +2450,6 @@ asio::awaitable<unsigned int> mysql_conn_base::async_read_loop()
     {
         co_return 0;
     }
-    std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
 
     constexpr auto tuple_awaitable = asio::as_tuple(asio::use_awaitable);
     conn_link->ec.clear();
@@ -2492,7 +2491,6 @@ unsigned int mysql_conn_base::read_loop()
         {
             return 0;
         }
-        std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
         std::size_t n = 0;
         if (conn_link->sock_type == 1)
         {
@@ -2970,7 +2968,6 @@ bool mysql_conn_base::hard_close()
 
 void mysql_conn_base::reset_data()
 {
-    std::memset(_cache_data, 0x00, CACHE_DATA_LENGTH);
 }
 
 bool mysql_conn_base::is_closed()

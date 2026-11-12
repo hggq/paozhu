@@ -1467,15 +1467,40 @@ bool serverconfig::loadserverglobalconfig()
             }
             break;
         }
+        
+        if (orm_ioc_num < 1)
+        {
+            orm_ioc_num = 1;
+        }
     }
     else
     {
         orm_ioc_num = 4;
     }
 
-    if (orm_ioc_num < 1)
+
+
+    if (map_value["default"]["orm_thread_pool_num"].size() > 0)
     {
-        orm_ioc_num = 1;
+        orm_thread_pool_num = 0;
+        for (size_t i = 0; i < map_value["default"]["orm_thread_pool_num"].size(); i++)
+        {
+            if (map_value["default"]["orm_thread_pool_num"][i] >= '0' && map_value["default"]["orm_thread_pool_num"][i] <= '9')
+            {
+                orm_thread_pool_num = orm_thread_pool_num * 10 + (map_value["default"]["orm_thread_pool_num"][i] - '0');
+                continue;
+            }
+            break;
+        }
+
+        if (orm_thread_pool_num > 512)
+        {
+            orm_thread_pool_num = 512;
+        }
+    }
+    else
+    {
+        orm_thread_pool_num = 0;
     }
 
     // 常驻出站客户端停机自检路由 /resident_stop 的开关，默认关；要诊断页才写 1。
