@@ -136,9 +136,9 @@ class orm_conn_pool
     // 取连接的轮转游标：自托管后调用方 ioc 不在池的执行域里，按 executor 定位会全落槽 0。
     std::atomic<unsigned int> rr_counter{0};
 
-    // 全局预算按槽切分后的实际配额：max_pool / min_pool 除以槽数，余数给下标小的槽。
-    // 每槽上限与预建都保底 1 条。N == 1 时逐值等于 max_pool / min_pool（单 ioc 兼容路径）。
-    // link_type 0=edit，1=select。
+    // slot_max_of：全局 max_pool 按槽数切分（余数给小槽，每槽保底 1）。
+    // slot_min_of：每槽独立等于配置的 min_pool，不切分（cap 到 slot_max_of，保底 1）。
+    // N == 1 时 slot_max 等于 max_pool 原值。
     // init 预建、异步取连接的门闩、启动自检都用这两个值，公开只为便于自检与测试打印。
     unsigned int slot_max_of(unsigned int link_type, unsigned int slot_index) const;
     unsigned int slot_min_of(unsigned int link_type, unsigned int slot_index) const;
@@ -176,8 +176,9 @@ class orm_conn_pool
     std::shared_ptr<const std::unordered_map<const asio::execution_context *, unsigned int>> ioc_index;
 
     // tag 级配置：host/port/dbname/user/password/ssl/charset/pretable/db_type，
-    // 以及上限/预建预算 max_pool / min_pool。这两个值是**全局预算**（单个池的语义），
-    // init 时按槽数切分成每槽配额，见 slot_max_of / slot_min_of；槽只读，不持有副本。
+    // 以及上限/预建预算 max_pool / min_pool。
+    // max_pool 是全局预算，init 时按槽数切分成每槽配额（见 slot_max_of）；
+    // min_pool 是每槽独立预建数，不切分（见 slot_min_of）。槽只读，不持有副本。
     std::array<orm_conn_t, 2> conf_data;
     std::string error_msg;
     // 兼容成员：槽 0 的 ioc 裸指针。httpcli 代码生成器与旧调用点直接写它，

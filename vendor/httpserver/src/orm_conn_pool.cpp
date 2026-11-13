@@ -208,7 +208,7 @@ std::vector<orm_conn_t> get_orm_config_file(const std::string &filename)
                 else if (k == "pretable")
                     c.pretable = v;
                 else if (k == "maxpool")
-                    c.max_pool = clamp_stoi(v, 128);
+                    c.max_pool = clamp_stoi(v, 255);
                 else if (k == "minpool")
                 {
                     if(v.size()==0)
@@ -391,24 +391,15 @@ unsigned int orm_conn_pool::slot_max_of(unsigned int link_type, unsigned int slo
 
 unsigned int orm_conn_pool::slot_min_of(unsigned int link_type, unsigned int slot_index) const
 {
+    (void)slot_index;// 每槽预建数独立等于配置的 min_pool，不切分
     const unsigned int role_min = conf_data[link_type & 1u].min_pool;
     // min_pool 为 0：不预建任何连接，全部按需懒建
     if (role_min == 0)
     {
         return 0;
     }
-    const unsigned int n        = static_cast<unsigned int>(slots.size());
-    // 单槽：预建量就是 min_pool 原值（不夹上限），与改造前逐值相等。
-    if (n <= 1)
-    {
-        return role_min;
-    }
-    const unsigned int mbase = role_min / n;
-    const unsigned int mrem  = role_min % n;
-    const unsigned int m     = mbase + (slot_index < mrem ? 1u : 0u);
-    // 预建不能超过本槽上限；每槽保底 1 条，冷槽首请求不用等建连
-    const unsigned int capped = std::min(m, slot_max_of(link_type, slot_index));
-    return capped == 0 ? 1u : capped;
+    // 预建不能超过本槽上限（防御性：防止 min_pool > max_pool）
+    return std::min(role_min, slot_max_of(link_type, slot_index));
 }
 
 std::string init_orm_conn_pool_release()
@@ -482,8 +473,9 @@ std::string init_orm_conn_pool(
         conn->io_context = conn->slots[0]->io_context;
         conn->conf_data[item.link_type] = item;
 
-        // 预算切分自检：打印每槽实际生效的上限/预建。min_pool / max_pool 是全局预算，
-        // 这里按槽数切分；N == 1 时应逐值等于 orm.conf 里的原值。
+        // 预算切分自检：打印每槽实际生效的上限/预建。
+        // max_pool 是全局预算，按槽数切分（余数给小槽，每槽保底 1）；
+        // min_pool 是每槽独立预建数，不切分。N == 1 时 slot_max 等于 max_pool 原值。
         // SQLite 是单连接模式（只认槽 0、忽略条数），不打印，避免误读。
         if (item.db_type != DB_TYPE::SQLITE)
         {
@@ -521,8 +513,7 @@ std::string init_orm_conn_pool(
         unsigned int n = 0;
         try
         {
-            // min_pool 是全局预建预算，按槽切分后每槽预建各自的 slot_min，其余按需懒建。
-            // 预建总量与原单池一致，只是从槽 0 摊到各槽。
+            // min_pool 是每槽预建数，每槽独立预建各自的 slot_min，其余按需懒建。
             for (unsigned int si = 0; si < conn->slots.size(); ++si)
             {
                 unsigned char prebuild = static_cast<unsigned char>(conn->slot_min_of(item.link_type, si));
