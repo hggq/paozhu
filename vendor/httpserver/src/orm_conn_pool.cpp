@@ -686,7 +686,8 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_add_mysql
 
 asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_add_mysql_edit_connect()
 {
-    co_return co_await async_add_mysql_edit_connect(slot_ref(0));
+    const unsigned int n = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
+    co_return co_await async_add_mysql_edit_connect(slot_ref(rr_counter.fetch_add(1, std::memory_order_relaxed) % n));
 }
 
 std::shared_ptr<mysql_conn_base> orm_conn_pool::add_mysql_edit_connect(orm_slot &slot)
@@ -710,7 +711,8 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::add_mysql_edit_connect(orm_slot 
 
 std::shared_ptr<mysql_conn_base> orm_conn_pool::add_mysql_edit_connect()
 {
-    return add_mysql_edit_connect(slot_ref(0));
+    const unsigned int n = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
+    return add_mysql_edit_connect(slot_ref(rr_counter.fetch_add(1, std::memory_order_relaxed) % n));
 }
 
 void orm_conn_pool::back_mysql_edit_conn(std::shared_ptr<mysql_conn_base> conn)
@@ -797,7 +799,8 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::add_mysql_select_connect(orm_slo
 
 std::shared_ptr<mysql_conn_base> orm_conn_pool::add_mysql_select_connect()
 {
-    return add_mysql_select_connect(slot_ref(0));
+    const unsigned int n = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
+    return add_mysql_select_connect(slot_ref(rr_counter.fetch_add(1, std::memory_order_relaxed) % n));
 }
 
 asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_add_mysql_select_connect(orm_slot &slot)
@@ -820,7 +823,8 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_add_mysql
 
 asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_add_mysql_select_connect()
 {
-    co_return co_await async_add_mysql_select_connect(slot_ref(0));
+    const unsigned int n = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
+    co_return co_await async_add_mysql_select_connect(slot_ref(rr_counter.fetch_add(1, std::memory_order_relaxed) % n));
 }
 
 unsigned int orm_conn_pool::init_mysql_select_conn(unsigned char n, unsigned int slot_index)
@@ -1096,7 +1100,8 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_add_pg_edit_
 
 asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_add_pg_edit_connect()
 {
-    co_return co_await async_add_pg_edit_connect(slot_ref(0));
+    const unsigned int n = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
+    co_return co_await async_add_pg_edit_connect(slot_ref(rr_counter.fetch_add(1, std::memory_order_relaxed) % n));
 }
 
 std::shared_ptr<pg_conn_base> orm_conn_pool::add_pg_edit_connect(orm_slot &slot)
@@ -1120,7 +1125,8 @@ std::shared_ptr<pg_conn_base> orm_conn_pool::add_pg_edit_connect(orm_slot &slot)
 
 std::shared_ptr<pg_conn_base> orm_conn_pool::add_pg_edit_connect()
 {
-    return add_pg_edit_connect(slot_ref(0));
+    const unsigned int n = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
+    return add_pg_edit_connect(slot_ref(rr_counter.fetch_add(1, std::memory_order_relaxed) % n));
 }
 
 void orm_conn_pool::back_pg_edit_conn(std::shared_ptr<pg_conn_base> conn)
@@ -1203,7 +1209,8 @@ std::shared_ptr<pg_conn_base> orm_conn_pool::add_pg_select_connect(orm_slot &slo
 
 std::shared_ptr<pg_conn_base> orm_conn_pool::add_pg_select_connect()
 {
-    return add_pg_select_connect(slot_ref(0));
+    const unsigned int n = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
+    return add_pg_select_connect(slot_ref(rr_counter.fetch_add(1, std::memory_order_relaxed) % n));
 }
 
 asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_add_pg_select_connect(orm_slot &slot)
@@ -1226,7 +1233,8 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_add_pg_selec
 
 asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_add_pg_select_connect()
 {
-    co_return co_await async_add_pg_select_connect(slot_ref(0));
+    const unsigned int n = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
+    co_return co_await async_add_pg_select_connect(slot_ref(rr_counter.fetch_add(1, std::memory_order_relaxed) % n));
 }
 
 unsigned int orm_conn_pool::init_pg_select_conn(unsigned char n, unsigned int slot_index)
