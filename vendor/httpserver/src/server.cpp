@@ -529,8 +529,7 @@ asio::awaitable<void> httpserver::http2_co_send_compress(std::shared_ptr<httppee
                                 fs::perm_options::replace,
                                 perm_ec);
 
-                bool ok = std::fwrite(send_file_obj->content.data(), 1,
-                                      send_file_obj->content.size(), wfp) == send_file_obj->content.size();
+                bool ok = std::fwrite(send_file_obj->content.data(), 1, send_file_obj->content.size(), wfp) == send_file_obj->content.size();
                 ok      = (std::fclose(wfp) == 0) && ok;
                 std::error_code ec;
                 if (ok)
@@ -630,7 +629,7 @@ asio::awaitable<void> httpserver::http2_co_send_file(std::shared_ptr<httppeer> p
                 peer->status(200);
                 peer->length(static_cast<unsigned long long>(file_length));
                 peer->type(send_file_obj->content_type);
-                send_file_obj->header        = peer->make_http2_header(0);
+                send_file_obj->header = peer->make_http2_header(0);
                 http2_head_end_stream(send_file_obj);
                 // Content-Length 头已由上面的 make_http2_header 写完；这里把发送对象的状态
                 // 也归零，别让它继续声称有正文。
@@ -1172,20 +1171,20 @@ std::shared_ptr<httppeer> httpserver::acquire_peer()
         raw = new httppeer();
     }
     return std::shared_ptr<httppeer>(raw, [](httppeer *p)
-    {
-        // hold 先接管所有权，且声明在锁的外层：复位和销毁都可能析构协程帧、
-        // 帧里再释放一个 peer，攥着同一把非递归 mutex 会死锁。
-        std::unique_ptr<httppeer> hold(p);
-        hold->reset_for_reuse();
-        {
-            std::lock_guard<std::mutex> lock(peer_pool_mutex);
-            if (peer_pool.size() < PEER_POOL_MAX)
-            {
-                peer_pool.push_back(std::move(hold));
-            }
-        }
-        // 走到这里 hold 还非空就是池满（或 push_back 抛了），在锁外销毁。
-    });
+                                     {
+                                         // hold 先接管所有权，且声明在锁的外层：复位和销毁都可能析构协程帧、
+                                         // 帧里再释放一个 peer，攥着同一把非递归 mutex 会死锁。
+                                         std::unique_ptr<httppeer> hold(p);
+                                         hold->reset_for_reuse();
+                                         {
+                                             std::lock_guard<std::mutex> lock(peer_pool_mutex);
+                                             if (peer_pool.size() < PEER_POOL_MAX)
+                                             {
+                                                 peer_pool.push_back(std::move(hold));
+                                             }
+                                         }
+                                         // 走到这里 hold 还非空就是池满（或 push_back 抛了），在锁外销毁。
+                                     });
 }
 void httpserver::clear_peer_data(std::shared_ptr<httppeer> &peer)
 {
@@ -1681,7 +1680,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
 
             http2_send_queue &send_queue_obj = get_http2_send_queue();
             auto send_file_obj               = send_queue_obj.get_cache_ptr();
-            dyn_send_obj = send_file_obj;
+            dyn_send_obj                     = send_file_obj;
             send_file_obj->cache_data.resize(15360);
             send_file_obj->content.clear();
             // HEAD：不做压缩（没有 body），否则 content_length 与正文对不上
@@ -2823,9 +2822,11 @@ asio::awaitable<void> httpserver::http1_send_range_not_satisfiable(std::shared_p
     std::string body = "<h3>416 Range Not Satisfiable</h3>";
     std::string str  = "HTTP/1.1 416 Range Not Satisfiable\r\n"
                        "Content-Type: text/html; charset=utf-8\r\n"
-                       "Content-Range: bytes */" + std::to_string(file_size) + "\r\n"
-                       "Connection: close\r\nContent-Length: " + std::to_string(body.size()) +
-                       "\r\n\r\n" + body;
+                       "Content-Range: bytes */" +
+                      std::to_string(file_size) + "\r\n"
+                                                  "Connection: close\r\nContent-Length: " +
+                      std::to_string(body.size()) +
+                      "\r\n\r\n" + body;
     co_await peer_session->async_send_writer(str);
     co_return;
 }
@@ -3094,8 +3095,8 @@ asio::awaitable<unsigned int> httpserver::client_http1_loop(bool isssl, unsigned
         // 连接上第一条请求就是 OPTIONS 时会空指针解引用崩溃。
         // http1loop 内的赋值条件是「== nullptr 才赋值」，提前绑定不会被覆盖；
         // httppeer::clear() 也不重置该成员，所以绑定一次即可。
-        peer->socket_session                = peer_session->get_ptr();
-        peer->client_ip                     = peer_session->getremoteip();
+        peer->socket_session = peer_session->get_ptr();
+        peer->client_ip      = peer_session->getremoteip();
         // 四个端点字段在连接入口绑一次。getlocalip()/getlocalport() 要查 socket，
         // 不能放进每请求的分支；池化复用后也不能靠「server_port 还是 0」来判断该不该绑。
         peer->server_ip                     = peer_session->getlocalip();
@@ -3534,8 +3535,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                         }
                     }
                     http2pre->weak_sweep_removed += sweep_removed;
-                    DEBUG_LOG("http2 weak sweep removed %u size %u", sweep_removed,
-                              (unsigned int)http2pre->http_data_weak.size());
+                    DEBUG_LOG("http2 weak sweep removed %u size %u", sweep_removed, (unsigned int)http2pre->http_data_weak.size());
                 }
                 // 登记这条流的 peer 弱引用：WINDOW_UPDATE、RST 等帧到达时用它能判断流还在不在。
                 http2pre->http_data_weak.insert_or_assign(block_steamid, stream_ptr);
@@ -4414,7 +4414,8 @@ asio::awaitable<unsigned int> httpserver::client_rpc_loop(unsigned int readnum, 
                 {
                     unsigned int left = readnum - used;
                     std::memmove(peer_session->_cache_data,
-                                 peer_session->_cache_data + used, left);
+                                 peer_session->_cache_data + used,
+                                 left);
                     readnum = left;
                     if (readnum < 4)
                     {
@@ -5540,7 +5541,7 @@ asio::awaitable<unsigned int> httpserver::client_mqtt_loop(unsigned int readnum,
 // 运行协议（httpserver 的 mqtt_sender_need_spawn）：
 //   * true ⟺ 协程不在跑；websocket_loop 每秒拍 exchange(false) 认领并 spawn，防双跑。
 //   * 每轮之间固定歇 200ms：这条挂起队列不追求"立刻发完"，让出 CPU 由各连接的
-//     消费者协程自己把发送环写空，回来再灌下一轮（≤16 槽/轮）；
+//     消费者协程自己把发送环写空，回来再灌下一轮（≤环容量/轮）；
 //     与 http2 环消费者同族——那边"攒一批再抽干"，间隔由环的空/满决定；挂起帧的
 //     QoS0 读者不 ack、没有任何对端事件可依，所以把同一间隔写成显式 200ms；
 //   * 有货却一格都灌不动（各连接环都满）→ 退出置标志，交给下一拍 respawn；
@@ -6555,8 +6556,8 @@ bool httpserver::http2_loop_send_sequence(std::shared_ptr<http2_send_data_t> sq_
     }
     if (sq_obj->is_sendheader == false)
     {
-        // 环满时 push() 返回 false（16 槽环永远留一个空槽，实际可用 15 槽）。
-        // push() returns false when ring full (16-slot ring keeps one empty, 15 usable).
+        // 环满时 push() 返回 false（环永远留一个空槽，实际可用 capacity_ - 1 槽）。
+        // push() returns false when ring full (one slot stays empty, capacity_ - 1 usable).
         // 此时绝不能置 is_sendheader：头部帧没入队却标记为"已发"，客户端会先
         // MUST NOT set is_sendheader here: header frame didn't enqueue but marked "sent" —
         // 收到 DATA 却永远等不到 HEADERS，只能断开连接。
@@ -6761,7 +6762,7 @@ bool httpserver::http2_loop_send_sequence(std::shared_ptr<http2_send_data_t> sq_
             return false;
         }
         sq_obj->need_seek = false;
-        per_size = fread(&sq_obj->cache_data[9], 1, reserved, sq_obj->fp.get());
+        per_size          = fread(&sq_obj->cache_data[9], 1, reserved, sq_obj->fp.get());
         if (per_size == 0)
         {
             // 能走到这里，current_num 必然还没到 content_length（上面「已发完」那条出口
@@ -8657,9 +8658,9 @@ unsigned int httpserver::update_minute_count(unsigned int sp_time)
 {
     unsigned int now_total = total_count.load(std::memory_order_relaxed);
 
-    static thread_local unsigned int win_sec[60]   = {};  // 桶里记录的秒值，0 表示这个桶从没写过
-    static thread_local unsigned int win_total[60] = {};  // 该秒的 total_count 快照
-    static thread_local unsigned int win_last_sec  = 0;   // 上一次采样到第几秒，用来找需要补写的空桶
+    static thread_local unsigned int win_sec[60]   = {};// 桶里记录的秒值，0 表示这个桶从没写过
+    static thread_local unsigned int win_total[60] = {};// 该秒的 total_count 快照
+    static thread_local unsigned int win_last_sec  = 0; // 上一次采样到第几秒，用来找需要补写的空桶
 
     unsigned int last = win_last_sec;
     if (last != sp_time)
@@ -8671,13 +8672,13 @@ unsigned int httpserver::update_minute_count(unsigned int sp_time)
         unsigned int from = (last == 0) ? sp_time : last + 1;
         if (sp_time - from > 59)
         {
-            from = sp_time - 59;  // 长时间空闲或时钟跳变：整个环 60 桶全刷成当前快照，更早的秒本来就该出窗
+            from = sp_time - 59;// 长时间空闲或时钟跳变：整个环 60 桶全刷成当前快照，更早的秒本来就该出窗
         }
         for (unsigned int s = from; s <= sp_time; ++s)
         {
             unsigned int i = s % 60;
-            win_total[i] = now_total;
-            win_sec[i]   = s;
+            win_total[i]   = now_total;
+            win_sec[i]     = s;
         }
         win_last_sec = sp_time;
     }
@@ -9016,7 +9017,7 @@ void httpserver::listeners()
                 // acceptor 自己仍在 io_contexts[0]——asio 的 accept() 是把新 fd assign 给
                 // peer socket，注册进 peer 自己的 io_context，不要求两者同上下文。
                 // io_contexts 在起这条线程前就建好了，个数至少 8；游标到顶回绕是有定义行为。
-                asio::io_context &session_ioc = *io_contexts[session_ioc_cursor++ % io_contexts.size()];
+                asio::io_context &session_ioc                = *io_contexts[session_ioc_cursor++ % io_contexts.size()];
                 std::shared_ptr<client_session> peer_session = std::make_shared<client_session>(session_ioc);
                 asio::ip::tcp::socket socket(peer_session->strand_);
                 peer_session->sslsocket = std::make_unique<asio::ssl::stream<asio::ip::tcp::socket>>(std::move(socket), context_);
@@ -9203,7 +9204,7 @@ void httpserver::listener()
             for (;;)
             {
                 // accept 轮流落点，同 https 那一支：socket assign 到 peer 自己的 io_context。
-                asio::io_context &session_ioc = *io_contexts[session_ioc_cursor++ % io_contexts.size()];
+                asio::io_context &session_ioc                = *io_contexts[session_ioc_cursor++ % io_contexts.size()];
                 std::shared_ptr<client_session> peer_session = std::make_shared<client_session>(session_ioc);
                 peer_session->socket                         = std::make_unique<asio::ip::tcp::socket>(peer_session->strand_);
                 peer_session->isssl                          = false;
@@ -9345,7 +9346,7 @@ void httpserver::add_runsocketthread()
 void httpserver::startup_orm_init(std::string &orm_log_file)
 {
     serverconfig &sysconfigpath = getserversysconfig();
-    std::string ormconf        = sysconfigpath.configpath;
+    std::string ormconf         = sysconfigpath.configpath;
     if (!ormconf.empty() && ormconf.back() != '/')
     {
         ormconf.push_back('/');
@@ -10641,8 +10642,7 @@ void httpserver::httpwatch()
                     std::thread t_ocsp([]()
                                        {
                                            refresh_all_ocsp_staples();
-                                           ocsp_refresh_running.store(false);
-                                       });
+                                           ocsp_refresh_running.store(false); });
                     t_ocsp.detach();
                 }
                 else
@@ -10653,8 +10653,7 @@ void httpserver::httpwatch()
 
             mysqlpool_time += 1;
             DEBUG_LOG("clear mysql poll time:%d,client live:%d", mysqlpool_time, total_count.load());
-            DEBUG_LOG("cron type:%c day:%d,hour:%d min:%d", cron_type, cron_day, cron_hour,
-                      now != nullptr ? now->tm_min : -1);
+            DEBUG_LOG("cron type:%c day:%d,hour:%d min:%d", cron_type, cron_day, cron_hour, now != nullptr ? now->tm_min : -1);
 
             // Cron reboot check (only after 40 cycles and within first 3 minutes)
             if (mysqlpool_time > 40 && now != nullptr)
@@ -11566,7 +11565,6 @@ void httpserver::run(const std::string &sysconfpath)
 
         total_count = std::thread::hardware_concurrency();
 
-
         // cothreadnum 是核数以下的可选上限（配低可降 p99）；0 = 不限制
         const unsigned int co_cap = sysconfigpath.get_co_thread_num();
         if (co_cap > 0 && co_cap < total_count)
@@ -11610,7 +11608,7 @@ void httpserver::run(const std::string &sysconfpath)
         {
             unsigned int per_ioc_num = sysconfigpath.per_ioc_thread_num;
 
-            if(per_ioc_num < 1)
+            if (per_ioc_num < 1)
             {
                 per_ioc_num = 1;
             }
@@ -11667,10 +11665,21 @@ void httpserver::run(const std::string &sysconfpath)
             client_context.run();
         }
 
-        for (unsigned char i = 0; i < 2; ++i)
         {
-            http2_send_data_threads.emplace_back(std::bind(&httpserver::http2_send_queue_loop, this, i));
+ 
+            unsigned char http2_send_num = sysconfigpath.http2_send_loop_num;
+ 
+            if(http2_send_num < 2)
+            {
+                http2_send_num = 2;
+            }
+
+            for (unsigned char i = 0; i < http2_send_num; ++i)
+            {
+                http2_send_data_threads.emplace_back(std::bind(&httpserver::http2_send_queue_loop, this, i));
+            }
         }
+
         for (int i = 0; i < 1; ++i)
         {
             websocketthreads.emplace_back(std::bind(&httpserver::websocket_loop, this, i));

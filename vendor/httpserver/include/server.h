@@ -161,7 +161,7 @@ class httpserver
     void clear_peer_data(std::shared_ptr<httppeer> &peer);
 
     // 取一个可跨连接复用的 httppeer。最后一个引用放开时走 reset_for_reuse() 回池，
-    // 池满则在锁外销毁。连接级循环（http1 / http2 / rpc）各取一个，HTTP/2 的流级 peer 不走这里。
+    // 池满则在锁外销毁。http1 / rpc / HTTP/2 连接级各取一个，HTTP/2 每条流也各取一个。
     static std::shared_ptr<httppeer> acquire_peer();
 #ifdef BENCHMARK
     static constexpr std::size_t PEER_POOL_MAX = 4096;

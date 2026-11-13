@@ -61,11 +61,11 @@ int main()
         group_result("deep-copy: byte buffer mutated after push", ok);
     }
 
-    // 组4: FIFO 顺序 + head/tail 回绕（4 轮 × 7 = 28 帧，跨 16 槽回绕两圈）。
+    // 组4: FIFO 顺序 + head/tail 回绕（8 轮 × 7 = 56 帧，跨环容量回绕）。
     {
         http::http2_send_queue_cache ring;
         bool ok = true;
-        for (int round = 0; round < 4 && ok; round++)
+        for (int round = 0; round < 8 && ok; round++)
         {
             for (int i = 0; i < 7; i++)
             {
@@ -80,29 +80,30 @@ int main()
         group_result("fifo order across wraparound", ok);
     }
 
-    // 组5: 满环 15 帧；第 16 帧拒收；腾一格后恢复；按序取空后 pop 失败。
+    // 组5: 满环 capacity_-1 帧；再 push 一帧拒收；腾一格后恢复；按序取空后 pop 失败。
     {
         http::http2_send_queue_cache ring;
-        bool ok = true;
-        for (int i = 0; i < 15; i++)
+        bool ok           = true;
+        const int usable  = static_cast<int>(ring.capacity_) - 1;
+        for (int i = 0; i < usable; i++)
         {
             ok = ok && ring.push("f" + std::to_string(i));
         }
-        ok = ok && ring.has_size() == 15;
+        ok = ok && ring.has_size() == usable;
 
         std::string out;
-        ok = ok && !ring.push(std::string("f15"));
+        ok = ok && !ring.push("f" + std::to_string(usable));
         ok = ok && ring.pop(out) && out == "f0";
-        ok = ok && ring.push(std::string("f16"));
-        ok = ok && ring.has_size() == 15;
+        ok = ok && ring.push("f" + std::to_string(usable + 1));
+        ok = ok && ring.has_size() == usable;
 
-        for (int i = 1; i < 15 && ok; i++)
+        for (int i = 1; i < usable && ok; i++)
         {
             ok = ring.pop(out) && out == "f" + std::to_string(i);
         }
-        ok = ok && ring.pop(out) && out == "f16";
+        ok = ok && ring.pop(out) && out == "f" + std::to_string(usable + 1);
         ok = ok && !ring.pop(out);
-        group_result("full ring: 15 slots, 16th rejected, drain then empty", ok);
+        group_result("full ring: capacity_-1 slots, next rejected, drain then empty", ok);
     }
 
     // 组6: reset() 清空槽内容（大帧走交换释放分支），has_size 归零。

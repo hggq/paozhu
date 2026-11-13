@@ -1478,7 +1478,33 @@ bool serverconfig::loadserverglobalconfig()
         orm_ioc_num = 4;
     }
 
+    if (map_value["default"]["http2_send_loop_num"].size() > 0)
+    {
+        http2_send_loop_num = 0;
+        for (size_t i = 0; i < map_value["default"]["http2_send_loop_num"].size(); i++)
+        {
+            if (map_value["default"]["http2_send_loop_num"][i] >= '0' && map_value["default"]["http2_send_loop_num"][i] <= '9')
+            {
+                http2_send_loop_num = http2_send_loop_num * 10 + (map_value["default"]["http2_send_loop_num"][i] - '0');
+                continue;
+            }
+            break;
+        }
 
+        if (http2_send_loop_num > 16)
+        {
+            http2_send_loop_num = 16;
+        }
+
+        if (http2_send_loop_num < 2)
+        {
+            http2_send_loop_num = 2;
+        } 
+    }
+    else
+    {
+        http2_send_loop_num = 2;
+    }
 
     if (map_value["default"]["orm_thread_pool_num"].size() > 0)
     {

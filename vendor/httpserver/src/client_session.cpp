@@ -1501,7 +1501,7 @@ bool client_session::post_write(std::string_view msg)
     {
         return false;
     }
-    // 条数闸：16 槽环最多积压 15 条；字节闸：累计积压过 LIMIT 才拒，环空时单帧放行
+    // 条数闸：环最多积压 capacity_ - 1 条；字节闸：累计积压过 LIMIT 才拒，环空时单帧放行
     unsigned long long backlog = http2_ring_queue->bytes.load(std::memory_order_relaxed);
     unsigned int backlog_cnt   = http2_ring_queue->has_size();
     if (backlog_cnt + 1 >= http2_ring_queue->capacity_)

@@ -14,14 +14,22 @@
 #include <chrono>
 #include <memory>
 #include "terminal_color.h"
+#include "cost_define.h"
 
 namespace http
 {
 
+// 环容量的编译期约束：2 的幂（下标用掩码推进）且能塞进 unsigned char（head_/tail_ 的类型）。
+static_assert(CONST_HTTP2_RING_QUEUE_CAPACITY >= 2, "http2 ring capacity must be at least 2");
+static_assert((CONST_HTTP2_RING_QUEUE_CAPACITY & (CONST_HTTP2_RING_QUEUE_CAPACITY - 1)) == 0,
+              "http2 ring capacity must be a power of two (index uses capacity_-1 mask)");
+static_assert(CONST_HTTP2_RING_QUEUE_CAPACITY <= 255,
+              "http2 ring capacity must fit unsigned char (head_/tail_ type)");
+
 struct http2_send_queue_cache
 {
-    std::array<std::string, 16> data;
-    const unsigned char capacity_ = 16;
+    std::array<std::string, CONST_HTTP2_RING_QUEUE_CAPACITY> data;
+    const unsigned char capacity_ = CONST_HTTP2_RING_QUEUE_CAPACITY;
     std::atomic<unsigned char> head_{0};
     std::atomic<unsigned char> tail_{0};
     std::mutex http2_queue_send_mutex;

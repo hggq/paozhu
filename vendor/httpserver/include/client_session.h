@@ -83,7 +83,7 @@ class client_session : public std::enable_shared_from_this<client_session>
     unsigned int send_writer(const unsigned char *, unsigned int);
     // post_write — 跨线程入队写数据，不阻塞调用方（MQTT 定时线程 / HTTP handler 用）。
     // 数据进本连接发送环，由 ring_client_server 消费者协程串行写出。
-    // 返回 false = 数据被丢弃：连接已关闭 / 未分配发送环 / 环满（16 槽）/
+    // 返回 false = 数据被丢弃：连接已关闭 / 未分配发送环 / 环满（capacity_）/
     // 积压字节过 MQTT_SEND_RING_BYTE_LIMIT（环空时单帧不受闸）。调用方必须检查。
     // 其中"环满 / 积压过闸"那几次会累加进 http2_ring_overflow_count；
     // 连接已关或未分配环那一类不算背压，不计数。
@@ -98,7 +98,7 @@ class client_session : public std::enable_shared_from_this<client_session>
     std::string getlocalip();
     unsigned int getlocalport();
 
-    // 收尾帧返回「是否成功入环」：16 槽环满时 push 返回 false，而 END_STREAM 一旦
+    // 收尾帧返回「是否成功入环」：环满时 push 返回 false，而 END_STREAM 一旦
     // 丢失这条流就永远不结束，调用方必须重投。
     bool http2_send_enddata(unsigned int s_stream_id);
     bool send_zero_data(unsigned int stream_id);
@@ -228,7 +228,7 @@ class client_session : public std::enable_shared_from_this<client_session>
     // 现在往这一个数里记的有三处，字段名的 http2 是历史遗留，语义已经是
     // "本连接的发送环拒过多少片"：
     //   - http2_send_queue_loop 里两处 http2 帧直接 push 被拒；
-    //   - post_write 的三道闸（16 槽满 / 积压过 MQTT_SEND_RING_BYTE_LIMIT / push 失败），
+    //   - post_write 的三道闸（环满 / 积压过 MQTT_SEND_RING_BYTE_LIMIT / push 失败），
     //     也就是 websocket_api::send()、mqtt 的出站、socket_api::send() 三条路共用这一个数。
     //     post_write 最前面那条"连接已关或没环"不算背压，不进这个数。
     // 这个数目前在哪里打印：http2 连接收尾时的 "http2 ring stats overflow"；原生 socket 收尾时的
@@ -248,7 +248,7 @@ class client_session : public std::enable_shared_from_this<client_session>
     // strand 把它们串行化，所以不需要原子量也不需要锁。
     unsigned int conn_grant_pending = 0;
     std::map<unsigned int, unsigned int> stream_grant_pending;
-    // 发送侧看到环里积压超过阈值（16 槽里的 10 槽）而主动让过这一轮的次数：
+    // 发送侧看到环里积压超过阈值（24，见 CONST_HTTP2_RING_BACKPRESSURE_SLOTS）而主动让过这一轮的次数：
     // http2_send_gate_open 判闸时加一次，http2_send_queue_loop 里让路时再加。
     // 这一支在 push() 之前就 return，所以它不体现在 overflow 里；不单独记的话
     // "环从没满过" 和 "环满了但每次都提前让路" 两种情况读起来一模一样。

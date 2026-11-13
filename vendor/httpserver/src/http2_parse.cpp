@@ -31,6 +31,7 @@
 #include "http2_parse.h"
 #include "client_session.h"
 #include "http2_huffman.h"
+#include "server.h"
 
 #include "terminal_color.h"
 #include "debug_log.h"
@@ -388,7 +389,7 @@ void http2parse::readheaders(const HTTP2_PACK_DATA_T &temp_pack_data)
         return;
     }
 
-    auto steam_httppeer = std::make_shared<httppeer>();
+    auto steam_httppeer = httpserver::acquire_peer();
     if (!http_data.emplace(iter->second.stream_id, steam_httppeer).second)
     {
         // 同一流 id 已经建过请求对象：emplace 会静默失败，新 peer 变成没人应答的孤儿，
