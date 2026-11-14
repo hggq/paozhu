@@ -510,7 +510,8 @@ std::string init_orm_conn_pool(
             }
         }
 
-        unsigned int n = 0;
+        unsigned int n        = 0;// 实际建成条数
+        unsigned int expected = 0;// 本次应建成条数（各槽预建之和）
         try
         {
             // min_pool 是每槽预建数，每槽独立预建各自的 slot_min，其余按需懒建。
@@ -519,12 +520,15 @@ std::string init_orm_conn_pool(
                 unsigned char prebuild = static_cast<unsigned char>(conn->slot_min_of(item.link_type, si));
                 if (item.db_type == DB_TYPE::POSTGRESQL)
                 {
+                    expected += prebuild;
                     n += (item.link_type == 0)
                              ? conn->init_pg_edit_conn(prebuild, si)
                              : conn->init_pg_select_conn(prebuild, si);
                 }
                 else if (item.db_type == DB_TYPE::SQLITE)
                 {
+                    // SQLite 单连接模式：忽略 prebuild 条数，建成即 1 条
+                    expected += 1;
                     n += (item.link_type == 0)
                              ? conn->init_sqlite_edit_conn(prebuild, si)
                              : conn->init_sqlite_select_conn(prebuild, si);
@@ -532,6 +536,7 @@ std::string init_orm_conn_pool(
                 }
                 else
                 {
+                    expected += prebuild;
                     n += (item.link_type == 0)
                              ? conn->init_mysql_edit_conn(prebuild, si)
                              : conn->init_mysql_select_conn(prebuild, si);
@@ -547,6 +552,14 @@ std::string init_orm_conn_pool(
             conn->error_msg.append(" int_pool.init_");
             conn->error_msg.append(item.link_type == 0 ? "edit" : "select");
             conn->error_msg.append("_conn failed for tag " + item.tag);
+        }
+        // 全失败或部分失败：把建成数/应建数写进启动日志，不再静默
+        if (n < expected)
+        {
+            error_log.append("[ORM-ERROR] tag=" + item.tag +
+                             " role=" + (item.link_type == 0 ? "edit" : "select") +
+                             " prebuild=" + std::to_string(n) + "/" + std::to_string(expected) +
+                             " err=" + conn->error_msg + "\n");
         }
         if (iter == int_pool.end())
         {
@@ -746,36 +759,31 @@ void orm_conn_pool::back_mysql_edit_conn(std::shared_ptr<mysql_conn_base> conn)
 unsigned int orm_conn_pool::init_mysql_edit_conn(unsigned char n, unsigned int slot_index)
 {
     orm_slot &slot   = slot_ref(slot_index);
-    unsigned int i   = 0;
+    unsigned int i   = 0;// 已尝试条数
+    unsigned int ok  = 0;// 实际建成条数
     for (; i < n; ++i)
     {
-        try
+        auto link = orm_conn_link_t::create(*slot.io_context, DB_TYPE::MYSQL);
+        auto conn = std::make_shared<mysql_conn_base>(std::move(link));
+        bool isok = conn->connect(conf_data[0]);
+        if (isok)
         {
-            auto link = orm_conn_link_t::create(*slot.io_context, DB_TYPE::MYSQL);
-            auto conn = std::make_shared<mysql_conn_base>(std::move(link));
-            bool isok = conn->connect(conf_data[0]);
-            if (isok)
+            if (conf_data[0].isdebug)
             {
-                if (conf_data[0].isdebug)
-                {
-                    conn->isdebug = true;
-                }
-                std::unique_lock<std::mutex> lock(slot.edit_mutex);
-                slot.mysql_edit_pool.emplace_back(conn);
-                conn->conn_link->bind_slot_total(slot.total_count[LINK_EDIT]);
-                conn->conn_link->slot_index = slot.index;
-                lock.unlock();
-                continue;
+                conn->isdebug = true;
             }
-            error_msg = conn->error_msg;
-            throw std::runtime_error(error_msg);
+            std::unique_lock<std::mutex> lock(slot.edit_mutex);
+            slot.mysql_edit_pool.emplace_back(conn);
+            conn->conn_link->bind_slot_total(slot.total_count[LINK_EDIT]);
+            conn->conn_link->slot_index = slot.index;
+            lock.unlock();
+            ++ok;
+            continue;
         }
-        catch (const std::exception &e)
-        {
-            error_msg.append(e.what());
-        }
+        // 失败：保留最后一次的错误原因，不堆叠
+        error_msg = conn->error_msg;
     }
-    return i;
+    return ok;
 }
 
 std::shared_ptr<mysql_conn_base> orm_conn_pool::add_mysql_select_connect(orm_slot &slot)
@@ -830,36 +838,31 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_add_mysql
 unsigned int orm_conn_pool::init_mysql_select_conn(unsigned char n, unsigned int slot_index)
 {
     orm_slot &slot   = slot_ref(slot_index);
-    unsigned int i   = 0;
+    unsigned int i   = 0;// 已尝试条数
+    unsigned int ok  = 0;// 实际建成条数
     for (; i < n; ++i)
     {
-        try
+        auto link = orm_conn_link_t::create(*slot.io_context, DB_TYPE::MYSQL);
+        auto conn = std::make_shared<mysql_conn_base>(std::move(link));
+        bool isok = conn->connect(conf_data[1]);
+        if (isok)
         {
-            auto link = orm_conn_link_t::create(*slot.io_context, DB_TYPE::MYSQL);
-            auto conn = std::make_shared<mysql_conn_base>(std::move(link));
-            bool isok = conn->connect(conf_data[1]);
-            if (isok)
+            if (conf_data[1].isdebug)
             {
-                if (conf_data[1].isdebug)
-                {
-                    conn->isdebug = true;
-                }
-                std::unique_lock<std::mutex> lock(slot.select_mutex);
-                slot.mysql_select_pool.emplace_back(conn);
-                conn->conn_link->bind_slot_total(slot.total_count[LINK_SELECT]);
-                conn->conn_link->slot_index = slot.index;
-                lock.unlock();
-                continue;
+                conn->isdebug = true;
             }
-            error_msg = conn->error_msg;
-            throw std::runtime_error(error_msg);
+            std::unique_lock<std::mutex> lock(slot.select_mutex);
+            slot.mysql_select_pool.emplace_back(conn);
+            conn->conn_link->bind_slot_total(slot.total_count[LINK_SELECT]);
+            conn->conn_link->slot_index = slot.index;
+            lock.unlock();
+            ++ok;
+            continue;
         }
-        catch (const std::exception &e)
-        {
-            error_msg.append(e.what());
-        }
+        // 失败：保留最后一次的错误原因，不堆叠
+        error_msg = conn->error_msg;
     }
-    return i;
+    return ok;
 }
 
 void orm_conn_pool::back_mysql_select_conn(std::shared_ptr<mysql_conn_base> conn)
@@ -1156,36 +1159,31 @@ void orm_conn_pool::back_pg_edit_conn(std::shared_ptr<pg_conn_base> conn)
 unsigned int orm_conn_pool::init_pg_edit_conn(unsigned char n, unsigned int slot_index)
 {
     orm_slot &slot = slot_ref(slot_index);
-    unsigned int i = 0;
+    unsigned int i = 0;// 已尝试条数
+    unsigned int ok = 0;// 实际建成条数
     for (; i < n; ++i)
     {
-        try
+        auto link = orm_conn_link_t::create(*slot.io_context, DB_TYPE::POSTGRESQL);
+        auto conn = std::make_shared<pg_conn_base>(std::move(link));
+        bool isok = conn->connect(conf_data[0]);
+        if (isok)
         {
-            auto link = orm_conn_link_t::create(*slot.io_context, DB_TYPE::POSTGRESQL);
-            auto conn = std::make_shared<pg_conn_base>(std::move(link));
-            bool isok = conn->connect(conf_data[0]);
-            if (isok)
+            if (conf_data[0].isdebug)
             {
-                if (conf_data[0].isdebug)
-                {
-                    conn->isdebug = true;
-                }
-                std::unique_lock<std::mutex> lock(slot.edit_mutex);
-                slot.pg_edit_pool.emplace_back(conn);
-                conn->conn_link->bind_slot_total(slot.total_count[LINK_EDIT]);
-                conn->conn_link->slot_index = slot.index;
-                lock.unlock();
-                continue;
+                conn->isdebug = true;
             }
-            error_msg = conn->error_msg;
-            throw std::runtime_error(error_msg);
+            std::unique_lock<std::mutex> lock(slot.edit_mutex);
+            slot.pg_edit_pool.emplace_back(conn);
+            conn->conn_link->bind_slot_total(slot.total_count[LINK_EDIT]);
+            conn->conn_link->slot_index = slot.index;
+            lock.unlock();
+            ++ok;
+            continue;
         }
-        catch (const std::exception &e)
-        {
-            error_msg.append(e.what());
-        }
+        // 失败：保留最后一次的错误原因，不堆叠
+        error_msg = conn->error_msg;
     }
-    return i;
+    return ok;
 }
 
 std::shared_ptr<pg_conn_base> orm_conn_pool::add_pg_select_connect(orm_slot &slot)
@@ -1240,36 +1238,31 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_add_pg_selec
 unsigned int orm_conn_pool::init_pg_select_conn(unsigned char n, unsigned int slot_index)
 {
     orm_slot &slot = slot_ref(slot_index);
-    unsigned int i = 0;
+    unsigned int i = 0;// 已尝试条数
+    unsigned int ok = 0;// 实际建成条数
     for (; i < n; ++i)
     {
-        try
+        auto link = orm_conn_link_t::create(*slot.io_context, DB_TYPE::POSTGRESQL);
+        auto conn = std::make_shared<pg_conn_base>(std::move(link));
+        bool isok = conn->connect(conf_data[1]);
+        if (isok)
         {
-            auto link = orm_conn_link_t::create(*slot.io_context, DB_TYPE::POSTGRESQL);
-            auto conn = std::make_shared<pg_conn_base>(std::move(link));
-            bool isok = conn->connect(conf_data[1]);
-            if (isok)
+            if (conf_data[1].isdebug)
             {
-                if (conf_data[1].isdebug)
-                {
-                    conn->isdebug = true;
-                }
-                std::unique_lock<std::mutex> lock(slot.select_mutex);
-                slot.pg_select_pool.emplace_back(conn);
-                conn->conn_link->bind_slot_total(slot.total_count[LINK_SELECT]);
-                conn->conn_link->slot_index = slot.index;
-                lock.unlock();
-                continue;
+                conn->isdebug = true;
             }
-            error_msg = conn->error_msg;
-            throw std::runtime_error(error_msg);
+            std::unique_lock<std::mutex> lock(slot.select_mutex);
+            slot.pg_select_pool.emplace_back(conn);
+            conn->conn_link->bind_slot_total(slot.total_count[LINK_SELECT]);
+            conn->conn_link->slot_index = slot.index;
+            lock.unlock();
+            ++ok;
+            continue;
         }
-        catch (const std::exception &e)
-        {
-            error_msg.append(e.what());
-        }
+        // 失败：保留最后一次的错误原因，不堆叠
+        error_msg = conn->error_msg;
     }
-    return i;
+    return ok;
 }
 
 void orm_conn_pool::back_pg_select_conn(std::shared_ptr<pg_conn_base> conn)
