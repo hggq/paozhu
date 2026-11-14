@@ -3089,6 +3089,7 @@ asio::awaitable<unsigned int> httpserver::client_http1_loop(bool isssl, unsigned
     try
     {
         std::shared_ptr<httppeer> peer = acquire_peer();
+#ifndef BENCHMARK
         peer_session->time_limit.store(timeid());
         // 提前绑定 socket_session：CORS 预检分支（send_cors_domain）在 http1loop 之前
         // 就会用 peer->socket_session 写回响应，而该成员原先只在 http1loop 内部赋值，
@@ -3099,9 +3100,10 @@ asio::awaitable<unsigned int> httpserver::client_http1_loop(bool isssl, unsigned
         peer->client_ip      = peer_session->getremoteip();
         // 四个端点字段在连接入口绑一次。getlocalip()/getlocalport() 要查 socket，
         // 不能放进每请求的分支；池化复用后也不能靠「server_port 还是 0」来判断该不该绑。
-        peer->server_ip                     = peer_session->getlocalip();
-        peer->client_port                   = peer_session->getremoteport();
-        peer->server_port                   = peer_session->getlocalport();
+        peer->server_ip   = peer_session->getlocalip();
+        peer->client_port = peer_session->getremoteport();
+        peer->server_port = peer_session->getlocalport();
+#endif
         std::unique_ptr<httpparse> http1pre = std::make_unique<httpparse>();
 
         std::string log_item;
@@ -3437,7 +3439,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                     error_state = 1;
                     break;
                 }
-
+#ifndef BENCHMARK
                 if (stream_ptr->server_port == 0)
                 {
                     stream_ptr->server_ip   = peer_session->getlocalip();
@@ -3445,7 +3447,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                     stream_ptr->client_port = peer_session->getremoteport();
                     stream_ptr->server_port = peer_session->getlocalport();
                 }
-
+#endif
                 // 同 h1：OPTIONS 预检不进业务，由 send_cors_domain() 输出预检头；
                 // 只捕 sp 即可，响应头挂在 peer 自己的容器里，协程持有 sp 就不会悬垂
                 if (stream_ptr->iscors)
@@ -11666,10 +11668,10 @@ void httpserver::run(const std::string &sysconfpath)
         }
 
         {
- 
+
             unsigned char http2_send_num = sysconfigpath.http2_send_loop_num;
- 
-            if(http2_send_num < 2)
+
+            if (http2_send_num < 2)
             {
                 http2_send_num = 2;
             }
