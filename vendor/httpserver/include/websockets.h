@@ -22,6 +22,9 @@ struct websockets_data_list_t
 {
     bool isfile        = false;
     bool isdeflate     = false;
+    // 入站消息的 opcode 类型：binary 帧必须原样以 binary 回帧（RFC 6455 / validate-ws.py）。
+    // Inbound message kind: a binary frame must be echoed as binary, not text.
+    bool is_binary     = false;
     unsigned int seqid = 0;
     std::string value;
 };

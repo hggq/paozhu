@@ -5,11 +5,15 @@
 #include "loopwebsockets.hpp"
 #include "loopwebsockets_co.hpp"
 #include "wssleepwebsockets.hpp"
+#include "arena_ws_echo.hpp"
 #include "websockets_callback.h"
 namespace http
 {
 void _initwebsocketmethodregto(WEBSOCKET_REG &methodcallback)
 {
+    // HttpArena: GET /ws → arena_ws_echo (text + binary echo, coroutine mode).
+    methodcallback.emplace("ws", [](unsigned int m, unsigned int g) -> std::shared_ptr<websockets_api>
+                           { return std::make_shared<arena_ws_echo>(m, g); });
 
     methodcallback.emplace("wstest", [](unsigned int m, unsigned int g) -> std::shared_ptr<websockets_api>
                            { return std::make_shared<loopwebsockets>(m,g); });

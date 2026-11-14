@@ -173,6 +173,10 @@ bool ws_parser::feed(const unsigned char *data, size_t len)
                 {
                     // seqid 由派发层统一分配，解析器不再自带一套只写不读的序号
                     websockets_data_list_t msg;
+                    // consume_message() 会重置 opcode_，所以在交付前把消息类型带给业务层。
+                    // Take the opcode before consume_message() resets it, so an echo
+                    // handler can reply with the same frame type.
+                    msg.is_binary = assembler_.message_opcode() == opcode::binary;
                     if (assembler_.is_spilled())
                     {
                         msg.isfile = true;

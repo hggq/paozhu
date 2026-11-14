@@ -186,17 +186,22 @@ void _inithttpsocketmethodregto(HTTP_SOCKET_REG &methodcallback)
 }// namespace http
 EOF
 
-# websockets_method_reg.hpp — keep websockets_callback.h (defines WEBSOCKET_REG)
+# websockets_method_reg.hpp — keep websockets_callback.h (defines WEBSOCKET_REG).
+# "ws" is the HttpArena echo endpoint: client_websocket_loop looks up
+# peer->pathinfos[0], so GET /ws resolves to this key.
 cat > common/websockets_method_reg.hpp << 'EOF'
 #pragma once
 #include <map>
 #include "httppeer.h"
 #include "websockets_callback.h"
+#include "arena_ws_echo.hpp"
 
 namespace http
 {
 void _initwebsocketmethodregto(WEBSOCKET_REG &methodcallback)
 {
+    methodcallback.emplace("ws", [](unsigned int m, unsigned int g) -> std::shared_ptr<websockets_api>
+                           { return std::make_shared<arena_ws_echo>(m, g); });
 }
 
 }// namespace http
@@ -347,7 +352,13 @@ echo ""
 echo "[Step 2/${TOTAL_STEPS}] Removing demo code (redis/ mqtt/ sockets/ websockets/ libs/webpay/ libs/oauth/ libs/github/ libs/rbac/)..."
 
 for demo_dir in redis mqtt sockets websockets; do
-    rm -rf "$demo_dir"/* 2>/dev/null || true
+    if [ "$demo_dir" = "websockets" ] && [ -f "websockets/arena_ws_echo.hpp" ]; then
+        # Keep the HttpArena /ws echo handler; the generated
+        # common/websockets_method_reg.hpp includes it.
+        find websockets -mindepth 1 -maxdepth 1 ! -name 'arena_ws_echo.hpp' -exec rm -rf {} + 2>/dev/null || true
+    else
+        rm -rf "$demo_dir"/* 2>/dev/null || true
+    fi
     mkdir -p "$demo_dir"
 done
 
