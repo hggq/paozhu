@@ -675,7 +675,11 @@ std::string router::resolve(std::shared_ptr<httppeer> peer)
             {
                 int next = find_sitecontent(peer, sitecontent);
                 if (next < 0)
-                    break;// 跳转名没注册：交回调用方并记日志
+                {
+                    // 裸 ok/exit 的历史写法会走到这里：页面往往已写完，原样返回，只记日志
+                    DEBUG_LOG("pre jump target not registered: [%s]", sitecontent.c_str());
+                    break;
+                }
                 cur_path = sitecontent;
                 sitecontent.clear();
                 idx = next;
@@ -750,7 +754,11 @@ std::string router::resolve(std::shared_ptr<httppeer> peer)
         }
         int next = find_sitecontent(peer, sitecontent);
         if (next < 0)
-            break;// sitecontent 作为未消费的跳转名交回调用方
+        {
+            // 裸 ok/exit 的历史写法会走到这里：页面往往已写完，原样返回，只记日志
+            DEBUG_LOG("regfun jump target not registered: [%s]", sitecontent.c_str());
+            break;
+        }
         cur_path = sitecontent;
         sitecontent.clear();
         idx = next;
@@ -900,7 +908,11 @@ asio::awaitable<std::string> router::co_resolve(std::shared_ptr<httppeer> peer, 
             {
                 int next = find_sitecontent(peer, sitecontent);
                 if (next < 0)
-                    break;// 跳转名没注册：交回调用方并记日志
+                {
+                    // 裸 ok/exit 的历史写法会走到这里：页面往往已写完，原样返回，只记日志
+                    DEBUG_LOG("pre jump target not registered: [%s]", sitecontent.c_str());
+                    break;
+                }
                 cur_path = sitecontent;
                 sitecontent.clear();
                 idx = next;
@@ -1009,7 +1021,11 @@ asio::awaitable<std::string> router::co_resolve(std::shared_ptr<httppeer> peer, 
         }
         int next = find_sitecontent(peer, sitecontent);
         if (next < 0)
+        {
+            // 裸 ok/exit 的历史写法会走到这里：页面往往已写完，原样返回，只记日志
+            DEBUG_LOG("regfun jump target not registered: [%s]", sitecontent.c_str());
             break;
+        }
         cur_path = sitecontent;
         sitecontent.clear();
         idx = next;
