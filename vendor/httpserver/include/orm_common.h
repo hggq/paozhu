@@ -313,7 +313,28 @@ struct Base
             result += Derived::field_names[idx.value];
             result += "\":";
             
-            result += http::to_json_value(field); });
+            // 算术字段直接 to_chars 写进输出缓冲，避免 http::to_json_value 造临时串
+            using field_type = std::decay_t<decltype(field)>;
+            if constexpr (std::is_arithmetic_v<field_type>)
+            {
+                if constexpr (std::is_same_v<field_type, bool>)
+                {
+                    result += field ? "true" : "false";
+                }
+                else
+                {
+                    char num_buf[32];
+                    auto [ptr, ec] = std::to_chars(num_buf, num_buf + sizeof(num_buf), field);
+                    if (ec == std::errc{})
+                    {
+                        result.append(num_buf, static_cast<std::size_t>(ptr - num_buf));
+                    }
+                }
+            }
+            else
+            {
+                result += http::to_json_value(field);
+            } });
 
         result += '}';
         return result;
