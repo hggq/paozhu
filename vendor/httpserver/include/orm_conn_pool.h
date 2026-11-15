@@ -27,6 +27,20 @@ namespace orm
 
 bool str_casecmp(std::string_view str1, std::string_view str2);
 
+// 异步取连接配额打满时挂在本角色等待队列上，归还连接时按 FIFO 唤醒一个。
+// timer 挂调用方 executor；唤醒经 post-cancel 投回同一 executor，续体仍落在
+// 调用方 ioc（线程亲和与旧退避定时器一致）。队列由本角色的 edit_mutex /
+// select_mutex 保护（与空闲队列同锁），不另设锁。
+struct orm_conn_waiter
+{
+    asio::steady_timer timer;
+    std::list<std::shared_ptr<orm_conn_waiter>>::iterator it;
+    bool listed = false;
+    explicit orm_conn_waiter(asio::steady_timer::executor_type ex) : timer(std::move(ex))
+    {
+    }
+};
+
 // 一条 tag 的连接队列按 io_context 拆成 N 个槽，槽按 io_context 下标对齐。
 // 只有本槽的连接队列、锁与计数；tag 级配置（conf_data / min_pool / max_pool）留在 pool，
 // 槽只读不复制。
@@ -49,6 +63,10 @@ struct orm_slot
     // 每槽各一套锁，避免不同 ioc 的线程争同一把
     std::mutex edit_mutex;
     std::mutex select_mutex;
+
+    // 配额打满时的等待队列，复用上面同角色的 mutex 保护（与空闲队列同锁）。
+    std::list<std::shared_ptr<orm_conn_waiter>> edit_waiters;
+    std::list<std::shared_ptr<orm_conn_waiter>> select_waiters;
 
     // 计数与在途建连都按角色分开，下标同 conf_data：0=edit(main)，1=select(second)。
     // orm.conf 每个角色各写一条 maxpool（默认 5 / 20），共用一份计数会让 select 池

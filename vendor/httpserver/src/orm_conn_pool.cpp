@@ -23,6 +23,8 @@
 #include <asio.hpp>
 #include <asio/ssl.hpp>
 #include <asio/io_context.hpp>
+#include <asio/post.hpp>
+#include <asio/redirect_error.hpp>
 #include "mysql_conn.h"
 #include "orm_conn_pool.h"
 #include "pg_conn.h"
@@ -37,6 +39,31 @@
 
 namespace orm
 {
+namespace
+{
+// 锁内调用：弹出队首 waiter（FIFO）。返回给调用方在解锁后唤醒，避免持锁投递。
+std::shared_ptr<orm_conn_waiter> pop_conn_waiter(std::list<std::shared_ptr<orm_conn_waiter>> &q)
+{
+    if (q.empty())
+    {
+        return nullptr;
+    }
+    auto w = std::move(q.front());
+    q.pop_front();
+    w->listed = false;
+    return w;
+}
+// 解锁后调用：投到 waiter 自己的 executor 取消定时器，续体落回它自己的 ioc。
+// shared_ptr 捕获保证 waiter 活到 cancel 执行完毕。
+void wake_conn_waiter(std::shared_ptr<orm_conn_waiter> w)
+{
+    if (w)
+    {
+        asio::post(w->timer.get_executor(), [w] { w->timer.cancel(); });
+    }
+}
+}// namespace
+
 bool orm_conn_pool::is_postgresql() const
 {
     return conf_data[0].db_type == DB_TYPE::POSTGRESQL;
@@ -759,17 +786,22 @@ void orm_conn_pool::back_mysql_edit_conn(std::shared_ptr<mysql_conn_base> conn)
         // 连接已断开：丢弃这条对象，名额随它的析构归还
         return;
     }
-    std::unique_lock<std::mutex> lock(slot.edit_mutex);
-    if (conn->pooled_)
+    std::shared_ptr<orm_conn_waiter> w;
     {
-        std::cerr << "[orm_pool] duplicate return ignored: mysql_edit" << std::endl;
+        std::unique_lock<std::mutex> lock(slot.edit_mutex);
+        if (conn->pooled_)
+        {
+            std::cerr << "[orm_pool] duplicate return ignored: mysql_edit" << std::endl;
+        }
+        else
+        {
+            conn->pooled_ = true;
+            conn->issynch = false;
+            slot.mysql_edit_pool.emplace_back(std::move(conn));
+            w = pop_conn_waiter(slot.edit_waiters);
+        }
     }
-    else
-    {
-        conn->pooled_ = true;
-        conn->issynch = false;
-        slot.mysql_edit_pool.emplace_back(std::move(conn));
-    }
+    wake_conn_waiter(w);
 }
 
 unsigned int orm_conn_pool::init_mysql_edit_conn(unsigned char n, unsigned int slot_index)
@@ -894,34 +926,38 @@ void orm_conn_pool::back_mysql_select_conn(std::shared_ptr<mysql_conn_base> conn
     {
         return;
     }
-    std::unique_lock<std::mutex> lock(slot.select_mutex);
-    if (conn->pooled_)
+    std::shared_ptr<orm_conn_waiter> w;
     {
-        std::cerr << "[orm_pool] duplicate return ignored: mysql_select" << std::endl;
+        std::unique_lock<std::mutex> lock(slot.select_mutex);
+        if (conn->pooled_)
+        {
+            std::cerr << "[orm_pool] duplicate return ignored: mysql_select" << std::endl;
+        }
+        else
+        {
+            conn->pooled_ = true;
+            conn->issynch = false;
+            slot.mysql_select_pool.emplace_back(std::move(conn));
+            w = pop_conn_waiter(slot.select_waiters);
+        }
     }
-    else
-    {
-        conn->pooled_ = true;
-        conn->issynch = false;
-        slot.mysql_select_pool.emplace_back(std::move(conn));
-    }
+    wake_conn_waiter(w);
 }
 
 asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql_edit_conn()
 {
-    auto ex                       = co_await asio::this_coro::executor;// 门闩定时器仍挂调用方 ioc
+    auto ex                       = co_await asio::this_coro::executor;// 等待定时器仍挂调用方 ioc
     const unsigned int n          = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
     const unsigned int slot_index = rr_counter.fetch_add(1, std::memory_order_relaxed) % n;
     orm_slot &slot                = slot_ref(slot_index);
 
     const unsigned int maxn = slot_max_of(LINK_EDIT, slot_index);
-    asio::steady_timer timer(ex);
-    std::chrono::milliseconds backoff(1);
     // 本槽该角色名额已满后的最长等待；到点抛异常退出，请求不会一直占着协程。
     const auto wait_deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(CONST_ORM_CONN_WAIT_MS);
 
     for (;;)
     {
+        std::shared_ptr<orm_conn_waiter> w;
         {
             std::unique_lock<std::mutex> lock(slot.edit_mutex);
             while (!slot.mysql_edit_pool.empty())
@@ -957,28 +993,36 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql
                     throw;
                 }
             }
+
+            // 配额打满：查空闲与注册 waiter 在同一把锁内完成 ⇒ 此后任何归还必然
+            // 唤醒我（无丢失唤醒）。定时器只作 deadline 兜底，正常唤醒由 back_* 触发。
+            auto now = std::chrono::steady_clock::now();
+            if (now >= wait_deadline)
+            {
+                // 到点仍没等到名额：抛异常退出，由 ORM 的 catch 写成 error_msg。
+                throw std::runtime_error(std::string(" orm conn pool wait timeout for tag ") +
+                                         conf_data[0].tag + " role=edit" +
+                                         " max_pool=" + std::to_string(maxn) +
+                                         " total=" + std::to_string(slot.total_count[LINK_EDIT]->load(std::memory_order_relaxed)) +
+                                         " connecting=" + std::to_string(slot.connecting[LINK_EDIT].load(std::memory_order_relaxed)) +
+                                         " wait_ms=" + std::to_string(CONST_ORM_CONN_WAIT_MS));
+            }
+            auto remain = std::chrono::duration_cast<std::chrono::milliseconds>(wait_deadline - now);
+            w           = std::make_shared<orm_conn_waiter>(ex);
+            w->timer.expires_after(remain < std::chrono::milliseconds(1) ? std::chrono::milliseconds(1) : remain);
+            w->it     = slot.edit_waiters.insert(slot.edit_waiters.end(), w);
+            w->listed = true;
         }
 
-        // 已达本槽上限：短退避后重试，等归还或清理把名额让出来。
-        auto now       = std::chrono::steady_clock::now();
-        if (now >= wait_deadline)
+        asio::error_code ec;
+        co_await w->timer.async_wait(asio::redirect_error(asio::use_awaitable, ec));
         {
-            // 到点仍没等到名额：抛异常退出，由 ORM 的 catch 写成 error_msg。
-            // 退避重试不保证先到先得，等满上限就放弃，不让请求无限占着协程。
-            throw std::runtime_error(std::string(" orm conn pool wait timeout for tag ") +
-                                     conf_data[0].tag + " role=edit" +
-                                     " max_pool=" + std::to_string(maxn) +
-                                     " total=" + std::to_string(slot.total_count[LINK_EDIT]->load(std::memory_order_relaxed)) +
-                                     " connecting=" + std::to_string(slot.connecting[LINK_EDIT].load(std::memory_order_relaxed)) +
-                                     " wait_ms=" + std::to_string(CONST_ORM_CONN_WAIT_MS));
-        }
-        auto remain   = std::chrono::duration_cast<std::chrono::milliseconds>(wait_deadline - now);
-        auto wait_for = backoff < remain ? backoff : remain;
-        timer.expires_after(wait_for);
-        co_await timer.async_wait(asio::use_awaitable);
-        if (backoff < std::chrono::milliseconds(50))
-        {
-            backoff *= 2;
+            std::lock_guard<std::mutex> lock(slot.edit_mutex);
+            if (w->listed)
+            {
+                slot.edit_waiters.erase(w->it);
+                w->listed = false;
+            }
         }
     }
 }
@@ -1007,19 +1051,18 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::get_mysql_edit_conn()
 
 asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql_select_conn()
 {
-    auto ex                       = co_await asio::this_coro::executor;// 门闩定时器仍挂调用方 ioc
+    auto ex                       = co_await asio::this_coro::executor;// 等待定时器仍挂调用方 ioc
     const unsigned int n          = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
     const unsigned int slot_index = rr_counter.fetch_add(1, std::memory_order_relaxed) % n;
     orm_slot &slot                = slot_ref(slot_index);
 
     const unsigned int maxn = slot_max_of(LINK_SELECT, slot_index);
-    asio::steady_timer timer(ex);
-    std::chrono::milliseconds backoff(1);
     // 本槽该角色名额已满后的最长等待；到点抛异常退出，请求不会一直占着协程。
     const auto wait_deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(CONST_ORM_CONN_WAIT_MS);
 
     for (;;)
     {
+        std::shared_ptr<orm_conn_waiter> w;
         {
             std::unique_lock<std::mutex> lock(slot.select_mutex);
             while (!slot.mysql_select_pool.empty())
@@ -1053,27 +1096,36 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql
                     throw;
                 }
             }
+
+            // 配额打满：查空闲与注册 waiter 在同一把锁内完成 ⇒ 此后任何归还必然
+            // 唤醒我（无丢失唤醒）。定时器只作 deadline 兜底，正常唤醒由 back_* 触发。
+            auto now = std::chrono::steady_clock::now();
+            if (now >= wait_deadline)
+            {
+                // 到点仍没等到名额：抛异常退出，由 ORM 的 catch 写成 error_msg。
+                throw std::runtime_error(std::string(" orm conn pool wait timeout for tag ") +
+                                         conf_data[1].tag + " role=select" +
+                                         " max_pool=" + std::to_string(maxn) +
+                                         " total=" + std::to_string(slot.total_count[LINK_SELECT]->load(std::memory_order_relaxed)) +
+                                         " connecting=" + std::to_string(slot.connecting[LINK_SELECT].load(std::memory_order_relaxed)) +
+                                         " wait_ms=" + std::to_string(CONST_ORM_CONN_WAIT_MS));
+            }
+            auto remain = std::chrono::duration_cast<std::chrono::milliseconds>(wait_deadline - now);
+            w           = std::make_shared<orm_conn_waiter>(ex);
+            w->timer.expires_after(remain < std::chrono::milliseconds(1) ? std::chrono::milliseconds(1) : remain);
+            w->it     = slot.select_waiters.insert(slot.select_waiters.end(), w);
+            w->listed = true;
         }
 
-        auto now       = std::chrono::steady_clock::now();
-        if (now >= wait_deadline)
+        asio::error_code ec;
+        co_await w->timer.async_wait(asio::redirect_error(asio::use_awaitable, ec));
         {
-            // 到点仍没等到名额：抛异常退出，由 ORM 的 catch 写成 error_msg。
-            // 退避重试不保证先到先得，等满上限就放弃，不让请求无限占着协程。
-            throw std::runtime_error(std::string(" orm conn pool wait timeout for tag ") +
-                                     conf_data[1].tag + " role=select" +
-                                     " max_pool=" + std::to_string(maxn) +
-                                     " total=" + std::to_string(slot.total_count[LINK_SELECT]->load(std::memory_order_relaxed)) +
-                                     " connecting=" + std::to_string(slot.connecting[LINK_SELECT].load(std::memory_order_relaxed)) +
-                                     " wait_ms=" + std::to_string(CONST_ORM_CONN_WAIT_MS));
-        }
-        auto remain   = std::chrono::duration_cast<std::chrono::milliseconds>(wait_deadline - now);
-        auto wait_for = backoff < remain ? backoff : remain;
-        timer.expires_after(wait_for);
-        co_await timer.async_wait(asio::use_awaitable);
-        if (backoff < std::chrono::milliseconds(50))
-        {
-            backoff *= 2;
+            std::lock_guard<std::mutex> lock(slot.select_mutex);
+            if (w->listed)
+            {
+                slot.select_waiters.erase(w->it);
+                w->listed = false;
+            }
         }
     }
 }
@@ -1161,17 +1213,22 @@ void orm_conn_pool::back_pg_edit_conn(std::shared_ptr<pg_conn_base> conn)
     {
         return;
     }
-    std::unique_lock<std::mutex> lock(slot.edit_mutex);
-    if (conn->pooled_)
+    std::shared_ptr<orm_conn_waiter> w;
     {
-        std::cerr << "[orm_pool] duplicate return ignored: pg_edit" << std::endl;
+        std::unique_lock<std::mutex> lock(slot.edit_mutex);
+        if (conn->pooled_)
+        {
+            std::cerr << "[orm_pool] duplicate return ignored: pg_edit" << std::endl;
+        }
+        else
+        {
+            conn->pooled_ = true;
+            conn->issynch = false;
+            slot.pg_edit_pool.emplace_back(std::move(conn));
+            w = pop_conn_waiter(slot.edit_waiters);
+        }
     }
-    else
-    {
-        conn->pooled_ = true;
-        conn->issynch = false;
-        slot.pg_edit_pool.emplace_back(std::move(conn));
-    }
+    wake_conn_waiter(w);
 }
 
 unsigned int orm_conn_pool::init_pg_edit_conn(unsigned char n, unsigned int slot_index)
@@ -1296,34 +1353,38 @@ void orm_conn_pool::back_pg_select_conn(std::shared_ptr<pg_conn_base> conn)
     {
         return;
     }
-    std::unique_lock<std::mutex> lock(slot.select_mutex);
-    if (conn->pooled_)
+    std::shared_ptr<orm_conn_waiter> w;
     {
-        std::cerr << "[orm_pool] duplicate return ignored: pg_select" << std::endl;
+        std::unique_lock<std::mutex> lock(slot.select_mutex);
+        if (conn->pooled_)
+        {
+            std::cerr << "[orm_pool] duplicate return ignored: pg_select" << std::endl;
+        }
+        else
+        {
+            conn->pooled_ = true;
+            conn->issynch = false;
+            slot.pg_select_pool.emplace_back(std::move(conn));
+            w = pop_conn_waiter(slot.select_waiters);
+        }
     }
-    else
-    {
-        conn->pooled_ = true;
-        conn->issynch = false;
-        slot.pg_select_pool.emplace_back(std::move(conn));
-    }
+    wake_conn_waiter(w);
 }
 
 asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_edit_conn()
 {
-    auto ex                       = co_await asio::this_coro::executor;// 门闩定时器仍挂调用方 ioc
+    auto ex                       = co_await asio::this_coro::executor;// 等待定时器仍挂调用方 ioc
     const unsigned int n          = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
     const unsigned int slot_index = rr_counter.fetch_add(1, std::memory_order_relaxed) % n;
     orm_slot &slot                = slot_ref(slot_index);
 
     const unsigned int maxn = slot_max_of(LINK_EDIT, slot_index);
-    asio::steady_timer timer(ex);
-    std::chrono::milliseconds backoff(1);
     // 本槽该角色名额已满后的最长等待；到点抛异常退出，请求不会一直占着协程。
     const auto wait_deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(CONST_ORM_CONN_WAIT_MS);
 
     for (;;)
     {
+        std::shared_ptr<orm_conn_waiter> w;
         {
             std::unique_lock<std::mutex> lock(slot.edit_mutex);
             while (!slot.pg_edit_pool.empty())
@@ -1357,27 +1418,36 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_edit_
                     throw;
                 }
             }
+
+            // 配额打满：查空闲与注册 waiter 在同一把锁内完成 ⇒ 此后任何归还必然
+            // 唤醒我（无丢失唤醒）。定时器只作 deadline 兜底，正常唤醒由 back_* 触发。
+            auto now = std::chrono::steady_clock::now();
+            if (now >= wait_deadline)
+            {
+                // 到点仍没等到名额：抛异常退出，由 ORM 的 catch 写成 error_msg。
+                throw std::runtime_error(std::string(" orm conn pool wait timeout for tag ") +
+                                         conf_data[0].tag + " role=edit" +
+                                         " max_pool=" + std::to_string(maxn) +
+                                         " total=" + std::to_string(slot.total_count[LINK_EDIT]->load(std::memory_order_relaxed)) +
+                                         " connecting=" + std::to_string(slot.connecting[LINK_EDIT].load(std::memory_order_relaxed)) +
+                                         " wait_ms=" + std::to_string(CONST_ORM_CONN_WAIT_MS));
+            }
+            auto remain = std::chrono::duration_cast<std::chrono::milliseconds>(wait_deadline - now);
+            w           = std::make_shared<orm_conn_waiter>(ex);
+            w->timer.expires_after(remain < std::chrono::milliseconds(1) ? std::chrono::milliseconds(1) : remain);
+            w->it     = slot.edit_waiters.insert(slot.edit_waiters.end(), w);
+            w->listed = true;
         }
 
-        auto now       = std::chrono::steady_clock::now();
-        if (now >= wait_deadline)
+        asio::error_code ec;
+        co_await w->timer.async_wait(asio::redirect_error(asio::use_awaitable, ec));
         {
-            // 到点仍没等到名额：抛异常退出，由 ORM 的 catch 写成 error_msg。
-            // 退避重试不保证先到先得，等满上限就放弃，不让请求无限占着协程。
-            throw std::runtime_error(std::string(" orm conn pool wait timeout for tag ") +
-                                     conf_data[0].tag + " role=edit" +
-                                     " max_pool=" + std::to_string(maxn) +
-                                     " total=" + std::to_string(slot.total_count[LINK_EDIT]->load(std::memory_order_relaxed)) +
-                                     " connecting=" + std::to_string(slot.connecting[LINK_EDIT].load(std::memory_order_relaxed)) +
-                                     " wait_ms=" + std::to_string(CONST_ORM_CONN_WAIT_MS));
-        }
-        auto remain   = std::chrono::duration_cast<std::chrono::milliseconds>(wait_deadline - now);
-        auto wait_for = backoff < remain ? backoff : remain;
-        timer.expires_after(wait_for);
-        co_await timer.async_wait(asio::use_awaitable);
-        if (backoff < std::chrono::milliseconds(50))
-        {
-            backoff *= 2;
+            std::lock_guard<std::mutex> lock(slot.edit_mutex);
+            if (w->listed)
+            {
+                slot.edit_waiters.erase(w->it);
+                w->listed = false;
+            }
         }
     }
 }
@@ -1405,19 +1475,18 @@ std::shared_ptr<pg_conn_base> orm_conn_pool::get_pg_edit_conn()
 
 asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_select_conn()
 {
-    auto ex                       = co_await asio::this_coro::executor;// 门闩定时器仍挂调用方 ioc
+    auto ex                       = co_await asio::this_coro::executor;// 等待定时器仍挂调用方 ioc
     const unsigned int n          = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
     const unsigned int slot_index = rr_counter.fetch_add(1, std::memory_order_relaxed) % n;
     orm_slot &slot                = slot_ref(slot_index);
 
     const unsigned int maxn = slot_max_of(LINK_SELECT, slot_index);
-    asio::steady_timer timer(ex);
-    std::chrono::milliseconds backoff(1);
     // 本槽该角色名额已满后的最长等待；到点抛异常退出，请求不会一直占着协程。
     const auto wait_deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(CONST_ORM_CONN_WAIT_MS);
 
     for (;;)
     {
+        std::shared_ptr<orm_conn_waiter> w;
         {
             std::unique_lock<std::mutex> lock(slot.select_mutex);
             while (!slot.pg_select_pool.empty())
@@ -1451,27 +1520,36 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_selec
                     throw;
                 }
             }
+
+            // 配额打满：查空闲与注册 waiter 在同一把锁内完成 ⇒ 此后任何归还必然
+            // 唤醒我（无丢失唤醒）。定时器只作 deadline 兜底，正常唤醒由 back_* 触发。
+            auto now = std::chrono::steady_clock::now();
+            if (now >= wait_deadline)
+            {
+                // 到点仍没等到名额：抛异常退出，由 ORM 的 catch 写成 error_msg。
+                throw std::runtime_error(std::string(" orm conn pool wait timeout for tag ") +
+                                         conf_data[1].tag + " role=select" +
+                                         " max_pool=" + std::to_string(maxn) +
+                                         " total=" + std::to_string(slot.total_count[LINK_SELECT]->load(std::memory_order_relaxed)) +
+                                         " connecting=" + std::to_string(slot.connecting[LINK_SELECT].load(std::memory_order_relaxed)) +
+                                         " wait_ms=" + std::to_string(CONST_ORM_CONN_WAIT_MS));
+            }
+            auto remain = std::chrono::duration_cast<std::chrono::milliseconds>(wait_deadline - now);
+            w           = std::make_shared<orm_conn_waiter>(ex);
+            w->timer.expires_after(remain < std::chrono::milliseconds(1) ? std::chrono::milliseconds(1) : remain);
+            w->it     = slot.select_waiters.insert(slot.select_waiters.end(), w);
+            w->listed = true;
         }
 
-        auto now       = std::chrono::steady_clock::now();
-        if (now >= wait_deadline)
+        asio::error_code ec;
+        co_await w->timer.async_wait(asio::redirect_error(asio::use_awaitable, ec));
         {
-            // 到点仍没等到名额：抛异常退出，由 ORM 的 catch 写成 error_msg。
-            // 退避重试不保证先到先得，等满上限就放弃，不让请求无限占着协程。
-            throw std::runtime_error(std::string(" orm conn pool wait timeout for tag ") +
-                                     conf_data[1].tag + " role=select" +
-                                     " max_pool=" + std::to_string(maxn) +
-                                     " total=" + std::to_string(slot.total_count[LINK_SELECT]->load(std::memory_order_relaxed)) +
-                                     " connecting=" + std::to_string(slot.connecting[LINK_SELECT].load(std::memory_order_relaxed)) +
-                                     " wait_ms=" + std::to_string(CONST_ORM_CONN_WAIT_MS));
-        }
-        auto remain   = std::chrono::duration_cast<std::chrono::milliseconds>(wait_deadline - now);
-        auto wait_for = backoff < remain ? backoff : remain;
-        timer.expires_after(wait_for);
-        co_await timer.async_wait(asio::use_awaitable);
-        if (backoff < std::chrono::milliseconds(50))
-        {
-            backoff *= 2;
+            std::lock_guard<std::mutex> lock(slot.select_mutex);
+            if (w->listed)
+            {
+                slot.select_waiters.erase(w->it);
+                w->listed = false;
+            }
         }
     }
 }
