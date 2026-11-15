@@ -214,6 +214,72 @@ static std::string blob(size_t n, char fill)
     return std::string(n, fill);
 }
 
+// 把 body 切成多个 chunk 编码（每片至多 chunk_sz 字节），接终止块 0\r\n\r\n
+static std::string multi_chunk(const std::string &body, size_t chunk_sz)
+{
+    std::string s;
+    char hex[24];
+    for (size_t off = 0; off < body.size(); off += chunk_sz)
+    {
+        size_t n = (chunk_sz < body.size() - off) ? chunk_sz : (body.size() - off);
+        std::snprintf(hex, sizeof hex, "%lx\r\n", (unsigned long)n);
+        s += hex;
+        s.append(body, off, n);
+        s += "\r\n";
+    }
+    s += "0\r\n\r\n";
+    return s;
+}
+
+// 直接投递一条已编码的 chunked 流（验多 chunk 循环 / chunk-ext / trailer / 分包）
+static Reading run_stream(const std::string &stream, const std::vector<unsigned int> &cuts)
+{
+    Reading r;
+    clean_outdir();
+    std::vector<std::string> chunks;
+    {
+        unsigned int prev = 0;
+        for (unsigned int c : cuts)
+        {
+            if (c > prev && c <= stream.size())
+            {
+                chunks.push_back(stream.substr(prev, c - prev));
+                prev = c;
+            }
+        }
+        chunks.push_back(stream.substr(prev));
+    }
+    auto peer = std::make_shared<http::httppeer>();
+    http::httpparse P;
+    P.setpeer(peer);
+    std::string hdr = make_hdr(true, 0, true);
+    unsigned int guard = 0;
+    while (!P.isfinish_header && P.error == 0 && P.readoffset < hdr.size() && ++guard < 256)
+        P.read_http_header_block((const unsigned char *)hdr.data(), (unsigned int)hdr.size());
+    if (P.error > 0 || !P.isfinish_header)
+    {
+        r.error = P.error > 0 ? P.error : 9001;
+        return r;
+    }
+    P.http_content_length = 0;
+    for (auto &chunk : chunks)
+    {
+        if (peer->isfinish || P.error > 0)
+            break;
+        P.readoffset = 0;
+        P.read_http_post_block((const unsigned char *)chunk.data(), (unsigned int)chunk.size());
+    }
+    r.error = P.error;
+    r.finish = peer->isfinish;
+    r.raw    = peer->rawcontent;
+    r.tempfile = peer->files["rawcontent"]["tempfile"].to_string();
+    r.size     = peer->files["rawcontent"]["size"].to_int();
+    if (!r.tempfile.empty())
+        r.filebytes = readfile(r.tempfile);
+    r.filecount = count_rawfiles();
+    return r;
+}
+
 int main()
 {
     http::server_loaclvar &gv = http::get_server_global_var();
@@ -285,6 +351,55 @@ int main()
         // 单个 chunk 承载整段 body，spill 前缀 = 阈值字节
         Reading r = run(true, body, {}, true);
         expect_spill("C6-chunked-over-spill", r, body);
+    }
+    // C7：8gbit 尺寸 10240，多 chunk（每片 4096）→ 内存，逐字节完整
+    {
+        std::string body = blob(10240, 'B');
+        Reading r = run_stream(multi_chunk(body, 4096), {});
+        expect_mem("C7-chunked-10240-multi-mem", r, body);
+    }
+    // C8：8gbit 大尺寸 102400，多 chunk（每片 8192）→ 内存，逐字节完整
+    {
+        std::string body = blob(102400, 'C');
+        Reading r = run_stream(multi_chunk(body, 8192), {});
+        expect_mem("C8-chunked-102400-multi-mem", r, body);
+    }
+    // C9：chunked 空 body（仅终止块）→ 200 空，isfinish，无文件
+    {
+        Reading r = run_stream("0\r\n\r\n", {});
+        expect_mem("C9-chunked-empty-mem", r, std::string(""));
+    }
+    // C10：chunk-ext（;name=value）必须被忽略，正文逐字节完整
+    {
+        std::string body = "HELLO-EXT";
+        std::string stream = "9;name=value\r\nHELLO-EXT\r\n0\r\n\r\n";
+        Reading r = run_stream(stream, {});
+        expect_mem("C10-chunked-ext-mem", r, body);
+    }
+    // C11：trailer 段（终止块后带 trailer 头）必须被跳过，正文逐字节完整
+    {
+        std::string body = "TRAILER-BODY";
+        std::string stream = multi_chunk(body, 4096);
+        // 把终止块 0\r\n\r\n 换成 0\r\nX-Checksum: abc\r\n\r\n
+        stream = stream.substr(0, stream.size() - 5) + "0\r\nX-Checksum: abc\r\n\r\n";
+        Reading r = run_stream(stream, {});
+        expect_mem("C11-chunked-trailer-mem", r, body);
+    }
+    // C12：chunked 10240 多 chunk 再加分包投递（TCP 分包不变性）→ 与整段一致
+    {
+        std::string body = blob(10240, 'D');
+        std::string stream = multi_chunk(body, 4096);
+        Reading golden = run_stream(stream, {});
+        bool gold_ok = golden.error == 0 && golden.finish && golden.raw == body;
+        std::string bad;
+        for (unsigned int cut : {1u, 5u, 100u, 5000u, 10000u})
+        {
+            Reading r = run_stream(stream, {cut});
+            if (!(r.error == 0 && r.finish && r.raw == body && r.filecount == 0))
+                bad += " cut=" + std::to_string(cut);
+        }
+        check("C12-chunked-cutinvariance-mem", gold_ok && bad.empty(),
+              "goldok=" + std::to_string((int)gold_ok) + bad);
     }
 
     std::printf("RP1 SUMMARY total=%u fail=%u\n", g_total, g_fail);

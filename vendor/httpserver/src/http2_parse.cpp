@@ -1862,79 +1862,8 @@ void http2parse::getacceptlanguage([[maybe_unused]] const std::string &header_na
 }
 void http2parse::getacceptencoding([[maybe_unused]] const std::string &header_name, const std::string &header_value, std::shared_ptr<httppeer> steam_httppeer)
 {
-    unsigned int i = 0, linesize = static_cast<unsigned int>(header_value.size());
     steam_httppeer->header["accept-encoding"] = header_value;
-    std::string buffer_value;
-    for (; i < linesize; i++)
-    {
-        if (header_value[i] == 0x2C)
-        {
-
-            switch (buffer_value.size())
-            {
-            case 2:
-                if (buffer_value[0] == 'b')
-                {
-                    steam_httppeer->state.br = true;
-                }
-                break;
-            case 4:
-                if (buffer_value[0] == 'g')
-                {
-                    steam_httppeer->state.gzip = true;
-                }
-                else if (buffer_value[0] == 'z')
-                {
-                    steam_httppeer->state.zstd = true;
-                }
-                break;
-            case 7:
-                if (buffer_value[0] == 'd')
-                {
-                    steam_httppeer->state.deflate = true;
-                }
-                break;
-            default:;
-            }
-            buffer_value.clear();
-            continue;
-        }
-        if (header_value[i] == 0x20)
-        {
-            continue;
-        }
-        buffer_value.push_back(header_value[i]);
-    }
-    if (buffer_value.size() > 0)
-    {
-
-        switch (buffer_value.size())
-        {
-        case 2:
-            if (buffer_value[0] == 'b')
-            {
-                steam_httppeer->state.br = true;
-            }
-            break;
-        case 4:
-            if (buffer_value[0] == 'g')
-            {
-                steam_httppeer->state.gzip = true;
-            }
-            else if (buffer_value[0] == 'z')
-            {
-                steam_httppeer->state.zstd = true;
-            }
-            break;
-        case 7:
-            if (buffer_value[0] == 'd')
-            {
-                steam_httppeer->state.deflate = true;
-            }
-            break;
-        default:;
-        }
-    }
+    parse_accept_encoding(header_value, steam_httppeer->state);
 }
 void http2parse::getifnonematch([[maybe_unused]] const std::string &header_name, const std::string &header_value, std::shared_ptr<httppeer> steam_httppeer)
 {

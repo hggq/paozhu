@@ -111,6 +111,127 @@ struct headstate_t
     unsigned long long rangeend        = 0;
 };
 
+// ---------------------------------------------------------------------------
+// RFC 9110 §12.5.3: Accept-Encoding = #( codings [ weight ] )
+// h1 与 h2 共用这一份。旧实现按「裸 token 的字节长度」分派，只认
+// br/gzip/zstd/deflate 四种不带参数的写法；带 weight 的
+// "br;q=1, gzip;q=0.8" 会被整段丢弃，请求静默回退 identity，静态压缩缓存
+// （<temppath>/statichtml）也就永远不会被命中。
+//
+// 现在按逗号切分并剥离 ';' 之后的参数：q=0（含 0.0 / 0.00）表示明确拒绝，
+// 其余 q 值只用于确认客户端接受。最终选哪种编码仍交给服务端既有优先级
+// （TLS 下 br 优先、明文回退 gzip），所以多编码同时置位的行为与旧实现一致，
+// 不会改动 WS 扩展协商等其它 state 读取点。
+// ---------------------------------------------------------------------------
+inline void parse_accept_encoding(std::string_view header_value, headstate_t &state)
+{
+    auto ascii_lower = [](char c) -> char {
+        return (c >= 'A' && c <= 'Z') ? static_cast<char>(c - 'A' + 'a') : c;
+    };
+    auto equals_ignore_case = [&ascii_lower](std::string_view lhs, std::string_view rhs) -> bool {
+        if (lhs.size() != rhs.size())
+        {
+            return false;
+        }
+        for (std::size_t i = 0; i < lhs.size(); ++i)
+        {
+            if (ascii_lower(lhs[i]) != ascii_lower(rhs[i]))
+            {
+                return false;
+            }
+        }
+        return true;
+    };
+    constexpr auto npos = std::string_view::npos;
+
+    std::size_t pos = 0;
+    while (pos < header_value.size())
+    {
+        const std::size_t comma = header_value.find(',', pos);
+        std::string_view element = header_value.substr(pos, comma == npos ? npos : comma - pos);
+        pos = (comma == npos) ? header_value.size() : comma + 1;
+
+        while (!element.empty() && (element.front() == ' ' || element.front() == '\t'))
+        {
+            element.remove_prefix(1);
+        }
+        while (!element.empty() && (element.back() == ' ' || element.back() == '\t'))
+        {
+            element.remove_suffix(1);
+        }
+        if (element.empty())
+        {
+            continue;
+        }
+
+        const std::size_t semi = element.find(';');
+        std::string_view name  = element.substr(0, semi == npos ? element.size() : semi);
+        while (!name.empty() && (name.back() == ' ' || name.back() == '\t'))
+        {
+            name.remove_suffix(1);
+        }
+
+        bool rejected = false;
+        if (semi != npos)
+        {
+            std::string_view params = element.substr(semi + 1);
+            std::size_t ppos        = 0;
+            while (ppos < params.size())
+            {
+                const std::size_t psep = params.find(';', ppos);
+                std::string_view param = params.substr(ppos, psep == npos ? npos : psep - ppos);
+                ppos = (psep == npos) ? params.size() : psep + 1;
+                while (!param.empty() && (param.front() == ' ' || param.front() == '\t'))
+                {
+                    param.remove_prefix(1);
+                }
+                while (!param.empty() && (param.back() == ' ' || param.back() == '\t'))
+                {
+                    param.remove_suffix(1);
+                }
+                if (param.size() >= 2 && ascii_lower(param[0]) == 'q' && param[1] == '=')
+                {
+                    // 手写十进制，避开 locale 与 strtof：只要出现 1..9 就非 0。
+                    // q=0 / 0.0 / 0.00 都判为拒绝；畸形值同样保守地拒绝。
+                    std::string_view qval = param.substr(2);
+                    bool nonzero         = false;
+                    for (char c : qval)
+                    {
+                        if (c >= '1' && c <= '9')
+                        {
+                            nonzero = true;
+                            break;
+                        }
+                    }
+                    rejected = !nonzero;
+                    break;
+                }
+            }
+        }
+        if (rejected)
+        {
+            continue;
+        }
+
+        if (equals_ignore_case(name, "br"))
+        {
+            state.br = true;
+        }
+        else if (equals_ignore_case(name, "gzip"))
+        {
+            state.gzip = true;
+        }
+        else if (equals_ignore_case(name, "zstd"))
+        {
+            state.zstd = true;
+        }
+        else if (equals_ignore_case(name, "deflate"))
+        {
+            state.deflate = true;
+        }
+    }
+}
+
 // RFC 7233 首段 byte-range 解析；h1 与 h2 共用，两方言必须逐字节同行为。
 // 成功解析时置 rangebytes / rangebegin / rangeend / range_suffix / range_has_end。
 // 三种结果必须可区分：h1 语法不合法要回 400，而非 bytes 单位要当没有这个头；

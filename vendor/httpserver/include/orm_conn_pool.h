@@ -27,15 +27,33 @@ namespace orm
 
 bool str_casecmp(std::string_view str1, std::string_view str2);
 
-// 异步取连接配额打满时挂在本角色等待队列上，归还连接时按 FIFO 唤醒一个。
+// 异步取连接配额打满时挂在本角色等待队列上，归还连接时按 FIFO 交接或唤醒一个。
 // timer 挂调用方 executor；唤醒经 post-cancel 投回同一 executor，续体仍落在
 // 调用方 ioc（线程亲和与旧退避定时器一致）。队列由本角色的 edit_mutex /
 // select_mutex 保护（与空闲队列同锁），不另设锁。
+//
+// 交接（handoff）：back_* 归还健康连接时，若队列里有仍在等的 waiter，锁内把连接直接
+// 放进它的 handoff 槽并置 delivered，不再落回公共池：一条连接要么在池里，要么在某个
+// waiter 的交接槽里，二者只能居一。state 是交接的唯一凭据（不看 listed、不看指针判空）：
+//   waiting    在队列里等，handoff 为空
+//   delivered  back_* 已把连接交给它并从队列摘除；取走后置 abandoned
+//   abandoned  已离开等待（超时、协程销毁、已取走），back_* 见到必须跳过
 struct orm_conn_waiter
 {
+    enum class state_t : unsigned char
+    {
+        waiting = 0,
+        delivered,
+        abandoned
+    };
+
     asio::steady_timer timer;
     std::list<std::shared_ptr<orm_conn_waiter>>::iterator it;
-    bool listed = false;
+    bool listed   = false;
+    state_t state = state_t::waiting;
+    // 交接槽：mysql/pg 各一个，同一时刻至多一个非空，归属由 state == delivered 表示
+    std::shared_ptr<mysql_conn_base> mysql_handoff;
+    std::shared_ptr<pg_conn_base> pg_handoff;
     explicit orm_conn_waiter(asio::steady_timer::executor_type ex) : timer(std::move(ex))
     {
     }

@@ -41,17 +41,62 @@ namespace orm
 {
 namespace
 {
-// 锁内调用：弹出队首 waiter（FIFO）。返回给调用方在解锁后唤醒，避免持锁投递。
+// 锁内调用：弹出队首仍在等待（state == waiting）的 waiter（FIFO）。返回给调用方
+// 在解锁后唤醒，避免持锁投递。队列里若残留已离开等待的条目（超时/销毁与交接撞车），
+// 按状态位跳过并顺手摘掉，不靠指针判空。
 std::shared_ptr<orm_conn_waiter> pop_conn_waiter(std::list<std::shared_ptr<orm_conn_waiter>> &q)
 {
-    if (q.empty())
+    while (!q.empty())
+    {
+        auto w = std::move(q.front());
+        q.pop_front();
+        w->listed = false;
+        if (w->state == orm_conn_waiter::state_t::waiting)
+        {
+            return w;
+        }
+    }
+    return nullptr;
+}
+// 锁内调用：把一条健康连接直接交给队首仍在等的 waiter，不落回公共池。
+// 成功返回该 waiter（调用方解锁后 wake），队列里没有可交付对象时返回 nullptr，
+// conn 原样留给调用方决定是否落池。
+template <typename ConnT>
+std::shared_ptr<orm_conn_waiter> deliver_to_waiter(std::list<std::shared_ptr<orm_conn_waiter>> &q,
+                                                   std::shared_ptr<ConnT> &conn,
+                                                   std::shared_ptr<ConnT> orm_conn_waiter::*handoff)
+{
+    auto w = pop_conn_waiter(q);
+    if (w)
+    {
+        w.get()->*handoff = std::move(conn);
+        w->state          = orm_conn_waiter::state_t::delivered;
+    }
+    return w;
+}
+// 锁内调用：waiter 离开等待（超时、协程销毁、已取走）时摘掉队列登记并置 abandoned。
+// 若它手里已有一条交接来的连接，原样返回，由调用方转交给下一个 waiter 或放回池。
+template <typename ConnT>
+std::shared_ptr<ConnT> leave_waiter_queue(std::list<std::shared_ptr<orm_conn_waiter>> &q,
+                                          std::shared_ptr<orm_conn_waiter> &w,
+                                          std::shared_ptr<ConnT> orm_conn_waiter::*handoff)
+{
+    if (!w)
     {
         return nullptr;
     }
-    auto w = std::move(q.front());
-    q.pop_front();
-    w->listed = false;
-    return w;
+    if (w->listed)
+    {
+        q.erase(w->it);
+        w->listed = false;
+    }
+    std::shared_ptr<ConnT> orphan;
+    if (w->state == orm_conn_waiter::state_t::delivered)
+    {
+        orphan = std::move(w.get()->*handoff);
+    }
+    w->state = orm_conn_waiter::state_t::abandoned;
+    return orphan;
 }
 // 解锁后调用：投到 waiter 自己的 executor 取消定时器，续体落回它自己的 ioc。
 // shared_ptr 捕获保证 waiter 活到 cancel 执行完毕。
@@ -62,6 +107,52 @@ void wake_conn_waiter(std::shared_ptr<orm_conn_waiter> w)
         asio::post(w->timer.get_executor(), [w] { w->timer.cancel(); });
     }
 }
+// waiter 在挂起期间被销毁（io_context 停止、协程帧析构）时的兜底：
+// 摘掉队列登记；若已经交接了连接，转交给下一个仍在等的 waiter，没人接就放回池。
+// 正常退出路径会先 release()，不走这里。
+template <typename ConnT>
+class waiter_exit_guard
+{
+  public:
+    waiter_exit_guard(std::mutex &mtx,
+                      std::list<std::shared_ptr<orm_conn_waiter>> &q,
+                      std::list<std::shared_ptr<ConnT>> &pool,
+                      std::shared_ptr<ConnT> orm_conn_waiter::*handoff,
+                      std::shared_ptr<orm_conn_waiter> &w)
+        : mtx_(mtx), q_(q), pool_(pool), handoff_(handoff), w_(w)
+    {
+    }
+    ~waiter_exit_guard()
+    {
+        if (!armed_ || !w_)
+        {
+            return;
+        }
+        std::shared_ptr<orm_conn_waiter> next;
+        {
+            std::lock_guard<std::mutex> lock(mtx_);
+            auto orphan = leave_waiter_queue(q_, w_, handoff_);
+            if (orphan)
+            {
+                next = deliver_to_waiter(q_, orphan, handoff_);
+                if (!next)
+                {
+                    pool_.emplace_back(std::move(orphan));
+                }
+            }
+        }
+        wake_conn_waiter(next);
+    }
+    void release() { armed_ = false; }
+
+  private:
+    std::mutex &mtx_;
+    std::list<std::shared_ptr<orm_conn_waiter>> &q_;
+    std::list<std::shared_ptr<ConnT>> &pool_;
+    std::shared_ptr<ConnT> orm_conn_waiter::*handoff_;
+    std::shared_ptr<orm_conn_waiter> &w_;
+    bool armed_ = true;
+};
 }// namespace
 
 bool orm_conn_pool::is_postgresql() const
@@ -783,7 +874,14 @@ void orm_conn_pool::back_mysql_edit_conn(std::shared_ptr<mysql_conn_base> conn)
     orm_slot &slot = slot_ref(conn->conn_link ? conn->conn_link->slot_index : 0);
     if (conn->isclose)
     {
-        // 连接已断开：丢弃这条对象，名额随它的析构归还
+        // 连接已断开：丢弃这条对象；先释放名额，再唤醒本槽一个等待者重试
+        conn.reset();
+        std::shared_ptr<orm_conn_waiter> w;
+        {
+            std::unique_lock<std::mutex> lock(slot.edit_mutex);
+            w = pop_conn_waiter(slot.edit_waiters);
+        }
+        wake_conn_waiter(w);
         return;
     }
     std::shared_ptr<orm_conn_waiter> w;
@@ -797,8 +895,13 @@ void orm_conn_pool::back_mysql_edit_conn(std::shared_ptr<mysql_conn_base> conn)
         {
             conn->pooled_ = true;
             conn->issynch = false;
-            slot.mysql_edit_pool.emplace_back(std::move(conn));
-            w = pop_conn_waiter(slot.edit_waiters);
+            // 锁内择一：有仍在等的 waiter 就直接交接（不落池），否则放回公共池。
+            // 交接与落池互斥，杜绝唤醒后到恢复执行之间被新来者截胡。
+            w = deliver_to_waiter(slot.edit_waiters, conn, &orm_conn_waiter::mysql_handoff);
+            if (!w)
+            {
+                slot.mysql_edit_pool.emplace_back(std::move(conn));
+            }
         }
     }
     wake_conn_waiter(w);
@@ -924,6 +1027,14 @@ void orm_conn_pool::back_mysql_select_conn(std::shared_ptr<mysql_conn_base> conn
     orm_slot &slot = slot_ref(conn->conn_link ? conn->conn_link->slot_index : 0);
     if (conn->isclose)
     {
+        // 连接已断开：丢弃这条对象；先释放名额，再唤醒本槽一个等待者重试
+        conn.reset();
+        std::shared_ptr<orm_conn_waiter> w;
+        {
+            std::unique_lock<std::mutex> lock(slot.select_mutex);
+            w = pop_conn_waiter(slot.select_waiters);
+        }
+        wake_conn_waiter(w);
         return;
     }
     std::shared_ptr<orm_conn_waiter> w;
@@ -937,8 +1048,12 @@ void orm_conn_pool::back_mysql_select_conn(std::shared_ptr<mysql_conn_base> conn
         {
             conn->pooled_ = true;
             conn->issynch = false;
-            slot.mysql_select_pool.emplace_back(std::move(conn));
-            w = pop_conn_waiter(slot.select_waiters);
+            // 锁内择一：有仍在等的 waiter 就直接交接（不落池），否则放回公共池。
+            w = deliver_to_waiter(slot.select_waiters, conn, &orm_conn_waiter::mysql_handoff);
+            if (!w)
+            {
+                slot.mysql_select_pool.emplace_back(std::move(conn));
+            }
         }
     }
     wake_conn_waiter(w);
@@ -990,12 +1105,17 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql
                 catch (...)
                 {
                     slot.connecting[LINK_EDIT].fetch_sub(1, std::memory_order_relaxed);
+                    // 建连失败退回名额：唤醒一个等待者立刻重试
+                    lock.lock();
+                    auto woken = pop_conn_waiter(slot.edit_waiters);
+                    lock.unlock();
+                    wake_conn_waiter(std::move(woken));
                     throw;
                 }
             }
 
-            // 配额打满：查空闲与注册 waiter 在同一把锁内完成 ⇒ 此后任何归还必然
-            // 唤醒我（无丢失唤醒）。定时器只作 deadline 兜底，正常唤醒由 back_* 触发。
+            // 配额打满：查空闲与注册 waiter 在同一把锁内完成，避免登记前漏掉归还。
+            // 唤醒来源：归还健康连接、建连失败退回名额、坏连接回收、清槽；定时器只作 deadline 兜底。
             auto now = std::chrono::steady_clock::now();
             if (now >= wait_deadline)
             {
@@ -1014,15 +1134,35 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql
             w->listed = true;
         }
 
-        asio::error_code ec;
-        co_await w->timer.async_wait(asio::redirect_error(asio::use_awaitable, ec));
+        // 从这里开始挂起：协程若被销毁，guard 负责摘掉队列登记并归还已交接的连接
         {
-            std::lock_guard<std::mutex> lock(slot.edit_mutex);
+            waiter_exit_guard<mysql_conn_base> guard(
+                slot.edit_mutex, slot.edit_waiters, slot.mysql_edit_pool,
+                &orm_conn_waiter::mysql_handoff, w);
+
+            asio::error_code ec;
+            co_await w->timer.async_wait(asio::redirect_error(asio::use_awaitable, ec));
+
+            std::unique_lock<std::mutex> lock(slot.edit_mutex);
+            // 先看交接槽再看超时：定时器到期与 back_* 交接可能同时发生，
+            // 连接一旦交到我手里就必须收下，否则它就没有归处了。
+            if (w->state == orm_conn_waiter::state_t::delivered)
+            {
+                auto handoff_conn     = std::move(w->mysql_handoff);
+                w->state              = orm_conn_waiter::state_t::abandoned;// 只领一条，领完不可再交付
+                handoff_conn->pooled_ = false;
+                guard.release();
+                lock.unlock();
+                co_return handoff_conn;
+            }
+            // 没等到交接：摘掉登记置 abandoned，回循环重试（下一轮重查空闲与名额）
             if (w->listed)
             {
                 slot.edit_waiters.erase(w->it);
                 w->listed = false;
             }
+            w->state = orm_conn_waiter::state_t::abandoned;
+            guard.release();
         }
     }
 }
@@ -1093,12 +1233,17 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql
                 catch (...)
                 {
                     slot.connecting[LINK_SELECT].fetch_sub(1, std::memory_order_relaxed);
+                    // 建连失败退回名额：唤醒一个等待者立刻重试
+                    lock.lock();
+                    auto woken = pop_conn_waiter(slot.select_waiters);
+                    lock.unlock();
+                    wake_conn_waiter(std::move(woken));
                     throw;
                 }
             }
 
-            // 配额打满：查空闲与注册 waiter 在同一把锁内完成 ⇒ 此后任何归还必然
-            // 唤醒我（无丢失唤醒）。定时器只作 deadline 兜底，正常唤醒由 back_* 触发。
+            // 配额打满：查空闲与注册 waiter 在同一把锁内完成，避免登记前漏掉归还。
+            // 唤醒来源：归还健康连接、建连失败退回名额、坏连接回收、清槽；定时器只作 deadline 兜底。
             auto now = std::chrono::steady_clock::now();
             if (now >= wait_deadline)
             {
@@ -1117,15 +1262,35 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql
             w->listed = true;
         }
 
-        asio::error_code ec;
-        co_await w->timer.async_wait(asio::redirect_error(asio::use_awaitable, ec));
+        // 从这里开始挂起：协程若被销毁，guard 负责摘掉队列登记并归还已交接的连接
         {
-            std::lock_guard<std::mutex> lock(slot.select_mutex);
+            waiter_exit_guard<mysql_conn_base> guard(
+                slot.select_mutex, slot.select_waiters, slot.mysql_select_pool,
+                &orm_conn_waiter::mysql_handoff, w);
+
+            asio::error_code ec;
+            co_await w->timer.async_wait(asio::redirect_error(asio::use_awaitable, ec));
+
+            std::unique_lock<std::mutex> lock(slot.select_mutex);
+            // 先看交接槽再看超时：定时器到期与 back_* 交接可能同时发生，
+            // 连接一旦交到我手里就必须收下，否则它就没有归处了。
+            if (w->state == orm_conn_waiter::state_t::delivered)
+            {
+                auto handoff_conn     = std::move(w->mysql_handoff);
+                w->state              = orm_conn_waiter::state_t::abandoned;// 只领一条，领完不可再交付
+                handoff_conn->pooled_ = false;
+                guard.release();
+                lock.unlock();
+                co_return handoff_conn;
+            }
+            // 没等到交接：摘掉登记置 abandoned，回循环重试（下一轮重查空闲与名额）
             if (w->listed)
             {
                 slot.select_waiters.erase(w->it);
                 w->listed = false;
             }
+            w->state = orm_conn_waiter::state_t::abandoned;
+            guard.release();
         }
     }
 }
@@ -1211,6 +1376,14 @@ void orm_conn_pool::back_pg_edit_conn(std::shared_ptr<pg_conn_base> conn)
     orm_slot &slot = slot_ref(conn->conn_link ? conn->conn_link->slot_index : 0);
     if (conn->isclose)
     {
+        // 连接已断开：丢弃这条对象；先释放名额，再唤醒本槽一个等待者重试
+        conn.reset();
+        std::shared_ptr<orm_conn_waiter> w;
+        {
+            std::unique_lock<std::mutex> lock(slot.edit_mutex);
+            w = pop_conn_waiter(slot.edit_waiters);
+        }
+        wake_conn_waiter(w);
         return;
     }
     std::shared_ptr<orm_conn_waiter> w;
@@ -1224,8 +1397,12 @@ void orm_conn_pool::back_pg_edit_conn(std::shared_ptr<pg_conn_base> conn)
         {
             conn->pooled_ = true;
             conn->issynch = false;
-            slot.pg_edit_pool.emplace_back(std::move(conn));
-            w = pop_conn_waiter(slot.edit_waiters);
+            // 锁内择一：有仍在等的 waiter 就直接交接（不落池），否则放回公共池。
+            w = deliver_to_waiter(slot.edit_waiters, conn, &orm_conn_waiter::pg_handoff);
+            if (!w)
+            {
+                slot.pg_edit_pool.emplace_back(std::move(conn));
+            }
         }
     }
     wake_conn_waiter(w);
@@ -1351,6 +1528,14 @@ void orm_conn_pool::back_pg_select_conn(std::shared_ptr<pg_conn_base> conn)
     orm_slot &slot = slot_ref(conn->conn_link ? conn->conn_link->slot_index : 0);
     if (conn->isclose)
     {
+        // 连接已断开：丢弃这条对象；先释放名额，再唤醒本槽一个等待者重试
+        conn.reset();
+        std::shared_ptr<orm_conn_waiter> w;
+        {
+            std::unique_lock<std::mutex> lock(slot.select_mutex);
+            w = pop_conn_waiter(slot.select_waiters);
+        }
+        wake_conn_waiter(w);
         return;
     }
     std::shared_ptr<orm_conn_waiter> w;
@@ -1364,8 +1549,12 @@ void orm_conn_pool::back_pg_select_conn(std::shared_ptr<pg_conn_base> conn)
         {
             conn->pooled_ = true;
             conn->issynch = false;
-            slot.pg_select_pool.emplace_back(std::move(conn));
-            w = pop_conn_waiter(slot.select_waiters);
+            // 锁内择一：有仍在等的 waiter 就直接交接（不落池），否则放回公共池。
+            w = deliver_to_waiter(slot.select_waiters, conn, &orm_conn_waiter::pg_handoff);
+            if (!w)
+            {
+                slot.pg_select_pool.emplace_back(std::move(conn));
+            }
         }
     }
     wake_conn_waiter(w);
@@ -1415,12 +1604,17 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_edit_
                 catch (...)
                 {
                     slot.connecting[LINK_EDIT].fetch_sub(1, std::memory_order_relaxed);
+                    // 建连失败退回名额：唤醒一个等待者立刻重试
+                    lock.lock();
+                    auto woken = pop_conn_waiter(slot.edit_waiters);
+                    lock.unlock();
+                    wake_conn_waiter(std::move(woken));
                     throw;
                 }
             }
 
-            // 配额打满：查空闲与注册 waiter 在同一把锁内完成 ⇒ 此后任何归还必然
-            // 唤醒我（无丢失唤醒）。定时器只作 deadline 兜底，正常唤醒由 back_* 触发。
+            // 配额打满：查空闲与注册 waiter 在同一把锁内完成，避免登记前漏掉归还。
+            // 唤醒来源：归还健康连接、建连失败退回名额、坏连接回收、清槽；定时器只作 deadline 兜底。
             auto now = std::chrono::steady_clock::now();
             if (now >= wait_deadline)
             {
@@ -1439,15 +1633,35 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_edit_
             w->listed = true;
         }
 
-        asio::error_code ec;
-        co_await w->timer.async_wait(asio::redirect_error(asio::use_awaitable, ec));
+        // 从这里开始挂起：协程若被销毁，guard 负责摘掉队列登记并归还已交接的连接
         {
-            std::lock_guard<std::mutex> lock(slot.edit_mutex);
+            waiter_exit_guard<pg_conn_base> guard(
+                slot.edit_mutex, slot.edit_waiters, slot.pg_edit_pool,
+                &orm_conn_waiter::pg_handoff, w);
+
+            asio::error_code ec;
+            co_await w->timer.async_wait(asio::redirect_error(asio::use_awaitable, ec));
+
+            std::unique_lock<std::mutex> lock(slot.edit_mutex);
+            // 先看交接槽再看超时：定时器到期与 back_* 交接可能同时发生，
+            // 连接一旦交到我手里就必须收下，否则它就没有归处了。
+            if (w->state == orm_conn_waiter::state_t::delivered)
+            {
+                auto handoff_conn     = std::move(w->pg_handoff);
+                w->state              = orm_conn_waiter::state_t::abandoned;// 只领一条，领完不可再交付
+                handoff_conn->pooled_ = false;
+                guard.release();
+                lock.unlock();
+                co_return handoff_conn;
+            }
+            // 没等到交接：摘掉登记置 abandoned，回循环重试（下一轮重查空闲与名额）
             if (w->listed)
             {
                 slot.edit_waiters.erase(w->it);
                 w->listed = false;
             }
+            w->state = orm_conn_waiter::state_t::abandoned;
+            guard.release();
         }
     }
 }
@@ -1517,12 +1731,17 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_selec
                 catch (...)
                 {
                     slot.connecting[LINK_SELECT].fetch_sub(1, std::memory_order_relaxed);
+                    // 建连失败退回名额：唤醒一个等待者立刻重试
+                    lock.lock();
+                    auto woken = pop_conn_waiter(slot.select_waiters);
+                    lock.unlock();
+                    wake_conn_waiter(std::move(woken));
                     throw;
                 }
             }
 
-            // 配额打满：查空闲与注册 waiter 在同一把锁内完成 ⇒ 此后任何归还必然
-            // 唤醒我（无丢失唤醒）。定时器只作 deadline 兜底，正常唤醒由 back_* 触发。
+            // 配额打满：查空闲与注册 waiter 在同一把锁内完成，避免登记前漏掉归还。
+            // 唤醒来源：归还健康连接、建连失败退回名额、坏连接回收、清槽；定时器只作 deadline 兜底。
             auto now = std::chrono::steady_clock::now();
             if (now >= wait_deadline)
             {
@@ -1541,15 +1760,35 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_selec
             w->listed = true;
         }
 
-        asio::error_code ec;
-        co_await w->timer.async_wait(asio::redirect_error(asio::use_awaitable, ec));
+        // 从这里开始挂起：协程若被销毁，guard 负责摘掉队列登记并归还已交接的连接
         {
-            std::lock_guard<std::mutex> lock(slot.select_mutex);
+            waiter_exit_guard<pg_conn_base> guard(
+                slot.select_mutex, slot.select_waiters, slot.pg_select_pool,
+                &orm_conn_waiter::pg_handoff, w);
+
+            asio::error_code ec;
+            co_await w->timer.async_wait(asio::redirect_error(asio::use_awaitable, ec));
+
+            std::unique_lock<std::mutex> lock(slot.select_mutex);
+            // 先看交接槽再看超时：定时器到期与 back_* 交接可能同时发生，
+            // 连接一旦交到我手里就必须收下，否则它就没有归处了。
+            if (w->state == orm_conn_waiter::state_t::delivered)
+            {
+                auto handoff_conn     = std::move(w->pg_handoff);
+                w->state              = orm_conn_waiter::state_t::abandoned;// 只领一条，领完不可再交付
+                handoff_conn->pooled_ = false;
+                guard.release();
+                lock.unlock();
+                co_return handoff_conn;
+            }
+            // 没等到交接：摘掉登记置 abandoned，回循环重试（下一轮重查空闲与名额）
             if (w->listed)
             {
                 slot.select_waiters.erase(w->it);
                 w->listed = false;
             }
+            w->state = orm_conn_waiter::state_t::abandoned;
+            guard.release();
         }
     }
 }
@@ -1895,6 +2134,13 @@ asio::awaitable<bool> orm_conn_pool::clear_select_conn_2hour()
         if (co_await asio::co_spawn(*slot.io_context, clear_one(), asio::use_awaitable))
         {
             cleared = true;
+            // 回收一条空闲连接会释放名额：锁内取一个等待者，解锁后再唤醒
+            std::shared_ptr<orm_conn_waiter> w;
+            {
+                std::unique_lock<std::mutex> lock(slot.select_mutex);
+                w = pop_conn_waiter(slot.select_waiters);
+            }
+            wake_conn_waiter(w);
         }
     }
 
@@ -1970,6 +2216,13 @@ asio::awaitable<bool> orm_conn_pool::clear_edit_conn_2hour()
         if (co_await asio::co_spawn(*slot.io_context, clear_one(), asio::use_awaitable))
         {
             cleared = true;
+            // 回收一条空闲连接会释放名额：锁内取一个等待者，解锁后再唤醒
+            std::shared_ptr<orm_conn_waiter> w;
+            {
+                std::unique_lock<std::mutex> lock(slot.edit_mutex);
+                w = pop_conn_waiter(slot.edit_waiters);
+            }
+            wake_conn_waiter(w);
         }
     }
 
@@ -2005,7 +2258,14 @@ unsigned int orm_conn_pool::clear_select_conn()
             slot.sqlite_select_conn.reset();
             had_sqlite = true;
         }
+        // 关掉空闲连接会释放名额：锁内取一个等待者，解锁后再唤醒
+        std::shared_ptr<orm_conn_waiter> w;
+        if (closed > 0)
+        {
+            w = pop_conn_waiter(slot.select_waiters);
+        }
         lock.unlock();
+        wake_conn_waiter(w);
 
         // SQLite 单连接不占名额，只计入返回的条数
         total += closed + (had_sqlite ? 1u : 0u);
@@ -2042,7 +2302,14 @@ unsigned int orm_conn_pool::clear_edit_conn()
             slot.sqlite_edit_conn.reset();
             had_sqlite = true;
         }
+        // 关掉空闲连接会释放名额：锁内取一个等待者，解锁后再唤醒
+        std::shared_ptr<orm_conn_waiter> w;
+        if (closed > 0)
+        {
+            w = pop_conn_waiter(slot.edit_waiters);
+        }
         lock.unlock();
+        wake_conn_waiter(w);
 
         total += closed + (had_sqlite ? 1u : 0u);
     }
