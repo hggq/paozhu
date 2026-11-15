@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 #include <stdexcept>
+#include <algorithm>
 #include <map>
 #include <list>
 #include <array>
@@ -433,6 +434,7 @@ std::string init_orm_conn_pool(
     std::map<std::string, std::shared_ptr<orm_conn_pool>> &int_pool = get_orm_conn_pool_obj();
     std::vector<orm_conn_t> myconfig                                = get_orm_config_file(orm_config_file);
     std::string error_log;
+    std::vector<std::string> cleared_tags;
 
     error_log.append("-- begin init_orm_conn_pool -- \n");
     for (auto &item : myconfig)
@@ -451,6 +453,14 @@ std::string init_orm_conn_pool(
         else
         {
             conn = std::make_shared<orm_conn_pool>();
+        }
+
+        // 每轮 init 每个 tag 清一次 error_msg，避免跨轮累积；edit/select 共用一个池，
+        // 只在首条 item 清，否则后一条的成功会抹掉前一条的失败（健康指标读它）
+        if (std::find(cleared_tags.begin(), cleared_tags.end(), item.tag) == cleared_tags.end())
+        {
+            cleared_tags.push_back(item.tag);
+            conn->error_msg.clear();
         }
 
         // ioc 集合变了（或首次建池）：旧连接必须先关，再按 iocs 下标重建槽。
@@ -527,7 +537,7 @@ std::string init_orm_conn_pool(
                 }
                 else if (item.db_type == DB_TYPE::SQLITE)
                 {
-                    // SQLite 单连接模式：忽略 prebuild 条数，建成即 1 条
+                    // SQLite 单连接模式：忽略 prebuild 条数，建成即 1 条（min_pool=0 也建）
                     expected += 1;
                     n += (item.link_type == 0)
                              ? conn->init_sqlite_edit_conn(prebuild, si)
@@ -545,21 +555,27 @@ std::string init_orm_conn_pool(
         }
         catch (const std::exception &e)
         {
+            // 建连对象构造之类的意外抛出：原因并入 error_msg，随下方 fail-fast 一起带出
             error_log.append(e.what());
+            conn->error_msg.append(" unexpected: ");
+            conn->error_msg.append(e.what());
         }
-        if (n == 0)
+        // expected=0（min_pool=0 不初始化）不是失败，不写失败文本，否则健康指标误报
+        if (n == 0 && expected > 0)
         {
             conn->error_msg.append(" int_pool.init_");
             conn->error_msg.append(item.link_type == 0 ? "edit" : "select");
             conn->error_msg.append("_conn failed for tag " + item.tag);
         }
-        // 全失败或部分失败：把建成数/应建数写进启动日志，不再静默
+        // 预建失败即 fail-fast：抛出由 startup_orm_init 转抛给 main，进程非零退出，
+        // 不带病进入 accept。min_pool=0 时 expected=0，不预建也不触发（配置语义就是不初始化）
         if (n < expected)
         {
-            error_log.append("[ORM-ERROR] tag=" + item.tag +
-                             " role=" + (item.link_type == 0 ? "edit" : "select") +
-                             " prebuild=" + std::to_string(n) + "/" + std::to_string(expected) +
-                             " err=" + conn->error_msg + "\n");
+            std::string fail_msg = "[ORM-ERROR] tag=" + item.tag +
+                                   " role=" + (item.link_type == 0 ? "edit" : "select") +
+                                   " prebuild=" + std::to_string(n) + "/" + std::to_string(expected) +
+                                   " err=" + conn->error_msg;
+            throw std::runtime_error(fail_msg);
         }
         if (iter == int_pool.end())
         {
@@ -780,8 +796,9 @@ unsigned int orm_conn_pool::init_mysql_edit_conn(unsigned char n, unsigned int s
             ++ok;
             continue;
         }
-        // 失败：保留最后一次的错误原因，不堆叠
+        // 失败即停：剩余名额再试只会重复吃建连超时；保留最后一次原因，不堆叠
         error_msg = conn->error_msg;
+        break;
     }
     return ok;
 }
@@ -802,7 +819,7 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::add_mysql_select_connect(orm_slo
         conn->conn_link->slot_index = slot.index;
         return conn;
     }
-    throw std::runtime_error(" add_mysql_select_connect failed for tag ");
+    throw std::runtime_error(" add_mysql_select_connect failed for tag " + conn->error_msg);
 }
 
 std::shared_ptr<mysql_conn_base> orm_conn_pool::add_mysql_select_connect()
@@ -826,7 +843,7 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_add_mysql
         conn->conn_link->slot_index = slot.index;
         co_return conn;
     }
-    throw std::runtime_error(" add_mysql_select_connect failed for tag ");
+    throw std::runtime_error(" add_mysql_select_connect failed for tag " + conn->error_msg);
 }
 
 asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_add_mysql_select_connect()
@@ -859,8 +876,9 @@ unsigned int orm_conn_pool::init_mysql_select_conn(unsigned char n, unsigned int
             ++ok;
             continue;
         }
-        // 失败：保留最后一次的错误原因，不堆叠
+        // 失败即停：剩余名额再试只会重复吃建连超时；保留最后一次原因，不堆叠
         error_msg = conn->error_msg;
+        break;
     }
     return ok;
 }
@@ -1098,7 +1116,7 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_add_pg_edit_
         conn->conn_link->slot_index = slot.index;
         co_return conn;
     }
-    throw std::runtime_error(" add_pg_edit_connect failed for tag ");
+    throw std::runtime_error(" add_pg_edit_connect failed for tag " + conn->error_msg);
 }
 
 asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_add_pg_edit_connect()
@@ -1123,7 +1141,7 @@ std::shared_ptr<pg_conn_base> orm_conn_pool::add_pg_edit_connect(orm_slot &slot)
         conn->conn_link->slot_index = slot.index;
         return conn;
     }
-    throw std::runtime_error(" add_pg_edit_connect failed for tag ");
+    throw std::runtime_error(" add_pg_edit_connect failed for tag " + conn->error_msg);
 }
 
 std::shared_ptr<pg_conn_base> orm_conn_pool::add_pg_edit_connect()
@@ -1180,8 +1198,9 @@ unsigned int orm_conn_pool::init_pg_edit_conn(unsigned char n, unsigned int slot
             ++ok;
             continue;
         }
-        // 失败：保留最后一次的错误原因，不堆叠
+        // 失败即停：剩余名额再试只会重复吃建连超时；保留最后一次原因，不堆叠
         error_msg = conn->error_msg;
+        break;
     }
     return ok;
 }
@@ -1202,7 +1221,7 @@ std::shared_ptr<pg_conn_base> orm_conn_pool::add_pg_select_connect(orm_slot &slo
         conn->conn_link->slot_index = slot.index;
         return conn;
     }
-    throw std::runtime_error(" add_pg_select_connect failed for tag ");
+    throw std::runtime_error(" add_pg_select_connect failed for tag " + conn->error_msg);
 }
 
 std::shared_ptr<pg_conn_base> orm_conn_pool::add_pg_select_connect()
@@ -1226,7 +1245,7 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_add_pg_selec
         conn->conn_link->slot_index = slot.index;
         co_return conn;
     }
-    throw std::runtime_error(" add_pg_select_connect failed for tag ");
+    throw std::runtime_error(" add_pg_select_connect failed for tag " + conn->error_msg);
 }
 
 asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_add_pg_select_connect()
@@ -1259,8 +1278,9 @@ unsigned int orm_conn_pool::init_pg_select_conn(unsigned char n, unsigned int sl
             ++ok;
             continue;
         }
-        // 失败：保留最后一次的错误原因，不堆叠
+        // 失败即停：剩余名额再试只会重复吃建连超时；保留最后一次原因，不堆叠
         error_msg = conn->error_msg;
+        break;
     }
     return ok;
 }
@@ -1496,7 +1516,7 @@ asio::awaitable<std::shared_ptr<sqlite_conn_base>> orm_conn_pool::async_add_sqli
         }
         co_return conn;
     }
-    throw std::runtime_error(" add_sqlite_edit_connect failed for tag ");
+    throw std::runtime_error(" add_sqlite_edit_connect failed for tag " + conn->error_msg);
 }
 
 std::shared_ptr<sqlite_conn_base> orm_conn_pool::add_sqlite_edit_connect()
@@ -1513,7 +1533,7 @@ std::shared_ptr<sqlite_conn_base> orm_conn_pool::add_sqlite_edit_connect()
         }
         return conn;
     }
-    throw std::runtime_error(" add_sqlite_edit_connect failed for tag ");
+    throw std::runtime_error(" add_sqlite_edit_connect failed for tag " + conn->error_msg);
 }
 
 void orm_conn_pool::back_sqlite_edit_conn(std::shared_ptr<sqlite_conn_base> conn)
@@ -1533,7 +1553,8 @@ unsigned int orm_conn_pool::init_sqlite_edit_conn(unsigned char n, unsigned int 
     {
         return 0;
     }
-    // 单连接模式: 忽略 n, 只建一条常驻连接 (同库任务已在 worker 线程串行)
+    // 单连接模式: 忽略 n, 只建一条常驻连接 (同库任务已在 worker 线程串行)。
+    // min_pool=0 也照建：tag 配置了就要起 worker 线程，连接顺带建好（有意设计，非缺陷）
     orm_slot &slot = slot_ref(0);
     {
         std::unique_lock<std::mutex> lock(slot.edit_mutex);
@@ -1551,7 +1572,7 @@ unsigned int orm_conn_pool::init_sqlite_edit_conn(unsigned char n, unsigned int 
     }
     catch (const std::exception &e)
     {
-        error_msg.append(e.what());
+        error_msg = e.what();
         return 0;
     }
 }
@@ -1570,7 +1591,7 @@ std::shared_ptr<sqlite_conn_base> orm_conn_pool::add_sqlite_select_connect()
         }
         return conn;
     }
-    throw std::runtime_error(" add_sqlite_select_connect failed for tag ");
+    throw std::runtime_error(" add_sqlite_select_connect failed for tag " + conn->error_msg);
 }
 
 asio::awaitable<std::shared_ptr<sqlite_conn_base>> orm_conn_pool::async_add_sqlite_select_connect()
@@ -1587,7 +1608,7 @@ asio::awaitable<std::shared_ptr<sqlite_conn_base>> orm_conn_pool::async_add_sqli
         }
         co_return conn;
     }
-    throw std::runtime_error(" add_sqlite_select_connect failed for tag ");
+    throw std::runtime_error(" add_sqlite_select_connect failed for tag " + conn->error_msg);
 }
 
 void orm_conn_pool::back_sqlite_select_conn(std::shared_ptr<sqlite_conn_base> conn)
@@ -1607,7 +1628,8 @@ unsigned int orm_conn_pool::init_sqlite_select_conn(unsigned char n, unsigned in
     {
         return 0;
     }
-    // 单连接模式: 忽略 n, 只建一条常驻连接 (同库任务已在 worker 线程串行)
+    // 单连接模式: 忽略 n, 只建一条常驻连接 (同库任务已在 worker 线程串行)。
+    // min_pool=0 也照建：tag 配置了就要起 worker 线程，连接顺带建好（有意设计，非缺陷）
     orm_slot &slot = slot_ref(0);
     {
         std::unique_lock<std::mutex> lock(slot.select_mutex);
@@ -1625,7 +1647,7 @@ unsigned int orm_conn_pool::init_sqlite_select_conn(unsigned char n, unsigned in
     }
     catch (const std::exception &e)
     {
-        error_msg.append(e.what());
+        error_msg = e.what();
         return 0;
     }
 }
