@@ -2930,6 +2930,15 @@ class db_conn : std::enable_shared_from_this<db_conn>
         co_return co_await pg_async_exec_query_vec_impl(rawsql, params, result_record);
     }
 
+    // prepared 协议专用入口，与 async_query 对称；由调用点显式选用，async_query 的 simple 默认路径不变。
+    // 等价于 async_exec_query：只允许 SELECT，? 占位符数量必须与 params 一致。PG 侧把 ? 转成 $n 绑定，
+    // 命名语句缓存按 SQL 文本做 key（pg_conn_base::prepared_meta_），不同参数值复用同一条语句。
+    template <ResultHasSetVal T>
+    asio::awaitable<unsigned int> async_query_prepared(const std::string &rawsql, const std::vector<http::obj_val> &params, std::vector<T> &result_record)
+    {
+        co_return co_await async_exec_query(rawsql, params, result_record);
+    }
+
     template <ResultHasSetVal T>
     unsigned int mysql_exec_query_single_impl(const std::string &rawsql, const std::vector<http::obj_val> &params, T &result_record)
     {
@@ -3442,6 +3451,13 @@ class db_conn : std::enable_shared_from_this<db_conn>
             co_return co_await sqlite_async_exec_query_single_impl(rawsql, params, result_record);
         }
         co_return co_await pg_async_exec_query_single_impl(rawsql, params, result_record);
+    }
+
+    // prepared 协议专用入口（只取首行），语义与上游 async_query 的单行版对称，门禁同 async_exec_query。
+    template <ResultHasSetVal T>
+    asio::awaitable<unsigned int> async_query_prepared(const std::string &rawsql, const std::vector<http::obj_val> &params, T &result_record)
+    {
+        co_return co_await async_exec_query(rawsql, params, result_record);
     }
 
     template <typename T, RecordLineCallback<T> Callback>
@@ -3958,6 +3974,13 @@ class db_conn : std::enable_shared_from_this<db_conn>
         co_return co_await pg_async_exec_query_vec_cb_impl(rawsql, params, result_record, std::forward<Callback>(callback));
     }
 
+    // prepared 协议专用入口（带逐行回调），与上游 async_query 的回调版对称，门禁同 async_exec_query。
+    template <typename T, RecordLineCallback<T> Callback>
+    asio::awaitable<unsigned int> async_query_prepared(const std::string &rawsql, const std::vector<http::obj_val> &params, std::vector<T> &result_record, Callback &&callback)
+    {
+        co_return co_await async_exec_query(rawsql, params, result_record, std::forward<Callback>(callback));
+    }
+
     template <typename T, RecordLineCallback<T> Callback>
     unsigned int mysql_exec_query_single_cb_impl(const std::string &rawsql, const std::vector<http::obj_val> &params, T &result_record, Callback &&callback)
     {
@@ -4470,6 +4493,13 @@ class db_conn : std::enable_shared_from_this<db_conn>
             co_return co_await sqlite_async_exec_query_single_cb_impl(rawsql, params, result_record, std::forward<Callback>(callback));
         }
         co_return co_await pg_async_exec_query_single_cb_impl(rawsql, params, result_record, std::forward<Callback>(callback));
+    }
+
+    // prepared 协议专用入口（单行 + 回调），与上游 async_query 的单行回调版对称，门禁同 async_exec_query。
+    template <typename T, RecordLineCallback<T> Callback>
+    asio::awaitable<unsigned int> async_query_prepared(const std::string &rawsql, const std::vector<http::obj_val> &params, T &result_record, Callback &&callback)
+    {
+        co_return co_await async_exec_query(rawsql, params, result_record, std::forward<Callback>(callback));
     }
 
     ////5555 exec prepared DML 带结果集，预编译 + 参数绑定，走 **edit 连接**

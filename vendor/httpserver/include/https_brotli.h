@@ -15,7 +15,7 @@ namespace http
     // 它们压一次可长期复用，压缩率比单请求延迟更重要。
     // Per-request dynamic output only. Cacheable assets keep the library
     // defaults (quality 11), where the one-off cost buys a better ratio.
-    // Levels are overridable with -DPAOZHU_DYNAMIC_BROTLI_QUALITY / _LGWIN.
+    // Level is set by PAOZHU_BROTLI_DYNAMIC_QUALITY / _LGWIN in common/cost_define.h (override with -D).
     bool brotli_encode_dynamic(const std::string &data, std::string &out_data);
 
     bool brotli_encode(const std::string &data, std::string &out_data);

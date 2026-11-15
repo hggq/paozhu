@@ -1118,11 +1118,11 @@ void httpserver::http2_compress_output(std::shared_ptr<httppeer> &peer, std::sha
             {
                 if (peer->state.br)
                 {
-                    // 动态输出每请求重压一次，压测档用低延迟档；正常档保持
-                    // 库默认 quality 11，换更高的压缩率（与改动前逐字一致）。
-                    // Benchmark build prefers latency; production keeps the
-                    // library's high-ratio default for the same response.
-#ifdef BENCHMARK
+                    // 动态输出每请求重压一次；是否走快速档由调用方按
+                    // PAOZHU_BROTLI_DYNAMIC_QUALITY 决定：定义则 brotli_encode_dynamic
+                    // （level 见 common/cost_define.h，默认 q1/lgwin20），未定义则回退
+                    // 通用 brotli_encode（库默认 q11）。静态资源仍走 brotli_encode_file()。
+#ifdef PAOZHU_BROTLI_DYNAMIC_QUALITY
                     if (brotli_encode_dynamic(peer->output, send_file_obj->content))
 #else
                     if (brotli_encode(peer->output, send_file_obj->content))
@@ -2623,9 +2623,10 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
                         bool compressed_ok = false;
                         if (peer->state.br)
                         {
-                            // 同 http2_compress_output：压测档低延迟，正常档保持默认高压缩率。
-                            // Same split as http2_compress_output.
-#ifdef BENCHMARK
+                            // 动态输出是否走快速档由调用方按 PAOZHU_BROTLI_DYNAMIC_QUALITY
+                            // 决定（定义→brotli_encode_dynamic，未定义→通用 brotli_encode）。
+                            // Caller picks the tier via PAOZHU_BROTLI_DYNAMIC_QUALITY.
+#ifdef PAOZHU_BROTLI_DYNAMIC_QUALITY
                             compressed_ok = brotli_encode_dynamic(peer->output, tempcompress);
 #else
                             compressed_ok = brotli_encode(peer->output, tempcompress);
@@ -2722,9 +2723,10 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
                         bool compressed_ok = false;
                         if (peer->state.br)
                         {
-                            // 同 http2_compress_output：压测档低延迟，正常档保持默认高压缩率。
-                            // Same split as http2_compress_output.
-#ifdef BENCHMARK
+                            // 动态输出是否走快速档由调用方按 PAOZHU_BROTLI_DYNAMIC_QUALITY
+                            // 决定（定义→brotli_encode_dynamic，未定义→通用 brotli_encode）。
+                            // Caller picks the tier via PAOZHU_BROTLI_DYNAMIC_QUALITY.
+#ifdef PAOZHU_BROTLI_DYNAMIC_QUALITY
                             compressed_ok = brotli_encode_dynamic(peer->output, tempcompress);
 #else
                             compressed_ok = brotli_encode(peer->output, tempcompress);

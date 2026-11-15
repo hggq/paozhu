@@ -518,4 +518,18 @@ constexpr bool http2_wu_stream_id_ok(unsigned long long sid, unsigned long long 
 // sync_fails is smallint unsigned; clamp before writing so an overflow cannot reset the
 // backoff ladder to its lowest rung.
 #define CONST_GH_SYNC_FAILS_MAX 65535
+
+// 动态（每请求）响应 Brotli 压缩档位。与静态资源（brotli_encode_file 默认 q11、
+// 压一次长期复用）分离：动态内容每请求重压，用低延迟档以对齐行业基准，
+// 不再依赖 #ifdef BENCHMARK 分流——正常部署也走快速 br。改这个常量（或 -D 覆盖）
+// 即可调档，无需重新条件编译。取值范围：quality 0..11，lgwin 10..24。
+// Per-request dynamic Brotli level. Static assets keep q11; dynamic output uses
+// this fast level in both production and benchmark builds. Tunable via -D override.
+#ifndef PAOZHU_BROTLI_DYNAMIC_QUALITY
+#define PAOZHU_BROTLI_DYNAMIC_QUALITY 1
+#endif
+#ifndef PAOZHU_BROTLI_DYNAMIC_LGWIN
+#define PAOZHU_BROTLI_DYNAMIC_LGWIN 20
+#endif
+
 #endif

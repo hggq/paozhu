@@ -1,17 +1,19 @@
 #include <string>
 #include <array>
 #include "https_brotli.h"
+#include "cost_define.h"
 
 namespace http
 {
     namespace
     {
-// 动态档可在构建期覆盖，便于按 profile 在延迟与压缩率之间调档。
-#ifndef PAOZHU_DYNAMIC_BROTLI_QUALITY
-#define PAOZHU_DYNAMIC_BROTLI_QUALITY 1
+// 动态档 level 来自 common/cost_define.h（PAOZHU_BROTLI_DYNAMIC_QUALITY / _LGWIN）：
+// 正常部署与压测都走同一低延迟档，不再按 BENCHMARK 分流；保留 -D 覆盖能力。
+#ifndef PAOZHU_BROTLI_DYNAMIC_QUALITY
+#define PAOZHU_BROTLI_DYNAMIC_QUALITY 1
 #endif
-#ifndef PAOZHU_DYNAMIC_BROTLI_LGWIN
-#define PAOZHU_DYNAMIC_BROTLI_LGWIN 20
+#ifndef PAOZHU_BROTLI_DYNAMIC_LGWIN
+#define PAOZHU_BROTLI_DYNAMIC_LGWIN 20
 #endif
 
         // 每请求生成、无法缓存的动态响应用低延迟档；静态资源继续走
@@ -24,8 +26,8 @@ namespace http
             {
                 return nullptr;
             }
-            if (!BrotliEncoderSetParameter(instance, BROTLI_PARAM_QUALITY, PAOZHU_DYNAMIC_BROTLI_QUALITY) ||
-                !BrotliEncoderSetParameter(instance, BROTLI_PARAM_LGWIN, PAOZHU_DYNAMIC_BROTLI_LGWIN))
+            if (!BrotliEncoderSetParameter(instance, BROTLI_PARAM_QUALITY, PAOZHU_BROTLI_DYNAMIC_QUALITY) ||
+                !BrotliEncoderSetParameter(instance, BROTLI_PARAM_LGWIN, PAOZHU_BROTLI_DYNAMIC_LGWIN))
             {
                 BrotliEncoderDestroyInstance(instance);
                 return nullptr;

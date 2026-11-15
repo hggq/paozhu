@@ -1273,10 +1273,39 @@ double obj_val::str_to_double()
     catch (const std::exception &) { return 0; }
 }
 
+// 文本整数快路径：首字符即数字（或负号）时直接 from_chars 落整数，不经过 std::sto* 的
+// locale/异常机制。前导空白、'+'、无符号类型的负号、溢出等边界一律交回原 std::sto* 路径，
+// 保证返回值与旧实现一致（含 stoul("-1") 回绕这类行为）。
+template <typename T>
+static inline bool str_to_integer_fast(const std::string &s, T &out)
+{
+    const char *p   = s.data();
+    const char *end = p + s.size();
+    if (p == end)
+        return false;
+
+    const char c = *p;
+    if (c == '-')
+    {
+        if constexpr (!std::is_signed_v<T>)
+            return false;
+    }
+    else if (c < '0' || c > '9')
+    {
+        return false;
+    }
+
+    auto [ptr, ec] = std::from_chars(p, end, out);
+    return ec == std::errc{};
+}
+
 int obj_val::str_to_int()
 {
     if (_val_type != obj_type::STRING)
         return 0;
+    int fast_value = 0;
+    if (str_to_integer_fast(str_, fast_value))
+        return fast_value;
     try { return std::stoi(str_); }
     catch (const std::exception &) { return 0; }
 }
@@ -1285,6 +1314,9 @@ long long obj_val::str_to_long()
 {
     if (_val_type != obj_type::STRING)
         return 0;
+    long long fast_value = 0;
+    if (str_to_integer_fast(str_, fast_value))
+        return fast_value;
     try { return std::stoll(str_); }
     catch (const std::exception &) { return 0; }
 }
@@ -1293,6 +1325,9 @@ unsigned int obj_val::str_to_uint()
 {
     if (_val_type != obj_type::STRING)
         return 0;
+    unsigned int fast_value = 0;
+    if (str_to_integer_fast(str_, fast_value))
+        return fast_value;
     try { return std::stoul(str_); }
     catch (const std::exception &) { return 0; }
 }
@@ -1301,6 +1336,9 @@ unsigned long long obj_val::str_to_ulong()
 {
     if (_val_type != obj_type::STRING)
         return 0;
+    unsigned long long fast_value = 0;
+    if (str_to_integer_fast(str_, fast_value))
+        return fast_value;
     try { return std::stoull(str_); }
     catch (const std::exception &) { return 0; }
 }
@@ -1337,9 +1375,14 @@ long long obj_val::to_int() const
     case obj_type::NIL: return 0;
     case obj_type::BOOL: return lval ? 1 : 0;
     case obj_type::STRING:
+    {
         if (str_.empty()) return 0;
+        long long fast_value = 0;
+        if (str_to_integer_fast(str_, fast_value))
+            return fast_value;
         try { return std::stoll(str_); }
         catch (const std::exception &) { return 0; }
+    }
     case obj_type::INT:
     case obj_type::LONG: return lval;
     case obj_type::UINT:
@@ -2383,6 +2426,26 @@ std::string obj_val::to_json() const
 // 把 src 按 JSON 字符串语法写进 out(含两侧引号), 非 ASCII 的 UTF-8 序列转成 \uXXXX
 static void append_json_escaped(std::string &result, std::string_view src)
 {
+    // 快路径：纯可打印 ASCII 且无引号/反斜杠时整段写，省掉逐字节 push_back。
+    // 快路径覆盖的字节集合与下面 default 分支原样输出的集合一致。
+    bool plain = true;
+    for (unsigned char ch : src)
+    {
+        if (ch >= 0x80 || ch == 0x22 || ch == 0x5c || ch < 0x20)
+        {
+            plain = false;
+            break;
+        }
+    }
+    if (plain)
+    {
+        result.reserve(result.size() + src.size() + 2);
+        result.push_back(0x22);
+        result.append(src);
+        result.push_back(0x22);
+        return;
+    }
+
     const char *text = src.data();
     unsigned int text_length = static_cast<unsigned int>(src.size());
     unsigned char c, t = 0;
@@ -2637,6 +2700,25 @@ static void append_json_escaped(std::string &result, std::string_view src)
 // 把 src 按 JSON 字符串语法写进 out(含两侧引号), 保留 UTF-8 原文
 static void append_json_raw(std::string &result, std::string_view src)
 {
+    // 快路径：无引号/反斜杠/斜杠/控制字符时整段写（高字节本来就原样输出）。
+    bool plain = true;
+    for (unsigned char ch : src)
+    {
+        if (ch < 0x20 || ch == 0x22 || ch == 0x5c || ch == 0x2f)
+        {
+            plain = false;
+            break;
+        }
+    }
+    if (plain)
+    {
+        result.reserve(result.size() + src.size() + 2);
+        result.push_back(0x22);
+        result.append(src);
+        result.push_back(0x22);
+        return;
+    }
+
     result.push_back(0x22);
     for (char ch : src)
     {
@@ -2670,6 +2752,16 @@ static void append_json_raw(std::string &result, std::string_view src)
     result.push_back(0x22);
 }
 
+// 整数直接写进输出缓冲：不造 std::to_string 临时串
+template <typename T>
+static inline void append_json_int(std::string &out, T value)
+{
+    char buf[32];
+    auto [ptr, ec] = std::to_chars(buf, buf + sizeof(buf), value);
+    if (ec == std::errc{})
+        out.append(buf, static_cast<std::size_t>(ptr - buf));
+}
+
 std::string to_json_internal(const obj_val &val, unsigned int level)
 {
     if (level > JSON_MAX_DEPTH)
@@ -2688,13 +2780,19 @@ std::string to_json_internal(const obj_val &val, unsigned int level)
         return result;
     }
     case obj_type::INT:
-        return std::to_string(val.lval);
-    case obj_type::UINT:
-        return std::to_string(val.uval);
     case obj_type::LONG:
-        return std::to_string(val.lval);
+    {
+        std::string result;
+        append_json_int(result, val.lval);
+        return result;
+    }
+    case obj_type::UINT:
     case obj_type::ULONG:
-        return std::to_string(val.uval);
+    {
+        std::string result;
+        append_json_int(result, val.uval);
+        return result;
+    }
     case obj_type::DOUBLE:
     {
         // JSON 没有 NaN/Inf 字面量, 与 NIL 一样输出 null, 避免整条响应抛异常
@@ -2710,6 +2808,7 @@ std::string to_json_internal(const obj_val &val, unsigned int level)
     case obj_type::OBJECT:
     {
         std::string result = "{";
+        result.reserve(result.size() + 2 + val.obj->_data.size() * 16);
         bool first = true;
         for (const auto &pair : val.obj->_data)
         {
@@ -2726,6 +2825,7 @@ std::string to_json_internal(const obj_val &val, unsigned int level)
     case obj_type::ARRAY:
     {
         std::string result = "[";
+        result.reserve(result.size() + 2 + val.array_val->_data.size() * 8);
         bool first = true;
         for (const auto &item : val.array_val->_data)
         {
@@ -2765,13 +2865,19 @@ std::string to_json_uncode_internal(const obj_val &val, unsigned int level)
         return result;
     }
     case obj_type::INT:
-        return std::to_string(val.lval);
-    case obj_type::UINT:
-        return std::to_string(val.uval);
     case obj_type::LONG:
-        return std::to_string(val.lval);
+    {
+        std::string result;
+        append_json_int(result, val.lval);
+        return result;
+    }
+    case obj_type::UINT:
     case obj_type::ULONG:
-        return std::to_string(val.uval);
+    {
+        std::string result;
+        append_json_int(result, val.uval);
+        return result;
+    }
     case obj_type::DOUBLE:
     {
         // JSON 没有 NaN/Inf 字面量, 与 NIL 一样输出 null, 避免整条响应抛异常
@@ -2787,6 +2893,7 @@ std::string to_json_uncode_internal(const obj_val &val, unsigned int level)
     case obj_type::OBJECT:
     {
         std::string result = "{";
+        result.reserve(result.size() + 2 + val.obj->_data.size() * 16);
         bool first = true;
         for (const auto &pair : val.obj->_data)
         {
@@ -2803,6 +2910,7 @@ std::string to_json_uncode_internal(const obj_val &val, unsigned int level)
     case obj_type::ARRAY:
     {
         std::string result = "[";
+        result.reserve(result.size() + 2 + val.array_val->_data.size() * 8);
         bool first = true;
         for (const auto &item : val.array_val->_data)
         {

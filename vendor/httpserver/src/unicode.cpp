@@ -1221,6 +1221,28 @@ std::string stringunicode_to_utf8(std::string &source)
 
 std::string utf8_to_json_string(const std::string &source)
 {
+    // 快路径：纯 ASCII 且不含需转义/需丢弃的字节时整段拼接，避免逐字节 push_back。
+    // 需排除的字节与下面逐字节分支的处理一一对应：>=0x80 会转 \uXXXX，
+    // 0x22/0x5c/0x0a/0x0d/0x09 要转义，0x08/0x0c 是被丢弃的，都不能走快路径。
+    bool plain = true;
+    for (unsigned char ch : source)
+    {
+        if (ch >= 0x80 || ch == 0x22 || ch == 0x5c || ch == 0x0a || ch == 0x0d || ch == 0x09 || ch == 0x08 || ch == 0x0c)
+        {
+            plain = false;
+            break;
+        }
+    }
+    if (plain)
+    {
+        std::string fast_obj;
+        fast_obj.reserve(source.size() + 2);
+        fast_obj.push_back('"');
+        fast_obj.append(source);
+        fast_obj.push_back('"');
+        return fast_obj;
+    }
+
     unsigned int pos = 0;
     unsigned short big_char;//大端高位
     unsigned short low_char;//低位
