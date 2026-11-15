@@ -389,7 +389,7 @@ asio::awaitable<void> httpserver::http2_co_send_compress(std::shared_ptr<httppee
     send_file_obj->file_name.push_back('.');
     send_file_obj->file_name.append(to_hexstring(
         std::hash<std::string>{}(peer->host + "\n" + peer->urlpath)));
-    if (peer->isssl && peer->state.br)
+    if (peer->state.br)
     {
         peer->compress = 2;
         send_file_obj->file_name.append(".br");
