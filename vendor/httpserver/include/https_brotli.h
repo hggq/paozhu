@@ -8,6 +8,16 @@
  
 namespace http
 {
+    // 每请求生成、无法缓存的动态响应（server.cpp 的 peer->output）专用。
+    // 用低 quality / 小窗口换可预测的每请求延迟：默认 q11/lgwin22 对 4-8KB
+    // 的 body 要 9-19ms，会把 io 线程打满；q1 约 30us。
+    // 静态资源仍用 brotli_encode() / brotli_encode_file() 的库默认高档，
+    // 它们压一次可长期复用，压缩率比单请求延迟更重要。
+    // Per-request dynamic output only. Cacheable assets keep the library
+    // defaults (quality 11), where the one-off cost buys a better ratio.
+    // Levels are overridable with -DPAOZHU_DYNAMIC_BROTLI_QUALITY / _LGWIN.
+    bool brotli_encode_dynamic(const std::string &data, std::string &out_data);
+
     bool brotli_encode(const std::string &data, std::string &out_data);
     bool brotli_decode(const std::string &data, std::string &out_data);
 

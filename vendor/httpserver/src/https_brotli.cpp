@@ -4,6 +4,77 @@
 
 namespace http
 {
+    namespace
+    {
+// 动态档可在构建期覆盖，便于按 profile 在延迟与压缩率之间调档。
+#ifndef PAOZHU_DYNAMIC_BROTLI_QUALITY
+#define PAOZHU_DYNAMIC_BROTLI_QUALITY 1
+#endif
+#ifndef PAOZHU_DYNAMIC_BROTLI_LGWIN
+#define PAOZHU_DYNAMIC_BROTLI_LGWIN 20
+#endif
+
+        // 每请求生成、无法缓存的动态响应用低延迟档；静态资源继续走
+        // brotli_encode() / brotli_encode_file() 的库默认 quality 11，
+        // 一次压缩长期复用，压缩率比单请求延迟更重要。
+        BrotliEncoderState *create_dynamic_encoder()
+        {
+            BrotliEncoderState *instance = BrotliEncoderCreateInstance(nullptr, nullptr, nullptr);
+            if (!instance)
+            {
+                return nullptr;
+            }
+            if (!BrotliEncoderSetParameter(instance, BROTLI_PARAM_QUALITY, PAOZHU_DYNAMIC_BROTLI_QUALITY) ||
+                !BrotliEncoderSetParameter(instance, BROTLI_PARAM_LGWIN, PAOZHU_DYNAMIC_BROTLI_LGWIN))
+            {
+                BrotliEncoderDestroyInstance(instance);
+                return nullptr;
+            }
+            return instance;
+        }
+    } // namespace
+
+    // 动态输出专用：一次性 FINISH，输出缓冲 2KB，每请求新建/销毁实例。
+    // 实测实例创建销毁仅 0.1us，成本几乎全在 quality，故降档即是全部收益。
+    bool brotli_encode_dynamic(const std::string &data, std::string &out_data)
+    {
+        std::array<unsigned char, 2048> buffer;
+        BrotliEncoderState *instance = create_dynamic_encoder();
+        if (!instance)
+        {
+            return false;
+        }
+
+        // 与通用 brotli_encode() 保持同样的 append 语义，不清空 out_data，
+        // 这样两档除编码器参数外的行为逐字一致。
+        size_t available_in = data.length(), available_out = buffer.size();
+        const unsigned char *next_in = reinterpret_cast<const unsigned char *>(data.c_str());
+        unsigned char *next_out = buffer.data();
+        bool ok = true;
+
+        do
+        {
+            if (!BrotliEncoderCompressStream(
+                    instance, BROTLI_OPERATION_FINISH,
+                    &available_in, &next_in, &available_out, &next_out, nullptr))
+            {
+                ok = false;
+                break;
+            }
+            out_data.append(reinterpret_cast<const char *>(buffer.data()), buffer.size() - available_out);
+            available_out = buffer.size();
+            next_out = buffer.data();
+        } while (!(available_in == 0 && BrotliEncoderIsFinished(instance)));
+
+        BrotliEncoderDestroyInstance(instance);
+        if (!ok)
+        {
+            out_data.clear();
+            return false;
+        }
+        return true;
+    }
+
     bool brotli_encode(const std::string &data, std::string &out_data)
     {
         std::array<unsigned char, 2048> buffer;

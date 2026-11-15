@@ -5,7 +5,7 @@ namespace http
 {
 #define CHUNK 16384
 
-int compress(const char *in_str, size_t in_len, std::string &out_str, [[maybe_unused]] int level)
+int compress(const char *in_str, size_t in_len, std::string &out_str, int level)
 {
     if (!in_str)
         return Z_DATA_ERROR;
@@ -25,7 +25,13 @@ int compress(const char *in_str, size_t in_len, std::string &out_str, [[maybe_un
     strm.next_in  = Z_NULL;
     strm.avail_in = 0;
 
-    ret = deflateInit2(&strm, Z_DEFAULT_COMPRESSION, Z_DEFLATED, windowBits | GZIP_ENCODING, 8, Z_DEFAULT_STRATEGY);
+    // 调用方传入的 level 必须生效：动态响应可用 Z_BEST_SPEED，静态/
+    // 离线压缩可抬到 Z_BEST_COMPRESSION。此前硬编码 6 让形参成为摆设。
+    if (level == Z_DEFAULT_COMPRESSION || level < Z_NO_COMPRESSION || level > Z_BEST_COMPRESSION)
+    {
+        level = Z_DEFAULT_COMPRESSION;
+    }
+    ret = deflateInit2(&strm, level, Z_DEFLATED, windowBits | GZIP_ENCODING, 8, Z_DEFAULT_STRATEGY);
 
     if (ret != Z_OK)
         return ret;

@@ -1118,7 +1118,15 @@ void httpserver::http2_compress_output(std::shared_ptr<httppeer> &peer, std::sha
             {
                 if (peer->state.br)
                 {
+                    // 动态输出每请求重压一次，压测档用低延迟档；正常档保持
+                    // 库默认 quality 11，换更高的压缩率（与改动前逐字一致）。
+                    // Benchmark build prefers latency; production keeps the
+                    // library's high-ratio default for the same response.
+#ifdef BENCHMARK
+                    if (brotli_encode_dynamic(peer->output, send_file_obj->content))
+#else
                     if (brotli_encode(peer->output, send_file_obj->content))
+#endif
                     {
                         peer->compress = 2;
                     }
@@ -2615,13 +2623,19 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
                         bool compressed_ok = false;
                         if (peer->state.br)
                         {
+                            // 同 http2_compress_output：压测档低延迟，正常档保持默认高压缩率。
+                            // Same split as http2_compress_output.
+#ifdef BENCHMARK
+                            compressed_ok = brotli_encode_dynamic(peer->output, tempcompress);
+#else
                             compressed_ok = brotli_encode(peer->output, tempcompress);
+#endif
                             if (compressed_ok)
                             {
                                 peer->compress = 2;
                             }
                         }
-                        else if (compress(peer->output.data(), peer->output.size(), tempcompress, Z_DEFAULT_COMPRESSION) == Z_OK)
+                        else if (peer->state.gzip && compress(peer->output.data(), peer->output.size(), tempcompress, Z_DEFAULT_COMPRESSION) == Z_OK)
                         {
                             // peer->output   = tempcompress;
                             peer->compress = 1;
@@ -2708,13 +2722,19 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
                         bool compressed_ok = false;
                         if (peer->state.br)
                         {
+                            // 同 http2_compress_output：压测档低延迟，正常档保持默认高压缩率。
+                            // Same split as http2_compress_output.
+#ifdef BENCHMARK
+                            compressed_ok = brotli_encode_dynamic(peer->output, tempcompress);
+#else
                             compressed_ok = brotli_encode(peer->output, tempcompress);
+#endif
                             if (compressed_ok)
                             {
                                 peer->compress = 2;
                             }
                         }
-                        else if (compress(peer->output.data(), peer->output.size(), tempcompress, Z_DEFAULT_COMPRESSION) == Z_OK)
+                        else if (peer->state.gzip && compress(peer->output.data(), peer->output.size(), tempcompress, Z_DEFAULT_COMPRESSION) == Z_OK)
                         {
                             // peer->output   = tempcompress;
                             peer->compress = 1;
@@ -3107,7 +3127,9 @@ asio::awaitable<unsigned int> httpserver::client_http1_loop(bool isssl, unsigned
         std::unique_ptr<httpparse> http1pre = std::make_unique<httpparse>();
 
         std::string log_item;
-        unsigned int single_link_count = 1;
+        // 读取点（访问日志、keepalive 上限）都在 #ifndef BENCHMARK 里，压测档只自增不使用。
+        // Reads live under #ifndef BENCHMARK; the benchmark build only increments it.
+        [[maybe_unused]] unsigned int single_link_count = 1;
         http1pre->setpeer(peer);
         peer_session->httpv = 1;
         peer->httpv         = 1;
@@ -3350,7 +3372,9 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
         peer->httpv         = 2;
 
         unsigned int error_state       = 0;
-        unsigned int single_link_count = 0;
+        // 同上：只有访问日志在 #ifndef BENCHMARK 里读它。
+        // Same as the h1 loop: only the access log reads it, under #ifndef BENCHMARK.
+        [[maybe_unused]] unsigned int single_link_count = 0;
         // 本条连接上已上报过的「丢弃 WINDOW_UPDATE」计数，用于只在数字变化时写日志行。
         unsigned int logged_winupdate_dropped = 0;
         std::string log_item;
@@ -4013,7 +4037,7 @@ asio::awaitable<unsigned int> httpserver::client_websocket_loop(std::shared_ptr<
 
         // 丢掉一条入站消息的收尾：落盘的文件顺手 unlink，本连接计数加一，按 1/256 节流记一行日志。
         // 越水位丢弃和线程池拒单取回都走这里，保证"消息要么在队列里等着业务来取，要么进了这个计数"。
-        auto drop_ingress_message = [&](websockets_data_list_t &dropped, const char *cause)
+        auto drop_ingress_message = [&](websockets_data_list_t &dropped, [[maybe_unused]] const char *cause)
         {
             if (dropped.isfile && !dropped.value.empty())
             {
