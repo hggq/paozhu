@@ -1228,8 +1228,9 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql
 std::shared_ptr<mysql_conn_base> orm_conn_pool::get_mysql_edit_conn()
 {
     // 同步路径不等门闩：业务线程池没有 executor，阻塞等会拖死工作线程，无空闲就直接建。
-    const unsigned int n = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
-    orm_slot &slot       = slot_ref(rr_counter.fetch_add(1, std::memory_order_relaxed) % n);
+    const unsigned int n          = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
+    const unsigned int slot_index = rr_counter.fetch_add(1, std::memory_order_relaxed) % n;
+    orm_slot &slot                = slot_ref(slot_index);
     std::unique_lock<std::mutex> lock(slot.edit_mutex);
     while (!slot.mysql_edit_pool.empty())
     {
@@ -1244,6 +1245,16 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::get_mysql_edit_conn()
         }
     }
     lock.unlock();
+
+    // 本槽没空闲：先借其他槽，借不到再新建（同步路径不等待）
+    auto borrowed = take_idle_from_other_slots(
+        *this, slot_index,
+        &orm_slot::mysql_edit_pool, &orm_slot::edit_mutex);
+    if (borrowed)
+    {
+        borrowed->issynch = true;
+        return borrowed;
+    }
     return add_mysql_edit_connect(slot);
 }
 
@@ -1371,8 +1382,9 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql
 
 std::shared_ptr<mysql_conn_base> orm_conn_pool::get_mysql_select_conn()
 {
-    const unsigned int n = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
-    orm_slot &slot       = slot_ref(rr_counter.fetch_add(1, std::memory_order_relaxed) % n);
+    const unsigned int n          = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
+    const unsigned int slot_index = rr_counter.fetch_add(1, std::memory_order_relaxed) % n;
+    orm_slot &slot                = slot_ref(slot_index);
     std::unique_lock<std::mutex> lock(slot.select_mutex);
     while (!slot.mysql_select_pool.empty())
     {
@@ -1387,6 +1399,16 @@ std::shared_ptr<mysql_conn_base> orm_conn_pool::get_mysql_select_conn()
         }
     }
     lock.unlock();
+
+    // 本槽没空闲：先借其他槽，借不到再新建（同步路径不等待）
+    auto borrowed = take_idle_from_other_slots(
+        *this, slot_index,
+        &orm_slot::mysql_select_pool, &orm_slot::select_mutex);
+    if (borrowed)
+    {
+        borrowed->issynch = true;
+        return borrowed;
+    }
     return add_mysql_select_connect(slot);
 }
 
@@ -1758,8 +1780,9 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_edit_
 
 std::shared_ptr<pg_conn_base> orm_conn_pool::get_pg_edit_conn()
 {
-    const unsigned int n = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
-    orm_slot &slot       = slot_ref(rr_counter.fetch_add(1, std::memory_order_relaxed) % n);
+    const unsigned int n          = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
+    const unsigned int slot_index = rr_counter.fetch_add(1, std::memory_order_relaxed) % n;
+    orm_slot &slot                = slot_ref(slot_index);
     std::unique_lock<std::mutex> lock(slot.edit_mutex);
     while (!slot.pg_edit_pool.empty())
     {
@@ -1774,6 +1797,16 @@ std::shared_ptr<pg_conn_base> orm_conn_pool::get_pg_edit_conn()
         }
     }
     lock.unlock();
+
+    // 本槽没空闲：先借其他槽，借不到再新建（同步路径不等待）
+    auto borrowed = take_idle_from_other_slots(
+        *this, slot_index,
+        &orm_slot::pg_edit_pool, &orm_slot::edit_mutex);
+    if (borrowed)
+    {
+        borrowed->issynch = true;
+        return borrowed;
+    }
     return add_pg_edit_connect(slot);
 }
 
@@ -1901,8 +1934,9 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_selec
 
 std::shared_ptr<pg_conn_base> orm_conn_pool::get_pg_select_conn()
 {
-    const unsigned int n = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
-    orm_slot &slot       = slot_ref(rr_counter.fetch_add(1, std::memory_order_relaxed) % n);
+    const unsigned int n          = slots.empty() ? 1u : static_cast<unsigned int>(slots.size());
+    const unsigned int slot_index = rr_counter.fetch_add(1, std::memory_order_relaxed) % n;
+    orm_slot &slot                = slot_ref(slot_index);
     std::unique_lock<std::mutex> lock(slot.select_mutex);
     while (!slot.pg_select_pool.empty())
     {
@@ -1917,6 +1951,16 @@ std::shared_ptr<pg_conn_base> orm_conn_pool::get_pg_select_conn()
         }
     }
     lock.unlock();
+
+    // 本槽没空闲：先借其他槽，借不到再新建（同步路径不等待）
+    auto borrowed = take_idle_from_other_slots(
+        *this, slot_index,
+        &orm_slot::pg_select_pool, &orm_slot::select_mutex);
+    if (borrowed)
+    {
+        borrowed->issynch = true;
+        return borrowed;
+    }
     return add_pg_select_connect(slot);
 }
 
