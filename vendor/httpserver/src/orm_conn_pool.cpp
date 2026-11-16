@@ -107,6 +107,48 @@ void wake_conn_waiter(std::shared_ptr<orm_conn_waiter> w)
         asio::post(w->timer.get_executor(), [w] { w->timer.cancel(); });
     }
 }
+// 跨槽借一条空闲连接：只取其他槽池里现成的，不新建。
+// Borrow one idle connection from another slot; never creates a new one.
+// 每轮只锁一个槽，try_lock 拿不到就跳过，任意时刻至多持一把槽锁。
+template <typename ConnT>
+std::shared_ptr<ConnT> take_idle_from_other_slots(
+    orm_conn_pool &pool,
+    unsigned int caller_slot_index,
+    std::list<std::shared_ptr<ConnT>> orm_slot::*idle_list,
+    std::mutex orm_slot::*mtx)
+{
+    const unsigned int n = pool.slots.empty()
+                               ? 1u
+                               : static_cast<unsigned int>(pool.slots.size());
+    if (n <= 1)
+    {
+        return nullptr;
+    }
+
+    // 从调用槽的下一个开始环形扫描，并发调用方不会都先抢同一个槽
+    for (unsigned int k = 1; k < n; ++k)
+    {
+        orm_slot &other = *pool.slots[(caller_slot_index + k) % n];
+        std::unique_lock<std::mutex> lock(other.*mtx, std::try_to_lock);
+        if (!lock.owns_lock())
+        {
+            continue;
+        }
+        auto &idle = other.*idle_list;
+        while (!idle.empty())
+        {
+            auto conn = std::move(idle.front());
+            idle.pop_front();
+            conn->pooled_ = false;
+            if (!conn->is_closed())
+            {
+                return conn;
+            }
+            // 坏连接丢弃：名额随对象析构归还它自己的槽
+        }
+    }
+    return nullptr;
+}
 // waiter 在挂起期间被销毁（io_context 停止、协程帧析构）时的兜底：
 // 摘掉队列登记；若已经交接了连接，转交给下一个仍在等的 waiter，没人接就放回池。
 // 正常退出路径会先 release()，不走这里。
