@@ -1111,6 +1111,7 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql
     const unsigned int maxn = slot_max_of(LINK_EDIT, slot_index);
     // 本槽该角色名额已满后的最长等待；到点抛异常退出，请求不会一直占着协程。
     const auto wait_deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(CONST_ORM_CONN_WAIT_MS);
+    bool probed              = false;// 每次调用最多跨槽探测一轮
 
     for (;;)
     {
@@ -1128,6 +1129,21 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql
                     co_return temp;
                 }
                 // 空闲连接已断开：丢弃这条对象，名额随它的析构归还
+            }
+
+            // 本槽没空闲：先借其他槽；本槽有人排队时不借，保持 FIFO
+            if (!probed && slot.edit_waiters.empty())
+            {
+                probed = true;
+                lock.unlock();
+                auto borrowed = take_idle_from_other_slots(
+                    *this, slot_index,
+                    &orm_slot::mysql_edit_pool, &orm_slot::edit_mutex);
+                if (borrowed)
+                {
+                    co_return borrowed;
+                }
+                continue;// 回本槽锁内重查，避免探测期间归还被漏掉
             }
 
             if (slot.total_count[LINK_EDIT]->load(std::memory_order_relaxed) +
@@ -1241,6 +1257,7 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql
     const unsigned int maxn = slot_max_of(LINK_SELECT, slot_index);
     // 本槽该角色名额已满后的最长等待；到点抛异常退出，请求不会一直占着协程。
     const auto wait_deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(CONST_ORM_CONN_WAIT_MS);
+    bool probed              = false;// 每次调用最多跨槽探测一轮
 
     for (;;)
     {
@@ -1257,6 +1274,21 @@ asio::awaitable<std::shared_ptr<mysql_conn_base>> orm_conn_pool::async_get_mysql
                     lock.unlock();
                     co_return temp;
                 }
+            }
+
+            // 本槽没空闲：先借其他槽；本槽有人排队时不借，保持 FIFO
+            if (!probed && slot.select_waiters.empty())
+            {
+                probed = true;
+                lock.unlock();
+                auto borrowed = take_idle_from_other_slots(
+                    *this, slot_index,
+                    &orm_slot::mysql_select_pool, &orm_slot::select_mutex);
+                if (borrowed)
+                {
+                    co_return borrowed;
+                }
+                continue;// 回本槽锁内重查，避免探测期间归还被漏掉
             }
 
             if (slot.total_count[LINK_SELECT]->load(std::memory_order_relaxed) +
@@ -1612,6 +1644,7 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_edit_
     const unsigned int maxn = slot_max_of(LINK_EDIT, slot_index);
     // 本槽该角色名额已满后的最长等待；到点抛异常退出，请求不会一直占着协程。
     const auto wait_deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(CONST_ORM_CONN_WAIT_MS);
+    bool probed              = false;// 每次调用最多跨槽探测一轮
 
     for (;;)
     {
@@ -1628,6 +1661,21 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_edit_
                     lock.unlock();
                     co_return temp;
                 }
+            }
+
+            // 本槽没空闲：先借其他槽；本槽有人排队时不借，保持 FIFO
+            if (!probed && slot.edit_waiters.empty())
+            {
+                probed = true;
+                lock.unlock();
+                auto borrowed = take_idle_from_other_slots(
+                    *this, slot_index,
+                    &orm_slot::pg_edit_pool, &orm_slot::edit_mutex);
+                if (borrowed)
+                {
+                    co_return borrowed;
+                }
+                continue;// 回本槽锁内重查，避免探测期间归还被漏掉
             }
 
             if (slot.total_count[LINK_EDIT]->load(std::memory_order_relaxed) +
@@ -1739,6 +1787,7 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_selec
     const unsigned int maxn = slot_max_of(LINK_SELECT, slot_index);
     // 本槽该角色名额已满后的最长等待；到点抛异常退出，请求不会一直占着协程。
     const auto wait_deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(CONST_ORM_CONN_WAIT_MS);
+    bool probed              = false;// 每次调用最多跨槽探测一轮
 
     for (;;)
     {
@@ -1755,6 +1804,21 @@ asio::awaitable<std::shared_ptr<pg_conn_base>> orm_conn_pool::async_get_pg_selec
                     lock.unlock();
                     co_return temp;
                 }
+            }
+
+            // 本槽没空闲：先借其他槽；本槽有人排队时不借，保持 FIFO
+            if (!probed && slot.select_waiters.empty())
+            {
+                probed = true;
+                lock.unlock();
+                auto borrowed = take_idle_from_other_slots(
+                    *this, slot_index,
+                    &orm_slot::pg_select_pool, &orm_slot::select_mutex);
+                if (borrowed)
+                {
+                    co_return borrowed;
+                }
+                continue;// 回本槽锁内重查，避免探测期间归还被漏掉
             }
 
             if (slot.total_count[LINK_SELECT]->load(std::memory_order_relaxed) +
