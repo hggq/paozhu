@@ -249,7 +249,10 @@ namespace orm
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 effect_num = querysql_len;
@@ -507,7 +510,10 @@ namespace orm
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 effect_num = querysql_len;
@@ -793,7 +799,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -978,7 +987,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return 0;
                 }
                 else
@@ -1160,7 +1172,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -1335,7 +1350,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return 0;
                 }
                 else
@@ -2751,7 +2769,10 @@ namespace orm
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     return temprecord;
                 }
                 if (select_conn->isdebug)
@@ -2916,7 +2937,10 @@ namespace orm
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
                 }
                 if (select_conn->isdebug)
@@ -3061,7 +3085,10 @@ namespace orm
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 if (select_conn->isdebug)
@@ -3182,7 +3209,10 @@ namespace orm
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 if (select_conn->isdebug)
@@ -3301,7 +3331,10 @@ namespace orm
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 if (select_conn->isdebug)
@@ -3422,7 +3455,10 @@ namespace orm
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 if (select_conn->isdebug)
@@ -3565,7 +3601,10 @@ namespace orm
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 if (select_conn->isdebug)
@@ -3718,7 +3757,10 @@ namespace orm
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 if (select_conn->isdebug)
@@ -3868,7 +3910,10 @@ namespace orm
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     return *mod;
                 }
                 if (select_conn->isdebug)
@@ -4022,7 +4067,10 @@ namespace orm
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 if (select_conn->isdebug)
@@ -4150,7 +4198,10 @@ namespace orm
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 if (select_conn->isdebug)
@@ -4270,7 +4321,10 @@ namespace orm
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 if (select_conn->isdebug)
@@ -4389,7 +4443,10 @@ namespace orm
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 if (select_conn->isdebug)
@@ -4509,7 +4566,10 @@ namespace orm
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 if (select_conn->isdebug)
@@ -4669,7 +4729,10 @@ namespace orm
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 if (select_conn->isdebug)
@@ -4836,7 +4899,10 @@ namespace orm
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 if (select_conn->isdebug)
@@ -5157,7 +5223,10 @@ namespace orm
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     return valuetemp;
                 }
                 if (select_conn->isdebug)
@@ -5279,7 +5348,10 @@ namespace orm
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     co_return valuetemp;
                 }
                 if (select_conn->isdebug)
@@ -5400,7 +5472,10 @@ namespace orm
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 if (select_conn->isdebug)
@@ -5528,7 +5603,10 @@ namespace orm
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 if (select_conn->isdebug)
@@ -5648,7 +5726,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     return 0;
                 }
                 else
@@ -5768,7 +5849,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -5880,7 +5964,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     return 0;
                 }
                 else
@@ -5992,7 +6079,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return 0;
                 }
                 else
@@ -6102,7 +6192,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return 0;
                 }
                 else
@@ -6220,7 +6313,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -6302,7 +6398,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     return 0;
                 }
                 else
@@ -6414,7 +6513,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     return 0;
                 }
                 else
@@ -6527,7 +6629,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return 0;
                 }
                 else
@@ -6602,7 +6707,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     return 0;
                 }
                 else
@@ -6678,7 +6786,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return 0;
                 }
                 else
@@ -6793,7 +6904,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     return 0;
                 }
                 else
@@ -6917,7 +7031,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     return 0;
                 }
                 else
@@ -6988,7 +7105,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     return std::make_tuple(0, 0);
                 }
                 else
@@ -7059,7 +7179,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return std::make_tuple(0, 0);
                 }
                 else
@@ -7130,7 +7253,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     return std::make_tuple(0, 0);
                 }
                 else
@@ -7201,7 +7327,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return std::make_tuple(0, 0);
                 }
                 else
@@ -7272,7 +7401,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     return std::make_tuple(0, 0);
                 }
                 else
@@ -7343,7 +7475,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return std::make_tuple(0, 0);
                 }
                 else
@@ -7445,7 +7580,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     return std::make_tuple(0, 0);
                 }
                 else
@@ -7496,7 +7634,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     return std::make_tuple(0, 0);
                 }
                 else
@@ -7595,7 +7736,10 @@ namespace orm
                     {
                         error_msg = edit_conn->error_msg;
                         iserror   = true;
-                        edit_conn.reset();
+                        if (!islock_conn)
+                        {
+                            conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                        }
                         co_return std::make_tuple(0, 0);
                     }
                     else
@@ -7656,7 +7800,10 @@ namespace orm
                     {
                         error_msg = edit_conn->error_msg;
                         iserror   = true;
-                        edit_conn.reset();
+                        if (!islock_conn)
+                        {
+                            conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                        }
                         co_return std::make_tuple(0, 0);
                     }
                     else
@@ -7766,7 +7913,10 @@ namespace orm
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 if (select_conn->isdebug)
@@ -7874,7 +8024,10 @@ namespace orm
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 if (select_conn->isdebug)
@@ -7945,7 +8098,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     return 0;
                 }
                 else
@@ -8014,7 +8170,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return 0;
                 }
                 else
@@ -11033,7 +11192,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return (unsigned int) - 1;
                 }
 
@@ -11380,7 +11542,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return (unsigned int) - 1;
                 }
 
@@ -11579,7 +11744,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return (unsigned int) - 1;
                 }
 
@@ -11732,7 +11900,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return std::make_tuple(0, 0ULL);
                 }
 
@@ -11930,7 +12101,10 @@ namespace orm
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return std::make_tuple(0, 0ULL);
                 }
 

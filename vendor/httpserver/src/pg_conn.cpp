@@ -331,6 +331,7 @@ bool pg_conn_base::send_message_sync(unsigned char type, const std::string &payl
     {
         error_msg  = "message too large to send";
         error_code = 9;
+        isclose    = true;// 协议层溢出，与 write_sql 护栏同口径
         return false;
     }
     int32_t len = static_cast<int32_t>(4 + payload.size());
@@ -1790,6 +1791,7 @@ unsigned int pg_conn_base::read_loop()
         {
             error_code = 1;
             error_msg  = conn_link->ec.message();
+            isclose    = true;// Socket 错误，TCP 流已断
             return 0;
         }
         return n;
@@ -1798,6 +1800,7 @@ unsigned int pg_conn_base::read_loop()
     {
         error_code = 1;
         error_msg.append(e.what());
+        isclose    = true;// 异常保护
     }
     return 0;
 }
@@ -1830,12 +1833,14 @@ asio::awaitable<unsigned int> pg_conn_base::async_read_loop()
     {
         error_code = 1;
         error_msg  = conn_link->ec.message();
+        isclose    = true;// Socket 错误，TCP 流已断
         co_return 0;
     }
     if (n == 0)
     {
         error_code = 1;
         error_msg  = "connection closed by peer";
+        isclose    = true;// 对端关闭
         co_return 0;
     }
     co_return n;
@@ -1847,6 +1852,7 @@ unsigned int pg_conn_base::write_sql(const std::string &sql)
     {
         error_msg  = "SQL statement too large to send";
         error_code = 20;
+        isclose    = true;// 协议层溢出，无法保证后续帧对齐
         return 0;
     }
     unsigned int n = 0;
@@ -1881,6 +1887,7 @@ unsigned int pg_conn_base::write_sql(const std::string &sql)
         {
             error_code = 20;
             error_msg  = conn_link->ec.message();
+            isclose    = true;// socket 写失败
             return 0;
         }
     }
@@ -1888,6 +1895,7 @@ unsigned int pg_conn_base::write_sql(const std::string &sql)
     {
         error_code = 20;
         error_msg  = e.what();
+        isclose    = true;// 异常保护
         return 0;
     }
     query_num++;
@@ -1919,6 +1927,7 @@ unsigned int pg_conn_base::write()
         {
             error_code = 20;
             error_msg  = conn_link->ec.message();
+            isclose    = true;// socket 写失败
             return 0;
         }
     }
@@ -1926,6 +1935,7 @@ unsigned int pg_conn_base::write()
     {
         error_code = 20;
         error_msg  = e.what();
+        isclose    = true;// 异常保护
         return 0;
     }
     query_num++;
@@ -1938,6 +1948,7 @@ asio::awaitable<unsigned int> pg_conn_base::async_write_sql(const std::string &s
     {
         error_msg  = "SQL statement too large to send";
         error_code = 20;
+        isclose    = true;// 协议层溢出
         co_return 0;
     }
     send_data.clear();
@@ -1975,6 +1986,7 @@ asio::awaitable<unsigned int> pg_conn_base::async_write_sql(const std::string &s
     {
         error_code = 20;
         error_msg  = conn_link->ec.message();
+        isclose    = true;// socket 写失败
         co_return 0;
     }
     query_num++;
@@ -2009,6 +2021,7 @@ asio::awaitable<unsigned int> pg_conn_base::async_write()
     {
         error_code = 20;
         error_msg  = conn_link->ec.message();
+        isclose    = true;// socket 写失败
         co_return 0;
     }
     query_num++;

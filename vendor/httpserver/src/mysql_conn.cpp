@@ -2472,12 +2472,14 @@ asio::awaitable<unsigned int> mysql_conn_base::async_read_loop()
     {
         error_code = 1;
         error_msg  = conn_link->ec.message();
+        isclose    = true;// Socket 错误，TCP 流已断
         co_return 0;
     }
     if (n == 0)
     {
         error_code = 1;
         error_msg  = "connection closed by peer";
+        isclose    = true;// 对端关闭
         co_return 0;
     }
     // n >= 1 都是有效数据（允许半包），累积式调用方会循环补足
@@ -2509,12 +2511,14 @@ unsigned int mysql_conn_base::read_loop()
         {
             error_code = 1;
             error_msg  = conn_link->ec.message();
+            isclose    = true;// Socket 错误，TCP 流已断
             return 0;
         }
         if (n == 0)
         {
             error_code = 1;
             error_msg  = "connection closed by peer";
+            isclose    = true;// 对端关闭
             return 0;
         }
         // n >= 1 都是有效数据（允许半包）：
@@ -2527,6 +2531,7 @@ unsigned int mysql_conn_base::read_loop()
     {
         error_code = 1;
         error_msg.append(e.what());
+        isclose    = true;// 异常保护，socket 状态不确定
     }
     return 0;
 }
@@ -2594,6 +2599,7 @@ unsigned int mysql_conn_base::write_sql(const std::string &sql)
         {
             error_code = 20;
             error_msg  = conn_link->ec.message();
+            isclose    = true;// socket 错误
             return 0;
         }
     }
@@ -2601,6 +2607,7 @@ unsigned int mysql_conn_base::write_sql(const std::string &sql)
     {
         error_code = 20;
         error_msg  = conn_link->ec.message();
+        isclose    = true;// 异常保护
         return 0;
     }
     query_num++;
@@ -2632,6 +2639,7 @@ unsigned int mysql_conn_base::write()
         {
             error_code = 20;
             error_msg  = conn_link->ec.message();
+            isclose    = true;// 写失败，socket 状态不确定
             return 0;
         }
     }
@@ -2639,6 +2647,7 @@ unsigned int mysql_conn_base::write()
     {
         error_code = 20;
         error_msg  = conn_link->ec.message();
+        isclose    = true;// 异常保护
         return 0;
     }
     query_num++;
@@ -2694,6 +2703,7 @@ asio::awaitable<unsigned int> mysql_conn_base::async_write_sql(const std::string
     {
         error_code = 20;
         error_msg  = conn_link->ec.message();
+        isclose    = true;// socket 错误
         co_return 0;
     }
     query_num++;
@@ -2728,6 +2738,7 @@ asio::awaitable<unsigned int> mysql_conn_base::async_write()
     {
         error_code = 20;
         error_msg  = conn_link->ec.message();
+        isclose    = true;// socket 错误
         co_return 0;
     }
     query_num++;
@@ -2787,8 +2798,8 @@ bool mysql_conn_base::ping()
             unsigned char status = static_cast<unsigned char>(recv_buf[0]);
             if (status == 0xFF && payload_len >= 2)
             {
+                // SQL 错误 (ERR packet): 协议流完整干净, 只填 error_code, 不丢弃连接
                 error_code = static_cast<unsigned char>(recv_buf[1]) | (static_cast<unsigned char>(recv_buf[2]) << 8);
-                isclose    = true;
                 return false;
             }
             return true;
@@ -5010,6 +5021,7 @@ unsigned int mysql_conn_base::stmt_prepare_impl(const std::string &sql)
     {
         error_msg  = "COM_STMT_PREPARE: SQL too large";
         error_code = 20;
+        isclose    = true;// 协议层溢出，与 write_sql 护栏同口径
         return 0;
     }
 
@@ -5801,7 +5813,7 @@ RETRY_EXEC_DML:
         {
             error_msg  = "COM_STMT_EXECUTE: payload too large";
             error_code = 20;
-            // 不 close：stmt_id 仍然有效
+            isclose    = true;// 协议层溢出，与 write_sql 护栏同口径
             return (unsigned int)-1;
         }
 
@@ -7331,6 +7343,7 @@ asio::awaitable<unsigned int> mysql_conn_base::async_stmt_prepare(const std::str
     {
         error_msg  = "COM_STMT_PREPARE: SQL too large";
         error_code = 20;
+        isclose    = true;// 协议层溢出，与 write_sql 护栏同口径
         co_return 0;
     }
 
@@ -7620,7 +7633,7 @@ RETRY_ASYNC_DML:
         {
             error_msg  = "COM_STMT_EXECUTE: payload too large";
             error_code = 20;
-            // 不 close：缓存 stmt_id 留着下次用
+            isclose    = true;// 协议层溢出，与 write_sql 护栏同口径
             co_return (unsigned int) - 1;
         }
 

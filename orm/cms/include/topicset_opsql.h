@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM MySQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sat, 07 Nov 2026 09:30:37 GMT
+ *  Creation time Mon, 16 Nov 2026 11:01:39 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -250,7 +250,10 @@ namespace cms
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 effect_num = querysql_len;
@@ -508,7 +511,10 @@ namespace cms
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 effect_num = querysql_len;
@@ -794,7 +800,10 @@ namespace cms
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -979,7 +988,10 @@ namespace cms
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return 0;
                 }
                 else
@@ -1161,7 +1173,10 @@ namespace cms
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -1336,7 +1351,10 @@ namespace cms
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return 0;
                 }
                 else
@@ -4414,7 +4432,10 @@ M_MODEL& ornotnullSort()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     return temprecord;
                 }
                 if (select_conn->isdebug)
@@ -4579,7 +4600,10 @@ M_MODEL& ornotnullSort()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
                 }
                 if (select_conn->isdebug)
@@ -4724,7 +4748,10 @@ M_MODEL& ornotnullSort()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 if (select_conn->isdebug)
@@ -4845,7 +4872,10 @@ M_MODEL& ornotnullSort()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 if (select_conn->isdebug)
@@ -4964,7 +4994,10 @@ M_MODEL& ornotnullSort()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 if (select_conn->isdebug)
@@ -5085,7 +5118,10 @@ M_MODEL& ornotnullSort()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 if (select_conn->isdebug)
@@ -5228,7 +5264,10 @@ M_MODEL& ornotnullSort()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 if (select_conn->isdebug)
@@ -5381,7 +5420,10 @@ M_MODEL& ornotnullSort()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 if (select_conn->isdebug)
@@ -5531,7 +5573,10 @@ M_MODEL& ornotnullSort()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     return *mod;
                 }
                 if (select_conn->isdebug)
@@ -5685,7 +5730,10 @@ M_MODEL& ornotnullSort()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 if (select_conn->isdebug)
@@ -5813,7 +5861,10 @@ M_MODEL& ornotnullSort()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 if (select_conn->isdebug)
@@ -5933,7 +5984,10 @@ M_MODEL& ornotnullSort()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 if (select_conn->isdebug)
@@ -6052,7 +6106,10 @@ M_MODEL& ornotnullSort()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 if (select_conn->isdebug)
@@ -6172,7 +6229,10 @@ M_MODEL& ornotnullSort()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 if (select_conn->isdebug)
@@ -6332,7 +6392,10 @@ M_MODEL& ornotnullSort()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 if (select_conn->isdebug)
@@ -6499,7 +6562,10 @@ M_MODEL& ornotnullSort()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 if (select_conn->isdebug)
@@ -6820,7 +6886,10 @@ M_MODEL& ornotnullSort()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     return valuetemp;
                 }
                 if (select_conn->isdebug)
@@ -6942,7 +7011,10 @@ M_MODEL& ornotnullSort()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     co_return valuetemp;
                 }
                 if (select_conn->isdebug)
@@ -7063,7 +7135,10 @@ M_MODEL& ornotnullSort()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 if (select_conn->isdebug)
@@ -7191,7 +7266,10 @@ M_MODEL& ornotnullSort()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 if (select_conn->isdebug)
@@ -7311,7 +7389,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     return 0;
                 }
                 else
@@ -7431,7 +7512,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -7543,7 +7627,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     return 0;
                 }
                 else
@@ -7655,7 +7742,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return 0;
                 }
                 else
@@ -7765,7 +7855,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return 0;
                 }
                 else
@@ -7883,7 +7976,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -7965,7 +8061,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     return 0;
                 }
                 else
@@ -8077,7 +8176,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     return 0;
                 }
                 else
@@ -8190,7 +8292,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return 0;
                 }
                 else
@@ -8265,7 +8370,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     return 0;
                 }
                 else
@@ -8341,7 +8449,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return 0;
                 }
                 else
@@ -8456,7 +8567,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     return 0;
                 }
                 else
@@ -8580,7 +8694,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     return 0;
                 }
                 else
@@ -8651,7 +8768,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     return std::make_tuple(0, 0);
                 }
                 else
@@ -8722,7 +8842,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return std::make_tuple(0, 0);
                 }
                 else
@@ -8793,7 +8916,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     return std::make_tuple(0, 0);
                 }
                 else
@@ -8864,7 +8990,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return std::make_tuple(0, 0);
                 }
                 else
@@ -8935,7 +9064,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     return std::make_tuple(0, 0);
                 }
                 else
@@ -9006,7 +9138,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return std::make_tuple(0, 0);
                 }
                 else
@@ -9108,7 +9243,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     return std::make_tuple(0, 0);
                 }
                 else
@@ -9159,7 +9297,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     return std::make_tuple(0, 0);
                 }
                 else
@@ -9258,7 +9399,10 @@ M_MODEL& ornotnullSort()
                     {
                         error_msg = edit_conn->error_msg;
                         iserror   = true;
-                        edit_conn.reset();
+                        if (!islock_conn)
+                        {
+                            conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                        }
                         co_return std::make_tuple(0, 0);
                     }
                     else
@@ -9319,7 +9463,10 @@ M_MODEL& ornotnullSort()
                     {
                         error_msg = edit_conn->error_msg;
                         iserror   = true;
-                        edit_conn.reset();
+                        if (!islock_conn)
+                        {
+                            conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                        }
                         co_return std::make_tuple(0, 0);
                     }
                     else
@@ -9429,7 +9576,10 @@ M_MODEL& ornotnullSort()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 if (select_conn->isdebug)
@@ -9537,7 +9687,10 @@ M_MODEL& ornotnullSort()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 if (select_conn->isdebug)
@@ -9608,7 +9761,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     return 0;
                 }
                 else
@@ -9677,7 +9833,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return 0;
                 }
                 else
@@ -12696,7 +12855,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return (unsigned int) - 1;
                 }
 
@@ -13043,7 +13205,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return (unsigned int) - 1;
                 }
 
@@ -13242,7 +13407,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return (unsigned int) - 1;
                 }
 
@@ -13395,7 +13563,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return std::make_tuple(0, 0ULL);
                 }
 
@@ -13593,7 +13764,10 @@ M_MODEL& ornotnullSort()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_mysql_edit_conn(std::move(edit_conn));
+                    }
                     co_return std::make_tuple(0, 0ULL);
                 }
 

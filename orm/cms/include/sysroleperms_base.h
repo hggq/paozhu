@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSROLEPERMSBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Sat, 07 Nov 2026 09:30:37 GMT
+*本文件为自动生成 Mon, 16 Nov 2026 11:01:39 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -616,7 +616,7 @@ namespace sysroleperms_info
 	static constexpr std::array<unsigned int,5> col_length={0,0,0,0,0};
 	static constexpr std::array<unsigned char,5> col_decimals={0,0,0,0,0};
 	static constexpr std::array<bool,5> col_null={false,false,false,false,false};
-	static constexpr std::array<bool,5> col_indexed={true,true,false,false,false};
+	static constexpr std::array<bool,5> col_indexed={true,true,true,true,false};
 	static constexpr std::string_view auto_pk_name ="rolepermsid";
 	static constexpr int auto_pk_index = 0;
 

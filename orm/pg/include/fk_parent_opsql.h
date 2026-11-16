@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM PostgreSQL intermediate connection layer, sourced from MySQL, PostgreSQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Sun, 01 Nov 2026 02:10:35 GMT
+ *  Creation time Mon, 16 Nov 2026 11:01:45 GMT
  */
 #include <iostream>
 #include <mutex>
@@ -252,7 +252,10 @@ namespace pg
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 effect_num = 1;
@@ -508,7 +511,10 @@ namespace pg
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 effect_num = 1;
@@ -795,7 +801,10 @@ namespace pg
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -980,7 +989,10 @@ namespace pg
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -1161,7 +1173,10 @@ namespace pg
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -1336,7 +1351,10 @@ namespace pg
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -3058,7 +3076,10 @@ M_MODEL& ornotnullName()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_select_conn(std::move(select_conn));
+                    }
                     return temprecord;
                 }
                 if (select_conn->isdebug)
@@ -3217,7 +3238,10 @@ M_MODEL& ornotnullName()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_select_conn(std::move(select_conn));
+                    }
                     return std::make_tuple(table_fieldname, table_fieldmap, temprecord);
                 }
                 if (select_conn->isdebug)
@@ -3362,7 +3386,10 @@ M_MODEL& ornotnullName()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 if (select_conn->isdebug)
@@ -3483,7 +3510,10 @@ M_MODEL& ornotnullName()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 if (select_conn->isdebug)
@@ -3602,7 +3632,10 @@ M_MODEL& ornotnullName()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 if (select_conn->isdebug)
@@ -3723,7 +3756,10 @@ M_MODEL& ornotnullName()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 if (select_conn->isdebug)
@@ -3867,7 +3903,10 @@ M_MODEL& ornotnullName()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 if (select_conn->isdebug)
@@ -4021,7 +4060,10 @@ M_MODEL& ornotnullName()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 if (select_conn->isdebug)
@@ -4172,7 +4214,10 @@ M_MODEL& ornotnullName()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_select_conn(std::move(select_conn));
+                    }
                     return *mod;
                 }
                 if (select_conn->isdebug)
@@ -4327,7 +4372,10 @@ M_MODEL& ornotnullName()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 if (select_conn->isdebug)
@@ -4457,7 +4505,10 @@ M_MODEL& ornotnullName()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 if (select_conn->isdebug)
@@ -4579,7 +4630,10 @@ M_MODEL& ornotnullName()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 if (select_conn->isdebug)
@@ -4698,7 +4752,10 @@ M_MODEL& ornotnullName()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 if (select_conn->isdebug)
@@ -4818,7 +4875,10 @@ M_MODEL& ornotnullName()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 if (select_conn->isdebug)
@@ -4971,7 +5031,10 @@ M_MODEL& ornotnullName()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 if (select_conn->isdebug)
@@ -5131,7 +5194,10 @@ M_MODEL& ornotnullName()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 if (select_conn->isdebug)
@@ -5451,7 +5517,10 @@ M_MODEL& ornotnullName()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 if (select_conn->isdebug)
@@ -5572,7 +5641,10 @@ M_MODEL& ornotnullName()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_select_conn(std::move(select_conn));
+                    }
                     co_return valuetemp;
                 }
                 if (select_conn->isdebug)
@@ -5693,7 +5765,10 @@ M_MODEL& ornotnullName()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 if (select_conn->isdebug)
@@ -5821,7 +5896,10 @@ M_MODEL& ornotnullName()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 if (select_conn->isdebug)
@@ -5940,7 +6018,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -6058,7 +6139,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -6169,7 +6253,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -6278,7 +6365,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -6386,7 +6476,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -6503,7 +6596,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -6584,7 +6680,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -6693,7 +6792,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -6803,7 +6905,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -6876,7 +6981,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -6949,7 +7057,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -7062,7 +7173,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -7183,7 +7297,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -7273,7 +7390,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -7364,7 +7484,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -7455,7 +7578,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -7546,7 +7672,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -7637,7 +7766,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -7728,7 +7860,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -7828,7 +7963,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -7900,7 +8038,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -7997,7 +8138,10 @@ M_MODEL& ornotnullName()
                     {
                         error_msg = edit_conn->error_msg;
                         iserror   = true;
-                        edit_conn.reset();
+                        if (!islock_conn)
+                        {
+                            conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                        }
                     }
                     else
                     {
@@ -8079,7 +8223,10 @@ M_MODEL& ornotnullName()
                     {
                         error_msg = edit_conn->error_msg;
                         iserror   = true;
-                        edit_conn.reset();
+                        if (!islock_conn)
+                        {
+                            conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                        }
                     }
                     else
                     {
@@ -8188,7 +8335,10 @@ M_MODEL& ornotnullName()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_select_conn(std::move(select_conn));
+                    }
                     return 0;
                 }
                 if (select_conn->isdebug)
@@ -8296,7 +8446,10 @@ M_MODEL& ornotnullName()
                 {
                     iserror   = true;
                     error_msg = select_conn->error_msg;
-                    select_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_select_conn(std::move(select_conn));
+                    }
                     co_return 0;
                 }
                 if (select_conn->isdebug)
@@ -8366,7 +8519,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -8432,7 +8588,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                 }
                 else
                 {
@@ -11570,7 +11729,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                     co_return (unsigned int) - 1;
                 }
 
@@ -11925,7 +12087,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                     co_return (unsigned int) - 1;
                 }
 
@@ -12126,7 +12291,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                     co_return (unsigned int) - 1;
                 }
 
@@ -12314,7 +12482,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                     co_return std::make_tuple(0, 0ULL);
                 }
 
@@ -12549,7 +12720,10 @@ M_MODEL& ornotnullName()
                 {
                     error_msg = edit_conn->error_msg;
                     iserror   = true;
-                    edit_conn.reset();
+                    if (!islock_conn)
+                    {
+                        conn_obj->back_pg_edit_conn(std::move(edit_conn));
+                    }
                     co_return std::make_tuple(0, 0ULL);
                 }
 
