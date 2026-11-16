@@ -1106,7 +1106,6 @@ asio::awaitable<void> httpserver::send_cors_domain(std::shared_ptr<httppeer> pee
 }
 void httpserver::http2_compress_output(std::shared_ptr<httppeer> &peer, std::shared_ptr<http2_send_data_t> &send_file_obj)
 {
-    peer->compress = 0;
     if (peer->state.gzip || peer->state.br)
     {
         if (str_casecmp(peer->content_type, "text/html; charset=utf-8") ||
@@ -1248,6 +1247,7 @@ asio::awaitable<bool> httpserver::http2_static_file_authority(std::shared_ptr<ht
                 // HEAD：不压缩、不出正文；Content-Length 仍是 GET 会发的长度
                 if (peer->method != static_cast<unsigned char>(HEAD_METHOD::HEAD))
                 {
+                    peer->compress                = 0;
                     http2_compress_output(peer, send_file_obj);
                 }
                 else
@@ -1344,6 +1344,7 @@ asio::awaitable<bool> httpserver::http2_static_file_authority(std::shared_ptr<ht
                         // HEAD：不压缩、不出正文；Content-Length 仍是 GET 会发的长度
                         if (peer->method != static_cast<unsigned char>(HEAD_METHOD::HEAD))
                         {
+                            peer->compress                = 0;
                             http2_compress_output(peer, send_file_obj);
                         }
                         else
@@ -1533,6 +1534,7 @@ asio::awaitable<void> httpserver::http2_fastcgi(std::shared_ptr<httppeer> peer)
         // HEAD：不压缩、不出正文；Content-Length 仍是 GET 会发的长度
         if (peer->method != static_cast<unsigned char>(HEAD_METHOD::HEAD))
         {
+            peer->compress = 0;
             http2_compress_output(peer, send_file_obj);
         }
         else
@@ -1694,6 +1696,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             // HEAD：不做压缩（没有 body），否则 content_length 与正文对不上
             if (peer->method != static_cast<unsigned char>(HEAD_METHOD::HEAD))
             {
+                peer->compress                = 0;
                 http2_compress_output(peer, send_file_obj);
             }
             else
@@ -1751,6 +1754,7 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             peer->content_type.clear();
             peer->type("text/html; charset=utf-8");
             peer->linktype = 0;
+            peer->compress = 0;
             peer->etag.clear();
 
             http2_send_queue &send_queue_obj = get_http2_send_queue();
@@ -1774,13 +1778,22 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
             send_file_obj->header.clear();
 
             // HEAD：不做压缩、不出 body（RFC 9110 §9.3.2）
-            if (peer->method != static_cast<unsigned char>(HEAD_METHOD::HEAD))
+            if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
+            {
+                peer->compress                = 0;
+                send_file_obj->content_length = peer->output.size();
+                peer->length(peer->output.size());
+            }
+            else if (peer->compress == 0)
             {
                 http2_compress_output(peer, send_file_obj);
             }
             else
             {
-                peer->compress                = 0;
+                // 控制器已预压缩（compress=1 gzip / 2 br），正文就在 peer->output，
+                // 不再自动压缩，只把 Content-Length 同源到 output。
+                // Controller pre-compressed (1=gzip / 2=br); body is peer->output. Skip
+                // auto compression and derive Content-Length from output.
                 send_file_obj->content_length = peer->output.size();
                 peer->length(peer->output.size());
             }
@@ -1800,18 +1813,20 @@ asio::awaitable<void> httpserver::http2loop(std::shared_ptr<httppeer> peer)
                 http2_head_end_stream(send_file_obj);
             }
             DEBUG_LOG("http2_send_content");
-            if (peer->compress == 0)
+            if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
             {
                 // HEAD：body 留空，响应由 HEADERS 上的 END_STREAM 收尾
                 // HEAD: body stays empty; the response is terminated by END_STREAM on HEADERS.
-                if (peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
-                {
-                    send_file_obj->content.clear();
-                }
-                else
-                {
-                    send_file_obj->content = std::move(peer->output);
-                }
+                send_file_obj->content.clear();
+            }
+            else if (peer->compress == 0 || send_file_obj->content.empty())
+            {
+                // identity，或控制器预压缩（正文在 output、content 还空）；自动压缩
+                // 成功时 content 已填好，不能拿原始 output 覆盖。
+                // Identity, or controller pre-compressed (body in output, content still
+                // empty). A successful auto compression already filled content — do not
+                // overwrite it with the raw output.
+                send_file_obj->content = std::move(peer->output);
             }
             send_file_obj->peer          = peer;
             send_file_obj->is_sendheader = false;
@@ -2681,7 +2696,7 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
             DEBUG_LOG("---  http1 dynamic --------");
             peer->linktype = 0;
             peer->parse_session();
-
+            peer->compress = 0;
             peer->status(200);
             peer->content_type.clear();
             peer->etag.clear();
@@ -2708,9 +2723,9 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
             {
                 peer->type("text/html; charset=utf-8");
             }
-            peer->compress = 0;
+
             // HEAD 不做压缩：没有 body 可压；压了 content_length 与正文对不上（RFC 9110 §9.3.2）
-            if (peer->method != static_cast<unsigned char>(HEAD_METHOD::HEAD) && (peer->state.gzip || peer->state.br))
+            if (peer->compress == 0 && peer->method != static_cast<unsigned char>(HEAD_METHOD::HEAD) && (peer->state.gzip || peer->state.br))
             {
                 if (str_casecmp(peer->content_type, "text/html; charset=utf-8") ||
                     str_casecmp(peer->content_type, "application/json") ||
