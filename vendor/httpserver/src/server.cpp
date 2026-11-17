@@ -1949,7 +1949,7 @@ asio::awaitable<void> httpserver::http1_send_file_header(std::shared_ptr<httppee
 
     sq_obj->header = peer->make_http1_header();
     sq_obj->header.append("\r\n");
-    co_await peer_session->async_send_writer(sq_obj->header);
+    // 只建不发：调用方决定头单独出（HEAD/零长度）还是与首块正文 gather 一次出。
     co_return;
 }
 asio::awaitable<void> httpserver::http1_co_send_304(std::shared_ptr<httppeer> peer, std::shared_ptr<client_session> peer_session, std::shared_ptr<http2_send_data_t> send_file_obj)
@@ -2052,6 +2052,7 @@ asio::awaitable<void> httpserver::http1_send_file(std::shared_ptr<httppeer> peer
             // HEAD：头已带正确 Content-Length，不写 body 直接归还槽位
             if (send_file_obj->content_length == 0 || peer->method == static_cast<unsigned char>(HEAD_METHOD::HEAD))
             {
+                co_await peer_session->async_send_writer(send_file_obj->header);
                 send_queue_obj.back_cache_ptr(std::move(send_file_obj));
                 co_return;
             }
@@ -2061,7 +2062,6 @@ asio::awaitable<void> httpserver::http1_send_file(std::shared_ptr<httppeer> peer
                 try
                 {
                     unsigned long long readnum = 0;
-                    unsigned int f_inc         = 1;
                     // content_length is the absolute value "range end + 1"; readnum is bytes already
                     // read this call (starts from 0). Must subtract current_num (always 0 for
                     // non-range requests). Do not use the raw absolute value as the upper bound:
@@ -2071,8 +2071,8 @@ asio::awaitable<void> httpserver::http1_send_file(std::shared_ptr<httppeer> peer
                     while (readnum < need_send_num)
                     {
                         // Per-read size must also cap at the remaining bytes — otherwise the
-                        // final fread reads a full 4096 and overshoots.
-                        unsigned int want_num = 4096;
+                        // final fread reads a full chunk and overshoots.
+                        unsigned int want_num = CONST_HTTP1_FILE_CHUNK_BYTES;
                         if ((need_send_num - readnum) < (unsigned long long)want_num)
                         {
                             want_num = (unsigned int)(need_send_num - readnum);
@@ -2095,24 +2095,23 @@ asio::awaitable<void> httpserver::http1_send_file(std::shared_ptr<httppeer> peer
                             break;
                         }
                         send_file_obj->content.resize(nread);
-                        // peer_session->send_data(htmlcontent);
-                        co_await peer_session->async_send_writer(send_file_obj->content);
+                        // 首块与头 gather 一次写出；读失败时头还没承诺长度，直接断连即可。
+                        if (readnum == 0)
+                        {
+                            co_await peer_session->async_send_writer(send_file_obj->header, send_file_obj->content);
+                        }
+                        else
+                        {
+                            co_await peer_session->async_send_writer(send_file_obj->content);
+                        }
                         readnum += nread;
                         if (peer_session->isclose)
                         {
                             break;
                         }
-                        // 每 16 块（64 KB）刷新一次。原来是每 1024 块（4 MiB）才刷一次，
-                        // 平均速度低于 4 MiB / (clean_cron_time_ago + 60) ≈ 6.2 KB/s 的下载
-                        // 会被 httpwatch 当成 idle 清掉。
-                        // Refresh every 16 blocks (64 KB). It used to be every 1024 blocks (4 MiB),
-                        // so downloads slower than 4 MiB / (clean_cron_time_ago + 60) ≈ 6.2 KB/s
-                        // were killed by httpwatch as idle mid-transfer.
-                        if (f_inc % 16 == 0)
-                        {
-                            peer_session->time_limit.store(timeid());
-                        }
-                        f_inc++;
+                        // 每块（64 KB）刷新一次：6.2 KB/s 的慢下载约 10s 一块，
+                        // 对 httpwatch 的 now-60s idle 阈值留足余量。
+                        peer_session->time_limit.store(timeid());
                     }
                     send_queue_obj.back_cache_ptr(std::move(send_file_obj));
                     co_return;
@@ -2128,7 +2127,8 @@ asio::awaitable<void> httpserver::http1_send_file(std::shared_ptr<httppeer> peer
             }
             else
             {
-                co_await peer_session->async_send_writer(send_file_obj->content);
+                // 内存压缩体（type 16/17）：头与正文一次 gather 写出
+                co_await peer_session->async_send_writer(send_file_obj->header, send_file_obj->content);
             }
         }
         else
@@ -2271,11 +2271,10 @@ asio::awaitable<void> httpserver::http1_send_file_range(std::shared_ptr<httppeer
             send_file_obj->header = peer->make_http1_header();
             send_file_obj->header.append("\r\n");
 
-            co_await peer_session->async_send_writer(send_file_obj->header);
-
             // 防御：零长度区间不写正文（分派处的 416 门禁已排除该情况，保留为不变量检查）
             if (send_file_obj->content_length == send_file_obj->current_num)
             {
+                co_await peer_session->async_send_writer(send_file_obj->header);
                 send_queue_obj.back_cache_ptr(std::move(send_file_obj));
                 co_return;
             }
@@ -2285,7 +2284,6 @@ asio::awaitable<void> httpserver::http1_send_file_range(std::shared_ptr<httppeer
                 try
                 {
                     unsigned long long readnum = 0;
-                    unsigned int f_inc         = 1;
                     // content_length is the absolute value "range end + 1"; readnum is bytes already
                     // read this call (starts from 0). Must subtract current_num (always 0 for
                     // non-range requests). Do not use the raw absolute value as the upper bound:
@@ -2295,8 +2293,8 @@ asio::awaitable<void> httpserver::http1_send_file_range(std::shared_ptr<httppeer
                     while (readnum < need_send_num)
                     {
                         // Per-read size must also cap at the remaining bytes — otherwise the
-                        // final fread reads a full 4096 and overshoots.
-                        unsigned int want_num = 4096;
+                        // final fread reads a full chunk and overshoots.
+                        unsigned int want_num = CONST_HTTP1_FILE_CHUNK_BYTES;
                         if ((need_send_num - readnum) < (unsigned long long)want_num)
                         {
                             want_num = (unsigned int)(need_send_num - readnum);
@@ -2319,24 +2317,23 @@ asio::awaitable<void> httpserver::http1_send_file_range(std::shared_ptr<httppeer
                             break;
                         }
                         send_file_obj->content.resize(nread);
-
-                        co_await peer_session->async_send_writer(send_file_obj->content);
+                        // 首块与头 gather 一次写出；读失败时头还没承诺长度，直接断连即可。
+                        if (readnum == 0)
+                        {
+                            co_await peer_session->async_send_writer(send_file_obj->header, send_file_obj->content);
+                        }
+                        else
+                        {
+                            co_await peer_session->async_send_writer(send_file_obj->content);
+                        }
                         readnum += nread;
                         if (peer_session->isclose)
                         {
                             break;
                         }
-                        // 每 16 块（64 KB）刷新一次。原来是每 1024 块（4 MiB）才刷一次，
-                        // 平均速度低于 4 MiB / (clean_cron_time_ago + 60) ≈ 6.2 KB/s 的下载
-                        // 会被 httpwatch 当成 idle 清掉。
-                        // Refresh every 16 blocks (64 KB). It used to be every 1024 blocks (4 MiB),
-                        // so downloads slower than 4 MiB / (clean_cron_time_ago + 60) ≈ 6.2 KB/s
-                        // were killed by httpwatch as idle mid-transfer.
-                        if (f_inc % 16 == 0)
-                        {
-                            peer_session->time_limit.store(timeid());
-                        }
-                        f_inc++;
+                        // 每块（64 KB）刷新一次：6.2 KB/s 的慢下载约 10s 一块，
+                        // 对 httpwatch 的 now-60s idle 阈值留足余量。
+                        peer_session->time_limit.store(timeid());
                     }
                     send_queue_obj.back_cache_ptr(std::move(send_file_obj));
                     co_return;

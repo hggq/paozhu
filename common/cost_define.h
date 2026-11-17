@@ -271,6 +271,12 @@ constexpr bool http2_wu_stream_id_ok(unsigned long long sid, unsigned long long 
 // 9 块 buffer（含首批 HEADERS），发送侧 fhs/bufs 的栈上界依此成立。
 #define CONST_HTTP2_FILE_BATCH_BYTES 32768
 
+// h1 文件直发单块尺寸（fread + 一次写）。原 4096 让 100KB 文件付 26 次写 syscall；
+// 64KB 块降到 2~3 次。心跳必须每块刷：64KB 在 6.2KB/s 慢客户端下约 10s 一块，
+// 对 httpwatch 的 now-60s idle 阈值留足余量（旧 %16 拍在 64KB 块下会变成 1MB 一刷）。
+// 池化 content 缓冲常驻容量随之涨到 64KB/对象，回池 clear() 不释放，属有意保留的热容量。
+#define CONST_HTTP1_FILE_CHUNK_BYTES 65536
+
 // 每连接 HTTP/2 发送环的槽数。三条硬约束：
 //   1. 必须是 2 的幂 —— 下标推进用 & (capacity_ - 1)，非 2 的幂会算出错误的下一格；
 //   2. 不能超过 255 —— head_/tail_ 是 unsigned char；
