@@ -34,6 +34,10 @@ std::string get_filename(const std::string &filename);
 std::string get_fileext(const std::string &filename);
 std::vector<std::string> mb_split(std::string_view, std::string_view);
 std::string html_escape(std::string_view);
+// 两参数重载 = 追加式：转义结果直接写进调用方缓冲，普通字符成段拷贝，
+// 五个特殊字节逐个处理；单引号输出 &#39;（HTML 4.01/5 都合法）。
+// 单参数版在它之上实现。Append-into-buffer overload for hot paths.
+void html_escape(std::string &out, std::string_view value);
 // html_encode 是 html_escape 的旧名字，输出逐字节相同，保留给既有调用点。
 std::string html_encode(std::string_view);
 std::string strip_html(std::string_view);

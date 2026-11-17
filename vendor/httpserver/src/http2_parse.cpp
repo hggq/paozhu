@@ -3229,6 +3229,10 @@ void http2parse::readping(const HTTP2_PACK_DATA_T &temp_pack_data)
     {
         peer_session->http2_ring_queue_drop_count++;
     }
+    else if (peer_session->http2_need_wakeup)
+    {
+        peer_session->wake_ring_consumer();
+    }
     DEBUG_LOG("need ack ping");
 }
 void http2parse::readrst_stream(const HTTP2_PACK_DATA_T &temp_pack_data)

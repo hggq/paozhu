@@ -605,6 +605,13 @@ asio::awaitable<void> client_session::co_send_setting()
     {
         http2_ring_queue_drop_count++;
     }
+    // 生产者契约：消费者可能已挂起（注册后的复查只封住「先入队」那一侧），
+    // 入队成功后必须查 need_wakeup 唤醒，否则 SETTINGS 拖到下一次活动才写出。
+    // 入队失败不唤：环满时消费者不可能在空环上挂起。
+    else if (http2_need_wakeup)
+    {
+        wake_ring_consumer();
+    }
     co_return;
 }
 
@@ -620,15 +627,19 @@ bool client_session::http2_send_enddata(unsigned int s_stream_id)
     _recvack[5]              = s_stream_id & 0x7F;
 
     // 返回值交给调用点：END_STREAM 丢了这条流永远不结束，调用方必须重投。
-    return http2_ring_queue->push(_recvack, 9);
+    if (!http2_ring_queue->push(_recvack, 9))
+        return false;
+    if (http2_need_wakeup)
+        wake_ring_consumer();
+    return true;
 }
 
 asio::awaitable<void> client_session::http2_send_ping()
 {
     unsigned char _recvack[] =
         {0x00, 0x00, 0x08, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    http2_ring_queue->push(_recvack, 17);
-
+    if (http2_ring_queue->push(_recvack, 17) && http2_need_wakeup)
+        wake_ring_consumer();
     co_return;
 }
 
@@ -636,7 +647,8 @@ void client_session::send_ping()
 {
     unsigned char _recvack[] =
         {0x00, 0x00, 0x08, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    http2_ring_queue->push(_recvack, 17);
+    if (http2_ring_queue->push(_recvack, 17) && http2_need_wakeup)
+        wake_ring_consumer();
 }
 
 bool client_session::send_zero_data(unsigned int stream_id)
@@ -653,7 +665,11 @@ bool client_session::send_zero_data(unsigned int stream_id)
     stream_id   = stream_id >> 8;
     _recvack[5] = stream_id & 0x7F;
 
-    return http2_ring_queue->push(_recvack, 9);
+    if (!http2_ring_queue->push(_recvack, 9))
+        return false;
+    if (http2_need_wakeup)
+        wake_ring_consumer();
+    return true;
 }
 
 asio::awaitable<bool> client_session::flush_send_ring()
@@ -733,6 +749,10 @@ void client_session::send_recv_setting()
     {
         http2_ring_queue_drop_count++;
     }
+    else if (http2_need_wakeup)
+    {
+        wake_ring_consumer();
+    }
 }
 
 bool client_session::push_window_update_conn(unsigned int up_num)
@@ -750,7 +770,11 @@ bool client_session::push_window_update_conn(unsigned int up_num)
     up_num                   = up_num >> 8;
     _recvack[9]              = up_num & 0xFF;
 
-    return http2_ring_queue->push(_recvack, 13);
+    if (!http2_ring_queue->push(_recvack, 13))
+        return false;
+    if (http2_need_wakeup)
+        wake_ring_consumer();
+    return true;
 }
 
 bool client_session::push_window_update_stream(unsigned int stmid, unsigned int up_num)
@@ -774,7 +798,11 @@ bool client_session::push_window_update_stream(unsigned int stmid, unsigned int 
     // RFC 9113 §6.1：流标识符最高位是保留位，发送时必须为 0
     _recvack[5] = stmid & 0x7F;
 
-    return http2_ring_queue->push(_recvack, 13);
+    if (!http2_ring_queue->push(_recvack, 13))
+        return false;
+    if (http2_need_wakeup)
+        wake_ring_consumer();
+    return true;
 }
 
 void client_session::grant_conn_window(unsigned int up_num)
@@ -1125,7 +1153,11 @@ bool client_session::push_rst_stream(unsigned int sid, unsigned int code)
     fr[10]               = (code >> 16) & 0xFF;
     fr[11]               = (code >> 8) & 0xFF;
     fr[12]               = code & 0xFF;
-    return http2_ring_queue->push(fr, 13);
+    if (!http2_ring_queue->push(fr, 13))
+        return false;
+    if (http2_need_wakeup)
+        wake_ring_consumer();
+    return true;
 }
 
 asio::awaitable<unsigned int> client_session::async_send_writer(const unsigned char *buffer, unsigned int buffersize)

@@ -1549,45 +1549,37 @@ std::string_view str_trim_view(std::string_view str)
     return str.substr(i, tlen);
 }
 
+// 两参数重载 = 追加式：普通字符成段拷贝，命中五个特殊字节才逐个处理。
+// 单引号输出 &#39;：HTML 4.01 没有 &apos;，数字实体全版本合法。
+void html_escape(std::string &out, std::string_view value)
+{
+    if (value.empty())
+    {
+        return;
+    }
+    std::size_t plain_begin = 0;
+    for (std::size_t i = 0; i < value.size(); i++)
+    {
+        const char *escaped = nullptr;
+        switch (value[i])
+        {
+            case '&':  escaped = "&amp;";  break;
+            case '<':  escaped = "&lt;";   break;
+            case '>':  escaped = "&gt;";   break;
+            case '"':  escaped = "&quot;"; break;
+            case '\'': escaped = "&#39;";  break;
+            default:   continue;
+        }
+        out.append(value.data() + plain_begin, i - plain_begin);
+        out += escaped;
+        plain_begin = i + 1;
+    }
+    out.append(value.data() + plain_begin, value.size() - plain_begin);
+}
 std::string html_escape(std::string_view str)
 {
     std::string temp;
-    for (size_t i = 0; i < str.size(); i++)
-    {
-        if (str[i] == '&')
-        {
-            temp.append("&amp;");
-            continue;
-        }
-        else if (str[i] == 0x22)
-        {
-            // double quote
-            temp.append("&quot;");
-            continue;
-        }
-        else if (str[i] == 0x27)
-        {
-            // single quote &#039; ie not support &apos;
-            temp.append("&apos;");
-            continue;
-        }
-        else if (str[i] == 0x3C)
-        {
-            //<
-            temp.append("&lt;");
-            continue;
-        }
-        else if (str[i] == 0x3E)
-        {
-            //>
-            temp.append("&gt;");
-            continue;
-        }
-        else
-        {
-            temp.push_back(str[i]);
-        }
-    }
+    html_escape(temp, str);
     return temp;
 }
 // 旧名字，转发性实现；输出与 html_escape 逐字节相同。
