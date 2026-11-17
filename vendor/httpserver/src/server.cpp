@@ -1,4 +1,5 @@
 #include <datetime.h>
+#include <array>
 #include <string>
 #include <zlib.h>
 #include <functional>
@@ -126,20 +127,65 @@ httpserver &get_server_app()
 // Head responses end the stream on HEADERS: there is no body, and nothing may append
 // DATA/END_STREAM afterwards.
 // 直发共用构件：整帧经写锁写出；撤流（置 dead + 尽力 RST）；帧头填流 id。
-static asio::awaitable<bool> http2_write_frame_locked(std::shared_ptr<client_session> sess, const std::string &fr)
+// dead 传 peer->isclose：等锁可达 10 秒，期间对端 RST 可能已清理该流，
+// 取锁后必须复查，不能向已关闭的流写帧。
+static asio::awaitable<bool> http2_write_frame_locked(const std::shared_ptr<client_session> &sess, const std::string &fr,
+                                                      const std::atomic<bool> &dead)
 {
     if (!co_await sess->http2_write_lock())
+        co_return false;
+    struct h2_write_unlock_guard
+    {
+        client_session *s;
+        ~h2_write_unlock_guard()
+        {
+            s->http2_write_unlock();
+        }
+    } unlock_guard{sess.get()};
+    if (dead.load(std::memory_order_relaxed) ||
+        sess->isclose.load(std::memory_order_relaxed) ||
+        sess->http2_closing.load(std::memory_order_relaxed))
         co_return false;
     asio::error_code wec;
     if (sess->isssl)
         co_await asio::async_write(*sess->sslsocket, asio::buffer(fr), asio::redirect_error(asio::use_awaitable, wec));
     else
         co_await asio::async_write(*sess->socket, asio::buffer(fr), asio::redirect_error(asio::use_awaitable, wec));
-    sess->http2_write_unlock();
+    co_return !wec;
+}
+// DATA 帧专用：栈上帧头 + 正文直接引用，两块 buffer 一次写出。不分配、不 memcpy——
+// reserve 扣额度之后再 resize，bad_alloc 会既不退款也不 RST（detached 吞异常），流静默挂起。
+// fh 与 data 都在调用方协程帧里，跨 co_await 生命周期安全。
+static asio::awaitable<bool> http2_write_buffers_locked(const std::shared_ptr<client_session> &sess, const unsigned char (&fh)[9],
+                                                        const char *data, size_t len, const std::atomic<bool> &dead)
+{
+    if (!co_await sess->http2_write_lock())
+        co_return false;
+    struct h2_write_unlock_guard
+    {
+        client_session *s;
+        ~h2_write_unlock_guard()
+        {
+            s->http2_write_unlock();
+        }
+    } unlock_guard{sess.get()};
+    if (dead.load(std::memory_order_relaxed) ||
+        sess->isclose.load(std::memory_order_relaxed) ||
+        sess->http2_closing.load(std::memory_order_relaxed))
+        co_return false;
+    std::array<asio::const_buffer, 2> bufs{asio::buffer(fh, 9), asio::buffer(data, len)};
+    asio::error_code wec;
+    if (sess->isssl)
+        co_await asio::async_write(*sess->sslsocket, bufs, asio::redirect_error(asio::use_awaitable, wec));
+    else
+        co_await asio::async_write(*sess->socket, bufs, asio::redirect_error(asio::use_awaitable, wec));
     co_return !wec;
 }
 static asio::awaitable<void> http2_abort_stream(std::shared_ptr<httppeer> &peer, unsigned int sid)
 {
+    // 流已死（对端 RST / cleanup_stream 置过 isclose）：对 closed 流发 RST 是自造协议违规。
+    if (peer->isclose.load(std::memory_order_relaxed))
+        co_return;
     peer->isclose = true;
     auto &sess = peer->socket_session;
     if (!sess->isclose.load(std::memory_order_relaxed) && !sess->http2_closing.load(std::memory_order_relaxed))
@@ -152,6 +198,22 @@ static void http2_frame_put_sid(std::string &fr, unsigned int sid)
     fr[6] = static_cast<char>((sid >> 16) & 0xFF);
     fr[7] = static_cast<char>((sid >> 8) & 0xFF);
     fr[8] = static_cast<char>(sid & 0xFF);
+}
+static void http2_frame_put_sid(unsigned char (&fr)[9], unsigned int sid)
+{
+    fr[5] = static_cast<unsigned char>((sid >> 24) & 0x7F);
+    fr[6] = static_cast<unsigned char>((sid >> 16) & 0xFF);
+    fr[7] = static_cast<unsigned char>((sid >> 8) & 0xFF);
+    fr[8] = static_cast<unsigned char>(sid & 0xFF);
+}
+// 大文件 Range 定位：fseek 的 long 在 Windows 上只有 32 位，>2GB 会定位错。
+static int pz_fseek64(std::FILE *fp, unsigned long long pos)
+{
+#ifdef _WIN32
+    return _fseeki64(fp, static_cast<__int64>(pos), SEEK_SET);
+#else
+    return fseeko(fp, static_cast<off_t>(pos), SEEK_SET);
+#endif
 }
 // 窗口停等失败的分流：episode 返回 false 时，dead/closing 已在内部判过，
 // 只有真预算耗尽才撤流。返回 false = 调用方应结束发送。
@@ -200,29 +262,29 @@ static asio::awaitable<bool> http2_send_inline(std::shared_ptr<httppeer> peer, s
     auto &app = get_server_app();
 
     // 首写前先排空环：SETTINGS 必须是服务端第一帧（RFC 9113 §3.4），
-    // 直写 HEADERS 抢在它前面会被对端 GOAWAY。
-    co_await sess->flush_send_ring();
+    // 直写 HEADERS 抢在它前面会被对端 GOAWAY。没排空就不写。
+    if (!co_await sess->flush_send_ring())
+        co_return false;
+    // flush 期间对端可能已 RST 并清理本流：写 HEADERS 前复查。
+    if (peer->isclose.load(std::memory_order_relaxed) ||
+        sess->isclose.load(std::memory_order_relaxed) ||
+        sess->http2_closing.load(std::memory_order_relaxed))
+        co_return false;
 
-    if (!co_await http2_write_frame_locked(sess, header))
+    const unsigned long long total = body.size();
+    // 空正文：END_STREAM 直接落 HEADERS 首帧（flags 在固定偏移 [4]），
+    // 省一帧空 DATA 和一次加锁写出。用 OR 不用赋值：头块切成 CONTINUATION 时
+    // 首帧不带 END_HEADERS，赋值会把「头块未结束」抹掉。
+    if (!head && total == 0)
+        or_http2_headers_flag(header, HTTP2_HEADER_END_STREAM);
+
+    if (!co_await http2_write_frame_locked(sess, header, peer->isclose))
     {
         co_await http2_abort_stream(peer, sid);
         co_return false;
     }
-    if (head)
+    if (head || total == 0)
         co_return true;
-
-    const unsigned long long total = body.size();
-    if (total == 0)
-    {
-        // 空正文：一帧空 DATA 带 END_STREAM 收尾
-        std::string fr(9, '\0');
-        fr[3] = 0x00;
-        fr[4] = 0x01;
-        http2_frame_put_sid(fr, sid);
-        if (!co_await http2_write_frame_locked(sess, fr))
-            co_await http2_abort_stream(peer, sid);
-        co_return true;
-    }
 
     unsigned long long sent = 0;
     while (sent < total)
@@ -241,16 +303,14 @@ static asio::awaitable<bool> http2_send_inline(std::shared_ptr<httppeer> peer, s
                 co_return false;
             continue;
         }
-        std::string fr;
-        fr.resize(9 + got);
-        fr[0] = static_cast<char>((got >> 16) & 0xFF);
-        fr[1] = static_cast<char>((got >> 8) & 0xFF);
-        fr[2] = static_cast<char>(got & 0xFF);
-        fr[3] = 0x00;
-        fr[4] = (sent + got >= total) ? 0x01 : 0x00;
-        http2_frame_put_sid(fr, sid);
-        std::memcpy(fr.data() + 9, body.data() + sent, static_cast<size_t>(got));
-        if (!co_await http2_write_frame_locked(sess, fr))
+        unsigned char fh[9];
+        fh[0] = static_cast<unsigned char>((got >> 16) & 0xFF);
+        fh[1] = static_cast<unsigned char>((got >> 8) & 0xFF);
+        fh[2] = static_cast<unsigned char>(got & 0xFF);
+        fh[3] = 0x00;
+        fh[4] = (sent + got >= total) ? 0x01 : 0x00;
+        http2_frame_put_sid(fh, sid);
+        if (!co_await http2_write_buffers_locked(sess, fh, body.data() + sent, static_cast<size_t>(got), peer->isclose))
         {
             app.http2_refund_send_window(sess.get(), sid, got);
             co_await http2_abort_stream(peer, sid);
@@ -263,7 +323,8 @@ static asio::awaitable<bool> http2_send_inline(std::shared_ptr<httppeer> peer, s
 }
 
 // 文件内联直发：fp 由调用方持有，本函数只借。读盘投业务池跑，不阻塞 strand 上的
-// WU 解析；fp 本协程独占。offset/total 是要发的区间（Range 用），total==0 发空 DATA 收尾。
+// WU 解析；fp 本协程独占。offset/total 是要发的区间（Range 用），total==0 时
+// END_STREAM 直接落 HEADERS。
 static asio::awaitable<bool> http2_send_file_inline(std::shared_ptr<httppeer> peer, std::string header, std::FILE *fp,
                                                     unsigned long long offset, unsigned long long total)
 {
@@ -272,24 +333,23 @@ static asio::awaitable<bool> http2_send_file_inline(std::shared_ptr<httppeer> pe
     http2_sender_count_guard count_guard(sess.get());
 
     auto &app = get_server_app();
-    co_await sess->flush_send_ring();
+    if (!co_await sess->flush_send_ring())
+        co_return false;
+    if (peer->isclose.load(std::memory_order_relaxed) ||
+        sess->isclose.load(std::memory_order_relaxed) ||
+        sess->http2_closing.load(std::memory_order_relaxed))
+        co_return false;
 
-    if (!co_await http2_write_frame_locked(sess, header))
+    if (total == 0)
+        or_http2_headers_flag(header, HTTP2_HEADER_END_STREAM);
+
+    if (!co_await http2_write_frame_locked(sess, header, peer->isclose))
     {
         co_await http2_abort_stream(peer, sid);
         co_return false;
     }
-
     if (total == 0)
-    {
-        std::string fr(9, '\0');
-        fr[3] = 0x00;
-        fr[4] = 0x01;
-        http2_frame_put_sid(fr, sid);
-        if (!co_await http2_write_frame_locked(sess, fr))
-            co_await http2_abort_stream(peer, sid);
         co_return true;
-    }
 
     // 读盘按 1MB 批，窗口预留和写帧仍按帧：每帧一次池往返太贵，批读摊薄。
     constexpr unsigned long long READ_CHUNK = 1ull << 20;
@@ -312,7 +372,7 @@ static asio::awaitable<bool> http2_send_file_inline(std::shared_ptr<httppeer> pe
             {
                 std::string buf;
                 buf.resize(static_cast<size_t>(want_read));
-                if (fseek(fp, static_cast<long long>(pos), SEEK_SET) != 0)
+                if (pz_fseek64(fp, pos) != 0)
                     return std::string();
                 size_t n = std::fread(buf.data(), 1, static_cast<size_t>(want_read), fp);
                 buf.resize(n);
@@ -337,16 +397,14 @@ static asio::awaitable<bool> http2_send_file_inline(std::shared_ptr<httppeer> pe
                 co_return false;
             continue;
         }
-        std::string fr;
-        fr.resize(9 + got);
-        fr[0] = static_cast<char>((got >> 16) & 0xFF);
-        fr[1] = static_cast<char>((got >> 8) & 0xFF);
-        fr[2] = static_cast<char>(got & 0xFF);
-        fr[3] = 0x00;
-        fr[4] = (sent + got >= total) ? 0x01 : 0x00;
-        http2_frame_put_sid(fr, sid);
-        std::memcpy(fr.data() + 9, chunk.data() + chunk_pos, static_cast<size_t>(got));
-        if (!co_await http2_write_frame_locked(sess, fr))
+        unsigned char fh[9];
+        fh[0] = static_cast<unsigned char>((got >> 16) & 0xFF);
+        fh[1] = static_cast<unsigned char>((got >> 8) & 0xFF);
+        fh[2] = static_cast<unsigned char>(got & 0xFF);
+        fh[3] = 0x00;
+        fh[4] = (sent + got >= total) ? 0x01 : 0x00;
+        http2_frame_put_sid(fh, sid);
+        if (!co_await http2_write_buffers_locked(sess, fh, chunk.data() + chunk_pos, static_cast<size_t>(got), peer->isclose))
         {
             app.http2_refund_send_window(sess.get(), sid, got);
             co_await http2_abort_stream(peer, sid);
@@ -622,26 +680,35 @@ asio::awaitable<void> httpserver::http2_co_send_compress(std::shared_ptr<httppee
             // brotli 失败（含产生空结果）一律回退原文：绝不能把空/半截结果写进缓存。
             // Any brotli failure (including an empty result) falls back to the original:
             // never persist an empty or truncated result.
-            if (!brotli_encode_file(job.fp.get(), file_size, job.content) ||
-                job.content.empty())
+            // 压缩是 CPU 密集段，投业务池跑，不在 strand 上停住同连接的解析与其他流。
+            auto cstep = co_await co_pool_run_step([fp = job.fp.get(), file_size]() -> std::string
+            {
+                std::string out;
+                if (!brotli_encode_file(fp, file_size, out) || out.empty())
+                    return std::string();
+                return out;
+            });
+            if (cstep.rejected || cstep.eptr || cstep.ret.empty())
             {
                 job.content.clear();
                 peer->compress = 0;
                 fseek(job.fp.get(), 0, SEEK_SET);
                 co_return;
             }
+            job.content        = std::move(cstep.ret);
             job.content_length = job.content.size();
             job.type           = 17;
         }
         else if (peer->compress == 1)
         {
-            if (compress_file(job.fp.get(), file_size, job.content, Z_DEFAULT_COMPRESSION) == Z_OK &&
-                !job.content.empty())
+            auto cstep = co_await co_pool_run_step([fp = job.fp.get(), file_size]() -> std::string
             {
-                job.content_length = job.content.size();
-                job.type           = 16;
-            }
-            else
+                std::string out;
+                if (compress_file(fp, file_size, out, Z_DEFAULT_COMPRESSION) != Z_OK || out.empty())
+                    return std::string();
+                return out;
+            });
+            if (cstep.rejected || cstep.eptr || cstep.ret.empty())
             {
                 job.content.clear();
                 peer->compress = 0;
@@ -653,6 +720,9 @@ asio::awaitable<void> httpserver::http2_co_send_compress(std::shared_ptr<httppee
                 fseek(job.fp.get(), 0, SEEK_SET);
                 co_return;
             }
+            job.content        = std::move(cstep.ret);
+            job.content_length = job.content.size();
+            job.type           = 16;
         }
 
         // Persist the compressed result — 临时文件 + rename，避免并发首访读到半截文件。
@@ -994,8 +1064,14 @@ asio::awaitable<bool> httpserver::http2_handle_parse_error(http2parse &h2, std::
     }
 
     // 流级错误（RFC 9113 §5.4.2）：只 RST_STREAM 重置该流，保留连接。
-    co_await sess->http2_send_rst_direct(h2.error_stream_id, h2.h2_error_code);
-    h2.cleanup_stream(h2.error_stream_id);
+    // 先回收（置 dead、cancel 停等、收窗口），阻止出错的流继续发帧；
+    // RST 入环由消费者写出——解析循环不能在这里等写锁，否则单条流的
+    // 协议错误会停住整条连接的 DATA/WU/SETTINGS 解析。
+    const unsigned int err_sid  = h2.error_stream_id;
+    const unsigned int err_code = h2.h2_error_code;
+    h2.cleanup_stream(err_sid);
+    if (!sess->push_rst_stream(err_sid, err_code))
+        co_return true;// 环满：连接已过载，交给上层拆除
     h2.clear_error();
     co_return false;
 }
@@ -2274,7 +2350,7 @@ asio::awaitable<size_t> httpserver::co_client_session_task(std::shared_ptr<clien
                        std::shared_ptr<client_session> in_session) mutable
     {
         {
-            std::unique_lock lk(in_session->waituphttp2_mutex);
+            std::unique_lock lk(in_session->wake_ring_consumer_mutex);
             in_session->user_code_handler_call.push_back(std::move(handler));
             in_session->http2_need_wakeup = true;
         }
@@ -2290,7 +2366,7 @@ asio::awaitable<size_t> httpserver::co_client_session_task(std::shared_ptr<clien
             }
             if (has_item)
             {
-                in_session->waituphttp2();
+                in_session->wake_ring_consumer();
             }
         }
     };
@@ -2811,7 +2887,6 @@ asio::awaitable<void> httpserver::ring_client_server(std::shared_ptr<client_sess
             if (head == peer_session->http2_ring_queue->tail_.load(std::memory_order_acquire))
             {
                 lk.unlock();
-                DEBUG_LOG(" ring wait for wake up ");
                 if (peer_session->half_close)
                 {
                     DEBUG_LOG(" full close ");
@@ -2838,7 +2913,6 @@ asio::awaitable<void> httpserver::ring_client_server(std::shared_ptr<client_sess
             }
             for (;;)
             {
-                DEBUG_LOG("ring_client_server for loop ");
                 std::unique_lock for_lk(peer_session->http2_ring_queue->http2_queue_send_mutex);
                 unsigned char for_head = peer_session->http2_ring_queue->head_.load(std::memory_order_acquire);
                 if (for_head == peer_session->http2_ring_queue->tail_.load(std::memory_order_acquire))
@@ -2856,15 +2930,26 @@ asio::awaitable<void> httpserver::ring_client_server(std::shared_ptr<client_sess
                 {
                     break;
                 }
-                if (peer_session->isssl)
                 {
-                    co_await asio::async_write(*peer_session->sslsocket, asio::buffer(peer_session->http2_ring_queue->data[for_head]), asio::use_awaitable);
+                    // async_write(use_awaitable) 在 socket 错误时抛异常，栈跳到外层 catch；
+                    // 不用 RAII 解锁的话写锁永久占用，同连接直发协程全部等满预算。
+                    struct h2_write_unlock_guard
+                    {
+                        client_session *sess;
+                        ~h2_write_unlock_guard()
+                        {
+                            sess->http2_write_unlock();
+                        }
+                    } unlock_guard{peer_session.get()};
+                    if (peer_session->isssl)
+                    {
+                        co_await asio::async_write(*peer_session->sslsocket, asio::buffer(peer_session->http2_ring_queue->data[for_head]), asio::use_awaitable);
+                    }
+                    else
+                    {
+                        co_await asio::async_write(*peer_session->socket, asio::buffer(peer_session->http2_ring_queue->data[for_head]), asio::use_awaitable);
+                    }
                 }
-                else
-                {
-                    co_await asio::async_write(*peer_session->socket, asio::buffer(peer_session->http2_ring_queue->data[for_head]), asio::use_awaitable);
-                }
-                peer_session->http2_write_unlock();
                 // 积压字节饱和减：只有 post_write 入口累加，http2 直 push 恒 0 自然跳过
                 if (peer_session->http2_ring_queue->bytes.load(std::memory_order_relaxed) >= sent_bytes)
                 {
@@ -2886,6 +2971,8 @@ asio::awaitable<void> httpserver::ring_client_server(std::shared_ptr<client_sess
         DEBUG_LOG("ring_client_server std::exception %s", e.what());
         peer_session->iserror = true;
         peer_session->isclose = true;
+        // 消费者已死，立刻叫醒全部停等/等锁者，不让它们睡满各自预算。
+        peer_session->http2_close_waiters();
     }
     DEBUG_LOG("ring_client_server exit ");
     co_return;
@@ -3420,10 +3507,12 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                 if (http2pre->http_data_weak.size() >= CONST_HTTP2_MAX_STREAMS / 2)
                 {
                     unsigned int sweep_removed = 0;
+                    std::vector<unsigned int> dead_sids;
                     for (auto wit = http2pre->http_data_weak.begin(); wit != http2pre->http_data_weak.end();)
                     {
                         if (wit->second.lock() == nullptr)
                         {
+                            dead_sids.push_back(wit->first);
                             http2pre->http_data_weak.erase(wit++);
                             sweep_removed++;
                         }
@@ -3431,6 +3520,16 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
                         {
                             ++wit;
                         }
+                    }
+                    // 顺带回收发送窗口条目：正常响应发完没人删这张表（cleanup_stream
+                    // 只管对端 RST / 解析错误边），流 id 永不复用，不回收就随请求数
+                    // 线性增长。lock()==null 说明 peer 已释放、发送协程不可能还在跑，
+                    // WU 也过不了存活判定、懒建入口不会重建，在这里删是安全的。
+                    if (!dead_sids.empty())
+                    {
+                        std::lock_guard<std::mutex> winlk(peer_session->stream_send_window_mutex);
+                        for (unsigned int dead_sid : dead_sids)
+                            peer_session->stream_send_window.erase(dead_sid);
                     }
                     http2pre->weak_sweep_removed += sweep_removed;
                     DEBUG_LOG("http2 weak sweep removed %u size %u", sweep_removed, (unsigned int)http2pre->http_data_weak.size());
@@ -3461,7 +3560,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
             // 发送窗口停等者的唤醒不走这里——WU/IWS 解析边已直接 cancel 对应 timer。
             if (peer_session->http2_need_wakeup)
             {
-                peer_session->waituphttp2();
+                peer_session->wake_ring_consumer();
             }
             // 只有整块读完才允许下一轮 read_some 覆盖 _cache_data（它从下标 0 写，
             // 未解析的尾部一旦被覆盖就永久丢帧）；留着尾巴就接着从 offsetnum 解。
@@ -3510,7 +3609,7 @@ asio::awaitable<unsigned int> httpserver::client_http2_loop(unsigned int offsetn
             lock.unlock();
         }
         peer_session->cancel();
-        peer_session->waituphttp2();
+        peer_session->wake_ring_consumer();
         http2pre->clsoesend();
         co_await peer_session->async_stop();
     }
@@ -5328,7 +5427,7 @@ asio::awaitable<unsigned int> httpserver::client_mqtt_loop(unsigned int readnum,
             sess->flush_pending();
             if (peer_session->http2_need_wakeup)
             {
-                peer_session->waituphttp2();
+                peer_session->wake_ring_consumer();
             }
         }
     };
@@ -5424,7 +5523,7 @@ asio::awaitable<unsigned int> httpserver::client_mqtt_loop(unsigned int readnum,
     }
     peer_session->isclose = true;
     // 唤醒可能挂起的发送消费者协程，让它看到 isclose 后退出
-    peer_session->waituphttp2();
+    peer_session->wake_ring_consumer();
     co_return 0;
 }
 
@@ -6019,7 +6118,7 @@ void httpserver::websocket_loop(int fps)
                 {
                     if (peer->session_sock && peer->session_sock->http2_need_wakeup)
                     {
-                        peer->session_sock->waituphttp2();
+                        peer->session_sock->wake_ring_consumer();
                     }
                     // 保活 ping：空闲连接自己不会产生入站字节，服务端发 ping，对端回的 pong
                     // 就是那条入站活动（读循环拿它刷新回收期限）。周期 0 = 关闭。
@@ -6140,7 +6239,7 @@ void httpserver::websocket_loop(int fps)
                     // 发送环兜底唤醒（丢唤醒的最后一道防线）
                     if (item.trans->http2_need_wakeup)
                     {
-                        item.trans->waituphttp2();
+                        item.trans->wake_ring_consumer();
                     }
                     if (item.need_tick)
                     {

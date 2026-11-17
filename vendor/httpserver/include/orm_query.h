@@ -408,6 +408,13 @@ class db_conn : std::enable_shared_from_this<db_conn>
         return pg_query_vec_impl(rawsql, result_record);
     }
 
+    // 预处理查询同步版，与 async_query_prepared 对称；委托 exec_query（? 占位符，PG 侧转 $n）。
+    template <ResultHasSetVal T>
+    unsigned int query_prepared(const std::string &rawsql, const std::vector<http::obj_val> &params, std::vector<T> &result_record)
+    {
+        return exec_query(rawsql, params, result_record);
+    }
+
     template <ResultHasSetVal T>
     asio::awaitable<unsigned int> mysql_async_query_vec_impl(const std::string &rawsql, std::vector<T> &result_record)
     {

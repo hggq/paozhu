@@ -137,12 +137,13 @@ class client_session : public std::enable_shared_from_this<client_session>
     // 调用方（client_http2_loop 的各 break 路径、http2loop 异常路径）随后会 cancel()，
     // 不等排空就会把环里的 GOAWAY 与在途响应一起杀掉。
     asio::awaitable<void> async_send_goway(unsigned int last_stream_id = 0, unsigned int error_code = 0);
-    // 关闭前冲刷：有界等待发送环排空。绝不直接写 socket——本连接唯一写者是
-    // 同 strand 上的 ring_client_server 协程，并发第二个 async_write 会把两帧的
-    // 字节在流上交错；这里只 co_await 定时器，每次让出 strand 都让消费者的写完成推进。
-    // pop 在 async_write 完成之后（环空 ⇒ 队尾 GOAWAY 已写出）。上限 2 秒：
-    // 客户端停读时不无限拖住 teardown，超时后照旧走 cancel()。
-    asio::awaitable<void> flush_send_ring();
+    // 关闭前冲刷：有界等待发送环排空。绝不直接写 socket——写者是
+    // ring_client_server 与内联直发协程（共用 FIFO 写锁），这里只 co_await 定时器，
+    // 每次让出 strand 都让消费者的写完成推进。
+    // pop 在 async_write 完成之后（环空 ⇒ 队尾帧已写出）。上限 2 秒：
+    // 客户端停读时不无限拖住 teardown。返回 false = 超时/连接已坏仍未排空，
+    // 直发调用方不能再写 HEADERS（会抢在环内 SETTINGS 前面，RFC 9113 §3.4）。
+    asio::awaitable<bool> flush_send_ring();
 
     asio::awaitable<unsigned int> async_send_writer(const std::string &msg);
     asio::awaitable<unsigned int> async_send_writer(std::string_view msg);
@@ -160,7 +161,7 @@ class client_session : public std::enable_shared_from_this<client_session>
     // void append(const std::string &item);
     // void append(const unsigned char *buffer, unsigned int buffersize);
 
-    void waituphttp2();
+    void wake_ring_consumer();
 
     // ---- h2 直发原语 ----
     // 都在本连接 strand 上跑，检查与登记之间不能有 co_await，这样不会丢唤醒，容器不用锁。
@@ -180,6 +181,8 @@ class client_session : public std::enable_shared_from_this<client_session>
     void http2_close_waiters();
     // RST 经写锁直接写出，不走环，环满也不会丢。
     asio::awaitable<bool> http2_send_rst_direct(unsigned int s_stream_id, unsigned int stream_error_code);
+    // RST 入环版：解析循环里用，不在读路径上等写锁。false = 环满，连接已过载。
+    bool push_rst_stream(unsigned int sid, unsigned int code);
 
   public:
     unsigned char *_cache_data  = nullptr;
@@ -270,7 +273,7 @@ class client_session : public std::enable_shared_from_this<client_session>
     std::mutex http2_sock_mutex;
     std::unique_ptr<http2_send_queue_cache> http2_ring_queue = nullptr;
 
-    std::mutex waituphttp2_mutex;
+    std::mutex wake_ring_consumer_mutex;
     std::list<asio::detail::awaitable_handler<asio::any_io_executor, size_t>> user_code_handler_call;
 
     // ---- h2 直发状态（除两个 atomic 外都在 strand 上）----
