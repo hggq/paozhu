@@ -105,7 +105,7 @@ asio::awaitable<bool> client_session::read_some(unsigned int &readnum, std::stri
         {
             if (sslsocket->lowest_layer().is_open())
             {
-                readnum = co_await sslsocket->async_read_some(asio::buffer(_cache_data, 4096), asio::redirect_error(asio::use_awaitable, ec));
+                readnum = co_await sslsocket->async_read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), asio::redirect_error(asio::use_awaitable, ec));
             }
             else
             {
@@ -116,7 +116,7 @@ asio::awaitable<bool> client_session::read_some(unsigned int &readnum, std::stri
         {
             if (socket->is_open())
             {
-                readnum = co_await socket->async_read_some(asio::buffer(_cache_data, 4096), asio::redirect_error(asio::use_awaitable, ec));
+                readnum = co_await socket->async_read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), asio::redirect_error(asio::use_awaitable, ec));
             }
             else
             {
@@ -175,11 +175,11 @@ asio::awaitable<bool> client_session::read_first(unsigned int &readnum)
         }
         if (isssl)
         {
-            readnum = co_await sslsocket->async_read_some(asio::buffer(_cache_data, 4096), asio::redirect_error(asio::use_awaitable, ec));
+            readnum = co_await sslsocket->async_read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), asio::redirect_error(asio::use_awaitable, ec));
         }
         else
         {
-            readnum = co_await socket->async_read_some(asio::buffer(_cache_data, 4096), asio::redirect_error(asio::use_awaitable, ec));
+            readnum = co_await socket->async_read_some(asio::buffer(_cache_data, CACHE_DATA_LENGTH), asio::redirect_error(asio::use_awaitable, ec));
         }
 
         if (ec)

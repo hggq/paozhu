@@ -10,7 +10,7 @@
 #include <atomic>
 #include "terminal_color.h"
 
-#define CACHE_DATA_LENGTH 4096
+#define CACHE_DATA_LENGTH 8192
 namespace http
 {
 

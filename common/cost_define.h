@@ -263,6 +263,14 @@ constexpr bool http2_wu_stream_id_ok(unsigned long long sid, unsigned long long 
 
 #define CONST_HTTP2_SEND_FRAME_BUF 15360
 
+// 文件直发单批 gather 的字节上限。一次预留、一次写锁、一次 async_write 最多送这么多
+// DATA 字节（仍按对端 MAX_FRAME_SIZE 切成帧）。批尺寸受写锁等待预算约束：慢客户端下
+// 整批写出期间锁被占住，同连接其他流等锁超过 CONST_HTTP2_WRITE_LOCK_TIMEOUT 会被撤流。
+// 32KB 在 6KB/s 客户端下约 5.3s，对 10s 预算留近一倍余量（旧 16KB 单帧约 2.7s）。
+// 对端 MAX_FRAME_SIZE 下限 16384 由解析侧 40216 门禁保证；本值 ≤ 65536 ⇒ 单批至多 4 帧、
+// 9 块 buffer（含首批 HEADERS），发送侧 fhs/bufs 的栈上界依此成立。
+#define CONST_HTTP2_FILE_BATCH_BYTES 32768
+
 // 每连接 HTTP/2 发送环的槽数。三条硬约束：
 //   1. 必须是 2 的幂 —— 下标推进用 & (capacity_ - 1)，非 2 的幂会算出错误的下一格；
 //   2. 不能超过 255 —— head_/tail_ 是 unsigned char；

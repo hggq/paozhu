@@ -50,7 +50,7 @@ void client_data_cache::inti_sendqueue(unsigned int a)
 {
     for (unsigned int i = 0; i < a; i++)
     {
-        unsigned char *ptr = reinterpret_cast<unsigned char *>(std::malloc(4096));
+        unsigned char *ptr = reinterpret_cast<unsigned char *>(std::malloc(CACHE_DATA_LENGTH));
         if (ptr != nullptr)
             data_list.emplace(ptr);
     }
@@ -65,7 +65,7 @@ unsigned char *client_data_cache::get_data_ptr()
         lock.unlock();
         for (int i = 0; i < 10; i++)
         {
-            a = reinterpret_cast<unsigned char *>(std::malloc(4096 * sizeof(unsigned char)));
+            a = reinterpret_cast<unsigned char *>(std::malloc(CACHE_DATA_LENGTH * sizeof(unsigned char)));
             if (a != nullptr)
             {
                 break;

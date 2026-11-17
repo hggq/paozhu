@@ -8066,7 +8066,7 @@ RETRY_ASYNC_FETCH:
                     // ★ 热路径: 同同步版, 逐包校验本轮元数据, 全部匹配才推进 consumed。
                     // 每次 co_await async_read_loop() 读到的字节必须 insert 进 accum_buf —
                     // 早先这 4 个读取点只看返回值判是否出错, 把读到的列定义/行字节直接丢掉,
-                    // 列定义段跨 4096B 读块时 consumed 会越过缓冲区末尾(size_t 下溢)→ 挂死。
+                    // 列定义段跨 CACHE_DATA_LENGTH 读块时 consumed 会越过缓冲区末尾(size_t 下溢)→ 挂死。
                     bool meta_same     = true;
                     unsigned int probe = consumed;
                     for (size_t i = 0; i < expected_cols; ++i)
@@ -8644,7 +8644,7 @@ RETRY_ASYNC_FETCH_BIN:
                     // ★ 热路径: 同同步版, 逐包校验本轮元数据, 全部匹配才推进 consumed。
                     // 每次 co_await async_read_loop() 读到的字节必须 insert 进 accum_buf —
                     // 早先这 4 个读取点只看返回值判是否出错, 把读到的列定义/行字节直接丢掉,
-                    // 列定义段跨 4096B 读块时 consumed 会越过缓冲区末尾(size_t 下溢)→ 挂死。
+                    // 列定义段跨 CACHE_DATA_LENGTH 读块时 consumed 会越过缓冲区末尾(size_t 下溢)→ 挂死。
                     bool meta_same     = true;
                     unsigned int probe = consumed;
                     for (size_t i = 0; i < expected_cols; ++i)
