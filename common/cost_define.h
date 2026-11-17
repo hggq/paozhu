@@ -263,11 +263,6 @@ constexpr bool http2_wu_stream_id_ok(unsigned long long sid, unsigned long long 
 
 #define CONST_HTTP2_SEND_FRAME_BUF 15360
 
-// 一条流连续多久没有任何字节真正推进，就放弃它（RST_STREAM，不断连接）。
-// 量的是「多久没推进」而不是「等了多久」：慢客户端只要一直在收，
-// 等得再久也不该撤流；只有彻底没进展才该撤。
-// Stream abandoned (RST_STREAM, no GOAWAY) when no bytes actually advance for N seconds. Measures "time without progress", not "time waited" — slow clients that keep receiving are fine.
-#define CONST_HTTP2_SEND_NO_PROGRESS_TIMEOUT 120
 // 每连接 HTTP/2 发送环的槽数。三条硬约束：
 //   1. 必须是 2 的幂 —— 下标推进用 & (capacity_ - 1)，非 2 的幂会算出错误的下一格；
 //   2. 不能超过 255 —— head_/tail_ 是 unsigned char；
@@ -277,47 +272,12 @@ constexpr bool http2_wu_stream_id_ok(unsigned long long sid, unsigned long long 
 // MUST fit unsigned char (head_/tail_), and one slot stays empty for the full/empty test,
 // so capacity-1 frames are queueable.
 #define CONST_HTTP2_RING_QUEUE_CAPACITY 32
-// 发送环积压到几个槽就让路。32 槽环有 31 个可排槽，目标是正好留 6 个给
-// HEADERS/SETTINGS/RST/GOAWAY/WINDOW_UPDATE 这类控制帧收尾，所以阈值取 24：
-// 判据是严格大于（has_size() > 24），积压 24 时仍放行一帧到 25，看到 25 就挂起，
-// 稳态最大积压 25，31 − 25 = 6。取 25 会变成最大积压 26、只剩 5 格，反而不达标。
-// 8 发送线程下的已知代价：闸门是"先读 has_size() 再 push"，读和 push 之间有窗口，
-// 8 个推者可能同时通过同一个 24 的检查；6 格空位对 8 个推者不够，最坏一轮会有
-// 2 次 push 失败（计入 http2_ring_overflow_count，帧留在对象上由 standby_next
-// 下一轮重投，不丢数据）。2 线程时 6 格足够（并发推者数 2 < 6）。
-// 发送侧的挂起条件和回灌条件必须用同一个数，否则会出现「挂起来、回灌去」的空转循环。
-// Send-ring backpressure slot threshold. 31 usable slots, exactly 6 reserved for control-frame
-// tails, hence 24: the test is strictly greater, so a backlog of 24 still admits one more frame
-// (to 25) and parking starts at 25; steady-state max is 25 and 31 - 25 = 6. Using 25 would make
-// the max 26 and leave only 5. Known cost with 8 send threads: the gate reads has_size() before
-// pushing, so up to 8 pushers may pass the same check; 6 free slots cannot absorb 8, so worst case
-// 2 pushes fail per round (counted in http2_ring_overflow_count, retried via standby_next — no data
-// loss). 2 threads: 6 slots are enough.
-// Suspend and refill conditions MUST use the same value to avoid "hang → refill → hang" thrashing.
-#define CONST_HTTP2_RING_BACKPRESSURE_SLOTS 24
-// 一条流一轮之内除了首帧还能补喂几帧：每轮最多推 SEND_FEED_MAX + 1 = 6 帧（首帧 + 5 次补喂）。
-// 首帧由闸门放行，每次补喂之前重取发送环积压，达到 CONST_HTTP2_RING_FEED_SLOTS 或
-// 额度用完就停 —— 这个上限是「一条流不许在本轮独占发送线程」的界，不是吞吐旋钮：
-// 环空着的时候多喂的帧，最终仍受窗口与传输约束。
-// 要让本值真正生效，CONST_HTTP2_RING_FEED_SLOTS 必须 >= 本值 + 1，否则水位先到、一轮凑不满。
-// Max extra frames per stream per round: SEND_FEED_MAX + 1 = 6 frames per round (first + 5 extras).
-// For this cap to bind, CONST_HTTP2_RING_FEED_SLOTS must be >= SEND_FEED_MAX + 1, else the
-// feed-watermark cuts the round short.
-#define CONST_HTTP2_SEND_FEED_MAX 5
-// 补喂允许的发送环积压水位：环里已排队帧数低于它才继续喂同一条流。取成与让路阈值同一个数
-// （24），单条流可以一路喂到积压 24 才停；31 个可排槽里剩下的 7 个留给控制帧收尾。
-// 必须 >= SEND_FEED_MAX + 1（6），否则水位先拦、一轮凑不满 6 帧。
-// Feed-watermark: keep feeding the same stream while ring queued < this. Set equal to the
-// backpressure threshold (24) so one stream may fill up to 24; the remaining 7 usable slots keep
-// headroom for control-frame tails. Must be >= SEND_FEED_MAX + 1 (6), else rounds get cut short.
-#define CONST_HTTP2_RING_FEED_SLOTS 24
-// 发送线程最长能睡多久：等待新发送对象的条件变量带这个期限，醒来跑一次挂起表兜底扫描。
-// 取 6 而不是 5，是为了与 httpwatch 主循环那根 5 秒错开 —— 两条周期任务若同刻醒来会
-// 去抢同一批锁（idle 清理要持 socket_session_lists_mutex，兜底要持 send_data_mutex）。
-// 没有这个期限，「所有发送对象都挂在表上」这个状态本身就让发送线程睡在无超时的 wait 上，
-// 而挂在表上的对象恰恰只有这一趟扫描会去续期与撤流。
-// Max send-thread sleep (seconds) — wake at least this often to run the parked-belt sweep (renews time_limit + issues RST for stuck streams). Chosen 6 (not 5) to de-phase from httpwatch's 5s cycle (avoids simultaneous lock contention). Without deadline: all sends parked ⇒ thread sleeps forever; belt never runs.
-#define CONST_HTTP2_BELT_SWEEP_SECONDS 6
+
+// 一次窗口停等的总预算：到期 RST(CANCEL) 撤流，连接保留。按次重算，不是整条响应的
+// 预算；被 WU 叫醒后用剩余量重挂，小增量不续命。
+#define CONST_HTTP2_WINDOW_STALL_TIMEOUT 10
+// 写锁等待预算，和窗口停等预算分开：慢写占锁不该被当成窗口停等而误撤流。
+#define CONST_HTTP2_WRITE_LOCK_TIMEOUT 10
 
 // RST_STREAM 流错误码（RFC 9113 §7）。CANCEL 表示「流被撤销」，不表示对端违反协议；
 // 本地背压/过载放弃发送时应使用它，而不是 PROTOCOL_ERROR(0x01)。

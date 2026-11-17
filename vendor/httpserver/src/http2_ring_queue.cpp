@@ -52,7 +52,7 @@ unsigned char http2_send_queue_cache::has_size()
     // capacity_ - 1 帧，这个读数就必须等于真实帧数（和下面通式对满环算出来的也一致：
     // head=0 时 tail-head = capacity_-1；head>0 时 tail<head，(capacity_-1 - head) + tail + 1
     // 同样得 capacity_-1）。
-    // 这里回 capacity_-1 而不是 capacity_：调用点有 > CONST_HTTP2_RING_BACKPRESSURE_SLOTS、
+    // 这里回 capacity_-1 而不是 capacity_：调用点有按槽数判满的、
     // backlog_cnt + 1 >= capacity_ 这类判据，多报 1 在阈值贴近容量时会误判。
     // Full ring: push gates on next_tail != head, so capacity_ slots hold capacity_-1 frames and
     // this reading must be the real count.

@@ -11,9 +11,9 @@
 #include "http_header.h"
 #include "clientdatacache.h"
 #include "http2_ring_queue.h"
-#include "http2_send_queue.h"
 #include "debug_log.h"
 #include "base64.h"
+#include <algorithm>
 
 namespace http
 {
@@ -623,34 +623,6 @@ bool client_session::http2_send_enddata(unsigned int s_stream_id)
     return http2_ring_queue->push(_recvack, 9);
 }
 
-bool client_session::http2_send_rst_stream(unsigned int s_stream_id, unsigned int stream_error_code)
-{
-    unsigned char _recvack[] = {0x00, 0x00, 0x04, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-    _recvack[8]              = s_stream_id & 0xFF;
-    s_stream_id              = s_stream_id >> 8;
-    _recvack[7]              = s_stream_id & 0xFF;
-    s_stream_id              = s_stream_id >> 8;
-    _recvack[6]              = s_stream_id & 0xFF;
-    s_stream_id              = s_stream_id >> 8;
-    _recvack[5]              = s_stream_id & 0x7F;
-
-    _recvack[12]      = stream_error_code & 0xFF;
-    stream_error_code = stream_error_code >> 8;
-    _recvack[11]      = stream_error_code & 0xFF;
-    stream_error_code = stream_error_code >> 8;
-    _recvack[10]      = stream_error_code & 0xFF;
-    stream_error_code = stream_error_code >> 8;
-    _recvack[9]       = stream_error_code & 0xFF;
-
-    // 环满就丢：不重投（重投要把调用方变成排队语义）。调用方拿到 false 后自己决定挂起重试。
-    bool rst_pushed = http2_ring_queue->push(_recvack, 13);
-    if (!rst_pushed)
-    {
-        http2_ring_queue_drop_count++;
-        LOG_ERROR << " http2 control frame dropped, ring full, type:rst" << LOG_END;
-    }
-    return rst_pushed;
-}
 asio::awaitable<void> client_session::http2_send_ping()
 {
     unsigned char _recvack[] =
@@ -669,8 +641,7 @@ void client_session::send_ping()
 
 bool client_session::send_zero_data(unsigned int stream_id)
 {
-    // 必须是栈上缓冲。函数级 static 全进程只有一份，而发送线程有 2 个：
-    // 一个线程刚写完 stream_id，另一个线程就把它覆盖，
+    // 必须是栈上缓冲。函数级 static 全进程只有一份，多个连接同时调用会互相覆盖，
     // 「空 DATA + END_STREAM」会被发到另一条流上（A 流永不结束、B 流被截断）。
     unsigned char _recvack[] = {0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00};
 
@@ -685,65 +656,12 @@ bool client_session::send_zero_data(unsigned int stream_id)
     return http2_ring_queue->push(_recvack, 9);
 }
 
-void client_session::send_goaway(unsigned int last_stream_id, unsigned int error_code)
-{
-    // RFC 7540 §6.8 GOAWAY 帧
-    //   帧头(9B): length=8, type=0x07, flags=0, stream_id=0
-    //   载荷(8B): last_stream_id(4B) + error_code(4B), network byte order (big-endian)
-    // 大端 = 高位字节在前，参考本文件 push_window_update_conn 的正确写法
-    unsigned char _recvack[17] = {
-        0x00,
-        0x00,
-        0x08,// 长度 = 8
-        0x07,// GOAWAY 帧类型
-        0x00,// flags = 0
-        0x00,
-        0x00,
-        0x00,
-        0x00,// stream_id = 0
-        0x00,
-        0x00,
-        0x00,
-        0x00,// last_stream_id (big-endian 32bit)
-        0x00,
-        0x00,
-        0x00,
-        0x00// error_code (big-endian 32bit)
-    };
-    // 载荷从字节 9 起（0..8 是 9 字节帧头），下标照 push_window_update_conn 的口径来
-    // last_stream_id: 从高字节到低字节（big-endian）
-    _recvack[9]  = (last_stream_id >> 24) & 0xFF;
-    _recvack[10] = (last_stream_id >> 16) & 0xFF;
-    _recvack[11] = (last_stream_id >> 8) & 0xFF;
-    _recvack[12] = last_stream_id & 0xFF;
-    // error_code: 同上
-    _recvack[13] = (error_code >> 24) & 0xFF;
-    _recvack[14] = (error_code >> 16) & 0xFF;
-    _recvack[15] = (error_code >> 8) & 0xFF;
-    _recvack[16] = error_code & 0xFF;
-
-    if (!http2_ring_queue->push(_recvack, 17))
-    {
-        http2_ring_queue_drop_count++;
-        LOG_ERROR << " http2 control frame dropped, ring full, type:goway" << LOG_END;
-    }
-    else if (http2_need_wakeup)
-    {
-        // 入环必须踢醒可能挂在 co_client_session_task 里的消费者：
-        // 注册后复查（server.cpp 发起侧）只兜「先入队后挂起」，
-        // 「先挂起后入队」靠的就是生产者这边查 http2_need_wakeup。
-        // DATA/收尾帧路径都有这一脚，控制帧原先没有——GOAWAY 入环后
-        // 消费者睡死，直到 teardown 才被 cancel 一起杀掉。
-        waituphttp2();
-    }
-}
-
 asio::awaitable<void> client_session::flush_send_ring()
 {
-    // 有界排空：见 client_session.h 注释。不写 socket（唯一写者是 ring_client_server，
-    // 并发第二个 async_write 会交错字节流），只等——每轮 sleep 让出 strand，
+    // 有界排空：见 client_session.h 注释。不写 socket（写者是 ring_client_server 与
+    // 内联直发协程，共用 FIFO 写锁），只等——每轮 sleep 让出 strand，
     // 消费者的 async_write 完成事件才能被这个 strand 串行跑出来。
-    // 环空即「全部帧已写出」：pop 在 async_write 完成之后（见 ring_client_server 消费序）。
+    // 环空即「全部环内帧已写出」：pop 在 async_write 完成之后（见 ring_client_server 消费序）。
     if (http2_ring_queue == nullptr)
     {
         co_return;
@@ -781,11 +699,28 @@ asio::awaitable<void> client_session::flush_send_ring()
 
 asio::awaitable<void> client_session::async_send_goway(unsigned int last_stream_id, unsigned int error_code)
 {
-    send_goaway(last_stream_id, error_code);
-    // 入环成功才等排空；环满被丢弃时没有帧可冲，直接返回走原路径。
-    // 调用方紧随其后的 break → cancel() 不等这一脚，就会把 GOAWAY 连在途响应一起杀掉
-    //（RFC 9113 §6.8 的优雅关闭退化成裸 RST，客户端在途流全部挂死——压测 conn4 形态）。
-    co_await flush_send_ring();
+    // GOAWAY 经写锁直接写出，不走环，环满也不会丢。
+    unsigned char fr[17] = {0x00, 0x00, 0x08, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00,
+                            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    fr[9]                = (last_stream_id >> 24) & 0xFF;
+    fr[10]               = (last_stream_id >> 16) & 0xFF;
+    fr[11]               = (last_stream_id >> 8) & 0xFF;
+    fr[12]               = last_stream_id & 0xFF;
+    fr[13]               = (error_code >> 24) & 0xFF;
+    fr[14]               = (error_code >> 16) & 0xFF;
+    fr[15]               = (error_code >> 8) & 0xFF;
+    fr[16]               = error_code & 0xFF;
+    if (co_await http2_write_lock())
+    {
+        asio::error_code wec;
+        if (isssl)
+            co_await asio::async_write(*sslsocket, asio::buffer(fr, 17), asio::redirect_error(asio::use_awaitable, wec));
+        else
+            co_await asio::async_write(*socket, asio::buffer(fr, 17), asio::redirect_error(asio::use_awaitable, wec));
+        http2_write_unlock();
+    }
+    // 关闭冲刷：置 closing + cancel 全部等待者，内联发送协程在循环边界静音退出。
+    http2_close_waiters();
     co_return;
 }
 
@@ -969,22 +904,157 @@ void client_session::waituphttp2()
     }
 }
 
-void client_session::flush_parked_send()
-{
-    // 先立闸门再摘表：冲刷之后发送线程若还想挂起，会走「直接回池」分支，
-    // 不会再留下一张永远没人来收的表。
-    send_park_closed.store(true);
+// ---- h2 直发原语 ----
+// 都在本连接 strand 上跑：容器不用锁，cancel 和 async_wait 同一个 executor。
 
-    std::list<std::shared_ptr<http2_send_data_t>> drained;
-    auto &send_queue_obj = get_http2_send_queue();
-    if (!send_queue_obj.detach_parked(this, 0, drained))
+asio::awaitable<bool> client_session::http2_write_lock()
+{
+    asio::steady_timer timer(co_await asio::this_coro::executor);
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(CONST_HTTP2_WRITE_LOCK_TIMEOUT);
+    while (http2_write_busy)
     {
-        return;
+        if (http2_closing.load(std::memory_order_relaxed))
+            co_return false;
+        const auto left = deadline - std::chrono::steady_clock::now();
+        if (left <= std::chrono::steady_clock::duration::zero())
+            co_return false;
+        http2_write_waiters.push_back(&timer);
+        timer.expires_after(left);
+        auto [wait_ec] = co_await timer.async_wait(asio::as_tuple(asio::use_awaitable));
+        http2_write_waiters.remove(&timer);
+        if (http2_write_next_owner == &timer)
+        {
+            // 被交接选中就拿着锁，不管 ec 是什么都要处置：超时或关闭时把锁传下去或释放，
+            // 不然 busy 永真、队列已空，这条连接就写死了。
+            http2_write_next_owner = nullptr;
+            if (!http2_closing.load(std::memory_order_relaxed) && wait_ec == asio::error::operation_aborted)
+                co_return true;
+            http2_write_unlock();
+            co_return false;
+        }
+        if (http2_closing.load(std::memory_order_relaxed))
+            co_return false;
+        if (wait_ec != asio::error::operation_aborted)
+            co_return false;
+        // 不是交接的 cancel：回循环重判
     }
-    for (auto &sp : drained)
+    http2_write_busy = true;
+    co_return true;
+}
+
+void client_session::http2_write_unlock()
+{
+    if (!http2_write_waiters.empty())
     {
-        send_queue_obj.back_cache_ptr(sp);
+        // busy 不置 false：所有权交接给队首，它的续体醒来即持锁
+        http2_write_next_owner = http2_write_waiters.front();
+        http2_write_waiters.pop_front();
+        http2_write_next_owner->cancel();
     }
+    else
+    {
+        http2_write_busy = false;
+    }
+}
+
+asio::awaitable<bool> client_session::http2_wait_window_episode(unsigned int sid, const std::atomic_bool &dead)
+{
+    asio::steady_timer timer(co_await asio::this_coro::executor);
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(CONST_HTTP2_WINDOW_STALL_TIMEOUT);
+    // 注销两边都清：timer 可能换过登记边，残留条目会被 cancel 成悬垂指针。
+    auto unregister = [&]()
+    {
+        auto it = http2_stream_window_waiters.find(sid);
+        if (it != http2_stream_window_waiters.end() && it->second == &timer)
+            http2_stream_window_waiters.erase(it);
+        auto &v = http2_conn_window_waiters;
+        v.erase(std::remove(v.begin(), v.end(), &timer), v.end());
+    };
+    for (;;)
+    {
+        if (http2_closing.load(std::memory_order_relaxed) || dead.load(std::memory_order_relaxed))
+            co_return false;
+        const auto left = deadline - std::chrono::steady_clock::now();
+        if (left <= std::chrono::steady_clock::duration::zero())
+            co_return false;
+        // 补查两级窗口：连接级见底登记连接级，否则看流级（条目缺失按
+        // remote_initial_window_size 判）；有额度直接返回让调用方 reserve。
+        const bool conn_empty = window_update_num.load() <= has_send_update_num.load();
+        if (!conn_empty)
+        {
+            std::lock_guard<std::mutex> lk(stream_send_window_mutex);
+            auto it = stream_send_window.find(sid);
+            unsigned int avail = (it == stream_send_window.end()) ? remote_initial_window_size.load() : it->second;
+            if (avail > 0)
+                co_return true;
+        }
+        unregister();
+        if (conn_empty)
+            http2_conn_window_waiters.push_back(&timer);
+        else
+            http2_stream_window_waiters[sid] = &timer;
+        timer.expires_after(left);
+        auto [wait_ec] = co_await timer.async_wait(asio::as_tuple(asio::use_awaitable));
+        unregister();
+        if (http2_closing.load(std::memory_order_relaxed) || dead.load(std::memory_order_relaxed))
+            co_return false;
+        if (wait_ec != asio::error::operation_aborted)
+            co_return false;// 预算睡满 → 调用方撤流
+        // aborted（WU/IWS/dead cancel）→ 回循环顶重查额度与剩余预算
+    }
+}
+
+void client_session::http2_cancel_conn_waiters()
+{
+    // 按登记序 cancel ⇒ 续体按 FIFO 醒来，队首先 reserve
+    for (auto *t : http2_conn_window_waiters)
+        t->cancel();
+}
+
+void client_session::http2_cancel_stream_waiter(unsigned int sid)
+{
+    auto it = http2_stream_window_waiters.find(sid);
+    if (it != http2_stream_window_waiters.end())
+        it->second->cancel();
+}
+
+void client_session::http2_cancel_all_stream_waiters()
+{
+    for (auto &kv : http2_stream_window_waiters)
+        kv.second->cancel();
+}
+
+void client_session::http2_close_waiters()
+{
+    http2_closing.store(true, std::memory_order_relaxed);
+    for (auto *t : http2_conn_window_waiters)
+        t->cancel();
+    for (auto &kv : http2_stream_window_waiters)
+        kv.second->cancel();
+    for (auto *t : http2_write_waiters)
+        t->cancel();
+}
+
+asio::awaitable<bool> client_session::http2_send_rst_direct(unsigned int s_stream_id, unsigned int stream_error_code)
+{
+    unsigned char fr[13] = {0x00, 0x00, 0x04, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+    fr[5]                = (s_stream_id >> 24) & 0x7F;
+    fr[6]                = (s_stream_id >> 16) & 0xFF;
+    fr[7]                = (s_stream_id >> 8) & 0xFF;
+    fr[8]                = s_stream_id & 0xFF;
+    fr[9]                = (stream_error_code >> 24) & 0xFF;
+    fr[10]               = (stream_error_code >> 16) & 0xFF;
+    fr[11]               = (stream_error_code >> 8) & 0xFF;
+    fr[12]               = stream_error_code & 0xFF;
+    if (!co_await http2_write_lock())
+        co_return false;
+    asio::error_code wec;
+    if (isssl)
+        co_await asio::async_write(*sslsocket, asio::buffer(fr, 13), asio::redirect_error(asio::use_awaitable, wec));
+    else
+        co_await asio::async_write(*socket, asio::buffer(fr, 13), asio::redirect_error(asio::use_awaitable, wec));
+    http2_write_unlock();
+    co_return !wec;
 }
 
 asio::awaitable<unsigned int> client_session::async_send_writer(const unsigned char *buffer, unsigned int buffersize)
@@ -1129,7 +1199,6 @@ asio::awaitable<unsigned int> client_session::async_send_writer(const std::strin
 
 void client_session::cancel()
 {
-    flush_parked_send();
     if (isssl)
     {
         sslsocket->lowest_layer().cancel(ec);
@@ -1143,7 +1212,6 @@ void client_session::cancel()
 
 void client_session::half_stop()
 {
-    flush_parked_send();
     if (iserror)
     {
         isclose = true;
@@ -1154,7 +1222,8 @@ asio::awaitable<std::string> client_session::async_stop()
     DEBUG_LOG("socket async_stop");
     std::string temp_msg;
     isclose = true;
-    flush_parked_send();
+    http2_closing.store(true, std::memory_order_relaxed);
+    http2_close_waiters();
     // 唤醒挂起中的发送消费者协程，让它看到 isclose 后退出
     waituphttp2();
     try
@@ -1243,7 +1312,9 @@ void client_session::stop()
 {
     DEBUG_LOG("socket stop");
     isclose = true;
-    flush_parked_send();
+    // 跨线程调用只置原子旗（cancel 必须在 strand 上，留给 async_stop/等待者预算到期）；
+    // 内联发送协程最迟 10 秒预算到即见旗退出。
+    http2_closing.store(true, std::memory_order_relaxed);
     // 唤醒挂起中的发送消费者协程，让它看到 isclose 后退出
     waituphttp2();
     try

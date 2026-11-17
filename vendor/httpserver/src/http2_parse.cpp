@@ -553,7 +553,6 @@ void http2parse::headers_parse(const HTTP2_HEADER_FRAME_T &header_block_obj, std
         //    「连接级 + 流级」两个 WINDOW_UPDATE 的话：既抹掉其他流已消费的额度（并发 POST
         //    会静默挂死），又把对端连接窗口每请求顶高 16MB（约 129 次后超 2^31-1，
         //    对端必须按 FLOW_CONTROL_ERROR 断连）。
-        need_wakeup_send_threads = true;
 
         auto iter = http_post_data.find(header_stream_id);
         if (iter == http_post_data.end())
@@ -2892,7 +2891,7 @@ void http2parse::readsetting(const HTTP2_PACK_DATA_T &temp_pack_data)
             break;
 
         case HTTP2_SETTINGS_INITIAL_WINDOW_SIZE:
-
+        {
             if (ident_value > CONST_HTTP2_MAX_WINDOW)
             {
                 // RFC 9113 §6.5.2: 超过 2^31-1 必须按 FLOW_CONTROL_ERROR 处理。
@@ -2904,22 +2903,24 @@ void http2parse::readsetting(const HTTP2_PACK_DATA_T &temp_pack_data)
             // INITIAL_WINDOW_SIZE 是「每一条流」的发送窗口初值，
             // 绝不能赋给连接级窗口 window_update_num。RFC 9113 §6.9.2 还要求：
             // 该值变化时，所有已存在流的发送窗口按 (new - old) 等额调整。
+            signed long long iws_delta = 0;
             {
                 // SETTINGS_INITIAL_WINDOW_SIZE 变更：每条已存在流按 (new - old) 等额调整。
                 // unsigned cur + signed delta 在 delta 负时会 wrap，所以先过 int64 中间态
                 // 统一 clamp 到 [0, MAX_WINDOW]。
                 // Each existing stream adjusts by (new - old). cur + delta can underflow
                 // unsigned cur when delta is negative — route through int64 then clamp to [0, MAX].
-                // 已知限制（2026-10-09 定案：维持 unsigned，不改成 signed 追负值, 不然不好维护窗口）：地板到 0 抹掉的那段
-                // 负额度不再记账，对端随后对该流发 WINDOW_UPDATE 等于把它白退回去，本端允许的在途字节
-                // 比 RFC 9113 §6.9.1 的口径多出一截。追负值要改发送侧三处闸门（reserve/refund/gate_open）
-                // 再加 readwinupdate 里那处额度累加，并逐处防下溢；收益只是抹平这条限制，所以不换。
+                // 已知限制：窗口值维持 unsigned，不改成 signed 追负值（改 signed 后整本窗口账更难维护）。
+                // 地板到 0 抹掉的那段负额度不再记账，对端随后对该流发 WINDOW_UPDATE 等于把它白退回去，
+                // 本端允许的在途字节比 RFC 9113 §6.9.1 的口径多出一截。追负值要改发送侧 reserve/refund
+                // 两处闸门，再加 readwinupdate 里那处额度累加，并逐处防下溢；收益只是抹平这条限制，所以不换。
                 std::lock_guard<std::mutex> lk(peer_session->stream_send_window_mutex);
                 signed long long old_ll =
                     static_cast<signed long long>(peer_session->remote_initial_window_size.load());
                 signed long long new_ll =
                     static_cast<signed long long>(ident_value);
                 signed long long delta = new_ll - old_ll;
+                iws_delta              = delta;
                 for (auto &kv : peer_session->stream_send_window)
                 {
                     signed long long raw =
@@ -2941,7 +2942,12 @@ void http2parse::readsetting(const HTTP2_PACK_DATA_T &temp_pack_data)
                 }
             }
             peer_session->remote_initial_window_size.store(ident_value);
+            // IWS 上调时叫醒等待流级窗口的协程（从 0 抬高不唤醒 = 10 秒误杀）；
+            // 下调不唤醒（窗口只会更紧，醒来也是重挂）。
+            if (iws_delta > 0)
+                peer_session->http2_cancel_all_stream_waiters();
             break;
+        }
 
         case HTTP2_SETTINGS_MAX_FRAME_SIZE:
             if (ident_value < 16384 || ident_value > 16777215)
@@ -2983,7 +2989,6 @@ void http2parse::readsetting(const HTTP2_PACK_DATA_T &temp_pack_data)
         peer_session->grant_conn_window(CONST_HTTP2_WINDOW_UPDATE_STEP);
         conn_recv_window_num = CONST_HTTP2_LOCAL_INITIAL_WINDOW;
     }
-    need_wakeup_send_threads = true;
 }
 void http2parse::readpriority(const HTTP2_PACK_DATA_T &temp_pack_data)
 {
@@ -3066,17 +3071,17 @@ void http2parse::readwinupdate(const HTTP2_PACK_DATA_T &temp_pack_data)
         //
         // window_update_num 是「对端累计授予额」，不是剩余额：发送侧扣的是
         // has_send_update_num（累计已发），剩余额 = 两者之差（见
-        // http2_loop_send_sequence 的连接级窗口判定）。2^31-1 上限约束的是
+        // 发送侧 reserve 的连接级窗口判定）。2^31-1 上限约束的是
         // 「未确认的剩余额度」，所以溢出校验必须作用在差值上；作用在累计值上会
         // 在长连接上必然误杀：累计授予额只增不减，发满 2^31-1 字节之后，
         // 每一个合法的 WINDOW_UPDATE 都会被拒成连接级错误。
         // 累加做成 CAS 循环：不再依赖「h2 帧解析只在本连接 strand 上、写者唯一」这条
         // 架构约定来保证 load-check-store 不丢并发 WINDOW_UPDATE 的增量。溢出判定放进
         // 循环每轮重算，与发送侧 http2_reserve_send_window 的 CAS 同形；has_send_update_num
-        // 只由发送线程 CAS 推进，这里只取快照参与差值判定。
+        // 只由发送侧 CAS 推进，这里只取快照参与差值判定。
         // CAS loop instead of load-check-store: correctness no longer rests on the
         // strand-single-writer assumption. Overflow is rechecked every round, same shape as
-        // the send-side reserve CAS (has_send_update_num is only CAS-advanced by send threads;
+        // the send-side reserve CAS (has_send_update_num is only CAS-advanced by senders;
         // it is read as a snapshot for the available-window check).
         unsigned long long granted = peer_session->window_update_num.load();
         for (;;)
@@ -3093,8 +3098,9 @@ void http2parse::readwinupdate(const HTTP2_PACK_DATA_T &temp_pack_data)
             if (peer_session->window_update_num.compare_exchange_weak(granted, granted + ident_stream))
                 break;
         }
-        // 连接级发送窗口抬升：可能有流因为「累计授予 - 累计已发 = 0」挂在那里
-        need_wakeup_send_threads = true;
+        // 连接级发送窗口抬升：可能有流因为「累计授予 - 累计已发 = 0」挂在那里。
+        // cancel 全部连接级等待者，让它们按登记序醒来重查 reserve。
+        peer_session->http2_cancel_conn_waiters();
     }
     else
     {
@@ -3188,8 +3194,9 @@ void http2parse::readwinupdate(const HTTP2_PACK_DATA_T &temp_pack_data)
             return;
         }
         it->second = static_cast<unsigned int>(sum);
-        // 流级窗口抬升：这条流可能就是挂在 parked_list 里等它的那一个
-        need_wakeup_send_threads = true;
+        // 流级窗口抬升：这条流可能正有发送协程停在流级窗口上等它。
+        // cancel 该流的等待者，让它立刻醒来重查额度。
+        peer_session->http2_cancel_stream_waiter(wu_sid);
     }
     // 注意：本函数只影响「发送」窗口。本端接收侧另有 conn_recv_window_num /
     // stream_recv_window 两套记账，客户端的 WINDOW_UPDATE 绝不能改动它们。
@@ -3222,7 +3229,6 @@ void http2parse::readping(const HTTP2_PACK_DATA_T &temp_pack_data)
     {
         peer_session->http2_ring_queue_drop_count++;
     }
-    need_wakeup_send_threads = true;
     DEBUG_LOG("need ack ping");
 }
 void http2parse::readrst_stream(const HTTP2_PACK_DATA_T &temp_pack_data)
@@ -3272,7 +3278,6 @@ void http2parse::consume_conn_window(unsigned int bytes)
     {
         // 增量正好等于本端已消费掉的量
         peer_session->grant_conn_window(CONST_HTTP2_LOCAL_INITIAL_WINDOW - conn_recv_window_num);
-        need_wakeup_send_threads = true;
         conn_recv_window_num     = CONST_HTTP2_LOCAL_INITIAL_WINDOW;
     }
 }
@@ -3309,7 +3314,7 @@ void http2parse::cleanup_stream(unsigned int sid)
     {
         // 这条流被 RST 或已关闭：peer 还在就把 isclose 置真（停止外发的信号），然后从弱表里摘掉。
         // lock() 复活出来的强引用只在本语句块内有效；isclose 是 std::atomic<bool>，
-        // 发送线程在 http2_loop_send_sequence 与 http2_send_queue_loop 里只读它做停止判断，
+        // 内联发送协程在每帧开始前只读它做停止判断，
         // 这里不碰其他成员，所以跨线程读写不会交织。
         std::shared_ptr<httppeer> temp_peer = wit->second.lock();
         if (temp_peer)
@@ -3318,6 +3323,11 @@ void http2parse::cleanup_stream(unsigned int sid)
         }
         http_data_weak.erase(wit);
     }
+    // 直发架构 dead 边：上面已把 peer->isclose 置真（内联发送协程的停等判据），
+    // 这里 cancel 该流的窗口停等者让它立刻醒来见 dead，而不是睡满 10 秒预算。
+    // 本函数是全部解析侧死亡边（对端 RST / 流级错误 / 收尾）的唯一回收口径，
+    // 一处接边即覆盖；本端撤流由发送协程自己置 isclose 并退出。
+    peer_session->http2_cancel_stream_waiter(sid);
     {
         std::lock_guard<std::mutex> lk(peer_session->stream_send_window_mutex);
         peer_session->stream_send_window.erase(sid);
@@ -5499,7 +5509,6 @@ void http2parse::readpostdata(const HTTP2_PACK_DATA_T &temp_pack_data)
         // 只补当前这条流，不要波及别的流
         peer_session->grant_stream_window(temp_pack_data.stream_id,
                                           CONST_HTTP2_LOCAL_INITIAL_WINDOW - s_win_iter->second);
-        need_wakeup_send_threads = true;
         s_win_iter->second       = CONST_HTTP2_LOCAL_INITIAL_WINDOW;
     }
 

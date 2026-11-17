@@ -2,7 +2,7 @@
 #define ORM_CMS_GITHUB_REPOBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Mon, 16 Nov 2026 11:01:39 GMT
+*本文件为自动生成 Tue, 17 Nov 2026 02:59:34 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -665,7 +665,7 @@ namespace github_repo_info
 	static constexpr std::array<unsigned int,12> col_length={0,0,0,255,0,512,64,0,0,0,0,0};
 	static constexpr std::array<unsigned char,12> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0};
 	static constexpr std::array<bool,12> col_null={false,false,false,false,false,false,false,false,false,false,false,false};
-	static constexpr std::array<bool,12> col_indexed={true,true,true,false,false,false,false,false,false,false,false,false};
+	static constexpr std::array<bool,12> col_indexed={true,true,false,false,false,false,false,false,false,false,false,false};
 	static constexpr std::string_view auto_pk_name ="id";
 	static constexpr int auto_pk_index = 0;
 

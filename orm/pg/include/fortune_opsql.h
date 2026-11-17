@@ -7,7 +7,7 @@
  *  @update 2026-06-14 add xxx_fetch_to, leftjoin
  *  @dest ORM PostgreSQL intermediate connection layer, sourced from MySQL, PostgreSQL中间连接层
  *  本文件自动生成 This document is automatically generated.
- *  Creation time Mon, 16 Nov 2026 11:01:45 GMT
+ *  Creation time Tue, 17 Nov 2026 02:59:37 GMT
  */
 #include <iostream>
 #include <mutex>

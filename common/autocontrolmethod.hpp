@@ -61,6 +61,7 @@
 #include "test_customstruct.h"
 #include "test_deepseekapi.h"
 #include "test_dir_name.h"
+#include "test_echoraw.h"
 #include "test_escape_str.h"
 #include "test_httppeersend.h"
 #include "test_leftjoin.h"
@@ -305,9 +306,9 @@ namespace http
         reg_raw("", "/admin/rbac/sysuser/delete", admin_isloginjson, nullptr, rbac_sysuser_delete, nullptr, 0, 0, 0, ""); // controller/src/rbac/sysuser.cpp:150
         reg_raw("", "/admin/rbac/userrole/list", admin_isloginjson, nullptr, rbac_userrole_list, nullptr, 0, 0, 0, ""); // controller/src/rbac/userrole.cpp:55
         reg_raw("", "/admin/rbac/userrole/save", admin_isloginjson, nullptr, rbac_userrole_save, nullptr, 0, 0, 0, ""); // controller/src/rbac/userrole.cpp:90
-        reg_raw("", "/metrics", nullptr, nullptr, paozhu_metrics, nullptr, 0, 0, 0, ""); // controller/src/serverwatch.cpp:400
-        reg_raw("", "/paozhu_status", nullptr, nullptr, paozhu_metrics_legacy, nullptr, 0, 0, 0, ""); // controller/src/serverwatch.cpp:413
-        reg_raw("", "/frametasks_timeloop", nullptr, nullptr, frametasks_timeloop, nullptr, 0, 0, 0, ""); // controller/src/serverwatch.cpp:709
+        reg_raw("", "/metrics", nullptr, nullptr, paozhu_metrics, nullptr, 0, 0, 0, ""); // controller/src/serverwatch.cpp:398
+        reg_raw("", "/paozhu_status", nullptr, nullptr, paozhu_metrics_legacy, nullptr, 0, 0, 0, ""); // controller/src/serverwatch.cpp:411
+        reg_raw("", "/frametasks_timeloop", nullptr, nullptr, frametasks_timeloop, nullptr, 0, 0, 0, ""); // controller/src/serverwatch.cpp:707
         reg_raw("", "/superadmin/rbac/companyperm", superadmin_islogin, nullptr, superadmin_rbac_companyperm, nullptr, 0, 0, 0, ""); // controller/src/superadmin/rbac/companyperm.cpp:26
         reg_raw("", "/superadmin/rbac/companyperm/save", superadmin_isloginjson, nullptr, superadmin_rbac_companyperm_save, nullptr, 0, 0, 0, ""); // controller/src/superadmin/rbac/companyperm.cpp:148
         reg_raw("", "/superadmin/rbac/perm", superadmin_islogin, nullptr, superadmin_rbac_perm_list, nullptr, 0, 0, 0, ""); // controller/src/superadmin/rbac/rbacperm.cpp:14
@@ -578,6 +579,7 @@ namespace http
         reg_raw("", "/deepseek_async", nullptr, nullptr, nullptr, test_deepseek_async, 0, 0, 0, ""); // controller/src/test_deepseekapi.cpp:103
         reg_raw("", "/deepseek_sse", nullptr, nullptr, nullptr, test_deepseek_sse, 0, 0, 0, ""); // controller/src/test_deepseekapi.cpp:193
         reg_raw("", "/deepseek_chunk", nullptr, nullptr, nullptr, test_deepseek_chunk, 0, 0, 0, ""); // controller/src/test_deepseekapi.cpp:298
+        reg_raw("", "/echoraw", nullptr, nullptr, nullptr, arena_echo, 0, 0, 0, ""); // controller/src/test_echoraw.cpp:8
         reg_raw("", "/test_httppeersend_async", nullptr, nullptr, nullptr, test_httppeersend_async, 0, 0, 0, ""); // controller/src/test_httppeersend.cpp:98
         reg_raw("", "/test_leftjoinlimit", nullptr, nullptr, nullptr, test_leftjoinlimit, 0, 0, 0, ""); // controller/src/test_leftjoin.cpp:25
         reg_raw("", "/test_leftjoinfull", nullptr, nullptr, nullptr, test_leftjoinfull, 0, 0, 0, ""); // controller/src/test_leftjoin.cpp:56

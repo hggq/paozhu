@@ -299,8 +299,6 @@ std::string write_prometheus_metrics(httpserver &app, const server_loaclvar &gva
                      (std::uint64_t)app.runthreads.size());
     writer.emit_uint("paozhu_websocket_threads", "gauge", "WebSocket dispatch threads.", "",
                      (std::uint64_t)app.websocketthreads.size());
-    writer.emit_uint("paozhu_http2_send_threads", "gauge", "HTTP/2 send threads.", "",
-                     (std::uint64_t)app.http2_send_data_threads.size());
 
     // 间隔任务
     // Timeloop
@@ -444,7 +442,7 @@ std::string paozhu_metrics_legacy(std::shared_ptr<httppeer> peer)
     unsigned int th_pool  = app.clientrunpool.getpoolthreadnum();
     unsigned int th_run   = (unsigned int)app.runthreads.size();
     unsigned int th_ws    = (unsigned int)app.websocketthreads.size();
-    unsigned int th_h2    = (unsigned int)app.http2_send_data_threads.size();
+    unsigned int th_h2    = app.http2_active_senders_total.load();// 活跃 h2 内联发送协程（全进程）
 
     unsigned int loop_ticks = app.clientloop_ticks.load();
     unsigned int loop_skip  = app.clientloop_skipped.load();

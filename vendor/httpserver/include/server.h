@@ -86,6 +86,7 @@ namespace http
 {
 
 namespace fs = std::filesystem;
+struct http2_compress_job;
 class httpserver
 {
   public:
@@ -153,11 +154,12 @@ class httpserver
     asio::awaitable<void> http2_send_content_append(unsigned int stream_id, std::string &_send_data, const std::string &_source_data, bool is_end = false);
 
     asio::awaitable<void> http2_co_send_file(std::shared_ptr<httppeer> peer);
-    asio::awaitable<void> http2_co_send_304(std::shared_ptr<httppeer> peer, std::shared_ptr<http2_send_data_t>);
-    asio::awaitable<void> http2_co_send_compress(std::shared_ptr<httppeer> peer, std::shared_ptr<http2_send_data_t> send_file_obj);
+    asio::awaitable<void> http2_co_send_304(std::shared_ptr<httppeer> peer, const std::string &etag, const std::string &content_type);
+    template <typename JobT>
+    asio::awaitable<void> http2_co_send_compress(std::shared_ptr<httppeer> peer, JobT &job);
 
     // Shared helpers to remove duplicated blocks across the http2 send paths.
-    void http2_compress_output(std::shared_ptr<httppeer> &peer, std::shared_ptr<http2_send_data_t> &send_file_obj);
+    void http2_compress_output(std::shared_ptr<httppeer> &peer, std::string &out_content, unsigned long long &out_len);
     void clear_peer_data(std::shared_ptr<httppeer> &peer);
 
     // 取一个可跨连接复用的 httppeer。最后一个引用放开时走 reset_for_reuse() 回池，
@@ -178,11 +180,6 @@ class httpserver
     asio::awaitable<void> http1_fastcgi(std::shared_ptr<httppeer>);
     asio::awaitable<void> http1loop(std::shared_ptr<httppeer>, std::shared_ptr<client_session>);
 
-    asio::awaitable<void> http2_send_sequence_header(std::shared_ptr<httppeer> peer, std::shared_ptr<http2_send_data_t>);
-
-    bool http2_loop_send_sequence(std::shared_ptr<http2_send_data_t>);
-    void http2_send_queue_loop(unsigned char index_id);
-
     // RFC 9113 §6.9 发送侧「查余额 + 扣减」原子预留：必须在 fread / push 之前调用。
     // 返回实际到手额度（0 = 本次调用无额度，调用方让路，不得推进任何进度）。
     // want 超过余额时按余额缩帧；连接级扣了、流级不够时把差额退还连接级。
@@ -197,33 +194,6 @@ class httpserver
     // Return quota that didn't actually go out to both window buckets.
     void http2_refund_send_window(client_session *session_obj, unsigned int stream_id, unsigned long long back);
 
-    // 挂起 / 回灌。park 只在发送线程里调用：返回 false 表示本连接已经冲刷过，
-    // 调用方必须自己把对象回池，不能让它留在自己的链表里。
-    //
-    // Park / refill. park must be called from a send thread only. Returns false if this
-    // connection has already been flushed — caller must recycle the object itself and
-    // must NOT leave it in its own linked list.
-    bool http2_park_send(std::shared_ptr<http2_send_data_t> &sp, unsigned char reason);
-    // 事件边统一入口：只重算本连接中原因匹配的挂起对象（reason 0 = 全部），
-    // 够格的移进 sent_data_list 并唤醒。
-    // Unified event-edge entry: recompute gates for this connection's parked objects
-    // matching reason (0 = all), move eligible ones into sent_data_list and notify.
-    void requeue_parked(client_session &session_obj, unsigned char reason);
-    // 摘出来的一批按闸门分流：够格入队并唤醒，其余留在参数里由调用方挂回并刷新原因。返回入队条数。
-    // Split a drained batch by gate: eligible ones enqueued + notified; the rest stay in the
-    // parameter for the caller to re-park with a refreshed reason. Returns the number enqueued.
-    unsigned int dispatch_parked(std::list<std::shared_ptr<http2_send_data_t>> &in);
-    // 兜底扫描：事件边漏了某次闸门抬升时，挂起的流最迟 CONST_HTTP2_BELT_SWEEP_SECONDS 秒后
-    // 被重新评估，顺带给仍在表里的对象续 time_limit、给永久停读的流撤流。
-    // 由发送线程在两处调用（带期限的等待之后、内层每轮之前），内部按秒级 CAS 自判归属：
-    // 没到一拍时只是一次原子读，不遍历、不抢锁。
-    //
-    // Belt-sweep catch-all: when event edges miss a gate lift, parked streams are re-evaluated
-    // at most CONST_HTTP2_BELT_SWEEP_SECONDS later. It also refreshes time_limit for objects still
-    // in the table and RSTs permanently-stop-reading streams. Invoked by send threads in two places
-    // (after the timed wait and before the inner loop each round). Internally a per-second CAS
-    // decides ownership; when not due it's just one atomic read — no walks, no locks.
-    void requeue_stuck_parked();
 
     asio::awaitable<void> ring_client_server(std::shared_ptr<client_session> peer_session);
 
@@ -273,7 +243,7 @@ class httpserver
     asio::awaitable<bool> http2_static_file_authority(std::shared_ptr<httppeer> peer);
 
     // 集中处理 HTTP/2 解析期错误：连接级→GOAWAY 断连（返回 true，调用方 break）；
-    // 流级→RST_STREAM 重置该流、cleanup、清错，并标记 need_wakeup_send_threads 由主循环末尾
+    // 流级→RST_STREAM 重置该流（直写）、cleanup、清错；旧由主循环末尾
     // 统一唤醒发送协程（返回 false，连接继续复用）。解析器只需 set_conn_error/set_stream_error 置位，
     // 错误分流与收发细节全部收敛于此，业务帧处理代码无需关心 GOAWAY/RST 差异。
     asio::awaitable<bool> http2_handle_parse_error(http2parse &h2, std::shared_ptr<client_session> sess);
@@ -363,15 +333,6 @@ class httpserver
     {
         std::printf("~httpserver\n");
         isstop = true;
-        // 必须先唤醒再 stop/join：发送线程阻塞在 send_data_condition 上时不会因为
-        // io_context.stop() 而退出。旧实现只置位不通知，两个发送线程会成为 joinable
-        // 的残留 std::thread，vector 析构时直接 std::terminate。
-        //
-        // Must wake first, then stop/join: send threads blocked on send_data_condition do NOT
-        // exit because io_context.stop() was called. The old code only set a flag without
-        // notifying — the two send threads would remain joinable leftover std::thread objects,
-        // and vector destructor then calls std::terminate.
-        send_data_condition.notify_all();
         websocketcondition.notify_all();
         io_context->stop();
 
@@ -390,13 +351,6 @@ class httpserver
             if (websocketthreads[i].joinable())
             {
                 websocketthreads[i].join();
-            }
-        }
-        for (unsigned int i = 0; i < http2_send_data_threads.size(); ++i)
-        {
-            if (http2_send_data_threads[i].joinable())
-            {
-                http2_send_data_threads[i].join();
             }
         }
         // 池里的 peer 在线程都 join 完之后、其它成员析构之前放掉。
@@ -421,7 +375,6 @@ class httpserver
     std::vector<std::shared_ptr<asio::io_context>> io_contexts;
     std::vector<std::thread> runthreads;
     std::vector<std::thread> websocketthreads;
-    std::vector<std::thread> http2_send_data_threads;
     std::list<std::weak_ptr<websockets_api>> websockettasks;
     std::list<std::weak_ptr<socket_api>> sockettasks;
     unsigned int socket_broadcast(unsigned int groupid, std::string_view payload);
@@ -465,14 +418,10 @@ class httpserver
 
     // 这几个标志由关闭/限流路径写、被多个分发线程与协程读，必须是原子的。
     // 裸 bool 在这里是 data race（UB），编译器有权把 while (isstop == false) 优化成死循环。
-    // 注意：原子化修的是「形式上的竞态」，不解决「条件变量谓词漏判退出条件」——见
-    // http2_send_queue_loop 的 wait 谓词与 ~httpserver 的 notify_all()。
     //
     // These flags are written by the close/rate-limit paths and read by multiple dispatch
     // threads and coroutines — they must be atomic. A plain bool here is a data race (UB);
     // the compiler is free to hoist 'while (isstop == false)' into an infinite loop.
-    // Note: atomicity fixes the formal race, not the predicate-miss problem — see
-    // http2_send_queue_loop's wait predicate and ~httpserver's notify_all().
     std::atomic_bool isstop             = false;
     std::atomic_bool istraffic          = false;
     std::atomic_bool hard_kill_old_link = false;
@@ -495,6 +444,8 @@ class httpserver
     std::atomic_uint http2_minute_count = 0;
 
     std::atomic_uint total_http2_count = 0;
+    // 全进程活跃 h2 发送协程数，状态页用；入口加、出口减（RAII）。
+    std::atomic_uint http2_active_senders_total = 0;
     std::atomic_uint total_http1_count = 0;
 
     std::atomic_uint rate_limit_new_wait_num    = 300;// 开始限速的负载阈值
@@ -514,11 +465,6 @@ class httpserver
     std::list<std::weak_ptr<client_session>> socket_session_lists;
     std::list<std::shared_ptr<client_session>> socket_session_wait_rate;//如果限速了放入限速线程入站
 
-    std::condition_variable send_data_condition;
-
-    std::list<std::shared_ptr<http2_send_data_t>> sent_data_list;
-
-    std::mutex send_data_mutex;
     std::mutex wait_clear_mutex;
     std::list<std::string> access_loglist;
     std::list<std::string> error_loglist;

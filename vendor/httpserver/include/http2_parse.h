@@ -361,11 +361,6 @@ class http2parse
     // struct http2_goaway_t goaway_data;
     // unsigned long long content_length;
     std::atomic_bool task_in               = false;
-    // 本连接的「发送侧可能需要重新评估」标记：由读协程在处理帧时置位，
-    // 在 http2 读循环末尾消费 —— 消费点会调 httpserver::requeue_parked 回灌挂起的
-    // 发送对象，再唤醒读协程自己。改名前的名字 need_wakeup_send_data 会让人以为
-    // 它直接唤醒发送线程，其实它只是同一连接上的一条位信号。
-    std::atomic_bool need_wakeup_send_threads = false;
     std::shared_ptr<client_session> peer_session;
 
     // ---- 本端接收窗口记账（RFC 9113 §6.9）----

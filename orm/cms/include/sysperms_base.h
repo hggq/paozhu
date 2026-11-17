@@ -2,7 +2,7 @@
 #define ORM_CMS_SYSPERMSBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Mon, 16 Nov 2026 11:01:39 GMT
+*本文件为自动生成 Tue, 17 Nov 2026 02:59:34 GMT
 ***/
 #include <iostream>
 #include <charconv>
@@ -679,7 +679,7 @@ namespace sysperms_info
 	static constexpr std::array<unsigned int,14> col_length={0,0,0,120,60,60,0,0,0,0,0,0,0,0};
 	static constexpr std::array<unsigned char,14> col_decimals={0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 	static constexpr std::array<bool,14> col_null={false,false,false,false,false,false,false,false,false,false,false,false,false,false};
-	static constexpr std::array<bool,14> col_indexed={true,false,true,true,false,false,false,false,false,false,false,false,false,false};
+	static constexpr std::array<bool,14> col_indexed={true,false,true,false,false,false,false,false,false,false,false,false,false,false};
 	static constexpr std::string_view auto_pk_name ="permsid";
 	static constexpr int auto_pk_index = 0;
 

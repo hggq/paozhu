@@ -26,7 +26,7 @@ namespace
 //   run_one_step_with_peer（peer 版）——peer 由任务闭包、finish、唤醒 op 依次各自持有，
 //   池任务闭包在池线程析构之后，队列里排队的唤醒 op 仍替协程帧持着一份引用，
 //   最后一份在 strand 线程释放。httppeer 同时被发送线程使用
-//   （http2_loop_send_sequence 与 http2_send_queue_loop 读 sq_obj->peer / sp->peer），
+//   （h1 发送路径读 sq_obj->peer），
 //   把释放点固定到 strand 线程，发送线程就不会拿到已经释放的对象。
 //
 // 模板参数叫 Outcome 不叫 OUT：在 Windows 上 <asio.hpp> 会经 asio/detail/socket_types.hpp
