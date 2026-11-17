@@ -113,7 +113,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # ---- Common compiler options (interface library) ----
 add_library(project_warnings INTERFACE)
 if(MSVC)
-  target_compile_options(project_warnings INTERFACE /W4 /utf-8 /EHsc)
+  # server.cpp 等大 TU 超出 MSVC 默认 obj 节数上限（C1128），/bigobj 放宽
+  target_compile_options(project_warnings INTERFACE /W4 /utf-8 /EHsc /bigobj)
+  # 全仓 fopen/localtime 等 CRT 名字按 POSIX 拼写用，压掉 C4996 建议改用 _s 系的告警
+  target_compile_definitions(project_warnings INTERFACE _CRT_SECURE_NO_WARNINGS)
 else()
   target_compile_options(project_warnings INTERFACE
     -Wall

@@ -13,6 +13,10 @@ if is_plat("windows") then
     add_defines("WIN32_LEAN_AND_MEAN")
     -- 与 CMakeLists.txt 的 WIN32 分支同一口径：pzredis 同步路径用的 WSAPoll 要 Vista 以上的门限
     add_defines("_WIN32_WINNT=0x0601")
+    -- server.cpp 等大 TU 超出 MSVC 默认 obj 节数上限（C1128），/bigobj 放宽
+    add_cxflags("/bigobj")
+    -- 全仓 fopen/localtime 等 CRT 名字按 POSIX 拼写用，压掉 C4996 建议改用 _s 系的告警
+    add_defines("_CRT_SECURE_NO_WARNINGS")
     add_syslinks("advapi32")
     set_runtimes("MD")
     if is_mode("debug") then
