@@ -2,7 +2,7 @@
 #define ORM_LITE_WORLDBASEMATA_H
 /*
 *This file is auto create from paozhu_cli
-*本文件为自动生成 Tue, 17 Nov 2026 02:59:41 GMT
+*本文件为自动生成 Tue, 17 Nov 2026 04:15:31 GMT
 ***/
 #include <iostream>
 #include <charconv>
