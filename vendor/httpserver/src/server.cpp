@@ -192,13 +192,6 @@ static asio::awaitable<void> http2_abort_stream(std::shared_ptr<httppeer> &peer,
         co_await sess->http2_send_rst_direct(sid, CONST_HTTP2_STREAM_ERROR_CANCEL);
     co_return;
 }
-static void http2_frame_put_sid(std::string &fr, unsigned int sid)
-{
-    fr[5] = static_cast<char>((sid >> 24) & 0x7F);
-    fr[6] = static_cast<char>((sid >> 16) & 0xFF);
-    fr[7] = static_cast<char>((sid >> 8) & 0xFF);
-    fr[8] = static_cast<char>(sid & 0xFF);
-}
 static void http2_frame_put_sid(unsigned char (&fr)[9], unsigned int sid)
 {
     fr[5] = static_cast<unsigned char>((sid >> 24) & 0x7F);
