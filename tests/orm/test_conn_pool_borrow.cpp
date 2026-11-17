@@ -139,6 +139,8 @@ static GetResult<ConnT> run_get(F &&make_awaitable)
 }
 
 // 落指定槽取一条连接(占用中)。目标槽空闲应为空，这样 async_get 会真实建连到该槽。
+// 空闲感知选槽下，store(rr) 只固定轮转候选；两槽 idle_count 相等（全占用/全空）
+// 时回退轮转候选，本文件的编排都满足该前提。
 static mysql_ptr take_edit(orm_conn_pool *pool, unsigned int slot)
 {
     pool->rr_counter.store(slot);
@@ -173,6 +175,7 @@ static pg_ptr take_pg_select(orm_conn_pool *pool, unsigned int slot)
 }
 
 // 清空各槽空闲队列：shared_ptr 析构(连接对象析构 -> link 析构)归还名额。
+// 直接 clear 绕过了 pop_idle，idle_count 必须一并清零，否则选槽读到过期计数。
 static void cleanup_queues(orm_conn_pool &pool)
 {
     for (auto &sp : pool.slots)
@@ -181,6 +184,8 @@ static void cleanup_queues(orm_conn_pool &pool)
         sp->mysql_select_pool.clear();
         sp->pg_edit_pool.clear();
         sp->pg_select_pool.clear();
+        sp->idle_count[0].store(0, std::memory_order_relaxed);
+        sp->idle_count[1].store(0, std::memory_order_relaxed);
     }
 }
 
@@ -247,13 +252,15 @@ static void test_t2_t3(orm_conn_pool *pool)
     cleanup_queues(*pool);
 }
 
-// 槽0 满、槽1 唯一空闲是坏连接 -> 探测丢弃坏连接，不返回坏连接，名额归还。
+// 槽0 满、槽1 唯一空闲是坏连接且配额已满 -> 选槽落槽1（空闲多），丢弃坏连接后
+// 无名额新建，等待超时；坏连接不返回，名额随析构归还。
 static void test_t4(orm_conn_pool *pool)
 {
     std::vector<mysql_ptr> h0;
     h0.push_back(take_edit(pool, 0));
     h0.push_back(take_edit(pool, 0));
     h0.push_back(take_edit(pool, 0));// 槽0 满
+    auto extra = take_edit(pool, 1);// 槽1 配额也占满(2)：坏连接丢弃后只能等待
     auto bad = take_edit(pool, 1);
     bad->conn_link->close();     // 关闭 socket => is_closed()==true
     check(bad->is_closed(), "precond: bad conn is_closed()");
@@ -334,8 +341,9 @@ static void test_t7(orm_conn_pool *pool)
     cleanup_queues(*pool);
 }
 
-// 本槽有 waiter 时不跨槽借，waiter 按 FIFO 交接。
-// 编排协程按步骤推进：A 挂起成 waiter -> 注入槽1空闲 -> B 到来(有 waiter 不探测)
+// 本槽有 waiter 时不跨槽借，waiter 按 FIFO 交接；空闲感知选槽把新来者路由到有空闲的槽。
+// 编排协程按步骤推进：A、B 先后落槽0 挂起（此时槽1 无空闲，选槽回退轮转）
+// -> 注入槽1空闲 -> C 到来被直接路由到槽1 取走空闲（不排队）
 // -> 归还两条槽0连接，A、B 依次被交接。
 static void test_t8(orm_conn_pool *pool)
 {
@@ -347,8 +355,8 @@ static void test_t8(orm_conn_pool *pool)
     check(pool->slots[1]->mysql_edit_pool.empty(), "precond: slot1 empty at A arrival");
 
     asio::io_context ioc;
-    bool a_done = false, b_done = false;
-    std::shared_ptr<mysql_conn_base> a_conn, b_conn;
+    bool a_done = false, b_done = false, c_done = false;
+    std::shared_ptr<mysql_conn_base> a_conn, b_conn, c_conn;
 
     auto yield_n = [&](int n) -> asio::awaitable<void>
     {
@@ -372,13 +380,7 @@ static void test_t8(orm_conn_pool *pool)
                        check(pool->slots[0]->edit_waiters.size() == 1,
                              "A registered as slot0 waiter (probed, no borrow)");
 
-                       // A 挂起后，槽1 才出现空闲
-                       pool->back_mysql_edit_conn(s1);
-                       s1.reset();
-                       check(pool->slots[1]->mysql_edit_pool.size() == 1,
-                             "slot1 has 1 idle after A parked");
-
-                       // B 落槽0：此时有 waiter，不探测，应排到 A 之后
+                       // B 落槽0：槽1 仍无空闲，选槽回退轮转；有 waiter 不探测，排到 A 之后
                        pool->rr_counter.store(0);
                        asio::co_spawn(ioc,
                                       [&]() -> asio::awaitable<void>
@@ -390,8 +392,30 @@ static void test_t8(orm_conn_pool *pool)
                        co_await yield_n(4);
                        check(pool->slots[0]->edit_waiters.size() == 2,
                              "B queued behind A (no cross-slot borrow)");
+
+                       // A、B 都挂起后，槽1 才出现空闲
+                       pool->back_mysql_edit_conn(s1);
+                       s1.reset();
                        check(pool->slots[1]->mysql_edit_pool.size() == 1,
-                             "slot1 idle NOT stolen by B");
+                             "slot1 has 1 idle after A/B parked");
+
+                       // C 到来：空闲感知选槽直接路由槽1，取走空闲，不进槽0 队列
+                       pool->rr_counter.store(0);
+                       asio::co_spawn(ioc,
+                                      [&]() -> asio::awaitable<void>
+                                      {
+                                          c_conn = co_await pool->async_get_mysql_edit_conn();
+                                          c_done = true;
+                                      },
+                                      asio::detached);
+                       for (int k = 0; k < 8 && !c_done; ++k)
+                           co_await yield_n(1);
+                       check(c_done && c_conn && c_conn->conn_link->slot_index == 1,
+                             "C routed to slot1 idle (idle-aware pick)");
+                       check(pool->slots[1]->mysql_edit_pool.empty(),
+                             "slot1 idle taken by C");
+                       check(pool->slots[0]->edit_waiters.size() == 2,
+                             "A/B still queued (C did not join)");
 
                        // 归还第一条：FIFO 交给 A
                        pool->back_mysql_edit_conn(h0.back());

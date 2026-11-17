@@ -70,10 +70,12 @@ struct orm_slot
     asio::io_context *io_context = nullptr;
     unsigned int index           = 0;// 本槽在 slots 里的下标，建连时写进 conn_link
 
-    std::list<std::shared_ptr<mysql_conn_base>> mysql_edit_pool;
-    std::list<std::shared_ptr<mysql_conn_base>> mysql_select_pool;
-    std::list<std::shared_ptr<pg_conn_base>> pg_edit_pool;
-    std::list<std::shared_ptr<pg_conn_base>> pg_select_pool;
+    // 空闲连接按 LIFO 栈存放（vector 尾进尾出）：刚归还的热连接优先复用，
+    // 冷连接沉底，由定时清理从栈底扫描回收。
+    std::vector<std::shared_ptr<mysql_conn_base>> mysql_edit_pool;
+    std::vector<std::shared_ptr<mysql_conn_base>> mysql_select_pool;
+    std::vector<std::shared_ptr<pg_conn_base>> pg_edit_pool;
+    std::vector<std::shared_ptr<pg_conn_base>> pg_select_pool;
     // SQLite 单连接模式：只使用槽 0
     std::shared_ptr<sqlite_conn_base> sqlite_edit_conn;
     std::shared_ptr<sqlite_conn_base> sqlite_select_conn;
@@ -90,11 +92,45 @@ struct orm_slot
     // orm.conf 每个角色各写一条 maxpool（默认 5 / 20），共用一份计数会让 select 池
     // 正常涨满后把 edit 的名额一起吃光，写路径从此只在退避循环里打转。
     std::atomic<unsigned int> connecting[2]  = {0, 0};// 已发起、尚未入池的建连
+    // 空闲队列长度的近似镜像，下标同上。增删在锁内与队列同步发生（pop_idle /
+    // push_idle），锁外只做 relaxed 读，供选槽与跨槽借用导航；读到过期值只影响
+    // 优先选中哪个槽，正确性仍由槽锁内重查队列保证。
+    std::atomic<unsigned int> idle_count[2]  = {0, 0};
     // 空闲 + 借出 + 在途；门闩判断用它。计数由连接自己的 conn_link 持 shared_ptr 归还：
     // 建连成功时 bind 报数，连接对象析构时还名额，槽销毁后名额也还得回去。
     std::shared_ptr<std::atomic<unsigned int>> total_count[2] = {
         std::make_shared<std::atomic<unsigned int>>(0),
         std::make_shared<std::atomic<unsigned int>>(0)};
+
+    // 空闲队列的增删入口，必须持对应角色的 mutex 调用：计数与队列同锁变更，
+    // 保证锁内 idle_count == 队列长度。role：0=edit，1=select。
+    // LIFO：pop 取栈顶（最近归还的热连接），push 入栈顶。
+    // （waiter 兜底归还孤儿连接时直接操作队列，同样在锁内同步计数。）
+    template <typename ConnT>
+    std::shared_ptr<ConnT> pop_idle(std::vector<std::shared_ptr<ConnT>> &q, unsigned int role)
+    {
+        auto conn = std::move(q.back());
+        q.pop_back();
+        idle_count[role].fetch_sub(1, std::memory_order_relaxed);
+        return conn;
+    }
+    template <typename ConnT>
+    void push_idle(std::vector<std::shared_ptr<ConnT>> &q, std::shared_ptr<ConnT> conn, unsigned int role)
+    {
+        q.push_back(std::move(conn));
+        idle_count[role].fetch_add(1, std::memory_order_relaxed);
+    }
+    // 定时清理用：摘除指定位置（冷端扫描命中）的一条，同样锁内同步计数。
+    template <typename ConnT>
+    std::shared_ptr<ConnT> pop_idle_at(std::vector<std::shared_ptr<ConnT>> &q,
+                                       typename std::vector<std::shared_ptr<ConnT>>::iterator it,
+                                       unsigned int role)
+    {
+        auto conn = std::move(*it);
+        q.erase(it);
+        idle_count[role].fetch_sub(1, std::memory_order_relaxed);
+        return conn;
+    }
 };
 
 class orm_conn_pool
@@ -202,10 +238,10 @@ class orm_conn_pool
         ListT orm_slot::*member_ = nullptr;
     };
 
-    slot0_list_view<std::list<std::shared_ptr<mysql_conn_base>>> mysql_edit_pool{this, &orm_slot::mysql_edit_pool};
-    slot0_list_view<std::list<std::shared_ptr<mysql_conn_base>>> mysql_select_pool{this, &orm_slot::mysql_select_pool};
-    slot0_list_view<std::list<std::shared_ptr<pg_conn_base>>> pg_edit_pool{this, &orm_slot::pg_edit_pool};
-    slot0_list_view<std::list<std::shared_ptr<pg_conn_base>>> pg_select_pool{this, &orm_slot::pg_select_pool};
+    slot0_list_view<std::vector<std::shared_ptr<mysql_conn_base>>> mysql_edit_pool{this, &orm_slot::mysql_edit_pool};
+    slot0_list_view<std::vector<std::shared_ptr<mysql_conn_base>>> mysql_select_pool{this, &orm_slot::mysql_select_pool};
+    slot0_list_view<std::vector<std::shared_ptr<pg_conn_base>>> pg_edit_pool{this, &orm_slot::pg_edit_pool};
+    slot0_list_view<std::vector<std::shared_ptr<pg_conn_base>>> pg_select_pool{this, &orm_slot::pg_select_pool};
     // execution_context -> 槽下标 的只读反查表，由 init 传入并持有。
     // 选槽改轮转、归还改 conn_link->slot_index 之后不再有人读它，保留是因为它是
     // init(vector, index, conf) 签名的一部分，外部 ioc 模式的调用点在传。
@@ -224,6 +260,8 @@ class orm_conn_pool
   private:
     // ---- 槽定位与门闩 ----
     orm_slot &slot_ref(unsigned int slot_index);
+    // 选槽：轮转候选与半环外候选里取空闲多的一个，相等回退轮转候选。
+    unsigned int pick_slot(unsigned int role);
     // 每槽上限：max_pool 未配置（0）按 1；link_type 0=edit，1=select。
     unsigned int max_pool_of(unsigned int link_type) const;
 
