@@ -147,6 +147,9 @@ class client_session : public std::enable_shared_from_this<client_session>
 
     asio::awaitable<unsigned int> async_send_writer(const std::string &msg);
     asio::awaitable<unsigned int> async_send_writer(std::string_view msg);
+    // 头+正文两块 buffer 一次 gather 写出，省掉把正文 append 进头串的重分配与拷贝。
+    // 两个 view 指向的内存必须活过本协程的 co_await（调用方协程帧里的局部串/peer 成员）。
+    asio::awaitable<unsigned int> async_send_writer(std::string_view head, std::string_view body);
     asio::awaitable<unsigned int> async_send_writer(const unsigned char *, unsigned int);
     asio::awaitable<bool> read_some(unsigned int &readnum, std::string &log_item);
     asio::awaitable<bool> read_first(unsigned int &readnum);

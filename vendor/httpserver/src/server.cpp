@@ -181,6 +181,35 @@ static asio::awaitable<bool> http2_write_buffers_locked(const std::shared_ptr<cl
         co_await asio::async_write(*sess->socket, bufs, asio::redirect_error(asio::use_awaitable, wec));
     co_return !wec;
 }
+// 小响应快路径：HEADERS 帧链 + 一整枚 DATA 帧，一次加锁、一次 gather 写出。
+// 调用方必须先经 http2_reserve_send_window 预留全额 DATA 额度；写失败由调用方退款。
+// header/fh/data 都在调用方协程帧里，跨 co_await 生命周期安全。
+static asio::awaitable<bool> http2_write_headers_data_locked(const std::shared_ptr<client_session> &sess, const std::string &header,
+                                                             const unsigned char (&fh)[9], const char *data, size_t len,
+                                                             const std::atomic<bool> &dead)
+{
+    if (!co_await sess->http2_write_lock())
+        co_return false;
+    struct h2_write_unlock_guard
+    {
+        client_session *s;
+        ~h2_write_unlock_guard()
+        {
+            s->http2_write_unlock();
+        }
+    } unlock_guard{sess.get()};
+    if (dead.load(std::memory_order_relaxed) ||
+        sess->isclose.load(std::memory_order_relaxed) ||
+        sess->http2_closing.load(std::memory_order_relaxed))
+        co_return false;
+    std::array<asio::const_buffer, 3> bufs{asio::buffer(header), asio::buffer(fh, 9), asio::buffer(data, len)};
+    asio::error_code wec;
+    if (sess->isssl)
+        co_await asio::async_write(*sess->sslsocket, bufs, asio::redirect_error(asio::use_awaitable, wec));
+    else
+        co_await asio::async_write(*sess->socket, bufs, asio::redirect_error(asio::use_awaitable, wec));
+    co_return !wec;
+}
 static asio::awaitable<void> http2_abort_stream(std::shared_ptr<httppeer> &peer, unsigned int sid)
 {
     // 流已死（对端 RST / cleanup_stream 置过 isclose）：对 closed 流发 RST 是自造协议违规。
@@ -270,6 +299,35 @@ static asio::awaitable<bool> http2_send_inline(std::shared_ptr<httppeer> peer, s
     // 首帧不带 END_HEADERS，赋值会把「头块未结束」抹掉。
     if (!head && total == 0)
         or_http2_headers_flag(header, HTTP2_HEADER_END_STREAM);
+
+    // 小响应快路径：正文整段装得下一帧时，先预留全额窗口，再把 HEADERS+DATA 一次 gather 写出，
+    // 省一次加锁和一次写 syscall。只有 got==total 才动 DATA 字节，线上 DATA 永不超预留额度；
+    // 部分/零额度退回重走逐帧路径。上方 flush 后的 dead 复查到这里没有 co_await，
+    // 与逐帧路径「dead 检查先于 reserve、中间无 co_await」同形，死流触发不了窗口懒建。
+    if (!head && total > 0 && total <= sess->remote_max_frame_size.load())
+    {
+        const unsigned long long got = app.http2_reserve_send_window(sess.get(), sid, total);
+        if (got == total)
+        {
+            unsigned char fh[9];
+            fh[0] = static_cast<unsigned char>((got >> 16) & 0xFF);
+            fh[1] = static_cast<unsigned char>((got >> 8) & 0xFF);
+            fh[2] = static_cast<unsigned char>(got & 0xFF);
+            fh[3] = 0x00;
+            fh[4] = 0x01;
+            http2_frame_put_sid(fh, sid);
+            if (!co_await http2_write_headers_data_locked(sess, header, fh, body.data(), static_cast<size_t>(total), peer->isclose))
+            {
+                app.http2_refund_send_window(sess.get(), sid, got);
+                co_await http2_abort_stream(peer, sid);
+                co_return false;
+            }
+            sess->time_limit.store(timeid() + 16);
+            co_return true;
+        }
+        if (got > 0)
+            app.http2_refund_send_window(sess.get(), sid, got);
+    }
 
     if (!co_await http2_write_frame_locked(sess, header, peer->isclose))
     {
@@ -2687,9 +2745,8 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
                             peer->length(tempcompress.size());
                             std::string htmlcontent = peer->make_http1_header();
                             htmlcontent.append("\r\n");
-                            htmlcontent.append(tempcompress);
                             wrotetoclient = true;
-                            co_await peer_session->async_send_writer(htmlcontent);
+                            co_await peer_session->async_send_writer(htmlcontent, tempcompress);
                             DEBUG_LOG("---  http1 compress send --------");
                             clear_peer_data(peer);
                             co_return;
@@ -2710,8 +2767,7 @@ asio::awaitable<void> httpserver::http1loop(std::shared_ptr<httppeer> peer,
             }
             else
             {
-                htmlcontent.append(peer->output);
-                co_await peer_session->async_send_writer(htmlcontent);
+                co_await peer_session->async_send_writer(htmlcontent, peer->output);
             }
             DEBUG_LOG("---  http1 output send --------");
             clear_peer_data(peer);

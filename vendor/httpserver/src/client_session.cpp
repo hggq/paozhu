@@ -1253,6 +1253,54 @@ asio::awaitable<unsigned int> client_session::async_send_writer(std::string_view
     co_return 0;
 }
 
+asio::awaitable<unsigned int> client_session::async_send_writer(std::string_view head, std::string_view body)
+{
+    auto self = shared_from_this();
+    if (isclose)
+    {
+        co_return 0;
+    }
+    try
+    {
+        if (head.size() == 0 && body.size() == 0)
+        {
+            co_return 0;
+        }
+        std::array<asio::const_buffer, 2> bufs{asio::buffer(head), asio::buffer(body)};
+        unsigned int n = 0;
+        if (isssl)
+        {
+            if (sslsocket->lowest_layer().is_open())
+            {
+                n = co_await asio::async_write(*sslsocket, bufs, asio::use_awaitable);
+            }
+            else
+            {
+                isclose = true;
+            }
+        }
+        else
+        {
+            if (socket->is_open())
+            {
+                n = co_await asio::async_write(*socket, bufs, asio::use_awaitable);
+            }
+            else
+            {
+                isclose = true;
+            }
+        }
+        co_return n;
+    }
+    catch (...)
+    {
+        isclose = true;
+        iserror = true;
+        cancel();
+    }
+    co_return 0;
+}
+
 asio::awaitable<unsigned int> client_session::async_send_writer(const std::string &msg)
 {
     auto self = shared_from_this();
