@@ -2946,6 +2946,13 @@ asio::awaitable<void> httpserver::ring_client_send_loop(std::shared_ptr<client_s
 // 只在 HTTP/2 连接上 spawn —— 分配了 http2_content_queue 才用这个。
 asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<client_session> peer_session)
 {
+    // 兜底清理：async_write 抛异常时，head_ 已推迟到写后前移，这里保存本次准备
+    // 消费的环指针和槽数，catch 里兜底前推，保持与"提前前移"版本在异常路径上
+    // 的一致性（session 即将 close，但环状态不应悬挂）。
+    http2_send_queue_cache *cleanup_q       = nullptr;
+    unsigned char           cleanup_advance = 0;
+    unsigned char           cleanup_head    = 0;
+
     try
     {
         while (isstop == false)
@@ -3134,9 +3141,16 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                         gather_bufs.emplace_back(slot.data(), slot.size());
                     }
 
-                    // 推进 head_（包含跳过的死流 DATA 槽）
-                    if (slots_consumed > 0)
-                        q->head_.store((for_head + slots_consumed) & (q->capacity_ - 1), std::memory_order_release);
+                    // gather_bufs 里是指向环槽的裸 const_buffer。head_ 必须等 async_write
+                    // 完成再前移：提前发布会让生产者把同一槽 move-assign 成新帧，旧缓冲
+                    // 在写完成前被释放（ASan heap-use-after-free）。
+                    // 死流 DATA 槽虽然不写，也一并在写完后前移，避免环序错乱。
+                    const unsigned char advance_slots = slots_consumed;
+
+                    // 兜底保存：本次 async_write 可能抛异常，catch 里需要知道该前推多少槽。
+                    cleanup_q       = q;
+                    cleanup_advance = advance_slots;
+                    cleanup_head    = for_head;
 
                     if (!gather_bufs.empty())
                     {
@@ -3155,6 +3169,10 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                         if (q->bytes.load(std::memory_order_relaxed) >= sent_bytes)
                             q->bytes.fetch_sub(sent_bytes, std::memory_order_relaxed);
                     }
+
+                    // 写完成（或本批全是死流、无需写）后才释放这些槽给生产者复用。
+                    if (advance_slots > 0)
+                        q->head_.store((for_head + advance_slots) & (q->capacity_ - 1), std::memory_order_release);
 
                     // 同一拍补发本端接收窗口的欠账补量帧：补量帧只可能在环满时被拒，
                     // 而环要继续收帧必须先走到这里这一次 head_ 前移。
@@ -3195,6 +3213,10 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                 }
 
                 unsigned long long sent_bytes = slot.size();
+                // 兜底保存：async_write 抛异常时 catch 里需要知道该前推 1 个槽。
+                cleanup_q       = q;
+                cleanup_advance = 1;
+                cleanup_head    = for_head;
                 // 唯一写者：h2 生产者只入环不碰 socket，这里直接写，I/O 全程不持锁。
                 // async_write(use_awaitable) 在 socket 错误时抛异常，跳到外层 catch 收尾。
                 if (peer_session->isssl)
@@ -3226,6 +3248,16 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
         DEBUG_LOG("ring_client_http2_send_loop std::exception %s", e.what());
         peer_session->iserror = true;
         peer_session->isclose = true;
+        // async_write 抛异常时 head_ 尚未前移（修复 use-after-free 才后移的），
+        // 这里兜底前推到已消费位置，保持与原"提前前移"版本在异常路径上的一致
+        // 性，避免环 head_ 悬挂停在已释放/即将释放的槽上。session 即将 close，
+        // 生产者也已停等，但环状态应自洽。
+        if (cleanup_q && cleanup_advance > 0)
+        {
+            cleanup_q->head_.store(
+                static_cast<unsigned char>((cleanup_head + cleanup_advance) & (cleanup_q->capacity_ - 1)),
+                std::memory_order_release);
+        }
         // 消费者已死，立刻叫醒全部停等/等锁者，不让它们睡满各自预算。
         peer_session->http2_close_waiters();
     }
