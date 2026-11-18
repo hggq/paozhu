@@ -3173,6 +3173,9 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                     // 写完成（或本批全是死流、无需写）后才释放这些槽给生产者复用。
                     if (advance_slots > 0)
                         q->head_.store((for_head + advance_slots) & (q->capacity_ - 1), std::memory_order_release);
+                    // 本批已消费完，清掉兜底记录：否则后续无写入的 head_ 前移（死流跳过）
+                    // 之后再抛异常，catch 会按陈旧记录把 head_ 回退进已释放的槽。
+                    cleanup_advance = 0;
 
                     // 同一拍补发本端接收窗口的欠账补量帧：补量帧只可能在环满时被拒，
                     // 而环要继续收帧必须先走到这里这一次 head_ 前移。
@@ -3233,6 +3236,8 @@ asio::awaitable<void> httpserver::ring_client_http2_send_loop(std::shared_ptr<cl
                     q->bytes.fetch_sub(sent_bytes, std::memory_order_relaxed);
                 }
                 q->head_.store((for_head + 1) & (q->capacity_ - 1), std::memory_order_release);
+                // 本槽已消费完，清掉兜底记录，防 catch 按陈旧记录回退 head_。
+                cleanup_advance = 0;
                 // 同一拍补发本端接收窗口的欠账补量帧：补量帧只可能在环满时被拒，
                 // 而环要继续收帧必须先走到这里这一次 head_ 前移。
                 if (peer_session->has_pending_window_update())
